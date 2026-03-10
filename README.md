@@ -1,33 +1,55 @@
 # agent-skills-toolchain
 
-Private platform repo for the skills, MCP-native tools, and web-agent tooling I use and deploy together.
+Private platform repo for the installable skills, MCP-side contracts, and browser-mediated agent lanes I use and evolve together.
 
 ## Purpose
 
-This repo keeps three live surfaces separated on purpose:
+This repo is the working home for two kinds of agent assets plus the docs and validation needed to keep them bounded:
 
 - `skills/` for installable, validated skills
-- `tools/mcp/` for MCP-native tools and adapters
-- `tools/web/` for browser- or web-mediated agent tooling
+- `tools/mcp/` for MCP-native contracts, adapters, and promoted tool projects
+- `tools/web/` for browser- or web-mediated tool projects with explicit session boundaries
 
-The split matters because these surfaces have different runtime models, auth expectations, validation paths, and deployment risks. Shared docs, incubation notes, and validation helpers live around them without blurring the install or execution boundaries.
+The split matters because these surfaces have different runtime models, auth expectations, failure modes, and validation paths. Shared docs, incubation notes, and validation helpers live around them without blurring install, execution, and promotion boundaries.
 
 ## Layout
 
 - `skills/`
   - installable, validated skills only
 - `tools/mcp/`
-  - MCP-native tools and adapters that are runnable or otherwise clearly bounded
+  - MCP-native tool contracts and promoted bounded tool projects
 - `tools/web/`
-  - browser- or web-mediated tools that are runnable or otherwise clearly bounded
+  - browser- or web-mediated tool contracts and promoted bounded tool projects
 - `docs/plans/`
   - repo-level design documents and implementation notes
 - `docs/incubating/skills/`
   - future skill concepts that are not installable yet
 - `docs/incubating/tools/`
-  - future MCP or web-tool concepts that are not runnable yet
+  - future MCP or web-tool concepts that are not ready for promotion yet
 - `scripts/`
   - repo-level helpers such as validation
+
+## Current repo themes
+
+### 1. Ops and recovery skills
+
+These are the host, VM, repo-quality, and session-repair skills already shipping from `skills/`.
+
+### 2. Agent Lanes
+
+**Agent Lanes** is the replacement name for the older PromptBridge-style label.
+
+The old name implied one vague bridge. The actual system is clearer than that: it is a set of explicit lanes with explicit routing.
+
+- a Codex-side orchestration lane
+- a direct ChatGPT web lane
+- installable skills that explicitly choose the intended lane
+
+That stack spans both live tool surfaces plus explicit routing skills:
+
+- [`tools/mcp/agent-lanes-codex/`](tools/mcp/agent-lanes-codex/README.md)
+- [`tools/web/agent-lanes-chatgpt-web/`](tools/web/agent-lanes-chatgpt-web/README.md)
+- `skills/agent-lanes-*`
 
 ## Live surfaces
 
@@ -45,15 +67,26 @@ Live installable skills currently ship from `skills/`:
 - `windows-virtualization-conflict-triage` - classify Hyper-V, VBS, VMware, and `vmrun` conflict patterns safely.
 - `codex-vscode-host-routing` - keep VS Code Codex hosted on Windows by default.
 - `reboot-safe-ops-continuation` - capture resumable machine state before forced reboots.
+- `agent-lanes-codex-consult` - explicitly select the Codex-side consultation lane.
+- `agent-lanes-codex-review` - explicitly select the Codex-side review lane.
+- `agent-lanes-codex-curate` - explicitly select the Codex-side curation lane.
+- `agent-lanes-chatgpt-web-query` - explicitly select the direct ChatGPT web query lane.
+- `agent-lanes-chatgpt-web-discuss` - explicitly select the direct ChatGPT web discussion lane.
+- `agent-lanes-chatgpt-web-curate` - explicitly select the direct ChatGPT web curation lane.
 
 ### Tools
 
-The tool surfaces are first-class repo homes, even though they do not have a shipped runnable tool yet:
+The tool surfaces are first-class repo homes for bounded tool projects and contracts:
 
 - [`tools/mcp/`](tools/mcp/README.md)
 - [`tools/web/`](tools/web/README.md)
 
-Speculative tool ideas do not live here. They stay under `docs/incubating/tools/` until they become real bounded projects.
+Current bounded projects:
+
+- [`tools/mcp/agent-lanes-codex/`](tools/mcp/agent-lanes-codex/README.md)
+- [`tools/web/agent-lanes-chatgpt-web/`](tools/web/agent-lanes-chatgpt-web/README.md)
+
+Speculative tool ideas do not live here. They stay under `docs/incubating/tools/` until they become clearly bounded enough to promote.
 
 ## Validation
 
@@ -69,7 +102,36 @@ Smoke-test the helper scripts shipped with the live scripted skills:
 python .\scripts\test-live-skill-helpers.py
 ```
 
-The validator covers the live `skills/` surface only. The smoke test covers the current live scripted skills, including the formatter regression fixture. MCP and web-tool validation will be added per tool when those surfaces gain runnable projects.
+The validator covers the live `skills/` surface only. The smoke test covers the current live scripted skills, including the formatter regression fixture. MCP and web-tool validation should be added per tool as those surfaces become more runnable in-repo.
+
+## Agent Lanes at a glance
+
+Use `Agent Lanes` when you need one of these explicit paths:
+
+### Codex lane
+
+Use this when you want MCP-side orchestration, structured analysis, review, or curation with bounded fallback behavior.
+
+Recommended explicit names:
+
+- skills: `agent-lanes-codex-consult`, `agent-lanes-codex-review`, `agent-lanes-codex-curate`
+- tools: `codex_local_consult`, `codex_local_review`, `codex_local_curate`
+
+### ChatGPT web lane
+
+Use this when you want direct browser-mediated ChatGPT interaction, session-aware operations, or an explicit ChatGPT-web-side response.
+
+Recommended explicit names:
+
+- skills: `agent-lanes-chatgpt-web-query`, `agent-lanes-chatgpt-web-discuss`, `agent-lanes-chatgpt-web-curate`
+- tools: `chatgpt5_web_query`, `chatgpt5_web_discuss`, `chatgpt5_web_curate`
+
+### Routing rule
+
+The naming rule is intentional:
+
+- `agent-lanes-codex-*` means "prefer the Codex-side lane"
+- `agent-lanes-chatgpt-web-*` means "prefer the direct ChatGPT web lane"
 
 ## Working rules
 

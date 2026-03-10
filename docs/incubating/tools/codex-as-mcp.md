@@ -1,5 +1,7 @@
 # codex-as-mcp
 
+> Superseded in naming and promotion target by [`tools/mcp/agent-lanes-codex/`](../../../tools/mcp/agent-lanes-codex/README.md).
+
 ## Goal
 
 Define a clearly bounded MCP-native tool surface that exposes Codex workflows through an MCP-friendly interface.
@@ -18,4 +20,4 @@ This idea is important enough to track, but it is not yet a live runnable tool w
 
 ## Promotion target
 
-Promote this note into `tools/mcp/<project-name>/` only when the transport boundary, auth model, and smoke tests are concrete.
+The naming direction for promotion is now `Agent Lanes Codex`. Keep this note only as historical incubation context.
