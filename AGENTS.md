@@ -15,7 +15,7 @@ This repo has three live surfaces and two supporting docs areas:
 This repo does not have a single build step. Validate the parts you touch:
 
 - `pwsh -File .\scripts\validate-all-skills.ps1`: validate every live skill under `skills/`.
-- `python .\scripts\test-ops-skill-helpers.py`: run smoke tests for the helper scripts shipped with the ops skills.
+- `python .\scripts\test-live-skill-helpers.py`: run smoke tests for the current live scripted skills.
 - `git status --short --branch`: verify branch state before and after changes.
 
 ## Coding Style & Naming Conventions
@@ -29,7 +29,7 @@ This repo does not have a single build step. Validate the parts you touch:
 ## Testing Guidelines
 
 - Live skills must pass `validate-all-skills.ps1` before commit.
-- If a skill ships code in `scripts/`, add or update a lightweight smoke test and run it locally.
+- If a live skill ships code in `scripts/`, add or update a lightweight smoke test or fixture-backed regression case and run it locally.
 - Incubating docs are not installable; keep them short and use the four-section format already established in `docs/incubating/skills/`.
 
 ## Commit & Pull Request Guidelines

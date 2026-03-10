@@ -9,17 +9,28 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+FIXTURES_ROOT = REPO_ROOT / "scripts" / "fixtures" / "skill-tests"
 
 
-def run_python(*args: str) -> str:
+def run_command(*args: str) -> str:
     result = subprocess.run(
-        [sys.executable, *args],
+        list(args),
         cwd=REPO_ROOT,
         check=True,
         capture_output=True,
         text=True,
     )
     return result.stdout
+
+
+def run_python(*args: str) -> str:
+    return run_command(sys.executable, *args)
+
+
+def extract_trailing_json(stdout: str) -> dict:
+    lines = [line for line in stdout.splitlines() if line.strip()]
+    json_start = next(index for index, line in enumerate(lines) if line.startswith("{"))
+    return json.loads("\n".join(lines[json_start:]))
 
 
 def test_inspect_codex_topology(tmpdir: Path) -> None:
@@ -65,8 +76,8 @@ def test_session_inventory(tmpdir: Path) -> None:
 
 
 def test_copy_strategy(tmpdir: Path) -> None:
-    archive_target = tmpdir / "bundle.tar"
     tmpdir.mkdir(parents=True, exist_ok=True)
+    archive_target = tmpdir / "bundle.tar"
     stdout = run_python(
         "skills/long-copy-orchestrator/scripts/copy_strategy.py",
         "recommend",
@@ -77,6 +88,17 @@ def test_copy_strategy(tmpdir: Path) -> None:
     )
     recommendation = json.loads(stdout)
     assert recommendation["mechanism"] == "tar"
+
+    stdout = run_python(
+        "skills/long-copy-orchestrator/scripts/copy_strategy.py",
+        "recommend",
+        "--source",
+        str(tmpdir / "guest.vmdk"),
+        "--target",
+        r"D:\vm-target",
+    )
+    recommendation = json.loads(stdout)
+    assert recommendation["mechanism"] == "offline-attach"
 
     watch_target = tmpdir / "watch.bin"
     watch_target.write_text("12345\n", encoding="utf-8")
@@ -89,11 +111,55 @@ def test_copy_strategy(tmpdir: Path) -> None:
         "--samples",
         "2",
     )
-    lines = [line for line in stdout.splitlines() if line.strip()]
-    json_start = next(index for index, line in enumerate(lines) if line.startswith("{"))
-    report = json.loads("\n".join(lines[json_start:]))
+    report = extract_trailing_json(stdout)
     assert report["path"].endswith("watch.bin")
     assert "bytes_per_second" in report
+
+
+def test_format_codex_sessions_fixture() -> None:
+    fixture = FIXTURES_ROOT / "format-codex-sessions" / "sample-session.jsonl"
+
+    readable = run_command(
+        "node",
+        "skills/format-codex-sessions/scripts/render_codex_session.mjs",
+        "--input",
+        str(fixture),
+        "--mode",
+        "readable",
+    )
+    assert "# Codex Session Transcript" in readable
+    assert "### Tool Activity" in readable
+    assert "Ran exec_command: `echo hello from helper`" in readable
+    assert "[AGENTS instructions attached]" in readable
+    assert "Bearer [REDACTED]" in readable
+    assert "[REDACTED_API_KEY]" in readable
+    assert "developer prompt omitted" not in readable
+    assert "Top secret developer prompt" not in readable
+
+    audit = run_command(
+        "node",
+        "skills/format-codex-sessions/scripts/render_codex_session.mjs",
+        "--input",
+        str(fixture),
+        "--mode",
+        "audit",
+    )
+    assert "[developer prompt omitted]" in audit
+    assert "### Tool Activity" in audit
+    assert "Reasoning step omitted." in audit
+
+    dialogue = run_command(
+        "node",
+        "skills/format-codex-sessions/scripts/render_codex_session.mjs",
+        "--input",
+        str(fixture),
+        "--mode",
+        "dialogue",
+    )
+    assert "### User" in dialogue
+    assert "### Assistant" in dialogue
+    assert "### Tool Activity" not in dialogue
+    assert "[developer prompt omitted]" not in dialogue
 
 
 def main() -> int:
@@ -102,8 +168,9 @@ def main() -> int:
         test_inspect_codex_topology(tmpdir / "topology")
         test_session_inventory(tmpdir / "inventory")
         test_copy_strategy(tmpdir / "copy")
+    test_format_codex_sessions_fixture()
 
-    print("All ops skill helper smoke tests passed.")
+    print("All live skill helper smoke tests passed.")
     return 0
 
 
