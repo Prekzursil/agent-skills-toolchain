@@ -63,7 +63,13 @@ Validate all live skills from the repo root:
 pwsh -File .\scripts\validate-all-skills.ps1
 ```
 
-That helper validates the live `skills/` surface only. MCP and web-tool validation will be added per tool when those surfaces gain runnable projects.
+Smoke-test the helper scripts shipped with the ops skills:
+
+```powershell
+python .\scripts\test-ops-skill-helpers.py
+```
+
+The validator covers the live `skills/` surface only. The smoke test covers the three read-only helper scripts that ship with the ops skills. MCP and web-tool validation will be added per tool when those surfaces gain runnable projects.
 
 ## Working rules
 
