@@ -1,3 +1,5 @@
+# Validates the live skills surface only. Tool validation stays tool-specific
+# until runnable MCP or web projects exist under tools/.
 param(
     [string]$Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path,
     [string]$ValidatorPath

@@ -1,40 +1,54 @@
-# codex-skills-lab
+# agent-skills-toolchain
 
-Private working lab for developing, validating, and publishing Codex skills.
+Private platform repo for the skills, MCP-native tools, and web-agent tooling I use and deploy together.
 
 ## Purpose
 
-This repo keeps real installable skills under `skills/` and everything else needed to evolve them safely around that core:
+This repo keeps three live surfaces separated on purpose:
 
-- design notes
-- incubation docs for future skills
-- validation helpers
-- reference packs that grow from repeated real-world use
+- `skills/` for installable, validated skills
+- `tools/mcp/` for MCP-native tools and adapters
+- `tools/web/` for browser- or web-mediated agent tooling
 
-The first shipped skill is [`quality-gate-automation-architect`](skills/quality-gate-automation-architect/SKILL.md), which designs safe automation systems for PR repair, coverage ratchets, analyzer debt burn-down, and merge governance.
+The split matters because these surfaces have different runtime models, auth expectations, validation paths, and deployment risks. Shared docs, incubation notes, and validation helpers live around them without blurring the install or execution boundaries.
+
+The first shipped live artifact is [`quality-gate-automation-architect`](skills/quality-gate-automation-architect/SKILL.md), which designs safe automation systems for PR repair, coverage ratchets, analyzer debt burn-down, and merge governance.
 
 ## Layout
 
 - `skills/`
   - installable, validated skills only
+- `tools/mcp/`
+  - MCP-native tools and adapters that are runnable or otherwise clearly bounded
+- `tools/web/`
+  - browser- or web-mediated tools that are runnable or otherwise clearly bounded
 - `docs/plans/`
   - repo-level design documents and implementation notes
-- `docs/incubating/`
-  - future-skill concepts and stubs that are not installable yet
+- `docs/incubating/skills/`
+  - future skill concepts that are not installable yet
+- `docs/incubating/tools/`
+  - future MCP or web-tool concepts that are not runnable yet
 - `scripts/`
   - repo-level helpers such as validation
 
-## Current skill
+## Live surfaces
 
-### `quality-gate-automation-architect`
+### Skills
 
-Use this skill when the task is to design or compare:
+`quality-gate-automation-architect` is the first validated skill and remains installable from:
 
-- PR autofix loops until required checks are green
-- coverage ratchets that avoid broad refactors
-- SonarQube Cloud or Codacy debt burn-down systems
-- zero-touch versus human-approved merge governance
-- GitHub-native versus Codex-first versus local-hybrid automation backbones
+```text
+skills/quality-gate-automation-architect
+```
+
+### Tools
+
+The tool surfaces are now first-class repo homes, even though they do not have a shipped runnable tool yet:
+
+- [`tools/mcp/`](tools/mcp/README.md)
+- [`tools/web/`](tools/web/README.md)
+
+Speculative tool ideas do not live here. They stay under `docs/incubating/tools/` until they become real bounded projects.
 
 ## Validation
 
@@ -44,20 +58,11 @@ Validate all live skills from the repo root:
 pwsh -File .\scripts\validate-all-skills.ps1
 ```
 
-The helper resolves the installed Codex system validator from `CODEX_HOME` or the default user profile path.
-
-## Installability
-
-Only `skills/` is intended for installation. `docs/` and `scripts/` exist to support development and maintenance of the skills.
-
-For a GitHub-based install flow, the intended skill path is:
-
-```text
-skills/quality-gate-automation-architect
-```
+That helper validates the live `skills/` surface only. MCP and web-tool validation will be added per tool when those surfaces gain runnable projects.
 
 ## Working rules
 
 - `skills/` only contains tested, installable skills.
-- Future ideas live under `docs/incubating/` until they are proven enough to become real skills.
+- `tools/mcp/` and `tools/web/` only contain real runnable or clearly bounded tool projects.
+- Future ideas stay under `docs/incubating/skills/` or `docs/incubating/tools/` until they are proven enough to promote.
 - Derived summaries are allowed in references; raw session or chat exports are not.

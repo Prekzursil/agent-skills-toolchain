@@ -1,0 +1,21 @@
+# codex-as-mcp
+
+## Goal
+
+Define a clearly bounded MCP-native tool surface that exposes Codex workflows through an MCP-friendly interface.
+
+## Why it belongs here now
+
+This idea is important enough to track, but it is not yet a live runnable tool with settled runtime, auth, or validation boundaries.
+
+## Questions to close before promotion
+
+- What exact Codex capabilities are exposed through MCP
+- what auth model the tool expects
+- how request and response boundaries are represented
+- what the minimum runnable smoke test is
+- what must stay out of scope to avoid turning it into a generic remote shell
+
+## Promotion target
+
+Promote this note into `tools/mcp/<project-name>/` only when the transport boundary, auth model, and smoke tests are concrete.
