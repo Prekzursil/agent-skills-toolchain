@@ -38,6 +38,7 @@ Live installable skills currently ship from `skills/`:
 - `quality-gate-automation-architect` - safe automation architecture for PR repair, coverage ratchets, analyzer debt burn-down, and merge governance.
 - `codex-runtime-recovery` - diagnose split `CODEX_HOME`, state DB churn, and cross-host launch drift before destructive repair.
 - `codex-session-reunion` - inventory, compare, and safely promote the best session copies into one canonical store.
+- `format-codex-sessions` - render Codex rollout JSONL into readable Markdown transcripts without leaking prompt bulk or token-like data.
 - `long-copy-orchestrator` - choose the right copy mechanism and monitor progress during large cross-host transfers.
 - `wsl-vmware-cutover` - stage WSL-to-VMware migrations with D:-first backups and rollback checkpoints.
 - `offline-linux-disk-surgery` - inspect, grow, or repair Linux guest disks offline.

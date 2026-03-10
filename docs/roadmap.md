@@ -4,6 +4,7 @@
 
 - Keep `quality-gate-automation-architect` as the original live architecture skill.
 - Promote an operations-first live skill wave for recurring Windows, WSL, VMware, and Codex recovery incidents.
+- Promote a Codex transcript-formatting skill that turns rollout JSONL into readable Markdown without storing raw exports in the repo.
 - Keep the tool surfaces separate because MCP-native and browser-mediated work have different runtime and auth models.
 - Keep derived summaries in references and docs without storing raw session artifacts.
 
@@ -40,6 +41,12 @@ Keep VS Code Codex launching from Windows by default while allowing explicit Lin
 ### `reboot-safe-ops-continuation`
 
 Capture machine state before forced reboots so long-running migrations can resume cleanly.
+
+## Additional live Codex utility skill
+
+### `format-codex-sessions`
+
+Render Codex rollout JSONL into readable Markdown conversations while summarizing tool chatter and suppressing prompt bulk plus token-like data.
 
 ## Incubating skill backlog
 
