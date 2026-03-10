@@ -12,8 +12,6 @@ This repo keeps three live surfaces separated on purpose:
 
 The split matters because these surfaces have different runtime models, auth expectations, validation paths, and deployment risks. Shared docs, incubation notes, and validation helpers live around them without blurring the install or execution boundaries.
 
-The first shipped live artifact is [`quality-gate-automation-architect`](skills/quality-gate-automation-architect/SKILL.md), which designs safe automation systems for PR repair, coverage ratchets, analyzer debt burn-down, and merge governance.
-
 ## Layout
 
 - `skills/`
@@ -35,15 +33,21 @@ The first shipped live artifact is [`quality-gate-automation-architect`](skills/
 
 ### Skills
 
-`quality-gate-automation-architect` is the first validated skill and remains installable from:
+Live installable skills currently ship from `skills/`:
 
-```text
-skills/quality-gate-automation-architect
-```
+- `quality-gate-automation-architect` - safe automation architecture for PR repair, coverage ratchets, analyzer debt burn-down, and merge governance.
+- `codex-runtime-recovery` - diagnose split `CODEX_HOME`, state DB churn, and cross-host launch drift before destructive repair.
+- `codex-session-reunion` - inventory, compare, and safely promote the best session copies into one canonical store.
+- `long-copy-orchestrator` - choose the right copy mechanism and monitor progress during large cross-host transfers.
+- `wsl-vmware-cutover` - stage WSL-to-VMware migrations with D:-first backups and rollback checkpoints.
+- `offline-linux-disk-surgery` - inspect, grow, or repair Linux guest disks offline.
+- `windows-virtualization-conflict-triage` - classify Hyper-V, VBS, VMware, and `vmrun` conflict patterns safely.
+- `codex-vscode-host-routing` - keep VS Code Codex hosted on Windows by default.
+- `reboot-safe-ops-continuation` - capture resumable machine state before forced reboots.
 
 ### Tools
 
-The tool surfaces are now first-class repo homes, even though they do not have a shipped runnable tool yet:
+The tool surfaces are first-class repo homes, even though they do not have a shipped runnable tool yet:
 
 - [`tools/mcp/`](tools/mcp/README.md)
 - [`tools/web/`](tools/web/README.md)

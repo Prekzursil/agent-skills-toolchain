@@ -2,28 +2,55 @@
 
 ## Now
 
-- Reframe the repo as a combined platform for skills, MCP-native tools, and web-agent tooling.
-- Keep `quality-gate-automation-architect` as the first validated live skill.
+- Keep `quality-gate-automation-architect` as the original live architecture skill.
+- Promote an operations-first live skill wave for recurring Windows, WSL, VMware, and Codex recovery incidents.
 - Keep the tool surfaces separate because MCP-native and browser-mediated work have different runtime and auth models.
 - Keep derived summaries in references and docs without storing raw session artifacts.
 
-## Next skill candidates
+## Current live ops wave
 
-### `quality-gate-autofix-planner`
+### `codex-runtime-recovery`
 
-Specialize in turning an existing repo's current checks, failures, and workflow files into a concrete PR-repair implementation plan.
+Diagnose split `CODEX_HOME`, missing-session incidents, `state_5.sqlite*` churn, and Windows-vs-WSL runtime drift.
 
-### `coverage-ratchet-playbook`
+### `codex-session-reunion`
 
-Specialize in coverage-only uplift strategies, target sizing, and stop rules.
+Inventory and reunite session trees from Windows, WSL, backups, and VS Code mirrors.
 
-### `debt-burndown-orchestrator`
+### `long-copy-orchestrator`
 
-Specialize in analyzer backlog batching, allowlists, reviewer-only zones, and safe recurring schedules.
+Choose and observe the safest large-tree copy mechanism.
 
-### `skill-knowledge-refresh`
+### `wsl-vmware-cutover`
 
-Specialize in mining recurring lessons from accepted work and updating skill references with derived summaries only.
+Stage WSL-to-VMware migrations with D:-first backups and rollback checkpoints.
+
+### `offline-linux-disk-surgery`
+
+Repair, grow, and validate Linux guest disks offline.
+
+### `windows-virtualization-conflict-triage`
+
+Diagnose Hyper-V, VBS, VMware, and `vmrun` coexistence failures safely.
+
+### `codex-vscode-host-routing`
+
+Keep VS Code Codex launching from Windows by default while allowing explicit Linux-side exceptions.
+
+### `reboot-safe-ops-continuation`
+
+Capture machine state before forced reboots so long-running migrations can resume cleanly.
+
+## Incubating skill backlog
+
+The next backlog lives under `docs/incubating/skills/` and currently includes:
+
+- Codex store auditing, cross-host visibility, CLI convergence, and config canonicalization
+- WSL control-plane repair, disk-pressure recovery, and VMware guest-access recovery
+- VHDX or VMDK migration, host topology audits, artifact staging, and performance benchmarking
+- shell hygiene, Docker load slimming, and UNC or cross-filesystem diagnostics
+- VM import normalization, session forensics, machine manifests, and incident blackboxes
+- rescue-media, VMware disk expansion, guest-home restore, progress instrumentation, copy-mechanism selection, and hypervisor coexistence labs
 
 ## Next tool candidates
 
