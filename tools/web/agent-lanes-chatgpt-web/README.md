@@ -1,43 +1,20 @@
 # Agent Lanes ChatGPT Web
 
-`tools/web/agent-lanes-chatgpt-web/` is the bounded web-tool home for the browser-mediated ChatGPT lane.
+`tools/web/agent-lanes-chatgpt-web/` stores the browser-mediated PromptBridge Desktop lane contract plus the local override that stops noisy auto-launch behavior.
 
-## Purpose
+## Provenance
+- **Curated upstream**: PromptBridge Desktop / talk-lane design and session model
+- **Modified local fork**: the copied `local-overrides/mcp-lib.mjs` reflects the current workstation policy
 
-Provide an explicit web-session lane for ChatGPT browser automation without pretending it is the same class of system as MCP-native Codex orchestration.
+## Local policy override
+The workstation now requires explicit desktop readiness for the web lane. The local override disables implicit desktop autostart via:
+- `PROMPTBRIDGE_DESKTOP_AUTOSTART=false`
+- `AGENTIFY_DESKTOP_AUTOSTART=false`
 
-## Explicit aliases
+This prevents constant browser / Electron launch noise from repeated MCP status calls while keeping the lane available when the desktop session is started intentionally.
 
-Preferred explicit aliases on this side include:
-- `chatgpt5_web_query`
-- `chatgpt5_web_discuss`
-- `chatgpt5_web_curate`
-- `chatgpt_web_query`
-- `chatgpt_web_discuss`
-- `chatgpt_web_curate`
+## Included local overrides
+- `local-overrides/mcp-lib.mjs`: current Windows workstation snapshot with `desktop_autostart_disabled` gating in `ensureDesktopRunning(...)`
 
-## Boundary
-
-This lane owns:
-- browser-mediated ChatGPT interaction
-- tab and session targeting
-- readiness checks
-- session inspection and configuration
-- direct query, discuss, and curate operations
-
-It does not own Codex orchestration or repo-local execution planning.
-
-## Safety notes
-
-This lane is expected to be more fragile than MCP-native tooling because it depends on:
-- browser state
-- login state
-- CAPTCHA or handoff requirements
-- session drift
-- DOM or product changes
-
-Consumers should surface readiness and session-state failures clearly instead of masking them.
-
-## Promotion rule
-
-Keep this folder as the live bounded home for the web-lane contract, docs, and packaging plan. Runtime code may live elsewhere until the project is promoted into a fully in-repo runnable package.
+## Operational note
+When the desktop sidecar is not already running and authenticated, the expected result is a clean Lane A fallback rather than repeated browser churn.

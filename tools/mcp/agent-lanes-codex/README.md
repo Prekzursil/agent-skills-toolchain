@@ -1,49 +1,23 @@
 # Agent Lanes Codex
 
-`tools/mcp/agent-lanes-codex/` is the bounded MCP-side home for the Codex orchestration lane.
+`tools/mcp/agent-lanes-codex/` stores the Codex-side orchestration contract plus the local override snapshots required to keep the Windows-first consultation lane reproducible.
 
-## Purpose
+## Provenance
+- **Self-made lane contract**: `codex_consult` orchestration profiles and structured result schema.
+- **Modified local fork**: the copied files in `local-overrides/` reflect the current workstation runtime adjustments.
+- **Curated upstream inputs**: PromptBridge Desktop runtime code and docs that the local fork derives from.
 
-Expose structured Codex workflows through MCP with explicit profile names, explicit tool aliases, and bounded fallback behavior.
+## Why this matters
+These files preserve the exact local behavior that was required to stabilize the workstation:
+- keep `C:\Users\Prekzursil\.codex` as canonical
+- disable automatic PromptBridge Desktop spawning by default
+- preserve fallback-to-Lane-A behavior when the desktop sidecar is unavailable
+- document why the codex-orchestrator bootstrap may report `config` drift while Codex remains live and locked
 
-## Profiles
+## Included local overrides
+- `local-overrides/bootstrap.mjs`: generates the managed Codex MCP block with canonical Windows paths and `PROMPTBRIDGE_DESKTOP_AUTOSTART=false`
+- `local-overrides/codex-orchestration.mjs`: preserves structured fallback behavior (`fallback_to_lane_a = true`) when PromptBridge curation is unavailable
 
-- `consult`
-- `review`
-- `curate`
-- `brainstorm`
-- `discuss`
-- `coordinate`
-
-## Explicit aliases
-
-Preferred explicit aliases on this side include:
-- `codex_local_consult`
-- `codex_local_review`
-- `codex_local_curate`
-- `codex_orchestrator_consult`
-- `codex_orchestrator_review`
-- `codex_orchestrator_curate`
-
-## Boundary
-
-This lane is MCP-native first. It owns:
-- profile resolution
-- Codex multi-pass execution
-- structured result shaping
-- optional secondary ChatGPT web curation
-- fallback to Codex synthesis if the web lane fails
-
-It does not own browser automation directly.
-
-## Safety notes
-
-When the optional ChatGPT web curator is enabled, this lane should:
-- verify readiness first
-- inspect session state first
-- reject wrong-vendor or blocked sessions
-- fall back to Codex synthesis if the web lane fails
-
-## Promotion rule
-
-Keep this folder as the live bounded home for the MCP-side contract, docs, and packaging plan. Runtime code may live elsewhere until the project is promoted into a fully in-repo runnable package.
+## Validation notes
+- `npm run orchestration:status -- --json` sees the managed Codex/PromptBridge servers and their autostart-disabled env
+- full `orchestration:update` was blocked live by `EPERM` rename because the runtime directory was in use; the local overrides are therefore the source of truth until a cold update can run
