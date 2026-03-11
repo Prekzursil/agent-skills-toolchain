@@ -18,12 +18,12 @@ Curated Windows-first workstation bundle for the canonical Codex profile at `C:\
 - Serena, Nuxt, Netlify, and Terraform are no longer part of the active curated MCP bundle
 
 ## Current health summary
-- **Verified now**: GitHub auth, MindsDB local health, Context7 token persistence, Sentry API reachability, Codecov local CLI, Prompt Optimizer local smoke test
-- **Enabled but conservatively described**: Notion (OAuth-backed, first live use completes auth), Figma (auth-gated), SonarQube (configured, no fresh runtime proof in this pass)
-- **Enabled with app-dependent runtime**: Ghidra is enabled in canonical config and previously proved the local bridge when the plugin/server was running; live use still depends on Ghidra being open
+- **Verified now**: GitHub auth, Notion OAuth login, Ghidra headless health on 127.0.0.1:8089, MindsDB local health, Context7 token persistence, Sentry API reachability, Codecov local CLI, Prompt Optimizer local smoke test
+- **Enabled but conservatively described**: Figma (auth-gated), SonarQube (configured, no fresh runtime proof in this pass)
+- **Enabled with native-app or headless runtime**: Ghidra is enabled in canonical config and now has a verified local headless bridge at 127.0.0.1:8089; the GUI plugin path remains optional when CodeBrowser is open
 - **Enabled but partial by design**: `codex_consult`, `promptbridge_talk` under the hybrid-explicit lane model
 - **Installed/staged but intentionally disabled**: Unity MCP (bridge installed on `D:`, no local Unity Editor/project handshake in this pass)
-- **Non-MCP integrations**: Codecov uses the hosted API plus a local CLI on `D:`; Chromatic uses a CLI + Playwright workspace on `D:` and is currently blocked on `CHROMATIC_PROJECT_TOKEN`
+- **Non-MCP integrations**: Codecov uses the hosted API plus a local CLI on `D:`; Chromatic uses a CLI + Playwright workspace on `D:` and is currently blocked on `CHROMATIC_PROJECT_TOKEN` with no browser/site auth check attempted by owner instruction
 
 ## Files in this project
 - `bundle.manifest.json`: current bundle membership and provenance split
@@ -38,4 +38,5 @@ Curated Windows-first workstation bundle for the canonical Codex profile at `C:\
 - `recommendations/apps-and-extensions.md`: suggested MCPs, Codex apps, CLI integrations, and extension cleanup candidates
 - `references/upstream-sources.md`: upstream docs used for staged MCP decisions and CLI-only recommendations
 - `scripts/validate-workstation-bundle.ps1`: local validation helper for this bundle
+- `scripts/start-ghidra-headless.ps1`: local helper to launch the verified headless bridge on `127.0.0.1:8089`
 - `validation/2026-03-11-local-validation.md`: captured validation evidence

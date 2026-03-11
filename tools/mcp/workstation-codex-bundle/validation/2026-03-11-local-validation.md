@@ -22,11 +22,11 @@
 
 ## MCP and integration runtime checks
 - MindsDB local health responds on `http://127.0.0.1:47334/mcp/status` and `/mcp/sse`.
-- Notion remains enabled and OAuth-backed; this pass keeps runtime proof conservative/auth-gated rather than claiming a fresh post-login success.
-- Ghidra is enabled in canonical config; prior local bridge health succeeded when the plugin/server was running. The current bridge still depends on the Ghidra app/plugin being open.
+- `codex mcp login notion` completed successfully on 2026-03-11, confirming the interactive OAuth path works with the canonical `https://mcp.notion.com/mcp` URL.
+- Local Ghidra headless health responds on `http://127.0.0.1:8089/check_connection` and `/mcp/schema` using the installed D-drive toolchain.
 - Unity bridge help remains available through `uvx`, but no local Unity Editor/project handshake was available in this pass.
 - `D:\Tools\codecov-cli\.venv\Scripts\codecovcli.exe --help` succeeds.
-- `D:\Tools\chromatic-playwright\package.json` exists with `chromatic`, `@chromatic-com/playwright`, and `playwright`, but `CHROMATIC_PROJECT_TOKEN` is still missing.
+- `D:\Tools\chromatic-playwright\package.json` exists with `chromatic`, `@chromatic-com/playwright`, and `playwright`, but `CHROMATIC_PROJECT_TOKEN` is still missing and no browser/site auth check was attempted by owner instruction.
 - `SENTRY_HOST` is persisted in both User and Machine environment scopes as `https://sentry.io`, and a direct Sentry API request succeeds.
 
 ## Prompt Optimizer

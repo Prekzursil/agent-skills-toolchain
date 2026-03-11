@@ -15,7 +15,7 @@ This matrix reflects the current canonical Windows profile at `C:\Users\Prekzurs
 | excel | enabled | keep | full Windows `uvx.exe` path in canonical config | keep enabled |
 | figma | enabled-auth-gated | keep | endpoint responds but auth/runtime proof still depends on user session | keep enabled; first live use proves it |
 | firecrawl | enabled | keep | token-backed stdio launcher resolves | keep enabled |
-| ghidra | enabled-app-dependent | keep | canonical config enabled; previous local bridge proof succeeded when the plugin/server was running | keep enabled, but live use still depends on Ghidra being open |
+| ghidra | enabled-verified-headless | keep | canonical config enabled; local headless server proves /check_connection and /mcp/schema on 127.0.0.1:8089 | keep enabled; GUI plugin flow is optional when CodeBrowser is open |
 | github | enabled-verified | keep | GitHub MCP remains part of the working curated set | keep enabled |
 | github_cli | enabled | keep | CLI launcher present | keep enabled |
 | huggingface | enabled | keep | bearer-token URL config present | keep enabled |
@@ -23,7 +23,7 @@ This matrix reflects the current canonical Windows profile at `C:\Users\Prekzurs
 | markitdown | enabled | keep | full Windows `uvx.exe` path in canonical config | keep enabled |
 | memory | enabled | keep | canonical Windows memory file path preserved | keep enabled |
 | mindsdb | enabled-verified | keep | `http://127.0.0.1:47334/mcp/status` and `/mcp/sse` respond | keep enabled |
-| notion | enabled-auth-gated-conservative | keep | canonical config now points to `https://mcp.notion.com/mcp`; OAuth completes on first live use | keep enabled; verify on first live use |
+| notion | enabled-verified-oauth | keep | canonical config points to `https://mcp.notion.com/mcp`; `codex mcp login notion` completed successfully on 2026-03-11 | keep enabled |
 | pdf-reader | enabled | keep | explicit enablement present | keep enabled |
 | playwright | enabled | keep | stdio launcher resolves | keep enabled |
 | postgres | disabled-noisy | keep installed, disable by default | process storm created duplicate helper containers with no active DB context requirement | disabled in canonical config and VS Code sampling; enable on demand |
