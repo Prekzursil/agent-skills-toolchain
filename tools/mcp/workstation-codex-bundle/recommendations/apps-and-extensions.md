@@ -12,18 +12,20 @@ These fit the current workstation and active workflows best:
 - **Memory** — durable local memory for the canonical Windows profile
 
 ## Best if you actively use them
-- **Sentry** — production issue triage; host is now fixed to `https://sentry.io`
+- **Sentry** — production issue triage; host is fixed to `https://sentry.io`
 - **SonarQube** — quality gate diagnostics
 - **Figma** — design-to-implementation
 - **BrowserStack** — cross-browser and device verification
-- **Terraform** — keep installed but disabled until a valid Terraform Cloud token is supplied
 - **Postgres** — keep installed but disabled by default unless you actively need database MCP access
+
+## Useful local tooling outside MCP
+- **Codecov** — keep the VS Code extension pointed at the hosted API and use the local CLI on `D:` for pre-push gate analysis
+- **Chromatic** — use the CLI workspace on `D:` with Playwright; the remaining blocker is `CHROMATIC_PROJECT_TOKEN`
 
 ## Stage for later or native app required
 - **Unity MCP** — only after the Unity Editor package/server handshake succeeds
 - **Ghidra MCP** — only after the Ghidra plugin/server handshake succeeds
 - **MindsDB** — useful when you actually need a local AI/data service; otherwise keep optional
-- **Chromatic** — use Chromatic CLI for now; no official public MCP install path was found in the current vendor docs
 
 ## Skills to keep close at hand
 - `using-superpowers`
@@ -50,3 +52,4 @@ Suggested review list rather than blind uninstall:
 - **Serena MCP** — removed from canonical config by owner preference and helper-noise concerns
 - **Netlify MCP** — removed from canonical config
 - **Nuxt MCP** — removed from canonical config and no longer part of the active curated bundle
+- **Terraform MCP** — removed from the canonical bundle after direct token validation failed and the CLI-first workflow was preferred

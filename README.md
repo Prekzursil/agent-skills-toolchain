@@ -11,7 +11,7 @@ This repo is the working home for four kinds of agent assets plus the docs and v
 - `tools/editor/` for editor-local tools such as VS Code extensions
 - `tools/web/` for browser- or web-mediated tool projects with explicit session boundaries
 
-The split matters because these surfaces have different runtime models, auth expectations, failure modes, packaging rules, and validation paths. Shared docs, incubation notes, and validation helpers live around them without blurring install, execution, and promotion boundaries.
+The split matters because these surfaces have different runtime models, auth expectations, failure modes, packaging rules, and validation paths. Shared docs, incubation notes, and validation helpers live around them without blurring install, execution, and promotion boundaries. Future cross-platform packaging belongs in a packaging-only `release/` workspace so it does not become a fifth live execution surface or pollute the default runtime graph.
 
 ## Layout
 
@@ -31,6 +31,8 @@ The split matters because these surfaces have different runtime models, auth exp
   - future MCP, editor, or web-tool concepts that are not ready for promotion yet
 - `scripts/`
   - repo-level helpers such as validation
+- `release/`
+  - packaging-only workspace for future Windows/Linux/macOS bundles; not a live execution surface
 
 ## Current repo themes
 

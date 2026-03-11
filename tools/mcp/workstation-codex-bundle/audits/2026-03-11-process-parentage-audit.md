@@ -34,19 +34,17 @@ This means many duplicates are **session fan-out**, not proof that the helper it
 
 ## Immediate fixes applied in this pass
 - Removed Serena from the canonical config and stopped the remaining live Serena helper tree.
-- Disabled `postgres` and `terraform` in the canonical config because they were the largest current-noise sources.
-- Stopped the already-running duplicate helper containers for:
-  - `ghcr.io/pgedge/postgres-mcp:latest`
-  - `hashicorp/terraform-mcp-server:0.4.0`
+- Disabled `postgres` in the canonical config because it was the largest current-noise source.
+- Stopped the already-running duplicate helper containers for `ghcr.io/pgedge/postgres-mcp:latest`.
+- Terraform was later removed from the curated bundle entirely rather than kept as a disabled noise source.
 
 ## Result after targeted cleanup
 - `postgres-mcp` running containers: `0`
-- `terraform-mcp-server` running containers: `0`
 - MindsDB remains up as the only intended local MCP containerized service in this slice
 
 ## Operational conclusion
 A completely clean helper list is not achievable without closing or reloading unused VS Code / Codex windows, because the active app-server fan-out is real. The safe approach is:
 1. keep the canonical MCP set lean
-2. disable the noisiest MCPs by default when they are not usable (`terraform`) or not currently needed (`postgres`)
+2. disable the noisiest MCPs by default when they are not currently needed (`postgres`)
 3. avoid kill-all cleanup against `codex.exe`
 4. only recycle verified stale child helpers or helper containers

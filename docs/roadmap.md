@@ -84,3 +84,9 @@ Promote an incubation note into a live skill or tool only when:
 - hiding MCP-native and browser-mediated tooling under one generic bucket
 - storing raw transcript or session exports in the repo
 - adding scripts before a repeated deterministic task is proven
+
+## Release layer
+
+- Add a packaging-only `release/` workspace for future Windows, Linux, and macOS bundle artifacts.
+- Keep the default runtime graph clean by isolating release-only dependencies, manifests, and CI from the live `skills/`, `tools/mcp/`, `tools/editor/`, and `tools/web/` surfaces.
+- Preserve Codex as the execution lane and PromptBridge/Agentify as the talk-only sidecar while cross-platform packaging grows around them.
