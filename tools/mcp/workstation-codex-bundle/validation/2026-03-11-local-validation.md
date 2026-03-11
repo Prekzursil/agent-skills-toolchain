@@ -2,31 +2,29 @@
 
 ## Canonical config and settings
 - `C:\Users\Prekzursil\.codex\config.toml` parses successfully with Python `tomllib`.
+- Serena is no longer present in the canonical MCP config.
+- Nuxt is not present in the canonical MCP config.
+- `linear` and `pdf-reader` now have explicit `enabled = true` values.
 - `chatgpt.runCodexInWindowsSubsystemForLinux = false` remains set.
-- `chatgpt.openOnStartup = false` is now set.
-- BrowserStack plaintext values were removed from VS Code settings and persisted to user + machine env.
-- stale WSL-only `azureLogicAppsStandard.*` path settings were removed.
+- `chatgpt.openOnStartup = false` remains set.
+- BrowserStack plaintext values remain out of VS Code settings and persisted to user + machine env.
+- VS Code server sampling no longer includes Serena.
+- Semgrep settings now point at `C:\Users\Prekzursil\.local\bin\semgrep.exe` and use quieter defaults.
 
-## PromptBridge / Codex lanes
-- Local runtime patches were applied to:
-  - `mcp-lib.mjs` (desktop autostart disabled by env)
-  - `codex-orchestration.mjs` (structured `fallback_to_lane_a` when curation is unavailable)
-  - `bootstrap.mjs` (managed config block now includes the autostart-disabled env vars)
-- `npm run orchestration:status -- --json` sees both managed servers with `PROMPTBRIDGE_DESKTOP_AUTOSTART = false`.
-- `npm run orchestration:probe -- --json` still reports bootstrap drift because the runtime directory was live-locked and `orchestration:update` could not rename the runtime tree.
-- `npm run orchestration:self-test -- --json` confirmed tool visibility but the talk lane remained manual-ready rather than auto-started, which is the intended no-noise policy.
+## PromptBridge and Codex lanes
+- PromptBridge desktop autostart remains disabled by env.
+- `codex_consult` remains enabled but partial while runtime drift persists under live locks.
+- `promptbridge_talk` remains enabled-manual-ready under the hybrid-explicit model.
 
 ## MCP runtime checks
-- Serena tool visibility proved by a live `get_current_config` call.
-- GitHub auth proved by a live `get_me` call.
-- Linear auth proved by a live `list_teams` call.
-- MindsDB health proved by `GET http://127.0.0.1:47334/mcp/status -> 200` and `/mcp/sse -> 200 text/event-stream`.
-- Notion first-use auth gate proved by `GET https://mcp.notion.com/sse -> 401 invalid_token`.
-- Terraform container help worked, but the live Terraform MCP call returned `unauthorized`; token repair is still needed.
-- Ghidra bridge help worked from `D:`.
-- Unity stdio bridge help worked from `uvx`.
+- MindsDB local health still responds on `http://127.0.0.1:47334/mcp/status` and `/mcp/sse`.
+- Notion still presents the expected first-use auth gate at `https://mcp.notion.com/sse`.
+- Terraform remains configured through Docker but still needs token/auth repair.
+- Ghidra bridge help remains available from `D:`.
+- Unity stdio bridge help remains available through `uvx`.
 
-## Prompt Optimizer Button
-- `node --check tools/editor/prompt-optimizer-button/extension.js` passed.
-- `node tools/editor/prompt-optimizer-button/scripts/smoke-test.js` passed.
-- The installed VS Code extension remains `prekzursil-local.prompt-optimizer-button@0.1.0`.
+## Semgrep and Prompt Optimizer
+- `semgrep --version` now succeeds from `C:\Users\Prekzursil\.local\bin\semgrep.exe`.
+- `node --check tools/editor/prompt-optimizer-button/extension.js` passes.
+- `node tools/editor/prompt-optimizer-button/scripts/smoke-test.js` passes.
+- Installed Prompt Optimizer remains `prekzursil-local.prompt-optimizer-button@0.1.0`.

@@ -1,28 +1,29 @@
 # Recommended Codex apps, MCPs, skills, and extension cleanup
 
-## Best immediate MCP / Codex Settings installs
+## Best immediate MCP and Codex Settings installs
 These fit the current workstation and active workflows best:
 - **GitHub** — repo, PR, and automation work
-- **Serena** — project-aware codebase operations
 - **Notion** — specs, notes, planning, knowledge capture
 - **Linear** — issue and project coordination
 - **Playwright** — browser automation and UI validation
 - **Chrome DevTools** — frontend and network inspection
 - **Docker** — local container inspection
-- **Context7** — docs/context retrieval once tokened
+- **Context7** — docs and context retrieval once tokened
+- **Memory** — durable local memory for the canonical Windows profile
 
 ## Best if you actively use them
-- **Sentry** — production issue triage
+- **Sentry** — production issue triage once `SENTRY_HOST` is filled
 - **SonarQube** — quality gate diagnostics
-- **Terraform** — infra work (after token repair)
+- **Terraform** — infra work after token repair
 - **Figma** — design-to-implementation
-- **BrowserStack** — cross-browser/cloud device verification
-- **Postgres** — local/remote database inspection
+- **BrowserStack** — cross-browser and device verification
+- **Postgres** — local or remote database inspection
 
-## Stage for later / native app required
-- **Unity MCP** — good when a Unity Editor project is active
-- **Ghidra MCP** — high value for RE work, but only after the Ghidra plugin/server handshake
-- **MindsDB** — useful when you actually need a local AI/data service, otherwise leave as optional
+## Stage for later or native app required
+- **Unity MCP** — only after the Unity Editor package/server handshake succeeds
+- **Ghidra MCP** — only after the Ghidra plugin/server handshake succeeds
+- **MindsDB** — useful when you actually need a local AI/data service; otherwise keep optional
+- **Chromatic** — use Chromatic CLI for now; no official public MCP install path was found in the current vendor docs
 
 ## Skills to keep close at hand
 - `using-superpowers`
@@ -30,7 +31,7 @@ These fit the current workstation and active workflows best:
 - `systematic-debugging`
 - `promptbridge-codex-consult`
 - `read-github`
-- `playwright` / `playwright-interactive`
+- `playwright` and `playwright-interactive`
 - `writing-skills`
 - `codex-runtime-recovery`
 - `codex-session-reunion`
@@ -38,11 +39,14 @@ These fit the current workstation and active workflows best:
 
 ## Extension cleanup candidates
 Suggested review list rather than blind uninstall:
-1. pick one GitHub Actions extension
-2. prune remote-browsing extensions if not used (`github.remotehub`, `ms-vscode.remote-repositories`)
-3. prune Wallaby if inactive
-4. prune Firefox debugging if Chrome DevTools + Playwright already cover browser debugging
+1. keep `github.vscode-github-actions`, review-remove `me-dutour-mathieu.vscode-github-actions`
+2. review-remove `github.remotehub` and `ms-vscode.remote-repositories` if remote browsing is inactive
+3. review-remove extra AI assistants: `google.geminicodeassist`, `rainlei.superpower-copilot`
+4. review-remove `wallabyjs.dingo-vscode` if Wallaby is inactive
+5. review-remove `firefox-devtools.vscode-firefox-debug` if Chrome DevTools plus Playwright cover browser debugging
+6. keep one icon theme only: `pkief.material-icon-theme` or `vscode-icons-team.vscode-icons`
 
-## Explicit skip/remove
+## Explicit skip and remove
+- **Serena MCP** — removed from canonical config by owner preference and helper-noise concerns
 - **Netlify MCP** — removed from canonical config
-- **Nuxt MCP** — disabled until the endpoint is healthy
+- **Nuxt MCP** — removed from canonical config and no longer part of the active curated bundle
