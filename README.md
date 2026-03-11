@@ -1,16 +1,17 @@
 # agent-skills-toolchain
 
-Private platform repo for the installable skills, MCP-side contracts, and browser-mediated agent lanes I use and evolve together.
+Private platform repo for the installable skills, MCP-side contracts, editor-local tools, and browser-mediated agent tooling I use and evolve together.
 
 ## Purpose
 
-This repo is the working home for two kinds of agent assets plus the docs and validation needed to keep them bounded:
+This repo is the working home for four kinds of agent assets plus the docs and validation needed to keep them bounded:
 
 - `skills/` for installable, validated skills
 - `tools/mcp/` for MCP-native contracts, adapters, and promoted tool projects
+- `tools/editor/` for editor-local tools such as VS Code extensions
 - `tools/web/` for browser- or web-mediated tool projects with explicit session boundaries
 
-The split matters because these surfaces have different runtime models, auth expectations, failure modes, and validation paths. Shared docs, incubation notes, and validation helpers live around them without blurring install, execution, and promotion boundaries.
+The split matters because these surfaces have different runtime models, auth expectations, failure modes, packaging rules, and validation paths. Shared docs, incubation notes, and validation helpers live around them without blurring install, execution, and promotion boundaries.
 
 ## Layout
 
@@ -18,6 +19,8 @@ The split matters because these surfaces have different runtime models, auth exp
   - installable, validated skills only
 - `tools/mcp/`
   - MCP-native tool contracts and promoted bounded tool projects
+- `tools/editor/`
+  - editor-local tools with explicit installation and validation paths
 - `tools/web/`
   - browser- or web-mediated tool contracts and promoted bounded tool projects
 - `docs/plans/`
@@ -25,7 +28,7 @@ The split matters because these surfaces have different runtime models, auth exp
 - `docs/incubating/skills/`
   - future skill concepts that are not installable yet
 - `docs/incubating/tools/`
-  - future MCP or web-tool concepts that are not ready for promotion yet
+  - future MCP, editor, or web-tool concepts that are not ready for promotion yet
 - `scripts/`
   - repo-level helpers such as validation
 
@@ -50,6 +53,13 @@ That stack spans both live tool surfaces plus explicit routing skills:
 - [`tools/mcp/agent-lanes-codex/`](tools/mcp/agent-lanes-codex/README.md)
 - [`tools/web/agent-lanes-chatgpt-web/`](tools/web/agent-lanes-chatgpt-web/README.md)
 - `skills/agent-lanes-*`
+
+### 3. Windows-first workstation bundle
+
+This repo now also carries the current Windows-first MCP/editor bundle I actively use:
+
+- `tools/mcp/workstation-codex-bundle` - curated MCP selections with explicit self-made vs curated provenance.
+- `tools/editor/prompt-optimizer-button` - self-made VS Code extension for local prompt optimization with inline diff actions.
 
 ## Live surfaces
 
@@ -76,14 +86,17 @@ Live installable skills currently ship from `skills/`:
 
 ### Tools
 
-The tool surfaces are first-class repo homes for bounded tool projects and contracts:
+The live tool surfaces are first-class repo homes for bounded tool projects and contracts:
 
 - [`tools/mcp/`](tools/mcp/README.md)
+- [`tools/editor/`](tools/editor/README.md)
 - [`tools/web/`](tools/web/README.md)
 
 Current bounded projects:
 
 - [`tools/mcp/agent-lanes-codex/`](tools/mcp/agent-lanes-codex/README.md)
+- [`tools/mcp/workstation-codex-bundle/`](tools/mcp/workstation-codex-bundle/README.md)
+- [`tools/editor/prompt-optimizer-button/`](tools/editor/prompt-optimizer-button/README.md)
 - [`tools/web/agent-lanes-chatgpt-web/`](tools/web/agent-lanes-chatgpt-web/README.md)
 
 Speculative tool ideas do not live here. They stay under `docs/incubating/tools/` until they become clearly bounded enough to promote.
@@ -102,7 +115,7 @@ Smoke-test the helper scripts shipped with the live scripted skills:
 python .\scripts\test-live-skill-helpers.py
 ```
 
-The validator covers the live `skills/` surface only. The smoke test covers the current live scripted skills, including the formatter regression fixture. MCP and web-tool validation should be added per tool as those surfaces become more runnable in-repo.
+The validator covers the live `skills/` surface only. The smoke test covers the current live scripted skills, including the formatter regression fixture. MCP, editor, and web-tool validation should be added per tool as those surfaces become more runnable in-repo.
 
 ## Agent Lanes at a glance
 
@@ -136,6 +149,6 @@ The naming rule is intentional:
 ## Working rules
 
 - `skills/` only contains tested, installable skills.
-- `tools/mcp/` and `tools/web/` only contain real runnable or clearly bounded tool projects.
+- `tools/mcp/`, `tools/editor/`, and `tools/web/` only contain real runnable or clearly bounded tool projects.
 - Future ideas stay under `docs/incubating/skills/` or `docs/incubating/tools/` until they are proven enough to promote.
 - Derived summaries are allowed in references; raw session or chat exports are not.
