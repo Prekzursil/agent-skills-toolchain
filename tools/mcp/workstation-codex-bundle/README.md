@@ -19,10 +19,10 @@ Curated Windows-first MCP bundle for the canonical Codex profile at `C:\Users\Pr
 ## Current health summary
 - **Verified now**: GitHub auth, Linear auth (historical proof), MindsDB local health, Context7 token persistence, Semgrep CLI availability, Prompt Optimizer local smoke test
 - **Auth-gated but intentionally enabled**: Notion, Figma
-- **Configured but needs repair or fresh proof**: Terraform (`unauthorized`), Sentry (missing `SENTRY_HOST`), SonarQube (token/config present but runtime not freshly proved)
+- **Configured but needs repair or fresh proof**: Terraform (disabled by default until a valid token is supplied), SonarQube (token/config present but runtime not freshly proved), Notion (first-use auth), Unity/Ghidra (native handshakes required)
 - **Enabled but partial by design**: `codex_consult`, `promptbridge_talk` under the hybrid-explicit lane model
 - **Installed/staged but intentionally disabled**: Unity MCP, Ghidra MCP
-- **Removed for noise or drift**: Serena, Netlify; Nuxt removed from canonical config and kept only as historical context in older notes
+- **Removed for noise or drift**: Serena and Netlify; Nuxt remains removed and historical only
 
 ## Files in this project
 - `bundle.manifest.json`: current bundle membership and provenance split

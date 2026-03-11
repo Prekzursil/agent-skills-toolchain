@@ -12,12 +12,12 @@ These fit the current workstation and active workflows best:
 - **Memory** — durable local memory for the canonical Windows profile
 
 ## Best if you actively use them
-- **Sentry** — production issue triage once `SENTRY_HOST` is filled
+- **Sentry** — production issue triage; host is now fixed to `https://sentry.io`
 - **SonarQube** — quality gate diagnostics
-- **Terraform** — infra work after token repair
 - **Figma** — design-to-implementation
 - **BrowserStack** — cross-browser and device verification
-- **Postgres** — local or remote database inspection
+- **Terraform** — keep installed but disabled until a valid Terraform Cloud token is supplied
+- **Postgres** — keep installed but disabled by default unless you actively need database MCP access
 
 ## Stage for later or native app required
 - **Unity MCP** — only after the Unity Editor package/server handshake succeeds

@@ -28,3 +28,7 @@
 - `node --check tools/editor/prompt-optimizer-button/extension.js` passes.
 - `node tools/editor/prompt-optimizer-button/scripts/smoke-test.js` passes.
 - Installed Prompt Optimizer remains `prekzursil-local.prompt-optimizer-button@0.1.0`.
+
+- `SENTRY_HOST` is now persisted in both User and Machine environment scopes as `https://sentry.io`, and a direct Sentry API request succeeds.
+- Direct Terraform Cloud account verification still returns `401 unauthorized`; Terraform MCP was therefore switched to disabled-by-default in the canonical config.
+- The duplicate `postgres-mcp` and `terraform-mcp-server` helper containers were stopped after a no-Codex-kill parentage audit, and both servers are now disabled by default in the canonical config and the VS Code sampling snapshot.

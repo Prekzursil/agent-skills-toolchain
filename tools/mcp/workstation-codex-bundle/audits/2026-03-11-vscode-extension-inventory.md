@@ -3,7 +3,10 @@
 Generated from `code --list-extensions --show-versions` plus workstation-specific keep/optional/review heuristics. This is an audit-and-signoff inventory; it is not an uninstall script.
 
 - Total installed extensions: **147**
-- Keep means actively useful for the current workstation.
+- Classified keep: **29**
+- Classified optional: **95**
+- Candidate-remove: **23**
+- Keep means actively useful for the current Windows-first Codex / MCP workflow.
 - Candidate-remove means overlap, likely noise, or low value pending owner signoff.
 - Optional means domain-specific or preference-driven.
 
