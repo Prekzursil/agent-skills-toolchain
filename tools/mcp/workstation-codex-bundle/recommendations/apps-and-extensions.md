@@ -20,7 +20,7 @@ These fit the current workstation and active workflows best:
 
 ## Useful local tooling outside MCP
 - **Codecov** — keep the VS Code extension pointed at the hosted API and use the local CLI on `D:` for pre-push gate analysis
-- **Chromatic** — use the CLI workspace on `D:` with Playwright and the persisted `CHROMATIC_PROJECT_TOKEN`; prefer local `chromatic --playwright --dry-run` validation, keep browser/site checks out of the normal workflow, and treat missing `test-results/chromatic-archives` as the next setup task
+- **Chromatic** — use the CLI workspace on `D:` with Playwright and the persisted `CHROMATIC_PROJECT_TOKEN`; prefer local `npx playwright test` plus `chromatic --playwright --dry-run` validation, and keep browser/site checks out of the normal workflow
 
 ## Stage for later or native app required
 - **Ghidra MCP** — now usable through the verified headless bridge on `127.0.0.1:8089`; use the GUI plugin flow only when you need CodeBrowser-driven analysis

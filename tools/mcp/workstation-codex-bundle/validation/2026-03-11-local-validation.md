@@ -27,7 +27,7 @@
 - Unity MCP was removed completely from the active workstation bundle by owner preference, including the local `D:` staging checkout and env references.
 - `D:\Tools\codecov-cli\.venv\Scripts\codecovcli.exe --help` succeeds.
 - `D:\Tools\chromatic-playwright\package.json` exists with `chromatic`, `@chromatic-com/playwright`, and `playwright`, and `CHROMATIC_PROJECT_TOKEN` is now persisted locally for token-backed browser-free validation.
-- `npm run chromatic:dry-run` from `D:\Tools\chromatic-playwright` authenticates successfully with the persisted token and then stops on the next honest local blocker: missing generated `test-results/chromatic-archives`.
+- `npx playwright test --reporter=line` now generates `test-results\chromatic-archives`, and `npm run chromatic:dry-run` from `D:\Tools\chromatic-playwright` completes successfully with the persisted token without any browser/site check.
 - `SENTRY_HOST` is persisted in both User and Machine environment scopes as `https://sentry.io`, and a direct Sentry API request succeeds.
 
 ## Prompt Optimizer

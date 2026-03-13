@@ -24,14 +24,14 @@ The extension cleanup remains **audit then signoff**. No broad uninstall sweep w
 
 ## Non-MCP integrations
 - **Codecov** — VS Code points at `https://api.codecov.io`, and `D:\Tools\codecov-cli\.venv\Scripts\codecovcli.exe --help` succeeds. Use the CLI for local gate inspection before pushing.
-- **Chromatic** — the CLI workspace exists at `D:\Tools\chromatic-playwright` with Playwright wiring in `package.json`. `CHROMATIC_PROJECT_TOKEN` is now persisted locally, and a local token-first `chromatic --playwright --dry-run` authenticates successfully without any browser/site check before failing only because the workspace has no generated Chromatic archives yet.
+- **Chromatic** — the CLI workspace exists at `D:\Tools\chromatic-playwright` with Playwright wiring in `package.json`. `CHROMATIC_PROJECT_TOKEN` is now persisted locally, and a local token-first `chromatic --playwright --dry-run` completes successfully without any browser/site check after aligning Playwright output to `test-results`.
 
 ## Most important remaining gaps
-- `chromatic`: local token-backed dry-run now authenticates successfully, and the next real blocker is missing generated `test-results/chromatic-archives`
+- `chromatic`: local token-backed dry-run completes successfully after Playwright output is aligned to `test-results`
 - `codex_consult` and `promptbridge_talk`: still partial under live runtime drift, but hybrid-explicit quiet behavior is preserved
 
 ## Best next operator actions
 1. keep `postgres` disabled-by-default unless you actually need it
-2. generate local Playwright archives in the Chromatic workspace so `chromatic --playwright` can move past archive collection
+2. keep the Chromatic workspace on `D:` and rerun local Playwright generation before future non-dry-run uploads
 3. use the Ghidra GUI plugin flow only when GUI-specific analysis is needed; the headless bridge is already a valid local runtime
 4. review the 23 candidate-remove extensions and approve a removal batch if you want a quieter VS Code surface
