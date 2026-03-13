@@ -32,7 +32,7 @@ This matrix reflects the current canonical Windows profile at `C:\Users\Prekzurs
 | sentry | enabled-verified-api | keep | `SENTRY_HOST` persisted as `https://sentry.io`; direct API call succeeds without OpenAI API billing | keep enabled |
 | sonarqube | enabled-configured | keep | token/config present; fresh runtime proof still pending | keep enabled |
 | tavily | enabled | keep | token-backed stdio launcher resolves | keep enabled |
-| unity | disabled-blocked-no-local-editor | keep staged | stdio bridge installed on D:, but no Unity Editor/project was available for handshake in this pass | keep disabled until a local editor/project exists |
+| unity | removed | remove | owner preference; local D-drive staging and env references were deleted | keep removed |
 | serena | removed | remove | owner preference and helper-noise concerns | keep removed from canonical config and sampling |
 | nuxt | removed | remove | no longer present in canonical config | keep removed; historical context only |
 | netlify | removed | remove | owner preference | keep removed |

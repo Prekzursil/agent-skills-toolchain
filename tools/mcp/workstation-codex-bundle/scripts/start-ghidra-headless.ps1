@@ -58,9 +58,9 @@ $classPath = ($jarPaths | Select-Object -Unique) -join ';'
 $args = @(
   '-Xmx4g',
   '-XX:+UseG1GC',
-  "-Dghidra.home=$GhidraHome",
+  ('-Dghidra.home="{0}"' -f $GhidraHome),
   '-Dapplication.name=GhidraMCP',
-  '-classpath', $classPath,
+  '-classpath', ('"{0}"' -f $classPath),
   'com.xebyte.headless.GhidraMCPHeadlessServer',
   '--port', "$Port",
   '--bind', $Bind

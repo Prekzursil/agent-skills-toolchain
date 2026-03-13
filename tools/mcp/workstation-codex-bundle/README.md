@@ -22,8 +22,8 @@ Curated Windows-first workstation bundle for the canonical Codex profile at `C:\
 - **Enabled but conservatively described**: Figma (auth-gated), SonarQube (configured, no fresh runtime proof in this pass)
 - **Enabled with native-app or headless runtime**: Ghidra is enabled in canonical config and now has a verified local headless bridge at 127.0.0.1:8089; the GUI plugin path remains optional when CodeBrowser is open
 - **Enabled but partial by design**: `codex_consult`, `promptbridge_talk` under the hybrid-explicit lane model
-- **Installed/staged but intentionally disabled**: Unity MCP (bridge installed on `D:`, no local Unity Editor/project handshake in this pass)
-- **Non-MCP integrations**: Codecov uses the hosted API plus a local CLI on `D:`; Chromatic uses a CLI + Playwright workspace on `D:` and is currently blocked on `CHROMATIC_PROJECT_TOKEN` with no browser/site auth check attempted by owner instruction
+- **Removed from the active workstation bundle**: Unity MCP was removed completely by owner preference, including local `D:` staging and env references
+- **Non-MCP integrations**: Codecov uses the hosted API plus a local CLI on `D:`; Chromatic uses a CLI + Playwright workspace on `D:` with `CHROMATIC_PROJECT_TOKEN` persisted locally, and local `chromatic --playwright --dry-run` now authenticates successfully without any browser/site auth check before stopping on missing generated Chromatic archives
 
 ## Files in this project
 - `bundle.manifest.json`: current bundle membership and provenance split

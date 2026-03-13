@@ -20,10 +20,9 @@ These fit the current workstation and active workflows best:
 
 ## Useful local tooling outside MCP
 - **Codecov** — keep the VS Code extension pointed at the hosted API and use the local CLI on `D:` for pre-push gate analysis
-- **Chromatic** — use the CLI workspace on `D:` with Playwright; the remaining blocker is `CHROMATIC_PROJECT_TOKEN`, and no browser/site auth check is attempted unless explicitly requested
+- **Chromatic** — use the CLI workspace on `D:` with Playwright and the persisted `CHROMATIC_PROJECT_TOKEN`; prefer local `chromatic --playwright --dry-run` validation, keep browser/site checks out of the normal workflow, and treat missing `test-results/chromatic-archives` as the next setup task
 
 ## Stage for later or native app required
-- **Unity MCP** — only after the Unity Editor package/server handshake succeeds
 - **Ghidra MCP** — now usable through the verified headless bridge on `127.0.0.1:8089`; use the GUI plugin flow only when you need CodeBrowser-driven analysis
 - **MindsDB** — useful when you actually need a local AI/data service; otherwise keep optional
 

@@ -5,7 +5,7 @@
 - Serena is no longer present in the canonical MCP config.
 - Nuxt, Netlify, and Terraform are not present in the canonical MCP config.
 - `ghidra` is enabled in canonical config.
-- `unity` remains disabled in canonical config.
+- `unity` is no longer present in canonical config.
 - `notion` now targets `https://mcp.notion.com/mcp`.
 - `chatgpt.runCodexInWindowsSubsystemForLinux = false` remains set.
 - `chatgpt.openOnStartup = false` remains set.
@@ -24,9 +24,10 @@
 - MindsDB local health responds on `http://127.0.0.1:47334/mcp/status` and `/mcp/sse`.
 - `codex mcp login notion` completed successfully on 2026-03-11, confirming the interactive OAuth path works with the canonical `https://mcp.notion.com/mcp` URL.
 - Local Ghidra headless health responds on `http://127.0.0.1:8089/check_connection` and `/mcp/schema` using the installed D-drive toolchain.
-- Unity bridge help remains available through `uvx`, but no local Unity Editor/project handshake was available in this pass.
+- Unity MCP was removed completely from the active workstation bundle by owner preference, including the local `D:` staging checkout and env references.
 - `D:\Tools\codecov-cli\.venv\Scripts\codecovcli.exe --help` succeeds.
-- `D:\Tools\chromatic-playwright\package.json` exists with `chromatic`, `@chromatic-com/playwright`, and `playwright`, but `CHROMATIC_PROJECT_TOKEN` is still missing and no browser/site auth check was attempted by owner instruction.
+- `D:\Tools\chromatic-playwright\package.json` exists with `chromatic`, `@chromatic-com/playwright`, and `playwright`, and `CHROMATIC_PROJECT_TOKEN` is now persisted locally for token-backed browser-free validation.
+- `npm run chromatic:dry-run` from `D:\Tools\chromatic-playwright` authenticates successfully with the persisted token and then stops on the next honest local blocker: missing generated `test-results/chromatic-archives`.
 - `SENTRY_HOST` is persisted in both User and Machine environment scopes as `https://sentry.io`, and a direct Sentry API request succeeds.
 
 ## Prompt Optimizer

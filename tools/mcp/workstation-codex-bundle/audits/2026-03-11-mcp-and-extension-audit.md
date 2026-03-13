@@ -24,16 +24,14 @@ The extension cleanup remains **audit then signoff**. No broad uninstall sweep w
 
 ## Non-MCP integrations
 - **Codecov** — VS Code points at `https://api.codecov.io`, and `D:\Tools\codecov-cli\.venv\Scripts\codecovcli.exe --help` succeeds. Use the CLI for local gate inspection before pushing.
-- **Chromatic** — the CLI workspace exists at `D:\Tools\chromatic-playwright` with Playwright wiring in `package.json`. The current blocker is missing `CHROMATIC_PROJECT_TOKEN`, and no browser/site auth check was attempted by owner instruction.
+- **Chromatic** — the CLI workspace exists at `D:\Tools\chromatic-playwright` with Playwright wiring in `package.json`. `CHROMATIC_PROJECT_TOKEN` is now persisted locally, and a local token-first `chromatic --playwright --dry-run` authenticates successfully without any browser/site check before failing only because the workspace has no generated Chromatic archives yet.
 
 ## Most important remaining gaps
-- `unity`: staged on `D:` but still waiting for a live Unity Editor/project handshake
-- `chromatic`: CLI workspace is ready, but `CHROMATIC_PROJECT_TOKEN` is still missing
+- `chromatic`: local token-backed dry-run now authenticates successfully, and the next real blocker is missing generated `test-results/chromatic-archives`
 - `codex_consult` and `promptbridge_talk`: still partial under live runtime drift, but hybrid-explicit quiet behavior is preserved
 
 ## Best next operator actions
 1. keep `postgres` disabled-by-default unless you actually need it
-2. supply `CHROMATIC_PROJECT_TOKEN` if Chromatic should move from staged to live
-3. open a real Unity Editor/project if Unity MCP should move from staged to live
-4. use the Ghidra GUI plugin flow only when GUI-specific analysis is needed; the headless bridge is already a valid local runtime
-5. review the 23 candidate-remove extensions and approve a removal batch if you want a quieter VS Code surface
+2. generate local Playwright archives in the Chromatic workspace so `chromatic --playwright` can move past archive collection
+3. use the Ghidra GUI plugin flow only when GUI-specific analysis is needed; the headless bridge is already a valid local runtime
+4. review the 23 candidate-remove extensions and approve a removal batch if you want a quieter VS Code surface
