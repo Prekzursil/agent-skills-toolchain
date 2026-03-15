@@ -18,7 +18,7 @@ The duplicate MCP helper storm is primarily caused by **multiple live `codex.exe
 
 ## Concrete child examples
 Observed child stdio helpers under active Codex parents included:
-- `promptbridge_talk` node servers
+- `codex_consult` managed node servers exporting promptbridge_* / agentify_* tools
 - `docker-mcp`
 - `excel-mcp-server`
 - `scrapegraph-mcp`

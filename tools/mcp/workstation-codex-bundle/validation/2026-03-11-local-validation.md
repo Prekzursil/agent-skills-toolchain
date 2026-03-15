@@ -17,8 +17,8 @@
 
 ## PromptBridge and Codex lanes
 - PromptBridge desktop autostart remains disabled by env.
-- `codex_consult` remains enabled but partial while runtime drift persists under live locks.
-- `promptbridge_talk` remains enabled-manual-ready under the hybrid-explicit model.
+- `codex_consult` is the single managed MCP server in the canonical profile and now exports both codex_* orchestration tools and promptbridge_* / agentify_* talk tools.
+- `codex mcp list`, `status --json`, `probe --json`, and `self-test --json` all returned success against the canonical `.codex` runtime on 2026-03-15.
 
 ## MCP and integration runtime checks
 - MindsDB local health responds on `http://127.0.0.1:47334/mcp/status` and `/mcp/sse`.

@@ -3,7 +3,7 @@
 Curated Windows-first workstation bundle for the canonical Codex profile at `C:\Users\Prekzursil\.codex\config.toml`. This folder preserves the exact MCP, editor, env, and lane setup needed to rebuild the current Codex + VS Code + PromptBridge environment without rediscovery.
 
 ## Provenance split
-- **Self-made**: `codex_consult` and `promptbridge_talk`.
+- **Self-made**: `codex_consult`, which now exposes both codex_* orchestration tools and promptbridge_* / agentify_* talk tools from one managed server.
 - **Modified local fork**: PromptBridge runtime overrides captured under `tools/mcp/agent-lanes-codex/local-overrides/` and `tools/web/agent-lanes-chatgpt-web/local-overrides/`.
 - **Curated upstream picks**: GitHub, Notion, Linear, Playwright, Chrome DevTools, Figma, Sentry, SonarQube, MindsDB, Docker, Memory, Context7, and selected optional extras.
 - **Curated non-MCP integrations**: Codecov and Chromatic, both intentionally tracked outside the MCP set.
@@ -21,7 +21,7 @@ Curated Windows-first workstation bundle for the canonical Codex profile at `C:\
 - **Verified now**: GitHub auth, Notion OAuth login, Ghidra headless health on 127.0.0.1:8089, MindsDB local health, Context7 token persistence, Sentry API reachability, Codecov local CLI
 - **Enabled but conservatively described**: Figma (auth-gated), SonarQube (configured, no fresh runtime proof in this pass)
 - **Enabled with native-app or headless runtime**: Ghidra is enabled in canonical config and now has a verified local headless bridge at 127.0.0.1:8089; the GUI plugin path remains optional when CodeBrowser is open
-- **Enabled but partial by design**: `codex_consult`, `promptbridge_talk` under the hybrid-explicit lane model
+- **Enabled and verified**: `codex_consult` under the single-managed-server lane model; live `status`, `probe`, and `self-test` all returned `ok: true` on 2026-03-15
 - **Removed from the active workstation bundle**: Unity MCP was removed completely by owner preference, including local `D:` staging and env references
 - **Non-MCP integrations**: Codecov uses the hosted API plus a local CLI on `D:`; Chromatic uses a CLI + Playwright workspace on `D:` with `CHROMATIC_PROJECT_TOKEN` persisted locally, and local `chromatic --playwright --dry-run` now completes successfully without any browser/site auth check after aligning Playwright output to `test-results`
 

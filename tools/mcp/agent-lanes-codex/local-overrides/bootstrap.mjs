@@ -186,9 +186,7 @@ function stripManagedBlock(config) {
 function stripMcpConsultSections(config) {
   const patterns = [
     /\n?\[mcp_servers\.codex_consult\][\s\S]*?(?=\n\[|$)/g,
-    /\n?\[mcp_servers\.codex_consult\.env\][\s\S]*?(?=\n\[|$)/g,
-    /\n?\[mcp_servers\.promptbridge_talk\][\s\S]*?(?=\n\[|$)/g,
-    /\n?\[mcp_servers\.promptbridge_talk\.env\][\s\S]*?(?=\n\[|$)/g
+    /\n?\[mcp_servers\.codex_consult\.env\][\s\S]*?(?=\n\[|$)/g
   ];
   let out = config;
   for (const pattern of patterns) out = out.replace(pattern, '\n');
@@ -236,33 +234,8 @@ export function managedMcpServerSpec({
   };
 }
 
-export function managedPromptbridgeTalkServerSpec({
-  stateDir,
-  nodeExecutable = process.execPath,
-  repoRoot = promptBridgeRepoRoot(),
-  runtimeRoot = null,
-  canonicalCodexHome = null
-} = {}) {
-  const entryRoot = runtimeRoot || (canonicalCodexHome ? managedRuntimeRoot({ canonicalCodexHome }) : repoRoot);
-  return {
-    command: nodeExecutable || 'node',
-    args: [path.join(entryRoot, 'tools', 'web', 'promptbridge-talk-lane', 'src', 'mcp-server.mjs')],
-    startupTimeoutSec: 45.0,
-    toolTimeoutSec: 300.0,
-    enabled: true,
-    env: {
-      PROMPTBRIDGE_DESKTOP_STATE_DIR: stateDir,
-      AGENTIFY_DESKTOP_STATE_DIR: stateDir,
-      PROMPTBRIDGE_CODEX_HOME: canonicalCodexHome,
-      PROMPTBRIDGE_DESKTOP_AUTOSTART: 'false',
-      AGENTIFY_DESKTOP_AUTOSTART: 'false'
-    }
-  };
-}
-
 function renderManagedConfigBlock({ stateDir, nodeExecutable, repoRoot, runtimeRoot, canonicalCodexHome }) {
   const codexSpec = managedMcpServerSpec({ stateDir, nodeExecutable, repoRoot, runtimeRoot, canonicalCodexHome });
-  const promptbridgeSpec = managedPromptbridgeTalkServerSpec({ stateDir, nodeExecutable, repoRoot, runtimeRoot, canonicalCodexHome });
   return [
     MANAGED_BLOCK_START,
     '[mcp_servers.codex_consult]',
@@ -280,21 +253,6 @@ function renderManagedConfigBlock({ stateDir, nodeExecutable, repoRoot, runtimeR
     `PROMPTBRIDGE_ORCHESTRATION_CONFIG = ${JSON.stringify(codexSpec.env.PROMPTBRIDGE_ORCHESTRATION_CONFIG)}`,
     `PROMPTBRIDGE_DESKTOP_AUTOSTART = ${JSON.stringify(codexSpec.env.PROMPTBRIDGE_DESKTOP_AUTOSTART)}`,
     `AGENTIFY_DESKTOP_AUTOSTART = ${JSON.stringify(codexSpec.env.AGENTIFY_DESKTOP_AUTOSTART)}`,
-    '',
-    '[mcp_servers.promptbridge_talk]',
-    `command = ${JSON.stringify(promptbridgeSpec.command)}`,
-    `args = ${JSON.stringify(promptbridgeSpec.args)}`,
-    `startup_timeout_sec = ${promptbridgeSpec.startupTimeoutSec.toFixed(1)}`,
-    `tool_timeout_sec = ${promptbridgeSpec.toolTimeoutSec.toFixed(1)}`,
-    `enabled = ${promptbridgeSpec.enabled ? 'true' : 'false'}`,
-    '',
-    '[mcp_servers.promptbridge_talk.env]',
-    `PROMPTBRIDGE_DESKTOP_STATE_DIR = ${JSON.stringify(promptbridgeSpec.env.PROMPTBRIDGE_DESKTOP_STATE_DIR)}`,
-    '# Legacy compatibility for older builds/scripts.',
-    `AGENTIFY_DESKTOP_STATE_DIR = ${JSON.stringify(promptbridgeSpec.env.AGENTIFY_DESKTOP_STATE_DIR)}`,
-    `PROMPTBRIDGE_CODEX_HOME = ${JSON.stringify(promptbridgeSpec.env.PROMPTBRIDGE_CODEX_HOME)}`,
-    `PROMPTBRIDGE_DESKTOP_AUTOSTART = ${JSON.stringify(promptbridgeSpec.env.PROMPTBRIDGE_DESKTOP_AUTOSTART)}`,
-    `AGENTIFY_DESKTOP_AUTOSTART = ${JSON.stringify(promptbridgeSpec.env.AGENTIFY_DESKTOP_AUTOSTART)}`,
     MANAGED_BLOCK_END
   ].join('\n');
 }
@@ -315,7 +273,7 @@ function renderAgentsMd({ canonicalCodexHome, mirrorCodexHome }) {
     '',
     '## Lane B (policy-driven sidecar)',
     '- codex_consult is the Codex orchestration lane.',
-    '- promptbridge_talk is the PromptBridge talk-only lane.',
+    '- A single managed MCP server exports codex_* orchestration tools plus promptbridge_* / agentify_* talk-only tools.',
     '- Use codex_consult automatically for:',
     '  - ambiguous requirement',
     '  - security-sensitive change',
@@ -323,7 +281,7 @@ function renderAgentsMd({ canonicalCodexHome, mirrorCodexHome }) {
     '  - architecture tradeoff decision',
     '',
     '## Lane B operating model',
-    '- Prefer codex_* tools for orchestration and promptbridge_* tools for talk-only discussion/curation.',
+    '- Prefer codex_* tools for orchestration and promptbridge_* tools for talk-only discussion/curation, all from the same managed server.',
     '- Keep agentify_* aliases for compatibility during 0.1.x.',
     '- Ensure a ready desktop session before submitting consultation context:',
     '  - promptbridge_ensure_ready / agentify_ensure_ready',
@@ -374,7 +332,7 @@ function renderWorkflowMd({ canonicalCodexHome, mirrorCodexHome }) {
     '## Lane B flow',
     '1. Ensure PromptBridge Desktop is ready and authenticated.',
     '2. Reuse or create a stable dedicated tab for the current workspace or task.',
-    '3. Submit structured work through codex_consult and use promptbridge_talk only for explicit talk-only discussion or curation.',
+    '3. Submit structured work through codex_consult and use promptbridge_* / agentify_* only for explicit talk-only discussion or curation from the same managed server.',
     '4. Normalize the result into:',
     '   - problem',
     '   - assumptions',
@@ -385,7 +343,7 @@ function renderWorkflowMd({ canonicalCodexHome, mirrorCodexHome }) {
     '   - confidence',
     '',
     '## Verification contract',
-    '- CLI proof requires in-session visibility of codex_consult plus one of promptbridge_status / agentify_status.',
+    '- CLI proof requires one managed server handshake that exports codex_consult plus one of promptbridge_status / agentify_status.',
     '- VS Code proof requires canonical-profile extension preflight plus a fresh Codex chat that can surface codex_consult and one of the PromptBridge status tools.',
     '- If PromptBridge tools are not visible in-session, continue in Lane A and emit fallback_to_lane_a = true.',
     '',
@@ -965,13 +923,6 @@ export async function getBootstrapStatus({
   const stateDir = stateDirForBootstrap({ platform, isWsl, windowsHome: resolvedWindowsHome, homeDir });
   const managedServers = {
     codexConsult: managedMcpServerSpec({
-      stateDir,
-      nodeExecutable,
-      repoRoot,
-      runtimeRoot,
-      canonicalCodexHome: resolved.canonicalCodexHome
-    }),
-    promptbridgeTalk: managedPromptbridgeTalkServerSpec({
       stateDir,
       nodeExecutable,
       repoRoot,
