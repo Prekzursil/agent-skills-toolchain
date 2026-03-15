@@ -6,4 +6,4 @@ Use this surface for projects that run inside an editor host rather than as MCP-
 
 Current live editor tool projects:
 
-- prompt-optimizer-button - self-made VS Code extension for local prompt optimization with inline diff actions.
+- None currently.

@@ -29,8 +29,3 @@
 - `D:\Tools\chromatic-playwright\package.json` exists with `chromatic`, `@chromatic-com/playwright`, and `playwright`, and `CHROMATIC_PROJECT_TOKEN` is now persisted locally for token-backed browser-free validation.
 - `npx playwright test --reporter=line` now generates `test-results\chromatic-archives`, and `npm run chromatic:dry-run` from `D:\Tools\chromatic-playwright` completes successfully with the persisted token without any browser/site check.
 - `SENTRY_HOST` is persisted in both User and Machine environment scopes as `https://sentry.io`, and a direct Sentry API request succeeds.
-
-## Prompt Optimizer
-- `node --check tools/editor/prompt-optimizer-button/extension.js` passes.
-- `node tools/editor/prompt-optimizer-button/scripts/smoke-test.js` passes.
-- Installed Prompt Optimizer remains `prekzursil-local.prompt-optimizer-button@0.1.0`.

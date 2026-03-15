@@ -3,7 +3,7 @@
 Curated Windows-first workstation bundle for the canonical Codex profile at `C:\Users\Prekzursil\.codex\config.toml`. This folder preserves the exact MCP, editor, env, and lane setup needed to rebuild the current Codex + VS Code + PromptBridge environment without rediscovery.
 
 ## Provenance split
-- **Self-made**: `codex_consult`, `promptbridge_talk`, and the editor-local `prompt-optimizer-button`.
+- **Self-made**: `codex_consult` and `promptbridge_talk`.
 - **Modified local fork**: PromptBridge runtime overrides captured under `tools/mcp/agent-lanes-codex/local-overrides/` and `tools/web/agent-lanes-chatgpt-web/local-overrides/`.
 - **Curated upstream picks**: GitHub, Notion, Linear, Playwright, Chrome DevTools, Figma, Sentry, SonarQube, MindsDB, Docker, Memory, Context7, and selected optional extras.
 - **Curated non-MCP integrations**: Codecov and Chromatic, both intentionally tracked outside the MCP set.
@@ -18,7 +18,7 @@ Curated Windows-first workstation bundle for the canonical Codex profile at `C:\
 - Serena, Nuxt, Netlify, and Terraform are no longer part of the active curated MCP bundle
 
 ## Current health summary
-- **Verified now**: GitHub auth, Notion OAuth login, Ghidra headless health on 127.0.0.1:8089, MindsDB local health, Context7 token persistence, Sentry API reachability, Codecov local CLI, Prompt Optimizer local smoke test
+- **Verified now**: GitHub auth, Notion OAuth login, Ghidra headless health on 127.0.0.1:8089, MindsDB local health, Context7 token persistence, Sentry API reachability, Codecov local CLI
 - **Enabled but conservatively described**: Figma (auth-gated), SonarQube (configured, no fresh runtime proof in this pass)
 - **Enabled with native-app or headless runtime**: Ghidra is enabled in canonical config and now has a verified local headless bridge at 127.0.0.1:8089; the GUI plugin path remains optional when CodeBrowser is open
 - **Enabled but partial by design**: `codex_consult`, `promptbridge_talk` under the hybrid-explicit lane model

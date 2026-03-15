@@ -61,7 +61,6 @@ That stack spans both live tool surfaces plus explicit routing skills:
 This repo now also carries the current Windows-first MCP/editor bundle I actively use:
 
 - `tools/mcp/workstation-codex-bundle` - curated MCP selections with explicit self-made vs curated provenance.
-- `tools/editor/prompt-optimizer-button` - self-made VS Code extension for local prompt optimization with inline diff actions.
 
 ## Live surfaces
 
@@ -98,7 +97,6 @@ Current bounded projects:
 
 - [`tools/mcp/agent-lanes-codex/`](tools/mcp/agent-lanes-codex/README.md)
 - [`tools/mcp/workstation-codex-bundle/`](tools/mcp/workstation-codex-bundle/README.md)
-- [`tools/editor/prompt-optimizer-button/`](tools/editor/prompt-optimizer-button/README.md)
 - [`tools/web/agent-lanes-chatgpt-web/`](tools/web/agent-lanes-chatgpt-web/README.md)
 
 Speculative tool ideas do not live here. They stay under `docs/incubating/tools/` until they become clearly bounded enough to promote.
