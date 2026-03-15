@@ -2,8 +2,8 @@
 
 Generated from `code --list-extensions --show-versions` plus workstation-specific keep/optional/review heuristics. This is an audit-and-signoff inventory; it is not an uninstall script.
 
-- Total installed extensions: **147**
-- Classified keep: **29**
+- Total installed extensions: **146**
+- Classified keep: **28**
 - Classified optional: **95**
 - Candidate-remove: **23**
 - Keep means actively useful for the current Windows-first Codex / MCP workflow.
@@ -53,7 +53,6 @@ Generated from `code --list-extensions --show-versions` plus workstation-specifi
 - `ms-vscode.powershell@2025.4.0`
 - `ms-vscode.remote-explorer@0.5.0`
 - `openai.chatgpt@26.5309.21912` — keep: primary Codex/ChatGPT integration surface
-- `prekzursil-local.prompt-optimizer-button@0.1.0` — keep: local prompt optimizer v2, no browser handoff
 - `redhat.vscode-yaml@1.21.0`
 - `semgrep.semgrep@1.16.0` — keep, but repair: CLI now installed locally and settings were tuned quieter
 - `sonarsource.sonarlint-vscode@4.44.0`

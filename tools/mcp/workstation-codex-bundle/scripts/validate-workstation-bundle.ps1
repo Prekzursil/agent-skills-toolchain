@@ -21,5 +21,4 @@ python -c "import requests; r=requests.get('http://127.0.0.1:47334/mcp/status', 
 & 'D:\Tools\codecov-cli\.venv\Scripts\codecovcli.exe' --help | Select-Object -First 1 | Out-Host
 if (-not (Test-Path 'D:\Tools\chromatic-playwright\package.json')) { throw 'Chromatic workspace package.json missing' }
 Write-Host 'chromatic workspace present'
-node (Join-Path $repoRoot '..\..\editor\prompt-optimizer-button\scripts\smoke-test.js')
 Write-Host 'workstation bundle validation passed'

@@ -6,7 +6,7 @@
 - The repo is a private, personal-account, Windows-first platform repo.
 - The current live surfaces are `skills/`, `tools/mcp/`, `tools/editor/`, and `tools/web/`.
 - `tools/mcp/` is the Codex-side orchestration lane; `tools/web/` is the PromptBridge/Agentify talk-only sidecar lane.
-- `tools/editor/` is already first-class for editor-local deliverables such as Prompt Optimizer.
+- `tools/editor/` is already first-class for editor-local deliverables.
 - The active Windows `CODEX_HOME` remains the canonical runtime root.
 - `.codex-vscode` is migration/comparison input only, not a second writable home.
 - Current bootstrap/runtime logic already contains platform-aware path handling under `tools/mcp/agent-lanes-codex/local-overrides/bootstrap.mjs`.
@@ -38,7 +38,7 @@ Keep the repo Windows-first and execution-authoritative through Codex, while add
 Release **multiple thin platform bundles**, not one monolithic cross-platform application.
 
 ### What gets released
-- **Windows**: portable bootstrap bundle plus the Prompt Optimizer VSIX, config templates, and launch helpers.
+- **Windows**: portable bootstrap bundle plus config templates and launch helpers.
 - **Linux**: thin tarball with lane launchers, config templates, and docs for local `CODEX_HOME` resolution.
 - **macOS**: thin tarball with lane launchers, config templates, and docs for local `CODEX_HOME` resolution.
 
