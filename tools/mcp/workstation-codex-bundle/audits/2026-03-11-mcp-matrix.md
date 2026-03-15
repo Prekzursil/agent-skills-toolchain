@@ -8,7 +8,7 @@ This matrix reflects the current canonical Windows profile at `C:\Users\Prekzurs
 | browserstack | enabled | keep | env persisted in user+machine scopes | keep enabled |
 | chrome-devtools | enabled | keep | active stdio launcher resolves | keep enabled |
 | codacy | enabled | keep | token-backed stdio launcher resolves | keep enabled |
-| codex_consult | enabled-partial | keep and monitor | lane remains partial under live runtime drift and no-kill policy | keep enabled under hybrid-explicit lane model |
+| codex_consult | enabled-verified-single-server | keep | single managed MCP server in canonical `.codex`; exports codex_* plus promptbridge_* / agentify_* tools and passed status/probe/self-test on 2026-03-15 | keep enabled as the single managed consultation lane |
 | context7 | enabled | keep | token persisted in user+machine scopes | keep enabled |
 | desktop-commander | enabled | keep | stdio launcher resolves | keep enabled |
 | docker | enabled | keep but watch | duplicate helper spawn still occurs with many live Codex app-server parents | keep enabled; do not treat it as orphan noise by default |
@@ -27,7 +27,6 @@ This matrix reflects the current canonical Windows profile at `C:\Users\Prekzurs
 | pdf-reader | enabled | keep | explicit enablement present | keep enabled |
 | playwright | enabled | keep | stdio launcher resolves | keep enabled |
 | postgres | disabled-noisy | keep installed, disable by default | process storm created duplicate helper containers with no active DB context requirement | disabled in canonical config and VS Code sampling; enable on demand |
-| promptbridge_talk | enabled-manual-ready-partial | keep and monitor | desktop autostart suppressed; server remains available without browser popups | keep enabled under hybrid-explicit lane model |
 | scrapegraph | enabled | keep | full Windows `uvx.exe` path in canonical config | keep enabled |
 | sentry | enabled-verified-api | keep | `SENTRY_HOST` persisted as `https://sentry.io`; direct API call succeeds without OpenAI API billing | keep enabled |
 | sonarqube | enabled-configured | keep | token/config present; fresh runtime proof still pending | keep enabled |

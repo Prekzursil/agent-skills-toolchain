@@ -28,7 +28,7 @@ The extension cleanup remains **audit then signoff**. No broad uninstall sweep w
 
 ## Most important remaining gaps
 - `chromatic`: local token-backed dry-run completes successfully after Playwright output is aligned to `test-results`
-- `codex_consult` and `promptbridge_talk`: still partial under live runtime drift, but hybrid-explicit quiet behavior is preserved
+- `codex_consult`: single managed server is verified in the canonical runtime and now carries the PromptBridge talk/status tools without a second installed MCP entry
 
 ## Best next operator actions
 1. keep `postgres` disabled-by-default unless you actually need it
