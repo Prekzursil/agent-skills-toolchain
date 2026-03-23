@@ -14,7 +14,11 @@ if (-not $ValidatorPath) {
         Join-Path ([Environment]::GetFolderPath("UserProfile")) ".codex"
     }
 
-    $ValidatorPath = Join-Path $codexHome "skills/.system/skill-creator/scripts/quick_validate.py"
+    $validatorCandidates = @(
+        (Join-Path $codexHome ".agents/skills/.system/skill-creator/scripts/quick_validate.py"),
+        (Join-Path $codexHome "skills/.system/skill-creator/scripts/quick_validate.py")
+    )
+    $ValidatorPath = $validatorCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
 }
 
 if (-not (Test-Path $ValidatorPath)) {
@@ -30,7 +34,12 @@ if (-not $python) {
     throw "Python launcher not found. Install Python or pass a custom validation command."
 }
 
-$skillsRoot = Join-Path $Root "skills"
+$skillsRoot = if (Test-Path (Join-Path $Root ".agents\skills")) {
+    Join-Path $Root ".agents\skills"
+} else {
+    Join-Path $Root "skills"
+}
+
 if (-not (Test-Path $skillsRoot)) {
     throw "Skills root not found at $skillsRoot"
 }

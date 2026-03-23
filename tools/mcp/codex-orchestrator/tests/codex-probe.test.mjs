@@ -34,7 +34,7 @@ function bootstrapFixture() {
       },
       promptbridgeTalk: {
         command: 'node',
-        args: ['C:/repo/tools/web/promptbridge-talk-lane/src/mcp-server.mjs'],
+        args: ['C:/repo/mcp-server.mjs'],
         env: { PROMPTBRIDGE_DESKTOP_STATE_DIR: 'C:/Users/Test/.promptbridge-desktop' }
       }
     }
@@ -84,6 +84,10 @@ function healthyTalkToolNames() {
 
 function healthyCodexToolNames() {
   return ['codex_consult', 'codex_brainstorm', 'codex_review', 'codex_discuss', 'codex_coordinate', 'codex_curate'];
+}
+
+function healthyUnifiedToolNames() {
+  return [...healthyCodexToolNames(), ...healthyTalkToolNames()];
 }
 
 test('codex probe: resolveProbeClientModulePaths walks up to shared runtime node_modules for nested talk-lane entrypoints', async () => {
@@ -182,12 +186,7 @@ test('codex probe: probeConsultationStack returns expected tool names when both 
       ok: true,
       status: { ok: true, url: 'https://chatgpt.com/', blocked: false }
     }),
-    probeMcpServerStartupImpl: async ({ args }) => {
-      if (String(args?.[0] || '').includes('promptbridge-talk-lane')) {
-        return { ok: true, phase: 'handshake', toolNames: healthyTalkToolNames() };
-      }
-      return { ok: true, phase: 'handshake', toolNames: healthyCodexToolNames() };
-    },
+    probeMcpServerStartupImpl: async () => ({ ok: true, phase: 'handshake', toolNames: healthyUnifiedToolNames() }),
 
     runSchemaConsultationCheckImpl: async () => ({
       ok: true,
@@ -340,15 +339,14 @@ test('codex probe: probeVsCodeExtensionPreflight reports shared-profile extensio
     JSON.stringify({
       'chatgpt.runCodexInWindowsSubsystemForLinux': false,
       mcpServers: {
-        codex_consult: { command: 'node' },
-        promptbridge_talk: { command: 'node' }
+        codex_consult: { command: 'node' }
       }
     }),
     'utf8'
   );
   await fs.writeFile(
     path.join(canonicalHome, 'config.toml'),
-    `[mcp_servers.codex_consult]\ncommand = "node"\n\n[mcp_servers.promptbridge_talk]\ncommand = "node"\n`,
+    `[mcp_servers.codex_consult]\ncommand = "node"\n`,
     'utf8'
   );
 

@@ -5,9 +5,10 @@
 - Keep the existing live ops, recovery, transcript, and repo-quality skills intact.
 - Build out the Windows-first orchestration stack on top of that existing base.
 - Keep the primary execution surfaces separated:
-  - `skills/`
+  - `.agents/skills/`
   - `tools/mcp/`
   - `tools/web/`
+- Keep `skills/` only as a temporary compatibility layer until the migration is complete.
 - Retain `tools/editor/` as a bounded editor-local surface.
 - Keep the root install path warning-free.
 - Keep the Codex orchestration lane and PromptBridge talk-only lane separate.

@@ -241,23 +241,11 @@ export function managedPromptbridgeTalkServerSpec({
   runtimeRoot = null,
   canonicalCodexHome = null
 } = {}) {
-  const entryRoot = runtimeRoot || (canonicalCodexHome ? managedRuntimeRoot({ canonicalCodexHome }) : repoRoot);
-  return {
-    command: nodeExecutable || 'node',
-    args: [path.join(entryRoot, 'tools', 'web', 'promptbridge-talk-lane', 'src', 'mcp-server.mjs')],
-    startupTimeoutSec: 45.0,
-    toolTimeoutSec: 300.0,
-    enabled: true,
-    env: {
-      PROMPTBRIDGE_DESKTOP_STATE_DIR: stateDir,
-      AGENTIFY_DESKTOP_STATE_DIR: stateDir
-    }
-  };
+  return managedMcpServerSpec({ stateDir, nodeExecutable, repoRoot, runtimeRoot, canonicalCodexHome });
 }
 
 function renderManagedConfigBlock({ stateDir, nodeExecutable, repoRoot, runtimeRoot, canonicalCodexHome }) {
   const codexSpec = managedMcpServerSpec({ stateDir, nodeExecutable, repoRoot, runtimeRoot, canonicalCodexHome });
-  const promptbridgeSpec = managedPromptbridgeTalkServerSpec({ stateDir, nodeExecutable, repoRoot, runtimeRoot, canonicalCodexHome });
   return [
     MANAGED_BLOCK_START,
     '[mcp_servers.codex_consult]',
@@ -273,18 +261,6 @@ function renderManagedConfigBlock({ stateDir, nodeExecutable, repoRoot, runtimeR
     `AGENTIFY_DESKTOP_STATE_DIR = ${JSON.stringify(codexSpec.env.AGENTIFY_DESKTOP_STATE_DIR)}`,
     `PROMPTBRIDGE_CODEX_HOME = ${JSON.stringify(codexSpec.env.PROMPTBRIDGE_CODEX_HOME)}`,
     `PROMPTBRIDGE_ORCHESTRATION_CONFIG = ${JSON.stringify(codexSpec.env.PROMPTBRIDGE_ORCHESTRATION_CONFIG)}`,
-    '',
-    '[mcp_servers.promptbridge_talk]',
-    `command = ${JSON.stringify(promptbridgeSpec.command)}`,
-    `args = ${JSON.stringify(promptbridgeSpec.args)}`,
-    `startup_timeout_sec = ${promptbridgeSpec.startupTimeoutSec.toFixed(1)}`,
-    `tool_timeout_sec = ${promptbridgeSpec.toolTimeoutSec.toFixed(1)}`,
-    `enabled = ${promptbridgeSpec.enabled ? 'true' : 'false'}`,
-    '',
-    '[mcp_servers.promptbridge_talk.env]',
-    `PROMPTBRIDGE_DESKTOP_STATE_DIR = ${JSON.stringify(promptbridgeSpec.env.PROMPTBRIDGE_DESKTOP_STATE_DIR)}`,
-    '# Legacy compatibility for older builds/scripts.',
-    `AGENTIFY_DESKTOP_STATE_DIR = ${JSON.stringify(promptbridgeSpec.env.AGENTIFY_DESKTOP_STATE_DIR)}`,
     MANAGED_BLOCK_END
   ].join('\n');
 }
@@ -305,8 +281,8 @@ function renderAgentsMd({ canonicalCodexHome, mirrorCodexHome }) {
     '- Suggested flow: Draft -> Review (gpt-5.4) -> Reconcile -> Choose execution path -> Execute -> Verify.',
     '',
     '## Lane B (policy-driven sidecar)',
-    '- codex_consult is the Codex orchestration lane.',
-    '- promptbridge_talk is the PromptBridge talk-only lane.',
+    '- codex_consult is the single managed MCP lane.',
+    '- codex_* execution tools and promptbridge_* / agentify_* talk tools are exposed from that same managed server.',
     '- Use codex_consult automatically for:',
     '  - ambiguous requirement',
     '  - security-sensitive change',
@@ -314,7 +290,7 @@ function renderAgentsMd({ canonicalCodexHome, mirrorCodexHome }) {
     '  - architecture tradeoff decision',
     '',
     '## Lane B operating model',
-    '- Prefer codex_* tools for orchestration and promptbridge_* tools for talk-only discussion/curation.',
+    '- Prefer codex_* tools for orchestration and promptbridge_* / agentify_* tools for talk-only discussion/curation.',
     '- Keep agentify_* aliases for compatibility during 0.1.x.',
     '- Ensure a ready desktop session before submitting consultation context:',
     '  - promptbridge_ensure_ready / agentify_ensure_ready',
@@ -557,8 +533,10 @@ function renderManagedOrchestrationFile({ codexHome } = {}) {
 }
 
 async function syncManagedSkills({ codexHome, repoRoot = promptBridgeRepoRoot(), dryRun = false } = {}) {
-  const sourceSkillsRoot = path.join(repoRoot, 'skills');
-  const skillsRoot = path.join(codexHome, 'skills');
+  const sourceSkillsRoot = (await pathExists(path.join(repoRoot, '.agents', 'skills')))
+    ? path.join(repoRoot, '.agents', 'skills')
+    : path.join(repoRoot, 'skills');
+  const skillsRoot = path.join(codexHome, '.agents', 'skills');
   const backups = [];
   let changed = false;
   let installedSkills = [];
@@ -620,7 +598,7 @@ async function applyBootstrapToHome({
     agentsPath: path.join(codexHome, 'AGENTS.md'),
     workflowPath: path.join(codexHome, 'CONSULTATION_WORKFLOW.md'),
     orchestrationPath: path.join(codexHome, 'promptbridge-orchestration.toml'),
-    skillsRoot: path.join(codexHome, 'skills')
+    skillsRoot: path.join(codexHome, '.agents', 'skills')
   };
   const stateDir = stateDirForBootstrap({ platform, isWsl, windowsHome, homeDir });
   const sqliteHome = managedSqliteHome({ canonicalCodexHome, codexHome });
@@ -720,21 +698,22 @@ async function removeBootstrapFromHome({ codexHome } = {}) {
     changed = true;
   }
 
-  const skillsRoot = path.join(codexHome, 'skills');
-  let sourceEntries = [];
-  try {
-    sourceEntries = await fs.readdir(skillsRoot, { withFileTypes: true });
-  } catch {
-    sourceEntries = [];
-  }
-  for (const entry of sourceEntries) {
-    if (!entry.isDirectory()) continue;
-    const skillPath = path.join(skillsRoot, entry.name, 'SKILL.md');
-    const current = await readFileIfPresent(skillPath);
-    if (!current.startsWith('---')) continue;
-    await backupFileIfPresent(skillPath);
-    await fs.rm(path.dirname(skillPath), { recursive: true, force: true });
-    changed = true;
+  for (const skillsRoot of [path.join(codexHome, '.agents', 'skills'), path.join(codexHome, 'skills')]) {
+    let sourceEntries = [];
+    try {
+      sourceEntries = await fs.readdir(skillsRoot, { withFileTypes: true });
+    } catch {
+      sourceEntries = [];
+    }
+    for (const entry of sourceEntries) {
+      if (!entry.isDirectory()) continue;
+      const skillPath = path.join(skillsRoot, entry.name, 'SKILL.md');
+      const current = await readFileIfPresent(skillPath);
+      if (!current.startsWith('---')) continue;
+      await backupFileIfPresent(skillPath);
+      await fs.rm(path.dirname(skillPath), { recursive: true, force: true });
+      changed = true;
+    }
   }
 
   return { codexHome, changed, files };
