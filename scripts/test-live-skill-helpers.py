@@ -10,6 +10,11 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 FIXTURES_ROOT = REPO_ROOT / "scripts" / "fixtures" / "skill-tests"
+SKILLS_ROOT = REPO_ROOT / ".agents" / "skills" if (REPO_ROOT / ".agents" / "skills").exists() else REPO_ROOT / "skills"
+
+
+def skill_path(*parts: str) -> str:
+    return str(SKILLS_ROOT.joinpath(*parts).relative_to(REPO_ROOT))
 
 
 def run_command(*args: str) -> str:
@@ -43,7 +48,7 @@ def test_inspect_codex_topology(tmpdir: Path) -> None:
     (sessions / "rollout-sample.jsonl").write_text('{"id":1}\n', encoding="utf-8")
 
     stdout = run_python(
-        "skills/codex-runtime-recovery/scripts/inspect_codex_topology.py",
+        skill_path("codex-runtime-recovery", "scripts", "inspect_codex_topology.py"),
         "--home",
         str(home),
         "--json",
@@ -64,7 +69,7 @@ def test_session_inventory(tmpdir: Path) -> None:
     (root_b / "rollout-test.jsonl").write_text("not-json\n", encoding="utf-8")
 
     stdout = run_python(
-        "skills/codex-session-reunion/scripts/session_inventory.py",
+        skill_path("codex-session-reunion", "scripts", "session_inventory.py"),
         "--json",
         str(tmpdir / "rootA"),
         str(tmpdir / "rootB"),
@@ -79,7 +84,7 @@ def test_copy_strategy(tmpdir: Path) -> None:
     tmpdir.mkdir(parents=True, exist_ok=True)
     archive_target = tmpdir / "bundle.tar"
     stdout = run_python(
-        "skills/long-copy-orchestrator/scripts/copy_strategy.py",
+        skill_path("long-copy-orchestrator", "scripts", "copy_strategy.py"),
         "recommend",
         "--source",
         r"C:\src",
@@ -90,7 +95,7 @@ def test_copy_strategy(tmpdir: Path) -> None:
     assert recommendation["mechanism"] == "tar"
 
     stdout = run_python(
-        "skills/long-copy-orchestrator/scripts/copy_strategy.py",
+        skill_path("long-copy-orchestrator", "scripts", "copy_strategy.py"),
         "recommend",
         "--source",
         str(tmpdir / "guest.vmdk"),
@@ -103,7 +108,7 @@ def test_copy_strategy(tmpdir: Path) -> None:
     watch_target = tmpdir / "watch.bin"
     watch_target.write_text("12345\n", encoding="utf-8")
     stdout = run_python(
-        "skills/long-copy-orchestrator/scripts/copy_strategy.py",
+        skill_path("long-copy-orchestrator", "scripts", "copy_strategy.py"),
         "watch-file",
         str(watch_target),
         "--interval",
@@ -121,7 +126,7 @@ def test_format_codex_sessions_fixture() -> None:
 
     readable = run_command(
         "node",
-        "skills/format-codex-sessions/scripts/render_codex_session.mjs",
+        skill_path("format-codex-sessions", "scripts", "render_codex_session.mjs"),
         "--input",
         str(fixture),
         "--mode",
@@ -138,7 +143,7 @@ def test_format_codex_sessions_fixture() -> None:
 
     audit = run_command(
         "node",
-        "skills/format-codex-sessions/scripts/render_codex_session.mjs",
+        skill_path("format-codex-sessions", "scripts", "render_codex_session.mjs"),
         "--input",
         str(fixture),
         "--mode",
@@ -150,7 +155,7 @@ def test_format_codex_sessions_fixture() -> None:
 
     dialogue = run_command(
         "node",
-        "skills/format-codex-sessions/scripts/render_codex_session.mjs",
+        skill_path("format-codex-sessions", "scripts", "render_codex_session.mjs"),
         "--input",
         str(fixture),
         "--mode",
@@ -166,7 +171,7 @@ def test_quality_zero_platform_control_plane_fixture() -> None:
     fixture = FIXTURES_ROOT / "quality-zero-platform-control-plane"
 
     good = run_python(
-        "skills/quality-zero-platform-control-plane/scripts/audit_quality_zero_platform.py",
+        skill_path("quality-zero-platform-control-plane", "scripts", "audit_quality_zero_platform.py"),
         "--repo",
         "Prekzursil/good-repo",
         "--fixture-dir",
@@ -181,7 +186,7 @@ def test_quality_zero_platform_control_plane_fixture() -> None:
     assert good_report["drift_categories"] == []
 
     drift = run_python(
-        "skills/quality-zero-platform-control-plane/scripts/audit_quality_zero_platform.py",
+        skill_path("quality-zero-platform-control-plane", "scripts", "audit_quality_zero_platform.py"),
         "--repo",
         "Prekzursil/drift-repo",
         "--fixture-dir",
@@ -197,7 +202,7 @@ def test_quality_zero_platform_control_plane_fixture() -> None:
     assert "failing_runs" in drift_report["drift_categories"]
 
     markdown = run_python(
-        "skills/quality-zero-platform-control-plane/scripts/audit_quality_zero_platform.py",
+        skill_path("quality-zero-platform-control-plane", "scripts", "audit_quality_zero_platform.py"),
         "--repo",
         "Prekzursil/drift-repo",
         "--fixture-dir",

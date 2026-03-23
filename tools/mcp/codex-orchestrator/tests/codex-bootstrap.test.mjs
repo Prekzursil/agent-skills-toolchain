@@ -68,7 +68,7 @@ test('codex bootstrap: install writes managed codex config and docs without dele
   assert.match(config, /review_model = "gpt-5\.4"/);
   assert.match(config, new RegExp(`sqlite_home = ${JSON.stringify(managedSqliteHome({ canonicalCodexHome: dir, codexHome: dir })).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
   assert.match(config, /\[mcp_servers\.codex_consult\]/);
-  assert.match(config, /\[mcp_servers\.promptbridge_talk\]/);
+  assert.doesNotMatch(config, /\[mcp_servers\.promptbridge_talk\]/);
   assert.match(config, /command = "\/custom\/node"/);
   assert.match(
     config,
@@ -96,11 +96,11 @@ test('codex bootstrap: install writes managed codex config and docs without dele
   assert.match(orchestration, /tool = "codex_consult"/);
   assert.match(orchestration, /\[skill_mappings\.codex-brainstorm\]/);
 
-  const brainstormSkill = await fs.readFile(path.join(dir, 'skills', 'codex-brainstorm', 'SKILL.md'), 'utf8');
+  const brainstormSkill = await fs.readFile(path.join(dir, '.agents', 'skills', 'codex-brainstorm', 'SKILL.md'), 'utf8');
   assert.match(brainstormSkill, /codex_brainstorm/);
-  const governanceSkill = await fs.readFile(path.join(dir, 'skills', 'codex-governance', 'SKILL.md'), 'utf8');
+  const governanceSkill = await fs.readFile(path.join(dir, '.agents', 'skills', 'codex-governance', 'SKILL.md'), 'utf8');
   assert.match(governanceSkill, /codex_curate/);
-  const quickstartSkill = await fs.readFile(path.join(dir, 'skills', 'multi-agent-quickstart', 'SKILL.md'), 'utf8');
+  const quickstartSkill = await fs.readFile(path.join(dir, '.agents', 'skills', 'multi-agent-quickstart', 'SKILL.md'), 'utf8');
   assert.match(quickstartSkill, /Execution Choice/);
   assert.match(quickstartSkill, /subagent-driven execution/);
 
@@ -110,7 +110,7 @@ test('codex bootstrap: install writes managed codex config and docs without dele
     new RegExp(`sqlite_home = ${JSON.stringify(managedSqliteHome({ canonicalCodexHome: dir, codexHome: mirrorDir })).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)
   );
   assert.match(mirrorConfig, /\[mcp_servers\.codex_consult\]/);
-  assert.match(mirrorConfig, /\[mcp_servers\.promptbridge_talk\]/);
+  assert.doesNotMatch(mirrorConfig, /\[mcp_servers\.promptbridge_talk\]/);
   assert.match(mirrorConfig, /PROMPTBRIDGE_DESKTOP_STATE_DIR = "\/mnt\/c\/Users\/Prekzursil\/\.promptbridge-desktop"/);
 });
 
@@ -216,6 +216,7 @@ test('codex bootstrap: status reports canonical profile, derived mirror, and VS 
   assert.equal(status.managedServers.codexConsult.command, '/custom/node');
   assert.equal(status.managedServers.promptbridgeTalk.command, '/custom/node');
   assert.equal(status.managedServer.args[0], path.join(managedRuntimeRoot({ canonicalCodexHome: canonicalHome }), 'mcp-server.mjs'));
+  assert.equal(status.managedServers.promptbridgeTalk.args[0], path.join(managedRuntimeRoot({ canonicalCodexHome: canonicalHome }), 'mcp-server.mjs'));
   assert.equal(status.runtime.installed, true);
   assert.equal(status.canonicalProfile.installed, false);
   assert.equal(status.mirrorProfile.installed, false);

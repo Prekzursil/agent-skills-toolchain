@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const serverPath = path.join(__dirname, '..', 'src', 'mcp-server.mjs');
+const registerPath = path.join(__dirname, '..', 'src', 'register-tools.mjs');
 
 test('promptbridge talk lane source parses cleanly', () => {
   const result = spawnSync(process.execPath, ['--check', serverPath], { encoding: 'utf8' });
@@ -15,8 +16,10 @@ test('promptbridge talk lane source parses cleanly', () => {
 });
 
 test('promptbridge talk lane registers promptbridge and legacy agentify talk/session tools only', async () => {
-  const src = await fs.readFile(serverPath, 'utf8');
+  const wrapper = await fs.readFile(serverPath, 'utf8');
+  const src = await fs.readFile(registerPath, 'utf8');
 
+  assert.ok(wrapper.includes('registerPromptbridgeTalkTools'), 'expected wrapper to load shared registration module');
   assert.ok(src.includes('registerToolWithAliases'), 'expected alias helper');
   assert.ok(src.includes("for (const prefix of ['promptbridge', 'agentify'])"), 'expected promptbridge + agentify aliases');
   assert.match(src, /registerToolWithAliases\(\s*'query'/, 'expected aliased query tool registration');
@@ -24,7 +27,7 @@ test('promptbridge talk lane registers promptbridge and legacy agentify talk/ses
   assert.match(src, /registerToolWithAliases\(\s*'session_configure'/, 'expected aliased session_configure tool registration');
   assert.match(src, /registerToolWithAliases\(\s*'discuss'/, 'expected talk-only discuss registration');
   assert.match(src, /registerToolWithAliases\(\s*'curate'/, 'expected talk-only curate registration');
-  assert.ok(src.includes("const DEFAULT_AUTOMATION_KEY = 'promptbridge-consult';"), 'expected dedicated automation session key');
+  assert.ok(src.includes("defaultAutomationKey = 'promptbridge-consult'"), 'expected dedicated automation session key default');
   assert.ok(src.includes('function resolveAutomationTarget'), 'expected automation target helper');
   assert.ok(src.includes('function configureRequestedSession'), 'expected fail-closed session configuration helper');
   assert.ok(src.includes('PromptBridge will attempt session confirmation first'), 'expected query tool to describe fail-closed model hint handling');

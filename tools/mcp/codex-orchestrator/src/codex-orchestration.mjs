@@ -16,7 +16,7 @@ export const REQUIRED_CONSULTATION_SCHEMA_KEYS = [
   'confidence'
 ];
 
-function defaultCodexHome({ env = process.env, homeDir = os.homedir() } = {}) {
+export function defaultCodexHome({ env = process.env, homeDir = os.homedir() } = {}) {
   const fromEnv = String(env.CODEX_HOME || '').trim();
   if (fromEnv) return fromEnv;
   const winHome = String(env.USERPROFILE || '').trim();

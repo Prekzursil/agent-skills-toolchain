@@ -4,11 +4,11 @@ Private Windows-first platform repo for the installable skills, MCP-side contrac
 
 The repo now centers on three primary execution surfaces that work together:
 
-- `skills/` for installable guidance and operator wrappers
+- `.agents/skills/` for canonical repo-published skills and operator wrappers
 - `tools/mcp/` for raw Codex orchestration tools and other MCP-native projects
 - `tools/web/` for browser- or session-mediated talk-only tooling
 
-It also retains `tools/editor/` as the bounded home for editor-local integrations.
+It also retains `skills/` as a temporary compatibility layout and `tools/editor/` as the bounded home for editor-local integrations.
 
 This repo is intentionally opinionated about boundaries. Codex orchestration is the structured execution and planning lane. PromptBridge is a talk-only discussant and curator lane. The beginner path is the skill layer; the advanced path is the raw tool layer.
 
@@ -105,8 +105,10 @@ A longer walkthrough lives in [docs/multi-agent-quickstart.md](docs/multi-agent-
 
 ## Layout
 
+- `.agents/skills/`
+  - canonical repo-published skills and workflow guidance
 - `skills/`
-  - installable skill wrappers and workflow guidance
+  - transitional compatibility copy during migration to `.agents/skills/`
 - `tools/mcp/`
   - MCP-native orchestration and other bounded server-side tool projects
 - `tools/editor/`
@@ -148,11 +150,12 @@ Smoke-test the helper scripts shipped with the current live scripted skills:
 python .\scripts\test-live-skill-helpers.py
 ```
 
-The validator covers the live `skills/` surface only. The smoke test covers the current live scripted skills. Tool-specific validation should stay with the tool projects themselves.
+The validator prefers `.agents/skills/` and falls back to `skills/` during migration. The smoke test covers the current live scripted skills. Tool-specific validation should stay with the tool projects themselves.
 
 ## Working rules
 
-- `skills/` contains installable skills, not project notes.
+- `.agents/skills/` is the canonical repo-published skill root.
+- `skills/` remains a temporary compatibility layer while migration completes.
 - `tools/mcp/`, `tools/editor/`, and `tools/web/` stay separated because they have different runtime, auth, packaging, and validation models.
 - PromptBridge stays talk-only unless a future design explicitly changes that contract.
 - Generic VS Code `mcpServers` support is optional; the primary target is the shared Codex config path for CLI and the OpenAI Codex IDE surface.

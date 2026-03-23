@@ -723,7 +723,7 @@ export async function runPromptbridgeStatusCheck({
     homeDir,
     nodeExecutable: process.execPath
   });
-  const promptbridgeServerSpec = bootstrap.managedServers?.promptbridgeTalk || null;
+  const promptbridgeServerSpec = bootstrap.managedServers?.codexConsult || bootstrap.managedServer || null;
   if (!promptbridgeServerSpec) {
     return {
       ok: false,
@@ -923,7 +923,7 @@ export async function probeVsCodeExtensionPreflight({
   const extensionInstalled = !!extensionPath;
   const canonicalProfilePresent = !!bootstrapStatus?.canonicalProfile?.installed || !!canonicalConfig;
   const canonicalHasCodexConsult = /\[mcp_servers\.codex_consult\]/.test(canonicalConfig);
-  const canonicalHasPromptbridgeTalk = /\[mcp_servers\.promptbridge_talk\]/.test(canonicalConfig);
+  const canonicalHasPromptbridgeTalk = canonicalHasCodexConsult;
   const legacyMigrationInputPresent = await pathExists(legacyCodexHome);
   const wslModeSetting = settings?.['chatgpt.runCodexInWindowsSubsystemForLinux'];
   const genericMcpServerConfigured = !!settings?.mcpServers?.codex_consult || !!settings?.mcpServers?.promptbridge_talk;
@@ -1094,12 +1094,11 @@ export async function probeVsCodeAppServerMirror({
     }
 
     const configCodexConsult = configRead?.config?.mcp_servers?.codex_consult || null;
-    const configPromptbridgeTalk = configRead?.config?.mcp_servers?.promptbridge_talk || null;
+    const configPromptbridgeTalk = !!configCodexConsult ? configCodexConsult : null;
     const statusServers = Array.isArray(statusList?.data) ? statusList.data : [];
     const statusCodexConsult = statusServers.find((entry) => entry?.name === 'codex_consult') || null;
-    const statusPromptbridgeTalk = statusServers.find((entry) => entry?.name === 'promptbridge_talk') || null;
     const codexToolNames = statusCodexConsult?.tools ? Object.keys(statusCodexConsult.tools) : [];
-    const promptbridgeToolNames = statusPromptbridgeTalk?.tools ? Object.keys(statusPromptbridgeTalk.tools) : [];
+    const promptbridgeToolNames = codexToolNames.filter((name) => /^promptbridge_|^agentify_/.test(name));
     const statusServerNames = statusServers.map((entry) => entry?.name).filter(Boolean);
     const hasRequiredCodexTool = codexToolNames.includes('codex_consult');
     const hasRequiredPromptbridgeTool =
@@ -1111,7 +1110,6 @@ export async function probeVsCodeAppServerMirror({
     return {
       ok:
         !!configCodexConsult &&
-        !!configPromptbridgeTalk &&
         !!initialize &&
         !!reload &&
         !!statusList &&
@@ -1183,8 +1181,7 @@ export async function probeConsultationStack({
   }
 
   const codexServerSpec = bootstrap.managedServers?.codexConsult || bootstrap.managedServer || null;
-  const promptbridgeServerSpec = bootstrap.managedServers?.promptbridgeTalk || null;
-  if (!codexServerSpec || !promptbridgeServerSpec) {
+  if (!codexServerSpec) {
     return {
       ok: false,
       failureLayer: 'bootstrap',
@@ -1196,8 +1193,6 @@ export async function probeConsultationStack({
   }
 
   const stateDir =
-    promptbridgeServerSpec.env?.PROMPTBRIDGE_DESKTOP_STATE_DIR ||
-    promptbridgeServerSpec.env?.AGENTIFY_DESKTOP_STATE_DIR ||
     codexServerSpec.env?.PROMPTBRIDGE_DESKTOP_STATE_DIR ||
     codexServerSpec.env?.AGENTIFY_DESKTOP_STATE_DIR ||
     stateDirForBootstrap({ platform, isWsl, windowsHome, homeDir });
@@ -1244,25 +1239,8 @@ export async function probeConsultationStack({
     };
   }
 
-  const promptbridgeServer = await probeMcpServerStartupImpl({
-    command: promptbridgeServerSpec.command,
-    args: promptbridgeServerSpec.args,
-    env: { ...process.env, ...promptbridgeServerSpec.env }
-  });
-  if (!promptbridgeServer.ok) {
-    return {
-      ok: false,
-      failureLayer: promptbridgeServer.phase === 'startup' ? 'mcp_startup' : 'mcp_handshake',
-      codexHome,
-      workspaceDir,
-      bootstrap,
-      desktop,
-      serverKind: 'promptbridge_talk',
-      server: promptbridgeServer
-    };
-  }
   const missingPromptbridgeHandshakeTools = expectedPromptbridgeToolNames().filter(
-    (name) => !promptbridgeServer.toolNames?.includes(name)
+    (name) => !codexServer.toolNames?.includes(name)
   );
   if (missingPromptbridgeHandshakeTools.length > 0) {
     return {
@@ -1272,8 +1250,8 @@ export async function probeConsultationStack({
       workspaceDir,
       bootstrap,
       desktop,
-      serverKind: 'promptbridge_talk',
-      server: { ...promptbridgeServer, missingExpectedTools: missingPromptbridgeHandshakeTools }
+      serverKind: 'codex_consult',
+      server: { ...codexServer, missingExpectedTools: missingPromptbridgeHandshakeTools }
     };
   }
 
@@ -1306,7 +1284,7 @@ export async function probeConsultationStack({
       desktop,
       servers: {
         codexConsult: codexServer,
-        promptbridgeTalk: promptbridgeServer
+        promptbridgeTalk: codexServer
       },
       visibility,
       consultation,
@@ -1335,7 +1313,7 @@ export async function probeConsultationStack({
         desktop,
         servers: {
           codexConsult: codexServer,
-          promptbridgeTalk: promptbridgeServer
+          promptbridgeTalk: codexServer
         },
         visibility,
         consultation,
@@ -1357,7 +1335,7 @@ export async function probeConsultationStack({
         desktop,
         servers: {
           codexConsult: codexServer,
-          promptbridgeTalk: promptbridgeServer
+          promptbridgeTalk: codexServer
         },
         visibility,
         consultation,
@@ -1377,14 +1355,14 @@ export async function probeConsultationStack({
     desktop,
     servers: {
       codexConsult: codexServer,
-      promptbridgeTalk: promptbridgeServer
+      promptbridgeTalk: codexServer
     },
     visibility,
     consultation,
     talkLane,
     vscodePreflight,
     vscodeAppServer,
-    exportedToolNames: [...new Set([...(codexServer.toolNames || []), ...(promptbridgeServer.toolNames || [])])]
+    exportedToolNames: [...new Set([...(codexServer.toolNames || [])])]
   };
 }
 export async function runConsultationSelfTest({

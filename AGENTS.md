@@ -4,7 +4,8 @@
 
 This repo has four live surfaces and two supporting docs areas:
 
-- `skills/` contains installable, validated skills. Each skill lives in its own folder with `SKILL.md`, `agents/openai.yaml`, and optional `references/`, `scripts/`, or `assets/`.
+- `.agents/skills/` is the canonical repo-published skill root. Each skill lives in its own folder with `SKILL.md`, `agents/openai.yaml`, and optional `references/`, `scripts/`, or `assets/`.
+- `skills/` remains a temporary compatibility copy during migration; do not add new canonical content there unless the same change lands in `.agents/skills/`.
 - `tools/mcp/`, `tools/editor/`, and `tools/web/` are reserved for runnable MCP-native, editor-local, or browser-mediated tools.
 - `docs/plans/` holds design and rollout notes.
 - `docs/incubating/skills/` and `docs/incubating/tools/` hold concepts that are not ready for promotion.
@@ -14,7 +15,7 @@ This repo has four live surfaces and two supporting docs areas:
 
 This repo does not have a single build step. Validate the parts you touch:
 
-- `pwsh -File .\scripts\validate-all-skills.ps1`: validate every live skill under `skills/`.
+- `pwsh -File .\scripts\validate-all-skills.ps1`: validate every live skill under `.agents/skills/` and fall back to `skills/` if the migration layer is all that exists.
 - `python .\scripts\test-live-skill-helpers.py`: run smoke tests for the current live scripted skills.
 - `git status --short --branch`: verify branch state before and after changes.
 

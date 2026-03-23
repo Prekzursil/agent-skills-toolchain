@@ -3,9 +3,13 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 
-import { loadOrchestrationConfig, runCodexOrchestration } from './codex-orchestration.mjs';
+import { defaultCodexHome, loadOrchestrationConfig, runCodexOrchestration } from './codex-orchestration.mjs';
+import { registerPromptbridgeTalkTools } from '../../../web/promptbridge-talk-lane/src/register-tools.mjs';
+import { registerCodexManagementTools } from './register-management-tools.mjs';
+import { registerManagerTools } from './manager/register-tools.mjs';
 
 const server = new McpServer({ name: 'codex-orchestrator', version: '0.1.0' });
+const codexHome = defaultCodexHome();
 
 const consultationInputSchema = {
   prompt: z.string().min(1).describe('Task or decision to analyze.'),
@@ -59,7 +63,24 @@ for (const [name, description] of toolDefs) {
   server.registerTool(name, { description, inputSchema: consultationInputSchema }, buildHandler(name));
 }
 
+registerCodexManagementTools(server, { codexHome });
+registerManagerTools(server, { codexHome });
+registerPromptbridgeTalkTools(server);
+
+function installShutdownHandlers() {
+  let shuttingDown = false;
+  const handle = (signal) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.error(`codex-orchestrator MCP shutting down on ${signal}`);
+    process.exit(0);
+  };
+  process.on('SIGINT', () => handle('SIGINT'));
+  process.on('SIGTERM', () => handle('SIGTERM'));
+}
+
 async function main() {
+  installShutdownHandlers();
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error('codex-orchestrator MCP server running on stdio');
