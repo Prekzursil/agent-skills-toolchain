@@ -3,6 +3,7 @@
 ## Now
 
 - Keep `quality-gate-automation-architect` as the original live architecture skill.
+- Add a repo-specific live operator skill for `Prekzursil/quality-zero-platform` so rollout and drift audits stop relying on generic automation advice.
 - Promote an operations-first live skill wave for recurring Windows, WSL, VMware, and Codex recovery incidents.
 - Promote a Codex transcript-formatting skill that turns rollout JSONL into readable Markdown without storing raw exports in the repo.
 - Keep the tool surfaces separate because MCP-native and browser-mediated work have different runtime and auth models.
@@ -47,6 +48,12 @@ Capture machine state before forced reboots so long-running migrations can resum
 ### `format-codex-sessions`
 
 Render Codex rollout JSONL into readable Markdown conversations while summarizing tool chatter and suppressing prompt bulk plus token-like data.
+
+## Additional live repo-quality skill
+
+### `quality-zero-platform-control-plane`
+
+Audit `Prekzursil/quality-zero-platform` rollout truth for one governed repo at a time, comparing controller inventory and profiles with live GitHub wrappers, rulesets, workflow conclusions, and trusted-runner or provider blocker state.
 
 ## Incubating skill backlog
 
