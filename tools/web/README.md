@@ -1,11 +1,34 @@
 # Web Tools
 
-`tools/web/` is the live home for browser- or web-mediated agent tooling.
+`tools/web/` is the live home for browser- or session-mediated tooling.
 
-Put a project here only when it has a clear session model, runtime boundary, and validation path. Do not mix MCP-native transport work into this surface.
+## Current bounded projects
 
-Current bounded project:
+### `agent-lanes-chatgpt-web`
 
-- [`agent-lanes-chatgpt-web/`](agent-lanes-chatgpt-web/README.md) - direct ChatGPT web lane with explicit session, readiness, and lane-routing behavior.
+- direct ChatGPT web lane with explicit session, readiness, and lane-routing behavior
 
-Current incubation notes for this surface live under `docs/incubating/tools/`.
+### `promptbridge-talk-lane`
+
+Location:
+
+```text
+tools/web/promptbridge-talk-lane
+```
+
+Purpose:
+
+- expose PromptBridge/Agentify as a talk-only lane
+- support discussion and curation roles without turning the web lane into the execution authority
+- keep session inspection and configuration explicit and fail-closed when confirmation is missing
+
+Primary tools:
+
+- `promptbridge_discuss`
+- `promptbridge_curate`
+- readiness/status/session tools
+- `agentify_*` aliases for compatibility during `0.1.x`
+
+## Boundary
+
+PromptBridge can discuss and curate. It does not own repo execution.

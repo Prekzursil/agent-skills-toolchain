@@ -2,98 +2,58 @@
 
 ## Now
 
-- Keep `quality-gate-automation-architect` as the original live architecture skill.
-- Add a repo-specific live operator skill for `Prekzursil/quality-zero-platform` so rollout and drift audits stop relying on generic automation advice.
-- Promote an operations-first live skill wave for recurring Windows, WSL, VMware, and Codex recovery incidents.
-- Promote a Codex transcript-formatting skill that turns rollout JSONL into readable Markdown without storing raw exports in the repo.
-- Keep the tool surfaces separate because MCP-native and browser-mediated work have different runtime and auth models.
-- Keep derived summaries in references and docs without storing raw session artifacts.
+- Keep the existing live ops, recovery, transcript, and repo-quality skills intact.
+- Build out the Windows-first orchestration stack on top of that existing base.
+- Keep the primary execution surfaces separated:
+  - `skills/`
+  - `tools/mcp/`
+  - `tools/web/`
+- Retain `tools/editor/` as a bounded editor-local surface.
+- Keep the root install path warning-free.
+- Keep the Codex orchestration lane and PromptBridge talk-only lane separate.
 
-## Current live ops wave
+## Active deliverables
 
-### `codex-runtime-recovery`
+### Existing live specialist skills
 
-Diagnose split `CODEX_HOME`, missing-session incidents, `state_5.sqlite*` churn, and Windows-vs-WSL runtime drift.
+- `quality-gate-automation-architect`
+- `quality-zero-platform-control-plane`
+- `format-codex-sessions`
+- the existing Windows / WSL / VMware / Codex recovery skill wave
+- the explicit `agent-lanes-*` lane-selection skills
 
-### `codex-session-reunion`
+### `codex-orchestrator`
 
-Inventory and reunite session trees from Windows, WSL, backups, and VS Code mirrors.
+- Windows-first Codex bootstrap, status, probe, and self-test flow
+- multi-agent orchestration tools with one shared result schema
+- profile defaults plus per-call overrides
 
-### `long-copy-orchestrator`
+### `promptbridge-talk-lane`
 
-Choose and observe the safest large-tree copy mechanism.
+- PromptBridge/Agentify talk-only tools
+- session status and configuration APIs
+- explicit curation/discussion boundary
 
-### `wsl-vmware-cutover`
+### New skill pack
 
-Stage WSL-to-VMware migrations with D:-first backups and rollback checkpoints.
+- beginner quickstart
+- PromptBridge consultation setup and diagnostics
+- core orchestration wrappers
+- workflow wrappers for audit, triage, fix, and governance
+- explicit post-plan execution choice (subagent-driven recommended, inline allowed)
 
-### `offline-linux-disk-surgery`
+## Next
 
-Repair, grow, and validate Linux guest disks offline.
-
-### `windows-virtualization-conflict-triage`
-
-Diagnose Hyper-V, VBS, VMware, and `vmrun` coexistence failures safely.
-
-### `codex-vscode-host-routing`
-
-Keep VS Code Codex launching from Windows by default while allowing explicit Linux-side exceptions.
-
-### `reboot-safe-ops-continuation`
-
-Capture machine state before forced reboots so long-running migrations can resume cleanly.
-
-## Additional live Codex utility skill
-
-### `format-codex-sessions`
-
-Render Codex rollout JSONL into readable Markdown conversations while summarizing tool chatter and suppressing prompt bulk plus token-like data.
-
-## Additional live repo-quality skill
-
-### `quality-zero-platform-control-plane`
-
-Audit `Prekzursil/quality-zero-platform` rollout truth for one governed repo at a time, comparing controller inventory and profiles with live GitHub wrappers, rulesets, workflow conclusions, and trusted-runner or provider blocker state.
-
-## Incubating skill backlog
-
-The next backlog lives under `docs/incubating/skills/` and currently includes:
-
-- Codex store auditing, cross-host visibility, CLI convergence, and config canonicalization
-- WSL control-plane repair, disk-pressure recovery, and VMware guest-access recovery
-- VHDX or VMDK migration, host topology audits, artifact staging, and performance benchmarking
-- shell hygiene, Docker load slimming, and UNC or cross-filesystem diagnostics
-- VM import normalization, session forensics, machine manifests, and incident blackboxes
-- rescue-media, VMware disk expansion, guest-home restore, progress instrumentation, copy-mechanism selection, and hypervisor coexistence labs
-
-## Next tool candidates
-
-### `codex-as-mcp`
-
-Incubate a clearly bounded MCP-native tool surface for exposing Codex workflows through an MCP-friendly interface without confusing it with skill packaging.
-
-### `agentify-web-chatgpt-bridge`
-
-Incubate a browser- or web-mediated tool surface for interacting with the ChatGPT web product without conflating it with MCP-native transport.
-
-## Promotion criteria
-
-Promote an incubation note into a live skill or tool only when:
-
-- the workflow or integration has been used repeatedly
-- the failure modes are understood
-- the trigger or runtime boundary is clear enough that Codex can load or run the right thing reliably
-- the artifact can be pressure-tested, not just described
+- add richer operator docs for IDE-side smoke testing and failure classification
+- add more orchestration profiles and curated defaults
+- keep the editor-local surface explicit instead of folding it into MCP or web tooling
+- add release-layer packaging without polluting the root runtime graph
+- decide whether the repo stays private permanently or becomes publishable later
 
 ## Non-goals
 
-- stuffing multiple overlapping workflows into one giant skill
-- hiding MCP-native and browser-mediated tooling under one generic bucket
-- storing raw transcript or session exports in the repo
-- adding scripts before a repeated deterministic task is proven
-
-## Release layer
-
-- Add a packaging-only `release/` workspace for future Windows, Linux, and macOS bundle artifacts.
-- Keep the default runtime graph clean by isolating release-only dependencies, manifests, and CI from the live `skills/`, `tools/mcp/`, `tools/editor/`, and `tools/web/` surfaces.
-- Preserve Codex as the execution lane and PromptBridge/Agentify as the talk-only sidecar while cross-platform packaging grows around them.
+- turning PromptBridge into the execution authority
+- hiding MCP, editor, and web tooling under one generic bucket
+- keeping two active Codex homes in normal operation
+- reintroducing WSL-first assumptions into the main workflow
+- dropping the existing live specialist skills while the new orchestration layer is added
