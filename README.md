@@ -69,6 +69,7 @@ This repo now also carries the current Windows-first MCP/editor bundle I activel
 Live installable skills currently ship from `skills/`:
 
 - `quality-gate-automation-architect` - safe automation architecture for PR repair, coverage ratchets, analyzer debt burn-down, and merge governance.
+- `quality-zero-platform-control-plane` - repo-aware audit and operator skill for `Prekzursil/quality-zero-platform`, repo enrollment, wrapper drift, ruleset sync, and trusted-runner strict-zero rollout truth.
 - `codex-runtime-recovery` - diagnose split `CODEX_HOME`, state DB churn, and cross-host launch drift before destructive repair.
 - `codex-session-reunion` - inventory, compare, and safely promote the best session copies into one canonical store.
 - `format-codex-sessions` - render Codex rollout JSONL into readable Markdown transcripts without leaking prompt bulk or token-like data.

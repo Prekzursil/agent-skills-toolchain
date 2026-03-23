@@ -162,6 +162,54 @@ def test_format_codex_sessions_fixture() -> None:
     assert "[developer prompt omitted]" not in dialogue
 
 
+def test_quality_zero_platform_control_plane_fixture() -> None:
+    fixture = FIXTURES_ROOT / "quality-zero-platform-control-plane"
+
+    good = run_python(
+        "skills/quality-zero-platform-control-plane/scripts/audit_quality_zero_platform.py",
+        "--repo",
+        "Prekzursil/good-repo",
+        "--fixture-dir",
+        str(fixture),
+        "--format",
+        "json",
+    )
+    good_report = json.loads(good)
+    assert good_report["status"] == "success"
+    assert good_report["enrolled"] is True
+    assert good_report["ruleset_present"] is True
+    assert good_report["drift_categories"] == []
+
+    drift = run_python(
+        "skills/quality-zero-platform-control-plane/scripts/audit_quality_zero_platform.py",
+        "--repo",
+        "Prekzursil/drift-repo",
+        "--fixture-dir",
+        str(fixture),
+        "--format",
+        "json",
+    )
+    drift_report = json.loads(drift)
+    assert drift_report["status"] == "partial"
+    assert drift_report["enrolled"] is True
+    assert "missing_wrappers" in drift_report["drift_categories"]
+    assert "missing_ruleset" in drift_report["drift_categories"]
+    assert "failing_runs" in drift_report["drift_categories"]
+
+    markdown = run_python(
+        "skills/quality-zero-platform-control-plane/scripts/audit_quality_zero_platform.py",
+        "--repo",
+        "Prekzursil/drift-repo",
+        "--fixture-dir",
+        str(fixture),
+        "--format",
+        "md",
+    )
+    assert "# Quality Zero Platform Audit" in markdown
+    assert "Status: `partial`" in markdown
+    assert "`missing_ruleset`" in markdown
+
+
 def main() -> int:
     with tempfile.TemporaryDirectory() as temp_dir:
         tmpdir = Path(temp_dir)
@@ -169,6 +217,7 @@ def main() -> int:
         test_session_inventory(tmpdir / "inventory")
         test_copy_strategy(tmpdir / "copy")
     test_format_codex_sessions_fixture()
+    test_quality_zero_platform_control_plane_fixture()
 
     print("All live skill helper smoke tests passed.")
     return 0
