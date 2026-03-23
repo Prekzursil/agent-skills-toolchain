@@ -1,155 +1,158 @@
 # agent-skills-toolchain
 
-Private platform repo for the installable skills, MCP-side contracts, editor-local tools, and browser-mediated agent tooling I use and evolve together.
+Private Windows-first platform repo for the installable skills, MCP-side contracts, editor-local tools, and browser-mediated agent tooling I use and evolve together.
 
-## Purpose
+The repo now centers on three primary execution surfaces that work together:
 
-This repo is the working home for four kinds of agent assets plus the docs and validation needed to keep them bounded:
+- `skills/` for installable guidance and operator wrappers
+- `tools/mcp/` for raw Codex orchestration tools and other MCP-native projects
+- `tools/web/` for browser- or session-mediated talk-only tooling
 
-- `skills/` for installable, validated skills
-- `tools/mcp/` for MCP-native contracts, adapters, and promoted tool projects
-- `tools/editor/` for editor-local tools such as VS Code extensions
-- `tools/web/` for browser- or web-mediated tool projects with explicit session boundaries
+It also retains `tools/editor/` as the bounded home for editor-local integrations.
 
-The split matters because these surfaces have different runtime models, auth expectations, failure modes, packaging rules, and validation paths. Shared docs, incubation notes, and validation helpers live around them without blurring install, execution, and promotion boundaries. Future cross-platform packaging belongs in a packaging-only `release/` workspace so it does not become a fifth live execution surface or pollute the default runtime graph.
+This repo is intentionally opinionated about boundaries. Codex orchestration is the structured execution and planning lane. PromptBridge is a talk-only discussant and curator lane. The beginner path is the skill layer; the advanced path is the raw tool layer.
+
+## What is live now
+
+### Lane 1: Codex orchestration
+
+`tools/mcp/codex-orchestrator/` exposes these MCP tools:
+
+- `codex_consult`
+- `codex_brainstorm`
+- `codex_review`
+- `codex_discuss`
+- `codex_coordinate`
+- `codex_curate`
+
+Mental model:
+
+- `codex_consult` = one expert Codex answer
+- `codex_brainstorm` = two idea-generating peers plus synthesis
+- `codex_review` = one critic pass
+- `codex_discuss` = two peers argue before synthesis
+- `codex_coordinate` = split roles and consolidate
+- `codex_curate` = final selector, optionally with talk-only curation
+
+All orchestration tools return the same result shape:
+
+- `problem`
+- `assumptions`
+- `options`
+- `recommended_option`
+- `risks`
+- `verification_plan`
+- `confidence`
+- `mode`
+- `participants`
+- `curator_used`
+
+### Lane 2: PromptBridge talk-only lane
+
+`tools/web/promptbridge-talk-lane/` exposes:
+
+- `promptbridge_discuss`
+- `promptbridge_curate`
+- readiness/status/session tools
+- `agentify_*` compatibility aliases during `0.1.x`
+
+PromptBridge is not the execution authority. It can discuss and curate, but it does not own repo-changing behavior.
+
+### Skill layer
+
+Repo-local skills now include the multi-agent/orchestration wrappers:
+
+- `multi-agent-quickstart`
+- `promptbridge-codex-consult`
+- `codex-brainstorm`
+- `codex-review`
+- `codex-discuss`
+- `codex-coordinate`
+- `codex-curate`
+- `codex-audit`
+- `codex-triage`
+- `codex-fix`
+- `codex-governance`
+
+These sit alongside the existing live specialist skills already in the repo, including:
+
+- `quality-gate-automation-architect`
+- `quality-zero-platform-control-plane`
+- `format-codex-sessions`
+- the existing Windows, WSL, VMware, and Codex recovery skill wave
+- the explicit `agent-lanes-*` lane-selection skills
+
+## Canonical environment model
+
+- Canonical root is the active Windows `CODEX_HOME`
+- Default is `%USERPROFILE%\.codex`
+- `.codex-vscode` is legacy migration input only
+- `config.toml` remains the place for Codex defaults and MCP registration
+- `promptbridge-orchestration.toml` stores named profiles, lane defaults, allowed overrides, and skill mappings
+
+## Beginner quickstart
+
+If you are new to multiple agents, use this order:
+
+1. Start with `multi-agent-quickstart`
+2. Use `codex_consult` when you want one strong answer
+3. Use `codex_brainstorm` when you want alternatives
+4. Use `codex_review` before a risky implementation
+5. Use `codex_curate` when you already have options and want a final selection
+6. Add PromptBridge only when you want a talk-only second opinion or curator
+
+A longer walkthrough lives in [docs/multi-agent-quickstart.md](docs/multi-agent-quickstart.md).
 
 ## Layout
 
 - `skills/`
-  - installable, validated skills only
+  - installable skill wrappers and workflow guidance
 - `tools/mcp/`
-  - MCP-native tool contracts and promoted bounded tool projects
+  - MCP-native orchestration and other bounded server-side tool projects
 - `tools/editor/`
   - editor-local tools with explicit installation and validation paths
 - `tools/web/`
-  - browser- or web-mediated tool contracts and promoted bounded tool projects
-- `docs/plans/`
-  - repo-level design documents and implementation notes
-- `docs/incubating/skills/`
-  - future skill concepts that are not installable yet
-- `docs/incubating/tools/`
-  - future MCP, editor, or web-tool concepts that are not ready for promotion yet
+  - PromptBridge/Agentify talk-only tooling and other browser/session-bounded projects
+- `docs/`
+  - roadmap, design notes, and operator docs
 - `scripts/`
-  - repo-level helpers such as validation
+  - repo-level validation helpers
 - `release/`
-  - packaging-only workspace for future Windows/Linux/macOS bundles; not a live execution surface
+  - packaging-only workspace for future bundle artifacts
 
-## Current repo themes
+## Community
 
-### 1. Ops and recovery skills
+- Upstream Superpowers is built by Jesse Vincent and the rest of the folks at Prime Radiant.
+- For community support, questions, and sharing what you're building with Superpowers, join us on [Discord](https://discord.gg/Jd8Vphy9jq).
 
-These are the host, VM, repo-quality, and session-repair skills already shipping from `skills/`.
+## Support
 
-### 2. Agent Lanes
-
-**Agent Lanes** is the replacement name for the older PromptBridge-style label.
-
-The old name implied one vague bridge. The actual system is clearer than that: it is a set of explicit lanes with explicit routing.
-
-- a Codex-side orchestration lane
-- a direct ChatGPT web lane
-- installable skills that explicitly choose the intended lane
-
-That stack spans both live tool surfaces plus explicit routing skills:
-
-- [`tools/mcp/agent-lanes-codex/`](tools/mcp/agent-lanes-codex/README.md)
-- [`tools/web/agent-lanes-chatgpt-web/`](tools/web/agent-lanes-chatgpt-web/README.md)
-- `skills/agent-lanes-*`
-
-### 3. Windows-first workstation bundle
-
-This repo now also carries the current Windows-first MCP/editor bundle I actively use:
-
-- `tools/mcp/workstation-codex-bundle` - curated MCP selections with explicit self-made vs curated provenance.
-
-## Live surfaces
-
-### Skills
-
-Live installable skills currently ship from `skills/`:
-
-- `quality-gate-automation-architect` - safe automation architecture for PR repair, coverage ratchets, analyzer debt burn-down, and merge governance.
-- `quality-zero-platform-control-plane` - repo-aware audit and operator skill for `Prekzursil/quality-zero-platform`, repo enrollment, wrapper drift, ruleset sync, and trusted-runner strict-zero rollout truth.
-- `codex-runtime-recovery` - diagnose split `CODEX_HOME`, state DB churn, and cross-host launch drift before destructive repair.
-- `codex-session-reunion` - inventory, compare, and safely promote the best session copies into one canonical store.
-- `format-codex-sessions` - render Codex rollout JSONL into readable Markdown transcripts without leaking prompt bulk or token-like data.
-- `long-copy-orchestrator` - choose the right copy mechanism and monitor progress during large cross-host transfers.
-- `wsl-vmware-cutover` - stage WSL-to-VMware migrations with D:-first backups and rollback checkpoints.
-- `offline-linux-disk-surgery` - inspect, grow, or repair Linux guest disks offline.
-- `windows-virtualization-conflict-triage` - classify Hyper-V, VBS, VMware, and `vmrun` conflict patterns safely.
-- `codex-vscode-host-routing` - keep VS Code Codex hosted on Windows by default.
-- `reboot-safe-ops-continuation` - capture resumable machine state before forced reboots.
-- `agent-lanes-codex-consult` - explicitly select the Codex-side consultation lane.
-- `agent-lanes-codex-review` - explicitly select the Codex-side review lane.
-- `agent-lanes-codex-curate` - explicitly select the Codex-side curation lane.
-- `agent-lanes-chatgpt-web-query` - explicitly select the direct ChatGPT web query lane.
-- `agent-lanes-chatgpt-web-discuss` - explicitly select the direct ChatGPT web discussion lane.
-- `agent-lanes-chatgpt-web-curate` - explicitly select the direct ChatGPT web curation lane.
-
-### Tools
-
-The live tool surfaces are first-class repo homes for bounded tool projects and contracts:
-
-- [`tools/mcp/`](tools/mcp/README.md)
-- [`tools/editor/`](tools/editor/README.md)
-- [`tools/web/`](tools/web/README.md)
-
-Current bounded projects:
-
-- [`tools/mcp/agent-lanes-codex/`](tools/mcp/agent-lanes-codex/README.md)
-- [`tools/mcp/workstation-codex-bundle/`](tools/mcp/workstation-codex-bundle/README.md)
-- [`tools/web/agent-lanes-chatgpt-web/`](tools/web/agent-lanes-chatgpt-web/README.md)
-
-Speculative tool ideas do not live here. They stay under `docs/incubating/tools/` until they become clearly bounded enough to promote.
+- Issues: https://github.com/Prekzursil/agent-skills-toolchain/issues
 
 ## Validation
 
-Validate all live skills from the repo root:
+From the repo root:
 
 ```powershell
-pwsh -File .\scripts\validate-all-skills.ps1
+npm ci --ignore-scripts
+npm test
+npm run validate:skills
+npm run orchestration:status
+npm run orchestration:probe
+npm run orchestration:self-test
 ```
 
-Smoke-test the helper scripts shipped with the live scripted skills:
+Smoke-test the helper scripts shipped with the current live scripted skills:
 
 ```powershell
 python .\scripts\test-live-skill-helpers.py
 ```
 
-The validator covers the live `skills/` surface only. The smoke test covers the current live scripted skills, including the formatter regression fixture. MCP, editor, and web-tool validation should be added per tool as those surfaces become more runnable in-repo.
-
-## Agent Lanes at a glance
-
-Use `Agent Lanes` when you need one of these explicit paths:
-
-### Codex lane
-
-Use this when you want MCP-side orchestration, structured analysis, review, or curation with bounded fallback behavior.
-
-Recommended explicit names:
-
-- skills: `agent-lanes-codex-consult`, `agent-lanes-codex-review`, `agent-lanes-codex-curate`
-- tools: `codex_local_consult`, `codex_local_review`, `codex_local_curate`
-
-### ChatGPT web lane
-
-Use this when you want direct browser-mediated ChatGPT interaction, session-aware operations, or an explicit ChatGPT-web-side response.
-
-Recommended explicit names:
-
-- skills: `agent-lanes-chatgpt-web-query`, `agent-lanes-chatgpt-web-discuss`, `agent-lanes-chatgpt-web-curate`
-- tools: `chatgpt5_web_query`, `chatgpt5_web_discuss`, `chatgpt5_web_curate`
-
-### Routing rule
-
-The naming rule is intentional:
-
-- `agent-lanes-codex-*` means "prefer the Codex-side lane"
-- `agent-lanes-chatgpt-web-*` means "prefer the direct ChatGPT web lane"
+The validator covers the live `skills/` surface only. The smoke test covers the current live scripted skills. Tool-specific validation should stay with the tool projects themselves.
 
 ## Working rules
 
-- `skills/` only contains tested, installable skills.
-- `tools/mcp/`, `tools/editor/`, and `tools/web/` only contain real runnable or clearly bounded tool projects.
-- Future ideas stay under `docs/incubating/skills/` or `docs/incubating/tools/` until they are proven enough to promote.
-- Derived summaries are allowed in references; raw session or chat exports are not.
+- `skills/` contains installable skills, not project notes.
+- `tools/mcp/`, `tools/editor/`, and `tools/web/` stay separated because they have different runtime, auth, packaging, and validation models.
+- PromptBridge stays talk-only unless a future design explicitly changes that contract.
+- Generic VS Code `mcpServers` support is optional; the primary target is the shared Codex config path for CLI and the OpenAI Codex IDE surface.

@@ -2,74 +2,82 @@
 
 ## Summary
 
-This repo is a private platform for three distinct live surfaces:
+This repo is a private Windows-first platform for three live surfaces that work together without collapsing into one ambiguous tool bucket:
 
 - installable skills under `skills/`
-- MCP-native tools under `tools/mcp/`
-- browser- or web-mediated tools under `tools/web/`
+- raw Codex orchestration under `tools/mcp/`
+- PromptBridge/Agentify talk-only tooling under `tools/web/`
 
-The first shipped live artifact remains `quality-gate-automation-architect`, but it now sits inside a broader platform instead of defining the whole repo identity.
+The operator model is intentionally dual-path:
+
+- beginner path: use the wrapper skills
+- advanced path: call the raw tools directly
+- post-plan execution stays choice-based: subagent-driven is recommended, but inline execution remains available
 
 ## Key decisions
 
 - Keep the repo private under the personal `Prekzursil` account.
-- Rename the repo from `codex-skills-lab` to `agent-skills-toolchain`.
-- Keep `skills/`, `tools/mcp/`, and `tools/web/` as separate live surfaces.
-- Keep future ideas as incubation docs instead of fake live artifacts.
-- Store only derived summaries from prior work, not raw conversation exports.
+- Use the active Windows `CODEX_HOME`, default `%USERPROFILE%\.codex`, as the canonical environment root.
+- Treat `.codex-vscode` as migration input only, not a second active home.
+- Keep Codex orchestration and PromptBridge talk-only participation as separate lanes.
+- Keep the root install graph warning-free by isolating release packaging from the runtime dependency path.
 
-## Why the tooling is split
+## Live surfaces
 
-MCP-native tooling and browser-mediated tooling are not the same class of system.
+### Skills
 
-MCP-native work is transport- and protocol-oriented. Its core risks tend to be schema drift, auth configuration, runtime compatibility, and tool boundary clarity.
+The skill layer teaches and wraps the system:
 
-Browser- or web-mediated work is interaction- and session-oriented. Its core risks tend to be login handling, DOM drift, browser setup, page reliability, and higher maintenance cost.
+- `multi-agent-quickstart`
+- `promptbridge-codex-consult`
+- core orchestration wrappers (`codex-brainstorm`, `codex-review`, `codex-discuss`, `codex-coordinate`, `codex-curate`)
+- workflow wrappers (`codex-audit`, `codex-triage`, `codex-fix`, `codex-governance`)
 
-Keeping those surfaces separate prevents the repo from collapsing into a vague `tools/` bucket where auth, runtime, and validation expectations are constantly mixed together.
+### MCP
 
-## Repo structure
+`tools/mcp/codex-orchestrator/` owns the structured multi-agent Codex lane and exposes:
 
-- `skills/quality-gate-automation-architect/`
-  - live installable skill
-  - lean `SKILL.md`
-  - modular `references/`
-- `tools/mcp/`
-  - live home for MCP-native tool projects
-- `tools/web/`
-  - live home for browser- or web-mediated tool projects
-- `docs/incubating/skills/`
-  - future skill concepts
-- `docs/incubating/tools/`
-  - future tool concepts
-- `scripts/`
-  - repo-level validation helpers
+- `codex_consult`
+- `codex_brainstorm`
+- `codex_review`
+- `codex_discuss`
+- `codex_coordinate`
+- `codex_curate`
 
-## Codex environment defaults
+### Web
 
-Use the Codex environment with:
+`tools/web/promptbridge-talk-lane/` owns the talk-only PromptBridge lane and exposes:
 
-- name `Prekzursil/agent-skills-toolchain`
-- description `Private platform repo for the skills, MCP-native tools, and web-agent tooling I use and deploy together. Includes live artifacts, validation helpers, and incubation docs.`
-- `universal` container image
-- container caching `On`
-- agent internet access `On`
-- a manual setup script that checks Python, Git, Node, npm, then installs dependencies only when manifests exist for the repo root, `tools/mcp/`, or `tools/web/`
+- `promptbridge_discuss`
+- `promptbridge_curate`
+- status/session tools
+- `agentify_*` compatibility aliases during `0.1.x`
 
-Default non-secret environment variables:
+## Why the lanes stay separate
 
-- `PYTHONUNBUFFERED=1`
-- `PIP_DISABLE_PIP_VERSION_CHECK=1`
-- `GH_PAGER=cat`
-- `PLAYWRIGHT_BROWSERS_PATH=/ms-playwright`
+The Codex lane is for structured work: planning, review, coordination, and final selection. The PromptBridge lane is for conversation and curation only. Mixing them would blur authority, make failures harder to classify, and increase operator confusion.
 
-Default secrets:
+## Environment model
 
-- `OPENAI_API_KEY`
-- optionally `GH_TOKEN` for explicit CLI- or token-backed GitHub flows
+Canonical Codex setup is Windows-first:
 
-ChatGPT account credentials should not be treated as normal repo-wide env vars. Any web-session handling belongs to the specific tool that needs it.
+- canonical root: active Windows `CODEX_HOME`
+- default root: `%USERPROFILE%\.codex`
+- orchestration config: `promptbridge-orchestration.toml`
+- MCP registration and Codex defaults stay in `config.toml`
+
+The system must also support custom `CODEX_HOME` values without hardcoded user or path assumptions.
+
+## Validation contract
+
+The repo is not considered healthy unless all of these hold:
+
+- root `npm ci --ignore-scripts` completes without deprecated warnings
+- `npm test` passes for both live tool projects
+- skills validate from the repo root
+- orchestration status/probe/self-test work from the active Windows root
+- PromptBridge remains talk-only and fail-closed when session/model/search/reasoning confirmation is uncertain
 
 ## Future direction
 
-This repo should grow by promoting repeated, pressure-tested workflows into real skills and by promoting repeated, pressure-tested integrations into real MCP or web tools. The live surfaces stay clean; incubation docs hold the rough ideas until they are ready.
+Grow the repo by adding more proven skill wrappers and orchestration profiles, not by piling more ad-hoc prompt instructions into one giant system prompt. The backend should stay explicit, testable, and operator-readable.
