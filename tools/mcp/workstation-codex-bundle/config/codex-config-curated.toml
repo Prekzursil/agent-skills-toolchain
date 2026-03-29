@@ -2,8 +2,8 @@ sqlite_home = "C:\\Users\\Prekzursil\\.codex\\codex-sqlite\\canonical"
 model = "gpt-5.4"
 review_model = "gpt-5.4"
 model_instructions_file = "C:\\Users\\Prekzursil\\.codex\\model-instructions.md"
-approval_policy = "never"
-sandbox_mode = "danger-full-access"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
 model_reasoning_effort = "xhigh"
 model_reasoning_summary = "detailed"
 model_verbosity = "high"
@@ -17,13 +17,13 @@ file_opener = "vscode"
 suppress_unstable_features_warning = true
 plan_mode_reasoning_effort = "xhigh"
 
+model_context_window = 1051000
+model_auto_compact_token_limit = 850000
+service_tier = "fast"
+approvals_reviewer = "user"
+
 [shell_environment_policy]
 inherit = "all"
-
-[model_providers.openai]
-name = "openai"
-request_max_retries = 10
-stream_max_retries = 10
 
 history.persistence = "save-all"
 
@@ -35,6 +35,7 @@ notification_method = "auto"
 
 cli_auth_credentials_store = "file"
 mcp_oauth_credentials_store = "file"
+status_line = ["model-with-reasoning", "context-remaining", "current-dir", "five-hour-limit", "weekly-limit", "session-id", "fast-mode"]
 
 [tools]
 view_image = true
@@ -45,34 +46,6 @@ context_size = "high"
 [agents]
 max_threads = 8
 max_depth = 2
-
-[agents.explorer]
-description = "Read-only scout for codebase mapping, dependency tracing, and evidence gathering before changes."
-config_file = "C:\\Users\\Prekzursil\\.codex\\agents\\explorer.toml"
-
-[agents.docs_researcher]
-description = "Documentation specialist for API, framework, and version-behavior verification using docs-oriented tools."
-config_file = "C:\\Users\\Prekzursil\\.codex\\agents\\docs-researcher.toml"
-
-[agents.security_reviewer]
-description = "Read-only reviewer focused on correctness, security, misuse paths, regressions, and missing safeguards."
-config_file = "C:\\Users\\Prekzursil\\.codex\\agents\\security-reviewer.toml"
-
-[agents.browser_debugger]
-description = "Browser-focused investigator for reproducing UI and integration issues with screenshots, console, and network evidence."
-config_file = "C:\\Users\\Prekzursil\\.codex\\agents\\browser-debugger.toml"
-
-[agents.ui_ux_reviewer]
-description = "UI and UX specialist for layout, accessibility, design-system consistency, and visual quality review."
-config_file = "C:\\Users\\Prekzursil\\.codex\\agents\\ui-ux-reviewer.toml"
-
-[agents.verifier]
-description = "Read-only completion gate that verifies the changed behavior, tests, and residual risk before sign-off."
-config_file = "C:\\Users\\Prekzursil\\.codex\\agents\\verifier.toml"
-
-[agents.worker]
-description = "Single implementation agent that owns targeted code changes after the issue is understood and scoped."
-config_file = "C:\\Users\\Prekzursil\\.codex\\agents\\worker.toml"
 
 [features]
 # Legacy compatibility
@@ -89,17 +62,17 @@ personality = true
 # Under development / high leverage
 apply_patch_freeform = true
 runtime_metrics = true
-memory_tool = true
 child_agents_md = true
 codex_git_commit = true
 powershell_utf8 = true
 apps_mcp_gateway = true
 skill_env_var_dependency_prompt = true
 prevent_idle_sleep = true
+responses_websockets = true
 responses_websockets_v2 = true
 js_repl = true
 plugins = true
-request_permissions = true
+exec_permission_approvals = true
 request_permissions_tool = true
 artifact = true
 # image_generation= true
@@ -112,12 +85,11 @@ voice_transcription = true
 multi_agent = true
 apps = true
 use_linux_sandbox_bwrap = true
-guardian_approval = true
 memories = true
+tui_app_server = true
 
 [mcp_servers.figma]
 url = "https://mcp.figma.com/mcp"
-bearer_token_env_var = "FIGMA_ACCESS_TOKEN"
 enabled = true
 
 [mcp_servers.playwright]
@@ -129,6 +101,36 @@ enabled = true
 command = "npx"
 args = ["-y", "chrome-devtools-mcp@latest"]
 enabled = true
+
+[mcp_servers.chrome-devtools.tools.new_page]
+approval_mode = "approve"
+
+[mcp_servers.chrome-devtools.tools.take_snapshot]
+approval_mode = "approve"
+
+[mcp_servers.chrome-devtools.tools.click]
+approval_mode = "approve"
+
+[mcp_servers.chrome-devtools.tools.evaluate_script]
+approval_mode = "approve"
+
+[mcp_servers.chrome-devtools.tools.get_network_request]
+approval_mode = "approve"
+
+[mcp_servers.chrome-devtools.tools.take_screenshot]
+approval_mode = "approve"
+
+[mcp_servers.chrome-devtools.tools.press_key]
+approval_mode = "approve"
+
+[mcp_servers.chrome-devtools.tools.type_text]
+approval_mode = "approve"
+
+[mcp_servers.chrome-devtools.tools.navigate_page]
+approval_mode = "approve"
+
+[mcp_servers.chrome-devtools.tools.handle_dialog]
+approval_mode = "approve"
 
 [mcp_servers.github]
 bearer_token_env_var = "GITHUB_MCP_PAT"
@@ -171,9 +173,26 @@ args = ["-y", "@codacy/codacy-mcp@latest"]
 env_vars = ["CODACY_ACCOUNT_TOKEN", "CODACY_API_TOKEN"]
 enabled = true
 
+[mcp_servers.semgrep]
+command = "C:/Users/Prekzursil/.local/bin/uvx.exe"
+args = ["semgrep-mcp", "--semgrep-path", "C:/Users/Prekzursil/.local/bin/semgrep.exe"]
+enabled = true
+
+[mcp_servers.codecov]
+command = "npx"
+args = ["-y", "@egulatee/mcp-codecov@latest"]
+env_vars = ["CODECOV_BASE_URL", "CODECOV_TOKEN"]
+enabled = true
+
+[mcp_servers.deepsource]
+command = "C:\\Program Files\\nodejs\\node.exe"
+args = ["C:\\Users\\Prekzursil\\.local\\opt\\deepsource-mcp-server\\deepsource-mcp-wrapper.mjs"]
+env_vars = ["DEEPSOURCE_API_KEY"]
+enabled = true
+
 [mcp_servers.browserstack]
 command = "npx"
-args = ["-y", "@browserstack/mcp-server@latest"]
+args = ["-y", "@browserstack/mcp-server@1.2.11"]
 env_vars = ["BROWSERSTACK_USERNAME", "BROWSERSTACK_ACCESS_KEY"]
 enabled = true
 
@@ -196,16 +215,12 @@ enabled = true
 command = "docker"
 args = ["run", "-i", "--rm", "-e", "SONARQUBE_TOKEN", "-e", "SONARQUBE_ORG", "-e", "SONARQUBE_URL", "-e", "SONARQUBE_IDE_PORT", "docker.io/mcp/sonarqube:latest"]
 env_vars = ["SONARQUBE_TOKEN", "SONARQUBE_ORG", "SONARQUBE_URL", "SONARQUBE_IDE_PORT"]
+startup_timeout_sec = 60
 enabled = true
 
 [mcp_servers.postgres]
 command = "docker"
 args = ["run", "-i", "--rm", "ghcr.io/pgedge/postgres-mcp:latest"]
-enabled = false
-
-[mcp_servers.desktop-commander]
-command = "npx"
-args = ["-y", "@wonderwhy-er/desktop-commander@0.2.35"]
 enabled = false
 
 [mcp_servers.scrapegraph]
@@ -230,19 +245,13 @@ args = ["-y", "@sentry/mcp-server@latest"]
 enabled = true
 env_vars = ["SENTRY_ACCESS_TOKEN", "SENTRY_HOST"]
 
+[mcp_servers.sentry.env]
+SENTRY_HOST = "sentry.io"
+
 [mcp_servers.docker]
 command = "C:/Users/Prekzursil/.local/bin/uvx.exe"
 args = ["docker-mcp"]
 enabled = true
-
-[mcp_servers.ghidra]
-command = "C:/Users/Prekzursil/AppData/Local/Programs/Python/Python312/python.exe"
-args = ["D:/Program Files/Ghidra/ghidra_12.0.3_PUBLIC/bridge_mcp_ghidra.py"]
-enabled = false
-
-[mcp_servers.mindsdb]
-enabled = true
-url = "http://127.0.0.1:47334/mcp/sse"
 
 [mcp_servers.pdf-reader]
 command = "npx"
@@ -265,6 +274,62 @@ trust_level = "trusted"
 [projects.'C:\Users\Prekzursil\Downloads']
 trust_level = "trusted"
 
+[profiles.experimental]
+approval_policy = "never"
+sandbox_mode = "workspace-write"
+model_reasoning_effort = "xhigh"
+model_reasoning_summary = "detailed"
+model_verbosity = "high"
+personality = "pragmatic"
+
+[plugins."build-web-apps@openai-curated"]
+enabled = true
+
+[plugins."canva@openai-curated"]
+enabled = true
+
+[plugins."cloudflare@openai-curated"]
+enabled = true
+
+[plugins."figma@openai-curated"]
+enabled = true
+
+[plugins."game-studio@openai-curated"]
+enabled = true
+
+[plugins."github@openai-curated"]
+enabled = true
+
+[plugins."test-android-apps@openai-curated"]
+enabled = true
+
+[plugins."sentry@openai-curated"]
+enabled = true
+
+[plugins."notion@openai-curated"]
+enabled = true
+
+[plugins."gmail@openai-curated"]
+enabled = true
+
+[plugins."linear@openai-curated"]
+enabled = true
+
+[plugins."hugging-face@openai-curated"]
+enabled = true
+
+[plugins."jam@openai-curated"]
+enabled = true
+
+[plugins."build-ios-apps@openai-curated"]
+enabled = true
+
+[plugins."google-calendar@openai-curated"]
+enabled = true
+
+[plugins."google-drive@openai-curated"]
+enabled = true
+
 [mcp_servers.linear]
 url = "https://mcp.linear.app/mcp"
 enabled = true
@@ -283,6 +348,9 @@ PROMPTBRIDGE_DESKTOP_STATE_DIR = "C:\\Users\\Prekzursil\\.promptbridge-desktop"
 AGENTIFY_DESKTOP_STATE_DIR = "C:\\Users\\Prekzursil\\.promptbridge-desktop"
 PROMPTBRIDGE_CODEX_HOME = "C:\\Users\\Prekzursil\\.codex"
 PROMPTBRIDGE_ORCHESTRATION_CONFIG = "C:\\Users\\Prekzursil\\.codex\\promptbridge-orchestration.toml"
-PROMPTBRIDGE_DESKTOP_AUTOSTART = "false"
-AGENTIFY_DESKTOP_AUTOSTART = "false"
 # <<< promptbridge-codex managed <<<
+
+[mcp_servers.cheatengine]
+command = "C:/Users/Prekzursil/.local/opt/cheatengine-mcp-bridge/.venv/Scripts/python.exe"
+args = ["C:/Users/Prekzursil/.local/opt/cheatengine-mcp-bridge/MCP_Server/mcp_cheatengine.py"]
+enabled = true

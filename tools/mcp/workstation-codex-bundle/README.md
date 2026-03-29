@@ -5,8 +5,9 @@ Curated Windows-first workstation bundle for the canonical Codex profile at `C:\
 ## Provenance split
 - **Self-made**: `codex_consult`, which now exposes both codex_* orchestration tools and promptbridge_* / agentify_* talk tools from one managed server.
 - **Modified local fork**: PromptBridge runtime overrides captured under `tools/mcp/agent-lanes-codex/local-overrides/` and `tools/web/agent-lanes-chatgpt-web/local-overrides/`.
-- **Curated upstream picks**: GitHub, Notion, Linear, Playwright, Chrome DevTools, Figma, Sentry, SonarQube, MindsDB, Docker, Memory, Context7, and selected optional extras.
-- **Curated non-MCP integrations**: Codecov and Chromatic, both intentionally tracked outside the MCP set.
+- **Curated upstream picks**: GitHub, GitHub CLI, Notion, Linear, Playwright, Chrome DevTools, Figma, Sentry, SonarQube, Semgrep, Docker, Memory, Context7, PostgreSQL, and selected optional extras including the upstream Cheat Engine bridge wrapper.
+- **Curated community MCP picks**: Codecov is promoted into the active MCP bundle via `@egulatee/mcp-codecov`.
+- **Curated non-MCP integrations**: Chromatic remains intentionally outside the MCP set; Qlty stays on CLI + provider workflows, and DeepScan stays on VS Code + provider workflows.
 
 ## Key workstation decisions
 - Canonical MCP source of truth: `C:\Users\Prekzursil\.codex\config.toml`
@@ -15,15 +16,16 @@ Curated Windows-first workstation bundle for the canonical Codex profile at `C:\
 - `chatgpt.openOnStartup = false`
 - PromptBridge desktop autostart is disabled by default to stop constant browser and Electron noise
 - Windows remains the canonical Codex home; `.codex-vscode` is migration/comparison input only
-- Serena, Nuxt, Netlify, and Terraform are no longer part of the active curated MCP bundle
+- Serena, Nuxt, Netlify, Terraform, MindsDB, Ghidra, and desktop-commander are not part of the current canonical config-owned MCP bundle
+- Stage 1 in this repo is workstation-only: project-specific web UI setup for Momentstudio, Webcoder, and Reframe is intentionally deferred
 
 ## Current health summary
-- **Verified now**: GitHub auth, Notion OAuth login, Ghidra headless health on 127.0.0.1:8089, MindsDB local health, Context7 token persistence, Sentry API reachability, Codecov local CLI
-- **Enabled but conservatively described**: Figma (auth-gated), SonarQube (configured, no fresh runtime proof in this pass)
-- **Enabled with native-app or headless runtime**: Ghidra is enabled in canonical config and now has a verified local headless bridge at 127.0.0.1:8089; the GUI plugin path remains optional when CodeBrowser is open
+- **Verified now**: GitHub auth, Notion OAuth login, Context7 token persistence, Sentry API reachability, Codecov community MCP startup with token + base URL, SonarQube Cloud MCP startup, Semgrep MCP wrapper startup, DeepSource MCP handshake through a local Windows wrapper, Cheat Engine local install plus live read-only SWFOC analysis, and Codex registration
+- **Enabled but conservatively described**: Figma (auth-gated), SonarQube (configured against SonarQube Cloud), Semgrep (no cloud token provided in this stage), and Cheat Engine (installed locally with successful pipe ping and read-only game analysis; treat writes as a separate risk lane)
 - **Enabled and verified**: `codex_consult` under the single-managed-server lane model; live `status`, `probe`, and `self-test` all returned `ok: true` on 2026-03-15
 - **Removed from the active workstation bundle**: Unity MCP was removed completely by owner preference, including local `D:` staging and env references
-- **Non-MCP integrations**: Codecov uses the hosted API plus a local CLI on `D:`; Chromatic uses a CLI + Playwright workspace on `D:` with `CHROMATIC_PROJECT_TOKEN` persisted locally, and local `chromatic --playwright --dry-run` now completes successfully without any browser/site auth check after aligning Playwright output to `test-results`
+- **Community-risk decision**: DeepSource is now enabled via a local Node wrapper because the available `deepsource-mcp-server` package is deprecated and its published main entrypoint does not start correctly on Windows without an explicit wrapper; Qlty and DeepScan remain intentionally outside MCP because the current supported workstation flows are non-MCP
+- **Non-MCP integrations**: the Codecov CLI on `D:` remains available for pre-push analysis; Chromatic uses a CLI + Playwright workspace on `D:` with `CHROMATIC_PROJECT_TOKEN` persisted locally; Qlty remains a CLI/provider workflow; and DeepScan remains a VS Code supplement/provider workflow
 
 ## Files in this project
 - `bundle.manifest.json`: current bundle membership and provenance split
@@ -36,7 +38,14 @@ Curated Windows-first workstation bundle for the canonical Codex profile at `C:\
 - `audits/2026-03-11-vscode-extension-inventory.md`: full extension classification report
 - `audits/2026-03-11-vscode-extension-inventory.json`: machine-readable extension inventory
 - `recommendations/apps-and-extensions.md`: suggested MCPs, Codex apps, CLI integrations, and extension cleanup candidates
-- `references/upstream-sources.md`: upstream docs used for staged MCP decisions and CLI-only recommendations
+- `references/upstream-sources.md`: upstream docs used for staged MCP decisions, blocked-provider notes, and CLI fallback recommendations
 - `scripts/validate-workstation-bundle.ps1`: local validation helper for this bundle
-- `scripts/start-ghidra-headless.ps1`: local helper to launch the verified headless bridge on `127.0.0.1:8089`
+- `scripts/deepsource-mcp-wrapper.mjs`: repo-owned source for the Windows DeepSource wrapper that is installed under `C:\Users\Prekzursil\.local\opt\deepsource-mcp-server\`
 - `validation/2026-03-11-local-validation.md`: captured validation evidence
+- `../cheatengine-mcp-bridge/validation/2026-03-29-local-validation.md`: Cheat Engine bridge install and connectivity evidence
+
+## Config-owned vs plugin-provided MCPs
+
+- `config/codex-config-curated.toml` tracks the canonical config-owned MCP servers.
+- `codex mcp list` can also show plugin/app-provided MCP surfaces such as `cloudflare-api`, `stripe`, `supabase`, `vercel`, and `hf-mcp-server`.
+- Those plugin-provided surfaces should be documented as environment facts, not mirrored into the curated config-owned bundle manifest unless they become repo-owned decisions.
