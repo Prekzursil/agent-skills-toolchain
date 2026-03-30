@@ -44,8 +44,8 @@
   - Hugging Face via the remote HTTP MCP endpoint
   - Figma, Notion, and Linear via remote HTTP MCP definitions
 - Current runtime proof on Gemini:
-  - Connected during `gemini mcp list`: GitHub, Codacy, DeepSource, Codecov, Cheat Engine, Playwright, Chrome DevTools, Hugging Face
-  - Still inconsistent / follow-up required: Semgrep, SonarQube, Figma, Notion, Linear
+  - Connected during `gemini mcp list`: GitHub, Codacy, DeepSource, Codecov, Cheat Engine, Playwright, Chrome DevTools, Figma, Notion, Hugging Face
+  - Still inconsistent / follow-up required: Semgrep, SonarQube, Linear
 - Claude now carries the requested common set through a mix of surviving plugins and explicit local config:
   - Connected: GitHub, Playwright, Chrome DevTools, Figma, Notion, Linear, Semgrep, SonarQube, Cheat Engine, Hugging Face, Codacy, Codecov, DeepSource
   - Permanently removed noisy or unwanted plugin-backed MCPs: Supabase, Atlassian, Adspirer, Atlan, Circleback, FireTiger, Flint, Intercom, Legalzoom, Neon, Opsera, PostHog, Postman, Prisma, RevenueCat, Sanity, Slack, Stripe, Vercel, Amazon Location Service, CockroachDB, Discord, Fakechat, FiftyOne, Goodmem, iMessage, Laravel Boost, PagerDuty, Sourcegraph, SumUp, Telegram, Wix, ZoomInfo, Serena, Terraform, Firebase
