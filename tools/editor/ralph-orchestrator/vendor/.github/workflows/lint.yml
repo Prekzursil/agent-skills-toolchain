@@ -1,0 +1,31 @@
+name: Lint (Fork PRs)
+
+# Runs automatically on all PRs including forks (no approval needed).
+# Only format checking here — no compile, no secrets, minimal blast radius.
+# Clippy has been moved into ci.yml to share the compilation cache with tests.
+
+on:
+  pull_request_target:
+    branches: [main]
+
+permissions: {}
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  fmt:
+    name: Format
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --all -- --check

@@ -25,14 +25,60 @@ if (-not (Test-Path $ValidatorPath)) {
     throw "Validator not found at $ValidatorPath"
 }
 
-$python = Get-Command python -ErrorAction SilentlyContinue
-if (-not $python) {
-    $python = Get-Command py -ErrorAction SilentlyContinue
+function Get-PythonCandidateSpec {
+    $candidates = @()
+
+    if ($env:CODEX_PYTHON_WITH_YAML) {
+        $candidates += ,@($env:CODEX_PYTHON_WITH_YAML)
+    }
+
+    $localAppData = [Environment]::GetFolderPath("LocalApplicationData")
+    foreach ($root in @((Join-Path $localAppData "Programs\Python"), (Join-Path $localAppData "Python"))) {
+        if (-not (Test-Path $root)) { continue }
+        Get-ChildItem -Path $root -Directory -ErrorAction SilentlyContinue |
+            Sort-Object Name -Descending |
+            ForEach-Object {
+                $pythonPath = Join-Path $_.FullName "python.exe"
+                if (Test-Path $pythonPath) {
+                    $candidates += ,@($pythonPath)
+                }
+            }
+    }
+
+    foreach ($name in @("python", "py", "python3")) {
+        $command = Get-Command $name -ErrorAction SilentlyContinue
+        if ($command) {
+            if ($command.Name -eq "py.exe") {
+                $candidates += ,@($command.Source, "-3")
+            } else {
+                $candidates += ,@($command.Source)
+            }
+        }
+    }
+
+    $seen = New-Object 'System.Collections.Generic.HashSet[string]'
+    foreach ($candidate in $candidates) {
+        $key = ($candidate -join "|")
+        if ($seen.Add($key)) {
+            ,$candidate
+        }
+    }
 }
 
-if (-not $python) {
-    throw "Python launcher not found. Install Python or pass a custom validation command."
+function Test-PythonHasYaml {
+    param([string[]]$CommandSpec)
+
+    $command = $CommandSpec[0]
+    $rest = if ($CommandSpec.Length -gt 1) { $CommandSpec[1..($CommandSpec.Length - 1)] } else { @() }
+    & $command @rest -c "import yaml" *> $null
+    return ($LASTEXITCODE -eq 0)
 }
+
+$pythonSpec = Get-PythonCandidateSpec | Where-Object { Test-PythonHasYaml $_ } | Select-Object -First 1
+if (-not $pythonSpec) {
+    throw "No Python interpreter with PyYAML found. Install PyYAML or set CODEX_PYTHON_WITH_YAML."
+}
+Write-Host ("Using Python interpreter: " + ($pythonSpec -join " "))
 
 $skillsRoot = if (Test-Path (Join-Path $Root ".agents\skills")) {
     Join-Path $Root ".agents\skills"
@@ -53,16 +99,11 @@ if (-not $skills) {
 }
 
 $failures = @()
-
 foreach ($skill in $skills) {
     Write-Host "Validating $($skill.Name)..."
-
-    if ($python.Name -eq "py.exe") {
-        & $python.Source -3 $ValidatorPath $skill.FullName
-    } else {
-        & $python.Source $ValidatorPath $skill.FullName
-    }
-
+    $command = $pythonSpec[0]
+    $rest = if ($pythonSpec.Length -gt 1) { $pythonSpec[1..($pythonSpec.Length - 1)] } else { @() }
+    & $command @rest $ValidatorPath $skill.FullName
     if ($LASTEXITCODE -ne 0) {
         $failures += $skill.Name
     }

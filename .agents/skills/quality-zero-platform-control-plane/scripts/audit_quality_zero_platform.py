@@ -4,7 +4,9 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import os
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -75,17 +77,63 @@ def yaml_load(text: str) -> Any:
     try:
         import yaml  # type: ignore
     except ModuleNotFoundError:
-        stdout = run_command(
-            [
-                "pwsh",
-                "-NoProfile",
-                "-Command",
-                "$input | ConvertFrom-Yaml | ConvertTo-Json -Depth 100",
-            ],
-            input_text=text,
+        interpreter = find_python_with_yaml()
+        if interpreter:
+            stdout = run_command(
+                [
+                    *interpreter,
+                    "-c",
+                    (
+                        "import json, sys, yaml; "
+                        "print(json.dumps(yaml.safe_load(sys.stdin.read())))"
+                    ),
+                ],
+                input_text=text,
+            )
+            return json.loads(stdout)
+        raise RuntimeError(
+            "PyYAML is required to parse controller configuration. "
+            "Install PyYAML or set CODEX_PYTHON_WITH_YAML to an interpreter that has it."
         )
-        return json.loads(stdout)
     return yaml.safe_load(text)
+
+
+def find_python_with_yaml() -> list[str] | None:
+    candidates: list[list[str]] = []
+
+    override = os.environ.get("CODEX_PYTHON_WITH_YAML")
+    if override:
+        candidates.append([override])
+
+    candidates.append([sys.executable])
+    candidates.extend([["python"], ["py", "-3"], ["python3"]])
+
+    local_app_data = Path(os.environ.get("LOCALAPPDATA", ""))
+    for root in (local_app_data / "Programs" / "Python", local_app_data / "Python"):
+        if not root.exists():
+            continue
+        for child in sorted(root.iterdir(), reverse=True):
+            python_exe = child / "python.exe"
+            if python_exe.exists():
+                candidates.append([str(python_exe)])
+
+    seen: set[tuple[str, ...]] = set()
+    for candidate in candidates:
+        key = tuple(candidate)
+        if key in seen:
+            continue
+        seen.add(key)
+        try:
+            result = subprocess.run(
+                [*candidate, "-c", "import yaml"],
+                capture_output=True,
+                text=True,
+            )
+        except OSError:
+            continue
+        if result.returncode == 0:
+            return candidate
+    return None
 
 
 def deep_merge(base: Any, overlay: Any) -> Any:

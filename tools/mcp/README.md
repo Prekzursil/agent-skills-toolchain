@@ -37,6 +37,10 @@ The shared result contract is stable across all six tools.
 
 - curated Windows-first MCP bundle with explicit self-made vs curated provenance and validation notes
 
+### `digitalocean-mcp`
+
+- thin Windows-first wrapper for the archived `@digitalocean/mcp` package with env-only token wiring and Codex / Claude / Gemini registration helpers
+
 ## Operator commands
 
 From the repo root:
