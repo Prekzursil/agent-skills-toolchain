@@ -58,6 +58,12 @@ All orchestration tools return the same result shape:
 
 PromptBridge is not the execution authority. It can discuss and curate, but it does not own repo-changing behavior.
 
+### Desktop surface
+
+`tools/web/agentify-desktop/` now vendors the local desktop control-center app source that backs the PromptBridge / Agentify session layer.
+
+It contains the Electron app, local HTTP/MCP bridge entrypoints, UI assets, orchestrator helpers, and tests, but does not include build artifacts or `node_modules`.
+
 ### Skill layer
 
 Repo-local skills now include the multi-agent/orchestration wrappers:
@@ -114,7 +120,7 @@ A longer walkthrough lives in [docs/multi-agent-quickstart.md](docs/multi-agent-
 - `tools/editor/`
   - editor-local tools with explicit installation and validation paths
 - `tools/web/`
-  - PromptBridge/Agentify talk-only tooling and other browser/session-bounded projects
+  - PromptBridge/Agentify talk-only tooling, the vendored Agentify Desktop source, and other browser/session-bounded projects
 - `docs/`
   - roadmap, design notes, and operator docs
 - `scripts/`

@@ -87,3 +87,31 @@ test('codex orchestration: discuss mode uses two codex participants, synthesis, 
   assert.equal(result.metadata.curatorUsed, true);
   assert.equal(result.metadata.participants.length, 2);
 });
+
+test('codex orchestration: consult passes skipGitRepoCheck and surfaces exec failure context', async () => {
+  const cfg = defaultOrchestrationConfig({ codexHome: 'C:/Users/Test/.codex' });
+  let capturedCall = null;
+
+  await assert.rejects(
+    runCodexOrchestration({
+      toolName: 'codex_consult',
+      prompt: 'Validate consultation output.',
+      config: cfg,
+      workspaceDir: 'C:/Users/Test',
+      runCodexExecImpl: async (args) => {
+        capturedCall = args;
+        return {
+          ok: false,
+          stdout: '',
+          stderr: 'Not inside a trusted directory and --skip-git-repo-check was not specified.',
+          exit: { code: 1, signal: null },
+          sessionId: null,
+          abortedReason: null
+        };
+      }
+    }),
+    /codex_exec_failed:Not inside a trusted directory and --skip-git-repo-check was not specified\./
+  );
+
+  assert.equal(capturedCall?.skipGitRepoCheck, true);
+});

@@ -192,16 +192,37 @@ function parseAgentJsonResult(stdout) {
   return null;
 }
 
+function consultationScalar(value, preferredKeys = ['summary', 'id', 'title', 'name', 'reason', 'description']) {
+  if (typeof value === 'string') return value.trim();
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (value && typeof value === 'object') {
+    for (const key of preferredKeys) {
+      const candidate = value[key];
+      if (typeof candidate === 'string' && candidate.trim()) return candidate.trim();
+      if (typeof candidate === 'number' || typeof candidate === 'boolean') return String(candidate);
+    }
+    try {
+      return JSON.stringify(value);
+    } catch {}
+  }
+  return '';
+}
+
+function consultationList(value, preferredKeys) {
+  if (!Array.isArray(value)) return [];
+  return value.map((entry) => consultationScalar(entry, preferredKeys)).filter(Boolean);
+}
+
 function normalizeConsultationResult(result, { fallbackMode }) {
-  if (!result || typeof result !== 'object') throw new Error('invalid_consultation_result');
+  if (!result || typeof result !== 'object') throw new Error(`invalid_consultation_result:${fallbackMode || 'consultation'}`);
   const normalized = {
-    problem: typeof result.problem === 'string' ? result.problem : '',
-    assumptions: Array.isArray(result.assumptions) ? result.assumptions : [],
-    options: Array.isArray(result.options) ? result.options : [],
-    recommended_option: typeof result.recommended_option === 'string' ? result.recommended_option : '',
-    risks: Array.isArray(result.risks) ? result.risks : [],
-    verification_plan: Array.isArray(result.verification_plan) ? result.verification_plan : [],
-    confidence: typeof result.confidence === 'string' ? result.confidence : 'unknown'
+    problem: consultationScalar(result.problem, ['problem', 'summary', 'title', 'name', 'reason', 'description']),
+    assumptions: consultationList(result.assumptions, ['summary', 'title', 'name', 'reason', 'description', 'id']),
+    options: consultationList(result.options, ['summary', 'title', 'name', 'id', 'reason', 'description']),
+    recommended_option: consultationScalar(result.recommended_option, ['id', 'summary', 'title', 'name', 'reason', 'description']),
+    risks: consultationList(result.risks, ['summary', 'title', 'name', 'reason', 'description', 'id']),
+    verification_plan: consultationList(result.verification_plan, ['summary', 'title', 'name', 'reason', 'description', 'id']),
+    confidence: consultationScalar(result.confidence, ['summary', 'label', 'name', 'id', 'reason', 'description']) || 'unknown'
   };
   const missing = REQUIRED_CONSULTATION_SCHEMA_KEYS.filter((key) => {
     const value = normalized[key];
@@ -258,10 +279,30 @@ async function defaultPromptbridgeCurate({ prompt, candidates, key = 'promptbrid
   return normalizeConsultationResult(parsed, { fallbackMode: 'promptbridge_curate' });
 }
 
+function laneAFallbackFrom(baseResult, error) {
+  const reason = error?.message || String(error);
+  return {
+    ...baseResult,
+    fallback_to_lane_a: true,
+    risks: [...new Set([...(baseResult?.risks || []), `PromptBridge curator unavailable: ${reason}`])],
+    verification_plan: [
+      ...(baseResult?.verification_plan || []),
+      'If PromptBridge curation is required, start the desktop lane manually and rerun the curation path.'
+    ]
+  };
+}
+
 function configOverrideArgs(reasoningEffort) {
   const overrides = [];
   if (reasoningEffort) overrides.push(`model_reasoning_effort=${reasoningEffort}`);
   return overrides;
+}
+
+function trimForError(value) {
+  return String(value || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 240);
 }
 
 export async function runCodexOrchestration({
@@ -291,10 +332,17 @@ export async function runCodexOrchestration({
       workspaceDir,
       prompt: participantPrompt,
       ephemeral: true,
+      skipGitRepoCheck: true,
       model: resolved.model,
       configOverrides: configOverrideArgs(resolved.reasoningEffort)
     });
+    if (!execResult?.ok) {
+      throw new Error(`codex_exec_failed:${trimForError(execResult?.stderr || execResult?.stdout || execResult?.abortedReason || execResult?.exit?.code || 'unknown')}`);
+    }
     const parsed = parseAgentJsonResult(execResult.stdout);
+    if (!parsed) {
+      throw new Error(`invalid_consultation_result:${trimForError(execResult?.stderr || execResult?.stdout || 'missing_agent_message')}`);
+    }
     const normalized = normalizeConsultationResult(parsed, { fallbackMode: toolName });
     candidateResults.push(normalized);
     participants.push({ index: idx, role: resolved.role, model: resolved.model, reasoningEffort: resolved.reasoningEffort });
@@ -312,24 +360,35 @@ export async function runCodexOrchestration({
       workspaceDir,
       prompt: synthesisPrompt,
       ephemeral: true,
+      skipGitRepoCheck: true,
       model: resolved.model,
       configOverrides: configOverrideArgs(resolved.reasoningEffort)
     });
+    if (!execResult?.ok) {
+      throw new Error(`codex_exec_failed:${trimForError(execResult?.stderr || execResult?.stdout || execResult?.abortedReason || execResult?.exit?.code || 'unknown')}`);
+    }
     const parsed = parseAgentJsonResult(execResult.stdout);
+    if (!parsed) {
+      throw new Error(`invalid_consultation_result:${trimForError(execResult?.stderr || execResult?.stdout || 'missing_agent_message')}`);
+    }
     synthesis = normalizeConsultationResult(parsed, { fallbackMode: `${toolName}_synthesis` });
   }
 
   let curatorUsed = false;
   let finalResult = synthesis;
   if (resolved.useCurator) {
-    finalResult = await promptbridgeCurateImpl({
-      prompt,
-      candidates: candidateResults,
-      key: resolved.promptbridgeKey,
-      requestedModel: overrides.promptbridgeModel || null,
-      reasoningEffort: overrides.promptbridgeReasoningEffort || null
-    });
-    curatorUsed = true;
+    try {
+      finalResult = await promptbridgeCurateImpl({
+        prompt,
+        candidates: candidateResults,
+        key: resolved.promptbridgeKey,
+        requestedModel: overrides.promptbridgeModel || null,
+        reasoningEffort: overrides.promptbridgeReasoningEffort || null
+      });
+      curatorUsed = true;
+    } catch (error) {
+      finalResult = laneAFallbackFrom(synthesis, error);
+    }
   }
 
   return {
