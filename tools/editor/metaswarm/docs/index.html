@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>metaswarm - Multi-Agent Orchestration for Claude Code</title>
+  <meta name="description" content="A self-improving multi-agent orchestration framework for Claude Code, Gemini CLI, and Codex CLI. 18 agents, 13 skills, 15 commands. TDD, cross-model adversarial review, spec-driven development. Production-proven.">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --surface: #f6f8fa;
+      --border: #d1d9e0;
+      --text: #1f2328;
+      --text-muted: #59636e;
+      --accent: #0969da;
+      --accent-subtle: #ddf4ff;
+      --accent-fg: #0969da;
+      --green: #1a7f37;
+      --orange: #9a6700;
+      --purple: #8250df;
+      --red: #d1242f;
+      --step-num-text: #ffffff;
+      --parallel-bg: #ddf4ff;
+      --parallel-text: #0969da;
+      --prompt-border: #0969da;
+      --callout-border: #0969da;
+      --cta-bg: #0969da;
+      --cta-text: #ffffff;
+      --cta-hover-bg: #0550ae;
+      --cta-hover-text: #ffffff;
+      --toggle-bg: var(--surface);
+      --toggle-border: var(--border);
+      --toggle-text: var(--text-muted);
+    }
+
+    [data-theme="dark"] {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-muted: #b1bac4;
+      --accent: #58a6ff;
+      --accent-subtle: #1c2d40;
+      --accent-fg: #58a6ff;
+      --green: #56d364;
+      --orange: #e3b341;
+      --purple: #d2a8ff;
+      --red: #f85149;
+      --step-num-text: #0d1117;
+      --parallel-bg: #1c2d40;
+      --parallel-text: #58a6ff;
+      --prompt-border: #58a6ff;
+      --callout-border: #58a6ff;
+      --cta-bg: #238636;
+      --cta-text: #ffffff;
+      --cta-hover-bg: #2ea043;
+      --cta-hover-text: #ffffff;
+      --toggle-bg: var(--surface);
+      --toggle-border: var(--border);
+      --toggle-text: var(--text-muted);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Theme toggle */
+    .theme-toggle {
+      margin-left: auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 20px;
+      line-height: 1;
+      color: var(--text);
+      font-family: inherit;
+      transition: border-color 0.15s;
+    }
+
+    .theme-toggle:hover {
+      border-color: var(--accent);
+    }
+
+    /* Header */
+    header {
+      padding: 48px 0 32px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    header h1 {
+      font-size: 42px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+    }
+
+    header h1 span { color: var(--accent); }
+
+    header .tagline {
+      font-size: 18px;
+      color: var(--text-muted);
+    }
+
+    /* Sections */
+    section {
+      padding: 48px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    section:last-of-type { border-bottom: none; }
+
+    h2 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      letter-spacing: -0.3px;
+    }
+
+    h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      margin-top: 28px;
+      color: var(--text);
+    }
+
+    p {
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      font-size: 16px;
+    }
+
+    p strong { color: var(--text); }
+
+    a { color: var(--accent-fg); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Code blocks */
+    pre {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      overflow-x: auto;
+      margin: 16px 0 24px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    code {
+      font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+      font-size: 14px;
+    }
+
+    p code, li code {
+      background: var(--surface);
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    .comment { color: var(--text-muted); }
+    .cmd { color: var(--green); }
+    .flag { color: var(--orange); }
+    .string { color: var(--purple); }
+
+    /* Pipeline diagram */
+    .pipeline {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2px;
+      margin: 24px 0;
+    }
+
+    .pipeline-step {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .pipeline-step:first-child { border-radius: 8px 8px 0 0; }
+    .pipeline-step:last-child { border-radius: 0 0 8px 8px; }
+
+    .step-num {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--step-num-text);
+      background: var(--accent);
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .step-label {
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--text);
+    }
+
+    .step-detail {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin-left: auto;
+    }
+
+    .parallel-badge {
+      background: var(--parallel-bg);
+      color: var(--parallel-text);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Feature grid */
+    .features {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 24px 0;
+    }
+
+    @media (max-width: 640px) {
+      .features { grid-template-columns: 1fr; }
+      .step-detail { display: none; }
+    }
+
+    .feature {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+    }
+
+    .feature h4 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .feature p {
+      font-size: 14px;
+      margin-bottom: 0;
+    }
+
+    /* Agent table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 14px;
+    }
+
+    th {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    td:first-child {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    /* Prompt box */
+    .prompt-box {
+      background: var(--surface);
+      border: 2px solid var(--prompt-border);
+      border-radius: 8px;
+      padding: 24px;
+      margin: 24px 0;
+    }
+
+    .prompt-box h3 {
+      margin-top: 0;
+      color: var(--accent-fg);
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .prompt-box pre {
+      margin-bottom: 0;
+      border-color: var(--border);
+    }
+
+    /* Callout */
+    .callout {
+      background: var(--surface);
+      border-left: 3px solid var(--callout-border);
+      padding: 16px 20px;
+      margin: 20px 0;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .callout p { margin-bottom: 0; }
+
+    /* Footer */
+    footer {
+      padding: 48px 0;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    footer a { color: var(--text-muted); }
+    footer a:hover { color: var(--accent-fg); }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-bottom: 16px;
+    }
+
+    /* CTA */
+    .cta {
+      display: inline-block;
+      background: var(--cta-bg);
+      color: var(--cta-text);
+      padding: 12px 28px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 16px;
+      margin-top: 12px;
+      transition: background 0.15s;
+    }
+
+    .cta:hover {
+      background: var(--cta-hover-bg);
+      color: var(--cta-hover-text);
+      text-decoration: none;
+    }
+
+    ul, ol {
+      color: var(--text-muted);
+      padding-left: 24px;
+      margin-bottom: 16px;
+    }
+
+    li {
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    li strong { color: var(--text); }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <nav style="display: flex; align-items: center; gap: 24px; padding: 24px 0; font-size: 14px;">
+    <a href="https://github.com/dsifry/metaswarm">GitHub</a>
+    <a href="https://github.com/dsifry/metaswarm/blob/main/INSTALL.md">Install</a>
+    <a href="https://github.com/dsifry/metaswarm/blob/main/GETTING_STARTED.md">Getting Started</a>
+    <a href="https://github.com/dsifry/metaswarm/blob/main/USAGE.md">Usage</a>
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle light/dark mode">
+      <span id="theme-icon">&#9788;</span>
+    </button>
+  </nav>
+
+  <header>
+    <h1><a href="https://github.com/dsifry/metaswarm" style="color: inherit; text-decoration: none;"><span>meta</span>swarm</a></h1>
+    <p class="tagline">A self-improving multi-agent orchestration framework for Claude Code, Gemini CLI, and Codex CLI. 18 specialized agents coordinate through the full development lifecycle, from GitHub issue to merged PR, with TDD, cross-model adversarial review, and spec-driven development.</p>
+  </header>
+
+  <!-- QUICK INSTALL -->
+  <section style="padding: 32px 0;">
+    <p style="color: var(--text-muted); font-size: 15px; margin-bottom: 12px;">Just tell Claude what you want:</p>
+    <div style="position: relative;">
+      <pre style="font-size: 18px; padding: 20px 24px; margin: 0;"><code><span class="cmd">$</span> claude
+<span style="color: var(--accent);">&gt;</span> Read through https://github.com/dsifry/metaswarm and install it for my project.</code></pre>
+      <button onclick="copyInstall()" style="position: absolute; top: 12px; right: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; cursor: pointer; color: var(--text-muted); font-size: 16px; line-height: 1; transition: color 0.15s, border-color 0.15s;" aria-label="Copy to clipboard" title="Copy to clipboard" id="copy-btn">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg>
+      </button>
+      <span id="copy-tooltip" style="position: absolute; top: -32px; right: 12px; left: auto; transform: translateX(0) translateY(4px); background: var(--text); color: var(--bg); padding: 4px 10px; border-radius: 6px; font-size: 12px; font-family: -apple-system, BlinkMacSystemFont, sans-serif; white-space: nowrap; opacity: 0; transition: opacity 0.2s, transform 0.2s; pointer-events: none;">Copied!</span>
+    </div>
+    <p style="color: var(--text-muted); font-size: 14px; margin-top: 12px;">Claude reads the documentation, understands your project structure, installs the plugin, and configures everything for your stack. Supports TypeScript, Python, Go, Rust, Java, Ruby, and JavaScript.</p>
+    <p style="color: var(--text-muted); font-size: 14px; margin-top: 12px;"><strong style="color: var(--text);">Have Gemini CLI or Codex CLI installed?</strong> metaswarm can delegate implementation and review tasks to them automatically &mdash; the writer is always reviewed by a different model. Setup detects them and offers to enable cross-model orchestration.</p>
+    <p style="color: var(--text-muted); font-size: 13px; margin-top: 16px;">Or install directly:</p>
+    <div style="position: relative;">
+      <pre style="font-size: 14px; padding: 14px 18px; margin: 8px 0 0 0;"><code><span class="cmd">claude</span> plugin marketplace add dsifry/metaswarm-marketplace
+<span class="cmd">claude</span> plugin install metaswarm
+<span class="comment"># then in Claude Code:</span> /metaswarm:setup</code></pre>
+      <button onclick="copyDirect()" style="position: absolute; top: 8px; right: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 5px 7px; cursor: pointer; color: var(--text-muted); font-size: 14px; line-height: 1; transition: color 0.15s, border-color 0.15s;" aria-label="Copy to clipboard" title="Copy to clipboard" id="copy-btn-direct">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg>
+      </button>
+    </div>
+  </section>
+
+  <script>
+  function copyText(text, btnId) {
+    navigator.clipboard.writeText(text);
+    var btn = document.getElementById(btnId);
+    var origHTML = btn.innerHTML;
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg>';
+    btn.style.color = 'var(--green)';
+    setTimeout(function() {
+      btn.innerHTML = origHTML;
+      btn.style.color = 'var(--text-muted)';
+    }, 2000);
+  }
+  function copyInstall() {
+    copyText('Read through https://github.com/dsifry/metaswarm and install it for my project.', 'copy-btn');
+    var tooltip = document.getElementById('copy-tooltip');
+    tooltip.style.opacity = '1';
+    tooltip.style.transform = 'translateX(-50%) translateY(0)';
+    setTimeout(function() {
+      tooltip.style.opacity = '0';
+      tooltip.style.transform = 'translateX(-50%) translateY(4px)';
+    }, 2000);
+  }
+  function copyDirect() { copyText('claude plugin marketplace add dsifry/metaswarm-marketplace && claude plugin install metaswarm', 'copy-btn-direct'); }
+  </script>
+
+  <!-- ONE-SHOT EXAMPLE -->
+  <section>
+    <h2>One Prompt. Full App.</h2>
+    <p>Install metaswarm and give Claude Code one prompt. No issue creation required. The system handles the rest.</p>
+
+    <h3>Set up</h3>
+    <pre><code><span class="cmd">mkdir</span> my-app <span class="cmd">&amp;&amp; cd</span> my-app <span class="cmd">&amp;&amp;</span> git init <span class="cmd">&amp;&amp;</span> npm init -y
+<span class="cmd">claude</span>
+<span class="comment"># &gt; Read through https://github.com/dsifry/metaswarm and install it for my project.</span></code></pre>
+
+    <h3>Start building</h3>
+    <p>Run <code>/metaswarm:start-task</code> and describe what you want in plain English. Include a tech stack, Definition of Done items, and where you want human checkpoints. The more specific the spec, the better the agents perform.</p>
+    <div class="prompt-box">
+      <h3>Example &mdash; adapt for your project</h3>
+      <pre><code>/metaswarm:start-task I want you to build a real-time todo list with AI chat.
+
+Tech stack: Node.js + Hono, React + Vite, SQLite, SSE, Claude SDK.
+
+Definition of Done:
+1. CRUD operations for todo items via REST API
+2. Persistent storage in SQLite
+3. Real-time sync across browser tabs via SSE
+4. AI chat that can read and modify todos
+5. 100% test coverage on backend
+6. CI pipeline for tests and lint
+
+Use the full metaswarm orchestration workflow:
+research, plan, design review gate, decompose into work units,
+and execute each through the 4-phase loop. Set human checkpoints
+after the database schema and after the AI integration.
+When all work units pass, create a PR.</code></pre>
+    </div>
+
+    <p>The orchestrator takes over. It researches your project, plans the implementation, runs a pre-flight validation checklist, then six agents review the plan in parallel. It identifies external dependencies and prompts you for API keys. It breaks the plan into work units, and executes each through the 4-phase loop: implement with TDD, validate independently (with blocking coverage enforcement), adversarial review against the spec, and commit only after PASS. Quality gates are blocking state transitions &mdash; there is no path from FAIL to COMMIT. It pauses for your review at the checkpoints you specified. When everything passes, it creates and shepherds the PR.</p>
+    <p>You described what you wanted. The system figured out how to build it.</p>
+  </section>
+
+  <!-- THE PROBLEM -->
+  <section>
+    <h2>The Problem</h2>
+    <p>Claude Code is good at writing code. It is not good at building and maintaining a production codebase.</p>
+    <p>Shipping a production codebase needs more than just code. It needs research into what already exists, a plan that fits the codebase, a security review, a design review, tests, a PR, CI monitoring, review comment handling, and someone to close the loop and capture what was learned. That is seven or eight distinct jobs. A single agent session cannot hold all of that context, and it definitely cannot review its own work objectively.</p>
+    <p>So you end up doing the coordination yourself. You are the orchestrator. You prime the agent with context, tell it what to build, review the output, fix what it missed, create the PR, babysit CI, respond to review comments, and then do it all again for the next feature. The agent is a fast typist, but you are still the project manager.</p>
+    <p>metaswarm fixes that. It is a full orchestration layer for Claude Code that breaks the work into phases, assigns each phase to a specialist agent, iterates through multiple reviews from other agents blocking until they approve, and coordinates the handoffs, all the way through PR creation and shepherding through external code agent review, integrating with tools like CodeRabbit, Greptile, and other external code review agents. You describe what you want built. The system figures out how to build it, reviews its own plan, implements it with TDD, shepherds the PR through CI and review, and writes down what it learned for next time.</p>
+  </section>
+
+  <!-- THE PIPELINE -->
+  <section>
+    <h2>The Pipeline</h2>
+    <p>Every feature goes through eleven phases. Each phase is handled by a specialist agent (or a group of them). The Issue Orchestrator manages the handoffs.</p>
+
+    <div class="pipeline">
+      <div class="pipeline-step">
+        <div class="step-num">1</div>
+        <span class="step-label">Research</span>
+        <span class="step-detail">Researcher agent explores codebase, finds patterns and dependencies</span>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-num">2</div>
+        <span class="step-label">Plan</span>
+        <span class="step-detail">Architect agent creates implementation plan with tasks</span>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-num">3</div>
+        <span class="step-label">Plan Validation</span>
+        <span class="step-detail">Pre-flight checklist: architecture, deps, API contracts, security, UI/UX, external deps</span>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-num">4</div>
+        <span class="step-label">Design Review Gate</span>
+        <span class="step-detail">PM, Architect, Designer, Security, UX Reviewer, CTO review in parallel</span>
+        <span class="parallel-badge">6 agents parallel</span>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-num">5</div>
+        <span class="step-label">Decompose</span>
+        <span class="step-detail">Break plan into work units with DoD items, file scopes, dependency graph</span>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-num">6</div>
+        <span class="step-label">External Dependency Check</span>
+        <span class="step-detail">Identifies required API keys/credentials, prompts user to configure them</span>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-num">7</div>
+        <span class="step-label">Orchestrated Execution</span>
+        <span class="step-detail">Per work unit: Implement &rarr; Validate &rarr; Adversarial Review &rarr; Commit. Can delegate to Codex/Gemini CLIs.</span>
+        <span class="parallel-badge">4-phase loop</span>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-num">8</div>
+        <span class="step-label">Final Review</span>
+        <span class="step-detail">Cross-unit integration check, full test suite, coverage enforcement</span>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-num">9</div>
+        <span class="step-label">PR Creation</span>
+        <span class="step-detail">Creates PR with structured description and test plan</span>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-num">10</div>
+        <span class="step-label">PR Shepherd</span>
+        <span class="step-detail">Monitors CI, handles review comments, resolves threads</span>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-num">11</div>
+        <span class="step-label">Close + Learn</span>
+        <span class="step-detail">Extracts learnings back into the knowledge base</span>
+      </div>
+    </div>
+
+    <p>The Design Review Gate is the part that surprised me. Six agents review the plan simultaneously, each from a different perspective &mdash; including a UX Reviewer that verifies user flows and integration work units. All six have to approve before implementation starts. If they do not agree after three rounds, the system escalates to a human. This catches real problems. Not theoretical ones.</p>
+  </section>
+
+  <!-- SELF-LEARNING -->
+  <section>
+    <h2>It Gets Smarter Over Time</h2>
+    <p>metaswarm maintains a JSONL knowledge base in your repo. Patterns, gotchas, architectural decisions, anti-patterns. After every merged PR, the self-reflect workflow analyzes what happened and writes new entries.</p>
+    <p>But the interesting part is conversation introspection. The system looks at your Claude Code session and watches for signals:</p>
+    <ul>
+      <li><strong>You repeated yourself.</strong> If you corrected the same behavior twice, that is a candidate for a new skill or command. The system flags it.</li>
+      <li><strong>You disagreed.</strong> When you override Claude's recommendation, the system captures your preferred approach so agents align with your intent in future sessions.</li>
+      <li><strong>You did something manually that should be automated.</strong> Repeated manual steps get flagged as workflow candidates.</li>
+    </ul>
+    <p>The knowledge base can grow to hundreds or thousands of entries without filling your context window, because agents do not load all of it. <code>bd prime</code> uses selective retrieval, filtered by the files you are touching, the keywords that matter, and the type of work you are doing. You get the five gotchas relevant to the auth middleware you are about to change, not the entire institutional memory of the project.</p>
+  </section>
+
+  <!-- ORCHESTRATED EXECUTION -->
+  <section>
+    <h2>Trust Nothing. Verify Everything.</h2>
+    <p>The hardest problem after getting agents to follow checklists is getting them to honestly report results. A coding agent that says "all tests pass" might have skipped the tests entirely, run the wrong suite, or misread the output. We learned this the hard way: agents self-certify success even when things are broken.</p>
+    <p>Orchestrated Execution fixes that. For complex tasks with a written spec, the orchestrator breaks the work into <strong>work units</strong>, each with enumerated Definition of Done items, and runs every unit through a 4-phase loop:</p>
+
+    <div class="features">
+      <div class="feature">
+        <h4>1. Implement</h4>
+        <p>A coding agent builds against the spec using TDD. When it reports "done", the orchestrator does not believe it.</p>
+      </div>
+      <div class="feature">
+        <h4>2. Validate</h4>
+        <p>The orchestrator runs <code>tsc</code>, <code>eslint</code>, <code>vitest</code>, and coverage enforcement from <code>.coverage-thresholds.json</code> itself. Independently. Quality gates are blocking state transitions &mdash; not advisory. Never asks the coding agent "did the tests pass?"</p>
+      </div>
+      <div class="feature">
+        <h4>3. Adversarial Review</h4>
+        <p>A fresh review agent checks each DoD item with file:line evidence. Binary PASS/FAIL, not subjective quality vibes. If it fails, a <em>new</em> reviewer is spawned for re-review. No anchoring bias.</p>
+      </div>
+      <div class="feature">
+        <h4>4. Commit</h4>
+        <p>Only after adversarial PASS. The commit message includes the verified DoD items. If there is a human checkpoint, the system pauses and waits for you before continuing.</p>
+      </div>
+    </div>
+
+    <p>On failure: fix, re-validate, spawn a <strong>fresh</strong> reviewer (never the same one), and retry up to three times before escalating to a human with the full failure history. The fresh reviewer rule matters: without it, the reviewer checks "did they fix what I found?" instead of independently verifying the contract. Anchoring bias is real, even for AI agents.</p>
+    <p>This is not needed for every task. A typo fix or a small bug does not need a 4-phase loop. But for multi-unit features with a spec, risky schema changes, or anything where "it works, trust me" is not good enough, orchestrated execution is the difference between shipping and hoping.</p>
+  </section>
+
+  <!-- EXTERNAL AI TOOLS -->
+  <section>
+    <h2>Cross-Model Adversarial Review</h2>
+    <p>A coding agent reviewing its own output has an inherent bias. metaswarm can delegate implementation and review tasks to external AI tools &mdash; OpenAI Codex CLI and Google Gemini CLI &mdash; with one rule: <strong>the writer is always reviewed by a different model.</strong></p>
+
+    <div class="features">
+      <div class="feature">
+        <h4>Cross-Model Review</h4>
+        <p>If Claude writes the code, Codex or Gemini reviews it. If Codex writes it, Claude or Gemini reviews. The reviewer never shares the writer's biases.</p>
+      </div>
+      <div class="feature">
+        <h4>Availability-Aware Escalation</h4>
+        <p>Model A (2 tries) &rarr; Model B (2 tries) &rarr; Claude (1 try) &rarr; user alert. If Codex is down, Gemini takes over automatically.</p>
+      </div>
+      <div class="feature">
+        <h4>Shell Adapters</h4>
+        <p>Each external tool has a shell adapter with health checks, implement, and review commands. The shared helper library includes timeout handling, worktree management, cost extraction, and error classification.</p>
+      </div>
+      <div class="feature">
+        <h4>Opt-In, Per-Project</h4>
+        <p>Configure via <code>.metaswarm/external-tools.yaml</code>. Each adapter is disabled by default. Enable the ones you have installed and authenticated.</p>
+      </div>
+    </div>
+
+    <p>This is not about replacing Claude. It is about eliminating the blind spots that any single model has when reviewing its own work. Cross-model review catches different classes of bugs because the models have different training biases.</p>
+  </section>
+
+  <!-- VISUAL REVIEW -->
+  <section>
+    <h2>Visual Review</h2>
+    <p>Agents are good at reading code. They are bad at knowing if the UI looks right. The visual review skill uses Playwright to capture screenshots of your web UI at multiple viewports, then brings those screenshots into the Claude Code conversation for visual inspection.</p>
+    <ul>
+      <li><strong>Local files, localhost servers, and deployed URLs</strong> &mdash; works with any web content</li>
+      <li><strong>Responsive viewport testing</strong> &mdash; captures at desktop, tablet, and mobile widths</li>
+      <li><strong>Reveal.js presentations</strong> &mdash; captures individual slides</li>
+      <li><strong>Remote/headless environments</strong> &mdash; falls back to an HTTP file server when <code>open</code> is unavailable</li>
+    </ul>
+    <p>Use it after implementing UI changes, before creating a PR, or anytime you need to verify that rendered output matches the spec.</p>
+  </section>
+
+  <!-- WHAT'S INCLUDED -->
+  <section>
+    <h2>Components</h2>
+    <div class="features">
+      <div class="feature">
+        <h4>18 Agent Personas</h4>
+        <p>Researcher, Architect, PM, Designer, Security, CTO, Coder, Code Reviewer, Security Auditor, PR Shepherd, Test Automator, Knowledge Curator, and more. Each has a defined role, process, and output format.</p>
+      </div>
+      <div class="feature">
+        <h4>13 Orchestration Skills</h4>
+        <p>Orchestrated execution, design review gate, plan review gate, PR shepherd, PR comment handling, external AI tools delegation, visual review, brainstorming extension, issue creation, interactive setup, migration, status diagnostics, and the main start workflow.</p>
+      </div>
+      <div class="feature">
+        <h4>15 Slash Commands</h4>
+        <p><code>/metaswarm:setup</code>, <code>/metaswarm:update</code>, <code>/metaswarm:status</code>, <code>/metaswarm:start-task</code>, <code>/metaswarm:start</code>, <code>/metaswarm:prime</code>, <code>/metaswarm:review-design</code>, <code>/metaswarm:brainstorm</code>, <code>/metaswarm:self-reflect</code>, <code>/metaswarm:pr-shepherd</code>, <code>/metaswarm:create-issue</code>, <code>/metaswarm:handle-pr-comments</code>, <code>/metaswarm:external-tools-health</code>.</p>
+      </div>
+      <div class="feature">
+        <h4>8 Quality Rubrics</h4>
+        <p>Standardized review criteria for code, architecture, security, test coverage, implementation plans, adversarial plan review, adversarial spec compliance, and external tool review.</p>
+      </div>
+      <div class="feature">
+        <h4>Coverage Enforcement</h4>
+        <p>Configurable test coverage thresholds via <code>.coverage-thresholds.json</code> that block PR creation and task completion. Agents cannot ship code that drops coverage. Works with any test runner.</p>
+      </div>
+      <div class="feature">
+        <h4>Knowledge Base Templates</h4>
+        <p>Schema and example entries for patterns, gotchas, decisions, anti-patterns, codebase facts, and API behaviors. Seed it with your project's context.</p>
+      </div>
+      <div class="feature">
+        <h4>Recursive Orchestration</h4>
+        <p>Swarm Coordinators spawn Issue Orchestrators, which can spawn sub-orchestrators. Complex epics decompose into sub-epics automatically. Swarm of swarms.</p>
+      </div>
+      <div class="feature">
+        <h4>Team Mode</h4>
+        <p>Persistent teammates with context retention across sessions. When multiple Claude Code sessions are active, agents automatically coordinate through direct inter-agent messaging. No configuration needed.</p>
+      </div>
+      <div class="feature">
+        <h4>Plan Review Gate</h4>
+        <p>3 adversarial reviewers &mdash; Feasibility, Completeness, and Scope &amp; Alignment &mdash; validate every implementation plan before it reaches the Design Review Gate. All 3 must approve.</p>
+      </div>
+      <div class="feature">
+        <h4>Claude-Guided Setup</h4>
+        <p>Auto-detects your language, framework, test runner, linter, formatter, type checker, package manager, CI system, and git hooks. Supports 7 languages, 15+ frameworks, and all major toolchains. Customizes everything interactively.</p>
+      </div>
+      <div class="feature">
+        <h4>Self-Update</h4>
+        <p>Run <code>/metaswarm:update</code> to check for new versions, view the changelog, update all component files, and re-detect your project context. User customizations are preserved.</p>
+      </div>
+      <div class="feature">
+        <h4>6 Development Guides</h4>
+        <p>Comprehensive reference guides for coding standards, testing patterns, git workflow, worktree development, build validation, and agent coordination. Agents load them automatically when relevant.</p>
+      </div>
+      <div class="feature">
+        <h4>Workflow Enforcement</h4>
+        <p>Mandatory intercepts at every handoff point ensure quality gates are never bypassed. After brainstorming &rarr; design review gate. After planning &rarr; plan review gate. Before PR &rarr; self-reflect + knowledge capture. Users choose execution method (orchestrated vs lightweight).</p>
+      </div>
+      <div class="feature">
+        <h4>Context Recovery</h4>
+        <p>Approved plans and execution state persist to <code>.beads/</code> on disk. After context compaction or session interruption, <code>bd prime --work-type recovery</code> reloads everything: the plan, completed work, current position. No re-running expensive review gates.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- AGENTS -->
+  <section>
+    <h2>The Agents</h2>
+    <p>Each agent is a markdown file that defines a persona, responsibilities, process, and output format. They are prompts, not code. You can read them, edit them, and add your own.</p>
+    <table>
+      <thead>
+        <tr><th>Agent</th><th>Phase</th><th>What It Does</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Swarm Coordinator</td><td>Meta</td><td>Assigns work to worktrees, manages parallel execution</td></tr>
+        <tr><td>Issue Orchestrator</td><td>Meta</td><td>Decomposes issues into tasks, manages phase handoffs</td></tr>
+        <tr><td>Researcher</td><td>Research</td><td>Explores codebase, discovers patterns and dependencies</td></tr>
+        <tr><td>Architect</td><td>Planning</td><td>Designs implementation plan and service structure</td></tr>
+        <tr><td>Product Manager</td><td>Review</td><td>Validates use cases, scope, and user benefit</td></tr>
+        <tr><td>Designer</td><td>Review</td><td>Reviews API/UX design and consistency</td></tr>
+        <tr><td>Security Design</td><td>Review</td><td>Threat modeling, STRIDE analysis, auth review</td></tr>
+        <tr><td>CTO</td><td>Review</td><td>TDD readiness, codebase alignment, final approval</td></tr>
+        <tr><td>Coder</td><td>Implement</td><td>TDD implementation with 100% coverage</td></tr>
+        <tr><td>Code Reviewer</td><td>Review</td><td>Dual-mode: collaborative (suggestions) or adversarial (spec compliance)</td></tr>
+        <tr><td>Security Auditor</td><td>Review</td><td>Vulnerability scanning, OWASP checks</td></tr>
+        <tr><td>PR Shepherd</td><td>Delivery</td><td>CI monitoring, comment handling, thread resolution</td></tr>
+        <tr><td>Knowledge Curator</td><td>Learning</td><td>Extracts learnings, updates knowledge base</td></tr>
+        <tr><td>Test Automator</td><td>Implement</td><td>Test generation and coverage enforcement</td></tr>
+        <tr><td>Metrics</td><td>Support</td><td>Analytics and weekly reports</td></tr>
+        <tr><td>SRE</td><td>Support</td><td>Infrastructure and performance</td></tr>
+        <tr><td>Slack Coordinator</td><td>Support</td><td>Notifications and human communication</td></tr>
+        <tr><td>Customer Service</td><td>Support</td><td>User support and triage</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- DETERMINISTIC ENFORCEMENT -->
+  <section>
+    <h2>Agents Skip Checklists. Gates Don't.</h2>
+    <p>The hardest problem in agent-driven development is not getting agents to write code. It is getting them to maintain standards. You can put "run coverage before pushing" in a checklist. Agents will skip it. They will misread thresholds, run the wrong command, or decide the step does not apply. We shipped multiple PRs with coverage regressions before we accepted that procedural enforcement is not enforcement. It is a suggestion.</p>
+    <p>The fix is twofold. First, quality gates in the orchestrated execution loop are defined as <strong>blocking state transitions</strong>, not advisory recommendations. There is no instruction path from FAIL to COMMIT. FAIL always means retry or escalate. Second, deterministic gates: automated checks that block bad code regardless of whether an agent follows instructions. metaswarm supports three enforcement points, all driven by a single config file:</p>
+
+    <div class="features">
+      <div class="feature">
+        <h4>Pre-Push Hook</h4>
+        <p>A Husky git hook that runs lint, typecheck, format checks, and your coverage command before every <code>git push</code>. If coverage drops, the push is rejected. No agent can bypass it.</p>
+      </div>
+      <div class="feature">
+        <h4>CI Coverage Job</h4>
+        <p>A GitHub Actions workflow that reads the same config and blocks merge on failure. Even if an agent somehow pushes, it cannot merge.</p>
+      </div>
+      <div class="feature">
+        <h4>Agent Completion Gate</h4>
+        <p>The task-completion checklist reads the enforcement command from config. The weakest gate on its own, but combined with the other two, coverage regressions are caught at every level.</p>
+      </div>
+      <div class="feature">
+        <h4>One Config File</h4>
+        <p><code>.coverage-thresholds.json</code> defines your thresholds and enforcement command. All three gates read from it. Change your test runner once, all gates update automatically.</p>
+      </div>
+    </div>
+
+    <p>The guided setup (<code>/metaswarm:setup</code>) detects your test runner and configures coverage enforcement automatically. For manual setup, copy the template:</p>
+    <pre><code><span class="cmd">cp</span> templates/coverage-thresholds.json .coverage-thresholds.json</code></pre>
+    <p>The thresholds work with any test runner. The setup skill maps your detected test runner to the correct coverage command automatically &mdash; <code>pnpm test:coverage</code>, <code>pytest --cov</code>, <code>cargo tarpaulin</code>, <code>go test -cover</code>, or whatever your project uses. See <a href="https://github.com/dsifry/metaswarm/blob/main/docs/coverage-enforcement.md">coverage-enforcement.md</a> for the full setup guide.</p>
+  </section>
+
+  <!-- SETUP -->
+  <section>
+    <h2>Set It Up</h2>
+    <h3>Prerequisites</h3>
+    <ul>
+      <li><a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code</a></li>
+      <li><a href="https://github.com/steveyegge/beads">BEADS CLI</a> (<code>bd</code>) v0.40+ (optional &mdash; for knowledge base)</li>
+      <li><a href="https://github.com/obra/superpowers">Superpowers</a> plugin (optional but recommended)</li>
+      <li>GitHub CLI (<code>gh</code>)</li>
+      <li>Node.js 18+</li>
+    </ul>
+
+    <h3>Claude Code</h3>
+    <pre><code><span class="cmd">claude</span> plugin marketplace add dsifry/metaswarm-marketplace
+<span class="cmd">claude</span> plugin install metaswarm</code></pre>
+    <p>Then: <code>/metaswarm:setup</code></p>
+
+    <h3>Gemini CLI</h3>
+    <pre><code><span class="cmd">gemini</span> extensions install https://github.com/dsifry/metaswarm.git</code></pre>
+    <p>Then: <code>/metaswarm:setup</code></p>
+
+    <h3>Codex CLI</h3>
+    <pre><code>curl -sSL https://raw.githubusercontent.com/dsifry/metaswarm/main/.codex/install.sh | bash</code></pre>
+    <p>Then: <code>$setup</code></p>
+
+    <h3>Cross-Platform (auto-detect)</h3>
+    <pre><code>npx metaswarm init</code></pre>
+    <p>Detects which CLIs you have installed and sets up metaswarm for each.</p>
+
+    <p>Setup detects your project's language, framework, test runner, linter, formatter, type checker, package manager, CI system, and git hooks. It creates the appropriate instruction file (<code>CLAUDE.md</code>, <code>GEMINI.md</code>, or <code>AGENTS.md</code>), configures coverage thresholds, and sets up <code>.gitignore</code>. Supports: TypeScript, Python, Go, Rust, Java, Ruby, JavaScript.</p>
+
+    <h3>Updating</h3>
+    <p>Claude Code: <code>/metaswarm:update</code> &bull; Gemini CLI: <code>/metaswarm:update</code> &bull; Codex CLI: <code>cd ~/.codex/metaswarm && git pull</code></p>
+
+    <h3>Upgrading from an Older Version</h3>
+    <p>If you installed metaswarm via <code>npx metaswarm init</code> (v0.6&ndash;v0.8), upgrade to the plugin:</p>
+    <ol>
+      <li>Install the plugin: <code>claude plugin marketplace add dsifry/metaswarm-marketplace && claude plugin install metaswarm</code></li>
+      <li>Open Claude Code and run <code>/metaswarm:migrate</code> &mdash; this removes redundant npm-installed copies (your project files are never touched)</li>
+      <li>Run <code>/metaswarm:status</code> to verify everything is clean</li>
+      <li>Review and commit the cleanup</li>
+    </ol>
+
+    <p>See <a href="https://github.com/dsifry/metaswarm/blob/main/INSTALL.md#upgrading-to-v090">INSTALL.md</a> for the full upgrade guide.</p>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section>
+    <h2>How It Actually Works</h2>
+    <p>Under the hood, this is all prompts and BEADS task tracking. No custom runtime. No server. No dependencies beyond Claude Code and the <code>bd</code> CLI.</p>
+
+    <h3>Agent definitions are markdown files</h3>
+    <p>Each agent in <code>agents/</code> is a prompt that defines a role, responsibilities, and process. When the orchestrator needs a researcher, it spawns a subagent with that prompt. The agent does its work, returns results, and the orchestrator moves to the next phase. You can read every agent definition. You can edit them. You can add new ones.</p>
+
+    <h3>BEADS tracks the work</h3>
+    <p>Every feature starts as a BEADS epic with subtasks. Dependencies between tasks enforce ordering. The orchestrator checks <code>bd ready</code> to find unblocked work, updates task status as agents complete phases, and closes the epic when the PR merges. All of this is stored in a SQLite database inside your repo, synced through git.</p>
+
+    <h3>Knowledge base is selective, not exhaustive</h3>
+    <p>When an agent starts work, <code>bd prime</code> loads knowledge filtered by the files being touched and the type of work being done. A coder working on auth routes gets auth-related gotchas. A security reviewer gets the OWASP-related patterns. The knowledge base can grow to thousands of entries without any agent needing to read all of them.</p>
+
+    <h3>Human checkpoints are proactive, not reactive</h3>
+    <p>The design review gate gives agents three iterations to converge. If they cannot agree, or if requirements are ambiguous, the system stops and asks a human. But orchestrated execution goes further: you define <strong>planned checkpoints</strong> in the spec (after schema changes, after security-sensitive code, at natural boundaries). The orchestrator pauses at those points and presents a report. It waits for you. This is not a notification. It is a gate. The system does not guess when it should ask, and it does not continue without your explicit approval.</p>
+  </section>
+
+  <!-- CODE REVIEW INTEGRATION -->
+  <section>
+    <h2>Works With Your Code Reviewers</h2>
+    <p>metaswarm does not replace your automated code review tools. It works with them. The PR Shepherd agent monitors incoming review comments from whatever tools you have configured and handles them systematically.</p>
+
+    <h3>Supported review tools</h3>
+    <p>Out of the box, the PR comment handling skill knows how to parse and respond to:</p>
+    <ul>
+      <li><strong>CodeRabbit</strong> (the one we use most heavily)</li>
+      <li><strong>Claude Code Review</strong> (Anthropic's native review)</li>
+      <li><strong>Cursor BugBot</strong></li>
+      <li><strong>Greptile</strong></li>
+      <li>Any GitHub-native review comment (human or bot)</li>
+    </ul>
+    <p>The handling workflow categorizes each comment by priority, determines if it is actionable or out-of-scope, addresses the actionable ones, and resolves the threads. Comments from automated reviewers also feed into the self-reflect loop. When CodeRabbit catches something three times, that becomes a knowledge base entry so agents stop making that mistake.</p>
+
+    <h3>The GTG Merge Gate</h3>
+    <p>The last piece of the PR lifecycle is knowing when a PR is actually ready to merge. That is what <a href="https://github.com/dsifry/goodtogo">GTG (Good-To-Go)</a> does. It is a single CLI and GitHub Action that consolidates everything into one deterministic check:</p>
+    <ul>
+      <li>All CI checks passing</li>
+      <li>All review comments addressed</li>
+      <li>All discussion threads resolved</li>
+      <li>Required approvals present</li>
+    </ul>
+    <pre><code><span class="comment"># PR Shepherd polls this until it returns READY</span>
+<span class="cmd">gtg</span> 42 <span class="flag">--format</span> json <span class="flag">--exclude-checks</span> <span class="string">"Merge Ready (gtg)"</span></code></pre>
+    <p>The PR Shepherd agent uses GTG as its primary readiness signal. When GTG reports <code>CI_FAILING</code>, the shepherd investigates and fixes. When it reports <code>ACTION_REQUIRED</code>, it addresses review comments. When it reports <code>UNRESOLVED_THREADS</code>, it resolves them. When it returns <code>READY</code>, it notifies a human for final merge approval.</p>
+    <p>You set this up as a GitHub Action in your repo. The <code>templates/</code> directory includes the workflow file. Combined with your repo's branch protection rules, this gives you a fully automated quality gate that agents cannot bypass.</p>
+  </section>
+
+  <!-- BUILT ON -->
+  <section>
+    <h2>Built On</h2>
+    <div class="callout">
+      <p><strong><a href="https://github.com/steveyegge/beads">BEADS</a></strong> by Steve Yegge. Git-native, AI-first issue tracking. The coordination backbone for all task management, dependency tracking, and knowledge priming. BEADS made it possible to treat issue tracking as part of the codebase instead of an external service.</p>
+    </div>
+    <div class="callout">
+      <p><strong><a href="https://github.com/obra/superpowers">Superpowers</a></strong> by Jesse Vincent and contributors. The agentic skills framework that provides foundational workflows for brainstorming, test-driven development, systematic debugging, and plan writing. Superpowers proved that disciplined agent workflows are not overhead. They are what make autonomous development reliable.</p>
+    </div>
+  </section>
+
+  <section style="text-align: center; padding: 64px 0;">
+    <h2>Get Started</h2>
+    <p>The repo has everything: agent definitions, skills, commands, rubrics, knowledge templates, and full documentation.</p>
+    <a href="https://github.com/dsifry/metaswarm" class="cta">View on GitHub</a>
+    <p style="margin-top: 24px; color: var(--text-muted); font-size: 14px;">Star it. Clone it. <a href="https://github.com/dsifry/metaswarm/issues">File issues</a>. MIT licensed.</p>
+  </section>
+
+</div>
+
+<footer>
+  <div class="container">
+    <div class="footer-links">
+      <a href="https://github.com/dsifry/metaswarm">GitHub</a>
+      <a href="https://github.com/dsifry/metaswarm/blob/main/INSTALL.md">Install</a>
+      <a href="https://github.com/dsifry/metaswarm/blob/main/GETTING_STARTED.md">Getting Started</a>
+      <a href="https://github.com/dsifry/metaswarm/blob/main/USAGE.md">Usage</a>
+      <a href="https://github.com/dsifry/metaswarm/issues">Issues</a>
+    </div>
+    <p>MIT License. Built by <a href="https://linkedin.com/in/dsifry">Dave Sifry</a>, founder of Technorati, Linuxcare, and Warmstart. Former tech exec at Lyft and Reddit.</p>
+  </div>
+</footer>
+
+<script>
+  function setIcon(theme) {
+    // Sun = switch to light, Moon = switch to dark
+    document.getElementById('theme-icon').innerHTML = theme === 'dark' ? '&#9788;' : '&#9790;';
+  }
+
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    setIcon(next);
+    localStorage.setItem('theme', next);
+  }
+
+  // Restore saved preference, default to dark
+  (function() {
+    const saved = localStorage.getItem('theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+      setIcon(saved);
+    }
+  })();
+</script>
+
+</body>
+</html>

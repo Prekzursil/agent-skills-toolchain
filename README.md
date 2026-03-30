@@ -1,6 +1,6 @@
 # agent-skills-toolchain
 
-Private platform repo for the installable skills, MCP-side contracts, editor-local tools, and browser-mediated agent tooling I use and evolve together.
+Private platform repo for the installable skills, MCP-side contracts, editor-local and host-local tool workspaces, and browser-mediated agent tooling I use and evolve together.
 
 ## Purpose
 
@@ -8,7 +8,7 @@ This repo is the working home for four kinds of agent assets plus the docs and v
 
 - `skills/` for installable, validated skills
 - `tools/mcp/` for MCP-native contracts, adapters, and promoted tool projects
-- `tools/editor/` for editor-local tools such as VS Code extensions
+- `tools/editor/` for editor-local tools such as VS Code extensions plus vendored host-local agent frameworks
 - `tools/web/` for browser- or web-mediated tool projects with explicit session boundaries
 
 The split matters because these surfaces have different runtime models, auth expectations, failure modes, packaging rules, and validation paths. Shared docs, incubation notes, and validation helpers live around them without blurring install, execution, and promotion boundaries. Future cross-platform packaging belongs in a packaging-only `release/` workspace so it does not become a fifth live execution surface or pollute the default runtime graph.
@@ -62,6 +62,13 @@ This repo now also carries the current Windows-first MCP/editor bundle I activel
 
 - `tools/mcp/workstation-codex-bundle` - curated MCP selections with explicit self-made vs curated provenance.
 - `tools/mcp/cheatengine-mcp-bridge` - thin wrapper around the upstream Cheat Engine MCP Bridge with local install and validation helpers.
+- `tools/mcp/hexstrike-ai` - thin wrapper around the upstream HexStrike AI runtime with localhost bootstrap and Codex / Claude / Gemini registration helpers.
+
+### 4. Vendored host frameworks
+
+This repo can also carry exact upstream snapshots when I need the full project in-tree instead of just a thin wrapper:
+
+- `tools/editor/metaswarm` - vendored upstream `dsifry/metaswarm` workspace for Claude Code, Gemini CLI, and Codex CLI orchestration.
 
 ## Live surfaces
 
@@ -70,6 +77,8 @@ This repo now also carries the current Windows-first MCP/editor bundle I activel
 Live installable skills currently ship from `skills/`:
 
 - `quality-gate-automation-architect` - safe automation architecture for PR repair, coverage ratchets, analyzer debt burn-down, and merge governance.
+- `hexstrike-ai-setup` - install, wire, and validate the local HexStrike runtime for Codex, Claude, and Gemini.
+- `hexstrike-ai-authorized-engagement` - route authorized security work through the local HexStrike runtime with explicit scope checks.
 - `codex-runtime-recovery` - diagnose split `CODEX_HOME`, state DB churn, and cross-host launch drift before destructive repair.
 - `codex-session-reunion` - inventory, compare, and safely promote the best session copies into one canonical store.
 - `format-codex-sessions` - render Codex rollout JSONL into readable Markdown transcripts without leaking prompt bulk or token-like data.
@@ -101,6 +110,8 @@ Current bounded projects:
 - [`tools/mcp/agent-lanes-codex/`](tools/mcp/agent-lanes-codex/README.md)
 - [`tools/mcp/workstation-codex-bundle/`](tools/mcp/workstation-codex-bundle/README.md)
 - [`tools/mcp/cheatengine-mcp-bridge/`](tools/mcp/cheatengine-mcp-bridge/README.md) - thin wrapper around the upstream Cheat Engine MCP Bridge with local install and validation helpers.
+- [`tools/mcp/hexstrike-ai/`](tools/mcp/hexstrike-ai/README.md) - thin wrapper around the upstream HexStrike AI runtime with localhost bootstrap and client registration helpers.
+- [`tools/editor/metaswarm/`](tools/editor/metaswarm/README.md) - vendored upstream metaswarm workspace.
 - [`tools/web/agent-lanes-chatgpt-web/`](tools/web/agent-lanes-chatgpt-web/README.md)
 
 Speculative tool ideas do not live here. They stay under `docs/incubating/tools/` until they become clearly bounded enough to promote.

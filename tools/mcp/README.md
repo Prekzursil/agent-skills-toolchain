@@ -9,5 +9,6 @@ Current bounded projects:
 - [`agent-lanes-codex/`](agent-lanes-codex/README.md) - Codex-side orchestration lane with explicit profiles, aliases, and bounded fallback behavior.
 - [`workstation-codex-bundle/`](workstation-codex-bundle/README.md) - curated Windows-first MCP bundle with explicit self-made vs curated provenance and validation notes.
 - [`cheatengine-mcp-bridge/`](cheatengine-mcp-bridge/README.md) - thin Windows-first wrapper around the upstream Cheat Engine MCP Bridge with install and validation helpers.
+- [`hexstrike-ai/`](hexstrike-ai/README.md) - Windows-first wrapper around the upstream HexStrike AI runtime with localhost bootstrap and Codex / Claude / Gemini registration helpers.
 
 Current incubation notes for this surface live under `docs/incubating/tools/`.

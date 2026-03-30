@@ -5,10 +5,7 @@ Curated Windows-first workstation bundle for the canonical Codex profile at `C:\
 ## Provenance split
 - **Self-made**: `codex_consult`, which now exposes both codex_* orchestration tools and promptbridge_* / agentify_* talk tools from one managed server.
 - **Modified local fork**: PromptBridge runtime overrides captured under `tools/mcp/agent-lanes-codex/local-overrides/` and `tools/web/agent-lanes-chatgpt-web/local-overrides/`.
-- **Curated upstream picks**: GitHub, GitHub CLI, Notion, Linear, Playwright, Chrome DevTools, Figma, Sentry, SonarQube, Semgrep, Docker, Memory, Context7, PostgreSQL, and selected optional extras including the upstream Cheat Engine bridge wrapper.
-- **Curated upstream picks**: GitHub, GitHub CLI, Notion, Linear, Playwright, Chrome DevTools, Figma, Sentry, SonarQube, Semgrep, Docker, Memory, Context7, PostgreSQL, DigitalOcean MCP, and selected optional extras including the upstream Cheat Engine bridge wrapper.
-- **Curated upstream local orchestration**: Ralph Orchestrator is now installed through a WSL-backed local binary plus MCP server registration, with mirrored skills shipped from this repo.
-- **Curated upstream MCP config**: DigitalOcean MCP is wired through `npx @digitalocean/mcp --services apps` with env-only `DIGITALOCEAN_API_TOKEN` handling; live connectivity is intentionally env-gated until the token exists locally.
+- **Curated upstream picks**: GitHub, GitHub CLI, Notion, Linear, Playwright, Chrome DevTools, Figma, Sentry, SonarQube, Semgrep, Docker, Memory, Context7, PostgreSQL, and selected optional extras including the upstream Cheat Engine bridge wrapper and HexStrike AI runtime.
 - **Curated community MCP picks**: Codecov is promoted into the active MCP bundle via `@egulatee/mcp-codecov`.
 - **Curated non-MCP integrations**: Chromatic remains intentionally outside the MCP set; Qlty stays on CLI + provider workflows, and DeepScan stays on VS Code + provider workflows.
 
@@ -23,9 +20,8 @@ Curated Windows-first workstation bundle for the canonical Codex profile at `C:\
 - Stage 1 in this repo is workstation-only: project-specific web UI setup for Momentstudio, Webcoder, and Reframe is intentionally deferred
 
 ## Current health summary
-- **Verified now**: GitHub auth, Notion OAuth login, Context7 token persistence, Sentry API reachability, Codecov community MCP startup with token + base URL, SonarQube Cloud MCP startup, Semgrep MCP wrapper startup, DeepSource MCP handshake through a local Windows wrapper, Cheat Engine local install plus live read-only SWFOC analysis, and Codex registration
-- **Verified now**: Ralph Orchestrator CLI install, `ralph doctor`, and user-level MCP registration for Codex, Claude, and Gemini
-- **Enabled but conservatively described**: Figma (auth-gated), SonarQube (configured against SonarQube Cloud), Semgrep (no cloud token provided in this stage), and Cheat Engine (installed locally with successful pipe ping and read-only game analysis; treat writes as a separate risk lane)
+- **Verified now**: GitHub auth, Notion OAuth login, Context7 token persistence, Sentry API reachability, Codecov community MCP startup with token + base URL, SonarQube Cloud MCP startup, Semgrep MCP wrapper startup, DeepSource MCP handshake through a local Windows wrapper, Cheat Engine local install plus live read-only SWFOC analysis, HexStrike local install plus localhost `/health` proof, and Codex registration
+- **Enabled but conservatively described**: Figma (auth-gated), SonarQube (configured against SonarQube Cloud), Semgrep (no cloud token provided in this stage), Cheat Engine (installed locally with successful pipe ping and read-only game analysis; treat writes as a separate risk lane), and HexStrike AI (installed locally with a localhost runtime and shared client launcher, but still lacking full Claude/Gemini stdio health proof)
 - **Enabled and verified**: `codex_consult` under the single-managed-server lane model; live `status`, `probe`, and `self-test` all returned `ok: true` on 2026-03-15
 - **Removed from the active workstation bundle**: Unity MCP was removed completely by owner preference, including local `D:` staging and env references
 - **Community-risk decision**: DeepSource is now enabled via a local Node wrapper because the available `deepsource-mcp-server` package is deprecated and its published main entrypoint does not start correctly on Windows without an explicit wrapper; Qlty and DeepScan remain intentionally outside MCP because the current supported workstation flows are non-MCP
@@ -39,7 +35,7 @@ Curated Windows-first workstation bundle for the canonical Codex profile at `C:\
 - Claude already runs in the expected bypass-permissions posture; Gemini now mirrors the same no-prompt intent through a local `gemini` wrapper in `C:\Users\Prekzursil\.local\bin\`, a permissive `~/.gemini/policies/999-local-full-access.toml`, and trusted-root settings without changing `.metaswarm`.
 - Superpowers is aligned across the three CLIs at upstream `v5.0.6`: Claude via the installed plugin cache, Codex via `C:\Users\Prekzursil\.codex\superpowers` plus the `C:\Users\Prekzursil\.agents\skills\superpowers` junction, and Gemini via the official extension install from `https://github.com/obra/superpowers.git`.
 - Gemini now carries the shared portable skill surface from its superpowers extension plus the user-level `.agents\skills` alias; keep Codex-proprietary skills such as `codex_consult` out of the shared tier.
-- The essential shared MCP baseline is currently GitHub, Codacy, DeepSource, Codecov, and the Chrome DevTools extension on Gemini, with Semgrep and SonarQube still configured but requiring extra runtime proof on Gemini before they should be described as fully healthy.
+- The essential shared MCP baseline is currently GitHub, Codacy, DeepSource, Codecov, the Chrome DevTools extension on Gemini, and a shared HexStrike launcher path for Codex / Claude / Gemini. Semgrep, SonarQube, and HexStrike still require extra runtime proof on Gemini before they should be described as fully healthy.
 
 ## Files in this project
 - `bundle.manifest.json`: current bundle membership and provenance split
@@ -55,6 +51,7 @@ Curated Windows-first workstation bundle for the canonical Codex profile at `C:\
 - `references/upstream-sources.md`: upstream docs used for staged MCP decisions, blocked-provider notes, and CLI fallback recommendations
 - `scripts/validate-workstation-bundle.ps1`: local validation helper for this bundle
 - `scripts/deepsource-mcp-wrapper.mjs`: repo-owned source for the Windows DeepSource wrapper that is installed under `C:\Users\Prekzursil\.local\opt\deepsource-mcp-server\`
+- `../hexstrike-ai/`: repo-owned HexStrike integration layer with install, launcher, and validation helpers
 - `validation/2026-03-11-local-validation.md`: captured validation evidence
 - `audits/2026-03-30-cross-cli-parity.md`: Codex, Claude, and Gemini parity snapshot after BEADS, PATH, superpowers, and shared-MCP alignment
 - `../cheatengine-mcp-bridge/validation/2026-03-29-local-validation.md`: Cheat Engine bridge install and connectivity evidence
