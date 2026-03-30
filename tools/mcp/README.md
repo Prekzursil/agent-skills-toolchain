@@ -1,52 +1,13 @@
 # MCP Tools
 
-`tools/mcp/` is the live home for MCP-native orchestration tooling and other bounded server-side projects.
+`tools/mcp/` is the live home for MCP-native tools and adapters.
 
-## Current bounded projects
+Put a project here only when it is runnable or clearly bounded enough that its runtime, auth model, and validation path are explicit. Do not use this folder for vague notes or mixed browser automation experiments.
 
-### `agent-lanes-codex`
+Current bounded projects:
 
-- Codex-side orchestration lane with explicit profiles, aliases, and bounded fallback behavior.
+- [`agent-lanes-codex/`](agent-lanes-codex/README.md) - Codex-side orchestration lane with explicit profiles, aliases, and bounded fallback behavior.
+- [`workstation-codex-bundle/`](workstation-codex-bundle/README.md) - curated Windows-first MCP bundle with explicit self-made vs curated provenance and validation notes.
+- [`cheatengine-mcp-bridge/`](cheatengine-mcp-bridge/README.md) - thin Windows-first wrapper around the upstream Cheat Engine MCP Bridge with install and validation helpers.
 
-### `codex-orchestrator`
-
-Location:
-
-```text
-tools/mcp/codex-orchestrator
-```
-
-Purpose:
-
-- expose multi-agent Codex planning/review tools through MCP
-- keep one shared orchestration backend behind thin user-facing tools
-- support named profiles plus per-call overrides
-
-Primary tools:
-
-- `codex_consult`
-- `codex_brainstorm`
-- `codex_review`
-- `codex_discuss`
-- `codex_coordinate`
-- `codex_curate`
-
-The shared result contract is stable across all six tools.
-
-### `workstation-codex-bundle`
-
-- curated Windows-first MCP bundle with explicit self-made vs curated provenance and validation notes
-
-### `digitalocean-mcp`
-
-- thin Windows-first wrapper for the archived `@digitalocean/mcp` package with env-only token wiring and Codex / Claude / Gemini registration helpers
-
-## Operator commands
-
-From the repo root:
-
-```powershell
-npm run orchestration:status
-npm run orchestration:probe
-npm run orchestration:self-test
-```
+Current incubation notes for this surface live under `docs/incubating/tools/`.

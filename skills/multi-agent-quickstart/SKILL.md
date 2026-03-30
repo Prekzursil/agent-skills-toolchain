@@ -19,11 +19,6 @@ description: Use when learning how to choose between the Codex multi-agent orche
 3. Use `codex_review` before a risky implementation.
 4. Use `codex_curate` when you already have options and want the best one selected.
 
-## Execution Choice
-- After planning, prefer subagent-driven execution for complex work.
-- Use inline execution when the task is small or subagents would be overhead.
-- Do not silently force one path after the plan is written.
-
 ## PromptBridge Boundary
 - PromptBridge is talk-only.
 - It can discuss or curate, but it is not the execution authority.

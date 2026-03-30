@@ -31,6 +31,16 @@ Curated Windows-first workstation bundle for the canonical Codex profile at `C:\
 - **Community-risk decision**: DeepSource is now enabled via a local Node wrapper because the available `deepsource-mcp-server` package is deprecated and its published main entrypoint does not start correctly on Windows without an explicit wrapper; Qlty and DeepScan remain intentionally outside MCP because the current supported workstation flows are non-MCP
 - **Non-MCP integrations**: the Codecov CLI on `D:` remains available for pre-push analysis; Chromatic uses a CLI + Playwright workspace on `D:` with `CHROMATIC_PROJECT_TOKEN` persisted locally; Qlty remains a CLI/provider workflow; and DeepScan remains a VS Code supplement/provider workflow
 
+## 2026-03-30 cross-CLI parity snapshot
+
+- `C:\Users\Prekzursil\.local\bin` and `C:\Users\Prekzursil\AppData\Roaming\npm` are now part of the persistent user PATH so `uv`, `uvx`, `claude`, `bd`, `codex`, and `gemini` resolve from fresh shells instead of only from a primed process PATH.
+- BEADS is installed locally at `C:\Users\Prekzursil\.local\bin\bd.exe` and is treated as a shared prerequisite for metaswarm, Codex, Claude, and Gemini workflows.
+- Codex now uses the same full-permission baseline as the local workstation execution lane: `approval_policy = "never"` and `sandbox_mode = "danger-full-access"` in the canonical config snapshot.
+- Claude already runs in the expected bypass-permissions posture; Gemini now mirrors the same no-prompt intent through a local `gemini` wrapper in `C:\Users\Prekzursil\.local\bin\`, a permissive `~/.gemini/policies/999-local-full-access.toml`, and trusted-root settings without changing `.metaswarm`.
+- Superpowers is aligned across the three CLIs at upstream `v5.0.6`: Claude via the installed plugin cache, Codex via `C:\Users\Prekzursil\.codex\superpowers` plus the `C:\Users\Prekzursil\.agents\skills\superpowers` junction, and Gemini via the official extension install from `https://github.com/obra/superpowers.git`.
+- Gemini now carries the shared portable skill surface from its superpowers extension plus the user-level `.agents\skills` alias; keep Codex-proprietary skills such as `codex_consult` out of the shared tier.
+- The essential shared MCP baseline is currently GitHub, Codacy, DeepSource, Codecov, and the Chrome DevTools extension on Gemini, with Semgrep and SonarQube still configured but requiring extra runtime proof on Gemini before they should be described as fully healthy.
+
 ## Files in this project
 - `bundle.manifest.json`: current bundle membership and provenance split
 - `config/codex-config-curated.toml`: current canonical Codex config snapshot
@@ -46,6 +56,7 @@ Curated Windows-first workstation bundle for the canonical Codex profile at `C:\
 - `scripts/validate-workstation-bundle.ps1`: local validation helper for this bundle
 - `scripts/deepsource-mcp-wrapper.mjs`: repo-owned source for the Windows DeepSource wrapper that is installed under `C:\Users\Prekzursil\.local\opt\deepsource-mcp-server\`
 - `validation/2026-03-11-local-validation.md`: captured validation evidence
+- `audits/2026-03-30-cross-cli-parity.md`: Codex, Claude, and Gemini parity snapshot after BEADS, PATH, superpowers, and shared-MCP alignment
 - `../cheatengine-mcp-bridge/validation/2026-03-29-local-validation.md`: Cheat Engine bridge install and connectivity evidence
 
 ## Config-owned vs plugin-provided MCPs
