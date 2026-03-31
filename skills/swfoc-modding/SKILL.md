@@ -10,7 +10,7 @@ Use this skill to work accurately on SWFOC modding tasks with source-grounded pr
 
 ## Workflow
 1. Classify the request.
-- Dump files, runtime tracing, debugger attach flows, signature generation, binary diffing, import repair, or MCP-backed disassembler work: use `$swfoc-reverse-engineering` first, with `$reverse-engineering-toolkit` when tool selection is still unclear.
+- Dump files, runtime tracing, debugger attach flows, signature generation, binary diffing, import repair, or MCP-backed disassembler work: use `$swfoc-reverse-engineering` first, with `$reverse-engineering-toolkit` when tool selection is still unclear. For explicit Cheat Engine -> x64dbg -> IDA workflows, use `$cheat-engine-x64dbg-ida-handoff`.
 - Launch/setup/workshop/submod routing: read `references/mod-architecture-and-workflow.md`.
 - Crashes/performance/weird runtime behavior that still look mod-level rather than native-runtime-level: read `references/debugging-playbook.md`.
 - File format or asset pipeline work: read `references/file-formats-and-toolchain.md`.
