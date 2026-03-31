@@ -1,7 +1,7 @@
 param(
     [string]$LocalBin = "$HOME\.local\bin",
     [string]$IdaExe = "C:\Program Files\IDA Professional 9.3\ida.exe",
-    [string]$GhidraRun = "D:\Program Files\Ghidra\ghidra_12.0.3_PUBLIC\support\pyghidraRun.bat",
+    [string]$GhidraRun = "D:\Program Files\Ghidra\ghidra_12.0.3_PUBLIC\ghidraRun.bat",
     [string]$BinaryNinjaExe = "C:\Program Files\Vector35\BinaryNinja\binaryninja.exe"
 )
 
