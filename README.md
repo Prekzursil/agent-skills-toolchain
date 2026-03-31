@@ -91,6 +91,7 @@ These sit alongside the existing live specialist skills already in the repo, inc
 - a reverse-engineering skill wave covering HexStrike AI MCP, IDA Pro MCP, Ghidra MCP, Frida MCP, Binary Ninja MCP, Repomix, Frida, radare2, angr, Binary Ninja, and Volatility 3
 - a SWFOC-focused reverse-engineering extension covering `reverse-engineering-toolkit`, `swfoc-reverse-engineering`, `x64dbg`, `windbg-preview`, `ret-sync`, `bindiff`, `binexport`, `apply-callee-type-ex`, `binja-sigmaker`, `peutils`, and `ghidra-bridge`
 - a second SWFOC artifact workflow wave covering `cheat-engine-workflow`, `windbg-command-cookbook`, `dump-to-signature-workflow`, `swfoc-runtime-address-hunting`, and the repo-published `swfoc-modding` skill
+- a third static-analysis and handoff wave covering `ida-decompiler-cleanup`, `binary-ninja-diff-signatures`, `ghidra-automation-recipes`, and `cheat-engine-x64dbg-ida-handoff`
 
 ## Canonical environment model
 
