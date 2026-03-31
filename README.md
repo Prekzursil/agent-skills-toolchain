@@ -85,8 +85,10 @@ These sit alongside the existing live specialist skills already in the repo, inc
 - `quality-gate-automation-architect`
 - `quality-zero-platform-control-plane`
 - `format-codex-sessions`
+- `mcp-graphql`
 - the existing Windows, WSL, VMware, and Codex recovery skill wave
 - the explicit `agent-lanes-*` lane-selection skills
+- a reverse-engineering skill wave covering HexStrike AI MCP, IDA Pro MCP, Ghidra MCP, Frida MCP, Binary Ninja MCP, Repomix, Frida, radare2, angr, Binary Ninja, and Volatility 3
 
 ## Canonical environment model
 
@@ -117,6 +119,10 @@ A longer walkthrough lives in [docs/multi-agent-quickstart.md](docs/multi-agent-
   - transitional compatibility copy during migration to `.agents/skills/`
 - `tools/mcp/`
   - MCP-native orchestration and other bounded server-side tool projects
+- `tools/mcp/graphql-mcp-bundle/`
+  - shared manifest and notes for wiring `mcp-graphql` into Codex, Claude Code, and Gemini CLI
+- `tools/mcp/reverse-engineering-mcp-bundle/`
+  - shared manifests, wrapper sync helpers, and client registration scripts for reverse-engineering MCP servers
 - `tools/editor/`
   - editor-local tools with explicit installation and validation paths
 - `tools/web/`

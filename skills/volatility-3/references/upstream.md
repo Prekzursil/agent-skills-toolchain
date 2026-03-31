@@ -1,0 +1,6 @@
+# Upstream Notes
+
+- Official docs: `https://volatility3.readthedocs.io/`
+- Common install path: `py -3 -m pip install --upgrade volatility3`
+- Starter plugins vary by OS family, but high-signal first checks are process, tree, module, and handle views
+- Always record the exact plugin command and output file names when producing dump artifacts
