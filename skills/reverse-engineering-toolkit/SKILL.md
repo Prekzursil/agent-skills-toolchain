@@ -11,12 +11,12 @@ Use this skill to choose the smallest toolchain that fits the task, then hand of
 
 ## Routing Matrix
 
-- Crash dump, exception context, thread state, or module load questions: use `$windbg-preview` first.
-- Live Windows process stepping, breakpoints, or fast attach loops: use `$x64dbg`; add Cheat Engine when you need memory inspection or trainer-style validation.
+- Crash dump, exception context, thread state, or module load questions: use `$windbg-preview` first; use `$windbg-command-cookbook` when you need concrete WinDbg commands.
+- Live Windows process stepping, breakpoints, or fast attach loops: use `$x64dbg`; use `$cheat-engine-workflow` when you need value scans, pointer checks, or AOB validation.
 - Static analysis after live or dump evidence exists: use IDA Pro, Binary Ninja, or Ghidra. Use the matching MCP skill only when the MCP server itself needs setup or repair (`$ida-pro-mcp`, `$binary-ninja-mcp`, `$ghidra-mcp`).
 - Debugger to disassembler synchronization: use `$ret-sync`.
 - Binary-to-binary or version-to-version comparisons: use `$binexport` to export both sides, then `$bindiff` to compare.
-- Signature generation for hooks or stable identifiers: use `$binja-sigmaker` or a Cheat Engine AOB workflow.
+- Signature generation for hooks or stable identifiers: use `$dump-to-signature-workflow` first, then `$binja-sigmaker` or a Cheat Engine AOB workflow.
 - Bad indirect call typing in IDA: use `$apply-callee-type-ex`.
 - Windows PE structure or import weirdness in Binary Ninja: use `$peutils`.
 - External Python automation over Ghidra: use `$ghidra-bridge`.

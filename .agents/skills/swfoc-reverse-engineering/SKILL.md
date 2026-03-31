@@ -19,10 +19,10 @@ Use this skill for SWFOC-native evidence work: dump triage, runtime tracing, sta
 ## Recommended Workflow
 
 1. Validate the target first. Confirm whether the request is about the SWFOC runtime, a dump artifact, or source-side modding. If it is XML, Lua, or packaging work, hand back to `$swfoc-modding`.
-2. For the dump path, start with `$windbg-preview` on `StarWarsG.DMP`. Capture exception context, loaded modules, and the most relevant threads before opening a disassembler.
-3. For the live-runtime path, use `$x64dbg` plus Cheat Engine. Add `$ret-sync` only after the debugger path is stable enough to justify syncing into a disassembler.
+2. For the dump path, start with `$windbg-preview` on `StarWarsG.DMP`. Use `$windbg-command-cookbook` when you need exact WinDbg commands, and capture exception context, loaded modules, and the most relevant threads before opening a disassembler.
+3. For the live-runtime path, use `$x64dbg` plus `$cheat-engine-workflow`. Add `$ret-sync` only after the debugger path is stable enough to justify syncing into a disassembler.
 4. Move into static analysis once you know which module, function family, or address range matters. Use `$apply-callee-type-ex` in IDA, `$peutils` in Binary Ninja, or `$ghidra-bridge` for automation-heavy Ghidra follow-up.
-5. When a finding must survive across game builds or variants, export both sides with `$binexport`, compare with `$bindiff`, and generate resilient patterns with `$binja-sigmaker` or a Cheat Engine AOB workflow.
+5. Use `$swfoc-runtime-address-hunting` for SWFOC-specific anchors, then route durable findings through `$dump-to-signature-workflow`. When a finding must survive across game builds or variants, export both sides with `$binexport`, compare with `$bindiff`, and generate resilient patterns with `$binja-sigmaker` or a Cheat Engine AOB workflow.
 6. Escalate to the existing `$volatility-3` or `$angr` skills only for genuinely memory-forensics-specific extraction or symbolic analysis needs.
 
 ## Common Mistakes
