@@ -6,4 +6,5 @@
   - `ida-pro-mcp --install`
 - Upstream clients explicitly mentioned by the project: Claude, Claude Code, Codex, Cursor, Gemini CLI, and others.
 - Recommended local package path when automating from this repo: `C:/Users/Prekzursil/.local/opt/ida-pro-mcp/.venv`
+- On Windows-first setups, prefer publishing an `ida64.cmd` shim in `C:/Users/Prekzursil/.local/bin` when the installed launcher is really `ida.exe`.
 - Do not claim local enablement unless IDA Pro is actually present and the plugin has been installed.

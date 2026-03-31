@@ -7,6 +7,7 @@ Shared manifests and helper scripts for wiring reverse-engineering MCP servers i
 - `manifests/` - per-server stdio definitions used by the registration helper
 - `scripts/register_mcp_server.py` - patch Codex, Claude, or Gemini config with a manifest entry
 - `scripts/install_python_mcp.py` - create a dedicated venv under `~/.local/opt/<name>` and install a Python MCP package
+- `scripts/install_windows_host_shims.ps1` - publish stable Windows launch shims into `~/.local/bin` for host apps whose actual launcher names differ from what agents expect
 - `scripts/sync_hexstrike_wrapper.py` - copy the canonical HexStrike bridge wrapper into the local HexStrike install root
 - `wrappers/hexstrike_mcp_launcher.py` - canonical Content-Length bridge for HexStrike
 - `tests/test_register_mcp_server.py` - unit coverage for manifest expansion and config patching
@@ -36,6 +37,12 @@ py -3 .\tools\mcp\reverse-engineering-mcp-bundle\scripts\register_mcp_server.py 
 py -3 .\tools\mcp\reverse-engineering-mcp-bundle\scripts\sync_hexstrike_wrapper.py
 ```
 
+### Host-app shims
+
+```powershell
+pwsh -File .\tools\mcp\reverse-engineering-mcp-bundle\scripts\install_windows_host_shims.ps1
+```
+
 Use the existing local client entries that point at `~/.local/opt/hexstrike-ai/hexstrike_mcp_launcher.py`, or re-register from `manifests/hexstrike-ai.json` if you need to rebuild them.
 
 ## Host-gated servers
@@ -43,7 +50,7 @@ Use the existing local client entries that point at `~/.local/opt/hexstrike-ai/h
 These manifests are published for repeatability, but local enablement still depends on the host application already being installed:
 
 - `ida-pro-mcp.json` needs a working IDA Pro installation and plugin bootstrap
-- `ghidra-mcp.json` needs the Ghidra extension installed plus a bridge path supplied through `--var GHIDRA_MCP_BRIDGE_PATH=...`
+- `ghidra-mcp.json` needs the Ghidra extension installed plus both `--var GHIDRA_MCP_BRIDGE_PATH=...` and `--var GHIDRA_MCP_URL=http://127.0.0.1:<port>/`
 - `binary-ninja-mcp.json` needs Binary Ninja plus the Binary Ninja MCP plugin/runtime
 
 ## Validation
