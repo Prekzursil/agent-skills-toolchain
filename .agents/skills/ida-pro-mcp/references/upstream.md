@@ -1,0 +1,9 @@
+# Upstream Notes
+
+- Upstream repo: `https://github.com/mrexodia/ida-pro-mcp`
+- Upstream install flow:
+  - `pip install https://github.com/mrexodia/ida-pro-mcp/archive/refs/heads/main.zip`
+  - `ida-pro-mcp --install`
+- Upstream clients explicitly mentioned by the project: Claude, Claude Code, Codex, Cursor, Gemini CLI, and others.
+- Recommended local package path when automating from this repo: `C:/Users/Prekzursil/.local/opt/ida-pro-mcp/.venv`
+- Do not claim local enablement unless IDA Pro is actually present and the plugin has been installed.

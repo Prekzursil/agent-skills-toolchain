@@ -117,6 +117,8 @@ A longer walkthrough lives in [docs/multi-agent-quickstart.md](docs/multi-agent-
   - transitional compatibility copy during migration to `.agents/skills/`
 - `tools/mcp/`
   - MCP-native orchestration and other bounded server-side tool projects
+- `tools/mcp/reverse-engineering-mcp-bundle/`
+  - shared manifests, wrapper sync helpers, and client registration scripts for reverse-engineering MCP servers
 - `tools/editor/`
   - editor-local tools with explicit installation and validation paths
 - `tools/web/`
