@@ -142,7 +142,7 @@ async function detectWslHostCandidates({ resolvConfPath = '/etc/resolv.conf' } =
   return dedupe(candidates);
 }
 
-function detectInstalledDesktopLauncher({ env = process.env, platform = process.platform } = {}) {
+async function detectInstalledDesktopLauncher({ env = process.env, platform = process.platform } = {}) {
   const explicit = String(env.PROMPTBRIDGE_DESKTOP_LAUNCHER || env.AGENTIFY_DESKTOP_LAUNCHER || '').trim();
   if (explicit) return { command: explicit, args: [] };
 
@@ -153,7 +153,9 @@ function detectInstalledDesktopLauncher({ env = process.env, platform = process.
       localAppData ? path.join(localAppData, 'AgentifyDesktop', 'launch-agentify-desktop.cmd') : null
     ].filter(Boolean);
     for (const candidate of candidates) {
-      return { command: candidate, args: [] };
+      if (await fileExists(candidate)) {
+        return { command: candidate, args: [] };
+      }
     }
   }
 
@@ -252,7 +254,7 @@ export async function ensureDesktopRunning({
   const defaultElectronBin = path.resolve('node_modules', '.bin', process.platform === 'win32' ? 'electron.cmd' : 'electron');
   const entry = path.join(__dirname, 'main.mjs');
   const usingCustomSpawn = spawnImpl !== spawn;
-  const installedLauncher = detectInstalledDesktopLauncher({ env, platform });
+  const installedLauncher = await detectInstalledDesktopLauncher({ env, platform });
   let launchCommand = null;
   let launchArgs = [];
   if (await fileExists(entry)) {
