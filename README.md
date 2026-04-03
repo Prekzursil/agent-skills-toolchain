@@ -1,17 +1,111 @@
 # agent-skills-toolchain
 
-Private platform repo for the installable skills, MCP-side contracts, editor-local and host-local tool workspaces, and browser-mediated agent tooling I use and evolve together.
+Full configuration and toolchain repo for all my AI agents: Codex CLI, Claude Code, and Gemini CLI. Contains 158+ skills, 40+ MCP server configs, the codex_consult orchestration engine, Agentify Desktop, and platform config snapshots — all plug-and-play.
+
+## Quick Start
+
+```bash
+# Clone
+git clone https://github.com/Prekzursil/agent-skills-toolchain.git
+cd agent-skills-toolchain
+
+# Install dependencies
+npm install
+
+# Bootstrap codex_consult into your CODEX_HOME
+node tools/mcp/codex-orchestrator/integrations/codex/cli.mjs install
+
+# Verify the stack
+node tools/mcp/codex-orchestrator/integrations/codex/cli.mjs probe
+node tools/mcp/codex-orchestrator/integrations/codex/cli.mjs self-test
+
+# Start Agentify Desktop (for PromptBridge/ChatGPT web lane)
+cd tools/web/agentify-desktop && npm install && npm start
+```
+
+## What This Repo Contains
+
+| Surface | Count | Description |
+|---------|-------|-------------|
+| `skills/` | 123 | Shared skills for Codex + Claude (see `SKILLS-MANIFEST.md`) |
+| `skills-claude-only/` | 35 | Claude Code exclusive skills (Azure, metaswarm, Ralph, etc.) |
+| `tools/mcp/` | 6 | MCP server projects (codex-orchestrator, agent-lanes, workstation bundle, etc.) |
+| `tools/web/` | 2 | Agentify Desktop + PromptBridge talk lane |
+| `tools/editor/` | 2 | Metaswarm + Ralph Orchestrator |
+| `release/platforms/windows/` | 8 | Config snapshots: Codex (41 MCPs), Claude (40 MCPs), Gemini (25+ MCPs) |
+| `docs/` | — | Architecture docs, codex-consult analysis, plans |
+
+## codex_consult: Plug-and-Play Consultation
+
+The codex_consult system provides AI consultation via two lanes:
+
+- **Lane B (PromptBridge/Agentify)**: Routes queries through Agentify Desktop to ChatGPT web UI with your logged-in subscription. Supports extended thinking, web search, and all ChatGPT Pro models.
+- **Lane A (Codex CLI)**: Falls back to `codex exec` with session reuse. Automatic fallback when Lane B is unavailable.
+
+### Architecture
+
+```
+codex_consult MCP tool
+    |
+    v
+codex-orchestrator (tools/mcp/codex-orchestrator/)
+    |-- reads profiles from promptbridge-orchestration.toml
+    |-- resolves model, timeout, capabilities per profile
+    |
+    +-- Lane B: PromptBridge talk lane (tools/web/promptbridge-talk-lane/)
+    |       |-- connects to Agentify Desktop
+    |       |-- workspace-aware session keys (pb-{project})
+    |       |-- extended thinking + web search support
+    |       |-- 480s query timeout for long responses
+    |       +-- auto-detects and launches desktop app
+    |
+    +-- Lane A fallback: Codex CLI exec
+            |-- session reuse via SQLite routes table
+            |-- per-profile model selection
+            +-- health events recorded on fallback
+```
+
+### Profiles
+
+| Profile | Model | Thinking | Web Search | Timeout |
+|---------|-------|----------|------------|---------|
+| consult | chatgpt-5-latest-pro | max (extended) | yes | 480s |
+| brainstorm | gpt-5.4 | high (extended) | yes | 480s |
+| review | chatgpt-5-latest-pro | high (extended) | no | default |
+| discuss | gpt-5.4 (default) | high | no | default |
+| coordinate | gpt-5.4 (default) | high | no | default |
+| curate | gpt-5.4 (default) | high | no | default |
+
+### Install Flow
+
+The entire stack is self-installing:
+
+1. **`cli.mjs install`** — copies the orchestration runtime into `CODEX_HOME/promptbridge-runtime/`, registers the `codex_consult` MCP server in `config.toml`, and writes `promptbridge-orchestration.toml`
+2. **`cli.mjs probe`** — validates MCP server connectivity, PromptBridge desktop state, and session store
+3. **`cli.mjs self-test`** — runs a live consultation round-trip and verifies the response schema
+4. **Agentify Desktop** — standalone Electron app in `tools/web/agentify-desktop/` that provides the ChatGPT web automation layer
+
+### Management Commands
+
+```bash
+node tools/mcp/codex-orchestrator/integrations/codex/cli.mjs status     # Check bootstrap state
+node tools/mcp/codex-orchestrator/integrations/codex/cli.mjs probe      # Probe consultation stack
+node tools/mcp/codex-orchestrator/integrations/codex/cli.mjs self-test  # Live round-trip test
+node tools/mcp/codex-orchestrator/integrations/codex/cli.mjs update     # Update to latest
+node tools/mcp/codex-orchestrator/integrations/codex/cli.mjs uninstall  # Remove bootstrap
+```
 
 ## Purpose
 
 This repo is the working home for four kinds of agent assets plus the docs and validation needed to keep them bounded:
 
-- `skills/` for installable, validated skills
+- `skills/` for installable, validated skills (123 shared + 35 Claude-only)
 - `tools/mcp/` for MCP-native contracts, adapters, and promoted tool projects
 - `tools/editor/` for editor-local tools such as VS Code extensions plus vendored host-local agent frameworks
 - `tools/web/` for browser- or web-mediated tool projects with explicit session boundaries
+- `release/platforms/` for sanitized config snapshots (Codex, Claude, Gemini)
 
-The split matters because these surfaces have different runtime models, auth expectations, failure modes, packaging rules, and validation paths. Shared docs, incubation notes, and validation helpers live around them without blurring install, execution, and promotion boundaries. Future cross-platform packaging belongs in a packaging-only `release/` workspace so it does not become a fifth live execution surface or pollute the default runtime graph.
+The split matters because these surfaces have different runtime models, auth expectations, failure modes, packaging rules, and validation paths.
 
 ## Layout
 
