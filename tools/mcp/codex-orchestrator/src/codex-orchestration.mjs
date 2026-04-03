@@ -5,6 +5,7 @@ import path from 'node:path';
 import { ensureDesktopRunning, requestJson } from '../../../web/promptbridge-talk-lane/src/mcp-lib.mjs';
 import { runCodexExec } from './orchestrator/codex.mjs';
 import { defaultStateDir } from '../../../web/promptbridge-talk-lane/src/state.mjs';
+import { ensureManagerDb, writeRoute, appendHealthEvent } from './manager/store.mjs';
 
 export const REQUIRED_CONSULTATION_SCHEMA_KEYS = [
   'problem',
@@ -34,7 +35,14 @@ export function defaultOrchestrationConfig({ codexHome = defaultCodexHome() } = 
       promptbridge_default_key: 'promptbridge-curator'
     },
     profiles: {
-      consult: { tool: 'codex_consult', mode: 'consult', peer_count: 1, role: 'expert', use_curator: false },
+      consult: {
+        tool: 'codex_consult',
+        mode: 'consult',
+        peer_count: 1,
+        role: 'expert',
+        use_curator: false,
+        promptbridge_key: 'promptbridge-consult'
+      },
       brainstorm: { tool: 'codex_brainstorm', mode: 'brainstorm', peer_count: 2, role: 'idea_generator', use_curator: false },
       review: { tool: 'codex_review', mode: 'review', peer_count: 1, role: 'critic', use_curator: false },
       discuss: { tool: 'codex_discuss', mode: 'discuss', peer_count: 2, role: 'debater', use_curator: false },
@@ -175,7 +183,8 @@ export function resolveOrchestrationRequest({ toolName, config, overrides = {} }
       overrides.reasoningEffort || overrides.reasoning_effort || profile.reasoning_effort || laneDefaults.default_reasoning_effort || 'high',
     peerCount: Number(overrides.peerCount ?? overrides.peer_count ?? profile.peer_count ?? laneDefaults.default_peer_count ?? 1),
     useCurator: Boolean(overrides.useCurator ?? overrides.use_curator ?? profile.use_curator ?? laneDefaults.use_promptbridge_curator ?? false),
-    promptbridgeKey: String(overrides.promptbridgeKey || profile.promptbridge_key || laneDefaults.promptbridge_default_key || 'promptbridge-curator')
+    promptbridgeKey: String(overrides.promptbridgeKey || profile.promptbridge_key || laneDefaults.promptbridge_default_key || 'promptbridge-curator'),
+    sessionReuse: overrides.sessionReuse ?? overrides.session_reuse ?? profile.session_reuse ?? false
   };
 }
 
@@ -232,16 +241,18 @@ function normalizeConsultationResult(result, { fallbackMode }) {
   return normalized;
 }
 
-function buildStructuredPrompt({ mode, prompt, role, participantIndex = null, peerCount = 1, candidates = [] }) {
+function buildStructuredPrompt({ mode, prompt, role, participantIndex = null, peerCount = 1, candidates = [], reasoningEffort = null }) {
   const roleLine = participantIndex === null
     ? `Role: ${role}.`
     : `Role: ${role}. You are participant ${participantIndex + 1} of ${peerCount}.`;
+  const reasoningLine = reasoningEffort ? `Reasoning effort requested: ${reasoningEffort}.` : null;
   const candidatesBlock = candidates.length
     ? `\nCandidates to synthesize:\n${JSON.stringify(candidates, null, 2)}\n`
     : '';
   return [
     `Mode: ${mode}.`,
     roleLine,
+    reasoningLine,
     'Return exactly one JSON object with these keys and no markdown:',
     REQUIRED_CONSULTATION_SCHEMA_KEYS.join(', '),
     '',
@@ -256,7 +267,75 @@ function buildStructuredPrompt({ mode, prompt, role, participantIndex = null, pe
     '- risks: array of strings',
     '- verification_plan: array of strings',
     '- confidence: string'
-  ].join('\n');
+  ].filter(Boolean).join('\n');
+}
+
+function parseConsultationJsonText(text, fallbackMode) {
+  const normalized = String(text || '').trim();
+  if (!normalized) throw new Error(`invalid_consultation_result:${fallbackMode || 'consultation'}`);
+
+  try {
+    return normalizeConsultationResult(JSON.parse(normalized), { fallbackMode });
+  } catch {}
+
+  const match = normalized.match(/\{[\s\S]*\}$/);
+  if (!match) throw new Error(`invalid_consultation_result:${fallbackMode || 'consultation'}`);
+
+  return normalizeConsultationResult(JSON.parse(match[0]), { fallbackMode });
+}
+
+async function configurePromptbridgeSession({ conn, key, requestedModel = null }) {
+  if (!requestedModel) return null;
+  return await requestJson({
+    ...conn,
+    method: 'POST',
+    path: '/configure-session',
+    body: {
+      key,
+      expectedVendorId: 'chatgpt',
+      modelHint: requestedModel,
+      confirmModelHintNotAuthoritative: true
+    }
+  });
+}
+
+async function defaultPromptbridgeConsult({
+  prompt,
+  key = 'promptbridge-consult',
+  timeoutMs = 60_000,
+  stateDir = defaultStateDir(),
+  requestedModel = null,
+  reasoningEffort = null
+}) {
+  const conn = await ensureDesktopRunning({ stateDir, timeoutMs: 45_000 });
+  await requestJson({
+    ...conn,
+    method: 'POST',
+    path: '/ensure-ready',
+    body: {
+      key,
+      timeoutMs: 45_000
+    }
+  });
+  await configurePromptbridgeSession({ conn, key, requestedModel });
+  const requestPrompt = buildStructuredPrompt({
+    mode: 'promptbridge_consult',
+    prompt,
+    role: 'expert',
+    reasoningEffort
+  });
+  const data = await requestJson({
+    ...conn,
+    method: 'POST',
+    path: '/query',
+    body: {
+      key,
+      prompt: requestPrompt,
+      ...(requestedModel ? { modelHint: requestedModel } : {}),
+      timeoutMs
+    }
+  });
+  return parseConsultationJsonText(data?.result?.text || '', 'promptbridge_consult');
 }
 
 async function defaultPromptbridgeCurate({ prompt, candidates, key = 'promptbridge-curator', timeoutMs = 8 * 60_000, stateDir = defaultStateDir() }) {
@@ -268,15 +347,7 @@ async function defaultPromptbridgeCurate({ prompt, candidates, key = 'promptbrid
     path: '/query',
     body: { key, prompt: requestPrompt, attachments: [], timeoutMs }
   });
-  const text = String(data?.result?.text || '').trim();
-  let parsed = null;
-  try {
-    parsed = JSON.parse(text);
-  } catch {
-    const match = text.match(/\{[\s\S]*\}$/);
-    if (match) parsed = JSON.parse(match[0]);
-  }
-  return normalizeConsultationResult(parsed, { fallbackMode: 'promptbridge_curate' });
+  return parseConsultationJsonText(data?.result?.text || '', 'promptbridge_curate');
 }
 
 function laneAFallbackFrom(baseResult, error) {
@@ -284,10 +355,10 @@ function laneAFallbackFrom(baseResult, error) {
   return {
     ...baseResult,
     fallback_to_lane_a: true,
-    risks: [...new Set([...(baseResult?.risks || []), `PromptBridge curator unavailable: ${reason}`])],
+    risks: [...new Set([...(baseResult?.risks || []), `PromptBridge lane unavailable: ${reason}`])],
     verification_plan: [
       ...(baseResult?.verification_plan || []),
-      'If PromptBridge curation is required, start the desktop lane manually and rerun the curation path.'
+      'If PromptBridge consultation is required, start the desktop lane manually and rerun the request.'
     ]
   };
 }
@@ -305,6 +376,48 @@ function trimForError(value) {
     .slice(0, 240);
 }
 
+function deriveSessionKey(workspaceDir) {
+  if (!workspaceDir) return 'promptbridge-consult';
+  const base = path.basename(path.resolve(workspaceDir));
+  return `pb-${base.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+}
+
+async function lookupExistingSession({ codexHome, workspaceDir }) {
+  try {
+    const db = await ensureManagerDb({ codexHome });
+    try {
+      const routeKey = `session:${path.resolve(workspaceDir || '.')}`;
+      const row = db.prepare(`SELECT route_key, value_json, updated_at FROM routes WHERE route_key = ?`).get(routeKey);
+      if (!row) return null;
+      const value = JSON.parse(row.value_json);
+      if (!value?.sessionId) return null;
+      const ageMs = Date.now() - new Date(row.updated_at).getTime();
+      if (ageMs > 24 * 60 * 60 * 1000) return null;
+      return value;
+    } finally {
+      db.close();
+    }
+  } catch {
+    return null;
+  }
+}
+
+async function persistSession({ codexHome, workspaceDir, sessionId, toolName }) {
+  try {
+    await writeRoute({
+      codexHome,
+      routeKey: `session:${path.resolve(workspaceDir || '.')}`,
+      value: { sessionId, toolName, timestamp: Date.now() }
+    });
+  } catch {}
+}
+
+async function recordHealthEvent({ codexHome, source, severity, message, details }) {
+  try {
+    await appendHealthEvent({ codexHome, source, severity, message, details });
+  } catch {}
+}
+
 export async function runCodexOrchestration({
   toolName,
   prompt,
@@ -312,12 +425,109 @@ export async function runCodexOrchestration({
   overrides = {},
   workspaceDir,
   runCodexExecImpl = runCodexExec,
+  promptbridgeConsultImpl = defaultPromptbridgeConsult,
   promptbridgeCurateImpl = defaultPromptbridgeCurate
 } = {}) {
   const resolved = resolveOrchestrationRequest({ toolName, config, overrides });
+  const codexHome = config?.codexHome || defaultCodexHome();
   const participants = [];
   const candidateResults = [];
   const peerCount = Math.max(1, Number(resolved.peerCount || 1));
+
+  if (toolName === 'codex_consult') {
+    const sessionKey = deriveSessionKey(workspaceDir);
+    const sessionReuse = resolved.sessionReuse !== false;
+
+    try {
+      const promptbridgeResult = await promptbridgeConsultImpl({
+        prompt,
+        key: sessionKey,
+        requestedModel: overrides.promptbridgeModel || resolved.model || null,
+        reasoningEffort: overrides.promptbridgeReasoningEffort || resolved.reasoningEffort
+      });
+      participants.push({
+        index: 0,
+        role: resolved.role,
+        lane: 'promptbridge',
+        model: overrides.promptbridgeModel || resolved.model || null,
+        reasoningEffort: overrides.promptbridgeReasoningEffort || resolved.reasoningEffort,
+        sessionKey
+      });
+      return {
+        ...promptbridgeResult,
+        metadata: {
+          mode: toolName,
+          profile: resolved.profileName,
+          participants,
+          peerCount: 1,
+          curatorUsed: false,
+          model: resolved.model,
+          reasoningEffort: resolved.reasoningEffort,
+          sessionKey
+        }
+      };
+    } catch (promptbridgeError) {
+      await recordHealthEvent({
+        codexHome,
+        source: 'codex_consult',
+        severity: 'warning',
+        message: `PromptBridge fallback to Lane A: ${promptbridgeError.message}`,
+        details: { toolName, workspaceDir, sessionKey }
+      });
+
+      const existing = sessionReuse ? await lookupExistingSession({ codexHome, workspaceDir }) : null;
+      const useEphemeral = !existing?.sessionId;
+
+      const participantPrompt = buildStructuredPrompt({
+        mode: resolved.mode,
+        prompt,
+        role: resolved.role,
+        reasoningEffort: resolved.reasoningEffort
+      });
+      const execResult = await runCodexExecImpl({
+        workspaceDir,
+        prompt: participantPrompt,
+        ephemeral: useEphemeral,
+        sessionId: existing?.sessionId || null,
+        skipGitRepoCheck: true,
+        model: resolved.model,
+        configOverrides: configOverrideArgs(resolved.reasoningEffort)
+      });
+      if (!execResult?.ok) {
+        throw new Error(`codex_exec_failed:${trimForError(execResult?.stderr || execResult?.stdout || execResult?.abortedReason || execResult?.exit?.code || 'unknown')}`);
+      }
+
+      if (execResult.sessionId && sessionReuse) {
+        await persistSession({ codexHome, workspaceDir, sessionId: execResult.sessionId, toolName });
+      }
+
+      const parsed = parseAgentJsonResult(execResult.stdout);
+      if (!parsed) {
+        throw new Error(`invalid_consultation_result:${trimForError(execResult?.stderr || execResult?.stdout || 'missing_agent_message')}`);
+      }
+      const normalized = normalizeConsultationResult(parsed, { fallbackMode: toolName });
+      participants.push({
+        index: 0, role: resolved.role, lane: 'codex', model: resolved.model,
+        reasoningEffort: resolved.reasoningEffort,
+        sessionId: execResult.sessionId || null,
+        resumed: !useEphemeral
+      });
+      return {
+        ...laneAFallbackFrom(normalized, promptbridgeError),
+        metadata: {
+          mode: toolName,
+          profile: resolved.profileName,
+          participants,
+          peerCount: 1,
+          curatorUsed: false,
+          model: resolved.model,
+          reasoningEffort: resolved.reasoningEffort,
+          sessionKey,
+          sessionReused: !useEphemeral
+        }
+      };
+    }
+  }
 
   const participantCalls = toolName === 'codex_review' || toolName === 'codex_consult' || toolName === 'codex_curate' ? 1 : peerCount;
   for (let idx = 0; idx < participantCalls; idx += 1) {
@@ -326,7 +536,8 @@ export async function runCodexOrchestration({
       prompt,
       role: resolved.role,
       participantIndex: participantCalls === 1 ? null : idx,
-      peerCount: participantCalls
+      peerCount: participantCalls,
+      reasoningEffort: resolved.reasoningEffort
     });
     const execResult = await runCodexExecImpl({
       workspaceDir,
@@ -354,7 +565,8 @@ export async function runCodexOrchestration({
       mode: `${resolved.mode}_synthesis`,
       prompt,
       role: 'synthesizer',
-      candidates: candidateResults
+      candidates: candidateResults,
+      reasoningEffort: resolved.reasoningEffort
     });
     const execResult = await runCodexExecImpl({
       workspaceDir,
