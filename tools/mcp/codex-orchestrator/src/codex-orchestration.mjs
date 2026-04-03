@@ -184,7 +184,11 @@ export function resolveOrchestrationRequest({ toolName, config, overrides = {} }
     peerCount: Number(overrides.peerCount ?? overrides.peer_count ?? profile.peer_count ?? laneDefaults.default_peer_count ?? 1),
     useCurator: Boolean(overrides.useCurator ?? overrides.use_curator ?? profile.use_curator ?? laneDefaults.use_promptbridge_curator ?? false),
     promptbridgeKey: String(overrides.promptbridgeKey || profile.promptbridge_key || laneDefaults.promptbridge_default_key || 'promptbridge-curator'),
-    sessionReuse: overrides.sessionReuse ?? overrides.session_reuse ?? profile.session_reuse ?? false
+    sessionReuse: overrides.sessionReuse ?? overrides.session_reuse ?? profile.session_reuse ?? false,
+    enableExtendedThinking: overrides.enableExtendedThinking ?? profile.enable_extended_thinking ?? false,
+    enableWebSearch: overrides.enableWebSearch ?? profile.enable_web_search ?? false,
+    timeoutMs: Number(overrides.timeoutMs ?? profile.timeout_ms ?? laneDefaults.default_timeout_ms ?? 30 * 60_000),
+    queryTimeoutMs: Number(overrides.queryTimeoutMs ?? profile.query_timeout_ms ?? laneDefaults.default_query_timeout_ms ?? 8 * 60_000)
   };
 }
 
@@ -302,19 +306,22 @@ async function configurePromptbridgeSession({ conn, key, requestedModel = null }
 async function defaultPromptbridgeConsult({
   prompt,
   key = 'promptbridge-consult',
-  timeoutMs = 60_000,
+  timeoutMs = 480_000,
+  queryTimeoutMs = 480_000,
   stateDir = defaultStateDir(),
   requestedModel = null,
-  reasoningEffort = null
+  reasoningEffort = null,
+  enableExtendedThinking = false,
+  enableWebSearch = false
 }) {
-  const conn = await ensureDesktopRunning({ stateDir, timeoutMs: 45_000 });
+  const conn = await ensureDesktopRunning({ stateDir, timeoutMs: 90_000 });
   await requestJson({
     ...conn,
     method: 'POST',
     path: '/ensure-ready',
     body: {
       key,
-      timeoutMs: 45_000
+      timeoutMs: 90_000
     }
   });
   await configurePromptbridgeSession({ conn, key, requestedModel });
@@ -332,7 +339,9 @@ async function defaultPromptbridgeConsult({
       key,
       prompt: requestPrompt,
       ...(requestedModel ? { modelHint: requestedModel } : {}),
-      timeoutMs
+      ...(enableExtendedThinking ? { enableExtendedThinking: true } : {}),
+      ...(enableWebSearch ? { enableWebSearch: true } : {}),
+      timeoutMs: queryTimeoutMs
     }
   });
   return parseConsultationJsonText(data?.result?.text || '', 'promptbridge_consult');
@@ -442,8 +451,12 @@ export async function runCodexOrchestration({
       const promptbridgeResult = await promptbridgeConsultImpl({
         prompt,
         key: sessionKey,
+        timeoutMs: resolved.timeoutMs,
+        queryTimeoutMs: resolved.queryTimeoutMs,
         requestedModel: overrides.promptbridgeModel || resolved.model || null,
-        reasoningEffort: overrides.promptbridgeReasoningEffort || resolved.reasoningEffort
+        reasoningEffort: overrides.promptbridgeReasoningEffort || resolved.reasoningEffort,
+        enableExtendedThinking: resolved.enableExtendedThinking,
+        enableWebSearch: resolved.enableWebSearch
       });
       participants.push({
         index: 0,
@@ -491,7 +504,8 @@ export async function runCodexOrchestration({
         sessionId: existing?.sessionId || null,
         skipGitRepoCheck: true,
         model: resolved.model,
-        configOverrides: configOverrideArgs(resolved.reasoningEffort)
+        configOverrides: configOverrideArgs(resolved.reasoningEffort),
+        timeoutMs: resolved.timeoutMs
       });
       if (!execResult?.ok) {
         throw new Error(`codex_exec_failed:${trimForError(execResult?.stderr || execResult?.stdout || execResult?.abortedReason || execResult?.exit?.code || 'unknown')}`);
