@@ -68,6 +68,7 @@ export async function runCodexExec({
   prompt,
   sessionId = null,
   ephemeral = false,
+  skipGitRepoCheck = false,
   model = null,
   configOverrides = [],
   timeoutMs = 30 * 60_000,
@@ -78,6 +79,7 @@ export async function runCodexExec({
   const cwd = path.resolve(workspaceDir || process.cwd());
   const args = ['exec'];
   if (ephemeral) args.push('--ephemeral');
+  if (skipGitRepoCheck) args.push('--skip-git-repo-check');
   if (model) args.push('-m', String(model));
   for (const entry of Array.isArray(configOverrides) ? configOverrides : []) {
     if (!entry) continue;

@@ -4,6 +4,12 @@
 
 ## Current bounded projects
 
+### `agentify-desktop`
+
+- vendored Electron desktop control center source for the installed Agentify Desktop app
+- includes the local HTTP/MCP bridge entrypoints, UI, orchestrator helpers, and tests
+- excludes bundled build output and `node_modules`
+
 ### `agent-lanes-chatgpt-web`
 
 - direct ChatGPT web lane with explicit session, readiness, and lane-routing behavior

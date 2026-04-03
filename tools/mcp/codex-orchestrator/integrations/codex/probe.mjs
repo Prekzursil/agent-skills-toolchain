@@ -802,6 +802,7 @@ export async function runToolVisibilityCheck({
     workspaceDir,
     prompt,
     ephemeral: true,
+    skipGitRepoCheck: true,
     timeoutMs: 60_000,
     configOverrides: ['model_reasoning_effort="low"', 'model_verbosity="low"'],
     abortOnStderrPatterns: [{ pattern: /database is locked/i, reason: 'codex_state_db_locked' }],

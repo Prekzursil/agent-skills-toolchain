@@ -10,7 +10,8 @@ import {
   probeConsultationStack,
   resolveProbeClientModulePaths,
   probeVsCodeExtensionPreflight,
-  runConsultationSelfTest
+  runConsultationSelfTest,
+  runToolVisibilityCheck
 } from '../integrations/codex/probe.mjs';
 
 function bootstrapFixture() {
@@ -154,6 +155,42 @@ test('codex probe: parseAgentJsonResult extracts strict JSON from agent message 
     blocked: false,
     fallback_to_lane_a: false
   });
+});
+
+test('codex probe: runToolVisibilityCheck passes skipGitRepoCheck to codex exec', async () => {
+  let capturedCall = null;
+  const result = await runToolVisibilityCheck({
+    codexHome: 'C:/Users/Test/.codex',
+    workspaceDir: 'C:/Users/Test',
+    runCodexExecImpl: async (args) => {
+      capturedCall = args;
+      return {
+        ok: true,
+        stdout: JSON.stringify({
+          item: {
+            type: 'agent_message',
+            text: JSON.stringify({
+              codex_tool_visible: true,
+              codex_tool_name: 'codex_consult',
+              promptbridge_tool_visible: true,
+              promptbridge_tool_name: 'promptbridge_status',
+              status_ok: true,
+              url: null,
+              blocked: null,
+              fallback_to_lane_a: false
+            })
+          }
+        }),
+        stderr: '',
+        exit: { code: 0, signal: null },
+        sessionId: null,
+        abortedReason: null
+      };
+    }
+  });
+
+  assert.equal(capturedCall?.skipGitRepoCheck, true);
+  assert.equal(result.ok, true);
 });
 
 test('codex probe: probeConsultationStack classifies missing desktop state before later checks', async () => {

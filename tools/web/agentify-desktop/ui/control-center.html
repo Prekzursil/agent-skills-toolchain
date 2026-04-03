@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Agentify Desktop</title>
+    <link rel="stylesheet" href="./control-center.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="header">
+        <div class="brand">
+          <div class="logo">A</div>
+          <div class="titles">
+            <div class="name">Agentify Desktop</div>
+            <div class="sub">Local browser control • MCP</div>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="btnShowDefault" class="btn secondary" title="Show default tab">Show default</button>
+          <button id="btnOpenState" class="btn secondary" title="Open state folder">Get State</button>
+          <button id="btnRefresh" class="btn secondary iconBtn" title="Refresh" aria-label="Refresh">&#x21bb;</button>
+        </div>
+      </header>
+
+      <main class="main">
+        <section class="card">
+          <div class="cardTitle">Session Bootstrap</div>
+          <div class="hint">
+            Import an existing Firefox ChatGPT session into Agentify when embedded Google sign-in is blocked. Local-only, cookies plus localStorage only, no IndexedDB copy.
+          </div>
+          <div class="grid">
+            <label class="field">
+              <div class="label">Firefox profile</div>
+              <select id="importProfileSelect"></select>
+              <div class="fieldHelp">Detected from your Firefox Profiles folder. The default-release profile is preselected when available.</div>
+            </label>
+          </div>
+          <div class="row">
+            <button id="btnImportFirefox" class="btn primary">Import Firefox ChatGPT Session</button>
+          </div>
+          <div id="importStatus" class="hint"></div>
+        </section>
+
+        <section class="card">
+          <div class="cardTitle">Create tab</div>
+          <div class="hint">
+            `Vendor` chooses the website, `Key` reuses the same tab for that project across calls, and `Name` is just a label shown in the tab list.
+          </div>
+          <div class="grid">
+            <label class="field">
+              <div class="label">Vendor</div>
+              <select id="vendorSelect"></select>
+              <div class="fieldHelp">Pick where this tab should open (ChatGPT, Claude, etc.).</div>
+            </label>
+            <label class="field">
+              <div class="label">Key (optional)</div>
+              <input id="tabKey" type="text" placeholder="e.g. repo-name" autocomplete="off" />
+              <div class="fieldHelp">Stable routing key. Same key means the same tab is reused.</div>
+            </label>
+            <label class="field">
+              <div class="label">Name (optional)</div>
+              <input id="tabName" type="text" placeholder="e.g. billing-bot" autocomplete="off" />
+              <div class="fieldHelp">Human-friendly label only. Does not affect routing.</div>
+            </label>
+          </div>
+          <div class="row">
+            <label class="checkbox">
+              <input id="tabShow" type="checkbox" />
+              <span>Show window</span>
+            </label>
+            <button id="btnCreate" class="btn primary">Create</button>
+          </div>
+          <div id="createHint" class="hint"></div>
+        </section>
+
+        <section class="card">
+          <div class="cardTitle">Tabs</div>
+          <div id="tabsEmpty" class="empty">No tabs listed yet. Click Refresh or Show default to reveal the default tab.</div>
+          <div id="tabsList" class="tabs"></div>
+        </section>
+
+        <section class="card">
+          <div class="cardTitle">Settings (governor)</div>
+          <div class="hint">
+            These defaults exist to reduce accidental high-rate automation. Automating web UIs may violate website terms; use responsibly.
+          </div>
+          <div class="grid settingsGrid">
+            <label class="field">
+              <div class="label">Max in-flight queries</div>
+              <input id="setMaxInflight" class="compactNum" type="number" min="1" max="12" step="1" />
+            </label>
+            <label class="field">
+              <div class="label">Max queries per minute</div>
+              <input id="setQpm" class="compactNum" type="number" min="1" max="600" step="1" />
+            </label>
+            <label class="field">
+              <div class="label">Min gap per tab (ms)</div>
+              <input id="setTabGap" class="compactNum" type="number" min="0" max="60000" step="50" />
+            </label>
+            <label class="field">
+              <div class="label">Min global gap (ms)</div>
+              <input id="setGlobalGap" class="compactNum" type="number" min="0" max="10000" step="10" />
+            </label>
+          </div>
+          <div class="row">
+            <label class="checkbox">
+              <input id="setShowTabsDefault" type="checkbox" />
+              <span>Show new tab windows by default</span>
+            </label>
+          </div>
+          <div class="row">
+            <label class="checkbox">
+              <input id="setAllowAuthPopups" type="checkbox" />
+              <span>Allow auth popups (needed for Google/Microsoft/Apple SSO)</span>
+            </label>
+          </div>
+          <div class="row">
+            <label class="checkbox">
+              <input id="setAcknowledge" type="checkbox" />
+              <span>I understand the risks and want to change these limits</span>
+            </label>
+            <div class="btnRow">
+              <button id="btnResetSettings" class="btn secondary">Reset</button>
+              <button id="btnSaveSettings" class="btn primary" disabled>Save</button>
+            </div>
+          </div>
+          <div id="settingsHint" class="hint"></div>
+        </section>
+
+        <section class="card">
+          <div class="cardTitle">Help</div>
+          <div class="hint">
+            If a CAPTCHA/login challenge appears, Agentify will bring the relevant window forward and pause automation until you finish.
+          </div>
+          <div class="hint">
+            Use stable <span class="mono">key</span> values (e.g. project names) to keep parallel jobs isolated.
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="cardTitle">Orchestrator (single-chat emulator) <span class="badge warn">EXPERIMENTAL / UNTESTED</span></div>
+          <div class="hint">
+            This surface is currently experimental and not part of the stable smoke-tested path. Use with caution.
+          </div>
+          <div class="hint">
+            Runs locally: watches the ChatGPT thread for <span class="mono">agentify_tool</span> JSON blocks and executes Codex + posts results back.
+          </div>
+          <div class="grid">
+            <label class="field">
+              <div class="label">Project key</div>
+              <input id="orchKey" type="text" placeholder="e.g. repo-name" autocomplete="off" />
+            </label>
+            <label class="field">
+              <div class="label">Workspace path (optional)</div>
+              <input id="orchWorkspace" type="text" placeholder="/path/to/repo (defaults to current working dir of Agentify Desktop)" autocomplete="off" />
+            </label>
+            <label class="field">
+              <div class="label">Tool template</div>
+              <select id="orchTool">
+                <option value="codex.run">codex.run</option>
+                <option value="git.diff">git.diff</option>
+                <option value="tests.run">tests.run</option>
+                <option value="fs.read">fs.read</option>
+              </select>
+            </label>
+          </div>
+          <div class="row">
+            <div class="btnRow">
+              <button id="btnOrchStart" class="btn primary">Start</button>
+              <button id="btnOrchStop" class="btn secondary">Stop</button>
+              <button id="btnOrchStopAll" class="btn secondary">Stop all</button>
+            </div>
+            <div class="btnRow">
+              <button id="btnOrchCopy" class="btn secondary">Copy tool JSON</button>
+              <button id="btnOrchRefresh" class="btn secondary">Refresh</button>
+            </div>
+          </div>
+          <div id="orchStatus" class="hint"></div>
+          <div id="orchWorkspaceHint" class="hint"></div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <div id="statusLine" class="status">Loading…</div>
+      </footer>
+    </div>
+
+    <script src="./control-center.js"></script>
+  </body>
+</html>

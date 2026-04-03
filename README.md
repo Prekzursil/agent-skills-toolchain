@@ -58,6 +58,12 @@ All orchestration tools return the same result shape:
 
 PromptBridge is not the execution authority. It can discuss and curate, but it does not own repo-changing behavior.
 
+### Desktop surface
+
+`tools/web/agentify-desktop/` now vendors the local desktop control-center app source that backs the PromptBridge / Agentify session layer.
+
+It contains the Electron app, local HTTP/MCP bridge entrypoints, UI assets, orchestrator helpers, and tests, but does not include build artifacts or `node_modules`.
+
 ### Skill layer
 
 Repo-local skills now include the multi-agent/orchestration wrappers:
@@ -84,8 +90,13 @@ These sit alongside the existing live specialist skills already in the repo, inc
 - `ralph-hats`
 - `ralph-loop`
 - `ralph-orchestrator-setup`
+- `mcp-graphql`
 - the existing Windows, WSL, VMware, and Codex recovery skill wave
 - the explicit `agent-lanes-*` lane-selection skills
+- a reverse-engineering skill wave covering HexStrike AI MCP, IDA Pro MCP, Ghidra MCP, Frida MCP, Binary Ninja MCP, Repomix, Frida, radare2, angr, Binary Ninja, and Volatility 3
+- a SWFOC-focused reverse-engineering extension covering `reverse-engineering-toolkit`, `swfoc-reverse-engineering`, `x64dbg`, `windbg-preview`, `ret-sync`, `bindiff`, `binexport`, `apply-callee-type-ex`, `binja-sigmaker`, `peutils`, and `ghidra-bridge`
+- a second SWFOC artifact workflow wave covering `cheat-engine-workflow`, `windbg-command-cookbook`, `dump-to-signature-workflow`, `swfoc-runtime-address-hunting`, and the repo-published `swfoc-modding` skill
+- a third static-analysis and handoff wave covering `ida-decompiler-cleanup`, `binary-ninja-diff-signatures`, `ghidra-automation-recipes`, and `cheat-engine-x64dbg-ida-handoff`
 
 ### Editor-local frameworks
 
@@ -126,10 +137,14 @@ A longer walkthrough lives in [docs/multi-agent-quickstart.md](docs/multi-agent-
   - transitional compatibility copy during migration to `.agents/skills/`
 - `tools/mcp/`
   - MCP-native orchestration and other bounded server-side tool projects
+- `tools/mcp/graphql-mcp-bundle/`
+  - shared manifest and notes for wiring `mcp-graphql` into Codex, Claude Code, and Gemini CLI
+- `tools/mcp/reverse-engineering-mcp-bundle/`
+  - shared manifests, wrapper sync helpers, and client registration scripts for reverse-engineering MCP servers
 - `tools/editor/`
   - editor-local tools with explicit installation and validation paths
 - `tools/web/`
-  - PromptBridge/Agentify talk-only tooling and other browser/session-bounded projects
+  - PromptBridge/Agentify talk-only tooling, the vendored Agentify Desktop source, and other browser/session-bounded projects
 - `docs/`
   - roadmap, design notes, and operator docs
 - `scripts/`
