@@ -6,6 +6,9 @@ Curated Windows-first workstation bundle for the canonical Codex profile at `C:\
 - **Self-made**: `codex_consult`, which now exposes both codex_* orchestration tools and promptbridge_* / agentify_* talk tools from one managed server.
 - **Modified local fork**: PromptBridge runtime overrides captured under `tools/mcp/agent-lanes-codex/local-overrides/` and `tools/web/agent-lanes-chatgpt-web/local-overrides/`.
 - **Curated upstream picks**: GitHub, GitHub CLI, Notion, Linear, Playwright, Chrome DevTools, Figma, Sentry, SonarQube, Semgrep, Docker, Memory, Context7, PostgreSQL, and selected optional extras including the upstream Cheat Engine bridge wrapper.
+- **Curated upstream picks**: GitHub, GitHub CLI, Notion, Linear, Playwright, Chrome DevTools, Figma, Sentry, SonarQube, Semgrep, Docker, Memory, Context7, PostgreSQL, DigitalOcean MCP, and selected optional extras including the upstream Cheat Engine bridge wrapper.
+- **Curated upstream local orchestration**: Ralph Orchestrator is now installed through a WSL-backed local binary plus MCP server registration, with mirrored skills shipped from this repo.
+- **Curated upstream MCP config**: DigitalOcean MCP is wired through `npx @digitalocean/mcp --services apps` with env-only `DIGITALOCEAN_API_TOKEN` handling; live connectivity is intentionally env-gated until the token exists locally.
 - **Curated community MCP picks**: Codecov is promoted into the active MCP bundle via `@egulatee/mcp-codecov`.
 - **Curated non-MCP integrations**: Chromatic remains intentionally outside the MCP set; Qlty stays on CLI + provider workflows, and DeepScan stays on VS Code + provider workflows.
 
@@ -21,6 +24,7 @@ Curated Windows-first workstation bundle for the canonical Codex profile at `C:\
 
 ## Current health summary
 - **Verified now**: GitHub auth, Notion OAuth login, Context7 token persistence, Sentry API reachability, Codecov community MCP startup with token + base URL, SonarQube Cloud MCP startup, Semgrep MCP wrapper startup, DeepSource MCP handshake through a local Windows wrapper, Cheat Engine local install plus live read-only SWFOC analysis, and Codex registration
+- **Verified now**: Ralph Orchestrator CLI install, `ralph doctor`, and user-level MCP registration for Codex, Claude, and Gemini
 - **Enabled but conservatively described**: Figma (auth-gated), SonarQube (configured against SonarQube Cloud), Semgrep (no cloud token provided in this stage), and Cheat Engine (installed locally with successful pipe ping and read-only game analysis; treat writes as a separate risk lane)
 - **Enabled and verified**: `codex_consult` under the single-managed-server lane model; live `status`, `probe`, and `self-test` all returned `ok: true` on 2026-03-15
 - **Removed from the active workstation bundle**: Unity MCP was removed completely by owner preference, including local `D:` staging and env references

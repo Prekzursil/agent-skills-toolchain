@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -11,6 +12,55 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 FIXTURES_ROOT = REPO_ROOT / "scripts" / "fixtures" / "skill-tests"
 SKILLS_ROOT = REPO_ROOT / ".agents" / "skills" if (REPO_ROOT / ".agents" / "skills").exists() else REPO_ROOT / "skills"
+
+
+def _python_candidates() -> list[list[str]]:
+    candidates: list[list[str]] = []
+
+    override = os.environ.get("CODEX_PYTHON_WITH_YAML")
+    if override:
+        candidates.append([override])
+
+    candidates.append([sys.executable])
+    candidates.extend([["python"], ["py", "-3"], ["python3"]])
+
+    local_app_data = Path(os.environ.get("LOCALAPPDATA", ""))
+    for root in (local_app_data / "Programs" / "Python", local_app_data / "Python"):
+        if not root.exists():
+            continue
+        for child in sorted(root.iterdir(), reverse=True):
+            python_exe = child / "python.exe"
+            if python_exe.exists():
+                candidates.append([str(python_exe)])
+
+    unique: list[list[str]] = []
+    seen: set[tuple[str, ...]] = set()
+    for candidate in candidates:
+        key = tuple(candidate)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(candidate)
+    return unique
+
+
+def _python_supports_yaml(command: list[str]) -> bool:
+    try:
+        result = subprocess.run(
+            [*command, "-c", "import yaml"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+        )
+    except OSError:
+        return False
+    return result.returncode == 0
+
+
+PYTHON_WITH_YAML = next(
+    (candidate for candidate in _python_candidates() if _python_supports_yaml(candidate)),
+    [sys.executable],
+)
 
 
 def skill_path(*parts: str) -> str:
@@ -29,7 +79,7 @@ def run_command(*args: str) -> str:
 
 
 def run_python(*args: str) -> str:
-    return run_command(sys.executable, *args)
+    return run_command(*PYTHON_WITH_YAML, *args)
 
 
 def extract_trailing_json(stdout: str) -> dict:

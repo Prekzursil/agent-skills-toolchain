@@ -82,9 +82,14 @@ Repo-local skills now include the multi-agent/orchestration wrappers:
 
 These sit alongside the existing live specialist skills already in the repo, including:
 
+- `digitalocean-mcp-setup`
+- `digitalocean-app-platform-ops`
 - `quality-gate-automation-architect`
 - `quality-zero-platform-control-plane`
 - `format-codex-sessions`
+- `ralph-hats`
+- `ralph-loop`
+- `ralph-orchestrator-setup`
 - `mcp-graphql`
 - the existing Windows, WSL, VMware, and Codex recovery skill wave
 - the explicit `agent-lanes-*` lane-selection skills
@@ -92,6 +97,16 @@ These sit alongside the existing live specialist skills already in the repo, inc
 - a SWFOC-focused reverse-engineering extension covering `reverse-engineering-toolkit`, `swfoc-reverse-engineering`, `x64dbg`, `windbg-preview`, `ret-sync`, `bindiff`, `binexport`, `apply-callee-type-ex`, `binja-sigmaker`, `peutils`, and `ghidra-bridge`
 - a second SWFOC artifact workflow wave covering `cheat-engine-workflow`, `windbg-command-cookbook`, `dump-to-signature-workflow`, `swfoc-runtime-address-hunting`, and the repo-published `swfoc-modding` skill
 - a third static-analysis and handoff wave covering `ida-decompiler-cleanup`, `binary-ninja-diff-signatures`, `ghidra-automation-recipes`, and `cheat-engine-x64dbg-ida-handoff`
+
+### Editor-local frameworks
+
+`tools/editor/` now also carries vendored host-local orchestration frameworks that are not best modeled as MCP-native services.
+
+- `ralph-orchestrator` - vendored upstream Ralph Orchestrator snapshot plus repo-owned install, MCP registration, and mirrored-skill rollout helpers for Codex, Claude, and Gemini.
+
+### MCP-native integrations
+
+- `tools/mcp/digitalocean-mcp` - thin Windows-first wrapper around the archived `@digitalocean/mcp` package with env-only token wiring and Codex / Claude / Gemini registration helpers.
 
 ## Canonical environment model
 
