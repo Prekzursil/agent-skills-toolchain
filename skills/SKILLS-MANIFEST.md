@@ -5,6 +5,7 @@
 
 | Skill Name | Origin | Description |
 |---|---|---|
+| 010-editor | custom | Use when applying binary templates (.bt), running 010 Editor scripts (.1sc), or performing hex editing with SweetScape 010 Editor |
 | agent-lanes-chatgpt-web-curate | custom | Use when the user explicitly wants final comparison or curation through the direct ChatGPT web lane |
 | agent-lanes-chatgpt-web-discuss | custom | Use when the user explicitly wants discussion, ideation, or sparring through the direct ChatGPT web lane |
 | agent-lanes-chatgpt-web-query | custom | Use when the user explicitly wants a direct ChatGPT web / Agentify lane rather than Codex orchestration |
@@ -67,6 +68,7 @@
 | hexstrike-ai-setup | custom | Use when installing, wiring, validating, or troubleshooting a local HexStrike AI runtime |
 | ida-decompiler-cleanup | custom | Use when Hex-Rays decompiler output in IDA Pro is noisy, poorly typed, or hard to reason about |
 | ida-pro-mcp | custom | Use when installing or configuring mrexodia/ida-pro-mcp for IDA Pro |
+| imhex | custom | Use when hex editing, binary analysis, pattern language parsing, file identification, hash computation, or hex dump generation is needed |
 | imagegen | built-in | Use when the user asks to generate or edit images via the OpenAI Image API |
 | jupyter-notebook | built-in | Use when the user asks to create, scaffold, or edit Jupyter notebooks (.ipynb) |
 | linear | built-in | Manage issues, projects and team workflows in Linear |
