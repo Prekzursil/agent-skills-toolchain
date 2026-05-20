@@ -1,6 +1,6 @@
 # agent-skills-toolchain
 
-Full configuration and toolchain repo for all my AI agents: Codex CLI, Claude Code, and Gemini CLI. Contains 158+ skills, 40+ MCP server configs, the codex_consult orchestration engine, Agentify Desktop, and platform config snapshots — all plug-and-play.
+Full configuration and toolchain repo for all my AI agents: Codex CLI, Claude Code, and Gemini CLI. Contains 169+ skills, 40+ MCP server configs, the codex_consult orchestration engine, Agentify Desktop, and platform config snapshots - all plug-and-play.
 
 ## Quick Start
 
@@ -27,7 +27,7 @@ cd tools/web/agentify-desktop && npm install && npm start
 
 | Surface | Count | Description |
 |---------|-------|-------------|
-| `skills/` | 123 | Shared skills for Codex + Claude (see `SKILLS-MANIFEST.md`) |
+| `skills/` | 134 | Shared skills for Codex + Claude (see `SKILLS-MANIFEST.md`) |
 | `skills-claude-only/` | 35 | Claude Code exclusive skills (Azure, metaswarm, Ralph, etc.) |
 | `tools/mcp/` | 6 | MCP server projects (codex-orchestrator, agent-lanes, workstation bundle, etc.) |
 | `tools/web/` | 2 | Agentify Desktop + PromptBridge talk lane |
@@ -99,7 +99,7 @@ node tools/mcp/codex-orchestrator/integrations/codex/cli.mjs uninstall  # Remove
 
 This repo is the working home for four kinds of agent assets plus the docs and validation needed to keep them bounded:
 
-- `skills/` for installable, validated skills (123 shared + 35 Claude-only)
+- `skills/` for installable, validated skills (134 shared + 35 Claude-only)
 - `tools/mcp/` for MCP-native contracts, adapters, and promoted tool projects
 - `tools/editor/` for editor-local tools such as VS Code extensions plus vendored host-local agent frameworks
 - `tools/web/` for browser- or web-mediated tool projects with explicit session boundaries
@@ -176,6 +176,7 @@ Live installable skills currently ship from `skills/`:
 - `codex-runtime-recovery` - diagnose split `CODEX_HOME`, state DB churn, and cross-host launch drift before destructive repair.
 - `codex-session-reunion` - inventory, compare, and safely promote the best session copies into one canonical store.
 - `format-codex-sessions` - render Codex rollout JSONL into readable Markdown transcripts without leaking prompt bulk or token-like data.
+- `competitive-programming-solver` and `pbinfo-python-jit` - solve online judge problems and escalate pbinfo Python TLE cases with static helper tooling.
 - `long-copy-orchestrator` - choose the right copy mechanism and monitor progress during large cross-host transfers.
 - `wsl-vmware-cutover` - stage WSL-to-VMware migrations with D:-first backups and rollback checkpoints.
 - `offline-linux-disk-surgery` - inspect, grow, or repair Linux guest disks offline.

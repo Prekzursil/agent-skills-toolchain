@@ -6,6 +6,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$env:PYTHONUTF8 = "1"
 
 if (-not $ValidatorPath) {
     $codexHome = if ($env:CODEX_HOME) {

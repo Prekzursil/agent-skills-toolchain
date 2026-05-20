@@ -103,6 +103,16 @@ test('codex bootstrap: install writes managed codex config and docs without dele
   const quickstartSkill = await fs.readFile(path.join(dir, '.agents', 'skills', 'multi-agent-quickstart', 'SKILL.md'), 'utf8');
   assert.match(quickstartSkill, /Execution Choice/);
   assert.match(quickstartSkill, /subagent-driven execution/);
+  const formatterScript = await fs.readFile(
+    path.join(dir, '.agents', 'skills', 'format-codex-sessions', 'scripts', 'render_codex_session.mjs'),
+    'utf8'
+  );
+  assert.match(formatterScript, /render_codex_session\.mjs/);
+  const formatterMetadata = await fs.readFile(
+    path.join(dir, '.agents', 'skills', 'format-codex-sessions', 'agents', 'openai.yaml'),
+    'utf8'
+  );
+  assert.match(formatterMetadata, /display_name:/);
 
   const mirrorConfig = await fs.readFile(path.join(mirrorDir, 'config.toml'), 'utf8');
   assert.match(

@@ -1,7 +1,7 @@
 # Skills Manifest
 
 > Auto-generated skill inventory for the agent-skills-toolchain repository.
-> Last updated: 2026-04-04
+> Last updated: 2026-05-20
 
 | Skill Name | Origin | Description |
 |---|---|---|
@@ -46,6 +46,7 @@
 | codex-session-reunion | custom | Use when Codex sessions or rollout JSONL files are spread across Windows, WSL, backups, or VS Code mirrors |
 | codex-triage | custom | Use when you need a fast classification of next steps before deeper work |
 | codex-vscode-host-routing | custom | Use when VS Code launches Codex from the wrong host or WSL becomes the default unexpectedly |
+| competitive-programming-solver | custom | Use when solving online judge, olympiad, or contest problems in C, C++, or Python |
 | deepsource | built-in | Retrieve code review results from DeepSource - issues, vulnerabilities, and quality metrics |
 | develop-web-game | built-in | Use when Codex is building or iterating on a web game (HTML/JS) and needs a reliable development + testing loop |
 | dispatching-parallel-agents | marketplace:superpowers | Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies |
@@ -85,6 +86,7 @@
 | openai-docs | built-in | Use when the user asks how to build with OpenAI products or APIs and needs up-to-date official documentation |
 | pdf | built-in | Use when tasks involve reading, creating, or reviewing PDF files |
 | peutils | custom | Use when inspecting or repairing PE-focused details in Binary Ninja |
+| pbinfo-python-jit | custom | Use when a pbinfo.ro Python solution is correct but still TLEs and needs carefully prepared native hot-path helpers |
 | playwright | built-in | Use when the task requires automating a real browser from the terminal |
 | playwright-interactive | built-in | Persistent browser and Electron interaction through js_repl for fast iterative UI debugging |
 | promptbridge-codex-consult | custom | Use when installing, probing, or debugging PromptBridge-backed Codex consultation |

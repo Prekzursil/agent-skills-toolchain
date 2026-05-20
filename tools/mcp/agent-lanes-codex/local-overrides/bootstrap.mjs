@@ -153,6 +153,61 @@ async function backupFileIfPresent(file) {
   return backupPath;
 }
 
+async function backupDirectoryIfPresent(dir) {
+  if (!(await pathExists(dir))) return null;
+  const backupPath = `${dir}.bak.${timestampForBackup()}`;
+  await fs.cp(dir, backupPath, { recursive: true });
+  return backupPath;
+}
+
+async function readBufferIfPresent(file) {
+  try {
+    return await fs.readFile(file);
+  } catch {
+    return null;
+  }
+}
+
+async function listRelativeFiles(root, current = root) {
+  const entries = await fs.readdir(current, { withFileTypes: true });
+  const files = [];
+  for (const entry of entries) {
+    const fullPath = path.join(current, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...await listRelativeFiles(root, fullPath));
+    } else if (entry.isFile()) {
+      files.push(path.relative(root, fullPath));
+    }
+  }
+  return files.sort();
+}
+
+async function skillDirectoryDiffers(sourceRoot, targetRoot) {
+  const sourceFiles = await listRelativeFiles(sourceRoot);
+  if (await pathExists(targetRoot)) {
+    const targetFiles = await listRelativeFiles(targetRoot);
+    if (targetFiles.some((relativePath) => !sourceFiles.includes(relativePath))) {
+      return true;
+    }
+  }
+  for (const relativePath of sourceFiles) {
+    const sourceBuffer = await fs.readFile(path.join(sourceRoot, relativePath));
+    const targetBuffer = await readBufferIfPresent(path.join(targetRoot, relativePath));
+    if (!targetBuffer || !sourceBuffer.equals(targetBuffer)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+async function copyManagedSkillDirectory(sourceRoot, targetRoot) {
+  const backup = await backupDirectoryIfPresent(targetRoot);
+  await fs.rm(targetRoot, { recursive: true, force: true });
+  await fs.mkdir(path.dirname(targetRoot), { recursive: true });
+  await fs.cp(sourceRoot, targetRoot, { recursive: true });
+  return backup ? [backup] : [];
+}
+
 function replaceRootSetting(config, key, value) {
   const line = `${key} = ${JSON.stringify(value)}`;
   const pattern = new RegExp(`^${key}\\s*=.*$`, 'm');
@@ -539,18 +594,16 @@ async function syncManagedSkills({ codexHome, repoRoot = promptBridgeRepoRoot(),
 
   for (const entry of sourceEntries) {
     if (!entry.isDirectory()) continue;
-    const sourceSkillPath = path.join(sourceSkillsRoot, entry.name, 'SKILL.md');
-    const rendered = await readFileIfPresent(sourceSkillPath);
-    if (!rendered) continue;
+    const sourceSkillDir = path.join(sourceSkillsRoot, entry.name);
+    if (!(await pathExists(path.join(sourceSkillDir, 'SKILL.md')))) continue;
     installedSkills.push(entry.name);
     const skillDir = path.join(skillsRoot, entry.name);
-    const skillPath = path.join(skillDir, 'SKILL.md');
-    const existing = await readFileIfPresent(skillPath);
-    if (existing !== rendered) changed = true;
+    const skillChanged = await skillDirectoryDiffers(sourceSkillDir, skillDir);
+    if (skillChanged) changed = true;
     if (dryRun) continue;
-    await fs.mkdir(skillDir, { recursive: true });
-    const writeResult = await writeManagedFile(skillPath, rendered);
-    backups.push(...writeResult.backups);
+    if (skillChanged) {
+      backups.push(...await copyManagedSkillDirectory(sourceSkillDir, skillDir));
+    }
   }
 
   return { changed, backups, skillsRoot, installedSkills };

@@ -265,6 +265,25 @@ def test_quality_zero_platform_control_plane_fixture() -> None:
     assert "`missing_ruleset`" in markdown
 
 
+def test_pbinfo_python_jit_helper_scripts() -> None:
+    extractor = REPO_ROOT / skill_path("pbinfo-python-jit", "scripts", "extract_shellcode.py")
+    builder = REPO_ROOT / skill_path("pbinfo-python-jit", "scripts", "build_shellcode.sh")
+
+    result = subprocess.run(
+        [*PYTHON_WITH_YAML, str(extractor)],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 1
+    assert "usage: extract_shellcode.py <object.o>" in result.stderr
+
+    builder_text = builder.read_text(encoding="utf-8")
+    assert "-fno-tree-loop-distribute-patterns" in builder_text
+    assert "-fno-builtin" in builder_text
+    assert "extract_shellcode.py" in builder_text
+
+
 def main() -> int:
     with tempfile.TemporaryDirectory() as temp_dir:
         tmpdir = Path(temp_dir)
@@ -273,6 +292,7 @@ def main() -> int:
         test_copy_strategy(tmpdir / "copy")
     test_format_codex_sessions_fixture()
     test_quality_zero_platform_control_plane_fixture()
+    test_pbinfo_python_jit_helper_scripts()
 
     print("All live skill helper smoke tests passed.")
     return 0
