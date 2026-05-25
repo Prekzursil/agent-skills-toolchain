@@ -16,6 +16,7 @@
 | apply-callee-type-ex | custom | Use when IDA Pro decompiler output suffers from missing or bad indirect-call types and you need ApplyCalleeTypeEx |
 | aspnet-core | built-in | Build, review, refactor, or architect ASP.NET Core web applications using current official guidance |
 | autofix-bot-api | custom | Scan code for security vulnerabilities, leaked secrets, and dependency issues via DeepSource autofix bot API |
+| battlecats-event-unlock | custom | Use when working on Battle Cats special/event/tower stage visibility or on-demand unlock RE — the proven dual-dependency model (tree-admission + valid schedule row), decisive offsets, the Event Summoner tool, and approaches proven DEAD |
 | binary-ninja | custom | Use when Binary Ninja UI workflows, intermediate-language reasoning, or Binary Ninja Python API automation are needed |
 | binary-ninja-diff-signatures | custom | Use when working in Binary Ninja to compare versions, analyze changed functions, or generate stable signatures |
 | binary-ninja-mcp | custom | Use when installing or configuring Binary Ninja MCP, especially when a plugin or npm-based MCP bridge must be wired |
