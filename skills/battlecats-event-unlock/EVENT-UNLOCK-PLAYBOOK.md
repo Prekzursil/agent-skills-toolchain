@@ -34,11 +34,15 @@ Tree-admission-alone (no row body): crashes on the Special Stages menu rebuild (
 missing row data). Time-travel "works" only because it naturally supplies BOTH — but it trips
 HGT/Recovery + a 99-day half-XP penalty, so it is rejected.
 
-**Status (honest):** the **data half is live** — event_0 is patched with a permanent Heavenly
-Tower (mapid 7000, local assets present) always-on row using the `20300101` sentinel; md5
-verified on device; survived relaunch **[VALIDATED]**. **PENDING:** visual confirmation that
-7000 renders in the Special Stages menu — first via the row alone, then if needed with the
-scoped `sub_819E20→1` admit hook (expected not to crash now because the row body exists).
+**Status (verified live 2026-05-26):** the **data-only path is the primary recipe** —
+Heavenly Tower (mapid 7000) was patched into event_0 with the `20300101` sentinel and
+**rendered + played in-game** on the live BlueStacks client **[VALIDATED]**. A valid
+(calendar-active) row makes `sub_819E20` return true *naturally* → tree admission falls
+out for free → **no Frida hook is required** for any mapid with `local_assets=true`.
+The scoped `sub_819E20→1` admit hook (Event Summoner) is now an **edge-case** tool,
+reserved for off-calendar admission (a mapid you specifically want admitted *without*
+making its row calendar-active), which is rarely what you want once you can author any
+row you like.
 
 ---
 
@@ -288,24 +292,54 @@ One actor at a time; no parallel device access. Each step is the precondition fo
 
 ---
 
-## 9. Current status — confirmed vs pending
+## 9. Current status — verified live 2026-05-26
 
 **CONFIRMED LIVE [VALIDATED]:**
 - event_0 crypto solved byte-exact; in-place HGT-safe delivery proven, survives relaunch.
 - event_0 patched with a permanent **Heavenly Tower (mapid 7000, `local_assets=true`)** always-on
-  row (`20300101` sentinel); md5 verified on device; persisted across a relaunch. The **data half**
-  of the combined injection is in place.
-- The dual-dependency model itself (tree admission + valid row), with the wrong levers and the
-  single-half failures all reproduced and disproven.
+  row (`20300101` sentinel); md5 verified on device; persisted across a relaunch.
+- **The tile rendered in Special Stages and the stage was played** — operator-confirmed on
+  the live BlueStacks client. The data-only path is sufficient; no Frida hook was attached.
+- The dual-dependency model is verified end-to-end: a row whose date window covers "now"
+  makes `sub_819E20` return true *naturally*, the mapid enters the calendar tree at launch,
+  the Special-Stages menu rebuild draws the tile, and the entry gates let the stage be played.
 
-**PENDING [PENDING]:**
-- Visual confirmation that 7000 **renders** in the Special Stages menu — **first via the row
-  alone** (does the natural admission path pick it up?), and **if not, with the scoped
-  `sub_819E20→1` admit hook** (the combined test). This is expected **not** to crash now because
-  the row body data exists (tree-admission-alone crashed only when no row backed it).
+### Primary recipe (data-only, no Frida)
 
-**Next step:** run the §8 sequence against mapid 7000 — probe (confirm absent), then `summon
---mapid 7000`, then `treedump` to confirm admission, then open Special Stages and screenshot.
+Bundled artifacts live in `dat-cache-decode/`. Steps:
+
+1. **Pick the all-events bundle** (or generate fresh from catalog):
+   ```bash
+   # Use bundled prebuilt (627 rows / ~403 events, dojo excluded):
+   ls dat-cache-decode/event0_allon_20300101.dat
+   # OR regenerate from current catalog:
+   python dat-cache-decode/build_event0_allon.py
+   ```
+
+2. **HGT-safe in-place push** (round-trip check + force-stop):
+   ```bash
+   python dat-cache-decode/push_event0.py push \
+       dat-cache-decode/event0_allon_20300101.plain.tsv
+   ```
+
+3. **Launch BC.** All events with `local_assets=true` appear in Special Stages and are
+   playable. Persists across relaunches.
+
+4. **Revert to stock scheduling anytime:**
+   ```bash
+   python dat-cache-decode/push_event0.py revert
+   # Restores from bundled event0_backup/ev0_binpull.dat
+   ```
+
+### Where the Frida hook still matters (edge cases)
+
+- **Read-only probing** of the calendar tree state (`bc_event_summon.py probe` — observe-only,
+  no mutation).
+- Admitting a mapid that should **not** have a calendar-active row (rare; e.g. RE of
+  tree-membership questions for the off-rotation pool).
+- Diagnostic instrumentation of `sub_819E20` for unrelated investigations.
+
+For typical "play any event on demand" the hook is **not required**.
 
 ---
 

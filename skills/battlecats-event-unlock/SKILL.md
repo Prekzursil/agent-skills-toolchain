@@ -46,12 +46,20 @@ These were each tried and failed on this exact stack. Re-attempting them is wast
 
 ## WHAT WORKS
 
-- **Scoped admission.** Force `sub_819E20(rec, now)` @ `0x819E20` → return **1**, at call
-  site `0x52653f` inside `sub_525AB0`, **scoped to one target mapid only** (mapid is read
-  at `rec+0x5C` / `rec+0x60`). This fires during the Special Stages menu rebuild, so you
-  must **attach and then navigate** to the Special Stages menu to trigger it.
-- **PLUS a valid `event_0` row** for that same mapid — use an always-on sentinel end-date
-  `20300101`.
+**Primary path (verified live 2026-05-26 — data-only, no Frida):**
+
+- **Patch `event_0`** with an always-on row (`20300101` sentinel) for the target mapid(s).
+  A calendar-active row makes `sub_819E20` return true *naturally* during the launch-time
+  tree-populate loop → the mapid enters the calendar tree → the Special-Stages menu
+  rebuild draws the tile → entry gates allow play. **No Frida hook required** for any
+  mapid with `local_assets=true`. Persistent, reversible, survives relaunch.
+
+**Edge case — scoped Frida admission** (only when you specifically want a mapid admitted
+*without* making its row calendar-active, e.g. RE/diagnostics):
+
+- Force `sub_819E20(rec, now)` @ `0x819E20` → return **1**, at call site `0x52653f` inside
+  `sub_525AB0`, **scoped to one target mapid only** (mapid is read at `rec+0x5C` /
+  `rec+0x60`). Fires during the Special Stages menu rebuild — attach and then navigate.
 - Supporting offsets (use only as needed, scoped):
   - `sub_5F8DF0` @ `0x5F8DF0` — id-band fallback gate.
   - `sub_5F8A10` @ `0x5F8A10` — native tree-insert helper (alt path).
@@ -85,20 +93,31 @@ Located in `D:\ReverseTools\Android\battlecats-toolkit\tools\frida-trainer\`:
 
 ## Workflow (the actionable core)
 
-1. **Resolve the target.** `bc_event_index.py resolve <name>` → mapid; confirm
-   `local_assets == true`. If false, STOP — this needs a content bake, no hook will help.
-2. **Read-only probe** (stock boot). `bc_event_summon.py probe` → confirm the mapid is
-   ABSENT from the tree and `sub_819E20` returns 0 for it. Establishes the baseline.
-3. **Ensure the data half.** Patch `event_0` with an always-on (`20300101`) row for the
-   mapid; push HGT-safe in-place; verify the md5 on device.
-4. **Scoped admit.** `summon --mapid <id> [--render-support] --keep-alive`, then
-   **navigate to Special Stages** to trigger the rebuild; `treedump` to confirm the mapid
-   was admitted.
-5. **PASS criteria.** Native tile renders, stage opens, **NO HGT / Recovery**, **NO
-   save-timestamp change**, and detach restores stock behavior.
-6. **Single actor, serial** for any live Frida / ADB step — the emulator is a shared
-   resource. Subagents do code/docs only; they never touch the live game, ADB, clock,
-   or save.
+**For "play any event on demand" — DATA-ONLY (no Frida needed):**
+
+1. **Resolve target.** `bc_event_index.py resolve <name>` → mapid; confirm
+   `local_assets == true`. If false, STOP — needs a content bake, no patch helps.
+2. **Build patched event_0** (or use the bundled `event0_allon_20300101.dat` which
+   covers ~403 events, dojo excluded):
+   `python dat-cache-decode/build_event0_allon.py`
+3. **HGT-safe in-place push** (round-trip check + force-stop happen for you):
+   `python dat-cache-decode/push_event0.py push <plain.tsv>`
+4. **Launch BC. PASS** = tile renders, stage plays, NO Frida, NO HGT/Recovery, **no
+   save-timestamp change**, persists across relaunches.
+5. **Revert to stock anytime:** `python dat-cache-decode/push_event0.py revert`
+   (restores from bundled `event0_backup/ev0_binpull.dat`).
+
+**Edge case — Frida scoped admit (only for off-calendar admission / RE diagnostics):**
+
+a. **Read-only probe** (stock boot). `bc_event_summon.py probe` → confirm the mapid
+   is ABSENT from the tree.
+b. **Scoped admit.** `summon --mapid <id> --keep-alive`, then navigate to Special
+   Stages to trigger the rebuild; `treedump` to confirm admission. Detach restores
+   stock.
+
+**Discipline:** single actor, serial for any live Frida / ADB step — the emulator is
+a shared resource. Subagents do code/docs only; they never touch the live game, ADB,
+clock, or save.
 
 ## Reference
 
