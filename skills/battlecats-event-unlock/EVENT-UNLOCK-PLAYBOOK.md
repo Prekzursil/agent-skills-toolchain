@@ -36,13 +36,15 @@ HGT/Recovery + a 99-day half-XP penalty, so it is rejected.
 
 **Status (verified live 2026-05-26):** the **data-only path is the primary recipe** —
 Heavenly Tower (mapid 7000) was patched into event_0 with the `20300101` sentinel and
-**rendered + played in-game** on the live BlueStacks client **[VALIDATED]**. A valid
-(calendar-active) row makes `sub_819E20` return true *naturally* → tree admission falls
-out for free → **no Frida hook is required** for any mapid with `local_assets=true`.
-The scoped `sub_819E20→1` admit hook (Event Summoner) is now an **edge-case** tool,
-reserved for off-calendar admission (a mapid you specifically want admitted *without*
-making its row calendar-active), which is rarely what you want once you can author any
-row you like.
+**rendered + played in-game** against an **unmodified `libnative-lib.so`** on the live
+BlueStacks client **[VALIDATED]**. A valid (calendar-active) row makes `sub_819E20`
+return true *naturally* → tree admission falls out for free → **neither a Frida hook
+nor a static `.so` patch is required** for any mapid with `local_assets=true`.
+The scoped `sub_819E20→1` admit hook (Event Summoner) AND the four static unlock
+patches (`sub_819E20→1`, `sub_5F8DF0→1`, `sub_8A3350→0`, `sub_8A3520→1`) are now
+**belt-and-suspenders for edge cases** — reserved for off-calendar admission, a mapid
+you specifically want admitted *without* making its row calendar-active, or RE
+diagnostics. Rarely needed once you can author any row you like.
 
 ---
 
@@ -299,7 +301,10 @@ One actor at a time; no parallel device access. Each step is the precondition fo
 - event_0 patched with a permanent **Heavenly Tower (mapid 7000, `local_assets=true`)** always-on
   row (`20300101` sentinel); md5 verified on device; persisted across a relaunch.
 - **The tile rendered in Special Stages and the stage was played** — operator-confirmed on
-  the live BlueStacks client. The data-only path is sufficient; no Frida hook was attached.
+  the live BlueStacks client running an **unmodified `libnative-lib.so`**. The data-only
+  path is sufficient; **neither a Frida hook nor any static `.so` patch was in flight**.
+  The four "unlock_patches" static patches (`sub_819E20→1`, `sub_5F8DF0→1`, `sub_8A3350→0`,
+  `sub_8A3520→1`) are therefore belt-and-suspenders, not the primary lever.
 - The dual-dependency model is verified end-to-end: a row whose date window covers "now"
   makes `sub_819E20` return true *naturally*, the mapid enters the calendar tree at launch,
   the Special-Stages menu rebuild draws the tile, and the entry gates let the stage be played.

@@ -46,16 +46,19 @@ These were each tried and failed on this exact stack. Re-attempting them is wast
 
 ## WHAT WORKS
 
-**Primary path (verified live 2026-05-26 — data-only, no Frida):**
+**Primary path (verified live 2026-05-26 — data-only, no Frida, no `.so` patch):**
 
 - **Patch `event_0`** with an always-on row (`20300101` sentinel) for the target mapid(s).
   A calendar-active row makes `sub_819E20` return true *naturally* during the launch-time
   tree-populate loop → the mapid enters the calendar tree → the Special-Stages menu
-  rebuild draws the tile → entry gates allow play. **No Frida hook required** for any
-  mapid with `local_assets=true`. Persistent, reversible, survives relaunch.
+  rebuild draws the tile → entry gates allow play. **Neither a Frida hook nor a static
+  `.so` patch is required** for any mapid with `local_assets=true`. The live confirmation
+  ran against an **unmodified `libnative-lib.so`**. Persistent, reversible, survives
+  relaunch.
 
-**Edge case — scoped Frida admission** (only when you specifically want a mapid admitted
-*without* making its row calendar-active, e.g. RE/diagnostics):
+**Edge case — scoped Frida admission OR static `.so` patches** (only when you specifically
+want a mapid admitted *without* making its row calendar-active, e.g. RE/diagnostics, or
+when you want unlock to persist as part of an APK build rather than as a data file):
 
 - Force `sub_819E20(rec, now)` @ `0x819E20` → return **1**, at call site `0x52653f` inside
   `sub_525AB0`, **scoped to one target mapid only** (mapid is read at `rec+0x5C` /
