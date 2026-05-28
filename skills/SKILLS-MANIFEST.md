@@ -1,7 +1,7 @@
 # Skills Manifest
 
 > Auto-generated skill inventory for the agent-skills-toolchain repository.
-> Last updated: 2026-05-20
+> Last updated: 2026-05-28
 
 | Skill Name | Origin | Description |
 |---|---|---|
@@ -77,6 +77,7 @@
 | llm-security | built-in | Security guidelines for LLM applications based on OWASP Top 10 for LLM 2025 |
 | long-copy-orchestrator | custom | Use when moving large trees between Windows, WSL, VMs, or mounted disks |
 | mcp-graphql | custom | Use when installing or configuring blurrah/mcp-graphql for Codex, Claude Code, or Gemini CLI |
+| mise | custom | Use when managing dev tool or language runtime versions with mise (mise-en-place) — global vs per-project pins, per-directory env vars, the task runner, non-language CLI installs, or Windows PowerShell setup |
 | multi-agent-quickstart | custom | Use when learning how to choose between the Codex multi-agent orchestration tools |
 | netlify-deploy | built-in | Deploy web projects to Netlify using the Netlify CLI |
 | notion-knowledge-capture | built-in | Capture conversations and decisions into structured Notion pages |
