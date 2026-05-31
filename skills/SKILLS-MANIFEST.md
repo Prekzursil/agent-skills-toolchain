@@ -1,7 +1,7 @@
 # Skills Manifest
 
 > Auto-generated skill inventory for the agent-skills-toolchain repository.
-> Last updated: 2026-05-28
+> Last updated: 2026-05-30
 
 | Skill Name | Origin | Description |
 |---|---|---|
@@ -12,6 +12,7 @@
 | agent-lanes-codex-consult | custom | Use when the user explicitly wants a Codex-side consultation lane for structured analysis or tradeoff review |
 | agent-lanes-codex-curate | custom | Use when the user explicitly wants Codex orchestration to compare options and choose the best one |
 | agent-lanes-codex-review | custom | Use when the user explicitly wants a Codex-side review or critic lane |
+| agentic-humanizer | vendored | Humanize AI text via a 5-pass rewrite with optional stylometric voice matching; optional Slop or Not Pro scoring (macOS). Vendored from numen-tech/slopornot |
 | angr | built-in | Use when symbolic execution, path exploration, constraint solving, or programmatic reasoning about binary behavior is needed |
 | apply-callee-type-ex | custom | Use when IDA Pro decompiler output suffers from missing or bad indirect-call types and you need ApplyCalleeTypeEx |
 | aspnet-core | built-in | Build, review, refactor, or architect ASP.NET Core web applications using current official guidance |
@@ -68,6 +69,7 @@
 | hexstrike-ai-authorized-engagement | custom | Use when an authorized security assessment, bug bounty, red-team, or CTF task should be routed through HexStrike AI |
 | hexstrike-ai-mcp | custom | Use when installing, repairing, or registering HexStrike AI as an MCP server for Codex, Claude Code, or Gemini CLI |
 | hexstrike-ai-setup | custom | Use when installing, wiring, validating, or troubleshooting a local HexStrike AI runtime |
+| humanizer | vendored | Remove signs of AI writing using Wikipedia's 'Signs of AI writing' patterns; optional personal-voice match. Vendored from blader/humanizer |
 | ida-decompiler-cleanup | custom | Use when Hex-Rays decompiler output in IDA Pro is noisy, poorly typed, or hard to reason about |
 | ida-pro-mcp | custom | Use when installing or configuring mrexodia/ida-pro-mcp for IDA Pro |
 | imhex | custom | Use when hex editing, binary analysis, pattern language parsing, file identification, hash computation, or hex dump generation is needed |
@@ -108,6 +110,7 @@
 | semgrep | built-in | Run Semgrep static analysis scans and create custom detection rules |
 | sentry | built-in | Use when the user asks to inspect Sentry issues or events |
 | slides | built-in | Create and edit presentation slide decks (.pptx) with PptxGenJS |
+| slop-check | vendored | Detect AI-generated text/images, clean artifacts, and score readability via Slop or Not Pro (macOS-only — degraded on Windows). Vendored from numen-tech/slopornot |
 | sora | built-in | Use when the user asks to generate, remix, poll, list, download, or delete Sora videos via OpenAI video API |
 | speech | built-in | Use when the user asks for text-to-speech narration or voiceover |
 | spreadsheet | built-in | Use when tasks involve creating, editing, analyzing, or formatting spreadsheets |
@@ -123,6 +126,10 @@
 | using-superpowers | marketplace:superpowers | Use when starting any conversation - establishes how to find and use skills |
 | vercel-deploy | built-in | Deploy applications and websites to Vercel |
 | verification-before-completion | marketplace:superpowers | Use when about to claim work is complete, fixed, or passing, before committing or creating PRs |
+| voice-analyze | vendored | Reverse-engineer a voice profile from writing samples, including an AI-tells scan. Vendored from Prekzursil/ghostwriter |
+| voice-apply | vendored | Apply a voice profile to transform content; enforces a mandatory AI-tells check on output. Vendored from Prekzursil/ghostwriter |
+| voice-blend | vendored | Blend multiple voice profiles with weighted mixing into a hybrid voice. Vendored from Prekzursil/ghostwriter |
+| voice-create | vendored | Generate a custom voice profile from a natural-language description. Vendored from Prekzursil/ghostwriter |
 | volatility-3 | custom | Use when a memory image must be analyzed to recover processes, modules, or unpacked binaries |
 | webapp-testing | built-in | Toolkit for interacting with and testing local web applications using Playwright |
 | windbg-command-cookbook | custom | Use when you need concrete WinDbg Preview command sequences for crash dumps or exception context |
