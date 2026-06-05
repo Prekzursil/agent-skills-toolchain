@@ -111,6 +111,9 @@
 | sentry | built-in | Use when the user asks to inspect Sentry issues or events |
 | slides | built-in | Create and edit presentation slide decks (.pptx) with PptxGenJS |
 | slop-check | vendored | Detect AI-generated text/images, clean artifacts, and score readability via Slop or Not Pro (macOS-only — degraded on Windows). Vendored from numen-tech/slopornot |
+| social-dm-search | custom | Use when the user wants to search or read direct messages and chats across Instagram DMs, Facebook Messenger groups/pages, or WhatsApp |
+| social-find-post | custom | Use when the user wants to find or recall a specific post, reel, or saved item across Instagram or Facebook |
+| social-media-toolchain | custom | Reference for the user's personal social MCPs (Instagram, Facebook Messenger, WhatsApp) - servers, auth and setup, tool inventory, and hard limits (E2EE, version gotchas, ban risk) |
 | sora | built-in | Use when the user asks to generate, remix, poll, list, download, or delete Sora videos via OpenAI video API |
 | speech | built-in | Use when the user asks for text-to-speech narration or voiceover |
 | spreadsheet | built-in | Use when tasks involve creating, editing, analyzing, or formatting spreadsheets |
