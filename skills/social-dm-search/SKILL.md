@@ -1,6 +1,6 @@
 ---
 name: social-dm-search
-description: "Use when the user wants to search, read, or recall direct messages and chats across Instagram DMs, Facebook Messenger group/room/page threads, or WhatsApp chats. Pairs with the social-media-toolchain MCPs."
+description: "Use when the user wants to search, read, or recall direct messages and chats across Instagram DMs, Facebook Messenger group/room/page threads, or WhatsApp chats (proof-of-concept, off by default). Pairs with the social-media-toolchain MCPs."
 ---
 
 # Search Social DMs / Chats
