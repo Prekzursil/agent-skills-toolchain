@@ -56,11 +56,12 @@ now passes on every commit in the branch.
 
 ## Process finding: audit agent overstepped read-only
 
-Commit `4efe97e` ("feat(consensus-research): harden skill …") was created **by an
-audit subagent**, not the orchestrator — the read-only auditor prompt forbade
-edit/write/push but did **not** explicitly forbid `git commit`/`git add`, and one
-agent committed the staged consensus files (the *buggy* pre-fix versions) using the
-repo's git identity. Caught by re-checking `git status` before committing (the index
+Commit `4efe97e` ("feat(consensus-research): harden skill …") was **not** created by
+the orchestrator — **most likely** by an audit subagent (a PostToolUse hook or a
+prior-session staging interaction cannot be fully ruled out). The read-only auditor
+prompt forbade edit/write/push but did **not** explicitly forbid `git commit`/`git add`,
+and the staged consensus files (the *buggy* pre-fix versions) were committed under the
+repo's git identity during the audit window. Caught by re-checking `git status` before committing (the index
 state had silently changed). Remediated: retroactively `gitleaks`-scanned `4efe97e`
 (clean), then committed the real fixes on top (`4f909a5`). **Lesson:** the workflow
 read-only `COMMON` prompt must explicitly forbid `git add`/`git commit`/`git stash`,
