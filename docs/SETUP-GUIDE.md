@@ -4,7 +4,8 @@ How to configure this whole personal MCP toolchain correctly **for your
 situation**. Eight servers across two domains:
 
 - **Social-media MCPs** (private/own-account read): `insta-mcp`,
-  `fb-messenger-mcp`, `whatsapp-mcp` (POC-only), `tiktok` (planned).
+  `fb-messenger-mcp`, `whatsapp-mcp` (POC-only), `tiktok` (BUILT, read-only
+  public scraper, 9 tools).
 - **Drug-discovery / research MCPs** (registered but **disabled-by-default**):
   `tooluniverse`, `rdkit`, `schrodinger`, `gogcli-classroom`.
 
@@ -42,7 +43,7 @@ decision tree first, then the per-MCP section.
    ┌──────────┴────────┐        │        ┌───────┴────────┐          │
    │                   │        │        │  tooluniverse  │   ┌──────┴───────┐
 INSTAGRAM           TIKTOK      │        │  rdkit         │   │ Account type? │
-(insta-mcp)        (planned)    │        │  schrodinger   │   └──────┬───────┘
+(insta-mcp)        (BUILT)      │        │  schrodinger   │   └──────┬───────┘
    │                   │        │        └───────┬────────┘     ┌─────┴──────┐
    │            ┌──────┴─────┐  │        DISABLED-by-default     │            │
    │            │ Want WHAT? │  │        → §6 enable per-       STUDENT     TEACHER
@@ -341,20 +342,22 @@ enabled for this project?"*. `gogcli-classroom` adds a student/teacher axis.
     install uses `rdkit 2026.3.3` + `pip install --no-deps .`. If you recreate
     the venv: install rdkit + `mcp` first, then `pip install --no-deps .`.
 
-### 7.3 `schrodinger` — custom 9-tool wrapper over local Schrodinger 2022-4
+### 7.3 `schrodinger` — custom 12-tool wrapper over local Schrodinger 2022-4
 - **Repo:** `~\source\repos\schrodinger-mcp` (`server.py` FastMCP +
   `_sch_helper.py` runs inside `run.exe python3`). Install at
   `D:\Program Files\Schrodinger 2022-4` (build 79134).
 - **Auth/scopes:** no network auth. **Decision branch within the branch:** the
-  **driver tools** (`ligprep`, `qikprop_admet`, `glide_dock`) consume
-  **Schrodinger license tokens** and run synchronously (`-WAIT`) → a FlexLM /
-  license server (or local license file) must be **reachable** for those three.
-  The structure/cheminformatics tools (`schrodinger_version`, `backend_info`,
-  `smiles_to_3d`, `molecule_properties`, `convert_structure`,
-  `run_schrodinger_python`) need **no** license.
-  ⚠️ **Accuracy note:** the three driver tools are **NOT yet run-tested
-  end-to-end** (the structure/API tools are); `glide_dock` also needs a
-  precomputed grid that no tool here generates.
+  **driver tools** (`prepwizard`, `glide_grid`, `ligprep`, `qikprop_admet`,
+  `glide_dock`, `prime_mmgbsa`) consume **Schrodinger license tokens** and run
+  synchronously (`-WAIT`) → a FlexLM / license server (or local license file)
+  must be **reachable** for those. The structure/cheminformatics tools
+  (`schrodinger_version`, `backend_info`, `smiles_to_3d`, `molecule_properties`,
+  `convert_structure`, `run_schrodinger_python`) need **no** license.
+  ✅ **Validated live E2E** on 2026-06-06 — full `prepwizard` → `glide_grid` →
+  `ligprep` → `glide_dock` → `prime_mmgbsa` pipeline on PDB 3PTB plus
+  `qikprop_admet` on warfarin; `glide_grid` now generates the docking grid
+  in-server (no precomputed Maestro grid needed). See
+  `schrodinger-mcp/VALIDATION.md`.
 - **Decision branch:** §6 enable-per-project + restart.
 - **Register:**
   ```bash
@@ -363,10 +366,11 @@ enabled for this project?"*. `gogcli-classroom` adds a student/teacher axis.
   ```
 - **Verify:** call `schrodinger_version` / `backend_info` (no license needed).
 - **Troubleshoot:** version tool fails → `$SCHRODINGER` wrong (note the space in
-  the Windows path). Driver tool hangs/errors → license server unreachable, or
-  (glide) missing grid. The server never imports `schrodinger` in-process — all
-  subprocess goes through one no-shell `_exec()` chokepoint with `_safe_path()`
-  validation; `run_schrodinger_python` is a **local single-user escape hatch**.
+  the Windows path). Driver tool hangs/errors → license server unreachable (the
+  grid is built in-server by `glide_grid`; pass `glide_dock` the `.zip` it
+  produced). The server never imports `schrodinger` in-process — all subprocess
+  goes through one no-shell `_exec()` chokepoint with `_safe_path()` validation;
+  `run_schrodinger_python` is a **local single-user escape hatch**.
 
 ### 7.4 `gogcli-classroom` — Google Classroom over `gog.exe`
 - **Prereqs:** `gogcli-mcp-classroom` (npm global) + `gog.exe v0.21.0` at
@@ -410,31 +414,33 @@ enabled for this project?"*. `gogcli-classroom` adds a student/teacher axis.
 
 ---
 
-## 8. TIKTOK — planned / decision-ready (nothing installed)
+## 8. TIKTOK — BUILT (read-only public scraper, 9 tools)
 
-There is **no installed TikTok MCP** — it is research-complete and
-decision-ready (full analysis: `TIKTOK-MCP.md`). The insta-mcp pattern
+The TikTok MCP is **BUILT** — a read-only public scraper over `TikTok-Api`
+7.3.3, exposing **9 read-only tools**, registered user-scope as `tiktok` (full
+analysis: `TIKTOK-MCP.md`). It took **Lane C** below. The insta-mcp pattern
 **inverts** for TikTok: no maintained library does authenticated own-account
-read. Pick a lane **before** any build:
+read — so the lane analysis that drove the build still stands:
 
 | Lane | Goal | Verdict |
 |---|---|---|
 | **A — own private** (my saved / DMs / feed, the insta-mcp spirit) | own-account private read | **Impossible / do NOT build.** The only lib that ever did this (`szdc/tiktok-api`) is dead (2019) and would need MITM device params + bespoke signing + a logged-in session on a fragile private API = maximal ban risk. DMs unreadable by any route (like FB 1:1 E2EE). |
 | **B — own public footprint** (analytics / publishing) | durable, ToS-clean | **FIND/light-build the official Display API** (OAuth, app + scope approval). Gives own public posts + profile + publish. **No** saved/feed/following/DMs. |
-| **C — public discovery** (trending, a creator's public posts, search, transcripts) | research | **BUILD** a thin Python/FastMCP wrapper over `davidteather/TikTok-Api` (alive, public-only, cannot post) — mirrors `fb-messenger-mcp`, **not** insta-mcp. Self-hosted + free. |
+| **C — public discovery** (trending, a creator's public posts, search, transcripts) | research | **BUILT** — a thin Python/FastMCP wrapper over `davidteather/TikTok-Api` (alive, public-only, cannot post) — mirrors `fb-messenger-mcp`, **not** insta-mcp. Self-hosted + free. |
 
-**If built (Lane C) — the setup would be:**
-- Repo `~\source\repos\tiktok-mcp\`, Python 3.11+ `.venv`, `pip install TikTokApi`
-  + `python -m playwright install`, FastMCP `server.py`.
-- **Auth = none** (public-only). Set an `ms_token` (copied from a logged-in
-  `tiktok.com` cookie) via env to reduce bot-detection — store gitignored.
+**Setup (Lane C, as built):**
+- Repo `~\source\repos\tiktok-mcp\`, Python 3.11+ `.venv`, `TikTok-Api` 7.3.3
+  (+ `python -m playwright install`), FastMCP `server.py`.
+- **Auth = none** (public-only). `tiktok_trending` works **keyless**; the other
+  tools need an `ms_token` (copied from a logged-in `tiktok.com` cookie) passed
+  via `TIKTOK_MS_TOKEN` to reduce bot-detection — store gitignored.
 - **Decision branch (egress, same as IG/FB):** CLOUD → Byteful residential proxy
   **required** (TikTok bot-detection blocks datacenter IPs fast →
   `EmptyResponseException`); `TikTokApi` takes `proxies=` (env `TIKTOK_PROXY`).
   LOCAL home IP → no proxy. Note: an RO exit localizes trending to Romania.
-- **Register (when built):**
+- **Register (as registered this session):**
   ```bash
-  claude mcp add tiktok -e TIKTOK_MS_TOKEN=<ms_token> -- C:/Users/Prekzursil/source/repos/tiktok-mcp/.venv/Scripts/python.exe server.py
+  claude mcp add tiktok --scope user -e TIKTOK_MS_TOKEN=<msToken> -- C:\Users\Prekzursil\source\repos\tiktok-mcp\.venv\Scripts\python.exe C:\Users\Prekzursil\source\repos\tiktok-mcp\server.py
   # POSIX: ...\.venv/bin/python server.py
   ```
   Consider adding it to `disabledMcpServers` and enabling per-project (§6), like
@@ -459,8 +465,10 @@ applies.
 - **WhatsApp:** POC only — keep **unregistered**.
 - **gogcli-classroom:** re-add if absent from `claude mcp list`; student account
   → writes 403.
-- **schrodinger:** driver tools (ligprep/qikprop/glide) **not yet run-tested**
-  e2e and consume license tokens; `glide_dock` needs a precomputed grid.
+- **schrodinger:** 12 tools; the driver tools (prepwizard/glide_grid/ligprep/
+  qikprop/glide_dock/prime_mmgbsa) consume license tokens but are **validated
+  live E2E** (2026-06-06, 3PTB + warfarin; see `schrodinger-mcp/VALIDATION.md`).
+  `glide_grid` generates the docking grid in-server (no precomputed grid needed).
 - **Research MCPs:** disabled-by-default — enable per-project (§6), don't wipe
   the disable list.
 - **All social MCPs:** private-API ToS/ban risk; read before write; secrets
@@ -486,7 +494,8 @@ claude mcp add rdkit -- C:/Users/Prekzursil/source/repos/rdkit-mcp-server/.venv/
 claude mcp add schrodinger -e "SCHRODINGER=D:\Program Files\Schrodinger 2022-4" -- C:/Users/Prekzursil/source/repos/schrodinger-mcp/.venv/Scripts/python.exe C:/Users/Prekzursil/source/repos/schrodinger-mcp/server.py
 claude mcp add gogcli-classroom -e GOG_ACCOUNT=prekzursil1993@gmail.com -e GOG_PATH=C:\Users\Prekzursil\tools\gogcli\gog.exe -- gogcli-mcp-classroom
 
-# TikTok — planned only (build first; see §8)
+# TikTok (BUILT — read-only public scraper, 9 tools; see §8)
+claude mcp add tiktok --scope user -e TIKTOK_MS_TOKEN=<msToken> -- C:\Users\Prekzursil\source\repos\tiktok-mcp\.venv\Scripts\python.exe C:\Users\Prekzursil\source\repos\tiktok-mcp\server.py
 ```
 
 After any `add`: **restart Claude Code**, then `claude mcp list` to confirm

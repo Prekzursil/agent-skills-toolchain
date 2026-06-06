@@ -100,9 +100,9 @@ single-user use only** — do not expose it to an untrusted client.
 
 ---
 
-## The 9 Tools
+## The 12 Tools
 
-License-token-free tools are listed first, then the three product drivers.
+License-token-free tools are listed first, then the six product drivers.
 
 ### Structure / cheminformatics (no license token)
 
@@ -147,11 +147,12 @@ single-user use only.**
 
 ### Product drivers (consume Schrodinger LICENSE TOKENS; synchronous `-WAIT`)
 
-> **License note:** the three tools below shell out to Schrodinger product
-> executables (`ligprep`, `qikprop`, `glide`) and **each checkout consumes a
-> Schrodinger license token** for the corresponding product. They run with the
-> `-WAIT` flag (synchronous / blocking) so the MCP call returns only when the job
-> finishes. Generous default timeouts are provided and are configurable per call.
+> **License note:** the tools below shell out to Schrodinger product
+> executables (`prepwizard`, `glide` for grid + dock, `ligprep`, `qikprop`,
+> `prime_mmgbsa`) and **each checkout consumes a Schrodinger license token** for
+> the corresponding product. They run with the `-WAIT` flag (synchronous /
+> blocking) so the MCP call returns only when the job finishes. Generous default
+> timeouts are provided and are configurable per call.
 
 #### 7. `ligprep(input_file, output_mae, timeout_s=1200) -> dict`
 **LigPrep** — generates prepared 3D ligand states (ionization / tautomers /
@@ -169,12 +170,46 @@ stdout_tail, stderr_tail}` plus `csv_head` (first 3 lines of the result CSV) whe
 the CSV exists. **Consumes a QikProp license token.**
 
 #### 9. `glide_dock(grid_file, ligands_mae, precision="SP", timeout_s=3600) -> dict`
-**Glide** — docks prepared ligands into a precomputed receptor grid (`.zip`).
-`precision` must be one of `HTVS | SP | XP` (validated). The tool writes a small
-Glide `.in` file (`GRIDFILE` / `LIGANDFILE` / `PRECISION`) in the ligands'
-directory, then runs `glide <job>.in -WAIT -OVERWRITE`. Returns `{returncode,
-poses, stdout_tail, stderr_tail}` where `poses` is the `*_pv.maegz` pose-viewer
-path if produced. **Consumes a Glide license token.**
+**Glide** — docks prepared ligands into a receptor grid (`.zip`) built by
+`glide_grid` (#11). `precision` must be one of `HTVS | SP | XP` (validated). The
+tool writes a small Glide `.in` file (`GRIDFILE` / `LIGANDFILE` / `PRECISION`,
+plus `POSE_OUTTYPE poseviewer`) in the ligands' directory, then runs
+`glide <job>.in -WAIT -OVERWRITE`. Returns `{returncode, poses, stdout_tail,
+stderr_tail}` where `poses` is the `*_pv.maegz` pose-viewer path if produced.
+**Consumes a Glide license token.**
+
+#### 10. `prepwizard(input_file, output_mae, ph=7.0, fill_sidechains=True, timeout_s=1800) -> dict`
+**Protein Preparation Wizard** — cleans a raw receptor (`.pdb`/`.mae`) for
+docking: adds hydrogens, assigns bond orders, optionally fills missing side
+chains (`fill_sidechains`), and sets protonation at `ph` via PROPKA. The
+`prepwizard` binary lives in `$SCHRODINGER/utilities`. Runs `prepwizard -WAIT
+[-fillsidechains] -propka_pH <ph> <input> <output>` in the output file's
+directory; inputs validated (`must_exist=True`), output validated. Returns
+`{returncode, output, stdout_tail, stderr_tail}` (`output` is the prepared `.mae`
+path if produced, else `null`). The prepared `.mae` feeds `glide_grid` (#11).
+
+#### 11. `glide_grid(receptor_mae, out_grid_zip, center="", ligand_molnum=0, inner_box=10, outer_box=30, timeout_s=1800) -> dict`
+**Glide grid generation** — produces the docking grid (`.zip`) that `glide_dock`
+(#9) requires, directly from a prepared receptor (`.mae`/`.maegz`) — closing the
+gap where no MCP tool built a grid. Define the box with **either** explicit
+`center="x,y,z"` coordinates **or** `ligand_molnum` (the 1-based molecule number
+of a co-crystallized ligand already in the receptor file; this both centers the
+box on and excludes that ligand). One of the two is required (validated), and
+`center` is range-checked to numeric `x,y,z`. Writes a Glide `.in`
+(`GRIDFILE` / `RECEP_FILE` / `GRID_CENTER` or `LIGAND_MOLECULE` / `INNERBOX` /
+`OUTERBOX`), then runs `glide <job>.in -WAIT -OVERWRITE`. Returns `{returncode,
+grid, stdout_tail, stderr_tail}` where `grid` is the `.zip` path if produced.
+**Consumes a Glide license token.**
+
+#### 12. `prime_mmgbsa(pose_viewer, timeout_s=3600) -> dict`
+**Prime MM-GBSA** — binding free-energy (`dG_Bind`) rescoring of docked poses,
+far more reliable than the raw Glide score. Input is a Glide pose-viewer file
+(the `*_pv.maegz` from `glide_dock`). Runs `prime_mmgbsa <pose_viewer> -WAIT` in
+the pose file's directory; Prime drops a trailing `_pv` from the jobname so
+`<job>_pv.maegz` -> `<job>-out.csv`. Returns `{returncode, csv, out_maegz,
+stdout_tail, stderr_tail}` plus `csv_head` (first 3 lines of the result CSV,
+which carries `r_psp_MMGBSA_dG_Bind`) when the CSV exists. **Consumes a Prime
+license token.**
 
 ---
 

@@ -250,7 +250,8 @@ unquoted argument string. The install root (`D:\Program Files\Schrodinger
 
 ## 9. Schrodinger driver tools — license-token errors
 
-**Symptom.** `ligprep`, `qikprop_admet`, or `glide_dock` fail or hang with a
+**Symptom.** A **driver** tool (`prepwizard`, `glide_grid`, `ligprep`,
+`qikprop_admet`, `glide_dock`, or `prime_mmgbsa`) fails or hangs with a
 licensing error (e.g. no token available, license server unreachable, feature
 not licensed). Structure/cheminformatics tools (`molecule_properties`,
 `smiles_to_3d`, `convert_structure`, `backend_info`) keep working.
@@ -258,18 +259,22 @@ not licensed). Structure/cheminformatics tools (`molecule_properties`,
 **Cause.** Only the **driver** tools consume Schrodinger **license tokens** and
 run synchronously with `-WAIT`:
 
+- `prepwizard` → `prepwizard -WAIT [-fillsidechains] -propka_pH <ph> <in> <out>`
+- `glide_grid` → `glide <job>.in -WAIT -OVERWRITE` (consumes a **Glide** token)
 - `ligprep` → `ligprep -i… <in> -omae <out> -WAIT`
 - `qikprop_admet` → `qikprop -WAIT <structure>`
 - `glide_dock` → `glide <job>.in -WAIT -OVERWRITE` (consumes a **Glide** token)
+- `prime_mmgbsa` → `prime_mmgbsa <pose_viewer> -WAIT` (consumes a **Prime** token)
 
 The license-token-free tools (RDKit-backed properties/3D-embed, structure
 conversion, version/info) don't need a token — which is why they still respond
 when the driver tools fail.
 
-> **Not yet end-to-end run-tested.** As of this build, the three driver tools
-> were registered and connect, but have **not** been validated against a live
-> license server. A first failure here may be the first real token check, not a
-> regression.
+> **Validated live end-to-end on 2026-06-06** (3PTB pipeline + qikprop on
+> warfarin); see `schrodinger-mcp/VALIDATION.md`. The driver tools have been
+> exercised against a live license server, so a failure here is a real
+> environment/license issue (token unavailable, server unreachable), not an
+> untested-code regression.
 
 **Fix.**
 - Confirm a license is available before invoking drivers: from the suite root run

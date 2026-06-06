@@ -30,7 +30,7 @@ The 4 research-relevant servers (`tooluniverse`, `rdkit`, `schrodinger`, plus
 |------|--------------|--------|-----------|------------------------|
 | `tooluniverse` | 2206 biomedical tools (DDI / ADMET / CYP / targets / FDA labels / repurposing / pharmacovigilance). Harvard Zitnik lab, Apache-2.0. | active | stdio | `uvx tooluniverse==1.2.4` · env `PYTHONIOENCODING=utf-8` |
 | `rdkit` | 74 cheminformatics tools (tandemai-inc/rdkit-mcp-server, MIT). | active | stdio | `C:\Users\Prekzursil\source\repos\rdkit-mcp-server\.venv\Scripts\python.exe run_server.py --transport stdio` |
-| `schrodinger` | Custom 9-tool wrapper over a local Schrodinger 2022-4 suite (structure prep, descriptors, LigPrep, QikProp ADMET, Glide docking). | active | stdio | `C:\Users\Prekzursil\source\repos\schrodinger-mcp\.venv\Scripts\python.exe server.py` · env `SCHRODINGER=D:\Program Files\Schrodinger 2022-4` |
+| `schrodinger` | Custom 12-tool wrapper over a local Schrodinger 2022-4 suite (structure prep, descriptors, protein prep, grid generation, LigPrep, Glide docking, MM-GBSA, QikProp ADMET). | active | stdio | `C:\Users\Prekzursil\source\repos\schrodinger-mcp\.venv\Scripts\python.exe server.py` · env `SCHRODINGER=D:\Program Files\Schrodinger 2022-4` |
 | `insta-mcp` | Instagram private-API tools (node). | active | stdio | `node C:/Users/Prekzursil/source/repos/insta-mcp/dist/index.js` |
 | `mcp-funnel` | MCP aggregator/proxy that funnels other MCP servers (`.mcp-funnel.json`). | active | stdio | `cmd /c npx -y mcp-funnel C:/Users/Prekzursil/.mcp-funnel.json` |
 | `ralph-orchestrator` | Ralph autonomous-loop orchestrator MCP. | disabled (project) | stdio | `C:\Users\Prekzursil\.cargo\bin\ralph.exe mcp serve` |
@@ -153,10 +153,10 @@ The 4 research-relevant servers (`tooluniverse`, `rdkit`, `schrodinger`, plus
     "args": ["C:\\Users\\Prekzursil\\source\\repos\\schrodinger-mcp\\server.py"],
     "env": { "SCHRODINGER": "D:\\Program Files\\Schrodinger 2022-4" } }
   ```
-- **Auth / scopes:** no network auth. The driver tools (`ligprep`,
-  `qikprop_admet`, `glide_dock`) consume **Schrodinger license tokens** and run
-  synchronously with `-WAIT`. A FlexLM/license server (or local license file)
-  must be reachable for those three.
+- **Auth / scopes:** no network auth. The product-driver tools (`prepwizard`,
+  `glide_grid`, `ligprep`, `qikprop_admet`, `glide_dock`, `prime_mmgbsa`) consume
+  **Schrodinger license tokens** and run synchronously with `-WAIT`. A
+  FlexLM/license server (or local license file) must be reachable for those.
 - **Security model:**
   - `$SCHRODINGER` (the install root) is the only required config. It defaults to
     `D:\Program Files\Schrodinger 2022-4` if the env var is unset; the config sets
@@ -169,7 +169,7 @@ The 4 research-relevant servers (`tooluniverse`, `rdkit`, `schrodinger`, plus
     optionally enforces existence.
   - `run_schrodinger_python` is an explicit escape hatch that runs arbitrary
     Python inside the Schrodinger interpreter — **local single-user use only.**
-- **The 9 tools (exact names + signatures from `server.py`):**
+- **The 12 tools (exact names + signatures from `server.py`):**
 
   License-token-free (structure / cheminformatics):
   | Tool | Signature | Purpose |
@@ -184,11 +184,17 @@ The 4 research-relevant servers (`tooluniverse`, `rdkit`, `schrodinger`, plus
   Product drivers (consume license tokens; synchronous `-WAIT`):
   | Tool | Signature | Purpose |
   |------|-----------|---------|
+  | `prepwizard` | `(input_file, output_mae, ph=7.0, fill_sidechains=True, timeout_s=1800) -> dict` | Protein Preparation Wizard: clean/protonate a raw receptor `.pdb`/`.mae` (add H, bond orders, fill side chains, PROPKA at `ph`) -> prepared `.mae` ready for `glide_grid`. |
+  | `glide_grid` | `(receptor_mae, out_grid_zip, center="", ligand_molnum=0, inner_box=10, outer_box=30, timeout_s=1800) -> dict` | Generates the Glide docking grid (`.zip`) from a prepared receptor; box via explicit `center="x,y,z"` OR `ligand_molnum` (1-based co-crystal ligand). Consumes a Glide token. |
   | `ligprep` | `(input_file, output_mae, timeout_s=1200) -> dict` | LigPrep: ionization/tautomer/stereo states `.smi/.sdf/.mae` -> MAE. |
   | `qikprop_admet` | `(structure_file, timeout_s=900) -> dict` | QikProp ADMET/physchem on a 3D structure; returns result CSV path + head. |
-  | `glide_dock` | `(grid_file, ligands_mae, precision="SP", timeout_s=3600) -> dict` | Glide docking into a precomputed grid (`.zip`); `precision = HTVS\|SP\|XP`; returns `*_pv.maegz` pose-viewer path. |
+  | `glide_dock` | `(grid_file, ligands_mae, precision="SP", timeout_s=3600) -> dict` | Glide docking into a grid (`.zip`) built by `glide_grid`; `precision = HTVS \| SP \| XP`; returns `*_pv.maegz` pose-viewer path. |
+  | `prime_mmgbsa` | `(pose_viewer, timeout_s=3600) -> dict` | Prime MM-GBSA binding free-energy (`dG_Bind`) rescoring of docked poses (the `*_pv.maegz` from `glide_dock`); returns result CSV. Consumes a Prime token. |
 
-  Verified working: the Python API runs via `run.exe python3` (build 79134).
+  Verified working: validated live end-to-end on 2026-06-06 (full `prepwizard` ->
+  `glide_grid` -> `ligprep` -> `glide_dock` -> `prime_mmgbsa` pipeline on PDB 3PTB,
+  plus `qikprop_admet`); the Python API runs via `run.exe python3` (build 79134).
+  See `schrodinger-mcp/VALIDATION.md`.
 - **Cross-platform:** the server self-detects `run.exe`/`run` and `<driver>.exe`/
   `<driver>` (`_run()` / `_driver()`), so it works on POSIX once `$SCHRODINGER`
   points at the install root. On Windows the install is on `D:\` (note the space

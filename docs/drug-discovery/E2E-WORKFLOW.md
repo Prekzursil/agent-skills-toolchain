@@ -22,7 +22,7 @@ All three are MCP `stdio` servers, all verified `✓ Connected` via
 |-----|------------|-------|----------|--------|
 | **tooluniverse** | Biomedical knowledge: DDI, ADMET, CYP, targets, FDA labels, repurposing, pharmacovigilance | 2206 | None (public DBs) | `uvx tooluniverse==1.2.4` · Apache-2.0 · Harvard Zitnik lab |
 | **rdkit** | Cheminformatics: descriptors, fingerprints, similarity, format I/O | 74 | None | tandemai-inc/rdkit-mcp-server · MIT |
-| **schrodinger** | Structure prep, 3D generation, docking, QikProp ADMET | 9 | **Some** (see below) | custom-built local wrapper |
+| **schrodinger** | Structure prep, 3D generation, receptor prep + grid, docking, MM-GBSA, QikProp ADMET | 12 | **Some** (see below) | custom-built local wrapper |
 
 ### Server config (cross-platform)
 
@@ -47,7 +47,7 @@ schrodinger  : <venv-python> server.py   env SCHRODINGER="D:\Program Files\Schro
 
 ---
 
-## 2. Schrodinger MCP — the 9 tools (exact surface)
+## 2. Schrodinger MCP — the 12 tools (exact surface)
 
 The wrapper **never imports `schrodinger` in-process** (that only works under
 `$SCHRODINGER/run`). Every tool builds an argv list and hands it to one
@@ -73,16 +73,21 @@ run the product binaries with `-WAIT` (synchronous).
 
 | Tool | Signature | Returns |
 |------|-----------|---------|
+| `prepwizard` | `(input_file, output_mae, ph=7.0, fill_sidechains=True, timeout_s=1800)` | Protein Preparation Wizard: clean a raw receptor `.pdb`/`.mae` (add H, bond orders, fill side chains, PROPKA protonation at `ph`) → prepared `.mae` ready for `glide_grid` |
+| `glide_grid` | `(receptor_mae, out_grid_zip, center="", ligand_molnum=0, inner_box=10, outer_box=30, timeout_s=1800)` | generates the Glide docking grid `.zip` from a prepared receptor; box via explicit `center="x,y,z"` OR `ligand_molnum` (1-based co-crystal ligand). Consumes a Glide token |
 | `ligprep` | `(input_file, output_mae, timeout_s=1200)` | prepared 3D ligand states (ionization/tautomer/stereo) → MAE |
 | `qikprop_admet` | `(structure_file, timeout_s=900)` | QikProp ADMET/physchem CSV path + head |
-| `glide_dock` | `(grid_file, ligands_mae, precision="SP", timeout_s=3600)` | `*_pv.maegz` pose-viewer; `precision` ∈ `HTVS\|SP\|XP` |
+| `glide_dock` | `(grid_file, ligands_mae, precision="SP", timeout_s=3600)` | `*_pv.maegz` pose-viewer; `precision` ∈ `HTVS \| SP \| XP` |
+| `prime_mmgbsa` | `(pose_viewer, timeout_s=3600)` | Prime MM-GBSA binding free-energy (`dG_Bind`) rescoring of docked poses (the `*_pv.maegz` from `glide_dock`) → result CSV. Consumes a Prime token |
 
-> **CRITICAL PRECONDITION for `glide_dock`:** it docks ligands into a
-> **pre-existing receptor grid** (`grid_file`, validated `must_exist=True`,
-> written as `GRIDFILE` into the Glide `.in`). **None of the 9 MCP tools build a
-> grid.** You must produce the grid `.zip` beforehand in Maestro (Receptor Grid
-> Generation) or via the `glide` grid driver — that step is *not* exposed by
-> this server. Treat the grid as an input, not something the workflow creates.
+> **`glide_dock`'s grid is now built in-server.** `glide_dock` docks ligands into
+> a receptor grid (`grid_file`, validated `must_exist=True`, written as `GRIDFILE`
+> into the Glide `.in`). That grid is produced by **`glide_grid`** — generate it
+> from a prepared receptor (box centered via explicit `center="x,y,z"` OR
+> `ligand_molnum` to exclude a co-crystal ligand). The full in-server pipeline is
+> **`prepwizard` → `glide_grid` → `ligprep` → `glide_dock` → `prime_mmgbsa` →
+> `qikprop`**, so the grid is something the workflow creates (you no longer need
+> Maestro's Receptor Grid Generation as a precondition).
 
 ---
 
@@ -185,7 +190,10 @@ descriptor/similarity tools mostly take SMILES directly. Confirmed tool names:
 | Similarity, scaffold clustering, fingerprints, batch descriptors over many candidates | **rdkit** | free |
 | SMILES → quick single-conformer 3D (triage) | **schrodinger** `smiles_to_3d` | free |
 | Rigorous 3D ligand prep (ionization/tautomer/stereo enumeration) | **schrodinger** `ligprep` | license |
-| Dock ligands into a target pocket | **schrodinger** `glide_dock` (+ pre-built grid) | license |
+| Prepare a raw receptor PDB for docking (clean/protonate) | **schrodinger** `prepwizard` | license |
+| Build a Glide docking grid from a prepared receptor | **schrodinger** `glide_grid` | license |
+| Dock ligands into a target pocket | **schrodinger** `glide_dock` (grid from `glide_grid`) | license |
+| Rescore docked poses by MM-GBSA binding free energy | **schrodinger** `prime_mmgbsa` | license |
 | Format conversion (.sdf/.mae/.pdb) | **schrodinger** `convert_structure` or **rdkit** I/O tools | free |
 
 ---
@@ -232,15 +240,17 @@ lamotrigine dose.*
 
 ## 7. Worked Example B — hit→lead: "score these candidate molecules vs a target"
 
-**Status: a license-gated pipeline, not turnkey.** It requires (a) a valid
-`$SCHRODINGER` install, (b) **license tokens** for `ligprep` / `glide_dock` /
-`qikprop_admet`, and (c) — critically — **a pre-built Glide receptor grid
-`.zip`** (made in Maestro / the glide grid driver; *no MCP tool generates it*).
-The free triage steps (§7.1) run today regardless.
+**Status: a license-gated pipeline, validated live E2E** (see
+`schrodinger-mcp/VALIDATION.md`). It requires (a) a valid `$SCHRODINGER` install
+and (b) **license tokens** for `prepwizard` / `glide_grid` / `ligprep` /
+`glide_dock` / `prime_mmgbsa` / `qikprop_admet`. The receptor grid is now built
+in-server by **`glide_grid`** (`prepwizard` → `glide_grid`), so a pre-built
+Maestro grid is no longer a precondition. The free triage steps (§7.1) run today
+regardless.
 
-Assume a handful of candidate SMILES and a known target with an existing grid
-`grid.zip`. Work under one staging directory (e.g. Windows
-`D:\dd-run\` or POSIX `~/dd-run/`).
+Assume a handful of candidate SMILES and a known target. Starting from a raw
+receptor PDB, `prepwizard` then `glide_grid` produce `grid.zip` in-server. Work
+under one staging directory (e.g. Windows `D:\dd-run\` or POSIX `~/dd-run/`).
 
 ### 7.1 Free triage (no tokens) — fan out in parallel
 
@@ -255,8 +265,14 @@ Assume a handful of candidate SMILES and a known target with an existing grid
 
 After §7.1 you have a deduplicated, drug-like shortlist. *Only now* spend tokens.
 
-### 7.2 Rigorous prep + docking (license tokens)
+### 7.2 Receptor prep + grid + docking (license tokens)
 
+4a. **Prepare the receptor** — `schrodinger.prepwizard(input_file="receptor.pdb",
+   output_mae="receptor_prep.maegz")` → clean/protonate the raw PDB (add H, bond
+   orders, fill side chains, PROPKA at `ph`). *Runs `-WAIT`.*
+4b. **Build the grid** — `schrodinger.glide_grid(receptor_mae="receptor_prep.maegz",
+   out_grid_zip="grid.zip", ligand_molnum=<co-crystal ligand #>)` (or
+   `center="x,y,z"`) → `grid.zip` in-server. *Consumes a Glide token; runs `-WAIT`.*
 4. **Prepare ligand states** — `schrodinger.ligprep(input_file=shortlist.smi,
    output_mae="ligs_prepared.mae")` → proper ionization/tautomer/stereo
    enumeration (more rigorous than the §7.1 single conformer). *Consumes a
@@ -266,45 +282,51 @@ After §7.1 you have a deduplicated, drug-like shortlist. *Only now* spend token
    `HTVS` for a big set → `SP` → `XP` on the top survivors. Returns
    `glide_dock_job_pv.maegz` (pose viewer with docking scores). *Consumes a
    Glide token.*
-   - **Precondition reminder:** `grid.zip` must already exist — build it in
-     Maestro first.
-6. **Predict ADMET on the docked hits** — `schrodinger.qikprop_admet(
+   - **Grid note:** `grid.zip` comes from step 4b (`glide_grid`) — no Maestro
+     precondition.
+6. **Rescore by MM-GBSA binding free energy** — `schrodinger.prime_mmgbsa(
+   pose_viewer="glide_dock_job_pv.maegz")` → result CSV with
+   `r_psp_MMGBSA_dG_Bind` (far more reliable than the raw Glide score).
+   *Consumes a Prime token.*
+7. **Predict ADMET on the docked hits** — `schrodinger.qikprop_admet(
    structure_file="ligs_prepared.mae")` (or the pose file) → ADMET/physchem CSV
    (logP, solubility, CNS, CYP2D6, %human oral absorption…). *Consumes a
    QikProp token.*
 
 ### 7.3 Verify + synthesize
 
-7. **VERIFY (cross-tool).** Take the top docking scorers and pull *knowledge*
+8. **VERIFY (cross-tool).** Take the top docking scorers and pull *knowledge*
    back from **ToolUniverse**: is the target/scaffold already drugged?
    (`ChEMBL_get_drug_mechanisms`), known liabilities / pharmacovigilance
    signals, and a literature check (`PubMed_search_articles`). This catches
    "great dock score, terrible real-world ADMET / known tox" before you commit.
-8. **SYNTHESIZE** the lead-ranking report: a table per surviving candidate with
-   {Lipinski/QED (RDKit/Schrodinger), Tanimoto cluster, Glide score, QikProp
-   ADMET flags, ToolUniverse evidence}, a recommended top-N, and explicit
-   rationale for every drop.
+9. **SYNTHESIZE** the lead-ranking report: a table per surviving candidate with
+   {Lipinski/QED (RDKit/Schrodinger), Tanimoto cluster, Glide score, MM-GBSA
+   dG_Bind, QikProp ADMET flags, ToolUniverse evidence}, a recommended top-N,
+   and explicit rationale for every drop.
 
 **Pipeline shape (honest version):**
 
 ```
-SMILES set
-  │  molecule_properties (free)  ── drug-likeness gate
-  │  TanimotoSimilarity (free)   ── dedupe / cluster
-  ▼
-shortlist ──smiles_to_3d (free, triage 3D)
-  │
-  │  ===== license tokens beyond this line =====
-  ▼
-ligprep ──► ligs_prepared.mae ──► glide_dock(+ pre-built grid.zip) ──► poses (_pv.maegz)
-                                       │
-                                       ▼
+SMILES set                                  receptor PDB
+  │  molecule_properties (free)               │  ===== license tokens =====
+  │  TanimotoSimilarity (free)   ── dedupe    ▼
+  ▼                                        prepwizard ──► receptor_prep.maegz
+shortlist ──smiles_to_3d (free, triage 3D)    │
+  │                                           ▼
+  │  ===== license tokens beyond this line =====  glide_grid ──► grid.zip
+  ▼                                                          │
+ligprep ──► ligs_prepared.mae ──────► glide_dock(grid.zip) ──► poses (_pv.maegz)
+                                           │
+                                           ▼
+                                  prime_mmgbsa ──► MM-GBSA dG_Bind CSV
+                                           │
                                   qikprop_admet ──► ADMET CSV
-                                       │
-                                       ▼
+                                           │
+                                           ▼
                   VERIFY vs ToolUniverse (mechanism / tox / literature)
-                                       │
-                                       ▼
+                                           │
+                                           ▼
                               ranked lead report (.md)
 ```
 

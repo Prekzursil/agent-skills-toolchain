@@ -21,13 +21,13 @@ and remediated before anything was pushed.
 
 | # | Thread | Status | Evidence / commit |
 |---|--------|--------|-------------------|
-| 1 | Social skills + docs documentation | ✅ DONE + pushed | `d03bc5c` (5 files) + `81ba427` (frontmatter caveat). Links resolve, manifest ↔ frontmatter consistent, secret-free, WhatsApp-POC/TikTok-planned consistent across all 5 files |
+| 1 | Social skills + docs documentation | ✅ DONE + pushed | `d03bc5c` (5 files) + `81ba427` (frontmatter caveat). Links resolve, manifest ↔ frontmatter consistent, secret-free, WhatsApp-POC/TikTok-planned consistent across all 5 files. **UPDATE: TikTok MCP was BUILT later the same day in commit 09b0f27 — registered, 9 tools, live; the "TikTok-planned" wording was point-in-time and the docs have since been updated to "BUILT".** |
 | 2 | MCP registration + health | ✅ DONE + verified | 6/6 `✓ Connected` (tooluniverse, rdkit, schrodinger, gogcli-classroom, fb-messenger, insta-mcp); `whatsapp` correctly **absent** (POC-only) |
 | 3 | Consensus-tooluniverse WIP (staged) | ✅ DONE + fixed | `4efe97e` (content) + `4f909a5` (my fixes). Was committed **buggy** by an audit agent; corrected — see breach note |
 | 4 | MCP repo git-backup + secret hygiene | ✅ DONE | `fb-messenger-mcp` git-init `e03e783` (no remote, cookies proven-ignored); `insta-mcp` push neutered; `schrodinger-mcp` gitignore `f30e6d3`; `whatsapp-mcp` left untouched (your instruction) |
 | 5 | Drug-stack hardening | ✅ DONE (already covered) | qikprop tool present+wired (`server.py:150`); Glide-grid manual step already documented (schrodinger-maestro-driver SKILL.md §CRITICAL, lines 51-59); Classroom OAuth **live** (handshake ✓) |
 | 6 | IG find-a-post | ⛔ BLOCKED (you) | Needs the target post — never specified |
-| 7 | TikTok MCP **build** | 🔶 GATED (you) | Documented as planned (`docs/social/TIKTOK-MCP.md`); the *build* is a complex feature → metaswarm gates (brainstorm → design → plan) before code |
+| 7 | TikTok MCP **build** | 🔶 GATED (you) → ✅ BUILT | Documented as planned (`docs/social/TIKTOK-MCP.md`); the *build* is a complex feature → metaswarm gates (brainstorm → design → plan) before code. **UPDATE: TikTok MCP was BUILT later the same day in commit 09b0f27 — registered, 9 tools, live.** |
 | 8 | PR for `feat/drug-discovery-stack` | 🔶 READY (you) | Branch is 3 commits ahead of pushed tip → 6 ahead of `main` after this push; pre-PR `/self-reflect` recommended |
 | 9 | Cleanup (branches / Dependabot) | 🔶 SURFACED (you) | 4 stale branches + 28 Dependabot vulns — listed, **not** auto-acted (destructive / out-of-scope) |
 
@@ -83,14 +83,16 @@ Independently re-verified; do not trust an audit verdict without re-checking:
    (brainstorm → design-review → plan → plan-review), then build on the
    documented path: `davidteather/TikTok-Api` (ms_token cookie, read-only — no
    posting, no DM access) + Playwright signer + optional residential proxy.
+   **UPDATE: TikTok MCP was BUILT later the same day in commit 09b0f27 —
+   registered, 9 tools, live.**
 3. **PR for `feat/drug-discovery-stack`** — 3 new commits ready; I'd run
    `/self-reflect` first (knowledge capture) then open the PR.
 4. **Stale-branch triage** (I will not delete without your OK):
    `feat/cheatengine-mcp-and-skill-sync`, `feat/quality-zero-platform-control-plane-skill`,
    `fix/codex-consult-trust-check` (worktree), `feat/codex-consult-package-parity` (worktree).
 5. **Dependabot** — 28 vulns (5 high) on the default branch — separate hardening pass.
-6. **qikprop live E2E on warfarin** — tool is wired + proven once earlier; not
-   re-run this session (would regenerate the `.mae`). Say the word to re-run.
+6. **qikprop live E2E on warfarin** — **re-run and verified LIVE this session
+   (rc 0, ADMET CSV) — see `schrodinger-mcp/VALIDATION.md`.**
 7. **Restart Claude Code** — to load any newly-registered MCP tools in a fresh
    session (fb-messenger + insta-mcp are already loaded here).
 
