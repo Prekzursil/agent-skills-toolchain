@@ -59,11 +59,12 @@ ligand first). Never guess a center blindly — surface the binding-site choice 
   sequentially.
 - **Grid center is mandatory** — `glide_grid` errors without `center` or `ligand_molnum`.
 - **MM-GBSA input is the pose-viewer**, not the grid — feed `prime_mmgbsa` the `*_pv.maegz` that
-  `glide_dock` emits.
-- **Validated live on this host:** `qikprop_admet` on warfarin (rc 0, full ADMET CSV); and
-  prepwizard -> glide_grid -> ligprep -> glide_dock each return cleanly (rc 0) on 3PTB (trypsin).
-  The `glide_grid` -> `glide_dock` -> `prime_mmgbsa` leg requires the grid to EXCLUDE the
-  co-crystal ligand (`ligand_molnum`, above) or docking finds no poses.
+  `glide_dock` emits. `glide_dock` sets `POSE_OUTTYPE poseviewer` so the `*_pv.maegz` (receptor +
+  pose) exists; Prime then DROPS the `_pv` suffix, writing `<job>-out.csv` (the server resolves
+  both names so you don't have to).
+- **Validated live END-TO-END on this host:** prepwizard -> glide_grid(ligand_molnum) -> ligprep ->
+  glide_dock -> prime_mmgbsa on 3PTB (trypsin + benzamidine) → MM-GBSA `dG_Bind` approx -19.7
+  kcal/mol; `qikprop_admet` on warfarin → full ADMET CSV. All six drivers returned rc 0.
 
 ## Related
 - [[schrodinger-maestro-driver]] - per-tool reference, signatures, security model, setup.
