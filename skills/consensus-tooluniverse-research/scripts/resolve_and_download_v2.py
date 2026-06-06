@@ -164,6 +164,7 @@ for i, (hid, r, kind) in enumerate(targets, 1):
         for folder in master_searches.get(hid, []):
             dest = SEARCHES_DIR / folder / "papers" / fname
             if not dest.exists():
+                dest.parent.mkdir(parents=True, exist_ok=True)
                 dest.write_bytes(blob)
         PROGRESS_F.write_text(json.dumps(progress, ensure_ascii=False), encoding="utf-8")
     time.sleep(0.2)

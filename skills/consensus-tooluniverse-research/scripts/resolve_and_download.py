@@ -201,6 +201,7 @@ for hid, res in progress.items():
         for folder in master.get(hid, {}).get("searches", []):
             dest = SEARCHES_DIR / folder / "papers" / res["file"]
             if not dest.exists():
+                dest.parent.mkdir(parents=True, exist_ok=True)
                 dest.write_bytes((LIB / res["file"]).read_bytes())
 
 for folder in folders:
@@ -215,7 +216,9 @@ for folder in folders:
         lines.append(f"- {mark} **{r['title']}** ({r.get('year')}) — {r.get('first_author') or 'n/a'} — "
                      f"DOI: {r.get('doi') or '—'}" + (f" — [OA]({r['oa_url']})" if r.get("oa_url") else "") +
                      (f" — `{r['file']}`" if r.get("file") else "") + "\n")
-    (SEARCHES_DIR/folder/"papers"/"references.md").write_text("".join(lines), encoding="utf-8")
+    refs_md = SEARCHES_DIR/folder/"papers"/"references.md"
+    refs_md.parent.mkdir(parents=True, exist_ok=True)
+    refs_md.write_text("".join(lines), encoding="utf-8")
 
 allrows = list(progress.values())
 (BIB/"master_bibliography.json").write_text(json.dumps(allrows, indent=2, ensure_ascii=False), encoding="utf-8")
