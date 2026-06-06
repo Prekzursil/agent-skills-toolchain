@@ -5,17 +5,23 @@ paywalled (doi & is_oa False). LEGITIMATE sources only; %PDF-verified; OA-only (
 Note: the provided SEMANTIC_SCHOLAR_API_KEY returns 403 (invalid/inactive) — SS is used KEYLESS (200 OK, lower rate).
 """
 from __future__ import annotations
-import csv, json, os, re, time
+import argparse, csv, json, os, re, time
 from pathlib import Path
 import requests
 
-WS = Path(os.environ.get("CONSENSUS_WS") or r"C:\Users\Prekzursil\Downloads\proof_empty")
-for _ln in (Path.home()/".tooluniverse"/".env").read_text(encoding="utf-8").splitlines():
-    _ln = _ln.strip()
-    if _ln and not _ln.startswith("#") and "=" in _ln:
-        _k, _v = _ln.split("=", 1)
-        if _v.strip():
-            os.environ.setdefault(_k.strip(), _v.strip())
+_AP = argparse.ArgumentParser(description="v3 incremental recovery (Semantic Scholar keyless + Springer-OA + NCBI PMC)")
+_AP.add_argument("--ws", default=os.environ.get("CONSENSUS_WS") or ".",
+                 help="Consensus workspace dir (default: $CONSENSUS_WS, else current dir)")
+WS = Path(_AP.parse_known_args()[0].ws).resolve()
+
+_ENV_FILE = Path.home() / ".tooluniverse" / ".env"
+if _ENV_FILE.exists():  # absent .env is skipped gracefully (no crash) — keys then come from the real environment
+    for _ln in _ENV_FILE.read_text(encoding="utf-8").splitlines():
+        _ln = _ln.strip()
+        if _ln and not _ln.startswith("#") and "=" in _ln:
+            _k, _v = _ln.split("=", 1)
+            if _v.strip():
+                os.environ.setdefault(_k.strip(), _v.strip())
 
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
       "Accept": "application/pdf,*/*"}

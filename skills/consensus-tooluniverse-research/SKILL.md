@@ -32,7 +32,10 @@ export UNPAYWALL_EMAIL=you@example.com
 python scripts/extract_consensus.py --urls searches.txt   # one Consensus URL per line, OR pass URLs as args
 python scripts/clean_markdown.py
 python scripts/resolve_and_download.py                    # resumable; %PDF-verified; OA-only
+python scripts/resolve_and_download_v2.py                 # optional: keyed OA recovery (CORE/Elsevier/Zenodo/DOAJ)
+python scripts/resolve_v3_extra_sources.py                # optional: + Semantic-Scholar/Springer/PMC tiers
 ```
+(v2/v3 read the same `CONSENSUS_WS` (or `--ws`, default cwd) as stage 1.)
 
 ---
 
@@ -52,7 +55,8 @@ Then `scripts/clean_markdown.py` converts Consensus render-tags (`consensus_mete
 2. **DOI:** `Crossref_search_works` (fallback `openalex_search_works`). **Acceptance test:** SequenceMatcher
    title-ratio ≥0.80 AND year ±1 AND **first-author surname present in the candidate's authors** (title+year
    alone can false-match a different author's same-named work). Records `match_score` + matched title — this
-   is a resolution *rate*, not validated precision; spot-check. *(SemanticScholar 403/429s keyless — deprioritized.)*
+   is a resolution *rate*, not validated precision; spot-check. *(SemanticScholar 403/429s keyless — deprioritized
+   for DOI resolution here; its `openAccessPdf` is still used for OA downloads in Stage 2c.)*
 3. **OA:** `tu.run({"name":"Unpaywall_get_full_text_url","arguments":{"doi":doi,"email":EMAIL}})` →
    `is_oa` + `all_oa_locations`.
 4. **Download tiers** (browser UA + `Referer`; OA-only): Unpaywall pdf locations → NCBI PMC OA package
@@ -66,6 +70,13 @@ Keyless v1 leaves OA-but-Cloudflare-walled papers as ⛔. v2 re-fetches them via
 **CORE → Elsevier** (the publisher's *own* entitled API) **→ Zenodo → DOAJ → Unpaywall-retry**, %PDF-verified.
 Re-runs only the `blocked` (and entitled-paywalled) rows; **never bypasses a paywall** — no Sci-Hub/LibGen,
 strictly OA + rights-holder-sanctioned access. Absent keys are skipped gracefully.
+
+### Stage 2c — extra OA tiers on still-blocked rows  (`scripts/resolve_v3_extra_sources.py`, optional)
+Runs *after* v2 on whatever is still `blocked` / paywalled-without-PDF. Adds three more legitimate OA tiers:
+**Semantic Scholar keyless** (`openAccessPdf`; the provided key 403s, so it runs keyless at a lower rate) **→
+Springer-OA** (`api.springernature.com/openaccess`, OA articles only) **→ NCBI-keyed PMC** (EuropePMC → PMCID →
+`oa.fcgi`; `NCBI_API_KEY` lifts the rate). Same `%PDF`-verified, OA-only, resumable contract as v2; an absent
+`~/.tooluniverse/.env` is tolerated (keys then read from the real environment), and absent keys are skipped.
 
 ### Stage 3 — the graph (Consensus Meter)
 Render-time component — the Yes/Possibly/Mixed/No **percentages are not in the payload**. Capture the meter

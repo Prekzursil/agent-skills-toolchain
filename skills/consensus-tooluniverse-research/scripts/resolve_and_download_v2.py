@@ -14,11 +14,14 @@ Targets (from _bibliography/_progress.json):
 Resumable + non-destructive: only upgrades "blocked"/paywalled rows; never bypasses a paywall.
 """
 from __future__ import annotations
-import csv, json, os, re, time
+import argparse, csv, json, os, re, time
 from pathlib import Path
 import requests
 
-WS = Path(os.environ.get("CONSENSUS_WS") or r"C:\Users\Prekzursil\Downloads\proof_empty")
+_AP = argparse.ArgumentParser(description="v2 keyed recovery pass (legitimate keyed OA sources)")
+_AP.add_argument("--ws", default=os.environ.get("CONSENSUS_WS") or ".",
+                 help="Consensus workspace dir (default: $CONSENSUS_WS, else current dir)")
+WS = Path(_AP.parse_known_args()[0].ws).resolve()
 ENV_FILE = Path.home() / ".tooluniverse" / ".env"
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
       "Accept": "application/pdf,*/*"}
