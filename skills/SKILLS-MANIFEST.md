@@ -1,7 +1,7 @@
 # Skills Manifest
 
 > Auto-generated skill inventory for the agent-skills-toolchain repository.
-> Last updated: 2026-05-30
+> Last updated: 2026-06-06
 
 | Skill Name | Origin | Description |
 |---|---|---|
@@ -31,6 +31,7 @@
 | chatgpt-apps | built-in | Build, scaffold, refactor, and troubleshoot ChatGPT Apps SDK applications that combine an MCP server and widget UI |
 | cheat-engine-workflow | custom | Use when performing Cheat Engine-driven runtime analysis, including value scanning, pointer sanity checks, AOB validation |
 | cheat-engine-x64dbg-ida-handoff | custom | Use when moving runtime findings between Cheat Engine, x64dbg, and IDA Pro |
+| cheminformatics-rdkit | custom | Use when you need license-free cheminformatics via the rdkit MCP server - molecular descriptors, fingerprints, Tanimoto similarity, scaffolds, and structure-format conversion |
 | cloudflare-deploy | built-in | Deploy applications and infrastructure to Cloudflare using Workers, Pages, and related platform services |
 | code-security | built-in | Security guidelines for writing secure code |
 | codex-audit | custom | Use when you want an audit-style orchestration pass over risk, gaps, and verification needs |
@@ -49,6 +50,8 @@
 | codex-triage | custom | Use when you need a fast classification of next steps before deeper work |
 | codex-vscode-host-routing | custom | Use when VS Code launches Codex from the wrong host or WSL becomes the default unexpectedly |
 | competitive-programming-solver | custom | Use when solving online judge, olympiad, or contest problems in C, C++, or Python |
+| consensus-tooluniverse-research | custom | Use when downloading or harvesting research from Consensus.app — extract searches browser-free from the page payload, resolve papers to DOIs and open-access PDFs via ToolUniverse, organize by topic with a bibliography, and capture the Consensus Meter graphs |
+| ddi-admet-research | custom | Use as the front-end for biomedical research via the ToolUniverse MCP - drug-drug interactions, ADMET/CYP, target research, FDA labels, repurposing, pharmacovigilance |
 | deepsource | built-in | Retrieve code review results from DeepSource - issues, vulnerabilities, and quality metrics |
 | develop-web-game | built-in | Use when Codex is building or iterating on a web game (HTML/JS) and needs a reliable development + testing loop |
 | dispatching-parallel-agents | marketplace:superpowers | Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies |
@@ -79,6 +82,7 @@
 | llm-security | built-in | Security guidelines for LLM applications based on OWASP Top 10 for LLM 2025 |
 | long-copy-orchestrator | custom | Use when moving large trees between Windows, WSL, VMs, or mounted disks |
 | mcp-graphql | custom | Use when installing or configuring blurrah/mcp-graphql for Codex, Claude Code, or Gemini CLI |
+| mechanistic-ddi-pipeline | custom | Use to produce a mechanistic drug-drug-interaction verdict by combining ToolUniverse CYP/DDI knowledge with Schrodinger structure and docking evidence |
 | mise | custom | Use when managing dev tool or language runtime versions with mise (mise-en-place) — global vs per-project pins, per-directory env vars, the task runner, non-language CLI installs, or Windows PowerShell setup |
 | multi-agent-quickstart | custom | Use when learning how to choose between the Codex multi-agent orchestration tools |
 | netlify-deploy | built-in | Deploy web projects to Netlify using the Netlify CLI |
@@ -103,6 +107,7 @@
 | requesting-code-review | marketplace:superpowers | Use when completing tasks, implementing major features, or before merging to verify work meets requirements |
 | ret-sync | custom | Use when synchronizing a live debugger with IDA Pro, Binary Ninja, or compatible disassemblers |
 | reverse-engineering-toolkit | custom | Use when selecting or sequencing reverse-engineering tools for Windows native analysis |
+| schrodinger-maestro-driver | custom | Use when driving the local Schrodinger MCP for structure-based drug discovery - SMILES to 3D, LigPrep, Protein Prep Wizard, Glide grid generation, Glide docking, Prime MM-GBSA, QikProp ADMET, conversion, run_schrodinger_python escape hatch |
 | screenshot | built-in | Use when the user explicitly asks for a desktop or system screenshot |
 | security-best-practices | built-in | Perform language and framework specific security best-practice reviews |
 | security-ownership-map | built-in | Analyze git repositories to build a security ownership topology |
@@ -111,15 +116,20 @@
 | sentry | built-in | Use when the user asks to inspect Sentry issues or events |
 | slides | built-in | Create and edit presentation slide decks (.pptx) with PptxGenJS |
 | slop-check | vendored | Detect AI-generated text/images, clean artifacts, and score readability via Slop or Not Pro (macOS-only — degraded on Windows). Vendored from numen-tech/slopornot |
+| social-dm-search | custom | Use when the user wants to search or read direct messages and chats across Instagram DMs, Facebook Messenger groups/pages, or WhatsApp (proof-of-concept, off by default) |
+| social-find-post | custom | Use when the user wants to find or recall a specific post, reel, or saved item across Instagram or Facebook |
+| social-media-toolchain | custom | Reference for the user's personal social MCPs (Instagram live, Facebook Messenger groups/pages, WhatsApp proof-of-concept; TikTok public read-only) - servers, auth and setup, tool inventory, residential-proxy and account-state guidance, and hard limits (E2EE, version gotchas, ban risk) |
 | sora | built-in | Use when the user asks to generate, remix, poll, list, download, or delete Sora videos via OpenAI video API |
 | speech | built-in | Use when the user asks for text-to-speech narration or voiceover |
 | spreadsheet | built-in | Use when tasks involve creating, editing, analyzing, or formatting spreadsheets |
+| structure-based-screening | custom | Use when running a structure-based drug-discovery or molecular-docking campaign on the local schrodinger MCP - receptor PDB plus ligands to docked, MM-GBSA-rescored, ADMET-profiled poses. Covers the prepwizard to glide_grid to ligprep to glide_dock to prime_mmgbsa to qikprop chain, grid-box centering, license-token sequencing, and the path gotchas |
 | subagent-driven-development | marketplace:superpowers | Use when executing implementation plans with independent tasks in the current session |
 | swfoc-modding | custom | Research-backed workflow for Star Wars: Empire at War / Forces of Corruption modding, SDK/tooling, debugging |
 | swfoc-reverse-engineering | custom | Use when working on SWFOC editor runtime or native analysis |
 | swfoc-runtime-address-hunting | custom | Use when hunting SWFOC-specific runtime addresses, function anchors, structures, or memory regions |
 | systematic-debugging | marketplace:superpowers | Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes |
 | test-driven-development | marketplace:superpowers | Use when implementing any feature or bugfix, before writing implementation code |
+| tiktok-public-research | custom | Use when the user wants to read public TikTok data - trending, a creator's public posts/likes, a hashtag feed, a video's metadata/comments/related, or user search - via the self-hosted tiktok MCP. Covers the read-only tool inventory, ms_token and residential-proxy reliability knobs, and hard limits (no own feed, no saved, no DMs, no posting; unofficial-API ban and IP-block risk) |
 | transcribe | built-in | Transcribe audio files to text with optional diarization and known-speaker hints |
 | ui-ux-pro-max | built-in | UI/UX design intelligence with searchable database |
 | using-git-worktrees | marketplace:superpowers | Use when starting feature work that needs isolation from current workspace |
