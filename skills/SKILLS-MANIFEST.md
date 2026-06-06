@@ -118,7 +118,7 @@
 | slop-check | vendored | Detect AI-generated text/images, clean artifacts, and score readability via Slop or Not Pro (macOS-only — degraded on Windows). Vendored from numen-tech/slopornot |
 | social-dm-search | custom | Use when the user wants to search or read direct messages and chats across Instagram DMs, Facebook Messenger groups/pages, or WhatsApp (proof-of-concept, off by default) |
 | social-find-post | custom | Use when the user wants to find or recall a specific post, reel, or saved item across Instagram or Facebook |
-| social-media-toolchain | custom | Reference for the user's personal social MCPs (Instagram live, Facebook Messenger groups/pages, WhatsApp proof-of-concept; TikTok planned) - servers, auth and setup, tool inventory, residential-proxy and account-state guidance, and hard limits (E2EE, version gotchas, ban risk) |
+| social-media-toolchain | custom | Reference for the user's personal social MCPs (Instagram live, Facebook Messenger groups/pages, WhatsApp proof-of-concept; TikTok public read-only) - servers, auth and setup, tool inventory, residential-proxy and account-state guidance, and hard limits (E2EE, version gotchas, ban risk) |
 | sora | built-in | Use when the user asks to generate, remix, poll, list, download, or delete Sora videos via OpenAI video API |
 | speech | built-in | Use when the user asks for text-to-speech narration or voiceover |
 | spreadsheet | built-in | Use when tasks involve creating, editing, analyzing, or formatting spreadsheets |
@@ -128,6 +128,7 @@
 | swfoc-runtime-address-hunting | custom | Use when hunting SWFOC-specific runtime addresses, function anchors, structures, or memory regions |
 | systematic-debugging | marketplace:superpowers | Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes |
 | test-driven-development | marketplace:superpowers | Use when implementing any feature or bugfix, before writing implementation code |
+| tiktok-public-research | custom | Use when the user wants to read public TikTok data - trending, a creator's public posts/likes, a hashtag feed, a video's metadata/comments/related, or user search - via the self-hosted tiktok MCP. Covers the read-only tool inventory, ms_token and residential-proxy reliability knobs, and hard limits (no own feed, no saved, no DMs, no posting; unofficial-API ban and IP-block risk) |
 | transcribe | built-in | Transcribe audio files to text with optional diarization and known-speaker hints |
 | ui-ux-pro-max | built-in | UI/UX design intelligence with searchable database |
 | using-git-worktrees | marketplace:superpowers | Use when starting feature work that needs isolation from current workspace |

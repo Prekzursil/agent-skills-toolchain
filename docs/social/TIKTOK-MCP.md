@@ -1,6 +1,7 @@
 # TikTok MCP — Research & Build Decision
 
-**Status:** research only — nothing installed or registered. Decision-ready.
+**Status:** ✅ **BUILT, TESTED & REGISTERED** (2026-06-06) — see the "BUILT" section below.
+The original research/decision record is retained underneath for rationale.
 **Date:** 2026-06-06.
 **Context:** evaluated as a peer to the existing personal social-media MCP toolchain
 (`insta-mcp`, `fb-messenger-mcp`, `whatsapp-mcp` in `~/source/repos/`). Same
@@ -8,6 +9,39 @@ spirit, same self-hosted/private-account intent, same ToS/ban-risk posture.
 
 Paths use `~` = `C:\Users\Prekzursil` on this Windows host; POSIX equivalent
 `~/source/repos/`. Commands are shown Windows-first.
+
+---
+
+## BUILT (2026-06-06) — what actually shipped
+
+The research below recommended **Lane C (BUILD a thin read-only wrapper)** — that is exactly
+what was built, tested live, registered, and backed up.
+
+- **Repo:** `~/source/repos/tiktok-mcp` — git-backed, **local-only (no remote)**; `.env` and
+  `data/` gitignored. Python 3.12 `.venv`, `TikTokApi==7.3.3` + `mcp[cli]`, Playwright
+  **chromium and webkit** installed.
+- **Server:** `server.py` — FastMCP, **9 read-only tools**: `tiktok_trending`,
+  `tiktok_user_info`, `tiktok_user_posts`, `tiktok_user_liked`, `tiktok_hashtag`,
+  `tiktok_video_details`, `tiktok_comments`, `tiktok_related_videos`, `tiktok_search_users`.
+  `count` clamped to [1, 50]; errors returned as `{error, detail, hint}`, never a crash.
+- **API reality vs the plan:** TikTok-Api 7.x exposes **user search only** — there is *no*
+  generic video search. Video discovery is via `tiktok_hashtag` / `tiktok_trending`. Bonus
+  tool gained that wasn't in the plan: `tiktok_related_videos`.
+- **E2E result (verified live, keyless):** `tiktok_trending` **works with zero setup**
+  (returned real videos and validated the field trimmers against real payloads).
+  `user_info` / `hashtag` (and by extension video/comments/related/search) return
+  `EmptyResponseException` — TikTok bot-walls *unauthenticated* scraping of those endpoints.
+  `TIKTOK_BROWSER=webkit` did **not** fix it; an `ms_token` is the real lever.
+- **To enable the non-trending tools:** set **`TIKTOK_MS_TOKEN`** (the `msToken` cookie from a
+  logged-in tiktok.com session — a nonce, *not* a login; store gitignored, never logged).
+  Set **`TIKTOK_PROXY`** only on a datacenter/cloud egress IP (a home IP needs no proxy).
+  Optional **`TIKTOK_BROWSER`** = chromium (default) | webkit | firefox.
+- **Registered** user-scope as `tiktok` → `claude mcp get tiktok` = ✓ Connected. Security:
+  semgrep + bandit clean, gitleaks clean, secrets never logged.
+- **Agent-facing reference:** the `tiktok-public-research` skill in this repo.
+
+> Everything from here down is the original research/decision record (why BUILD, the library
+> survey, the account-state notes). Kept for provenance; the section above is current truth.
 
 ---
 
