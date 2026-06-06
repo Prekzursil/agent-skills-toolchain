@@ -49,6 +49,7 @@
 | codex-triage | custom | Use when you need a fast classification of next steps before deeper work |
 | codex-vscode-host-routing | custom | Use when VS Code launches Codex from the wrong host or WSL becomes the default unexpectedly |
 | competitive-programming-solver | custom | Use when solving online judge, olympiad, or contest problems in C, C++, or Python |
+| consensus-tooluniverse-research | custom | Use when downloading or harvesting research from Consensus.app — extract searches browser-free from the page payload, resolve papers to DOIs and open-access PDFs via ToolUniverse, organize by topic with a bibliography, and capture the Consensus Meter graphs |
 | deepsource | built-in | Retrieve code review results from DeepSource - issues, vulnerabilities, and quality metrics |
 | develop-web-game | built-in | Use when Codex is building or iterating on a web game (HTML/JS) and needs a reliable development + testing loop |
 | dispatching-parallel-agents | marketplace:superpowers | Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies |
