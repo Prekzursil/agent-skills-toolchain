@@ -107,7 +107,7 @@
 | requesting-code-review | marketplace:superpowers | Use when completing tasks, implementing major features, or before merging to verify work meets requirements |
 | ret-sync | custom | Use when synchronizing a live debugger with IDA Pro, Binary Ninja, or compatible disassemblers |
 | reverse-engineering-toolkit | custom | Use when selecting or sequencing reverse-engineering tools for Windows native analysis |
-| schrodinger-maestro-driver | custom | Use when driving the local Schrodinger MCP for structure-based drug discovery - SMILES to 3D, LigPrep, Glide docking, QikProp ADMET, conversion, run_schrodinger_python escape hatch |
+| schrodinger-maestro-driver | custom | Use when driving the local Schrodinger MCP for structure-based drug discovery - SMILES to 3D, LigPrep, Protein Prep Wizard, Glide grid generation, Glide docking, Prime MM-GBSA, QikProp ADMET, conversion, run_schrodinger_python escape hatch |
 | screenshot | built-in | Use when the user explicitly asks for a desktop or system screenshot |
 | security-best-practices | built-in | Perform language and framework specific security best-practice reviews |
 | security-ownership-map | built-in | Analyze git repositories to build a security ownership topology |
@@ -122,6 +122,7 @@
 | sora | built-in | Use when the user asks to generate, remix, poll, list, download, or delete Sora videos via OpenAI video API |
 | speech | built-in | Use when the user asks for text-to-speech narration or voiceover |
 | spreadsheet | built-in | Use when tasks involve creating, editing, analyzing, or formatting spreadsheets |
+| structure-based-screening | custom | Use when running a structure-based drug-discovery or molecular-docking campaign on the local schrodinger MCP - receptor PDB plus ligands to docked, MM-GBSA-rescored, ADMET-profiled poses. Covers the prepwizard to glide_grid to ligprep to glide_dock to prime_mmgbsa to qikprop chain, grid-box centering, license-token sequencing, and the path gotchas |
 | subagent-driven-development | marketplace:superpowers | Use when executing implementation plans with independent tasks in the current session |
 | swfoc-modding | custom | Research-backed workflow for Star Wars: Empire at War / Forces of Corruption modding, SDK/tooling, debugging |
 | swfoc-reverse-engineering | custom | Use when working on SWFOC editor runtime or native analysis |
