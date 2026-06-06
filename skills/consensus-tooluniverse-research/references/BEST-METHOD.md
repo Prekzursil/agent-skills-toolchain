@@ -27,7 +27,10 @@ All three are implemented as scripts in `_workspace/` and double as the engine o
 - `GET https://consensus.app/search/<slug>/<thread_id>/` → regex out `<script id="__NEXT_DATA__">` → `props.pageProps.thread.interactions[]`.
 - Per interaction: `analysis` (source markdown = the download), `user_message` (query), `agent_trace.summary_stats` (retrieved→eligible→included funnel), and paper objects (`title`, `year`, `first_author`, `hash_paper_id`, `has_full_text`).
 - Output: `searches/<NN>/<NN>_search.md`, `papers.json`, `meta.json`, `_raw_thread.json`.
-- **No auth** (shared threads are public). Deterministic: same URL → same bytes.
+- **No auth** (shared threads are public). Deterministic *given an unchanged Consensus `__NEXT_DATA__`
+  schema + a fixed snapshot date* — it reads a live, unversioned service, so capture `_raw_thread.json`
+  as the provenance archive. The retrieved→eligible→included counts are **Consensus's internal funnel,
+  not a PRISMA systematic review** (no protocol, no pre-specified criteria, screening by an opaque model).
 
 ### Stage 1b — `_workspace/clean_markdown.py`  (formatting + graph manifest)
 - Converts Consensus custom render-tags to readable markdown and lifts structured data into `meta.json`:
@@ -54,14 +57,26 @@ All three are implemented as scripts in `_workspace/` and double as the engine o
 - **Publisher Cloudflare walls.** Gold-OA publishers (MDPI, Wiley pdfdirect, Frontiers) often **403** a direct PDF GET even for OA content. Mitigations: browser UA + `Referer` + session; prefer EuropePMC/PMC/repository (green-OA) copies. Some remain auto-unfetchable → recorded as ⛔ with their OA URL for one-click manual/browser download. **This is not a failure** — the paper *is* OA, just bot-walled.
 - **Recency lag.** Brand-new papers (e.g. Nov-2025) may have a PMCID but no ingested full-text yet → expect lower yield on the newest items.
 - **OA-only, always.** "Every available PDF" = every **legally open-access** one (Unpaywall/EuropePMC/PMC/arXiv/bioRxiv). Paywalled papers are recorded with DOI + citation; **no paywall bypass.**
-- **Realistic funnel** (see `_bibliography/_funnel_report.json` for final numbers): ~100% DOI resolution; OA ~50-60%; auto-downloaded PDF a subset of OA (bot-walls reduce it); the rest captured as XML or logged with their OA URL.
+- **Realistic funnel** (see `_bibliography/_funnel_report.json`): DOI **resolution rate** ~100% (rate = a DOI was *assigned* via title-sim + year + author-surname match — precision is **not** separately validated; spot-check the `match_score` column); OA ~50-60% *on this neuropharm corpus* (field-dependent); auto-downloaded PDF a subset of OA (publisher bot-walls reduce it); the rest captured as **text-only XML (figures absent)** or logged with their OA URL.
+- **`is_oa` is not ground truth.** Unpaywall conflates gold/green/bronze; bronze is publisher-revocable and the flag can be stale. The bibliography records `oa_status` — treat bronze as fragile.
+- **SemanticScholar** throttles/blocks keyless requests (403/429) — deprioritized for Crossref/OpenAlex.
+
+**Actual result (this corpus, 2026-06-06):** 506 unique → 496 DOI → 345 OA → **230 PDFs** (125 keyless v1 +
+**105 keyed v2** via CORE / Elsevier-entitled / Zenodo / DOAJ — see `_funnel_report_v2.json`). The keyed v2
+(`resolve_and_download_v2.py`, reads keys from `~/.tooluniverse/.env`) nearly doubled the PDF yield; Elsevier's
+own entitled API was the single biggest contributor. ~161 OA papers remain bot-walled (logged with OA URLs)
+and 105 paywalled non-Elsevier (cite-only). **No paywall bypass — OA + rights-holder-sanctioned access only.**
 
 ---
 
 ## Reproduce
+Scripts live in `_workspace/` here (and in `scripts/` in the `consensus-tooluniverse-research` skill).
+They are parameterized — no hardcoded paths/URLs/email:
 ```powershell
 $py = "D:\ToolUniverse\.venv\Scripts\python.exe"
-& $py _workspace\extract_consensus.py        # text + paper list (deterministic)
-& $py _workspace\clean_markdown.py           # readable formatting + graph manifest
-& $py _workspace\resolve_and_download.py     # papers via ToolUniverse (resumable)
+$env:CONSENSUS_WS   = "C:\Users\Prekzursil\Downloads\proof_empty"
+$env:UNPAYWALL_EMAIL = "you@example.com"      # Unpaywall/OpenAlex require a contact email
+& $py _workspace\extract_consensus.py --urls searches.txt   # one Consensus URL per line
+& $py _workspace\clean_markdown.py                          # readable formatting + graph manifest
+& $py _workspace\resolve_and_download.py                    # papers via ToolUniverse (resumable; %PDF-verified)
 ```
