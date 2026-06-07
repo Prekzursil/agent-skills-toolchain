@@ -113,12 +113,9 @@ The verified, recommended path is the **loopback** browser flow:
 After consent, the browser navigates to something like
 `http://127.0.0.1:53xxx/?code=...` and may render:
 
-> **This site can't be reached — 127.0.0.1 refused to connect** (or
-> "ERR_CONNECTION_REFUSED" / a blank page)
-
 **This is success, not a failure.** By the time the browser shows that page, gogcli's
 loopback listener has already received the `?code=...`, exchanged it, stored the token,
-and shut the listener down (so the socket is now closed — hence "refused"). Return to
+Return to
 the terminal: `gog auth add` will have printed success. Confirm with:
 
 ```powershell
@@ -198,7 +195,7 @@ tool call returns the same data.
 |---------|-------|-----|
 | `deadline-exceeded` / hang during `--remote` auth | Remote two-step flow stalled (browser churn between machines/tabs) | Abandon `--remote`; use the default **loopback auto-capture** (`auth add <email> --services classroom`). The loopback listener captures the `?code=` itself — no paste, no deadline. This is the path that worked here. |
 | Browser stuck on the **account chooser** / consent loops | Multiple Google sessions; wrong account picked; stale tab | Pick `prekzursil1993@gmail.com` explicitly; if it loops, open the printed consent URL in a clean/incognito window signed into only that account; ensure the account is listed as a **Test user** on the consent screen. |
-| `403` / `PERMISSION_DENIED` on **write** tools (create course, post announcement, create coursework) | The account is a **student** principal, not a teacher | Expected. Student principals can do **reads + their own submissions**, not teacher writes. Use read tools (e.g. `courses list`) and own-submission operations. For full write access you need a teacher/owner account; authorize with `--readonly` if you want to make the read-only intent explicit. |
+Student principals can do **reads + their own submissions**, not teacher writes. Use read tools (e.g. `courses list`) and own-submission operations. For full write access you need a teacher/owner account; authorize with `--readonly` if you want to make the read-only intent explicit. |
 | `http://127.0.0.1:<port>` "site can't be reached" after clicking Allow | The loopback listener already captured the code and closed | **Not an error — this is success.** Return to the terminal and run `gog auth list` to confirm the token landed. |
 | Auth suddenly broken after ~7 days; tokens stop working | OAuth consent screen still in **Testing** mode -> refresh tokens for external test users expire after ~7 days | Re-run `gog auth add prekzursil1993@gmail.com --services classroom` to re-mint, **or** move the OAuth consent screen to **Production** (publish the app) so tokens stop expiring on the test-mode clock. |
 | `No MCP server found with name: "gogcli-classroom"` | The `claude mcp add` registration did not persist to the intended scope | Re-run the add (see step 5), specifying the scope explicitly (`-s user` / `-s project`) if needed; re-verify with `claude mcp get gogcli-classroom`. |

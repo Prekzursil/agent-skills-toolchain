@@ -124,7 +124,7 @@ claude mcp get <name>     # shows the resolved command/args/env for one server
 ## 3. Shared concern — the Byteful residential proxy (CLOUD egress only)
 
 **When you need it:** any time IG / FB / TikTok egress leaves a **datacenter
-IP** (Oracle VM, any cloud host). A datacenter IP gets insta-banned/blocked;
+IP** (Oracle VM, any cloud host).
 residential egress is required. **Running LOCAL on the home residential IP → no
 proxy needed** for any platform. **WhatsApp tolerates a cloud IP → direct, no
 proxy** even on cloud.
@@ -386,7 +386,6 @@ enabled for this project?"*. `gogcli-classroom` adds a student/teacher axis.
   **Prefer loopback auto-capture over `--remote`** (the manual `--remote` flow
   lost the redirect to browser churn). The token is stored in the **OS keyring**,
   not in `~\.claude.json`. Testing-mode refresh token ≈ 7-day expiry; no
-  Restricted scopes → no Google verification needed.
 - **Decision branch — account type:**
 
   | Account | Capability |
@@ -449,7 +448,6 @@ read — so the lane analysis that drove the build still stands:
   the proxy exit (the TikTok analogue of `node login.mjs`).
 
 **Account-state note:** unofficial scraping doesn't log into your account → it
-won't get *your account* banned, but heavy scraping from one IP gets
 **IP-blocked**. If you ever add authenticated actions (Lane A — don't), account
 ban risk returns and the flagged-IG playbook (residential proxy + human-pacing)
 applies.

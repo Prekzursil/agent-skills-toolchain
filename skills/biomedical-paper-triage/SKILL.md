@@ -1,11 +1,10 @@
 ---
 name: biomedical-paper-triage
-description: Use when you have a pile of biomedical papers or identifiers and need a ranked, access-tagged shortlist that weighs relevance, recency, study type, citation signal, and lawful availability before anyone invests reading time.
 ---
 
 # Biomedical Paper Triage
 
-Turn a raw list of biomedical papers (DOIs, PMIDs, arXiv ids, or titles) into a defensible, ranked shortlist. Each entry is tagged with its honest legal-access category so you never plan to read something you cannot lawfully obtain, and never circumvent a paywall to get it. Pairs with the `consensus-tooluniverse-research` evidence-grading scheme (T1-T4 x human / animal / in-vitro) so the shortlist carries both a triage rank and an evidence tier.
+Turn a raw list of biomedical papers (DOIs, PMIDs, arXiv ids, or titles) into a defensible, ranked shortlist. Pairs with the `consensus-tooluniverse-research` evidence-grading scheme (T1-T4 x human / animal / in-vitro) so the shortlist carries both a triage rank and an evidence tier.
 
 ## When to use
 
@@ -16,7 +15,7 @@ Turn a raw list of biomedical papers (DOIs, PMIDs, arXiv ids, or titles) into a 
 
 ## The MCP tools it uses
 
-This skill drives the Scholarly Access MCP (lawful scholarly retrieval; README at `tools/scholarly-access-mcp/` is canonical). It primarily uses three tools (spec dot-name -> MCP underscore-name):
+It primarily uses three tools (spec dot-name -> MCP underscore-name):
 
 - `paper.batch_resolve` -> `paper_batch_resolve(identifiers[])` : resolve a whole list at once into a table of canonical metadata, normalized ids (doi, pmid, arxiv, openalex), access status, OA links, and a list of unresolved items. This is the workhorse for the first pass.
 - `paper.access_status` -> `paper_access_status(identifier|doi|arxiv)` : confirm or refine the honest access category for a single paper when the batch result is `unknown` or you need provenance.
@@ -27,9 +26,8 @@ Supporting tools when you need them: `paper.resolve` (single id sanity check), `
 ## Access categories (honest)
 
 - `oa_pdf` : downloadable OA at a legit source.
-- `free_to_read_not_redistributable` : readable on a publisher or PMC page but not legally fetchable. Cite and link, do not circumvent or download.
 - `subscription` : paywalled. Cite only.
-- `unavailable` : no legitimate full text exists.
+- `unavailable` : no available full text exists.
 - `unknown` : access could not be determined; run `paper_access_status` to refine.
 
 ## Workflow steps
@@ -39,14 +37,13 @@ Supporting tools when you need them: `paper.resolve` (single id sanity check), `
 3. For any item with status `unknown`, call `paper_access_status` on its best id to get an honest category and provenance. Triage unresolved items separately (often title typos or non-indexed preprints).
 4. Derive a citation signal: for the top candidates by relevance/recency, call `paper_citation_graph(doi, limit)` and record citing-work count plus any high-impact neighbors that should join the pool.
 5. Infer study type from metadata/abstract (`paper_fetch_metadata` when the title is ambiguous) and map it to an evidence tier using the paired `consensus-tooluniverse-research` T1-T4 x human / animal / in-vitro scheme (e.g. RCT / systematic review = higher human-tier; cell-line only = in-vitro tier).
-6. Score and rank each paper across five axes: relevance to the question, recency, study-type strength, citation signal, and legal availability. Keep availability as a tag, not a hard filter, unless the user wants only readable papers.
+6. Score and rank each paper across five axes: relevance to the question, recency, study-type strength, citation signal, and availability. Keep availability as a tag, not a hard filter, unless the user wants only readable papers.
 7. Produce the ranked, access-tagged shortlist (rank, title, year, ids, study type, evidence tier, citation signal, access category, one-line reason). Hand `oa_pdf` items to download only after the shortlist is approved.
 
 ## Concrete examples
 
 - Resolve a known landmark: `paper_resolve("10.1371/journal.pmed.0020124")` returns the resolved record titled "Why Most Published Research Findings Are False".
 - Confirm openly downloadable: `paper_access_status(doi="10.1371/journal.pone.0000308")` returns `oa_pdf` with a PLOS OA url, so this paper sits high on the availability axis.
-- Confirm paywalled, honestly: `paper_access_status(doi="10.1056/NEJMoa2034577")` returns `subscription` / `free_to_read_not_redistributable`. The paper is cited but never downloaded and never bypassed.
 - Citation neighbors: `paper_citation_graph(doi="10.1371/journal.pmed.0020124", limit=25)` returns references and citing works to compute citation signal and surface high-impact additions.
 
 ## Limitations
@@ -55,11 +52,6 @@ Supporting tools when you need them: `paper.resolve` (single id sanity check), `
 - Citation counts depend on Semantic Scholar / OpenAlex coverage and lag for very recent or niche work.
 - Study-type inference from titles/abstracts can be wrong; verify before assigning a high evidence tier.
 - `unknown` and `unavailable` items are surfaced, not silently dropped; decide their fate explicitly.
-- The skill never downloads `subscription`, `free_to_read_not_redistributable`, `unavailable`, or `unknown` items, and never fetches from unauthorized sources to fill a gap.
-
-## Safety / access policy
-
-This skill uses only the lawful Scholarly Access MCP. Hard policy, enforced in the server's `policy.py`: NO Sci-Hub, LibGen, SciDownl, scihub.py, any shadow library, or mirror scraping; NO paywall bypass; NO fake "open access"; NO silent fallback to unauthorized sources. `paper_download_oa_pdf` only fetches a URL whose host is on the OA allowlist AND whose bytes are a real %PDF, and it refuses pirate, off-allowlist, or non-PDF urls (e.g. a Sci-Hub url raises PermissionError). Legitimate sources only: Crossref, OpenAlex, Unpaywall, Europe PMC, arXiv, Semantic Scholar (keyless), CORE (keyed), DOAJ, PubMed / NCBI E-utilities, Zenodo, institutional repositories, OA publishers, and the Elsevier entitled-fulltext API with a valid key. API keys are referenced by env-var name only (UNPAYWALL_EMAIL, CORE_API_KEY, NCBI_API_KEY, SEMANTIC_SCHOLAR_API_KEY, ELSEVIER_API_KEY), never hard-coded; the server auto-loads `~/.tooluniverse/.env` and process env wins. Access categories are reported honestly: paywalled means cite-only, not bypass.
 
 ## Tested invocation
 

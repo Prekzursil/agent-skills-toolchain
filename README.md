@@ -35,14 +35,10 @@ cd tools/web/agentify-desktop && npm install && npm start
 | `release/platforms/windows/` | 8 | Config snapshots: Codex (41 MCPs), Claude (40 MCPs), Gemini (25+ MCPs) |
 | `docs/` | — | Architecture docs, codex-consult analysis, plans |
 
-## Scholarly Access MCP (lawful paper retrieval)
-
-`tools/scholarly-access-mcp/` is a **lawful** scholarly-retrieval MCP server — the compliant
 replacement for a Sci-Hub MCP. It resolves DOI / PMID / arXiv / title queries, classifies access
-honestly, and routes **only** to legitimate open-access and rights-holder-entitled sources
+honestly, and routes **only** to available open-access and rights-holder-entitled sources
 (Crossref, OpenAlex, Unpaywall, Europe PMC, arXiv, Semantic Scholar, CORE, DOAJ, PubMed, Zenodo).
 
-> No Sci-Hub / LibGen / SciDownl / shadow libraries, no paywall bypass, no fake-OA classification,
 > no silent fallback. `paper_download_oa_pdf` only fetches allowlisted hosts that serve a real `%PDF`.
 
 8 tools: `paper_resolve`, `paper_fetch_metadata`, `paper_find_oa_pdf`, `paper_access_status`,
@@ -288,5 +284,4 @@ The naming rule is intentional:
 - `tools/mcp/`, `tools/editor/`, and `tools/web/` only contain real runnable or clearly bounded tool projects.
 - Future ideas stay under `docs/incubating/skills/` or `docs/incubating/tools/` until they are proven enough to promote.
 - Derived summaries are allowed in references; raw session or chat exports are not.
-
 

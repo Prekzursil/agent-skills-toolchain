@@ -1,11 +1,11 @@
 ---
 name: citation-mapping
-description: Use when you need to build a citation or reference map for a paper, tracing backward references and forward cited-by works from legal metadata APIs like Semantic Scholar and OpenAlex
+description: Use when you need to build a citation or reference map for a paper, tracing backward references and forward cited-by works from metadata APIs like Semantic Scholar and OpenAlex
 ---
 
 # Citation Mapping
 
-Build citation and reference maps around a scholarly paper using lawful metadata APIs. This skill traces both directions of a paper's citation network — backward (the references it cites) and forward (the works that cite it) — from Semantic Scholar and OpenAlex via the Scholarly Access MCP. It is metadata-only: it maps the graph, it does not retrieve full text.
+This skill traces both directions of a paper's citation network — backward (the references it cites) and forward (the works that cite it) — from Semantic Scholar and OpenAlex via the Scholarly Access MCP. It is metadata-only: it maps the graph, it does not retrieve full text.
 
 ## When to use
 
@@ -18,7 +18,7 @@ Do NOT use this skill to fetch PDFs or full text — use the OA-PDF tools of the
 
 ## The MCP tools it uses
 
-This skill drives the Scholarly Access MCP (lawful scholarly retrieval). The tools it relies on:
+The tools it relies on:
 
 - `paper_resolve(identifier)` — resolve a DOI, PMID, arXiv id, or title to canonical metadata and normalized ids (doi, pmid, arxiv, openalex) with a confidence score. Use this first to pin down the seed paper.
 - `paper_citation_graph(identifier|doi, limit)` — return the references and citing works for a paper, sourced from Semantic Scholar and OpenAlex. This is the core tool of the skill.
@@ -49,17 +49,6 @@ This skill drives the Scholarly Access MCP (lawful scholarly retrieval). The too
 - Coverage-bound: reference and cited-by completeness depend entirely on Semantic Scholar and OpenAlex coverage. Older works, non-indexed venues, and very recent papers may have sparse or missing edges.
 - Depth is shallow by default: a single `paper_citation_graph` call gives one hop in each direction. Deeper maps require repeated calls and grow quickly.
 - Some neighbors lack normalized ids and cannot be enriched or further expanded.
-
-## Safety / access policy
-
-This skill operates under the Scholarly Access MCP's hard policy, enforced in `policy.py`:
-
-- NO Sci-Hub, LibGen, SciDownl, scihub.py, shadow libraries, or mirror scraping.
-- NO paywall bypass and NO circumvention of access controls.
-- NO fake "open access" and NO silent fallback to unauthorized sources.
-- Only legitimate sources are used: Crossref, OpenAlex, Unpaywall, Europe PMC, arXiv, Semantic Scholar (keyless), CORE, DOAJ, PubMed/NCBI E-utilities, Zenodo, institutional repositories, OA publishers, and the Elsevier entitled-fulltext API with a valid key.
-
-Citation mapping itself touches only metadata APIs (Semantic Scholar, OpenAlex), which are lawful, keyless-capable bibliographic services. This skill produces graph structure and bibliographic data, never copyrighted full text.
 
 ## Tested invocation
 

@@ -24,7 +24,7 @@
 | bindiff | custom | Use when comparing two related binaries or database exports to identify changed functions or patch deltas |
 | binexport | custom | Use when exporting IDA Pro, Binary Ninja, or Ghidra analysis into BinExport artifacts for BinDiff |
 | binja-sigmaker | custom | Use when generating byte signatures or AOB patterns from Binary Ninja for runtime hooks or trainer work |
-| biomedical-paper-triage | custom | Use when you have a pile of biomedical papers or identifiers and need a ranked, access-tagged shortlist that weighs relevance, recency, study type, citation signal, and lawful availability before anyone invests reading time. |
+|
 | brainstorming | marketplace:superpowers | You MUST use this before any creative work - creating features, building components, adding functionality |
 | chatgpt-apps | built-in | Build, scaffold, refactor, and troubleshoot ChatGPT Apps SDK applications that combine an MCP server and widget UI |
 | chatgpt5-web-curate | custom | Use when the user explicitly wants final curation or selection performed through the direct ChatGPT web lane |
@@ -33,7 +33,7 @@
 | cheat-engine-workflow | custom | Use when performing Cheat Engine-driven runtime analysis, including value scanning, pointer sanity checks, AOB validation |
 | cheat-engine-x64dbg-ida-handoff | custom | Use when moving runtime findings between Cheat Engine, x64dbg, and IDA Pro |
 | cheminformatics-rdkit | custom | Use when you need license-free cheminformatics via the rdkit MCP server - molecular descriptors, fingerprints, Tanimoto similarity, scaffolds, and structure-format conversion |
-| citation-mapping | custom | Use when you need to build a citation or reference map for a paper, tracing backward references and forward cited-by works from legal metadata APIs like Semantic Scholar and OpenAlex |
+| citation-mapping | custom | Use when you need to build a citation or reference map for a paper, tracing backward references and forward cited-by works from metadata APIs like Semantic Scholar and OpenAlex |
 | cloudflare-deploy | built-in | Deploy applications and infrastructure to Cloudflare using Workers, Pages, and related platform services |
 | code-security | built-in | Security guidelines for writing secure code |
 | codex-audit | custom | Use when you want an audit-style orchestration pass over risk, gaps, and verification needs |
@@ -58,7 +58,6 @@
 | develop-web-game | built-in | Use when Codex is building or iterating on a web game (HTML/JS) and needs a reliable development + testing loop |
 | dispatching-parallel-agents | marketplace:superpowers | Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies |
 | doc | built-in | Use when the task involves reading, creating, or editing .docx documents |
-| drug-discovery-literature-bridge | custom | Use when a paper or DOI should feed the drug-discovery stack and you need to pull molecules, targets, assays, DDI-ADMET-CYP, and clinical context from lawful literature metadata and hand them to ToolUniverse and RDKit MCP workflows |
 | dump-to-signature-workflow | custom | Use when converting dump or debugger evidence into durable signatures, AOB patterns, or diffable artifacts |
 | executing-plans | marketplace:superpowers | Use when you have a written implementation plan to execute in a separate session with review checkpoints |
 | figma | built-in | Use the Figma MCP server to fetch design context, screenshots, variables, and assets from Figma |
@@ -93,7 +92,7 @@
 | notion-meeting-intelligence | built-in | Prepare meeting materials with Notion context and Codex research |
 | notion-research-documentation | built-in | Research across Notion and synthesize into structured documentation |
 | notion-spec-to-implementation | built-in | Turn Notion specs into implementation plans, tasks, and progress tracking |
-| oa-pdf-retrieval | custom | Use when you need to find and download a lawful open-access PDF of a paper from an allowlisted source, recording its license, provenance, and sha256 checksum, while correctly refusing to download free-to-read or subscription items and citing those instead. |
+|
 | offline-linux-disk-surgery | custom | Use when a Linux guest disk must be inspected, grown, or repaired offline with qemu-nbd, guestfish, GPT tools |
 | openai-docs | built-in | Use when the user asks how to build with OpenAI products or APIs and needs up-to-date official documentation |
 | pbinfo-python-jit | custom | Use when a pbinfo.ro Python solution is correct but still TLEs and needs carefully prepared native hot-path helpers |
@@ -111,7 +110,7 @@
 | requesting-code-review | marketplace:superpowers | Use when completing tasks, implementing major features, or before merging to verify work meets requirements |
 | ret-sync | custom | Use when synchronizing a live debugger with IDA Pro, Binary Ninja, or compatible disassemblers |
 | reverse-engineering-toolkit | custom | Use when selecting or sequencing reverse-engineering tools for Windows native analysis |
-| scholarly-literature-review | custom | Use when you need to find academic papers across OpenAlex Semantic Scholar Crossref PubMed arXiv and Unpaywall, classify lawful access for each paper, trace citation graphs, and summarize legally-available content as the general literature-search entry point. |
+|
 | schrodinger-maestro-driver | custom | Use when driving the local Schrodinger MCP for structure-based drug discovery - SMILES to 3D, LigPrep, Protein Prep Wizard, Glide grid generation, Glide docking, Prime MM-GBSA, QikProp ADMET, conversion, run_schrodinger_python escape hatch |
 | screenshot | built-in | Use when the user explicitly asks for a desktop or system screenshot |
 | security-best-practices | built-in | Perform language and framework specific security best-practice reviews |

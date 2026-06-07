@@ -33,7 +33,6 @@ to OA-aggregator and rate-limited services let a **keyed v2 downloader** recover
 | **BioGRID**, **HuggingFace** | `BIOGRID_API_KEY`, `HF_TOKEN` | Interactions DB; HF-hosted TU tool packs / embedding search. |
 
 ## NOT needed / out of scope
-- **Sci-Hub / LibGen / any paywall bypass** — never. "Available" = legally open-access.
 - **Elsevier / Wiley / Springer TDM keys** — only if you have *institutional entitlement*; they grant
   text-mining of *subscribed* content, which is access-dependent and not OA. Skip unless you specifically
   have an institutional account; OA-only discipline still applies.

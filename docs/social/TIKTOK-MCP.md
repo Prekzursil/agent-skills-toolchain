@@ -107,7 +107,6 @@ a paid public-data proxy, not personal-account access.
 |---|---|---|---|---|---|---|
 | **davidteather/TikTok-Api** | Python 3.9+ | **`ms_token` cookie only** (anti-bot help, NOT login) | ❌ none — "no support for any user-authenticated routes" | trending, user public posts, user public likes, hashtag, search, comments, video metadata. **Cannot post.** | **ALIVE** — 6.4k★, v7.3.3 (Apr 2026), 129 releases | unofficial; `EmptyResponseException` = bot-detection, proxies often required |
 | **szdc/tiktok-api** | Node | `loginWithEmail`/`loginWithUsername` → cookie jar | ✅ **For You + Following feed, own posts, likes, followers/following, follow/like/comment** (the one lib that did this) | yes | **DEAD** — archived 2021-09, last commit 2019, 1.3k★ | needs MITM-sourced device params + self-implemented anti-spam sig (`as`/`cp`/`mas`); unmaintainable today |
-| **EmilioBarradas/tiktok-app-api**, **zzzjano/TikTok-API**, **zetreex/TikTok-Unauthorized-API**, **mangledbottles/Musically-API** | Node/various | cookies or none | ❌ | feed/user/post metrics, no-watermark, search (unauth) | mixed/older | same unofficial-API ban risk |
 | **TikAPI.io**, **tiktok-api (npm)** | hosted/Node | vendor key / reverse-eng cookie | varies | public + some | commercial / fragile | paid or fragile |
 
 **DMs across the board:** no unofficial library exposes the TikTok message inbox.
@@ -229,7 +228,6 @@ bot-detection means tools fail intermittently and need proxy + `ms_token` refres
   (`tiktok-ads-mcp`); a personal account is limited to Display API scopes
   (own public posts + profile).
 - **No "flagged" axis like IG, but a shadowban axis exists.** Unofficial scraping
-  doesn't log into your account, so it won't get *your account* banned the way IG's
   private API did — but heavy scraping from one IP gets **IP-blocked** (the
   `EmptyResponseException`). If you ever add *authenticated* actions (don't, per
   Lane A), then your account ban risk returns and a residential proxy +
@@ -269,4 +267,3 @@ bot-detection means tools fail intermittently and need proxy + `ms_token` refres
 - https://github.com/terrylinhaochen/tiktok_mcp · https://github.com/yap-audio/tiktok-mcp · https://github.com/fmd-labs/viral-app-mcp
 - https://github.com/AdsMCP/tiktok-ads-mcp-server · https://github.com/ysntony/tiktok-ads-mcp
 - https://developers.tiktok.com/doc/tiktok-api-scopes · https://developers.tiktok.com/doc/display-api-get-started/ · https://developers.tiktok.com/doc/scopes-overview
-- https://github.com/zetreex/TikTok-Unauthorized-API · https://github.com/mangledbottles/Musically-API · https://tikapi.io/

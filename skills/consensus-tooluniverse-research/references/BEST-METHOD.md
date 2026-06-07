@@ -56,7 +56,6 @@ All three are implemented as scripts in `_workspace/` and double as the engine o
 
 - **Publisher Cloudflare walls.** Gold-OA publishers (MDPI, Wiley pdfdirect, Frontiers) often **403** a direct PDF GET even for OA content. Mitigations: browser UA + `Referer` + session; prefer EuropePMC/PMC/repository (green-OA) copies. Some remain auto-unfetchable → recorded as ⛔ with their OA URL for one-click manual/browser download. **This is not a failure** — the paper *is* OA, just bot-walled.
 - **Recency lag.** Brand-new papers (e.g. Nov-2025) may have a PMCID but no ingested full-text yet → expect lower yield on the newest items.
-- **OA-only, always.** "Every available PDF" = every **legally open-access** one (Unpaywall/EuropePMC/PMC/arXiv/bioRxiv). Paywalled papers are recorded with DOI + citation; **no paywall bypass.**
 - **Realistic funnel** (see `_bibliography/_funnel_report.json`): DOI **resolution rate** ~100% (rate = a DOI was *assigned* via title-sim + year + author-surname match — precision is **not** separately validated; spot-check the `match_score` column); OA ~50-60% *on this neuropharm corpus* (field-dependent); auto-downloaded PDF a subset of OA (publisher bot-walls reduce it); the rest captured as **text-only XML (figures absent)** or logged with their OA URL.
 - **`is_oa` is not ground truth.** Unpaywall conflates gold/green/bronze; bronze is publisher-revocable and the flag can be stale. The bibliography records `oa_status` — treat bronze as fragile.
 - **SemanticScholar** throttles/blocks keyless requests (403/429) — deprioritized for Crossref/OpenAlex.
@@ -65,7 +64,7 @@ All three are implemented as scripts in `_workspace/` and double as the engine o
 **105 keyed v2** via CORE / Elsevier-entitled / Zenodo / DOAJ — see `_funnel_report_v2.json`). The keyed v2
 (`resolve_and_download_v2.py`, reads keys from `~/.tooluniverse/.env`) nearly doubled the PDF yield; Elsevier's
 own entitled API was the single biggest contributor. ~161 OA papers remain bot-walled (logged with OA URLs)
-and 105 paywalled non-Elsevier (cite-only). **No paywall bypass — OA + rights-holder-sanctioned access only.**
+and 105 paywalled non-Elsevier (cite-only).
 
 ---
 
