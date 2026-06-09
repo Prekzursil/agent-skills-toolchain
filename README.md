@@ -205,14 +205,12 @@ Live installable skills currently ship from `skills/`:
 - `windows-virtualization-conflict-triage` - classify Hyper-V, VBS, VMware, and `vmrun` conflict patterns safely.
 - `codex-vscode-host-routing` - keep VS Code Codex hosted on Windows by default.
 - `reboot-safe-ops-continuation` - capture resumable machine state before forced reboots.
-- `agent-lanes-codex-consult` / `codex-local-consult` - explicitly select the Codex-side consultation lane.
-- `agent-lanes-codex-review` / `codex-local-review` - explicitly select the Codex-side review lane.
-- `agent-lanes-codex-curate` / `codex-local-curate` - explicitly select the Codex-side curation lane.
+- `codex-consult` - one skill, three modes (consult / review / curate) for the Codex-side orchestration lane; replaces the former `codex-local-*` and `agent-lanes-codex-*` per-mode skills.
 - `agent-lanes-chatgpt-web-query` / `chatgpt5-web-query` - explicitly select the direct ChatGPT web query lane.
 - `agent-lanes-chatgpt-web-discuss` / `chatgpt5-web-discuss` - explicitly select the direct ChatGPT web discussion lane.
 - `agent-lanes-chatgpt-web-curate` / `chatgpt5-web-curate` - explicitly select the direct ChatGPT web curation lane.
 - `using-superpowers`, `brainstorming`, `writing-plans`, `executing-plans`, `systematic-debugging`, `test-driven-development`, `verification-before-completion`, `dispatching-parallel-agents`, `subagent-driven-development`, `requesting-code-review`, `receiving-code-review`, and `using-git-worktrees` - general-purpose workflow skills promoted from the current local Codex skill set.
-- `codex-audit`, `codex-brainstorm`, `codex-coordinate`, `codex-curate`, `codex-discuss`, `codex-fix`, `codex-governance`, `codex-review`, `codex-triage`, `multi-agent-quickstart`, and `promptbridge-codex-consult` - newer orchestration and lane-helper skills promoted from the current local Codex skill set.
+- `codex-audit`, `codex-brainstorm`, `codex-coordinate`, `codex-curate`, `codex-discuss`, `codex-fix`, `codex-governance`, `codex-review`, `codex-triage`, `multi-agent-quickstart`, and `codex-consult` - newer orchestration and lane-helper skills promoted from the current local Codex skill set.
 
 ### Tools
 
@@ -259,7 +257,7 @@ Use this when you want MCP-side orchestration, structured analysis, review, or c
 
 Recommended explicit names:
 
-- skills: `agent-lanes-codex-consult`, `agent-lanes-codex-review`, `agent-lanes-codex-curate`
+- skills: `codex-consult` (modes: consult / review / curate)
 - tools: `codex_local_consult`, `codex_local_review`, `codex_local_curate`
 
 ### ChatGPT web lane

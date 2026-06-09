@@ -1,7 +1,7 @@
 # Skills Manifest
 
 > Auto-generated skill inventory for the agent-skills-toolchain repository.
-> Last updated: 2026-06-06
+> Last updated: 2026-06-09
 
 | Skill Name | Origin | Description |
 |---|---|---|
@@ -9,9 +9,6 @@
 | agent-lanes-chatgpt-web-curate | custom | Use when the user explicitly wants final comparison or curation through the direct ChatGPT web lane |
 | agent-lanes-chatgpt-web-discuss | custom | Use when the user explicitly wants discussion, ideation, or sparring through the direct ChatGPT web lane |
 | agent-lanes-chatgpt-web-query | custom | Use when the user explicitly wants a direct ChatGPT web / Agentify lane rather than Codex orchestration |
-| agent-lanes-codex-consult | custom | Use when the user explicitly wants a Codex-side consultation lane for structured analysis or tradeoff review |
-| agent-lanes-codex-curate | custom | Use when the user explicitly wants Codex orchestration to compare options and choose the best one |
-| agent-lanes-codex-review | custom | Use when the user explicitly wants a Codex-side review or critic lane |
 | agentic-humanizer | vendored | Humanize AI text via a 5-pass rewrite with optional stylometric voice matching; optional Slop or Not Pro scoring (macOS). Vendored from numen-tech/slopornot |
 | angr | built-in | Use when symbolic execution, path exploration, constraint solving, or programmatic reasoning about binary behavior is needed |
 | apply-callee-type-ex | custom | Use when IDA Pro decompiler output suffers from missing or bad indirect-call types and you need ApplyCalleeTypeEx |
@@ -24,6 +21,7 @@
 | bindiff | custom | Use when comparing two related binaries or database exports to identify changed functions or patch deltas |
 | binexport | custom | Use when exporting IDA Pro, Binary Ninja, or Ghidra analysis into BinExport artifacts for BinDiff |
 | binja-sigmaker | custom | Use when generating byte signatures or AOB patterns from Binary Ninja for runtime hooks or trainer work |
+| biomedical-paper-triage | custom | Use when turning a raw list of biomedical papers (DOIs, PMIDs, arXiv ids, or titles) into a defensible, ranked, access-tagged shortlist via the Scholarly Access MCP paper_* tools, paired with the consensus-tooluniverse-research T1-T4 by human/animal/in-vitro evidence-grading scheme |
 |
 | brainstorming | marketplace:superpowers | You MUST use this before any creative work - creating features, building components, adding functionality |
 | chatgpt-apps | built-in | Build, scaffold, refactor, and troubleshoot ChatGPT Apps SDK applications that combine an MCP server and widget UI |
@@ -38,14 +36,12 @@
 | code-security | built-in | Security guidelines for writing secure code |
 | codex-audit | custom | Use when you want an audit-style orchestration pass over risk, gaps, and verification needs |
 | codex-brainstorm | custom | Use when you want two Codex peers to generate ideas before synthesis |
+| codex-consult | custom | Use when the user wants a Codex-side orchestration pass — consult, curate, or review — via codex_local_* / codex_orchestrator_* tools instead of direct ChatGPT web automation; one skill, three modes (replaces the codex-local-* and agent-lanes-codex-* lanes) |
 | codex-coordinate | custom | Use when you want Codex to split roles and consolidate the outcome |
 | codex-curate | custom | Use when you want a final best-option selector, optionally with PromptBridge talk-only curation |
 | codex-discuss | custom | Use when you want two Codex peers to debate tradeoffs before synthesis |
 | codex-fix | custom | Use when you want Codex to coordinate a fix path across multiple reasoning roles |
 | codex-governance | custom | Use when you need a final governance-oriented decision across options and risks |
-| codex-local-consult | custom | Use when the user explicitly wants a structured Codex-side consultation pass |
-| codex-local-curate | custom | Use when the user explicitly wants Codex orchestration to select or synthesize the best option |
-| codex-local-review | custom | Use when the user explicitly wants a Codex-led review or critique pass |
 | codex-review | custom | Use when you want one Codex critic to review a plan or change before implementation |
 | codex-runtime-recovery | custom | Use when Codex state is split across Windows, WSL, or VS Code, sessions disappear, or state_5.sqlite files churn |
 | codex-session-reunion | custom | Use when Codex sessions or rollout JSONL files are spread across Windows, WSL, backups, or VS Code mirrors |
@@ -58,6 +54,7 @@
 | develop-web-game | built-in | Use when Codex is building or iterating on a web game (HTML/JS) and needs a reliable development + testing loop |
 | dispatching-parallel-agents | marketplace:superpowers | Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies |
 | doc | built-in | Use when the task involves reading, creating, or editing .docx documents |
+| drug-discovery-literature-bridge | custom | Use when extracting molecules, targets, assays, and clinical context from a paper (via the Scholarly Access MCP paper_* tools) to seed the drug-discovery stack — ToolUniverse DDI/ADMET/target tools and the RDKit MCP — keeping DOI provenance on every extracted entity |
 | dump-to-signature-workflow | custom | Use when converting dump or debugger evidence into durable signatures, AOB patterns, or diffable artifacts |
 | executing-plans | marketplace:superpowers | Use when you have a written implementation plan to execute in a separate session with review checkpoints |
 | figma | built-in | Use the Figma MCP server to fetch design context, screenshots, variables, and assets from Figma |
@@ -93,6 +90,7 @@
 | notion-research-documentation | built-in | Research across Notion and synthesize into structured documentation |
 | notion-spec-to-implementation | built-in | Turn Notion specs into implementation plans, tasks, and progress tracking |
 |
+| oa-pdf-retrieval | custom | Use when downloading an open-access paper PDF with verifiable provenance (allowlisted host, license, sha256) and honest access classification — classify with paper_access_status first, only fetch oa_pdf items, and cite rather than download free-to-read or subscription items |
 | offline-linux-disk-surgery | custom | Use when a Linux guest disk must be inspected, grown, or repaired offline with qemu-nbd, guestfish, GPT tools |
 | openai-docs | built-in | Use when the user asks how to build with OpenAI products or APIs and needs up-to-date official documentation |
 | pbinfo-python-jit | custom | Use when a pbinfo.ro Python solution is correct but still TLEs and needs carefully prepared native hot-path helpers |
@@ -100,7 +98,6 @@
 | peutils | custom | Use when inspecting or repairing PE-focused details in Binary Ninja |
 | playwright | built-in | Use when the task requires automating a real browser from the terminal |
 | playwright-interactive | built-in | Persistent browser and Electron interaction through js_repl for fast iterative UI debugging |
-| promptbridge-codex-consult | custom | Use when installing, probing, or debugging PromptBridge-backed Codex consultation |
 | quality-gate-automation-architect | custom | Use when designing, comparing, or reviewing autonomous repo-quality automation |
 | radare2 | custom | Use when command-line disassembly, debugging, hex editing, or scriptable low-level binary triage is needed |
 | reboot-safe-ops-continuation | custom | Use when a reboot is required in the middle of migration or repair work and you need exact pre-reboot state capture |
@@ -111,6 +108,7 @@
 | ret-sync | custom | Use when synchronizing a live debugger with IDA Pro, Binary Ninja, or compatible disassemblers |
 | reverse-engineering-toolkit | custom | Use when selecting or sequencing reverse-engineering tools for Windows native analysis |
 |
+| scholarly-literature-review | custom | Use when you have a DOI, PMID, arXiv id, or title (or a list) and want canonical metadata, a per-paper access-status table (oa_pdf vs free-to-read vs subscription vs unavailable), citation/reference expansion, or a metadata-and-abstract summary via the Scholarly Access MCP paper_* tools |
 | schrodinger-maestro-driver | custom | Use when driving the local Schrodinger MCP for structure-based drug discovery - SMILES to 3D, LigPrep, Protein Prep Wizard, Glide grid generation, Glide docking, Prime MM-GBSA, QikProp ADMET, conversion, run_schrodinger_python escape hatch |
 | screenshot | built-in | Use when the user explicitly asks for a desktop or system screenshot |
 | security-best-practices | built-in | Perform language and framework specific security best-practice reviews |

@@ -1,5 +1,6 @@
 ---
 name: drug-discovery-literature-bridge
+description: Use when extracting molecules, targets, assays, and clinical context from a paper (via the Scholarly Access MCP paper_* tools) to seed the drug-discovery stack — ToolUniverse DDI/ADMET/target-validation/mechanism tools and the RDKit MCP — keeping DOI provenance on every extracted entity.
 ---
 
 # Drug Discovery Literature Bridge

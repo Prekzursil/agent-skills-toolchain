@@ -7,7 +7,7 @@ Skill routing preferences:
 - For UI, UX, design-system, layout, accessibility, and front-end visual quality tasks, prefer `ui-ux-pro-max`.
 - For browser automation and UI investigation, prefer `playwright-interactive` for iterative, stateful debugging and exploration. Use `playwright` for more straightforward scripted browser tasks.
 - For targeted browser or web application validation runs, prefer `webapp-testing`.
-- If the user explicitly asks for Codex-side consultation, review, or curation, prefer `codex-local-consult`, `codex-local-review`, or `codex-local-curate` respectively.
+- If the user explicitly asks for Codex-side consultation, review, or curation, prefer the `codex-consult` skill (modes: consult / review / curate).
 - If the user explicitly asks for direct ChatGPT web / Agentify behavior, prefer `chatgpt5-web-query`, `chatgpt5-web-discuss`, or `chatgpt5-web-curate` rather than Codex orchestration.
 - For debugging tasks, prefer `systematic-debugging`.
 - Before declaring work complete, prefer `verification-before-completion` and verify the actual result.

@@ -1,5 +1,6 @@
 ---
 name: oa-pdf-retrieval
+description: Use when downloading an open-access paper PDF with verifiable provenance (allowlisted host, license, sha256) and honest access classification — classify with paper_access_status first, only fetch oa_pdf items via paper_find_oa_pdf then paper_download_oa_pdf, and cite rather than download free-to-read or subscription items.
 ---
 
 # Open-Access PDF Retrieval
