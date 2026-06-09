@@ -135,6 +135,7 @@
 | transcribe | built-in | Transcribe audio files to text with optional diarization and known-speaker hints |
 | ui-ux-pro-max | built-in | UI/UX design intelligence with searchable database |
 | using-git-worktrees | marketplace:superpowers | Use when starting feature work that needs isolation from current workspace |
+| use-image-clipboard | custom | Use when needing to read an image from the Windows clipboard and save it to a temporary PNG file on disk — required workaround for Antigravity CLI which lacks native Alt+V image paste |
 | using-superpowers | marketplace:superpowers | Use when starting any conversation - establishes how to find and use skills |
 | vercel-deploy | built-in | Deploy applications and websites to Vercel |
 | verification-before-completion | marketplace:superpowers | Use when about to claim work is complete, fixed, or passing, before committing or creating PRs |
