@@ -1,76 +1,70 @@
-# Optimal Agentic Workspace — Research & Council Knowledge Base
+# Optimal Agentic Workspace — Solution-Mapped Synthesis (canonical)
 
-**Date:** 2026-06-10/11 · **Status:** canonical knowledge capture (evidence base for the design doc `2026-06-10-optimal-agentic-workspace-design.md`).
-**Provenance:** 4 deep-research pillars + a 50-probe research fan-out (workflow `wf_d3c3408d-c34`, full raw synthesis ~57K tok in its task output) + THREE council streams: external model-council (Claude/Gemini-agy/Qwen; Codex+DeepSeek failed) and a 6-persona self-council (2 Opus: behavior-ux + contrarian; 4 Fable: security/tool-retrieval/ctx-eng/systems-pragmatist).
+**Date:** 2026-06-11 · Evidence base for the design. **Raw research is now archived as docs** (read for depth):
+- `docs/research/2026-06-11-fanout-synthesis.md` (22K — distilled, 5 sections)
+- `docs/research/2026-06-11-fanout-corpus.md` (100K — the 8-cluster, 50-probe corroborated research)
+- `docs/research/2026-06-11-fanout-council.md` (the 2 Opus personas)
+- Council critiques also: external model-council (4 models) + 4 Fable personas (in conversation/design doc).
 
----
-
-## ★ THE STRATEGIC VERDICT (what to actually do) — convergent across all council streams
-
-> **Prune the menu first (~600 → ~40). That is *most* of the fix, zero infra.** Then keep native Tool Search + basic-memory + add a few hooks. **Defer or CUT** the gateway / vector index / graph-DB / ephemeral-spawn stack until prune + Tool Search is *measured* insufficient. The original 4-layer "platform" was drifting into **"a five-daemon SRE platform to solve a config-hygiene problem"** (Fable systems-pragmatist).
-
-Why prune-first dominates (multi-source):
-- Selection accuracy collapses past 30-50 tools → ~13-20% at 200-740 (Anthropic; RAG-MCP 2505.03275). The menu is the cause.
-- The ~35K-token/subagent baseline tax (measured this session) is fixed by **shrinking the menu**, NOT by fronting it with a daemon (ephemeral spawn *adds* 5-15s latency and still inherits the menu).
-- Live proof: this session carries **3 identical copies** of the same ~17-skill pack (`document-skills`≡`example-skills`≡`claude-api`), ~140 `tooluniverse-*`, ~40 `source-command-*`, binary-ninja mounted 2×, 4 browser stacks. At ~40 tools you don't need MiniLM/FAISS — a grep-able one-page catalog suffices.
+**Provenance:** 4 deep pillars + 50-probe fan-out (`wf_d3c3408d-c34`) + 3 council streams (external models; 2 Opus self-council; 4 Fable self-council). User corrections folded in: **tooluniverse STAYS** (in active use); **FalkorDB/Graphiti DROPPED** (Fable: contradicts the user's own context-rot audit [[toolkit-gap-analysis-2026-05]]).
 
 ---
 
-## A. Corroborated best-practices (highest-confidence, one-line-actionable)
+## ★ SOLUTION MAP — the concrete fix for each problem you named
 
-**Lifecycle reframe (adopt as the organizing frame):** organize by **task-lifecycle state machine**, not by mechanism — failure happens per *phase*. **Phase-gated tool visibility** (statewright): destructive tools simply don't exist in a read-only phase (local models 2/10→10/10).
+### 1. "Skill-find" — agent doesn't auto-pick the right skill/MCP
+**Root cause (measured):** selection accuracy collapses past **30-50 tools** → 13-20% at 200-740 (RAG-MCP, ToolRet). You run 300-1000+. **Fixes, in order:**
+- **`ENABLE_TOOL_SEARCH=auto:5`** (free, today) — 85% token cut + Opus 4.5 79.5%→88.1% selection. Native BM25; default-on ≥v2.1.x.
+- **Keep auto-loaded tools ≤30** — i.e. **PRUNE the menu** (the duplicate packs, near-dups) + per-project scoping. This is *most* of the fix; everything else is downstream.
+- **Single-line scope-clause descriptions** ("Use when X / NOT when Y / use Z instead") — <12%→97.2% coverage (Trace-Free+); multi-line YAML truncates to line 1 (~40% of misfires).
+- **ToolScope overlap-dedup** — semantic overlap costs +34-38% accuracy *independent of count* (you mount binary-ninja 2×, browsers 4×, docx/pdf/xlsx 3×).
+- **Later, IF measured insufficient:** hybrid BM25+dense + **cross-encoder reranker** (one component fixes negation + near-dups + register gap). Build a recall@5 eval (mined from transcripts) first. *At ~40 tools you may never need an index.*
 
-**Discovery/Selection:** `ENABLE_TOOL_SEARCH=auto:5`; keep **≤30 auto-loaded tools**; every description carries a **scope clause** ("use when X / NOT when Y / use Z instead", <12%→97.2% coverage, Trace-Free+ 2602.20426); **two representations per skill** (short routing label seen by agent + full body indexed; 31-44pp drop if body hidden); skill descriptions **single-line** (multi-line YAML truncates to line 1 = ~40% of misfires; optimized 20%→84% activation).
+### 2. "RAM"
+**Reframe (council):** tokens degrade *cognition*; RAM only constrains the *machine* — **RAM is the lower-leverage half.** The ~35K-token/subagent baseline is fixed by **shrinking the menu, not by a daemon** (ephemeral spawn *adds* 5-15s latency and still inherits the menu). **Fixes:** prune; native Tool Search; lazy-spawn+idle-reap tail (lazy-mcp 5-min reaper / MCPJungle) *only if* a shared daemon is built; keep `mcp-reaper.ps1` backstop. **DROP Docker** (WSL2 Resource Saver can't reclaim RAM) and **FalkorDB** (Redis→Docker→multi-GB vmmem pin — costs more RAM than it saves).
 
-**Overhead (token≠RAM — keep separate):** tokens degrade *cognition*, RAM only constrains the *machine*. Native Tool Search defers MCP schemas (~85% token cut; Opus 4.5 79.5%→88.1%) **but does NOT defer HTTP/SSE-transport MCP tools** (CC #40314 closed not-planned → route HTTP MCPs through a stdio aggregator or ~120K tokens load upfront). Compact early at **70%** (`CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=70`; summarizer deadlocks ~48% at high fill). **AGENTS.md** as cross-tool config (`@AGENTS.md` import; Codex+Antigravity+Claude read it). Lazy-RAM *is* possible w/o Docker (lazy-mcp 5-min reaper, MCPJungle stateless) — but Docker is OUT on Windows (Resource Saver can't reclaim WSL2 RAM).
+### 3. "Context" — token bloat + post-compaction echo-chamber + repetitive actions
+- **Tokens:** Tool Search (85% cut) + **compact early at 70%** (`CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=70`; summarizer deadlocks ~48% at high fill, #23751) + HOT/WARM/COLD tiering (65-75% cut) + cull stale (topically-coherent-but-irrelevant is a *worse* distractor than noise — vindicates [[harness-trim]]).
+- **Echo-chamber ROOT fix (keystone N2):** an **append-only typed event ledger** (`events.jsonl` + projected `state.json`, crash-recoverable by replay) written on the **Stop hook** (NOT PreCompact — it doesn't fire on `/clear`, #13572). Recovery = **replay the ground-truth log**, never a lossy self-summary. Kills the echo-chamber at the source + IS the write-schema + removes the poisoning surface. *This is your `bc_fsm_redesign` pattern promoted to the workspace backbone.*
+- **Repetitive actions:** **terminal-state tool outputs** (`SUCCESS:/FAILED:`+id, no "more results may be available") = 7× reduction (14→2) *before* any detector; **result-aware fingerprint** `(tool, args_hash, output_hash)` not input-hash (polling MCPs like `server_health` have identical args by design → plain debounce destroys them); heuristic detectors beat LLM judges 60.1% vs 4.7%.
 
-**Memory/Continuity:** echo-chamber fix = post-compaction **`/clear` + reload ONLY the structured checkpoint** (never merge auto-summary). **Hooks (not the agent) write memory** — agent = annotator. JIT/pull (identifiers in context, content via tools); CLAUDE.md <300 lines; "assume interruption". Write schema: distilled beliefs w/ `confidence/source/verified_by/learned_date` + **causal provenance** (−24.6% retrieval without it); prefer **failure-derived heuristics**; dedup-then-compress; **cull stale** (topically-coherent-but-irrelevant is a *worse* distractor than noise → vindicates [[harness-trim]]).
+### 4. "Behavior" — inquisitive, disciplined, anti-tunnel-vision, proactive, honest (your contract)
+**The single biggest structural win = the Behavior-Enforcement Matrix (N1):** convert the prose contract into a *wiring table* — each behavior names its **enforcement owner + external (anti-echo) signal + timing.** Prose alone *increases* regressions (TDAD 6.08%→9.94%).
 
-**Behavior (hooks WIRING TABLE, not prose):** clarification **EVPI-gated, NOT always-on** (always-ask → 93% rubber-stamping); **front-load** goal-clarification into first 1-2 actions (hard phase transition at ~10%, worthless after); proactive suggestions only at **task boundaries**, never mid-task; **generator-critic pass** before surfacing output (sycophancy is in weights). Make `clarify_requirements` a **tool the model elects to call**, not a blocking gate (a gate that refuses to start *is* delirium by another name).
+| Behavior | Enforced by | External signal | Timing |
+|---|---|---|---|
+| Inquisitive | UserPromptSubmit hook **→ routes to an AskUserQuestion skill** (the hook itself CANNOT ask) | EVPI > cost (not always-ask → 93% rubber-stamping) | **Pre-execution only** (hard 10% cliff; mid-task asking = 15-16× injection risk, ASPI) |
+| No tunnel-vision | PreToolUse **goal re-injection** (verbatim) every N turns | goal-gap delta vs ledger (ReflAct +27.7%; drift = 65% of 2025 agent failures) | every N turns |
+| Self-learning | Stop hook → typed ledger | confidence/source/verified_by | task boundary |
+| Proposes things | PostToolBatch/idle only | — | **never mid-task** (task-switching ~3× complexity) |
+| Honest (anti-syco) | **generator-critic pass** before surfacing | independent fresh-context critic | before output (sycophancy is in weights, not promptable) |
 
-**Hooks/Enforcement:** hooks are the **only** enforcement layer (CLAUDE.md is advisory); `exit 2` is the only blocking code; Stop = `{"decision":"block"}`+exit0, **honor `stop_hook_active`**; **risk-tiered** not binary (force-push only if SHA matches recent commit); **terminal-state tool outputs** (`SUCCESS:/FAILED:`+id) = 7× reduction (14→2) *before* any detector; **goal re-injection every N turns** (PreToolUse write-op preamble, counters drift); **result-aware fingerprint** `(tool, args_hash, output_hash)` not input-hash (health-check MCPs have identical args by design → plain debounce false-positives).
+Plus **H9:** never pass a subagent's raw output as prefix context — only a **structured summary with the goal re-anchored at top** (drift is inherited down the Claude→subagent chain — your own `feedback_parallel_agent_worktree` burn).
 
----
+### 5. "Self-learning" — made real, not aspirational
+**N3 — OATS L3→L1 loop:** the ledger emits `(query, chosen_tool, success)` triples → a **weekly cron** nudges tool-retrieval embeddings toward historically-successful centroids (+11.4% Recall@1, CPU-only, ~50 lines). **Memory makes discovery self-improve from your own usage** — the cross-layer synergy. Failure-derived heuristics (with TTL + falsifiable preconditions + auto-tombstone-on-contradiction) preferred over success traces.
 
-## B. Holes / corrections the councils surfaced (de-risking)
-
-- **Security (the crown-jewel hole):** an unauthenticated localhost HTTP gateway = a **credential-aggregating confused deputy** (cf. CVE-2025-49596 MCP-Inspector localhost RCE) fronting code-exec MCPs (`ida py_eval`, `playwright browser_run_code_unsafe`, frida) at full user privilege. Loopback ≠ auth boundary (DNS-rebinding, malicious npx postinstall). Ralph loops run `--dangerously-skip-permissions` + `--setting-sources project,local` → **user-scope hooks are bypassed**; phase-gated *visibility* ≠ authorization. **Fix:** authenticated **per-identity capability broker** (named-pipe ACL or random-port+bearer+Origin check), vend short-lived per-server scoped tokens, **default-DENY** for mutating/code-exec classes enforced server-side. **Memory poisoning:** durable failure-store + self-improving index re-injected every session = one indirect injection becomes a persistent backdoor (MINJA); confidence/provenance are model-self-reported = **forgeable**; embeddings are invertible; secrets pasted in chat get indexed. **Fix:** quarantine tool/web-derived memory in a **data-only namespace** (quoted, non-actionable); **HMAC-sign** checkpoints written by the trusted hook; gitleaks/regex redaction on every write.
-- **Retrieval (if we even build an index):** MiniLM-only dense is the weakest config (2021, 256-token truncation → "full body" = first ~200 words; **can't model negation** → "NOT when Y" scope clauses pull *excluded* queries *closer*, NevIR). TWO routers (native BM25 + dense find_capability) = meta-selection problem. **Fixes:** ONE entry point, **hybrid BM25 + modern small embedder, RRF-fused**, + a **cross-encoder reranker** (bge-reranker) top-50→5 (one component fixes negation + near-dups + register gap); **doc2query/ToolDreamer** (index task-phrased synthetic queries, not capability prose); move NOT/use-Z into structured metadata as **post-retrieval filters**; **canonicalize duplicates** at index build (cluster >0.9 cosine + alias map + MMR); dedupe FIRST, learner LAST (cluster-level bandit w/ verified-outcome attribution); **eval harness** (mine transcripts for task→tool pairs, freeze ~200 as recall@5 gate); content-hash incremental reindex (skills are copied not symlinked → drift).
-- **Memory ("swaps the auto-summary echo-chamber for a *self-summary* one"):** nobody writes the "continuous" checkpoint + nothing verifies it on reload; agent self-report decays in exactly the long sessions that compact; monotonic+HEAD stamp is decoration (nothing diffs it). **Fix:** **PostToolUse hook** harvests the objective ledger (cmd/exit/files/HEAD/test-counts); agent writes only rare decision records; SessionStart/reload **diffs the stamp vs live `git rev-parse HEAD` + dirty-hash and surfaces drift BEFORE the agent reads**. Failure-notes ROT (your own scholarly-access note already needed a "don't trust it" amendment; Corn-718 "DISPUTED" forever) → failure entries carry **falsifiable preconditions (version/env/error-sig) + TTL**, labeled "hypothesis — cheap re-test before trusting", contradicting success **auto-tombstones** via supersedes-link. **FalkorDB/Graphiti contradicts your own context-rot audit** ([[toolkit-gap-analysis-2026-05]]: root cause = *too many* memory layers) → **CUT it**; basic-memory only; if ever justified, derive a graph as a *rebuildable read-index*, never a 2nd writable store. Also: 52 auto-memory files (~4.9K tok MEMORY.md) load every turn — itself violates the JIT principle (candidate for H6 memory-consolidation, already deferred in [[harness-trim]]).
-- **Systems (over-engineering):** 5+ always-on daemons + graph DB + index + TUI is unmaintainable for one user; **SPOF inversion** (gateway-in-critical-path: one wedged daemon kills ALL tools; stdio clients hold dead pipes across proxy restart); 10+ hooks × 200-600ms PowerShell spawn/tool-call = a tax often exceeding the MCP call; config truth splits 5 ways (.claude.json/.mcp.json/gateway-registry/index/TUI-state) — you've already been burned wiping curated `disabledMcpServers`. **Simplify:** prune → static menu + per-project `.mcp.json` profiles + native Tool Search; keep reaper only if orphans persist post-prune.
-
----
-
-## C. Novel / ceiling-raising ideas (evaluated)
-
-1. **Warm JIT capability-gateway** (`find_capability` over tools+skills + `spawn_scoped_workspace`) — all external-council models converged here; "the 4 layers are one diagonal: hooks emit signal → memory stores it (incl. failures) → retrieval consumes it → next selection improves." **BUT** the Fable council heavily qualifies it: at ~40 tools it's unnecessary; ephemeral spawn adds latency + still inherits the menu; needs auth + hybrid retrieval + dedup to not be worse than nothing. → **Treat as a LATER, measured option, not the centerpiece.**
-2. **Lifecycle state machine + phase-gated tool visibility** — structurally robust anti-degeneration; strong keep.
-3. **Hooks-as-memory-ledger + HEAD-validated reload** — the highest-value *new* mechanism (kills the echo-chamber at the source). Strong keep.
-4. **Terminal-state tool outputs + result-aware fingerprint** — cheap, high-ROI, zero-infra. Strong keep.
-
----
-
-## D. "Insist & explore" — what to pursue deeper vs drop
-
-**INSIST / explore deeper (high value, under-developed):**
-- **Hooks-write-memory + HEAD-validated reload** — the echo-chamber root fix; needs a concrete hook design + checkpoint schema. (Explore: build it.)
-- **The prune itself** — exact dedup/disable list, the "prune by *workflow* not frequency" caveat, + a one-week firing-frequency measurement to seed it. (Explore: do it.)
-- **Failure-memory with TTL + falsifiable preconditions + auto-tombstone** — fixes the rotting-notes problem we can SEE in the vault. (Explore: design the schema.)
-- **EVPI-gated clarification as an elected tool** (not a blocking gate) — directly serves the user's "inquisitive but not delirious" goal. (Explore: prototype.)
-- **AGENTS.md cross-tool config** — one config Claude+Codex+Antigravity read = the cleanest cross-AI win. (Explore.)
-
-**HOLD / measure-before-building (don't insist yet):**
-- Vector index / hybrid+reranker retrieval — only if prune+ToolSearch proves insufficient (build the recall@5 eval first).
-- Capability-gateway / ephemeral scoped sub-agents — measured option after prune.
-- Shared HTTP hot-core — only with the authenticated broker; lower-leverage (RAM not cognition).
-
-**DROP:**
-- FalkorDB/Graphiti (3rd memory layer — contradicts the user's own context-rot root cause).
-- Docker MCP Gateway (Resource Saver can't reclaim WSL2 RAM on Windows).
-- Always-on clarification gate / always-ask (→ rubber-stamping).
-- MiniLM-only dense retrieval; scope-clauses-as-indexed-text (negation-blind).
+### 6. The unifying reframe
+Organize by **task-lifecycle state machine, not by mechanism** — failure happens per *phase*. **Phase-gated tool visibility** (destructive tools don't *exist* in a read-only phase; local models 2/10→10/10). The "4 orthogonal layers" are really **one diagonal:** hooks emit signal → ledger stores it (incl. failures) → retrieval/OATS consumes it → next selection improves.
 
 ---
 
-## E. Key citations
-Discovery: RAG-MCP 2505.03275 · MCP-Zero 2506.01056 · Trace-Free+ 2602.20426 · ToolRet · ToolScope 2510.20036 · Anthropic Tool Search (platform.claude.com/.../tool-search) · skill-activation deep-dive. Memory: Anthropic effective-context-engineering + multi-agent-research-system · CoALA · Mem0/Letta/Zep · claudefa.st context-recovery-hook. Anti-degen: dev.to/aws reasoning-loops · SpecRA (OpenReview xVO4BqmzVD) · Ralph. Hooks: code.claude.com/docs/en/hooks · severity1/prompt-improver · nizos/tdd-guard · boucle.sh. Security: CVE-2025-49596 · MINJA · NevIR · OWASP MCP Top 10. SOTA: AGENTS.md · shyamverma shared-mcp-proxy · lazy-mcp/MCPJungle · Docker Resource-Saver docs.
+## Holes that change the design (H1-H9, from the deep synthesis)
+H1 L0-prose needs the Matrix (N1). H2 HTTP hot-core defeats Tool Search (#40314) → stdio/lazy-tool. H3 UserPromptSubmit can't ask + mid-task clarify = 15-16× injection → hook→skill, pre-exec, isolated. H4 no write-schema (the biggest gap; write path is the bottleneck, 11-46% of errors) → N2 ledger. H5 anti-tunnel has no mechanism → goal re-injection. H6 PreCompact doesn't fire on /clear (#13572) + reload-summary IS the echo chamber → Stop-hook ledger + replay. H7 Stop "are you done?" amplifies error (System-2 raises confidence in WRONG answers) → external signal only. H8 debounce wrong fingerprint + research has no trust tier (ToolHijacker 7-12×; 86% adversarial-embedding success) → result-triplet + quarantine untrusted research. H9 inherited subagent drift → structured-summary handoffs.
+
+## Novel ceiling-raisers (N1-N5)
+N1 Behavior-Enforcement Matrix. **N2 append-only typed ledger = THE keystone** (one artifact, four problems). N3 OATS memory→discovery self-improvement. N4 Intent/Drift Sentinel sub-agent (inquisitiveness + drift, isolated, no injection risk). N5 tool-augmented adversarial review escapes the "Reasoning Trap" (closed debate can't add info — Data Processing Inequality; tool calls *between* rounds break the Markov chain → your council reviewers should call verification MCPs between rounds).
+
+## Reconciled adoption order (Opus-build ∩ Fable-simplify)
+- **Tier 0 — free, today:** clarifying-Q line in CLAUDE.md (28%→48.8%); `ENABLE_TOOL_SEARCH=auto:5` + `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=70`; clear stale AutoDream lock (`memory/.consolidate-lock` >10min = silent disable, #50694); Dual-Goal/Think-in-Opposites block in critic prompts (−14pp confirmation bias); seed basic-memory legit entries (MINJA poisoning 62%→6.67%).
+- **Tier 1 — structural, this week:** **PRUNE ~600→~40** (Fable's #1; tooluniverse kept); scope-clause audit + negative-control rows; ToolScope dedup; move checkpoint write PreCompact→**Stop hook**.
+- **Tier 2 — keystones:** the **N2 typed ledger** (backbone); **N4 Intent/Drift Sentinel** + goal-reinjection hook. *(FalkorDB/Graphiti DROPPED — basic-memory only; derive any graph as a rebuildable read-index if ever needed.)*
+- **Tier 3 — compounding (after ≥100 logged invocations):** **N3 OATS** weekly cron; structured-summary subagent handoffs.
+
+## 6 open questions that genuinely need YOU
+1. **Memory authority across 3 backends** — one canonical basic-memory store with Codex/Antigravity as read-replicas, or per-backend? (No probe covered Codex/Antigravity memory interop.)
+2. **Quota contention** — a coordinator that serializes heavy phases across Claude+Codex+Antigravity, or accept occasional 429s? (Tonight's rate-limits + your 401 refresh-race note.)
+3. **Echo-chamber tolerance vs recovery cost** — N2 replay is more correct but heavier than reload-a-summary. Accept higher post-compaction token cost for poison-resistance? (The one explicit cost/safety tradeoff.)
+4. **Skill-authoring spend** — fund a deliberate Opus skill-authoring pass (+54.3% transfer, but only with the full evaluate-refine-test loop; one-shot is worse than nothing), or author opportunistically?
+5. **Dreams API** — request the research-preview for weekly memory consolidation, or stay self-hosted?
+6. **Worktree runtime isolation** — ephemeral per-worktree containers for parallel metaswarm agents (worktrees isolate git index but NOT ports/DBs/env), or keep serial?
