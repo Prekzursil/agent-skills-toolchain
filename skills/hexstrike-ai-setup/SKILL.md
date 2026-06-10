@@ -1,6 +1,6 @@
 ---
 name: hexstrike-ai-setup
-description: Use when installing, wiring, validating, or troubleshooting a local HexStrike AI runtime for Codex, Claude, or Gemini.
+description: Use when installing, wiring, validating, or troubleshooting the local HexStrike AI binary and runtime environment for Codex, Claude, or Gemini ; do NOT use for MCP server registration wiring (use hexstrike-ai-mcp) or running an active authorized engagement (use hexstrike-ai-authorized-engagement) ; returns a validated running HexStrike runtime.
 ---
 
 # HexStrike AI Setup

@@ -1,6 +1,6 @@
 ---
 name: ui-ux-pro-max
-description: UI/UX design intelligence with searchable database
+description: Use when designing UI/UX for web or mobile apps and needing opinionated style, color palette, font pairing, or chart-type recommendations from a searchable database of 67 styles, 96 palettes, 57 font pairings, and 99 UX guidelines across 13 stacks ; do NOT use for code implementation or pixel-perfect Figma work ; returns ranked design recommendations.
 ---
 # ui-ux-pro-max
 
