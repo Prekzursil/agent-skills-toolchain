@@ -23,7 +23,7 @@ Claude Code and Codex this session.
 
 | Server | What | Where |
 |--------|------|-------|
-| **ocr** | Multi-engine OCR (RapidOCR + Tesseract + ABBYY FineReader 16) with CER/WER accuracy evaluation + engine comparison | separate public repo: `Prekzursil/ocr-mcp` (code at `D:\mcp-servers\ocr-mcp`) |
+| **ocr** | Multi-engine OCR (RapidOCR + Tesseract + ABBYY FineReader 16) with CER/WER accuracy evaluation + engine comparison | separate public repo: `Prekzursil/abbyy-finereader-ocr-mcp` (code at `D:\mcp-servers\ocr-mcp`) |
 | **basic-memory** | Durable, semantically-searchable markdown+vector memory (sqlite-vec + FastEmbed), vault on D:, 154 migrated notes | `D:\.basic-memory` (junctioned from `~/.basic-memory`) |
 | **firefox-devtools** | Mozilla Firefox DevTools MCP (`@mozilla/firefox-devtools-mcp`), headless WebDriver BiDi | npx, user scope |
 

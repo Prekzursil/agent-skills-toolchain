@@ -37,7 +37,7 @@ cd tools/web/agentify-desktop && npm install && npm start
 
 > **Latest (2026-06-10):** added 4 game-RE skills; new MCP servers **`ocr`**
 > (multi-engine OCR + accuracy eval — separate repo
-> [`Prekzursil/ocr-mcp`](https://github.com/Prekzursil/ocr-mcp)), **`basic-memory`**
+> [`Prekzursil/abbyy-finereader-ocr-mcp`](https://github.com/Prekzursil/abbyy-finereader-ocr-mcp)), **`basic-memory`**
 > (durable vector memory + compaction-survival hooks), **`firefox-devtools`**; and a
 > cross-AI **mcp-funnel single-source** setup (dedup + switchable profiles, skills
 > unified across Claude Code + Codex). See
