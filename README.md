@@ -27,13 +27,21 @@ cd tools/web/agentify-desktop && npm install && npm start
 
 | Surface | Count | Description |
 |---------|-------|-------------|
-| `skills/` | 134 | Shared skills for Codex + Claude (see `SKILLS-MANIFEST.md`) |
+| `skills/` | 158 | Shared skills for Codex + Claude (see `SKILLS-MANIFEST.md`); incl. game-RE (`game-re-binary`, `game-frida-trace`, `game-find-anticheat`, `game-unpack-pe`) + SWFOC + Battle Cats |
 | `skills-claude-only/` | 35 | Claude Code exclusive skills (Azure, metaswarm, Ralph, etc.) |
 | `tools/mcp/` | 6 | MCP server projects (codex-orchestrator, agent-lanes, workstation bundle, etc.) |
 | `tools/web/` | 2 | Agentify Desktop + PromptBridge talk lane |
 | `tools/editor/` | 2 | Metaswarm + Ralph Orchestrator |
 | `release/platforms/windows/` | 8 | Config snapshots: Codex (41 MCPs), Claude (40 MCPs), Gemini (25+ MCPs) |
-| `docs/` | — | Architecture docs, codex-consult analysis, plans |
+| `docs/` | — | Architecture docs, codex-consult analysis, plans, dated session reconciliations |
+
+> **Latest (2026-06-10):** added 4 game-RE skills; new MCP servers **`ocr`**
+> (multi-engine OCR + accuracy eval — separate repo
+> [`Prekzursil/ocr-mcp`](https://github.com/Prekzursil/ocr-mcp)), **`basic-memory`**
+> (durable vector memory + compaction-survival hooks), **`firefox-devtools`**; and a
+> cross-AI **mcp-funnel single-source** setup (dedup + switchable profiles, skills
+> unified across Claude Code + Codex). See
+> [`docs/SESSION-RECONCILIATION-2026-06-10.md`](docs/SESSION-RECONCILIATION-2026-06-10.md).
 
 replacement for a Sci-Hub MCP. It resolves DOI / PMID / arXiv / title queries, classifies access
 honestly, and routes **only** to available open-access and rights-holder-entitled sources
