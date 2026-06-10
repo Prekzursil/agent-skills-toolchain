@@ -93,7 +93,7 @@
 
 - [ ] **Step 9 — Write `P0-results.md` decision record** (every gate's measured result + the resulting parameters for P1: exact flags, auth mechanism, namespacing mode, multiplexing model, eviction policy, Antigravity verdict). **Adversarial review checkpoint:** dispatch one subagent to sanity-check the Gate-A measurement methodology (did we really prove process-deferral, not schema-deferral?).
 
-- [ ] **Step 10 — Tear down the spike sandbox.** Keep only `P0-results.md` + `profiler.py`.
+- [ ] **Step 10 — Tear down the spike sandbox.** Keep only `P0-results.md` + `verify\profiler.ps1`.
 
 **Acceptance:** All gates PASS (or pre-committed non-blocking fallbacks chosen), decision record written + review-confirmed. **Hard-stops:** Gate A fail, Gate D1 no-auth-no-proxy.
 
@@ -143,7 +143,7 @@
 
 - [ ] **Step 4 — Author `verify\sec-smoke.ps1` (spec §9 #1-#7), RED-first.** Assertions: (1) unauthenticated request to `:7820/mcp` rejected; (2) forged-`Origin` request rejected; (3) gateway tool list contains **no** RE/exploitation backend; (4) a `research`/`web` loadout **cannot** invoke github-write/digitalocean/docker/postgres; (5) grep daemon logs + `/health` for token material after a forced backend-auth failure → none; (6) `icacls` on `gateway.env` + `backups\` grants owner+SYSTEM only; (7) service/task runs as the interactive user, not LocalSystem. Run #1/#2/#6/#7 now (others depend on registered backends → run fully in WU5.1).
 
-- [ ] **Step 5 — Verify (RED→GREEN):** `verify\02-service.ps1` asserts the daemon runs as the interactive user (`Get-CimInstance Win32_Service | ? Name -eq mcp-gateway | select StartName` ≠ LocalSystem; or the scheduled task's principal = the user), binds 7820, and unauthenticated curl is rejected. Run.
+- [ ] **Step 5 — Verify (RED→GREEN):** `verify\02-service.ps1` asserts the daemon runs as the interactive user. ⚠️ **`Get-CimInstance Win32_Service` is BROKEN on this machine** (throws "A general error occurred" for all service queries) and `Get-WmiObject` is absent in PS7 — so use the native, version-proof **`sc.exe qc mcp-gateway`** and parse `SERVICE_START_NAME` (assert ≠ `LocalSystem`); for the Task-Scheduler fallback, assert `(Get-ScheduledTask mcp-gateway).Principal.UserId` = the interactive user. Also assert it binds 7820 (`Get-NetTCPConnection -LocalPort 7820`) and unauthenticated curl is rejected. Run. (sec-smoke #7 uses the same `sc.exe qc` method.)
 
 - [ ] **Step 6 — Commit.**
 
@@ -170,7 +170,7 @@
 
 ### WU5 (P4): Overlap-window verification (both paths live)
 
-- [ ] **Step 1 — Single low-backend session** (peak-RAM caveat): with gateway AND funnel both registered, run the full `verify\` suite: per-AI tool availability (`verify\04-availability.ps1` probes one representative tool per gateway backend), RAM (`profiler.py` → assert typical < 1.5 GB), `verify\sec-smoke.ps1` #1-#7, `verify\01-tags.ps1` GREEN, first-call latency < 5 s.
+- [ ] **Step 1 — Single low-backend session** (peak-RAM caveat): with gateway AND funnel both registered, run the full `verify\` suite: per-AI tool availability (`verify\04-availability.ps1` probes one representative tool per gateway backend), RAM (`verify\profiler.ps1` → assert typical < 1.5 GB), `verify\sec-smoke.ps1` #1-#7, `verify\01-tags.ps1` GREEN, first-call latency < 5 s.
 - [ ] **Step 2 — ralph smoke:** stop the gateway daemon; assert the RE fleet is still reachable from a project-scope session (`verify\05-ralph.ps1`) — proves G3 daemon-independence. Restart daemon.
 - [ ] **Step 3 — Live-rewrite test:** with a 2nd real Claude session running, exercise a `claude mcp` CLI edit; assert no lost update (mtime-merge-retry path).
 - [ ] **Step 4 — Adversarial review checkpoint:** dispatch a subagent (fresh) to audit the verify results + look for gaps before the destructive phase. **GO/NO-GO for P5.**
@@ -195,7 +195,7 @@
 ### WU7 (P6): Final verify + curation diff + RAM proof
 
 - [ ] **Step 1 — Curation diff:** `verify\06-curation.ps1` diffs the pre-migration vs post disabled/enabled server sets → assert no SILENT enable/disable flips (only the intended ones).
-- [ ] **Step 2 — Full RAM remeasure** across 2 real sessions via `profiler.py` → assert typical < 1.5 GB, record all-warm ceiling < 3 GB. **This is the headline G2 proof.**
+- [ ] **Step 2 — Full RAM remeasure** across 2 real sessions via `verify\profiler.ps1` → assert typical < 1.5 GB, record all-warm ceiling < 3 GB. **This is the headline G2 proof.**
 - [ ] **Step 3 — Re-run the entire `verify\` suite** GREEN; re-test `restore.ps1` end-to-end (P6 rehearsal).
 - [ ] **Step 4 — Capture final ground truth** → `D:\tools\mcp-gateway\state\FINAL-STATE.md` (feeds the closing repo reconciliation). Commit.
 
