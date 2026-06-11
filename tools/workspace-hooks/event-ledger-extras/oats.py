@@ -48,7 +48,23 @@ from pathlib import Path
 from typing import Any
 
 HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE))
+
+# Locate ledger.py: first check sibling event-ledger/ in the same hooks tree,
+# then the canonical installed location (~/.claude/hooks/event-ledger/),
+# then HERE itself (allows tests to inject a mock ledger by placing it here).
+def _find_ledger_dir() -> Path:
+    candidates = [
+        HERE.parent / "event-ledger",                          # sibling in repo hooks tree
+        Path.home() / ".claude" / "hooks" / "event-ledger",   # installed location
+        HERE,                                                   # fallback: same directory
+    ]
+    for c in candidates:
+        if (c / "ledger.py").exists():
+            return c
+    return HERE  # last resort; import will fail with a clear ModuleNotFoundError
+
+_LEDGER_DIR = _find_ledger_dir()
+sys.path.insert(0, str(_LEDGER_DIR))
 import ledger  # noqa: E402
 
 # Thresholds / hyper-parameters
@@ -148,7 +164,7 @@ def nudge(embedding: list[float],
         result = _vec_add(result, _vec_scale(q_pos, alpha))
     q_neg = _mean_vector(negative_vecs)
     if q_neg is not None:
-        result = _vec_add(result, _vec_scale(_mean_vector(negative_vecs), -beta))
+        result = _vec_add(result, _vec_scale(q_neg, -beta))
     return result
 
 

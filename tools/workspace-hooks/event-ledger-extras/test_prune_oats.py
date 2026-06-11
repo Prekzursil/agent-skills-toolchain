@@ -44,7 +44,20 @@ def main() -> int:
     # One temp root for all prune/oats tests.
     tmp = tempfile.mkdtemp(prefix="prune-oats-test-")
     os.environ["EVENT_LEDGER_ROOT"] = tmp
-    sys.path.insert(0, str(HERE))
+
+    # Ensure ledger.py is importable regardless of working directory.
+    # Search the same candidate list as oats.py / prune-report.py.
+    _ledger_candidates = [
+        HERE.parent / "event-ledger",
+        Path.home() / ".claude" / "hooks" / "event-ledger",
+        HERE,
+    ]
+    for _c in _ledger_candidates:
+        if (_c / "ledger.py").exists():
+            sys.path.insert(0, str(_c))
+            break
+    else:
+        sys.path.insert(0, str(HERE))
 
     # ------------------------------------------------------------------ #
     # Reload ledger so ROOT picks up the new env var                      #

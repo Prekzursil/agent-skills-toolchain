@@ -44,6 +44,13 @@ CONCRETE_TOKENS = re.compile(
     re.IGNORECASE,
 )
 
+# Case-SENSITIVE: named targets (CamelCase or ALL-CAPS words) signal a concrete object,
+# not a vague verb loop. Compiled without IGNORECASE so "fix" doesn't match [A-Z]{2,}.
+NAMED_TARGETS = re.compile(
+    r"(\b[A-Z][a-z]+[A-Z]\w*\b|"  # CamelCase: UserService, AuthModule, UserController
+    r"\b[A-Z]{2,}\b)"              # ALL-CAPS: README, CHANGELOG, API, URL, PR
+)
+
 # Minimum word count below which a prompt is considered suspiciously short
 SHORT_WORD_THRESHOLD = 8
 
@@ -79,11 +86,15 @@ def _vagueness_score(prompt: str) -> int:
     if not CONCRETE_TOKENS.search(prompt):
         score += 1
 
-    # Concrete tokens heavily reduce score (clear specificity)
+    # Concrete tokens heavily reduce score (clear specificity).
+    # Also count named targets (CamelCase / ALL-CAPS) as concrete signals —
+    # these are case-sensitive so "fix" doesn't match.
     concrete_hits = len(CONCRETE_TOKENS.findall(prompt))
-    if concrete_hits >= 2:
+    named_hits = len(NAMED_TARGETS.findall(prompt))
+    total_concrete = concrete_hits + named_hits
+    if total_concrete >= 2:
         score -= 3
-    elif concrete_hits == 1:
+    elif total_concrete == 1:
         score -= 1
 
     # A longer prompt with technical words is rarely vague enough to intervene
