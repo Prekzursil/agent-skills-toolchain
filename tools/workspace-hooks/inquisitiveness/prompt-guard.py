@@ -59,45 +59,38 @@ VAGUE_SCORE_THRESHOLD = 3  # must hit at least 3 vagueness signals
 
 
 def _vagueness_score(prompt: str) -> int:
-    """Return an integer vagueness score. Higher = more vague."""
+    """Return an integer vagueness score. Higher = more vague.
+
+    Conservative by design (EVPI): a prompt that names a concrete target (a path,
+    code ref, error, or a CamelCase/ALL-CAPS identifier like README or UserService)
+    is NOT the kind of vagueness that needs clarifying — it tells us what to act on.
+    We only intervene on genuinely *targetless* vague requests ("fix it", "make it
+    better"), so the guard fires rarely and never nags on reasonable prompts.
+    """
     words = prompt.lower().split()
     word_count = len(words)
-    score = 0
 
-    # Signal 1: very short prompt
+    # Hard gate: ANY concrete token or named target → the request has a clear object.
+    # Return 0 (silent) — clarification would just be a rubber-stamp.
+    if CONCRETE_TOKENS.search(prompt) or NAMED_TARGETS.search(prompt):
+        return 0
+
+    score = 0
+    # Signal 1: very short prompt (no room to be specific)
     if word_count < SHORT_WORD_THRESHOLD:
         score += 2
     elif word_count < 12:
         score += 1
 
-    # Signal 2: contains a vague verb
-    for w in words:
-        clean = re.sub(r"[^a-z]", "", w)
-        if clean in VAGUE_VERBS:
-            score += 2
-            break
+    # Signal 2: a vague action verb with no named object
+    if any(re.sub(r"[^a-z]", "", w) in VAGUE_VERBS for w in words):
+        score += 2
 
-    # Signal 3: pronoun with no likely referent (no concrete token nearby)
-    has_pronoun = any(re.sub(r"[^a-z]", "", w) in VAGUE_PRONOUNS for w in words)
-    if has_pronoun:
+    # Signal 3: a floating pronoun with no referent ("fix it", "redo that")
+    if any(re.sub(r"[^a-z]", "", w) in VAGUE_PRONOUNS for w in words):
         score += 1
 
-    # Signal 4: no concrete path/error/URL/code token
-    if not CONCRETE_TOKENS.search(prompt):
-        score += 1
-
-    # Concrete tokens heavily reduce score (clear specificity).
-    # Also count named targets (CamelCase / ALL-CAPS) as concrete signals —
-    # these are case-sensitive so "fix" doesn't match.
-    concrete_hits = len(CONCRETE_TOKENS.findall(prompt))
-    named_hits = len(NAMED_TARGETS.findall(prompt))
-    total_concrete = concrete_hits + named_hits
-    if total_concrete >= 2:
-        score -= 3
-    elif total_concrete == 1:
-        score -= 1
-
-    # A longer prompt with technical words is rarely vague enough to intervene
+    # A long prose request (even targetless) is rarely worth interrupting
     if word_count >= 20:
         score -= 2
 
