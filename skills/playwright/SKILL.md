@@ -1,6 +1,6 @@
 ---
 name: "playwright"
-description: "Use when the task requires automating a real browser from the terminal (navigation, form filling, snapshots, screenshots, data extraction, UI-flow debugging) via `playwright-cli` or the bundled wrapper script."
+description: Use when automating a real browser from the terminal for navigation, form filling, screenshots, data extraction, or UI-flow debugging via playwright-cli or the wrapper script ; do NOT use for persistent iterative debugging sessions (use playwright-interactive) or local webapp functional test suites (use webapp-testing) ; returns browser automation output and screenshots.
 ---
 
 

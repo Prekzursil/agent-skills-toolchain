@@ -1,6 +1,6 @@
 ---
 name: scholarly-literature-review
-description: Use when you have a DOI, PMID, arXiv id, or paper title (or a list of them) and want canonical metadata, a per-paper access-status table (downloadable open-access PDF vs free-to-read vs subscription vs unavailable), citation and reference expansion, or a structured summary built only from legally available metadata and abstracts — via the Scholarly Access MCP paper_* tools (paper_batch_resolve, paper_summarize, paper_citation_graph, paper_resolve).
+description: Use when given DOIs, PMIDs, arXiv ids, or paper titles and needing canonical metadata, access-status tables, citation/reference expansion, or structured summaries from legally available abstracts via Scholarly Access MCP ; do NOT use for biomedical evidence ranking (use biomedical-paper-triage) or PDF downloading (use oa-pdf-retrieval) ; returns metadata, access classification, and citation graph.
 ---
 
 # Scholarly Literature Review

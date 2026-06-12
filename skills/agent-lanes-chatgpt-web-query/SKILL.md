@@ -1,6 +1,6 @@
 ---
 name: agent-lanes-chatgpt-web-query
-description: Use when the user explicitly wants a direct ChatGPT web / Agentify lane rather than Codex orchestration. Triggers include requests to ask ChatGPT directly, use `chatgpt5_web_query`, use `chatgpt_web_query`, or send work through the browser-mediated ChatGPT lane.
+description: Use when the user explicitly invokes the agent-lanes ChatGPT web query lane (chatgpt_web_query, ask ChatGPT directly via browser) rather than Codex orchestration ; do NOT use for the newer chatgpt5-web-query route ; returns ChatGPT web query result.
 ---
 
 # Agent Lanes ChatGPT Web Query

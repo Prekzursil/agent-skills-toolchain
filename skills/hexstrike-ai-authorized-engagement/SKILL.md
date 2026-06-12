@@ -1,6 +1,6 @@
 ---
 name: hexstrike-ai-authorized-engagement
-description: Use when an authorized security assessment, bug bounty, red-team, or CTF task should be routed through the local HexStrike AI runtime.
+description: Use when routing an authorized security assessment, bug bounty, red-team exercise, or CTF task through the local HexStrike AI runtime ; do NOT use for installation or MCP wiring (use hexstrike-ai-setup or hexstrike-ai-mcp) ; returns HexStrike AI engagement results for authorized targets only.
 ---
 
 # HexStrike AI Authorized Engagement
