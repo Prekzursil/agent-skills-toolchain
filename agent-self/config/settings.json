@@ -1,6 +1,7 @@
 {
   "cleanupPeriodDays": 365,
   "env": {
+    "CLAUDE_CODE_FORK_SUBAGENT": "1",
     "CLAUDE_CODE_USE_POWERSHELL_TOOL": "1",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "64000",
@@ -62,6 +63,28 @@
             "statusMessage": "Inbound injection guard (ASI06)"
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{USER_HOME}}/.claude/hooks/async-validate/validate.py",
+            "asyncRewake": true,
+            "statusMessage": "Async file validator (background)"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{USER_HOME}}/.claude/hooks/cmd-rewrite/compress-output.py",
+            "timeout": 10,
+            "statusMessage": "Compressing noisy Bash output"
+          }
+        ]
       }
     ],
     "PreToolUse": [
@@ -93,6 +116,17 @@
             "command": "python {{USER_HOME}}/.claude/hooks/test-tamper-guard/guard.py",
             "timeout": 20,
             "statusMessage": "EvilGenie TDD-guard scanning staged test diffs"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{USER_HOME}}/.claude/hooks/cmd-rewrite/inject-nopager.py",
+            "timeout": 5,
+            "statusMessage": "Injecting --no-pager into git commands"
           }
         ]
       }
@@ -218,6 +252,19 @@
             "command": "python {{USER_HOME}}/.claude/hooks/claim-guard/claim-check.py",
             "timeout": 10,
             "statusMessage": "Claim-guard: checking unverified success claims"
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "matcher": "rate_limit|overloaded|billing_error|server_error|authentication_failed",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{USER_HOME}}/.claude/hooks/stopfailure-notify/notify.py",
+            "timeout": 15,
+            "statusMessage": "StopFailure: logging API error + notifying"
           }
         ]
       }
