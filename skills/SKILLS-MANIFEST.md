@@ -31,6 +31,7 @@
 | cheat-engine-workflow | custom | Use when performing Cheat Engine-driven runtime analysis, including value scanning, pointer sanity checks, AOB validation |
 | cheat-engine-x64dbg-ida-handoff | custom | Use when moving runtime findings between Cheat Engine, x64dbg, and IDA Pro |
 | cheminformatics-rdkit | custom | Use when you need license-free cheminformatics via the rdkit MCP server - molecular descriptors, fingerprints, Tanimoto similarity, scaffolds, and structure-format conversion |
+| ci-silent-pass-lint | custom | Use before any PR creation or "gates green / ready to merge" claim — detects CI/gate workflows that report GREEN while masking findings (11 silent-pass shapes: continue-on-error, \|\| true, audit mode, no-token uploads, set+e swallows, stale-SHA gates, soft thresholds, and more) via deterministic workflow linting + MCP cross-check of actual finding-counts at HEAD |
 | citation-mapping | custom | Use when you need to build a citation or reference map for a paper, tracing backward references and forward cited-by works from metadata APIs like Semantic Scholar and OpenAlex |
 | cloudflare-deploy | built-in | Deploy applications and infrastructure to Cloudflare using Workers, Pages, and related platform services |
 | code-security | built-in | Security guidelines for writing secure code |
