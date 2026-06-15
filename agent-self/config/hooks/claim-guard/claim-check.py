@@ -115,6 +115,21 @@ _CLAIM_PATTERNS: dict[str, re.Pattern] = {
         r")",
         re.IGNORECASE,
     ),
+    # CI / remote-gate / merge-readiness claims. Strict: only an actual CI-check
+    # command (gh pr checks / gh run view / MCP gate read run via gh) counts as
+    # evidence — a green LOCAL build does NOT support "the gates are green".
+    # (HEAD-SHA freshness + no-op detection are enforced by the ci-silent-pass-lint
+    # skill, the mechanizable home for those checks.)
+    "ci_gates": re.compile(
+        r"\b(?:"
+        r"(?:ci|gates?|pipeline)\s+(?:are\s+|is\s+)?(?:green|passing|pass(?:ed|es)?)"  # ci/gates green/passing
+        r"|gates?\s+(?:are\s+)?green"                                                   # gates are green
+        r"|all\s+(?:ci\s+)?checks?\s+(?:are\s+)?(?:green|passing|pass(?:ed|es)?)"       # all checks passed
+        r"|(?:ready|safe)\s+to\s+merge|mergeable"                                       # ready/safe to merge
+        r"|(?:pr|pull\s+request)\s+is\s+(?:green|passing|mergeable)"                    # PR is green
+        r")",
+        re.IGNORECASE,
+    ),
 }
 
 # Hypothetical / conditional hedge phrases — if found near a claim, suppress the warning.
@@ -154,6 +169,10 @@ _SUPPORT_CMDS: dict[str, list[str]] = {
     "fixed":    [],  # "fixed" is generic; any successful command is supporting evidence
     "all_green": [], # same — any successful command supports "all green"
     "no_errors": [], # same — any successful command supports "no errors"
+    # STRICT (non-empty): only a real remote-CI/gate query supports a "gates green"
+    # claim — a green local build is NOT evidence. This is the core of the #2 tuning.
+    "ci_gates": ["gh pr checks", "gh run view", "gh run list", "gh checks",
+                 "gh pr view", "gh workflow view", "gh api"],
 }
 
 
@@ -314,6 +333,7 @@ def _inject_warning(unsupported: list[str]) -> None:
         "fixed":     "issue fixed",
         "all_green": "all green",
         "no_errors": "no errors",
+        "ci_gates":  "CI gates green / ready to merge",
     }
     claim_list = ", ".join(f'"{labels.get(c, c)}"' for c in unsupported)
     msg = (
