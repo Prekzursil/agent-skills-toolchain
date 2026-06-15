@@ -37,6 +37,15 @@ def _validate(fp):
     """Return (kind, message) if the file is broken, else None. Fail-open -> None."""
     if not os.path.isfile(fp):
         return None
+    # Skip transient scratch files under the system temp dir: subagents routinely
+    # create and abandon lint-dirty helpers there; they are not deliverables, so
+    # gating them is pure noise (this fired on a mining agent's %TEMP%/friction/*.py).
+    try:
+        tmp = os.path.abspath(tempfile.gettempdir())
+        if os.path.commonpath([os.path.abspath(fp), tmp]) == tmp:
+            return None
+    except Exception:
+        pass
     ext = os.path.splitext(fp)[1].lower()
     try:
         if ext == ".py":
