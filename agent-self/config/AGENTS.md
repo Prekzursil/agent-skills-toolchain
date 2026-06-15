@@ -42,6 +42,14 @@ Before starting any long-horizon or ambiguous task:
 - This is the primary defense against repetitive-action loops (reduces repeat invocations ~7x before any detector fires).
 - Anti-degeneration fingerprint = `(tool, args_hash, output_hash)` — never input-hash alone (polling tools like `server_health` have identical args by design and would false-positive on an input-only hash).
 
+## 4a. Wrap long operations with `longrun` (>60s)
+
+- Any op expected to run >60s (test suites, coverage, `lizard`/`semgrep` over a tree, CI/`--watch`, long Codex generations, multi-agent dispatch, self-written `Start-Sleep` polls) MUST run via `longrun` launched with `run_in_background`/`Monitor` — never a blocking foreground call. Helper: `C:/Users/Prekzursil/source/agent-skills-toolchain/scripts/longrun.ps1` (Windows) / `longrun.sh` (bash).
+  - `pwsh -File <…>/longrun.ps1 -Id <id> -HeartbeatSec 15 -HangTimeoutSec <120|180|300> -Cmd <exe> <args…>` — options are named-only; the wrapped command + its args follow `-Cmd`. Bash: `longrun.sh -i <id> -h 15 -t 180 -- <exe> <args…>`.
+  - Streams `HEARTBEAT <id>: <elapsed>s | <last line>` and ends with the §4 `SUCCESS:<id>`/`FAILED:<id>` marker — that marker IS the output-hash the anti-degen fingerprint needs for long calls.
+- Stop-and-report: on a status request, re-read the printed log path (`-Tail 30`) + diff changed files; do NOT re-run the command to "check" it.
+- Codex mirror: wrap long Codex CLI generations the same way (`codex-cli-runtime` + `codex-result-handling`).
+
 ## 5. Structured subagent handoffs (no raw-output prefix)
 
 - Never pass a subagent's raw output as the prefix context for the next agent.
