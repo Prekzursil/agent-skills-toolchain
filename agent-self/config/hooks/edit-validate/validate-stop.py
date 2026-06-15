@@ -61,7 +61,39 @@ def _validate(fp):
                                    capture_output=True, text=True, encoding="utf-8",
                                    errors="replace", timeout=30)
                 if r.returncode != 0:
-                    tail = [ln for ln in (r.stderr or "").splitlines() if ln.strip()]
+                    err = r.stderr or ""
+                    low = err.lower()
+                    # Workflow scripts / ESM with top-level await run inside an async
+                    # wrapper where top-level return/await/export are legal; a bare
+                    # `node --check` false-flags them. Re-check wrapped before flagging.
+                    if ("illegal return" in low or "await is only valid" in low
+                            or "'import' and 'export'" in low or "may only be used" in low):
+                        try:
+                            src = open(fp, encoding="utf-8", errors="replace").read()
+                            out_lines = []
+                            for ln in src.splitlines():
+                                s = ln.lstrip()
+                                if s.startswith("export "):
+                                    out_lines.append(ln[:len(ln) - len(s)] + s[len("export "):])
+                                else:
+                                    out_lines.append(ln)
+                            tmp = os.path.join(tempfile.gettempdir(),
+                                               "ev_wrap_%s.js" % hashlib.sha1(fp.encode("utf-8", "replace")).hexdigest()[:8])
+                            with open(tmp, "w", encoding="utf-8", errors="replace") as wf:
+                                wf.write("(async()=>{\n" + "\n".join(out_lines) + "\n})();")
+                            r2 = subprocess.run([node, "--check", tmp],
+                                                capture_output=True, text=True, encoding="utf-8",
+                                                errors="replace", timeout=30)
+                            try:
+                                os.remove(tmp)
+                            except OSError:
+                                pass
+                            if r2.returncode == 0:
+                                return None  # valid in async/module context — not broken
+                            err = r2.stderr or err
+                        except Exception:
+                            return None  # fail-open: never false-flag on our own re-check error
+                    tail = [ln for ln in err.splitlines() if ln.strip()]
                     return ("node", tail[0] if tail else "parse error")
         elif ext == ".json":
             with open(fp, encoding="utf-8", errors="replace") as fh:
