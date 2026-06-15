@@ -19,7 +19,7 @@ for r in rows[:10]:
     print("  %-11s %-26s %-14s %s" % (r["status"], r["name"][:26], (r["wf"][:12] or r["type"][:12]), u.human_age(r["age"])))
 
 fs = sorted(glob.glob(os.path.join(d, "**", "agent-*.jsonl"), recursive=True), key=os.path.getmtime)
-entries = [json.loads(l) for l in open(fs[-1], encoding="utf-8", errors="ignore") if l.strip().startswith("{")]
+entries = [json.loads(ln) for ln in open(fs[-1], encoding="utf-8", errors="ignore") if ln.strip().startswith("{")]
 segs, log = u.render(entries[-1])
 print(f"render last event: {len(segs)} ui-segments, {len(log)} log chars")
 

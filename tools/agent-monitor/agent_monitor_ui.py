@@ -64,7 +64,8 @@ TAIL_POLL_MS = 600
 RESULT_CAP = 8000  # max chars of a single tool_result shown inline (full copy in .log)
 
 # ── palette (dark log pane) ──────────────────────────────────────────────────
-BG = "#1e1e1e"; FG = "#d4d4d4"
+BG = "#1e1e1e"
+FG = "#d4d4d4"
 COL = {
     "ts": "#7d8590", "text": "#e6e6e6", "think": "#6a9955", "tool": "#569cd6",
     "toolarg": "#808080", "result": "#4ec9b0", "err": "#f44747", "dim": "#7d8590",
@@ -403,9 +404,7 @@ class MonitorUI:
         sel = self.tree.selection()
         if not sel:
             return
-        path = self.tree.item(sel[0], "values")
-        # the iid is the jsonl path (we set it as iid)
-        self._select_agent(sel[0])
+        self._select_agent(sel[0])  # the Treeview iid IS the jsonl path (set in _apply_list)
 
     def _select_agent(self, jsonl):
         self._tail_gen += 1
@@ -512,7 +511,7 @@ class MonitorUI:
         if not self.sel_path or not self.log_fh:
             return
         try:
-            os.startfile(self.log_fh.name)  # noqa: pragma (Windows)
+            os.startfile(self.log_fh.name)  # Windows-only; fine here (this tool targets Windows)
         except Exception as e:
             messagebox.showinfo("Open .log", f"Log file:\n{getattr(self.log_fh,'name','?')}\n\n{e}")
 
