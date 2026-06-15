@@ -107,7 +107,7 @@
 | requesting-code-review | marketplace:superpowers | Use when completing tasks, implementing major features, or before merging to verify work meets requirements |
 | ret-sync | custom | Use when synchronizing a live debugger with IDA Pro, Binary Ninja, or compatible disassemblers |
 | reverse-engineering-toolkit | custom | Use when selecting or sequencing reverse-engineering tools for Windows native analysis |
-|
+| rtv-pdr | custom | Use when a hard coding work-unit has failed once, is contentious, or scores HIGH on the ESE gate — spawns N parallel Opus rollouts, runs a recursive tournament where fresh judge agents (never contestants) pick the winner, then optionally runs a PDR refine pass. Expensive; gate behind ESE.
 | scholarly-literature-review | custom | Use when you have a DOI, PMID, arXiv id, or title (or a list) and want canonical metadata, a per-paper access-status table (oa_pdf vs free-to-read vs subscription vs unavailable), citation/reference expansion, or a metadata-and-abstract summary via the Scholarly Access MCP paper_* tools |
 | schrodinger-maestro-driver | custom | Use when driving the local Schrodinger MCP for structure-based drug discovery - SMILES to 3D, LigPrep, Protein Prep Wizard, Glide grid generation, Glide docking, Prime MM-GBSA, QikProp ADMET, conversion, run_schrodinger_python escape hatch |
 | screenshot | built-in | Use when the user explicitly asks for a desktop or system screenshot |
