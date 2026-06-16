@@ -1,6 +1,7 @@
 {
   "cleanupPeriodDays": 365,
   "env": {
+    "CLAUDE_CODE_FORK_SUBAGENT": "1",
     "CLAUDE_CODE_USE_POWERSHELL_TOOL": "1",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "64000",
@@ -40,6 +41,50 @@
             "statusMessage": "Anti-degen fingerprint check"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{USER_HOME}}/.claude/hooks/claim-guard/ledger-write.py",
+            "timeout": 5,
+            "statusMessage": "Claim-guard: recording Bash result to ledger"
+          }
+        ]
+      },
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{USER_HOME}}/.claude/hooks/memory-guard/scan.py",
+            "timeout": 10,
+            "statusMessage": "Inbound injection guard (ASI06)"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{USER_HOME}}/.claude/hooks/edit-validate/record.py",
+            "timeout": 5,
+            "statusMessage": "edit-validate: recording edited file"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{USER_HOME}}/.claude/hooks/cmd-rewrite/compress-output.py",
+            "timeout": 10,
+            "statusMessage": "Compressing noisy Bash output"
+          }
+        ]
       }
     ],
     "PreToolUse": [
@@ -60,6 +105,28 @@
             "type": "command",
             "command": "python {{USER_HOME}}/.claude/hooks/goal-reinject/reinject.py",
             "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{USER_HOME}}/.claude/hooks/test-tamper-guard/guard.py",
+            "timeout": 20,
+            "statusMessage": "EvilGenie TDD-guard scanning staged test diffs"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{USER_HOME}}/.claude/hooks/cmd-rewrite/inject-nopager.py",
+            "timeout": 5,
+            "statusMessage": "Injecting --no-pager into git commands"
           }
         ]
       }
@@ -95,6 +162,28 @@
             "command": "python {{USER_HOME}}/.claude/hooks/event-ledger/sessionstart-replay.py",
             "timeout": 10,
             "statusMessage": "Replaying event-ledger (recovery)"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{USER_HOME}}/.claude/hooks/beads/sessionstart-ready.py",
+            "timeout": 25,
+            "statusMessage": "Surfacing beads ready work (if .beads present)"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{USER_HOME}}/.claude/hooks/tool-preflight/preflight.py",
+            "timeout": 10,
+            "statusMessage": "MCP + CLI tool preflight (existence check)"
           }
         ]
       }
@@ -164,6 +253,39 @@
             "command": "python {{USER_HOME}}/.claude/hooks/event-ledger/stop-hook.py",
             "timeout": 10,
             "statusMessage": "Recording turn to event-ledger"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{USER_HOME}}/.claude/hooks/claim-guard/claim-check.py",
+            "timeout": 10,
+            "statusMessage": "Claim-guard: checking unverified success claims"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{USER_HOME}}/.claude/hooks/edit-validate/validate-stop.py",
+            "timeout": 60,
+            "statusMessage": "edit-validate: validating files edited this turn"
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "matcher": "rate_limit|overloaded|billing_error|server_error|authentication_failed",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{USER_HOME}}/.claude/hooks/stopfailure-notify/notify.py",
+            "timeout": 15,
+            "statusMessage": "StopFailure: logging API error + notifying"
           }
         ]
       }
