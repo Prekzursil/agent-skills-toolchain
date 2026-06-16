@@ -244,7 +244,7 @@ kept here packed for cross-version RE reference (NOT scraped). When BC updates, 
 
   | symbol | 15.3.0 RVA | 15.4.1 RVA | drift | note |
   |---|---|---|---|---|
-  | `getGlobal` | `0x658560` | `0x65D900` | **+0x53A0** | uniform-drift cluster anchor |
+  | `getGlobal` | `0x653C80` | `0x65D900` | **+0x9C80** | NOT the +0x53A0 wallet cluster — its own drift |
   | `getCash` | `0x37C170` | `0x381510` | +0x53A0 | wallet table |
   | `setCash` | — | `0x381550` | +0x53A0 | — |
   | `getCap` | — | `0x3815D0` | +0x53A0 | wallet base 0x468→0x450 |

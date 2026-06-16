@@ -468,7 +468,7 @@ here packed for cross-version RE reference (NOT scraped). On a BC update: re-der
   | `sub_525AB0` (calendar rebuild / HGT host) | `0x525AB0` | `0x52CE20` | +0x7370 |
   | `sub_8A3350` (entry-status →0) | `0x8A3350` | `0x8AD600` | **+0xA2B0** |
   | `sub_8A3520` (in-window →1) | `0x8A3520` | `0x8AD7D0` | +0xA2B0 |
-  | `getGlobal` (cluster anchor) | `0x658560` | `0x65D900` | **+0x53A0** |
+  | `getGlobal` (own drift, NOT wallet cluster) | `0x653C80` | `0x65D900` | **+0x9C80** |
   | `getCash`/`setCash`/`getCap` (wallet cluster) | `0x37C170` … | `0x381510`/`0x381550`/`0x3815D0` | +0x53A0 |
   | `sub_4F1E20` (guerrilla getter) | `0x4F1E20` | `0x4F9060` | +0x7240 |
   | `SPEED_OFF` (game_state field) | — | `0x31D7A0` | reader 0x4B4DE2→0x4BB392 |
