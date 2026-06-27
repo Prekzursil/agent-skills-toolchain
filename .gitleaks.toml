@@ -1,0 +1,37 @@
+# Lean quality gate — gate 5 (secrets) config for gitleaks.
+# Extends gitleaks' default ruleset; adds REASONED, greppable allowlists only.
+# New real secrets introduced OUTSIDE these explicitly-listed paths still fail
+# the gate (and push protection). Do NOT broaden these globs casually.
+
+[extend]
+useDefault = true
+
+# --- Allowlist 1: owner-intentional private secrets store -----------------------
+# This file carries real plaintext tokens INTENTIONALLY committed to this PRIVATE
+# repo "by owner request" (see its own `_warning` field). It is the input to
+# env/apply-private-env.ps1. It is allowlisted so the gate reflects that intent
+# rather than faking green. SECURITY NOTE (tracked as an escalation, owner's
+# call): these tokens are exposed in git history and SHOULD be rotated/revoked
+# and migrated to a real secret manager; several belong to retired SaaS
+# (Codacy/SonarQube/Codecov/Chromatic/DeepSource) and can simply be revoked.
+[[allowlists]]
+description = "Owner-intentional private env token store (rotate+migrate — see escalation)"
+paths = ['''tools/mcp/workstation-codex-bundle/env/private-env\.windows\.json''']
+
+# --- Allowlist 2: documentation / example / fixture placeholders ----------------
+# Example/illustrative tokens inside skill docs, security rubrics, reference docs
+# and a vendored Rust test fixture. None are live credentials.
+[[allowlists]]
+description = "Documentation, security-rubric, reference and test-fixture example tokens"
+paths = [
+  '''docs/plans/2026-06-10-unified-cross-ai-mcp-architecture-design\.md''',
+  '''skills-claude-only/metaswarm-start/rubrics/security-review-rubric\.md''',
+  '''skills/ci-silent-pass-lint/gate_findings_at_head\.md''',
+  '''skills/cloudflare-deploy/references/.*\.md''',
+  '''skills/code-security/.*\.md''',
+  '''skills/figma-implement-design/SKILL\.md''',
+  '''skills/llm-security/.*\.md''',
+  '''tools/editor/metaswarm/.*security-review-rubric\.md''',
+  '''tools/editor/metaswarm/skills/start/rubrics/security-review-rubric\.md''',
+  '''tools/editor/ralph-orchestrator/vendor/.*tests/.*\.rs''',
+]
