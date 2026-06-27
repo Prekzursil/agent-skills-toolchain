@@ -7,6 +7,7 @@ missing any of those servers in its disabledMcpServers array.
 
 Exit 0 = success (no blocking). Prints a message if it patched anything.
 """
+
 import json
 import os
 import sys
@@ -100,7 +101,9 @@ def main():
     try:
         changed = patch_project(defaults)
         if changed:
-            print(f"[mcp-defaults] Patched disabledMcpServers for {get_current_project()} ({len(defaults)} servers disabled)")
+            print(
+                f"[mcp-defaults] Patched disabledMcpServers for {get_current_project()} ({len(defaults)} servers disabled)"
+            )
     except Exception as e:
         # Never block session start — just warn
         print(f"[mcp-defaults] Warning: {e}", file=sys.stderr)

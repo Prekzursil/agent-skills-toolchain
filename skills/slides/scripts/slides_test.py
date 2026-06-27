@@ -13,12 +13,12 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-import render_slides  # type: ignore
-from PIL import Image
-from pptx import Presentation
-from pptx.dml.color import RGBColor
-from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE
-from pptx.util import Emu
+import render_slides  # type: ignore  # noqa: E402 (import after sys.path.insert for local module)
+from PIL import Image  # noqa: E402 (grouped after sys.path setup)
+from pptx import Presentation  # noqa: E402
+from pptx.dml.color import RGBColor  # noqa: E402
+from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE  # noqa: E402
+from pptx.util import Emu  # noqa: E402
 
 # Configuration specific to overflow checking
 PAD_PX: int = 100  # fixed padding on every side in pixels

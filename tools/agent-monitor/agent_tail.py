@@ -13,6 +13,7 @@ still writing, and it sidesteps the glitchy inline TUI entirely.
 Usage:
   python agent_tail.py <path-to-agent-*.jsonl> [--backfill N] [--poll S] [--width W]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -22,28 +23,41 @@ import os
 import sys
 import time
 
+
 # ── ANSI colors (enable VT on Windows consoles) ──────────────────────────────
 def _enable_vt() -> None:
     for _s in (sys.stdout, sys.stderr):
         try:
-            _s.reconfigure(encoding="utf-8", errors="replace")  # survive cp1252 consoles
+            _s.reconfigure(
+                encoding="utf-8", errors="replace"
+            )  # survive cp1252 consoles
         except Exception:
             pass
     if os.name == "nt":
         try:
             import ctypes
+
             k = ctypes.windll.kernel32
             h = k.GetStdHandle(-11)
             mode = ctypes.c_uint32()
             if k.GetConsoleMode(h, ctypes.byref(mode)):
-                k.SetConsoleMode(h, mode.value | 0x0004)  # ENABLE_VIRTUAL_TERMINAL_PROCESSING
+                k.SetConsoleMode(
+                    h, mode.value | 0x0004
+                )  # ENABLE_VIRTUAL_TERMINAL_PROCESSING
         except Exception:
             pass
 
 
-R = "\033[0m"; BOLD = "\033[1m"; DIM = "\033[2m"
-GREY = "\033[90m"; RED = "\033[91m"; GREEN = "\033[92m"
-YEL = "\033[93m"; BLUE = "\033[94m"; MAG = "\033[95m"; CYAN = "\033[96m"
+R = "\033[0m"
+BOLD = "\033[1m"
+DIM = "\033[2m"
+GREY = "\033[90m"
+RED = "\033[91m"
+GREEN = "\033[92m"
+YEL = "\033[93m"
+BLUE = "\033[94m"
+MAG = "\033[95m"
+CYAN = "\033[96m"
 
 
 def fmt_ts(iso: str | None) -> str:
@@ -63,8 +77,18 @@ def _one_line(s: str, width: int) -> str:
 
 
 # tool_use input -> the single most informative argument
-_KEY_ARGS = ("command", "file_path", "path", "pattern", "query", "url",
-             "description", "prompt", "subagent_type", "old_string")
+_KEY_ARGS = (
+    "command",
+    "file_path",
+    "path",
+    "pattern",
+    "query",
+    "url",
+    "description",
+    "prompt",
+    "subagent_type",
+    "old_string",
+)
 
 
 def _tool_summary(name: str, inp: dict, width: int) -> str:
@@ -84,8 +108,11 @@ def render(entry: dict, width: int) -> list[str]:
     content = msg.get("content")
     out: list[str] = []
 
-    blocks = content if isinstance(content, list) else ([{"type": "text", "text": content}]
-                                                        if isinstance(content, str) else [])
+    blocks = (
+        content
+        if isinstance(content, list)
+        else ([{"type": "text", "text": content}] if isinstance(content, str) else [])
+    )
     body = max(20, width - 16)
     for b in blocks:
         if not isinstance(b, dict):
@@ -102,8 +129,10 @@ def render(entry: dict, width: int) -> list[str]:
                 out.append(f"{GREY}{ts}{R}  {GREEN}📝 {txt}{R}")
         elif t == "tool_use":
             name = b.get("name", "?")
-            out.append(f"{GREY}{ts}{R}  {CYAN}🔧 {BOLD}{name}{R}{CYAN}  "
-                       f"{_tool_summary(name, b.get('input', {}), body)}{R}")
+            out.append(
+                f"{GREY}{ts}{R}  {CYAN}🔧 {BOLD}{name}{R}{CYAN}  "
+                f"{_tool_summary(name, b.get('input', {}), body)}{R}"
+            )
         elif t == "tool_result":
             rc = b.get("content")
             s = rc if isinstance(rc, str) else json.dumps(rc, ensure_ascii=False)
@@ -156,13 +185,23 @@ def header(jsonl_path: str, width: int) -> None:
 
 def main() -> int:
     _enable_vt()
-    ap = argparse.ArgumentParser(description="Live pretty-tail of one Claude Code subagent.")
+    ap = argparse.ArgumentParser(
+        description="Live pretty-tail of one Claude Code subagent."
+    )
     ap.add_argument("jsonl", help="path to agent-<id>.jsonl")
-    ap.add_argument("--backfill", type=int, default=8, help="recent events to show on open")
+    ap.add_argument(
+        "--backfill", type=int, default=8, help="recent events to show on open"
+    )
     ap.add_argument("--poll", type=float, default=0.6, help="poll interval seconds")
-    ap.add_argument("--idle", type=float, default=20.0, help="seconds of silence before an idle notice")
+    ap.add_argument(
+        "--idle",
+        type=float,
+        default=20.0,
+        help="seconds of silence before an idle notice",
+    )
     try:
         import shutil
+
         default_w = shutil.get_terminal_size((140, 40)).columns
     except Exception:
         default_w = 140
@@ -175,9 +214,11 @@ def main() -> int:
     while not os.path.exists(path):
         if waited == 0:
             print(f"{YEL}Waiting for {path} …{R}")
-        time.sleep(0.5); waited += 1
+        time.sleep(0.5)
+        waited += 1
         if waited > 240:
-            print(f"{RED}File never appeared: {path}{R}"); return 1
+            print(f"{RED}File never appeared: {path}{R}")
+            return 1
 
     header(path, a.width)
     if a.backfill:
@@ -195,8 +236,9 @@ def main() -> int:
     while True:
         try:
             sz = os.path.getsize(path)
-            if sz < pos:          # file truncated / rotated -> restart from top
-                pos = 0; buf = b""
+            if sz < pos:  # file truncated / rotated -> restart from top
+                pos = 0
+                buf = b""
             if sz > pos:
                 with open(path, "rb") as fh:
                     fh.seek(pos)
@@ -214,15 +256,19 @@ def main() -> int:
                         continue
                     for ln in render(entry, a.width):
                         print(ln, flush=True)
-                        last_event = time.time(); idle_announced = False
+                        last_event = time.time()
+                        idle_announced = False
             else:
                 if not idle_announced and (time.time() - last_event) > a.idle:
                     age = int(time.time() - last_event)
-                    print(f"{DIM}… idle {age}s (no new events; agent may be done or thinking){R}",
-                          flush=True)
+                    print(
+                        f"{DIM}… idle {age}s (no new events; agent may be done or thinking){R}",
+                        flush=True,
+                    )
                     idle_announced = True
         except KeyboardInterrupt:
-            print(f"\n{DIM}stopped watching{R}"); return 0
+            print(f"\n{DIM}stopped watching{R}")
+            return 0
         except OSError:
             pass  # transient share/lock; retry next poll
         time.sleep(a.poll)

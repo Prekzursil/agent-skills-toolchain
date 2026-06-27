@@ -13,6 +13,7 @@ Examples:
   python agent_monitor.py --spawn --tabs  # tabs in one Windows-Terminal window
   python agent_monitor.py --dir "<...\\subagents>"   # point at a specific dir
 """
+
 from __future__ import annotations
 
 import argparse
@@ -27,22 +28,34 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 TAIL = os.path.join(HERE, "agent_tail.py")
 PROJECTS = os.path.expanduser(r"~/.claude/projects")
-_NEW_CONSOLE = getattr(subprocess, "CREATE_NEW_CONSOLE", 0)  # child gets its own window (Windows)
+_NEW_CONSOLE = getattr(
+    subprocess, "CREATE_NEW_CONSOLE", 0
+)  # child gets its own window (Windows)
 
-R = "\033[0m"; BOLD = "\033[1m"; DIM = "\033[2m"
-GREY = "\033[90m"; RED = "\033[91m"; GREEN = "\033[92m"
-YEL = "\033[93m"; BLUE = "\033[94m"; MAG = "\033[95m"; CYAN = "\033[96m"
+R = "\033[0m"
+BOLD = "\033[1m"
+DIM = "\033[2m"
+GREY = "\033[90m"
+RED = "\033[91m"
+GREEN = "\033[92m"
+YEL = "\033[93m"
+BLUE = "\033[94m"
+MAG = "\033[95m"
+CYAN = "\033[96m"
 
 
 def _enable_vt() -> None:
     for _s in (sys.stdout, sys.stderr):
         try:
-            _s.reconfigure(encoding="utf-8", errors="replace")  # survive cp1252 consoles
+            _s.reconfigure(
+                encoding="utf-8", errors="replace"
+            )  # survive cp1252 consoles
         except Exception:
             pass
     if os.name == "nt":
         try:
             import ctypes
+
             k = ctypes.windll.kernel32
             h = k.GetStdHandle(-11)
             mode = ctypes.c_uint32()
@@ -55,14 +68,21 @@ def _enable_vt() -> None:
 def find_subagent_dirs() -> list[str]:
     """All <project>/<session>/subagents dirs with agent transcripts (incl. nested workflow agents)."""
     pat = os.path.join(PROJECTS, "*", "*", "subagents")
-    return [d for d in glob.glob(pat)
-            if glob.glob(os.path.join(d, "**", "agent-*.jsonl"), recursive=True)]
+    return [
+        d
+        for d in glob.glob(pat)
+        if glob.glob(os.path.join(d, "**", "agent-*.jsonl"), recursive=True)
+    ]
 
 
 def newest_mtime(d: str) -> float:
-    return max((os.path.getmtime(p)
-                for p in glob.glob(os.path.join(d, "**", "agent-*.jsonl"), recursive=True)),
-               default=0.0)
+    return max(
+        (
+            os.path.getmtime(p)
+            for p in glob.glob(os.path.join(d, "**", "agent-*.jsonl"), recursive=True)
+        ),
+        default=0.0,
+    )
 
 
 def pick_active_dir() -> str | None:
@@ -94,17 +114,26 @@ def last_event_summary(jsonl: str, width: int) -> str:
             continue
         msg = o.get("message") if isinstance(o.get("message"), dict) else {}
         c = msg.get("content")
-        blocks = c if isinstance(c, list) else ([{"type": "text", "text": c}] if isinstance(c, str) else [])
+        blocks = (
+            c
+            if isinstance(c, list)
+            else ([{"type": "text", "text": c}] if isinstance(c, str) else [])
+        )
         for b in reversed(blocks):
             if not isinstance(b, dict):
                 continue
             t = b.get("type")
             if t == "tool_use":
-                return _one_line(f"🔧 {b.get('name')} " + json.dumps(b.get("input", {}), ensure_ascii=False), width)
+                return _one_line(
+                    f"🔧 {b.get('name')} "
+                    + json.dumps(b.get("input", {}), ensure_ascii=False),
+                    width,
+                )
             if t == "text" and b.get("text", "").strip():
                 return _one_line("📝 " + b["text"], width)
             if t == "tool_result":
-                rc = b.get("content"); s = rc if isinstance(rc, str) else json.dumps(rc, ensure_ascii=False)
+                rc = b.get("content")
+                s = rc if isinstance(rc, str) else json.dumps(rc, ensure_ascii=False)
                 return _one_line(("✗ " if b.get("is_error") else "↳ ") + s, width)
             if t == "thinking":
                 return _one_line("💭 " + b.get("thinking", ""), width)
@@ -136,17 +165,19 @@ def scan(subdir: str, active_secs: float, width: int) -> list[dict]:
         # workflow agents live under subagents/workflows/<wf-id>/agent-*.jsonl
         parts = os.path.relpath(jsonl, subdir).replace("\\", "/").split("/")
         wf = parts[parts.index("workflows") + 1] if "workflows" in parts[:-1] else ""
-        rows.append({
-            "jsonl": jsonl,
-            "name": meta.get("name") or os.path.basename(jsonl)[6:14],
-            "type": meta.get("agentType", "?"),
-            "desc": meta.get("description", ""),
-            "wf": wf,
-            "size": os.path.getsize(jsonl),
-            "age": age,
-            "running": age <= active_secs,
-            "last": last_event_summary(jsonl, max(20, width - 64)),
-        })
+        rows.append(
+            {
+                "jsonl": jsonl,
+                "name": meta.get("name") or os.path.basename(jsonl)[6:14],
+                "type": meta.get("agentType", "?"),
+                "desc": meta.get("description", ""),
+                "wf": wf,
+                "size": os.path.getsize(jsonl),
+                "age": age,
+                "running": age <= active_secs,
+                "last": last_event_summary(jsonl, max(20, width - 64)),
+            }
+        )
     rows.sort(key=lambda r: r["age"])  # most-recently-active first
     return rows
 
@@ -155,8 +186,10 @@ def print_table(rows: list[dict], subdir: str, width: int) -> None:
     sess = os.path.basename(os.path.dirname(subdir))
     running = sum(1 for r in rows if r["running"])
     wfn = sum(1 for r in rows if r.get("wf"))
-    print(f"{BOLD}{MAG}Claude Code subagents{R}  {DIM}session {sess[:8]} · "
-          f"{len(rows)} total · {R}{GREEN}{running} running{R}{DIM} · {wfn} in workflows{R}")
+    print(
+        f"{BOLD}{MAG}Claude Code subagents{R}  {DIM}session {sess[:8]} · "
+        f"{len(rows)} total · {R}{GREEN}{running} running{R}{DIM} · {wfn} in workflows{R}"
+    )
     print(f"{DIM}{'─' * min(width, 120)}{R}")
     for r in rows:
         if r["running"]:
@@ -181,7 +214,17 @@ def spawn(rows: list[dict], use_wt: bool, tabs: bool) -> int:
         title = f"{r['name']}"
         if use_wt:
             if tabs:
-                args = ["wt", "-w", "agentmon", "new-tab", "--title", title, py, TAIL, r["jsonl"]]
+                args = [
+                    "wt",
+                    "-w",
+                    "agentmon",
+                    "new-tab",
+                    "--title",
+                    title,
+                    py,
+                    TAIL,
+                    r["jsonl"],
+                ]
             else:
                 args = ["wt", "-w", "new", "--title", title, py, TAIL, r["jsonl"]]
             try:
@@ -191,13 +234,22 @@ def spawn(rows: list[dict], use_wt: bool, tabs: bool) -> int:
                 use_wt = False
         if not use_wt:
             # Own console window per agent via CREATE_NEW_CONSOLE — no shell, no `start`.
-            t = title.replace("'", "''"); p = py.replace("'", "''"); j = r["jsonl"].replace("'", "''")
+            t = title.replace("'", "''")
+            p = py.replace("'", "''")
+            j = r["jsonl"].replace("'", "''")
             inner = f"$host.UI.RawUI.WindowTitle='{t}'; & '{p}' '{TAIL}' '{j}'"
             try:
-                subprocess.Popen(["powershell", "-NoExit", "-NoProfile", "-Command", inner],
-                                 creationflags=_NEW_CONSOLE, close_fds=True)
-            except FileNotFoundError:  # no powershell -> run the tailer directly in a new console
-                subprocess.Popen([py, TAIL, r["jsonl"]], creationflags=_NEW_CONSOLE, close_fds=True)
+                subprocess.Popen(
+                    ["powershell", "-NoExit", "-NoProfile", "-Command", inner],
+                    creationflags=_NEW_CONSOLE,
+                    close_fds=True,
+                )
+            except (
+                FileNotFoundError
+            ):  # no powershell -> run the tailer directly in a new console
+                subprocess.Popen(
+                    [py, TAIL, r["jsonl"]], creationflags=_NEW_CONSOLE, close_fds=True
+                )
         n += 1
         time.sleep(0.35)  # stagger so terminals don't race the window manager
     return n
@@ -206,18 +258,48 @@ def spawn(rows: list[dict], use_wt: bool, tabs: bool) -> int:
 def main() -> int:
     _enable_vt()
     ap = argparse.ArgumentParser(description="Claude Code subagent monitor / spawner.")
-    ap.add_argument("--dir", help="explicit <session>/subagents dir (default: most recently active)")
-    ap.add_argument("--session", help="match a session id substring instead of auto-pick")
-    ap.add_argument("--watch", action="store_true", help="live-refresh the dashboard in this window")
-    ap.add_argument("--spawn", action="store_true", help="open one terminal per agent and tail it")
-    ap.add_argument("--all", action="store_true", help="include finished agents (not just running)")
-    ap.add_argument("--match", action="append", default=[], metavar="SUBSTR",
-                    help="spawn the most-recent agent whose name/description contains SUBSTR "
-                         "(repeatable; ignores the running filter)")
-    ap.add_argument("--tabs", action="store_true", help="spawn as tabs in one Windows-Terminal window")
-    ap.add_argument("--no-wt", action="store_true", help="force classic PowerShell windows (no wt.exe)")
-    ap.add_argument("--active-secs", type=float, default=150.0, help="age under which an agent counts as running")
-    ap.add_argument("--interval", type=float, default=2.0, help="--watch refresh seconds")
+    ap.add_argument(
+        "--dir", help="explicit <session>/subagents dir (default: most recently active)"
+    )
+    ap.add_argument(
+        "--session", help="match a session id substring instead of auto-pick"
+    )
+    ap.add_argument(
+        "--watch", action="store_true", help="live-refresh the dashboard in this window"
+    )
+    ap.add_argument(
+        "--spawn", action="store_true", help="open one terminal per agent and tail it"
+    )
+    ap.add_argument(
+        "--all", action="store_true", help="include finished agents (not just running)"
+    )
+    ap.add_argument(
+        "--match",
+        action="append",
+        default=[],
+        metavar="SUBSTR",
+        help="spawn the most-recent agent whose name/description contains SUBSTR "
+        "(repeatable; ignores the running filter)",
+    )
+    ap.add_argument(
+        "--tabs",
+        action="store_true",
+        help="spawn as tabs in one Windows-Terminal window",
+    )
+    ap.add_argument(
+        "--no-wt",
+        action="store_true",
+        help="force classic PowerShell windows (no wt.exe)",
+    )
+    ap.add_argument(
+        "--active-secs",
+        type=float,
+        default=150.0,
+        help="age under which an agent counts as running",
+    )
+    ap.add_argument(
+        "--interval", type=float, default=2.0, help="--watch refresh seconds"
+    )
     a = ap.parse_args()
 
     try:
@@ -242,8 +324,13 @@ def main() -> int:
             targets, seen = [], set()
             for m in (x.lower() for x in a.match):
                 for r in rows:  # first hit per phrase = most recent matching agent
-                    if m in (r["name"] + " " + r["desc"]).lower() and r["jsonl"] not in seen:
-                        targets.append(r); seen.add(r["jsonl"]); break
+                    if (
+                        m in (r["name"] + " " + r["desc"]).lower()
+                        and r["jsonl"] not in seen
+                    ):
+                        targets.append(r)
+                        seen.add(r["jsonl"])
+                        break
         else:
             targets = rows if a.all else [r for r in rows if r["running"]]
         if not targets:
@@ -252,7 +339,11 @@ def main() -> int:
                 return 0
         else:
             use_wt = bool(shutil.which("wt")) and not a.no_wt
-            how = "Windows-Terminal " + ("tabs" if a.tabs else "windows") if use_wt else "PowerShell windows"
+            how = (
+                "Windows-Terminal " + ("tabs" if a.tabs else "windows")
+                if use_wt
+                else "PowerShell windows"
+            )
             print(f"{CYAN}Opening {len(targets)} {how} (one per agent)…{R}")
             spawn(targets, use_wt, a.tabs)
 
@@ -261,8 +352,10 @@ def main() -> int:
             while True:
                 sys.stdout.write("\033[2J\033[H")  # clear + home
                 print_table(scan(subdir, a.active_secs, width), subdir, width)
-                print(f"{DIM}refresh {a.interval}s · Ctrl-C to quit · spawn: "
-                      f"python agent_monitor.py --spawn{R}")
+                print(
+                    f"{DIM}refresh {a.interval}s · Ctrl-C to quit · spawn: "
+                    f"python agent_monitor.py --spawn{R}"
+                )
                 time.sleep(a.interval)
         except KeyboardInterrupt:
             return 0

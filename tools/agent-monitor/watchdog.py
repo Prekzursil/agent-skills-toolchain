@@ -13,6 +13,7 @@ Usage:
   python watchdog.py --kill                # also terminate the stalled child (default: alert only)
   python watchdog.py --once                # single check (for cron/scripts), exit 2 if frozen
 """
+
 from __future__ import annotations
 
 import argparse
@@ -34,8 +35,9 @@ def newest_jsonl_mtime(d: str):
 def autodetect_subagents_dir():
     """Pick the subagents dir with the most recent activity under ~/.claude/projects."""
     base = os.path.join(os.path.expanduser("~"), ".claude", "projects")
-    cands = glob.glob(os.path.join(base, "*", "*", "subagents")) + \
-        glob.glob(os.path.join(base, "*", "*", "subagents", "workflows", "*"))
+    cands = glob.glob(os.path.join(base, "*", "*", "subagents")) + glob.glob(
+        os.path.join(base, "*", "*", "subagents", "workflows", "*")
+    )
     best, best_m = None, -1.0
     for d in cands:
         _, m = newest_jsonl_mtime(d)
@@ -50,11 +52,18 @@ def alert(msg: str):
     # best-effort Windows toast; never fail the watchdog if it's unavailable
     try:
         import subprocess
-        subprocess.run(["powershell", "-NoProfile", "-Command",
-                        "[void][System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms');"
-                        "[System.Windows.Forms.MessageBox]::Show('Claude Code agent appears frozen "
-                        "(SSE hang). Send any message to revive the stream.','Watchdog')"],
-                       timeout=5)
+
+        subprocess.run(
+            [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                "[void][System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms');"
+                "[System.Windows.Forms.MessageBox]::Show('Claude Code agent appears frozen "
+                "(SSE hang). Send any message to revive the stream.','Watchdog')",
+            ],
+            timeout=5,
+        )
     except Exception:
         pass
 
@@ -63,8 +72,12 @@ def maybe_kill(jsonl_path: str):
     """Best-effort: kill the claude process tree (opt-in). A new user message also revives the stream."""
     try:
         import subprocess
-        subprocess.run(["taskkill", "/IM", "claude.exe", "/T", "/F"], timeout=10,
-                       capture_output=True)
+
+        subprocess.run(
+            ["taskkill", "/IM", "claude.exe", "/T", "/F"],
+            timeout=10,
+            capture_output=True,
+        )
         print("[WATCHDOG] sent taskkill to claude.exe tree", flush=True)
     except Exception as e:
         print(f"[WATCHDOG] kill failed: {e}", flush=True)
@@ -84,21 +97,33 @@ def main() -> int:
     ap.add_argument("--dir", default=None, help="subagents dir (default: autodetect)")
     ap.add_argument("--stale-min", type=float, default=25.0)
     ap.add_argument("--poll", type=float, default=60.0)
-    ap.add_argument("--kill", action="store_true", help="also terminate the stalled child (default: alert only)")
-    ap.add_argument("--once", action="store_true", help="single check then exit (2 if frozen)")
+    ap.add_argument(
+        "--kill",
+        action="store_true",
+        help="also terminate the stalled child (default: alert only)",
+    )
+    ap.add_argument(
+        "--once", action="store_true", help="single check then exit (2 if frozen)"
+    )
     a = ap.parse_args()
 
     d = a.dir or autodetect_subagents_dir()
     if not d or not os.path.isdir(d):
-        print("[WATCHDOG] no subagents dir found — pass --dir <path>. Nothing to watch.")
+        print(
+            "[WATCHDOG] no subagents dir found — pass --dir <path>. Nothing to watch."
+        )
         return 1
     stale_s = a.stale_min * 60.0
-    print(f"[WATCHDOG] watching {d} | stale>{a.stale_min}min | poll={a.poll}s | kill={a.kill}")
+    print(
+        f"[WATCHDOG] watching {d} | stale>{a.stale_min}min | poll={a.poll}s | kill={a.kill}"
+    )
 
     if a.once:
         frozen, p, age = check_once(d, stale_s)
         if frozen:
-            alert(f"{os.path.basename(p or '?')} idle {age/60:.1f} min (> {a.stale_min}).")
+            alert(
+                f"{os.path.basename(p or '?')} idle {age / 60:.1f} min (> {a.stale_min})."
+            )
             if a.kill:
                 maybe_kill(p)
             return 2
@@ -110,8 +135,10 @@ def main() -> int:
         try:
             frozen, p, age = check_once(d, stale_s)
             if frozen and p != alerted_for:
-                alert(f"{os.path.basename(p or '?')} idle {age/60:.1f} min (> {a.stale_min}). "
-                      f"Send any message to revive the SSE stream.")
+                alert(
+                    f"{os.path.basename(p or '?')} idle {age / 60:.1f} min (> {a.stale_min}). "
+                    f"Send any message to revive the SSE stream."
+                )
                 if a.kill:
                     maybe_kill(p)
                 alerted_for = p

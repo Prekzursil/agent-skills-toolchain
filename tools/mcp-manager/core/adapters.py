@@ -9,6 +9,7 @@ decide when to apply. Never auto-mutates real config on import.
 - Codex   : flip [mcp_servers.<name>].enabled via tomlkit (preserves comments/quoting),
             validated by tomllib after write.
 """
+
 from __future__ import annotations
 
 import json
@@ -22,8 +23,14 @@ def _backup(path: Path) -> Path:
     return bak
 
 
-def claude_set_disabled(claude_json: Path, project_path: str, server_id: str,
-                        disabled: bool, *, backup: bool = True) -> bool:
+def claude_set_disabled(
+    claude_json: Path,
+    project_path: str,
+    server_id: str,
+    disabled: bool,
+    *,
+    backup: bool = True,
+) -> bool:
     """Add/remove server_id in projects[project_path].disabledMcpServers.
 
     Returns True if a change was written. Preserves all other keys (targeted edit).
@@ -45,8 +52,9 @@ def claude_set_disabled(claude_json: Path, project_path: str, server_id: str,
     return True
 
 
-def codex_set_enabled(config_toml: Path, server_name: str, enabled: bool,
-                      *, backup: bool = True) -> bool:
+def codex_set_enabled(
+    config_toml: Path, server_name: str, enabled: bool, *, backup: bool = True
+) -> bool:
     """Flip [mcp_servers.<name>].enabled via tomlkit; validate with tomllib."""
     import tomlkit  # provided via uv --with tomlkit
 
@@ -64,6 +72,7 @@ def codex_set_enabled(config_toml: Path, server_name: str, enabled: bool,
     # validate before committing the write
     try:
         import tomllib
+
         tomllib.loads(out)
     except Exception as exc:  # pragma: no cover - defensive
         raise ValueError(f"refusing to write invalid TOML: {exc}") from exc

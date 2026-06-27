@@ -3,11 +3,11 @@
 Uses a temp EVENT_LEDGER_ROOT seeded with synthetic events.
 Run: python test_prune_oats.py
 """
+
 from __future__ import annotations
 
 import importlib
 import importlib.util
-import json
 import os
 import sys
 import tempfile
@@ -36,8 +36,9 @@ def _seed_project(ledger_mod, project: str, tool_events: dict[str, int]) -> None
     """Seed a project with synthetic turn events carrying tool= field."""
     for tool, count in tool_events.items():
         for _ in range(count):
-            ledger_mod.append(project, "turn", head="abc123", branch="main",
-                              dirty_files=0, tool=tool)
+            ledger_mod.append(
+                project, "turn", head="abc123", branch="main", dirty_files=0, tool=tool
+            )
 
 
 def main() -> int:
@@ -63,6 +64,7 @@ def main() -> int:
     # Reload ledger so ROOT picks up the new env var                      #
     # ------------------------------------------------------------------ #
     import ledger as _ledger_orig
+
     ledger = importlib.reload(_ledger_orig)
 
     # Load prune and oats fresh; they import ledger at module load time,
@@ -81,10 +83,11 @@ def main() -> int:
     # ------------------------------------------------------------------ #
     print("== oats: inert with no selection events ==")
     oats_status = oats.status()
-    check("oats reports inert when 0 selection events",
-          "OATS inert" in oats_status and "0 selection events" in oats_status)
-    check("oats inert message mentions >=100 threshold",
-          "100" in oats_status)
+    check(
+        "oats reports inert when 0 selection events",
+        "OATS inert" in oats_status and "0 selection events" in oats_status,
+    )
+    check("oats inert message mentions >=100 threshold", "100" in oats_status)
 
     # ------------------------------------------------------------------ #
     # Section 2 — prune-report: sparse data advisory                     #
@@ -94,10 +97,10 @@ def main() -> int:
     _seed_project(ledger, proj_a, {"tool_alpha": 3, "tool_beta": 2})
     r_sparse = prune.report(min_events=100)
     check("sparse report says INSUFFICIENT DATA", "INSUFFICIENT DATA" in r_sparse)
-    check("sparse report shows 5 tool events",
-          "5 tool events" in r_sparse)
-    check("sparse report does NOT produce a ranking table",
-          "LEAST-FIRED" not in r_sparse)
+    check("sparse report shows 5 tool events", "5 tool events" in r_sparse)
+    check(
+        "sparse report does NOT produce a ranking table", "LEAST-FIRED" not in r_sparse
+    )
 
     # ------------------------------------------------------------------ #
     # Section 3 — prune-report: sufficient data + correct ranking        #
@@ -121,8 +124,10 @@ def main() -> int:
     # tool_delta (1) is least fired — should be the top prune candidate
     check("least-fired section contains tool_delta", "tool_delta" in r_full)
     # Report must not disable anything
-    check("report contains advisory note (never disables)",
-          "never disables" in r_full.lower() or "NEVER disables" in r_full)
+    check(
+        "report contains advisory note (never disables)",
+        "never disables" in r_full.lower() or "NEVER disables" in r_full,
+    )
 
     # Verify ranking order in the FULL RANKING section:
     # alpha(60) > gamma(30) > beta_new(7) > beta(2) > delta(1)
@@ -131,10 +136,8 @@ def main() -> int:
     pos_alpha = full_section.find("tool_alpha")
     pos_gamma = full_section.find("tool_gamma")
     pos_delta = full_section.find("tool_delta")
-    check("full ranking: alpha ranked above gamma",
-          0 <= pos_alpha < pos_gamma)
-    check("full ranking: gamma ranked above delta",
-          0 <= pos_gamma < pos_delta)
+    check("full ranking: alpha ranked above gamma", 0 <= pos_alpha < pos_gamma)
+    check("full ranking: gamma ranked above delta", 0 <= pos_gamma < pos_delta)
 
     # ------------------------------------------------------------------ #
     # Section 4 — prune-report: per-project event counts section        #
@@ -157,41 +160,51 @@ def main() -> int:
     # Restore
     if old_root is not None:
         os.environ["EVENT_LEDGER_ROOT"] = old_root
-    check("empty root gives advisory message (no crash)",
-          any(kw in r_empty for kw in ("empty", "does not exist", "INSUFFICIENT DATA")))
+    check(
+        "empty root gives advisory message (no crash)",
+        any(kw in r_empty for kw in ("empty", "does not exist", "INSUFFICIENT DATA")),
+    )
 
     # ------------------------------------------------------------------ #
     # Section 6 — oats: nudge vector math                                #
     # ------------------------------------------------------------------ #
     print("== oats: nudge vector math ==")
     e = [1.0, 0.0, 0.0]
-    q_pos = [[0.0, 1.0, 0.0]]   # mean(Q+) = [0, 1, 0]
-    q_neg = [[0.0, 0.0, 1.0]]   # mean(Q-) = [0, 0, 1]
+    q_pos = [[0.0, 1.0, 0.0]]  # mean(Q+) = [0, 1, 0]
+    q_neg = [[0.0, 0.0, 1.0]]  # mean(Q-) = [0, 0, 1]
     # ê = (1-0.3)*[1,0,0] + 0.3*[0,1,0] - 0.1*[0,0,1]
     #   = [0.7, 0.0, 0.0] + [0.0, 0.3, 0.0] - [0.0, 0.0, 0.1]
     #   = [0.7, 0.3, -0.1]
     nudged = oats.nudge(e, q_pos, q_neg)
     check("nudge dimension preserved", len(nudged) == 3)
-    check("nudge[0] ≈ 0.7 (positive pull reduces base component)",
-          abs(nudged[0] - 0.7) < 1e-9)
-    check("nudge[1] ≈ 0.3 (positive centroid pulled in)",
-          abs(nudged[1] - 0.3) < 1e-9)
-    check("nudge[2] ≈ -0.1 (negative centroid pushed away)",
-          abs(nudged[2] - (-0.1)) < 1e-9)
+    check(
+        "nudge[0] ≈ 0.7 (positive pull reduces base component)",
+        abs(nudged[0] - 0.7) < 1e-9,
+    )
+    check("nudge[1] ≈ 0.3 (positive centroid pulled in)", abs(nudged[1] - 0.3) < 1e-9)
+    check(
+        "nudge[2] ≈ -0.1 (negative centroid pushed away)",
+        abs(nudged[2] - (-0.1)) < 1e-9,
+    )
 
     # Edge: empty negative pool — Q- term dropped, only positive pull.
     nudged_no_neg = oats.nudge(e, q_pos, [])
-    check("nudge with empty Q-: dim-2 stays 0.0 (no negative push)",
-          abs(nudged_no_neg[2] - 0.0) < 1e-9)
-    check("nudge with empty Q-: dim-1 = 0.3 (positive pull present)",
-          abs(nudged_no_neg[1] - 0.3) < 1e-9)
+    check(
+        "nudge with empty Q-: dim-2 stays 0.0 (no negative push)",
+        abs(nudged_no_neg[2] - 0.0) < 1e-9,
+    )
+    check(
+        "nudge with empty Q-: dim-1 = 0.3 (positive pull present)",
+        abs(nudged_no_neg[1] - 0.3) < 1e-9,
+    )
 
     # Edge: both pools empty — returns (1-α)*e.
     nudged_empty = oats.nudge(e, [], [])
-    check("nudge with empty pools: dim-0 = (1-α)*1.0",
-          abs(nudged_empty[0] - (1 - oats.ALPHA) * 1.0) < 1e-9)
-    check("nudge with empty pools: dim-1 = 0.0",
-          abs(nudged_empty[1] - 0.0) < 1e-9)
+    check(
+        "nudge with empty pools: dim-0 = (1-α)*1.0",
+        abs(nudged_empty[0] - (1 - oats.ALPHA) * 1.0) < 1e-9,
+    )
+    check("nudge with empty pools: dim-1 = 0.0", abs(nudged_empty[1] - 0.0) < 1e-9)
 
     # ------------------------------------------------------------------ #
     # Section 7 — oats: rank passthrough (scaffold no-op)               #
@@ -207,14 +220,18 @@ def main() -> int:
     # ------------------------------------------------------------------ #
     print("== oats: update dry-run scaffold ==")
     update_out = oats.update(dry_run=True)
-    check("update with no selection events reports inert",
-          "inert" in update_out.lower() or "OATS inert" in update_out)
+    check(
+        "update with no selection events reports inert",
+        "inert" in update_out.lower() or "OATS inert" in update_out,
+    )
 
     # ------------------------------------------------------------------ #
     # Summary                                                             #
     # ------------------------------------------------------------------ #
-    print(f"\nRESULT: {'PASS' if not fails else 'FAIL: ' + ', '.join(fails)}  "
-          f"({len(fails)} failures)")
+    print(
+        f"\nRESULT: {'PASS' if not fails else 'FAIL: ' + ', '.join(fails)}  "
+        f"({len(fails)} failures)"
+    )
     return 1 if fails else 0
 
 

@@ -92,7 +92,7 @@ export async function runCodexExec({
   args.push(String(prompt || ''));
 
   const codexInvocation = await resolveCodexInvocation({ env, platform: process.platform, nodeExecutable: process.execPath });
-  const child = spawn(codexInvocation.command, [...codexInvocation.args, ...args], {
+  const child = spawn(codexInvocation.command, [...codexInvocation.args, ...args], {  // nosemgrep: javascript.lang.security.audit.spawn-shell-true.spawn-shell-true -- shell option defaults to false; args controlled internally
     cwd,
     env,
     shell: codexInvocation.shell || false,

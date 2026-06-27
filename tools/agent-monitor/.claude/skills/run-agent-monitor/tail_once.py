@@ -8,6 +8,7 @@ transcript can be dumped headlessly.
 
 Usage:  python tail_once.py <path-to-agent-*.jsonl> [N]   (N = events, default 8)
 """
+
 from __future__ import annotations
 
 import os
@@ -15,7 +16,9 @@ import sys
 
 # Put the repo root (three dirs up from this skill file) on sys.path so the
 # stdlib-only agent_tail module imports regardless of the current directory.
-_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+_ROOT = os.path.abspath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..")
+)
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 

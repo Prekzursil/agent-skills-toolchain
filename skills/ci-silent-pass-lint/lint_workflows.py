@@ -85,8 +85,8 @@ _RE_S03 = re.compile(r"\bmode\s*:\s*['\"]?audit['\"]?", re.IGNORECASE)
 # S04a — uploads with no token / empty token
 # Catches: codecov/codecov-action token:, fail_ci_if_error: false
 _RE_S04_NO_TOKEN = re.compile(
-    r"(token\s*:\s*$"               # token: <nothing>
-    r"|token\s*:\s*['\"]['\"]"      # token: ''  or  token: ""
+    r"(token\s*:\s*$"  # token: <nothing>
+    r"|token\s*:\s*['\"]['\"]"  # token: ''  or  token: ""
     r"|fail_ci_if_error\s*:\s*false"
     r")",
     re.IGNORECASE,
@@ -96,9 +96,9 @@ _RE_S04_NO_TOKEN = re.compile(
 # S05 — set +e without recheck; "; true"; pipe masks failure
 _RE_S05 = re.compile(
     r"("
-    r"set\s+\+e"            # set +e (disables exit-on-error)
-    r"|;\s*true\b"          # ; true (swallows previous exit code)
-    r"|\|\s*true\b"         # | true (piped to true, masks exit)
+    r"set\s+\+e"  # set +e (disables exit-on-error)
+    r"|;\s*true\b"  # ; true (swallows previous exit code)
+    r"|\|\s*true\b"  # | true (piped to true, masks exit)
     r")",
 )
 
@@ -122,13 +122,13 @@ _RE_S08 = re.compile(
     r"("
     r"--exit-zero"
     r"|--no-error\b"
-    r"|--error-on-unmatched-pattern\s+false"   # semgrep variant
-    r"|--max-count=0"                           # grep-as-gate silencer
+    r"|--error-on-unmatched-pattern\s+false"  # semgrep variant
+    r"|--max-count=0"  # grep-as-gate silencer
     r"|error_on_failure\s*:\s*false"
     r"|--warning-as-error\s+false"
     r"|severity\s*:\s*['\"]?(none|off|disabled)['\"]?"
-    r"|-W\s+ignore"                             # python -W ignore
-    r"|--fail-under\s+0\b"                      # coverage --fail-under 0
+    r"|-W\s+ignore"  # python -W ignore
+    r"|--fail-under\s+0\b"  # coverage --fail-under 0
     r")",
     re.IGNORECASE,
 )
@@ -143,6 +143,7 @@ _RE_S09_JOB = re.compile(r"^(\s{0,4})(\S[\w\-]+)\s*:", re.MULTILINE)
 # ---------------------------------------------------------------------------
 # Line-by-line scanner (provides file:line + snippet for all shapes)
 # ---------------------------------------------------------------------------
+
 
 def _scan_lines(path: Path, lines: list[str]) -> list[Finding]:
     findings: list[Finding] = []
@@ -162,40 +163,56 @@ def _scan_lines(path: Path, lines: list[str]) -> list[Finding]:
 
         # S01 — continue-on-error: true
         if _RE_S01.search(line):
-            findings.append(Finding(
-                file=fname, line=lineno, shape="S01",
-                severity="HIGH",
-                snippet=stripped,
-                message="continue-on-error: true on a gate/analysis step masks step failures",
-            ))
+            findings.append(
+                Finding(
+                    file=fname,
+                    line=lineno,
+                    shape="S01",
+                    severity="HIGH",
+                    snippet=stripped,
+                    message="continue-on-error: true on a gate/analysis step masks step failures",
+                )
+            )
 
         # S02 — || true / || exit 0
         m = _RE_S02.search(line)
         if m:
-            findings.append(Finding(
-                file=fname, line=lineno, shape="S02",
-                severity="HIGH",
-                snippet=stripped,
-                message=f"Exit-code swallow via '|| {m.group(1)}' — command failures silently ignored",
-            ))
+            findings.append(
+                Finding(
+                    file=fname,
+                    line=lineno,
+                    shape="S02",
+                    severity="HIGH",
+                    snippet=stripped,
+                    message=f"Exit-code swallow via '|| {m.group(1)}' — command failures silently ignored",
+                )
+            )
 
         # S03 — mode: audit
         if _RE_S03.search(line):
-            findings.append(Finding(
-                file=fname, line=lineno, shape="S03",
-                severity="HIGH",
-                snippet=stripped,
-                message="Policy mode: audit — issues are reported but the step never fails",
-            ))
+            findings.append(
+                Finding(
+                    file=fname,
+                    line=lineno,
+                    shape="S03",
+                    severity="HIGH",
+                    snippet=stripped,
+                    message="Policy mode: audit — issues are reported but the step never fails",
+                )
+            )
 
         # S04a — token-less / fail_ci_if_error:false
         if _RE_S04_NO_TOKEN.search(line):
-            findings.append(Finding(
-                file=fname, line=lineno, shape="S04",
-                severity="HIGH",
-                snippet=stripped,
-                message="Upload with empty/missing token or fail_ci_if_error:false — silently no-ops when unauthenticated",
-            ))
+            findings.append(
+                Finding(
+                    file=fname,
+                    line=lineno,
+                    shape="S04",
+                    severity="HIGH",
+                    snippet=stripped,
+                    message="Upload with empty/missing token or fail_ci_if_error:false — silently no-ops when unauthenticated",
+                )
+            )
 
         # S05 — set +e / ; true / | true
         # Skip lines already caught by S02 (|| true / || exit 0) to avoid
@@ -203,22 +220,30 @@ def _scan_lines(path: Path, lines: list[str]) -> list[Finding]:
         already_s02 = bool(_RE_S02.search(line))
         m5 = _RE_S05.search(line)
         if m5 and not already_s02:
-            findings.append(Finding(
-                file=fname, line=lineno, shape="S05",
-                severity="HIGH",
-                snippet=stripped,
-                message=f"Exit-code suppression via '{m5.group(1).strip()}' — upstream failures masked",
-            ))
+            findings.append(
+                Finding(
+                    file=fname,
+                    line=lineno,
+                    shape="S05",
+                    severity="HIGH",
+                    snippet=stripped,
+                    message=f"Exit-code suppression via '{m5.group(1).strip()}' — upstream failures masked",
+                )
+            )
 
         # S06 — pinned SHA in a run step argument (not uses: lines)
         if "--ref" in line or "--sha" in line or "--commit" in line:
             if _RE_S06.search(line):
-                findings.append(Finding(
-                    file=fname, line=lineno, shape="S06",
-                    severity="MEDIUM",
-                    snippet=stripped,
-                    message="Hardcoded SHA passed as --ref/--sha/--commit argument; gate may analyze a stale commit rather than HEAD",
-                ))
+                findings.append(
+                    Finding(
+                        file=fname,
+                        line=lineno,
+                        shape="S06",
+                        severity="MEDIUM",
+                        snippet=stripped,
+                        message="Hardcoded SHA passed as --ref/--sha/--commit argument; gate may analyze a stale commit rather than HEAD",
+                    )
+                )
 
         # S07 — if: always() near a "success/pass/green/summary" step name
         if _RE_S07_NAME.search(line):
@@ -228,24 +253,32 @@ def _scan_lines(path: Path, lines: list[str]) -> list[Finding]:
         if _RE_S07_IF.search(line):
             # Flag only if a matching step name was seen in the last 5 lines
             if recent_name and (lineno - recent_name_lineno) <= 5:
-                findings.append(Finding(
-                    file=fname, line=lineno, shape="S07",
-                    severity="LOW",
-                    snippet=stripped,
-                    message=(
-                        f"if: always() on step '{recent_name}' — "
-                        "success-summary step runs regardless of upstream failures"
-                    ),
-                ))
+                findings.append(
+                    Finding(
+                        file=fname,
+                        line=lineno,
+                        shape="S07",
+                        severity="LOW",
+                        snippet=stripped,
+                        message=(
+                            f"if: always() on step '{recent_name}' — "
+                            "success-summary step runs regardless of upstream failures"
+                        ),
+                    )
+                )
 
         # S08 — soft thresholds
         if _RE_S08.search(line):
-            findings.append(Finding(
-                file=fname, line=lineno, shape="S08",
-                severity="HIGH",
-                snippet=stripped,
-                message="Soft threshold flag detected — tool exit code suppressed, findings never fail the gate",
-            ))
+            findings.append(
+                Finding(
+                    file=fname,
+                    line=lineno,
+                    shape="S08",
+                    severity="HIGH",
+                    snippet=stripped,
+                    message="Soft threshold flag detected — tool exit code suppressed, findings never fail the gate",
+                )
+            )
 
     return findings
 
@@ -253,6 +286,7 @@ def _scan_lines(path: Path, lines: list[str]) -> list[Finding]:
 # ---------------------------------------------------------------------------
 # Structural scanner via PyYAML (S10, S11; best-effort when available)
 # ---------------------------------------------------------------------------
+
 
 def _scan_structural(path: Path, content: str) -> list[Finding]:
     """Parse workflow YAML to detect cross-step / cross-job shapes."""
@@ -281,7 +315,8 @@ def _scan_structural(path: Path, content: str) -> list[Finding]:
             if matrix:
                 # Look for any job that declares a "needs:" containing this job
                 has_aggregate = any(
-                    job_name in (
+                    job_name
+                    in (
                         (other.get("needs", []) or [])
                         if isinstance(other.get("needs", []), list)
                         else [other.get("needs")]
@@ -290,15 +325,19 @@ def _scan_structural(path: Path, content: str) -> list[Finding]:
                     if isinstance(other, dict) and other_name != job_name
                 )
                 if not has_aggregate:
-                    findings.append(Finding(
-                        file=fname, line=0, shape="S11",
-                        severity="MEDIUM",
-                        snippet=f"jobs.{job_name}.strategy.fail-fast: false",
-                        message=(
-                            f"Job '{job_name}' uses fail-fast:false with a matrix but no aggregate "
-                            "gate job depends on it — one failing leg won't block the overall workflow"
-                        ),
-                    ))
+                    findings.append(
+                        Finding(
+                            file=fname,
+                            line=0,
+                            shape="S11",
+                            severity="MEDIUM",
+                            snippet=f"jobs.{job_name}.strategy.fail-fast: false",
+                            message=(
+                                f"Job '{job_name}' uses fail-fast:false with a matrix but no aggregate "
+                                "gate job depends on it — one failing leg won't block the overall workflow"
+                            ),
+                        )
+                    )
 
     # S10 — upload step without downstream fail-on-findings gate
     # Heuristic: any step whose uses: contains "upload" or "publish" with no
@@ -333,16 +372,22 @@ def _scan_structural(path: Path, content: str) -> list[Finding]:
             # Check if any gate step follows this upload step
             has_gate_after = any(gidx > uidx for gidx in gate_step_indices)
             if not has_gate_after:
-                step_name = steps[uidx].get("name", steps[uidx].get("uses", f"step[{uidx}]"))
-                findings.append(Finding(
-                    file=fname, line=0, shape="S10",
-                    severity="MEDIUM",
-                    snippet=f"jobs.{job_name}.steps[{uidx}] ({step_name})",
-                    message=(
-                        f"Upload/publish step '{step_name}' in job '{job_name}' has no "
-                        "fail-on-findings gate after it — findings are uploaded but never block"
-                    ),
-                ))
+                step_name = steps[uidx].get(
+                    "name", steps[uidx].get("uses", f"step[{uidx}]")
+                )
+                findings.append(
+                    Finding(
+                        file=fname,
+                        line=0,
+                        shape="S10",
+                        severity="MEDIUM",
+                        snippet=f"jobs.{job_name}.steps[{uidx}] ({step_name})",
+                        message=(
+                            f"Upload/publish step '{step_name}' in job '{job_name}' has no "
+                            "fail-on-findings gate after it — findings are uploaded but never block"
+                        ),
+                    )
+                )
 
     return findings
 
@@ -350,6 +395,7 @@ def _scan_structural(path: Path, content: str) -> list[Finding]:
 # ---------------------------------------------------------------------------
 # Main scanner
 # ---------------------------------------------------------------------------
+
 
 def scan_repo(repo_path: Path) -> list[Finding]:
     workflow_dir = repo_path / ".github" / "workflows"
@@ -373,7 +419,9 @@ def scan_repo(repo_path: Path) -> list[Finding]:
         try:
             content = wf_path.read_text(encoding="utf-8")
         except OSError as exc:
-            print(f"[ci-silent-pass-lint] Cannot read {wf_path}: {exc}", file=sys.stderr)
+            print(
+                f"[ci-silent-pass-lint] Cannot read {wf_path}: {exc}", file=sys.stderr
+            )
             continue
         lines = content.splitlines(keepends=True)
         all_findings.extend(_scan_lines(wf_path, lines))
@@ -391,10 +439,10 @@ def scan_repo(repo_path: Path) -> list[Finding]:
 # ---------------------------------------------------------------------------
 
 SEVERITY_LABEL = {
-    "HIGH":   "[HIGH  ]",
+    "HIGH": "[HIGH  ]",
     "MEDIUM": "[MEDIUM]",
-    "LOW":    "[LOW   ]",
-    "INFO":   "[INFO  ]",
+    "LOW": "[LOW   ]",
+    "INFO": "[INFO  ]",
 }
 
 
@@ -407,8 +455,10 @@ def report(findings: list[Finding]) -> None:
     for f in findings:
         counts[f.severity] = counts.get(f.severity, 0) + 1
 
-    print(f"[ci-silent-pass-lint] {len(findings)} finding(s) across "
-          f"{len({f.file for f in findings})} file(s):\n")
+    print(
+        f"[ci-silent-pass-lint] {len(findings)} finding(s) across "
+        f"{len({f.file for f in findings})} file(s):\n"
+    )
 
     for f in findings:
         loc = f"{f.file}:{f.line}" if f.line else f"{f.file}"
@@ -417,10 +467,12 @@ def report(findings: list[Finding]) -> None:
         print(f"    message : {f.message}")
         print()
 
-    print("Summary:", " | ".join(
-        f"{sev}={counts.get(sev, 0)}"
-        for sev in ("HIGH", "MEDIUM", "LOW", "INFO")
-    ))
+    print(
+        "Summary:",
+        " | ".join(
+            f"{sev}={counts.get(sev, 0)}" for sev in ("HIGH", "MEDIUM", "LOW", "INFO")
+        ),
+    )
 
     if counts.get("HIGH", 0) > 0:
         print(
@@ -432,6 +484,7 @@ def report(findings: list[Finding]) -> None:
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
@@ -447,7 +500,10 @@ def main(argv: list[str] | None = None) -> int:
 
     repo_path = Path(args.repo_path).resolve()
     if not repo_path.is_dir():
-        print(f"[ci-silent-pass-lint] ERROR: {repo_path} is not a directory.", file=sys.stderr)
+        print(
+            f"[ci-silent-pass-lint] ERROR: {repo_path} is not a directory.",
+            file=sys.stderr,
+        )
         return 2
 
     findings = scan_repo(repo_path)

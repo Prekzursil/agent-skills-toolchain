@@ -3,11 +3,12 @@
 # Pentru CodeForces / AtCoder unde aveti acces la PyPy, foloseste PyPy daca posibil.
 
 from array import array
-import sys
+
 
 class FastScanner(object):
     """Citire rapida din bytes. Tinta: ~10^7 inturi pe secunda.
     Pentru date mai mari, citeste tot fisierul intr-un buffer si parseaza octet cu octet."""
+
     def __init__(self, data):
         self.data = data
         self.n = len(data)
@@ -43,7 +44,7 @@ fin.close()
 
 # === Parse ===
 N = fs.read_int()
-a = array('i', [0]) * N  # 4 bytes/element, mult mai bine decat list
+a = array("i", [0]) * N  # 4 bytes/element, mult mai bine decat list
 for i in range(N):
     a[i] = fs.read_int()
 

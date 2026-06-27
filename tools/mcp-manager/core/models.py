@@ -4,6 +4,7 @@ ServerRow   — one server (merged across planes); the unit the UI/CLI displays.
 Loadout     — a named set of servers that should be disabled by default.
 AuthStatus  — how the server authenticates (informational; from discovery).
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -34,13 +35,13 @@ class AuthStatus(str, Enum):
 class ServerRow:
     """Merged view of a single MCP server across all planes."""
 
-    id: str                         # exact namespaced toggle identifier for Claude
-    name: str                       # human-readable short name
+    id: str  # exact namespaced toggle identifier for Claude
+    name: str  # human-readable short name
     planes: list[str] = field(default_factory=list)
     enabled: bool = True
     status: AuthStatus = AuthStatus.UNKNOWN
-    auth: str = ""                  # raw auth description from mcp list output
-    command: str = ""               # transport/command string (informational)
+    auth: str = ""  # raw auth description from mcp list output
+    command: str = ""  # transport/command string (informational)
     extra: dict[str, Any] = field(default_factory=dict)  # plane-specific raw data
 
     @property
@@ -73,7 +74,7 @@ class Loadout:
 
     name: str = "defaults"
     disabled_ids: list[str] = field(default_factory=list)
-    raw: dict[str, Any] = field(default_factory=dict)   # all keys from the file
+    raw: dict[str, Any] = field(default_factory=dict)  # all keys from the file
 
     def to_dict(self) -> dict[str, Any]:
         return {

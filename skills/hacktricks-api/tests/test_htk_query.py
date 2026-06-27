@@ -2,8 +2,8 @@
 burn zero RAG quota. Covers cache-hit (0 second HTTP), usage-guard refusal, key redaction on a
 401 error path (stdout+stderr), missing-key error, and deterministic cache keys.
 """
+
 import io
-import json
 import os
 import sys
 import urllib.error
@@ -24,7 +24,9 @@ def _env(monkeypatch, tmp_path):
 
 def test_missing_key(monkeypatch):
     monkeypatch.delenv("HACKTRICKS_API_KEY", raising=False)
-    monkeypatch.setattr(h, "_key_from_user_env", lambda: None)  # simulate no persisted user var
+    monkeypatch.setattr(
+        h, "_key_from_user_env", lambda: None
+    )  # simulate no persisted user var
     with pytest.raises(h.HtkError):
         h.usage()
 
@@ -36,8 +38,11 @@ def test_rag_cache_hit(monkeypatch):
         calls[method] += 1
         if path.endswith("/usage"):
             return {"used": 0, "limit": 50, "remaining": 50}
-        return {"results": [{"content": "x", "score": 1.0, "filename": "f.md"}],
-                "query": body["query"], "usage": {"used": 1, "limit": 50}}
+        return {
+            "results": [{"content": "x", "score": 1.0, "filename": "f.md"}],
+            "query": body["query"],
+            "usage": {"used": 1, "limit": 50},
+        }
 
     monkeypatch.setattr(h, "_http_json", fake)
     r1, cached1 = h.rag("aws iam privilege escalation")

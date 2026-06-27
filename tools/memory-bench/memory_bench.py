@@ -48,6 +48,7 @@ INDEXING_DELAY = 1.0
 # Data classes
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class Probe:
     id: str
@@ -71,7 +72,10 @@ class ProbeResult:
 # CLI wrappers
 # ---------------------------------------------------------------------------
 
-def run_bm(args: list[str], check: bool = True, retries: int = 3) -> subprocess.CompletedProcess:
+
+def run_bm(
+    args: list[str], check: bool = True, retries: int = 3
+) -> subprocess.CompletedProcess:
     """
     Run a basic-memory CLI command and return the CompletedProcess.
 
@@ -117,14 +121,21 @@ def project_remove(name: str) -> None:
 
 
 def write_note(title: str, folder: str, content: str, project: str) -> dict:
-    result = run_bm([
-        "tool", "write-note",
-        "--title", title,
-        "--folder", folder,
-        "--content", content,
-        "--project", project,
-        "--overwrite",
-    ])
+    result = run_bm(
+        [
+            "tool",
+            "write-note",
+            "--title",
+            title,
+            "--folder",
+            folder,
+            "--content",
+            content,
+            "--project",
+            project,
+            "--overwrite",
+        ]
+    )
     return json.loads(result.stdout)
 
 
@@ -144,12 +155,18 @@ def search_notes(query: str, project: str, page_size: int = 10) -> list[dict]:
     freshly written notes are discoverable without an extra reindex step.
     This matches how the MCP server exposes search to LLMs in practice.
     """
-    result = run_bm([
-        "tool", "search-notes", query,
-        "--project", project,
-        "--hybrid",
-        "--page-size", str(page_size),
-    ])
+    result = run_bm(
+        [
+            "tool",
+            "search-notes",
+            query,
+            "--project",
+            project,
+            "--hybrid",
+            "--page-size",
+            str(page_size),
+        ]
+    )
     data = json.loads(result.stdout)
     return data.get("results", [])
 
@@ -157,6 +174,7 @@ def search_notes(query: str, project: str, page_size: int = 10) -> list[dict]:
 # ---------------------------------------------------------------------------
 # Probe loading
 # ---------------------------------------------------------------------------
+
 
 def load_probes(path: Path) -> list[Probe]:
     probes = []
@@ -167,23 +185,28 @@ def load_probes(path: Path) -> list[Probe]:
                 continue
             try:
                 obj = json.loads(line)
-                probes.append(Probe(
-                    id=obj["id"],
-                    ability_class=obj["class"],
-                    setup_notes=obj["setup_notes"],
-                    question=obj["question"],
-                    expected_substrings=obj.get("expected_substrings", []),
-                    should_abstain=obj.get("should_abstain", False),
-                ))
+                probes.append(
+                    Probe(
+                        id=obj["id"],
+                        ability_class=obj["class"],
+                        setup_notes=obj["setup_notes"],
+                        question=obj["question"],
+                        expected_substrings=obj.get("expected_substrings", []),
+                        should_abstain=obj.get("should_abstain", False),
+                    )
+                )
             except (json.JSONDecodeError, KeyError) as exc:
-                print(f"  [WARN] Skipping malformed probe at line {lineno}: {exc}",
-                      file=sys.stderr)
+                print(
+                    f"  [WARN] Skipping malformed probe at line {lineno}: {exc}",
+                    file=sys.stderr,
+                )
     return probes
 
 
 # ---------------------------------------------------------------------------
 # Scoring
 # ---------------------------------------------------------------------------
+
 
 def score_probe(probe: Probe, search_results: list[dict]) -> ProbeResult:
     """
@@ -195,10 +218,7 @@ def score_probe(probe: Probe, search_results: list[dict]) -> ProbeResult:
       result's 'content' or 'matched_chunk' field (case-insensitive).
       expected_substrings is treated as OR-alternatives (any one match = pass).
     """
-    relevant = [
-        r for r in search_results
-        if r.get("score", 0.0) >= RELEVANCE_THRESHOLD
-    ]
+    relevant = [r for r in search_results if r.get("score", 0.0) >= RELEVANCE_THRESHOLD]
 
     if probe.should_abstain:
         if not relevant:
@@ -265,6 +285,7 @@ def score_probe(probe: Probe, search_results: list[dict]) -> ProbeResult:
 # Per-probe execution
 # ---------------------------------------------------------------------------
 
+
 def run_probe(probe: Probe, project: str, folder_prefix: str) -> ProbeResult:
     """Ingest setup_notes, search with question, score, then clean up notes."""
     # Each probe gets its own subfolder to avoid cross-contamination
@@ -300,13 +321,14 @@ def run_probe(probe: Probe, project: str, folder_prefix: str) -> ProbeResult:
                 # e.g. "bm-bench-scratch/bench/ie-01/Title" -> "bench/ie-01/Title"
                 stripped = note_id
                 if stripped.startswith(project + "/"):
-                    stripped = stripped[len(project) + 1:]
+                    stripped = stripped[len(project) + 1 :]
                 delete_note(stripped, project=project)
 
 
 # ---------------------------------------------------------------------------
 # Main benchmark runner
 # ---------------------------------------------------------------------------
+
 
 def run_benchmark(
     probes_path: Path,
@@ -321,14 +343,14 @@ def run_benchmark(
     scratch_dir = Path(tempfile.gettempdir()) / "bm-bench"
     scratch_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("  Basic-Memory Recall Benchmark")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"  Probes file : {probes_path}")
     print(f"  Scratch dir : {scratch_dir}")
     print(f"  Project     : {project_name}")
     print(f"  Results out : {results_path}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     # --- Verify real vault is not involved --------------------------------
     real_vault = Path("D:/basic-memory")
@@ -343,7 +365,7 @@ def run_benchmark(
     print(f"[INFO] Loaded {len(probes)} probes.\n")
 
     # --- Set up scratch project --------------------------------------------
-    project_remove(project_name)          # remove stale if exists
+    project_remove(project_name)  # remove stale if exists
     project_add(project_name, str(scratch_dir))
     print(f"[INFO] Scratch project '{project_name}' created at {scratch_dir}\n")
 
@@ -353,9 +375,15 @@ def run_benchmark(
     try:
         # --- Run each probe ------------------------------------------------
         for i, probe in enumerate(probes, 1):
-            print(f"  [{i:02d}/{len(probes)}] {probe.id} ({probe.ability_class}) ... ", end="", flush=True)
+            print(
+                f"  [{i:02d}/{len(probes)}] {probe.id} ({probe.ability_class}) ... ",
+                end="",
+                flush=True,
+            )
             try:
-                result = run_probe(probe, project=project_name, folder_prefix=folder_prefix)
+                result = run_probe(
+                    probe, project=project_name, folder_prefix=folder_prefix
+                )
                 probe_results.append(result)
                 status = "PASS" if result.passed else "FAIL"
                 print(f"{status}  — {result.reason}")
@@ -378,7 +406,9 @@ def run_benchmark(
                 shutil.rmtree(scratch_dir, ignore_errors=True)
             print("[INFO] Cleanup complete.")
         else:
-            print(f"\n[INFO] --no-cleanup set; scratch project '{project_name}' retained.")
+            print(
+                f"\n[INFO] --no-cleanup set; scratch project '{project_name}' retained."
+            )
 
     # --- Aggregate results ------------------------------------------------
     passed = sum(1 for r in probe_results if r.passed)
@@ -396,24 +426,26 @@ def run_benchmark(
             classes[cls]["passed"] += 1
 
     # --- Print summary ----------------------------------------------------
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("  RESULTS SUMMARY")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"  Overall pass-rate : {passed}/{total} ({pass_rate:.1%})")
     print()
     print("  Per-class breakdown:")
     for cls, counts in sorted(classes.items()):
         cls_rate = counts["passed"] / counts["total"] if counts["total"] else 0.0
         bar = "PASS" if cls_rate == 1.0 else ("PARTIAL" if cls_rate > 0 else "FAIL")
-        print(f"    {cls:<30} {counts['passed']}/{counts['total']}  ({cls_rate:.0%})  [{bar}]")
-    print(f"\n  Failed probes:")
+        print(
+            f"    {cls:<30} {counts['passed']}/{counts['total']}  ({cls_rate:.0%})  [{bar}]"
+        )
+    print("\n  Failed probes:")
     failed = [r for r in probe_results if not r.passed]
     if failed:
         for r in failed:
             print(f"    - {r.probe_id}: {r.reason}")
     else:
         print("    None — all probes passed.")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     # --- Write JSON results -----------------------------------------------
     output: dict[str, Any] = {
@@ -424,7 +456,9 @@ def run_benchmark(
             cls: {
                 "passed": counts["passed"],
                 "total": counts["total"],
-                "pass_rate": counts["passed"] / counts["total"] if counts["total"] else 0.0,
+                "pass_rate": counts["passed"] / counts["total"]
+                if counts["total"]
+                else 0.0,
             }
             for cls, counts in sorted(classes.items())
         },
@@ -438,7 +472,9 @@ def run_benchmark(
             for r in probe_results
         ],
     }
-    results_path.write_text(json.dumps(output, indent=2, ensure_ascii=False), encoding="utf-8")
+    results_path.write_text(
+        json.dumps(output, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     print(f"[INFO] Full results written to {results_path}\n")
 
     # Harness itself ran cleanly regardless of pass-rate
@@ -448,6 +484,7 @@ def run_benchmark(
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(

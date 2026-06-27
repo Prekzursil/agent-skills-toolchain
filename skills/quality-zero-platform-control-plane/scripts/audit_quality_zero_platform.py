@@ -28,8 +28,14 @@ RUN_NAMES = [
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Audit quality-zero-platform rollout truth for one repo.")
-    parser.add_argument("--repo", required=True, help="Target repo slug, for example Prekzursil/env-inspector")
+    parser = argparse.ArgumentParser(
+        description="Audit quality-zero-platform rollout truth for one repo."
+    )
+    parser.add_argument(
+        "--repo",
+        required=True,
+        help="Target repo slug, for example Prekzursil/env-inspector",
+    )
     parser.add_argument(
         "--controller-path",
         default="",
@@ -112,8 +118,12 @@ def dedupe_strings(items: list[str]) -> list[str]:
 
 
 class ControllerSource:
-    def __init__(self, controller_path: str, controller_ref: str, fixture_dir: str) -> None:
-        self.controller_path = Path(controller_path).resolve() if controller_path else None
+    def __init__(
+        self, controller_path: str, controller_ref: str, fixture_dir: str
+    ) -> None:
+        self.controller_path = (
+            Path(controller_path).resolve() if controller_path else None
+        )
         self.controller_ref = controller_ref
         self.fixture_dir = Path(fixture_dir).resolve() if fixture_dir else None
 
@@ -122,10 +132,14 @@ class ControllerSource:
 
     def load_text(self, relative_path: str) -> str:
         if self.fixture_dir:
-            return (self.fixture_dir / "controller" / relative_path).read_text(encoding="utf-8")
+            return (self.fixture_dir / "controller" / relative_path).read_text(
+                encoding="utf-8"
+            )
         if self.controller_path:
             return (self.controller_path / relative_path).read_text(encoding="utf-8")
-        return gh_contents_text(CONTROLLER_REPO, relative_path.replace("\\", "/"), self.controller_ref)
+        return gh_contents_text(
+            CONTROLLER_REPO, relative_path.replace("\\", "/"), self.controller_ref
+        )
 
 
 class LiveSource:
@@ -136,10 +150,17 @@ class LiveSource:
     def fixture_slug(repo_slug: str) -> str:
         return repo_slug.replace("/", "__")
 
-    def load_workflow_text(self, repo_slug: str, default_branch: str, workflow_path: str) -> str | None:
+    def load_workflow_text(
+        self, repo_slug: str, default_branch: str, workflow_path: str
+    ) -> str | None:
         if self.fixture_dir:
             payload = json.loads(
-                (self.fixture_dir / "live" / self.fixture_slug(repo_slug) / "workflows.json").read_text(encoding="utf-8")
+                (
+                    self.fixture_dir
+                    / "live"
+                    / self.fixture_slug(repo_slug)
+                    / "workflows.json"
+                ).read_text(encoding="utf-8")
             )
             return payload.get(workflow_path)
         try:
@@ -149,7 +170,12 @@ class LiveSource:
 
     def load_rulesets(self, repo_slug: str) -> list[dict[str, Any]]:
         if self.fixture_dir:
-            path = self.fixture_dir / "live" / self.fixture_slug(repo_slug) / "rulesets.json"
+            path = (
+                self.fixture_dir
+                / "live"
+                / self.fixture_slug(repo_slug)
+                / "rulesets.json"
+            )
             return json.loads(path.read_text(encoding="utf-8"))
         try:
             return gh_api_json(f"repos/{repo_slug}/rulesets") or []
@@ -158,7 +184,9 @@ class LiveSource:
 
     def load_runs(self, repo_slug: str, default_branch: str) -> list[dict[str, Any]]:
         if self.fixture_dir:
-            path = self.fixture_dir / "live" / self.fixture_slug(repo_slug) / "runs.json"
+            path = (
+                self.fixture_dir / "live" / self.fixture_slug(repo_slug) / "runs.json"
+            )
             return json.loads(path.read_text(encoding="utf-8"))
         try:
             stdout = run_command(
@@ -181,7 +209,9 @@ class LiveSource:
             return []
 
 
-def merge_required_contexts(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, list[str]]:
+def merge_required_contexts(
+    base: dict[str, Any], overlay: dict[str, Any]
+) -> dict[str, list[str]]:
     return {
         "always": dedupe_strings([*base.get("always", []), *overlay.get("always", [])]),
         "pull_request_only": dedupe_strings(
@@ -202,7 +232,9 @@ def load_stack(source: ControllerSource, stack_id: str) -> dict[str, Any]:
     return deep_merge(merged, payload)
 
 
-def resolve_controller_expectation(source: ControllerSource, repo_slug: str) -> dict[str, Any]:
+def resolve_controller_expectation(
+    source: ControllerSource, repo_slug: str
+) -> dict[str, Any]:
     inventory = source.load_yaml("inventory/repos.yml") or {}
     repos = inventory.get("repos", [])
     repo_entry = next((item for item in repos if item.get("slug") == repo_slug), None)
@@ -220,13 +252,21 @@ def resolve_controller_expectation(source: ControllerSource, repo_slug: str) -> 
     repo_profile = source.load_yaml(f"profiles/repos/{profile_id}.yml") or {}
     stack_id = str(repo_profile.get("stack", "")).strip()
     stack_profile = load_stack(source, stack_id)
-    required_mode = str(repo_profile.get("required_contexts_mode", "merge")).strip() or "merge"
+    required_mode = (
+        str(repo_profile.get("required_contexts_mode", "merge")).strip() or "merge"
+    )
 
     if required_mode == "replace":
         required_contexts = {
-            "always": dedupe_strings(repo_profile.get("required_contexts", {}).get("always", [])),
-            "pull_request_only": dedupe_strings(repo_profile.get("required_contexts", {}).get("pull_request_only", [])),
-            "target": dedupe_strings(repo_profile.get("required_contexts", {}).get("target", [])),
+            "always": dedupe_strings(
+                repo_profile.get("required_contexts", {}).get("always", [])
+            ),
+            "pull_request_only": dedupe_strings(
+                repo_profile.get("required_contexts", {}).get("pull_request_only", [])
+            ),
+            "target": dedupe_strings(
+                repo_profile.get("required_contexts", {}).get("target", [])
+            ),
         }
     else:
         required_contexts = merge_required_contexts(
@@ -235,10 +275,18 @@ def resolve_controller_expectation(source: ControllerSource, repo_slug: str) -> 
         )
 
     merged = deep_merge(stack_profile, repo_profile)
-    default_branch = str(repo_entry.get("default_branch", merged.get("default_branch", "main"))).strip() or "main"
+    default_branch = (
+        str(
+            repo_entry.get("default_branch", merged.get("default_branch", "main"))
+        ).strip()
+        or "main"
+    )
     target_contexts = dedupe_strings(
         required_contexts.get("target")
-        or [*required_contexts.get("always", []), *required_contexts.get("pull_request_only", [])]
+        or [
+            *required_contexts.get("always", []),
+            *required_contexts.get("pull_request_only", []),
+        ]
     )
 
     return {
@@ -261,7 +309,10 @@ def extract_wrapper_uses(text: str | None) -> list[dict[str, str]]:
     matches: list[dict[str, str]] = []
     for raw_line in text.splitlines():
         line = raw_line.strip()
-        if "uses:" not in line or "quality-zero-platform/.github/workflows/" not in line:
+        if (
+            "uses:" not in line
+            or "quality-zero-platform/.github/workflows/" not in line
+        ):
             continue
         value = line.split("uses:", 1)[1].strip()
         ref = value.rsplit("@", 1)[1] if "@" in value else ""
@@ -271,7 +322,12 @@ def extract_wrapper_uses(text: str | None) -> list[dict[str, str]]:
 
 def audit_live_state(live: LiveSource, expectation: dict[str, Any]) -> dict[str, Any]:
     if not expectation.get("enrolled"):
-        return {"wrappers": [], "ruleset_present": False, "ruleset_contexts": [], "runs": []}
+        return {
+            "wrappers": [],
+            "ruleset_present": False,
+            "ruleset_contexts": [],
+            "runs": [],
+        }
 
     repo_slug = expectation["repo_slug"]
     default_branch = expectation["default_branch"]
@@ -287,7 +343,14 @@ def audit_live_state(live: LiveSource, expectation: dict[str, Any]) -> dict[str,
         )
 
     rulesets = live.load_rulesets(repo_slug)
-    target_ruleset = next((item for item in rulesets if item.get("name") == expectation["expected_ruleset_name"]), None)
+    target_ruleset = next(
+        (
+            item
+            for item in rulesets
+            if item.get("name") == expectation["expected_ruleset_name"]
+        ),
+        None,
+    )
     live_contexts: list[str] = []
     if target_ruleset:
         for rule in target_ruleset.get("rules", []):
@@ -339,7 +402,9 @@ def classify(
     if not expectation.get("enrolled"):
         return "partial", drift, expectation.get("notes", [])
 
-    missing_wrappers = [item["path"] for item in live_state["wrappers"] if not item["present"]]
+    missing_wrappers = [
+        item["path"] for item in live_state["wrappers"] if not item["present"]
+    ]
     if missing_wrappers:
         drift.append("missing_wrappers")
         notes.append(f"Missing wrapper workflows: {', '.join(missing_wrappers)}")
@@ -356,13 +421,19 @@ def classify(
             continue
         refs = {use["ref"] for use in item["uses"] if use["ref"]}
         if controller_ref not in refs:
-            stale_refs.append(f"{item['path']} -> {', '.join(sorted(refs)) or 'no-ref'}")
+            stale_refs.append(
+                f"{item['path']} -> {', '.join(sorted(refs)) or 'no-ref'}"
+            )
     if stale_refs:
         drift.append("stale_wrapper_refs")
-        notes.append(f"Wrapper refs differ from controller ref `{controller_ref}`: {'; '.join(stale_refs)}")
+        notes.append(
+            f"Wrapper refs differ from controller ref `{controller_ref}`: {'; '.join(stale_refs)}"
+        )
     if missing_uses:
         drift.append("wrapper_not_pointing_to_controller")
-        notes.append(f"Wrapper workflows do not call controller reusable workflows: {', '.join(missing_uses)}")
+        notes.append(
+            f"Wrapper workflows do not call controller reusable workflows: {', '.join(missing_uses)}"
+        )
 
     if not live_state["ruleset_present"]:
         drift.append("missing_ruleset")
@@ -378,22 +449,33 @@ def classify(
     failed_runs = [
         run
         for run in live_state["runs"]
-        if run.get("workflowName") in core_workflows and run.get("conclusion") not in {"success", "", None}
+        if run.get("workflowName") in core_workflows
+        and run.get("conclusion") not in {"success", "", None}
     ]
     if failed_runs:
         drift.append("failing_runs")
         notes.append(
             "Latest relevant workflow failures: "
-            + ", ".join(f"{run['workflowName']}={run['conclusion']}" for run in failed_runs)
+            + ", ".join(
+                f"{run['workflowName']}={run['conclusion']}" for run in failed_runs
+            )
         )
 
     if drift:
         return "partial", drift, notes
-    return "success", drift, ["Repo matches controller expectation for wrappers, ruleset, and latest run state."]
+    return (
+        "success",
+        drift,
+        [
+            "Repo matches controller expectation for wrappers, ruleset, and latest run state."
+        ],
+    )
 
 
 def build_report(args: argparse.Namespace) -> dict[str, Any]:
-    controller = ControllerSource(args.controller_path, args.controller_ref, args.fixture_dir)
+    controller = ControllerSource(
+        args.controller_path, args.controller_ref, args.fixture_dir
+    )
     live = LiveSource(args.fixture_dir)
     expectation = resolve_controller_expectation(controller, args.repo)
     live_state = audit_live_state(live, expectation)
@@ -438,17 +520,27 @@ def format_markdown(report: dict[str, Any]) -> str:
     if report.get("expected_ruleset_name"):
         lines.append(f"- Expected ruleset: `{report['expected_ruleset_name']}`")
     lines.extend(["", "## Expected contexts", ""])
-    lines.extend([f"- `{item}`" for item in report.get("expected_required_contexts", [])] or ["- None"])
+    lines.extend(
+        [f"- `{item}`" for item in report.get("expected_required_contexts", [])]
+        or ["- None"]
+    )
     lines.extend(["", "## Wrapper workflows", ""])
     for item in report.get("wrappers", []):
         if not item["present"]:
             lines.append(f"- `{item['path']}`: missing")
             continue
-        uses = ", ".join(use["uses"] for use in item["uses"]) if item["uses"] else "present but no controller `uses:` entry found"
+        uses = (
+            ", ".join(use["uses"] for use in item["uses"])
+            if item["uses"]
+            else "present but no controller `uses:` entry found"
+        )
         lines.append(f"- `{item['path']}`: {uses}")
     lines.extend(["", "## Ruleset", ""])
     lines.append(f"- Present: `{report['ruleset_present']}`")
-    lines.extend([f"- `{item}`" for item in report.get("ruleset_contexts", [])] or ["- No live ruleset contexts found"])
+    lines.extend(
+        [f"- `{item}`" for item in report.get("ruleset_contexts", [])]
+        or ["- No live ruleset contexts found"]
+    )
     lines.extend(["", "## Latest runs", ""])
     for item in report.get("latest_runs", []):
         lines.append(
@@ -457,7 +549,9 @@ def format_markdown(report: dict[str, Any]) -> str:
     if not report.get("latest_runs"):
         lines.append("- None")
     lines.extend(["", "## Drift categories", ""])
-    lines.extend([f"- `{item}`" for item in report.get("drift_categories", [])] or ["- None"])
+    lines.extend(
+        [f"- `{item}`" for item in report.get("drift_categories", [])] or ["- None"]
+    )
     lines.extend(["", "## Notes", ""])
     lines.extend([f"- {item}" for item in report.get("notes", [])] or ["- None"])
     return "\n".join(lines) + "\n"
@@ -467,7 +561,13 @@ def main() -> int:
     args = parse_args()
     try:
         report = build_report(args)
-    except (FileNotFoundError, KeyError, subprocess.CalledProcessError, json.JSONDecodeError, ValueError) as exc:
+    except (
+        FileNotFoundError,
+        KeyError,
+        subprocess.CalledProcessError,
+        json.JSONDecodeError,
+        ValueError,
+    ) as exc:
         report = {
             "controller_repository": CONTROLLER_REPO,
             "controller_ref": args.controller_ref,

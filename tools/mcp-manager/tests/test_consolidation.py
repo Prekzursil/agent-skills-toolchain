@@ -1,4 +1,5 @@
 """Tests for Spec-3 skill consolidation analysis (no deletions)."""
+
 import sys
 from pathlib import Path
 
@@ -8,7 +9,9 @@ from core import consolidation  # noqa: E402
 
 def _mk(p: Path, desc: str = "one line desc", body: str = "body"):
     p.mkdir(parents=True, exist_ok=True)
-    (p / "SKILL.md").write_text(f"---\nname: {p.name}\ndescription: {desc}\n---\n{body}\n", encoding="utf-8")
+    (p / "SKILL.md").write_text(
+        f"---\nname: {p.name}\ndescription: {desc}\n---\n{body}\n", encoding="utf-8"
+    )
 
 
 def test_exact_duplicate_and_collision_and_desc(tmp_path: Path):
@@ -22,13 +25,15 @@ def test_exact_duplicate_and_collision_and_desc(tmp_path: Path):
     _mk(b / "drift", body="v2")
     # multi-line description -> trigger issue
     (a / "bad").mkdir()
-    (a / "bad" / "SKILL.md").write_text("---\nname: bad\ndescription: line1\n  line2\n---\n", encoding="utf-8")
+    (a / "bad" / "SKILL.md").write_text(
+        "---\nname: bad\ndescription: line1\n  line2\n---\n", encoding="utf-8"
+    )
     # marketplace skill -> excluded
     mk = tmp_path / "plugins" / "cache" / "vendor"
     _mk(mk)
 
     res = consolidation.analyze_skills([a, b, tmp_path / "plugins"])
-    assert res["skills_scanned"] == 5            # marketplace 'vendor' excluded
+    assert res["skills_scanned"] == 5  # marketplace 'vendor' excluded
     dup_names = {Path(p).parent.name for g in res["exact_duplicate_groups"] for p in g}
     assert "mirror" in dup_names
     assert any(c["name"] == "drift" for c in res["name_collisions"])

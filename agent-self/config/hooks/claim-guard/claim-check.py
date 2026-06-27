@@ -31,6 +31,7 @@ Stdout (when warning fires):
 Stdout (silent case): nothing
 Exit: always 0 (WARN mode only; block stub is here but not enabled by default)
 """
+
 from __future__ import annotations
 
 import json
@@ -45,10 +46,12 @@ from pathlib import Path
 # Configuration
 # ---------------------------------------------------------------------------
 MODE = os.environ.get("CLAIM_GUARD_MODE", "warn").lower()
-_LEDGER_ROOT = Path(os.environ.get(
-    "CLAIM_GUARD_LEDGER_ROOT",
-    str(Path(tempfile.gettempdir()) / "claude-claim-ledger")
-))
+_LEDGER_ROOT = Path(
+    os.environ.get(
+        "CLAIM_GUARD_LEDGER_ROOT",
+        str(Path(tempfile.gettempdir()) / "claude-claim-ledger"),
+    )
+)
 
 
 # ---------------------------------------------------------------------------
@@ -63,17 +66,17 @@ _LEDGER_ROOT = Path(os.environ.get(
 _CLAIM_PATTERNS: dict[str, re.Pattern] = {
     "tests": re.compile(
         r"\b(?:"
-        r"tests?\s+(?:are\s+)?pass(?:ing|ed)?"        # tests pass / tests passing / test passed
+        r"tests?\s+(?:are\s+)?pass(?:ing|ed)?"  # tests pass / tests passing / test passed
         r"|all\s+tests?\s+(?:are\s+)?pass(?:ing|ed)?"  # all tests pass / all tests passing
-        r"|(?:the\s+)?test\s+suite\s+pass(?:es|ed)?"   # the test suite passes / passed
+        r"|(?:the\s+)?test\s+suite\s+pass(?:es|ed)?"  # the test suite passes / passed
         r")",
         re.IGNORECASE,
     ),
     "build": re.compile(
         r"\b(?:"
         r"build\s+(?:succeeds?|passes?|is\s+green|is\s+clean|compiles?)"  # build succeeds/passes/is green
-        r"|builds?\s+successfully"                       # builds successfully
-        r"|compilation\s+succeeds?"                      # compilation succeeds
+        r"|builds?\s+successfully"  # builds successfully
+        r"|compilation\s+succeeds?"  # compilation succeeds
         r"|(?:the\s+)?build\s+(?:is\s+)?(?:passing|green|clean)"  # build is passing/green
         r")",
         re.IGNORECASE,
@@ -81,7 +84,7 @@ _CLAIM_PATTERNS: dict[str, re.Pattern] = {
     "lint": re.compile(
         r"\b(?:"
         r"lint(?:ing)?\s+(?:passes?|is\s+clean|succeeds?)"  # linting passes / lint is clean
-        r"|no\s+lint(?:ing)?\s+(?:errors?|warnings?)"       # no linting errors
+        r"|no\s+lint(?:ing)?\s+(?:errors?|warnings?)"  # no linting errors
         r"|lint(?:er)?\s+(?:checks?\s+)?(?:pass(?:es|ed)?|clean)"
         r")",
         re.IGNORECASE,
@@ -89,7 +92,7 @@ _CLAIM_PATTERNS: dict[str, re.Pattern] = {
     "coverage": re.compile(
         r"\b(?:"
         r"coverage\s+(?:(?:threshold(?:s)?\s+)?(?:met|pass(?:es|ed)?|satisfied))"  # coverage met/passes
-        r"|(?:meets?|satisfies?)\s+(?:the\s+)?coverage"    # meets the coverage
+        r"|(?:meets?|satisfies?)\s+(?:the\s+)?coverage"  # meets the coverage
         r")",
         re.IGNORECASE,
     ),
@@ -103,15 +106,15 @@ _CLAIM_PATTERNS: dict[str, re.Pattern] = {
     "all_green": re.compile(
         r"\b(?:"
         r"all\s+(?:checks?\s+)?(?:are\s+)?(?:green|pass(?:ing|ed)?)"  # all checks are green
-        r"|everything(?:'s|\s+is)?\s+(?:green|passing|clean)"          # everything's green
-        r"|all\s+green\b"                                               # all green
+        r"|everything(?:'s|\s+is)?\s+(?:green|passing|clean)"  # everything's green
+        r"|all\s+green\b"  # all green
         r")",
         re.IGNORECASE,
     ),
     "no_errors": re.compile(
         r"\b(?:"
-        r"no\s+errors?\s+(?:found|remaining|detected)"    # no errors found
-        r"|(?:zero|0)\s+errors?"                          # zero errors
+        r"no\s+errors?\s+(?:found|remaining|detected)"  # no errors found
+        r"|(?:zero|0)\s+errors?"  # zero errors
         r")",
         re.IGNORECASE,
     ),
@@ -123,10 +126,10 @@ _CLAIM_PATTERNS: dict[str, re.Pattern] = {
     "ci_gates": re.compile(
         r"\b(?:"
         r"(?:ci|gates?|pipeline)\s+(?:are\s+|is\s+)?(?:green|passing|pass(?:ed|es)?)"  # ci/gates green/passing
-        r"|gates?\s+(?:are\s+)?green"                                                   # gates are green
-        r"|all\s+(?:ci\s+)?checks?\s+(?:are\s+)?(?:green|passing|pass(?:ed|es)?)"       # all checks passed
-        r"|(?:ready|safe)\s+to\s+merge|mergeable"                                       # ready/safe to merge
-        r"|(?:pr|pull\s+request)\s+is\s+(?:green|passing|mergeable)"                    # PR is green
+        r"|gates?\s+(?:are\s+)?green"  # gates are green
+        r"|all\s+(?:ci\s+)?checks?\s+(?:are\s+)?(?:green|passing|pass(?:ed|es)?)"  # all checks passed
+        r"|(?:ready|safe)\s+to\s+merge|mergeable"  # ready/safe to merge
+        r"|(?:pr|pull\s+request)\s+is\s+(?:green|passing|mergeable)"  # PR is green
         r")",
         re.IGNORECASE,
     ),
@@ -155,29 +158,81 @@ _HEDGE_PATTERNS = re.compile(
 
 # Map claim_category → set of command substrings that count as supporting evidence
 _SUPPORT_CMDS: dict[str, list[str]] = {
-    "tests":    ["pytest", "jest", "go test", "npm test", "npm run test",
-                 "yarn test", "cargo test", "mvn test", "gradle test",
-                 "python -m pytest", "dotnet test", "rspec", "mocha", "vitest"],
-    "build":    ["npm run build", "yarn build", "cargo build", "make ",
-                 "gradlew", "gradle build", "tsc", "webpack", "vite build",
-                 "mvn package", "dotnet build", "go build", "cmake"],
-    "lint":     ["eslint", "ruff", "flake8", "pylint", "semgrep",
-                 "mypy", "pyright", "black --check", "prettier --check",
-                 "golangci-lint", "clippy", "rubocop"],
-    "coverage": ["pytest", "jest --coverage", "npm run test", "coverage run",
-                 "lcov", "nyc", "cargo tarpaulin"],
-    "fixed":    [],  # "fixed" is generic; any successful command is supporting evidence
-    "all_green": [], # same — any successful command supports "all green"
-    "no_errors": [], # same — any successful command supports "no errors"
+    "tests": [
+        "pytest",
+        "jest",
+        "go test",
+        "npm test",
+        "npm run test",
+        "yarn test",
+        "cargo test",
+        "mvn test",
+        "gradle test",
+        "python -m pytest",
+        "dotnet test",
+        "rspec",
+        "mocha",
+        "vitest",
+    ],
+    "build": [
+        "npm run build",
+        "yarn build",
+        "cargo build",
+        "make ",
+        "gradlew",
+        "gradle build",
+        "tsc",
+        "webpack",
+        "vite build",
+        "mvn package",
+        "dotnet build",
+        "go build",
+        "cmake",
+    ],
+    "lint": [
+        "eslint",
+        "ruff",
+        "flake8",
+        "pylint",
+        "semgrep",
+        "mypy",
+        "pyright",
+        "black --check",
+        "prettier --check",
+        "golangci-lint",
+        "clippy",
+        "rubocop",
+    ],
+    "coverage": [
+        "pytest",
+        "jest --coverage",
+        "npm run test",
+        "coverage run",
+        "lcov",
+        "nyc",
+        "cargo tarpaulin",
+    ],
+    "fixed": [],  # "fixed" is generic; any successful command is supporting evidence
+    "all_green": [],  # same — any successful command supports "all green"
+    "no_errors": [],  # same — any successful command supports "no errors"
     # STRICT (non-empty): only a real remote-CI/gate query supports a "gates green"
     # claim — a green local build is NOT evidence. This is the core of the #2 tuning.
-    "ci_gates": ["gh pr checks", "gh run view", "gh run list", "gh checks",
-                 "gh pr view", "gh workflow view", "gh api"],
+    "ci_gates": [
+        "gh pr checks",
+        "gh run view",
+        "gh run list",
+        "gh checks",
+        "gh pr view",
+        "gh workflow view",
+        "gh api",
+    ],
 }
 
 
 def _ledger_file(session_id: str) -> Path:
-    safe = "".join(c if c.isalnum() or c in "-_." else "-" for c in str(session_id))[:80]
+    safe = "".join(c if c.isalnum() or c in "-_." else "-" for c in str(session_id))[
+        :80
+    ]
     return _LEDGER_ROOT / f"{safe or 'unknown'}.ndjson"
 
 
@@ -230,6 +285,7 @@ def _has_support(category: str, ledger: list[dict]) -> bool:
 # Transcript parsing
 # ---------------------------------------------------------------------------
 
+
 def _get_final_assistant_text(transcript_path: str) -> str | None:
     """
     Parse the session JSONL transcript and return the text of the final assistant message.
@@ -264,7 +320,10 @@ def _get_final_assistant_text(transcript_path: str) -> str | None:
                         text_parts = []
                         if isinstance(content, list):
                             for block in content:
-                                if isinstance(block, dict) and block.get("type") == "text":
+                                if (
+                                    isinstance(block, dict)
+                                    and block.get("type") == "text"
+                                ):
                                     text_parts.append(str(block.get("text") or ""))
                         elif isinstance(content, str):
                             text_parts.append(content)
@@ -297,6 +356,7 @@ def _get_final_assistant_text(transcript_path: str) -> str | None:
 # Claim scanning
 # ---------------------------------------------------------------------------
 
+
 def _is_hedged(text: str, match_start: int, match_end: int) -> bool:
     """Return True if a hedge phrase appears within ±120 chars of this match."""
     window_start = max(0, match_start - 120)
@@ -322,18 +382,19 @@ def _find_fired_categories(text: str) -> list[str]:
 # Output helpers
 # ---------------------------------------------------------------------------
 
+
 def _inject_warning(unsupported: list[str]) -> None:
     """Emit the additionalContext JSON for the Stop event."""
     # Human-readable category labels
     labels = {
-        "tests":     "tests pass",
-        "build":     "build succeeds",
-        "lint":      "lint passes",
-        "coverage":  "coverage met",
-        "fixed":     "issue fixed",
+        "tests": "tests pass",
+        "build": "build succeeds",
+        "lint": "lint passes",
+        "coverage": "coverage met",
+        "fixed": "issue fixed",
         "all_green": "all green",
         "no_errors": "no errors",
-        "ci_gates":  "CI gates green / ready to merge",
+        "ci_gates": "CI gates green / ready to merge",
     }
     claim_list = ", ".join(f'"{labels.get(c, c)}"' for c in unsupported)
     msg = (
@@ -342,17 +403,22 @@ def _inject_warning(unsupported: list[str]) -> None:
         f"Please run the relevant commands (tests, build, lint, etc.) and verify "
         f"before asserting these outcomes."
     )
-    print(json.dumps({
-        "hookSpecificOutput": {
-            "hookEventName": "Stop",
-            "additionalContext": msg,
-        }
-    }))
+    print(
+        json.dumps(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": "Stop",
+                    "additionalContext": msg,
+                }
+            }
+        )
+    )
 
 
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main() -> int:
     # Mode gate

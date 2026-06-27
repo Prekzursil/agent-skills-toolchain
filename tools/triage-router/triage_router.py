@@ -40,8 +40,6 @@ from __future__ import annotations
 import argparse
 import ast
 import json
-import os
-import re
 import subprocess
 import sys
 from dataclasses import asdict, dataclass
@@ -53,9 +51,9 @@ from typing import Any
 # ---------------------------------------------------------------------------
 
 DEFAULT_TIERS: list[dict[str, Any]] = [
-    {"name": "haiku",  "cost": 1, "model_id": "claude-haiku-4-5"},
+    {"name": "haiku", "cost": 1, "model_id": "claude-haiku-4-5"},
     {"name": "sonnet", "cost": 3, "model_id": "claude-sonnet-4-6"},
-    {"name": "opus",   "cost": 5, "model_id": "claude-opus-4-8"},
+    {"name": "opus", "cost": 5, "model_id": "claude-opus-4-8"},
 ]
 
 # Routing thresholds (AvgCCN-equivalent score):
@@ -66,7 +64,7 @@ DEFAULT_TIERS: list[dict[str, Any]] = [
 # These constants come from the three-tier paper's recommended starting point.
 # Replace with your own measured values after running the two go/no-go checks
 # documented in README.md.
-HAIKU_MAX_DEFAULT  = 5.0
+HAIKU_MAX_DEFAULT = 5.0
 SONNET_MAX_DEFAULT = 10.0
 
 # Lizard warning threshold (CCN > this is flagged by lizard):
@@ -76,14 +74,15 @@ LIZARD_WARNING_CCN = 15
 # Data types
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class FileHealth:
     path: str
     avg_ccn: float
     max_ccn: int
-    warning_fn_ratio: float   # fraction of functions above LIZARD_WARNING_CCN
+    warning_fn_ratio: float  # fraction of functions above LIZARD_WARNING_CCN
     nloc: int
-    signal_source: str        # "lizard" | "stdlib_heuristic" | "provided"
+    signal_source: str  # "lizard" | "stdlib_heuristic" | "provided"
 
 
 @dataclass
@@ -101,6 +100,7 @@ class Verdict:
 # Static analysis: lizard
 # ---------------------------------------------------------------------------
 
+
 def _run_lizard(paths: list[str]) -> FileHealth | None:
     """
     Run lizard on one or more files and return an aggregate FileHealth.
@@ -109,7 +109,9 @@ def _run_lizard(paths: list[str]) -> FileHealth | None:
     try:
         result = subprocess.run(
             ["lizard", "--csv", *paths],
-            capture_output=True, text=True, timeout=60,
+            capture_output=True,
+            text=True,
+            timeout=60,
         )
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return None
@@ -130,7 +132,7 @@ def _run_lizard(paths: list[str]) -> FileHealth | None:
             continue
         try:
             nloc_val = int(parts[0].strip())
-            ccn_val  = float(parts[1].strip())
+            ccn_val = float(parts[1].strip())
         except ValueError:
             continue
         ccn_values.append(ccn_val)
@@ -160,18 +162,31 @@ def _run_lizard(paths: list[str]) -> FileHealth | None:
 # Static analysis: stdlib heuristic fallback
 # ---------------------------------------------------------------------------
 
+
 def _count_max_nesting(tree: ast.AST) -> int:
     """Return maximum nesting depth of compound statements in an AST."""
+
     def _walk(node: ast.AST, depth: int) -> int:
         local_max = depth
         for child in ast.iter_child_nodes(node):
-            if isinstance(child, (ast.If, ast.For, ast.While, ast.With,
-                                   ast.Try, ast.ExceptHandler,
-                                   ast.AsyncFor, ast.AsyncWith)):
+            if isinstance(
+                child,
+                (
+                    ast.If,
+                    ast.For,
+                    ast.While,
+                    ast.With,
+                    ast.Try,
+                    ast.ExceptHandler,
+                    ast.AsyncFor,
+                    ast.AsyncWith,
+                ),
+            ):
                 local_max = max(local_max, _walk(child, depth + 1))
             else:
                 local_max = max(local_max, _walk(child, depth))
         return local_max
+
     return _walk(tree, 0)
 
 
@@ -194,30 +209,52 @@ def _stdlib_health(paths: list[str]) -> FileHealth | None:
             tree = ast.parse(source, filename=path)
         except SyntaxError:
             lines = source.splitlines()
-            all_nloc += sum(1 for l in lines if l.strip() and not l.strip().startswith("#"))
+            all_nloc += sum(
+                1 for ln in lines if ln.strip() and not ln.strip().startswith("#")
+            )
             # Can't parse → treat as complex
             all_ccn.append(20.0)
             continue
 
         lines = source.splitlines()
-        nloc = sum(1 for l in lines if l.strip() and not l.strip().startswith("#"))
+        nloc = sum(1 for ln in lines if ln.strip() and not ln.strip().startswith("#"))
         all_nloc += nloc
 
-        funcs = [n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
+        funcs = [
+            n
+            for n in ast.walk(tree)
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+        ]
         if not funcs:
             # Module-level only: use branch density as proxy
-            branches = sum(1 for n in ast.walk(tree)
-                           if isinstance(n, (ast.If, ast.For, ast.While,
-                                              ast.ExceptHandler, ast.With)))
+            branches = sum(
+                1
+                for n in ast.walk(tree)
+                if isinstance(
+                    n, (ast.If, ast.For, ast.While, ast.ExceptHandler, ast.With)
+                )
+            )
             all_ccn.append(1.0 + branches)
             continue
 
         for fn in funcs:
-            branches = sum(1 for n in ast.walk(fn)
-                           if isinstance(n, (ast.If, ast.For, ast.While,
-                                              ast.ExceptHandler, ast.With,
-                                              ast.BoolOp, ast.IfExp,
-                                              ast.comprehension)))
+            branches = sum(
+                1
+                for n in ast.walk(fn)
+                if isinstance(
+                    n,
+                    (
+                        ast.If,
+                        ast.For,
+                        ast.While,
+                        ast.ExceptHandler,
+                        ast.With,
+                        ast.BoolOp,
+                        ast.IfExp,
+                        ast.comprehension,
+                    ),
+                )
+            )
             all_ccn.append(1.0 + branches)
 
     if not all_ccn:
@@ -241,6 +278,7 @@ def _stdlib_health(paths: list[str]) -> FileHealth | None:
 # Score aggregation
 # ---------------------------------------------------------------------------
 
+
 def _composite_score(fh: FileHealth) -> float:
     """
     Map FileHealth → a single routing score (higher = more complex).
@@ -263,6 +301,7 @@ def _composite_score(fh: FileHealth) -> float:
 # ---------------------------------------------------------------------------
 # Tier mapping
 # ---------------------------------------------------------------------------
+
 
 def _tier_order(tiers: list[dict]) -> list[dict]:
     """Return tiers sorted cheapest-first."""
@@ -308,6 +347,7 @@ def _pick_tier(
 # Routing
 # ---------------------------------------------------------------------------
 
+
 def route(
     paths: list[str],
     tiers: list[dict],
@@ -336,7 +376,7 @@ def route(
             signal_source="provided",
         )
         score = health_score
-        sig   = "provided"
+        sig = "provided"
     else:
         # Try lizard first, fall back to stdlib heuristic.
         fh = _run_lizard(paths)
@@ -360,7 +400,7 @@ def route(
             )
 
         score = _composite_score(fh)
-        sig   = fh.signal_source
+        sig = fh.signal_source
 
     # Pick tier
     tier = _pick_tier(score, tiers, haiku_max, sonnet_max, escalate_from)
@@ -405,6 +445,7 @@ def route(
 # Manifest support
 # ---------------------------------------------------------------------------
 
+
 def _route_manifest(
     manifest_path: str,
     tiers: list[dict],
@@ -425,8 +466,8 @@ def _route_manifest(
 
     results = []
     for entry in data:
-        files  = entry.get("files", [])
-        score  = entry.get("health_score")
+        files = entry.get("files", [])
+        score = entry.get("health_score")
         v = route(files, tiers, haiku_max, sonnet_max, score, escalate_from)
         results.append(asdict(v))
     return results
@@ -435,6 +476,7 @@ def _route_manifest(
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
+
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(
@@ -445,39 +487,55 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     input_g = p.add_mutually_exclusive_group(required=True)
     input_g.add_argument(
-        "--files", "-f", nargs="+", metavar="FILE",
+        "--files",
+        "-f",
+        nargs="+",
+        metavar="FILE",
         help="Target file path(s) for the work-unit.",
     )
     input_g.add_argument(
-        "--manifest", metavar="PATH",
+        "--manifest",
+        metavar="PATH",
         help="JSON manifest of work-units (see --help for format).",
     )
 
     p.add_argument(
-        "--health-score", type=float, default=None, metavar="SCORE",
+        "--health-score",
+        type=float,
+        default=None,
+        metavar="SCORE",
         help="Pre-computed health score (skips static analysis).",
     )
     p.add_argument(
-        "--escalate", default=None, metavar="TIER",
+        "--escalate",
+        default=None,
+        metavar="TIER",
         help="Verification gate failed at this tier; return the next tier up.",
     )
     p.add_argument(
-        "--tiers", default=None, metavar="JSON",
+        "--tiers",
+        default=None,
+        metavar="JSON",
         help=(
             "JSON array of tier objects: "
             '[{"name":"haiku","cost":1,"model_id":"claude-haiku-4-5"}, ...]'
         ),
     )
     p.add_argument(
-        "--haiku-max", type=float, default=HAIKU_MAX_DEFAULT,
+        "--haiku-max",
+        type=float,
+        default=HAIKU_MAX_DEFAULT,
         help=f"Score upper bound for Haiku tier (default {HAIKU_MAX_DEFAULT}).",
     )
     p.add_argument(
-        "--sonnet-max", type=float, default=SONNET_MAX_DEFAULT,
+        "--sonnet-max",
+        type=float,
+        default=SONNET_MAX_DEFAULT,
         help=f"Score upper bound for Sonnet tier (default {SONNET_MAX_DEFAULT}).",
     )
     p.add_argument(
-        "--pretty", action="store_true",
+        "--pretty",
+        action="store_true",
         help="Pretty-print JSON output.",
     )
     return p.parse_args(argv)
@@ -499,8 +557,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.manifest:
         try:
             results = _route_manifest(
-                args.manifest, tiers,
-                args.haiku_max, args.sonnet_max, args.escalate,
+                args.manifest,
+                tiers,
+                args.haiku_max,
+                args.sonnet_max,
+                args.escalate,
             )
         except Exception as e:
             print(f"ERROR: manifest error: {e}", file=sys.stderr)

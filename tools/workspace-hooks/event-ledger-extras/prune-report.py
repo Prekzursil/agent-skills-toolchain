@@ -13,31 +13,33 @@ prints an advisory instead of a misleading ranking.
 Usage:
     python prune-report.py [--min-events N] [--top N] [--window-days N]
 """
+
 from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 import time
-from collections import Counter, defaultdict
+from collections import Counter
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+
 
 # Locate ledger.py: first check sibling event-ledger/ in the same hooks tree,
 # then the canonical installed location (~/.claude/hooks/event-ledger/),
 # then HERE itself (allows tests to inject a mock ledger by placing it here).
 def _find_ledger_dir() -> Path:
     candidates = [
-        HERE.parent / "event-ledger",                          # sibling in repo hooks tree
-        Path.home() / ".claude" / "hooks" / "event-ledger",   # installed location
-        HERE,                                                   # fallback: same directory
+        HERE.parent / "event-ledger",  # sibling in repo hooks tree
+        Path.home() / ".claude" / "hooks" / "event-ledger",  # installed location
+        HERE,  # fallback: same directory
     ]
     for c in candidates:
         if (c / "ledger.py").exists():
             return c
     return HERE  # last resort; import will fail with a clear ModuleNotFoundError
+
 
 _LEDGER_DIR = _find_ledger_dir()
 sys.path.insert(0, str(_LEDGER_DIR))
@@ -62,7 +64,9 @@ def _parse_events(events_file: Path, window_cutoff_ts: str | None) -> list[dict]
     """Parse events from a single project, optionally filtering by timestamp."""
     out = []
     try:
-        for line in events_file.read_text(encoding="utf-8", errors="replace").splitlines():
+        for line in events_file.read_text(
+            encoding="utf-8", errors="replace"
+        ).splitlines():
             line = line.strip()
             if not line:
                 continue
@@ -114,8 +118,11 @@ def _make_cutoff(window_days: int | None) -> str | None:
     return time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(cutoff))
 
 
-def report(min_events: int = SPARSE_THRESHOLD, top: int = DEFAULT_TOP,
-           window_days: int | None = None) -> str:
+def report(
+    min_events: int = SPARSE_THRESHOLD,
+    top: int = DEFAULT_TOP,
+    window_days: int | None = None,
+) -> str:
     """Build and return the prune report string."""
     dirs = _collect_all_projects()
     if not dirs:
@@ -150,7 +157,9 @@ def report(min_events: int = SPARSE_THRESHOLD, top: int = DEFAULT_TOP,
     lines.append(f"Tool events      : {total_tool_events}")
 
     if total_tool_events < min_events:
-        weeks_needed = max(1, round((min_events - total_tool_events) / max(total_tool_events, 1)))
+        weeks_needed = max(
+            1, round((min_events - total_tool_events) / max(total_tool_events, 1))
+        )
         lines.append("")
         lines.append(
             f"INSUFFICIENT DATA — {total_tool_events} tool events recorded; "
@@ -193,7 +202,9 @@ def report(min_events: int = SPARSE_THRESHOLD, top: int = DEFAULT_TOP,
 
     lines.append("")
     lines.append(f"{'─' * 70}")
-    lines.append(f"FULL RANKING ({len(tool_counts)} distinct capabilities, sorted by fires desc)")
+    lines.append(
+        f"FULL RANKING ({len(tool_counts)} distinct capabilities, sorted by fires desc)"
+    )
     lines.append(f"{'─' * 70}")
     lines.append(f"  {'Rank':>4}  {'Fires':>8}  {'% of total':>10}  Capability")
     for rank, (name, cnt) in enumerate(tool_counts.most_common(), 1):
@@ -215,16 +226,22 @@ def main() -> int:
         description="Scan event ledgers and print a capability prune report."
     )
     ap.add_argument(
-        "--min-events", type=int, default=SPARSE_THRESHOLD,
-        help=f"Minimum tool-event count before producing a ranking (default {SPARSE_THRESHOLD})."
+        "--min-events",
+        type=int,
+        default=SPARSE_THRESHOLD,
+        help=f"Minimum tool-event count before producing a ranking (default {SPARSE_THRESHOLD}).",
     )
     ap.add_argument(
-        "--top", type=int, default=DEFAULT_TOP,
-        help=f"How many least/most-fired entries to show (default {DEFAULT_TOP})."
+        "--top",
+        type=int,
+        default=DEFAULT_TOP,
+        help=f"How many least/most-fired entries to show (default {DEFAULT_TOP}).",
     )
     ap.add_argument(
-        "--window-days", type=int, default=None,
-        help="Restrict analysis to events from the last N days (default: all time)."
+        "--window-days",
+        type=int,
+        default=None,
+        help="Restrict analysis to events from the last N days (default: all time).",
     )
     a = ap.parse_args()
     try:

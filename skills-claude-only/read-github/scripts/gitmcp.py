@@ -9,7 +9,6 @@ import json
 import subprocess
 import sys
 import re
-from typing import Optional
 
 
 def convert_github_to_gitmcp(url_or_path: str) -> str:
@@ -18,13 +17,17 @@ def convert_github_to_gitmcp(url_or_path: str) -> str:
     if "github.com" in url_or_path:
         url = url_or_path.replace("github.com", "gitmcp.io")
         # Strip /tree/..., /blob/..., /commits/..., etc. - gitmcp only needs owner/repo
-        url = re.sub(r'/(tree|blob|commits|releases|issues|pull|actions|wiki|settings)/.*$', '', url)
+        url = re.sub(
+            r"/(tree|blob|commits|releases|issues|pull|actions|wiki|settings)/.*$",
+            "",
+            url,
+        )
         return url
 
     # Handle owner/repo format (possibly with extra path segments)
     if "/" in url_or_path and not url_or_path.startswith("http"):
         # Extract just owner/repo, strip any extra paths
-        parts = url_or_path.split('/')
+        parts = url_or_path.split("/")
         if len(parts) >= 2:
             return f"https://gitmcp.io/{parts[0]}/{parts[1]}"
         return f"https://gitmcp.io/{url_or_path}"
@@ -35,22 +38,24 @@ def convert_github_to_gitmcp(url_or_path: str) -> str:
 def get_repo_name_from_url(url: str) -> str:
     """Extract repo name from URL and convert to underscore format for tool names."""
     # Extract owner/repo from URL pattern like https://gitmcp.io/owner/repo
-    match = re.search(r'gitmcp\.io/([^/]+)/([^/]+)', url)
+    match = re.search(r"gitmcp\.io/([^/]+)/([^/]+)", url)
     if match:
         repo_name = match.group(2)
         # Convert dashes to underscores for tool names
-        return repo_name.replace('-', '_')
+        return repo_name.replace("-", "_")
 
     # Fallback: extract from owner/repo format
-    match = re.search(r'^([^/]+)/([^/]+)', url)
+    match = re.search(r"^([^/]+)/([^/]+)", url)
     if match:
         repo_name = match.group(2)
-        return repo_name.replace('-', '_')
+        return repo_name.replace("-", "_")
 
     return ""
 
 
-def send_jsonrpc(proc: subprocess.Popen, method: str, params: dict = None, msg_id: int = 1) -> dict:
+def send_jsonrpc(
+    proc: subprocess.Popen, method: str, params: dict = None, msg_id: int = 1
+) -> dict:
     """Send a JSON-RPC message and get response."""
     request = {
         "jsonrpc": "2.0",
@@ -79,19 +84,26 @@ def list_tools(mcp_url: str) -> dict:
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
-        bufsize=1
+        bufsize=1,
     )
 
     try:
         # Initialize
-        init_response = send_jsonrpc(proc, "initialize", {
-            "protocolVersion": "2024-11-05",
-            "capabilities": {},
-            "clientInfo": {"name": "gitmcp-cli", "version": "1.0.0"}
-        }, 1)
+        send_jsonrpc(
+            proc,
+            "initialize",
+            {
+                "protocolVersion": "2024-11-05",
+                "capabilities": {},
+                "clientInfo": {"name": "gitmcp-cli", "version": "1.0.0"},
+            },
+            1,
+        )
 
         # Send initialized notification
-        proc.stdin.write(json.dumps({"jsonrpc": "2.0", "method": "notifications/initialized"}) + "\n")
+        proc.stdin.write(
+            json.dumps({"jsonrpc": "2.0", "method": "notifications/initialized"}) + "\n"
+        )
         proc.stdin.flush()
 
         # List tools
@@ -110,26 +122,32 @@ def call_tool(mcp_url: str, tool_name: str, arguments: dict = None) -> dict:
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
-        bufsize=1
+        bufsize=1,
     )
 
     try:
         # Initialize
-        send_jsonrpc(proc, "initialize", {
-            "protocolVersion": "2024-11-05",
-            "capabilities": {},
-            "clientInfo": {"name": "gitmcp-cli", "version": "1.0.0"}
-        }, 1)
+        send_jsonrpc(
+            proc,
+            "initialize",
+            {
+                "protocolVersion": "2024-11-05",
+                "capabilities": {},
+                "clientInfo": {"name": "gitmcp-cli", "version": "1.0.0"},
+            },
+            1,
+        )
 
         # Send initialized notification
-        proc.stdin.write(json.dumps({"jsonrpc": "2.0", "method": "notifications/initialized"}) + "\n")
+        proc.stdin.write(
+            json.dumps({"jsonrpc": "2.0", "method": "notifications/initialized"}) + "\n"
+        )
         proc.stdin.flush()
 
         # Call tool
-        tool_response = send_jsonrpc(proc, "tools/call", {
-            "name": tool_name,
-            "arguments": arguments or {}
-        }, 2)
+        tool_response = send_jsonrpc(
+            proc, "tools/call", {"name": tool_name, "arguments": arguments or {}}, 2
+        )
 
         return tool_response
     finally:
@@ -160,31 +178,41 @@ Examples:
 
   # Call any tool directly
   %(prog)s call karpathy/llm-council fetch_llm_council_documentation '{}'
-"""
+""",
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
 
     # list-tools command
-    list_parser = subparsers.add_parser("list-tools", help="List available MCP tools for a repo")
+    list_parser = subparsers.add_parser(
+        "list-tools", help="List available MCP tools for a repo"
+    )
     list_parser.add_argument("repo", help="GitHub repo (owner/repo or full URL)")
 
     # fetch-docs command
-    fetch_docs_parser = subparsers.add_parser("fetch-docs", help="Fetch repository documentation")
+    fetch_docs_parser = subparsers.add_parser(
+        "fetch-docs", help="Fetch repository documentation"
+    )
     fetch_docs_parser.add_argument("repo", help="GitHub repo (owner/repo or full URL)")
 
     # search-docs command
-    search_docs_parser = subparsers.add_parser("search-docs", help="Semantically search documentation")
+    search_docs_parser = subparsers.add_parser(
+        "search-docs", help="Semantically search documentation"
+    )
     search_docs_parser.add_argument("repo", help="GitHub repo (owner/repo or full URL)")
     search_docs_parser.add_argument("query", help="Search query")
 
     # search-code command
-    search_code_parser = subparsers.add_parser("search-code", help="Search code in the repository")
+    search_code_parser = subparsers.add_parser(
+        "search-code", help="Search code in the repository"
+    )
     search_code_parser.add_argument("repo", help="GitHub repo (owner/repo or full URL)")
     search_code_parser.add_argument("query", help="Search query (exact match)")
 
     # fetch-url command
-    fetch_url_parser = subparsers.add_parser("fetch-url", help="Fetch content from a URL mentioned in docs")
+    fetch_url_parser = subparsers.add_parser(
+        "fetch-url", help="Fetch content from a URL mentioned in docs"
+    )
     fetch_url_parser.add_argument("repo", help="GitHub repo (owner/repo or full URL)")
     fetch_url_parser.add_argument("url", help="URL to fetch")
 
@@ -192,7 +220,9 @@ Examples:
     call_parser = subparsers.add_parser("call", help="Call an MCP tool directly")
     call_parser.add_argument("repo", help="GitHub repo (owner/repo or full URL)")
     call_parser.add_argument("tool", help="Tool name to call")
-    call_parser.add_argument("args", nargs="?", default="{}", help="JSON arguments for the tool")
+    call_parser.add_argument(
+        "args", nargs="?", default="{}", help="JSON arguments for the tool"
+    )
 
     args = parser.parse_args()
 

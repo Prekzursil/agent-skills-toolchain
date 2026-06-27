@@ -1,4 +1,5 @@
 """Tests for core/models.py — ServerRow, Loadout, AuthStatus."""
+
 import sys
 from pathlib import Path
 
@@ -41,9 +42,15 @@ class TestServerRow:
         assert row.duplicated is False
 
     def test_to_dict_contains_all_keys(self):
-        row = ServerRow(id="plugin:a:b", name="b", planes=["claude"],
-                        enabled=True, status=AuthStatus.CONNECTED, auth="Connected",
-                        command="npx foo")
+        row = ServerRow(
+            id="plugin:a:b",
+            name="b",
+            planes=["claude"],
+            enabled=True,
+            status=AuthStatus.CONNECTED,
+            auth="Connected",
+            command="npx foo",
+        )
         d = row.to_dict()
         assert d["id"] == "plugin:a:b"
         assert d["name"] == "b"

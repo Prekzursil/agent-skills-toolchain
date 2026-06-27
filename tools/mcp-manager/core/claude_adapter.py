@@ -13,10 +13,10 @@ Key design decisions:
   first write per process session.
 - We never rely on --json output (it doesn't exist); we parse the text glyphs.
 """
+
 from __future__ import annotations
 
 import json
-import os
 import re
 import shutil
 import subprocess
@@ -71,19 +71,21 @@ def parse_mcp_list(output: str) -> list[ServerRow]:
         if len(parts) >= 3:
             short_name = parts[-1]
         elif server_id.startswith("claude.ai "):
-            short_name = server_id[len("claude.ai "):]
+            short_name = server_id[len("claude.ai ") :]
         else:
             short_name = server_id
 
-        rows.append(ServerRow(
-            id=server_id,
-            name=short_name,
-            planes=["claude"],
-            enabled=True,       # will be reconciled with disabledMcpServers below
-            status=status,
-            auth=m.group("status").strip(),
-            command=m.group("command").strip(),
-        ))
+        rows.append(
+            ServerRow(
+                id=server_id,
+                name=short_name,
+                planes=["claude"],
+                enabled=True,  # will be reconciled with disabledMcpServers below
+                status=status,
+                auth=m.group("status").strip(),
+                command=m.group("command").strip(),
+            )
+        )
     return rows
 
 
@@ -107,8 +109,9 @@ def _load_claude_json(path: Path) -> dict[str, Any]:
         return {}
 
 
-def _save_claude_json(path: Path, data: dict[str, Any], *,
-                      backup_dir: Path | None = None) -> None:
+def _save_claude_json(
+    path: Path, data: dict[str, Any], *, backup_dir: Path | None = None
+) -> None:
     """Write ~/.claude.json safely with a timestamped backup."""
     if backup_dir is None:
         backup_dir = path.parent / ".mcp-manager-backups"
@@ -182,6 +185,7 @@ def set_server_disabled(
 
     Returns True if a change was written, False if already in target state.
     """
+
     def _apply(data: dict[str, Any]) -> bool:
         projects = data.setdefault("projects", {})
         block = projects.setdefault(project_path, {})

@@ -75,10 +75,7 @@ def _check_mcp_servers(servers: dict) -> list[str]:
         if command.lower() in ("cmd", "cmd.exe"):
             # Find what follows /c; the first real program in args
             try:
-                c_idx = next(
-                    i for i, a in enumerate(args)
-                    if a.lower() in ("/c", "/k")
-                )
+                c_idx = next(i for i, a in enumerate(args) if a.lower() in ("/c", "/k"))
                 delegate = args[c_idx + 1] if c_idx + 1 < len(args) else None
             except StopIteration:
                 delegate = None
@@ -98,9 +95,7 @@ def _check_mcp_servers(servers: dict) -> list[str]:
                 hint = "venv broken / rebuild it"
             else:
                 hint = f"install {command} or fix PATH"
-            issues.append(
-                f"- MCP '{name}': interpreter missing ({command!r}) → {hint}"
-            )
+            issues.append(f"- MCP '{name}': interpreter missing ({command!r}) → {hint}")
 
     return issues
 

@@ -114,6 +114,7 @@ def _make_manifest(
 # Unit tests — pure functions, no subprocesses
 # ---------------------------------------------------------------------------
 
+
 class TestBehaviourSignature(unittest.TestCase):
     def test_same_exit_and_stdout_gives_same_sig(self):
         s1 = _behaviour_signature(0, "some output")
@@ -165,7 +166,7 @@ class TestNormalisedEntropy(unittest.TestCase):
         # 2 in one cluster, 1 in another → H = -(2/3 log 2/3 + 1/3 log 1/3) / log 3
         clusters = {"sig_a": ["claude", "codex"], "sig_b": ["gemini"]}
         h = _normalised_entropy(clusters, n=3)
-        expected = -(2/3 * math.log(2/3) + 1/3 * math.log(1/3)) / math.log(3)
+        expected = -(2 / 3 * math.log(2 / 3) + 1 / 3 * math.log(1 / 3)) / math.log(3)
         self.assertAlmostEqual(h, expected, places=6)
         # Should be between 0 and 1, not 0 and not 1.
         self.assertGreater(h, 0.0)
@@ -174,11 +175,12 @@ class TestNormalisedEntropy(unittest.TestCase):
     def test_entropy_in_unit_interval(self):
         """Entropy must always be in [0, 1] for any distribution."""
         import random
+
         rng = random.Random(42)
         for _ in range(50):
             n = rng.randint(2, 10)
             # random partition of n items into 1..n clusters
-            sigs = [f"sig_{rng.randint(0, n-1)}" for _ in range(n)]
+            sigs = [f"sig_{rng.randint(0, n - 1)}" for _ in range(n)]
             clusters: dict[str, list[str]] = {}
             for i, sig in enumerate(sigs):
                 clusters.setdefault(sig, []).append(f"m{i}")
@@ -190,6 +192,7 @@ class TestNormalisedEntropy(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # Integration tests — actually run subprocesses
 # ---------------------------------------------------------------------------
+
 
 class TestRunIntegration(unittest.TestCase):
     """These tests call run() which spawns real subprocesses (pytest)."""
@@ -223,10 +226,11 @@ class TestRunIntegration(unittest.TestCase):
 
         # Should produce exactly 2 behaviour clusters.
         non_broken = {
-            sig: m for sig, m in verdict["clusters"].items()
-            if sig != BROKEN_SIGNATURE
+            sig: m for sig, m in verdict["clusters"].items() if sig != BROKEN_SIGNATURE
         }
-        self.assertEqual(len(non_broken), 2, f"Expected 2 clusters, got: {verdict['clusters']}")
+        self.assertEqual(
+            len(non_broken), 2, f"Expected 2 clusters, got: {verdict['clusters']}"
+        )
 
         # claude and gemini must share a cluster.
         cluster_members = list(non_broken.values())
@@ -244,7 +248,9 @@ class TestRunIntegration(unittest.TestCase):
         #   H = -(2/3 log(2/3) + 1/3 log(1/3)) / log(3) ≈ 0.918 * 0.5 ... wait,
         # let's check the actual value and just verify the escalate flag is
         # consistent with the entropy and threshold.
-        expected_escalate = verdict["entropy"] >= 0.5 or verdict["plurality_share"] < 0.5
+        expected_escalate = (
+            verdict["entropy"] >= 0.5 or verdict["plurality_share"] < 0.5
+        )
         self.assertEqual(verdict["escalate"], expected_escalate)
 
         # Recommended winner must be from the plurality cluster.
@@ -264,7 +270,7 @@ class TestRunIntegration(unittest.TestCase):
 
         candidates = [
             {"model": "claude", "files": {"src/calc.py": CALC_PY_CORRECT}},
-            {"model": "codex",  "files": {"src/calc.py": CALC_PY_CORRECT}},
+            {"model": "codex", "files": {"src/calc.py": CALC_PY_CORRECT}},
             {"model": "gemini", "files": {"src/calc.py": CALC_PY_CORRECT}},
         ]
         manifest = _make_manifest(wd, candidates)
@@ -290,7 +296,7 @@ class TestRunIntegration(unittest.TestCase):
         # gemini: a-b (all fail — original buggy)
         candidates = [
             {"model": "claude", "files": {"src/calc.py": CALC_PY_CORRECT}},
-            {"model": "codex",  "files": {"src/calc.py": CALC_PY_WRONG_IMPL}},
+            {"model": "codex", "files": {"src/calc.py": CALC_PY_WRONG_IMPL}},
             {"model": "gemini", "files": {"src/calc.py": CALC_PY_BUGGY}},
         ]
         manifest = _make_manifest(wd, candidates)
@@ -318,7 +324,7 @@ class TestRunIntegration(unittest.TestCase):
 
         candidates = [
             {"model": "claude", "files": {"src/calc.py": CALC_PY_CORRECT}},
-            {"model": "codex",  "files": {"src/calc.py": CALC_PY_CORRECT}},
+            {"model": "codex", "files": {"src/calc.py": CALC_PY_CORRECT}},
             # gemini: malformed patch that will fail to apply
             {"model": "gemini", "patch": "THIS IS NOT A VALID UNIFIED DIFF AT ALL!!!"},
         ]
@@ -365,11 +371,10 @@ class TestRunIntegration(unittest.TestCase):
     def test_cli_internal_error_returns_escalate(self):
         """Drive main() with deliberately broken JSON to trigger the except block."""
         import io
+
         # Monkeypatch stdin to return invalid JSON.
         original_stdin = sys.stdin
         sys.stdin = io.StringIO("NOT VALID JSON {{{")
-        captured = []
-        original_stdout_write = sys.stdout.write
 
         output_parts: list[str] = []
 
@@ -377,6 +382,7 @@ class TestRunIntegration(unittest.TestCase):
             def write(self, s: str) -> int:
                 output_parts.append(s)
                 return len(s)
+
             def flush(self) -> None:
                 pass
 
@@ -398,6 +404,7 @@ class TestRunIntegration(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # Entropy formula cross-check
 # ---------------------------------------------------------------------------
+
 
 class TestEntropyFormula(unittest.TestCase):
     """Verify the entropy formula independently against known values."""

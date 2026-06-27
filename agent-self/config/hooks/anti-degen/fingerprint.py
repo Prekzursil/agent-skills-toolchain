@@ -22,6 +22,7 @@ Stdin (PostToolUse): JSON object with keys:
   tool_response str | dict   (the tool's output; also try tool_output as fallback)
   cwd           str
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -32,11 +33,14 @@ import time
 from pathlib import Path
 
 # ── configuration ────────────────────────────────────────────────────────────
-WINDOW_SIZE = 8       # how many recent triples to retain per session
+WINDOW_SIZE = 8  # how many recent triples to retain per session
 REPEAT_THRESHOLD = 3  # how many same-(tool,args,output) hits before warning
-ROOT = Path(os.environ.get("ANTI_DEGEN_ROOT", str(Path.home() / ".claude" / "anti-degen")))
+ROOT = Path(
+    os.environ.get("ANTI_DEGEN_ROOT", str(Path.home() / ".claude" / "anti-degen"))
+)
 
 # ── helpers ───────────────────────────────────────────────────────────────────
+
 
 def _sha(text: str) -> str:
     """64-hex sha256 digest (non-crypto use; sha256 chosen per CWE-327 guidance)."""
@@ -50,8 +54,13 @@ def _args_hash(tool_input) -> str:
     produce the same hash. Non-dict inputs are JSON-encoded as-is.
     """
     try:
-        normalized = json.dumps(tool_input, sort_keys=True, ensure_ascii=False,
-                                separators=(",", ":"), default=repr)
+        normalized = json.dumps(
+            tool_input,
+            sort_keys=True,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            default=repr,
+        )
     except Exception:
         normalized = repr(tool_input)
     return _sha(normalized)
@@ -63,8 +72,13 @@ def _output_hash(tool_response) -> str:
         text = tool_response
     else:
         try:
-            text = json.dumps(tool_response, sort_keys=True, ensure_ascii=False,
-                              separators=(",", ":"), default=repr)
+            text = json.dumps(
+                tool_response,
+                sort_keys=True,
+                ensure_ascii=False,
+                separators=(",", ":"),
+                default=repr,
+            )
         except Exception:
             text = repr(tool_response)
     return _sha(text)
@@ -73,7 +87,9 @@ def _output_hash(tool_response) -> str:
 def _session_file(session_id: str) -> Path:
     ROOT.mkdir(parents=True, exist_ok=True)
     # sanitize session_id to a safe filename component
-    safe = "".join(c if c.isalnum() or c in "-_." else "-" for c in str(session_id))[:80]
+    safe = "".join(c if c.isalnum() or c in "-_." else "-" for c in str(session_id))[
+        :80
+    ]
     return ROOT / f"{safe or 'unknown'}.json"
 
 
@@ -114,12 +130,14 @@ def _check_and_update(session_id: str, tool_name: str, args_h: str, out_h: str) 
     window = _load_window(session_id)
 
     # append the new triple
-    window.append({
-        "tool": tool_name,
-        "ah": args_h,
-        "oh": out_h,
-        "ts": time.strftime("%Y-%m-%dT%H:%M:%S"),
-    })
+    window.append(
+        {
+            "tool": tool_name,
+            "ah": args_h,
+            "oh": out_h,
+            "ts": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        }
+    )
 
     # keep only the last WINDOW_SIZE entries
     if len(window) > WINDOW_SIZE:
@@ -128,7 +146,9 @@ def _check_and_update(session_id: str, tool_name: str, args_h: str, out_h: str) 
     _save_window(session_id, window)
 
     # count occurrences of (tool, args_h) in the window
-    matches = [e for e in window if e.get("tool") == tool_name and e.get("ah") == args_h]
+    matches = [
+        e for e in window if e.get("tool") == tool_name and e.get("ah") == args_h
+    ]
     if len(matches) < REPEAT_THRESHOLD:
         return False
 
@@ -141,6 +161,7 @@ def _check_and_update(session_id: str, tool_name: str, args_h: str, out_h: str) 
 
 
 # ── main ──────────────────────────────────────────────────────────────────────
+
 
 def main() -> int:
     try:
@@ -168,12 +189,16 @@ def main() -> int:
                 f"Stop, summarize what is blocking you, and either try a materially "
                 f"different approach or ask the user."
             )
-            print(json.dumps({
-                "hookSpecificOutput": {
-                    "hookEventName": "PostToolUse",
-                    "additionalContext": msg,
-                }
-            }))
+            print(
+                json.dumps(
+                    {
+                        "hookSpecificOutput": {
+                            "hookEventName": "PostToolUse",
+                            "additionalContext": msg,
+                        }
+                    }
+                )
+            )
 
     except Exception:
         pass  # fail-open: any logic error → exit 0, do nothing

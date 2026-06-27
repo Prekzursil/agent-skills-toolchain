@@ -19,8 +19,12 @@ def parse_args() -> argparse.Namespace:
         default="ownership-map-out",
         help="Output directory for graph artifacts",
     )
-    parser.add_argument("--since", default=None, help="Limit git log to commits since date")
-    parser.add_argument("--until", default=None, help="Limit git log to commits until date")
+    parser.add_argument(
+        "--since", default=None, help="Limit git log to commits since date"
+    )
+    parser.add_argument(
+        "--until", default=None, help="Limit git log to commits until date"
+    )
     parser.add_argument(
         "--identity",
         choices=("author", "committer"),
@@ -136,7 +140,9 @@ def main() -> int:
     try:
         import networkx  # noqa: F401
     except ImportError:
-        print("networkx is required. Install with: pip install networkx", file=sys.stderr)
+        print(
+            "networkx is required. Install with: pip install networkx", file=sys.stderr
+        )
         return 2
 
     script_path = Path(__file__).resolve().parent / "build_ownership_map.py"

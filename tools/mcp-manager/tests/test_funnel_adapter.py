@@ -1,13 +1,12 @@
 """Tests for core/funnel_adapter.py — profile reads, server universe, switch."""
+
 import json
 import sys
 from pathlib import Path
 
-import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from core import funnel_adapter  # noqa: E402
-from core.models import AuthStatus  # noqa: E402
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -16,9 +15,15 @@ PROFILES = {
     "profiles": {
         "default": "*ALL*",
         "minimal": ["github_cli", "repomix", "semgrep"],
-        "re": ["binary-ninja-mcp", "ghidra-mcp", "ida-pro-mcp", "frida-mcp", "github_cli"],
+        "re": [
+            "binary-ninja-mcp",
+            "ghidra-mcp",
+            "ida-pro-mcp",
+            "frida-mcp",
+            "github_cli",
+        ],
         "web": ["chrome-devtools", "firecrawl", "tavily", "github_cli"],
-    }
+    },
 }
 
 

@@ -5,6 +5,7 @@ Stdlib only (urllib). API key is read from env HACKTRICKS_API_KEY and is NEVER p
 (redacted from all output, including HTTP error bodies). RAG responses are cached by content hash so
 repeat queries cost no quota; a usage guard refuses to spend when the weekly quota is near zero.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -31,6 +32,7 @@ def _key_from_user_env():
     Covers the common case where a parent process was started before the var was set."""
     try:
         import winreg
+
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment") as reg:
             val, _ = winreg.QueryValueEx(reg, "HACKTRICKS_API_KEY")
             return val or None
@@ -43,7 +45,9 @@ def _key() -> str:
     if not k and sys.platform == "win32":
         k = _key_from_user_env()
     if not k:
-        raise HtkError("HACKTRICKS_API_KEY is not set (env or Windows user environment)")
+        raise HtkError(
+            "HACKTRICKS_API_KEY is not set (env or Windows user environment)"
+        )
     return k
 
 
@@ -60,7 +64,9 @@ def _canon(body: dict) -> str:
 
 
 def _cache_path(endpoint: str, body: dict) -> str:
-    digest = hashlib.sha256((endpoint + "\n" + _canon(body)).encode("utf-8")).hexdigest()
+    digest = hashlib.sha256(
+        (endpoint + "\n" + _canon(body)).encode("utf-8")
+    ).hexdigest()
     return os.path.join(_cache_dir(), digest + ".json")
 
 
@@ -73,6 +79,7 @@ def _http_json(method: str, path: str, body: dict | None = None) -> dict:
     if data is not None:
         req.add_header("Content-Type", "application/json")
     try:
+        # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected -- internal HTTP client; URL from validated/config input, not untrusted user data
         with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
@@ -81,7 +88,9 @@ def _http_json(method: str, path: str, body: dict | None = None) -> dict:
             detail = exc.read().decode("utf-8", "replace")
         except Exception:
             pass
-        raise HtkError(_redact(f"HTTP {exc.code} on {path}: {detail}".strip(), key)) from None
+        raise HtkError(
+            _redact(f"HTTP {exc.code} on {path}: {detail}".strip(), key)
+        ) from None
     except urllib.error.URLError as exc:
         raise HtkError(_redact(f"network error on {path}: {exc.reason}", key)) from None
 
@@ -91,7 +100,9 @@ def usage() -> dict:
     return _http_json("GET", "/api/v1/rag/usage")
 
 
-def rag(query: str, max_results: int = 3, rewrite_query: bool = False) -> tuple[dict, bool]:
+def rag(
+    query: str, max_results: int = 3, rewrite_query: bool = False
+) -> tuple[dict, bool]:
     """POST /api/v1/rag. Returns (response, cached). Cache-first; usage-guarded before any spend."""
     query = (query or "").strip()
     if not query:
@@ -136,7 +147,9 @@ def chat(message: str, thread_id: str | None = None, model: str | None = None) -
 
 
 def _main(argv=None) -> int:
-    parser = argparse.ArgumentParser(description="HackTricks AI API client (cached, quota-aware)")
+    parser = argparse.ArgumentParser(
+        description="HackTricks AI API client (cached, quota-aware)"
+    )
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("usage")
     p_rag = sub.add_parser("rag")

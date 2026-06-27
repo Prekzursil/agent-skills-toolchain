@@ -1,10 +1,10 @@
 """Tests for core/status.py — async refresh, merge, graceful degradation."""
+
 import asyncio
 import json
 import sys
 from pathlib import Path
 
-import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from core import status as sm  # noqa: E402
@@ -19,12 +19,14 @@ plugin:semgrep:semgrep: semgrep mcp - ✔ Connected
 exa: npx exa-mcp  - ✔ Connected
 """
 
-CODEX_JSON = json.dumps([
-    {"name": "exa", "enabled": True},
-    {"name": "context7", "enabled": True},
-    # exa is also in claude-plane above -> cross-plane duplicate
-    {"name": "kaggle", "enabled": False},
-])
+CODEX_JSON = json.dumps(
+    [
+        {"name": "exa", "enabled": True},
+        {"name": "context7", "enabled": True},
+        # exa is also in claude-plane above -> cross-plane duplicate
+        {"name": "kaggle", "enabled": False},
+    ]
+)
 
 PROFILES = {
     "profiles": {
@@ -39,9 +41,10 @@ def _make_env(tmp_path: Path) -> tuple[Path, Path, Path, Path, str]:
     """Return (claude_json, codex_toml, funnel_profiles, project_path)."""
     cj = tmp_path / ".claude.json"
     proj = str(tmp_path).replace("\\", "/")
-    cj.write_text(json.dumps({
-        "projects": {proj: {"disabledMcpServers": ["claude.ai PubMed"]}}
-    }), encoding="utf-8")
+    cj.write_text(
+        json.dumps({"projects": {proj: {"disabledMcpServers": ["claude.ai PubMed"]}}}),
+        encoding="utf-8",
+    )
 
     ct = tmp_path / "codex" / "config.toml"
     ct.parent.mkdir()
@@ -60,7 +63,10 @@ def _make_env(tmp_path: Path) -> tuple[Path, Path, Path, Path, str]:
 class TestMergeRows:
     def _make_row(self, id_, plane, enabled=True, status=AuthStatus.UNKNOWN):
         from core.models import ServerRow
-        return ServerRow(id=id_, name=id_, planes=[plane], enabled=enabled, status=status)
+
+        return ServerRow(
+            id=id_, name=id_, planes=[plane], enabled=enabled, status=status
+        )
 
     def test_different_ids_not_merged(self):
         a = self._make_row("a", "claude")
@@ -106,12 +112,16 @@ class TestMergeRows:
 class TestRefresh:
     def test_returns_merged_rows(self, tmp_path: Path):
         cj, ct, pf, proj = _make_env(tmp_path)
-        rows = asyncio.run(sm.refresh(
-            claude_json=cj, codex_toml=ct, funnel_profiles=pf,
-            project_path=proj,
-            mcp_list_output=MCP_LIST,
-            codex_json_output=CODEX_JSON,
-        ))
+        rows = asyncio.run(
+            sm.refresh(
+                claude_json=cj,
+                codex_toml=ct,
+                funnel_profiles=pf,
+                project_path=proj,
+                mcp_list_output=MCP_LIST,
+                codex_json_output=CODEX_JSON,
+            )
+        )
         ids = {r.id for r in rows}
         # claude-plane servers
         assert "claude.ai Tavily" in ids
@@ -123,23 +133,31 @@ class TestRefresh:
 
     def test_disabled_server_is_disabled(self, tmp_path: Path):
         cj, ct, pf, proj = _make_env(tmp_path)
-        rows = asyncio.run(sm.refresh(
-            claude_json=cj, codex_toml=ct, funnel_profiles=pf,
-            project_path=proj,
-            mcp_list_output=MCP_LIST,
-            codex_json_output=CODEX_JSON,
-        ))
+        rows = asyncio.run(
+            sm.refresh(
+                claude_json=cj,
+                codex_toml=ct,
+                funnel_profiles=pf,
+                project_path=proj,
+                mcp_list_output=MCP_LIST,
+                codex_json_output=CODEX_JSON,
+            )
+        )
         by_id = {r.id: r for r in rows}
         assert by_id["claude.ai PubMed"].enabled is False
 
     def test_cross_plane_duplicate_flagged(self, tmp_path: Path):
         cj, ct, pf, proj = _make_env(tmp_path)
-        rows = asyncio.run(sm.refresh(
-            claude_json=cj, codex_toml=ct, funnel_profiles=pf,
-            project_path=proj,
-            mcp_list_output=MCP_LIST,
-            codex_json_output=CODEX_JSON,
-        ))
+        rows = asyncio.run(
+            sm.refresh(
+                claude_json=cj,
+                codex_toml=ct,
+                funnel_profiles=pf,
+                project_path=proj,
+                mcp_list_output=MCP_LIST,
+                codex_json_output=CODEX_JSON,
+            )
+        )
         by_id = {r.id: r for r in rows}
         # 'exa' is in both the claude-plane MCP_LIST and codex CODEX_JSON
         assert by_id["exa"].duplicated is True
@@ -148,24 +166,30 @@ class TestRefresh:
 
     def test_graceful_when_claude_json_missing(self, tmp_path: Path):
         # Should not raise even if claude.json is absent
-        rows = asyncio.run(sm.refresh(
-            claude_json=tmp_path / "nope.json",
-            codex_toml=tmp_path / "nope.toml",
-            funnel_profiles=tmp_path / "nope2.json",
-            project_path="C:/x",
-            mcp_list_output="",
-            codex_json_output="[]",
-        ))
+        rows = asyncio.run(
+            sm.refresh(
+                claude_json=tmp_path / "nope.json",
+                codex_toml=tmp_path / "nope.toml",
+                funnel_profiles=tmp_path / "nope2.json",
+                project_path="C:/x",
+                mcp_list_output="",
+                codex_json_output="[]",
+            )
+        )
         assert isinstance(rows, list)
 
     def test_no_duplicates_within_plane(self, tmp_path: Path):
         cj, ct, pf, proj = _make_env(tmp_path)
-        rows = asyncio.run(sm.refresh(
-            claude_json=cj, codex_toml=ct, funnel_profiles=pf,
-            project_path=proj,
-            mcp_list_output=MCP_LIST,
-            codex_json_output=CODEX_JSON,
-        ))
+        rows = asyncio.run(
+            sm.refresh(
+                claude_json=cj,
+                codex_toml=ct,
+                funnel_profiles=pf,
+                project_path=proj,
+                mcp_list_output=MCP_LIST,
+                codex_json_output=CODEX_JSON,
+            )
+        )
         ids = [r.id for r in rows]
         assert len(ids) == len(set(ids))
 
@@ -177,7 +201,9 @@ class TestRefreshSync:
     def test_sync_wrapper_returns_same_results(self, tmp_path: Path):
         cj, ct, pf, proj = _make_env(tmp_path)
         rows = sm.refresh_sync(
-            claude_json=cj, codex_toml=ct, funnel_profiles=pf,
+            claude_json=cj,
+            codex_toml=ct,
+            funnel_profiles=pf,
             project_path=proj,
             mcp_list_output=MCP_LIST,
             codex_json_output=CODEX_JSON,

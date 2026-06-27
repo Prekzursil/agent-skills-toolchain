@@ -12,8 +12,9 @@ Status discovery: 'codex mcp list --json' returns a JSON array
 of objects with .name + .enabled fields.  We use that if available
 and fall back to parsing config.toml directly.
 """
-from __future__ import annotations
 
+from __future__ import annotations
+from typing import Any
 import json
 import shutil
 import subprocess
@@ -47,7 +48,7 @@ def _read_toml_raw(path: Path) -> str:
         return ""
 
 
-def _toml_servers(path: Path) -> dict[str, dict]:
+def _toml_servers(path: Path) -> dict[str, dict[str, Any]]:
     """Return the [mcp_servers.*] tables from config.toml as a plain dict."""
     if tomllib is None:
         return {}
@@ -85,15 +86,17 @@ def parse_codex_mcp_list(json_output: str) -> list[ServerRow]:
         status = AuthStatus.UNKNOWN
         if not enabled:
             status = AuthStatus.UNKNOWN
-        rows.append(ServerRow(
-            id=name,
-            name=name,
-            planes=["codex"],
-            enabled=enabled,
-            status=status,
-            auth=auth_raw,
-            command="",
-        ))
+        rows.append(
+            ServerRow(
+                id=name,
+                name=name,
+                planes=["codex"],
+                enabled=enabled,
+                status=status,
+                auth=auth_raw,
+                command="",
+            )
+        )
     return rows
 
 
@@ -135,15 +138,17 @@ def get_server_universe(
     rows = []
     for name, spec in servers.items():
         enabled = bool(spec.get("enabled", True)) if isinstance(spec, dict) else True
-        rows.append(ServerRow(
-            id=name,
-            name=name,
-            planes=["codex"],
-            enabled=enabled,
-            status=AuthStatus.UNKNOWN,
-            auth="",
-            command="",
-        ))
+        rows.append(
+            ServerRow(
+                id=name,
+                name=name,
+                planes=["codex"],
+                enabled=enabled,
+                status=AuthStatus.UNKNOWN,
+                auth="",
+                command="",
+            )
+        )
     return rows
 
 

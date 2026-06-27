@@ -1,4 +1,5 @@
 """Tests for the cross-plane MCP + skill inventory (read-only core)."""
+
 import json
 import sys
 from pathlib import Path
@@ -14,18 +15,30 @@ def home(tmp_path: Path) -> Path:
     """A fake $HOME with all four planes populated + duplicate skill packs."""
     # ~/.claude.json : user scope (github enabled, semgrep disabled) + a project block
     proj = str(tmp_path).replace("\\", "/")
-    (tmp_path / ".claude.json").write_text(json.dumps({
-        "mcpServers": {"github": {}, "semgrep": {}},
-        "disabledMcpServers": ["semgrep"],
-        "projects": {proj: {
-            "mcpServers": {"ida-pro-mcp": {}},
-            "disabledMcpServers": [],
-        }},
-    }), encoding="utf-8")
+    (tmp_path / ".claude.json").write_text(
+        json.dumps(
+            {
+                "mcpServers": {"github": {}, "semgrep": {}},
+                "disabledMcpServers": ["semgrep"],
+                "projects": {
+                    proj: {
+                        "mcpServers": {"ida-pro-mcp": {}},
+                        "disabledMcpServers": [],
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
     # ~/.mcp.json : project scope (context7 enabled, browserstack disabled)
-    (tmp_path / ".mcp.json").write_text(json.dumps({
-        "mcpServers": {"context7": {}, "browserstack": {"disabled": True}},
-    }), encoding="utf-8")
+    (tmp_path / ".mcp.json").write_text(
+        json.dumps(
+            {
+                "mcpServers": {"context7": {}, "browserstack": {"disabled": True}},
+            }
+        ),
+        encoding="utf-8",
+    )
     # ~/.codex/config.toml
     (tmp_path / ".codex").mkdir()
     (tmp_path / ".codex" / "config.toml").write_text(
@@ -34,12 +47,21 @@ def home(tmp_path: Path) -> Path:
         encoding="utf-8",
     )
     # ~/.mcp-funnel-master.json
-    (tmp_path / ".mcp-funnel-master.json").write_text(json.dumps({
-        "servers": [{"name": "ghidra-mcp"}, {"name": "github"}],
-    }), encoding="utf-8")
+    (tmp_path / ".mcp-funnel-master.json").write_text(
+        json.dumps(
+            {
+                "servers": [{"name": "ghidra-mcp"}, {"name": "github"}],
+            }
+        ),
+        encoding="utf-8",
+    )
     # duplicate skill packs: packA and packB expose the SAME skill names; packC differs
     skills = tmp_path / ".claude" / "skills"
-    for pack, names in {"packA": ["docx", "pdf"], "packB": ["docx", "pdf"], "packC": ["unique"]}.items():
+    for pack, names in {
+        "packA": ["docx", "pdf"],
+        "packB": ["docx", "pdf"],
+        "packC": ["unique"],
+    }.items():
         for n in names:
             d = skills / pack / n
             d.mkdir(parents=True)
@@ -48,7 +70,9 @@ def home(tmp_path: Path) -> Path:
 
 
 def test_scan_claude_user_enabled_and_disabled(home: Path):
-    inv = inventory.scan_claude(home / ".claude.json", project_path=str(home).replace("\\", "/"))
+    inv = inventory.scan_claude(
+        home / ".claude.json", project_path=str(home).replace("\\", "/")
+    )
     assert inv["github"].enabled_in == ["claude-user"]
     assert inv["semgrep"].disabled_in == ["claude-user"]
     assert "claude-project" in inv["ida-pro-mcp"].enabled_in

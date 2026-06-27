@@ -7,6 +7,7 @@ RECORD-ONLY — it never blocks (always exit 0) and honors stop_hook_active so i
 cause a loop. The ledger thus stays current *before* compaction, so recovery replays
 ground truth rather than a summary written from an already-degraded context.
 """
+
 from __future__ import annotations
 
 import json
@@ -20,7 +21,9 @@ import ledger  # noqa: E402
 
 def _git(cwd: str, *args: str) -> str | None:
     try:
-        out = subprocess.run(["git", "-C", cwd, *args], capture_output=True, text=True, timeout=5)
+        out = subprocess.run(
+            ["git", "-C", cwd, *args], capture_output=True, text=True, timeout=5
+        )
         if out.returncode == 0:
             return out.stdout.strip()
     except Exception:
@@ -40,10 +43,21 @@ def main() -> int:
     head = _git(cwd, "rev-parse", "--short", "HEAD")
     branch = _git(cwd, "rev-parse", "--abbrev-ref", "HEAD")
     porcelain = _git(cwd, "status", "--porcelain")
-    dirty = len([l for l in (porcelain or "").splitlines() if l.strip()]) if porcelain is not None else None
+    dirty = (
+        len([ln for ln in (porcelain or "").splitlines() if ln.strip()])
+        if porcelain is not None
+        else None
+    )
     try:
-        ledger.append(cwd, "turn", cwd=cwd, head=head, branch=branch, dirty_files=dirty,
-                      session=str(data.get("session_id", ""))[:12])
+        ledger.append(
+            cwd,
+            "turn",
+            cwd=cwd,
+            head=head,
+            branch=branch,
+            dirty_files=dirty,
+            session=str(data.get("session_id", ""))[:12],
+        )
     except Exception:
         # a ledger failure must never break the session
         pass

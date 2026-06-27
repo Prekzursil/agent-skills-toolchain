@@ -14,12 +14,11 @@ Run:
     or (with deps installed):
     python ui/app.py
 """
-from __future__ import annotations
 
-import asyncio
+from __future__ import annotations
+from typing import Any
 import sys
 from pathlib import Path
-from typing import Any
 
 # Ensure the project root is importable
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -75,6 +74,7 @@ _AUTH_COMMANDS: dict[str, str] = {
 
 class RefreshComplete(Message):
     """Sent when a background refresh finishes."""
+
     def __init__(self, rows: list[ServerRow]) -> None:
         super().__init__()
         self.rows = rows
@@ -82,6 +82,7 @@ class RefreshComplete(Message):
 
 class RefreshFailed(Message):
     """Sent when a background refresh fails."""
+
     def __init__(self, error: str) -> None:
         super().__init__()
         self.error = error
@@ -159,7 +160,7 @@ class AuthInfoModal(Container):
 # ── Main App ──────────────────────────────────────────────────────────────────
 
 
-class MCPManagerApp(App):
+class MCPManagerApp(App[None]):
     """Cross-plane MCP server manager TUI."""
 
     TITLE = "mcp-manager"
@@ -289,7 +290,9 @@ class MCPManagerApp(App):
                 yield Label("Refreshing…", id="loading-label")
 
             with Container(id="table-container"):
-                yield DataTable(id="server-table", zebra_stripes=True, cursor_type="row")
+                yield DataTable(
+                    id="server-table", zebra_stripes=True, cursor_type="row"
+                )
 
             with Horizontal(id="bulk-bar"):
                 yield Label("Selection:", id="sel-label")
@@ -312,7 +315,7 @@ class MCPManagerApp(App):
         self.action_refresh()
 
     def _setup_table(self) -> None:
-        table: DataTable = self.query_one("#server-table", DataTable)
+        table: DataTable[Any] = self.query_one("#server-table", DataTable)
         table.add_column("Sel", width=3)
         table.add_column("Status", width=14)
         table.add_column("Server", width=34)
@@ -343,7 +346,7 @@ class MCPManagerApp(App):
             pass
 
         self._loadout_profiles = options
-        sel: Select = self.query_one("#loadout-select", Select)
+        sel: Select[Any] = self.query_one("#loadout-select", Select)
         sel.set_options(options)
 
     # ── refresh worker ────────────────────────────────────────────────────────
@@ -357,6 +360,7 @@ class MCPManagerApp(App):
         self.call_from_thread(self._set_loading, True)
         try:
             from core.status import refresh_sync
+
             rows = refresh_sync()
             self.call_from_thread(self.post_message, RefreshComplete(rows))
         except Exception as exc:  # noqa: BLE001
@@ -390,11 +394,15 @@ class MCPManagerApp(App):
     # ── table population ──────────────────────────────────────────────────────
 
     def _repopulate_table(self) -> None:
-        table: DataTable = self.query_one("#server-table", DataTable)
+        table: DataTable[Any] = self.query_one("#server-table", DataTable)
         table.clear()
         for row in self._rows:
             sel_mark = "☑" if row.id in self._selected_ids else "☐"
-            status_val = row.status.value if isinstance(row.status, AuthStatus) else str(row.status)
+            status_val = (
+                row.status.value
+                if isinstance(row.status, AuthStatus)
+                else str(row.status)
+            )
             badge = STATUS_BADGES.get(status_val, "? pending")
             enabled_str = ENABLED_BADGE if row.enabled else DISABLED_BADGE
             planes_str = ",".join(sorted(set(row.planes)))
@@ -427,7 +435,7 @@ class MCPManagerApp(App):
 
     def _refresh_row(self, row_key: str) -> None:
         """Update just the selection column for a single row."""
-        table: DataTable = self.query_one("#server-table", DataTable)
+        table: DataTable[Any] = self.query_one("#server-table", DataTable)
         sel_mark = "☑" if row_key in self._selected_ids else "☐"
         try:
             table.update_cell(row_key, "Sel", sel_mark)
@@ -435,7 +443,7 @@ class MCPManagerApp(App):
             pass
 
     def action_toggle_row(self) -> None:
-        table: DataTable = self.query_one("#server-table", DataTable)
+        table: DataTable[Any] = self.query_one("#server-table", DataTable)
         if table.cursor_row < 0 or table.cursor_row >= len(self._rows):
             return
         row_key = self._rows[table.cursor_row].id
@@ -472,6 +480,7 @@ class MCPManagerApp(App):
             return
         from core import claude_adapter
         from pathlib import Path
+
         claude_json = Path.home() / ".claude.json"
         project_path = str(Path.home()).replace("\\", "/")
         changed: list[str] = []
@@ -510,7 +519,7 @@ class MCPManagerApp(App):
         target_ids = list(self._selected_ids)
         if not target_ids:
             # Use focused row
-            table: DataTable = self.query_one("#server-table", DataTable)
+            table: DataTable[Any] = self.query_one("#server-table", DataTable)
             if table.cursor_row >= 0 and table.cursor_row < len(self._rows):
                 target_ids = [self._rows[table.cursor_row].id]
         if not target_ids:
@@ -530,7 +539,7 @@ class MCPManagerApp(App):
 
     @on(Button.Pressed, "#btn-apply-loadout")
     def _apply_loadout(self) -> None:
-        sel: Select = self.query_one("#loadout-select", Select)
+        sel: Select[Any] = self.query_one("#loadout-select", Select)
         value = sel.value
         if not value or value == Select.BLANK:
             status: StatusBar = self.query_one("#status-bar", StatusBar)
@@ -541,6 +550,7 @@ class MCPManagerApp(App):
     @work(exclusive=False, thread=True)
     def _do_apply_loadout(self, loadout_key: str) -> None:
         from pathlib import Path
+
         claude_json = Path.home() / ".claude.json"
         project_path = str(Path.home()).replace("\\", "/")
         msg = ""
@@ -548,12 +558,14 @@ class MCPManagerApp(App):
         if loadout_key == "__defaults__":
             try:
                 lo = loadout_mod.read_loadout()
-                changed = loadout_mod.apply_loadout_to_project(lo, claude_json, project_path)
+                changed = loadout_mod.apply_loadout_to_project(
+                    lo, claude_json, project_path
+                )
                 msg = f"Loadout applied: {len(changed)} servers disabled"
             except Exception as exc:  # noqa: BLE001
                 msg = f"Loadout error: {exc}"
         elif loadout_key.startswith("funnel:"):
-            profile = loadout_key[len("funnel:"):]
+            profile = loadout_key[len("funnel:") :]
             try:
                 ok, out = funnel_adapter.switch_profile(profile)
                 msg = f"Funnel profile '{profile}': {'ok' if ok else 'FAILED'} — {out}"

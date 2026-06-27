@@ -40,12 +40,12 @@ CURRENT STATUS:
 This file is safe to import and call at any time. It never writes, never raises,
 and never modifies any ledger — it is read-only analysis code.
 """
+
 from __future__ import annotations
 
 import json
 import sys
 from pathlib import Path
-from typing import Any
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -53,8 +53,8 @@ import ledger  # noqa: E402
 
 # Thresholds / hyper-parameters
 MIN_SELECTION_EVENTS = 100
-ALPHA = 0.3   # positive-centroid pull weight
-BETA = 0.1    # negative-centroid push weight
+ALPHA = 0.3  # positive-centroid pull weight
+BETA = 0.1  # negative-centroid push weight
 
 # Centroids are stored next to the ledger root so they survive across sessions.
 CENTROIDS_FILE = ledger.ROOT / "oats-centroids.json"
@@ -64,12 +64,17 @@ CENTROIDS_FILE = ledger.ROOT / "oats-centroids.json"
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+
 def _load_selection_events(project_path: str | None = None) -> list[dict]:
     """Return all 'selection' events across all projects (or one project)."""
     if project_path:
         dirs = [ledger._dir(project_path)]  # noqa: SLF001
     else:
-        dirs = [d for d in ledger.ROOT.iterdir() if d.is_dir()] if ledger.ROOT.exists() else []
+        dirs = (
+            [d for d in ledger.ROOT.iterdir() if d.is_dir()]
+            if ledger.ROOT.exists()
+            else []
+        )
 
     events: list[dict] = []
     for d in dirs:
@@ -103,7 +108,9 @@ def _save_centroids(data: dict) -> None:
     """Persist updated centroids. Best-effort — never raises."""
     try:
         CENTROIDS_FILE.parent.mkdir(parents=True, exist_ok=True)
-        CENTROIDS_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+        CENTROIDS_FILE.write_text(
+            json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
     except Exception:
         pass
 
@@ -129,11 +136,13 @@ def _mean_vector(vecs: list[list[float]]) -> list[float] | None:
     return _vec_scale(acc, 1.0 / n)
 
 
-def nudge(embedding: list[float],
-          positive_vecs: list[list[float]],
-          negative_vecs: list[list[float]],
-          alpha: float = ALPHA,
-          beta: float = BETA) -> list[float]:
+def nudge(
+    embedding: list[float],
+    positive_vecs: list[list[float]],
+    negative_vecs: list[list[float]],
+    alpha: float = ALPHA,
+    beta: float = BETA,
+) -> list[float]:
     """Compute the OATS embedding nudge.
 
     ê = (1-α)*e + α*mean(Q+) - β*mean(Q-)
@@ -155,6 +164,7 @@ def nudge(embedding: list[float],
 # ---------------------------------------------------------------------------
 # Public interface
 # ---------------------------------------------------------------------------
+
 
 def status() -> str:
     """Return a human-readable OATS status string. Safe at all times."""
@@ -237,7 +247,9 @@ def update(project_path: str | None = None, dry_run: bool = False) -> str:
         # full implementation that will run once an embeddings backend is available.
         centroids = _load_centroids()
         for t in all_tools:
-            centroids["tools"].setdefault(t, {})["pos_queries"] = tool_pos.get(t, [])[-200:]
+            centroids["tools"].setdefault(t, {})["pos_queries"] = tool_pos.get(t, [])[
+                -200:
+            ]
             centroids["tools"][t]["neg_queries"] = tool_neg.get(t, [])[-200:]
         _save_centroids(centroids)
         lines.append(f"  Centroids written to: {CENTROIDS_FILE}")
@@ -264,15 +276,31 @@ def rank(query: str, tools: list[str]) -> list[str]:
 
 def main() -> int:
     import argparse
-    ap = argparse.ArgumentParser(description="OATS self-learning tool-selection scaffold.")
-    ap.add_argument("--status", action="store_true", default=False,
-                    help="Print OATS status (default action).")
-    ap.add_argument("--update", action="store_true", default=False,
-                    help="Recompute nudge centroids from selection events.")
-    ap.add_argument("--dry-run", action="store_true", default=False,
-                    help="With --update: show plan without writing.")
-    ap.add_argument("--project", default=None,
-                    help="Restrict to a single project path.")
+
+    ap = argparse.ArgumentParser(
+        description="OATS self-learning tool-selection scaffold."
+    )
+    ap.add_argument(
+        "--status",
+        action="store_true",
+        default=False,
+        help="Print OATS status (default action).",
+    )
+    ap.add_argument(
+        "--update",
+        action="store_true",
+        default=False,
+        help="Recompute nudge centroids from selection events.",
+    )
+    ap.add_argument(
+        "--dry-run",
+        action="store_true",
+        default=False,
+        help="With --update: show plan without writing.",
+    )
+    ap.add_argument(
+        "--project", default=None, help="Restrict to a single project path."
+    )
     a = ap.parse_args()
 
     try:

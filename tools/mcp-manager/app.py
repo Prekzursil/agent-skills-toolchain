@@ -10,6 +10,7 @@ Usage:
   uv run app.py consolidate   # Spec-3 user-skill consolidation analysis (no deletions)
   uv run app.py json          # full machine-readable inventory
 """
+
 from __future__ import annotations
 
 import json
@@ -27,16 +28,24 @@ SKILL_ROOTS = [HOME / ".claude" / "skills", HOME / ".agents" / "skills"]
 
 def cmd_status() -> None:
     rep = build_inventory(HOME, project_path=PROJ)
-    print(f"MCP servers across planes: {rep['server_count']}  "
-          f"(cross-plane duplicates: {len(rep['duplicated_servers'])})\n")
+    print(
+        f"MCP servers across planes: {rep['server_count']}  "
+        f"(cross-plane duplicates: {len(rep['duplicated_servers'])})\n"
+    )
     print(f"{'SERVER':28} {'PLANES':40} STATE")
     print("-" * 90)
     for s in rep["servers"]:
-        state = "enabled:" + ",".join(sorted(set(s["enabled_in"]))) if s["enabled_in"] else ""
+        state = (
+            "enabled:" + ",".join(sorted(set(s["enabled_in"])))
+            if s["enabled_in"]
+            else ""
+        )
         if s["disabled_in"]:
             state += "  disabled:" + ",".join(sorted(set(s["disabled_in"])))
         dup = " *DUP*" if s["duplicated"] else ""
-        print(f"{s['name'][:27]:28} {','.join(sorted(set(s['planes'])))[:39]:40} {state}{dup}")
+        print(
+            f"{s['name'][:27]:28} {','.join(sorted(set(s['planes'])))[:39]:40} {state}{dup}"
+        )
 
 
 def cmd_duplicates() -> None:
@@ -57,8 +66,12 @@ def cmd_json() -> None:
 
 
 def main(argv: list[str]) -> int:
-    cmds = {"status": cmd_status, "duplicates": cmd_duplicates,
-            "consolidate": cmd_consolidate, "json": cmd_json}
+    cmds = {
+        "status": cmd_status,
+        "duplicates": cmd_duplicates,
+        "consolidate": cmd_consolidate,
+        "json": cmd_json,
+    }
     cmd = argv[1] if len(argv) > 1 else "status"
     fn = cmds.get(cmd)
     if not fn:

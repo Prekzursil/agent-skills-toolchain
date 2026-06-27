@@ -13,6 +13,7 @@ maps to "*ALL*" (all servers); other profiles list explicit names.
 We do NOT reinvent the switcher — all profile write operations go through the
 mcp-profile.ps1 script, which owns the active funnel config.
 """
+
 from __future__ import annotations
 
 import json
@@ -135,7 +136,12 @@ def switch_profile(
         )
         if result.returncode == 0:
             return True, result.stdout.strip()
-        return False, result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        return (
+            False,
+            result.stderr.strip()
+            or result.stdout.strip()
+            or f"exit {result.returncode}",
+        )
     except subprocess.TimeoutExpired:
         return False, f"mcp-profile.ps1 timed out after {timeout}s"
     except (subprocess.SubprocessError, FileNotFoundError, OSError) as exc:

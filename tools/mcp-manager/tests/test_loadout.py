@@ -1,4 +1,5 @@
 """Tests for core/loadout.py — read/write/add/remove/apply loadout defaults."""
+
 import json
 import sys
 from pathlib import Path
@@ -133,12 +134,13 @@ class TestAddRemove:
 
 class TestApplyLoadoutToProject:
     def test_applies_disabled_ids_to_claude_json(self, tmp_path: Path):
-        from core import claude_adapter
 
         proj = "C:/my/project"
         cj = tmp_path / ".claude.json"
-        cj.write_text(json.dumps({"projects": {proj: {"disabledMcpServers": []}}}),
-                      encoding="utf-8")
+        cj.write_text(
+            json.dumps({"projects": {proj: {"disabledMcpServers": []}}}),
+            encoding="utf-8",
+        )
         lo = Loadout(disabled_ids=["plugin:a:x", "plugin:b:y"])
         changed = lm.apply_loadout_to_project(lo, cj, proj)
         assert set(changed) == {"plugin:a:x", "plugin:b:y"}
@@ -150,8 +152,10 @@ class TestApplyLoadoutToProject:
     def test_already_disabled_not_in_changed(self, tmp_path: Path):
         proj = "C:/p"
         cj = tmp_path / ".claude.json"
-        cj.write_text(json.dumps({"projects": {proj: {"disabledMcpServers": ["plugin:a:x"]}}}),
-                      encoding="utf-8")
+        cj.write_text(
+            json.dumps({"projects": {proj: {"disabledMcpServers": ["plugin:a:x"]}}}),
+            encoding="utf-8",
+        )
         lo = Loadout(disabled_ids=["plugin:a:x", "plugin:b:y"])
         changed = lm.apply_loadout_to_project(lo, cj, proj)
         assert "plugin:a:x" not in changed

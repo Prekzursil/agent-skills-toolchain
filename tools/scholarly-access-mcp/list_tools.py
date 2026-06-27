@@ -1,4 +1,5 @@
 """Print the MCP tool surface (name + one-line doc). Run: python list_tools.py"""
+
 import asyncio
 
 from scholarly_access.server import mcp

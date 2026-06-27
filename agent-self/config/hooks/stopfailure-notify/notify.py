@@ -27,6 +27,7 @@ Configuration (env vars):
 
 Windows 11 / Python 3 — encoding="utf-8", errors="replace" on all I/O.
 """
+
 from __future__ import annotations
 
 import json
@@ -41,6 +42,7 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
+
 
 def _log_path() -> Path:
     """Determine the log file location.
@@ -59,10 +61,11 @@ def _log_path() -> Path:
         return Path(tmp) / "claude-stopfailure.log"
 
     # Fallback: ledger directory
-    ledger_root = Path(os.environ.get(
-        "EVENT_LEDGER_ROOT",
-        str(Path.home() / ".claude" / "event-ledger")
-    ))
+    ledger_root = Path(
+        os.environ.get(
+            "EVENT_LEDGER_ROOT", str(Path.home() / ".claude" / "event-ledger")
+        )
+    )
     ledger_root.mkdir(parents=True, exist_ok=True)
     return ledger_root / "stopfailures.log"
 
@@ -76,6 +79,7 @@ def _notify_enabled() -> bool:
 # ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
+
 
 def _append_log(log_path: Path, line: str) -> None:
     """Append a single line to the log file. Fail-open."""
@@ -142,6 +146,7 @@ def _build_log_line(
 #   the only escape in a single-quoted PS string is '' for a literal quote, which
 #   makes it harder to handle the general case.
 
+
 def _escape_ps_dq(s: str) -> str:
     """Escape a string for safe embedding in a PowerShell double-quoted string.
 
@@ -153,10 +158,12 @@ def _escape_ps_dq(s: str) -> str:
     """
     return (
         str(s)
-        .replace("`", "``")    # escape the escape character first
-        .replace("$", "`$")    # prevent variable expansion
-        .replace('"', '`"')    # escape embedded double-quotes
-        [:200]                 # cap length so the balloon is readable
+        .replace("`", "``")  # escape the escape character first
+        .replace("$", "`$")  # prevent variable expansion
+        .replace('"', '`"')[
+            # escape embedded double-quotes
+            :200
+        ]  # cap length so the balloon is readable
     )
 
 
@@ -217,8 +224,10 @@ def _send_notification(error_type: str, error_message: str, cwd: str) -> None:
                 "powershell.exe",
                 "-NoProfile",
                 "-NonInteractive",
-                "-WindowStyle", "Hidden",
-                "-Command", ps_script,
+                "-WindowStyle",
+                "Hidden",
+                "-Command",
+                ps_script,
             ],
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
@@ -234,6 +243,7 @@ def _send_notification(error_type: str, error_message: str, cwd: str) -> None:
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main() -> int:
     # ── parse stdin ──────────────────────────────────────────────────────────
     try:
@@ -248,19 +258,19 @@ def main() -> int:
 
     # ── extract fields ───────────────────────────────────────────────────────
     try:
-        error_type    = str(data.get("error_type") or "unknown")
+        error_type = str(data.get("error_type") or "unknown")
         error_message = str(data.get("error_message") or "")
-        session_id    = str(data.get("session_id") or "")
-        cwd           = str(data.get("cwd") or "")
-        model         = str(data.get("model") or "")
-        turn_number   = data.get("turn_number", "")
+        session_id = str(data.get("session_id") or "")
+        cwd = str(data.get("cwd") or "")
+        model = str(data.get("model") or "")
+        turn_number = data.get("turn_number", "")
     except Exception:
-        error_type    = "unknown"
+        error_type = "unknown"
         error_message = ""
-        session_id    = ""
-        cwd           = ""
-        model         = ""
-        turn_number   = ""
+        session_id = ""
+        cwd = ""
+        model = ""
+        turn_number = ""
 
     # ── write log line ───────────────────────────────────────────────────────
     try:

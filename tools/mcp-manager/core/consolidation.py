@@ -9,8 +9,9 @@ Distinguishes three kinds of multiplicity so a human can decide safely:
 Marketplace skills (plugin caches) are intentionally EXCLUDED — only user-authored
 roots are analysed. Output is a proposal report; the caller never deletes anything.
 """
-from __future__ import annotations
 
+from __future__ import annotations
+from typing import Any
 import hashlib
 import re
 from pathlib import Path
@@ -44,7 +45,7 @@ def _frontmatter_description(text: str) -> str | None:
     if not text.startswith("---"):
         return None
     end = text.find("\n---", 3)
-    fm = text[:end if end != -1 else len(text)]
+    fm = text[: end if end != -1 else len(text)]
     # Detect multi-line first (indented continuation)
     ml = _MULTILINE_DESC_RE.search(fm)
     if ml:
@@ -56,7 +57,7 @@ def _frontmatter_description(text: str) -> str | None:
     return m.group(1).strip() if m else None
 
 
-def analyze_skills(roots: list[Path]) -> dict:
+def analyze_skills(roots: list[Path]) -> dict[str, Any]:
     skills: list[tuple[str, Path, str]] = []  # (name, path, content)
     for root in roots:
         if not root.is_dir():
@@ -69,17 +70,24 @@ def analyze_skills(roots: list[Path]) -> dict:
 
     by_hash: dict[str, list[str]] = {}
     by_name: dict[str, list[tuple[str, str]]] = {}
-    desc_issues: list[dict] = []
+    desc_issues: list[dict[str, Any]] = []
     for name, path, content in skills:
         h = hashlib.sha256(content.encode("utf-8", "replace")).hexdigest()
         by_hash.setdefault(h, []).append(str(path))
         by_name.setdefault(name, []).append((str(path), h))
         desc = _frontmatter_description(content)
         if desc is None:
-            desc_issues.append({"skill": name, "path": str(path), "issue": "no description"})
+            desc_issues.append(
+                {"skill": name, "path": str(path), "issue": "no description"}
+            )
         elif "\n" in desc or len(desc) > 1024:
-            desc_issues.append({"skill": name, "path": str(path),
-                                "issue": "multi-line/over-long description (won't trigger reliably)"})
+            desc_issues.append(
+                {
+                    "skill": name,
+                    "path": str(path),
+                    "issue": "multi-line/over-long description (won't trigger reliably)",
+                }
+            )
 
     exact_dupes = [sorted(paths) for paths in by_hash.values() if len(paths) > 1]
     name_collisions = [
@@ -96,25 +104,42 @@ def analyze_skills(roots: list[Path]) -> dict:
     }
 
 
-def render_report(analysis: dict) -> str:
-    lines = ["# Skill Consolidation Analysis (Spec 3 — analysis only, no deletions)", ""]
-    lines.append(f"- Skills scanned (user-authored only): **{analysis['skills_scanned']}**")
+def render_report(analysis: dict[str, Any]) -> str:
+    lines = [
+        "# Skill Consolidation Analysis (Spec 3 — analysis only, no deletions)",
+        "",
+    ]
+    lines.append(
+        f"- Skills scanned (user-authored only): **{analysis['skills_scanned']}**"
+    )
     lines.append(f"- Unique skill names: **{analysis['unique_names']}**")
-    lines.append(f"- Exact-duplicate content groups: **{len(analysis['exact_duplicate_groups'])}**")
-    lines.append(f"- Name collisions (same name, different content): **{len(analysis['name_collisions'])}**")
-    lines.append(f"- Description-trigger issues: **{len(analysis['description_issues'])}**")
+    lines.append(
+        f"- Exact-duplicate content groups: **{len(analysis['exact_duplicate_groups'])}**"
+    )
+    lines.append(
+        f"- Name collisions (same name, different content): **{len(analysis['name_collisions'])}**"
+    )
+    lines.append(
+        f"- Description-trigger issues: **{len(analysis['description_issues'])}**"
+    )
     lines.append("")
     if analysis["name_collisions"]:
-        lines.append("## ⚠ Name collisions (resolve before merging — these are NOT safe to auto-dedupe)")
+        lines.append(
+            "## ⚠ Name collisions (resolve before merging — these are NOT safe to auto-dedupe)"
+        )
         for c in analysis["name_collisions"][:50]:
             lines.append(f"- `{c['name']}`: " + " | ".join(c["paths"]))
         lines.append("")
     if analysis["description_issues"]:
-        lines.append("## Description fixes (Layer-1 win: 1-line trigger+exclusion+output)")
+        lines.append(
+            "## Description fixes (Layer-1 win: 1-line trigger+exclusion+output)"
+        )
         for d in analysis["description_issues"][:80]:
             lines.append(f"- `{d['skill']}` — {d['issue']}")
         lines.append("")
-    lines.append("> Exact-duplicate groups are listed in the JSON report. Many are the *intentional* "
-                 "cross-AI mirror (canonical repo ↔ ~/.agents/skills ↔ ~/.claude/skills) — verify before "
-                 "removing any. No file is deleted by this tool.")
+    lines.append(
+        "> Exact-duplicate groups are listed in the JSON report. Many are the *intentional* "
+        "cross-AI mirror (canonical repo ↔ ~/.agents/skills ↔ ~/.claude/skills) — verify before "
+        "removing any. No file is deleted by this tool."
+    )
     return "\n".join(lines)

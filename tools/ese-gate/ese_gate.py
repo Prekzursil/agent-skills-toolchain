@@ -25,7 +25,6 @@ import subprocess
 import sys
 import tempfile
 import traceback
-from pathlib import Path
 from typing import Any
 
 # ---------------------------------------------------------------------------
@@ -40,6 +39,7 @@ BROKEN_SIGNATURE: str = "__BROKEN__"
 # ---------------------------------------------------------------------------
 # Patch application
 # ---------------------------------------------------------------------------
+
 
 def _apply_patch_unified(workdir: str, patch_text: str) -> bool:
     """
@@ -98,6 +98,7 @@ def _apply_files_map(workdir: str, files: dict[str, str]) -> bool:
 # ---------------------------------------------------------------------------
 # Behaviour signature
 # ---------------------------------------------------------------------------
+
 
 def _parse_pytest_outcomes(output: str) -> list[str] | None:
     """
@@ -169,6 +170,7 @@ def _behaviour_signature(exit_code: int, stdout: str) -> str:
 # Per-candidate execution
 # ---------------------------------------------------------------------------
 
+
 def _run_candidate(
     candidate: dict[str, Any],
     workdir: str,
@@ -206,6 +208,7 @@ def _run_candidate(
         try:
             proc = subprocess.run(
                 test_cmd,
+                # nosemgrep: python.lang.security.audit.subprocess-shell-true.subprocess-shell-true -- command built internally from controlled args, no untrusted input
                 shell=True,
                 cwd=sandbox,
                 capture_output=True,
@@ -224,6 +227,7 @@ def _run_candidate(
 # ---------------------------------------------------------------------------
 # Clustering & entropy
 # ---------------------------------------------------------------------------
+
 
 def _cluster_candidates(
     candidates: list[dict[str, Any]],
@@ -269,6 +273,7 @@ def _normalised_entropy(clusters: dict[str, list[str]], n: int) -> float:
 # Verdict assembly
 # ---------------------------------------------------------------------------
 
+
 def _build_verdict(
     candidates: list[dict[str, Any]],
     clusters: dict[str, list[str]],
@@ -310,7 +315,9 @@ def _build_verdict(
     if plurality_sig and plurality_sig != BROKEN_SIGNATURE:
         for c in candidates:
             if c.get("model", "unknown") in plurality_models:
-                recommended_winner = {k: v for k, v in c.items() if k != "patch" and k != "files"}
+                recommended_winner = {
+                    k: v for k, v in c.items() if k != "patch" and k != "files"
+                }
                 recommended_winner["model"] = c.get("model", "unknown")
                 break
 
@@ -348,7 +355,10 @@ def _build_verdict(
 # Main entry point
 # ---------------------------------------------------------------------------
 
-def run(manifest: dict[str, Any], threshold: float, timeout: int, require_majority: bool) -> dict[str, Any]:
+
+def run(
+    manifest: dict[str, Any], threshold: float, timeout: int, require_majority: bool
+) -> dict[str, Any]:
     """
     Core logic — separated from CLI so tests can call it directly.
     """

@@ -25,6 +25,7 @@ Entry points:
 Run:
     uv run python -m ui.gui          (or)   uv run python ui/gui.py
 """
+
 from __future__ import annotations
 
 import sys
@@ -56,7 +57,6 @@ from PySide6.QtWidgets import (  # noqa: E402
     QLabel,
     QMainWindow,
     QMessageBox,
-    QPushButton,
     QStatusBar,
     QTableWidget,
     QTableWidgetItem,
@@ -95,9 +95,9 @@ class _WorkerSignals(QObject):
     """Signals emitted from a background QRunnable. Strings/objects only —
     no widget references cross the thread boundary."""
 
-    result = Signal(object)   # payload on success
-    error = Signal(str)       # human-readable error string
-    finished = Signal()       # always fires (success or error)
+    result = Signal(object)  # payload on success
+    error = Signal(str)  # human-readable error string
+    finished = Signal()  # always fires (success or error)
 
 
 class _Worker(QRunnable):
@@ -146,6 +146,7 @@ def _fetch_rows(project_path: str | None) -> list[ServerRow]:
     """Reuse core.status.refresh_sync — the single source of truth for the
     merged, fail-soft, cross-plane server universe."""
     from core import status
+
     return status.refresh_sync(project_path=project_path)
 
 
@@ -240,18 +241,23 @@ def _apply_loadout(project_path: str) -> dict[str, Any]:
 
     ld = loadout_mod.read_loadout()
     changed = loadout_mod.apply_loadout_to_project(
-        ld, claude_json, project_path, backup_dir=backup_dir,
+        ld,
+        claude_json,
+        project_path,
+        backup_dir=backup_dir,
     )
     return {"loadout": ld.name, "count": len(ld.disabled_ids), "changed": changed}
 
 
 def _list_funnel_profiles() -> list[str]:
     from core import funnel_adapter
+
     return funnel_adapter.list_profiles()
 
 
 def _switch_funnel_profile(name: str) -> tuple[bool, str]:
     from core import funnel_adapter
+
     return funnel_adapter.switch_profile(name)
 
 
@@ -289,12 +295,21 @@ class McpManagerWindow(QMainWindow):
             ("Enable", self.on_enable, "Enable selected servers (per plane)"),
             ("Disable", self.on_disable, "Disable selected servers (per plane)"),
             ("Refresh", self.refresh, "Reload the server universe across all planes"),
-            ("Apply Loadout", self.on_apply_loadout,
-             "Disable every server in the saved loadout-defaults"),
-            ("Funnel Profile", self.on_funnel_profile,
-             "Switch the active mcp-funnel profile"),
-            ("Launch Auth", self.on_launch_auth,
-             "Show how to authenticate the selected server"),
+            (
+                "Apply Loadout",
+                self.on_apply_loadout,
+                "Disable every server in the saved loadout-defaults",
+            ),
+            (
+                "Funnel Profile",
+                self.on_funnel_profile,
+                "Switch the active mcp-funnel profile",
+            ),
+            (
+                "Launch Auth",
+                self.on_launch_auth,
+                "Show how to authenticate the selected server",
+            ),
         ):
             act = QAction(label, self)
             act.setToolTip(tip)
@@ -308,21 +323,21 @@ class McpManagerWindow(QMainWindow):
         layout.setContentsMargins(8, 8, 8, 4)
 
         self._summary = QLabel("Loading…")
-        self._summary.setTextFormat(Qt.PlainText)
+        self._summary.setTextFormat(Qt.TextFormat.PlainText)
         layout.addWidget(self._summary)
 
         self.table = QTableWidget(0, len(_COLUMNS))
         self.table.setHorizontalHeaderLabels(_COLUMNS)
-        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setAlternatingRowColors(True)
         self.table.verticalHeader().setVisible(False)
         hdr = self.table.horizontalHeader()
-        hdr.setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        hdr.setSectionResizeMode(1, QHeaderView.Stretch)
-        hdr.setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        hdr.setSectionResizeMode(3, QHeaderView.ResizeToContents)
+        hdr.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        hdr.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        hdr.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        hdr.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
         layout.addWidget(self.table)
 
         self.setCentralWidget(central)
@@ -351,8 +366,12 @@ class McpManagerWindow(QMainWindow):
         return out
 
     def _plane_label(self, row: ServerRow) -> str:
-        planes = sorted(set(row.planes), key=lambda p: _PLANE_ORDER.index(p)
-                        if p in _PLANE_ORDER else len(_PLANE_ORDER))
+        planes = sorted(
+            set(row.planes),
+            key=lambda p: (
+                _PLANE_ORDER.index(p) if p in _PLANE_ORDER else len(_PLANE_ORDER)
+            ),
+        )
         return "+".join(planes) if planes else "?"
 
     # ── Table population ─────────────────────────────────────────────────────
@@ -387,7 +406,7 @@ class McpManagerWindow(QMainWindow):
             for col, item in enumerate(
                 (plane_item, name_item, status_item, enabled_item)
             ):
-                item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 self.table.setItem(r, col, item)
 
         self._summary.setText(
@@ -411,7 +430,7 @@ class McpManagerWindow(QMainWindow):
     @Slot(object)
     def _on_refresh_result(self, rows: object) -> None:
         try:
-            self._populate(list(rows))  # type: ignore[arg-type]
+            self._populate(list(rows))  # pyright: ignore[reportArgumentType]
             self._set_status(f"Loaded {len(self._rows)} servers.")
         except Exception as exc:  # noqa: BLE001 - never crash on render
             self._set_status(f"Render error: {exc}")
@@ -448,7 +467,7 @@ class McpManagerWindow(QMainWindow):
 
     @Slot(object)
     def _on_toggle_result(self, summary: object) -> None:
-        s: dict[str, Any] = summary  # type: ignore[assignment]
+        s: dict[str, Any] = summary  # pyright: ignore[reportAssignmentType]
         changed = len(s.get("changed", []))
         skipped = len(s.get("skipped", []))
         errors = s.get("errors", [])
@@ -497,7 +516,7 @@ class McpManagerWindow(QMainWindow):
 
     @Slot(object)
     def _on_loadout_result(self, summary: object) -> None:
-        s: dict[str, Any] = summary  # type: ignore[assignment]
+        s: dict[str, Any] = summary  # pyright: ignore[reportAssignmentType]
         self._set_status(
             f"Loadout '{s.get('loadout')}' applied: "
             f"{len(s.get('changed', []))} newly disabled "
@@ -533,7 +552,7 @@ class McpManagerWindow(QMainWindow):
     @Slot(object)
     def _on_funnel_result(self, payload: object) -> None:
         try:
-            ok, msg = payload  # type: ignore[misc]
+            ok, msg = payload  # pyright: ignore[reportGeneralTypeIssues]
         except Exception:  # noqa: BLE001
             ok, msg = False, str(payload)
         prefix = "Funnel profile switched" if ok else "Funnel switch failed"
@@ -547,8 +566,12 @@ class McpManagerWindow(QMainWindow):
             self._set_status("Select a server to see its auth instructions.")
             return
         row = rows[0]
-        lines = [f"Server: {row.name}", f"ID: {row.id}",
-                 f"Status: {row.status.value}", ""]
+        lines = [
+            f"Server: {row.name}",
+            f"ID: {row.id}",
+            f"Status: {row.status.value}",
+            "",
+        ]
         for plane in sorted(set(row.planes)):
             hint = _AUTH_HINTS.get(plane, f"(no auth hint for plane '{plane}')")
             lines.append(f"[{plane}] {hint}")

@@ -29,11 +29,12 @@ sys.path.insert(0, str(Path(__file__).parent))
 import triage_router as tr
 
 TIERS = tr.DEFAULT_TIERS
-HAIKU_MAX  = tr.HAIKU_MAX_DEFAULT
+HAIKU_MAX = tr.HAIKU_MAX_DEFAULT
 SONNET_MAX = tr.SONNET_MAX_DEFAULT
 
 PASS = "\033[32mPASS\033[0m"
 FAIL = "\033[31mFAIL\033[0m"
+
 
 def _print_verdict(label: str, verdict: tr.Verdict) -> None:
     d = asdict(verdict)
@@ -195,18 +196,16 @@ VERY_COMPLEX_PY = COMPLEX_PY + textwrap.dedent("""\
 # Test 1: Real files from crawler
 # ---------------------------------------------------------------------------
 
+
 def test_real_files() -> list[bool]:
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 1: Real files from D:/verdict-app-repo/crawler/")
-    print("="*60)
+    print("=" * 60)
 
     files = {
-        "crawl_verdict_content.py (complex, expected Opus)":
-            "D:/verdict-app-repo/crawler/crawl_verdict_content.py",
-        "taxonomy.py (moderate, expected Sonnet)":
-            "D:/verdict-app-repo/crawler/taxonomy.py",
-        "audit_videos.py (moderate-high, expected Sonnet or Opus)":
-            "D:/verdict-app-repo/crawler/audit_videos.py",
+        "crawl_verdict_content.py (complex, expected Opus)": "D:/verdict-app-repo/crawler/crawl_verdict_content.py",
+        "taxonomy.py (moderate, expected Sonnet)": "D:/verdict-app-repo/crawler/taxonomy.py",
+        "audit_videos.py (moderate-high, expected Sonnet or Opus)": "D:/verdict-app-repo/crawler/audit_videos.py",
     }
 
     passes = []
@@ -226,18 +225,19 @@ def test_real_files() -> list[bool]:
 # Test 2: Synthetic simple vs complex
 # ---------------------------------------------------------------------------
 
+
 def test_synthetic() -> list[bool]:
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 2: Synthetic files (simple / moderate / complex)")
-    print("="*60)
+    print("=" * 60)
 
     cases = [
-        ("simple.py",        SIMPLE_PY,       "haiku",  "simple → Haiku"),
-        ("moderate.py",      MODERATE_PY,     "sonnet", "moderate → Sonnet"),
+        ("simple.py", SIMPLE_PY, "haiku", "simple → Haiku"),
+        ("moderate.py", MODERATE_PY, "sonnet", "moderate → Sonnet"),
         # complex.py has avg_ccn≈5.8 + max_ccn penalty → score ~9, lands in sonnet.
         # The escalation gate catches any true under-routing at review time.
-        ("complex.py",       COMPLEX_PY,      "sonnet", "complex (avg_ccn-dominated) → Sonnet"),
-        ("very_complex.py",  VERY_COMPLEX_PY, "opus",   "very complex → Opus"),
+        ("complex.py", COMPLEX_PY, "sonnet", "complex (avg_ccn-dominated) → Sonnet"),
+        ("very_complex.py", VERY_COMPLEX_PY, "opus", "very complex → Opus"),
     ]
 
     passes = []
@@ -249,7 +249,9 @@ def test_synthetic() -> list[bool]:
             _print_verdict(label, verdict)
             ok = verdict.recommended_tier == expected_tier
             passes.append(ok)
-            print(f"  => {PASS if ok else FAIL} (expected={expected_tier}, got={verdict.recommended_tier})")
+            print(
+                f"  => {PASS if ok else FAIL} (expected={expected_tier}, got={verdict.recommended_tier})"
+            )
     return passes
 
 
@@ -257,18 +259,19 @@ def test_synthetic() -> list[bool]:
 # Test 3: Escalation mode
 # ---------------------------------------------------------------------------
 
+
 def test_escalation() -> list[bool]:
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 3: Escalation (--escalate)")
-    print("="*60)
+    print("=" * 60)
 
     cases = [
         # Natural tier = haiku (score < 5), escalate from haiku → should become sonnet
-        (3.0, "haiku",  "sonnet"),
+        (3.0, "haiku", "sonnet"),
         # Natural tier = sonnet, escalate from sonnet → opus
         (7.0, "sonnet", "opus"),
         # Natural tier = opus, escalate from opus → stays opus (ceiling)
-        (15.0, "opus",  "opus"),
+        (15.0, "opus", "opus"),
         # Natural tier = haiku, escalate from sonnet (gate fired at sonnet despite haiku being natural)
         (3.0, "sonnet", "opus"),
     ]
@@ -279,14 +282,20 @@ def test_escalation() -> list[bool]:
         fpath.write_text("def f(): return 1\n", encoding="utf-8")
         for score, escalate_from, expected_tier in cases:
             verdict = tr.route(
-                [str(fpath)], TIERS, HAIKU_MAX, SONNET_MAX,
-                health_score=score, escalate_from=escalate_from,
+                [str(fpath)],
+                TIERS,
+                HAIKU_MAX,
+                SONNET_MAX,
+                health_score=score,
+                escalate_from=escalate_from,
             )
             ok = verdict.recommended_tier == expected_tier
             passes.append(ok)
             label = f"score={score} escalate_from={escalate_from}"
             _print_verdict(label, verdict)
-            print(f"  => {PASS if ok else FAIL} (expected={expected_tier}, got={verdict.recommended_tier})")
+            print(
+                f"  => {PASS if ok else FAIL} (expected={expected_tier}, got={verdict.recommended_tier})"
+            )
     return passes
 
 
@@ -294,21 +303,26 @@ def test_escalation() -> list[bool]:
 # Test 4: Fail-safe (unreadable paths + no lizard CSV to parse)
 # ---------------------------------------------------------------------------
 
+
 def test_failsafe() -> list[bool]:
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 4: Fail-safe (non-existent paths)")
-    print("="*60)
+    print("=" * 60)
 
     passes = []
     # Pass a path that does not exist — lizard will error, stdlib read will fail
     verdict = tr.route(
         ["/nonexistent/path/that/does/not/exist.py"],
-        TIERS, HAIKU_MAX, SONNET_MAX,
+        TIERS,
+        HAIKU_MAX,
+        SONNET_MAX,
     )
     _print_verdict("non-existent file", verdict)
     ok = verdict.recommended_tier == "opus"
     passes.append(ok)
-    print(f"  => {PASS if ok else FAIL} (expected fail-safe→opus, got={verdict.recommended_tier})")
+    print(
+        f"  => {PASS if ok else FAIL} (expected fail-safe→opus, got={verdict.recommended_tier})"
+    )
     return passes
 
 
@@ -316,10 +330,11 @@ def test_failsafe() -> list[bool]:
 # Test 5: Pre-computed score
 # ---------------------------------------------------------------------------
 
+
 def test_provided_score() -> list[bool]:
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 5: Pre-computed --health-score pass-through")
-    print("="*60)
+    print("=" * 60)
 
     passes = []
     cases = [
@@ -338,7 +353,9 @@ def test_provided_score() -> list[bool]:
             passes.append(ok)
             label = f"provided score={score}"
             _print_verdict(label, verdict)
-            print(f"  => {PASS if ok else FAIL} (expected={expected_tier}, got={verdict.recommended_tier})")
+            print(
+                f"  => {PASS if ok else FAIL} (expected={expected_tier}, got={verdict.recommended_tier})"
+            )
     return passes
 
 
@@ -346,10 +363,11 @@ def test_provided_score() -> list[bool]:
 # Test 6: CLI integration smoke test
 # ---------------------------------------------------------------------------
 
+
 def test_cli() -> list[bool]:
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 6: CLI JSON output smoke test")
-    print("="*60)
+    print("=" * 60)
 
     passes = []
     with tempfile.TemporaryDirectory() as td:
@@ -359,28 +377,32 @@ def test_cli() -> list[bool]:
         # Use main() directly
         import io
         from unittest.mock import patch
+
         out_buf = io.StringIO()
         with patch("sys.stdout", out_buf):
             rc = tr.main(["--files", str(fpath), "--pretty"])
         output = out_buf.getvalue()
         try:
             data = json.loads(output)
-            has_tier   = "recommended_tier" in data
-            has_model  = "model_id" in data
-            has_score  = "health_score" in data
+            has_tier = "recommended_tier" in data
+            has_model = "model_id" in data
+            has_score = "health_score" in data
             ok = has_tier and has_model and has_score and rc == 0
         except json.JSONDecodeError:
             ok = False
 
         passes.append(ok)
         print(f"\n  CLI output:\n{output}")
-        print(f"  => {PASS if ok else FAIL} (valid JSON with required fields, exit={rc})")
+        print(
+            f"  => {PASS if ok else FAIL} (valid JSON with required fields, exit={rc})"
+        )
     return passes
 
 
 # ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
+
 
 def main() -> None:
     all_passes: list[bool] = []
@@ -392,13 +414,13 @@ def main() -> None:
     all_passes += test_provided_score()
     all_passes += test_cli()
 
-    total  = len(all_passes)
+    total = len(all_passes)
     passed = sum(all_passes)
     failed = total - passed
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print(f"SUMMARY: {passed}/{total} tests passed, {failed} failed")
-    print("="*60)
+    print("=" * 60)
 
     sys.exit(0 if failed == 0 else 1)
 

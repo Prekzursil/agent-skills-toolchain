@@ -19,6 +19,7 @@ Wire spec:
   Stdout (when clear): (empty — no output)
   Exit:    always 0
 """
+
 from __future__ import annotations
 
 import json
@@ -28,19 +29,35 @@ import sys
 # ---------------------------------------------------------------------------
 # Vague-verb and pronoun lists (cheap heuristics — no dependencies)
 # ---------------------------------------------------------------------------
-VAGUE_VERBS = frozenset([
-    "fix", "improve", "better", "make", "update", "change", "refactor",
-    "clean", "optimize", "enhance", "adjust", "tweak", "rework", "redo",
-])
+VAGUE_VERBS = frozenset(
+    [
+        "fix",
+        "improve",
+        "better",
+        "make",
+        "update",
+        "change",
+        "refactor",
+        "clean",
+        "optimize",
+        "enhance",
+        "adjust",
+        "tweak",
+        "rework",
+        "redo",
+    ]
+)
 
-VAGUE_PRONOUNS = frozenset(["it", "that", "this", "them", "these", "those", "everything"])
+VAGUE_PRONOUNS = frozenset(
+    ["it", "that", "this", "them", "these", "those", "everything"]
+)
 
 # Tokens that indicate concreteness — their presence reduces vagueness score
 CONCRETE_TOKENS = re.compile(
-    r"(https?://|/[a-zA-Z]|\\[a-zA-Z]|\.[a-z]{2,5}\b|"          # URL or path
-    r"line\s+\d+|:\d+|file\s+\w|class\s+\w|function\s+\w|"       # code ref
-    r"error|traceback|exception|raise|import|def |class |return|" # error/code kw
-    r"\btest\b|\bspec\b|\bpr\b|\bissue\b|\bbug\b)",               # task tokens
+    r"(https?://|/[a-zA-Z]|\\[a-zA-Z]|\.[a-z]{2,5}\b|"  # URL or path
+    r"line\s+\d+|:\d+|file\s+\w|class\s+\w|function\s+\w|"  # code ref
+    r"error|traceback|exception|raise|import|def |class |return|"  # error/code kw
+    r"\btest\b|\bspec\b|\bpr\b|\bissue\b|\bbug\b)",  # task tokens
     re.IGNORECASE,
 )
 
@@ -48,7 +65,7 @@ CONCRETE_TOKENS = re.compile(
 # not a vague verb loop. Compiled without IGNORECASE so "fix" doesn't match [A-Z]{2,}.
 NAMED_TARGETS = re.compile(
     r"(\b[A-Z][a-z]+[A-Z]\w*\b|"  # CamelCase: UserService, AuthModule, UserController
-    r"\b[A-Z]{2,}\b)"              # ALL-CAPS: README, CHANGELOG, API, URL, PR
+    r"\b[A-Z]{2,}\b)"  # ALL-CAPS: README, CHANGELOG, API, URL, PR
 )
 
 # Minimum word count below which a prompt is considered suspiciously short

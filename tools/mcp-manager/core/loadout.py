@@ -13,6 +13,7 @@ File shape:
 The caller decides when to apply the loadout (e.g. via claude_adapter.set_server_disabled).
 This module ONLY manages the loadout store itself.
 """
+
 from __future__ import annotations
 
 import json
@@ -123,7 +124,10 @@ def apply_loadout_to_project(
     changed: list[str] = []
     for sid in loadout.disabled_ids:
         if claude_adapter.set_server_disabled(
-            claude_json, project_path, sid, True,
+            claude_json,
+            project_path,
+            sid,
+            True,
             backup_dir=backup_dir,
             _mtime_check=False,  # batch; caller is responsible for single backup
         ):

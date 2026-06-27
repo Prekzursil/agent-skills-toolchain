@@ -2,6 +2,7 @@
 """Self-contained tests for prompt-guard.py. Run: python test_prompt_guard.py
 Uses subprocess to drive the hook exactly as the harness does (stdin JSON, stdout parse).
 No external dependencies (stdlib only)."""
+
 from __future__ import annotations
 
 import importlib
@@ -24,7 +25,9 @@ def check(name: str, cond: bool) -> None:
 def run_guard(stdin_obj: dict) -> tuple[int, dict | None]:
     """Load prompt-guard.py as a module, feed it the JSON via stdin, capture stdout.
     Returns (exit_code, parsed_payload_or_None)."""
-    spec = importlib.util.spec_from_file_location("prompt_guard", HERE / "prompt-guard.py")
+    spec = importlib.util.spec_from_file_location(
+        "prompt_guard", HERE / "prompt-guard.py"
+    )
     mod = importlib.util.module_from_spec(spec)
     old_stdin, old_stdout = sys.stdin, sys.stdout
     sys.stdin = io.StringIO(json.dumps(stdin_obj))
@@ -77,36 +80,52 @@ def main() -> int:
     print("== clear/specific prompts do NOT inject ==")
 
     # Names a specific file
-    rc, p = run_guard({"prompt": "Fix the off-by-one error in ledger.py line 83 where seq wraps", "cwd": "."})
+    rc, p = run_guard(
+        {
+            "prompt": "Fix the off-by-one error in ledger.py line 83 where seq wraps",
+            "cwd": ".",
+        }
+    )
     check("exit 0 (specific)", rc == 0)
     check("specific file+line does NOT inject", not _has_guidance(p))
 
     # Names an error
-    rc, p = run_guard({
-        "prompt": "There is a KeyError exception in auth.py when the token is missing — add a default fallback",
-        "cwd": "."
-    })
+    rc, p = run_guard(
+        {
+            "prompt": "There is a KeyError exception in auth.py when the token is missing — add a default fallback",
+            "cwd": ".",
+        }
+    )
     check("exit 0 (error ref)", rc == 0)
     check("error reference does NOT inject", not _has_guidance(p))
 
     # URL in prompt
-    rc, p = run_guard({"prompt": "Fetch https://api.example.com/status and parse the JSON response", "cwd": "."})
+    rc, p = run_guard(
+        {
+            "prompt": "Fetch https://api.example.com/status and parse the JSON response",
+            "cwd": ".",
+        }
+    )
     check("exit 0 (URL)", rc == 0)
     check("URL in prompt does NOT inject", not _has_guidance(p))
 
     # Long, well-specified prompt
-    rc, p = run_guard({
-        "prompt": (
-            "Add a new endpoint POST /api/users that validates the email field, "
-            "hashes the password with bcrypt, persists to the users table, and returns 201 with the user id"
-        ),
-        "cwd": "."
-    })
+    rc, p = run_guard(
+        {
+            "prompt": (
+                "Add a new endpoint POST /api/users that validates the email field, "
+                "hashes the password with bcrypt, persists to the users table, and returns 201 with the user id"
+            ),
+            "cwd": ".",
+        }
+    )
     check("exit 0 (long specific)", rc == 0)
     check("long specific prompt does NOT inject", not _has_guidance(p))
 
     print("== fail-open: malformed / empty stdin does not raise ==")
-    spec = importlib.util.spec_from_file_location("prompt_guard_fo", HERE / "prompt-guard.py")
+    spec = importlib.util.spec_from_file_location(
+        "prompt_guard_fo", HERE / "prompt-guard.py"
+    )
     mod2 = importlib.util.module_from_spec(spec)
     old_stdin, old_stdout = sys.stdin, sys.stdout
     sys.stdin = io.StringIO("")  # empty stdin
@@ -126,16 +145,28 @@ def main() -> int:
     rc, p = run_guard({"prompt": "improve everything", "cwd": "."})
     if p is not None:
         hso = p.get("hookSpecificOutput", {})
-        check("hookEventName = UserPromptSubmit", hso.get("hookEventName") == "UserPromptSubmit")
-        check("additionalContext is a non-empty string", isinstance(hso.get("additionalContext"), str) and len(hso["additionalContext"]) > 20)
-        check("mentions clarify-requirements skill", "clarify-requirements" in hso.get("additionalContext", ""))
+        check(
+            "hookEventName = UserPromptSubmit",
+            hso.get("hookEventName") == "UserPromptSubmit",
+        )
+        check(
+            "additionalContext is a non-empty string",
+            isinstance(hso.get("additionalContext"), str)
+            and len(hso["additionalContext"]) > 20,
+        )
+        check(
+            "mentions clarify-requirements skill",
+            "clarify-requirements" in hso.get("additionalContext", ""),
+        )
     else:
         check("payload present for vague prompt", False)
         check("hookEventName present", False)
         check("additionalContext present", False)
 
-    print(f"\nRESULT: {'PASS' if not fails else 'FAIL: ' + ', '.join(fails)}  "
-          f"({len(fails)} failures / {13 - len(fails)} passed)")
+    print(
+        f"\nRESULT: {'PASS' if not fails else 'FAIL: ' + ', '.join(fails)}  "
+        f"({len(fails)} failures / {13 - len(fails)} passed)"
+    )
     return 1 if fails else 0
 
 

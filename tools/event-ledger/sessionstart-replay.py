@@ -6,6 +6,7 @@ self-summary: recent objective turns + open FAILURES (so dead-ends aren't re-wal
 the recorded goal. We also diff the recorded HEAD against the live HEAD and surface drift,
 so a stale reload can't be silently mistaken for current state. Record-only; exit 0.
 """
+
 from __future__ import annotations
 
 import json
@@ -21,8 +22,12 @@ MAX_TURNS = 12
 
 def _live_head(cwd: str) -> str | None:
     try:
-        out = subprocess.run(["git", "-C", cwd, "rev-parse", "--short", "HEAD"],
-                             capture_output=True, text=True, timeout=5)
+        out = subprocess.run(
+            ["git", "-C", cwd, "rev-parse", "--short", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
         return out.stdout.strip() if out.returncode == 0 else None
     except Exception:
         return None
@@ -38,7 +43,9 @@ def build_context(cwd: str) -> str | None:
         lines.append(f"**Goal:** {st['goal']}")
     open_fail = st.get("open_failures") or []
     if open_fail:
-        lines.append("**Open failures (hypotheses — re-test cheaply before trusting):**")
+        lines.append(
+            "**Open failures (hypotheses — re-test cheaply before trusting):**"
+        )
         for f in open_fail[-8:]:
             pc = f" [if: {f['preconditions']}]" if f.get("preconditions") else ""
             lines.append(f"- (#{f.get('seq')}) {f.get('text')}{pc}")
@@ -46,10 +53,16 @@ def build_context(cwd: str) -> str | None:
     rec_head = st.get("head")
     live = _live_head(cwd)
     if rec_head and live and rec_head != live:
-        lines.append(f"⚠️ **HEAD drift:** ledger last saw `{rec_head}`, live is `{live}` — "
-                     f"verify what changed before acting on the tail below.")
+        lines.append(
+            f"⚠️ **HEAD drift:** ledger last saw `{rec_head}`, live is `{live}` — "
+            f"verify what changed before acting on the tail below."
+        )
     # recent decisions/failures/milestones + a few turns
-    notable = [e for e in events if e.get("kind") in ("decision", "failure", "goal", "milestone")][-10:]
+    notable = [
+        e
+        for e in events
+        if e.get("kind") in ("decision", "failure", "goal", "milestone")
+    ][-10:]
     if notable:
         lines.append("**Recent decisions/notes:**")
         for e in notable:
@@ -57,9 +70,11 @@ def build_context(cwd: str) -> str | None:
     turns = [e for e in events if e.get("kind") == "turn"][-MAX_TURNS:]
     if turns:
         first, last = turns[0], turns[-1]
-        lines.append(f"**Turn timeline:** {len(turns)} recent turns, "
-                     f"HEAD {first.get('head')}→{last.get('head')} on `{last.get('branch')}` "
-                     f"(dirty: {last.get('dirty_files')} files).")
+        lines.append(
+            f"**Turn timeline:** {len(turns)} recent turns, "
+            f"HEAD {first.get('head')}→{last.get('head')} on `{last.get('branch')}` "
+            f"(dirty: {last.get('dirty_files')} files)."
+        )
     return "\n".join(lines)
 
 
@@ -79,8 +94,16 @@ def main() -> int:
     except Exception:
         ctx = None
     if ctx:
-        print(json.dumps({"hookSpecificOutput": {
-            "hookEventName": "SessionStart", "additionalContext": ctx}}))
+        print(
+            json.dumps(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "SessionStart",
+                        "additionalContext": ctx,
+                    }
+                }
+            )
+        )
     return 0
 
 

@@ -72,8 +72,12 @@ def parse_args() -> argparse.Namespace:
         default="ownership-map-out",
         help="Output directory for graph artifacts",
     )
-    parser.add_argument("--since", default=None, help="Limit git log to commits since date")
-    parser.add_argument("--until", default=None, help="Limit git log to commits until date")
+    parser.add_argument(
+        "--since", default=None, help="Limit git log to commits since date"
+    )
+    parser.add_argument(
+        "--until", default=None, help="Limit git log to commits until date"
+    )
     parser.add_argument(
         "--identity",
         choices=("author", "committer"),
@@ -242,14 +246,18 @@ def format_offset(minutes: int) -> str:
     return f"{sign}{minutes // 60:02d}:{minutes % 60:02d}"
 
 
-def recency_weighted(now: dt.datetime, when: dt.datetime, half_life_days: float) -> float:
+def recency_weighted(
+    now: dt.datetime, when: dt.datetime, half_life_days: float
+) -> float:
     if half_life_days <= 0:
         return 1.0
     age_days = max(0.0, (now - when).total_seconds() / 86400.0)
     return math.exp(-math.log(2) * age_days / half_life_days)
 
 
-def match_sensitive(path: str, rules: Iterable[tuple[str, str, float]]) -> dict[str, float]:
+def match_sensitive(
+    path: str, rules: Iterable[tuple[str, str, float]]
+) -> dict[str, float]:
     tags: dict[str, float] = defaultdict(float)
     posix = path.replace("\\", "/")
     for pattern, tag, weight in rules:
@@ -316,12 +324,18 @@ def compute_community_owners(
                 "person_id": person_id,
                 "name": people.get(person_id, {}).get("name", person_id),
                 "touches": touches,
-                "touch_share": round(touches / total_touches, 4) if total_touches else 0.0,
-                "recency_share": round(recency / total_recency, 4) if total_recency else 0.0,
+                "touch_share": round(touches / total_touches, 4)
+                if total_touches
+                else 0.0,
+                "recency_share": round(recency / total_recency, 4)
+                if total_recency
+                else 0.0,
                 "sensitive_share": round(sensitive / total_sensitive, 4)
                 if total_sensitive
                 else 0.0,
-                "primary_tz_offset": people.get(person_id, {}).get("primary_tz_offset", ""),
+                "primary_tz_offset": people.get(person_id, {}).get(
+                    "primary_tz_offset", ""
+                ),
             }
         )
 
@@ -381,7 +395,9 @@ def run_git_log(
         raise RuntimeError(stderr.strip() or "git log failed")
 
 
-def iter_commits(lines: Iterable[list[str]]) -> Iterable[tuple[dict[str, object], list[str]]]:
+def iter_commits(
+    lines: Iterable[list[str]],
+) -> Iterable[tuple[dict[str, object], list[str]]]:
     for chunk in lines:
         if not chunk or chunk[0] != "---":
             continue
@@ -426,12 +442,22 @@ def build_ownership_map(args: argparse.Namespace) -> Path:
     people: dict[str, dict[str, object]] = {}
     files: dict[str, dict[str, object]] = {}
     edges: dict[tuple[str, str], dict[str, object]] = {}
-    file_people_touches: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
-    file_people_recency: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
-    file_people_sensitive: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
+    file_people_touches: dict[str, dict[str, int]] = defaultdict(
+        lambda: defaultdict(int)
+    )
+    file_people_recency: dict[str, dict[str, float]] = defaultdict(
+        lambda: defaultdict(float)
+    )
+    file_people_sensitive: dict[str, dict[str, float]] = defaultdict(
+        lambda: defaultdict(float)
+    )
     tag_totals: dict[str, float] = defaultdict(float)
-    tag_person_totals: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
-    person_timezone_counts: dict[str, dict[int, int]] = defaultdict(lambda: defaultdict(int))
+    tag_person_totals: dict[str, dict[str, float]] = defaultdict(
+        lambda: defaultdict(float)
+    )
+    person_timezone_counts: dict[str, dict[int, int]] = defaultdict(
+        lambda: defaultdict(int)
+    )
     cochange_counts: dict[tuple[str, str], int] = defaultdict(int)
     cochange_file_commits: dict[str, int] = defaultdict(int)
     cochange_commits_used = 0
@@ -501,7 +527,9 @@ def build_ownership_map(args: argparse.Namespace) -> Path:
                 cochange_commits_skipped += 1
             else:
                 filtered_files = [
-                    path for path in unique_files if not is_excluded(path, cochange_excludes)
+                    path
+                    for path in unique_files
+                    if not is_excluded(path, cochange_excludes)
                 ]
                 excluded = len(unique_files) - len(filtered_files)
                 if excluded:
@@ -571,8 +599,12 @@ def build_ownership_map(args: argparse.Namespace) -> Path:
             if tags:
                 file_entry["sensitive_tags"] = tags
                 sensitive_weight = sum(tags.values())
-                edge["sensitive_weight"] = float(edge["sensitive_weight"]) + sensitive_weight
-                person["sensitive_touches"] = float(person["sensitive_touches"]) + sensitive_weight
+                edge["sensitive_weight"] = (
+                    float(edge["sensitive_weight"]) + sensitive_weight
+                )
+                person["sensitive_touches"] = (
+                    float(person["sensitive_touches"]) + sensitive_weight
+                )
                 file_people_sensitive[path][identity_email] += sensitive_weight
                 for tag, weight in tags.items():
                     tag_totals[tag] += weight
@@ -593,14 +625,16 @@ def build_ownership_map(args: argparse.Namespace) -> Path:
         primary_tz_minutes = ""
         timezone_offsets = ""
         if tz_counts:
-            primary_tz_minutes_value = max(tz_counts.items(), key=lambda item: (item[1], item[0]))[
-                0
-            ]
+            primary_tz_minutes_value = max(
+                tz_counts.items(), key=lambda item: (item[1], item[0])
+            )[0]
             primary_tz_offset = format_offset(primary_tz_minutes_value)
             primary_tz_minutes = str(primary_tz_minutes_value)
             timezone_offsets = ";".join(
                 f"{format_offset(minutes)}:{count}"
-                for minutes, count in sorted(tz_counts.items(), key=lambda item: item[0])
+                for minutes, count in sorted(
+                    tz_counts.items(), key=lambda item: item[0]
+                )
             )
             person["primary_tz_offset"] = primary_tz_offset
         people_rows.append(
@@ -739,7 +773,9 @@ def build_ownership_map(args: argparse.Namespace) -> Path:
         age_days = (now - last_seen).days
         top_owner = None
         if path in file_people_touches:
-            top_owner = max(file_people_touches[path].items(), key=lambda item: item[1])[0]
+            top_owner = max(
+                file_people_touches[path].items(), key=lambda item: item[1]
+            )[0]
         hotspot = {
             "path": path,
             "bus_factor": bus_factor,
@@ -815,10 +851,18 @@ def build_ownership_map(args: argparse.Namespace) -> Path:
             "files": len(files),
             "cochange_pairs_total": len(cochange_counts) if not args.no_cochange else 0,
             "cochange_edges": len(cochange_rows) if not args.no_cochange else 0,
-            "cochange_commits_used": cochange_commits_used if not args.no_cochange else 0,
-            "cochange_commits_skipped": cochange_commits_skipped if not args.no_cochange else 0,
-            "cochange_commits_filtered": cochange_commits_filtered if not args.no_cochange else 0,
-            "cochange_files_excluded": cochange_files_excluded if not args.no_cochange else 0,
+            "cochange_commits_used": cochange_commits_used
+            if not args.no_cochange
+            else 0,
+            "cochange_commits_skipped": cochange_commits_skipped
+            if not args.no_cochange
+            else 0,
+            "cochange_commits_filtered": cochange_commits_filtered
+            if not args.no_cochange
+            else 0,
+            "cochange_files_excluded": cochange_files_excluded
+            if not args.no_cochange
+            else 0,
         },
     }
 
@@ -841,7 +885,9 @@ def build_ownership_map(args: argparse.Namespace) -> Path:
             community_index: dict[str, int] = {}
             community_metadata: list[dict[str, object]] = []
 
-            if args.graphml or (args.communities and (args.no_cochange or not cochange_rows)):
+            if args.graphml or (
+                args.communities and (args.no_cochange or not cochange_rows)
+            ):
                 graph_bipartite = nx.Graph()
                 for (email, path), edge in edges.items():
                     if int(edge["touches"]) < args.min_touches:
@@ -871,7 +917,9 @@ def build_ownership_map(args: argparse.Namespace) -> Path:
                         )
                     )
                 elif graph_bipartite is not None and file_nodes:
-                    projected = bipartite.weighted_projected_graph(graph_bipartite, file_nodes)
+                    projected = bipartite.weighted_projected_graph(
+                        graph_bipartite, file_nodes
+                    )
                     communities_result = list(
                         nx.algorithms.community.greedy_modularity_communities(projected)
                     )
@@ -903,7 +951,9 @@ def build_ownership_map(args: argparse.Namespace) -> Path:
                         metadata = dict(entry)
                         metadata.pop("files", None)
                         community_metadata.append(metadata)
-                    with (out_dir / "communities.json").open("w", encoding="utf-8") as handle:
+                    with (out_dir / "communities.json").open(
+                        "w", encoding="utf-8"
+                    ) as handle:
                         json.dump(serialized, handle, indent=2)
 
             if args.communities:
@@ -928,7 +978,9 @@ def build_ownership_map(args: argparse.Namespace) -> Path:
                             if graph_for_json is graph_cochange
                             else "ownership.graph.json"
                         )
-                        with (out_dir / json_name).open("w", encoding="utf-8") as handle:
+                        with (out_dir / json_name).open(
+                            "w", encoding="utf-8"
+                        ) as handle:
                             json.dump(data, handle, indent=2)
 
             if args.graphml:

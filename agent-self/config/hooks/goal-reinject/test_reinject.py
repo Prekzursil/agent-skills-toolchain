@@ -4,6 +4,7 @@
 Uses temp directories for both EVENT_LEDGER_ROOT and GOAL_REINJECT_COUNTER_ROOT so
 it never touches real ledgers or counters. Stdlib only.
 """
+
 from __future__ import annotations
 
 import importlib
@@ -27,7 +28,9 @@ def check(name: str, cond: bool) -> None:
         fails.append(name)
 
 
-def _run_reinject(tmp_ledger: str, tmp_counter: str, stdin_obj: dict) -> tuple[int, str]:
+def _run_reinject(
+    tmp_ledger: str, tmp_counter: str, stdin_obj: dict
+) -> tuple[int, str]:
     """Load reinject.py fresh and call main(), capturing stdout."""
     # Ensure env is patched before (re)loading
     os.environ["EVENT_LEDGER_ROOT"] = tmp_ledger
@@ -59,6 +62,7 @@ def main() -> int:
     os.environ["EVENT_LEDGER_ROOT"] = tmp_ledger
     sys.path.insert(0, str(LEDGER_DIR))
     import ledger  # noqa: PLC0415
+
     importlib.reload(ledger)
 
     proj = "/tmp/test-project"
@@ -106,7 +110,11 @@ def main() -> int:
 
     print("== no goal → no injection (even on interval boundary) ==")
     proj_nogoal = "/tmp/test-project-nogoal"
-    payload_nogoal = {"tool_name": "Edit", "session_id": "sess-nogoal", "cwd": proj_nogoal}
+    payload_nogoal = {
+        "tool_name": "Edit",
+        "session_id": "sess-nogoal",
+        "cwd": proj_nogoal,
+    }
     # Advance counter to 8 without seeding a goal
     for _ in range(8):
         rc, out = _run_reinject(tmp_ledger, tmp_counter, payload_nogoal)
@@ -136,9 +144,11 @@ def main() -> int:
         sys.stdin, sys.stdout = old_stdin, old_stdout
     check("bad stdin: exit 0 (fail-open)", rc_bad == 0)
 
-    print(f"\nRESULT: {'PASS' if not fails else 'FAIL: ' + str(fails)}  "
-          f"({len(fails)} failures out of {len(fails) + sum(1 for _ in range(len(fails), len(fails)))} checks)")
-    print(f"Total checks run: see above")
+    print(
+        f"\nRESULT: {'PASS' if not fails else 'FAIL: ' + str(fails)}  "
+        f"({len(fails)} failures out of {len(fails) + sum(1 for _ in range(len(fails), len(fails)))} checks)"
+    )
+    print("Total checks run: see above")
     return 1 if fails else 0
 
 

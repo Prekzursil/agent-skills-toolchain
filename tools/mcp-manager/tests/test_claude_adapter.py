@@ -1,9 +1,9 @@
 """Tests for core/claude_adapter.py — parse, toggle, safe-write."""
+
 import json
 import sys
 from pathlib import Path
 
-import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from core import claude_adapter  # noqa: E402
@@ -29,11 +29,18 @@ plugin:local-mcp-bridge:github_cli: gh-cli-mcp  - ✔ Connected
 
 def _make_claude_json(tmp_path: Path, proj: str, disabled: list[str]) -> Path:
     cj = tmp_path / ".claude.json"
-    cj.write_text(json.dumps({
-        "numStartups": 42,
-        "mcpServers": {"global-svc": {}},
-        "projects": {proj: {"disabledMcpServers": list(disabled), "extra": True}},
-    }), encoding="utf-8")
+    cj.write_text(
+        json.dumps(
+            {
+                "numStartups": 42,
+                "mcpServers": {"global-svc": {}},
+                "projects": {
+                    proj: {"disabledMcpServers": list(disabled), "extra": True}
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
     return cj
 
 
@@ -75,7 +82,10 @@ class TestParseMcpList:
         rows = claude_adapter.parse_mcp_list(MCP_LIST_SAMPLE)
         by_id = {r.id: r for r in rows}
         assert by_id["plugin:semgrep:semgrep"].name == "semgrep"
-        assert by_id["plugin:chrome-devtools-mcp:chrome-devtools"].name == "chrome-devtools"
+        assert (
+            by_id["plugin:chrome-devtools-mcp:chrome-devtools"].name
+            == "chrome-devtools"
+        )
 
     def test_claude_ai_short_name_derived(self):
         rows = claude_adapter.parse_mcp_list(MCP_LIST_SAMPLE)
@@ -178,7 +188,9 @@ class TestSetServerDisabled:
     def test_enable_removes_from_array(self, tmp_path: Path):
         proj = "C:/p"
         cj = _make_claude_json(tmp_path, proj, ["claude.ai PubMed"])
-        changed = claude_adapter.set_server_disabled(cj, proj, "claude.ai PubMed", False)
+        changed = claude_adapter.set_server_disabled(
+            cj, proj, "claude.ai PubMed", False
+        )
         assert changed is True
         data = json.loads(cj.read_text(encoding="utf-8"))
         assert "claude.ai PubMed" not in data["projects"][proj]["disabledMcpServers"]
@@ -191,7 +203,9 @@ class TestSetServerDisabled:
     def test_idempotent_enable(self, tmp_path: Path):
         proj = "C:/p"
         cj = _make_claude_json(tmp_path, proj, [])
-        assert claude_adapter.set_server_disabled(cj, proj, "plugin:a:b", False) is False
+        assert (
+            claude_adapter.set_server_disabled(cj, proj, "plugin:a:b", False) is False
+        )
 
     def test_other_keys_preserved(self, tmp_path: Path):
         proj = "C:/p"

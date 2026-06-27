@@ -7,6 +7,7 @@ RECORD-ONLY — it never blocks (always exit 0) and honors stop_hook_active so i
 cause a loop. The ledger thus stays current *before* compaction, so recovery replays
 ground truth rather than a summary written from an already-degraded context.
 """
+
 from __future__ import annotations
 
 import json
@@ -20,7 +21,9 @@ import ledger  # noqa: E402
 
 def _git(cwd: str, *args: str) -> str | None:
     try:
-        out = subprocess.run(["git", "-C", cwd, *args], capture_output=True, text=True, timeout=5)
+        out = subprocess.run(
+            ["git", "-C", cwd, *args], capture_output=True, text=True, timeout=5
+        )
         if out.returncode == 0:
             return out.stdout.strip()
     except Exception:
@@ -46,8 +49,11 @@ def _capture_milestones(cwd: str) -> None:
     kdir = _beads_knowledge_dir(cwd)
     if kdir is None:
         return
-    milestones = [e for e in ledger.replay(cwd, 80)
-                  if e.get("kind") == "milestone" and e.get("text")]
+    milestones = [
+        e
+        for e in ledger.replay(cwd, 80)
+        if e.get("kind") == "milestone" and e.get("text")
+    ]
     if not milestones:
         return
     cap_file = ledger._dir(cwd) / "captured.json"
@@ -60,17 +66,25 @@ def _capture_milestones(cwd: str) -> None:
         return
     with (kdir / "decisions.jsonl").open("a", encoding="utf-8") as fh:
         for m in new:
-            fh.write(json.dumps({
-                "type": "milestone-capture",
-                "ts": m.get("ts"),
-                "decision": m.get("text"),
-                "alternativesRejected": m.get("alternatives") or m.get("supersedes_failures"),
-                "confidence": "high",  # success-gated: a milestone is an external achievement signal
-                "source": "stop-hook/event-ledger",
-                "ledger_seq": m.get("seq"),
-            }, ensure_ascii=False) + "\n")
-    cap_file.write_text(json.dumps({"seq": max(int(m.get("seq", 0)) for m in new)}),
-                        encoding="utf-8")
+            fh.write(
+                json.dumps(
+                    {
+                        "type": "milestone-capture",
+                        "ts": m.get("ts"),
+                        "decision": m.get("text"),
+                        "alternativesRejected": m.get("alternatives")
+                        or m.get("supersedes_failures"),
+                        "confidence": "high",  # success-gated: a milestone is an external achievement signal
+                        "source": "stop-hook/event-ledger",
+                        "ledger_seq": m.get("seq"),
+                    },
+                    ensure_ascii=False,
+                )
+                + "\n"
+            )
+    cap_file.write_text(
+        json.dumps({"seq": max(int(m.get("seq", 0)) for m in new)}), encoding="utf-8"
+    )
 
 
 def main() -> int:
@@ -85,10 +99,21 @@ def main() -> int:
     head = _git(cwd, "rev-parse", "--short", "HEAD")
     branch = _git(cwd, "rev-parse", "--abbrev-ref", "HEAD")
     porcelain = _git(cwd, "status", "--porcelain")
-    dirty = len([l for l in (porcelain or "").splitlines() if l.strip()]) if porcelain is not None else None
+    dirty = (
+        len([ln for ln in (porcelain or "").splitlines() if ln.strip()])
+        if porcelain is not None
+        else None
+    )
     try:
-        ledger.append(cwd, "turn", cwd=cwd, head=head, branch=branch, dirty_files=dirty,
-                      session=str(data.get("session_id", ""))[:12])
+        ledger.append(
+            cwd,
+            "turn",
+            cwd=cwd,
+            head=head,
+            branch=branch,
+            dirty_files=dirty,
+            session=str(data.get("session_id", ""))[:12],
+        )
     except Exception:
         # a ledger failure must never break the session
         pass

@@ -21,6 +21,7 @@ PostToolUse stdin JSON keys used:
   tool_input    dict  - {"command": "...", ...}
   tool_response str|dict - stdout/stderr/exit code payload from Bash
 """
+
 from __future__ import annotations
 
 import json
@@ -35,20 +36,25 @@ from pathlib import Path
 # Configuration
 # ---------------------------------------------------------------------------
 MODE = os.environ.get("CLAIM_GUARD_MODE", "warn").lower()
-_LEDGER_ROOT = Path(os.environ.get(
-    "CLAIM_GUARD_LEDGER_ROOT",
-    str(Path(tempfile.gettempdir()) / "claude-claim-ledger")
-))
+_LEDGER_ROOT = Path(
+    os.environ.get(
+        "CLAIM_GUARD_LEDGER_ROOT",
+        str(Path(tempfile.gettempdir()) / "claude-claim-ledger"),
+    )
+)
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _ledger_file(session_id: str) -> Path:
     """Return the per-session NDJSON ledger path, creating parent dir if needed."""
     _LEDGER_ROOT.mkdir(parents=True, exist_ok=True)
-    safe = "".join(c if c.isalnum() or c in "-_." else "-" for c in str(session_id))[:80]
+    safe = "".join(c if c.isalnum() or c in "-_." else "-" for c in str(session_id))[
+        :80
+    ]
     return _LEDGER_ROOT / f"{safe or 'unknown'}.ndjson"
 
 
@@ -83,7 +89,7 @@ def _parse_exit_and_ok(tool_response) -> tuple[int | None, bool]:
             if val is not None:
                 try:
                     exit_code = int(val)
-                    ok = (exit_code == 0)
+                    ok = exit_code == 0
                     return exit_code, ok
                 except (TypeError, ValueError):
                     pass
@@ -128,15 +134,20 @@ def _parse_exit_and_ok(tool_response) -> tuple[int | None, bool]:
             if marker in lowered:
                 # Try to extract exit code from text
                 import re
+
                 m = re.search(r"exit(?:ed)?\s+(?:code|with)?\s*[:\s]\s*(\d+)", lowered)
                 if m:
                     exit_code = int(m.group(1))
-                    ok = (exit_code == 0)
+                    ok = exit_code == 0
                     return exit_code, ok
                 # Marker present but no code extracted → mark as failed (conservative)
                 # BUT only for the most unambiguous markers
-                if marker in ("command not found", "permission denied",
-                               "syntax error", "bash: "):
+                if marker in (
+                    "command not found",
+                    "permission denied",
+                    "syntax error",
+                    "bash: ",
+                ):
                     return None, False
         return exit_code, ok
 
@@ -147,6 +158,7 @@ def _parse_exit_and_ok(tool_response) -> tuple[int | None, bool]:
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main() -> int:
     # Mode gate — must be before try/except so it can exit cleanly

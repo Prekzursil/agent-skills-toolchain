@@ -14,6 +14,7 @@ NON-NAGGING: only emits output when a concrete tamper signal is found.
 EXTERNAL-ANCHORED: decisions come from `git diff --cached` output, which
 the model cannot retroactively alter from within the hook.
 """
+
 from __future__ import annotations
 
 import json
@@ -81,6 +82,7 @@ _TRIVIAL_ASSERT_RE = re.compile(
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _is_test_file(path: str) -> bool:
     return any(p.search(path) for p in _TEST_FILE_PATS)
 
@@ -101,12 +103,23 @@ def _run(args: list[str], cwd: str) -> str:
 def _log_failure(cwd: str, message: str, preconditions: str) -> None:
     """Call note.py to log a failure to the event ledger. Fail-open."""
     try:
-        note_py = str(Path(__file__).resolve().parent.parent / "event-ledger" / "note.py")
+        note_py = str(
+            Path(__file__).resolve().parent.parent / "event-ledger" / "note.py"
+        )
         if not Path(note_py).exists():
             return
         subprocess.run(
-            [sys.executable, note_py, "--kind", "failure", message,
-             "--preconditions", preconditions, "--cwd", cwd],
+            [
+                sys.executable,
+                note_py,
+                "--kind",
+                "failure",
+                message,
+                "--preconditions",
+                preconditions,
+                "--cwd",
+                cwd,
+            ],
             timeout=10,
             encoding="utf-8",
             errors="replace",
@@ -128,7 +141,11 @@ def _analyse_diff(diff_text: str) -> dict:
 
     for raw_line in diff_text.splitlines():
         # Skip diff header lines (@@, ---, +++)
-        if raw_line.startswith("---") or raw_line.startswith("+++") or raw_line.startswith("@@"):
+        if (
+            raw_line.startswith("---")
+            or raw_line.startswith("+++")
+            or raw_line.startswith("@@")
+        ):
             continue
 
         if raw_line.startswith("-"):
@@ -169,6 +186,7 @@ def _analyse_diff(diff_text: str) -> dict:
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main() -> int:
     try:
@@ -244,8 +262,10 @@ def main() -> int:
                 # Log each file+signal combo to the event ledger.
                 for sig_name in file_signals:
                     preconditions = f"test-tamper:{filepath}:{sig_name}"
-                    msg = (f"EvilGenie guard: staged test weakening detected — "
-                           f"{filepath} ({sig_name})")
+                    msg = (
+                        f"EvilGenie guard: staged test weakening detected — "
+                        f"{filepath} ({sig_name})"
+                    )
                     _log_failure(cwd, msg, preconditions)
 
         # --- 3. Emit warning if any findings ---------------------------------
@@ -258,12 +278,16 @@ def main() -> int:
                 + "\n\nIf these changes are intentional, document the reason "
                 "in the commit message.  If not, fix the source code instead of the tests."
             )
-            print(json.dumps({
-                "hookSpecificOutput": {
-                    "hookEventName": "PreToolUse",
-                    "additionalContext": warning,
-                }
-            }))
+            print(
+                json.dumps(
+                    {
+                        "hookSpecificOutput": {
+                            "hookEventName": "PreToolUse",
+                            "additionalContext": warning,
+                        }
+                    }
+                )
+            )
 
     except Exception:
         pass  # fail-open: any unhandled exception → exit 0, no output

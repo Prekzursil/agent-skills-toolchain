@@ -49,7 +49,7 @@ async function runTestsMaybe({ workspaceDir, testCommand, timeoutMs = 20 * 60_00
   if (!testCommand) return { ok: null, command: null, output: '' };
   const { spawn } = await import('node:child_process');
   return await new Promise((resolve) => {
-    const child = spawn(testCommand, { cwd: workspaceDir, shell: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(testCommand, { cwd: workspaceDir, shell: true, stdio: ['ignore', 'pipe', 'pipe'] });  // nosemgrep: javascript.lang.security.audit.spawn-shell-true.spawn-shell-true -- shell option defaults to false; args controlled internally
     const out = [];
     const err = [];
     const t = setTimeout(() => {

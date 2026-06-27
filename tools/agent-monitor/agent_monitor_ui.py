@@ -19,6 +19,7 @@ Design notes:
 Run with no args (the launchers do this).  Power users still have
 agent_monitor.py --watch/--spawn.
 """
+
 from __future__ import annotations
 
 import datetime as dt
@@ -41,13 +42,23 @@ except Exception:  # pragma: no cover - defensive
 
     def find_subagent_dirs():
         pat = os.path.join(PROJECTS, "*", "*", "subagents")
-        return [d for d in glob.glob(pat)
-                if glob.glob(os.path.join(d, "**", "agent-*.jsonl"), recursive=True)]
+        return [
+            d
+            for d in glob.glob(pat)
+            if glob.glob(os.path.join(d, "**", "agent-*.jsonl"), recursive=True)
+        ]
 
     def newest_mtime(d):
-        return max((os.path.getmtime(p)
-                    for p in glob.glob(os.path.join(d, "**", "agent-*.jsonl"), recursive=True)),
-                   default=0.0)
+        return max(
+            (
+                os.path.getmtime(p)
+                for p in glob.glob(
+                    os.path.join(d, "**", "agent-*.jsonl"), recursive=True
+                )
+            ),
+            default=0.0,
+        )
+
 
 try:
     import tkinter as tk
@@ -57,8 +68,8 @@ except Exception as e:  # pragma: no cover
     sys.exit(2)
 
 LOGDIR = os.path.join(HERE, "logs")
-FRESH = 45.0      # mtime age (s) under which an agent is definitely RUNNING
-STALL = 600.0     # silence (s) after which a non-finished agent is STALLED
+FRESH = 45.0  # mtime age (s) under which an agent is definitely RUNNING
+STALL = 600.0  # silence (s) after which a non-finished agent is STALLED
 LIST_POLL_MS = 2000
 TAIL_POLL_MS = 600
 RESULT_CAP = 8000  # max chars of a single tool_result shown inline (full copy in .log)
@@ -67,20 +78,34 @@ RESULT_CAP = 8000  # max chars of a single tool_result shown inline (full copy i
 BG = "#1e1e1e"
 FG = "#d4d4d4"
 COL = {
-    "ts": "#7d8590", "text": "#e6e6e6", "think": "#6a9955", "tool": "#569cd6",
-    "toolarg": "#808080", "result": "#4ec9b0", "err": "#f44747", "dim": "#7d8590",
+    "ts": "#7d8590",
+    "text": "#e6e6e6",
+    "think": "#6a9955",
+    "tool": "#569cd6",
+    "toolarg": "#808080",
+    "result": "#4ec9b0",
+    "err": "#f44747",
+    "dim": "#7d8590",
     "hdr": "#c586c0",
 }
-STATUS_GLYPH = {"running": ("●", "#3fb950"), "working": ("◐", "#d29922"),
-                "done": ("✓", "#7d8590"), "stalled": ("✗", "#f85149"),
-                "superseded": ("⊘", "#5a5a5a")}
+STATUS_GLYPH = {
+    "running": ("●", "#3fb950"),
+    "working": ("◐", "#d29922"),
+    "done": ("✓", "#7d8590"),
+    "stalled": ("✗", "#f85149"),
+    "superseded": ("⊘", "#5a5a5a"),
+}
 
 
 def fmt_ts(iso):
     if not iso:
         return "--:--:--"
     try:
-        return dt.datetime.fromisoformat(iso.replace("Z", "+00:00")).astimezone().strftime("%H:%M:%S")
+        return (
+            dt.datetime.fromisoformat(iso.replace("Z", "+00:00"))
+            .astimezone()
+            .strftime("%H:%M:%S")
+        )
     except Exception:
         return iso[-9:-1] if len(iso) > 9 else iso
 
@@ -121,7 +146,11 @@ def _last_entry_shape(path):
             continue
         msg = o.get("message") if isinstance(o.get("message"), dict) else {}
         c = msg.get("content")
-        blocks = c if isinstance(c, list) else ([{"type": "text"}] if isinstance(c, str) else [])
+        blocks = (
+            c
+            if isinstance(c, list)
+            else ([{"type": "text"}] if isinstance(c, str) else [])
+        )
         for b in reversed(blocks):
             if isinstance(b, dict) and b.get("type"):
                 return (b.get("type"), msg.get("role"))
@@ -138,7 +167,10 @@ def agent_status(path):
         return ("running", age)
     ce = _STATUS_CACHE.get(path)
     if ce and ce[0] == mtime:
-        return (ce[1], age)  # finished agent: mtime frozen -> reuse cached status, skip tail read
+        return (
+            ce[1],
+            age,
+        )  # finished agent: mtime frozen -> reuse cached status, skip tail read
     last_type, role = _last_entry_shape(path)
     if last_type == "text" and role == "assistant":
         st = "done"
@@ -151,7 +183,7 @@ def agent_status(path):
     return (st, age)
 
 
-_META_CACHE = {}    # path -> meta (written once at agent creation; static)
+_META_CACHE = {}  # path -> meta (written once at agent creation; static)
 _STATUS_CACHE = {}  # path -> (mtime, terminal_status) — avoids re-reading finished agents
 
 
@@ -178,16 +210,18 @@ def scan_session(subdir):
         parts = os.path.relpath(jsonl, subdir).replace("\\", "/").split("/")
         wf = parts[parts.index("workflows") + 1] if "workflows" in parts[:-1] else ""
         status, age = agent_status(jsonl)
-        rows.append({
-            "jsonl": jsonl,
-            "name": meta.get("name") or os.path.basename(jsonl)[6:14],
-            "type": meta.get("agentType", "?"),
-            "desc": meta.get("description", ""),
-            "wf": wf,
-            "mtime": os.path.getmtime(jsonl) if os.path.exists(jsonl) else 0,
-            "age": age,
-            "status": status,
-        })
+        rows.append(
+            {
+                "jsonl": jsonl,
+                "name": meta.get("name") or os.path.basename(jsonl)[6:14],
+                "type": meta.get("agentType", "?"),
+                "desc": meta.get("description", ""),
+                "wf": wf,
+                "mtime": os.path.getmtime(jsonl) if os.path.exists(jsonl) else 0,
+                "age": age,
+                "status": status,
+            }
+        )
     # group retries by (wf, name): newest is live, older are superseded
     groups = {}
     for r in rows:
@@ -206,8 +240,11 @@ def render(entry):
     iso = entry.get("timestamp")
     ts = fmt_ts(iso)
     content = msg.get("content")
-    blocks = content if isinstance(content, list) else (
-        [{"type": "text", "text": content}] if isinstance(content, str) else [])
+    blocks = (
+        content
+        if isinstance(content, list)
+        else ([{"type": "text", "text": content}] if isinstance(content, str) else [])
+    )
     segs, logs = [], []
     for b in blocks:
         if not isinstance(b, dict):
@@ -238,10 +275,17 @@ def render(entry):
                 logs.append(indented)
         elif t == "tool_result":
             rc = b.get("content")
-            s = rc if isinstance(rc, str) else json.dumps(rc, ensure_ascii=False, indent=2)
+            s = (
+                rc
+                if isinstance(rc, str)
+                else json.dumps(rc, ensure_ascii=False, indent=2)
+            )
             full = s
             if len(s) > RESULT_CAP:
-                s = s[:RESULT_CAP] + f"\n        … [+{len(full) - RESULT_CAP} chars; full text in the .log]"
+                s = (
+                    s[:RESULT_CAP]
+                    + f"\n        … [+{len(full) - RESULT_CAP} chars; full text in the .log]"
+                )
             tag = "err" if b.get("is_error") else "result"
             glyph = "✗" if b.get("is_error") else "↳"
             segs += [("ts", f"{ts} "), (tag, f"{glyph} {s}\n")]
@@ -254,10 +298,10 @@ class MonitorUI:
     def __init__(self, root):
         self.root = root
         self.q = queue.Queue()
-        self.sessions = []            # list of subagent dirs
+        self.sessions = []  # list of subagent dirs
         self.cur_session = None
-        self.rows = []                # current scan rows
-        self.sel_path = None          # selected agent jsonl
+        self.rows = []  # current scan rows
+        self.sel_path = None  # selected agent jsonl
         self.tail_pos = 0
         self.tail_file = None
         self.log_fh = None
@@ -283,18 +327,30 @@ class MonitorUI:
         self.sess_cb.bind("<<ComboboxSelected>>", self._on_session)
         self.hdr = ttk.Label(top, text="", foreground="#444")
         self.hdr.pack(side="left")
-        ttk.Checkbutton(top, text="Auto-scroll", variable=self.autoscroll).pack(side="right")
-        ttk.Checkbutton(top, text="All history", variable=self.show_all, command=self._scan_now).pack(side="right", padx=6)
-        ttk.Button(top, text="Open .log", command=self._open_log).pack(side="right", padx=6)
+        ttk.Checkbutton(top, text="Auto-scroll", variable=self.autoscroll).pack(
+            side="right"
+        )
+        ttk.Checkbutton(
+            top, text="All history", variable=self.show_all, command=self._scan_now
+        ).pack(side="right", padx=6)
+        ttk.Button(top, text="Open .log", command=self._open_log).pack(
+            side="right", padx=6
+        )
 
         pane = ttk.PanedWindow(self.root, orient="horizontal")
         pane.pack(fill="both", expand=True, padx=8, pady=(0, 8))
 
         left = ttk.Frame(pane)
         cols = ("status", "name", "info", "age")
-        self.tree = ttk.Treeview(left, columns=cols, show="headings", selectmode="browse")
-        for c, w, txt in (("status", 70, "state"), ("name", 190, "agent"),
-                          ("info", 150, "type / [wf]"), ("age", 70, "age")):
+        self.tree = ttk.Treeview(
+            left, columns=cols, show="headings", selectmode="browse"
+        )
+        for c, w, txt in (
+            ("status", 70, "state"),
+            ("name", 190, "agent"),
+            ("info", 150, "type / [wf]"),
+            ("age", 70, "age"),
+        ):
             self.tree.heading(c, text=txt)
             self.tree.column(c, width=w, anchor="w", stretch=(c == "name"))
         ysb = ttk.Scrollbar(left, orient="vertical", command=self.tree.yview)
@@ -307,15 +363,28 @@ class MonitorUI:
         pane.add(left, weight=1)
 
         right = ttk.Frame(pane)
-        self.title_lbl = ttk.Label(right, text="Select an agent", font=("Segoe UI", 10, "bold"))
+        self.title_lbl = ttk.Label(
+            right, text="Select an agent", font=("Segoe UI", 10, "bold")
+        )
         self.title_lbl.pack(fill="x", anchor="w")
-        self.desc_lbl = ttk.Label(right, text="", foreground="#666", wraplength=820, justify="left")
+        self.desc_lbl = ttk.Label(
+            right, text="", foreground="#666", wraplength=820, justify="left"
+        )
         self.desc_lbl.pack(fill="x", anchor="w", pady=(0, 4))
         txtfrm = ttk.Frame(right)
         txtfrm.pack(fill="both", expand=True)
-        self.txt = tk.Text(txtfrm, wrap="word", bg=BG, fg=FG, insertbackground=FG,
-                           font=("Cascadia Mono", 10), padx=8, pady=6, state="disabled",
-                           borderwidth=0)
+        self.txt = tk.Text(
+            txtfrm,
+            wrap="word",
+            bg=BG,
+            fg=FG,
+            insertbackground=FG,
+            font=("Cascadia Mono", 10),
+            padx=8,
+            pady=6,
+            state="disabled",
+            borderwidth=0,
+        )
         tsb = ttk.Scrollbar(txtfrm, orient="vertical", command=self.txt.yview)
         self.txt.configure(yscrollcommand=tsb.set)
         self.txt.pack(side="left", fill="both", expand=True)
@@ -325,7 +394,9 @@ class MonitorUI:
         self.txt.tag_configure("tool", font=("Cascadia Mono", 10, "bold"))
         pane.add(right, weight=3)
 
-        self.status_bar = ttk.Label(self.root, text="", anchor="w", relief="sunken", padding=(6, 2))
+        self.status_bar = ttk.Label(
+            self.root, text="", anchor="w", relief="sunken", padding=(6, 2)
+        )
         self.status_bar.pack(fill="x", side="bottom")
 
     # ---- session handling ----
@@ -404,7 +475,9 @@ class MonitorUI:
         sel = self.tree.selection()
         if not sel:
             return
-        self._select_agent(sel[0])  # the Treeview iid IS the jsonl path (set in _apply_list)
+        self._select_agent(
+            sel[0]
+        )  # the Treeview iid IS the jsonl path (set in _apply_list)
 
     def _select_agent(self, jsonl):
         self._tail_gen += 1
@@ -428,15 +501,26 @@ class MonitorUI:
         meta = load_meta(jsonl)
         name = meta.get("name") or os.path.basename(jsonl)
         self.title_lbl.config(text=name)
-        self.desc_lbl.config(text=meta.get("description", "") or f"{meta.get('agentType','agent')} · {os.path.basename(jsonl)}")
+        self.desc_lbl.config(
+            text=meta.get("description", "")
+            or f"{meta.get('agentType', 'agent')} · {os.path.basename(jsonl)}"
+        )
         # open persistent .log (fresh, full from creation)
         try:
-            sess = os.path.basename(os.path.dirname(self.cur_session)) if self.cur_session else "session"
+            sess = (
+                os.path.basename(os.path.dirname(self.cur_session))
+                if self.cur_session
+                else "session"
+            )
             d = os.path.join(LOGDIR, sess[:8])
             os.makedirs(d, exist_ok=True)
-            safe = "".join(ch if ch.isalnum() or ch in "-_." else "_" for ch in name)[:60]
+            safe = "".join(ch if ch.isalnum() or ch in "-_." else "_" for ch in name)[
+                :60
+            ]
             self.log_fh = open(os.path.join(d, f"{safe}.log"), "w", encoding="utf-8")
-            self.log_fh.write(f"# {name}\n# {jsonl}\n# opened {dt.datetime.now().isoformat(timespec='seconds')}\n\n")
+            self.log_fh.write(
+                f"# {name}\n# {jsonl}\n# opened {dt.datetime.now().isoformat(timespec='seconds')}\n\n"
+            )
         except Exception:
             self.log_fh = None
 
@@ -459,8 +543,14 @@ class MonitorUI:
         self.root.after(150, self._drain)
 
     def _apply_list(self, rows):
-        if not self.show_all.get():  # focused view: running/working + anything active in last 30 min
-            rows = [r for r in rows if r["status"] in ("running", "working") or r["age"] < 1800]
+        if (
+            not self.show_all.get()
+        ):  # focused view: running/working + anything active in last 30 min
+            rows = [
+                r
+                for r in rows
+                if r["status"] in ("running", "working") or r["age"] < 1800
+            ]
         self.rows = rows
         sel = self.tree.selection()
         sel_iid = sel[0] if sel else None
@@ -470,7 +560,7 @@ class MonitorUI:
             iid = r["jsonl"]
             seen.add(iid)
             glyph, _ = STATUS_GLYPH.get(r["status"], ("?", "#888"))
-            info = (f"[{r['wf'][:12]}]" if r["wf"] else r["type"][:18])
+            info = f"[{r['wf'][:12]}]" if r["wf"] else r["type"][:18]
             vals = (f"{glyph} {r['status']}", r["name"][:28], info, human_age(r["age"]))
             if iid in existing:
                 self.tree.item(iid, values=vals, tags=(r["status"],))
@@ -481,8 +571,10 @@ class MonitorUI:
         run = sum(1 for r in rows if r["status"] in ("running", "working"))
         done = sum(1 for r in rows if r["status"] == "done")
         wf = sum(1 for r in rows if r["wf"])
-        self.status_bar.config(text=f"{len(rows)} agents · {run} active · {done} done · {wf} in workflows · "
-                                    f"updated {dt.datetime.now().strftime('%H:%M:%S')}")
+        self.status_bar.config(
+            text=f"{len(rows)} agents · {run} active · {done} done · {wf} in workflows · "
+            f"updated {dt.datetime.now().strftime('%H:%M:%S')}"
+        )
         if sel_iid and sel_iid in seen:
             pass  # keep selection
 
@@ -511,9 +603,13 @@ class MonitorUI:
         if not self.sel_path or not self.log_fh:
             return
         try:
-            os.startfile(self.log_fh.name)  # Windows-only; fine here (this tool targets Windows)
+            os.startfile(
+                self.log_fh.name
+            )  # Windows-only; fine here (this tool targets Windows)
         except Exception as e:
-            messagebox.showinfo("Open .log", f"Log file:\n{getattr(self.log_fh,'name','?')}\n\n{e}")
+            messagebox.showinfo(
+                "Open .log", f"Log file:\n{getattr(self.log_fh, 'name', '?')}\n\n{e}"
+            )
 
 
 def main():

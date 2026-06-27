@@ -11,11 +11,11 @@ Usage (sync context):
     from core.status import refresh_sync
     rows = refresh_sync()
 """
+
 from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Any
 
 from .models import AuthStatus, ServerRow
 
@@ -48,7 +48,10 @@ def _merge_rows(all_rows: list[list[ServerRow]]) -> list[ServerRow]:
                 existing = merged[row.id]
                 existing.planes.extend(row.planes)
                 # Upgrade status if existing is UNKNOWN
-                if existing.status == AuthStatus.UNKNOWN and row.status != AuthStatus.UNKNOWN:
+                if (
+                    existing.status == AuthStatus.UNKNOWN
+                    and row.status != AuthStatus.UNKNOWN
+                ):
                     existing.status = row.status
                 # If planes disagree on enabled, mark disabled if ANY plane disables it
                 if not row.enabled:
@@ -64,11 +67,13 @@ async def _fetch_claude(
 ) -> list[ServerRow]:
     """Async wrapper around claude_adapter.get_server_universe."""
     from . import claude_adapter  # deferred
+
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
         None,
         lambda: claude_adapter.get_server_universe(
-            claude_json, project_path,
+            claude_json,
+            project_path,
             mcp_list_output=mcp_list_output,
         ),
     )
@@ -81,11 +86,13 @@ async def _fetch_codex(
 ) -> list[ServerRow]:
     """Async wrapper around codex_adapter.get_server_universe."""
     from . import codex_adapter  # deferred
+
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
         None,
         lambda: codex_adapter.get_server_universe(
-            config_toml, json_output=json_output,
+            config_toml,
+            json_output=json_output,
         ),
     )
 
@@ -93,6 +100,7 @@ async def _fetch_codex(
 async def _fetch_funnel(profiles_json: Path) -> list[ServerRow]:
     """Async wrapper around funnel_adapter.get_server_universe."""
     from . import funnel_adapter  # deferred
+
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
         None,

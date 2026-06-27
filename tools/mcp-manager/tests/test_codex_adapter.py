@@ -1,4 +1,5 @@
 """Tests for core/codex_adapter.py — parse, toggle, fallback."""
+
 import json
 import sys
 from pathlib import Path
@@ -7,29 +8,30 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from core import codex_adapter  # noqa: E402
-from core.models import AuthStatus  # noqa: E402
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
-CODEX_JSON_SAMPLE = json.dumps([
-    {"name": "exa", "enabled": True, "auth_status": "bearer_token"},
-    {"name": "context7", "enabled": True, "auth_status": "unsupported"},
-    {"name": "kaggle", "enabled": False, "auth_status": None},
-    {"name": "figma", "enabled": True, "auth_status": "unsupported"},
-])
+CODEX_JSON_SAMPLE = json.dumps(
+    [
+        {"name": "exa", "enabled": True, "auth_status": "bearer_token"},
+        {"name": "context7", "enabled": True, "auth_status": "unsupported"},
+        {"name": "kaggle", "enabled": False, "auth_status": None},
+        {"name": "figma", "enabled": True, "auth_status": "unsupported"},
+    ]
+)
 
 CODEX_TOML_SAMPLE = (
     "# my codex config\n"
     "[mcp_servers.exa]\n"
-    "url = \"https://mcp.exa.ai/mcp\"\n"
+    'url = "https://mcp.exa.ai/mcp"\n'
     "enabled = true\n"
     "\n"
     "[mcp_servers.kaggle]\n"
-    "command = \"python\"\n"
+    'command = "python"\n'
     "enabled = false\n"
     "\n"
     "[mcp_servers.figma]\n"
-    "command = \"npx figma\"\n"
+    'command = "npx figma"\n'
     "# no explicit enabled = defaults to true\n"
 )
 
@@ -97,7 +99,9 @@ class TestGetServerUniverse:
         assert by_id["kaggle"].enabled is False
 
     def test_missing_toml_returns_empty(self, tmp_path: Path):
-        rows = codex_adapter.get_server_universe(tmp_path / "nope.toml", json_output="[]")
+        rows = codex_adapter.get_server_universe(
+            tmp_path / "nope.toml", json_output="[]"
+        )
         assert rows == []
 
 
@@ -111,6 +115,7 @@ class TestSetServerEnabled:
         ct.write_text(CODEX_TOML_SAMPLE, encoding="utf-8")
         assert codex_adapter.set_server_enabled(ct, "exa", False) is True
         import tomllib
+
         data = tomllib.loads(ct.read_text(encoding="utf-8"))
         assert data["mcp_servers"]["exa"]["enabled"] is False
 
@@ -120,6 +125,7 @@ class TestSetServerEnabled:
         ct.write_text(CODEX_TOML_SAMPLE, encoding="utf-8")
         assert codex_adapter.set_server_enabled(ct, "kaggle", True) is True
         import tomllib
+
         data = tomllib.loads(ct.read_text(encoding="utf-8"))
         assert data["mcp_servers"]["kaggle"]["enabled"] is True
 
@@ -157,6 +163,7 @@ class TestSetServerEnabled:
     def test_result_is_valid_toml(self, tmp_path: Path):
         pytest.importorskip("tomlkit")
         import tomllib
+
         ct = tmp_path / "config.toml"
         ct.write_text(CODEX_TOML_SAMPLE, encoding="utf-8")
         codex_adapter.set_server_enabled(ct, "kaggle", True)

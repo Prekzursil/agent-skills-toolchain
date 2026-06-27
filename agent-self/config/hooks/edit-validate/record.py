@@ -9,6 +9,7 @@ lines (cheap) but triggers ZERO wakes; validation happens once at turn end.
 
 FAIL-OPEN: any error -> exit 0, silent.
 """
+
 import json
 import os
 import sys
@@ -26,10 +27,16 @@ def main() -> int:
         fp = (data.get("tool_input") or {}).get("file_path")
         if not fp:
             return 0
-        sid = str(data.get("session_id") or "default").replace("/", "_").replace("\\", "_")
+        sid = (
+            str(data.get("session_id") or "default")
+            .replace("/", "_")
+            .replace("\\", "_")
+        )
         d = os.path.join(tempfile.gettempdir(), "edit-validate")
         os.makedirs(d, exist_ok=True)
-        with open(os.path.join(d, f"{sid}.edits"), "a", encoding="utf-8", errors="replace") as f:
+        with open(
+            os.path.join(d, f"{sid}.edits"), "a", encoding="utf-8", errors="replace"
+        ) as f:
             f.write(fp + "\n")
     except Exception:
         pass

@@ -12,6 +12,7 @@ Events are one JSON object per line. Append-only; recovery = replay the tail.
 
 This module is dependency-free (stdlib only) and safe to import from hooks.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -20,7 +21,9 @@ import os
 import time
 from pathlib import Path
 
-ROOT = Path(os.environ.get("EVENT_LEDGER_ROOT", str(Path.home() / ".claude" / "event-ledger")))
+ROOT = Path(
+    os.environ.get("EVENT_LEDGER_ROOT", str(Path.home() / ".claude" / "event-ledger"))
+)
 
 # Event kinds. "turn" = objective per-turn harvest (hook-written); decision/failure/goal/
 # milestone = annotations (agent- or hook-written). failure entries are first-class because
@@ -32,7 +35,9 @@ def _slug(project_path: str) -> str:
     """Stable, readable, collision-resistant per-project directory name."""
     p = str(project_path or os.getcwd())
     base = Path(p).name or "root"
-    h = hashlib.sha256(p.encode("utf-8", "replace")).hexdigest()[:8]  # non-crypto slug; sha256 per CWE-327
+    h = hashlib.sha256(p.encode("utf-8", "replace")).hexdigest()[
+        :8
+    ]  # non-crypto slug; sha256 per CWE-327
     safe = "".join(c if c.isalnum() or c in "-_." else "-" for c in base)[:40]
     return f"{safe}-{h}"
 
@@ -58,8 +63,14 @@ def _load_state(project_path: str) -> dict:
             return json.loads(f.read_text(encoding="utf-8"))
         except Exception:
             pass
-    return {"seq": 0, "project": str(project_path), "goal": None, "head": None,
-            "open_failures": [], "last_event_ts": None}
+    return {
+        "seq": 0,
+        "project": str(project_path),
+        "goal": None,
+        "head": None,
+        "open_failures": [],
+        "last_event_ts": None,
+    }
 
 
 def append(project_path: str, kind: str, **fields) -> dict:
@@ -91,13 +102,25 @@ def append(project_path: str, kind: str, **fields) -> dict:
         state["head"] = fields.get("head")
     if kind == "failure":
         ofs = state.get("open_failures", [])
-        ofs.append({"seq": seq, "text": fields.get("text"), "preconditions": fields.get("preconditions")})
+        ofs.append(
+            {
+                "seq": seq,
+                "text": fields.get("text"),
+                "preconditions": fields.get("preconditions"),
+            }
+        )
         state["open_failures"] = ofs[-25:]
     if kind == "milestone" and fields.get("supersedes_failures"):
         # a contradicting success auto-tombstones the named open failures
-        keep = [f for f in state.get("open_failures", []) if f.get("seq") not in set(fields["supersedes_failures"])]
+        keep = [
+            f
+            for f in state.get("open_failures", [])
+            if f.get("seq") not in set(fields["supersedes_failures"])
+        ]
         state["open_failures"] = keep
-    _state_file(project_path).write_text(json.dumps(state, indent=2, ensure_ascii=False), encoding="utf-8")
+    _state_file(project_path).write_text(
+        json.dumps(state, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     return ev
 
 

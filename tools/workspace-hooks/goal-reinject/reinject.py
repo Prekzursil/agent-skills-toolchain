@@ -12,6 +12,7 @@ The injection is lightweight (one sentence) and non-blocking (always exit 0).
 NEVER blocks (exit 2 is not used here). Fails open: any error → no output → exit 0.
 Honors: no secrets, no external calls, stdlib only.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -27,8 +28,11 @@ _LEDGER_DIR = str(Path(__file__).resolve().parent.parent / "event-ledger")
 sys.path.insert(0, _LEDGER_DIR)
 
 INTERVAL = int(os.environ.get("GOAL_REINJECT_INTERVAL", "8"))
-COUNTER_ROOT = Path(os.environ.get("GOAL_REINJECT_COUNTER_ROOT",
-                                   str(Path.home() / ".claude" / "goal-reinject")))
+COUNTER_ROOT = Path(
+    os.environ.get(
+        "GOAL_REINJECT_COUNTER_ROOT", str(Path.home() / ".claude" / "goal-reinject")
+    )
+)
 
 
 def _counter_file(session_id: str) -> Path:
@@ -84,6 +88,7 @@ def main() -> int:
     # Pull the goal from the ledger — fail-open if ledger import fails.
     try:
         import ledger  # noqa: PLC0415 — local import after sys.path insert
+
         st = ledger.state(cwd)
     except Exception:
         return 0
@@ -96,12 +101,16 @@ def main() -> int:
         f"ACTIVE GOAL (re-anchor): {goal} "
         f"— confirm this action serves it; if you've drifted, refocus."
     )
-    print(json.dumps({
-        "hookSpecificOutput": {
-            "hookEventName": "PreToolUse",
-            "additionalContext": msg,
-        }
-    }))
+    print(
+        json.dumps(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "additionalContext": msg,
+                }
+            }
+        )
+    )
     return 0
 
 

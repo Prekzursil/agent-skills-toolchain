@@ -3,7 +3,7 @@ import path from 'node:path';
 
 function run(cmd, args, { cwd, timeoutMs = 60_000 } = {}) {
   return new Promise((resolve, reject) => {
-    const child = spawn(cmd, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(cmd, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });  // nosemgrep: javascript.lang.security.detect-child-process.detect-child-process -- developer tooling that legitimately spawns child processes
     const out = [];
     const err = [];
     const t = setTimeout(() => {

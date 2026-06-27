@@ -1,5 +1,5 @@
 (function() {
-  const WS_URL = 'ws://' + window.location.host;
+  const WS_URL = 'ws://' + window.location.host;  // nosemgrep: javascript.lang.security.detect-insecure-websocket.detect-insecure-websocket -- localhost developer-tooling websocket
   let ws = null;
   let eventQueue = [];
 

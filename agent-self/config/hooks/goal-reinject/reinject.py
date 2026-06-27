@@ -12,6 +12,7 @@ The injection is lightweight (one sentence) and non-blocking (always exit 0).
 NEVER blocks (exit 2 is not used here). Fails open: any error → no output → exit 0.
 Honors: no secrets, no external calls, stdlib only.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -27,9 +28,14 @@ _LEDGER_DIR = str(Path(__file__).resolve().parent.parent / "event-ledger")
 sys.path.insert(0, _LEDGER_DIR)
 
 INTERVAL = int(os.environ.get("GOAL_REINJECT_INTERVAL", "8"))
-FALSIFY_INTERVAL = int(os.environ.get("GOAL_FALSIFY_INTERVAL", "24"))  # slower cadence: force anchor-falsification + fresh-context verify
-COUNTER_ROOT = Path(os.environ.get("GOAL_REINJECT_COUNTER_ROOT",
-                                   str(Path.home() / ".claude" / "goal-reinject")))
+FALSIFY_INTERVAL = int(
+    os.environ.get("GOAL_FALSIFY_INTERVAL", "24")
+)  # slower cadence: force anchor-falsification + fresh-context verify
+COUNTER_ROOT = Path(
+    os.environ.get(
+        "GOAL_REINJECT_COUNTER_ROOT", str(Path.home() / ".claude" / "goal-reinject")
+    )
+)
 
 
 def _counter_file(session_id: str) -> Path:
@@ -78,8 +84,8 @@ def main() -> int:
     count = _read_count(session_id) + 1
     _write_count(session_id, count)
 
-    need_goal = (count % INTERVAL == 0)
-    need_falsify = (count % FALSIFY_INTERVAL == 0)
+    need_goal = count % INTERVAL == 0
+    need_falsify = count % FALSIFY_INTERVAL == 0
     if not (need_goal or need_falsify):
         return 0
 
@@ -89,6 +95,7 @@ def main() -> int:
         # Pull the goal from the ledger — fail-open if ledger import fails.
         try:
             import ledger  # noqa: PLC0415 — local import after sys.path insert
+
             st = ledger.state(cwd)
             goal = (st or {}).get("goal")
             if goal:
@@ -109,12 +116,16 @@ def main() -> int:
         )
 
     if pieces:
-        print(json.dumps({
-            "hookSpecificOutput": {
-                "hookEventName": "PreToolUse",
-                "additionalContext": "\n\n".join(pieces),
-            }
-        }))
+        print(
+            json.dumps(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "PreToolUse",
+                        "additionalContext": "\n\n".join(pieces),
+                    }
+                }
+            )
+        )
     return 0
 
 

@@ -114,8 +114,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Emit rubric-verifier scorer prompts for each candidate diff."
     )
-    parser.add_argument("--rubric", required=True, help="Path to rubric.json (Phase 1 output)")
-    parser.add_argument("--manifest", required=True, help="Path to candidates manifest JSON")
+    parser.add_argument(
+        "--rubric", required=True, help="Path to rubric.json (Phase 1 output)"
+    )
+    parser.add_argument(
+        "--manifest", required=True, help="Path to candidates manifest JSON"
+    )
     parser.add_argument(
         "--out",
         default=None,

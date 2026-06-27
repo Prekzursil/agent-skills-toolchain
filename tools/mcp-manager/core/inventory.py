@@ -14,6 +14,7 @@ Planes scanned:
 Also: duplicate-skill-pack detection over skill roots (the council found three
 identical packs: document-skills / example-skills / claude-api).
 """
+
 from __future__ import annotations
 
 import json
@@ -30,8 +31,8 @@ except ModuleNotFoundError:  # pragma: no cover - env-dependent
 @dataclass
 class ServerEntry:
     name: str
-    planes: list[str] = field(default_factory=list)   # where it is defined
-    enabled_in: list[str] = field(default_factory=list)   # planes where active
+    planes: list[str] = field(default_factory=list)  # where it is defined
+    enabled_in: list[str] = field(default_factory=list)  # planes where active
     disabled_in: list[str] = field(default_factory=list)  # planes where suppressed
 
     @property
@@ -46,7 +47,9 @@ def _load_json(path: Path) -> dict[str, Any]:
         return {}
 
 
-def scan_claude(claude_json: Path, project_path: str | None = None) -> dict[str, ServerEntry]:
+def scan_claude(
+    claude_json: Path, project_path: str | None = None
+) -> dict[str, ServerEntry]:
     """Inventory Claude user + (optionally one) project scope from ~/.claude.json."""
     data = _load_json(claude_json)
     out: dict[str, ServerEntry] = {}
@@ -68,7 +71,9 @@ def scan_claude(claude_json: Path, project_path: str | None = None) -> dict[str,
     for name in proj_servers:
         e = ensure(name)
         e.planes.append("claude-project")
-        (e.disabled_in if name in proj_disabled else e.enabled_in).append("claude-project")
+        (e.disabled_in if name in proj_disabled else e.enabled_in).append(
+            "claude-project"
+        )
     return out
 
 
@@ -106,7 +111,7 @@ def scan_funnel(master_json: Path) -> dict[str, ServerEntry]:
     """Inventory funnel master (servers[] list)."""
     data = _load_json(master_json)
     out: dict[str, ServerEntry] = {}
-    for spec in (data.get("servers") or []):
+    for spec in data.get("servers") or []:
         name = spec.get("name") if isinstance(spec, dict) else None
         if not name:
             continue
@@ -138,9 +143,7 @@ def find_duplicate_skill_packs(skill_roots: list[Path]) -> list[list[str]]:
         if not root.is_dir():
             continue
         for pack in sorted(p for p in root.iterdir() if p.is_dir()):
-            names = frozenset(
-                s.parent.name for s in pack.rglob("SKILL.md")
-            )
+            names = frozenset(s.parent.name for s in pack.rglob("SKILL.md"))
             if names:
                 packs[str(pack)] = names
     by_signature: dict[frozenset[str], list[str]] = {}
@@ -157,11 +160,16 @@ def build_inventory(home: Path, project_path: str | None = None) -> dict[str, An
         scan_codex(home / ".codex" / "config.toml"),
         scan_funnel(home / ".mcp-funnel-master.json"),
     )
-    servers = [asdict(e) | {"duplicated": e.duplicated} for e in sorted(inv.values(), key=lambda x: x.name)]
-    dup_packs = find_duplicate_skill_packs([
-        home / ".claude" / "skills",
-        home / ".agents" / "skills",
-    ])
+    servers = [
+        asdict(e) | {"duplicated": e.duplicated}
+        for e in sorted(inv.values(), key=lambda x: x.name)
+    ]
+    dup_packs = find_duplicate_skill_packs(
+        [
+            home / ".claude" / "skills",
+            home / ".agents" / "skills",
+        ]
+    )
     return {
         "server_count": len(servers),
         "duplicated_servers": [s["name"] for s in servers if s["duplicated"]],
@@ -172,5 +180,6 @@ def build_inventory(home: Path, project_path: str | None = None) -> dict[str, An
 
 if __name__ == "__main__":  # pragma: no cover - CLI smoke
     import sys
+
     rep = build_inventory(Path.home(), project_path=str(Path.home()).replace("\\", "/"))
     json.dump(rep, sys.stdout, indent=2)

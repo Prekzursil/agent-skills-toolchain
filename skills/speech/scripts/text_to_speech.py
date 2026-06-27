@@ -90,9 +90,7 @@ def _normalize_voice(voice: Optional[str]) -> str:
         return DEFAULT_VOICE
     value = str(voice).strip().lower()
     if value not in ALLOWED_VOICES:
-        _die(
-            "voice must be one of: " + ", ".join(sorted(ALLOWED_VOICES))
-        )
+        _die("voice must be one of: " + ", ".join(sorted(ALLOWED_VOICES)))
     return value
 
 
@@ -208,7 +206,9 @@ def _write_audio(
     last_exc: Optional[Exception] = None
     for attempt in range(1, attempts + 1):
         try:
-            with client.audio.speech.with_streaming_response.create(**payload) as response:
+            with client.audio.speech.with_streaming_response.create(
+                **payload
+            ) as response:
                 response.stream_to_file(out_path)
             print(f"Wrote {out_path}")
             return
@@ -218,7 +218,7 @@ def _write_audio(
                 raise
             sleep_s = _extract_retry_after_seconds(exc)
             if sleep_s is None:
-                sleep_s = min(60.0, 2.0 ** attempt)
+                sleep_s = min(60.0, 2.0**attempt)
             print(
                 f"Attempt {attempt}/{attempts} failed ({exc.__class__.__name__}); retrying in {sleep_s:.1f}s",
                 file=sys.stderr,
@@ -311,7 +311,9 @@ def _run_speak(args: argparse.Namespace) -> int:
 
     instructions = None
     if args.instructions or args.instructions_file:
-        instructions = _read_text(args.instructions, args.instructions_file, "instructions")
+        instructions = _read_text(
+            args.instructions, args.instructions_file, "instructions"
+        )
 
     model = str(args.model).strip()
     voice = _normalize_voice(args.voice)
@@ -357,7 +359,9 @@ def _run_speak_batch(args: argparse.Namespace) -> int:
 
     base_instructions = None
     if args.instructions or args.instructions_file:
-        base_instructions = _read_text(args.instructions, args.instructions_file, "instructions")
+        base_instructions = _read_text(
+            args.instructions, args.instructions_file, "instructions"
+        )
 
     base_payload = {
         "model": str(args.model).strip(),
@@ -388,7 +392,9 @@ def _run_speak_batch(args: argparse.Namespace) -> int:
         if "voice" in job:
             overrides["voice"] = _normalize_voice(job["voice"])
         if "response_format" in job or "format" in job:
-            overrides["response_format"] = _normalize_format(job.get("response_format") or job.get("format"))
+            overrides["response_format"] = _normalize_format(
+                job.get("response_format") or job.get("format")
+            )
         if "speed" in job and job["speed"] is not None:
             overrides["speed"] = _normalize_speed(job["speed"])
         if "instructions" in job and str(job["instructions"]).strip():
@@ -490,7 +496,7 @@ def main() -> int:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     list_voices = subparsers.add_parser("list-voices", help="List supported voices")
-    list_voices.set_defaults(func=lambda _args: (_list_voices() or 0))
+    list_voices.set_defaults(func=lambda _args: _list_voices() or 0)
 
     speak = subparsers.add_parser("speak", help="Generate a single audio file")
     speak.add_argument("--input", help="Input text")

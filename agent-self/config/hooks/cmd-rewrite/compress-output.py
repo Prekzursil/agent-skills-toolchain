@@ -55,6 +55,7 @@ Stdout (on compression):
 
 Stdout (no change): nothing — exit 0.
 """
+
 from __future__ import annotations
 
 import json
@@ -64,7 +65,9 @@ import sys
 # ── Configuration ─────────────────────────────────────────────────────────────
 
 # Only compress if output exceeds this many characters.
-SIZE_THRESHOLD: int = int(__import__("os").environ.get("COMPRESS_SIZE_THRESHOLD", "4000"))
+SIZE_THRESHOLD: int = int(
+    __import__("os").environ.get("COMPRESS_SIZE_THRESHOLD", "4000")
+)
 
 # Show at most this many file paths per category in git-status summary.
 MAX_SHOW_PATHS: int = 10
@@ -72,18 +75,19 @@ MAX_SHOW_PATHS: int = 10
 # Regex to detect ANSI escape sequences (CSI + OSC variants).
 _ANSI_RE = re.compile(
     r"\x1b(?:"
-    r"\[[0-9;?]*[ -/]*[@-~]"   # CSI sequences (colour, cursor, etc.)
+    r"\[[0-9;?]*[ -/]*[@-~]"  # CSI sequences (colour, cursor, etc.)
     r"|"
     r"\][^\x1b\x07]*(?:\x07|\x1b\\)"  # OSC sequences
     r"|"
-    r"[()][AB012]"             # character-set designations
+    r"[()][AB012]"  # character-set designations
     r"|"
-    r"[A-Z\\^_@]"              # other Fe sequences
+    r"[A-Z\\^_@]"  # other Fe sequences
     r")"
 )
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _strip_ansi(text: str) -> str:
     return _ANSI_RE.sub("", text)
@@ -124,7 +128,9 @@ _STATUS_UNTRACKED_RE = re.compile(r"^\tUntracked files:", re.MULTILINE)
 _PATH_LINE_RE = re.compile(r"^(\t| {4,})(\S.*)", re.MULTILINE)
 
 # The branch/HEAD line at the top of git status output
-_BRANCH_LINE_RE = re.compile(r"^(?:On branch|HEAD detached|rebase in progress).*", re.MULTILINE)
+_BRANCH_LINE_RE = re.compile(
+    r"^(?:On branch|HEAD detached|rebase in progress).*", re.MULTILINE
+)
 _TRACKING_LINE_RE = re.compile(
     r"^(?:Your branch is|nothing to commit|nothing added|no changes added).*",
     re.MULTILINE,
@@ -157,7 +163,6 @@ def _summarise_git_status(text: str) -> str:
     current_section: str | None = None
     for line in lines:
         stripped = line.rstrip()
-        sl = stripped.lstrip()
         if re.match(r"Changes to be committed", stripped):
             current_section = "staged"
             continue
@@ -167,10 +172,15 @@ def _summarise_git_status(text: str) -> str:
         if re.match(r"Untracked files:", stripped):
             current_section = "untracked"
             continue
-        if re.match(r"^(\t| {2,})(new file:|modified:|deleted:|renamed:|copied:)\s+", stripped):
+        if re.match(
+            r"^(\t| {2,})(new file:|modified:|deleted:|renamed:|copied:)\s+", stripped
+        ):
             if current_section:
                 # extract path part after the label
-                m = re.match(r"^(?:\t| {2,})(?:new file:|modified:|deleted:|renamed:|copied:)\s+(.*)", stripped)
+                m = re.match(
+                    r"^(?:\t| {2,})(?:new file:|modified:|deleted:|renamed:|copied:)\s+(.*)",
+                    stripped,
+                )
                 if m:
                     sections[current_section].append(m.group(1).strip())
             continue
@@ -202,7 +212,11 @@ def _summarise_git_status(text: str) -> str:
             out += f"  ... [{count - MAX_SHOW_PATHS} more not shown]\n"
         return out
 
-    for label, key in [("Staged", "staged"), ("Modified", "modified"), ("Untracked", "untracked")]:
+    for label, key in [
+        ("Staged", "staged"),
+        ("Modified", "modified"),
+        ("Untracked", "untracked"),
+    ]:
         part = _format_section(label, sections[key])
         if part:
             summary_parts.append(part)
@@ -215,7 +229,6 @@ def _summarise_git_status(text: str) -> str:
             + "\n".join(lines[:40])
         )
 
-    total_files = sum(len(v) for v in sections.values())
     summary_parts.append(
         f"\n[Summary: {sections['staged']} staged, "
         f"{len(sections['modified'])} modified, "
@@ -227,6 +240,7 @@ def _summarise_git_status(text: str) -> str:
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
+
 
 def _is_git_status_command(command: str) -> bool:
     """True if *command* is primarily a `git status` invocation."""
@@ -274,7 +288,11 @@ def main() -> int:
                 pass  # fail-open: leave compressed as-is
 
         # 2. ANSI stripping (applied to whatever we have now, if still large)
-        if not did_compress and _ANSI_RE.search(compressed) and len(compressed) > SIZE_THRESHOLD:
+        if (
+            not did_compress
+            and _ANSI_RE.search(compressed)
+            and len(compressed) > SIZE_THRESHOLD
+        ):
             stripped = _strip_ansi(compressed)
             if len(stripped) < len(compressed):
                 compressed = stripped
