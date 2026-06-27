@@ -1,8 +1,14 @@
-"""MCP server exposing scholarly-access tools over stdio.
+"""MCP server exposing lawful scholarly-access tools over stdio.
 
-All sources enabled: OA repositories, Sci-Hub, LibGen, SciDownl, direct-DOI fetch.
+Spec names use dots (`paper.resolve`); MCP tool names use underscores
+(`paper_resolve`) for client compatibility. The mapping is 1:1 and documented.
+
+NO Sci-Hub / LibGen / SciDownl / shadow libraries. NO paywall bypass. See policy.py.
 """
+
 from __future__ import annotations
+
+from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
@@ -12,64 +18,97 @@ mcp = FastMCP("scholarly-access")
 
 
 @mcp.tool()
-def paper_resolve(identifier: str) -> dict:
+def paper_resolve(identifier: str) -> dict[str, Any]:
     """Resolve a DOI / PMID / arXiv ID / title to canonical metadata + normalized identifiers
-    with a source-confidence score."""
+    (doi, pmid, arxiv, openalex) with a source-confidence score. Spec: paper.resolve."""
     return logic.resolve(identifier)
 
 
 @mcp.tool()
-def paper_fetch_metadata(identifier: str) -> dict:
-    """Fetch title, authors, year, journal, abstract and reference list for a paper."""
+def paper_fetch_metadata(identifier: str) -> dict[str, Any]:
+    """Fetch title, authors, year, journal, abstract (if legally available) and a reference
+    list for a DOI / PMID / arXiv / title. Spec: paper.fetch_metadata."""
     return logic.fetch_metadata(identifier)
 
 
 @mcp.tool()
-def paper_find_oa_pdf(identifier: str = "", doi: str = "", arxiv: str = "") -> dict:
-    """Find a PDF URL for a paper. Searches OA sources, Sci-Hub mirrors, LibGen,
-    publisher pages, and direct DOI resolution. Returns the best URL found."""
+def paper_find_oa_pdf(
+    identifier: str = "", doi: str = "", arxiv: str = ""
+) -> dict[str, Any]:
+    """Find a LEGAL open-access PDF URL for a paper (Unpaywall / OpenAlex / arXiv / Semantic
+    Scholar / CORE / DOAJ). Returns the URL only if its host is on the OA allowlist; lists
+    evidence for every candidate (including any shadow-library URL it DENIED). Never returns a
+    Sci-Hub/LibGen link. Spec: paper.find_oa_pdf."""
     return logic.find_oa_pdf(identifier=identifier, doi=doi, arxiv=arxiv)
 
 
 @mcp.tool()
-def paper_access_status(identifier: str = "", doi: str = "", arxiv: str = "") -> dict:
-    """Classify access: 'oa_pdf' (downloadable), 'free_to_read_not_redistributable',
-    'subscription', 'unavailable', or 'unknown' — with provenance."""
+def paper_access_status(
+    identifier: str = "", doi: str = "", arxiv: str = ""
+) -> dict[str, Any]:
+    """Classify access honestly: 'oa_pdf' (downloadable OA), 'free_to_read_not_redistributable'
+    (readable on a page but not legally fetchable — cite, don't circumvent), 'subscription'
+    (paywalled), 'unavailable', or 'unknown' — with provenance. Spec: paper.access_status."""
     return logic.access_status(identifier=identifier, doi=doi, arxiv=arxiv)
 
 
 @mcp.tool()
-def paper_citation_graph(identifier: str = "", doi: str = "", limit: int = 50) -> dict:
-    """References + citing works from metadata APIs (Semantic Scholar / OpenAlex)."""
+def paper_citation_graph(
+    identifier: str = "", doi: str = "", limit: int = 50
+) -> dict[str, Any]:
+    """References + citing-works from legal metadata APIs (Semantic Scholar / OpenAlex).
+    Spec: paper.citation_graph."""
     return logic.citation_graph(identifier=identifier, doi=doi, limit=limit)
 
 
 @mcp.tool()
-def paper_download_oa_pdf(url: str, dest_dir: str = "", filename: str = "", license: str = "", source: str = "") -> dict:
-    """Download a PDF from any URL. Verifies the response is a real PDF file.
-    Records path + sha256 + license/source."""
+def paper_download_oa_pdf(
+    url: str,
+    dest_dir: str = "",
+    filename: str = "",
+    license: str = "",
+    source: str = "",
+) -> dict[str, Any]:
+    """Download a legal OA PDF. HARD-GATED: the URL must be on the OA allowlist (typically one
+    returned by paper.find_oa_pdf) and the bytes must be a real %PDF; otherwise it refuses.
+    Never constructs URLs, never falls back to an unauthorized mirror. Records path + sha256 +
+    license/source. Spec: paper.download_oa_pdf."""
     try:
-        return logic.download_oa_pdf(url, dest_dir=dest_dir, filename=filename, license=license, source=source)
+        return logic.download_oa_pdf(
+            url, dest_dir=dest_dir, filename=filename, license=license, source=source
+        )
     except PermissionError as e:
-        return {"ok": False, "refused": True, "reason": str(e)}
+        return {
+            "ok": False,
+            "refused": True,
+            "reason": str(e),
+            "policy": policy.POLICY_BANNER,
+        }
 
 
 @mcp.tool()
-def paper_summarize(identifier: str = "", doi: str = "") -> dict:
-    """Structured digest: title/authors/year/venue/abstract/access-status/identifiers."""
+def paper_summarize(identifier: str = "", doi: str = "") -> dict[str, Any]:
+    """Return a structured digest (title/authors/year/venue/abstract/access-status/identifiers)
+    from legally-available metadata only, for the agent to turn into a prose summary.
+    Spec: paper.summarize."""
     return logic.summarize(identifier=identifier, doi=doi)
 
 
 @mcp.tool()
-def paper_batch_resolve(identifiers: list[str]) -> dict:
-    """Resolve a list of identifiers/titles; returns access status, PDF links, and metadata."""
+def paper_batch_resolve(identifiers: list[str]) -> dict[str, Any]:
+    """Resolve a list of identifiers/titles; returns a table of access status, OA links,
+    metadata, and the unresolved items. Spec: paper.batch_resolve."""
     return logic.batch_resolve(identifiers)
 
 
 def _load_env_file() -> None:
-    """Load ~/.tooluniverse/.env so existing keys are inherited."""
+    """Best-effort load of ~/.tooluniverse/.env so existing keys are inherited out-of-the-box.
+    Machine/process environment ALWAYS wins (setdefault). Keys are read by NAME only; never logged."""
     import os
-    envf = os.path.expanduser(os.environ.get("SCHOLARLY_ENV_FILE", "~/.tooluniverse/.env"))
+
+    envf = os.path.expanduser(
+        os.environ.get("SCHOLARLY_ENV_FILE", "~/.tooluniverse/.env")
+    )
     if os.path.exists(envf):
         try:
             for line in open(envf, encoding="utf-8"):
@@ -86,5 +125,5 @@ def main() -> None:
     mcp.run()
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover -- module entrypoint
     main()
