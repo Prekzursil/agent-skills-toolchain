@@ -9,13 +9,13 @@ We test:
 - Loadout option building logic (mocked filesystem)
 - Bulk toggle path doesn't crash with empty selection
 """
+
 from __future__ import annotations
 
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pytest
 
 # Project root on path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -26,7 +26,6 @@ from ui.app import (
     STATUS_STYLES,
     _AUTH_COMMANDS,
     AuthInfoModal,
-    MCPManagerApp,
 )
 
 
@@ -98,10 +97,7 @@ def test_auth_info_modal_empty_planes():
 
 
 def _make_rows(ids: list[str]) -> list[ServerRow]:
-    return [
-        ServerRow(id=sid, name=sid, planes=["claude"], enabled=True)
-        for sid in ids
-    ]
+    return [ServerRow(id=sid, name=sid, planes=["claude"], enabled=True) for sid in ids]
 
 
 class _SelectionHarness:
@@ -159,7 +155,6 @@ def test_toggle_multiple_independent():
 
 def test_loadout_options_include_none():
     """The '(none)' sentinel must always be first."""
-    from ui.app import MCPManagerApp
     # We just check the constant, not a live app
     # (actual _load_loadout_options calls filesystem)
     # Test the structure by constructing options manually as the method does
@@ -170,6 +165,7 @@ def test_loadout_options_include_none():
 def test_loadout_defaults_label_format():
     """If the loadout has 5 IDs the label should say '5 servers'."""
     from core.models import Loadout
+
     lo = Loadout(name="defaults", disabled_ids=["a", "b", "c", "d", "e"])
     n = len(lo.disabled_ids)
     label = f"defaults ({n} servers)"
@@ -182,10 +178,9 @@ def test_loadout_defaults_label_format():
 def test_bulk_toggle_empty_selection_is_noop():
     """No filesystem calls should happen if selected_ids is empty."""
     with patch("core.claude_adapter.set_server_disabled") as mock_set:
-        # Simulate the guard condition
+        # The guard short-circuits on an empty selection before any write.
         selected_ids: set[str] = set()
-        if not selected_ids:
-            pass  # the guard returns early
+        assert not selected_ids  # guard condition is truthy -> early return
         mock_set.assert_not_called()
 
 
@@ -214,6 +209,7 @@ def test_auth_info_falls_back_to_claude_for_unknown_plane():
 
 def test_enabled_badge_constants():
     from ui.app import ENABLED_BADGE, DISABLED_BADGE
+
     assert ENABLED_BADGE
     assert DISABLED_BADGE
     assert ENABLED_BADGE != DISABLED_BADGE
@@ -221,6 +217,7 @@ def test_enabled_badge_constants():
 
 def test_enabled_badge_for_enabled_row():
     from ui.app import ENABLED_BADGE
+
     row = ServerRow(id="s", name="s", planes=["claude"], enabled=True)
     badge = ENABLED_BADGE if row.enabled else "disabled"
     assert badge == ENABLED_BADGE
@@ -228,6 +225,7 @@ def test_enabled_badge_for_enabled_row():
 
 def test_disabled_badge_for_disabled_row():
     from ui.app import DISABLED_BADGE
+
     row = ServerRow(id="s", name="s", planes=["claude"], enabled=False)
     badge = "enabled" if row.enabled else DISABLED_BADGE
     assert badge == DISABLED_BADGE

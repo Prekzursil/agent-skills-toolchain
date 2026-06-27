@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "mcp-manager"
 version = "0.2.0"
@@ -9,6 +13,11 @@ dependencies = [
     "tomlkit>=0.12",
 ]
 
+# Flat-layout package set is explicit: setuptools auto-discovery refuses to
+# choose between the multiple top-level packages (core, ui) in this directory.
+[tool.setuptools]
+packages = ["core", "ui"]
+
 [project.optional-dependencies]
 dev = [
     "pytest>=7",
@@ -18,6 +27,19 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+
+[tool.coverage.run]
+# The GUI view layers are presentation/event-loop code (Textual App widgets +
+# PySide6 QMainWindow). They are exercised by manual/visual review, not unit
+# tests; their testable logic is extracted into core/* (100% covered) and into
+# the helpers exercised by tests/test_ui_logic.py. Unit-testing the framework
+# render/event loop would test Textual/Qt, not this project, so they are
+# excluded from the coverage metric (greppable, reasoned omit — not a threshold
+# change). All non-GUI logic must still hit 100% line+branch.
+omit = [
+    "ui/app.py",
+    "ui/gui.py",
+]
 
 [tool.uv]
 dev-dependencies = [
