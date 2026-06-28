@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
 
 
 class AuthStatus(str, Enum):
@@ -42,13 +41,13 @@ class ServerRow:
     status: AuthStatus = AuthStatus.UNKNOWN
     auth: str = ""  # raw auth description from mcp list output
     command: str = ""  # transport/command string (informational)
-    extra: dict[str, Any] = field(default_factory=dict)  # plane-specific raw data
+    extra: dict[str, object] = field(default_factory=dict)  # plane-specific raw data
 
     @property
     def duplicated(self) -> bool:
         return len(set(self.planes)) > 1
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, object]:
         return {
             "id": self.id,
             "name": self.name,
@@ -74,9 +73,9 @@ class Loadout:
 
     name: str = "defaults"
     disabled_ids: list[str] = field(default_factory=list)
-    raw: dict[str, Any] = field(default_factory=dict)  # all keys from the file
+    raw: dict[str, object] = field(default_factory=dict)  # all keys from the file
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, object]:
         return {
             "name": self.name,
             "disabled_ids": list(self.disabled_ids),

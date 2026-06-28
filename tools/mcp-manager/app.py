@@ -30,7 +30,7 @@ def cmd_status() -> None:
     rep = build_inventory(HOME, project_path=PROJ)
     print(
         f"MCP servers across planes: {rep['server_count']}  "
-        f"(cross-plane duplicates: {len(rep['duplicated_servers'])})\n"
+        + f"(cross-plane duplicates: {len(rep['duplicated_servers'])})\n"
     )
     print(f"{'SERVER':28} {'PLANES':40} STATE")
     print("-" * 90)

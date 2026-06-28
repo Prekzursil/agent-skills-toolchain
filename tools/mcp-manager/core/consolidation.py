@@ -11,10 +11,36 @@ roots are analysed. Output is a proposal report; the caller never deletes anythi
 """
 
 from __future__ import annotations
-from typing import Any
+from typing import TypedDict
 import hashlib
 import re
 from pathlib import Path
+
+
+class DescIssue(TypedDict):
+    """A SKILL.md whose description won't auto-trigger reliably."""
+
+    skill: str
+    path: str
+    issue: str
+
+
+class NameCollision(TypedDict):
+    """Same skill name across >1 path with differing content."""
+
+    name: str
+    paths: list[str]
+
+
+class SkillAnalysis(TypedDict):
+    """Result of analyze_skills (JSON-able report)."""
+
+    skills_scanned: int
+    unique_names: int
+    exact_duplicate_groups: list[list[str]]
+    name_collisions: list[NameCollision]
+    description_issues: list[DescIssue]
+
 
 _PLUGIN_MARKERS = ("plugins", "plugins-cache", "marketplace", ".plugin")
 _KEY_RE = re.compile(r"^[A-Za-z0-9_-]+:")
@@ -57,7 +83,7 @@ def _frontmatter_description(text: str) -> str | None:
     return m.group(1).strip() if m else None
 
 
-def analyze_skills(roots: list[Path]) -> dict[str, Any]:
+def analyze_skills(roots: list[Path]) -> SkillAnalysis:
     skills: list[tuple[str, Path, str]] = []  # (name, path, content)
     for root in roots:
         if not root.is_dir():
@@ -70,7 +96,7 @@ def analyze_skills(roots: list[Path]) -> dict[str, Any]:
 
     by_hash: dict[str, list[str]] = {}
     by_name: dict[str, list[tuple[str, str]]] = {}
-    desc_issues: list[dict[str, Any]] = []
+    desc_issues: list[DescIssue] = []
     for name, path, content in skills:
         h = hashlib.sha256(content.encode("utf-8", "replace")).hexdigest()
         by_hash.setdefault(h, []).append(str(path))
@@ -90,7 +116,7 @@ def analyze_skills(roots: list[Path]) -> dict[str, Any]:
             )
 
     exact_dupes = [sorted(paths) for paths in by_hash.values() if len(paths) > 1]
-    name_collisions = [
+    name_collisions: list[NameCollision] = [
         {"name": n, "paths": [p for p, _ in entries]}
         for n, entries in by_name.items()
         if len({h for _, h in entries}) > 1  # same name, >1 distinct content
@@ -104,7 +130,7 @@ def analyze_skills(roots: list[Path]) -> dict[str, Any]:
     }
 
 
-def render_report(analysis: dict[str, Any]) -> str:
+def render_report(analysis: SkillAnalysis) -> str:
     lines = [
         "# Skill Consolidation Analysis (Spec 3 — analysis only, no deletions)",
         "",
@@ -138,8 +164,9 @@ def render_report(analysis: dict[str, Any]) -> str:
             lines.append(f"- `{d['skill']}` — {d['issue']}")
         lines.append("")
     lines.append(
-        "> Exact-duplicate groups are listed in the JSON report. Many are the *intentional* "
-        "cross-AI mirror (canonical repo ↔ ~/.agents/skills ↔ ~/.claude/skills) — verify before "
-        "removing any. No file is deleted by this tool."
+        "> Exact-duplicate groups are listed in the JSON report. Many are the "
+        + "*intentional* cross-AI mirror (canonical repo ↔ ~/.agents/skills ↔ "
+        + "~/.claude/skills) — verify before removing any. No file is deleted "
+        + "by this tool."
     )
     return "\n".join(lines)

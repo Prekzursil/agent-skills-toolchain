@@ -16,16 +16,18 @@ Run:
 """
 
 from __future__ import annotations
-from typing import Any
+from typing import ClassVar, cast, final
 import sys
 from pathlib import Path
+
+from typing_extensions import override
 
 # Ensure the project root is importable
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from textual import on, work
 from textual.app import App, ComposeResult
-from textual.binding import Binding
+from textual.binding import Binding, BindingType
 from textual.containers import Container, Horizontal, Vertical
 from textual.message import Message
 from textual.reactive import reactive
@@ -72,6 +74,7 @@ _AUTH_COMMANDS: dict[str, str] = {
 # ── Messages ──────────────────────────────────────────────────────────────────
 
 
+@final
 class RefreshComplete(Message):
     """Sent when a background refresh finishes."""
 
@@ -80,6 +83,7 @@ class RefreshComplete(Message):
         self.rows = rows
 
 
+@final
 class RefreshFailed(Message):
     """Sent when a background refresh fails."""
 
@@ -91,6 +95,7 @@ class RefreshFailed(Message):
 # ── Widgets ───────────────────────────────────────────────────────────────────
 
 
+@final
 class StatusBar(Static):
     """One-line status bar at the bottom of the table panel."""
 
@@ -105,6 +110,7 @@ class StatusBar(Static):
 
     status_text: reactive[str] = reactive("Ready")
 
+    @override
     def render(self) -> str:
         return self.status_text
 
@@ -117,7 +123,7 @@ class AuthInfoModal(Container):
     to run.
     """
 
-    DEFAULT_CSS = """
+    DEFAULT_CSS: ClassVar[str] = """
     AuthInfoModal {
         height: auto;
         border: solid $warning;
@@ -136,25 +142,26 @@ class AuthInfoModal(Container):
 
     def __init__(self, server_id: str, planes: list[str]) -> None:
         super().__init__()
-        self._server_id = server_id
-        self._planes = planes
+        self._server_id: str = server_id
+        self._planes: list[str] = planes
 
+    @override
     def compose(self) -> ComposeResult:
         plane = self._planes[0] if self._planes else "claude"
         cmd = _AUTH_COMMANDS.get(plane, _AUTH_COMMANDS["claude"])
         yield Label(
             f"[bold yellow]Authenticate:[/] [bold]{self._server_id}[/]\n\n"
-            f"mcp-manager cannot complete OAuth or store credentials — that must\n"
-            f"happen in the host application. Run this in a terminal or the app:\n\n"
-            f"  [bold cyan]{cmd}[/]\n\n"
-            f"After authentication the server status will update on next Refresh.",
+            + "mcp-manager cannot complete OAuth or store credentials — that must\n"
+            + "happen in the host application. Run this in a terminal or the app:\n\n"
+            + f"  [bold cyan]{cmd}[/]\n\n"
+            + "After authentication the server status will update on next Refresh.",
             id="auth-label",
         )
         yield Button("Close", id="auth-close", variant="default")
 
     @on(Button.Pressed, "#auth-close")
     def _close(self) -> None:
-        self.remove()
+        _ = self.remove()
 
 
 # ── Main App ──────────────────────────────────────────────────────────────────
@@ -163,10 +170,10 @@ class AuthInfoModal(Container):
 class MCPManagerApp(App[None]):
     """Cross-plane MCP server manager TUI."""
 
-    TITLE = "mcp-manager"
-    SUB_TITLE = "cross-plane MCP server manager"
+    TITLE: str | None = "mcp-manager"
+    SUB_TITLE: str | None = "cross-plane MCP server manager"
 
-    CSS = """
+    CSS: ClassVar[str] = """
     Screen {
         layout: vertical;
     }
@@ -251,7 +258,7 @@ class MCPManagerApp(App[None]):
     }
     """
 
-    BINDINGS = [
+    BINDINGS: ClassVar[list[BindingType]] = [
         Binding("r", "refresh", "Refresh", show=True),
         Binding("e", "enable_selected", "Enable sel.", show=True),
         Binding("d", "disable_selected", "Disable sel.", show=True),
@@ -271,6 +278,7 @@ class MCPManagerApp(App[None]):
 
     # ── compose ───────────────────────────────────────────────────────────────
 
+    @override
     def compose(self) -> ComposeResult:
         yield Header()
         with Vertical(id="main-container"):
@@ -315,13 +323,13 @@ class MCPManagerApp(App[None]):
         self.action_refresh()
 
     def _setup_table(self) -> None:
-        table: DataTable[Any] = self.query_one("#server-table", DataTable)
-        table.add_column("Sel", width=3)
-        table.add_column("Status", width=14)
-        table.add_column("Server", width=34)
-        table.add_column("Plane(s)", width=16)
-        table.add_column("Enabled", width=9)
-        table.add_column("Auth info", width=24)
+        table = cast("DataTable[str]", self.query_one("#server-table", DataTable))
+        _ = table.add_column("Sel", width=3)
+        _ = table.add_column("Status", width=14)
+        _ = table.add_column("Server", width=34)
+        _ = table.add_column("Plane(s)", width=16)
+        _ = table.add_column("Enabled", width=9)
+        _ = table.add_column("Auth info", width=24)
 
     def _load_loadout_options(self) -> None:
         """Populate the loadout dropdown from ~/.claude/.mcp-disabled-defaults.json
@@ -346,13 +354,13 @@ class MCPManagerApp(App[None]):
             pass
 
         self._loadout_profiles = options
-        sel: Select[Any] = self.query_one("#loadout-select", Select)
+        sel = cast("Select[str]", self.query_one("#loadout-select", Select))
         sel.set_options(options)
 
     # ── refresh worker ────────────────────────────────────────────────────────
 
     def action_refresh(self) -> None:
-        self._start_refresh()
+        _ = self._start_refresh()
 
     @work(exclusive=True, thread=True)
     def _start_refresh(self) -> None:
@@ -362,9 +370,9 @@ class MCPManagerApp(App[None]):
             from core.status import refresh_sync
 
             rows = refresh_sync()
-            self.call_from_thread(self.post_message, RefreshComplete(rows))
+            _ = self.call_from_thread(self.post_message, RefreshComplete(rows))
         except Exception as exc:  # noqa: BLE001
-            self.call_from_thread(self.post_message, RefreshFailed(str(exc)))
+            _ = self.call_from_thread(self.post_message, RefreshFailed(str(exc)))
         finally:
             self.call_from_thread(self._set_loading, False)
 
@@ -372,9 +380,9 @@ class MCPManagerApp(App[None]):
         self._loading = state
         overlay = self.query_one("#loading-overlay")
         if state:
-            overlay.add_class("visible")
+            _ = overlay.add_class("visible")
         else:
-            overlay.remove_class("visible")
+            _ = overlay.remove_class("visible")
 
     def on_refresh_complete(self, message: RefreshComplete) -> None:
         self._rows = message.rows
@@ -394,20 +402,16 @@ class MCPManagerApp(App[None]):
     # ── table population ──────────────────────────────────────────────────────
 
     def _repopulate_table(self) -> None:
-        table: DataTable[Any] = self.query_one("#server-table", DataTable)
-        table.clear()
+        table = cast("DataTable[str]", self.query_one("#server-table", DataTable))
+        _ = table.clear()
         for row in self._rows:
             sel_mark = "☑" if row.id in self._selected_ids else "☐"
-            status_val = (
-                row.status.value
-                if isinstance(row.status, AuthStatus)
-                else str(row.status)
-            )
+            status_val = row.status.value
             badge = STATUS_BADGES.get(status_val, "? pending")
             enabled_str = ENABLED_BADGE if row.enabled else DISABLED_BADGE
             planes_str = ",".join(sorted(set(row.planes)))
             auth_str = (row.auth or "")[:23]
-            table.add_row(
+            _ = table.add_row(
                 sel_mark,
                 badge,
                 row.name[:33],
@@ -435,7 +439,7 @@ class MCPManagerApp(App[None]):
 
     def _refresh_row(self, row_key: str) -> None:
         """Update just the selection column for a single row."""
-        table: DataTable[Any] = self.query_one("#server-table", DataTable)
+        table = cast("DataTable[str]", self.query_one("#server-table", DataTable))
         sel_mark = "☑" if row_key in self._selected_ids else "☐"
         try:
             table.update_cell(row_key, "Sel", sel_mark)
@@ -443,7 +447,7 @@ class MCPManagerApp(App[None]):
             pass
 
     def action_toggle_row(self) -> None:
-        table: DataTable[Any] = self.query_one("#server-table", DataTable)
+        table = cast("DataTable[str]", self.query_one("#server-table", DataTable))
         if table.cursor_row < 0 or table.cursor_row >= len(self._rows):
             return
         row_key = self._rows[table.cursor_row].id
@@ -456,7 +460,7 @@ class MCPManagerApp(App[None]):
     def action_clear_selection(self) -> None:
         # If an auth panel is showing, close it first
         for widget in self.query("#auth-panel").first().children:
-            widget.remove()
+            _ = widget.remove()
         self._selected_ids.clear()
         self._repopulate_table()
 
@@ -468,10 +472,10 @@ class MCPManagerApp(App[None]):
     # ── bulk actions ──────────────────────────────────────────────────────────
 
     def action_enable_selected(self) -> None:
-        self._bulk_toggle(enable=True)
+        _ = self._bulk_toggle(enable=True)
 
     def action_disable_selected(self) -> None:
-        self._bulk_toggle(enable=False)
+        _ = self._bulk_toggle(enable=False)
 
     @work(exclusive=False, thread=True)
     def _bulk_toggle(self, *, enable: bool) -> None:
@@ -519,7 +523,7 @@ class MCPManagerApp(App[None]):
         target_ids = list(self._selected_ids)
         if not target_ids:
             # Use focused row
-            table: DataTable[Any] = self.query_one("#server-table", DataTable)
+            table = cast("DataTable[str]", self.query_one("#server-table", DataTable))
             if table.cursor_row >= 0 and table.cursor_row < len(self._rows):
                 target_ids = [self._rows[table.cursor_row].id]
         if not target_ids:
@@ -532,20 +536,21 @@ class MCPManagerApp(App[None]):
         auth_panel = self.query_one("#auth-panel")
         # Remove any existing modal
         for child in list(auth_panel.children):
-            child.remove()
-        auth_panel.mount(AuthInfoModal(sid, planes))
+            _ = child.remove()
+        _ = auth_panel.mount(AuthInfoModal(sid, planes))
 
     # ── loadout actions ───────────────────────────────────────────────────────
 
     @on(Button.Pressed, "#btn-apply-loadout")
     def _apply_loadout(self) -> None:
-        sel: Select[Any] = self.query_one("#loadout-select", Select)
+        sel = cast("Select[str]", self.query_one("#loadout-select", Select))
         value = sel.value
-        if not value or value == Select.BLANK:
+        # Select.BLANK is falsy, so `not value` also covers the no-selection case.
+        if not value:
             status: StatusBar = self.query_one("#status-bar", StatusBar)
             status.status_text = "No loadout selected."
             return
-        self._do_apply_loadout(str(value))
+        _ = self._do_apply_loadout(str(value))
 
     @work(exclusive=False, thread=True)
     def _do_apply_loadout(self, loadout_key: str) -> None:

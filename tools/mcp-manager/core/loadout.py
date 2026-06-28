@@ -20,7 +20,7 @@ import json
 import shutil
 import time
 from pathlib import Path
-from typing import Any
+from typing import cast
 
 from .models import Loadout
 
@@ -28,9 +28,9 @@ _DEFAULTS_PATH = Path.home() / ".claude" / ".mcp-disabled-defaults.json"
 _KEY = "disabledMcpServers"
 
 
-def _load_raw(path: Path) -> dict[str, Any]:
+def _load_raw(path: Path) -> dict[str, object]:
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        return cast("dict[str, object]", json.loads(path.read_text(encoding="utf-8")))
     except (FileNotFoundError, json.JSONDecodeError, OSError):
         return {}
 
@@ -40,7 +40,7 @@ def _backup(path: Path) -> Path:
     bak_dir.mkdir(parents=True, exist_ok=True)
     ts = int(time.time())
     bak = bak_dir / f"{path.name}.{ts}.bak"
-    shutil.copy2(path, bak)
+    _ = shutil.copy2(path, bak)
     return bak
 
 
@@ -52,7 +52,7 @@ def read_loadout(path: Path = _DEFAULTS_PATH) -> Loadout:
     """
     raw = _load_raw(path)
     ids = raw.get(_KEY)
-    disabled = list(ids) if isinstance(ids, list) else []
+    disabled = list(cast("list[str]", ids)) if isinstance(ids, list) else []
     return Loadout(name="defaults", disabled_ids=disabled, raw=raw)
 
 
@@ -69,10 +69,10 @@ def write_loadout(
     """
     raw = _load_raw(path)
     if backup and path.exists():
-        _backup(path)
+        _ = _backup(path)
     raw[_KEY] = list(loadout.disabled_ids)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(raw, indent=2, ensure_ascii=False), encoding="utf-8")
+    _ = path.write_text(json.dumps(raw, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
 def add_to_loadout(

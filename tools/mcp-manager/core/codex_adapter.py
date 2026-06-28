@@ -14,7 +14,7 @@ and fall back to parsing config.toml directly.
 """
 
 from __future__ import annotations
-from typing import Any
+from typing import cast
 import json
 import shutil
 import subprocess
@@ -37,7 +37,7 @@ def _backup(path: Path) -> Path:
     bak_dir.mkdir(parents=True, exist_ok=True)
     ts = int(time.time())
     bak = bak_dir / f"{path.name}.{ts}.bak"
-    shutil.copy2(path, bak)
+    _ = shutil.copy2(path, bak)
     return bak
 
 
@@ -48,7 +48,7 @@ def _read_toml_raw(path: Path) -> str:
         return ""
 
 
-def _toml_servers(path: Path) -> dict[str, dict[str, Any]]:
+def _toml_servers(path: Path) -> dict[str, object]:
     """Return the [mcp_servers.*] tables from config.toml as a plain dict."""
     if tomllib is None:
         return {}
@@ -56,10 +56,10 @@ def _toml_servers(path: Path) -> dict[str, dict[str, Any]]:
     if not raw:
         return {}
     try:
-        data = tomllib.loads(raw)
+        data = cast("dict[str, object]", tomllib.loads(raw))
     except Exception:  # noqa: BLE001
         return {}
-    return dict(data.get("mcp_servers") or {})
+    return dict(cast("dict[str, object]", data.get("mcp_servers") or {}))
 
 
 # ── public API ────────────────────────────────────────────────────────────────
@@ -69,27 +69,29 @@ def parse_codex_mcp_list(json_output: str) -> list[ServerRow]:
     """Parse 'codex mcp list --json' output into ServerRow objects."""
     rows: list[ServerRow] = []
     try:
-        items = json.loads(json_output)
+        parsed = cast("object", json.loads(json_output))
     except json.JSONDecodeError:
         return rows
-    if not isinstance(items, list):
+    if not isinstance(parsed, list):
         return rows
-    for item in items:
+    for item in cast("list[object]", parsed):
         if not isinstance(item, dict):
             continue
-        name = item.get("name")
+        entry = cast("dict[str, object]", item)
+        name = entry.get("name")
         if not name:
             continue
-        enabled = bool(item.get("enabled", True))
+        name_str = str(name)
+        enabled = bool(entry.get("enabled", True))
         # Codex status field isn't a glyph; use auth_status if present
-        auth_raw = str(item.get("auth_status") or "")
+        auth_raw = str(entry.get("auth_status") or "")
         status = AuthStatus.UNKNOWN
         if not enabled:
             status = AuthStatus.UNKNOWN
         rows.append(
             ServerRow(
-                id=name,
-                name=name,
+                id=name_str,
+                name=name_str,
                 planes=["codex"],
                 enabled=enabled,
                 status=status,
@@ -135,9 +137,13 @@ def get_server_universe(
 
     # Fallback: read config.toml directly
     servers = _toml_servers(config_toml)
-    rows = []
+    rows: list[ServerRow] = []
     for name, spec in servers.items():
-        enabled = bool(spec.get("enabled", True)) if isinstance(spec, dict) else True
+        enabled = (
+            bool(cast("dict[str, object]", spec).get("enabled", True))
+            if isinstance(spec, dict)
+            else True
+        )
         rows.append(
             ServerRow(
                 id=name,
@@ -176,11 +182,13 @@ def set_server_enabled(
         raise KeyError(f"codex config not found or empty: {config_toml}")
 
     doc = tomlkit.parse(raw)
-    servers = doc.get("mcp_servers")
+    servers = cast(
+        "dict[str, object] | None", cast("dict[str, object]", doc).get("mcp_servers")
+    )
     if servers is None or server_name not in servers:
         raise KeyError(f"codex server not found: {server_name!r}")
 
-    table = servers[server_name]
+    table = cast("dict[str, object]", servers[server_name])
     current = table.get("enabled", True)
     if bool(current) == enabled:
         return False  # no-op
@@ -192,12 +200,12 @@ def set_server_enabled(
     # Validate before committing
     if tomllib is not None:
         try:
-            tomllib.loads(out)
+            _ = tomllib.loads(out)
         except Exception as exc:  # pragma: no cover
             raise ValueError(f"refusing to write invalid TOML: {exc}") from exc
 
     if backup and config_toml.exists():
-        _backup(config_toml)
+        _ = _backup(config_toml)
 
-    config_toml.write_text(out, encoding="utf-8")
+    _ = config_toml.write_text(out, encoding="utf-8")
     return True

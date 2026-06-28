@@ -32,7 +32,9 @@ import sys
 import time
 import traceback
 from pathlib import Path
-from typing import Any, Callable
+from typing import Callable, TypedDict, cast, final
+
+from typing_extensions import override
 
 # Ensure the project root (parent of this 'ui' package) is importable when this
 # file is run directly as a script (python ui/gui.py).
@@ -88,9 +90,27 @@ _AUTH_HINTS: dict[str, str] = {
 _COLUMNS = ["Plane", "Name", "Status", "Enabled"]
 
 
+class _ToggleSummary(TypedDict):
+    """Result of a per-plane enable/disable batch."""
+
+    changed: list[str]
+    skipped: list[str]
+    errors: list[str]
+    funnel_skipped: list[str]
+
+
+class _LoadoutSummary(TypedDict):
+    """Result of applying the disabled-defaults loadout."""
+
+    loadout: str
+    count: int
+    changed: list[str]
+
+
 # ── Background worker plumbing (QThreadPool / QRunnable) ──────────────────────
 
 
+@final
 class _WorkerSignals(QObject):
     """Signals emitted from a background QRunnable. Strings/objects only —
     no widget references cross the thread boundary."""
@@ -100,6 +120,7 @@ class _WorkerSignals(QObject):
     finished = Signal()  # always fires (success or error)
 
 
+@final
 class _Worker(QRunnable):
     """Run a plain callable on the QThreadPool, never raising into Qt.
 
@@ -107,13 +128,16 @@ class _Worker(QRunnable):
     can surface it on the status bar instead of crashing the event loop.
     """
 
-    def __init__(self, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
+    def __init__(
+        self, fn: Callable[..., object], *args: object, **kwargs: object
+    ) -> None:
         super().__init__()
         self._fn = fn
         self._args = args
         self._kwargs = kwargs
         self.signals = _WorkerSignals()
 
+    @override
     @Slot()
     def run(self) -> None:  # noqa: D401 - QRunnable entry point
         try:
@@ -154,7 +178,7 @@ def _apply_toggle(
     rows: list[ServerRow],
     enable: bool,
     project_path: str,
-) -> dict[str, Any]:
+) -> _ToggleSummary:
     """Enable/disable each row, dispatching on its plane. Runs in a worker.
 
     Returns a summary dict: {changed, skipped, errors, funnel_skipped}.
@@ -228,7 +252,7 @@ def _apply_toggle(
     }
 
 
-def _apply_loadout(project_path: str) -> dict[str, Any]:
+def _apply_loadout(project_path: str) -> _LoadoutSummary:
     """Reuse core.loadout to apply the disabled-defaults loadout with a single
     batch backup dir. Runs in a worker."""
     from pathlib import Path as _Path
@@ -264,6 +288,7 @@ def _switch_funnel_profile(name: str) -> tuple[bool, str]:
 # ── Main window ───────────────────────────────────────────────────────────────
 
 
+@final
 class McpManagerWindow(QMainWindow):
     """The desktop window: a server table + a toolbar of explicit actions."""
 
@@ -313,7 +338,7 @@ class McpManagerWindow(QMainWindow):
         ):
             act = QAction(label, self)
             act.setToolTip(tip)
-            act.triggered.connect(handler)
+            _ = act.triggered.connect(handler)
             toolbar.addAction(act)
             self._actions[label] = act
 
@@ -411,26 +436,26 @@ class McpManagerWindow(QMainWindow):
 
         self._summary.setText(
             f"{len(self._rows)} servers   |   {enabled} enabled   |   "
-            f"{connected} connected"
+            + f"{connected} connected"
         )
 
     # ── Refresh (background) ─────────────────────────────────────────────────
 
-    def refresh(self, *_: Any) -> None:
+    def refresh(self, *_args: object) -> None:
         if self._busy:
             return
         self._set_busy(True)
         self._set_status("Refreshing… (querying claude / codex / funnel)")
         worker = _Worker(_fetch_rows, self._project_path)
-        worker.signals.result.connect(self._on_refresh_result)
-        worker.signals.error.connect(self._on_refresh_error)
-        worker.signals.finished.connect(lambda: self._set_busy(False))
+        _ = worker.signals.result.connect(self._on_refresh_result)
+        _ = worker.signals.error.connect(self._on_refresh_error)
+        _ = worker.signals.finished.connect(lambda: self._set_busy(False))
         self._pool.start(worker)
 
     @Slot(object)
     def _on_refresh_result(self, rows: object) -> None:
         try:
-            self._populate(list(rows))  # pyright: ignore[reportArgumentType]
+            self._populate(cast("list[ServerRow]", rows))
             self._set_status(f"Loaded {len(self._rows)} servers.")
         except Exception as exc:  # noqa: BLE001 - never crash on render
             self._set_status(f"Render error: {exc}")
@@ -442,10 +467,10 @@ class McpManagerWindow(QMainWindow):
 
     # ── Enable / Disable (background, per-plane dispatch) ─────────────────────
 
-    def on_enable(self, *_: Any) -> None:
+    def on_enable(self, *_args: object) -> None:
         self._toggle(enable=True)
 
-    def on_disable(self, *_: Any) -> None:
+    def on_disable(self, *_args: object) -> None:
         self._toggle(enable=False)
 
     def _toggle(self, *, enable: bool) -> None:
@@ -459,19 +484,19 @@ class McpManagerWindow(QMainWindow):
         self._set_busy(True)
         self._set_status(f"{verb} {len(rows)} server(s)…")
         worker = _Worker(_apply_toggle, rows, enable, self._project_path)
-        worker.signals.result.connect(self._on_toggle_result)
-        worker.signals.error.connect(self._on_toggle_error)
+        _ = worker.signals.result.connect(self._on_toggle_result)
+        _ = worker.signals.error.connect(self._on_toggle_error)
         # After a write, always re-refresh so the table reflects real state.
-        worker.signals.finished.connect(self._after_write)
+        _ = worker.signals.finished.connect(self._after_write)
         self._pool.start(worker)
 
     @Slot(object)
     def _on_toggle_result(self, summary: object) -> None:
-        s: dict[str, Any] = summary  # pyright: ignore[reportAssignmentType]
-        changed = len(s.get("changed", []))
-        skipped = len(s.get("skipped", []))
-        errors = s.get("errors", [])
-        funnel = s.get("funnel_skipped", [])
+        s = cast("_ToggleSummary", summary)
+        changed = len(s["changed"])
+        skipped = len(s["skipped"])
+        errors = s["errors"]
+        funnel = s["funnel_skipped"]
         parts = [f"{changed} changed", f"{skipped} no-op"]
         if errors:
             parts.append(f"{len(errors)} error(s)")
@@ -479,7 +504,7 @@ class McpManagerWindow(QMainWindow):
             parts.append(f"{len(funnel)} funnel (no per-server toggle)")
         self._set_status("Write complete: " + ", ".join(parts))
         if errors:
-            QMessageBox.warning(
+            _ = QMessageBox.warning(
                 self, "Some writes failed", "\n".join(str(e) for e in errors[:20])
             )
 
@@ -494,38 +519,38 @@ class McpManagerWindow(QMainWindow):
 
     # ── Apply loadout (background) ───────────────────────────────────────────
 
-    def on_apply_loadout(self, *_: Any) -> None:
+    def on_apply_loadout(self, *_args: object) -> None:
         if self._busy:
             return
         confirm = QMessageBox.question(
             self,
             "Apply loadout",
             "Disable every server listed in the saved loadout-defaults "
-            "for this project?\n\nA timestamped backup of ~/.claude.json is "
-            "written first.",
+            + "for this project?\n\nA timestamped backup of ~/.claude.json is "
+            + "written first.",
         )
         if confirm != QMessageBox.StandardButton.Yes:
             return
         self._set_busy(True)
         self._set_status("Applying loadout…")
         worker = _Worker(_apply_loadout, self._project_path)
-        worker.signals.result.connect(self._on_loadout_result)
-        worker.signals.error.connect(self._on_toggle_error)
-        worker.signals.finished.connect(self._after_write)
+        _ = worker.signals.result.connect(self._on_loadout_result)
+        _ = worker.signals.error.connect(self._on_toggle_error)
+        _ = worker.signals.finished.connect(self._after_write)
         self._pool.start(worker)
 
     @Slot(object)
     def _on_loadout_result(self, summary: object) -> None:
-        s: dict[str, Any] = summary  # pyright: ignore[reportAssignmentType]
+        s = cast("_LoadoutSummary", summary)
         self._set_status(
-            f"Loadout '{s.get('loadout')}' applied: "
-            f"{len(s.get('changed', []))} newly disabled "
-            f"(of {s.get('count', 0)} in loadout)."
+            f"Loadout '{s['loadout']}' applied: "
+            + f"{len(s['changed'])} newly disabled "
+            + f"(of {s['count']} in loadout)."
         )
 
     # ── Funnel profile switch (background) ───────────────────────────────────
 
-    def on_funnel_profile(self, *_: Any) -> None:
+    def on_funnel_profile(self, *_args: object) -> None:
         if self._busy:
             return
         try:
@@ -544,15 +569,15 @@ class McpManagerWindow(QMainWindow):
         self._set_busy(True)
         self._set_status(f"Switching funnel profile to '{name}'…")
         worker = _Worker(_switch_funnel_profile, name)
-        worker.signals.result.connect(self._on_funnel_result)
-        worker.signals.error.connect(self._on_toggle_error)
-        worker.signals.finished.connect(lambda: self._set_busy(False))
+        _ = worker.signals.result.connect(self._on_funnel_result)
+        _ = worker.signals.error.connect(self._on_toggle_error)
+        _ = worker.signals.finished.connect(lambda: self._set_busy(False))
         self._pool.start(worker)
 
     @Slot(object)
     def _on_funnel_result(self, payload: object) -> None:
         try:
-            ok, msg = payload  # pyright: ignore[reportGeneralTypeIssues]
+            ok, msg = cast("tuple[bool, str]", payload)
         except Exception:  # noqa: BLE001
             ok, msg = False, str(payload)
         prefix = "Funnel profile switched" if ok else "Funnel switch failed"
@@ -560,7 +585,7 @@ class McpManagerWindow(QMainWindow):
 
     # ── Launch auth (informational; core has no auth launcher) ───────────────
 
-    def on_launch_auth(self, *_: Any) -> None:
+    def on_launch_auth(self, *_args: object) -> None:
         rows = self._selected_rows()
         if not rows:
             self._set_status("Select a server to see its auth instructions.")
@@ -578,9 +603,9 @@ class McpManagerWindow(QMainWindow):
         lines.append("")
         lines.append(
             "Note: this manager cannot complete OAuth flows. Run the command "
-            "above in a terminal, then press Refresh."
+            + "above in a terminal, then press Refresh."
         )
-        QMessageBox.information(self, "How to authenticate", "\n".join(lines))
+        _ = QMessageBox.information(self, "How to authenticate", "\n".join(lines))
         self._set_status(f"Auth instructions shown for '{row.name}'.")
 
 

@@ -15,11 +15,12 @@ from __future__ import annotations
 import json
 import shutil
 from pathlib import Path
+from typing import cast
 
 
 def _backup(path: Path) -> Path:
     bak = path.with_suffix(path.suffix + ".bak")
-    shutil.copy2(path, bak)
+    _ = shutil.copy2(path, bak)
     return bak
 
 
@@ -35,10 +36,12 @@ def claude_set_disabled(
 
     Returns True if a change was written. Preserves all other keys (targeted edit).
     """
-    data = json.loads(claude_json.read_text(encoding="utf-8"))
-    projects = data.setdefault("projects", {})
-    block = projects.setdefault(project_path, {})
-    arr = block.setdefault("disabledMcpServers", [])
+    data = cast(
+        "dict[str, object]", json.loads(claude_json.read_text(encoding="utf-8"))
+    )
+    projects = cast("dict[str, object]", data.setdefault("projects", {}))
+    block = cast("dict[str, object]", projects.setdefault(project_path, {}))
+    arr = cast("list[str]", block.setdefault("disabledMcpServers", []))
     present = server_id in arr
     if disabled and not present:
         arr.append(server_id)
@@ -47,8 +50,8 @@ def claude_set_disabled(
     else:
         return False  # no-op
     if backup:
-        _backup(claude_json)
-    claude_json.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        _ = _backup(claude_json)
+    _ = claude_json.write_text(json.dumps(data, indent=2), encoding="utf-8")
     return True
 
 
@@ -59,22 +62,24 @@ def codex_set_enabled(
     import tomlkit  # provided via uv --with tomlkit
 
     doc = tomlkit.parse(config_toml.read_text(encoding="utf-8"))
-    servers = doc.get("mcp_servers")
+    servers = cast(
+        "dict[str, object] | None", cast("dict[str, object]", doc).get("mcp_servers")
+    )
     if servers is None or server_name not in servers:
         raise KeyError(f"codex server not found: {server_name}")
-    table = servers[server_name]
+    table = cast("dict[str, object]", servers[server_name])
     if table.get("enabled", True) == enabled:
         return False  # no-op
     table["enabled"] = enabled
     if backup:
-        _backup(config_toml)
+        _ = _backup(config_toml)
     out = tomlkit.dumps(doc)
     # validate before committing the write
     try:
         import tomllib
 
-        tomllib.loads(out)
+        _ = tomllib.loads(out)
     except Exception as exc:  # pragma: no cover - defensive
         raise ValueError(f"refusing to write invalid TOML: {exc}") from exc
-    config_toml.write_text(out, encoding="utf-8")
+    _ = config_toml.write_text(out, encoding="utf-8")
     return True

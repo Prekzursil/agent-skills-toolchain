@@ -18,14 +18,33 @@ identical packs: document-skills / example-skills / claude-api).
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import TypedDict, cast
 
 try:  # py3.11+
     import tomllib
 except ModuleNotFoundError:  # pragma: no cover - env-dependent
     tomllib = None  # type: ignore
+
+
+class ServerInfo(TypedDict):
+    """One server's merged cross-plane inventory (JSON-able)."""
+
+    name: str
+    planes: list[str]
+    enabled_in: list[str]
+    disabled_in: list[str]
+    duplicated: bool
+
+
+class Inventory(TypedDict):
+    """Full read-only cross-plane inventory report (JSON-able)."""
+
+    server_count: int
+    duplicated_servers: list[str]
+    servers: list[ServerInfo]
+    duplicate_skill_packs: list[list[str]]
 
 
 @dataclass
@@ -40,9 +59,9 @@ class ServerEntry:
         return len(self.planes) > 1
 
 
-def _load_json(path: Path) -> dict[str, Any]:
+def _load_json(path: Path) -> dict[str, object]:
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        return cast("dict[str, object]", json.loads(path.read_text(encoding="utf-8")))
     except (FileNotFoundError, json.JSONDecodeError, OSError):
         return {}
 
@@ -57,17 +76,21 @@ def scan_claude(
     def ensure(name: str) -> ServerEntry:
         return out.setdefault(name, ServerEntry(name=name))
 
-    user_servers = data.get("mcpServers") or {}
-    user_disabled = set(data.get("disabledMcpServers") or [])
+    user_servers = cast("dict[str, object]", data.get("mcpServers") or {})
+    user_disabled = set(cast("list[str]", data.get("disabledMcpServers") or []))
     for name in user_servers:
         e = ensure(name)
         e.planes.append("claude-user")
         (e.disabled_in if name in user_disabled else e.enabled_in).append("claude-user")
 
-    projects = data.get("projects") or {}
-    target = projects.get(project_path, {}) if project_path else {}
-    proj_servers = target.get("mcpServers") or {}
-    proj_disabled = set(target.get("disabledMcpServers") or [])
+    projects = cast("dict[str, object]", data.get("projects") or {})
+    target: dict[str, object] = (
+        cast("dict[str, object]", projects.get(project_path, {}))
+        if project_path
+        else {}
+    )
+    proj_servers = cast("dict[str, object]", target.get("mcpServers") or {})
+    proj_disabled = set(cast("list[str]", target.get("disabledMcpServers") or []))
     for name in proj_servers:
         e = ensure(name)
         e.planes.append("claude-project")
@@ -81,9 +104,13 @@ def scan_mcp_json(mcp_json: Path) -> dict[str, ServerEntry]:
     """Inventory a project-scope <dir>/.mcp.json ('disabled' flag per server)."""
     data = _load_json(mcp_json)
     out: dict[str, ServerEntry] = {}
-    for name, spec in (data.get("mcpServers") or {}).items():
+    mcp_servers = cast("dict[str, object]", data.get("mcpServers") or {})
+    for name, spec in mcp_servers.items():
         e = ServerEntry(name=name, planes=["mcp.json"])
-        disabled = isinstance(spec, dict) and spec.get("disabled") is True
+        disabled = (
+            isinstance(spec, dict)
+            and cast("dict[str, object]", spec).get("disabled") is True
+        )
         (e.disabled_in if disabled else e.enabled_in).append("mcp.json")
         out[name] = e
     return out
@@ -95,13 +122,21 @@ def scan_codex(config_toml: Path) -> dict[str, ServerEntry]:
     if tomllib is None:
         return out
     try:
-        data = tomllib.loads(config_toml.read_text(encoding="utf-8"))
+        data = cast(
+            "dict[str, object]",
+            tomllib.loads(config_toml.read_text(encoding="utf-8")),
+        )
     except (FileNotFoundError, OSError, tomllib.TOMLDecodeError):  # type: ignore[attr-defined]
         return out
-    for name, spec in (data.get("mcp_servers") or {}).items():
+    mcp_servers = cast("dict[str, object]", data.get("mcp_servers") or {})
+    for name, spec in mcp_servers.items():
         e = ServerEntry(name=name, planes=["codex"])
         # default enabled unless explicitly false
-        enabled = True if not isinstance(spec, dict) else spec.get("enabled", True)
+        enabled = (
+            True
+            if not isinstance(spec, dict)
+            else cast("dict[str, object]", spec).get("enabled", True)
+        )
         (e.enabled_in if enabled else e.disabled_in).append("codex")
         out[name] = e
     return out
@@ -111,12 +146,18 @@ def scan_funnel(master_json: Path) -> dict[str, ServerEntry]:
     """Inventory funnel master (servers[] list)."""
     data = _load_json(master_json)
     out: dict[str, ServerEntry] = {}
-    for spec in data.get("servers") or []:
-        name = spec.get("name") if isinstance(spec, dict) else None
+    servers = cast("list[object]", data.get("servers") or [])
+    for spec in servers:
+        name = (
+            cast("dict[str, object]", spec).get("name")
+            if isinstance(spec, dict)
+            else None
+        )
         if not name:
             continue
-        e = ServerEntry(name=name, planes=["funnel"], enabled_in=["funnel"])
-        out[name] = e
+        name_str = str(name)
+        e = ServerEntry(name=name_str, planes=["funnel"], enabled_in=["funnel"])
+        out[name_str] = e
     return out
 
 
@@ -152,7 +193,7 @@ def find_duplicate_skill_packs(skill_roots: list[Path]) -> list[list[str]]:
     return [sorted(paths) for paths in by_signature.values() if len(paths) >= 2]
 
 
-def build_inventory(home: Path, project_path: str | None = None) -> dict[str, Any]:
+def build_inventory(home: Path, project_path: str | None = None) -> Inventory:
     """Full read-only inventory against a home dir. Returns a JSON-able dict."""
     inv = merge(
         scan_claude(home / ".claude.json", project_path),
@@ -160,8 +201,14 @@ def build_inventory(home: Path, project_path: str | None = None) -> dict[str, An
         scan_codex(home / ".codex" / "config.toml"),
         scan_funnel(home / ".mcp-funnel-master.json"),
     )
-    servers = [
-        asdict(e) | {"duplicated": e.duplicated}
+    servers: list[ServerInfo] = [
+        {
+            "name": e.name,
+            "planes": list(e.planes),
+            "enabled_in": list(e.enabled_in),
+            "disabled_in": list(e.disabled_in),
+            "duplicated": e.duplicated,
+        }
         for e in sorted(inv.values(), key=lambda x: x.name)
     ]
     dup_packs = find_duplicate_skill_packs(

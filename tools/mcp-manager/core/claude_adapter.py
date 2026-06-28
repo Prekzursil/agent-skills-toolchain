@@ -22,7 +22,7 @@ import shutil
 import subprocess
 import time
 from pathlib import Path
-from typing import Any
+from typing import cast
 
 from .models import AuthStatus, ServerRow
 
@@ -102,15 +102,15 @@ def _run_mcp_list(timeout: int = 60) -> str:
     return result.stdout
 
 
-def _load_claude_json(path: Path) -> dict[str, Any]:
+def _load_claude_json(path: Path) -> dict[str, object]:
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        return cast("dict[str, object]", json.loads(path.read_text(encoding="utf-8")))
     except (FileNotFoundError, json.JSONDecodeError, OSError):
         return {}
 
 
 def _save_claude_json(
-    path: Path, data: dict[str, Any], *, backup_dir: Path | None = None
+    path: Path, data: dict[str, object], *, backup_dir: Path | None = None
 ) -> None:
     """Write ~/.claude.json safely with a timestamped backup."""
     if backup_dir is None:
@@ -119,8 +119,10 @@ def _save_claude_json(
     ts = int(time.time())
     bak = backup_dir / f"claude.json.{ts}.bak"
     if path.exists():
-        shutil.copy2(path, bak)
-    path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+        _ = shutil.copy2(path, bak)
+    _ = path.write_text(
+        json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
 
 def _mtime(path: Path) -> float:
@@ -133,9 +135,9 @@ def _mtime(path: Path) -> float:
 def get_disabled_ids(claude_json: Path, project_path: str) -> set[str]:
     """Return the set of disabled server IDs for project_path."""
     data = _load_claude_json(claude_json)
-    projects = data.get("projects") or {}
-    block = projects.get(project_path, {})
-    return set(block.get("disabledMcpServers") or [])
+    projects = cast("dict[str, object]", data.get("projects") or {})
+    block = cast("dict[str, object]", projects.get(project_path, {}))
+    return set(cast("list[str]", block.get("disabledMcpServers") or []))
 
 
 def reconcile_enabled(rows: list[ServerRow], disabled_ids: set[str]) -> None:
@@ -186,10 +188,10 @@ def set_server_disabled(
     Returns True if a change was written, False if already in target state.
     """
 
-    def _apply(data: dict[str, Any]) -> bool:
-        projects = data.setdefault("projects", {})
-        block = projects.setdefault(project_path, {})
-        arr: list[str] = block.setdefault("disabledMcpServers", [])
+    def _apply(data: dict[str, object]) -> bool:
+        projects = cast("dict[str, object]", data.setdefault("projects", {}))
+        block = cast("dict[str, object]", projects.setdefault(project_path, {}))
+        arr = cast("list[str]", block.setdefault("disabledMcpServers", []))
         present = server_id in arr
         if disabled and not present:
             arr.append(server_id)
@@ -210,7 +212,7 @@ def set_server_disabled(
         if mtime_after != mtime_before:
             # File was rewritten externally — reload and re-apply
             data = _load_claude_json(claude_json)
-            _apply(data)  # re-apply; if now no-op that is safe
+            _ = _apply(data)  # re-apply; if now no-op that is safe
 
     _save_claude_json(claude_json, data, backup_dir=backup_dir)
     return True

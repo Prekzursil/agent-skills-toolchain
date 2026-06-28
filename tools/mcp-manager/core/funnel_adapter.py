@@ -19,7 +19,7 @@ from __future__ import annotations
 import json
 import subprocess
 from pathlib import Path
-from typing import Any
+from typing import cast
 
 from .models import AuthStatus, ServerRow
 
@@ -33,17 +33,17 @@ _DEFAULT_PROFILES = Path("C:/Users/Prekzursil/.mcp-funnel-profiles.json")
 _ALL_SENTINEL = "*ALL*"
 
 
-def _load_json(path: Path) -> dict[str, Any]:
+def _load_json(path: Path) -> dict[str, object]:
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        return cast("dict[str, object]", json.loads(path.read_text(encoding="utf-8")))
     except (FileNotFoundError, json.JSONDecodeError, OSError):
         return {}
 
 
-def load_profiles(profiles_json: Path = _DEFAULT_PROFILES) -> dict[str, Any]:
+def load_profiles(profiles_json: Path = _DEFAULT_PROFILES) -> dict[str, object]:
     """Return the raw profiles dict from ~/.mcp-funnel-profiles.json."""
     data = _load_json(profiles_json)
-    return data.get("profiles") or {}
+    return cast("dict[str, object]", data.get("profiles") or {})
 
 
 def get_profile_servers(
@@ -63,7 +63,7 @@ def get_profile_servers(
     if value == _ALL_SENTINEL:
         return [_ALL_SENTINEL]
     if isinstance(value, list):
-        return list(value)
+        return list(cast("list[str]", value))
     return [str(value)]
 
 
@@ -81,7 +81,7 @@ def get_server_universe(
         if value == _ALL_SENTINEL:
             continue
         if isinstance(value, list):
-            all_names.update(value)
+            all_names.update(cast("list[str]", value))
     rows = [
         ServerRow(
             id=name,
