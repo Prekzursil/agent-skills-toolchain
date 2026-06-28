@@ -139,6 +139,7 @@
 | using-superpowers | marketplace:superpowers | Use when starting any conversation - establishes how to find and use skills |
 | vercel-deploy | built-in | Deploy applications and websites to Vercel |
 | verification-before-completion | marketplace:superpowers | Use when about to claim work is complete, fixed, or passing, before committing or creating PRs |
+| video-watermark-removal | custom | Use when removing a static logo, watermark, or TV bug from a video seamlessly — per-frame big-LAMA streaming inpaint over a tight logo-only mask with feathered composite and audio re-mux, plus the operational pitfalls (tight mask not generous box, retry transient WSL2 CUDA/cuFFT failures, detached WSL daemon to dodge the background hang-reaper) |
 | voice-analyze | vendored | Reverse-engineer a voice profile from writing samples, including an AI-tells scan. Vendored from Prekzursil/ghostwriter |
 | voice-apply | vendored | Apply a voice profile to transform content; enforces a mandatory AI-tells check on output. Vendored from Prekzursil/ghostwriter |
 | voice-blend | vendored | Blend multiple voice profiles with weighted mixing into a hybrid voice. Vendored from Prekzursil/ghostwriter |
