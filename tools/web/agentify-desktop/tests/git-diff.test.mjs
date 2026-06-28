@@ -9,7 +9,7 @@ import { buildReviewPacket } from '../orchestrator/git-diff.mjs';
 
 function run(cmd, args, cwd) {
   return new Promise((resolve, reject) => {
-    const child = spawn(cmd, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(cmd, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });  // nosemgrep: javascript.lang.security.detect-child-process.detect-child-process -- developer tooling that legitimately spawns child processes
     const out = [];
     const err = [];
     child.stdout.on('data', (b) => out.push(String(b)));

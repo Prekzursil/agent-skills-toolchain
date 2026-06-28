@@ -1,6 +1,6 @@
 ---
 name: netlify-deploy
-description: Deploy web projects to Netlify using the Netlify CLI (`npx netlify`). Use when the user asks to deploy, host, publish, or link a site/repo on Netlify, including preview and production deploys.
+description: Use when deploying a web project to Netlify via npx netlify, linking a repo, or creating preview or production Netlify deploys ; do NOT use for Vercel (use vercel-deploy), Render (use render-deploy), or Cloudflare (use cloudflare-deploy) ; returns Netlify deploy URL.
 ---
 
 # Netlify Deployment Skill

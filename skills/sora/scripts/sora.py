@@ -14,7 +14,7 @@ from pathlib import Path
 import re
 import sys
 import time
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 DEFAULT_MODEL = "sora-2"
 DEFAULT_SIZE = "1280x720"
@@ -147,7 +147,9 @@ def _normalize_out_path(out: Optional[str], variant: str) -> Path:
     if path.suffix == "":
         return path.with_suffix(expected_ext)
     if path.suffix.lower() != expected_ext:
-        _warn(f"Output extension {path.suffix} does not match {expected_ext} for {variant}.")
+        _warn(
+            f"Output extension {path.suffix} does not match {expected_ext} for {variant}."
+        )
     return path
 
 
@@ -180,7 +182,9 @@ def _create_client():
     try:
         from openai import OpenAI
     except ImportError:
-        _die("openai SDK not installed. Run with `uv run --with openai` or install with `uv pip install openai`.")
+        _die(
+            "openai SDK not installed. Run with `uv run --with openai` or install with `uv pip install openai`."
+        )
     return OpenAI()
 
 
@@ -191,7 +195,9 @@ def _create_async_client():
         try:
             import openai as _openai  # noqa: F401
         except ImportError:
-            _die("openai SDK not installed. Run with `uv run --with openai` or install with `uv pip install openai`.")
+            _die(
+                "openai SDK not installed. Run with `uv run --with openai` or install with `uv pip install openai`."
+            )
         _die(
             "AsyncOpenAI not available in this openai SDK version. Upgrade with `uv pip install -U openai`."
         )
@@ -272,7 +278,9 @@ def _merge_non_null(dst: Dict[str, Any], src: Dict[str, Any]) -> Dict[str, Any]:
     return merged
 
 
-def _job_output_path(out_dir: Path, idx: int, prompt: str, explicit_out: Optional[str]) -> Path:
+def _job_output_path(
+    out_dir: Path, idx: int, prompt: str, explicit_out: Optional[str]
+) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
     if explicit_out:
         path = Path(explicit_out)
@@ -335,7 +343,9 @@ def _fields_from_args(args: argparse.Namespace) -> Dict[str, Optional[str]]:
     }
 
 
-def _augment_prompt_fields(augment: bool, prompt: str, fields: Dict[str, Optional[str]]) -> str:
+def _augment_prompt_fields(
+    augment: bool, prompt: str, fields: Dict[str, Optional[str]]
+) -> str:
     if not augment:
         return prompt
 
@@ -362,7 +372,7 @@ def _augment_prompt_fields(augment: bool, prompt: str, fields: Dict[str, Optiona
     if fields.get("audio"):
         sections.append(f"Audio: {fields['audio']}")
     if fields.get("text"):
-        sections.append(f"Text (verbatim): \"{fields['text']}\"")
+        sections.append(f'Text (verbatim): "{fields["text"]}"')
     if fields.get("dialogue"):
         dialogue = fields["dialogue"].strip()
         sections.append("Dialogue:\n<dialogue>\n" + dialogue + "\n</dialogue>")
@@ -507,7 +517,9 @@ def _prepare_job_payload(
 
 def _write_json(path: Path, obj: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(_to_dict(obj), indent=2, sort_keys=True), encoding="utf-8")
+    path.write_text(
+        json.dumps(_to_dict(obj), indent=2, sort_keys=True), encoding="utf-8"
+    )
     print(f"Wrote {path}")
 
 
@@ -558,7 +570,9 @@ async def _run_create_batch(args: argparse.Namespace) -> int:
 
     if args.dry_run:
         for i, job in enumerate(jobs, start=1):
-            payload, input_ref, prompt = _prepare_job_payload(args, job, base_fields, base_payload)
+            payload, input_ref, prompt = _prepare_job_payload(
+                args, job, base_fields, base_payload
+            )
             out_path = _job_output_path(out_dir, i, prompt, job.get("out"))
             preview = dict(payload)
             if input_ref:
@@ -579,7 +593,9 @@ async def _run_create_batch(args: argparse.Namespace) -> int:
 
     async def run_job(i: int, job: Dict[str, Any]) -> Tuple[int, Optional[str]]:
         nonlocal any_failed
-        payload, input_ref, prompt = _prepare_job_payload(args, job, base_fields, base_payload)
+        payload, input_ref, prompt = _prepare_job_payload(
+            args, job, base_fields, base_payload
+        )
         job_label = f"[job {i}/{len(jobs)}]"
         out_path = _job_output_path(out_dir, i, prompt, job.get("out"))
 
@@ -608,7 +624,9 @@ async def _run_create_batch(args: argparse.Namespace) -> int:
                 raise
             return i, str(exc)
 
-    tasks = [asyncio.create_task(run_job(i, job)) for i, job in enumerate(jobs, start=1)]
+    tasks = [
+        asyncio.create_task(run_job(i, job)) for i, job in enumerate(jobs, start=1)
+    ]
 
     try:
         await asyncio.gather(*tasks)
@@ -639,7 +657,10 @@ def _cmd_create(args: argparse.Namespace) -> int:
         if args.input_reference:
             preview["input_reference"] = args.input_reference
         _print_request({"endpoint": "/v1/videos", **preview})
-        _write_json_out(json_out, {"dry_run": True, "request": {"endpoint": "/v1/videos", **preview}})
+        _write_json_out(
+            json_out,
+            {"dry_run": True, "request": {"endpoint": "/v1/videos", **preview}},
+        )
         return 0
 
     client = _create_client()
@@ -707,7 +728,9 @@ def _cmd_create_and_poll(args: argparse.Namespace) -> int:
     if args.download:
         status = _get_status(final_video) or "unknown"
         if status != "completed":
-            _die(f"Video status is {status}; download is available only after completion.")
+            _die(
+                f"Video status is {status}; download is available only after completion."
+            )
         variant = _normalize_variant(args.variant)
         out_path = _normalize_out_path(args.out, variant)
         data = _download_content(client, video_id, variant)
@@ -740,7 +763,9 @@ def _cmd_poll(args: argparse.Namespace) -> int:
     if args.download:
         status = _get_status(final_video) or "unknown"
         if status != "completed":
-            _die(f"Video status is {status}; download is available only after completion.")
+            _die(
+                f"Video status is {status}; download is available only after completion."
+            )
         variant = _normalize_variant(args.variant)
         out_path = _normalize_out_path(args.out, variant)
         data = _download_content(client, args.id, variant)
@@ -886,7 +911,9 @@ def _add_json_out(parser: argparse.ArgumentParser) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Create and manage videos via the Sora Video API")
+    parser = argparse.ArgumentParser(
+        description="Create and manage videos via the Sora Video API"
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     create_parser = subparsers.add_parser("create", help="Create a new video job")
@@ -936,16 +963,22 @@ def main() -> int:
     _add_json_out(remix_parser)
     remix_parser.set_defaults(func=_cmd_remix)
 
-    download_parser = subparsers.add_parser("download", help="Download video/thumbnail/spritesheet")
+    download_parser = subparsers.add_parser(
+        "download", help="Download video/thumbnail/spritesheet"
+    )
     download_parser.add_argument("--id", required=True)
     download_parser.add_argument("--variant", default=DEFAULT_VARIANT)
     download_parser.add_argument("--out")
     download_parser.add_argument("--force", action="store_true")
     download_parser.set_defaults(func=_cmd_download)
 
-    batch_parser = subparsers.add_parser("create-batch", help="Create multiple video jobs (JSONL input)")
+    batch_parser = subparsers.add_parser(
+        "create-batch", help="Create multiple video jobs (JSONL input)"
+    )
     _add_create_args(batch_parser)
-    batch_parser.add_argument("--input", required=True, help="Path to JSONL file (one job per line)")
+    batch_parser.add_argument(
+        "--input", required=True, help="Path to JSONL file (one job per line)"
+    )
     batch_parser.add_argument("--out-dir", required=True)
     batch_parser.add_argument("--concurrency", type=int, default=DEFAULT_CONCURRENCY)
     batch_parser.add_argument("--max-attempts", type=int, default=DEFAULT_MAX_ATTEMPTS)
@@ -956,7 +989,10 @@ def main() -> int:
 
     if getattr(args, "concurrency", 1) < 1 or getattr(args, "concurrency", 1) > 10:
         _die("--concurrency must be between 1 and 10")
-    if getattr(args, "max_attempts", DEFAULT_MAX_ATTEMPTS) < 1 or getattr(args, "max_attempts", DEFAULT_MAX_ATTEMPTS) > 10:
+    if (
+        getattr(args, "max_attempts", DEFAULT_MAX_ATTEMPTS) < 1
+        or getattr(args, "max_attempts", DEFAULT_MAX_ATTEMPTS) > 10
+    ):
         _die("--max-attempts must be between 1 and 10")
 
     dry_run = bool(getattr(args, "dry_run", False))

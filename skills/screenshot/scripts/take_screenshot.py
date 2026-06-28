@@ -218,7 +218,9 @@ def swift_json(script: Path, extra_args: list[str] | None = None) -> dict:
     try:
         return json.loads(proc.stdout)
     except json.JSONDecodeError as exc:
-        raise SystemExit(f"swift helper returned invalid JSON: {proc.stdout.strip()}") from exc
+        raise SystemExit(
+            f"swift helper returned invalid JSON: {proc.stdout.strip()}"
+        ) from exc
 
 
 def macos_screen_capture_granted(request: bool = False) -> bool:
@@ -244,10 +246,14 @@ def ensure_macos_permissions() -> None:
 def activate_app(app: str) -> None:
     safe_app = app.replace('"', '\\"')
     script = f'tell application "{safe_app}" to activate'
-    subprocess.run(["osascript", "-e", script], check=False, capture_output=True, text=True)
+    subprocess.run(
+        ["osascript", "-e", script], check=False, capture_output=True, text=True
+    )
 
 
-def macos_window_payload(args: argparse.Namespace, frontmost: bool, include_list: bool) -> dict:
+def macos_window_payload(
+    args: argparse.Namespace, frontmost: bool, include_list: bool
+) -> dict:
     flags: list[str] = []
     if frontmost:
         flags.append("--frontmost")
@@ -300,11 +306,15 @@ def macos_window_ids(args: argparse.Namespace, capture_all: bool) -> list[int]:
             return [int(win_id)]
         except (TypeError, ValueError):
             pass
-    raise SystemExit("no matching macOS window found; try --list-windows to inspect ids")
+    raise SystemExit(
+        "no matching macOS window found; try --list-windows to inspect ids"
+    )
 
 
 def list_macos_windows(args: argparse.Namespace) -> None:
-    payload = macos_window_payload(args, frontmost=args.active_window, include_list=True)
+    payload = macos_window_payload(
+        args, frontmost=args.active_window, include_list=True
+    )
     windows = payload.get("windows") or []
     if not windows:
         print("no matching windows found")
@@ -316,7 +326,9 @@ def list_macos_windows(args: argparse.Namespace) -> None:
         height = bounds.get("height", 0)
         x = bounds.get("x", 0)
         y = bounds.get("y", 0)
-        print(f"{item.get('id')}\t{item.get('owner')}\t{name}\t{width}x{height}+{x}+{y}")
+        print(
+            f"{item.get('id')}\t{item.get('owner')}\t{name}\t{width}x{height}+{x}+{y}"
+        )
 
 
 def list_test_macos_windows(args: argparse.Namespace) -> None:
@@ -397,13 +409,14 @@ def capture_linux(args: argparse.Namespace, output: Path) -> None:
             run(["gnome-screenshot", "-w", "-f", str(output)])
             return
         if imagemagick and xdotool:
-            win_id = (
-                subprocess.check_output(["xdotool", "getactivewindow"], text=True)
-                .strip()
-            )
+            win_id = subprocess.check_output(
+                ["xdotool", "getactivewindow"], text=True
+            ).strip()
             run(["import", "-window", win_id, str(output)])
             return
-        raise SystemExit("active-window capture requires scrot, gnome-screenshot, or import+xdotool")
+        raise SystemExit(
+            "active-window capture requires scrot, gnome-screenshot, or import+xdotool"
+        )
 
     if scrot:
         run(["scrot", str(output)])
@@ -414,7 +427,9 @@ def capture_linux(args: argparse.Namespace, output: Path) -> None:
     if imagemagick:
         run(["import", "-window", "root", str(output)])
         return
-    raise SystemExit("no supported screenshot tool found (scrot, gnome-screenshot, or import)")
+    raise SystemExit(
+        "no supported screenshot tool found (scrot, gnome-screenshot, or import)"
+    )
 
 
 def main() -> None:
@@ -489,8 +504,12 @@ def main() -> None:
         raise SystemExit("choose either --interactive or --window-id, not both")
     if args.interactive and args.active_window:
         raise SystemExit("choose either --interactive or --active-window, not both")
-    if args.list_windows and (args.region or args.window_id is not None or args.interactive):
-        raise SystemExit("--list-windows only supports --app, --window-name, and --active-window")
+    if args.list_windows and (
+        args.region or args.window_id is not None or args.interactive
+    ):
+        raise SystemExit(
+            "--list-windows only supports --app, --window-name, and --active-window"
+        )
 
     test_mode = test_mode_enabled()
     system = platform.system()
@@ -502,7 +521,9 @@ def main() -> None:
     display_ids: list[int] = []
 
     if system != "Darwin" and (args.app or args.window_name or args.list_windows):
-        raise SystemExit("--app/--window-name/--list-windows are supported on macOS only")
+        raise SystemExit(
+            "--app/--window-name/--list-windows are supported on macOS only"
+        )
 
     if system == "Darwin":
         if test_mode:

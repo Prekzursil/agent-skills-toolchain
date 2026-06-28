@@ -11,7 +11,11 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 FIXTURES_ROOT = REPO_ROOT / "scripts" / "fixtures" / "skill-tests"
-SKILLS_ROOT = REPO_ROOT / ".agents" / "skills" if (REPO_ROOT / ".agents" / "skills").exists() else REPO_ROOT / "skills"
+SKILLS_ROOT = (
+    REPO_ROOT / ".agents" / "skills"
+    if (REPO_ROOT / ".agents" / "skills").exists()
+    else REPO_ROOT / "skills"
+)
 
 
 def _python_candidates() -> list[list[str]]:
@@ -58,7 +62,11 @@ def _python_supports_yaml(command: list[str]) -> bool:
 
 
 PYTHON_WITH_YAML = next(
-    (candidate for candidate in _python_candidates() if _python_supports_yaml(candidate)),
+    (
+        candidate
+        for candidate in _python_candidates()
+        if _python_supports_yaml(candidate)
+    ),
     [sys.executable],
 )
 
@@ -221,7 +229,11 @@ def test_quality_zero_platform_control_plane_fixture() -> None:
     fixture = FIXTURES_ROOT / "quality-zero-platform-control-plane"
 
     good = run_python(
-        skill_path("quality-zero-platform-control-plane", "scripts", "audit_quality_zero_platform.py"),
+        skill_path(
+            "quality-zero-platform-control-plane",
+            "scripts",
+            "audit_quality_zero_platform.py",
+        ),
         "--repo",
         "Prekzursil/good-repo",
         "--fixture-dir",
@@ -236,7 +248,11 @@ def test_quality_zero_platform_control_plane_fixture() -> None:
     assert good_report["drift_categories"] == []
 
     drift = run_python(
-        skill_path("quality-zero-platform-control-plane", "scripts", "audit_quality_zero_platform.py"),
+        skill_path(
+            "quality-zero-platform-control-plane",
+            "scripts",
+            "audit_quality_zero_platform.py",
+        ),
         "--repo",
         "Prekzursil/drift-repo",
         "--fixture-dir",
@@ -252,7 +268,11 @@ def test_quality_zero_platform_control_plane_fixture() -> None:
     assert "failing_runs" in drift_report["drift_categories"]
 
     markdown = run_python(
-        skill_path("quality-zero-platform-control-plane", "scripts", "audit_quality_zero_platform.py"),
+        skill_path(
+            "quality-zero-platform-control-plane",
+            "scripts",
+            "audit_quality_zero_platform.py",
+        ),
         "--repo",
         "Prekzursil/drift-repo",
         "--fixture-dir",
@@ -266,8 +286,12 @@ def test_quality_zero_platform_control_plane_fixture() -> None:
 
 
 def test_pbinfo_python_jit_helper_scripts() -> None:
-    extractor = REPO_ROOT / skill_path("pbinfo-python-jit", "scripts", "extract_shellcode.py")
-    builder = REPO_ROOT / skill_path("pbinfo-python-jit", "scripts", "build_shellcode.sh")
+    extractor = REPO_ROOT / skill_path(
+        "pbinfo-python-jit", "scripts", "extract_shellcode.py"
+    )
+    builder = REPO_ROOT / skill_path(
+        "pbinfo-python-jit", "scripts", "build_shellcode.sh"
+    )
 
     result = subprocess.run(
         [*PYTHON_WITH_YAML, str(extractor)],

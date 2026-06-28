@@ -1,0 +1,139 @@
+name: quality
+
+# Lean quality gate (replaces all retired SaaS control planes: Sonar/Codacy/
+# DeepSource/qlty/Codecov-as-gate/Snyk/Trivy-for-app-deps). Six gates:
+#   1. lint+format+sec-lint   (ruff)
+#   2. types                  (basedpyright)
+#   3. tests + 100% coverage  (node workspaces + python packages)
+#   4. SAST                   (opengrep / semgrep-CE)
+#   5. secrets                (gitleaks)
+#   6. deps                   (osv-scanner; Dependabot runs separately)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: 1. lint + format + sec-lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Excludes are driven by the committed ruff.toml (extend-exclude = vendored
+      # ralph-orchestrator tree) plus ruff's built-in node_modules/.venv defaults.
+      # This is deterministic across OSes; the previous inline `--exclude **/...`
+      # globs were interpreted inconsistently by ruff's CLI globstar handling.
+      - uses: astral-sh/ruff-action@v3
+        with:
+          args: "check"
+      - uses: astral-sh/ruff-action@v3
+        with:
+          args: "format --check"
+
+  types:
+    name: 2. types (basedpyright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install basedpyright==1.39.8
+      # Each package is type-checked from its OWN root so its flat top-level
+      # modules (core/app/scholarly_access) resolve as absolute imports — the way
+      # they are actually run (pip install -e .). Deps are installed so 3rd-party
+      # imports resolve. Only package SOURCE is checked; test code (monkeypatch /
+      # loose fixtures) is intentionally not strictly typed.
+      - name: mcp-manager (source)
+        working-directory: tools/mcp-manager
+        run: |
+          pip install -e ".[dev]"
+          basedpyright core ui app.py
+      - name: scholarly-access-mcp (source)
+        working-directory: tools/scholarly-access-mcp
+        run: |
+          pip install -e .
+          basedpyright scholarly_access
+
+  test-node:
+    name: 3a. tests (node workspaces)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci
+      - run: npm test
+      - name: agentify-desktop tests
+        working-directory: tools/web/agentify-desktop
+        run: |
+          npm install --omit=dev --no-audit
+          npm test
+
+  test-python:
+    name: 3b. tests + 100% coverage (python packages)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: mcp-manager
+        working-directory: tools/mcp-manager
+        run: |
+          pip install -e ".[dev]"
+          pytest --cov=. --cov-branch --cov-report=term-missing --cov-fail-under=100
+      - name: scholarly-access-mcp
+        working-directory: tools/scholarly-access-mcp
+        run: |
+          pip install -e . pytest pytest-cov
+          pytest --cov=scholarly_access --cov-branch --cov-report=term-missing --cov-fail-under=100
+
+  sast:
+    name: 4. SAST (opengrep)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: opengrep scan
+        # Pinned version (the floating install.sh made the gate non-deterministic:
+        # `--config auto` rule sets drift over time). Findings are governed by the
+        # committed .semgrepignore (docs/templates are not SAST targets) plus
+        # in-file `# nosemgrep:`/`// nosemgrep:` reasons and real fixes.
+        run: |
+          curl -fsSL -o /usr/local/bin/opengrep \
+            https://github.com/opengrep/opengrep/releases/download/v1.23.0/opengrep_manylinux_x86
+          chmod +x /usr/local/bin/opengrep
+          opengrep scan --config auto --error --exclude vendor --exclude node_modules .
+
+  secrets:
+    name: 5. secrets (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
+
+  deps:
+    name: 6. deps (osv-scanner)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google/osv-scanner-action/osv-scanner-action@v2.2.4
+        with:
+          scan-args: |-
+            --lockfile=package-lock.json
+            --lockfile=tools/web/agentify-desktop/package-lock.json

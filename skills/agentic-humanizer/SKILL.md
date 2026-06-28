@@ -1,16 +1,6 @@
 ---
 name: agentic-humanizer
-description: 'Humanizes AI-generated text with a 5-pass rewrite workflow, optional saved
-
-  preferences, and optional stylometric voice matching from a writing sample.
-
-  Works without Slop or Not. When Slop or Not Pro is reachable, adds
-
-  on-device AI detector scoring, Flesch-Kincaid readability checks, Text
-
-  Cleanup, and cleanup stats.
-
-  Use when the user invokes /agentic-humanizer or asks to humanize text.'
+description: Use when the user invokes /agentic-humanizer or asks to humanize AI-generated text via a 5-pass rewrite with optional voice-matching and (when Slop or Not Pro is available) detector scoring and readability checks ; do NOT use for mere AI-detection without rewriting (use slop-check) ; returns humanized text with optional readability stats.
 license: MIT
 allowed-tools:
 - Read

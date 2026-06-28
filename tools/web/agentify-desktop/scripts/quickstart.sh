@@ -299,7 +299,7 @@ say "Next:"
 say "- The Agentify Control Center will open. Click 'Show default' or create a vendor tab and sign in."
 say "- MCP server entrypoint: ${MCP_CMD_DISPLAY}"
 if [[ "${#REGISTERED_CLIENTS[@]}" -gt 0 ]]; then
-  REGISTERED_TEXT="$(IFS=', '; echo "${REGISTERED_CLIENTS[*]}")"
+  REGISTERED_TEXT="$(IFS=', '; echo "${REGISTERED_CLIENTS[*]}")"  # nosemgrep: bash.lang.security.ifs-tampering.ifs-tampering -- controlled IFS use in a first-party setup script
   say "- Registered MCP clients: ${REGISTERED_TEXT}"
   say "- Restart those clients (or open a new session) so they reload MCP config."
 else

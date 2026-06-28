@@ -1,6 +1,6 @@
 ---
 name: vercel-deploy
-description: Deploy applications and websites to Vercel. Use when the user requests deployment actions like "deploy my app", "deploy and give me the link", "push this live", or "create a preview deployment".
+description: Use when deploying an application or website to Vercel, creating preview deployments, or getting a Vercel deployment link ; do NOT use for Cloudflare Workers/Pages (use cloudflare-deploy), Netlify (use netlify-deploy), or Render (use render-deploy) ; returns Vercel deployment URL.
 ---
 
 # Vercel Deploy

@@ -1,13 +1,6 @@
 ---
 name: autofix-bot-api
-description: >
-  Scan code for security vulnerabilities, leaked secrets, and dependency issues using the
-  Autofix Bot API (api.autofix.bot), and auto-fix detected issues. Use this skill when asked to:
-  (1) Scan or analyze a repository or code for security issues, secrets, or vulnerabilities using Autofix Bot,
-  (2) Upload/sync a local git repository to Autofix Bot for analysis,
-  (3) Run Autofix Bot on code changes, pull requests, or patches,
-  (4) Apply auto-fixes from Autofix Bot analysis results.
-  Requires an Autofix Bot API key (environment variable AUTOFIX_BOT_API_KEY).
+description: Use when scanning a repository or code change for security vulnerabilities, leaked secrets, or dependency issues via the Autofix Bot API (api.autofix.bot) and auto-applying detected fixes; requires AUTOFIX_BOT_API_KEY ; do NOT use for general code review without an Autofix Bot account ; returns findings report and applied-fix summary.
 ---
 
 # Autofix Bot API

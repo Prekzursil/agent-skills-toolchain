@@ -1,6 +1,6 @@
 ---
 name: render-deploy
-description: Deploy applications to Render by analyzing codebases, generating render.yaml Blueprints, and providing Dashboard deeplinks. Use when the user wants to deploy, host, publish, or set up their application on Render's cloud platform.
+description: Use when deploying an application to Render.com, generating render.yaml Blueprints, or getting Render Dashboard deeplinks ; do NOT use for Vercel (use vercel-deploy), Netlify (use netlify-deploy), or Cloudflare (use cloudflare-deploy) ; returns Render Blueprint and deployment status.
 ---
 
 # Deploy to Render

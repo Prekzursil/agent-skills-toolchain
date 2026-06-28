@@ -20,6 +20,7 @@ def calc_dpi_via_ooxml(input_path: str, max_w_px: int, max_h_px: int) -> int:
     """Calculate DPI from OOXML `ppt/presentation.xml` slide size (cx/cy in EMUs)."""
     with ZipFile(input_path, "r") as zf:
         xml = zf.read("ppt/presentation.xml")
+    # nosemgrep: skills.code-injection.skill-xxe-unsafe-xml.skill-xxe-unsafe-xml -- parses the user's own local OOXML; stdlib ElementTree does not resolve external entities (no XXE)
     root = ET.fromstring(xml)
     ns = {"p": "http://schemas.openxmlformats.org/presentationml/2006/main"}
     sld_sz = root.find("p:sldSz", ns)
@@ -260,8 +261,14 @@ def main() -> None:
     args = parser.parse_args()
 
     input_path = abspath(expanduser(args.input_path))
-    out_dir = abspath(expanduser(args.output_dir)) if args.output_dir else splitext(input_path)[0]
-    if input_path.lower().endswith((".pptx", ".ppsx", ".potx", ".pptm", ".ppsm", ".potm")):
+    out_dir = (
+        abspath(expanduser(args.output_dir))
+        if args.output_dir
+        else splitext(input_path)[0]
+    )
+    if input_path.lower().endswith(
+        (".pptx", ".ppsx", ".potx", ".pptm", ".ppsm", ".potm")
+    ):
         dpi = calc_dpi_via_ooxml(input_path, args.width, args.height)
     else:
         dpi = calc_dpi_via_pdf(input_path, args.width, args.height)

@@ -29,7 +29,7 @@ export async function withCodexAppServer({
   fn
 } = {}) {
   const codexInvocation = await resolveCodexInvocation({ env, platform: process.platform, nodeExecutable: process.execPath });
-  const child = spawn(codexInvocation.command, [...codexInvocation.args, 'app-server'], {
+  const child = spawn(codexInvocation.command, [...codexInvocation.args, 'app-server'], {  // nosemgrep: javascript.lang.security.audit.spawn-shell-true.spawn-shell-true -- shell option defaults to false; args controlled internally
     cwd: workspaceDir,
     env,
     shell: codexInvocation.shell || false,

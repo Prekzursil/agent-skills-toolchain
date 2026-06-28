@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import json
 import os
-import requests
 import socket
 import subprocess
 import sys
@@ -63,6 +62,7 @@ def port_open(host: str, port: int) -> bool:
 
 def healthy(host: str, port: int) -> bool:
     try:
+        # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected -- internal HTTP client; URL from validated/config input, not untrusted user data
         with urllib.request.urlopen(health_url(host, port), timeout=60) as response:
             body = response.read().decode("utf-8", errors="replace")
         payload = json.loads(body)
@@ -97,7 +97,9 @@ def spawn_server(host: str, port: int) -> None:
     }
 
     if os.name == "nt":
-        kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
+        kwargs["creationflags"] = (
+            subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
+        )
 
     subprocess.Popen([str(python_exe), str(server_script)], **kwargs)
     write_log(f"spawned server {host}:{port}")
@@ -185,7 +187,13 @@ def main() -> int:
     env["PYTHONUTF8"] = "1"
 
     child = subprocess.Popen(
-        [str(python_exe), str(mcp_script), "--server", server_url(host, port), *sys.argv[1:]],
+        [
+            str(python_exe),
+            str(mcp_script),
+            "--server",
+            server_url(host, port),
+            *sys.argv[1:],
+        ],
         cwd=str(root),
         env=env,
         stdin=subprocess.PIPE,
@@ -196,8 +204,12 @@ def main() -> int:
     )
     write_log(f"launching bridged mcp client against {server_url(host, port)}")
 
-    stdout_thread = threading.Thread(target=relay_child_stdout, args=(child,), daemon=True)
-    stderr_thread = threading.Thread(target=relay_child_stderr, args=(child,), daemon=True)
+    stdout_thread = threading.Thread(
+        target=relay_child_stdout, args=(child,), daemon=True
+    )
+    stderr_thread = threading.Thread(
+        target=relay_child_stderr, args=(child,), daemon=True
+    )
     stdout_thread.start()
     stderr_thread.start()
 

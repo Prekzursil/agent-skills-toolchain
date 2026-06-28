@@ -1,6 +1,6 @@
 ---
 name: biomedical-paper-triage
-description: Use when turning a raw list of biomedical papers (DOIs, PMIDs, arXiv ids, or titles) into a defensible, ranked, access-tagged shortlist via the Scholarly Access MCP paper_* tools, paired with the consensus-tooluniverse-research T1-T4 by human/animal/in-vitro evidence-grading scheme.
+description: Use when turning a raw list of biomedical papers into a ranked, access-tagged shortlist graded T1-T4 by human/animal/in-vitro evidence strength via Scholarly Access MCP ; do NOT use for generic literature metadata or citation graphs (use scholarly-literature-review) ; returns defensible ranked shortlist with evidence grades.
 ---
 
 # Biomedical Paper Triage

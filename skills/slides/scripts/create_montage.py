@@ -14,8 +14,8 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from ensure_raster_image import SUPPORTED_EXTS, ensure_raster_image  # type: ignore
-from PIL import Image, ImageDraw, ImageFont, ImageOps
+from ensure_raster_image import SUPPORTED_EXTS, ensure_raster_image  # type: ignore  # noqa: E402 (import after sys.path.insert for local module)
+from PIL import Image, ImageDraw, ImageFont, ImageOps  # noqa: E402 (grouped after sys.path setup)
 
 
 def _make_placeholder(w: int, h: int) -> Image.Image:
@@ -29,7 +29,9 @@ def _make_placeholder(w: int, h: int) -> Image.Image:
 
 
 def _load_images_with_placeholders(
-    input_files: list[str], retain_converted_files: bool, fail_on_image_error: bool = False
+    input_files: list[str],
+    retain_converted_files: bool,
+    fail_on_image_error: bool = False,
 ) -> tuple[list[str], list[Image.Image | None]]:
     labels = [basename(p) for p in input_files]
     images: list[Image.Image | None] = []
@@ -164,7 +166,9 @@ def create_montage(
                 method=Image.Resampling.LANCZOS,
             )
         else:
-            print(f"Warning: Using placeholder for invalid image at row={row + 1}, col={col + 1}")
+            print(
+                f"Warning: Using placeholder for invalid image at row={row + 1}, col={col + 1}"
+            )
             assert placeholder is not None
             resized = placeholder
 
@@ -206,7 +210,9 @@ def main() -> None:
         )
     )
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--input_files", nargs="+", help="List of input image file paths")
+    group.add_argument(
+        "--input_files", nargs="+", help="List of input image file paths"
+    )
     group.add_argument("--input_dir", help="Directory containing input images")
     parser.add_argument(
         "--output_file",
@@ -276,7 +282,9 @@ def main() -> None:
         names = sorted(listdir(input_dir), key=_natural_key)
         dir_entries = [join(input_dir, f) for f in names]
         input_files = [
-            p for p in dir_entries if isfile(p) and splitext(p)[1].lower() in SUPPORTED_EXTS
+            p
+            for p in dir_entries
+            if isfile(p) and splitext(p)[1].lower() in SUPPORTED_EXTS
         ]
         if not input_files:
             raise ValueError(

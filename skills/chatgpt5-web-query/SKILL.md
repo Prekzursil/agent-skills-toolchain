@@ -1,6 +1,6 @@
 ---
 name: chatgpt5-web-query
-description: Use when the user explicitly wants a direct ChatGPT 5 web/Agentify interaction, such as "ask ChatGPT directly", "use chatgpt5_web_query", or "send this to ChatGPT web". Prefer the `chatgpt5_web_query` or `chatgpt_web_query` tool.
+description: Use when the user explicitly invokes chatgpt5_web_query or asks to query ChatGPT 5 web directly for a single question or task ; do NOT use for the legacy agent-lanes-chatgpt-web-query route ; returns ChatGPT 5 web query answer.
 ---
 
 # ChatGPT 5 Web Query

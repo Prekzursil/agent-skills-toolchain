@@ -1,20 +1,6 @@
 ---
 name: slop-check
-description: 'Routes a request to Slop or Not Pro''s on-device tools: detect whether
-
-  text or an image is AI-generated, clean AI artifacts out of text, and
-
-  score readability (Flesch-Kincaid). Runs locally on a Mac via the
-
-  SlopOrNot MCP server or the slop CLI. Use when the user asks "is this
-
-  AI", "did a bot write this", "is this image AI generated", "clean the
-
-  invisible characters out of this", "what reading grade is this", or
-
-  invokes /slop-check. Not for rewriting or humanizing text; that is the
-
-  agentic-humanizer skill.'
+description: Use when the user asks if text or an image is AI-generated, to clean AI artifacts or invisible characters, or to score readability (Flesch-Kincaid) via Slop or Not Pro on-device tools (macOS only) ; do NOT use for rewriting or humanizing text (use agentic-humanizer or humanizer) ; returns AI-detection verdict, cleaned text, or readability grade.
 license: MIT
 allowed-tools:
 - Read

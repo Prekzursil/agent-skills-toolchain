@@ -49,7 +49,9 @@ def parse_args() -> argparse.Namespace:
     file_cmd.add_argument("--limit", type=int, default=20)
     file_cmd.add_argument("--sort", default="touches")
 
-    cochange = subparsers.add_parser("cochange", help="List co-change neighbors for a file")
+    cochange = subparsers.add_parser(
+        "cochange", help="List co-change neighbors for a file"
+    )
     cochange.add_argument("--file", required=True, help="Exact path or substring")
     cochange.add_argument("--limit", type=int, default=20)
     cochange.add_argument("--sort", default="jaccard")
@@ -131,7 +133,9 @@ def load_summary(data_dir: Path) -> dict[str, object]:
 def load_communities(data_dir: Path) -> list[dict[str, object]]:
     communities_path = data_dir / "communities.json"
     if not communities_path.exists():
-        raise FileNotFoundError("communities.json not found; rerun build with --communities")
+        raise FileNotFoundError(
+            "communities.json not found; rerun build with --communities"
+        )
     with communities_path.open("r", encoding="utf-8") as handle:
         return json.load(handle)
 
@@ -139,7 +143,9 @@ def load_communities(data_dir: Path) -> list[dict[str, object]]:
 def load_cochange_edges(data_dir: Path) -> Iterable[dict[str, object]]:
     edges_path = data_dir / "cochange_edges.csv"
     if not edges_path.exists():
-        raise FileNotFoundError("cochange_edges.csv not found; rerun build without --no-cochange")
+        raise FileNotFoundError(
+            "cochange_edges.csv not found; rerun build without --no-cochange"
+        )
     for row in read_csv(edges_path):
         yield {
             "file_a": row.get("file_a"),
@@ -149,7 +155,9 @@ def load_cochange_edges(data_dir: Path) -> Iterable[dict[str, object]]:
         }
 
 
-def select_single(records: list[dict[str, object]], key: str, query: str) -> dict[str, object]:
+def select_single(
+    records: list[dict[str, object]], key: str, query: str
+) -> dict[str, object]:
     exact = [record for record in records if str(record.get(key, "")) == query]
     if exact:
         return exact[0]
@@ -275,7 +283,9 @@ def handle_person(args: argparse.Namespace, data_dir: Path) -> None:
                 "recency_weight": edge.get("recency_weight"),
                 "sensitive_weight": edge.get("sensitive_weight"),
                 "last_seen": edge.get("last_seen"),
-                "sensitivity_tags": file_map.get(edge.get("file_id"), {}).get("sensitivity_tags"),
+                "sensitivity_tags": file_map.get(edge.get("file_id"), {}).get(
+                    "sensitivity_tags"
+                ),
             }
             for edge in edges
         ],
@@ -381,13 +391,13 @@ def handle_tag(args: argparse.Namespace, data_dir: Path) -> None:
         }
         for person_id, touches in person_touch.items()
     ]
-    top_people = sorted(top_people, key=lambda item: item.get("touches", 0), reverse=True)[
-        : args.limit
-    ]
+    top_people = sorted(
+        top_people, key=lambda item: item.get("touches", 0), reverse=True
+    )[: args.limit]
 
-    top_files = sorted(tagged_files, key=lambda item: item.get("touches", 0), reverse=True)[
-        : args.limit
-    ]
+    top_files = sorted(
+        tagged_files, key=lambda item: item.get("touches", 0), reverse=True
+    )[: args.limit]
 
     payload = {
         "tag": args.tag,
@@ -424,9 +434,9 @@ def handle_communities(args: argparse.Namespace, data_dir: Path) -> None:
             raise ValueError(f"Community id not found: {args.id}")
         payload = matches[0]
     else:
-        payload = sorted(communities, key=lambda item: item.get("size", 0), reverse=True)[
-            : args.limit
-        ]
+        payload = sorted(
+            communities, key=lambda item: item.get("size", 0), reverse=True
+        )[: args.limit]
     print(json.dumps(payload, indent=2))
 
 
