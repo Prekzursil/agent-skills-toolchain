@@ -142,12 +142,12 @@ def assert_lawful(url: str) -> None:
     if is_denied(url):
         raise PermissionError(
             f"Refused: '{url}' resolves to a shadow-library / unauthorized source. "
-            "This MCP never touches Sci-Hub/LibGen/SciDownl or any mirror."
+            + "This MCP never touches Sci-Hub/LibGen/SciDownl or any mirror."
         )
     if not is_allowed_host(url):
         raise PermissionError(
             f"Refused: host of '{url}' is not on the legitimate OA allowlist. "
-            "download_oa_pdf only fetches resolver-provided OA copies from authorized hosts."
+            + "download_oa_pdf only fetches resolver-provided OA copies from authorized hosts."
         )
 
 

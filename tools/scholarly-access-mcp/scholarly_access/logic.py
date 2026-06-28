@@ -9,11 +9,22 @@ import difflib
 import hashlib
 import os
 from pathlib import Path
-from typing import Any, Optional
+from typing import cast
 
 import requests
 
 from . import policy, sources as S
+
+
+# External-API JSON nodes are honestly typed as ``object``; these zero-branch
+# casts treat a node as the object / array its API contract specifies. They are
+# identity at runtime, so control flow and values are unchanged.
+def _obj(x: object) -> dict[str, object]:
+    return cast("dict[str, object]", x)
+
+
+def _arr(x: object) -> list[object]:
+    return cast("list[object]", x)
 
 
 def _title_sim(a: str, b: str) -> float:
@@ -23,106 +34,116 @@ def _title_sim(a: str, b: str) -> float:
 # ---------------------------------------------------------------------------
 # resolve / fetch_metadata
 # ---------------------------------------------------------------------------
-def _canonical_from_crossref(m: dict[str, Any]) -> dict[str, Any]:
+def _canonical_from_crossref(m: dict[str, object]) -> dict[str, object]:
     return {
-        "title": (m.get("title") or [""])[0],
+        "title": (_arr(m.get("title")) or [""])[0],
         "authors": [
-            f"{a.get('given', '')} {a.get('family', '')}".strip()
-            for a in m.get("author", [])
+            f"{_obj(a).get('given', '')} {_obj(a).get('family', '')}".strip()
+            for a in _arr(m.get("author", []))
         ],
         "year": str(
-            (m.get("issued", {}).get("date-parts", [[None]])[0] or [None])[0] or ""
+            _arr(
+                _arr(_obj(m.get("issued", {})).get("date-parts", [[None]]))[0] or [None]
+            )[0]
+            or ""
         ),
-        "journal": (m.get("container-title") or [""])[0],
-        "doi": (m.get("DOI") or "").lower() or None,
+        "journal": (_arr(m.get("container-title")) or [""])[0],
+        "doi": str(m.get("DOI") or "").lower() or None,
         "type": m.get("type"),
     }
 
 
-def resolve(identifier: str) -> dict[str, Any]:
+def resolve(identifier: str) -> dict[str, object]:
     """Canonical metadata + normalized identifiers + source confidence."""
     kind, val = S.classify_identifier(identifier)
-    out: dict[str, Any] = {
+    identifiers: dict[str, object] = {}
+    sources_used: list[object] = []
+    out: dict[str, object] = {
         "input": identifier,
         "input_kind": kind,
-        "identifiers": {},
-        "sources_used": [],
+        "identifiers": identifiers,
+        "sources_used": sources_used,
     }
 
-    meta: Optional[dict[str, Any]] = None
+    meta: dict[str, object] | None = None
     if kind == "doi":
-        out["identifiers"]["doi"] = val
+        identifiers["doi"] = val
         m = S.crossref_by_doi(val)
         if m:
             meta = _canonical_from_crossref(m)
-            out["sources_used"].append("crossref")
+            sources_used.append("crossref")
         oa = S.openalex_by_doi(val)
         if oa:
-            out["sources_used"].append("openalex")
-            out["identifiers"]["openalex"] = oa.get("id")
+            sources_used.append("openalex")
+            identifiers["openalex"] = oa.get("id")
             if not meta:
                 meta = {
                     "title": oa.get("title"),
                     "year": str(oa.get("publication_year") or ""),
                     "doi": val,
                     "authors": [
-                        a["author"]["display_name"] for a in oa.get("authorships", [])
+                        _obj(_obj(a)["author"])["display_name"]
+                        for a in _arr(oa.get("authorships", []))
                     ],
                 }
         pmid = S.pubmed_pmid_for_doi(val)
         if pmid:
-            out["identifiers"]["pmid"] = pmid
+            identifiers["pmid"] = pmid
     elif kind == "pmid":
-        out["identifiers"]["pmid"] = val
+        identifiers["pmid"] = val
         pm = S.pubmed_efetch(val)
         if pm:
-            out["sources_used"].append("pubmed")
+            sources_used.append("pubmed")
+            pm_doi = str(pm.get("doi") or "").lower() or None
             meta = {
-                "title": pm["title"],
-                "authors": pm["authors"],
-                "year": pm["year"],
-                "journal": pm["journal"],
-                "doi": (pm.get("doi") or "").lower() or None,
+                "title": pm.get("title"),
+                "authors": pm.get("authors"),
+                "year": pm.get("year"),
+                "journal": pm.get("journal"),
+                "doi": pm_doi,
             }
-            if meta["doi"]:
-                out["identifiers"]["doi"] = meta["doi"]
+            if pm_doi:
+                identifiers["doi"] = pm_doi
     elif kind == "arxiv":
-        out["identifiers"]["arxiv"] = val
+        identifiers["arxiv"] = val
         ax = S.arxiv_lookup(arxiv_id=val)
         if ax:
-            out["sources_used"].append("arxiv")
+            sources_used.append("arxiv")
             meta = {
-                "title": ax["title"],
-                "authors": ax["authors"],
-                "year": ax["published"],
+                "title": ax.get("title"),
+                "authors": ax.get("authors"),
+                "year": ax.get("published"),
                 "journal": "arXiv",
                 "doi": None,
             }
     else:  # title search — pick best candidate, but only accept above a relevance threshold
         THRESH = 0.55
-        best, best_sim, best_src = None, 0.0, None
+        best: dict[str, object] | None = None
+        best_sim: float = 0.0
+        best_src: str | None = None
         for it in S.crossref_search(val, rows=5):
-            cand = _canonical_from_crossref(it)
-            sim = _title_sim(val, cand.get("title", ""))
+            cand = _canonical_from_crossref(_obj(it))
+            sim = _title_sim(val, str(cand.get("title", "")))
             if sim > best_sim:
                 best, best_sim, best_src = cand, sim, "crossref"
         for it in S.openalex_search(val, per_page=5):
-            sim = _title_sim(val, it.get("title", ""))
+            ito = _obj(it)
+            sim = _title_sim(val, str(ito.get("title", "")))
             if sim > best_sim:
                 best = {
-                    "title": it.get("title"),
-                    "year": str(it.get("publication_year") or ""),
-                    "doi": (it.get("doi") or "").replace("https://doi.org/", "")
+                    "title": ito.get("title"),
+                    "year": str(ito.get("publication_year") or ""),
+                    "doi": str(ito.get("doi") or "").replace("https://doi.org/", "")
                     or None,
                     "authors": [],
                 }
                 best_sim, best_src = sim, "openalex"
         if best and best_sim >= THRESH:
             meta = best
-            out["sources_used"].append(best_src)
+            sources_used.append(best_src)
             out["title_match_similarity"] = round(best_sim, 2)
             if meta.get("doi"):
-                out["identifiers"]["doi"] = meta["doi"]
+                identifiers["doi"] = meta["doi"]
         elif best:
             out["best_rejected_match"] = {
                 "title": best.get("title"),
@@ -136,34 +157,37 @@ def resolve(identifier: str) -> dict[str, Any]:
         return out
     out["resolved"] = True
     out["metadata"] = meta
-    out["confidence"] = round(min(1.0, 0.5 + 0.25 * len(out["sources_used"])), 2)
+    out["confidence"] = round(min(1.0, 0.5 + 0.25 * len(sources_used)), 2)
     return out
 
 
-def fetch_metadata(identifier: str) -> dict[str, Any]:
+def fetch_metadata(identifier: str) -> dict[str, object]:
     """Full metadata incl. abstract + references where legally available."""
     r = resolve(identifier)
     if not r.get("resolved"):
         return r
-    doi = r["identifiers"].get("doi")
-    arxiv = r["identifiers"].get("arxiv")
-    pmid = r["identifiers"].get("pmid")
+    identifiers = _obj(r["identifiers"])
+    doi = identifiers.get("doi")
+    arxiv = identifiers.get("arxiv")
+    pmid = identifiers.get("pmid")
     abstract = ""
-    references: list[str] = []
+    references: list[object] = []
     if pmid:
-        pm = S.pubmed_efetch(pmid)
+        pm = S.pubmed_efetch(str(pmid))
         if pm:
-            abstract = pm.get("abstract", "")
+            abstract = str(pm.get("abstract", ""))
     if not abstract and arxiv:
-        ax = S.arxiv_lookup(arxiv_id=arxiv)
+        ax = S.arxiv_lookup(arxiv_id=str(arxiv))
         if ax:
-            abstract = ax.get("summary", "")
-    s2 = S.semanticscholar(doi=doi or "", arxiv=arxiv or "")
+            abstract = str(ax.get("summary", ""))
+    s2 = S.semanticscholar(doi=str(doi or ""), arxiv=str(arxiv or ""))
     if s2:
-        r["sources_used"].append("semanticscholar")
-        abstract = abstract or (s2.get("abstract") or "")
+        _arr(r["sources_used"]).append("semanticscholar")
+        abstract = abstract or str(s2.get("abstract") or "")
         references = [
-            x.get("title") for x in (s2.get("references") or []) if x.get("title")
+            _obj(x).get("title")
+            for x in _arr(s2.get("references") or [])
+            if _obj(x).get("title")
         ][:50]
     r["abstract"] = abstract
     r["references"] = references
@@ -173,9 +197,9 @@ def fetch_metadata(identifier: str) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # find_oa_pdf — gather candidate OA URLs from legitimate sources, lawful-filter
 # ---------------------------------------------------------------------------
-def _candidates(doi: str, arxiv: str = "") -> list[dict[str, Any]]:
+def _candidates(doi: str, arxiv: str = "") -> list[dict[str, object]]:
     """Collect candidate OA PDF URLs with provenance. Each is policy-checked by caller."""
-    cands: list[dict[str, Any]] = []
+    cands: list[dict[str, object]] = []
     if arxiv:
         ax = S.arxiv_lookup(arxiv_id=arxiv)
         if ax and ax.get("pdf_url"):
@@ -190,34 +214,38 @@ def _candidates(doi: str, arxiv: str = "") -> list[dict[str, Any]]:
     if doi:
         up = S.unpaywall(doi)
         if up:
-            for loc in [up.get("best_oa_location")] + (up.get("oa_locations") or []):
-                if loc and loc.get("url_for_pdf"):
+            for loc in [
+                up.get("best_oa_location"),
+                *_arr(up.get("oa_locations") or []),
+            ]:
+                lo = _obj(loc)
+                if loc and lo.get("url_for_pdf"):
                     cands.append(
                         {
-                            "url": loc["url_for_pdf"],
+                            "url": lo["url_for_pdf"],
                             "source": "unpaywall",
-                            "license": loc.get("license"),
-                            "version": loc.get("version"),
-                            "host_type": loc.get("host_type"),
+                            "license": lo.get("license"),
+                            "version": lo.get("version"),
+                            "host_type": lo.get("host_type"),
                         }
                     )
         oa = S.openalex_by_doi(doi)
         if oa:
-            loc = oa.get("best_oa_location") or {}
-            if loc.get("pdf_url"):
+            best_loc = _obj(oa.get("best_oa_location") or {})
+            if best_loc.get("pdf_url"):
                 cands.append(
                     {
-                        "url": loc["pdf_url"],
+                        "url": best_loc["pdf_url"],
                         "source": "openalex",
-                        "license": loc.get("license"),
-                        "version": loc.get("version"),
+                        "license": best_loc.get("license"),
+                        "version": best_loc.get("version"),
                     }
                 )
         s2 = S.semanticscholar(doi=doi, fields="openAccessPdf")
-        if s2 and (s2.get("openAccessPdf") or {}).get("url"):
+        if s2 and _obj(s2.get("openAccessPdf") or {}).get("url"):
             cands.append(
                 {
-                    "url": s2["openAccessPdf"]["url"],
+                    "url": _obj(s2["openAccessPdf"])["url"],
                     "source": "semanticscholar",
                     "license": None,
                 }
@@ -233,11 +261,12 @@ def _candidates(doi: str, arxiv: str = "") -> list[dict[str, Any]]:
             )
         dj = S.doaj_by_doi(doi)
         if dj:
-            for link in dj.get("bibjson", {}).get("link", []):
-                if link.get("type") == "fulltext" and link.get("url"):
+            for link in _arr(_obj(dj.get("bibjson", {})).get("link", [])):
+                lk = _obj(link)
+                if lk.get("type") == "fulltext" and lk.get("url"):
                     cands.append(
                         {
-                            "url": link["url"],
+                            "url": lk["url"],
                             "source": "doaj",
                             "license": "DOAJ-listed-OA",
                         }
@@ -245,16 +274,20 @@ def _candidates(doi: str, arxiv: str = "") -> list[dict[str, Any]]:
     return cands
 
 
-def find_oa_pdf(identifier: str = "", doi: str = "", arxiv: str = "") -> dict[str, Any]:
+def find_oa_pdf(
+    identifier: str = "", doi: str = "", arxiv: str = ""
+) -> dict[str, object]:
     """Return a single LAWFUL OA PDF URL (allowlisted host) + license/source/evidence, or none."""
     if identifier and not (doi or arxiv):
         r = resolve(identifier)
-        doi = r.get("identifiers", {}).get("doi", "") or ""
-        arxiv = r.get("identifiers", {}).get("arxiv", "") or ""
-    evidence = []
-    chosen = None
+        ids = _obj(r.get("identifiers", {}))
+        doi = str(ids.get("doi", "") or "")
+        arxiv = str(ids.get("arxiv", "") or "")
+    evidence: list[object] = []
+    chosen: dict[str, object] | None = None
     for c in _candidates(doi, arxiv):
-        if policy.is_denied(c["url"]):
+        url = str(c["url"])
+        if policy.is_denied(url):
             evidence.append(
                 {
                     "url": c["url"],
@@ -263,7 +296,7 @@ def find_oa_pdf(identifier: str = "", doi: str = "", arxiv: str = "") -> dict[st
                 }
             )
             continue
-        if policy.is_allowed_host(c["url"]):
+        if policy.is_allowed_host(url):
             evidence.append(
                 {"url": c["url"], "source": c["source"], "verdict": "allowlisted OA"}
             )
@@ -293,17 +326,18 @@ def find_oa_pdf(identifier: str = "", doi: str = "", arxiv: str = "") -> dict[st
 # ---------------------------------------------------------------------------
 def access_status(
     identifier: str = "", doi: str = "", arxiv: str = ""
-) -> dict[str, Any]:
+) -> dict[str, object]:
     if identifier and not (doi or arxiv):
         r = resolve(identifier)
-        if not r.get("resolved") and not r.get("identifiers", {}).get("doi"):
+        ids = _obj(r.get("identifiers", {}))
+        if not r.get("resolved") and not ids.get("doi"):
             return {
                 "status": policy.UNKNOWN,
                 "reason": "could not resolve identifier",
                 "input": identifier,
             }
-        doi = r.get("identifiers", {}).get("doi", "") or ""
-        arxiv = r.get("identifiers", {}).get("arxiv", "") or ""
+        doi = str(ids.get("doi", "") or "")
+        arxiv = str(ids.get("arxiv", "") or "")
 
     oa = find_oa_pdf(doi=doi, arxiv=arxiv)
     if oa["oa_pdf_url"]:
@@ -322,10 +356,12 @@ def access_status(
         if up.get("is_oa"):
             return {
                 "status": policy.FREE_NOT_REDIST,
-                "reason": "is_oa=true but only a free-to-read page (no redistributable PDF on an allowlisted host); "
-                "open the landing page in a browser — we do NOT circumvent the access control.",
+                "reason": (
+                    "is_oa=true but only a free-to-read page (no redistributable PDF on an allowlisted host); "
+                    + "open the landing page in a browser — we do NOT circumvent the access control."
+                ),
                 "oa_status": up.get("oa_status"),
-                "landing_page": (up.get("best_oa_location") or {}).get("url"),
+                "landing_page": _obj(up.get("best_oa_location") or {}).get("url"),
                 "doi": doi,
                 "provenance": oa["evidence"],
             }
@@ -353,12 +389,12 @@ def access_status(
 # ---------------------------------------------------------------------------
 def citation_graph(
     identifier: str = "", doi: str = "", limit: int = 50
-) -> dict[str, Any]:
+) -> dict[str, object]:
     if identifier and not doi:
-        doi = resolve(identifier).get("identifiers", {}).get("doi", "") or ""
-    refs: list[dict[str, Any]] = []
-    cites: list[dict[str, Any]] = []
-    src = None
+        doi = str(_obj(resolve(identifier).get("identifiers", {})).get("doi", "") or "")
+    refs: list[dict[str, object]] = []
+    cites: list[dict[str, object]] = []
+    src: str | None = None
     s2 = (
         S.semanticscholar(
             doi=doi,
@@ -370,20 +406,26 @@ def citation_graph(
     if s2:
         src = "semanticscholar"
         refs = [
-            {"title": x.get("title"), "doi": (x.get("externalIds") or {}).get("DOI")}
-            for x in (s2.get("references") or [])
+            {
+                "title": _obj(x).get("title"),
+                "doi": _obj(_obj(x).get("externalIds") or {}).get("DOI"),
+            }
+            for x in _arr(s2.get("references") or [])
         ][:limit]
         cites = [
-            {"title": x.get("title"), "doi": (x.get("externalIds") or {}).get("DOI")}
-            for x in (s2.get("citations") or [])
+            {
+                "title": _obj(x).get("title"),
+                "doi": _obj(_obj(x).get("externalIds") or {}).get("DOI"),
+            }
+            for x in _arr(s2.get("citations") or [])
         ][:limit]
     elif doi:
         oa = S.openalex_by_doi(doi)
         if oa:
             src = "openalex"
-            refs = [{"openalex": rid} for rid in (oa.get("referenced_works") or [])][
-                :limit
-            ]
+            refs = [
+                {"openalex": rid} for rid in _arr(oa.get("referenced_works") or [])
+            ][:limit]
     return {
         "doi": doi or None,
         "source": src,
@@ -402,7 +444,7 @@ def download_oa_pdf(
     filename: str = "",
     license: str = "",
     source: str = "",
-) -> dict[str, Any]:
+) -> dict[str, object]:
     policy.assert_lawful(
         url
     )  # raises on denied/off-allowlist — never construct/fallback
@@ -423,15 +465,17 @@ def download_oa_pdf(
     if r.status_code != 200 or not r.content[:5].startswith(b"%PDF"):
         return {
             "ok": False,
-            "error": f"not a PDF (status {r.status_code}, magic {r.content[:5]!r}) — "
-            "likely a bot-wall/landing page; refusing to save. Open the page in a browser instead.",
+            "error": (
+                f"not a PDF (status {r.status_code}, magic {r.content[:5]!r}) — "
+                + "likely a bot-wall/landing page; refusing to save. Open the page in a browser instead."
+            ),
             "url": url,
         }
     name = filename or (url.rstrip("/").split("/")[-1] or "paper")
     if not name.lower().endswith(".pdf"):
         name += ".pdf"
     path = dest / name
-    path.write_bytes(r.content)
+    _ = path.write_bytes(r.content)
     return {
         "ok": True,
         "path": str(path),
@@ -446,41 +490,43 @@ def download_oa_pdf(
 # ---------------------------------------------------------------------------
 # summarize — assemble a digest from LEGALLY-available text (no full-text scraping)
 # ---------------------------------------------------------------------------
-def summarize(identifier: str = "", doi: str = "") -> dict[str, Any]:
+def summarize(identifier: str = "", doi: str = "") -> dict[str, object]:
     meta = fetch_metadata(identifier or doi)
     if not meta.get("resolved"):
         return meta
-    m = meta.get("metadata", {})
+    m = _obj(meta.get("metadata", {}))
+    ids = _obj(meta["identifiers"])
     acc = access_status(
-        doi=meta["identifiers"].get("doi", ""),
-        arxiv=meta["identifiers"].get("arxiv", ""),
+        doi=str(ids.get("doi", "") or ""),
+        arxiv=str(ids.get("arxiv", "") or ""),
     )
     return {
         "title": m.get("title"),
-        "authors": m.get("authors", [])[:8],
+        "authors": _arr(m.get("authors", []))[:8],
         "year": m.get("year"),
         "venue": m.get("journal"),
         "doi": m.get("doi"),
         "identifiers": meta["identifiers"],
         "abstract": meta.get("abstract") or "(no abstract legally available)",
         "access_status": acc.get("status"),
-        "reference_count": len(meta.get("references", [])),
+        "reference_count": len(_arr(meta.get("references", []))),
         "note": "Digest of legally-available metadata/abstract only — the calling agent writes the prose summary.",
     }
 
 
-def batch_resolve(identifiers: list[str]) -> dict[str, Any]:
-    rows = []
-    unresolved = []
+def batch_resolve(identifiers: list[str]) -> dict[str, object]:
+    rows: list[dict[str, object]] = []
+    unresolved: list[str] = []
     for ident in identifiers:
         r = resolve(ident)
         if not r.get("resolved"):
             unresolved.append(ident)
             rows.append({"input": ident, "resolved": False})
             continue
-        doi = r["identifiers"].get("doi", "")
-        acc = access_status(doi=doi, arxiv=r["identifiers"].get("arxiv", ""))
-        m = r.get("metadata", {})
+        ids = _obj(r["identifiers"])
+        doi = str(ids.get("doi", "") or "")
+        acc = access_status(doi=doi, arxiv=str(ids.get("arxiv", "") or ""))
+        m = _obj(r.get("metadata", {}))
         rows.append(
             {
                 "input": ident,

@@ -8,8 +8,6 @@ NO Sci-Hub / LibGen / SciDownl / shadow libraries. NO paywall bypass. See policy
 
 from __future__ import annotations
 
-from typing import Any
-
 from mcp.server.fastmcp import FastMCP
 
 from . import logic, policy
@@ -18,14 +16,14 @@ mcp = FastMCP("scholarly-access")
 
 
 @mcp.tool()
-def paper_resolve(identifier: str) -> dict[str, Any]:
+def paper_resolve(identifier: str) -> dict[str, object]:
     """Resolve a DOI / PMID / arXiv ID / title to canonical metadata + normalized identifiers
     (doi, pmid, arxiv, openalex) with a source-confidence score. Spec: paper.resolve."""
     return logic.resolve(identifier)
 
 
 @mcp.tool()
-def paper_fetch_metadata(identifier: str) -> dict[str, Any]:
+def paper_fetch_metadata(identifier: str) -> dict[str, object]:
     """Fetch title, authors, year, journal, abstract (if legally available) and a reference
     list for a DOI / PMID / arXiv / title. Spec: paper.fetch_metadata."""
     return logic.fetch_metadata(identifier)
@@ -34,7 +32,7 @@ def paper_fetch_metadata(identifier: str) -> dict[str, Any]:
 @mcp.tool()
 def paper_find_oa_pdf(
     identifier: str = "", doi: str = "", arxiv: str = ""
-) -> dict[str, Any]:
+) -> dict[str, object]:
     """Find a LEGAL open-access PDF URL for a paper (Unpaywall / OpenAlex / arXiv / Semantic
     Scholar / CORE / DOAJ). Returns the URL only if its host is on the OA allowlist; lists
     evidence for every candidate (including any shadow-library URL it DENIED). Never returns a
@@ -45,7 +43,7 @@ def paper_find_oa_pdf(
 @mcp.tool()
 def paper_access_status(
     identifier: str = "", doi: str = "", arxiv: str = ""
-) -> dict[str, Any]:
+) -> dict[str, object]:
     """Classify access honestly: 'oa_pdf' (downloadable OA), 'free_to_read_not_redistributable'
     (readable on a page but not legally fetchable — cite, don't circumvent), 'subscription'
     (paywalled), 'unavailable', or 'unknown' — with provenance. Spec: paper.access_status."""
@@ -55,7 +53,7 @@ def paper_access_status(
 @mcp.tool()
 def paper_citation_graph(
     identifier: str = "", doi: str = "", limit: int = 50
-) -> dict[str, Any]:
+) -> dict[str, object]:
     """References + citing-works from legal metadata APIs (Semantic Scholar / OpenAlex).
     Spec: paper.citation_graph."""
     return logic.citation_graph(identifier=identifier, doi=doi, limit=limit)
@@ -68,7 +66,7 @@ def paper_download_oa_pdf(
     filename: str = "",
     license: str = "",
     source: str = "",
-) -> dict[str, Any]:
+) -> dict[str, object]:
     """Download a legal OA PDF. HARD-GATED: the URL must be on the OA allowlist (typically one
     returned by paper.find_oa_pdf) and the bytes must be a real %PDF; otherwise it refuses.
     Never constructs URLs, never falls back to an unauthorized mirror. Records path + sha256 +
@@ -87,7 +85,7 @@ def paper_download_oa_pdf(
 
 
 @mcp.tool()
-def paper_summarize(identifier: str = "", doi: str = "") -> dict[str, Any]:
+def paper_summarize(identifier: str = "", doi: str = "") -> dict[str, object]:
     """Return a structured digest (title/authors/year/venue/abstract/access-status/identifiers)
     from legally-available metadata only, for the agent to turn into a prose summary.
     Spec: paper.summarize."""
@@ -95,7 +93,7 @@ def paper_summarize(identifier: str = "", doi: str = "") -> dict[str, Any]:
 
 
 @mcp.tool()
-def paper_batch_resolve(identifiers: list[str]) -> dict[str, Any]:
+def paper_batch_resolve(identifiers: list[str]) -> dict[str, object]:
     """Resolve a list of identifiers/titles; returns a table of access status, OA links,
     metadata, and the unresolved items. Spec: paper.batch_resolve."""
     return logic.batch_resolve(identifiers)
@@ -115,7 +113,9 @@ def _load_env_file() -> None:
                 line = line.strip()
                 if line and not line.startswith("#") and "=" in line:
                     k, v = line.split("=", 1)
-                    os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+                    _ = os.environ.setdefault(
+                        k.strip(), v.strip().strip('"').strip("'")
+                    )
         except OSError:
             pass
 

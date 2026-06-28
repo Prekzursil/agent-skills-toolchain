@@ -12,7 +12,8 @@ from __future__ import annotations
 
 import os
 import re
-from typing import Any, Optional
+from collections.abc import Mapping
+from typing import cast
 
 import requests
 from defusedxml.ElementTree import (
@@ -25,14 +26,29 @@ UA = "scholarly-access-mcp/0.1 (mailto:%s)" % os.environ.get(
 TIMEOUT = 30
 
 
+# ---------------------------------------------------------------------------
+# JSON shape helpers. External APIs return JSON whose static shape is unknown,
+# so a parsed node is honestly typed as ``object``. These zero-branch casts let
+# the call sites treat a node as the object / array the API contract says it is.
+# They are identity at runtime (cast performs no check), so they never alter the
+# control flow or values — only what the type checker knows.
+# ---------------------------------------------------------------------------
+def _obj(x: object) -> dict[str, object]:
+    return cast("dict[str, object]", x)
+
+
+def _arr(x: object) -> list[object]:
+    return cast("list[object]", x)
+
+
 def _get(
     url: str,
     *,
-    params: dict[str, Any] | None = None,
-    headers: dict[str, Any] | None = None,
+    params: Mapping[str, str | int] | None = None,
+    headers: Mapping[str, str] | None = None,
     timeout: int = TIMEOUT,
-):
-    h = {"User-Agent": UA}
+) -> requests.Response | None:
+    h: dict[str, str] = {"User-Agent": UA}
     if headers:
         h.update(headers)
     try:
@@ -44,12 +60,12 @@ def _get(
     return None
 
 
-def _json(url: str, **kw) -> Optional[Any]:
-    r = _get(url, **kw)
+def _json(url: str, *, params: Mapping[str, str | int] | None = None) -> object | None:
+    r = _get(url, params=params)
     if r is None:
         return None
     try:
-        return r.json()
+        return cast("object", r.json())
     except ValueError:
         return None
 
@@ -91,15 +107,15 @@ def classify_identifier(s: str) -> tuple[str, str]:
 # ---------------------------------------------------------------------------
 # Crossref
 # ---------------------------------------------------------------------------
-def crossref_by_doi(doi: str) -> Optional[dict[str, Any]]:
+def crossref_by_doi(doi: str) -> dict[str, object] | None:
     d = _json(
         f"https://api.crossref.org/works/{doi}",
         params={"mailto": os.environ.get("UNPAYWALL_EMAIL", "")},
     )
-    return d.get("message") if d else None
+    return _obj(_obj(d).get("message")) if d else None
 
 
-def crossref_search(title: str, rows: int = 5) -> list[dict[str, Any]]:
+def crossref_search(title: str, rows: int = 5) -> list[object]:
     d = _json(
         "https://api.crossref.org/works",
         params={
@@ -108,20 +124,22 @@ def crossref_search(title: str, rows: int = 5) -> list[dict[str, Any]]:
             "mailto": os.environ.get("UNPAYWALL_EMAIL", ""),
         },
     )
-    return (d.get("message", {}).get("items", []) if d else []) or []
+    return _arr((_obj(_obj(d).get("message", {})).get("items", []) if d else []) or [])
 
 
 # ---------------------------------------------------------------------------
 # OpenAlex
 # ---------------------------------------------------------------------------
-def openalex_by_doi(doi: str) -> Optional[dict[str, Any]]:
-    return _json(
-        f"https://api.openalex.org/works/https://doi.org/{doi}",
-        params={"mailto": os.environ.get("UNPAYWALL_EMAIL", "")},
+def openalex_by_doi(doi: str) -> dict[str, object] | None:
+    return _obj(
+        _json(
+            f"https://api.openalex.org/works/https://doi.org/{doi}",
+            params={"mailto": os.environ.get("UNPAYWALL_EMAIL", "")},
+        )
     )
 
 
-def openalex_search(title: str, per_page: int = 5) -> list[dict[str, Any]]:
+def openalex_search(title: str, per_page: int = 5) -> list[object]:
     d = _json(
         "https://api.openalex.org/works",
         params={
@@ -130,28 +148,30 @@ def openalex_search(title: str, per_page: int = 5) -> list[dict[str, Any]]:
             "mailto": os.environ.get("UNPAYWALL_EMAIL", ""),
         },
     )
-    return (d.get("results", []) if d else []) or []
+    return _arr((_obj(d).get("results", []) if d else []) or [])
 
 
 # ---------------------------------------------------------------------------
 # Unpaywall (OA discovery) — requires UNPAYWALL_EMAIL
 # ---------------------------------------------------------------------------
-def unpaywall(doi: str) -> Optional[dict[str, Any]]:
+def unpaywall(doi: str) -> dict[str, object] | None:
     email = os.environ.get("UNPAYWALL_EMAIL")
     if not email:
         return None
-    return _json(f"https://api.unpaywall.org/v2/{doi}", params={"email": email})
+    return _obj(_json(f"https://api.unpaywall.org/v2/{doi}", params={"email": email}))
 
 
 # ---------------------------------------------------------------------------
 # Europe PMC
 # ---------------------------------------------------------------------------
-def europepmc_search(query: str, page_size: int = 5) -> list[dict[str, Any]]:
+def europepmc_search(query: str, page_size: int = 5) -> list[object]:
     d = _json(
         "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
         params={"query": query, "format": "json", "pageSize": page_size},
     )
-    return (d.get("resultList", {}).get("result", []) if d else []) or []
+    return _arr(
+        (_obj(_obj(d).get("resultList", {})).get("result", []) if d else []) or []
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -160,8 +180,8 @@ def europepmc_search(query: str, page_size: int = 5) -> list[dict[str, Any]]:
 _ATOM = "{http://www.w3.org/2005/Atom}"
 
 
-def arxiv_lookup(arxiv_id: str = "", title: str = "") -> Optional[dict[str, Any]]:
-    params = (
+def arxiv_lookup(arxiv_id: str = "", title: str = "") -> dict[str, object] | None:
+    params: dict[str, str | int] = (
         {"id_list": arxiv_id}
         if arxiv_id
         else {"search_query": f"ti:{title}", "max_results": 1}
@@ -197,20 +217,22 @@ def semanticscholar(
     doi: str = "",
     arxiv: str = "",
     fields: str = "title,year,abstract,openAccessPdf,externalIds,references.title,citations.title",
-) -> Optional[dict[str, Any]]:
+) -> dict[str, object] | None:
     pid = f"DOI:{doi}" if doi else (f"ARXIV:{arxiv}" if arxiv else "")
     if not pid:
         return None
-    return _json(
-        f"https://api.semanticscholar.org/graph/v1/paper/{pid}",
-        params={"fields": fields},
+    return _obj(
+        _json(
+            f"https://api.semanticscholar.org/graph/v1/paper/{pid}",
+            params={"fields": fields},
+        )
     )
 
 
 # ---------------------------------------------------------------------------
 # CORE (keyed)
 # ---------------------------------------------------------------------------
-def core_search(doi: str = "", title: str = "") -> Optional[dict[str, Any]]:
+def core_search(doi: str = "", title: str = "") -> dict[str, object] | None:
     key = os.environ.get("CORE_API_KEY")
     if not key:
         return None
@@ -223,26 +245,26 @@ def core_search(doi: str = "", title: str = "") -> Optional[dict[str, Any]]:
     if r is None:
         return None
     try:
-        results = r.json().get("results", [])
+        results = _arr(_obj(cast("object", r.json())).get("results", []))
     except ValueError:
         return None
-    return results[0] if results else None
+    return _obj(results[0]) if results else None
 
 
 # ---------------------------------------------------------------------------
 # DOAJ
 # ---------------------------------------------------------------------------
-def doaj_by_doi(doi: str) -> Optional[dict[str, Any]]:
+def doaj_by_doi(doi: str) -> dict[str, object] | None:
     d = _json(f"https://doaj.org/api/search/articles/doi:{doi}")
-    res = d.get("results", []) if d else []
-    return res[0] if res else None
+    res = _arr(_obj(d).get("results", []) if d else [])
+    return _obj(res[0]) if res else None
 
 
 # ---------------------------------------------------------------------------
 # PubMed / NCBI E-utilities (NCBI_API_KEY optional, raises limits)
 # ---------------------------------------------------------------------------
-def pubmed_efetch(pmid: str) -> Optional[dict[str, Any]]:
-    params = {"db": "pubmed", "id": pmid, "retmode": "xml"}
+def pubmed_efetch(pmid: str) -> dict[str, object] | None:
+    params: dict[str, str | int] = {"db": "pubmed", "id": pmid, "retmode": "xml"}
     if os.environ.get("NCBI_API_KEY"):
         params["api_key"] = os.environ["NCBI_API_KEY"]
     r = _get("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi", params=params)
@@ -272,19 +294,19 @@ def pubmed_efetch(pmid: str) -> Optional[dict[str, Any]]:
     }
 
 
-def pubmed_pmid_for_doi(doi: str) -> Optional[str]:
+def pubmed_pmid_for_doi(doi: str) -> str | None:
     d = _json(
         "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
         params={"db": "pubmed", "term": f"{doi}[DOI]", "retmode": "json"},
     )
-    ids = d.get("esearchresult", {}).get("idlist", []) if d else []
-    return ids[0] if ids else None
+    ids = _arr(_obj(_obj(d).get("esearchresult", {})).get("idlist", []) if d else [])
+    return str(ids[0]) if ids else None
 
 
 # ---------------------------------------------------------------------------
 # Zenodo
 # ---------------------------------------------------------------------------
-def zenodo_by_doi(doi: str) -> Optional[dict[str, Any]]:
+def zenodo_by_doi(doi: str) -> dict[str, object] | None:
     d = _json("https://zenodo.org/api/records", params={"q": f'doi:"{doi}"', "size": 1})
-    hits = d.get("hits", {}).get("hits", []) if d else []
-    return hits[0] if hits else None
+    hits = _arr(_obj(_obj(d).get("hits", {})).get("hits", []) if d else [])
+    return _obj(hits[0]) if hits else None
