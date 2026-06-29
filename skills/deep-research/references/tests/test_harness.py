@@ -49,7 +49,8 @@ def test_invalid_probe_value_is_treated_as_down():
 
 def test_plan_research_routes_around_down_primary():
     # firecrawl down -> web sub-question falls to Perplexity (the high-priority
-    # #2 web provider) as the live primary, then exa.
+    # #2 web provider) as the live primary, then SearXNG (the key-free #3
+    # corroborator, now ahead of the keyed exa/tavily).
     def probe(server):
         return DOWN if server == "firecrawl" else LIVE
 
@@ -62,7 +63,7 @@ def test_plan_research_routes_around_down_primary():
     web_decision = plan.decisions[0]
     assert web_decision.capability == "web"
     assert web_decision.providers[0].server == "perplexity"
-    assert web_decision.providers[1].server == "exa"
+    assert web_decision.providers[1].server == "searxng"
     assert "firecrawl" in plan.providers_down
 
     academic_decision = plan.decisions[1]

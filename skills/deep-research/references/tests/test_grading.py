@@ -3,6 +3,7 @@
 from research_harness.grading import (
     Source,
     grade_source,
+    is_dark_web,
     overall_confidence,
     source_tier,
 )
@@ -91,3 +92,47 @@ def test_overall_confidence_from_distribution():
     assert overall_confidence([low, low, high]) == "Low"
     assert overall_confidence([high, low]) == "Medium"
     assert overall_confidence([]) == "Low"
+
+
+# --- New key-free providers + security domains + dark-web rule (M-16c) ------
+
+
+def test_cve_provider_prior_is_a():
+    # cve-mcp is an authoritative provider even on a bare domain.
+    assert source_tier(_src("https://example.org/p", "cve-mcp.cve_lookup")) == "A"
+
+
+def test_searxng_provider_prior_is_b():
+    # SearXNG is a reputable aggregator (B), not a primary source.
+    assert source_tier(_src("https://random-blog.xyz/post", "searxng.searxng_web_search")) == "B"
+
+
+def test_security_domains_are_tier_a():
+    for url in (
+        "https://nvd.nist.gov/vuln/detail/CVE-2024-3094",
+        "https://www.cisa.gov/known-exploited-vulnerabilities-catalog",
+        "https://www.first.org/cvss/calculator/3.1",
+        "https://osv.dev/vulnerability/GHSA-xxxx",
+        "https://www.exploit-db.com/exploits/50000",
+    ):
+        assert source_tier(_src(url, "searxng.searxng_web_search")) == "A"
+
+
+def test_is_dark_web_helper():
+    assert is_dark_web("http://abcdefghij234567.onion/page")
+    assert is_dark_web("https://forum.somemarket.onion/thread")
+    assert not is_dark_web("https://example.com/onion-recipes")
+    assert not is_dark_web("https://nvd.nist.gov/x")
+
+
+def test_dark_web_source_forced_unverified_even_if_corroborated_recent():
+    # Even a corroborated, recent, A-domain-looking onion source is UNVERIFIED/Low.
+    g = grade_source(
+        _src("http://abcdefghij234567.onion/x", "exa.web_search_exa", 2026),
+        corroboration_count=5,
+        reference_year=REF,
+    )
+    assert g.confidence == "Low"
+    assert g.unverified is True
+    assert "dark-web" in g.provenance
+    assert "UNVERIFIED" in g.provenance

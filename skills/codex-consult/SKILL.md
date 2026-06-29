@@ -25,4 +25,4 @@ One skill for the local Codex orchestration lanes. Read the mode from the user's
 
 ## Replaces
 
-Supersedes the redundant per-mode lane skills: `codex-local-consult`, `codex-local-curate`, `codex-local-review`, `agent-lanes-codex-consult`, `agent-lanes-codex-curate`, `agent-lanes-codex-review`, and `promptbridge-codex-consult`. The dedicated codex-as-MCP critic skills (`codex-review`, `codex-brainstorm`, `codex-discuss`, etc.) remain separate.
+Supersedes the redundant per-mode lane skills: `codex-local-consult`, `codex-local-curate`, `codex-local-review`, `agent-lanes-codex-consult`, `agent-lanes-codex-curate`, `agent-lanes-codex-review`, and `promptbridge-codex-consult`. The dedicated codex-as-MCP orchestration modes (brainstorm / discuss / coordinate / review / audit / curate / governance / triage) now live in the `codex-orchestrate` skill — a separate tool family (`codex_*` MCP tools) from these local PromptBridge lanes.

@@ -111,3 +111,62 @@ def test_excluded_tool_never_appears_in_resolved_lists():
     for capability in routing.ROUTING_TABLE:
         for provider in resolve_providers(capability):
             assert not is_excluded(provider)
+
+
+# --- New key-free providers: SearXNG + cve-mcp (M-16c) ---------------------
+
+
+def test_classifier_routes_vuln_keywords():
+    assert classify_capability("Lookup CVE-2024-3094 details") == "vuln"
+    assert classify_capability("Is there a known exploit for this library?") == "vuln"
+    assert classify_capability("What is the CVSS score of log4shell?") == "vuln"
+    assert classify_capability("Is there an RCE exploit for this?") == "vuln"
+    assert classify_capability("Is this in the CISA KEV catalog?") == "vuln"
+    assert classify_capability("Any zero-day or 0-day for this product?") == "vuln"
+
+
+def test_classifier_vuln_tokens_guarded_against_false_positives():
+    # Bare "rce"/"kev" substrings must NOT false-match these non-security words.
+    assert classify_capability("Show me the source code for raft") == "code"
+    assert classify_capability("How to manage a shared resource pool") != "vuln"
+    assert classify_capability("Who is Kevin and what did he build?") != "vuln"
+
+
+def test_vuln_capability_routes_cve_mcp_in_order():
+    providers = resolve_providers("vuln")
+    keys = [p.key for p in providers]
+    assert keys == [
+        "cve-mcp.cve_lookup",
+        "cve-mcp.cve_search",
+        "cve-mcp.cve_kev_list",
+    ]
+    assert all(p.server == "cve-mcp" for p in providers)
+    # cve-mcp carries an authoritative (A) source-tier prior.
+    assert providers[0].source_tier == routing.TIER_A
+
+
+def test_web_inserts_searxng_keyfree_corroborator_ahead_of_keyed():
+    keys = [p.key for p in resolve_providers("web")]
+    # firecrawl raw -> perplexity cited -> searxng KEY-FREE -> exa -> tavily.
+    assert keys[0] == "firecrawl.firecrawl_search"
+    assert keys[1] == "perplexity.pplx_smart_query"
+    assert keys[2] == "searxng.searxng_web_search"
+    # SearXNG sits ahead of the keyed exa/tavily corroborators.
+    assert keys.index("searxng.searxng_web_search") < keys.index("exa.web_search_exa")
+    assert keys.index("searxng.searxng_web_search") < keys.index("tavily.tavily_search")
+
+
+def test_classifier_routes_longtail_to_searxng():
+    assert classify_capability("Find obscure forum mentions of this part number") == "longtail"
+    assert classify_capability("A rarely documented config flag for this tool") == "longtail"
+    providers = resolve_providers("longtail")
+    assert providers[0].key == "searxng.searxng_web_search"
+    assert providers[0].source_tier == routing.TIER_B
+    # exa is the neural fallback for long-tail.
+    assert providers[-1].server == "exa"
+
+
+def test_vuln_live_filter_degrades_gracefully():
+    # cve-mcp down -> vuln resolves to no providers (caller falls back to web).
+    assert resolve_providers("vuln", live_servers={"firecrawl"}) == []
+    assert resolve_providers("vuln", live_servers={"cve-mcp"})[0].server == "cve-mcp"

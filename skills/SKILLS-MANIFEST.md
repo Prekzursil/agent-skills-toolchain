@@ -1,7 +1,7 @@
 # Skills Manifest
 
 > Auto-generated skill inventory for the agent-skills-toolchain repository.
-> Last updated: 2026-06-09
+> Last updated: 2026-06-29
 
 | Skill Name | Origin | Description |
 |---|---|---|
@@ -12,6 +12,7 @@
 | aspnet-core | built-in | Build, review, refactor, or architect ASP.NET Core web applications using current official guidance |
 | autofix-bot-api | custom | Scan code for security vulnerabilities, leaked secrets, and dependency issues via DeepSource autofix bot API |
 | battlecats-event-unlock | custom | Use when working on Battle Cats special/event/tower stage visibility or on-demand unlock RE — the proven dual-dependency model (tree-admission + valid schedule row), decisive offsets, the Event Summoner tool, and approaches proven DEAD |
+| bcsfe-save-roundtrip | custom | Pull/edit/push a Battle Cats (EN, rooted BlueStacks) SAVE_DATA — byte-exact PowerShell+HOME-flush pull, headless BCSFE library edit, in-place cat-redirect push preserving uid 10065 + SELinux context; incl. the MSYS path-mangling wipe gotcha and the Ototo cannon-unlock fields |
 | binary-ninja | custom | Use when Binary Ninja UI workflows, intermediate-language reasoning, or Binary Ninja Python API automation are needed |
 | binary-ninja-diff-signatures | custom | Use when working in Binary Ninja to compare versions, analyze changed functions, or generate stable signatures |
 | binary-ninja-mcp | custom | Use when installing or configuring Binary Ninja MCP, especially when a plugin or npm-based MCP bridge must be wired |
@@ -32,18 +33,10 @@
 | citation-mapping | custom | Use when you need to build a citation or reference map for a paper, tracing backward references and forward cited-by works from metadata APIs like Semantic Scholar and OpenAlex |
 | cloudflare-deploy | built-in | Deploy applications and infrastructure to Cloudflare using Workers, Pages, and related platform services |
 | code-security | built-in | Security guidelines for writing secure code |
-| codex-audit | custom | Use when you want an audit-style orchestration pass over risk, gaps, and verification needs |
-| codex-brainstorm | custom | Use when you want two Codex peers to generate ideas before synthesis |
 | codex-consult | custom | Use when the user wants a Codex-side orchestration pass — consult, curate, or review — via codex_local_* / codex_orchestrator_* tools instead of direct ChatGPT web automation; one skill, three modes (replaces the codex-local-* and agent-lanes-codex-* lanes) |
-| codex-coordinate | custom | Use when you want Codex to split roles and consolidate the outcome |
-| codex-curate | custom | Use when you want a final best-option selector, optionally with PromptBridge talk-only curation |
-| codex-discuss | custom | Use when you want two Codex peers to debate tradeoffs before synthesis |
-| codex-fix | custom | Use when you want Codex to coordinate a fix path across multiple reasoning roles |
-| codex-governance | custom | Use when you need a final governance-oriented decision across options and risks |
-| codex-review | custom | Use when you want one Codex critic to review a plan or change before implementation |
+| codex-orchestrate | custom | Route a task to the right codex-as-MCP orchestration tool by intent — one skill, all modes: brainstorm (codex_brainstorm), discuss (codex_discuss), coordinate/fix (codex_coordinate), review/audit (codex_review), curate/governance (codex_curate), triage (codex_consult). Replaces the per-mode wrappers codex-audit/brainstorm/coordinate/curate/discuss/fix/governance/review/triage |
 | codex-runtime-recovery | custom | Use when Codex state is split across Windows, WSL, or VS Code, sessions disappear, or state_5.sqlite files churn |
 | codex-session-reunion | custom | Use when Codex sessions or rollout JSONL files are spread across Windows, WSL, backups, or VS Code mirrors |
-| codex-triage | custom | Use when you need a fast classification of next steps before deeper work |
 | codex-vscode-host-routing | custom | Use when VS Code launches Codex from the wrong host or WSL becomes the default unexpectedly |
 | competitive-programming-solver | custom | Use when solving online judge, olympiad, or contest problems in C, C++, or Python |
 | consensus-tooluniverse-research | custom | Use when downloading or harvesting research from Consensus.app — extract searches browser-free from the page payload, resolve papers to DOIs and open-access PDFs via ToolUniverse, organize by topic with a bibliography, and capture the Consensus Meter graphs |
@@ -80,6 +73,8 @@
 | llm-security | built-in | Security guidelines for LLM applications based on OWASP Top 10 for LLM 2025 |
 | lolbin-lookup | custom | Structured GTFOBins (Unix) + LOLBAS (Windows) living-off-the-land lookup over D:\knowledge — binary name to abuse technique/category to ready command |
 | long-copy-orchestrator | custom | Use when moving large trees between Windows, WSL, VMs, or mounted disks |
+| mcp-code-orchestrate | custom | Use when one task needs the SAME tool-call shape across MANY items (xref-walk over many functions, descriptor sweep over many SMILES, batch-resolve/screen a list of papers, multi-source aggregation) — write ONE script that calls provider CLIs/libs/MCP-stdio, filters+aggregates in-code, returns only the distilled result. Anthropic's code-execution-with-MCP 98.7% fan-out token-cut; decision rule >~5 same-shape calls |
+| mcp-fleet-curation | custom | Use when plugins/skills/MCP servers keep REAPPEARING after you disable them, or when de-bloating the Claude Code catalogue — the permanent cure (claude plugin disable name@mkt --scope user, not the UI toggle) + mcp_doctor audit + the reversible .mcp.json park/restore flow + the catalogue-tax model |
 | mcp-graphql | custom | Use when installing or configuring blurrah/mcp-graphql for Codex, Claude Code, or Gemini CLI |
 | mechanistic-ddi-pipeline | custom | Use to produce a mechanistic drug-drug-interaction verdict by combining ToolUniverse CYP/DDI knowledge with Schrodinger structure and docking evidence |
 | mise | custom | Use when managing dev tool or language runtime versions with mise (mise-en-place) — global vs per-project pins, per-directory env vars, the task runner, non-language CLI installs, or Windows PowerShell setup |

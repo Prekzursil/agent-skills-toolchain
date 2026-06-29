@@ -45,6 +45,12 @@ _TIER_A_DOMAINS = (
     "europa.eu",
     "ietf.org",
     "rfc-editor.org",
+    # Authoritative vulnerability / security data sources (vuln capability).
+    "nvd.nist.gov",
+    "cisa.gov",
+    "first.org",
+    "osv.dev",
+    "exploit-db.com",
 )
 # Domain substrings that imply a reputable secondary (B) source.
 _TIER_B_DOMAINS = (
@@ -68,11 +74,18 @@ _PROVIDER_PRIOR = {
     "scholarly-access": TIER_A,
     "context7": TIER_A,
     "tooluniverse": TIER_A,
+    "cve-mcp": TIER_A,  # authoritative NVD/CIRCL/OSV/CISA-KEV vulnerability data
     "firecrawl": TIER_B,
     "exa": TIER_B,
     "tavily": TIER_B,
     "huggingface": TIER_B,
+    "searxng": TIER_B,  # reputable key-free metasearch aggregator
 }
+
+# A source whose host is a Tor/onion (dark-web) address can never be treated as
+# corroborated/verified, regardless of how many other sources echo it. Such a
+# source is force-flagged UNVERIFIED and capped at Low confidence.
+_DARK_WEB_MARKERS = (".onion",)
 
 
 @dataclass(frozen=True, slots=True)
@@ -111,6 +124,16 @@ def _provider_tier(provider: str) -> str:
     return _PROVIDER_PRIOR.get(server, TIER_C)
 
 
+def is_dark_web(url: str) -> bool:
+    """True if the URL points at a Tor/onion (dark-web) host.
+
+    Such sources are force-flagged UNVERIFIED in ``grade_source`` no matter how
+    many other sources echo them (the dark-web-forced-UNVERIFIED guardrail).
+    """
+    host = (urlparse(url).hostname or "").lower()
+    return any(marker in host for marker in _DARK_WEB_MARKERS)
+
+
 def source_tier(source: Source) -> str:
     """Best of the domain-authority prior and the provider prior."""
     rank = max(_TIER_RANK[_domain_tier(source.url)], _TIER_RANK[_provider_tier(source.provider)])
@@ -135,25 +158,35 @@ def grade_source(
     """
     ref = _current_year() if reference_year is None else reference_year
     tier = source_tier(source)
+    dark = is_dark_web(source.url)
     corroborated = corroboration_count >= 2
     recent = source.published_year is not None and source.published_year >= ref - 1
 
     score = _TIER_RANK[tier] + (1 if corroborated else 0) + (1 if recent else 0)
-    if score >= 3:
+    if dark:
+        # Dark-web sources are force-flagged UNVERIFIED and capped at Low,
+        # regardless of corroboration/recency/tier.
+        confidence = "Low"
+        unverified = True
+    elif score >= 3:
         confidence = "High"
+        unverified = not corroborated
     elif score == 2:
         confidence = "Medium"
+        unverified = not corroborated
     else:
         confidence = "Low"
+        unverified = not corroborated
 
-    unverified = not corroborated
     return Grade(
         tier=tier,
         confidence=confidence,
         corroboration_count=corroboration_count,
         recent=recent,
         unverified=unverified,
-        provenance=_format_provenance(tier, corroboration_count, source.published_year, unverified),
+        provenance=_format_provenance(
+            tier, corroboration_count, source.published_year, unverified, dark=dark
+        ),
     )
 
 
@@ -162,10 +195,17 @@ def _format_provenance(
     corroboration_count: int,
     year: int | None,
     unverified: bool,
+    *,
+    dark: bool = False,
 ) -> str:
     corrob = f"corrob x{corroboration_count}" if corroboration_count >= 2 else "single"
     year_label = str(year) if year is not None else "n.d."
-    suffix = " - UNVERIFIED" if unverified else ""
+    if dark:
+        suffix = " - UNVERIFIED (dark-web)"
+    elif unverified:
+        suffix = " - UNVERIFIED"
+    else:
+        suffix = ""
     return f"[{tier}.{corrob}.{year_label}{suffix}]"
 
 

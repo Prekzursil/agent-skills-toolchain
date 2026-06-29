@@ -8,7 +8,7 @@ the highest-ranked provider that is currently *live* (see ``preflight``).
 The table is the single choke-point to update when MCP tool names/quotas drift
 (see the deep-research drift warning). It encodes the standing routing policy:
 
-    web           -> firecrawl (primary) -> perplexity -> exa -> tavily
+    web           -> firecrawl (primary) -> perplexity -> searxng -> exa -> tavily
     synthesis     -> perplexity (primary) -> exa -> firecrawl
     neural        -> exa (primary) -> firecrawl
     academic      -> scholarly-access (OA) -> huggingface
@@ -16,6 +16,17 @@ The table is the single choke-point to update when MCP tool names/quotas drift
     code / repos  -> exa -> firecrawl(github) -> context7
     library docs  -> context7 -> exa
     deep_read     -> firecrawl(scrape) -> exa(fetch) -> tavily(extract)
+    vuln          -> cve-mcp(lookup) -> cve-mcp(search) -> cve-mcp(kev)
+    longtail      -> searxng (key-free metasearch) -> exa
+
+Key-free additions (M-16c, no API key / no quota):
+  * ``searxng`` — a self-hosted SearXNG metasearch instance aggregating many
+    upstream engines. Inserted as the high-priority **key-free corroborator** on
+    ``web`` (ahead of the keyed exa/tavily) and as the primary for ``longtail``
+    (obscure / rarely-documented queries where a metasearch beats a single index).
+  * ``cve-mcp`` — authoritative vulnerability lookup (NVD / CIRCL / OSV / CISA-KEV
+    / ExploitDB backed). Drives the new ``vuln`` capability for CVE / exploit /
+    CVSS / KEV questions. Tier A primary security data, key-free local MCP.
 
 Provider-strength split (the Perplexity correlation, M-16b):
   * ``synthesis`` is for "explain / compare / what's-the-consensus"-style
@@ -32,6 +43,9 @@ Hard guardrails baked in:
     regression revert.
   * Parked servers (``scrapegraph``, ``apify`` in ~/.mcp.disabled.json) are
     never routed to.
+  * No dark-web / onion provider is in the table. If a ``.onion`` source ever
+    reaches grading it is force-flagged UNVERIFIED regardless of corroboration
+    (see ``grading.grade_source`` / ``grading.is_dark_web``).
 
 Compliance note: Perplexity here is a *cookie/session-auth* MCP (no paid API
 key) — a gray-area approach like the IG/FB cookie MCPs. The secret cookie is
@@ -81,13 +95,26 @@ CONTEXT7_DOCS = Provider("context7", "query-docs", TIER_A)
 # synthesized answer *with inline citations*. Tier B = reputable aggregator
 # (a synthesis layer over web sources, not itself a primary source).
 PERPLEXITY_SMART = Provider("perplexity", "pplx_smart_query", TIER_B)
+# SearXNG key-free self-hosted metasearch (mcp-searxng, ``SEARXNG_URL`` env). No
+# API key, no quota. Tier B = reputable aggregator (a metasearch layer over many
+# engines, not itself a primary source). Key-free corroborator on ``web`` and the
+# primary for ``longtail`` (obscure / rarely-documented queries).
+SEARXNG_SEARCH = Provider("searxng", "searxng_web_search", TIER_B)
+# cve-mcp authoritative vulnerability lookup (NVD/CIRCL/OSV/CISA-KEV/ExploitDB).
+# Tier A = primary/authoritative security data; key-free local MCP. Three tools
+# drive the ``vuln`` capability: by-id lookup, keyword search, and the CISA
+# Known-Exploited-Vulnerabilities catalog.
+CVE_LOOKUP = Provider("cve-mcp", "cve_lookup", TIER_A)
+CVE_SEARCH = Provider("cve-mcp", "cve_search", TIER_A)
+CVE_KEV_LIST = Provider("cve-mcp", "cve_kev_list", TIER_A)
 
 
 # --- Capability -> ordered providers (primary first) ----------------------
 ROUTING_TABLE: dict[str, tuple[Provider, ...]] = {
     # Raw web discovery: firecrawl primary (best for raw links/extraction),
-    # Perplexity as the high-priority cited-corroborator #2, then exa/tavily.
-    "web": (FIRECRAWL_SEARCH, PERPLEXITY_SMART, EXA_SEARCH, TAVILY_SEARCH),
+    # Perplexity as the high-priority cited-corroborator #2, SearXNG as the
+    # high-priority KEY-FREE corroborator #3 (ahead of the keyed exa/tavily).
+    "web": (FIRECRAWL_SEARCH, PERPLEXITY_SMART, SEARXNG_SEARCH, EXA_SEARCH, TAVILY_SEARCH),
     # Synthesis ("explain/compare/consensus"): Perplexity primary (cited
     # synthesized answer), exa/firecrawl as raw-source fallbacks.
     "synthesis": (PERPLEXITY_SMART, EXA_SEARCH, FIRECRAWL_SEARCH),
@@ -97,6 +124,12 @@ ROUTING_TABLE: dict[str, tuple[Provider, ...]] = {
     "code": (EXA_SEARCH, FIRECRAWL_GITHUB, CONTEXT7_DOCS),
     "library_docs": (CONTEXT7_DOCS, EXA_SEARCH),
     "deep_read": (FIRECRAWL_SCRAPE, EXA_FETCH, TAVILY_EXTRACT),
+    # Vulnerability / exploit intel: authoritative CVE lookup first, then
+    # keyword CVE search, then the CISA Known-Exploited-Vulnerabilities catalog.
+    "vuln": (CVE_LOOKUP, CVE_SEARCH, CVE_KEV_LIST),
+    # Long-tail / obscure queries: key-free SearXNG metasearch (aggregates many
+    # engines) primary, exa neural as the fallback.
+    "longtail": (SEARXNG_SEARCH, EXA_SEARCH),
 }
 
 DEFAULT_CAPABILITY = "web"
@@ -116,6 +149,26 @@ PARKED_SERVERS = frozenset({"scrapegraph", "apify"})
 # Keyword -> capability classifier. First capability whose keywords match the
 # (lowercased) sub-question wins; order is significant (most specific first).
 _CLASSIFIER_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    # Vulnerability / exploit intel FIRST: its keywords are highly
+    # security-specific and don't collide with the other domains. ``rce`` and
+    # ``kev`` are space-padded so they don't false-match inside "source"/
+    # "resource"/"kevin"; the spelled-out phrases catch the abbreviations safely.
+    (
+        "vuln",
+        (
+            "cve",
+            "cvss",
+            "vulnerabilit",
+            "exploit",
+            "0-day",
+            "zero-day",
+            "remote code execution",
+            " rce ",
+            " kev ",
+            "kev catalog",
+            "known exploited",
+        ),
+    ),
     (
         "bio",
         (
@@ -184,6 +237,22 @@ _CLASSIFIER_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
             "neural search",
             "similar to",
             "find similar",
+        ),
+    ),
+    # Long-tail: obscure / rarely-documented queries where a key-free metasearch
+    # (SearXNG, many engines) beats any single index. Kept above synthesis so an
+    # "obscure" intent isn't swallowed by a generic explain/compare phrasing.
+    (
+        "longtail",
+        (
+            "obscure",
+            "long-tail",
+            "long tail",
+            "hard to find",
+            "rarely documented",
+            "little-known",
+            "metasearch",
+            "many search engines",
         ),
     ),
     # Synthesis must stay LAST among the rules so domain-specific routing

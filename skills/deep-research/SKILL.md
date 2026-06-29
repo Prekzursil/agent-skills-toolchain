@@ -41,10 +41,14 @@ live (see Preflight):
 - **tooluniverse** — `find_tools`, `execute_tool` (bio/pharma, 1264-tool library)
 - **huggingface** — `paper_search` (ML/arXiv papers)
 - **context7** — `resolve-library-id`, `query-docs` (library/API docs)
+- **searxng** (key-free self-hosted metasearch, `mcp-searxng`, `SEARXNG_URL` env) — `searxng_web_search` (no API key, no quota; high-priority **key-free** web corroborator and the `longtail` primary)
+- **cve-mcp** (key-free local MCP, NVD/CIRCL/OSV/CISA-KEV/ExploitDB) — `cve_lookup`, `cve_search`, `cve_kev_list` (the `vuln` capability for CVE/exploit/CVSS/KEV questions)
 
 Parked (`~/.mcp.disabled.json`): `scrapegraph`, `apify` — the harness routes
 around them. Never call `mcp__sci-hub__*`; avoid `paper_find_oa_pdf` per the
-standing regression note. Both are hard-excluded by the router.
+standing regression note. Both are hard-excluded by the router. No dark-web /
+onion provider is routed to; any `.onion` source that reaches grading is
+force-flagged UNVERIFIED regardless of corroboration.
 
 ## Workflow
 
@@ -167,7 +171,7 @@ providers (primary first), with a source-tier prior for grading:
 
 | Capability | Ordered providers (primary first) |
 |---|---|
-| `web` | firecrawl.firecrawl_search -> perplexity.pplx_smart_query -> exa.web_search_exa -> tavily.tavily_search |
+| `web` | firecrawl.firecrawl_search -> perplexity.pplx_smart_query -> searxng.searxng_web_search -> exa.web_search_exa -> tavily.tavily_search |
 | `synthesis` | perplexity.pplx_smart_query -> exa.web_search_exa -> firecrawl.firecrawl_search |
 | `neural` | exa.web_search_exa -> firecrawl.firecrawl_search |
 | `academic` | scholarly-access.paper_resolve -> huggingface.paper_search |
@@ -175,15 +179,21 @@ providers (primary first), with a source-tier prior for grading:
 | `code` | exa.web_search_exa -> firecrawl.firecrawl_research_search_github -> context7.query-docs |
 | `library_docs` | context7.query-docs -> exa.web_search_exa |
 | `deep_read` | firecrawl.firecrawl_scrape -> exa.web_fetch_exa -> tavily.tavily_extract |
+| `vuln` | cve-mcp.cve_lookup -> cve-mcp.cve_search -> cve-mcp.cve_kev_list |
+| `longtail` | searxng.searxng_web_search -> exa.web_search_exa |
 
 `classify_capability(subquestion)` is a cheap, conservative keyword classifier
-(keywords like paper/study/doi -> academic; gene/protein/drug -> bio; repo/github
--> code; api docs/sdk -> library_docs; explain/compare/consensus -> synthesis;
-else web). Domain rules win over synthesis phrasing (synthesis is the last rule),
-and raw link/extraction stays on firecrawl/exa while synthesized **cited** answers
-route to Perplexity. `resolve_providers(capability, live_servers, top_n)` returns
-ordered live providers; Sci-Hub, the regressed `paper_find_oa_pdf`, and parked
-servers are hard-excluded.
+(keywords like cve/cvss/exploit/kev/0-day/rce -> vuln; paper/study/doi -> academic;
+gene/protein/drug -> bio; repo/github -> code; api docs/sdk -> library_docs;
+obscure/long-tail/rarely-documented -> longtail; explain/compare/consensus ->
+synthesis; else web). The security-specific `vuln` rule runs first; domain rules
+win over synthesis phrasing (synthesis is the last rule); raw link/extraction
+stays on firecrawl/exa while synthesized **cited** answers route to Perplexity.
+The key-free additions: **searxng** (self-hosted metasearch) is the high-priority
+key-free corroborator on `web` and the `longtail` primary; **cve-mcp** drives
+`vuln`. `resolve_providers(capability, live_servers, top_n)` returns ordered live
+providers; Sci-Hub, the regressed `paper_find_oa_pdf`, and parked servers are
+hard-excluded.
 
 ### 2. Query-hash cache (`cache.py`)
 
@@ -198,10 +208,14 @@ TTL: web/news ~24h, code/docs ~7d, academic/bio ~30d. Corruption or expiry == mi
 
 `confidence(claim) = f(source_tier, corroboration_count, recency)`, fully
 deterministic. Source tier = best of a domain-authority prior (.gov/.edu/doi.org
--> A; wikipedia/github/major-news -> B; else C) and the routing provider prior.
-A single source is flagged UNVERIFIED; >=2 independent sources are corroborated;
-within ~12 months boosts recency. Each source gets a provenance tag like
-`[A.corrob x2.2026]`; the report header confidence is derived from the grade
+plus the security authorities nvd.nist.gov/cisa.gov/first.org/osv.dev/exploit-db.com
+-> A; wikipedia/github/major-news -> B; else C) and the routing provider prior
+(scholarly-access/context7/tooluniverse/**cve-mcp** -> A; firecrawl/exa/tavily/
+huggingface/**searxng** -> B). A single source is flagged UNVERIFIED; >=2
+independent sources are corroborated; within ~12 months boosts recency. A
+dark-web / `.onion` source is **force-flagged UNVERIFIED and capped at Low**
+regardless of corroboration (`is_dark_web`). Each source gets a provenance tag
+like `[A.corrob x2.2026]`; the report header confidence is derived from the grade
 distribution.
 
 ### 4. Cited-report output (`report.py`)

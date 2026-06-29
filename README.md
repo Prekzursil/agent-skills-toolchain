@@ -218,7 +218,7 @@ Live installable skills currently ship from `skills/`:
 - `agent-lanes-chatgpt-web-discuss` / `chatgpt5-web-discuss` - explicitly select the direct ChatGPT web discussion lane.
 - `agent-lanes-chatgpt-web-curate` / `chatgpt5-web-curate` - explicitly select the direct ChatGPT web curation lane.
 - `using-superpowers`, `brainstorming`, `writing-plans`, `executing-plans`, `systematic-debugging`, `test-driven-development`, `verification-before-completion`, `dispatching-parallel-agents`, `subagent-driven-development`, `requesting-code-review`, `receiving-code-review`, and `using-git-worktrees` - general-purpose workflow skills promoted from the current local Codex skill set.
-- `codex-audit`, `codex-brainstorm`, `codex-coordinate`, `codex-curate`, `codex-discuss`, `codex-fix`, `codex-governance`, `codex-review`, `codex-triage`, `multi-agent-quickstart`, and `codex-consult` - newer orchestration and lane-helper skills promoted from the current local Codex skill set.
+- `codex-orchestrate` (one skill for all codex-as-MCP modes — brainstorm/discuss/coordinate/review/audit/curate/governance/triage), `codex-consult` (the local PromptBridge consult/curate/review lanes), and `multi-agent-quickstart` - orchestration and lane-helper skills promoted from the current local Codex skill set. The former per-mode wrappers (`codex-audit`, `codex-brainstorm`, `codex-coordinate`, `codex-curate`, `codex-discuss`, `codex-fix`, `codex-governance`, `codex-review`, `codex-triage`) are consolidated into `codex-orchestrate`.
 
 ### Tools
 
