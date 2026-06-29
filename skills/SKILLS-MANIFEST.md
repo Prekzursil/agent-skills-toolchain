@@ -6,9 +6,6 @@
 | Skill Name | Origin | Description |
 |---|---|---|
 | 010-editor | custom | Use when applying binary templates (.bt), running 010 Editor scripts (.1sc), or performing hex editing with SweetScape 010 Editor |
-| agent-lanes-chatgpt-web-curate | custom | Use when the user explicitly wants final comparison or curation through the direct ChatGPT web lane |
-| agent-lanes-chatgpt-web-discuss | custom | Use when the user explicitly wants discussion, ideation, or sparring through the direct ChatGPT web lane |
-| agent-lanes-chatgpt-web-query | custom | Use when the user explicitly wants a direct ChatGPT web / Agentify lane rather than Codex orchestration |
 | agentic-humanizer | vendored | Humanize AI text via a 5-pass rewrite with optional stylometric voice matching; optional Slop or Not Pro scoring (macOS). Vendored from numen-tech/slopornot |
 | angr | built-in | Use when symbolic execution, path exploration, constraint solving, or programmatic reasoning about binary behavior is needed |
 | apply-callee-type-ex | custom | Use when IDA Pro decompiler output suffers from missing or bad indirect-call types and you need ApplyCalleeTypeEx |
@@ -81,6 +78,7 @@
 | jupyter-notebook | built-in | Use when the user asks to create, scaffold, or edit Jupyter notebooks (.ipynb) |
 | linear | built-in | Manage issues, projects and team workflows in Linear |
 | llm-security | built-in | Security guidelines for LLM applications based on OWASP Top 10 for LLM 2025 |
+| lolbin-lookup | custom | Structured GTFOBins (Unix) + LOLBAS (Windows) living-off-the-land lookup over D:\knowledge — binary name to abuse technique/category to ready command |
 | long-copy-orchestrator | custom | Use when moving large trees between Windows, WSL, VMs, or mounted disks |
 | mcp-graphql | custom | Use when installing or configuring blurrah/mcp-graphql for Codex, Claude Code, or Gemini CLI |
 | mechanistic-ddi-pipeline | custom | Use to produce a mechanistic drug-drug-interaction verdict by combining ToolUniverse CYP/DDI knowledge with Schrodinger structure and docking evidence |
@@ -113,6 +111,8 @@
 | scholarly-literature-review | custom | Use when you have a DOI, PMID, arXiv id, or title (or a list) and want canonical metadata, a per-paper access-status table (oa_pdf vs free-to-read vs subscription vs unavailable), citation/reference expansion, or a metadata-and-abstract summary via the Scholarly Access MCP paper_* tools |
 | schrodinger-maestro-driver | custom | Use when driving the local Schrodinger MCP for structure-based drug discovery - SMILES to 3D, LigPrep, Protein Prep Wizard, Glide grid generation, Glide docking, Prime MM-GBSA, QikProp ADMET, conversion, run_schrodinger_python escape hatch |
 | screenshot | built-in | Use when the user explicitly asks for a desktop or system screenshot |
+| sec-corpora-update | custom | Refresh the local security corpora under D:\knowledge (PayloadsAllTheThings, GTFOBins, LOLBAS, OWASP WSTG/CheatSheets, Atomic Red Team) with a shallow, fail-open git pull each |
+| secsearch | custom | Unified offline ripgrep search across all local security corpora under D:\knowledge with per-source provenance tags; use first for cross-source security/pentest/red-team lookups |
 | security-best-practices | built-in | Perform language and framework specific security best-practice reviews |
 | security-ownership-map | built-in | Analyze git repositories to build a security ownership topology |
 | security-threat-model | built-in | Repository-grounded threat modeling that enumerates trust boundaries, assets, attacker capabilities |
