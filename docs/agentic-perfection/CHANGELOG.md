@@ -18,6 +18,82 @@ agent the tired mid-task self can't override), not in the model's good intention
 
 ---
 
+## 2026-06-29 — App-driver / audit skillset + RE-backend autolaunch + userscope-sync
+
+Delivers the program's queued **"app-driving drive-and-verify"** thread (see Status):
+deterministic skills that *drive a running app and verify it* (a web/Electron app and a
+live game), plus two infra hooks that make on-demand RE backends and the MCP user-scope
+config "just work". All new skills pass `quick_validate.py` (no angle brackets in the
+`description`, allowed frontmatter keys only) — the as-built frontmatter was corrected on
+the way in (stripped a non-standard `origin:` key; de-angle-bracketed the ui-audit /
+bc-drive descriptions).
+
+### Added — skills (`skills/`)
+
+- **`skills/ui-audit/` (v2 hardened + orchestrator)** — drives a running web or Electron
+  app and emits a deterministic, terminal-state UI/UX + functional audit. Audit modules:
+  `capture.mjs` (deterministic screenshots), `layout_lint.mjs` (spacing / tap-target /
+  overlap / contrast), `dead_button_crawl.mjs` (wired-vs-dead control crawl),
+  `axe_scan.mjs` (accessibility), `visual_diff.mjs` (visual regression) — composed by
+  `run_audit.mjs` (the orchestrator). READ-ONLY: it drives and inspects, never edits app
+  source. Emits `SUCCESS:ui-audit-[id]` / `FAILED:ui-audit-[id] [reason]` terminal-state
+  markers plus an annotated findings JSON for downstream Track-B VLM design critique.
+  Ships `tests/` (7 suites) + `fixtures/` (static / SPA / component HTML); `node_modules/`
+  and `package-lock.json` are NOT versioned (repo `.gitignore` policy — run `npm install`).
+- **`skills/bc-drive/`** — deterministic on-demand driver for a LIVE Battle Cats
+  (`jp.co.ponos.battlecatsen`, EN 15.4.1) on rooted BlueStacks. `bc_agent.js` reads engine
+  state (scene / metrics) via **crash-safe one-shot Frida `NativeFunction` calls** —
+  explicitly NO per-frame `Interceptor` (the render-thread hook that crashes on scene
+  transitions); `bc_drive.py` actuates with OS-level `adb shell input tap` in device px and
+  resolves the device-to-drawable coordinate space. BC is a custom PONOS C++/GLES engine
+  (not cocos2d-x). Drive-and-verify applied to a native game.
+- **`skills/re-ensure/`** — explicit, on-demand bring-up of the RE MCP backends so
+  `mcp__ida-pro-mcp` / `mcp__ghidra-mcp` / `mcp__binary-ninja-mcp` calls just work. Shares
+  the `re-autolaunch` engine (`autolaunch.py ensure <ida|ghidra|bn|all>`): cold-starts ONLY
+  the requested backend (RAM-conscious), prefers an already-running GUI IDA on `:13337`
+  (never duplicates), and reports honestly that Binary Ninja (Personal license) cannot run
+  headless.
+- **`skills/gem-hunt/`** — manifest row backfilled (the skill shipped in `b2f3cd8` but was
+  missing from `SKILLS-MANIFEST.md`).
+
+### Added — hooks (`hooks/`)
+
+- **`hooks/re-autolaunch/` (`autolaunch.py` + `backends.json` + `test_autolaunch.py`)** —
+  the automatic PreToolUse companion to `re-ensure`, matching
+  `mcp__(ida-pro|ghidra|binary-ninja)-mcp__.*`. The RE MCPs are **bridge proxies** whose
+  calls forward to a plugin/server inside a GUI/headless app; if that backend is down the
+  call just fails. The hook probes the backend port(s) and: UP (incl. the live GUI IDA on
+  `:13337`) → fast silent no-op; DOWN + launchable → cold-starts ONLY that backend via the
+  re-harness (`re_launch.py`, DETACHED so the hook never blocks) and returns an actionable
+  retry; DOWN + unlaunchable (Binary Ninja Personal) → emits the manual step. Backends are
+  declared in `backends.json` (data-driven; a new backend is a JSON entry, no code change).
+  RAM-conscious (on-demand only, single-backend, idempotent, refuses below
+  `min_free_ram_mb`) and FAIL-OPEN (any error exits 0, never blocks the call).
+- **`hooks/mcp-userscope-sync/` (`heal.py` + `promote-mcp-userscope.ps1`)** — MCP
+  user-scope drift fix. The PRIMARY cure is `promote-mcp-userscope.ps1`, which promotes the
+  canonical MCP set into **user** scope so it loads in every normal session (not silently
+  shadowed by project-scope writes — the reappearing-server failure mode). `heal.py` is the
+  SessionStart belt-and-suspenders backstop: (1) plants the canonical `~/.mcp.json` at an
+  *orphan* tree root (CREATE-ONLY; never overwrites, skips `mcp-funnel`/ralph and
+  plugins/node_modules paths), and (2) re-syncs the `~/.agents/skills` mirror (a copy, not
+  a junction, so it goes stale). FAIL-OPEN and ralph-safe (ralph's `--setting-sources
+  project,local` excludes user scope, so it never runs there). Runtime state
+  (`.last-skills-heal`) is NOT versioned.
+
+### Not a skill (noted for traceability, not versioned here)
+
+- **529-overload gateway** — the `ANTHROPIC_BASE_URL` multi-provider gateway that survives
+  transient Anthropic-side 529 overloads lives under **`D:\tools`** (host infra, not a repo
+  skill/hook).
+
+### Not versioned (by design)
+
+`node_modules/` (ui-audit), the `bc_demo_before.png` / `bc_demo_after.png` before/after
+captures, `__pycache__` / `.ruff_cache`, runtime state, and the `~/.claude/settings.json`
+hook wiring (personal — it binds these hooks to events).
+
+---
+
 ## 2026-06-29 — Wave 0 (lifecycle hooks) + Wave 1 (security / reasoning gems)
 
 This session extends the hook set with two new waves. A **fresh-context Opus

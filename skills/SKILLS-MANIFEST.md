@@ -12,6 +12,7 @@
 | aspnet-core | built-in | Build, review, refactor, or architect ASP.NET Core web applications using current official guidance |
 | autofix-bot-api | custom | Scan code for security vulnerabilities, leaked secrets, and dependency issues via DeepSource autofix bot API |
 | battlecats-event-unlock | custom | Use when working on Battle Cats special/event/tower stage visibility or on-demand unlock RE — the proven dual-dependency model (tree-admission + valid schedule row), decisive offsets, the Event Summoner tool, and approaches proven DEAD |
+| bc-drive | custom | Deterministic on-demand driver for a LIVE Battle Cats (jp.co.ponos.battlecatsen, EN 15.4.1) instance on rooted BlueStacks. Reads engine state (scene/metrics) via crash-safe one-shot Frida NativeFunction calls (NO per-frame Interceptor) and actuates via OS-level adb shell input tap in device px. BC is a CUSTOM PONOS C++/GLES engine (not cocos2d-x). Use to script/inspect BC menu navigation, resolve its device-to-drawable coordinate space, or read scene state. Requires adb + frida-server up |
 | bcsfe-save-roundtrip | custom | Pull/edit/push a Battle Cats (EN, rooted BlueStacks) SAVE_DATA — byte-exact PowerShell+HOME-flush pull, headless BCSFE library edit, in-place cat-redirect push preserving uid 10065 + SELinux context; incl. the MSYS path-mangling wipe gotcha and the Ototo cannon-unlock fields |
 | binary-ninja | custom | Use when Binary Ninja UI workflows, intermediate-language reasoning, or Binary Ninja Python API automation are needed |
 | binary-ninja-diff-signatures | custom | Use when working in Binary Ninja to compare versions, analyze changed functions, or generate stable signatures |
@@ -54,6 +55,7 @@
 | format-codex-sessions | custom | Use when Codex rollout JSONL files need to be turned into readable Markdown conversations or transcripts |
 | frida | custom | Use when runtime hooking, device instrumentation, API tracing, or patch-on-the-fly behavior matters |
 | frida-mcp | custom | Use when installing or configuring frida-mcp as an MCP server for live Frida instrumentation |
+| gem-hunt | custom | Use when the user wants to DISCOVER high-value improvements to their OWN agentic workspace/toolkit — new hooks, behaviors, gems, skills, MCPs, cross-domain techniques, or frontier-harness patterns — via a wide multi-lens agent fan-out, then a consolidated adopt/prune decision. The named agentic-perfection sweep / extensive gem search. NOT for interrogating ONE existing plan (use grill-me-extensive), NOT for ordinary topic research (use deep-research) |
 | gh-address-comments | built-in | Help address review/issue comments on the open GitHub PR for the current branch |
 | gh-fix-ci | built-in | Use when a user asks to debug or fix failing GitHub PR checks that run in GitHub Actions |
 | ghidra-automation-recipes | custom | Use when automating Ghidra analysis with Script Manager scripts, ghidra_bridge, or repeatable Python-driven recipes |
@@ -95,6 +97,7 @@
 | playwright-interactive | built-in | Persistent browser and Electron interaction through js_repl for fast iterative UI debugging |
 | quality-gate-automation-architect | custom | Use when designing, comparing, or reviewing autonomous repo-quality automation |
 | radare2 | custom | Use when command-line disassembly, debugging, hex editing, or scriptable low-level binary triage is needed |
+| re-ensure | custom | Bring up the reverse-engineering MCP backends (IDA / Ghidra) on demand so mcp__ida-pro-mcp / mcp__ghidra-mcp / mcp__binary-ninja-mcp calls just work without manually opening or navigating the GUI apps. Cold-starts ONLY the requested backend (RAM-conscious), prefers an already-running GUI IDA on :13337 (never duplicates), and reports honestly that Binary Ninja (Personal license) cannot run headless. Companion to the automatic PreToolUse re-autolaunch hook |
 | reboot-safe-ops-continuation | custom | Use when a reboot is required in the middle of migration or repair work and you need exact pre-reboot state capture |
 | receiving-code-review | marketplace:superpowers | Use when receiving code review feedback, before implementing suggestions |
 | render-deploy | built-in | Deploy applications to Render by analyzing codebases, generating render.yaml Blueprints |
@@ -130,6 +133,7 @@
 | test-driven-development | marketplace:superpowers | Use when implementing any feature or bugfix, before writing implementation code |
 | tiktok-public-research | custom | Use when the user wants to read public TikTok data - trending, a creator's public posts/likes, a hashtag feed, a video's metadata/comments/related, or user search - via the self-hosted tiktok MCP. Covers the read-only tool inventory, ms_token and residential-proxy reliability knobs, and hard limits (no own feed, no saved, no DMs, no posting; unofficial-API ban and IP-block risk) |
 | transcribe | built-in | Transcribe audio files to text with optional diarization and known-speaker hints |
+| ui-audit | custom | Drive a running web or Electron app and emit a deterministic UI/UX + functional audit — accessibility, contrast, spacing, tap targets, dead buttons, visual regression. READ-ONLY (drives and inspects, never edits app source). Emits terminal-state typed findings (SUCCESS:ui-audit-[id] / FAILED:ui-audit-[id]) + annotated findings JSON for downstream Track-B VLM design critique |
 | ui-ux-pro-max | built-in | UI/UX design intelligence with searchable database |
 | using-git-worktrees | marketplace:superpowers | Use when starting feature work that needs isolation from current workspace |
 | use-image-clipboard | custom | Use when needing to read an image from the Windows clipboard and save it to a temporary PNG file on disk — required workaround for Antigravity CLI which lacks native Alt+V image paste |
