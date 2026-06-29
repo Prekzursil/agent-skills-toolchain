@@ -132,6 +132,28 @@ hit/miss, and any provider down at preflight.
 - **Short topics**: Post the full report in chat
 - **Long reports**: Post the executive summary + key takeaways, save full report to a file
 
+### Step 7: Persist to durable memory (basic-memory bridge)
+
+Every cited report is a durable research artifact — write it to the
+`basic-memory` MCP vault so it survives context compaction and is
+semantically recallable later, instead of being re-researched from scratch.
+
+After delivering, call `mcp__basic-memory__write_note` with:
+
+- **title**: `research <topic> <YYYY-MM-DD>`
+- **folder**: `research` (keeps the report findable via the same prefix)
+- **tags**: `research-report`, the confidence tier, and the providers routed-to
+- **content**: the full cited report (the `report.render` output) — the
+  graded claims `[tier.corroboration.year]` and the `## Sources` list are the
+  load-bearing part to preserve, so recall returns the evidence, not just prose.
+
+This is a documentation convention, not harness code: the harness renders the
+report; the agent is responsible for the `write_note` push. On a later related
+question, **recall first** (`mcp__basic-memory__search_notes` /
+`build_context` for `research <topic>`) before re-running the harness — a cache
+hit at the memory layer beats any provider round-trip. Skip the write only if
+`basic-memory` is unavailable or stalls (never block delivery on it).
+
 ## Research Harness (M-16)
 
 A thin, stateless orchestration layer (no new MCP server, no daemon) shipped as a
