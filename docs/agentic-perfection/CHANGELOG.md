@@ -18,6 +18,93 @@ agent the tired mid-task self can't override), not in the model's good intention
 
 ---
 
+## 2026-06-29 — Wave 0 (lifecycle hooks) + Wave 1 (security / reasoning gems)
+
+This session extends the hook set with two new waves. A **fresh-context Opus
+adversarial review** (no session context, to prevent confirmation bias) caught
+real bugs the green unit tests had missed — all fixed before versioning.
+
+### Added — Wave 0: native lifecycle hooks
+
+- **`hooks/session-end/end.py`** (`Stop` event) — ledger checkpoint on session
+  end: writes a durable snapshot of the current event ledger so the next
+  SessionStart replay always has a clean tail. Fail-open; no side-effects.
+- **`hooks/notify-idle/notify.py`** (`Stop` event) — local alert (Windows toast /
+  terminal bell) when the session ends while the user has been idle for >N minutes.
+  Fixes the "Claude finished but nobody was watching" silent-completion case.
+
+**Model-routing lesson (not versioned):** `fallbackModel` in `hooks.json` lets
+lifecycle hooks route to a lighter model (e.g. `claude-haiku-3-5`) to avoid
+burning Sonnet/Opus quota on bookkeeping. The same field on a `SubagentStart`
+hook can route specialized background agents to a cost-appropriate model —
+keeping the harness cheap per-turn without manual model selection.
+
+### Added — Wave 1: security / reasoning gems (7 hooks)
+
+- **`hooks/contraindication/` (`check.py` + `contraindications.json`)** —
+  *Contraindication registry.* PreToolUse gate: checks tool arguments against a
+  JSON registry of known dangerous patterns before execution. Exits 2 (block) on
+  a hit; logs to the ledger. Registry is plain JSON — new rules require no code
+  changes.
+- **`hooks/iatrogenics/gate.py`** — *Iatrogenics gate.* PreToolUse classifier that
+  scores whether the proposed call would likely worsen the situation (reversibility,
+  blast radius, diagnostic confidence, whether it was requested, whether an
+  alternative exists). Injects a structured warning above threshold. Fail-open;
+  threshold tunable in the hook header.
+- **`hooks/per-edit-check/check.py`** — *Per-edit diagnostic loop.* PostToolUse on
+  Edit/Write: runs a fast per-language syntax/lint pass (`py_compile`, `tsc
+  --noEmit`, etc.) immediately after each modification so the next turn sees
+  breakage immediately, not at the next test run. Closes the tight-feedback-loop
+  gap that causes edit avalanches.
+- **`hooks/file-scope/` (`check.py` + `set_scope.py` + `_common.py`)** —
+  *File-scope enforcement.* `set_scope.py` records a declared scope at session
+  start; `check.py` (PreToolUse on Edit/Write/Bash) blocks any modification
+  outside that scope and injects *"OUT OF SCOPE — declared files: …"*.
+- **`hooks/loop-recovery/` (`handler.py` + `verdict.py`)** — *Progress ledger +
+  stuck escalation.* Tracks milestone timestamps and per-turn action fingerprints;
+  if consecutive turns produce the same action hash without advancing a milestone,
+  fires the escalation path: injects a STUCK verdict with the full ledger state
+  and instructs the agent to surface the blockage instead of spinning. Directly
+  addresses the parallel-agent hung-barrier deadlock pattern.
+- **`hooks/subagent-lifecycle/` (`start.py` + `stop.py` + `_common.py`)** —
+  *Subagent lifecycle.* `start.py` (SubagentStart): injects the parent session's
+  goal verbatim into every spawned subagent so drift/forgetting is structurally
+  impossible. `stop.py` (SubagentStop): anti-degen guardrail — verifies the
+  transcript ends with a terminal-state output (`SUCCESS:<id>` / `FAILED:<id>`)
+  and injects a warning on ambiguous completion (prevents silent no-op subagents).
+- **`hooks/recall-inject/` (`inject.py` + `build_index.py`)** — *Recall-first
+  injection.* SessionStart hook: embeds the resumed goal / first user message
+  against a local basic-memory vector index and injects the top-k relevant notes
+  BEFORE the model sees any other context. Forces memory-pull proactively without
+  relying on the model's willingness to call `build_context`.
+  `build_index.py` maintains the index (state dir `index/` is not versioned).
+
+### Bugs caught by fresh-context adversarial review — all fixed, 279 tests green
+
+Unit tests were green before the review, yet three real bugs were found:
+
+- **C1 (Critical — `subagent-lifecycle/stop.py`)** — the anti-degen check read a
+  field named `output` from the transcript event structure, which does not exist;
+  the correct field is `transcript_path`. The check silently skipped every
+  transcript, making it a no-op. Fixed: field name corrected; test updated to
+  assert the check fires on a real transcript path.
+- **H1 (High — `file-scope/check.py`)** — path comparison was case-sensitive on
+  Windows (`str.__eq__`), so `C:\Foo\bar.py` would pass when the scope declared
+  `c:\foo\bar.py`. Fixed: both sides normalized via `Path.resolve().lower()`.
+- **M1–M6 (Medium / noise / correctness)** — two wrong default values in `_common.py`
+  helpers; one off-by-one in `verdict.py`'s retry counter; two test fixtures with
+  incorrect expected exit codes; one missing `except OSError` guard in `inject.py`.
+  All fixed.
+
+### Not versioned (by design)
+
+`~/.claude/settings.json` event-wiring (hook registrations, matchers,
+`fallbackModel` entries) is personal configuration and is NOT versioned here.
+The hook source is versioned; the wiring that binds it to Claude Code events
+lives only in the personal settings file.
+
+---
+
 ## 2026-06-29 — Phase 1 + 2 landed (consolidate → top gems)
 
 ### Added — Dispatcher (consolidation)
