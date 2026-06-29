@@ -19,6 +19,7 @@ Settings.json wire spec (PreToolUse):
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -42,6 +43,17 @@ _BG_DIR = Path(os.environ.get("BG_REGISTRY_DIR",
                                str(Path.home() / ".claude" / "bg-registry")))
 # Only consider bg-registry records created in the last N seconds as "active".
 _BG_MAX_AGE_SEC = int(os.environ.get("CONTRAINDICATION_BG_MAX_AGE", str(4 * 3600)))
+
+# Per-session "already surfaced" state. A contraindication is a tool-combo HARM
+# warning (DDI-style): a NEW/distinct one must ALWAYS surface, but an exact REPEAT
+# in the same session may be deduplicated by calibrated-silence. We track which
+# contraindication ids were already surfaced this session in a small JSON file,
+# auto-cleared after _SEEN_TTL_HOURS. Env-overridable so tests stay hermetic.
+_SEEN_DIR = Path(os.environ.get(
+    "CONTRAINDICATION_SEEN_DIR",
+    str(Path.home() / ".claude" / "contraindication"),
+))
+_SEEN_TTL_HOURS = float(os.environ.get("CONTRAINDICATION_SEEN_TTL_HOURS", "4"))
 
 
 # ---------------------------------------------------------------------------
@@ -75,6 +87,45 @@ def _cs_allow(itype: str, context: dict) -> bool:
         return bool(allow)
     except Exception:
         return True  # fail-open
+
+
+def _seen_path(session_id: str) -> Path:
+    """Per-session state file path (sha1 of the session id, like iatrogenics)."""
+    try:
+        h = hashlib.sha1(session_id.encode("utf-8", "replace")).hexdigest()[:24]
+        return _SEEN_DIR / f"{h}.json"
+    except Exception:
+        return _SEEN_DIR / "default.json"
+
+
+def _load_seen(session_id: str) -> dict:
+    """Load the per-session {contraindication_id: surfaced_count} map.
+
+    Returns {} if absent, corrupt, or older than the TTL (auto-clear). Fail-open.
+    """
+    p = _seen_path(session_id)
+    try:
+        if not p.exists():
+            return {}
+        data = json.loads(p.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            return {}
+        ts = float(data.get("_ts", 0))
+        if time.time() - ts > _SEEN_TTL_HOURS * 3600:
+            return {}  # stale -> treat every finding as distinct again
+        return data
+    except Exception:
+        return {}
+
+
+def _save_seen(session_id: str, seen: dict) -> None:
+    """Persist the per-session seen map (best-effort, fail-open)."""
+    try:
+        _SEEN_DIR.mkdir(parents=True, exist_ok=True)
+        seen["_ts"] = time.time()
+        _seen_path(session_id).write_text(json.dumps(seen), encoding="utf-8")
+    except Exception:
+        pass
 
 
 def _load_registry() -> list[dict]:
@@ -181,9 +232,24 @@ def main() -> int:
         if not hits:
             return 0
 
-        # Calibrated-silence gate: suppress if the operating point says no (fail-open).
-        if not _cs_allow("gem", {"session_id": session_id}):
-            return 0
+        # Distinct-vs-repeat partition (per session). A contraindication is a
+        # tool-combo HARM warning (DDI-style); a NEW/distinct one must NEVER be
+        # silenced just because the session is long or noisy. Calibrated-silence
+        # is allowed to DEDUP an exact repeat, never to gag a new safety alert.
+        seen = _load_seen(session_id)
+        hit_ids = [str(row.get("id", "UNKNOWN")) for row in hits]
+        all_repeats = bool(hit_ids) and all(hid in seen for hid in hit_ids)
+        if all_repeats:
+            # Every matched contraindication was already surfaced this session ->
+            # a pure repeat: let calibrated-silence dedup it (fail-open = allow).
+            if not _cs_allow("gem", {"session_id": session_id}):
+                return 0
+        # else: at least one NEW harm warning in this call -> bypass CS, always surface.
+
+        # Record every surfaced id so a later identical call counts as a repeat.
+        for hid in hit_ids:
+            seen[hid] = int(seen.get(hid, 0) or 0) + 1
+        _save_seen(session_id, seen)
 
         parts: list[str] = []
         for row in hits:

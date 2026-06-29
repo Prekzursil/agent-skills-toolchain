@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import sys
 import time
 from pathlib import Path
@@ -47,6 +46,30 @@ def _make_note(
 def _sid(tmp_path: Path) -> str:
     """Unique session ID per test (avoids dedup cross-contamination)."""
     return "ts" + hashlib.md5(str(tmp_path).encode()).hexdigest()[:12]
+
+
+@pytest.fixture(autouse=True)
+def _isolate_cs_ledger(tmp_path, monkeypatch):
+    """Point calibrated-silence at an empty per-test ledger so recall-inject tests
+    never read (or write) the LIVE production ledger.
+
+    The recall-inject `_cs_allow`/`_cs_record` call `should_interject` /
+    `record_interjection` with no ledger_path, so they use the module-global
+    LEDGER_PATH. Repointing it to a fresh empty file makes the CS gate cold-start
+    (allow) regardless of how stuffed the production ledger is, and keeps the suite
+    deterministic whether or not CALIBRATED_SILENCE is set in the ambient env.
+    """
+    cs_dir = THIS.parent / "calibrated-silence"
+    if str(cs_dir) not in sys.path:
+        sys.path.insert(0, str(cs_dir))
+    try:
+        import calibrated_silence as _c
+        empty = tmp_path / "cs_empty.jsonl"
+        empty.write_text("", encoding="utf-8")
+        monkeypatch.setattr(_c, "LEDGER_PATH", empty, raising=False)
+    except Exception:
+        pass
+    monkeypatch.delenv("CALIBRATED_SILENCE", raising=False)
 
 
 # ─────────────────────────────────────────────────────────────── build_index

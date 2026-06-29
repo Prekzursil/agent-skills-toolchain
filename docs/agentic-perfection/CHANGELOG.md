@@ -18,6 +18,68 @@ agent the tired mid-task self can't override), not in the model's good intention
 
 ---
 
+## 2026-06-30 — Calibrated-silence over-suppression SAFETY fix + Binary Ninja GUI bring-up
+
+Two corrections to hooks landed in the prior `2026-06-29` waves. The first is a **safety
+bug**: the calibrated-silence (CS) dedup gate was allowed to silence *brand-new* harm /
+advisory findings, so a long, noisy session whose CS ledger was stuffed with ignored rows
+could gag a real, first-time safety warning. The fix makes CS what it was meant to be — a
+**dedup of exact repeats**, never a gag on a distinct alert. The second wires **Binary
+Ninja** into the RE-backend autolaunch data model as a GUI-only (off-the-auto-path) backend.
+
+### Fixed — calibrated-silence may no longer suppress a DISTINCT harm/advisory finding
+
+- **`hooks/contraindication/check.py`** — a contraindication is a tool-combo HARM warning
+  (DDI-style). The hook now partitions matches into **distinct vs. repeat** per session
+  (sha1-keyed per-session seen-map under `~/.claude/contraindication/`, TTL-cleared, env-
+  overridable via `CONTRAINDICATION_SEEN_DIR` / `CONTRAINDICATION_SEEN_TTL_HOURS`). At least
+  one **new** matched id in a call → **bypass CS, always surface**. Only an exact repeat
+  (every matched id already surfaced this session) is handed to the CS gate for dedup.
+  A stuffed ledger can no longer silence a first-time harm warning.
+- **`hooks/iatrogenics/gate.py`** — a high-severity advisory (model-initiated live-state
+  mutation: CheatEngine memory write, Frida code injection) now **bypasses CS on its
+  DISTINCT first occurrence** (`cs_bypass = is_high_sev and count == 0`); a repeat
+  (`count > 0`) stays CS-gated for dedup. Reuses the existing `_IRREVERSIBLE_TOOL_RE`
+  classification so command-triggered (non-tool) findings keep their unchanged first-use
+  grace.
+
+### Fixed — deterministic, hermetic CS state in the three test suites (test-isolation)
+
+- **`hooks/contraindication/test_check.py`**, **`hooks/iatrogenics/test_gate.py`**,
+  **`hooks/recall-inject/test_recall_inject.py`** — added per-test isolation so the suites
+  no longer read or write the **live production CS ledger** (the source of flaky
+  pass/fail). Each test gets a fresh per-test seen-dir + an empty per-test CS ledger
+  (`CALSIL_LEDGER_PATH` / monkeypatched `calibrated_silence.LEDGER_PATH`), and CS-gate tests
+  force CS active (`CALIBRATED_SILENCE=""`) against their *own* stuffed/fresh ledger. The
+  old "CS suppresses everything" tests were replaced with the correct two-case contract:
+  **distinct-bypasses-CS** + **exact-repeat-is-CS-deduped**. Suites: contraindication
+  **32 passed**, iatrogenics **31 passed**, recall-inject **39 passed**.
+
+### Changed — `hooks/re-autolaunch/`: Binary Ninja GUI bring-up, off the auto-path
+
+- **`backends.json`** — the `binary-ninja-mcp` (`bn`) entry is now `launchable: true` with a
+  new **`auto_launch: false`** flag: explicit `re-ensure bn` / `re_launch.py bn` may open
+  the BN GUI (the in-GUI "MCP Max" plugin auto-starts `:9009` on file-open, zero clicks),
+  but the **PreToolUse hook never auto-pops the heavy GUI** on a stray tool call (the user
+  has an OOM history — RAM-conscious by default). IDA / Ghidra omit `auto_launch` and so
+  keep their existing auto-launch behavior.
+- **`autolaunch.py`** — `decide()` now treats *launchable-but-`auto_launch:false`* the same
+  as unlaunchable in the auto path (returns `manual` + the `manual_hint`); `auto_launch`
+  **defaults to `True`** so IDA/Ghidra are unchanged. `cmd_ensure(..., "all")` **skips**
+  `auto_launch:false` backends (prints a `SKIP:` line pointing at the explicit
+  `re-ensure <tool>`), while an explicit single-target `re-ensure bn` still launches.
+- **`test_autolaunch.py`** — new cases pin the contract: BN spec is `launchable:true` /
+  `auto_launch:false` → `decide` returns `manual`; `auto_launch:true` and the
+  *omitted-field default* both → `launch`; IDA/Ghidra omit the field; `ensure all` skips the
+  GUI backend yet an explicit target launches it. Custom runner: **ALL PASS**.
+
+> **Tracked elsewhere (NOT in this repo):** the orphaned-MCP reaper section added to
+> `~/scripts/ram-keeper.ps1` and the Binary Ninja re-harness adapter
+> `~/.local/opt/re-harness/adapters/bn.py` live outside the toolchain tree and should be
+> versioned in whatever repo tracks those trees.
+
+---
+
 ## 2026-06-29 — App-driver / audit skillset + RE-backend autolaunch + userscope-sync
 
 Delivers the program's queued **"app-driving drive-and-verify"** thread (see Status):

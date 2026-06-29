@@ -220,7 +220,13 @@ def decide(
     if up_ports:
         return Decision("noop", key, tool, prefer_port(spec, up_ports), None,
                         f"backend already up on :{prefer_port(spec, up_ports)}")
-    if not spec.get("launchable", False):
+    # Not auto-launchable in the PreToolUse path: either truly unlaunchable, OR
+    # launchable-but-auto_launch-disabled. The latter (Binary Ninja) is a heavy GUI
+    # window we deliberately do NOT auto-pop on every stray tool call -- it is
+    # brought up EXPLICITLY via cmd_ensure (`re-ensure bn`), which checks only
+    # `launchable`. Both surface the manual_hint here. `auto_launch` defaults True
+    # so IDA/Ghidra (which omit it) keep their existing auto-launch behavior.
+    if not spec.get("launchable", False) or not spec.get("auto_launch", True):
         return Decision("manual", key, tool, None, None,
                         spec.get("manual_hint", "backend down; manual start required"))
     if min_free_mb and free_mb is not None and free_mb < min_free_mb:
@@ -490,6 +496,13 @@ def cmd_ensure(cfg: dict, target: str) -> int:
     rc = 0
     for key in keys:
         spec = backends[key]
+        # Bulk 'all' bring-up must NOT surprise-pop a heavy GUI: skip backends with
+        # auto_launch disabled (e.g. the Binary Ninja GUI). They remain available
+        # via an EXPLICIT `re-ensure <tool>` (which targets the key/tool directly).
+        if target == "all" and spec.get("auto_launch", True) is False:
+            print(f"SKIP:re-ensure {key} auto_launch off; bring up explicitly: "
+                  f"re-ensure {spec.get('tool', key)}")
+            continue
         up = probe_ports(spec.get("ports") or [], tcp_t)
         if up:
             print(f"SUCCESS:re-ensure {key} already-up on :{prefer_port(spec, up)}")

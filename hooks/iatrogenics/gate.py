@@ -220,8 +220,15 @@ def main() -> int:
         counter = _load_counter(session_id)
         count = int(counter.get(sig, 0))
 
+        # High-severity = a model-initiated live-state mutation (CheatEngine memory
+        # write, Frida code injection). Its DISTINCT first occurrence is a new safety
+        # alert and must NEVER be gagged just because the session is long/noisy, so it
+        # BYPASSES calibrated-silence. A REPEAT (count>0) is still CS-gated (dedup).
+        is_high_sev = bool(tool_name and _IRREVERSIBLE_TOOL_RE.search(tool_name))
+        cs_bypass = is_high_sev and count == 0
+
         # Calibrated-silence gate: suppress if the operating point says no (fail-open).
-        if not _cs_allow(
+        if not cs_bypass and not _cs_allow(
             "suggestion",
             {"prompt": str(payload.get("prompt", "")), "session_id": session_id},
         ):
@@ -235,7 +242,7 @@ def main() -> int:
         # First use of a destructive command is usually intentional, not a retry-loop.
         # MCP tool triggers (CheatEngine/Frida) bypass this — model-initiated mutations
         # are dangerous from the very first call.
-        cmd_triggered = not bool(tool_name and _IRREVERSIBLE_TOOL_RE.search(tool_name))
+        cmd_triggered = not is_high_sev
         if cmd_triggered and count == 0:
             counter[sig] = count + 1
             _save_counter(session_id, counter)

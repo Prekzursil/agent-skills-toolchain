@@ -21,11 +21,9 @@ import json
 import os
 import subprocess
 import sys
-import tempfile
 import time
 from pathlib import Path
 
-import pytest
 
 HERE = Path(__file__).resolve().parent
 HOOK = str(HERE / "gate.py")
@@ -411,23 +409,48 @@ class TestCounterMechanics:
 # ---------------------------------------------------------------------------
 
 class TestCalibratedSilenceGate:
-    def test_cs_suppresses_mcp_tool_inject(self, tmp_path):
-        """When calibrated-silence suppresses, hook is silent even for MCP tool (first occ.)."""
+    def test_cs_does_not_suppress_distinct_high_severity(self, tmp_path):
+        """SAFETY: a DISTINCT high-severity advisory (model-initiated memory write /
+        code injection, first occurrence) MUST fire even when the CS ledger is stuffed
+        — a real harm advisory must never be gagged because the session is long/noisy."""
         ledger = tmp_path / "interjections.jsonl"
         _make_suppressing_ledger(ledger, "suggestion")
         env = {
             "IATROGENICS_COUNTER_DIR": str(tmp_path / "counters"),
             "CALSIL_LEDGER_PATH": str(ledger),
+            "CALIBRATED_SILENCE": "",  # force CS active despite ambient env
         }
-        # MCP tool → normally fires on first occurrence; CS should suppress it
+        # MCP tool first occurrence = DISTINCT high-severity → bypasses CS → fires.
         rc, out, _ = run_hook(
             {"tool_name": "mcp__cheatengine__write_integer",
              "tool_input": {"address": "0x1000", "value": 0},
-             "session_id": "cs-suppress-test"},
+             "session_id": "cs-distinct-highsev"},
             env_extra=env,
         )
         assert rc == 0
-        assert not fired(out), "Calibrated-silence suppressed; hook should be silent"
+        assert fired(out), "Distinct high-severity advisory must bypass CS and fire"
+
+    def test_cs_suppresses_high_severity_repeat(self, tmp_path):
+        """DEDUP: a REPEAT high-severity advisory (same action sig, 2nd occurrence) IS
+        subject to CS and is deduped when the ledger is stuffed."""
+        ledger = tmp_path / "interjections.jsonl"
+        _make_suppressing_ledger(ledger, "suggestion")
+        env = {
+            "IATROGENICS_COUNTER_DIR": str(tmp_path / "counters"),
+            "CALSIL_LEDGER_PATH": str(ledger),
+            "CALIBRATED_SILENCE": "",
+        }
+        payload = {"tool_name": "mcp__cheatengine__write_integer",
+                   "tool_input": {"address": "0x1000", "value": 0},
+                   "session_id": "cs-repeat-highsev"}
+        # 1st occurrence: distinct → bypass CS → fires.
+        rc, out, _ = run_hook(payload, env_extra=env)
+        assert rc == 0
+        assert fired(out)
+        # 2nd occurrence: repeat → CS gate with stuffed ledger → suppressed.
+        rc, out, _ = run_hook(payload, env_extra=env)
+        assert rc == 0
+        assert not fired(out), "Repeat high-severity advisory should be CS-deduped"
 
     def test_cs_disabled_still_allows_mcp_inject(self, tmp_path):
         """CALIBRATED_SILENCE=off → should_interject returns allow → hook fires."""
@@ -452,6 +475,7 @@ class TestCalibratedSilenceGate:
             "IATROGENICS_COUNTER_DIR": str(tmp_path / "counters"),
             "CALSIL_LEDGER_PATH": str(ledger),
             "IATROGENICS_K": "3",
+            "CALIBRATED_SILENCE": "",  # force CS active despite ambient env (hermetic)
         }
         payload = {
             "tool_name": "Bash",

@@ -91,6 +91,28 @@ def _make_suppressing_ledger(path: Path, itype: str, count: int = 10) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Hermetic CS state for every test (isolation regression fix)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(autouse=True)
+def _isolate_cs_state(tmp_path, monkeypatch):
+    """Make every test deterministic regardless of the LIVE production CS ledger.
+
+    - Fresh per-test seen-dir so each contraindication is 'distinct' (deterministic
+      distinct-vs-repeat classification, independent of prior runs / sessions).
+    - Empty CS ledger by default so any repeat-path CS gate is cold-start (allow),
+      never the stuffed production ledger. CS-gate tests override CALSIL_LEDGER_PATH
+      with their OWN stuffed/fresh ledger and force CS active via CALIBRATED_SILENCE="".
+
+    Mirrors the iatrogenics/test_gate.py isolation pattern (which passes 30/30).
+    """
+    monkeypatch.setenv("CONTRAINDICATION_SEEN_DIR", str(tmp_path / "cseen"))
+    empty_ledger = tmp_path / "cs_empty.jsonl"
+    empty_ledger.write_text("", encoding="utf-8")
+    monkeypatch.setenv("CALSIL_LEDGER_PATH", str(empty_ledger))
+
+
+# ---------------------------------------------------------------------------
 # No-trigger tests
 # ---------------------------------------------------------------------------
 
@@ -367,20 +389,44 @@ class TestTriggerHit:
 # ---------------------------------------------------------------------------
 
 class TestCalibratedSilenceGate:
-    def test_cs_suppresses_registry_hit(self, tmp_path):
-        """When calibrated-silence suppresses, a registry-matched call is silent."""
+    """Calibrated-silence must DEDUP exact repeats, never gag a NEW/distinct harm
+    warning. Each test sets up its OWN tmp ledger (and forces CS active via
+    CALIBRATED_SILENCE="") so it tests the gate deterministically, not the live ledger.
+    """
+
+    def test_cs_does_not_suppress_distinct_when_ledger_stuffed(self, tmp_path):
+        """SAFETY: a NEW/distinct contraindication MUST fire even when the CS ledger is
+        stuffed with ignored 'gem' rows — a real harm warning must never be silenced
+        just because the session is long/noisy."""
         ledger = tmp_path / "interjections.jsonl"
         _make_suppressing_ledger(ledger, "gem")
-        env = {"CALSIL_LEDGER_PATH": str(ledger)}
-        # semgrep --pro always matches SEMGREP-PRO-MCP-RAM
         rc, out, _ = run_hook(
             {"tool_name": "Bash",
-             "tool_input": {"command": "semgrep scan --pro src/"},
-             "session_id": "cs-suppress-test"},
-            env_extra=env,
+             "tool_input": {"command": "mitmdump -s inject.py -p 8080"},
+             "session_id": "cs-distinct-test"},
+            env_extra={"CALSIL_LEDGER_PATH": str(ledger), "CALIBRATED_SILENCE": ""},
         )
         assert rc == 0
-        assert not fired(out), "Calibrated-silence suppressed; hook should be silent"
+        assert fired(out), "Distinct contraindication must bypass CS and fire"
+        assert "BC-MITM-CACHEBUSTED" in ctx_of(out)
+
+    def test_cs_suppresses_repeat_registry_hit(self, tmp_path):
+        """DEDUP: an exact REPEAT of an already-surfaced contraindication (same id, same
+        session) IS deduped by CS when the ledger is stuffed."""
+        ledger = tmp_path / "interjections.jsonl"
+        _make_suppressing_ledger(ledger, "gem")
+        env = {"CALSIL_LEDGER_PATH": str(ledger), "CALIBRATED_SILENCE": ""}
+        payload = {"tool_name": "Bash",
+                   "tool_input": {"command": "semgrep scan --pro src/"},
+                   "session_id": "cs-repeat-test"}
+        # 1st call: distinct -> bypasses CS -> fires (new safety alert).
+        rc, out, _ = run_hook(payload, env_extra=env)
+        assert rc == 0
+        assert fired(out)
+        # 2nd identical call: repeat -> CS gate with stuffed ledger -> suppressed.
+        rc, out, _ = run_hook(payload, env_extra=env)
+        assert rc == 0
+        assert not fired(out), "Exact repeat should be deduped by calibrated-silence"
 
     def test_cs_disabled_still_allows_inject(self):
         """CALIBRATED_SILENCE=off → should_interject returns allow → hook fires."""
@@ -393,35 +439,39 @@ class TestCalibratedSilenceGate:
         assert rc == 0
         assert fired(out), "CS disabled → fail-open allow → hook must fire"
 
-    def test_cs_dict_passed_ledger_path_honoured(self, tmp_path):
-        """CALSIL_LEDGER_PATH is threaded through to should_interject context.
+    def test_cs_ledger_path_honoured_on_repeat(self, tmp_path):
+        """CALSIL_LEDGER_PATH is threaded through to should_interject on the REPEAT path.
 
-        When the ledger is stuffed with 'gem:ignored' rows the hook should be
-        suppressed; using a fresh ledger path (no rows) should allow.
+        A fresh (empty) ledger is cold-start so even a repeat is allowed; a stuffed
+        ledger suppresses the repeat. The DISTINCT first call always fires either way.
         """
-        # Fresh (empty) ledger — cold-start → allow
+        # Fresh (empty) ledger — repeat still allowed (cold-start).
         fresh_ledger = tmp_path / "fresh.jsonl"
         fresh_ledger.write_text("", encoding="utf-8")
-        rc, out, _ = run_hook(
-            {"tool_name": "Bash",
-             "tool_input": {"command": "semgrep scan --pro src/"},
-             "session_id": "cs-fresh"},
-            env_extra={"CALSIL_LEDGER_PATH": str(fresh_ledger)},
-        )
+        env_fresh = {"CALSIL_LEDGER_PATH": str(fresh_ledger), "CALIBRATED_SILENCE": ""}
+        payload_fresh = {"tool_name": "Bash",
+                         "tool_input": {"command": "semgrep scan --pro src/"},
+                         "session_id": "cs-fresh"}
+        rc, out, _ = run_hook(payload_fresh, env_extra=env_fresh)
         assert rc == 0
-        assert fired(out)  # cold-start → allow
+        assert fired(out)  # distinct
+        rc, out, _ = run_hook(payload_fresh, env_extra=env_fresh)
+        assert rc == 0
+        assert fired(out)  # repeat, but cold-start ledger -> allow
 
-        # Stuffed ledger — should suppress
+        # Stuffed ledger — repeat suppressed.
         stuffed_ledger = tmp_path / "stuffed.jsonl"
         _make_suppressing_ledger(stuffed_ledger, "gem")
-        rc, out, _ = run_hook(
-            {"tool_name": "Bash",
-             "tool_input": {"command": "semgrep scan --pro src/"},
-             "session_id": "cs-stuffed"},
-            env_extra={"CALSIL_LEDGER_PATH": str(stuffed_ledger)},
-        )
+        env_stuffed = {"CALSIL_LEDGER_PATH": str(stuffed_ledger), "CALIBRATED_SILENCE": ""}
+        payload_stuffed = {"tool_name": "Bash",
+                           "tool_input": {"command": "semgrep scan --pro src/"},
+                           "session_id": "cs-stuffed"}
+        rc, out, _ = run_hook(payload_stuffed, env_extra=env_stuffed)
         assert rc == 0
-        assert not fired(out)  # suppressed
+        assert fired(out)  # distinct
+        rc, out, _ = run_hook(payload_stuffed, env_extra=env_stuffed)
+        assert rc == 0
+        assert not fired(out)  # repeat suppressed by stuffed ledger
 
 
 # ---------------------------------------------------------------------------
@@ -464,7 +514,7 @@ class TestFailOpen:
         bad_registry = tmp_path / "contraindications.json"
         bad_registry.write_text("{{not valid json", encoding="utf-8")
         import subprocess
-        env = dict(os.environ)
+        dict(os.environ)
         _payload_repr = repr(json.dumps({"tool_name": "Bash", "tool_input": {"command": "semgrep --pro"}}))
         p = subprocess.run(
             [sys.executable, "-c",

@@ -110,6 +110,31 @@ def main():
                           free_mb=None, min_free_mb=2048)
     check("decide unknown-ram -> launch (fail-open)", d.action == "launch")
 
+    # ---- 4b. auto_launch decoupling (Binary Ninja GUI bring-up) -----------
+    # BN is launchable (so `re-ensure bn` can open the GUI) but auto_launch is
+    # OFF, so the PreToolUse hook must NOT auto-launch it -> manual (never a
+    # surprise GUI-pop on a stray tool call). IDA/Ghidra omit auto_launch and so
+    # default ON (unchanged).
+    bn_real = _spec("binary-ninja-mcp", cfg)
+    check("bn real spec is launchable (explicit re-ensure works)",
+          bn_real.get("launchable") is True)
+    check("bn real spec auto_launch is OFF (no GUI-pop on tool call)",
+          bn_real.get("auto_launch") is False)
+    d = autolaunch.decide("binary-ninja-mcp", bn_real, [], started_recently=False,
+                          free_mb=8000, min_free_mb=2048)
+    check("decide bn (launchable + auto_launch:false) -> manual", d.action == "manual")
+    d = autolaunch.decide("x", {"tool": "x", "launchable": True, "auto_launch": True,
+                                "ports": [1], "headless_port": 1},
+                          [], started_recently=False, free_mb=8000, min_free_mb=2048)
+    check("decide launchable + auto_launch:true -> launch", d.action == "launch")
+    d = autolaunch.decide("x", {"tool": "x", "launchable": True,
+                                "ports": [1], "headless_port": 1},
+                          [], started_recently=False, free_mb=8000, min_free_mb=2048)
+    check("decide launchable + no auto_launch field -> launch (default ON)",
+          d.action == "launch")
+    check("ida/ghidra specs omit auto_launch (keep auto-launch default ON)",
+          "auto_launch" not in ida and "auto_launch" not in ghi)
+
     # ---- 5. build_launch_cmd tokens ---------------------------------------
     cfg2 = {"launcher_python": "PYEXE", "re_launch": "RL"}
     check("launch cmd ghidra (no binary)",
@@ -246,6 +271,48 @@ def main():
     finally:
         autolaunch.STATE_DIR, autolaunch.CONFIG_PATH = orig_state, orig_cfg
         autolaunch.spawn_launch, autolaunch.brief_wait = orig_spawn, orig_wait
+
+    # ---- 8. cmd_ensure: 'all' skips auto_launch:false; explicit still launches
+    orig_spawn2, orig_wait2, orig_probe2 = (
+        autolaunch.spawn_launch, autolaunch.brief_wait, autolaunch.probe_ports)
+    ens_cfg = {
+        "tcp_timeout": 0.2, "brief_wait_seconds": 0.1, "brief_poll_interval": 0.05,
+        "re_launch": "RL",
+        "backends": {
+            "auto-mcp": {"tool": "auto", "launchable": True,
+                         "ports": [1], "headless_port": 1},
+            "gui-mcp": {"tool": "gui", "launchable": True, "auto_launch": False,
+                        "ports": [2], "headless_port": 2},
+        },
+    }
+    spawned = {"keys": []}
+    try:
+        autolaunch.probe_ports = lambda ports, t, host="127.0.0.1": []  # all down
+        autolaunch.brief_wait = lambda *a, **k: True
+
+        def fake_spawn2(cfg, spec):
+            spawned["keys"].append(spec.get("tool"))
+            return True
+
+        autolaunch.spawn_launch = fake_spawn2
+
+        spawned["keys"] = []
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            autolaunch.cmd_ensure(ens_cfg, "all")
+        out = buf.getvalue()
+        check("ensure all -> launches the auto backend", "auto" in spawned["keys"])
+        check("ensure all -> SKIPS the auto_launch:false (BN-style GUI) backend",
+              "gui" not in spawned["keys"] and "SKIP:re-ensure gui-mcp" in out)
+
+        spawned["keys"] = []
+        with redirect_stdout(io.StringIO()):
+            autolaunch.cmd_ensure(ens_cfg, "gui")  # explicit by tool name
+        check("ensure <gui> explicit -> launches the auto_launch:false backend",
+              "gui" in spawned["keys"])
+    finally:
+        autolaunch.spawn_launch, autolaunch.brief_wait, autolaunch.probe_ports = (
+            orig_spawn2, orig_wait2, orig_probe2)
 
     # ---- 7. FAIL-OPEN -----------------------------------------------------
     # 7a. malformed stdin -> main() returns 0, emits nothing.
