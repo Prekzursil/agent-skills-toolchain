@@ -141,6 +141,8 @@ The split matters because these surfaces have different runtime models, auth exp
 
 - `skills/`
   - installable, validated skills only
+- `hooks/`
+  - canonical copy of the session-built *agentic-perfection* hook set (dispatcher + durability spine + anti-slop + wildcard gems + infra); synced to `~/.claude/hooks` via `scripts/sync-hooks.ps1`
 - `tools/mcp/`
   - MCP-native tool contracts and promoted bounded tool projects
 - `tools/editor/`
@@ -153,8 +155,10 @@ The split matters because these surfaces have different runtime models, auth exp
   - future skill concepts that are not installable yet
 - `docs/incubating/tools/`
   - future MCP, editor, or web-tool concepts that are not ready for promotion yet
+- `docs/agentic-perfection/`
+  - the agentic-perfection / proactive-partner program: CHANGELOG + plan + the unlocking prompts + open-threads snapshot
 - `scripts/`
-  - repo-level helpers such as validation
+  - repo-level helpers such as validation, `sync-skills.ps1`, and `sync-hooks.ps1`; `scripts/agentic-perfection/` holds the program's host-side scripts (basic-memory launcher/watchdog, world-watch, resource-guard)
 - `release/`
   - packaging-only workspace for future Windows/Linux/macOS bundles; not a live execution surface
 
