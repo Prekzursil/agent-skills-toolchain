@@ -1,0 +1,67 @@
+# world-watch.yaml - curated change-detection list for the ANTICIPATORY layer.
+#
+# world-watch.ps1 (daily Scheduled Task 'World-Watch') computes a fingerprint for each
+# watcher and appends a BACKGROUND-DIGEST line ONLY when that fingerprint CHANGES from the
+# stored baseline. First observation records a baseline silently (never fires). Every
+# watcher fail-opens independently (a watcher that cannot be evaluated is logged + skipped,
+# its old baseline kept, and it never fires a false "change").
+#
+# Supported watcher types (external signals only - no MCP, since a Scheduled Task cannot
+# reach in-session MCP servers):
+#   gh_commit            fingerprint = default-branch (or `branch:`) HEAD sha   [needs: gh auth]
+#   gh_release           fingerprint = latest release tagName                  [needs: gh auth]
+#   adb_package_version  fingerprint = versionName from `adb shell dumpsys package <package>`
+#                                                                              [needs: adb + device]
+#   http_etag            fingerprint = ETag, else Last-Modified, else (if hash_fallback:true)
+#                        a sha256 of the page body                             [needs: network]
+#   file_hash            fingerprint = sha256 of a local file (detect upstream-pull clobber)
+#
+# Per-watcher keys: id (unique), type, note (the consequence surfaced), optional propose
+# (the suggested manual action), plus the type-specific key (repo / package / url / path).
+
+watchers:
+  # --- Battle Cats app version: a bump invalidates committed RE offsets (HGT risk) ---
+  - id: bc-app-version
+    type: adb_package_version
+    package: jp.co.ponos.battlecatsen
+    note: "BC app version bump -> committed offsets (stage-unlock, guerrilla window, event_0) need re-derivation; HGT risk"
+    propose: "re-derive offsets vs the new .so before running any trainer/hook"
+
+  # --- Upstream repos whose pulls can clobber the user's local patches ---
+  - id: hexstrike-upstream
+    type: gh_commit
+    repo: 0x4m4/hexstrike-ai
+    note: "HexStrike upstream moved -> may clobber custom launcher + /health defer + werkzeug-silence/log-rotation patches"
+    propose: "diff upstream vs your patched files before pulling; re-apply the install-layout patches"
+
+  - id: bcsfe-upstream
+    type: gh_commit
+    repo: fieryhenry/BCSFE-Python
+    note: "BCSFE-Python upstream moved -> save-edit field offsets / save format may have shifted"
+    propose: "re-verify the cannon/orb field offsets against a known-good save before editing"
+
+  - id: tbcml-upstream
+    type: gh_release
+    repo: fieryhenry/tbcml
+    note: "tbcml released a new version -> APK patch/build tooling may have changed"
+    propose: "review the release notes before rebuilding a patched APK"
+
+  - id: insta-mcp-upstream
+    type: gh_commit
+    repo: arjun1194/insta-mcp
+    note: "insta-mcp upstream moved -> the appVersion-override / session-auth fix may need re-applying"
+    propose: "re-check the unsupported_version appVersion override after merging upstream"
+
+  # --- Examples (commented; uncomment + curate). Vendor pages are noise-prone: prefer
+  #     ETag/Last-Modified and avoid hash_fallback unless the page is stable. ---
+  # - id: pglchem-bromantane
+  #   type: http_etag
+  #   url: https://example-vendor/bromantane
+  #   note: "anchor vendor page changed -> stock/price/listing may have shifted"
+  #   propose: "re-check vendor shortlist"
+  #
+  # - id: hexstrike-local-launcher
+  #   type: file_hash
+  #   path: C:\Users\Prekzursil\path\to\hexstrike\launcher.py
+  #   note: "local HexStrike launcher changed (an upstream pull may have overwritten your patch)"
+  #   propose: "confirm the /health defer + log-rotation patch is still present"
