@@ -1,6 +1,6 @@
 ---
 name: chatgpt5-web-curate
-description: Use when the user explicitly wants final curation or selection performed through the direct ChatGPT web lane, such as "have ChatGPT pick the best one" or "use chatgpt5_web_curate". Prefer the `chatgpt5_web_curate` or `chatgpt_web_curate` tool.
+description: Use when the user explicitly invokes chatgpt5_web_curate or asks ChatGPT 5 web to pick the best option among candidates ; do NOT use for the legacy agent-lanes-chatgpt-web-curate route or Codex-side curation ; returns ChatGPT 5 web curation selection.
 ---
 
 # ChatGPT 5 Web Curate

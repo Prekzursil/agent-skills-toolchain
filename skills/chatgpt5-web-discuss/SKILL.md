@@ -1,6 +1,6 @@
 ---
 name: chatgpt5-web-discuss
-description: Use when the user explicitly wants a discussion or sparring-partner interaction through ChatGPT web, such as "debate this with ChatGPT", "discuss this on ChatGPT web", or "use chatgpt5_web_discuss". Prefer the `chatgpt5_web_discuss` or `chatgpt_web_discuss` tool.
+description: Use when the user explicitly invokes chatgpt5_web_discuss or asks to debate or ideate with ChatGPT 5 web as a sparring partner ; do NOT use for the legacy agent-lanes-chatgpt-web-discuss route ; returns ChatGPT 5 web discussion result.
 ---
 
 # ChatGPT 5 Web Discuss

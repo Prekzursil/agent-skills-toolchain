@@ -1,6 +1,6 @@
 ---
 name: agent-lanes-chatgpt-web-curate
-description: Use when the user explicitly wants final comparison or curation through the direct ChatGPT web lane. Triggers include requests to have ChatGPT web pick the best option, `chatgpt5_web_curate`, or `chatgpt_web_curate`.
+description: Use when the user explicitly invokes the agent-lanes ChatGPT web curation lane (chatgpt_web_curate, have ChatGPT web pick the best option) for final comparison in an agent-lanes workflow ; do NOT use for Codex-side orchestration or the newer chatgpt5-web-curate route ; returns ChatGPT web curation result.
 ---
 
 # Agent Lanes ChatGPT Web Curate

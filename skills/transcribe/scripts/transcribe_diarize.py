@@ -147,9 +147,7 @@ def _validate_audio(path: Path) -> None:
         _die(f"Audio file not found: {path}")
     size = path.stat().st_size
     if size > MAX_AUDIO_BYTES:
-        _warn(
-            f"Audio file exceeds 25MB limit ({size} bytes): {path}"
-        )
+        _warn(f"Audio file exceeds 25MB limit ({size} bytes): {path}")
 
 
 def _build_payload(
@@ -240,7 +238,10 @@ def main() -> None:
 
     if args.prompt and "transcribe-diarize" in args.model:
         _die("prompt is not supported with gpt-4o-transcribe-diarize")
-    if args.response_format == "diarized_json" and "transcribe-diarize" not in args.model:
+    if (
+        args.response_format == "diarized_json"
+        and "transcribe-diarize" not in args.model
+    ):
         _die("diarized_json requires gpt-4o-transcribe-diarize")
 
     _ensure_api_key(args.dry_run)
@@ -251,7 +252,9 @@ def main() -> None:
 
     known_names, known_refs = _parse_known_speakers(args.known_speaker)
     if known_names and "transcribe-diarize" not in args.model:
-        _warn("known-speaker references are only supported for gpt-4o-transcribe-diarize")
+        _warn(
+            "known-speaker references are only supported for gpt-4o-transcribe-diarize"
+        )
     payload = _build_payload(args, known_names, known_refs)
 
     if args.dry_run:
@@ -266,7 +269,9 @@ def main() -> None:
         if args.stdout:
             print(output)
             continue
-        out_path = _build_output_path(path, args.response_format, args.out, args.out_dir)
+        out_path = _build_output_path(
+            path, args.response_format, args.out, args.out_dir
+        )
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(output, encoding="utf-8")
         print(f"Wrote {out_path}")

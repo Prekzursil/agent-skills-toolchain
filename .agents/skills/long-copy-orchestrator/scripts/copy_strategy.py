@@ -26,12 +26,32 @@ def recommend(source: str, target: str) -> dict:
     s_kind = classify(source)
     t_kind = classify(target)
     if "disk-image" in {s_kind, t_kind}:
-        return {"mechanism": "offline-attach", "reason": "guest disk image involved", "source_kind": s_kind, "target_kind": t_kind}
+        return {
+            "mechanism": "offline-attach",
+            "reason": "guest disk image involved",
+            "source_kind": s_kind,
+            "target_kind": t_kind,
+        }
     if t_kind == "archive":
-        return {"mechanism": "tar", "reason": "target is an archive artifact", "source_kind": s_kind, "target_kind": t_kind}
+        return {
+            "mechanism": "tar",
+            "reason": "target is an archive artifact",
+            "source_kind": s_kind,
+            "target_kind": t_kind,
+        }
     if s_kind == "windows-drive" and t_kind == "windows-drive":
-        return {"mechanism": "robocopy", "reason": "both endpoints are Windows-visible", "source_kind": s_kind, "target_kind": t_kind}
-    return {"mechanism": "rsync", "reason": "directory-tree copy with resumability and excludes", "source_kind": s_kind, "target_kind": t_kind}
+        return {
+            "mechanism": "robocopy",
+            "reason": "both endpoints are Windows-visible",
+            "source_kind": s_kind,
+            "target_kind": t_kind,
+        }
+    return {
+        "mechanism": "rsync",
+        "reason": "directory-tree copy with resumability and excludes",
+        "source_kind": s_kind,
+        "target_kind": t_kind,
+    }
 
 
 def watch_file(path_text: str, interval: float, samples: int) -> dict:
@@ -55,7 +75,9 @@ def watch_file(path_text: str, interval: float, samples: int) -> dict:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Recommend copy strategy or watch file growth.")
+    parser = argparse.ArgumentParser(
+        description="Recommend copy strategy or watch file growth."
+    )
     sub = parser.add_subparsers(dest="command", required=True)
 
     recommend_parser = sub.add_parser("recommend", help="Recommend a copy mechanism.")

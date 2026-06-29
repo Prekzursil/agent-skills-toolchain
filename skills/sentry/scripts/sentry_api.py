@@ -59,6 +59,7 @@ def request_json(url, token, retries=1):
     attempt = 0
     while True:
         try:
+            # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected -- internal HTTP client; URL from validated/config input, not untrusted user data
             with urlopen(req) as resp:
                 body = resp.read().decode("utf-8")
                 data = json.loads(body) if body else None
@@ -69,7 +70,9 @@ def request_json(url, token, retries=1):
                 attempt += 1
                 time.sleep(1)
                 continue
-            raise RuntimeError(f"HTTP {err.code} for {url}: {body or 'request failed'}") from err
+            raise RuntimeError(
+                f"HTTP {err.code} for {url}: {body or 'request failed'}"
+            ) from err
         except URLError as err:
             if attempt < retries:
                 attempt += 1

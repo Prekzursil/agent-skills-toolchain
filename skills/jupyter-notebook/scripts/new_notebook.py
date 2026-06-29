@@ -22,7 +22,11 @@ def find_repo_root(start: Path) -> Path:
 
 
 def load_template(skill_dir: Path, kind: str) -> dict[str, Any]:
-    asset_name = "experiment-template.ipynb" if kind == "experiment" else "tutorial-template.ipynb"
+    asset_name = (
+        "experiment-template.ipynb"
+        if kind == "experiment"
+        else "tutorial-template.ipynb"
+    )
     template_path = skill_dir / "assets" / asset_name
     if not template_path.exists():
         raise SystemExit(f"Missing template: {template_path}")
@@ -76,7 +80,9 @@ def default_output(repo_root: Path, title: str) -> Path:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Scaffold a Jupyter notebook for experiments or tutorials.")
+    parser = argparse.ArgumentParser(
+        description="Scaffold a Jupyter notebook for experiments or tutorials."
+    )
     parser.add_argument(
         "--kind",
         choices=["experiment", "tutorial"],
@@ -116,7 +122,9 @@ def main() -> None:
     out_path = out_path.resolve()
 
     if out_path.exists() and not args.force:
-        raise SystemExit(f"Refusing to overwrite existing file without --force: {out_path}")
+        raise SystemExit(
+            f"Refusing to overwrite existing file without --force: {out_path}"
+        )
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with out_path.open("w", encoding="utf-8") as f:

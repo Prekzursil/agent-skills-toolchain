@@ -31,6 +31,7 @@
 | cheat-engine-workflow | custom | Use when performing Cheat Engine-driven runtime analysis, including value scanning, pointer sanity checks, AOB validation |
 | cheat-engine-x64dbg-ida-handoff | custom | Use when moving runtime findings between Cheat Engine, x64dbg, and IDA Pro |
 | cheminformatics-rdkit | custom | Use when you need license-free cheminformatics via the rdkit MCP server - molecular descriptors, fingerprints, Tanimoto similarity, scaffolds, and structure-format conversion |
+| ci-silent-pass-lint | custom | Use before any PR creation or "gates green / ready to merge" claim — detects CI/gate workflows that report GREEN while masking findings (11 silent-pass shapes: continue-on-error, \|\| true, audit mode, no-token uploads, set+e swallows, stale-SHA gates, soft thresholds, and more) via deterministic workflow linting + MCP cross-check of actual finding-counts at HEAD |
 | citation-mapping | custom | Use when you need to build a citation or reference map for a paper, tracing backward references and forward cited-by works from metadata APIs like Semantic Scholar and OpenAlex |
 | cloudflare-deploy | built-in | Deploy applications and infrastructure to Cloudflare using Workers, Pages, and related platform services |
 | code-security | built-in | Security guidelines for writing secure code |
@@ -68,6 +69,7 @@
 | ghidra-automation-recipes | custom | Use when automating Ghidra analysis with Script Manager scripts, ghidra_bridge, or repeatable Python-driven recipes |
 | ghidra-bridge | custom | Use when automating Ghidra from Python, driving analyses from an external REPL or script |
 | ghidra-mcp | custom | Use when installing or configuring GhidraMCP for a local Ghidra workflow |
+| grill-me-extensive | custom | Program-scale extensive grilling addon to the vendored grill-me skill: scout, brainstorm-fanout to surface directions beyond the ask, a categorized decision list walked one question at a time with a recommendation each, durable capture, then converge to a locked decision log; grill modes for expansion, modification, scope-change, modernization, better-ideas, red-team, simplification, prioritization |
 | hexstrike-ai-authorized-engagement | custom | Use when an authorized security assessment, bug bounty, red-team, or CTF task should be routed through HexStrike AI |
 | hexstrike-ai-mcp | custom | Use when installing, repairing, or registering HexStrike AI as an MCP server for Codex, Claude Code, or Gemini CLI |
 | hexstrike-ai-setup | custom | Use when installing, wiring, validating, or troubleshooting a local HexStrike AI runtime |
@@ -107,7 +109,7 @@
 | requesting-code-review | marketplace:superpowers | Use when completing tasks, implementing major features, or before merging to verify work meets requirements |
 | ret-sync | custom | Use when synchronizing a live debugger with IDA Pro, Binary Ninja, or compatible disassemblers |
 | reverse-engineering-toolkit | custom | Use when selecting or sequencing reverse-engineering tools for Windows native analysis |
-|
+| rtv-pdr | custom | Use when a hard coding work-unit has failed once, is contentious, or scores HIGH on the ESE gate — spawns N parallel Opus rollouts, runs a recursive tournament where fresh judge agents (never contestants) pick the winner, then optionally runs a PDR refine pass. Expensive; gate behind ESE.
 | scholarly-literature-review | custom | Use when you have a DOI, PMID, arXiv id, or title (or a list) and want canonical metadata, a per-paper access-status table (oa_pdf vs free-to-read vs subscription vs unavailable), citation/reference expansion, or a metadata-and-abstract summary via the Scholarly Access MCP paper_* tools |
 | schrodinger-maestro-driver | custom | Use when driving the local Schrodinger MCP for structure-based drug discovery - SMILES to 3D, LigPrep, Protein Prep Wizard, Glide grid generation, Glide docking, Prime MM-GBSA, QikProp ADMET, conversion, run_schrodinger_python escape hatch |
 | screenshot | built-in | Use when the user explicitly asks for a desktop or system screenshot |
@@ -139,6 +141,7 @@
 | using-superpowers | marketplace:superpowers | Use when starting any conversation - establishes how to find and use skills |
 | vercel-deploy | built-in | Deploy applications and websites to Vercel |
 | verification-before-completion | marketplace:superpowers | Use when about to claim work is complete, fixed, or passing, before committing or creating PRs |
+| video-watermark-removal | custom | Use when removing a static logo, watermark, or TV bug from a video seamlessly — per-frame big-LAMA streaming inpaint over a tight logo-only mask with feathered composite and audio re-mux, plus the operational pitfalls (tight mask not generous box, retry transient WSL2 CUDA/cuFFT failures, detached WSL daemon to dodge the background hang-reaper) |
 | voice-analyze | vendored | Reverse-engineer a voice profile from writing samples, including an AI-tells scan. Vendored from Prekzursil/ghostwriter |
 | voice-apply | vendored | Apply a voice profile to transform content; enforces a mandatory AI-tells check on output. Vendored from Prekzursil/ghostwriter |
 | voice-blend | vendored | Blend multiple voice profiles with weighted mixing into a hybrid voice. Vendored from Prekzursil/ghostwriter |

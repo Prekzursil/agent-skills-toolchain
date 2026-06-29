@@ -36,10 +36,23 @@ def inspect_root(root: Path) -> dict:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Inspect likely Codex roots without mutating them.")
-    parser.add_argument("--home", default=str(Path.home()), help="Home directory used to build default roots.")
-    parser.add_argument("--root", action="append", default=[], help="Explicit Codex root to inspect. Repeatable.")
-    parser.add_argument("--json", action="store_true", help="Emit JSON instead of text.")
+    parser = argparse.ArgumentParser(
+        description="Inspect likely Codex roots without mutating them."
+    )
+    parser.add_argument(
+        "--home",
+        default=str(Path.home()),
+        help="Home directory used to build default roots.",
+    )
+    parser.add_argument(
+        "--root",
+        action="append",
+        default=[],
+        help="Explicit Codex root to inspect. Repeatable.",
+    )
+    parser.add_argument(
+        "--json", action="store_true", help="Emit JSON instead of text."
+    )
     args = parser.parse_args()
 
     home = Path(args.home).expanduser()
@@ -79,8 +92,12 @@ def main() -> int:
         print(f"  - {root['path']}")
         print(f"    exists={root['exists']} symlink={root['is_symlink']}")
         if root["exists"]:
-            state_files = ", ".join(root["state_files"]) if root["state_files"] else "(none)"
-            print(f"    sessions={root['sessions']} auth={root['auth_json']} config={root['config_toml']}")
+            state_files = (
+                ", ".join(root["state_files"]) if root["state_files"] else "(none)"
+            )
+            print(
+                f"    sessions={root['sessions']} auth={root['auth_json']} config={root['config_toml']}"
+            )
             print(f"    state_files={state_files}")
     return 0
 

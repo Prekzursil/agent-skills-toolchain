@@ -36,7 +36,9 @@ def collect(root: Path) -> list[dict]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Inventory Codex session files across multiple roots.")
+    parser = argparse.ArgumentParser(
+        description="Inventory Codex session files across multiple roots."
+    )
     parser.add_argument("roots", nargs="+", help="Candidate Codex roots.")
     parser.add_argument("--json", action="store_true", help="Emit JSON only.")
     args = parser.parse_args()
@@ -54,7 +56,9 @@ def main() -> int:
         "roots": reports,
         "total_files": sum(report["count"] for report in reports),
         "duplicate_groups": sum(1 for items in groups.values() if len(items) > 1),
-        "invalid_files": sum(1 for items in groups.values() for item in items if not item["parse_ok"]),
+        "invalid_files": sum(
+            1 for items in groups.values() for item in items if not item["parse_ok"]
+        ),
         "groups": groups,
     }
 

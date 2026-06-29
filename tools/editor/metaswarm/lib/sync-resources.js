@@ -54,11 +54,11 @@ const GUIDE_SYNC = [
 
 // Dynamic sync: entire directories into skills/setup/
 function buildDirSync(srcDir, destDir) {
-  const srcPath = path.join(ROOT, srcDir);
+  const srcPath = path.join(ROOT, srcDir);  // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal -- path derived from internal/config values, not untrusted input
   if (!fs.existsSync(srcPath)) return [];
   return fs.readdirSync(srcPath)
     .filter(f => {
-      const full = path.join(srcPath, f);
+      const full = path.join(srcPath, f);  // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal -- path derived from internal/config values, not untrusted input
       return fs.statSync(full).isFile();
     })
     .map(f => ({

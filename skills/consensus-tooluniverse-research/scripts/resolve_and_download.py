@@ -21,8 +21,14 @@ USAGE (parameterized — no PII, no hardcoded paths):
     set UNPAYWALL_EMAIL=you@example.com             # or --email you@example.com  (REQUIRED by Unpaywall/OpenAlex)
     python resolve_and_download.py [N]              # optional N = smoke-test first N papers
 """
+
 from __future__ import annotations
-import csv, json, os, re, sys, time
+import csv
+import json
+import os
+import re
+import sys
+import time
 from difflib import SequenceMatcher
 from pathlib import Path
 import requests
@@ -43,18 +49,32 @@ def get_arg(flag):
 WS = Path(get_arg("--ws") or os.environ.get("CONSENSUS_WS") or Path.cwd())
 EMAIL = get_arg("--email") or os.environ.get("UNPAYWALL_EMAIL")
 if not EMAIL:
-    sys.exit("ERROR: set UNPAYWALL_EMAIL env var or pass --email (Unpaywall/OpenAlex require a contact email).")
+    sys.exit(
+        "ERROR: set UNPAYWALL_EMAIL env var or pass --email (Unpaywall/OpenAlex require a contact email)."
+    )
 
 SEARCHES_DIR = WS / "searches"
-BIB = WS / "_bibliography"; BIB.mkdir(parents=True, exist_ok=True)
-LIB = WS / "_library"; LIB.mkdir(parents=True, exist_ok=True)
+BIB = WS / "_bibliography"
+BIB.mkdir(parents=True, exist_ok=True)
+LIB = WS / "_library"
+LIB.mkdir(parents=True, exist_ok=True)
 PROGRESS_F = BIB / "_progress.json"
 
 
-def safe(doi): return re.sub(r"[^A-Za-z0-9._-]", "_", doi)
-def sim(a, b): return SequenceMatcher(None, (a or "").lower(), (b or "").lower()).ratio()
-def is_pdf(c): return c[:5] == b"%PDF-"
-def surname(author): return ((author or "").strip().split() or [""])[-1].lower()
+def safe(doi):
+    return re.sub(r"[^A-Za-z0-9._-]", "_", doi)
+
+
+def sim(a, b):
+    return SequenceMatcher(None, (a or "").lower(), (b or "").lower()).ratio()
+
+
+def is_pdf(c):
+    return c[:5] == b"%PDF-"
+
+
+def surname(author):
+    return ((author or "").strip().split() or [""])[-1].lower()
 
 
 tu = ToolUniverse()
@@ -72,35 +92,66 @@ for folder in folders:
         if folder not in rec["searches"]:
             rec["searches"].append(folder)
 print(f"[master] -> {len(master)} unique papers across {len(folders)} searches")
-progress = json.loads(PROGRESS_F.read_text(encoding="utf-8")) if PROGRESS_F.exists() else {}
+progress = (
+    json.loads(PROGRESS_F.read_text(encoding="utf-8")) if PROGRESS_F.exists() else {}
+)
 
 
 def crossref_title(it):
     t = it.get("title")
-    return (t[0] if isinstance(t, list) and t else (t if isinstance(t, str) else ""))
+    return t[0] if isinstance(t, list) and t else (t if isinstance(t, str) else "")
 
 
 def resolve_doi(title, author, year):
     """Accept only if title-sim>=TITLE_SIM AND year+/-1 AND first-author surname present in candidate authors."""
     want_surname = surname(author)
     try:
-        cr = tu.run({"name": "Crossref_search_works", "arguments": {"query": f"{title} {author}".strip(), "limit": 3}})
-        for it in (cr.get("data") or []):
+        cr = tu.run(
+            {
+                "name": "Crossref_search_works",
+                "arguments": {"query": f"{title} {author}".strip(), "limit": 3},
+            }
+        )
+        for it in cr.get("data") or []:
             t = crossref_title(it)
-            yr = (((it.get("issued") or it.get("published") or {}).get("date-parts") or [[None]])[0] or [None])[0]
-            authors = " ".join((a.get("family", "") + " " + a.get("given", "")) for a in (it.get("author") or [])).lower()
+            yr = (
+                (
+                    (it.get("issued") or it.get("published") or {}).get("date-parts")
+                    or [[None]]
+                )[0]
+                or [None]
+            )[0]
+            authors = " ".join(
+                (a.get("family", "") + " " + a.get("given", ""))
+                for a in (it.get("author") or [])
+            ).lower()
             score = sim(t, title)
-            if score >= TITLE_SIM and (not year or not yr or abs(int(yr) - int(year)) <= 1) \
-               and (not want_surname or want_surname in authors):
+            if (
+                score >= TITLE_SIM
+                and (not year or not yr or abs(int(yr) - int(year)) <= 1)
+                and (not want_surname or want_surname in authors)
+            ):
                 return it.get("DOI"), "crossref", round(score, 3), t
     except Exception:
         pass
     try:
-        oa = tu.run({"name": "openalex_search_works", "arguments": {"search": title, "per_page": 3, "mailto": EMAIL}})
-        results = oa.get("data", {}).get("results") if isinstance(oa.get("data"), dict) else (oa.get("data") or [])
-        for it in (results or []):
+        oa = tu.run(
+            {
+                "name": "openalex_search_works",
+                "arguments": {"search": title, "per_page": 3, "mailto": EMAIL},
+            }
+        )
+        results = (
+            oa.get("data", {}).get("results")
+            if isinstance(oa.get("data"), dict)
+            else (oa.get("data") or [])
+        )
+        for it in results or []:
             t = it.get("title") or it.get("display_name") or ""
-            authors = " ".join(a.get("author", {}).get("display_name", "") for a in (it.get("authorships") or [])).lower()
+            authors = " ".join(
+                a.get("author", {}).get("display_name", "")
+                for a in (it.get("authorships") or [])
+            ).lower()
             score = sim(t, title)
             if score >= 0.82 and (not want_surname or want_surname in authors):
                 d = (it.get("doi") or "").replace("https://doi.org/", "")
@@ -113,12 +164,17 @@ def resolve_doi(title, author, year):
 
 def oa_locations(doi):
     try:
-        up = tu.run({"name": "Unpaywall_get_full_text_url", "arguments": {"doi": doi, "email": EMAIL}})
+        up = tu.run(
+            {
+                "name": "Unpaywall_get_full_text_url",
+                "arguments": {"doi": doi, "email": EMAIL},
+            }
+        )
         d = up.get("data", {}) if isinstance(up, dict) else {}
         locs = []
         if d.get("best_pdf_url"):
             locs.append(d["best_pdf_url"])
-        for L in (d.get("all_oa_locations") or []):
+        for L in d.get("all_oa_locations") or []:
             u = L.get("url_for_pdf") or L.get("url")
             if u and u not in locs:
                 locs.append(u)
@@ -129,8 +185,10 @@ def oa_locations(doi):
 
 def pmcid_for(doi):
     try:
-        q = f'https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=DOI:%22{doi}%22&format=json&resultType=lite'
-        res = (requests.get(q, headers=UA, timeout=30).json().get("resultList") or {}).get("result") or []
+        q = f"https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=DOI:%22{doi}%22&format=json&resultType=lite"
+        res = (
+            requests.get(q, headers=UA, timeout=30).json().get("resultList") or {}
+        ).get("result") or []
         return res[0].get("pmcid") if res else None
     except Exception:
         return None
@@ -140,24 +198,40 @@ def try_download(locs, pmcid):
     s = requests.Session()
     for url in locs:
         try:
-            r = s.get(url, headers={**UA, "Referer": url}, timeout=60, allow_redirects=True)
+            r = s.get(
+                url, headers={**UA, "Referer": url}, timeout=60, allow_redirects=True
+            )
             if r.status_code == 200 and is_pdf(r.content) and len(r.content) > 2000:
                 return "pdf", "pdf", r.content
         except Exception:
             pass
     if pmcid:
         try:
-            oa = requests.get(f"https://www.ncbi.nlm.nih.gov/pmc/utils/oa/oa.fcgi?id={pmcid}", headers=UA, timeout=30).text
-            m = re.search(r'href="(ftp://[^"]+\.pdf[^"]*)"', oa) or re.search(r'href="(https?://[^"]+\.pdf[^"]*)"', oa)
+            oa = requests.get(
+                f"https://www.ncbi.nlm.nih.gov/pmc/utils/oa/oa.fcgi?id={pmcid}",
+                headers=UA,
+                timeout=30,
+            ).text
+            m = re.search(r'href="(ftp://[^"]+\.pdf[^"]*)"', oa) or re.search(
+                r'href="(https?://[^"]+\.pdf[^"]*)"', oa
+            )
             if m:
-                r = requests.get(m.group(1).replace("ftp://", "https://"), headers=UA, timeout=60)
+                r = requests.get(
+                    m.group(1).replace("ftp://", "https://"), headers=UA, timeout=60
+                )
                 if is_pdf(r.content):
                     return "pdf", "pdf", r.content
         except Exception:
             pass
         try:
-            r = requests.get(f"https://www.ebi.ac.uk/europepmc/webservices/rest/{pmcid}/fullTextXML", headers=UA, timeout=60)
-            if r.status_code == 200 and (b"<article" in r.content[:5000] or b"<?xml" in r.content[:50]):
+            r = requests.get(
+                f"https://www.ebi.ac.uk/europepmc/webservices/rest/{pmcid}/fullTextXML",
+                headers=UA,
+                timeout=60,
+            )
+            if r.status_code == 200 and (
+                b"<article" in r.content[:5000] or b"<?xml" in r.content[:50]
+            ):
                 return "xml", "xml", r.content
         except Exception:
             pass
@@ -172,11 +246,27 @@ if LIMIT:
 for i, (hid, rec) in enumerate(items, 1):
     if hid in progress:
         continue
-    title, author, year = rec.get("title", ""), rec.get("first_author") or "", rec.get("year")
+    title, author, year = (
+        rec.get("title", ""),
+        rec.get("first_author") or "",
+        rec.get("year"),
+    )
     doi, src, score, matched_title = resolve_doi(title, author, year)
-    res = {"hash_paper_id": hid, "title": title, "first_author": author, "year": year,
-           "doi": doi, "doi_src": src, "match_score": score, "matched_title": matched_title,
-           "is_oa": None, "oa_status": None, "downloaded": None, "file": None, "oa_url": None}
+    res = {
+        "hash_paper_id": hid,
+        "title": title,
+        "first_author": author,
+        "year": year,
+        "doi": doi,
+        "doi_src": src,
+        "match_score": score,
+        "matched_title": matched_title,
+        "is_oa": None,
+        "oa_status": None,
+        "downloaded": None,
+        "file": None,
+        "oa_url": None,
+    }
     if doi:
         is_oa, oa_status, locs = oa_locations(doi)
         res["is_oa"], res["oa_status"] = is_oa, oa_status
@@ -205,32 +295,63 @@ for hid, res in progress.items():
                 dest.write_bytes((LIB / res["file"]).read_bytes())
 
 for folder in folders:
-    rows = [progress[p["hash_paper_id"]] for p in json.loads((SEARCHES_DIR/folder/"papers.json").read_text(encoding="utf-8")) if p["hash_paper_id"] in progress]
-    rows.sort(key=lambda r: (r.get("year") or 0), reverse=True)
-    lines = [f"# References — {folder}\n",
-             f"\n{len(rows)} papers. PDF/XML in `papers/`; 📄 PDF · 📃 XML (text only, figures absent) · ⛔ OA-blocked (browser) · 🔒 no OA.\n\n"]
+    rows = [
+        progress[p["hash_paper_id"]]
+        for p in json.loads(
+            (SEARCHES_DIR / folder / "papers.json").read_text(encoding="utf-8")
+        )
+        if p["hash_paper_id"] in progress
+    ]
+    rows.sort(key=lambda r: r.get("year") or 0, reverse=True)
+    lines = [
+        f"# References — {folder}\n",
+        f"\n{len(rows)} papers. PDF/XML in `papers/`; 📄 PDF · 📃 XML (text only, figures absent) · ⛔ OA-blocked (browser) · 🔒 no OA.\n\n",
+    ]
     for r in rows:
         mark = {"pdf": "📄", "xml": "📃", "blocked": "⛔"}.get(r.get("downloaded"), "")
         if r.get("doi") and not r.get("is_oa"):
             mark = "🔒"
-        lines.append(f"- {mark} **{r['title']}** ({r.get('year')}) — {r.get('first_author') or 'n/a'} — "
-                     f"DOI: {r.get('doi') or '—'}" + (f" — [OA]({r['oa_url']})" if r.get("oa_url") else "") +
-                     (f" — `{r['file']}`" if r.get("file") else "") + "\n")
-    refs_md = SEARCHES_DIR/folder/"papers"/"references.md"
+        lines.append(
+            f"- {mark} **{r['title']}** ({r.get('year')}) — {r.get('first_author') or 'n/a'} — "
+            f"DOI: {r.get('doi') or '—'}"
+            + (f" — [OA]({r['oa_url']})" if r.get("oa_url") else "")
+            + (f" — `{r['file']}`" if r.get("file") else "")
+            + "\n"
+        )
+    refs_md = SEARCHES_DIR / folder / "papers" / "references.md"
     refs_md.parent.mkdir(parents=True, exist_ok=True)
     refs_md.write_text("".join(lines), encoding="utf-8")
 
 allrows = list(progress.values())
-(BIB/"master_bibliography.json").write_text(json.dumps(allrows, indent=2, ensure_ascii=False), encoding="utf-8")
-with (BIB/"master_bibliography.csv").open("w", newline="", encoding="utf-8") as f:
-    w = csv.DictWriter(f, fieldnames=["title","first_author","year","doi","doi_src","match_score","is_oa","oa_status","downloaded","file","oa_url"])
+(BIB / "master_bibliography.json").write_text(
+    json.dumps(allrows, indent=2, ensure_ascii=False), encoding="utf-8"
+)
+with (BIB / "master_bibliography.csv").open("w", newline="", encoding="utf-8") as f:
+    w = csv.DictWriter(
+        f,
+        fieldnames=[
+            "title",
+            "first_author",
+            "year",
+            "doi",
+            "doi_src",
+            "match_score",
+            "is_oa",
+            "oa_status",
+            "downloaded",
+            "file",
+            "oa_url",
+        ],
+    )
     w.writeheader()
     for r in allrows:
         w.writerow({k: r.get(k) for k in w.fieldnames})
 
 report = {
     "unique_papers": len(master),
-    "doi_resolution_rate": sum(1 for r in allrows if r.get("doi")),  # rate (assigned), not validated precision
+    "doi_resolution_rate": sum(
+        1 for r in allrows if r.get("doi")
+    ),  # rate (assigned), not validated precision
     "open_access": sum(1 for r in allrows if r.get("is_oa")),
     "downloaded_pdf": sum(1 for r in allrows if r.get("downloaded") == "pdf"),
     "downloaded_xml": sum(1 for r in allrows if r.get("downloaded") == "xml"),
@@ -238,7 +359,7 @@ report = {
     "no_oa": sum(1 for r in allrows if r.get("doi") and not r.get("is_oa")),
     "no_doi": sum(1 for r in allrows if not r.get("doi")),
 }
-(BIB/"_funnel_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+(BIB / "_funnel_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
 print("\n=== FUNNEL (doi_resolution_rate = DOI assigned, not validated precision) ===")
 print(json.dumps(report, indent=2))
 print("DONE")

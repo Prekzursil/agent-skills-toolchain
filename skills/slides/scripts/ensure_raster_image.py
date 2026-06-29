@@ -93,11 +93,15 @@ def ensure_raster_image(path: str, out_dir: str | None = None) -> str:
         run(["inkscape", path, "-o", out_path], check=True)
         if isfile(out_path):
             return out_path
-        raise RuntimeError("inkscape reported success but output file not found: " + out_path)
+        raise RuntimeError(
+            "inkscape reported success but output file not found: " + out_path
+        )
 
     if ext_lower in (".emz", ".wmz"):
         # Decompress into EMF/WMF then rasterize with Inkscape
-        decompressed = join(out_dir, basename(base) + (".emf" if ext_lower == ".emz" else ".wmf"))
+        decompressed = join(
+            out_dir, basename(base) + (".emf" if ext_lower == ".emz" else ".wmf")
+        )
         with gzip.open(path, "rb") as zin, open(decompressed, "wb") as zout:
             zout.write(zin.read())
         run(
@@ -106,13 +110,17 @@ def ensure_raster_image(path: str, out_dir: str | None = None) -> str:
         )
         if isfile(out_path):
             return out_path
-        raise RuntimeError("inkscape reported success but output file not found: " + out_path)
+        raise RuntimeError(
+            "inkscape reported success but output file not found: " + out_path
+        )
 
     if ext_lower in (".svg", ".svgz"):
         run(["inkscape", path, "-o", out_path], check=True)
         if isfile(out_path):
             return out_path
-        raise RuntimeError("inkscape reported success but output file not found: " + out_path)
+        raise RuntimeError(
+            "inkscape reported success but output file not found: " + out_path
+        )
 
     if ext_lower in (".wdp", ".jxr"):
         tmp_tiff = join(out_dir, basename(base) + ".tiff")
@@ -128,7 +136,9 @@ def ensure_raster_image(path: str, out_dir: str | None = None) -> str:
         run([heif_convert, path, out_path], check=True)
         if isfile(out_path):
             return out_path
-        raise RuntimeError("heif-convert reported success but output file not found: " + out_path)
+        raise RuntimeError(
+            "heif-convert reported success but output file not found: " + out_path
+        )
 
     if ext_lower in (".pdf", ".eps", ".ps"):
         # Rasterize first page via Ghostscript
@@ -151,7 +161,9 @@ def ensure_raster_image(path: str, out_dir: str | None = None) -> str:
         )
         if isfile(out_path):
             return out_path
-        raise RuntimeError("Ghostscript reported success but output file not found: " + out_path)
+        raise RuntimeError(
+            "Ghostscript reported success but output file not found: " + out_path
+        )
 
     if ext_lower in RASTER_EXTS:
         return path
@@ -164,7 +176,9 @@ def main() -> None:
         description=("Ensure input images are rasterized; convert to PNG if needed.")
     )
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--input_files", nargs="+", help="List of input image file paths")
+    group.add_argument(
+        "--input_files", nargs="+", help="List of input image file paths"
+    )
     group.add_argument("--input_dir", help="Directory containing input images")
     parser.add_argument(
         "--output_dir",

@@ -1,6 +1,6 @@
 ---
 name: cloudflare-deploy
-description: Deploy applications and infrastructure to Cloudflare using Workers, Pages, and related platform services. Use when the user asks to deploy, host, publish, or set up a project on Cloudflare.
+description: Use when deploying an application or infrastructure to Cloudflare Workers, Pages, or related platform services ; do NOT use for Vercel (use vercel-deploy), Netlify (use netlify-deploy), or Render (use render-deploy) ; returns Cloudflare deployment URL or configuration.
 ---
 
 # Cloudflare Deploy

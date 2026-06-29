@@ -1,6 +1,6 @@
 ---
 name: agent-lanes-chatgpt-web-discuss
-description: Use when the user explicitly wants discussion, ideation, or sparring through the direct ChatGPT web lane. Triggers include requests to debate or discuss with ChatGPT web, `chatgpt5_web_discuss`, or `chatgpt_web_discuss`.
+description: Use when the user explicitly invokes the agent-lanes ChatGPT web discuss lane (chatgpt_web_discuss, debate or discuss with ChatGPT web) for ideation or sparring in an agent-lanes workflow ; do NOT use for the newer chatgpt5-web-discuss route ; returns ChatGPT web discussion result.
 ---
 
 # Agent Lanes ChatGPT Web Discuss

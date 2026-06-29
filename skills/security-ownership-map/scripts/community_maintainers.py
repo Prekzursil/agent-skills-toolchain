@@ -234,7 +234,9 @@ def load_community_files(
             community_id = int(node.get("community_id", -1))
         if community_id is None:
             raise ValueError("Provide --file or --community-id")
-        files = [node.get("id") for node in nodes if node.get("community_id") == community_id]
+        files = [
+            node.get("id") for node in nodes if node.get("community_id") == community_id
+        ]
         files = [entry for entry in files if entry]
         if not files:
             raise ValueError(f"No files found for community {community_id}")
@@ -386,23 +388,31 @@ def main() -> int:
     until = parse_date(args.until) if args.until else None
 
     try:
-        community_id, community_files = load_community_files(data_dir, args.file, args.community_id)
+        community_id, community_files = load_community_files(
+            data_dir, args.file, args.community_id
+        )
     except (ValueError, FileNotFoundError) as exc:
         print(str(exc), file=sys.stderr)
         return 2
 
     people = load_people(data_dir)
 
-    ignore_re = re.compile(args.ignore_author_regex) if args.ignore_author_regex else None
+    ignore_re = (
+        re.compile(args.ignore_author_regex) if args.ignore_author_regex else None
+    )
 
     commits_path = data_dir / "commits.jsonl"
     if commits_path.exists():
-        commit_iter = iter_commits_from_json(commits_path, since, until, args.date_field)
+        commit_iter = iter_commits_from_json(
+            commits_path, since, until, args.date_field
+        )
     else:
         if not args.repo:
             print("--repo is required when commits.jsonl is missing", file=sys.stderr)
             return 2
-        commit_iter = iter_commits_from_git(args.repo, args.since, args.until, args.include_merges)
+        commit_iter = iter_commits_from_git(
+            args.repo, args.since, args.until, args.include_merges
+        )
 
     commit_rows: list[tuple[dt.datetime, str, int, str, str]] = []
     for commit in commit_iter:
@@ -428,7 +438,9 @@ def main() -> int:
         if ignore_re and ignore_re.search(identity_email or ""):
             continue
         touches = 1 if args.touch_mode == "commit" else in_community
-        commit_rows.append((commit_date, person_id, touches, identity_name, identity_email))
+        commit_rows.append(
+            (commit_date, person_id, touches, identity_name, identity_email)
+        )
         if person_id not in people:
             people[person_id] = {
                 "name": identity_name,
@@ -437,7 +449,10 @@ def main() -> int:
             }
 
     if not commit_rows:
-        print("No commits touching community files for the selected window.", file=sys.stderr)
+        print(
+            "No commits touching community files for the selected window.",
+            file=sys.stderr,
+        )
         return 0
 
     commit_rows.sort(key=lambda row: row[0])
@@ -453,8 +468,12 @@ def main() -> int:
         key_func = quarter_key
         end_func = quarter_end
     else:
-        period_cursor = dt.datetime(min_date.year, min_date.month, 1, tzinfo=dt.timezone.utc)
-        period_end_anchor = dt.datetime(max_date.year, max_date.month, 1, tzinfo=dt.timezone.utc)
+        period_cursor = dt.datetime(
+            min_date.year, min_date.month, 1, tzinfo=dt.timezone.utc
+        )
+        period_end_anchor = dt.datetime(
+            max_date.year, max_date.month, 1, tzinfo=dt.timezone.utc
+        )
         step_months = 1
         key_func = month_key
         end_func = month_end
@@ -509,7 +528,9 @@ def main() -> int:
 
     for period in sorted(period_counts.keys()):
         total = period_totals[period]
-        ranked = sorted(period_counts[period].items(), key=lambda item: item[1], reverse=True)
+        ranked = sorted(
+            period_counts[period].items(), key=lambda item: item[1], reverse=True
+        )
         rank = 0
         for person_id, touches in ranked:
             if touches < args.min_touches:
