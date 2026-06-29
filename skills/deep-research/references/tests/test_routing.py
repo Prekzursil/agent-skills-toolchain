@@ -17,19 +17,46 @@ def test_classifier_picks_capability_per_keyword():
     assert classify_capability("find similar via semantic search") == "neural"
 
 
+def test_classifier_routes_explain_compare_consensus_to_synthesis():
+    assert classify_capability("Compare React and Vue performance") == "synthesis"
+    assert classify_capability("Explain how diffusion models work") == "synthesis"
+    assert classify_capability("What is the consensus on intermittent fasting?") == "synthesis"
+    # NB: avoid substrings of domain keywords here (e.g. "monorepos" contains
+    # "repo" -> the earlier `code` rule wins); that ordering is intentional.
+    assert classify_capability("pros and cons of microservices") == "synthesis"
+
+
+def test_domain_keywords_win_over_synthesis_phrasing():
+    # A domain-specific question phrased as "compare/explain" still routes to its
+    # domain (synthesis is the LAST rule), so raw academic/bio work is unaffected.
+    assert classify_capability("Compare two peer-reviewed papers on this drug") == "bio"
+    assert classify_capability("Explain the arxiv preprint's methodology") == "academic"
+
+
 def test_classifier_defaults_to_web():
     assert classify_capability("current state of the housing market") == "web"
 
 
-def test_web_routes_firecrawl_primary_then_fallbacks():
+def test_web_routes_firecrawl_primary_then_perplexity_then_fallbacks():
     providers = resolve_providers("web")
     keys = [p.key for p in providers]
+    # Raw-extraction primary stays firecrawl; Perplexity is the high-priority
+    # cited corroborator at #2, ahead of exa/tavily.
     assert keys[0] == "firecrawl.firecrawl_search"
+    assert keys[1] == "perplexity.pplx_smart_query"
     assert "exa.web_search_exa" in keys
     assert "tavily.tavily_search" in keys
 
 
+def test_synthesis_routes_perplexity_primary_then_raw_fallbacks():
+    providers = resolve_providers("synthesis")
+    keys = [p.key for p in providers]
+    assert keys[0] == "perplexity.pplx_smart_query"
+    assert keys[1:] == ["exa.web_search_exa", "firecrawl.firecrawl_search"]
+
+
 def test_capability_primaries_match_policy():
+    assert resolve_providers("synthesis")[0].server == "perplexity"
     assert resolve_providers("neural")[0].key == "exa.web_search_exa"
     assert resolve_providers("academic")[0].server == "scholarly-access"
     assert resolve_providers("bio")[0].server == "tooluniverse"
@@ -52,6 +79,11 @@ def test_live_filter_drops_down_servers_and_keeps_order():
 def test_top_n_caps_for_corroboration_diversity():
     providers = resolve_providers("web", top_n=2)
     assert len(providers) == 2
+    # The top-2 web corroboration pair is now firecrawl (raw) + Perplexity (cited).
+    assert [p.key for p in providers] == [
+        "firecrawl.firecrawl_search",
+        "perplexity.pplx_smart_query",
+    ]
 
 
 def test_sci_hub_and_regressed_tool_are_excluded():

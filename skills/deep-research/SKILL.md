@@ -1,6 +1,6 @@
 ---
 name: deep-research
-description: Multi-source deep research with a routing + caching + grading harness over firecrawl, exa, tavily, scholarly-access, tooluniverse, huggingface, and context7 MCPs. Routes each sub-question to the best live provider, caches provider calls by query hash, grades every source by confidence, and delivers cited reports with numbered citations. Use when the user wants thorough, evidence-backed research on any topic.
+description: Multi-source deep research with a routing + caching + grading harness over firecrawl, exa, tavily, perplexity, scholarly-access, tooluniverse, huggingface, and context7 MCPs. Routes each sub-question to the best live provider, caches provider calls by query hash, grades every source by confidence, and delivers cited reports with numbered citations. Use when the user wants thorough, evidence-backed research on any topic.
 ---
 
 # Deep Research
@@ -36,6 +36,7 @@ live (see Preflight):
 - **firecrawl** — `firecrawl_search`, `firecrawl_scrape`, `firecrawl_research_search_github` (primary web)
 - **exa** (plugin `mcp__plugin_exa_exa__*`) — `web_search_exa`, `web_fetch_exa` (neural/semantic)
 - **tavily** — `tavily_search`, `tavily_extract` (web/news fallback)
+- **perplexity** (cookie/session-auth web MCP, `jacob-bd/perplexity-web-mcp`) — `pplx_smart_query`, `pplx_ask`, `pplx_deep_research`, `pplx_council` (synthesized **cited** answers via the user's Pro/Max plan; drives the `synthesis` capability + high-priority web corroboration). Uses the `__Secure-next-auth.session-token` cookie supplied to the server as `PERPLEXITY_SESSION_TOKEN` — no paid API key. Gray-area/ToS-adjacent (like the IG/FB cookie MCPs); session can rate-limit/expire (~30d) and preflight routes around it when down.
 - **scholarly-access** — `paper_resolve`, `paper_fetch_metadata`, `paper_summarize` (OA academic)
 - **tooluniverse** — `find_tools`, `execute_tool` (bio/pharma, 1264-tool library)
 - **huggingface** — `paper_search` (ML/arXiv papers)
@@ -166,7 +167,8 @@ providers (primary first), with a source-tier prior for grading:
 
 | Capability | Ordered providers (primary first) |
 |---|---|
-| `web` | firecrawl.firecrawl_search -> exa.web_search_exa -> tavily.tavily_search |
+| `web` | firecrawl.firecrawl_search -> perplexity.pplx_smart_query -> exa.web_search_exa -> tavily.tavily_search |
+| `synthesis` | perplexity.pplx_smart_query -> exa.web_search_exa -> firecrawl.firecrawl_search |
 | `neural` | exa.web_search_exa -> firecrawl.firecrawl_search |
 | `academic` | scholarly-access.paper_resolve -> huggingface.paper_search |
 | `bio` | tooluniverse.find_tools -> scholarly-access.paper_resolve |
@@ -176,9 +178,12 @@ providers (primary first), with a source-tier prior for grading:
 
 `classify_capability(subquestion)` is a cheap, conservative keyword classifier
 (keywords like paper/study/doi -> academic; gene/protein/drug -> bio; repo/github
--> code; api docs/sdk -> library_docs; else web). `resolve_providers(capability,
-live_servers, top_n)` returns ordered live providers; Sci-Hub, the regressed
-`paper_find_oa_pdf`, and parked servers are hard-excluded.
+-> code; api docs/sdk -> library_docs; explain/compare/consensus -> synthesis;
+else web). Domain rules win over synthesis phrasing (synthesis is the last rule),
+and raw link/extraction stays on firecrawl/exa while synthesized **cited** answers
+route to Perplexity. `resolve_providers(capability, live_servers, top_n)` returns
+ordered live providers; Sci-Hub, the regressed `paper_find_oa_pdf`, and parked
+servers are hard-excluded.
 
 ### 2. Query-hash cache (`cache.py`)
 

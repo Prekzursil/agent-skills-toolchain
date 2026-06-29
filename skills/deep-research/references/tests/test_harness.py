@@ -16,6 +16,7 @@ def test_routable_servers_excludes_guardrailed_and_parked():
     servers = routable_servers()
     assert "firecrawl" in servers
     assert "scholarly-access" in servers
+    assert "perplexity" in servers  # cookie/session-auth synthesis provider
     assert "sci-hub" not in servers
     assert "scrapegraph" not in servers
     assert "apify" not in servers
@@ -47,7 +48,8 @@ def test_invalid_probe_value_is_treated_as_down():
 
 
 def test_plan_research_routes_around_down_primary():
-    # firecrawl down -> web sub-question should fall to exa as live primary.
+    # firecrawl down -> web sub-question falls to Perplexity (the high-priority
+    # #2 web provider) as the live primary, then exa.
     def probe(server):
         return DOWN if server == "firecrawl" else LIVE
 
@@ -59,12 +61,23 @@ def test_plan_research_routes_around_down_primary():
     )
     web_decision = plan.decisions[0]
     assert web_decision.capability == "web"
-    assert web_decision.providers[0].server == "exa"
+    assert web_decision.providers[0].server == "perplexity"
+    assert web_decision.providers[1].server == "exa"
     assert "firecrawl" in plan.providers_down
 
     academic_decision = plan.decisions[1]
     assert academic_decision.capability == "academic"
     assert academic_decision.providers[0].server == "scholarly-access"
+
+
+def test_plan_research_routes_synthesis_question_to_perplexity():
+    # "explain/compare" sub-question routes to the synthesis capability with
+    # Perplexity as the live primary.
+    statuses = run_preflight(lambda s: LIVE)
+    plan = plan_research(["compare Rust and Go for systems programming"], statuses, top_n=2)
+    decision = plan.decisions[0]
+    assert decision.capability == "synthesis"
+    assert decision.providers[0].server == "perplexity"
 
 
 def test_plan_research_top_n_limits_providers():

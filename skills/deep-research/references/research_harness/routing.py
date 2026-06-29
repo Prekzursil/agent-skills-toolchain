@@ -8,7 +8,8 @@ the highest-ranked provider that is currently *live* (see ``preflight``).
 The table is the single choke-point to update when MCP tool names/quotas drift
 (see the deep-research drift warning). It encodes the standing routing policy:
 
-    web          -> firecrawl (primary) -> exa -> tavily
+    web           -> firecrawl (primary) -> perplexity -> exa -> tavily
+    synthesis     -> perplexity (primary) -> exa -> firecrawl
     neural        -> exa (primary) -> firecrawl
     academic      -> scholarly-access (OA) -> huggingface
     bio / pharma  -> tooluniverse -> scholarly-access
@@ -16,12 +17,27 @@ The table is the single choke-point to update when MCP tool names/quotas drift
     library docs  -> context7 -> exa
     deep_read     -> firecrawl(scrape) -> exa(fetch) -> tavily(extract)
 
+Provider-strength split (the Perplexity correlation, M-16b):
+  * ``synthesis`` is for "explain / compare / what's-the-consensus"-style
+    sub-questions whose ideal answer is a *synthesized, cited* paragraph.
+    Those route to Perplexity first (it drives the user's Pro/Max plan via a
+    session cookie and returns an answer with inline citations).
+  * Raw link discovery / page extraction stays on firecrawl + exa: ``web`` keeps
+    firecrawl as primary, with Perplexity inserted as the high-priority #2
+    corroborator (a cited second opinion) ahead of exa/tavily.
+
 Hard guardrails baked in:
   * Sci-Hub is never routed to (``mcp__sci-hub__*``).
   * ``scholarly-access.paper_find_oa_pdf`` is excluded pending the standing
     regression revert.
   * Parked servers (``scrapegraph``, ``apify`` in ~/.mcp.disabled.json) are
     never routed to.
+
+Compliance note: Perplexity here is a *cookie/session-auth* MCP (no paid API
+key) — a gray-area approach like the IG/FB cookie MCPs. The secret cookie is
+supplied to the MCP *server* via the ``PERPLEXITY_SESSION_TOKEN`` env var; it is
+never stored in this routing table. Its session cookie can rate-limit/expire
+(~30 days); preflight + the live-server filter route around it when it is down.
 """
 
 from dataclasses import dataclass
@@ -59,11 +75,22 @@ SCHOLARLY_RESOLVE = Provider("scholarly-access", "paper_resolve", TIER_A)
 HF_PAPER_SEARCH = Provider("huggingface", "paper_search", TIER_B)
 TU_FIND_TOOLS = Provider("tooluniverse", "find_tools", TIER_A)
 CONTEXT7_DOCS = Provider("context7", "query-docs", TIER_A)
+# Perplexity cookie/session-auth web MCP (jacob-bd/perplexity-web-mcp).
+# ``pplx_smart_query`` is the maintainer's RECOMMENDED, quota-aware default: it
+# checks the plan's remaining limits and auto-picks the best model, returning a
+# synthesized answer *with inline citations*. Tier B = reputable aggregator
+# (a synthesis layer over web sources, not itself a primary source).
+PERPLEXITY_SMART = Provider("perplexity", "pplx_smart_query", TIER_B)
 
 
 # --- Capability -> ordered providers (primary first) ----------------------
 ROUTING_TABLE: dict[str, tuple[Provider, ...]] = {
-    "web": (FIRECRAWL_SEARCH, EXA_SEARCH, TAVILY_SEARCH),
+    # Raw web discovery: firecrawl primary (best for raw links/extraction),
+    # Perplexity as the high-priority cited-corroborator #2, then exa/tavily.
+    "web": (FIRECRAWL_SEARCH, PERPLEXITY_SMART, EXA_SEARCH, TAVILY_SEARCH),
+    # Synthesis ("explain/compare/consensus"): Perplexity primary (cited
+    # synthesized answer), exa/firecrawl as raw-source fallbacks.
+    "synthesis": (PERPLEXITY_SMART, EXA_SEARCH, FIRECRAWL_SEARCH),
     "neural": (EXA_SEARCH, FIRECRAWL_SEARCH),
     "academic": (SCHOLARLY_RESOLVE, HF_PAPER_SEARCH),
     "bio": (TU_FIND_TOOLS, SCHOLARLY_RESOLVE),
@@ -157,6 +184,36 @@ _CLASSIFIER_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
             "neural search",
             "similar to",
             "find similar",
+        ),
+    ),
+    # Synthesis must stay LAST among the rules so domain-specific routing
+    # (bio/academic/library_docs/code/neural) still wins for a domain question
+    # phrased as "explain/compare …". Only otherwise-general explain/compare/
+    # consensus questions — whose ideal answer is a synthesized cited paragraph
+    # — fall through to here and route to Perplexity.
+    (
+        "synthesis",
+        (
+            "explain",
+            "compare",
+            "comparison",
+            "difference between",
+            "versus",
+            " vs ",
+            "consensus",
+            "what is the best",
+            "what's the best",
+            "pros and cons",
+            "trade-off",
+            "tradeoff",
+            "tradeoffs",
+            "overview of",
+            "summarize",
+            "summary of",
+            "best practices",
+            "how does",
+            "why does",
+            "why is",
         ),
     ),
 )
