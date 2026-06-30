@@ -136,7 +136,10 @@ def is_dark_web(url: str) -> bool:
 
 def source_tier(source: Source) -> str:
     """Best of the domain-authority prior and the provider prior."""
-    rank = max(_TIER_RANK[_domain_tier(source.url)], _TIER_RANK[_provider_tier(source.provider)])
+    rank = max(
+        _TIER_RANK[_domain_tier(source.url)],
+        _TIER_RANK[_provider_tier(source.provider)],
+    )
     return _RANK_TIER[rank]
 
 

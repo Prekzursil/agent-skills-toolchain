@@ -56,7 +56,10 @@ def test_plan_research_routes_around_down_primary():
 
     statuses = run_preflight(probe)
     plan = plan_research(
-        ["current state of the housing market", "recent papers on quantum error correction"],
+        [
+            "current state of the housing market",
+            "recent papers on quantum error correction",
+        ],
         statuses,
         top_n=2,
     )
@@ -75,7 +78,9 @@ def test_plan_research_routes_synthesis_question_to_perplexity():
     # "explain/compare" sub-question routes to the synthesis capability with
     # Perplexity as the live primary.
     statuses = run_preflight(lambda s: LIVE)
-    plan = plan_research(["compare Rust and Go for systems programming"], statuses, top_n=2)
+    plan = plan_research(
+        ["compare Rust and Go for systems programming"], statuses, top_n=2
+    )
     decision = plan.decisions[0]
     assert decision.capability == "synthesis"
     assert decision.providers[0].server == "perplexity"

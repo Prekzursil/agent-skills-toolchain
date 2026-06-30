@@ -32,6 +32,7 @@ Usage (wired in settings.json):
   python liveness.py pretool        # PreToolUse(mcp__basic-memory__.*) hook
   python liveness.py probe          # CLI: print status JSON + SUCCESS/FAILED marker (testing)
 """
+
 from __future__ import annotations
 
 import json
@@ -49,10 +50,12 @@ CONFIG_PATH = THIS / "critical.json"
 DISABLED = THIS / ".disabled"
 
 # Per-session liveness state (throttle + alert dedup). Override for tests.
-STATE_DIR = Path(os.environ.get(
-    "MCP_LIVENESS_STATE_DIR",
-    str(Path(os.environ.get("TEMP", "/tmp")) / "mcp-liveness"),
-))
+STATE_DIR = Path(
+    os.environ.get(
+        "MCP_LIVENESS_STATE_DIR",
+        str(Path(os.environ.get("TEMP", "/tmp")) / "mcp-liveness"),
+    )
+)
 
 # Streamable-HTTP handshake codes: the server IS serving MCP but wants a session /
 # different content negotiation (NOT a generic 404/501 "nothing here"). Mirrors
@@ -76,13 +79,18 @@ def load_config() -> dict:
             "critical": {
                 "basic-memory": {
                     "url": "http://127.0.0.1:8765/mcp",
-                    "host": "127.0.0.1", "port": 8765,
+                    "host": "127.0.0.1",
+                    "port": 8765,
                     "auto_restart": True,
                     "restart_helper": "restart-basic-memory.ps1",
                     "why": "semantic memory vault",
                 }
             },
-            "reharness": {"registry": "", "auto_restart": False, "restart_hint": "re_launch.py"},
+            "reharness": {
+                "registry": "",
+                "auto_restart": False,
+                "restart_hint": "re_launch.py",
+            },
         }
 
 
@@ -106,19 +114,29 @@ def mcp_handshake(url: str, timeout: float):
             False -> TCP answered but it is NOT MCP (dead-but-listening corpse).
             None  -> unreachable.
     """
-    payload = json.dumps({
-        "jsonrpc": "2.0", "id": 1, "method": "initialize",
-        "params": {
-            "protocolVersion": "2024-11-05", "capabilities": {},
-            "clientInfo": {"name": "mcp-liveness", "version": "1.0"},
-        },
-    }).encode("utf-8")
+    payload = json.dumps(
+        {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {
+                "protocolVersion": "2024-11-05",
+                "capabilities": {},
+                "clientInfo": {"name": "mcp-liveness", "version": "1.0"},
+            },
+        }
+    ).encode("utf-8")
     req = urllib.request.Request(
-        url, data=payload, method="POST",
-        headers={"Content-Type": "application/json",
-                 "Accept": "application/json, text/event-stream"},
+        url,
+        data=payload,
+        method="POST",
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream",
+        },
     )
     try:
+        # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected -- internal MCP liveness probe; URL from local config, not untrusted user data
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             body = resp.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as exc:
@@ -155,12 +173,24 @@ def probe_critical(name: str, spec: dict, cfg: dict) -> dict:
     hs_t = float(cfg.get("handshake_timeout", 5.0))
 
     if not tcp_up(host, port, tcp_t):
-        return {"name": name, "state": "down", "tcp": False, "mcp_ok": None,
-                "url": url, "why": spec.get("why", "")}
+        return {
+            "name": name,
+            "state": "down",
+            "tcp": False,
+            "mcp_ok": None,
+            "url": url,
+            "why": spec.get("why", ""),
+        }
     hs = mcp_handshake(url, hs_t)
     state = "up" if hs else "dead-listening"
-    return {"name": name, "state": state, "tcp": True, "mcp_ok": bool(hs),
-            "url": url, "why": spec.get("why", "")}
+    return {
+        "name": name,
+        "state": state,
+        "tcp": True,
+        "mcp_ok": bool(hs),
+        "url": url,
+        "why": spec.get("why", ""),
+    }
 
 
 def probe_reharness(cfg: dict) -> list:
@@ -198,7 +228,10 @@ def probe_reharness(cfg: dict) -> list:
 # State (throttle + alert dedup), per session
 # ---------------------------------------------------------------------------
 def _state_file(sid: str) -> Path:
-    safe = "".join(c if c.isalnum() or c in "-_." else "-" for c in str(sid))[:80] or "default"
+    safe = (
+        "".join(c if c.isalnum() or c in "-_." else "-" for c in str(sid))[:80]
+        or "default"
+    )
     return STATE_DIR / f"{safe}.json"
 
 
@@ -206,8 +239,12 @@ def load_state(sid: str) -> dict:
     try:
         return json.loads(_state_file(sid).read_text(encoding="utf-8"))
     except Exception:
-        return {"last_check": 0.0, "last_state": "unknown",
-                "alerted_down": False, "restart_attempted": False}
+        return {
+            "last_check": 0.0,
+            "last_state": "unknown",
+            "alerted_down": False,
+            "restart_attempted": False,
+        }
 
 
 def save_state(sid: str, st: dict) -> None:
@@ -229,8 +266,7 @@ def attempt_restart(spec: dict, dead_listening: bool) -> bool:
     ps1 = THIS / helper
     if not ps1.exists():
         return False
-    args = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
-            "-File", str(ps1)]
+    args = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(ps1)]
     if dead_listening:
         args += ["-KillCorpse"]
     try:
@@ -240,11 +276,16 @@ def attempt_restart(spec: dict, dead_listening: bool) -> bool:
             # powershell child from actually executing (verified: marker never
             # written). CREATE_NEW_PROCESS_GROUP keeps the child alive after this
             # short-lived hook exits; CREATE_NO_WINDOW hides the console flash.
-            flags = (getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x200)
-                     | getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000))
+            flags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x200) | getattr(
+                subprocess, "CREATE_NO_WINDOW", 0x08000000
+            )
         subprocess.Popen(
-            args, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL, close_fds=True, creationflags=flags,
+            args,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            close_fds=True,
+            creationflags=flags,
         )
         return True
     except Exception:
@@ -258,15 +299,21 @@ def format_alert(down: list, reharness_down: list, restarted: bool) -> str:
     parts = []
     for d in down:
         if d["name"] == "basic-memory":
-            verb = "DOWN" if d["state"] == "down" else "DEAD-but-LISTENING (corpse on the port)"
+            verb = (
+                "DOWN"
+                if d["state"] == "down"
+                else "DEAD-but-LISTENING (corpse on the port)"
+            )
             parts.append(
                 f"WARNING: basic-memory {verb} - memory is NOT being saved and "
                 f"recall is UNRELIABLE. "
-                + ("Auto-restart attempted - VERIFY (call a basic-memory tool) before "
-                   "relying on recall, and re-save anything important. "
-                   if restarted else
-                   "Auto-restart could NOT be launched - start it manually: "
-                   "Start-ScheduledTask -TaskName BasicMemory-HTTP-MCP. ")
+                + (
+                    "Auto-restart attempted - VERIFY (call a basic-memory tool) before "
+                    "relying on recall, and re-save anything important. "
+                    if restarted
+                    else "Auto-restart could NOT be launched - start it manually: "
+                    "Start-ScheduledTask -TaskName BasicMemory-HTTP-MCP. "
+                )
             )
         else:
             parts.append(f"WARNING: critical MCP '{d['name']}' is {d['state']}.")
@@ -280,8 +327,16 @@ def format_alert(down: list, reharness_down: list, restarted: bool) -> str:
 
 
 def emit(event_name: str, msg: str) -> None:
-    print(json.dumps({"hookSpecificOutput": {
-        "hookEventName": event_name, "additionalContext": msg}}))
+    print(
+        json.dumps(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": event_name,
+                    "additionalContext": msg,
+                }
+            }
+        )
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -296,8 +351,10 @@ def run(mode: str, data: dict) -> int:
 
     # PreToolUse fast-path: if we very recently saw the keystone UP, skip the probe.
     if mode == "pretool":
-        if (now - float(st.get("last_check", 0)) < throttle
-                and st.get("last_state") == "up"):
+        if (
+            now - float(st.get("last_check", 0)) < throttle
+            and st.get("last_state") == "up"
+        ):
             return 0
 
     critical = cfg.get("critical") or {}
@@ -306,8 +363,15 @@ def run(mode: str, data: dict) -> int:
     reharness_down = probe_reharness(cfg)
 
     if not down and not reharness_down:
-        save_state(sid, {"last_check": now, "last_state": "up",
-                         "alerted_down": False, "restart_attempted": False})
+        save_state(
+            sid,
+            {
+                "last_check": now,
+                "last_state": "up",
+                "alerted_down": False,
+                "restart_attempted": False,
+            },
+        )
         return 0  # healthy -> silent
 
     # Something critical is down. Auto-restart (once per down-episode) + alert.
@@ -316,7 +380,9 @@ def run(mode: str, data: dict) -> int:
         for r in down:
             spec = critical.get(r["name"], {})
             if spec.get("auto_restart"):
-                if attempt_restart(spec, dead_listening=(r["state"] == "dead-listening")):
+                if attempt_restart(
+                    spec, dead_listening=(r["state"] == "dead-listening")
+                ):
                     restarted = True
         st["restart_attempted"] = True
 
@@ -330,29 +396,37 @@ def run(mode: str, data: dict) -> int:
     elif should_alert and reharness_down and mode == "sessionstart":
         emit(event, format_alert([], reharness_down, False))
 
-    st.update({"last_check": now,
-               "last_state": down[0]["state"] if down else "up"})
+    st.update({"last_check": now, "last_state": down[0]["state"] if down else "up"})
     save_state(sid, st)
     return 0
 
 
 def main(argv) -> int:
     try:
-        if DISABLED.exists() or os.environ.get("MCP_LIVENESS", "").lower() in ("off", "0", "false"):
+        if DISABLED.exists() or os.environ.get("MCP_LIVENESS", "").lower() in (
+            "off",
+            "0",
+            "false",
+        ):
             return 0
         mode = (argv[0] if argv else "sessionstart").lower()
 
         if mode == "probe":
             # CLI test mode: print status + terminal-state marker, no restart/alert.
             cfg = load_config()
-            results = [probe_critical(n, s, cfg) for n, s in (cfg.get("critical") or {}).items()]
+            results = [
+                probe_critical(n, s, cfg)
+                for n, s in (cfg.get("critical") or {}).items()
+            ]
             rh = probe_reharness(cfg)
             down = [r for r in results if r["state"] != "up"]
             report = {"critical": results, "reharness_down": rh}
-            marker = ("SUCCESS:liveness all critical MCPs up"
-                      if not down else
-                      f"FAILED:liveness {len(down)} critical down: "
-                      + ",".join(f"{r['name']}={r['state']}" for r in down))
+            marker = (
+                "SUCCESS:liveness all critical MCPs up"
+                if not down
+                else f"FAILED:liveness {len(down)} critical down: "
+                + ",".join(f"{r['name']}={r['state']}" for r in down)
+            )
             print(json.dumps(report, indent=2))
             print(marker)
             return 1 if down else 0

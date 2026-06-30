@@ -27,6 +27,7 @@ Wire spec:
                      "additionalContext": "<reminders>"}}
   Stdout (none):  empty.   Exit: always 0.
 """
+
 from __future__ import annotations
 
 import os
@@ -46,8 +47,12 @@ def _cs_allow(itype, ctx):
     try:
         import sys as _s
         from pathlib import Path as _P
-        _s.path.insert(0, str(_P(__file__).resolve().parent.parent / "calibrated-silence"))
+
+        _s.path.insert(
+            0, str(_P(__file__).resolve().parent.parent / "calibrated-silence")
+        )
         import calibrated_silence as _c
+
         return _c.should_interject(itype, ctx)[0]
     except Exception:
         return True
@@ -56,6 +61,7 @@ def _cs_allow(itype, ctx):
 def _cs_record(itype, ck, sid):
     try:
         import calibrated_silence as _c
+
         _c.record_interjection(itype, ck, sid)
     except Exception:
         pass
@@ -66,7 +72,11 @@ MAX_FIRE = int(os.environ.get("OPEN_LOOPS_MAX_FIRE", "3"))
 
 
 def _disabled() -> bool:
-    return DISABLED.exists() or os.environ.get("OPEN_LOOPS", "").lower() in ("off", "0", "false")
+    return DISABLED.exists() or os.environ.get("OPEN_LOOPS", "").lower() in (
+        "off",
+        "0",
+        "false",
+    )
 
 
 def _recur_ready(t: dict) -> bool:
@@ -109,13 +119,19 @@ def select_and_fire(payload: dict):
     if not fired_now:
         return None, changed
 
-    lines = ["**[open-loop trigger fired]** You set these reminders earlier and they "
-             "match this turn — act on them (or close when done):"]
+    lines = [
+        "**[open-loop trigger fired]** You set these reminders earlier and they "
+        "match this turn — act on them (or close when done):"
+    ]
     for t in fired_now:
         note = C.matched_pred_summary(t.get("condition") or {}, ctx)
-        when = time.strftime("%Y-%m-%d", time.localtime(float(t.get("created_ts") or 0)))
+        when = time.strftime(
+            "%Y-%m-%d", time.localtime(float(t.get("created_ts") or 0))
+        )
         kind = " [recurring]" if t.get("recurring") else ""
-        lines.append(f"- ({t['id']}{kind}) {t.get('action', '')}  <- {note}  (set {when})")
+        lines.append(
+            f"- ({t['id']}{kind}) {t.get('action', '')}  <- {note}  (set {when})"
+        )
     lines.append("Close: `python ~/.claude/hooks/open-loops/add.py --close <id>`")
     return "\n".join(lines), changed
 
@@ -131,7 +147,9 @@ def main() -> int:
         if msg:
             # CALIBRATED SILENCE: gate the resurface at its emit; fail-open allows on gate error.
             sid = str(payload.get("session_id") or "default")
-            if _cs_allow("resurface", {"prompt": payload.get("prompt"), "session_id": sid}):
+            if _cs_allow(
+                "resurface", {"prompt": payload.get("prompt"), "session_id": sid}
+            ):
                 C.emit("UserPromptSubmit", msg)
                 _cs_record("resurface", "resurface:open-loops", sid)
     except Exception:

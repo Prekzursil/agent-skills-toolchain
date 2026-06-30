@@ -26,6 +26,7 @@ settings.json (PreToolUse, matcher "Write"):
    "command":"python C:/Users/Prekzursil/.claude/hooks/dup-guard/guard.py",
    "timeout":8,"statusMessage":"Dup-guard (search-before-build)"}
 """
+
 from __future__ import annotations
 
 import json
@@ -38,21 +39,83 @@ from pathlib import Path
 
 THIS = Path(__file__).resolve().parent
 DISABLED = THIS / ".disabled"
-WARN_ROOT = Path(os.environ.get("DUP_GUARD_ROOT", str(Path(tempfile.gettempdir()) / "claude-dup-guard")))
+WARN_ROOT = Path(
+    os.environ.get(
+        "DUP_GUARD_ROOT", str(Path(tempfile.gettempdir()) / "claude-dup-guard")
+    )
+)
 MAX_FILES = 15000
 
 # Basenames that legitimately recur once per directory -> never a "duplicate".
 _RECUR = {
-    "__init__.py", "__main__.py", "conftest.py", "setup.py", "index.ts", "index.tsx",
-    "index.js", "index.jsx", "index.mjs", "mod.rs", "lib.rs", "main.rs", "main.go",
-    "makefile", "dockerfile", "readme.md", "package.json", "tsconfig.json",
-    ".gitignore", "go.mod", "cargo.toml", "pyproject.toml", "requirements.txt",
+    "__init__.py",
+    "__main__.py",
+    "conftest.py",
+    "setup.py",
+    "index.ts",
+    "index.tsx",
+    "index.js",
+    "index.jsx",
+    "index.mjs",
+    "mod.rs",
+    "lib.rs",
+    "main.rs",
+    "main.go",
+    "makefile",
+    "dockerfile",
+    "readme.md",
+    "package.json",
+    "tsconfig.json",
+    ".gitignore",
+    "go.mod",
+    "cargo.toml",
+    "pyproject.toml",
+    "requirements.txt",
 }
-_IGNORE_DIRS = {".git", "node_modules", ".venv", "venv", "env", "__pycache__", "dist",
-                "build", ".next", "target", ".mypy_cache", ".pytest_cache", ".ruff_cache",
-                "site-packages", ".tox", "coverage", ".idea", ".vscode", "vendor", ".cache"}
-_SRC_EXT = (".py", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".go", ".rs", ".java", ".rb",
-            ".c", ".cc", ".cpp", ".h", ".hpp", ".cs", ".kt", ".swift", ".scala", ".php")
+_IGNORE_DIRS = {
+    ".git",
+    "node_modules",
+    ".venv",
+    "venv",
+    "env",
+    "__pycache__",
+    "dist",
+    "build",
+    ".next",
+    "target",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    "site-packages",
+    ".tox",
+    "coverage",
+    ".idea",
+    ".vscode",
+    "vendor",
+    ".cache",
+}
+_SRC_EXT = (
+    ".py",
+    ".ts",
+    ".tsx",
+    ".js",
+    ".jsx",
+    ".mjs",
+    ".go",
+    ".rs",
+    ".java",
+    ".rb",
+    ".c",
+    ".cc",
+    ".cpp",
+    ".h",
+    ".hpp",
+    ".cs",
+    ".kt",
+    ".swift",
+    ".scala",
+    ".php",
+)
 
 _PRIMARY_SYMBOL = re.compile(
     r"^\s*(?:export\s+(?:default\s+)?)?(?:async\s+)?"
@@ -60,19 +123,24 @@ _PRIMARY_SYMBOL = re.compile(
     re.MULTILINE,
 )
 _EXPORT_CONST = re.compile(
-    r"^\s*export\s+(?:const|let|var)\s+([A-Za-z_]\w{2,})\s*=", re.MULTILINE)
+    r"^\s*export\s+(?:const|let|var)\s+([A-Za-z_]\w{2,})\s*=", re.MULTILINE
+)
 
 
 def _warn_file(session_id: str) -> Path:
     WARN_ROOT.mkdir(parents=True, exist_ok=True)
-    safe = "".join(c if c.isalnum() or c in "-_." else "-" for c in str(session_id))[:80]
+    safe = "".join(c if c.isalnum() or c in "-_." else "-" for c in str(session_id))[
+        :80
+    ]
     return WARN_ROOT / f"{safe or 'unknown'}.json"
 
 
 def _already(session_id: str, key: str) -> bool:
     f = _warn_file(session_id)
     try:
-        return f.exists() and key in json.loads(f.read_text(encoding="utf-8", errors="replace"))
+        return f.exists() and key in json.loads(
+            f.read_text(encoding="utf-8", errors="replace")
+        )
     except Exception:
         return False
 
@@ -98,8 +166,12 @@ def _mark(session_id: str, key: str) -> None:
 def _list_files(root: str) -> list[str]:
     """List repo files (prefer ripgrep --files; fall back to a bounded os.walk)."""
     try:
-        r = subprocess.run(["rg", "--files", "--hidden", "-g", "!.git", root],
-                           capture_output=True, text=True, timeout=6)
+        r = subprocess.run(
+            ["rg", "--files", "--hidden", "-g", "!.git", root],
+            capture_output=True,
+            text=True,
+            timeout=6,
+        )
         if r.returncode in (0, 1) and r.stdout:
             return [ln for ln in r.stdout.splitlines() if ln.strip()][:MAX_FILES]
     except Exception:
@@ -119,7 +191,9 @@ def _list_files(root: str) -> list[str]:
 
 def _same(a: str, b: str) -> bool:
     try:
-        return os.path.normcase(os.path.abspath(a)) == os.path.normcase(os.path.abspath(b))
+        return os.path.normcase(os.path.abspath(a)) == os.path.normcase(
+            os.path.abspath(b)
+        )
     except Exception:
         return a == b
 
@@ -131,10 +205,18 @@ def _primary_symbol(content: str) -> str | None:
 
 def _symbol_defined_elsewhere(root: str, symbol: str, target: str) -> str | None:
     """Return a path (other than target) that DEFINES `symbol`, if any."""
-    pat = r"^\s*(?:export\s+(?:default\s+)?)?(?:async\s+)?(?:class|def|function|interface|struct|enum|trait|const|let|var|type)\s+" + re.escape(symbol) + r"\b"
+    pat = (
+        r"^\s*(?:export\s+(?:default\s+)?)?(?:async\s+)?(?:class|def|function|interface|struct|enum|trait|const|let|var|type)\s+"
+        + re.escape(symbol)
+        + r"\b"
+    )
     try:
-        r = subprocess.run(["rg", "-l", "--hidden", "-g", "!.git", "-m", "1", pat, root],
-                           capture_output=True, text=True, timeout=6)
+        r = subprocess.run(
+            ["rg", "-l", "--hidden", "-g", "!.git", "-m", "1", pat, root],
+            capture_output=True,
+            text=True,
+            timeout=6,
+        )
         if r.returncode == 0 and r.stdout:
             for ln in r.stdout.splitlines():
                 if ln.strip() and not _same(ln.strip(), target):
@@ -146,7 +228,11 @@ def _symbol_defined_elsewhere(root: str, symbol: str, target: str) -> str | None
 
 def main() -> int:
     try:
-        if DISABLED.exists() or os.environ.get("DUP_GUARD", "").lower() in ("off", "0", "false"):
+        if DISABLED.exists() or os.environ.get("DUP_GUARD", "").lower() in (
+            "off",
+            "0",
+            "false",
+        ):
             return 0
         try:
             data = json.loads(sys.stdin.read() or "{}")
@@ -179,12 +265,16 @@ def main() -> int:
             key = "base:" + base.lower()
             if not _already(session_id, key):
                 for fp in _list_files(cwd):
-                    if os.path.basename(fp).lower() == base.lower() and not _same(fp, file_path):
+                    if os.path.basename(fp).lower() == base.lower() and not _same(
+                        fp, file_path
+                    ):
                         try:
                             rel = os.path.relpath(fp, cwd)
                         except Exception:
                             rel = fp
-                        findings.append(f"a file named `{base}` already exists at `{rel}`")
+                        findings.append(
+                            f"a file named `{base}` already exists at `{rel}`"
+                        )
                         _mark(session_id, key)
                         break
 
@@ -210,8 +300,16 @@ def main() -> int:
                 f"one, or confirm this is intentionally a NEW, separate implementation "
                 f"(avoid reimplementing something the repo already has)."
             )
-            print(json.dumps({"hookSpecificOutput": {
-                "hookEventName": "PreToolUse", "additionalContext": msg}}))
+            print(
+                json.dumps(
+                    {
+                        "hookSpecificOutput": {
+                            "hookEventName": "PreToolUse",
+                            "additionalContext": msg,
+                        }
+                    }
+                )
+            )
     except Exception:
         pass  # fail-open
     return 0

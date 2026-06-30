@@ -35,7 +35,10 @@ def _sample_report():
     )
     methodology = Methodology(
         subquestions=("What is X?", "Who leads X?"),
-        providers_routed=("firecrawl.firecrawl_search", "scholarly-access.paper_resolve"),
+        providers_routed=(
+            "firecrawl.firecrawl_search",
+            "scholarly-access.paper_resolve",
+        ),
         cache_hits=3,
         cache_misses=5,
         providers_down=("tavily",),

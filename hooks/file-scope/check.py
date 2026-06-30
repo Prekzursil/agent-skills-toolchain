@@ -43,6 +43,7 @@ Wire spec:
 
 FAIL-OPEN: any unhandled error → exit 0.  Pure stdlib.
 """
+
 from __future__ import annotations
 
 import os
@@ -58,7 +59,11 @@ WRITE_TOOLS = frozenset({"Edit", "Write", "MultiEdit", "NotebookEdit"})
 
 
 def _disabled() -> bool:
-    return DISABLED.exists() or os.environ.get("FILE_SCOPE", "").lower() in ("off", "0", "false")
+    return DISABLED.exists() or os.environ.get("FILE_SCOPE", "").lower() in (
+        "off",
+        "0",
+        "false",
+    )
 
 
 def _find_sidecar(session_id: str, cwd: str, sd: Path) -> dict | None:

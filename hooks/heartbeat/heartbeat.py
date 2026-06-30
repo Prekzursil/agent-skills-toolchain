@@ -20,6 +20,7 @@ Modes (mirrors mcp-liveness/liveness.py):
 Reads only files written by other hooks (no network, no process probes, no MCP calls).
 FAIL-OPEN: any error -> exit 0. Opt-out: HEARTBEAT=off or a .disabled file.
 """
+
 from __future__ import annotations
 
 import json
@@ -33,22 +34,42 @@ DISABLED = THIS / ".disabled"
 
 HOME = Path.home()
 BG_DIR = Path(os.environ.get("BG_REGISTRY_DIR", str(HOME / ".claude" / "bg-registry")))
-SPOOL_DIR = Path(os.environ.get("MEMORY_SPOOL_DIR", str(HOME / ".claude" / "memory-spool")))
-LIVENESS_STATE_DIR = Path(os.environ.get(
-    "MCP_LIVENESS_STATE_DIR", str(Path(os.environ.get("TEMP", "/tmp")) / "mcp-liveness")))
-CRITICAL_JSON = Path(os.environ.get(
-    "HEARTBEAT_CRITICAL_JSON", str(HOME / ".claude" / "hooks" / "mcp-liveness" / "critical.json")))
-STATE_DIR = Path(os.environ.get(
-    "HEARTBEAT_STATE_DIR", str(Path(os.environ.get("TEMP", "/tmp")) / "heartbeat")))
+SPOOL_DIR = Path(
+    os.environ.get("MEMORY_SPOOL_DIR", str(HOME / ".claude" / "memory-spool"))
+)
+LIVENESS_STATE_DIR = Path(
+    os.environ.get(
+        "MCP_LIVENESS_STATE_DIR",
+        str(Path(os.environ.get("TEMP", "/tmp")) / "mcp-liveness"),
+    )
+)
+CRITICAL_JSON = Path(
+    os.environ.get(
+        "HEARTBEAT_CRITICAL_JSON",
+        str(HOME / ".claude" / "hooks" / "mcp-liveness" / "critical.json"),
+    )
+)
+STATE_DIR = Path(
+    os.environ.get(
+        "HEARTBEAT_STATE_DIR", str(Path(os.environ.get("TEMP", "/tmp")) / "heartbeat")
+    )
+)
 THROTTLE_SEC = float(os.environ.get("HEARTBEAT_THROTTLE_SEC", "900"))
 
 
 def _disabled() -> bool:
-    return DISABLED.exists() or os.environ.get("HEARTBEAT", "").lower() in ("off", "0", "false")
+    return DISABLED.exists() or os.environ.get("HEARTBEAT", "").lower() in (
+        "off",
+        "0",
+        "false",
+    )
 
 
 def _safe(s: str) -> str:
-    return "".join(c if c.isalnum() or c in "-_." else "-" for c in str(s))[:80] or "default"
+    return (
+        "".join(c if c.isalnum() or c in "-_." else "-" for c in str(s))[:80]
+        or "default"
+    )
 
 
 def _iter_json_lines(path: Path):
@@ -103,6 +124,7 @@ def mem_state(sid: str) -> str:
     PreToolUse hook still does the real MCP handshake when a memory op actually runs.
     """
     import socket
+
     port = int(os.environ.get("BASIC_MEMORY_PORT", "8765"))
     try:
         with socket.create_connection(("127.0.0.1", port), timeout=0.4):
@@ -131,7 +153,10 @@ def build_summary(sid: str) -> dict:
     mem = mem_state(sid)
     rh = reharness_summary()
     return {
-        "bg": bg, "spool": spool, "mem": mem, "reharness": rh,
+        "bg": bg,
+        "spool": spool,
+        "mem": mem,
+        "reharness": rh,
         "noteworthy": (bg > 0 or spool > 0 or mem == "DOWN"),
         "line": f"[health] bg:{bg}open spool:{spool}unflushed mem:{mem} re-harness:{rh}",
     }
@@ -143,7 +168,9 @@ def _state_file(sid: str) -> Path:
 
 def _last_emit(sid: str) -> float:
     try:
-        return float(json.loads(_state_file(sid).read_text(encoding="utf-8")).get("last_emit", 0))
+        return float(
+            json.loads(_state_file(sid).read_text(encoding="utf-8")).get("last_emit", 0)
+        )
     except Exception:
         return 0.0
 
@@ -151,14 +178,24 @@ def _last_emit(sid: str) -> float:
 def _mark_emit(sid: str) -> None:
     try:
         STATE_DIR.mkdir(parents=True, exist_ok=True)
-        _state_file(sid).write_text(json.dumps({"last_emit": time.time()}), encoding="utf-8")
+        _state_file(sid).write_text(
+            json.dumps({"last_emit": time.time()}), encoding="utf-8"
+        )
     except Exception:
         pass
 
 
 def emit(event_name: str, msg: str) -> None:
-    print(json.dumps({"hookSpecificOutput": {
-        "hookEventName": event_name, "additionalContext": msg}}))
+    print(
+        json.dumps(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": event_name,
+                    "additionalContext": msg,
+                }
+            }
+        )
+    )
 
 
 def run(mode: str, data: dict) -> int:

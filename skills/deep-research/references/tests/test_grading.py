@@ -16,18 +16,25 @@ def _src(url, provider, year=None, title="t"):
 
 
 def test_domain_authority_sets_tier_a():
-    assert source_tier(_src("https://www.ncbi.nlm.nih.gov/x", "exa.web_search_exa")) == "A"
+    assert (
+        source_tier(_src("https://www.ncbi.nlm.nih.gov/x", "exa.web_search_exa")) == "A"
+    )
     assert source_tier(_src("https://doi.org/10.1/x", "tavily.tavily_search")) == "A"
 
 
 def test_provider_prior_can_lift_to_a():
     # community-looking domain but authoritative provider -> A
-    assert source_tier(_src("https://example.org/p", "scholarly-access.paper_resolve")) == "A"
+    assert (
+        source_tier(_src("https://example.org/p", "scholarly-access.paper_resolve"))
+        == "A"
+    )
 
 
 def test_secondary_and_community_tiers():
     assert source_tier(_src("https://github.com/o/r", "exa.web_search_exa")) == "B"
-    assert source_tier(_src("https://random-blog.xyz/post", "exa.web_search_exa")) == "B"
+    assert (
+        source_tier(_src("https://random-blog.xyz/post", "exa.web_search_exa")) == "B"
+    )
     # bare community domain + community provider -> C
     assert source_tier(_src("https://forum.example.test/t", "unknown")) == "C"
 
@@ -104,7 +111,10 @@ def test_cve_provider_prior_is_a():
 
 def test_searxng_provider_prior_is_b():
     # SearXNG is a reputable aggregator (B), not a primary source.
-    assert source_tier(_src("https://random-blog.xyz/post", "searxng.searxng_web_search")) == "B"
+    assert (
+        source_tier(_src("https://random-blog.xyz/post", "searxng.searxng_web_search"))
+        == "B"
+    )
 
 
 def test_security_domains_are_tier_a():

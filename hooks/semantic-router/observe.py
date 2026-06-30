@@ -8,6 +8,7 @@ durable Memento-Skills signal — no transcript scraping, no model calls.
 
 Matched in settings.json for Skill / Task / mcp__* tools. Inject-nothing, exit 0, fail-open.
 """
+
 import json
 import sys
 from pathlib import Path
@@ -25,7 +26,7 @@ def _keys_for(tool_name, tool_input):
         s = str(ti.get("skill") or ti.get("name") or "").strip()
         if s:
             keys.append(f"skill:{s}")
-            if ":" in s:                       # plugin-namespaced -> also try bare name
+            if ":" in s:  # plugin-namespaced -> also try bare name
                 keys.append(f"skill:{s.split(':')[-1]}")
     elif tn == "Task":
         a = str(ti.get("subagent_type") or "").strip()
@@ -38,7 +39,11 @@ def _keys_for(tool_name, tool_input):
         if len(parts) >= 2 and parts[1]:
             keys.append(f"mcp:{parts[1]}")
     elif tn.startswith("/") or tn == "SlashCommand":
-        c = (tn.lstrip("/") if tn != "SlashCommand" else str(ti.get("command") or "")).strip().lstrip("/")
+        c = (
+            (tn.lstrip("/") if tn != "SlashCommand" else str(ti.get("command") or ""))
+            .strip()
+            .lstrip("/")
+        )
         if c:
             keys.append(f"command:{c.split()[0]}")
     return keys
@@ -53,6 +58,7 @@ def main():
         keys = _keys_for(tool_name, tool_input)
         if keys:
             import success as _succ
+
             for k in keys:
                 if _succ.record_used(k, sid):
                     break  # credit once per invocation

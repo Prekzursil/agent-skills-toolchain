@@ -20,7 +20,10 @@ def test_classifier_picks_capability_per_keyword():
 def test_classifier_routes_explain_compare_consensus_to_synthesis():
     assert classify_capability("Compare React and Vue performance") == "synthesis"
     assert classify_capability("Explain how diffusion models work") == "synthesis"
-    assert classify_capability("What is the consensus on intermittent fasting?") == "synthesis"
+    assert (
+        classify_capability("What is the consensus on intermittent fasting?")
+        == "synthesis"
+    )
     # NB: avoid substrings of domain keywords here (e.g. "monorepos" contains
     # "repo" -> the earlier `code` rule wins); that ordering is intentional.
     assert classify_capability("pros and cons of microservices") == "synthesis"
@@ -88,7 +91,9 @@ def test_top_n_caps_for_corroboration_diversity():
 
 def test_sci_hub_and_regressed_tool_are_excluded():
     sci_hub = routing.Provider("sci-hub", "fetch", routing.TIER_C)
-    regressed = routing.Provider("scholarly-access", "paper_find_oa_pdf", routing.TIER_A)
+    regressed = routing.Provider(
+        "scholarly-access", "paper_find_oa_pdf", routing.TIER_A
+    )
     assert is_excluded(sci_hub)
     assert is_excluded(regressed)
 
@@ -157,8 +162,14 @@ def test_web_inserts_searxng_keyfree_corroborator_ahead_of_keyed():
 
 
 def test_classifier_routes_longtail_to_searxng():
-    assert classify_capability("Find obscure forum mentions of this part number") == "longtail"
-    assert classify_capability("A rarely documented config flag for this tool") == "longtail"
+    assert (
+        classify_capability("Find obscure forum mentions of this part number")
+        == "longtail"
+    )
+    assert (
+        classify_capability("A rarely documented config flag for this tool")
+        == "longtail"
+    )
     providers = resolve_providers("longtail")
     assert providers[0].key == "searxng.searxng_web_search"
     assert providers[0].source_tier == routing.TIER_B

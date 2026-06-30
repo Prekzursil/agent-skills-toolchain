@@ -5,6 +5,7 @@ Imports hook.py and exercises build_message() directly (no subprocess): it must
 return a message on the FIRE example and None on the SILENT example. The deeper
 end-to-end proof (real stdin, exit codes, fail-open) is in chaos_todo_surfacer.py.
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -41,7 +42,9 @@ def _cleanup_tmp() -> None:
 
 
 def _load_hook():
-    spec = importlib.util.spec_from_file_location("forged_hook_todo_surfacer", HERE / "hook.py")
+    spec = importlib.util.spec_from_file_location(
+        "forged_hook_todo_surfacer", HERE / "hook.py"
+    )
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
@@ -60,9 +63,21 @@ def _payload(value: str) -> dict:
     p = dict(FIX.get("extra_payload") or {})
     p.setdefault("session_id", "unit")
     if kind == "response":
-        tf = tempfile.NamedTemporaryFile("w", suffix=".jsonl", delete=False, encoding="utf-8")
-        tf.write(json.dumps({"type": "assistant", "message": {"role": "assistant",
-                 "content": [{"type": "text", "text": value}]}}) + "\n")
+        tf = tempfile.NamedTemporaryFile(
+            "w", suffix=".jsonl", delete=False, encoding="utf-8"
+        )
+        tf.write(
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {
+                        "role": "assistant",
+                        "content": [{"type": "text", "text": value}],
+                    },
+                }
+            )
+            + "\n"
+        )
         tf.close()
         _TMP.append(tf.name)
         p["transcript_path"] = tf.name
@@ -83,8 +98,12 @@ def main() -> int:
     assert msg, "build_message returned nothing on the FIRE example"
     if FIX["has_silent"]:
         s = hook.build_message(_payload(FIX["silent_value"]))
-        assert not s, f"build_message should be silent on the SILENT example, got: {s!r}"
-        print(f"UNIT-PASS: {FIX['name']} fires on trigger ({msg!r}) and is silent otherwise")
+        assert not s, (
+            f"build_message should be silent on the SILENT example, got: {s!r}"
+        )
+        print(
+            f"UNIT-PASS: {FIX['name']} fires on trigger ({msg!r}) and is silent otherwise"
+        )
     else:
         print(f"UNIT-PASS: {FIX['name']} fires on trigger ({msg!r})")
     return 0

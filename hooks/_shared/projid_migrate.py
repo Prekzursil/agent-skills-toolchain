@@ -19,6 +19,7 @@ Usage:
   python projid.py migrate --apply         # perform the merge
   python projid.py migrate --root <dir>    # operate on a non-default ledger root
 """
+
 from __future__ import annotations
 
 import argparse
@@ -33,7 +34,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import projid  # noqa: E402
 
-DEFAULT_ROOT = Path(os.environ.get("EVENT_LEDGER_ROOT", str(Path.home() / ".claude" / "event-ledger")))
+DEFAULT_ROOT = Path(
+    os.environ.get("EVENT_LEDGER_ROOT", str(Path.home() / ".claude" / "event-ledger"))
+)
 _BACKUP_DIRNAME = ".migrated"
 
 
@@ -83,8 +86,11 @@ def _shard_heads(shard: Path) -> list[str]:
 
 def _commit_in_repo(toplevel: str, head: str) -> bool:
     try:
-        r = subprocess.run(["git", "-C", toplevel, "cat-file", "-e", f"{head}^{{commit}}"],
-                           capture_output=True, timeout=5)
+        r = subprocess.run(
+            ["git", "-C", toplevel, "cat-file", "-e", f"{head}^{{commit}}"],
+            capture_output=True,
+            timeout=5,
+        )
         return r.returncode == 0
     except Exception:
         return False
@@ -93,17 +99,20 @@ def _commit_in_repo(toplevel: str, head: str) -> bool:
 # ── planning ───────────────────────────────────────────────────────────────────────
 class _Plan:
     def __init__(self):
-        self.target_of: dict[str, str] = {}     # shard slug -> target slug
-        self.reason: dict[str, str] = {}         # shard slug -> why
-        self.project_of: dict[str, str] = {}     # shard slug -> stored cwd
-        self.live_repos: dict[str, str] = {}     # target slug -> a live toplevel
+        self.target_of: dict[str, str] = {}  # shard slug -> target slug
+        self.reason: dict[str, str] = {}  # shard slug -> why
+        self.project_of: dict[str, str] = {}  # shard slug -> stored cwd
+        self.live_repos: dict[str, str] = {}  # target slug -> a live toplevel
 
 
 def build_plan(root: Path) -> _Plan:
     """Decide, for every shard, which canonical slug it belongs to. No side effects."""
     plan = _Plan()
-    shards = sorted(d.name for d in root.iterdir()
-                    if d.is_dir() and d.name != _BACKUP_DIRNAME and (d / "state.json").exists())
+    shards = sorted(
+        d.name
+        for d in root.iterdir()
+        if d.is_dir() and d.name != _BACKUP_DIRNAME and (d / "state.json").exists()
+    )
 
     # IDEMPOTENCY: any slug recorded in some shard's `migrated_from` was already absorbed by a
     # prior (possibly interrupted) --apply. Never re-include it, or its events would be merged
@@ -111,7 +120,7 @@ def build_plan(root: Path) -> _Plan:
     # entry is authoritative even if the source move did not complete.
     already_absorbed: set[str] = set()
     for slug in shards:
-        for m in (_read_json(root / slug / "state.json").get("migrated_from") or []):
+        for m in _read_json(root / slug / "state.json").get("migrated_from") or []:
             already_absorbed.add(m)
 
     # Pass 1: shards whose stored path still exists -> resolve canonical slug.
@@ -120,7 +129,9 @@ def build_plan(root: Path) -> _Plan:
         proj = st.get("project") or ""
         plan.project_of[slug] = proj
         if slug in already_absorbed:
-            plan.target_of[slug] = slug  # leftover of a prior run; exclude from any merge
+            plan.target_of[slug] = (
+                slug  # leftover of a prior run; exclude from any merge
+            )
             plan.reason[slug] = "already absorbed by a prior run -> skipped"
             continue
         exists = False
@@ -156,7 +167,9 @@ def build_plan(root: Path) -> _Plan:
             plan.target_of[slug] = hit
             plan.reason[slug] = f"commit-rescue: head in {hit}"
         else:
-            plan.reason[slug] = "path gone, head not in any live repo -> unresolved (kept)"
+            plan.reason[slug] = (
+                "path gone, head not in any live repo -> unresolved (kept)"
+            )
     return plan
 
 
@@ -168,11 +181,20 @@ def _groups(plan: _Plan) -> dict[str, list[str]]:
 
 
 # ── merging ──────────────────────────────────────────────────────────────────────--
-def _project_state(events: list[dict], seqmap: dict, project: str, aliases: list[str]) -> dict:
+def _project_state(
+    events: list[dict], seqmap: dict, project: str, aliases: list[str]
+) -> dict:
     """Rebuild a state.json projection from a merged, re-sequenced event list, mirroring
     ledger.append's rules (goal/head/open_failures + milestone supersession)."""
-    st = {"seq": len(events), "project": project, "goal": None, "head": None,
-          "open_failures": [], "last_event_ts": None, "aliases": sorted(set(aliases))}
+    st = {
+        "seq": len(events),
+        "project": project,
+        "goal": None,
+        "head": None,
+        "open_failures": [],
+        "last_event_ts": None,
+        "aliases": sorted(set(aliases)),
+    }
     for ev in events:
         st["last_event_ts"] = ev.get("ts") or st["last_event_ts"]
         kind = ev.get("kind")
@@ -181,15 +203,22 @@ def _project_state(events: list[dict], seqmap: dict, project: str, aliases: list
         elif kind == "turn" and ev.get("head"):
             st["head"] = ev["head"]
         elif kind == "failure":
-            st["open_failures"].append({"seq": ev["seq"], "text": ev.get("text"),
-                                        "preconditions": ev.get("preconditions")})
+            st["open_failures"].append(
+                {
+                    "seq": ev["seq"],
+                    "text": ev.get("text"),
+                    "preconditions": ev.get("preconditions"),
+                }
+            )
             st["open_failures"] = st["open_failures"][-25:]
         elif kind == "milestone" and ev.get("supersedes_failures"):
             # translate the milestone's old (orig) seqs -> new seqs within its own shard
             src = ev.get("_orig_shard")
             old = set(ev["supersedes_failures"])
             kill = {seqmap.get((src, o)) for o in old}
-            st["open_failures"] = [f for f in st["open_failures"] if f.get("seq") not in kill]
+            st["open_failures"] = [
+                f for f in st["open_failures"] if f.get("seq") not in kill
+            ]
     return st
 
 
@@ -217,7 +246,13 @@ def _merge_group(root: Path, target: str, members: list[str], stamp: str) -> dic
             e.setdefault("_orig_seq", e.get("seq"))
             tagged.append(e)
     # stable sort by timestamp, then original shard/seq for deterministic ties
-    tagged.sort(key=lambda e: (e.get("ts") or "", str(e.get("_orig_shard") or ""), e.get("_orig_seq") or 0))
+    tagged.sort(
+        key=lambda e: (
+            e.get("ts") or "",
+            str(e.get("_orig_shard") or ""),
+            e.get("_orig_seq") or 0,
+        )
+    )
     # dedup by origin (idempotency belt-and-suspenders, covers the interrupted-run gap)
     seen: set = set()
     uniq: list[dict] = []
@@ -234,9 +269,14 @@ def _merge_group(root: Path, target: str, members: list[str], stamp: str) -> dic
         seqmap[(e["_orig_shard"], e["_orig_seq"])] = i
         e["seq"] = i
 
-    project = (_read_json(root / target / "state.json").get("project")
-               or next((_read_json(root / m / "state.json").get("project") for m in members
-                        if _read_json(root / m / "state.json").get("project")), ""))
+    project = _read_json(root / target / "state.json").get("project") or next(
+        (
+            _read_json(root / m / "state.json").get("project")
+            for m in members
+            if _read_json(root / m / "state.json").get("project")
+        ),
+        "",
+    )
     state = _project_state(tagged, seqmap, project, aliases + existing_aliases)
     state["migrated_from"] = sorted(m for m in members if m != target)
     state["migrated_at"] = stamp
@@ -248,8 +288,10 @@ def _merge_group(root: Path, target: str, members: list[str], stamp: str) -> dic
     tdir.mkdir(parents=True, exist_ok=True)
 
     # 2) write merged events.jsonl + state.json atomically (temp + os.replace)
-    _atomic_write(tdir / "events.jsonl",
-                  "".join(json.dumps(e, ensure_ascii=False) + "\n" for e in tagged))
+    _atomic_write(
+        tdir / "events.jsonl",
+        "".join(json.dumps(e, ensure_ascii=False) + "\n" for e in tagged),
+    )
     _atomic_write(tdir / "state.json", json.dumps(state, indent=2, ensure_ascii=False))
 
     # 3) move every consumed (non-target) source shard into the backup dir (reversible)
@@ -261,8 +303,12 @@ def _merge_group(root: Path, target: str, members: list[str], stamp: str) -> dic
         if src.exists():
             shutil.move(str(src), str(backup / f"{slug}-{stamp}"))
             moved.append(slug)
-    return {"target": target, "events": len(tagged), "merged": moved,
-            "aliases": len(state["aliases"])}
+    return {
+        "target": target,
+        "events": len(tagged),
+        "merged": moved,
+        "aliases": len(state["aliases"]),
+    }
 
 
 # ── CLI ──────────────────────────────────────────────────────────────────────────--
@@ -271,13 +317,17 @@ def _fmt_group(root: Path, plan: _Plan, target: str, members: list[str]) -> list
     for m in sorted(members):
         ev = len(_read_events(root / m / "events.jsonl"))
         tag = "  (=target)" if m == target else ""
-        lines.append(f"      <- {m:<42} {ev:>4} events  [{plan.reason.get(m,'')}]{tag}")
+        lines.append(
+            f"      <- {m:<42} {ev:>4} events  [{plan.reason.get(m, '')}]{tag}"
+        )
     return lines
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="projid migrate")
-    ap.add_argument("--apply", action="store_true", help="perform the merge (default: dry-run)")
+    ap.add_argument(
+        "--apply", action="store_true", help="perform the merge (default: dry-run)"
+    )
     ap.add_argument("--root", default=str(DEFAULT_ROOT), help="event-ledger root")
     a = ap.parse_args(argv)
     root = Path(a.root)
@@ -288,15 +338,20 @@ def main(argv: list[str] | None = None) -> int:
     plan = build_plan(root)
     groups = _groups(plan)
     merges = {t: m for t, m in groups.items() if len(m) > 1}
-    relabels = {t: m for t, m in groups.items()
-                if len(m) == 1 and m[0] != t and not plan.reason[m[0]].startswith("path gone")}
+    relabels = {
+        t: m
+        for t, m in groups.items()
+        if len(m) == 1 and m[0] != t and not plan.reason[m[0]].startswith("path gone")
+    }
     unresolved = [s for s, r in plan.reason.items() if "unresolved" in r]
 
     total_shards = len(plan.target_of)
     canonical = len(groups)
     print(f"projid migrate ({'APPLY' if a.apply else 'DRY-RUN'}) — root={root}")
-    print(f"  {total_shards} shards -> {canonical} canonical ids "
-          f"| {len(merges)} merge-groups, {len(relabels)} relabels, {len(unresolved)} unresolved\n")
+    print(
+        f"  {total_shards} shards -> {canonical} canonical ids "
+        f"| {len(merges)} merge-groups, {len(relabels)} relabels, {len(unresolved)} unresolved\n"
+    )
 
     if merges:
         print("MERGES (multiple shards collapse to one identity):")
@@ -310,14 +365,18 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  => {t}   <- {m[0]}  [{plan.reason[m[0]]}]")
         print()
     if unresolved:
-        print(f"UNRESOLVED (kept as-is — path gone & identity unverifiable): {len(unresolved)}")
+        print(
+            f"UNRESOLVED (kept as-is — path gone & identity unverifiable): {len(unresolved)}"
+        )
         for s in sorted(unresolved):
             print(f"  .. {s}  [{plan.reason[s]}]")
         print()
 
     if not a.apply:
-        print("DRY-RUN only. Re-run with --apply to perform the merge (sources backed up to "
-              f"{root / _BACKUP_DIRNAME}, nothing deleted).")
+        print(
+            "DRY-RUN only. Re-run with --apply to perform the merge (sources backed up to "
+            f"{root / _BACKUP_DIRNAME}, nothing deleted)."
+        )
         return 0
 
     stamp = time.strftime("%Y%m%d-%H%M%S")
@@ -328,7 +387,9 @@ def main(argv: list[str] | None = None) -> int:
             done.append(_merge_group(root, t, m, stamp))
         except Exception as ex:  # fail-open per shard; keep going
             print(f"  WARN: group {t} failed: {ex}", file=sys.stderr)
-    print(f"SUCCESS:migrate applied {len(done)} groups; sources moved to {root / _BACKUP_DIRNAME}")
+    print(
+        f"SUCCESS:migrate applied {len(done)} groups; sources moved to {root / _BACKUP_DIRNAME}"
+    )
     return 0
 
 

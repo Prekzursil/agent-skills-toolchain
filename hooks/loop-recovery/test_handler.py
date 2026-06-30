@@ -15,6 +15,7 @@ All tests are fully hermetic: subprocess + tmp_path ensure no shared state.
 CALIBRATED_SILENCE=off is set in every subprocess env so the real interjection
 ledger never influences test outcomes.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -23,13 +24,13 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-import pytest
 
 HOOK_DIR = Path(__file__).resolve().parent
 HANDLER = str(HOOK_DIR / "handler.py")
 
 
 # ── helpers ────────────────────────────────────────────────────────────────────
+
 
 def _slug(p: str) -> str:
     """Mirror of verdict._legacy_slug — must stay in sync."""
@@ -50,9 +51,7 @@ def _write_ledger(ledger_root: Path, cwd: str, events: list) -> None:
 
 def _write_degen(degen_root: Path, session_id: str, window: list) -> None:
     degen_root.mkdir(parents=True, exist_ok=True)
-    safe = "".join(
-        c if c.isalnum() or c in "-_." else "-" for c in session_id
-    )[:80]
+    safe = "".join(c if c.isalnum() or c in "-_." else "-" for c in session_id)[:80]
     (degen_root / f"{safe or 'unknown'}.json").write_text(
         json.dumps(window), encoding="utf-8"
     )
@@ -67,7 +66,7 @@ def _run(
 ) -> subprocess.CompletedProcess:
     env = {
         **os.environ,
-        "ANTI_DEGEN_ROOT":   str(tmp_path / "anti-degen"),
+        "ANTI_DEGEN_ROOT": str(tmp_path / "anti-degen"),
         "EVENT_LEDGER_ROOT": str(tmp_path / "ledger"),
         "LOOP_RECOVERY_ROOT": str(tmp_path / "loop-recovery"),
         # Disable calibrated-silence so the real usage ledger doesn't interfere.
@@ -86,22 +85,36 @@ def _run(
 
 # ── event factories ────────────────────────────────────────────────────────────
 
+
 def _turn(seq: int, cwd: str = "/fake/proj") -> dict:
     return {"seq": seq, "ts": "2026-01-01T00:00:00", "kind": "turn", "cwd": cwd}
 
 
 def _milestone(seq: int) -> dict:
-    return {"seq": seq, "ts": "2026-01-01T00:00:00", "kind": "milestone", "text": "done"}
+    return {
+        "seq": seq,
+        "ts": "2026-01-01T00:00:00",
+        "kind": "milestone",
+        "text": "done",
+    }
 
 
 def _decision(seq: int) -> dict:
-    return {"seq": seq, "ts": "2026-01-01T00:00:00", "kind": "decision", "text": "chose X"}
+    return {
+        "seq": seq,
+        "ts": "2026-01-01T00:00:00",
+        "kind": "decision",
+        "text": "chose X",
+    }
 
 
 def _failure(seq: int, preconditions: str = "lib<=2.0.0") -> dict:
     return {
-        "seq": seq, "ts": "2026-01-01T00:00:00", "kind": "failure",
-        "text": "it broke", "preconditions": preconditions,
+        "seq": seq,
+        "ts": "2026-01-01T00:00:00",
+        "kind": "failure",
+        "text": "it broke",
+        "preconditions": preconditions,
     }
 
 
@@ -110,6 +123,7 @@ def _fp(tool: str, ah: str, oh: str) -> dict:
 
 
 # ── tests ──────────────────────────────────────────────────────────────────────
+
 
 def test_progressing_silent_exit_0(tmp_path):
     """Turns with milestones/decisions present → PROGRESSING → no output, exit 0."""
@@ -124,7 +138,7 @@ def test_progressing_silent_exit_0(tmp_path):
 def test_stalled_injects_rederive(tmp_path):
     """K+ turns with no milestones/decisions → STALLED → re-derive inject."""
     cwd = "/fake/proj"
-    events = [_turn(i, cwd) for i in range(1, 6)]   # 5 turns, nothing else
+    events = [_turn(i, cwd) for i in range(1, 6)]  # 5 turns, nothing else
     _write_ledger(tmp_path / "ledger", cwd, events)
     r = _run(tmp_path, "stop", {"session_id": "s_stall", "cwd": cwd})
     assert r.returncode == 0
@@ -150,7 +164,9 @@ def test_looping_fp_injects_terminal(tmp_path):
     ctx = out["hookSpecificOutput"]["additionalContext"]
     assert "FAILED:" in ctx
     # Must include escalation options phrased for AskUserQuestion
-    assert "AskUserQuestion" in ctx or "option" in ctx.lower() or "approach" in ctx.lower()
+    assert (
+        "AskUserQuestion" in ctx or "option" in ctx.lower() or "approach" in ctx.lower()
+    )
 
 
 def test_same_loop_not_re_escalated_twice(tmp_path):
@@ -168,7 +184,9 @@ def test_same_loop_not_re_escalated_twice(tmp_path):
     # Second run with identical conditions → backoff → silent
     r2 = _run(tmp_path, "stop", {"session_id": session, "cwd": cwd})
     assert r2.returncode == 0
-    assert r2.stdout.strip() == "", "second call must be silent (loop already escalated)"
+    assert r2.stdout.strip() == "", (
+        "second call must be silent (loop already escalated)"
+    )
 
 
 def test_recurring_failure_precondition_looping(tmp_path):
@@ -189,7 +207,7 @@ def test_malformed_stdin_exit_0(tmp_path):
     """Malformed JSON in stdin → fail-open → exit 0, no output."""
     env = {
         **os.environ,
-        "ANTI_DEGEN_ROOT":   str(tmp_path / "anti-degen"),
+        "ANTI_DEGEN_ROOT": str(tmp_path / "anti-degen"),
         "EVENT_LEDGER_ROOT": str(tmp_path / "ledger"),
         "LOOP_RECOVERY_ROOT": str(tmp_path / "loop-recovery"),
         "CALIBRATED_SILENCE": "off",
@@ -197,7 +215,9 @@ def test_malformed_stdin_exit_0(tmp_path):
     r = subprocess.run(
         [sys.executable, HANDLER, "--mode", "stop"],
         input="{not valid json!!!",
-        capture_output=True, text=True, env=env,
+        capture_output=True,
+        text=True,
+        env=env,
     )
     assert r.returncode == 0
     assert r.stdout.strip() == ""
@@ -213,7 +233,7 @@ def test_empty_ledger_exit_0(tmp_path):
 def test_opt_out_disabled_file(tmp_path):
     """Presence of .disabled file in hook dir → immediate no-op, exit 0."""
     cwd = "/fake/proj"
-    events = [_turn(i, cwd) for i in range(1, 6)]   # would normally trigger STALLED
+    events = [_turn(i, cwd) for i in range(1, 6)]  # would normally trigger STALLED
     _write_ledger(tmp_path / "ledger", cwd, events)
 
     disabled_file = HOOK_DIR / ".disabled"
@@ -232,10 +252,11 @@ def test_opt_out_disabled_file(tmp_path):
 def test_opt_out_env_var(tmp_path):
     """LOOP_RECOVERY=off → no-op, exit 0 regardless of stall conditions."""
     cwd = "/fake/proj"
-    events = [_turn(i, cwd) for i in range(1, 6)]   # would normally trigger STALLED
+    events = [_turn(i, cwd) for i in range(1, 6)]  # would normally trigger STALLED
     _write_ledger(tmp_path / "ledger", cwd, events)
     r = _run(
-        tmp_path, "stop",
+        tmp_path,
+        "stop",
         {"session_id": "s_envoff", "cwd": cwd},
         extra_env={"LOOP_RECOVERY": "off"},
     )
@@ -249,7 +270,8 @@ def test_pretooluse_mode_emits_correct_event_name(tmp_path):
     events = [_turn(i, cwd) for i in range(1, 6)]
     _write_ledger(tmp_path / "ledger", cwd, events)
     r = _run(
-        tmp_path, "pretooluse",
+        tmp_path,
+        "pretooluse",
         {"session_id": "s_ptu", "cwd": cwd, "tool_name": "Bash", "tool_input": {}},
     )
     assert r.returncode == 0
@@ -261,7 +283,8 @@ def test_pretooluse_mode_emits_correct_event_name(tmp_path):
 def test_stop_hook_active_noop(tmp_path):
     """stop_hook_active flag in stdin → immediate no-op (prevents re-entry loops)."""
     r = _run(
-        tmp_path, "stop",
+        tmp_path,
+        "stop",
         {"session_id": "s_active", "cwd": "/fake/proj", "stop_hook_active": True},
     )
     assert r.returncode == 0
@@ -293,7 +316,7 @@ def test_empty_stdin_exit_0(tmp_path):
     """Empty stdin → treated as '{}' → fail-open → exit 0."""
     env = {
         **os.environ,
-        "ANTI_DEGEN_ROOT":   str(tmp_path / "anti-degen"),
+        "ANTI_DEGEN_ROOT": str(tmp_path / "anti-degen"),
         "EVENT_LEDGER_ROOT": str(tmp_path / "ledger"),
         "LOOP_RECOVERY_ROOT": str(tmp_path / "loop-recovery"),
         "CALIBRATED_SILENCE": "off",
@@ -301,7 +324,9 @@ def test_empty_stdin_exit_0(tmp_path):
     r = subprocess.run(
         [sys.executable, HANDLER, "--mode", "stop"],
         input="",
-        capture_output=True, text=True, env=env,
+        capture_output=True,
+        text=True,
+        env=env,
     )
     assert r.returncode == 0
     assert r.stdout.strip() == ""
@@ -328,9 +353,9 @@ def test_fp_loop_different_tools_not_looping(tmp_path):
     cwd = "/fake/proj"
     session = "s_diff_tools"
     window = [
-        _fp("Bash",   "aaaaa", "ooooo"),
-        _fp("Edit",   "aaaaa", "ooooo"),
-        _fp("Write",  "aaaaa", "ooooo"),
+        _fp("Bash", "aaaaa", "ooooo"),
+        _fp("Edit", "aaaaa", "ooooo"),
+        _fp("Write", "aaaaa", "ooooo"),
     ]
     _write_degen(tmp_path / "anti-degen", session, window)
     r = _run(tmp_path, "stop", {"session_id": session, "cwd": cwd})
@@ -340,27 +365,33 @@ def test_fp_loop_different_tools_not_looping(tmp_path):
 
 # ── unit-level verdict tests (direct import, no subprocess) ───────────────────
 
+
 def _reload_verdict():
     """Import or re-import verdict so env-var based defaults are fresh."""
     import importlib
     import sys
+
     if "verdict" in sys.modules:
         return importlib.reload(sys.modules["verdict"])
     sys.path.insert(0, str(HOOK_DIR))
     import verdict
+
     return verdict
 
 
 def test_verdict_progressing_with_milestones():
     """Direct verdict call: milestones present → PROGRESSING."""
-    import tempfile, os
+    import tempfile
+
     with tempfile.TemporaryDirectory() as td:
         v = _reload_verdict()
         cwd = "/tmp/proj"
         events = [
             {"seq": i, "kind": "turn", "cwd": cwd, "ts": "2026-01-01T00:00:00"}
             for i in range(1, 6)
-        ] + [{"seq": 6, "kind": "milestone", "text": "done", "ts": "2026-01-01T00:00:00"}]
+        ] + [
+            {"seq": 6, "kind": "milestone", "text": "done", "ts": "2026-01-01T00:00:00"}
+        ]
         slug = v._legacy_slug(cwd)
         d = Path(td) / "ledger" / slug
         d.mkdir(parents=True)
@@ -368,7 +399,8 @@ def test_verdict_progressing_with_milestones():
             "\n".join(json.dumps(e) for e in events), encoding="utf-8"
         )
         verdict_val, _, _ = v.compute_verdict(
-            "session_x", cwd,
+            "session_x",
+            cwd,
             ledger_root=Path(td) / "ledger",
             anti_degen_root=Path(td) / "anti-degen",
         )
@@ -391,7 +423,8 @@ def test_verdict_stalled_direct():
             "\n".join(json.dumps(e) for e in events), encoding="utf-8"
         )
         verdict_val, _, _ = v.compute_verdict(
-            "session_y", cwd,
+            "session_y",
+            cwd,
             ledger_root=Path(td) / "ledger",
             anti_degen_root=Path(td) / "anti-degen",
         )
@@ -408,7 +441,8 @@ def test_verdict_looping_fp_direct():
         degen_dir.mkdir(parents=True)
         (degen_dir / f"{session}.json").write_text(json.dumps(window), encoding="utf-8")
         verdict_val, _, loop_id = v.compute_verdict(
-            session, "/tmp/proj",
+            session,
+            "/tmp/proj",
             anti_degen_root=degen_dir,
             ledger_root=Path(td) / "ledger",
         )
@@ -421,7 +455,8 @@ def test_verdict_fail_open_on_exception():
     v = _reload_verdict()
     # Pass a non-existent path with a broken root
     verdict_val, reason, _ = v.compute_verdict(
-        None, None,  # type: ignore
+        None,
+        None,  # type: ignore
         anti_degen_root=Path("/nonexistent_root_xyz"),
         ledger_root=Path("/nonexistent_root_xyz"),
     )
@@ -447,7 +482,7 @@ def test_verdict_progressing_head_changed_no_milestones():
                 "kind": "turn",
                 "cwd": cwd,
                 "ts": "2026-01-01T00:00:00",
-                "head": f"abc{i:05x}def",   # unique sha per turn → HEAD moved
+                "head": f"abc{i:05x}def",  # unique sha per turn → HEAD moved
                 "dirty_files": [],
             }
             for i in range(1, 6)
@@ -459,7 +494,8 @@ def test_verdict_progressing_head_changed_no_milestones():
             "\n".join(json.dumps(e) for e in events), encoding="utf-8"
         )
         verdict_val, reason, _ = v.compute_verdict(
-            "session_head_chg", cwd,
+            "session_head_chg",
+            cwd,
             ledger_root=Path(td) / "ledger",
             anti_degen_root=Path(td) / "anti-degen",
         )

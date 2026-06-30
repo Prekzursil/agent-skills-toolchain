@@ -24,6 +24,7 @@ Opt-out: TMS_STALE_ANCHOR=off in env, or a .disabled file in this directory.
 DB source-drift is surfaced once `tms.py recheck` has refreshed it (the hook stays
 read-only and never re-hashes large RE binaries inline).
 """
+
 from __future__ import annotations
 
 import json
@@ -44,11 +45,15 @@ DEC_MIN = 256  # ignore decimal tokens below this (line numbers / tiny counts)
 # binja/ida patch_bytes, generic poke/store).
 _WRITE_OP = re.compile(r"(write|patch|poke|assemble|store|wbyte)", re.I)
 # Frida runs writes inside a script string, so detect the exec tool + a write primitive.
-_FRIDA_EXEC = re.compile(r"(execute_in_session|create_simple_hook|create_interactive_session|spawn)", re.I)
+_FRIDA_EXEC = re.compile(
+    r"(execute_in_session|create_simple_hook|create_interactive_session|spawn)", re.I
+)
 _FRIDA_WRITE = re.compile(
     r"(patchCode|writeByteArray|writePointer|writeFloat|writeDouble|writeS8|writeU8|"
     r"writeU16|writeU32|writeU64|writeInt|writeLong|writeShort|writeAnsiString|"
-    r"writeUtf8String|writeUtf16String|\.write\s*\()", re.I)
+    r"writeUtf8String|writeUtf16String|\.write\s*\()",
+    re.I,
+)
 
 _HEX = re.compile(r"0x[0-9a-fA-F]+")
 _SUB = re.compile(r"\bsub_([0-9a-fA-F]{4,})\b")
@@ -94,8 +99,11 @@ def node_versions(node: dict) -> list[str]:
 def node_symbols(node: dict) -> set[str]:
     syms = set()
     for tok in _SYM.findall(f"{node['id']} {node['statement']}"):
-        looks_symbolic = "_" in tok or any(c.isdigit() for c in tok) or (
-            tok != tok.lower() and tok != tok.upper())
+        looks_symbolic = (
+            "_" in tok
+            or any(c.isdigit() for c in tok)
+            or (tok != tok.lower() and tok != tok.upper())
+        )
         if looks_symbolic:
             syms.add(tok)
     return syms
@@ -186,20 +194,24 @@ def soft_msg(conn, tms, refs) -> str:
     val = _fmt_val(hits)
     clause = _premise_clause(conn, tms, n["id"])
     more = f"  [+{len(refs) - 1} more OUT ref(s)]" if len(refs) > 1 else ""
-    return (f"STALE ANCHOR: {val} (node '{n['id']}', match={mtype}) is OUT - it rests on "
-            f"{clause} - re-derive before using.{more} "
-            f"(TMS soft warning; not blocking. `python ~/.claude/hooks/tms/tms.py explain {n['id']}`)")
+    return (
+        f"STALE ANCHOR: {val} (node '{n['id']}', match={mtype}) is OUT - it rests on "
+        f"{clause} - re-derive before using.{more} "
+        f"(TMS soft warning; not blocking. `python ~/.claude/hooks/tms/tms.py explain {n['id']}`)"
+    )
 
 
 def hard_msg(conn, tms, node, hits) -> str:
     val = _fmt_val(hits)
     clause = _premise_clause(conn, tms, node["id"])
-    return (f"STALE ANCHOR (BLOCKED): refusing write/patch to {val} - it targets node "
-            f"'{node['id']}' ({node['kind']}) which is OUT because it rests on {clause}. "
-            f"A bad anchor poisons every downstream finding. Re-derive it, then "
-            f"`python ~/.claude/hooks/tms/tms.py assert {node['id']} --statement ... --kind "
-            f"{node['kind']} [--premises ...]` to clear OUT, and retry. "
-            f"(TMS hard gate - the only case that blocks; set TMS_STALE_ANCHOR=off to disable.)")
+    return (
+        f"STALE ANCHOR (BLOCKED): refusing write/patch to {val} - it targets node "
+        f"'{node['id']}' ({node['kind']}) which is OUT because it rests on {clause}. "
+        f"A bad anchor poisons every downstream finding. Re-derive it, then "
+        f"`python ~/.claude/hooks/tms/tms.py assert {node['id']} --statement ... --kind "
+        f"{node['kind']} [--premises ...]` to clear OUT, and retry. "
+        f"(TMS hard gate - the only case that blocks; set TMS_STALE_ANCHOR=off to disable.)"
+    )
 
 
 def _primary(refs):
@@ -226,7 +238,11 @@ def _throttled(tms, key: str) -> bool:
             state = {}
     except Exception:
         state = {}
-    state = {k: v for k, v in state.items() if isinstance(v, (int, float)) and now - v < WINDOW * 4}
+    state = {
+        k: v
+        for k, v in state.items()
+        if isinstance(v, (int, float)) and now - v < WINDOW * 4
+    }
     recent = (now - state.get(key, 0)) < WINDOW
     state[key] = now
     try:
@@ -241,16 +257,23 @@ def _throttled(tms, key: str) -> bool:
 # --------------------------------------------------------------------------- #
 def main() -> int:
     try:
-        if DISABLED.exists() or os.environ.get("TMS_STALE_ANCHOR", "").lower() in ("off", "0", "false"):
+        if DISABLED.exists() or os.environ.get("TMS_STALE_ANCHOR", "").lower() in (
+            "off",
+            "0",
+            "false",
+        ):
             return 0
         data = json.loads(sys.stdin.read() or "{}")
         tool_name = str(data.get("tool_name") or "")
         tool_input = data.get("tool_input") or {}
 
         import tms_core as tms
+
         try:
             conn = tms.connect(create=False, readonly=True)
-            out_nodes = [dict(r) for r in conn.execute("SELECT * FROM nodes WHERE status='OUT'")]
+            out_nodes = [
+                dict(r) for r in conn.execute("SELECT * FROM nodes WHERE status='OUT'")
+            ]
         except Exception:
             return 0  # missing / corrupt DB -> fail-open
 
@@ -265,12 +288,23 @@ def main() -> int:
             sys.stderr.write(hard_msg(conn, tms, node, hits))
             return 2  # the only blocking path
 
-        key = "soft:%s:%s" % (tool_name, ",".join(sorted(r[0]["id"] for r in verdict["refs"])))
+        key = "soft:%s:%s" % (
+            tool_name,
+            ",".join(sorted(r[0]["id"] for r in verdict["refs"])),
+        )
         if _throttled(tms, key):
             return 0
         msg = soft_msg(conn, tms, verdict["refs"])
-        print(json.dumps({"hookSpecificOutput": {
-            "hookEventName": "PreToolUse", "additionalContext": msg}}))
+        print(
+            json.dumps(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "PreToolUse",
+                        "additionalContext": msg,
+                    }
+                }
+            )
+        )
         return 0
     except Exception:
         return 0  # fail-open: a TMS failure must never block legitimate work

@@ -17,6 +17,7 @@ Two modes (wired as two slots, one script — mirrors mcp-liveness/liveness.py):
 
 FAIL-OPEN: any error -> exit 0. Opt-out: MEMORY_SPOOL=off or a .disabled file.
 """
+
 from __future__ import annotations
 
 import json
@@ -32,7 +33,11 @@ DISABLED = THIS / ".disabled"
 
 
 def _disabled() -> bool:
-    return DISABLED.exists() or os.environ.get("MEMORY_SPOOL", "").lower() in ("off", "0", "false")
+    return DISABLED.exists() or os.environ.get("MEMORY_SPOOL", "").lower() in (
+        "off",
+        "0",
+        "false",
+    )
 
 
 def run_posttool(data: dict) -> int:
@@ -48,7 +53,9 @@ def run_posttool(data: dict) -> int:
         if p not in matches:
             matches.append(p)
     if not matches:
-        return 0  # nothing spooled (spool.py disabled or payload changed) -> nothing to do
+        return (
+            0  # nothing spooled (spool.py disabled or payload changed) -> nothing to do
+        )
     tr = data.get("tool_response")
     if tr is None:
         tr = data.get("tool_output")
@@ -72,10 +79,12 @@ def run_posttool(data: dict) -> int:
     except Exception:
         pass
     short = tool.split("__")[-1]
-    C.emit("PostToolUse",
-           f"[memory-spool] basic-memory {short} did NOT confirm saving '{title}'. "
-           f"Memory is NOT persisted. The payload is spooled at {kept} - re-attempt the "
-           f"write (check mcp-liveness: the store may be down) before relying on recall.")
+    C.emit(
+        "PostToolUse",
+        f"[memory-spool] basic-memory {short} did NOT confirm saving '{title}'. "
+        f"Memory is NOT persisted. The payload is spooled at {kept} - re-attempt the "
+        f"write (check mcp-liveness: the store may be down) before relying on recall.",
+    )
     return 0
 
 
@@ -111,11 +120,13 @@ def run_sessionstart(data: dict) -> int:
     for p, _ in unflushed:
         rep[p.name] = ts_now
     C.save_reported(rep)
-    C.emit("SessionStart",
-           f"[memory-spool] {len(unflushed)} memory write(s) were spooled but never "
-           f"confirmed saved: {titles}{extra}. These were lost mid-write (likely a "
-           f"basic-memory outage) - re-attempt the write_note(s) or discard the spool "
-           f"({C.SPOOL_DIR}).")
+    C.emit(
+        "SessionStart",
+        f"[memory-spool] {len(unflushed)} memory write(s) were spooled but never "
+        f"confirmed saved: {titles}{extra}. These were lost mid-write (likely a "
+        f"basic-memory outage) - re-attempt the write_note(s) or discard the spool "
+        f"({C.SPOOL_DIR}).",
+    )
     return 0
 
 

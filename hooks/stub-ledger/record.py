@@ -20,6 +20,7 @@ settings.json (PostToolUse, matcher "Write|Edit|MultiEdit"):
    "command":"python C:/Users/Prekzursil/.claude/hooks/stub-ledger/record.py",
    "timeout":6,"statusMessage":"Stub-ledger: recording placeholders written"}
 """
+
 from __future__ import annotations
 
 import json
@@ -33,12 +34,16 @@ if str(THIS) not in sys.path:
     sys.path.insert(0, str(THIS))
 
 DISABLED = THIS / ".disabled"
-LEDGER_ROOT = Path(os.environ.get("STUB_LEDGER_ROOT", str(Path.home() / ".claude" / "stub-ledger")))
+LEDGER_ROOT = Path(
+    os.environ.get("STUB_LEDGER_ROOT", str(Path.home() / ".claude" / "stub-ledger"))
+)
 
 
 def _ledger_file(session_id: str) -> Path:
     LEDGER_ROOT.mkdir(parents=True, exist_ok=True)
-    safe = "".join(c if c.isalnum() or c in "-_." else "-" for c in str(session_id))[:80]
+    safe = "".join(c if c.isalnum() or c in "-_." else "-" for c in str(session_id))[
+        :80
+    ]
     return LEDGER_ROOT / f"{safe or 'unknown'}.ndjson"
 
 
@@ -62,7 +67,11 @@ def _written_content(tool_name: str, tool_input: dict) -> str:
 
 def main() -> int:
     try:
-        if DISABLED.exists() or os.environ.get("STUB_LEDGER", "").lower() in ("off", "0", "false"):
+        if DISABLED.exists() or os.environ.get("STUB_LEDGER", "").lower() in (
+            "off",
+            "0",
+            "false",
+        ):
             return 0
         try:
             data = json.loads(sys.stdin.read() or "{}")
@@ -72,12 +81,17 @@ def main() -> int:
         if tool_name not in ("Write", "Edit", "MultiEdit"):
             return 0
         tool_input = data.get("tool_input") or {}
-        file_path = str(tool_input.get("file_path") or tool_input.get("path") or "") if isinstance(tool_input, dict) else ""
+        file_path = (
+            str(tool_input.get("file_path") or tool_input.get("path") or "")
+            if isinstance(tool_input, dict)
+            else ""
+        )
         content = _written_content(tool_name, tool_input)
         if not content:
             return 0
 
         import stubscan  # sibling module
+
         if stubscan.is_test_file(file_path):
             return 0  # test/fixture files legitimately contain stub/TODO fixtures
         hits = stubscan.find_stubs(content)
@@ -89,10 +103,19 @@ def main() -> int:
         path = _ledger_file(session_id)
         with path.open("a", encoding="utf-8", errors="replace") as fh:
             for marker, line_no, snippet in hits:
-                fh.write(json.dumps({
-                    "ts": ts, "file": file_path, "marker": marker,
-                    "line": line_no, "snippet": snippet,
-                }, ensure_ascii=False) + "\n")
+                fh.write(
+                    json.dumps(
+                        {
+                            "ts": ts,
+                            "file": file_path,
+                            "marker": marker,
+                            "line": line_no,
+                            "snippet": snippet,
+                        },
+                        ensure_ascii=False,
+                    )
+                    + "\n"
+                )
     except Exception:
         pass  # fail-open
     return 0

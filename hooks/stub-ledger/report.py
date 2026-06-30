@@ -21,6 +21,7 @@ settings.json (Stop, no matcher):
    "command":"python C:/Users/Prekzursil/.claude/hooks/stub-ledger/report.py",
    "timeout":10,"statusMessage":"Stub-ledger: surfacing open placeholders"}
 """
+
 from __future__ import annotations
 
 import json
@@ -34,7 +35,9 @@ if str(THIS) not in sys.path:
     sys.path.insert(0, str(THIS))
 
 DISABLED = THIS / ".disabled"
-LEDGER_ROOT = Path(os.environ.get("STUB_LEDGER_ROOT", str(Path.home() / ".claude" / "stub-ledger")))
+LEDGER_ROOT = Path(
+    os.environ.get("STUB_LEDGER_ROOT", str(Path.home() / ".claude" / "stub-ledger"))
+)
 
 # EXACT mirror of dark-surface's completion regex -> clean complementary partition.
 _COMPLETION = re.compile(
@@ -46,7 +49,9 @@ _COMPLETION = re.compile(
 
 
 def _ledger_file(session_id: str) -> Path:
-    safe = "".join(c if c.isalnum() or c in "-_." else "-" for c in str(session_id))[:80]
+    safe = "".join(c if c.isalnum() or c in "-_." else "-" for c in str(session_id))[
+        :80
+    ]
     return LEDGER_ROOT / f"{safe or 'unknown'}.ndjson"
 
 
@@ -65,11 +70,19 @@ def _final_text(transcript_path: str) -> str:
                     ev = json.loads(line)
                 except Exception:
                     continue
-                msg = ev.get("message") if ev.get("type") == "assistant" else (ev if ev.get("role") == "assistant" else None)
+                msg = (
+                    ev.get("message")
+                    if ev.get("type") == "assistant"
+                    else (ev if ev.get("role") == "assistant" else None)
+                )
                 if isinstance(msg, dict) and msg.get("role") == "assistant":
                     c = msg.get("content") or []
                     if isinstance(c, list):
-                        parts = [str(b.get("text") or "") for b in c if isinstance(b, dict) and b.get("type") == "text"]
+                        parts = [
+                            str(b.get("text") or "")
+                            for b in c
+                            if isinstance(b, dict) and b.get("type") == "text"
+                        ]
                     elif isinstance(c, str):
                         parts = [c]
                     else:
@@ -115,11 +128,12 @@ def still_open(session_id: str) -> list[tuple[str, str, str]]:
     cannot prove it was resolved.
     """
     import stubscan
+
     DELETED, UNREADABLE = object(), object()
     recs = _load_ledger(session_id)
     if not recs:
         return []
-    cur: dict[str, object] = {}   # file -> set(current snippets) | DELETED | UNREADABLE
+    cur: dict[str, object] = {}  # file -> set(current snippets) | DELETED | UNREADABLE
     out: list[tuple[str, str, str]] = []
     seen: set[tuple[str, str]] = set()
     for r in recs:
@@ -134,7 +148,9 @@ def still_open(session_id: str) -> list[tuple[str, str, str]]:
             try:
                 if Path(fp).exists():
                     body = Path(fp).read_text(encoding="utf-8", errors="replace")
-                    cur[fp] = {_norm(sn) for (_mk, _ln, sn) in stubscan.find_stubs(body)}
+                    cur[fp] = {
+                        _norm(sn) for (_mk, _ln, sn) in stubscan.find_stubs(body)
+                    }
                 else:
                     cur[fp] = DELETED
             except Exception:
@@ -142,9 +158,9 @@ def still_open(session_id: str) -> list[tuple[str, str, str]]:
         if fp:
             state = cur.get(fp)
             if state is DELETED:
-                continue                    # file gone -> stub gone
+                continue  # file gone -> stub gone
             if isinstance(state, set) and snippet not in state:
-                continue                    # detector no longer flags it -> resolved
+                continue  # detector no longer flags it -> resolved
             # UNREADABLE -> keep (cannot prove it was resolved)
         key = (fp, snippet)
         if key in seen:
@@ -156,7 +172,11 @@ def still_open(session_id: str) -> list[tuple[str, str, str]]:
 
 def main() -> int:
     try:
-        if DISABLED.exists() or os.environ.get("STUB_LEDGER", "").lower() in ("off", "0", "false"):
+        if DISABLED.exists() or os.environ.get("STUB_LEDGER", "").lower() in (
+            "off",
+            "0",
+            "false",
+        ):
             return 0
         try:
             data = json.loads(sys.stdin.read() or "{}")
@@ -178,7 +198,9 @@ def main() -> int:
         def _short(fp: str) -> str:
             return os.path.basename(fp) if fp else "(unsaved)"
 
-        shown = "; ".join(f"{_short(fp)}:{mk} — {sn[:50]}" for fp, mk, sn in open_stubs[:6])
+        shown = "; ".join(
+            f"{_short(fp)}:{mk} — {sn[:50]}" for fp, mk, sn in open_stubs[:6]
+        )
         more = f" (+{len(open_stubs) - 6} more)" if len(open_stubs) > 6 else ""
         msg = (
             f"[stub-ledger] {len(open_stubs)} placeholder/TODO(s) you introduced this "
@@ -186,8 +208,16 @@ def main() -> int:
             f"Finish, wire, or explicitly defer them (say so) before considering this work done "
             f"— built-but-incomplete code should not be silently forgotten."
         )
-        print(json.dumps({"hookSpecificOutput": {
-            "hookEventName": "Stop", "additionalContext": msg}}))
+        print(
+            json.dumps(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "Stop",
+                        "additionalContext": msg,
+                    }
+                }
+            )
+        )
     except Exception:
         pass  # fail-open
     return 0

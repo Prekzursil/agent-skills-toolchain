@@ -24,6 +24,7 @@ Always exits 0 (fail-open). Opt-out:
 
 Anti-re-entry: stop_hook_active flag in stdin → immediate exit 0.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -46,13 +47,19 @@ import verdict as _v  # noqa: E402 — local module in same directory
 
 # ── tunable defaults ───────────────────────────────────────────────────────────
 _DEFAULT_STATE_ROOT = Path.home() / ".claude" / "loop-recovery"
-_STALL_COOLDOWN = 300   # seconds — minimum gap between consecutive STALLED injects
+_STALL_COOLDOWN = 300  # seconds — minimum gap between consecutive STALLED injects
 
 
 # ── opt-out ────────────────────────────────────────────────────────────────────
 
+
 def _is_disabled() -> bool:
-    if os.environ.get("LOOP_RECOVERY", "").strip().lower() in ("off", "0", "false", "no"):
+    if os.environ.get("LOOP_RECOVERY", "").strip().lower() in (
+        "off",
+        "0",
+        "false",
+        "no",
+    ):
         return True
     if (_HOOK_DIR / ".disabled").exists():
         return True
@@ -61,17 +68,22 @@ def _is_disabled() -> bool:
 
 # ── calibrated-silence gate ────────────────────────────────────────────────────
 
+
 def _should_interject(itype: str, session_id: str) -> bool:
     """Return True (allow) — fail-open on any error or missing module."""
     try:
         import calibrated_silence  # noqa: PLC0415
-        allow, _ = calibrated_silence.should_interject(itype, {"session_id": str(session_id)})
+
+        allow, _ = calibrated_silence.should_interject(
+            itype, {"session_id": str(session_id)}
+        )
         return bool(allow)
     except Exception:
         return True
 
 
 # ── escalation state ───────────────────────────────────────────────────────────
+
 
 def _state_root() -> Path:
     return Path(os.environ.get("LOOP_RECOVERY_ROOT", str(_DEFAULT_STATE_ROOT)))
@@ -80,7 +92,9 @@ def _state_root() -> Path:
 def _state_file(session_id: str) -> Path:
     root = _state_root()
     root.mkdir(parents=True, exist_ok=True)
-    safe = "".join(c if c.isalnum() or c in "-_." else "-" for c in str(session_id))[:80]
+    safe = "".join(c if c.isalnum() or c in "-_." else "-" for c in str(session_id))[
+        :80
+    ]
     return root / f"{safe or 'unknown'}.json"
 
 
@@ -108,7 +122,9 @@ def _already_escalated(loop_id: str, state: dict) -> bool:
 
 
 def _mark_escalated(loop_id: str, state: dict) -> None:
-    state.setdefault("escalated_loops", {})[loop_id] = time.strftime("%Y-%m-%dT%H:%M:%S")
+    state.setdefault("escalated_loops", {})[loop_id] = time.strftime(
+        "%Y-%m-%dT%H:%M:%S"
+    )
 
 
 def _stall_cooled_down(state: dict) -> bool:
@@ -127,13 +143,18 @@ def _mark_stall_inject(state: dict) -> None:
 
 # ── output ─────────────────────────────────────────────────────────────────────
 
+
 def _emit(hook_event_name: str, message: str) -> None:
-    print(json.dumps({
-        "hookSpecificOutput": {
-            "hookEventName": hook_event_name,
-            "additionalContext": message,
-        }
-    }))
+    print(
+        json.dumps(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": hook_event_name,
+                    "additionalContext": message,
+                }
+            }
+        )
+    )
 
 
 def _stalled_message(reason: str) -> str:
@@ -162,6 +183,7 @@ def _looping_message(loop_id: str, reason: str) -> str:
 
 
 # ── main ──────────────────────────────────────────────────────────────────────
+
 
 def main() -> int:
     # 1. Parse --mode

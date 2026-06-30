@@ -18,6 +18,7 @@ This module never writes during inject and never raises into the hook — any pr
 an empty card and the global catalog still ships. ``seed`` (a CLI sub-command) is the only
 writer and is run explicitly, never from the hook.
 """
+
 from __future__ import annotations
 
 import json
@@ -30,8 +31,10 @@ THIS = Path(__file__).resolve().parent
 HOME = Path.home()
 # Generated cards live at <PROJECTS_DIR>/<canonical_id>/project-card.json. Defaults to the
 # spec'd ~/.claude/projects; overridable (relocation / testing) without code changes.
-PROJECTS_DIR = Path(os.environ.get("CLAUDE_PROJECT_CARDS_DIR", str(HOME / ".claude" / "projects")))
-MAX_CHARS = 3200                                  # ~800 tokens hard budget for the whole block
+PROJECTS_DIR = Path(
+    os.environ.get("CLAUDE_PROJECT_CARDS_DIR", str(HOME / ".claude" / "projects"))
+)
+MAX_CHARS = 3200  # ~800 tokens hard budget for the whole block
 SCHEMA = "project-card/v1"
 
 
@@ -77,7 +80,16 @@ def load_card(worktree: str, canonical_id: str) -> dict | None:
 
 
 # ── resume-strip (DELIVERABLE 3): read-only projection of existing stores ───────────--
-_POS_KW = ("current", "position", "next", "status", "wu", "resume", "left off", "in progress")
+_POS_KW = (
+    "current",
+    "position",
+    "next",
+    "status",
+    "wu",
+    "resume",
+    "left off",
+    "in progress",
+)
 
 
 def _first_meaningful_line(path: Path, limit: int = 30) -> str | None:
@@ -86,7 +98,9 @@ def _first_meaningful_line(path: Path, limit: int = 30) -> str | None:
     try:
         if not path.is_file():
             return None
-        raw_lines = path.read_text(encoding="utf-8", errors="replace").splitlines()[:limit]
+        raw_lines = path.read_text(encoding="utf-8", errors="replace").splitlines()[
+            :limit
+        ]
     except Exception:
         return None
     content, heading = [], None
@@ -121,9 +135,19 @@ def build_resume_strip(worktree: str) -> list[str]:
             ofs = st.get("open_failures") or []
             if ofs:
                 last = ofs[-1]
-                pc = f" [if: {last['preconditions']}]" if last.get("preconditions") else ""
-                fail = f"open failure (re-test cheaply): {str(last.get('text'))[:120]}{pc}"
-            mlist = [e for e in led.replay(worktree, 80) if e.get("kind") == "milestone" and e.get("text")]
+                pc = (
+                    f" [if: {last['preconditions']}]"
+                    if last.get("preconditions")
+                    else ""
+                )
+                fail = (
+                    f"open failure (re-test cheaply): {str(last.get('text'))[:120]}{pc}"
+                )
+            mlist = [
+                e
+                for e in led.replay(worktree, 80)
+                if e.get("kind") == "milestone" and e.get("text")
+            ]
             if mlist:
                 mile = f"last milestone: {str(mlist[-1]['text'])[:130]}"
         except Exception:
@@ -134,8 +158,8 @@ def build_resume_strip(worktree: str) -> list[str]:
         if line:
             pos = f"{fname.split('.')[0]}: {line}"
             break
-    ordered = [b for b in (mile, fail, pos) if b]      # spec priority
-    if len(ordered) < 3 and goal:                       # goal as filler only
+    ordered = [b for b in (mile, fail, pos) if b]  # spec priority
+    if len(ordered) < 3 and goal:  # goal as filler only
         ordered.append(f"goal: {str(goal)[:140]}")
     return ordered[:3]
 
@@ -148,11 +172,15 @@ def _items(card: dict, key: str, limit: int) -> list[str]:
     return [str(x) for x in v][:limit]
 
 
-def render_block(card: dict | None, resume: list[str], pid_name: str, canonical_id: str) -> str:
+def render_block(
+    card: dict | None, resume: list[str], pid_name: str, canonical_id: str
+) -> str:
     """Compose the <=40-line, <=MAX_CHARS card block. Returns '' if there is nothing useful."""
     lines: list[str] = []
     name = (card or {}).get("display_name") or pid_name
-    lines.append(f"[project card: {name}] (id {canonical_id[:12]}) — apply this project's context to terse prompts.")
+    lines.append(
+        f"[project card: {name}] (id {canonical_id[:12]}) — apply this project's context to terse prompts."
+    )
     if card:
         if card.get("stack"):
             lines.append(f"- stack: {str(card['stack'])[:200]}")
@@ -174,8 +202,10 @@ def render_block(card: dict | None, resume: list[str], pid_name: str, canonical_
         if card.get("left_off") and not resume:
             resume = [str(card["left_off"])[:160]]
     else:
-        lines.append("- (no card yet — seed one: `python ~/.claude/hooks/capability-catalog/"
-                     "project_card.py seed`; or commit .claude/project-card.json)")
+        lines.append(
+            "- (no card yet — seed one: `python ~/.claude/hooks/capability-catalog/"
+            "project_card.py seed`; or commit .claude/project-card.json)"
+        )
     if resume:
         lines.append("- where we left off:")
         lines += [f"    - {b}" for b in resume]
@@ -183,7 +213,9 @@ def render_block(card: dict | None, resume: list[str], pid_name: str, canonical_
         return ""  # nothing worth injecting
     block = "\n".join(lines[:40])
     if len(block) > MAX_CHARS:
-        block = block[:MAX_CHARS].rsplit("\n", 1)[0] + "\n    … (card truncated to budget)"
+        block = (
+            block[:MAX_CHARS].rsplit("\n", 1)[0] + "\n    … (card truncated to budget)"
+        )
     return block
 
 
@@ -206,13 +238,29 @@ def build_block(cwd: str | None = None) -> str:
 
 # ── seeding (the only writer; explicit CLI, never run from the hook) ────────────────--
 _STACK_MARKERS = [
-    ("package.json", "Node/TypeScript"), ("pnpm-workspace.yaml", "Node monorepo"),
-    ("pyproject.toml", "Python"), ("setup.py", "Python"), ("requirements.txt", "Python"),
-    ("Cargo.toml", "Rust"), ("go.mod", "Go"), ("pom.xml", "Java/Maven"),
-    ("build.gradle", "Java/Gradle"), ("Gemfile", "Ruby"), ("composer.json", "PHP"),
+    ("package.json", "Node/TypeScript"),
+    ("pnpm-workspace.yaml", "Node monorepo"),
+    ("pyproject.toml", "Python"),
+    ("setup.py", "Python"),
+    ("requirements.txt", "Python"),
+    ("Cargo.toml", "Rust"),
+    ("go.mod", "Go"),
+    ("pom.xml", "Java/Maven"),
+    ("build.gradle", "Java/Gradle"),
+    ("Gemfile", "Ruby"),
+    ("composer.json", "PHP"),
 ]
-_ENTRY_CANDIDATES = ["src/main.ts", "src/index.ts", "src/main.tsx", "src/index.js",
-                     "main.py", "app.py", "src/main.py", "cmd/main.go", "src/main.rs"]
+_ENTRY_CANDIDATES = [
+    "src/main.ts",
+    "src/index.ts",
+    "src/main.tsx",
+    "src/index.js",
+    "main.py",
+    "app.py",
+    "src/main.py",
+    "cmd/main.go",
+    "src/main.rs",
+]
 
 
 def _detect_stack(root: Path) -> tuple[str, list[str]]:
@@ -247,8 +295,8 @@ def seed(cwd: str | None, force: bool = False) -> Path | None:
     resume = build_resume_strip(pid.worktree_path)
     card = {
         "_doc": "Per-project card injected after the global capability catalog at SessionStart. "
-                "Edit freely; commit a copy to <repo>/.claude/project-card.json to share it. "
-                "Keep it terse + high-signal (<=~800 tokens render budget).",
+        "Edit freely; commit a copy to <repo>/.claude/project-card.json to share it. "
+        "Keep it terse + high-signal (<=~800 tokens render budget).",
         "schema": SCHEMA,
         "display_name": pid.display_name,
         "canonical_id": pid.canonical_id,
@@ -264,15 +312,20 @@ def seed(cwd: str | None, force: bool = False) -> Path | None:
     }
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(json.dumps(card, indent=2, ensure_ascii=False), encoding="utf-8")
-    print(f"SUCCESS:seed wrote {dest}\n  stack={stack} entrypoints={eps}\n  "
-          f"(fill in invariants/tools/skills/quality_bar — they seed as TODO)")
+    print(
+        f"SUCCESS:seed wrote {dest}\n  stack={stack} entrypoints={eps}\n  "
+        f"(fill in invariants/tools/skills/quality_bar — they seed as TODO)"
+    )
     return dest
 
 
 def main(argv: list[str]) -> int:  # pragma: no cover - thin CLI
     import argparse
+
     ap = argparse.ArgumentParser(prog="project_card")
-    ap.add_argument("cmd", nargs="?", default="show", choices=["show", "render", "seed"])
+    ap.add_argument(
+        "cmd", nargs="?", default="show", choices=["show", "render", "seed"]
+    )
     ap.add_argument("--cwd", default=None)
     ap.add_argument("--force", action="store_true")
     a = ap.parse_args(argv)

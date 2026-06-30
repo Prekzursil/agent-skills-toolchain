@@ -11,6 +11,7 @@ server, but a note you were writing WHILE it was down is gone. We persist the in
 payload to a local file BEFORE the MCP call so it can be re-flushed/surfaced even if the
 call (or the whole session) dies. Pure stdlib.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -20,8 +21,9 @@ import sys
 import time
 from pathlib import Path
 
-SPOOL_DIR = Path(os.environ.get(
-    "MEMORY_SPOOL_DIR", str(Path.home() / ".claude" / "memory-spool")))
+SPOOL_DIR = Path(
+    os.environ.get("MEMORY_SPOOL_DIR", str(Path.home() / ".claude" / "memory-spool"))
+)
 # Sidecar so SessionStart surfaces each unflushed entry once, then prunes.
 REPORTED_FILE = SPOOL_DIR / ".reported.json"
 # Spool entries older than this are garbage-collected at SessionStart.
@@ -37,7 +39,11 @@ def now() -> float:
 
 
 def session_id(data: dict) -> str:
-    return str((data or {}).get("session_id") or "default").replace("/", "_").replace("\\", "_")
+    return (
+        str((data or {}).get("session_id") or "default")
+        .replace("/", "_")
+        .replace("\\", "_")
+    )
 
 
 def read_stdin() -> dict:
@@ -48,8 +54,16 @@ def read_stdin() -> dict:
 
 
 def emit(event_name: str, msg: str) -> None:
-    print(json.dumps({"hookSpecificOutput": {
-        "hookEventName": event_name, "additionalContext": msg}}))
+    print(
+        json.dumps(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": event_name,
+                    "additionalContext": msg,
+                }
+            }
+        )
+    )
 
 
 def payload_key(tool_name: str, tool_input: dict) -> str:
@@ -59,10 +73,14 @@ def payload_key(tool_name: str, tool_input: dict) -> str:
     the spool file to its completion without relying on a shared tool_use_id.
     """
     try:
-        blob = (str(tool_name) + "|" + json.dumps(tool_input or {}, sort_keys=True,
-                                                  ensure_ascii=False))
+        blob = (
+            str(tool_name)
+            + "|"
+            + json.dumps(tool_input or {}, sort_keys=True, ensure_ascii=False)
+        )
     except Exception:
         blob = str(tool_name) + "|" + repr(tool_input)
+    # nosemgrep: python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1 -- non-cryptographic dedup fingerprint, not a security control
     return hashlib.sha1(blob.encode("utf-8", "replace")).hexdigest()[:12]
 
 
@@ -143,8 +161,16 @@ def response_ok(tr) -> bool:
         if not s:
             return False
         low = s.lower()
-        if low.startswith(("error", "mcp error", "tool execution failed",
-                           "exception", "traceback", "failed")):
+        if low.startswith(
+            (
+                "error",
+                "mcp error",
+                "tool execution failed",
+                "exception",
+                "traceback",
+                "failed",
+            )
+        ):
             return False
         return True
     if isinstance(tr, dict):

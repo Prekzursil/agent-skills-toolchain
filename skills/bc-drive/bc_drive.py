@@ -33,6 +33,7 @@ Usage:
   python bc_drive.py demo [ScreenName]           # tap forward -> prove view changed
   python bc_drive.py capture <ctorRVAhex> <ms>    # native NewButton-ctor capture (advanced)
 """
+
 import json
 import os
 import struct
@@ -51,26 +52,38 @@ AGENT_JS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bc_agent.js
 # inspection), NOT from the native node tree. (V) = confirmed to actuate live.
 # `forward` = a safe forward-navigation button used by `demo`.
 SCREENS = {
-    "Title": {"forward": "Play", "widgets": {
-        "Play":     {"cx": 955,  "cy": 665},   # (V) -> ChapterSelect
-        "Settings": {"cx": 955,  "cy": 815},
-        "ShowCode": {"cx": 120,  "cy": 40},
-        "Mailbox":  {"cx": 1815, "cy": 1010},
-    }},
-    "ChapterSelect": {"forward": "ChapterCenter", "widgets": {
-        "Close":         {"cx": 1815, "cy": 410},   # (V) -> Title
-        "ChapterCenter": {"cx": 960,  "cy": 665},   # (V) -> CatBase (selected chapter)
-        "ChapterLeft":   {"cx": 420,  "cy": 690},
-        "ChapterRight":  {"cx": 1480, "cy": 690},
-    }},
-    "CatBase": {"forward": "Start", "widgets": {
-        "Start":   {"cx": 355,  "cy": 315},   # (V) -> stage list
-        "Upgrade": {"cx": 355,  "cy": 470},
-        "Equip":   {"cx": 355,  "cy": 625},
-        "Menu":    {"cx": 170,  "cy": 800},
-        "Back":    {"cx": 75,   "cy": 930},   # (V) -> ChapterSelect
-        "Store":   {"cx": 1190, "cy": 1035},
-    }},
+    "Title": {
+        "forward": "Play",
+        "widgets": {
+            "Play": {"cx": 955, "cy": 665},  # (V) -> ChapterSelect
+            "Settings": {"cx": 955, "cy": 815},
+            "ShowCode": {"cx": 120, "cy": 40},
+            "Mailbox": {"cx": 1815, "cy": 1010},
+        },
+    },
+    "ChapterSelect": {
+        "forward": "ChapterCenter",
+        "widgets": {
+            "Close": {"cx": 1815, "cy": 410},  # (V) -> Title
+            "ChapterCenter": {
+                "cx": 960,
+                "cy": 665,
+            },  # (V) -> CatBase (selected chapter)
+            "ChapterLeft": {"cx": 420, "cy": 690},
+            "ChapterRight": {"cx": 1480, "cy": 690},
+        },
+    },
+    "CatBase": {
+        "forward": "Start",
+        "widgets": {
+            "Start": {"cx": 355, "cy": 315},  # (V) -> stage list
+            "Upgrade": {"cx": 355, "cy": 470},
+            "Equip": {"cx": 355, "cy": 625},
+            "Menu": {"cx": 170, "cy": 800},
+            "Back": {"cx": 75, "cy": 930},  # (V) -> ChapterSelect
+            "Store": {"cx": 1190, "cy": 1035},
+        },
+    },
 }
 # The `view` field (app+0x2F08) is NOT a reliable screen id: it varies on the same
 # screen over time and collides across screens (242 seen on BOTH Title and Cat Base),
@@ -83,8 +96,9 @@ def adb(*args, binary=False):
     cmd = [ADB, "-s", SERIAL] + list(args)
     if binary:
         return subprocess.run(cmd, stdout=subprocess.PIPE, check=True).stdout
-    return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                          text=True, check=True).stdout.strip()
+    return subprocess.run(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=True
+    ).stdout.strip()
 
 
 def get_pid():
@@ -146,7 +160,7 @@ def screencap_raw():
     bytes -- robust to header-size differences across Android versions."""
     data = adb("exec-out", "screencap", binary=True)
     w, h = struct.unpack("<II", data[:8])
-    return w, h, data[len(data) - w * h * 4:]
+    return w, h, data[len(data) - w * h * 4 :]
 
 
 def frame_diff(a, b, step=4001, tol=24):
@@ -174,9 +188,17 @@ def cmd_scene():
 def cmd_view():
     with BCDriver() as d:
         s = d.rpc.scene()
-    print(json.dumps({"view": s.get("view"), "scene_macro": s.get("scene"),
-                      "inferred_screen": infer_screen(s.get("view")),
-                      "note": "view is path-dependent; confirm screen via screenshot"}, indent=2))
+    print(
+        json.dumps(
+            {
+                "view": s.get("view"),
+                "scene_macro": s.get("scene"),
+                "inferred_screen": infer_screen(s.get("view")),
+                "note": "view is path-dependent; confirm screen via screenshot",
+            },
+            indent=2,
+        )
+    )
 
 
 def cmd_metrics():
@@ -208,7 +230,12 @@ def cmd_tapw(dx, dy):
     with BCDriver() as d:
         m = d.rpc.metrics()
     px, py = round(dx * m["scaleX"]), round(dy * m["scaleY"])
-    print(json.dumps({"drawable": [dx, dy], "scale": [m["scaleX"], m["scaleY"]], **tap(px, py)}, indent=2))
+    print(
+        json.dumps(
+            {"drawable": [dx, dy], "scale": [m["scaleX"], m["scaleY"]], **tap(px, py)},
+            indent=2,
+        )
+    )
 
 
 def cmd_widgets(screen):
@@ -217,19 +244,32 @@ def cmd_widgets(screen):
         m = d.rpc.metrics()
     if not screen:
         screen = infer_screen(s.get("view"))
-    out = {"requested_screen": screen, "scene_macro": s.get("scene"), "view": s.get("view"),
-           "device_px": [m["windowW"], m["windowH"]], "drawable_units": [m["drawableW"], m["drawableH"]],
-           "scale_drawable_to_device": [m["scaleX"], m["scaleY"]],
-           "source": "screenshot-derived (device px); validated by live taps"}
+    out = {
+        "requested_screen": screen,
+        "scene_macro": s.get("scene"),
+        "view": s.get("view"),
+        "device_px": [m["windowW"], m["windowH"]],
+        "drawable_units": [m["drawableW"], m["drawableH"]],
+        "scale_drawable_to_device": [m["scaleX"], m["scaleY"]],
+        "source": "screenshot-derived (device px); validated by live taps",
+    }
     if screen and screen in SCREENS:
         out["widgets"] = {
-            name: {"device_px": [r["cx"], r["cy"]],
-                   "drawable": [round(r["cx"] / m["scaleX"]), round(r["cy"] / m["scaleY"])]}
-            for name, r in SCREENS[screen]["widgets"].items()}
+            name: {
+                "device_px": [r["cx"], r["cy"]],
+                "drawable": [
+                    round(r["cx"] / m["scaleX"]),
+                    round(r["cy"] / m["scaleY"]),
+                ],
+            }
+            for name, r in SCREENS[screen]["widgets"].items()
+        }
     else:
         out["widgets"] = None
         out["available_screens"] = list(SCREENS)
-        out["note"] = "screen not identified; `screenshot` then pass a name, e.g. `widgets Title`"
+        out["note"] = (
+            "screen not identified; `screenshot` then pass a name, e.g. `widgets Title`"
+        )
     print(json.dumps(out, indent=2))
 
 
@@ -248,15 +288,19 @@ def cmd_demo(screen):
         if not screen:
             screen = infer_screen(before.get("view"))
         if not screen or screen not in SCREENS:
-            t["error"] = (f"screen unknown (view={before.get('view')}); run `screenshot`, "
-                          f"then `demo <ScreenName>` from {list(SCREENS)}")
+            t["error"] = (
+                f"screen unknown (view={before.get('view')}); run `screenshot`, "
+                f"then `demo <ScreenName>` from {list(SCREENS)}"
+            )
             print(json.dumps(t, indent=2))
             return
         btn = SCREENS[screen]["forward"]
         r = SCREENS[screen]["widgets"][btn]
         fb = screencap_raw()
         screenshot(before_png)
-        t["steps"].append(f"screen={screen} scene={before.get('scene')} view={before.get('view')}")
+        t["steps"].append(
+            f"screen={screen} scene={before.get('scene')} view={before.get('view')}"
+        )
         t["steps"].append(f"tap {btn} @ device ({r['cx']},{r['cy']})")
         tap(r["cx"], r["cy"])
         frac = 0.0
@@ -272,11 +316,16 @@ def cmd_demo(screen):
         t["screen_changed_pixel_frac"] = round(frac, 3)
         t["view_changed_unreliable"] = after.get("view") != before.get("view")
         t["screenshots"] = {"before": before_png, "after": after_png}
-        t["result"] = ("SUCCESS:bc-drive-demo screen changed via tap"
-                       if t["screen_changed"] else "FAILED:bc-drive-demo no screen change detected")
-        t["steps"].append(f"{t['result']} pixel_diff={round(frac, 3)} "
-                          f"scene {before.get('scene')}->{after.get('scene')} "
-                          f"view {before.get('view')}->{after.get('view')}")
+        t["result"] = (
+            "SUCCESS:bc-drive-demo screen changed via tap"
+            if t["screen_changed"]
+            else "FAILED:bc-drive-demo no screen change detected"
+        )
+        t["steps"].append(
+            f"{t['result']} pixel_diff={round(frac, 3)} "
+            f"scene {before.get('scene')}->{after.get('scene')} "
+            f"view {before.get('view')}->{after.get('view')}"
+        )
     print(json.dumps(t, indent=2))
 
 
@@ -297,8 +346,10 @@ def cmd_capture(ctor_rva_hex, ms):
 
 
 CMDS = {
-    "scene": lambda a: cmd_scene(), "view": lambda a: cmd_view(),
-    "metrics": lambda a: cmd_metrics(), "touchinfo": lambda a: cmd_touchinfo(),
+    "scene": lambda a: cmd_scene(),
+    "view": lambda a: cmd_view(),
+    "metrics": lambda a: cmd_metrics(),
+    "touchinfo": lambda a: cmd_touchinfo(),
     "info": lambda a: cmd_info(),
     "screenshot": lambda a: cmd_screenshot(a[0] if a else None),
     "tap": lambda a: cmd_tap(int(a[0]), int(a[1])),

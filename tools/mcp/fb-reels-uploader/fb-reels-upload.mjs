@@ -164,6 +164,7 @@ async function main() {
   const files = fs.readdirSync(o.folder)
     .filter((f) => f.toLowerCase().endsWith('.' + o.ext))
     .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  // nosemgrep: javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring -- internal CLI log message; o.ext is a developer-supplied CLI flag, not untrusted input
   if (!files.length) { console.error('No .' + o.ext + ' files in', o.folder); process.exit(2); }
 
   const stateFile = path.join(o.folder, '.fb-posted.json');

@@ -28,6 +28,7 @@ so coverage tripwires are expressed as path_match on the gate file (lowering the
 
 Pure stdlib. Every helper is fail-soft (safe default) so callers stay FAIL-OPEN.
 """
+
 from __future__ import annotations
 
 import json
@@ -88,8 +89,16 @@ def now() -> float:
 
 
 def emit(event_name: str, msg: str) -> None:
-    print(json.dumps({"hookSpecificOutput": {
-        "hookEventName": event_name, "additionalContext": msg}}))
+    print(
+        json.dumps(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": event_name,
+                    "additionalContext": msg,
+                }
+            }
+        )
+    )
 
 
 def read_stdin() -> dict:
@@ -134,7 +143,9 @@ def save_tripwires(store: dict) -> bool:
     try:
         ULY_DIR.mkdir(parents=True, exist_ok=True)
         tmp = TRIPWIRES_FILE.with_suffix(".json.tmp")
-        tmp.write_text(json.dumps(store, indent=2, ensure_ascii=False), encoding="utf-8")
+        tmp.write_text(
+            json.dumps(store, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
         os.replace(tmp, TRIPWIRES_FILE)
         return True
     except Exception:
@@ -157,7 +168,9 @@ def override_active(window_sec: float = OVERRIDE_WINDOW_SEC) -> bool:
         if not OVERRIDES_FILE.exists():
             return False
         cutoff = now() - window_sec
-        for line in OVERRIDES_FILE.read_text(encoding="utf-8", errors="replace").splitlines():
+        for line in OVERRIDES_FILE.read_text(
+            encoding="utf-8", errors="replace"
+        ).splitlines():
             line = line.strip()
             if not line:
                 continue
@@ -179,6 +192,7 @@ def _iso_to_epoch(ts) -> float:
     try:
         s = str(ts).replace("Z", "+00:00")
         from datetime import datetime
+
         return datetime.fromisoformat(s).timestamp()
     except Exception:
         return 0.0
@@ -190,13 +204,20 @@ def scan_transcript(transcript_path: str, since_ts: float | None = None) -> dict
     Returns {tool_calls, edit_counts{path:n}, last_test_pass_idx, last_run_failed,
     calls_since_test}. since_ts (epoch) optionally scopes to events at/after arm time
     (best-effort: only applied when an event carries a parseable timestamp)."""
-    res = {"tool_calls": 0, "edit_counts": {}, "last_test_pass_idx": None,
-           "last_run_failed": False, "calls_since_test": 0}
+    res = {
+        "tool_calls": 0,
+        "edit_counts": {},
+        "last_test_pass_idx": None,
+        "last_run_failed": False,
+        "calls_since_test": 0,
+    }
     try:
         p = Path(transcript_path or "")
         if not transcript_path or not p.exists():
             return res
-        lines = p.read_text(encoding="utf-8", errors="replace").splitlines()[-TRANSCRIPT_TAIL_LINES:]
+        lines = p.read_text(encoding="utf-8", errors="replace").splitlines()[
+            -TRANSCRIPT_TAIL_LINES:
+        ]
 
         events = []
         for ln in lines:
@@ -222,7 +243,10 @@ def scan_transcript(transcript_path: str, since_ts: float | None = None) -> dict
                         continue
                     c = b.get("content")
                     if isinstance(c, list):
-                        c = " ".join(x.get("text", "") if isinstance(x, dict) else str(x) for x in c)
+                        c = " ".join(
+                            x.get("text", "") if isinstance(x, dict) else str(x)
+                            for x in c
+                        )
                     result_text[str(tid)] = str(c or "")
 
         idx = 0
@@ -249,7 +273,9 @@ def scan_transcript(transcript_path: str, since_ts: float | None = None) -> dict
                     cmd = str(inp.get("command") or "")
                     if _TEST_CMD.search(cmd):
                         rtext = result_text.get(str(b.get("id")), "")
-                        passed = bool(_PASS_RX.search(rtext)) and not _FAIL_RX.search(rtext)
+                        passed = bool(_PASS_RX.search(rtext)) and not _FAIL_RX.search(
+                            rtext
+                        )
                         if passed:
                             res["last_test_pass_idx"] = idx
                             res["last_run_failed"] = False
@@ -270,7 +296,9 @@ def is_disarm_attempt(tool: str, tool_input: dict, command: str) -> bool:
     try:
         if tool in EDIT_TOOLS:
             fp = _norm((tool_input or {}).get("file_path"))
-            return fp.endswith("ulysses/tripwires.json") or fp.endswith("/tripwires.json")
+            return fp.endswith("ulysses/tripwires.json") or fp.endswith(
+                "/tripwires.json"
+            )
         if tool in SHELL_TOOLS:
             c = command or ""
             if "tripwires.json" not in c.lower():
@@ -302,13 +330,16 @@ def decide(store: dict, ctx: dict) -> dict:
     # Structural guard: disarming tripwires without a logged override is blocked.
     if ctx.get("is_disarm") and not ctx.get("override_active"):
         return {
-            "verdict": "halt", "predicate": "_disarm",
-            "message": ("ULYSSES tripwire: you are about to edit/remove your own "
-                        "tripwires.json mid-task. That is exactly the rationalizing-self "
-                        "move the tripwires exist to stop. To proceed deliberately, log "
-                        "an override first:\n  python ~/.claude/hooks/ulysses/arm.py "
-                        "--override \"<why weakening is correct>\"\nthen retry (valid for "
-                        f"{int(OVERRIDE_WINDOW_SEC // 60)} min). Or edit via arm.py."),
+            "verdict": "halt",
+            "predicate": "_disarm",
+            "message": (
+                "ULYSSES tripwire: you are about to edit/remove your own "
+                "tripwires.json mid-task. That is exactly the rationalizing-self "
+                "move the tripwires exist to stop. To proceed deliberately, log "
+                "an override first:\n  python ~/.claude/hooks/ulysses/arm.py "
+                '--override "<why weakening is correct>"\nthen retry (valid for '
+                f"{int(OVERRIDE_WINDOW_SEC // 60)} min). Or edit via arm.py."
+            ),
         }
 
     trips: list[tuple[str, dict, str]] = []  # (action, pred, extra)
@@ -326,14 +357,18 @@ def decide(store: dict, ctx: dict) -> dict:
                     trips.append((action, pred, f"tool '{tool}'"))
             elif typ == "path_match":
                 hay = fp + " " + cmd
-                if pred.get("pattern") and re.search(pred["pattern"], hay, re.IGNORECASE):
+                if pred.get("pattern") and re.search(
+                    pred["pattern"], hay, re.IGNORECASE
+                ):
                     trips.append((action, pred, "target matches"))
             elif typ == "path_reedit":
                 if tool in EDIT_TOOLS and fp:
                     thr = int(pred.get("threshold") or 4)
                     prior = int((ctx.get("edit_counts") or {}).get(fp, 0))
                     if prior + 1 >= thr:
-                        trips.append((action, pred, f"edit #{prior + 1} of {fp.split('/')[-1]}"))
+                        trips.append(
+                            (action, pred, f"edit #{prior + 1} of {fp.split('/')[-1]}")
+                        )
             elif typ == "calls_since_test":
                 thr = int(pred.get("threshold") or 25)
                 cst = int(ctx.get("calls_since_test") or 0)
@@ -352,23 +387,33 @@ def decide(store: dict, ctx: dict) -> dict:
     for want, verdict, lead in (
         ("HALT", "halt", "ULYSSES HALT — you committed to NOT do this:"),
         ("ASK", "ask", "ULYSSES tripwire (ASK) — you committed to ask first:"),
-        ("SNAPSHOT", "snapshot", "ULYSSES tripwire (SNAPSHOT) — checkpoint before this:"),
+        (
+            "SNAPSHOT",
+            "snapshot",
+            "ULYSSES tripwire (SNAPSHOT) — checkpoint before this:",
+        ),
     ):
         hits = [(p, x) for a, p, x in trips if a == want]
         if not hits:
             continue
         body = "; ".join(_trip_msg(p, x) for p, x in hits)
         if verdict == "halt":
-            msg = (f"{lead} {body}. This tool call is BLOCKED. If proceeding is genuinely "
-                   f"correct, log an override (arm.py --override \"<reason>\") and retry; "
-                   f"otherwise choose a reversible path (verify the field / save-edit, not "
-                   f"a live write).")
+            msg = (
+                f"{lead} {body}. This tool call is BLOCKED. If proceeding is genuinely "
+                f'correct, log an override (arm.py --override "<reason>") and retry; '
+                f"otherwise choose a reversible path (verify the field / save-edit, not "
+                f"a live write)."
+            )
         elif verdict == "snapshot":
-            msg = (f"{lead} {body}. Create a restore point now (git stash/commit, or "
-                   f"note.py milestone) before proceeding.")
+            msg = (
+                f"{lead} {body}. Create a restore point now (git stash/commit, or "
+                f"note.py milestone) before proceeding."
+            )
         else:
-            msg = (f"{lead} {body}. Confirm with the user (or your own cold-start "
-                   f"reasoning) before this action; do not rationalize past it.")
+            msg = (
+                f"{lead} {body}. Confirm with the user (or your own cold-start "
+                f"reasoning) before this action; do not rationalize past it."
+            )
         return {"verdict": verdict, "message": msg, "predicate": hits[0][0].get("id")}
 
     return {"verdict": "allow", "message": "", "predicate": None}
@@ -391,10 +436,15 @@ def build_ctx(payload: dict, store: dict) -> dict:
             since = float(store["armed_ts"])
     except Exception:
         since = None
-    scan = scan_transcript(str((payload or {}).get("transcript_path") or ""), since_ts=since)
+    scan = scan_transcript(
+        str((payload or {}).get("transcript_path") or ""), since_ts=since
+    )
     return {
-        "tool": tool, "file_path": fp, "command": command,
-        "edit_counts": scan["edit_counts"], "calls_since_test": scan["calls_since_test"],
+        "tool": tool,
+        "file_path": fp,
+        "command": command,
+        "edit_counts": scan["edit_counts"],
+        "calls_since_test": scan["calls_since_test"],
         "last_run_failed": scan["last_run_failed"],
         "is_disarm": is_disarm_attempt(tool, tinput, command),
         "override_active": override_active(),

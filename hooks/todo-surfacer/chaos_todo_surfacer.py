@@ -10,6 +10,7 @@ PROVE three properties - the discipline is not "installed" until all three hold:
 
 The GameDay lesson: an untested safety net fails exactly when you need it.
 """
+
 from __future__ import annotations
 
 import atexit
@@ -54,9 +55,21 @@ def _payload(value: str) -> dict:
     p = dict(FIX.get("extra_payload") or {})
     p.setdefault("session_id", "chaos")
     if kind == "response":
-        tf = tempfile.NamedTemporaryFile("w", suffix=".jsonl", delete=False, encoding="utf-8")
-        tf.write(json.dumps({"type": "assistant", "message": {"role": "assistant",
-                 "content": [{"type": "text", "text": value}]}}) + "\n")
+        tf = tempfile.NamedTemporaryFile(
+            "w", suffix=".jsonl", delete=False, encoding="utf-8"
+        )
+        tf.write(
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {
+                        "role": "assistant",
+                        "content": [{"type": "text", "text": value}],
+                    },
+                }
+            )
+            + "\n"
+        )
         tf.close()
         _TMP.append(tf.name)
         p["transcript_path"] = tf.name
@@ -81,9 +94,16 @@ def _run(stdin_text: str, env_extra: dict | None = None):
     if env_extra:
         env.update(env_extra)
     res = subprocess.run(
-        [sys.executable, str(HOOK)], input=stdin_text, cwd=str(HERE),
-        capture_output=True, text=True, encoding="utf-8", errors="replace",
-        env=env, timeout=60)
+        [sys.executable, str(HOOK)],
+        input=stdin_text,
+        cwd=str(HERE),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        env=env,
+        timeout=60,
+    )
     return res.returncode, (res.stdout or ""), (res.stderr or "")
 
 
@@ -103,7 +123,10 @@ def _emitted(stdout: str):
 
 
 def check(label: str, ok: bool, detail: str = "") -> None:
-    print(f"  [{'PASS' if ok else 'FAIL'}] {label}" + (f" - {detail}" if detail and not ok else ""))
+    print(
+        f"  [{'PASS' if ok else 'FAIL'}] {label}"
+        + (f" - {detail}" if detail and not ok else "")
+    )
     if not ok:
         _FAILS.append(f"{label}: {detail}")
 
@@ -114,23 +137,40 @@ def main() -> int:
     # 1. FIRES
     rc, out, err = _run(json.dumps(_payload(FIX["fire_value"])))
     msg = _emitted(out)
-    check("fires on trigger", rc == 0 and bool(msg), f"rc={rc} emitted={msg!r} err={err.strip()!r}")
+    check(
+        "fires on trigger",
+        rc == 0 and bool(msg),
+        f"rc={rc} emitted={msg!r} err={err.strip()!r}",
+    )
 
     # 2. SILENT
     if FIX["has_silent"]:
         rc, out, err = _run(json.dumps(_payload(FIX["silent_value"])))
-        check("silent on non-trigger", rc == 0 and _emitted(out) is None,
-              f"rc={rc} emitted={_emitted(out)!r}")
+        check(
+            "silent on non-trigger",
+            rc == 0 and _emitted(out) is None,
+            f"rc={rc} emitted={_emitted(out)!r}",
+        )
 
     # 3. FAIL-OPEN on garbage
     for i, junk in enumerate(FIX["garbage"]):
         rc, out, err = _run(junk)
-        check(f"fail-open on garbage[{i}]", rc == 0 and "Traceback" not in err,
-              f"rc={rc} err={err.strip()!r}")
+        check(
+            f"fail-open on garbage[{i}]",
+            rc == 0 and "Traceback" not in err,
+            f"rc={rc} err={err.strip()!r}",
+        )
 
     # 4. opt-out is honoured (env disables -> silent even on the fire payload)
-    rc, out, err = _run(json.dumps(_payload(FIX["fire_value"])), env_extra={"FORGE_TODO_SURFACER_OFF": "1"})
-    check("opt-out env silences it", rc == 0 and _emitted(out) is None, f"rc={rc} emitted={_emitted(out)!r}")
+    rc, out, err = _run(
+        json.dumps(_payload(FIX["fire_value"])),
+        env_extra={"FORGE_TODO_SURFACER_OFF": "1"},
+    )
+    check(
+        "opt-out env silences it",
+        rc == 0 and _emitted(out) is None,
+        f"rc={rc} emitted={_emitted(out)!r}",
+    )
 
     if _FAILS:
         print(f"\nCHAOS-FAIL: {len(_FAILS)} property/properties unproven")

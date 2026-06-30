@@ -5,6 +5,7 @@ Proves the banner reads the three ledgers correctly, ALWAYS fires at SessionStar
 stays SILENT on a healthy throttled Stop. Direct invocation with sample stdin + sample
 ledger state.
 """
+
 from __future__ import annotations
 
 import io
@@ -12,7 +13,6 @@ import json
 import os
 import sys
 import tempfile
-import time
 from contextlib import redirect_stdout
 from pathlib import Path
 
@@ -63,21 +63,28 @@ def _set_spool(n):
         f.unlink()
     for i in range(n):
         (sp / f"169000000{i}-k{i}.json").write_text("{}", encoding="utf-8")
-    (sp / ".reported.json").write_text("{}", encoding="utf-8")  # dot-file must be ignored
+    (sp / ".reported.json").write_text(
+        "{}", encoding="utf-8"
+    )  # dot-file must be ignored
 
 
 def _set_mem(sid, last_state):
     lv = _ROOT / "liveness"
     lv.mkdir(parents=True, exist_ok=True)
-    (lv / f"{H._safe(sid)}.json").write_text(json.dumps({"last_state": last_state}), encoding="utf-8")
+    (lv / f"{H._safe(sid)}.json").write_text(
+        json.dumps({"last_state": last_state}), encoding="utf-8"
+    )
 
 
 def _set_reharness(n_tools):
     reg = _mk("reharness-registry.json")
-    reg.write_text(json.dumps({"tools": {f"t{i}": {"port": 8000 + i} for i in range(n_tools)}}),
-                   encoding="utf-8")
-    (_ROOT / "critical.json").write_text(json.dumps({"reharness": {"registry": str(reg)}}),
-                                         encoding="utf-8")
+    reg.write_text(
+        json.dumps({"tools": {f"t{i}": {"port": 8000 + i} for i in range(n_tools)}}),
+        encoding="utf-8",
+    )
+    (_ROOT / "critical.json").write_text(
+        json.dumps({"reharness": {"registry": str(reg)}}), encoding="utf-8"
+    )
 
 
 def _invoke(mode, stdin_obj):
@@ -98,11 +105,16 @@ def fired(out):
 
 def main():  # noqa: C901
     # --- ledger readers ---
-    _set_bg({"sessA": [
-        {"id": "a1", "status": "running"},
-        {"id": "a2", "status": "running"},
-        {"id": "a3", "status": "running"}, {"id": "a3", "status": "done"},  # folds to done
-    ]})
+    _set_bg(
+        {
+            "sessA": [
+                {"id": "a1", "status": "running"},
+                {"id": "a2", "status": "running"},
+                {"id": "a3", "status": "running"},
+                {"id": "a3", "status": "done"},  # folds to done
+            ]
+        }
+    )
     ok("bg_open_count folds running vs done", H.bg_open_count() == 2)
 
     _set_spool(1)
@@ -120,15 +132,27 @@ def main():  # noqa: C901
     ok("reharness_summary empty -> off", H.reharness_summary() == "off")
 
     # --- SessionStart ALWAYS emits the banner ---
-    _set_bg({"sessA": [{"id": "a1", "status": "running"}, {"id": "a2", "status": "running"}]})
+    _set_bg(
+        {
+            "sessA": [
+                {"id": "a1", "status": "running"},
+                {"id": "a2", "status": "running"},
+            ]
+        }
+    )
     _set_spool(1)
     _set_mem("S", "down")
     out = _invoke("sessionstart", {"session_id": "S"})
-    ok("SessionStart emits the banner",
-       fired(out) and "bg:2open" in out and "spool:1unflushed" in out and "mem:DOWN" in out)
+    ok(
+        "SessionStart emits the banner",
+        fired(out)
+        and "bg:2open" in out
+        and "spool:1unflushed" in out
+        and "mem:DOWN" in out,
+    )
 
     # --- Stop healthy -> SILENT ---
-    _set_bg({})            # no running work
+    _set_bg({})  # no running work
     _set_spool(0)
     _set_mem("S2", "up")
     # fresh throttle state for S2
@@ -139,7 +163,10 @@ def main():  # noqa: C901
     _set_bg({"sessB": [{"id": "b1", "status": "running"}]})
     H.THROTTLE_SEC = 0  # force past the throttle window
     out = _invoke("stop", {"session_id": "S3"})
-    ok("Stop emits when noteworthy + throttle elapsed", fired(out) and "bg:1open" in out)
+    ok(
+        "Stop emits when noteworthy + throttle elapsed",
+        fired(out) and "bg:1open" in out,
+    )
 
     # --- Stop noteworthy but WITHIN throttle -> silent ---
     H.THROTTLE_SEC = 900
@@ -152,7 +179,10 @@ def main():  # noqa: C901
     with redirect_stdout(buf):
         H.main(["probe"])
     pout = buf.getvalue()
-    ok("probe prints banner + SUCCESS marker", "[health]" in pout and "SUCCESS:heartbeat" in pout)
+    ok(
+        "probe prints banner + SUCCESS marker",
+        "[health]" in pout and "SUCCESS:heartbeat" in pout,
+    )
 
     # --- FAIL-OPEN on bad stdin ---
     old = sys.stdin

@@ -22,6 +22,7 @@ Stdin (SubagentStart event JSON):
     agent_type : str   e.g. "coder", "architect", "code-reviewer"
     ...
 """
+
 from __future__ import annotations
 
 import json
@@ -38,6 +39,7 @@ from _common import emit_context, get_goal, is_opted_out  # noqa: E402
 # Pure helpers (testable without I/O)
 # ---------------------------------------------------------------------------
 
+
 def build_context(agent_type: str, goal: str) -> str:
     """Return the goal-injection string for the spawned subagent.
 
@@ -52,6 +54,7 @@ def build_context(agent_type: str, goal: str) -> str:
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
+
 
 def main() -> int:
     try:

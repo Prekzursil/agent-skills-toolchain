@@ -17,6 +17,7 @@ Settings.json wire spec (PreToolUse):
   Timeout:       5000
   StatusMessage: Contraindication registry check
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -39,8 +40,9 @@ if _CAL_SIL_DIR not in sys.path:
     sys.path.insert(0, _CAL_SIL_DIR)
 
 # bg-registry dir: populated by bg-registry/register.py on Task spawns.
-_BG_DIR = Path(os.environ.get("BG_REGISTRY_DIR",
-                               str(Path.home() / ".claude" / "bg-registry")))
+_BG_DIR = Path(
+    os.environ.get("BG_REGISTRY_DIR", str(Path.home() / ".claude" / "bg-registry"))
+)
 # Only consider bg-registry records created in the last N seconds as "active".
 _BG_MAX_AGE_SEC = int(os.environ.get("CONTRAINDICATION_BG_MAX_AGE", str(4 * 3600)))
 
@@ -49,10 +51,12 @@ _BG_MAX_AGE_SEC = int(os.environ.get("CONTRAINDICATION_BG_MAX_AGE", str(4 * 3600
 # in the same session may be deduplicated by calibrated-silence. We track which
 # contraindication ids were already surfaced this session in a small JSON file,
 # auto-cleared after _SEEN_TTL_HOURS. Env-overridable so tests stay hermetic.
-_SEEN_DIR = Path(os.environ.get(
-    "CONTRAINDICATION_SEEN_DIR",
-    str(Path.home() / ".claude" / "contraindication"),
-))
+_SEEN_DIR = Path(
+    os.environ.get(
+        "CONTRAINDICATION_SEEN_DIR",
+        str(Path.home() / ".claude" / "contraindication"),
+    )
+)
 _SEEN_TTL_HOURS = float(os.environ.get("CONTRAINDICATION_SEEN_TTL_HOURS", "4"))
 
 
@@ -60,25 +64,34 @@ _SEEN_TTL_HOURS = float(os.environ.get("CONTRAINDICATION_SEEN_TTL_HOURS", "4"))
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _disabled() -> bool:
-    return (DISABLED.exists()
-            or os.environ.get("CONTRAINDICATION", "").lower() in ("off", "0", "false"))
+    return DISABLED.exists() or os.environ.get("CONTRAINDICATION", "").lower() in (
+        "off",
+        "0",
+        "false",
+    )
 
 
 def _emit(msg: str) -> None:
     """Inject additionalContext — the only output this hook ever produces."""
-    print(json.dumps({
-        "hookSpecificOutput": {
-            "hookEventName": "PreToolUse",
-            "additionalContext": msg,
-        }
-    }))
+    print(
+        json.dumps(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "additionalContext": msg,
+                }
+            }
+        )
+    )
 
 
 def _cs_allow(itype: str, context: dict) -> bool:
     """Gate through calibrated-silence. Fail-open = True if module unavailable."""
     try:
         import calibrated_silence  # noqa: PLC0415
+
         ctx = dict(context)
         ledger = os.environ.get("CALSIL_LEDGER_PATH")
         if ledger:
@@ -92,6 +105,7 @@ def _cs_allow(itype: str, context: dict) -> bool:
 def _seen_path(session_id: str) -> Path:
     """Per-session state file path (sha1 of the session id, like iatrogenics)."""
     try:
+        # nosemgrep: python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1 -- non-cryptographic session-id slug for a state-file name, not a security control
         h = hashlib.sha1(session_id.encode("utf-8", "replace")).hexdigest()[:24]
         return _SEEN_DIR / f"{h}.json"
     except Exception:
@@ -173,9 +187,11 @@ def _bg_has_running_async() -> bool:
                     else:
                         effective[rid] = dict(rec)
                 for rec in effective.values():
-                    if (rec.get("status") == "running"
-                            and not rec.get("sync", True)
-                            and float(rec.get("started_ts") or 0) >= cutoff):
+                    if (
+                        rec.get("status") == "running"
+                        and not rec.get("sync", True)
+                        and float(rec.get("started_ts") or 0) >= cutoff
+                    ):
                         return True
             except Exception:
                 continue
@@ -207,6 +223,7 @@ def _check_row(row: dict, tool_name: str, input_str: str) -> bool:
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
+
 
 def main() -> int:
     try:
@@ -256,11 +273,7 @@ def main() -> int:
             rid = row.get("id", "UNKNOWN")
             harm = row.get("harm", "(harm not documented)")
             alt = row.get("safe_alternative", "(no alternative documented)")
-            parts.append(
-                f"[{rid}]\n"
-                f"  HARM: {harm}\n"
-                f"  SAFE ALTERNATIVE: {alt}"
-            )
+            parts.append(f"[{rid}]\n  HARM: {harm}\n  SAFE ALTERNATIVE: {alt}")
 
         msg = (
             "CONTRAINDICATION REGISTRY — known dangerous tool/action combination detected:\n\n"

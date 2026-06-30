@@ -18,13 +18,13 @@ Stdlib only — no pyyaml, no numpy, no external deps.
 Fail-safe: every function wraps errors silently; the worst case is an
 empty notes list, never an exception that would break the hook.
 """
+
 from __future__ import annotations
 
 import hashlib
 import json
 import os
 import re
-import sys
 import time
 from pathlib import Path
 
@@ -34,21 +34,26 @@ INDEX_DIR = THIS / "index"
 INDEX_PATH = INDEX_DIR / "recall_index.json"
 
 # ─── stop words: same set as semantic-router for token-overlap consistency ───
-_STOP = frozenset((
-    "the a an and or to of in on for with is are be this that it as at by from your you i we us our "
-    "use using used when whether not no into over under via per any all only just like such than then "
-    "do does doing help need needs want wants make makes get gets set sets new add also more most can "
-    "could should would may might will must its their them what which who how why where here there about "
-    "please thanks thank great works working good nice okay yeah yep cool done now today really very"
-).split())
+_STOP = frozenset(
+    (
+        "the a an and or to of in on for with is are be this that it as at by from your you i we us our "
+        "use using used when whether not no into over under via per any all only just like such than then "
+        "do does doing help need needs want wants make makes get gets set sets new add also more most can "
+        "could should would may might will must its their them what which who how why where here there about "
+        "please thanks thank great works working good nice okay yeah yep cool done now today really very"
+    ).split()
+)
 
 
 def _tok(s: str) -> set[str]:
     """Extract significant tokens: 3+ chars, alphanumeric (+ . # - +), stop-word filtered."""
-    return {w for w in re.findall(r"[a-z0-9][a-z0-9+#.-]{2,}", s.lower()) if w not in _STOP}
+    return {
+        w for w in re.findall(r"[a-z0-9][a-z0-9+#.-]{2,}", s.lower()) if w not in _STOP
+    }
 
 
 # ─── front-matter parser ──────────────────────────────────────────────────────
+
 
 def _parse_frontmatter(text: str) -> tuple[str, str, str, list[str]]:
     """Parse YAML front-matter from a note.
@@ -91,7 +96,9 @@ def _parse_frontmatter(text: str) -> tuple[str, str, str, list[str]]:
                     if t:
                         extras.append(t)
             else:
-                block = re.search(r"(?ms)^" + field + r":\s*\n((?:[ \t]+-[ \t]*.+\n?)*)", fm)
+                block = re.search(
+                    r"(?ms)^" + field + r":\s*\n((?:[ \t]+-[ \t]*.+\n?)*)", fm
+                )
                 if block:
                     for line in block.group(1).splitlines():
                         t = re.sub(r"^\s*-\s*", "", line).strip().strip("\"'")
@@ -104,7 +111,10 @@ def _parse_frontmatter(text: str) -> tuple[str, str, str, list[str]]:
 
 # ─── keyword extraction ───────────────────────────────────────────────────────
 
-def _keywords_for(title: str, description: str, extras: list[str], stem: str) -> list[str]:
+
+def _keywords_for(
+    title: str, description: str, extras: list[str], stem: str
+) -> list[str]:
     """Build a deduplicated, sorted keyword list for a note.
 
     Sources (in priority order):
@@ -128,6 +138,7 @@ def _keywords_for(title: str, description: str, extras: list[str], stem: str) ->
 
 
 # ─── vault note scanner ───────────────────────────────────────────────────────
+
 
 def _scan_vault_notes(vault_dirs: list[Path]) -> list[dict]:
     """Recursively scan .md files in vault_dirs.
@@ -162,7 +173,7 @@ def _scan_vault_notes(vault_dirs: list[Path]) -> list[dict]:
                     if in_fm:
                         m = re.match(r"^---\s*\n.*?\n---\s*\n?", text, re.DOTALL)
                         if m:
-                            body_text = text[m.end():]
+                            body_text = text[m.end() :]
                     for line in body_text.splitlines():
                         line = line.strip()
                         if line and not line.startswith(("#", "---", "```")):
@@ -175,19 +186,22 @@ def _scan_vault_notes(vault_dirs: list[Path]) -> list[dict]:
                     except ValueError:
                         permalink = stem
                 kw = _keywords_for(title, summary, extras, stem)
-                notes.append({
-                    "path": str(md_file),
-                    "title": title,
-                    "summary": summary[:200],
-                    "permalink": permalink,
-                    "keywords": kw,
-                })
+                notes.append(
+                    {
+                        "path": str(md_file),
+                        "title": title,
+                        "summary": summary[:200],
+                        "permalink": permalink,
+                        "keywords": kw,
+                    }
+                )
             except Exception:
                 continue  # skip any unreadable/malformed note
     return notes
 
 
 # ─── MEMORY.md parser ────────────────────────────────────────────────────────
+
 
 def _parse_memory_md(path: Path) -> list[dict]:
     """Parse a MEMORY.md bullet-list file.
@@ -224,19 +238,22 @@ def _parse_memory_md(path: Path) -> list[dict]:
             # Build a permalink from the link stem
             permalink = stem
             kw = _keywords_for(title, summary, [], stem)
-            entries.append({
-                "path": str(path),
-                "title": title,
-                "summary": summary[:200],
-                "permalink": permalink,
-                "keywords": kw,
-            })
+            entries.append(
+                {
+                    "path": str(path),
+                    "title": title,
+                    "summary": summary[:200],
+                    "permalink": permalink,
+                    "keywords": kw,
+                }
+            )
         except Exception:
             continue
     return entries
 
 
 # ─── snapshot hash ────────────────────────────────────────────────────────────
+
 
 def _vault_snapshot_hash(vault_dirs: list[Path], memory_md_paths: list[Path]) -> str:
     """Stable hash over all .md file stat entries (path|size|mtime_ns).
@@ -281,6 +298,7 @@ def _vault_snapshot_hash(vault_dirs: list[Path], memory_md_paths: list[Path]) ->
 
 
 # ─── index builder (main API) ────────────────────────────────────────────────
+
 
 def get_or_build_index(
     vault_dirs: list[Path] | None = None,
@@ -348,7 +366,9 @@ def get_or_build_index(
                     if entry["summary"]:
                         notes_by_title[key]["summary"] = entry["summary"]
                     # Merge keywords (union)
-                    merged_kw = set(notes_by_title[key]["keywords"]) | set(entry["keywords"])
+                    merged_kw = set(notes_by_title[key]["keywords"]) | set(
+                        entry["keywords"]
+                    )
                     notes_by_title[key]["keywords"] = sorted(merged_kw)
                 else:
                     notes_by_title[key] = entry
@@ -375,6 +395,7 @@ def get_or_build_index(
 
 
 # ─── path discovery ───────────────────────────────────────────────────────────
+
 
 def find_vault_dirs() -> list[Path]:
     """Locate the basic-memory vault root.
@@ -431,8 +452,12 @@ def find_memory_md_paths() -> list[Path]:
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Build recall-inject index from the basic-memory vault.")
-    parser.add_argument("--rebuild", action="store_true", help="Force full rebuild (ignore cache)")
+    parser = argparse.ArgumentParser(
+        description="Build recall-inject index from the basic-memory vault."
+    )
+    parser.add_argument(
+        "--rebuild", action="store_true", help="Force full rebuild (ignore cache)"
+    )
     parser.add_argument("--quiet", action="store_true", help="Suppress progress output")
     args = parser.parse_args()
 
@@ -444,8 +469,10 @@ if __name__ == "__main__":
 
     idx = get_or_build_index()
     if not args.quiet:
-        print(f"Index: {len(idx['notes'])} notes, hash={idx['vault_hash']}, "
-              f"built_at={idx['built_at']:.0f}")
+        print(
+            f"Index: {len(idx['notes'])} notes, hash={idx['vault_hash']}, "
+            f"built_at={idx['built_at']:.0f}"
+        )
         if idx["notes"]:
             print("Sample notes:")
             for n in idx["notes"][:5]:

@@ -4,6 +4,7 @@
 Isolates the digest + archive into a temp dir via env (set BEFORE import) so the real
 ~/.claude/BACKGROUND-DIGEST.md is never touched.
 """
+
 import io
 import json
 import os
@@ -15,7 +16,7 @@ from pathlib import Path
 _TMP = Path(tempfile.mkdtemp(prefix="bgdigest-test-"))
 os.environ["BG_DIGEST_FILE"] = str(_TMP / "BACKGROUND-DIGEST.md")
 os.environ["BG_DIGEST_ARCHIVE"] = str(_TMP / "BACKGROUND-DIGEST.archive.log")
-os.environ["BG_DIGEST_MAX"] = "3"            # small cap to exercise overflow
+os.environ["BG_DIGEST_MAX"] = "3"  # small cap to exercise overflow
 os.environ["BG_DIGEST_ARCHIVE_MAX"] = "100"
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -101,9 +102,14 @@ def main():
     write_digest("\n".join([HEADER, E1, E2]) + "\n")
     out = run_main()
     ctx = surfaced_ctx(out)
-    ok("surfaces both entries", ctx is not None and "RAM 3.0GB" in ctx and "BC 15.4.1" in ctx)
-    ok("surfaced text is wrapped with the header banner",
-       ctx is not None and "While you were away" in ctx)
+    ok(
+        "surfaces both entries",
+        ctx is not None and "RAM 3.0GB" in ctx and "BC 15.4.1" in ctx,
+    )
+    ok(
+        "surfaced text is wrapped with the header banner",
+        ctx is not None and "While you were away" in ctx,
+    )
     after = read_digest()
     ok("consumed entries truncated from live file", E1 not in after and E2 not in after)
     ok("non-entry header PRESERVED after truncate", HEADER in after)
@@ -119,15 +125,20 @@ def main():
     write_digest("\n".join([E1, E2, E3, E4]) + "\n")  # 4 entries, cap=3
     out = run_main()
     ctx = surfaced_ctx(out)
-    ok("cap=3 surfaces the 3 oldest (FIFO)",
-       ctx is not None and E1 in ctx and E2 in ctx and E3 in ctx)
+    ok(
+        "cap=3 surfaces the 3 oldest (FIFO)",
+        ctx is not None and E1 in ctx and E2 in ctx and E3 in ctx,
+    )
     ok("4th (newest) entry NOT surfaced this run", ctx is not None and E4 not in ctx)
     ok("overflow note shown", ctx is not None and "+1 more pending" in ctx)
     after = read_digest()
     ok("overflow entry retained in live file", E4 in after)
     ok("surfaced entries removed from live file", E1 not in after and E3 not in after)
     out = run_main()
-    ok("overflow surfaces on the next run", (surfaced_ctx(out) or "").find("C: 94%") >= 0)
+    ok(
+        "overflow surfaces on the next run",
+        (surfaced_ctx(out) or "").find("C: 94%") >= 0,
+    )
 
     # ---- 6. concurrency: an append between read and truncate is preserved ---
     reset()
@@ -168,11 +179,17 @@ def main():
     # ---- 9. archive rotation bounded ----------------------------------------
     reset()
     R.ARCHIVE_MAX = 5
-    big = "\n".join(f"[2026-06-29 0{i}:00:00] [t] line{i} | PROPOSE: x" for i in range(9))
+    big = "\n".join(
+        f"[2026-06-29 0{i}:00:00] [t] line{i} | PROPOSE: x" for i in range(9)
+    )
     write_digest(big + "\n")
     R.MAX_SURFACE = 50
     run_main()
-    arch_lines = [l for l in R.ARCHIVE_FILE.read_text(encoding="utf-8").splitlines() if l.strip()]
+    arch_lines = [
+        ln
+        for ln in R.ARCHIVE_FILE.read_text(encoding="utf-8").splitlines()
+        if ln.strip()
+    ]
     ok("archive rotated to ARCHIVE_MAX", len(arch_lines) <= 5)
     R.MAX_SURFACE = 3
     R.ARCHIVE_MAX = 100
@@ -180,13 +197,24 @@ def main():
     # ---- 10. SUBAGENT guard: a subagent SessionStart must NOT surface or consume -----
     reset()
     write_digest(E1 + "\n")
-    sub = json.dumps({"source": "startup",
-                      "transcript_path": "C:/Users/x/.claude/projects/proj/sess/subagents/agent-abc.jsonl"})
+    sub = json.dumps(
+        {
+            "source": "startup",
+            "transcript_path": "C:/Users/x/.claude/projects/proj/sess/subagents/agent-abc.jsonl",
+        }
+    )
     out = run_main(sub)
     ok("subagent SessionStart surfaces nothing", surfaced_ctx(out) is None)
-    ok("subagent SessionStart does NOT consume (kept for main session)", E1 in read_digest())
-    main_pl = json.dumps({"source": "startup",
-                          "transcript_path": "C:/Users/x/.claude/projects/proj/sess.jsonl"})
+    ok(
+        "subagent SessionStart does NOT consume (kept for main session)",
+        E1 in read_digest(),
+    )
+    main_pl = json.dumps(
+        {
+            "source": "startup",
+            "transcript_path": "C:/Users/x/.claude/projects/proj/sess.jsonl",
+        }
+    )
     out = run_main(main_pl)
     ok("main-session payload DOES surface", surfaced_ctx(out) is not None)
     ok("main-session payload DOES consume", E1 not in read_digest())
@@ -199,7 +227,10 @@ def main():
     try:
         out = run_main()
         ok("archive-fail still surfaces", surfaced_ctx(out) is not None)
-        ok("archive-fail does NOT truncate (re-surfaces next session, not lost)", E2 in read_digest())
+        ok(
+            "archive-fail does NOT truncate (re-surfaces next session, not lost)",
+            E2 in read_digest(),
+        )
     finally:
         R._archive = _orig_archive
 

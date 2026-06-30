@@ -23,6 +23,7 @@ Fail-open: any exception at any layer → exit 0.
 
 Note: register this hook under "Notification" with matcher "idle_prompt|permission_prompt".
 """
+
 from __future__ import annotations
 
 import json
@@ -40,11 +41,17 @@ _BEL = "\x07"
 
 # ── opt-out ───────────────────────────────────────────────────────────────────
 
+
 def _disabled() -> bool:
-    return DISABLED.exists() or os.environ.get("NOTIFY_IDLE", "").lower() in ("off", "0", "false")
+    return DISABLED.exists() or os.environ.get("NOTIFY_IDLE", "").lower() in (
+        "off",
+        "0",
+        "false",
+    )
 
 
 # ── PowerShell balloon helpers (inlined from stopfailure-notify conventions) ──
+
 
 def _escape_ps_dq(s: str) -> str:
     """Escape a string for safe embedding in a PowerShell double-quoted string.
@@ -55,13 +62,7 @@ def _escape_ps_dq(s: str) -> str:
       " → `"   (prevent string close)
     Length-capped so balloon text is readable.
     """
-    return (
-        str(s)
-        .replace("`", "``")
-        .replace("$", "`$")
-        .replace('"', '`"')
-        [:200]
-    )
+    return str(s).replace("`", "``").replace("$", "`$").replace('"', '`"')[:200]
 
 
 def _build_ps_script(title: str, body: str) -> str:
@@ -96,8 +97,10 @@ def _send_balloon(title: str, body: str) -> None:
                 "powershell.exe",
                 "-NoProfile",
                 "-NonInteractive",
-                "-WindowStyle", "Hidden",
-                "-Command", ps_script,
+                "-WindowStyle",
+                "Hidden",
+                "-Command",
+                ps_script,
             ],
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
@@ -111,20 +114,27 @@ def _send_balloon(title: str, body: str) -> None:
 
 # ── terminal bell ─────────────────────────────────────────────────────────────
 
+
 def _emit_bell() -> None:
     """Print the hookSpecificOutput JSON that instructs CC to emit a terminal bell."""
     try:
-        print(json.dumps({
-            "hookSpecificOutput": {
-                "hookEventName": "Notification",
-                "terminalSequence": _BEL,
-            }
-        }), flush=True)
+        print(
+            json.dumps(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "Notification",
+                        "terminalSequence": _BEL,
+                    }
+                }
+            ),
+            flush=True,
+        )
     except Exception:
         pass  # fail-open
 
 
 # ── core logic ────────────────────────────────────────────────────────────────
+
 
 def run(data: dict) -> int:
     """Process a parsed Notification payload. Always returns 0."""

@@ -18,6 +18,7 @@ SessionEnd payload (stdin JSON):
 Opt-out: SESSION_END=off  OR  create hooks/session-end/.disabled
 Fail-open: any exception at any layer → exit 0.
 """
+
 from __future__ import annotations
 
 import json
@@ -45,14 +46,20 @@ DISABLED = THIS / ".disabled"
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
+
 def _disabled() -> bool:
-    return DISABLED.exists() or os.environ.get("SESSION_END", "").lower() in ("off", "0", "false")
+    return DISABLED.exists() or os.environ.get("SESSION_END", "").lower() in (
+        "off",
+        "0",
+        "false",
+    )
 
 
 def _list_spools() -> list:
     """Return list of unflushed spool Paths from memory-spool/_common. Fail-open → []."""
     try:
         import _common as C  # type: ignore[import]  # noqa: PLC0415
+
         return C.list_spools()
     except Exception:
         return []
@@ -67,6 +74,7 @@ def _spool_title(p: "Path") -> str:
 
 
 # ── core logic ────────────────────────────────────────────────────────────────
+
 
 def run(data: dict) -> int:
     """Process a parsed SessionEnd payload. Always returns 0 — outer try/except is the safety net."""

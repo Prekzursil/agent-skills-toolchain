@@ -29,6 +29,7 @@ Precedence for the canonical identity source (highest first):
 Everything here is best-effort and FAIL-OPEN: any git/FS error degrades to the next
 precedence rung; callers never crash because identity could not be resolved.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -41,8 +42,8 @@ from pathlib import Path
 # Where CL-v2 keeps per-project stores; we reproduce its id so adoption is a no-op.
 HOMUNCULUS_PROJECTS = Path.home() / ".claude" / "homunculus" / "projects"
 _GIT_TIMEOUT = 5
-_ID_LEN = 12          # CL-v2 uses sha256(...)[:12]
-_SLUG_HASH_LEN = 8    # event-ledger readable slug uses an 8-hex suffix
+_ID_LEN = 12  # CL-v2 uses sha256(...)[:12]
+_SLUG_HASH_LEN = 8  # event-ledger readable slug uses an 8-hex suffix
 _CRED_RE = re.compile(r"://[^@/]+@")  # https://user:tok@host -> https://host
 
 
@@ -50,13 +51,14 @@ _CRED_RE = re.compile(r"://[^@/]+@")  # https://user:tok@host -> https://host
 class ProjId:
     """A stable project identity. ``canonical_id`` is the same for every worktree /
     sub-dir / case-variant path of one repo."""
-    canonical_id: str       # 12-hex, CL-v2 compatible
-    display_name: str       # human label (repo name, stable across worktrees)
-    worktree_path: str      # the actual working directory passed in (absolute)
-    source: str             # which precedence rung won: pin|remote|toplevel|cwd
-    remote: str | None      # normalized remote url (creds stripped) or None
-    toplevel: str | None    # git toplevel path or None
-    legacy_id: str | None   # id under the RAW (un-normalized) source, if it differs
+
+    canonical_id: str  # 12-hex, CL-v2 compatible
+    display_name: str  # human label (repo name, stable across worktrees)
+    worktree_path: str  # the actual working directory passed in (absolute)
+    source: str  # which precedence rung won: pin|remote|toplevel|cwd
+    remote: str | None  # normalized remote url (creds stripped) or None
+    toplevel: str | None  # git toplevel path or None
+    legacy_id: str | None  # id under the RAW (un-normalized) source, if it differs
 
     def as_dict(self) -> dict:
         return asdict(self)
@@ -65,8 +67,12 @@ class ProjId:
 def _run_git(cwd: str, *args: str) -> str | None:
     """Run a git command in ``cwd``; return stripped stdout or None. Never raises."""
     try:
-        out = subprocess.run(["git", "-C", cwd, *args],
-                             capture_output=True, text=True, timeout=_GIT_TIMEOUT)
+        out = subprocess.run(
+            ["git", "-C", cwd, *args],
+            capture_output=True,
+            text=True,
+            timeout=_GIT_TIMEOUT,
+        )
         if out.returncode == 0:
             val = out.stdout.strip()
             return val or None
@@ -103,7 +109,12 @@ def _hash12(s: str) -> str:
 
 
 def _safe_name(name: str, limit: int = 40) -> str:
-    return "".join(c if c.isalnum() or c in "-_." else "-" for c in (name or "root"))[:limit] or "root"
+    return (
+        "".join(c if c.isalnum() or c in "-_." else "-" for c in (name or "root"))[
+            :limit
+        ]
+        or "root"
+    )
 
 
 def _pin(root: str) -> str | None:
@@ -112,7 +123,12 @@ def _pin(root: str) -> str | None:
     try:
         f = Path(root) / ".claude" / "project-id"
         if f.is_file():
-            val = f.read_text(encoding="utf-8", errors="replace").strip().splitlines()[0].strip()
+            val = (
+                f.read_text(encoding="utf-8", errors="replace")
+                .strip()
+                .splitlines()[0]
+                .strip()
+            )
             if val and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", val):
                 return val
     except Exception:
@@ -148,15 +164,27 @@ def resolve(cwd: str | None = None) -> ProjId:
     pin = _pin(root)
 
     # 1/2. git remote / toplevel (try root, then cwd, so a sub-dir still resolves)
-    remote_raw = _run_git(root, "remote", "get-url", "origin") or _run_git(raw_cwd, "remote", "get-url", "origin")
-    toplevel = _run_git(root, "rev-parse", "--show-toplevel") or _run_git(raw_cwd, "rev-parse", "--show-toplevel")
+    remote_raw = _run_git(root, "remote", "get-url", "origin") or _run_git(
+        raw_cwd, "remote", "get-url", "origin"
+    )
+    toplevel = _run_git(root, "rev-parse", "--show-toplevel") or _run_git(
+        raw_cwd, "rev-parse", "--show-toplevel"
+    )
     remote = _norm_remote(remote_raw) if remote_raw else None
 
     if pin:
         # a 12-hex pin is used verbatim (share an id across machines); any other string is
         # hashed so it is still a valid 12-hex canonical id.
         canonical = pin if re.fullmatch(r"[0-9a-f]{12}", pin) else _hash12(pin)
-        return ProjId(canonical, _safe_name(Path(root).name), worktree, "pin", remote, toplevel, None)
+        return ProjId(
+            canonical,
+            _safe_name(Path(root).name),
+            worktree,
+            "pin",
+            remote,
+            toplevel,
+            None,
+        )
 
     if remote:
         canonical = _hash12(remote)
@@ -164,15 +192,27 @@ def resolve(cwd: str | None = None) -> ProjId:
         # so a credentialed clone's old store can still be located. None when identical.
         legacy = _hash12(remote_raw) if remote_raw != remote else None
         name = _name_from_remote(remote) or Path(toplevel or root).name
-        return ProjId(canonical, _safe_name(name), worktree, "remote", remote, toplevel, legacy)
+        return ProjId(
+            canonical, _safe_name(name), worktree, "remote", remote, toplevel, legacy
+        )
 
     if toplevel:
         canonical = _hash12(toplevel)
-        return ProjId(canonical, _safe_name(Path(toplevel).name), worktree, "toplevel", None, toplevel, None)
+        return ProjId(
+            canonical,
+            _safe_name(Path(toplevel).name),
+            worktree,
+            "toplevel",
+            None,
+            toplevel,
+            None,
+        )
 
     # 3. non-git: identity == the raw cwd string (matches the legacy ledger slug input)
     canonical = _hash12(raw_cwd)
-    return ProjId(canonical, _safe_name(Path(raw_cwd).name), worktree, "cwd", None, None, None)
+    return ProjId(
+        canonical, _safe_name(Path(raw_cwd).name), worktree, "cwd", None, None, None
+    )
 
 
 def legacy_ledger_slug(cwd: str | None = None) -> str:
@@ -217,20 +257,36 @@ def detect_project(cwd: str | None = None) -> dict:
         # CL-v2 returns "global" when there is no git context and no CLAUDE_PROJECT_DIR.
         env = os.environ.get("CLAUDE_PROJECT_DIR")
         if not (env and Path(env).is_dir()):
-            return {"id": "global", "name": "global", "root": "", "remote": None,
-                    "project_dir": str(Path.home() / ".claude" / "homunculus")}
-    return {"id": pid.canonical_id, "name": pid.display_name,
-            "root": pid.toplevel or _root_for(raw_cwd), "remote": pid.remote,
-            "project_dir": str(HOMUNCULUS_PROJECTS / pid.canonical_id)}
+            return {
+                "id": "global",
+                "name": "global",
+                "root": "",
+                "remote": None,
+                "project_dir": str(Path.home() / ".claude" / "homunculus"),
+            }
+    return {
+        "id": pid.canonical_id,
+        "name": pid.display_name,
+        "root": pid.toplevel or _root_for(raw_cwd),
+        "remote": pid.remote,
+        "project_dir": str(HOMUNCULUS_PROJECTS / pid.canonical_id),
+    }
 
 
 if __name__ == "__main__":  # pragma: no cover - thin CLI dispatch
     import sys
+
     # migrate lives in a sibling module to keep this resolver tiny & import-safe.
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     if len(sys.argv) > 1 and sys.argv[1] == "migrate":
         import projid_migrate
+
         sys.exit(projid_migrate.main(sys.argv[2:]))
     # default: print the identity of the cwd (handy for debugging / scripts)
     import json
-    print(json.dumps(resolve(sys.argv[1] if len(sys.argv) > 1 else None).as_dict(), indent=2))
+
+    print(
+        json.dumps(
+            resolve(sys.argv[1] if len(sys.argv) > 1 else None).as_dict(), indent=2
+        )
+    )

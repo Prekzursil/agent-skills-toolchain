@@ -21,6 +21,7 @@ a short timeout that falls back to the lexical lane); content-gated + per-sessio
 is silent on pleasantries and never repeats a suggestion set. Opt-out: SEMANTIC_ROUTER=off or
 a .disabled file. CLI: `route.py --probe "<prompt>"` prints the ranked candidates (evidence).
 """
+
 import hashlib
 import json
 import math
@@ -33,8 +34,8 @@ from pathlib import Path
 THIS = Path(__file__).resolve().parent
 HOME = Path.home()
 INDEX_DIR = THIS / "index"
-VECS_F32 = INDEX_DIR / "vecs.f32"     # raw float32 vectors (numpy-free hot path)
-META_JSON = INDEX_DIR / "meta.json"   # aligned row metadata
+VECS_F32 = INDEX_DIR / "vecs.f32"  # raw float32 vectors (numpy-free hot path)
+META_JSON = INDEX_DIR / "meta.json"  # aligned row metadata
 LEXICAL_DIR = HOME / ".claude" / "hooks" / "skill-router"
 
 sys.path.insert(0, str(THIS))
@@ -47,8 +48,12 @@ def _cs_allow(itype, ctx):
     try:
         import sys as _s
         from pathlib import Path as _P
-        _s.path.insert(0, str(_P(__file__).resolve().parent.parent / "calibrated-silence"))
+
+        _s.path.insert(
+            0, str(_P(__file__).resolve().parent.parent / "calibrated-silence")
+        )
         import calibrated_silence as _c
+
         return _c.should_interject(itype, ctx)[0]
     except Exception:
         return True
@@ -57,6 +62,7 @@ def _cs_allow(itype, ctx):
 def _cs_record(itype, ck, sid):
     try:
         import calibrated_silence as _c
+
         _c.record_interjection(itype, ck, sid)
     except Exception:
         pass
@@ -81,30 +87,42 @@ def _top_suggestion_key(buckets):
 
 
 # Tunables (env-overridable) — defaults chosen from the calibration probes over the real index.
-TIMEOUT = float(os.environ.get("SEMROUTER_TIMEOUT", "1.5"))      # embed timeout; over -> lexical-only
-K_SD = float(os.environ.get("SEMROUTER_K_SD", "2.2"))            # adaptive thresh = mu + K_SD*sd
-FLOOR = float(os.environ.get("SEMROUTER_FLOOR", "0.57"))         # absolute cosine floor (silences vague prompts)
-TOP_K = int(os.environ.get("SEMROUTER_TOPK", "6"))              # max total semantic suggestions
-MIN_TOKENS = int(os.environ.get("SEMROUTER_MIN_TOKENS", "4"))    # content gate (kills pleasantries)
+TIMEOUT = float(
+    os.environ.get("SEMROUTER_TIMEOUT", "1.5")
+)  # embed timeout; over -> lexical-only
+K_SD = float(os.environ.get("SEMROUTER_K_SD", "2.2"))  # adaptive thresh = mu + K_SD*sd
+FLOOR = float(
+    os.environ.get("SEMROUTER_FLOOR", "0.57")
+)  # absolute cosine floor (silences vague prompts)
+TOP_K = int(os.environ.get("SEMROUTER_TOPK", "6"))  # max total semantic suggestions
+MIN_TOKENS = int(
+    os.environ.get("SEMROUTER_MIN_TOKENS", "4")
+)  # content gate (kills pleasantries)
 MIN_LEN = int(os.environ.get("SEMROUTER_MIN_LEN", "30"))
-ALPHA = float(os.environ.get("SEMROUTER_ALPHA", "0.4"))         # success-boost weight (z-units)
+ALPHA = float(
+    os.environ.get("SEMROUTER_ALPHA", "0.4")
+)  # success-boost weight (z-units)
 KIND_CAP = {"skill": 4, "mcp": 3, "agent": 1, "command": 2, "memory": 1}
 # Eval/diagnostic toggles: PURE = embeddings only (no intent table, no lexical lanes);
 # NO_RECORD = do not touch success.json (so eval runs don't inflate suggested counts).
 PURE = os.environ.get("SEMROUTER_PURE", "").lower() in ("1", "true", "on")
 NO_RECORD = os.environ.get("SEMROUTER_NO_RECORD", "").lower() in ("1", "true", "on")
 
-_STOP = set((
-    "the a an and or to of in on for with is are be this that it as at by from your you i we us our "
-    "use using used when whether not no into over under via per any all only just like such than then "
-    "do does doing help need needs want wants make makes get gets set sets new add also more most can "
-    "could should would may might will must its their them what which who how why where here there about "
-    "please thanks thank great works working good nice okay yeah yep cool done now today really very"
-).split())
+_STOP = set(
+    (
+        "the a an and or to of in on for with is are be this that it as at by from your you i we us our "
+        "use using used when whether not no into over under via per any all only just like such than then "
+        "do does doing help need needs want wants make makes get gets set sets new add also more most can "
+        "could should would may might will must its their them what which who how why where here there about "
+        "please thanks thank great works working good nice okay yeah yep cool done now today really very"
+    ).split()
+)
 
 
 def _tok(s):
-    return {w for w in re.findall(r"[a-z0-9][a-z0-9+#.-]{2,}", s.lower()) if w not in _STOP}
+    return {
+        w for w in re.findall(r"[a-z0-9][a-z0-9+#.-]{2,}", s.lower()) if w not in _STOP
+    }
 
 
 # ---------------------------------------------------------------- semantic lane (numpy-free)
@@ -119,6 +137,7 @@ def _load_index():
         return _INDEX
     try:
         import array
+
         meta = json.loads(META_JSON.read_text(encoding="utf-8"))
         dim, rows = int(meta["dim"]), meta["rows"]
         raw = array.array("f")
@@ -152,6 +171,7 @@ def _semantic(prompt, succ):
     try:
         import embed as _embed
         import success as _succ
+
         q = _embed.embed_query(prompt, timeout=TIMEOUT)
         if q is None or len(q) != dim:
             return []
@@ -159,7 +179,7 @@ def _semantic(prompt, succ):
         scores = [0.0] * n
         for i in range(n):
             base = i * dim
-            seg = raw[base:base + dim]
+            seg = raw[base : base + dim]
             scores[i] = sum(a * b for a, b in zip(seg, q))
         mu = sum(scores) / n
         sd = math.sqrt(sum((x - mu) ** 2 for x in scores) / n) or 1.0
@@ -170,7 +190,9 @@ def _semantic(prompt, succ):
             if raw_s < thr:
                 continue
             r = rows[i]
-            bz = (raw_s - mu) / sd + _succ.boost(f"{r['kind']}:{r['name']}", succ, ALPHA)
+            bz = (raw_s - mu) / sd + _succ.boost(
+                f"{r['kind']}:{r['name']}", succ, ALPHA
+            )
             out.append((bz, raw_s, r["kind"], r["name"], r["invoke"]))
         out.sort(reverse=True)
         return out
@@ -186,6 +208,7 @@ def _load_capabilities():
     try:
         sys.path.insert(0, str(LEXICAL_DIR))
         import capabilities as caps  # noqa
+
         return caps
     except Exception:
         return None
@@ -225,6 +248,7 @@ def _first_seen(sid, sig):
 def assemble(prompt, sid="default", record=True):
     """Build the merged suggestion buckets for `prompt`. Returns (buckets, parts, debug)."""
     import success as _succ
+
     succ = _succ.load_success()
     caps = None if PURE else _load_capabilities()
 
@@ -233,6 +257,7 @@ def assemble(prompt, sid="default", record=True):
     if not PURE:
         try:
             import intents as _it
+
             delib = _it.match_delib(prompt)
         except Exception:
             delib = []
@@ -255,7 +280,16 @@ def assemble(prompt, sid="default", record=True):
     valid = _all_names()
     try:
         import intents as _intents
-        intent_skills = [] if PURE else [s for s in _intents.match(prompt) if (not valid or f"skill:{s}" in valid)]
+
+        intent_skills = (
+            []
+            if PURE
+            else [
+                s
+                for s in _intents.match(prompt)
+                if (not valid or f"skill:{s}" in valid)
+            ]
+        )
     except Exception:
         intent_skills = []
     for s in intent_skills:
@@ -311,10 +345,12 @@ def assemble(prompt, sid="default", record=True):
 
     # success-alignment: record what we surfaced (skills + agents + commands + mcp servers)
     if record and parts:
-        keys = [f"skill:{s[1:]}" for s in buckets["skill"]] + \
-               [f"agent:{a}" for a in buckets["agent"]] + \
-               [f"command:{c[1:]}" for c in buckets["command"]] + \
-               [f"mcp:{m}" for m in mcp_servers_seen]
+        keys = (
+            [f"skill:{s[1:]}" for s in buckets["skill"]]
+            + [f"agent:{a}" for a in buckets["agent"]]
+            + [f"command:{c[1:]}" for c in buckets["command"]]
+            + [f"mcp:{m}" for m in mcp_servers_seen]
+        )
         try:
             _succ.record_suggested(keys, sid)
         except Exception:
@@ -324,7 +360,9 @@ def assemble(prompt, sid="default", record=True):
 
 def main():
     try:
-        if (THIS / ".disabled").exists() or os.environ.get("SEMANTIC_ROUTER", "").lower() in ("off", "0", "false"):
+        if (THIS / ".disabled").exists() or os.environ.get(
+            "SEMANTIC_ROUTER", ""
+        ).lower() in ("off", "0", "false"):
             return 0
         data = json.loads(sys.stdin.read() or "{}")
         prompt = str(data.get("prompt") or "")
@@ -335,7 +373,9 @@ def main():
         if not parts:
             return 0
         # per-session dedup over the suggested set
-        sig_src = "".join(sorted(sum([p.split(": ", 1)[1].split(",") for p in parts], [])))
+        sig_src = "".join(
+            sorted(sum([p.split(": ", 1)[1].split(",") for p in parts], []))
+        )
         sig = hashlib.md5(sig_src.encode("utf-8", "replace")).hexdigest()[:12]
         if not _first_seen(sid, sig):
             return 0
@@ -343,8 +383,20 @@ def main():
         # assemble(), so success.py ranking is untouched); fail-open allows on any gate error.
         if not _cs_allow("route", {"prompt": prompt, "session_id": sid}):
             return 0
-        msg = "[auto-router] (semantic body-match + lexical; invoke if apt, else ignore) " + " | ".join(parts)
-        print(json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": msg}}))
+        msg = (
+            "[auto-router] (semantic body-match + lexical; invoke if apt, else ignore) "
+            + " | ".join(parts)
+        )
+        print(
+            json.dumps(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "UserPromptSubmit",
+                        "additionalContext": msg,
+                    }
+                }
+            )
+        )
         _cs_record("route", _top_suggestion_key(buckets), sid)
     except Exception:
         pass  # fail-open

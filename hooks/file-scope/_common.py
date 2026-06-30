@@ -4,6 +4,7 @@ r"""file-scope/_common.py — shared helpers for check.py and set_scope.py.
 Pure stdlib. Every public helper is fail-soft (safe default) so callers stay
 FAIL-OPEN. Self-contained: no cross-dir imports.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -17,6 +18,7 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 # Directory resolution
 # ---------------------------------------------------------------------------
+
 
 def scopes_dir(hook_dir: Path) -> Path:
     """Return the scopes directory.
@@ -32,14 +34,19 @@ def scopes_dir(hook_dir: Path) -> Path:
 # Filename helpers
 # ---------------------------------------------------------------------------
 
+
 def _safe(s: str) -> str:
     """Convert a string to a safe filesystem component (max 80 chars)."""
-    return "".join(c if c.isalnum() or c in "-_." else "-" for c in str(s))[:80] or "default"
+    return (
+        "".join(c if c.isalnum() or c in "-_." else "-" for c in str(s))[:80]
+        or "default"
+    )
 
 
 def _cwd_slug(cwd: str) -> str:
     """12-char sha1 slug of a normalized cwd path (case-folded)."""
     norm = cwd.replace("\\", "/").lower().rstrip("/")
+    # nosemgrep: python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1 -- non-cryptographic cwd-path slug for a state key, not a security control
     return hashlib.sha1(norm.encode("utf-8")).hexdigest()[:12]
 
 
@@ -57,6 +64,7 @@ def sidecar_path(sd: Path, key_type: str, key: str) -> Path:
 # ---------------------------------------------------------------------------
 # Sidecar I/O
 # ---------------------------------------------------------------------------
+
 
 def try_sidecar(path: Path) -> dict | None:
     """Load and validate a sidecar file.  Returns the dict or None.
@@ -88,8 +96,9 @@ def try_sidecar(path: Path) -> dict | None:
         return None  # fail-open on any error
 
 
-def write_sidecar(path: Path, key: str, key_type: str,
-                  allow: list[str], ttl_hours: float = 24.0) -> bool:
+def write_sidecar(
+    path: Path, key: str, key_type: str, allow: list[str], ttl_hours: float = 24.0
+) -> bool:
     """Atomically write a sidecar. Returns True on success."""
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -111,6 +120,7 @@ def write_sidecar(path: Path, key: str, key_type: str,
 # ---------------------------------------------------------------------------
 # Glob matching — supports ** for zero-or-more path components
 # ---------------------------------------------------------------------------
+
 
 def _norm(p: str) -> str:
     """Normalize path separators to forward slashes."""
@@ -164,7 +174,7 @@ def _glob_to_regex(pattern: str) -> str:
     i = 0
     while i < len(pattern):
         ch = pattern[i]
-        if pattern[i:i + 2] == "**":
+        if pattern[i : i + 2] == "**":
             i += 2
             if i < len(pattern) and pattern[i] == "/":
                 # Mid-path **: zero or more <component>/ groups
@@ -232,6 +242,7 @@ def matches_any(file_path: str, patterns: list[str]) -> bool:
 # Hook payload helpers
 # ---------------------------------------------------------------------------
 
+
 def read_stdin() -> dict:
     try:
         return json.loads(sys.stdin.read() or "{}")
@@ -240,4 +251,8 @@ def read_stdin() -> dict:
 
 
 def extract_session_id(data: dict) -> str:
-    return str((data or {}).get("session_id") or "default").replace("/", "_").replace("\\", "_")
+    return (
+        str((data or {}).get("session_id") or "default")
+        .replace("/", "_")
+        .replace("\\", "_")
+    )

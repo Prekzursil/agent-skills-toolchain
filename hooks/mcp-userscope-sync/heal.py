@@ -39,17 +39,20 @@ import time
 import shutil
 
 HOME = os.path.expanduser("~")
-CANON_MCP   = os.path.join(HOME, ".mcp.json")
+CANON_MCP = os.path.join(HOME, ".mcp.json")
 CLAUDE_SKILLS = os.path.join(HOME, ".claude", "skills")
 AGENTS_SKILLS = os.path.join(HOME, ".agents", "skills")
-STATE_DIR   = os.path.join(HOME, ".claude", "hooks", "mcp-userscope-sync")
+STATE_DIR = os.path.join(HOME, ".claude", "hooks", "mcp-userscope-sync")
 SKILLS_STAMP = os.path.join(STATE_DIR, ".last-skills-heal")
 
-SKILLS_THROTTLE_SEC = 6 * 3600   # only scan/sync the skills mirror every 6h
-MAX_SKILL_SYNC = 30              # if more than this many skills drift, notify only
+SKILLS_THROTTLE_SEC = 6 * 3600  # only scan/sync the skills mirror every 6h
+MAX_SKILL_SYNC = 30  # if more than this many skills drift, notify only
 BAD_PATH_PARTS = ("node_modules", "site-packages")
-BAD_PATH_SUBSTR = (os.path.join(".claude", "plugins"), os.path.join(".claude", "checkpoints"),
-                   os.path.join(".claude", "_config-backups"))
+BAD_PATH_SUBSTR = (
+    os.path.join(".claude", "plugins"),
+    os.path.join(".claude", "checkpoints"),
+    os.path.join(".claude", "_config-backups"),
+)
 
 
 def _norm(p):
@@ -145,7 +148,10 @@ def heal_mcp(cwd, actions):
             return
         with open(target, "w", encoding="utf-8", newline="") as dst:
             dst.write(canon_text)
-        actions.append("planted canonical .mcp.json at %s (orphan tree -> next session gets the full MCP set)" % root)
+        actions.append(
+            "planted canonical .mcp.json at %s (orphan tree -> next session gets the full MCP set)"
+            % root
+        )
     except Exception:
         return
 
@@ -171,13 +177,24 @@ def heal_skills(actions):
         return
     # Throttle: only do the (relatively expensive) scan every SKILLS_THROTTLE_SEC.
     try:
-        if os.path.isfile(SKILLS_STAMP) and (time.time() - os.path.getmtime(SKILLS_STAMP)) < SKILLS_THROTTLE_SEC:
+        if (
+            os.path.isfile(SKILLS_STAMP)
+            and (time.time() - os.path.getmtime(SKILLS_STAMP)) < SKILLS_THROTTLE_SEC
+        ):
             return
     except Exception:
         pass
 
-    src_dirs = {n for n in os.listdir(CLAUDE_SKILLS) if os.path.isdir(os.path.join(CLAUDE_SKILLS, n))}
-    dst_dirs = {n for n in os.listdir(AGENTS_SKILLS) if os.path.isdir(os.path.join(AGENTS_SKILLS, n))}
+    src_dirs = {
+        n
+        for n in os.listdir(CLAUDE_SKILLS)
+        if os.path.isdir(os.path.join(CLAUDE_SKILLS, n))
+    }
+    dst_dirs = {
+        n
+        for n in os.listdir(AGENTS_SKILLS)
+        if os.path.isdir(os.path.join(AGENTS_SKILLS, n))
+    }
 
     drifted = []
     for name in src_dirs:
@@ -191,7 +208,9 @@ def heal_skills(actions):
         # sync when the source (live ~/.claude/skills) is newer or differs in size
         if sc != dc or sm > dm:
             drifted.append(name)
-    extras = sorted(dst_dirs - src_dirs)  # present only in mirror (reported, not deleted)
+    extras = sorted(
+        dst_dirs - src_dirs
+    )  # present only in mirror (reported, not deleted)
 
     # write throttle stamp regardless of outcome so we don't rescan every session
     try:
@@ -204,9 +223,11 @@ def heal_skills(actions):
     if not drifted and not extras:
         return
     if len(drifted) > MAX_SKILL_SYNC:
-        actions.append("skills mirror: %d skills drifted (> %d) -- run a full resync manually "
-                        "(copy ~/.claude/skills -> ~/.agents/skills); auto-sync skipped to keep startup fast"
-                        % (len(drifted), MAX_SKILL_SYNC))
+        actions.append(
+            "skills mirror: %d skills drifted (> %d) -- run a full resync manually "
+            "(copy ~/.claude/skills -> ~/.agents/skills); auto-sync skipped to keep startup fast"
+            % (len(drifted), MAX_SKILL_SYNC)
+        )
         return
     synced = 0
     for name in drifted:
@@ -222,10 +243,18 @@ def heal_skills(actions):
         except Exception:
             continue
     if synced:
-        actions.append("skills mirror: re-synced %d skill(s) ~/.claude/skills -> ~/.agents/skills" % synced)
+        actions.append(
+            "skills mirror: re-synced %d skill(s) ~/.claude/skills -> ~/.agents/skills"
+            % synced
+        )
     if extras:
-        actions.append("skills mirror: %d dir(s) exist only in ~/.agents/skills (not deleted): %s"
-                        % (len(extras), ", ".join(extras[:10]) + (" ..." if len(extras) > 10 else "")))
+        actions.append(
+            "skills mirror: %d dir(s) exist only in ~/.agents/skills (not deleted): %s"
+            % (
+                len(extras),
+                ", ".join(extras[:10]) + (" ..." if len(extras) > 10 else ""),
+            )
+        )
 
 
 def main():
@@ -254,12 +283,16 @@ def main():
     if actions:
         msg = "[mcp/skills drift backstop] " + " | ".join(actions)
         try:
-            print(json.dumps({
-                "hookSpecificOutput": {
-                    "hookEventName": "SessionStart",
-                    "additionalContext": msg
-                }
-            }))
+            print(
+                json.dumps(
+                    {
+                        "hookSpecificOutput": {
+                            "hookEventName": "SessionStart",
+                            "additionalContext": msg,
+                        }
+                    }
+                )
+            )
         except Exception:
             pass
     # FAIL-OPEN: always succeed.

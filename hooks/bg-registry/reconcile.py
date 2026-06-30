@@ -20,6 +20,7 @@ SEPARATE sidecar (.reconciled.json) so each orphan alerts exactly ONCE (no naggi
 
 FAIL-OPEN: any error -> exit 0, silent. Opt-out: BG_REGISTRY=off or a .disabled file.
 """
+
 from __future__ import annotations
 
 import os
@@ -37,7 +38,11 @@ GRACE = int(os.environ.get("BG_REGISTRY_MIN_AGE_SEC", "120"))
 
 
 def _disabled() -> bool:
-    return DISABLED.exists() or os.environ.get("BG_REGISTRY", "").lower() in ("off", "0", "false")
+    return DISABLED.exists() or os.environ.get("BG_REGISTRY", "").lower() in (
+        "off",
+        "0",
+        "false",
+    )
 
 
 def find_orphans(current_sid: str, seen: dict) -> list:
@@ -76,10 +81,15 @@ def format_alert(orphans: list) -> str:
         kind = o.get("kind") or "?"
         since = C.fmt_ts(o.get("started_ts"))
         art = o.get("expected_artifact")
-        what = (f"artifact {art} missing/incomplete" if art else "no artifact was produced")
+        what = (
+            f"artifact {art} missing/incomplete" if art else "no artifact was produced"
+        )
         items.append(f"{rid} ({kind}) appears dead since {since}, {what}")
-    return ("[bg-registry] ORPHANED BACKGROUND WORK: " + "; ".join(items)
-            + " - resume or discard?")
+    return (
+        "[bg-registry] ORPHANED BACKGROUND WORK: "
+        + "; ".join(items)
+        + " - resume or discard?"
+    )
 
 
 def main() -> int:

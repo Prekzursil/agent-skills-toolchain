@@ -20,6 +20,7 @@ trace with dependency-directed cascade); NO runtime dependency on that repo.
 Stdlib + sqlite3 only. The DB lives at ~/.claude/tms/beliefs.db (override with
 the TMS_DB env var, used by the test suite).
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -144,7 +145,9 @@ def _evaluate(nodes: dict, premises: dict) -> tuple[dict, dict]:
                 return STATUS_OUT
             if node["source_drift"]:
                 status[nid] = STATUS_OUT
-                reason[nid] = f"source changed since assert (sha drift): {node['source_artifact']}"
+                reason[nid] = (
+                    f"source changed since assert (sha drift): {node['source_artifact']}"
+                )
                 return STATUS_OUT
             prem = premises.get(nid, [])
             out_prem = sorted(p for p in prem if visit(p) == STATUS_OUT)
@@ -153,7 +156,11 @@ def _evaluate(nodes: dict, premises: dict) -> tuple[dict, dict]:
                 reason[nid] = "premise(s) OUT: " + ", ".join(out_prem)
                 return STATUS_OUT
             status[nid] = STATUS_IN
-            reason[nid] = ("supported by: " + ", ".join(sorted(prem))) if prem else "asserted premise"
+            reason[nid] = (
+                ("supported by: " + ", ".join(sorted(prem)))
+                if prem
+                else "asserted premise"
+            )
             return STATUS_IN
         finally:
             on_stack.discard(nid)
@@ -174,7 +181,10 @@ def recompute(conn: sqlite3.Connection) -> dict[str, tuple[str, str]]:
         if node["status"] != new_status:
             flips[nid] = (node["status"], new_status)
         if node["status"] != new_status or node["reason"] != new_reason:
-            cur.execute("UPDATE nodes SET status=?, reason=? WHERE id=?", (new_status, new_reason, nid))
+            cur.execute(
+                "UPDATE nodes SET status=?, reason=? WHERE id=?",
+                (new_status, new_reason, nid),
+            )
     conn.commit()
     return flips
 
@@ -188,13 +198,23 @@ def get_node(conn: sqlite3.Connection, nid: str) -> dict | None:
 
 
 def get_premises(conn: sqlite3.Connection, nid: str) -> list[str]:
-    return [r["premise_id"] for r in conn.execute(
-        "SELECT premise_id FROM justifications WHERE node_id=? ORDER BY premise_id", (nid,))]
+    return [
+        r["premise_id"]
+        for r in conn.execute(
+            "SELECT premise_id FROM justifications WHERE node_id=? ORDER BY premise_id",
+            (nid,),
+        )
+    ]
 
 
 def get_dependents(conn: sqlite3.Connection, nid: str) -> list[str]:
-    return [r["node_id"] for r in conn.execute(
-        "SELECT node_id FROM justifications WHERE premise_id=? ORDER BY node_id", (nid,))]
+    return [
+        r["node_id"]
+        for r in conn.execute(
+            "SELECT node_id FROM justifications WHERE premise_id=? ORDER BY node_id",
+            (nid,),
+        )
+    ]
 
 
 def _closure(edges: dict[str, list[str]], start: str) -> set[str]:
@@ -225,7 +245,9 @@ def descendants(conn: sqlite3.Connection, nid: str) -> set[str]:
     return _closure(rev, nid)
 
 
-def would_cycle(conn: sqlite3.Connection, node_id: str, premise_ids: Iterable[str]) -> bool:
+def would_cycle(
+    conn: sqlite3.Connection, node_id: str, premise_ids: Iterable[str]
+) -> bool:
     """True if giving node_id these premises would close a cycle."""
     fwd: dict[str, list[str]] = {}
     for r in conn.execute("SELECT node_id, premise_id FROM justifications"):
@@ -281,27 +303,40 @@ def assert_node(
     if kind not in KINDS:
         raise ValueError(f"kind must be one of {KINDS}, got {kind!r}")
     prem = [p for p in dict.fromkeys(premises or []) if p != nid]
-    missing = [p for p in prem if conn.execute("SELECT 1 FROM nodes WHERE id=?", (p,)).fetchone() is None]
+    missing = [
+        p
+        for p in prem
+        if conn.execute("SELECT 1 FROM nodes WHERE id=?", (p,)).fetchone() is None
+    ]
     if missing:
-        raise ValueError(f"unknown premise(s): {', '.join(missing)} - assert them first")
+        raise ValueError(
+            f"unknown premise(s): {', '.join(missing)} - assert them first"
+        )
     if would_cycle(conn, nid, prem):
         raise ValueError(f"asserting {nid!r} with premises {prem} would create a cycle")
     source_sha = sha256_file(source)
     ts = _now()
-    exists = conn.execute("SELECT 1 FROM nodes WHERE id=?", (nid,)).fetchone() is not None
+    exists = (
+        conn.execute("SELECT 1 FROM nodes WHERE id=?", (nid,)).fetchone() is not None
+    )
     if exists:
         conn.execute(
             "UPDATE nodes SET statement=?, kind=?, source_artifact=?, source_sha=?, "
             "retracted=0, source_drift=0, ts=? WHERE id=?",
-            (statement, kind, source, source_sha, ts, nid))
+            (statement, kind, source, source_sha, ts, nid),
+        )
         conn.execute("DELETE FROM justifications WHERE node_id=?", (nid,))
     else:
         conn.execute(
             "INSERT INTO nodes (id, statement, status, kind, source_artifact, source_sha, "
             "retracted, source_drift, reason, ts) VALUES (?,?,?,?,?,?,0,0,'',?)",
-            (nid, statement, STATUS_IN, kind, source, source_sha, ts))
+            (nid, statement, STATUS_IN, kind, source, source_sha, ts),
+        )
     for p in prem:
-        conn.execute("INSERT OR IGNORE INTO justifications (node_id, premise_id) VALUES (?,?)", (nid, p))
+        conn.execute(
+            "INSERT OR IGNORE INTO justifications (node_id, premise_id) VALUES (?,?)",
+            (nid, p),
+        )
     conn.commit()
     recompute(conn)
     return exists
@@ -316,7 +351,9 @@ def retract_node(conn: sqlite3.Connection, nid: str) -> dict[str, tuple[str, str
     return recompute(conn)
 
 
-def recheck(conn: sqlite3.Connection) -> tuple[dict[str, bool], dict[str, tuple[str, str]]]:
+def recheck(
+    conn: sqlite3.Connection,
+) -> tuple[dict[str, bool], dict[str, tuple[str, str]]]:
     """Re-hash every source artifact; OUT any whose sha changed + cascade.
 
     Returns (drift_changes, flips). drift_changes maps node_id -> now_drifted(bool)
@@ -324,13 +361,16 @@ def recheck(conn: sqlite3.Connection) -> tuple[dict[str, bool], dict[str, tuple[
     """
     rows = conn.execute(
         "SELECT id, source_artifact, source_sha, source_drift FROM nodes "
-        "WHERE source_artifact IS NOT NULL AND source_artifact != ''").fetchall()
+        "WHERE source_artifact IS NOT NULL AND source_artifact != ''"
+    ).fetchall()
     drift_changes: dict[str, bool] = {}
     for r in rows:
         cur_sha = sha256_file(r["source_artifact"])
         drifted = 1 if (cur_sha is None or cur_sha != r["source_sha"]) else 0
         if drifted != r["source_drift"]:
-            conn.execute("UPDATE nodes SET source_drift=? WHERE id=?", (drifted, r["id"]))
+            conn.execute(
+                "UPDATE nodes SET source_drift=? WHERE id=?", (drifted, r["id"])
+            )
             drift_changes[r["id"]] = bool(drifted)
     conn.commit()
     flips = recompute(conn)

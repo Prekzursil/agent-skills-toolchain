@@ -28,6 +28,7 @@ Wire spec:
   Command: python C:/Users/Prekzursil/.claude/hooks/ulysses/enforce.py
   Exit:    0 (allow / inject) | 2 (block; reason on stderr)
 """
+
 from __future__ import annotations
 
 import os
@@ -42,7 +43,11 @@ DISABLED = THIS / ".disabled"
 
 
 def _disabled() -> bool:
-    return DISABLED.exists() or os.environ.get("ULYSSES", "").lower() in ("off", "0", "false")
+    return DISABLED.exists() or os.environ.get("ULYSSES", "").lower() in (
+        "off",
+        "0",
+        "false",
+    )
 
 
 def main() -> int:

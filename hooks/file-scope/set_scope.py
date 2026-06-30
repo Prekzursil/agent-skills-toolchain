@@ -49,11 +49,11 @@ Output: SUCCESS:<key> or FAILED:<key> <reason>  (AGENTS.md §4 terminal state)
 
 FAIL-OPEN on all I/O errors: exits 0 with FAILED marker.  Pure stdlib.
 """
+
 from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 import time
 from pathlib import Path
@@ -66,6 +66,7 @@ import _common as C  # noqa: E402
 # ---------------------------------------------------------------------------
 # Garbage collection
 # ---------------------------------------------------------------------------
+
 
 def _gc(sd: Path) -> int:
     """Remove expired sidecars from *sd*.  Non-JSON and non-expired files are kept."""
@@ -106,19 +107,25 @@ def _list(sd: Path) -> int:
                 created = float(data.get("created_at") or 0)
                 if created and (created + ttl * 3600.0) < now:
                     continue  # expired — skip
-            rows.append({
-                "file": f.name,
-                "key_type": data.get("key_type", "?"),
-                "key": data.get("key", "?"),
-                "allow": data.get("allow", []),
-                "ttl_hours": ttl,
-            })
+            rows.append(
+                {
+                    "file": f.name,
+                    "key_type": data.get("key_type", "?"),
+                    "key": data.get("key", "?"),
+                    "allow": data.get("allow", []),
+                    "ttl_hours": ttl,
+                }
+            )
         except Exception:
             pass
     for row in rows:
-        globs = ", ".join(row["allow"]) if row["allow"] else "(none — blocks all writes)"
-        print(f"  {row['key_type']}:{row['key']}  globs=[{globs}]"
-              f"  ttl={row['ttl_hours']}h  ({row['file']})")
+        globs = (
+            ", ".join(row["allow"]) if row["allow"] else "(none — blocks all writes)"
+        )
+        print(
+            f"  {row['key_type']}:{row['key']}  globs=[{globs}]"
+            f"  ttl={row['ttl_hours']}h  ({row['file']})"
+        )
     print(f"SUCCESS:list count={len(rows)}")
     return 0
 
@@ -127,36 +134,56 @@ def _list(sd: Path) -> int:
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         prog="set_scope.py",
         description="Write / clear per-agent file-scope sidecars for check.py",
     )
     key_grp = ap.add_mutually_exclusive_group()
-    key_grp.add_argument("--session", metavar="ID",
-                         help="Key by session_id (matches hook payload session_id)")
-    key_grp.add_argument("--agent-name", metavar="NAME",
-                         help="Key by agent name (orchestrator also sets "
-                              "FILE_SCOPE_AGENT=<NAME> in the sub-agent's env)")
-    key_grp.add_argument("--cwd", metavar="PATH",
-                         help="Key by working directory path (sha1-slugged)")
-    ap.add_argument("--allow", action="append", default=[],
-                    metavar="GLOB",
-                    help="Allowed glob pattern (repeat for multiple). "
-                         "Empty list = block all writes.")
-    ap.add_argument("--clear", action="store_true",
-                    help="Remove the sidecar instead of writing it")
-    ap.add_argument("--gc", action="store_true",
-                    help="Remove all expired sidecars")
-    ap.add_argument("--list", action="store_true",
-                    help="List all active (non-expired) sidecars and their allow-lists")
-    ap.add_argument("--ttl-hours", type=float, default=24.0, metavar="N",
-                    help="Sidecar TTL in hours (default 24; 0 = never-expire — "
-                         "avoid for session/cwd keys, see module docstring)")
+    key_grp.add_argument(
+        "--session",
+        metavar="ID",
+        help="Key by session_id (matches hook payload session_id)",
+    )
+    key_grp.add_argument(
+        "--agent-name",
+        metavar="NAME",
+        help="Key by agent name (orchestrator also sets "
+        "FILE_SCOPE_AGENT=<NAME> in the sub-agent's env)",
+    )
+    key_grp.add_argument(
+        "--cwd", metavar="PATH", help="Key by working directory path (sha1-slugged)"
+    )
+    ap.add_argument(
+        "--allow",
+        action="append",
+        default=[],
+        metavar="GLOB",
+        help="Allowed glob pattern (repeat for multiple). "
+        "Empty list = block all writes.",
+    )
+    ap.add_argument(
+        "--clear", action="store_true", help="Remove the sidecar instead of writing it"
+    )
+    ap.add_argument("--gc", action="store_true", help="Remove all expired sidecars")
+    ap.add_argument(
+        "--list",
+        action="store_true",
+        help="List all active (non-expired) sidecars and their allow-lists",
+    )
+    ap.add_argument(
+        "--ttl-hours",
+        type=float,
+        default=24.0,
+        metavar="N",
+        help="Sidecar TTL in hours (default 24; 0 = never-expire — "
+        "avoid for session/cwd keys, see module docstring)",
+    )
 
     try:
         args = ap.parse_args(argv)
-    except SystemExit as exc:
+    except SystemExit:
         # argparse calls sys.exit on --help or bad args; re-raise cleanly.
         raise
 
@@ -192,8 +219,9 @@ def main(argv: list[str] | None = None) -> int:
             return 0  # fail-open
 
     # Write the sidecar.
-    ok = C.write_sidecar(path, key=key, key_type=key_type,
-                          allow=args.allow, ttl_hours=args.ttl_hours)
+    ok = C.write_sidecar(
+        path, key=key, key_type=key_type, allow=args.allow, ttl_hours=args.ttl_hours
+    )
     if ok:
         print(f"SUCCESS:{label} globs={args.allow!r} ttl={args.ttl_hours}h")
         return 0

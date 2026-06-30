@@ -44,6 +44,7 @@ SAFETY
   opt-outs still work individually). Pure stdlib. Never blocks (exit 0 only) — the
   consolidated checks are all inject-only; none ever returned exit 2.
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -256,7 +257,10 @@ def run(event: str, raw_payload: str, manifest: dict) -> str | None:
     threads = []
     for chk, mod, buf in loaded:
         t = threading.Thread(
-            target=_worker, args=(mod, chk.get("args") or [], buf, raw_payload), daemon=True)
+            target=_worker,
+            args=(mod, chk.get("args") or [], buf, raw_payload),
+            daemon=True,
+        )
         t.start()
         threads.append(t)
 
@@ -303,8 +307,17 @@ def main(argv) -> int:
         if agg:
             # ensure_ascii=True mirrors every consolidated hook's own json.dumps default
             # (pure-ASCII \uXXXX escaping) -> encoding-safe on any Windows console codepage.
-            real_out.write(json.dumps({"hookSpecificOutput": {
-                "hookEventName": event, "additionalContext": agg}}) + "\n")
+            real_out.write(
+                json.dumps(
+                    {
+                        "hookSpecificOutput": {
+                            "hookEventName": event,
+                            "additionalContext": agg,
+                        }
+                    }
+                )
+                + "\n"
+            )
             real_out.flush()
     except BaseException:
         pass  # fail-open: never crash a session

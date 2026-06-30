@@ -51,6 +51,7 @@ Stdin (SubagentStop event JSON):
                              SubagentStop field; 'output'/'result' are absent)
     ...
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -71,6 +72,7 @@ from _common import (  # noqa: E402
 # ---------------------------------------------------------------------------
 # Transcript parsing (identical pattern to claim-guard/claim-check.py)
 # ---------------------------------------------------------------------------
+
 
 def _get_final_assistant_text(transcript_path: str) -> str | None:
     """Parse the session JSONL transcript and return the text of the final
@@ -107,7 +109,10 @@ def _get_final_assistant_text(transcript_path: str) -> str | None:
                         text_parts = []
                         if isinstance(content, list):
                             for block in content:
-                                if isinstance(block, dict) and block.get("type") == "text":
+                                if (
+                                    isinstance(block, dict)
+                                    and block.get("type") == "text"
+                                ):
                                     text_parts.append(str(block.get("text") or ""))
                         elif isinstance(content, str):
                             text_parts.append(content)
@@ -201,6 +206,7 @@ def check_degenerate(output: str) -> str | None:
 # (b) Result-contract validation
 # ---------------------------------------------------------------------------
 
+
 def validate_contract(output: str, contract: dict) -> tuple[bool, str]:
     """Validate *output* against a result-contract dict.
 
@@ -236,6 +242,7 @@ def validate_contract(output: str, contract: dict) -> tuple[bool, str]:
 # Per-spawn identifier
 # ---------------------------------------------------------------------------
 
+
 def _spawn_id(transcript_path: str) -> str:
     """Return a short stable hash of transcript_path for per-spawn retry keying.
 
@@ -251,6 +258,7 @@ def _spawn_id(transcript_path: str) -> str:
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
+
 
 def main() -> int:
     try:

@@ -11,12 +11,15 @@ Vectors are L2-normalized on return, so cosine similarity == dot product downstr
 warm-call latency stays ~100ms; the first call after an idle eviction pays a one-time
 ~2s model load, which route.py bounds with a short timeout + fail-open.
 """
+
 import json
 import math
 import os
 import urllib.request
 
-OLLAMA_URL = os.environ.get("SEMROUTER_OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
+OLLAMA_URL = os.environ.get("SEMROUTER_OLLAMA_URL", "http://127.0.0.1:11434").rstrip(
+    "/"
+)
 MODEL = os.environ.get("SEMROUTER_EMBED_MODEL", "nomic-embed-text")
 KEEP_ALIVE = os.environ.get("SEMROUTER_KEEP_ALIVE", "60m")
 DIM = 768
@@ -43,6 +46,7 @@ def _post(payload, timeout):
         data=json.dumps(payload).encode("utf-8"),
         headers={"Content-Type": "application/json"},
     )
+    # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected -- internal local Ollama embed endpoint; URL from config, not untrusted user data
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.loads(r.read().decode("utf-8", "replace"))
 
@@ -57,7 +61,10 @@ def embed(texts, timeout=8.0, keep_alive=None):
     if not batch:
         return [] if not single else None
     try:
-        r = _post({"model": MODEL, "input": batch, "keep_alive": keep_alive or KEEP_ALIVE}, timeout)
+        r = _post(
+            {"model": MODEL, "input": batch, "keep_alive": keep_alive or KEEP_ALIVE},
+            timeout,
+        )
         embs = r.get("embeddings")
         if not isinstance(embs, list) or len(embs) != len(batch):
             return None

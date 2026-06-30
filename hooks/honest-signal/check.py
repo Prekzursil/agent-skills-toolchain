@@ -39,6 +39,7 @@ settings.json (Stop, no matcher):
    "command":"python C:/Users/Prekzursil/.claude/hooks/honest-signal/check.py",
    "timeout":10,"statusMessage":"Honest-signal (certainty vs evidence lint)"}
 """
+
 from __future__ import annotations
 
 import json
@@ -77,9 +78,9 @@ _HEDGE = re.compile(
 
 # Technical indicators — the certainty must attach to one of these to be load-bearing.
 _TECH = re.compile(
-    r"(?:`[^`]+`"                                   # inline code span
+    r"(?:`[^`]+`"  # inline code span
     r"|[\w./\\-]+\.(?:py|ts|tsx|js|jsx|mjs|go|rs|java|rb|c|cc|cpp|h|hpp|cs|kt|swift|"
-    r"json|ya?ml|toml|ini|cfg|sh|ps1|sql|html|css)\b"   # a file path
+    r"json|ya?ml|toml|ini|cfg|sh|ps1|sql|html|css)\b"  # a file path
     r"|\b(?:offset|address|value|function|method|class|field|config|setting|flag|"
     r"parameter|argument|variable|constant|endpoint|route|port|timeout|version|hash|"
     r"token|key|env|environment|schema|type|behaviou?r|output|result|payload|response|"
@@ -130,7 +131,8 @@ def _is_human(ev: dict) -> bool:
         return False
     content = msg.get("content")
     if isinstance(content, list) and any(
-            isinstance(b, dict) and b.get("type") == "tool_result" for b in content):
+        isinstance(b, dict) and b.get("type") == "tool_result" for b in content
+    ):
         return False  # a tool_result is not a fresh human turn
     return True
 
@@ -138,7 +140,10 @@ def _is_human(ev: dict) -> bool:
 def _assistant_text(ev: dict):
     msg = ev.get("message") or {}
     role = msg.get("role") or ev.get("role")
-    if not ((ev.get("type") == "assistant" and msg.get("role") == "assistant") or role == "assistant"):
+    if not (
+        (ev.get("type") == "assistant" and msg.get("role") == "assistant")
+        or role == "assistant"
+    ):
         return None
     content = msg.get("content")
     if content is None:
@@ -192,14 +197,16 @@ def find_offenders(text: str) -> list[str]:
         lo, hi = max(0, m.start() - 120), min(len(text), m.end() + 120)
         window = text[lo:hi]
         if _HEDGE.search(window):
-            continue                       # hedged -> honest already
+            continue  # hedged -> honest already
         if _RE_ANCHOR.search(window):
-            continue                       # defer to truth-verify
+            continue  # defer to truth-verify
         if _CLAIM_GUARD.search(window):
-            continue                       # defer to claim-guard
+            continue  # defer to claim-guard
         if not _TECH.search(window):
-            continue                       # not a load-bearing technical claim
-        snippet = re.sub(r"\s+", " ", text[max(0, m.start() - 40):m.end() + 40]).strip()
+            continue  # not a load-bearing technical claim
+        snippet = re.sub(
+            r"\s+", " ", text[max(0, m.start() - 40) : m.end() + 40]
+        ).strip()
         offenders.append(snippet)
         if len(offenders) >= 3:
             break
@@ -208,7 +215,11 @@ def find_offenders(text: str) -> list[str]:
 
 def main() -> int:
     try:
-        if DISABLED.exists() or os.environ.get("HONEST_SIGNAL", "").lower() in ("off", "0", "false"):
+        if DISABLED.exists() or os.environ.get("HONEST_SIGNAL", "").lower() in (
+            "off",
+            "0",
+            "false",
+        ):
             return 0
         try:
             data = json.loads(sys.stdin.read() or "{}")
@@ -235,8 +246,16 @@ def main() -> int:
             "it (read the file / run the command / call the tool) before stating it as "
             "fact. (RE anchors -> truth-verify; test/build/coverage claims -> claim-guard.)"
         )
-        print(json.dumps({"hookSpecificOutput": {
-            "hookEventName": "Stop", "additionalContext": msg}}))
+        print(
+            json.dumps(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "Stop",
+                        "additionalContext": msg,
+                    }
+                }
+            )
+        )
     except Exception:
         pass  # fail-open
     return 0

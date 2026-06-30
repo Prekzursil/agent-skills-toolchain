@@ -5,6 +5,7 @@ Imports tripwire.py and exercises should_halt() directly: it must return
 (True, reason) on the FIRE example and (False, _) on the SILENT example.
 The end-to-end exit-2 / fail-open proof is in chaos_no_force_push.py.
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -17,7 +18,9 @@ FIX = json.loads((HERE / "fixtures.json").read_text(encoding="utf-8"))
 
 
 def _load_tripwire():
-    spec = importlib.util.spec_from_file_location("forged_tripwire_no_force_push", HERE / "tripwire.py")
+    spec = importlib.util.spec_from_file_location(
+        "forged_tripwire_no_force_push", HERE / "tripwire.py"
+    )
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
@@ -52,7 +55,9 @@ def main() -> int:
     assert reason, "should_halt fired but returned an empty reason"
     halt2, _ = tw.should_halt(_payload(FIX["silent_value"]))
     assert not halt2, "should_halt must NOT fire on the SILENT example"
-    print(f"UNIT-PASS: {FIX['name']} halts on trigger ({reason!r}) and allows otherwise")
+    print(
+        f"UNIT-PASS: {FIX['name']} halts on trigger ({reason!r}) and allows otherwise"
+    )
     return 0
 
 

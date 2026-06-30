@@ -11,6 +11,7 @@ each re-implement their own tiny emit/session helpers.
 Pure stdlib. Every public helper swallows its own errors (returns a safe default) so
 callers can stay simple and FAIL-OPEN.
 """
+
 from __future__ import annotations
 
 import ctypes
@@ -20,8 +21,9 @@ import time
 from pathlib import Path
 
 # Registry root: one append-only NDJSON file per session: <session>.ndjson .
-BG_DIR = Path(os.environ.get(
-    "BG_REGISTRY_DIR", str(Path.home() / ".claude" / "bg-registry")))
+BG_DIR = Path(
+    os.environ.get("BG_REGISTRY_DIR", str(Path.home() / ".claude" / "bg-registry"))
+)
 # Sidecar (NOT the registry) — reconcile.py records which orphans it has already
 # surfaced so it alerts ONCE, never nags. Keeps reconcile READER-only vs the registry.
 SEEN_FILE = BG_DIR / ".reconciled.json"
@@ -43,12 +45,19 @@ def fmt_ts(ts) -> str:
 
 
 def _safe(s: str) -> str:
-    return "".join(c if c.isalnum() or c in "-_." else "-" for c in str(s))[:80] or "default"
+    return (
+        "".join(c if c.isalnum() or c in "-_." else "-" for c in str(s))[:80]
+        or "default"
+    )
 
 
 def session_id(data: dict) -> str:
     """Extract the session id (B1 convention: data['session_id'])."""
-    return str((data or {}).get("session_id") or "default").replace("/", "_").replace("\\", "_")
+    return (
+        str((data or {}).get("session_id") or "default")
+        .replace("/", "_")
+        .replace("\\", "_")
+    )
 
 
 def registry_file(sid: str) -> Path:
@@ -115,14 +124,18 @@ def _win_pid_alive(pid: int):
     PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
     STILL_ACTIVE = 259
     ERROR_INVALID_PARAMETER = 87  # no such pid
-    ERROR_ACCESS_DENIED = 5       # pid EXISTS but we lack rights -> alive
+    ERROR_ACCESS_DENIED = 5  # pid EXISTS but we lack rights -> alive
     try:
         from ctypes import wintypes
+
         k32 = ctypes.WinDLL("kernel32", use_last_error=True)
         k32.OpenProcess.restype = wintypes.HANDLE
         k32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
         k32.GetExitCodeProcess.restype = wintypes.BOOL
-        k32.GetExitCodeProcess.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+        k32.GetExitCodeProcess.argtypes = [
+            wintypes.HANDLE,
+            ctypes.POINTER(wintypes.DWORD),
+        ]
         k32.CloseHandle.argtypes = [wintypes.HANDLE]
 
         h = k32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
@@ -205,12 +218,21 @@ def save_seen(seen: dict) -> None:
 
 def emit(event_name: str, msg: str) -> None:
     """Inject additionalContext (B1 `emit` shape)."""
-    print(json.dumps({"hookSpecificOutput": {
-        "hookEventName": event_name, "additionalContext": msg}}))
+    print(
+        json.dumps(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": event_name,
+                    "additionalContext": msg,
+                }
+            }
+        )
+    )
 
 
 def read_stdin() -> dict:
     import sys
+
     try:
         return json.loads(sys.stdin.read() or "{}")
     except Exception:
