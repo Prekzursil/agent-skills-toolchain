@@ -1,0 +1,31 @@
+name: dependabot-auto-merge
+
+# Tier 1 automation (free, native): when Dependabot opens a PR, turn on GitHub
+# auto-merge (squash). The merge only happens once the required `quality` status
+# checks pass — enforced by the repo ruleset on `main` (required_status_checks)
+# plus the "Allow auto-merge" repo setting. Nothing here force-merges: if a check
+# is red the PR simply stays open.
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    # Only act on genuine Dependabot PRs.
+    if: ${{ github.actor == 'dependabot[bot]' }}
+    steps:
+      - name: Fetch Dependabot metadata
+        id: meta
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Enable auto-merge (squash)
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,82 @@
+name: autofix-models
+
+# Tier 2 automation (free, in-Actions, PRIMARY auto-fix): when the `quality`
+# workflow fails on a push to `main`, ask GitHub Models (free inference via the
+# built-in GITHUB_TOKEN) to draft a fix as a unified diff, apply it, and open a
+# PR labelled `autofix`. It NEVER auto-merges — the normal quality gate + a human
+# review it. Bounded: only fires on a failed main run, only opens a PR if the
+# model's patch applies cleanly.
+on:
+  workflow_run:
+    workflows: ["quality"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  models: read
+
+jobs:
+  draft-fix:
+    runs-on: ubuntu-latest
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'failure' &&
+          github.event.workflow_run.event == 'push' &&
+          github.event.workflow_run.head_branch == 'main' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Collect failing-run log (bounded)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          gh run view "$RUN_ID" --repo "$GITHUB_REPOSITORY" --log-failed > failing.log 2>&1 || true
+          # Keep the prompt small + cheap; the tail holds the actual errors.
+          tail -c 12000 failing.log > prompt.txt || true
+          echo "----" >> prompt.txt
+          echo "Output ONLY a unified git diff (git apply compatible) that fixes the failures above. No prose, no code fences." >> prompt.txt
+
+      - name: Draft fix with GitHub Models
+        id: ai
+        uses: actions/ai-inference@v1
+        with:
+          model: openai/gpt-4o-mini
+          system-prompt: "You are a CI repair assistant. You receive failing GitHub Actions logs and reply with ONLY a unified git diff that fixes the root cause. Make the smallest correct change. Never lower thresholds or disable checks."
+          prompt-file: prompt.txt
+          max-completion-tokens: "2000"
+
+      - name: Apply patch and open PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          # Pass the model output via env (never interpolate ${{ }} straight into
+          # the shell) so untrusted model text cannot inject commands.
+          AI_RESPONSE: ${{ steps.ai.outputs.response }}
+        run: |
+          printf '%s\n' "$AI_RESPONSE" > fix.patch
+          if [ ! -s fix.patch ]; then
+            echo "Model returned no patch; nothing to do."
+            exit 0
+          fi
+          if ! git apply --whitespace=nowarn fix.patch 2>apply.err; then
+            echo "Model patch did not apply cleanly; skipping PR."
+            cat apply.err || true
+            exit 0
+          fi
+          if git diff --quiet; then
+            echo "Patch applied but produced no changes; skipping."
+            exit 0
+          fi
+          BR="autofix/models-${RUN_ID}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BR"
+          git commit -am "autofix(models): draft fix for failed main CI run ${RUN_ID}"
+          git push origin "$BR"
+          gh pr create --base main --head "$BR" --label autofix \
+            --title "autofix: draft fix for failed main CI (run ${RUN_ID})" \
+            --body "Automated draft from GitHub Models (openai/gpt-4o-mini) for failed \`quality\` run ${RUN_ID}. This PR is gated by the normal quality checks and requires human review — it is never auto-merged."
