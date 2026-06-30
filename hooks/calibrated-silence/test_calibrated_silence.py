@@ -5,6 +5,7 @@ Covers the SDT math (cold-start allow, high-ignore suppress, high-acted allow, v
 weighting, fatigue raises the bar / flips a borderline case), fail-open on a corrupt
 ledger, the kill-switch, Wilson smoothing, and record/read round-trips.
 """
+
 import json
 import os
 import sys
@@ -27,13 +28,20 @@ def ok(name, cond):
 
 
 def row(t, reaction="unknown", ts=None, sid="hist", surfaced=True, ck="ck"):
-    return {"ts": OLD if ts is None else ts, "type": t, "context_key": ck,
-            "session_id": sid, "surfaced": surfaced, "reaction": reaction}
+    return {
+        "ts": OLD if ts is None else ts,
+        "type": t,
+        "context_key": ck,
+        "session_id": sid,
+        "surfaced": surfaced,
+        "reaction": reaction,
+    }
 
 
 def many(t, acted, ignored, **kw):
-    return ([row(t, "acted", **kw) for _ in range(acted)]
-            + [row(t, "ignored", **kw) for _ in range(ignored)])
+    return [row(t, "acted", **kw) for _ in range(acted)] + [
+        row(t, "ignored", **kw) for _ in range(ignored)
+    ]
 
 
 def mk_ledger(rows):
@@ -72,40 +80,51 @@ def main():
     ok("route 6/6 no-fatigue -> allow", allow_base)
 
     # 6. Same borderline + injected fatigue -> SUPPRESS (fatigue raises the bar / FLIP).
-    allow_fat, rfat = decide("route", many("route", 6, 6),
-                             correction_rate=0.9, prompt="no fix it")
+    allow_fat, rfat = decide(
+        "route", many("route", 6, 6), correction_rate=0.9, prompt="no fix it"
+    )
     ok("route 6/6 + fatigue -> suppress (flip)", allow_fat is False)
-    ok("fatigue raised the criterion vs baseline",
-       _crit(rfat) > _crit(rbase))
+    ok("fatigue raised the criterion vs baseline", _crit(rfat) > _crit(rbase))
 
     # 7. Value weighting: at the SAME smoothed hit-rate a high-value 'gem' clears the bar
     #    while a low-value 'nudge' does not.
     allow_gem, _ = decide("gem", many("gem", 5, 6))
     allow_nudge, _ = decide("nudge", many("nudge", 5, 6))
-    ok("value weighting: gem allows where nudge suppresses",
-       allow_gem and (allow_nudge is False))
+    ok(
+        "value weighting: gem allows where nudge suppresses",
+        allow_gem and (allow_nudge is False),
+    )
 
     # 8. Density fatigue: many recent surfaced interjections THIS session raise the bar.
     now = time.time()
-    hist = many("route", 6, 6)                       # old learning history
-    dense = [row("route", "unknown", ts=now - 10, sid="S", surfaced=True) for _ in range(4)]
+    hist = many("route", 6, 6)  # old learning history
+    dense = [
+        row("route", "unknown", ts=now - 10, sid="S", surfaced=True) for _ in range(4)
+    ]
     allow_dense, rdense = decide("route", hist + dense, session_id="S", now=now)
-    ok("recent density -> suppress borderline", allow_dense is False and "dens=" in rdense)
+    ok(
+        "recent density -> suppress borderline",
+        allow_dense is False and "dens=" in rdense,
+    )
 
     # 9. Late hour adds fatigue (probe fatigue_bump directly for determinism).
     late = time.mktime((2026, 6, 29, 3, 0, 0, 0, 0, -1))
     bump_late, det_late = cs.fatigue_bump("route", {"now": late}, [])
-    bump_day, _ = cs.fatigue_bump("route", {"now": time.mktime((2026, 6, 29, 14, 0, 0, 0, 0, -1))}, [])
+    bump_day, _ = cs.fatigue_bump(
+        "route", {"now": time.mktime((2026, 6, 29, 14, 0, 0, 0, 0, -1))}, []
+    )
     ok("late hour raises fatigue", bump_late > bump_day and "late=" in det_late)
 
     # 10. Fatigue is clamped to FATIGUE_MAX (never total silence).
     bump_max, _ = cs.fatigue_bump(
-        "route", {"correction_rate": 1.0, "prompt": "no", "now": late}, [])
+        "route", {"correction_rate": 1.0, "prompt": "no", "now": late}, []
+    )
     ok("fatigue clamped to FATIGUE_MAX", bump_max <= cs.FATIGUE_MAX + 1e-9)
 
     # 11. A high-value high-hit interjection still punches through MAX fatigue.
-    allow_punch, _ = decide("gem", many("gem", 18, 2),
-                            correction_rate=1.0, prompt="no", now=late)
+    allow_punch, _ = decide(
+        "gem", many("gem", 18, 2), correction_rate=1.0, prompt="no", now=late
+    )
     ok("high-EV gem survives max fatigue", allow_punch)
 
     # 12. Fail-open: a read error returns ALLOW (suppression is the dangerous failure).
@@ -119,8 +138,10 @@ def main():
 
     # 13. Corrupt ledger lines are skipped, not fatal.
     f = Path(tempfile.mkdtemp(prefix="calsil-")) / "interjections.jsonl"
-    f.write_text("{not json\n" + json.dumps(row("gem", "acted")) + "\ngarbage]]",
-                 encoding="utf-8")
+    f.write_text(
+        "{not json\n" + json.dumps(row("gem", "acted")) + "\ngarbage]]",
+        encoding="utf-8",
+    )
     parsed = cs.read_rows(f)
     ok("corrupt lines skipped, valid kept", len(parsed) == 1)
     allow, _ = cs.should_interject("gem", {"ledger_path": str(f)})
@@ -136,7 +157,10 @@ def main():
     os.environ["CALIBRATED_SILENCE"] = "off"
     try:
         allow, reason = decide("suggestion", many("suggestion", 0, 20))
-        ok("kill-switch CALIBRATED_SILENCE=off -> allow", allow and "disabled" in reason)
+        ok(
+            "kill-switch CALIBRATED_SILENCE=off -> allow",
+            allow and "disabled" in reason,
+        )
     finally:
         os.environ.pop("CALIBRATED_SILENCE", None)
 
@@ -144,7 +168,10 @@ def main():
     ok("wilson(0,0)=0.5", abs(cs.wilson_center(0, 0) - 0.5) < 1e-9)
     ok("wilson low-n pulled toward 0.5", cs.wilson_center(0, 2) > 0.10)
     ok("wilson high-n near raw rate", abs(cs.wilson_center(80, 100) - 0.8) < 0.05)
-    ok("wilson monotonic in successes", cs.wilson_center(8, 10) > cs.wilson_center(2, 10))
+    ok(
+        "wilson monotonic in successes",
+        cs.wilson_center(8, 10) > cs.wilson_center(2, 10),
+    )
 
     # 17. record_interjection round-trips and feeds counts_by_type.
     led = Path(tempfile.mkdtemp(prefix="calsil-")) / "interjections.jsonl"
@@ -170,6 +197,7 @@ def main():
 def _crit(reason):
     """Pull the criterion float out of a should_interject reason string for comparison."""
     import re
+
     m = re.search(r"crit=([0-9.]+)", reason)
     return float(m.group(1)) if m else -1.0
 

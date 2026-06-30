@@ -14,6 +14,7 @@ Fires only when ALL hold:
 That conjunction makes it high-signal and non-naggy. Inject-only; FAIL-OPEN.
 Opt-out: PERSIST_NUDGE=off or a .disabled file.
 """
+
 from __future__ import annotations
 
 import json
@@ -31,8 +32,12 @@ def _cs_allow(itype, ctx):
     try:
         import sys as _s
         from pathlib import Path as _P
-        _s.path.insert(0, str(_P(__file__).resolve().parent.parent / "calibrated-silence"))
+
+        _s.path.insert(
+            0, str(_P(__file__).resolve().parent.parent / "calibrated-silence")
+        )
         import calibrated_silence as _c
+
         return _c.should_interject(itype, ctx)[0]
     except Exception:
         return True
@@ -41,6 +46,7 @@ def _cs_allow(itype, ctx):
 def _cs_record(itype, ck, sid):
     try:
         import calibrated_silence as _c
+
         _c.record_interjection(itype, ck, sid)
     except Exception:
         pass
@@ -52,8 +58,12 @@ SEEN_DIR = Path(tempfile.gettempdir()) / "persist-nudge"
 EDIT_THRESHOLD = int(os.environ.get("PERSIST_NUDGE_EDITS", "6"))
 
 _GIT_COMMIT = re.compile(r"\bgit\b[^\n]*\bcommit\b", re.IGNORECASE)
-_PERSIST_BASH = re.compile(r"note\.py|write_note|basic[-_]memory[^\n]*(write|note)", re.IGNORECASE)
-_BM_WRITE_TOOL = re.compile(r"mcp__basic-memory__(write_note|edit_note|create)", re.IGNORECASE)
+_PERSIST_BASH = re.compile(
+    r"note\.py|write_note|basic[-_]memory[^\n]*(write|note)", re.IGNORECASE
+)
+_BM_WRITE_TOOL = re.compile(
+    r"mcp__basic-memory__(write_note|edit_note|create)", re.IGNORECASE
+)
 
 
 def _iter_events(transcript_path: str):
@@ -120,7 +130,11 @@ def should_fire(t: dict) -> bool:
 
 def main() -> int:
     try:
-        if DISABLED.exists() or os.environ.get("PERSIST_NUDGE", "").lower() in ("off", "0", "false"):
+        if DISABLED.exists() or os.environ.get("PERSIST_NUDGE", "").lower() in (
+            "off",
+            "0",
+            "false",
+        ):
             return 0
         try:
             data = json.loads(sys.stdin.read() or "{}")
@@ -134,7 +148,11 @@ def main() -> int:
         t = tally(tp)
         if not should_fire(t):
             return 0
-        sid = str(data.get("session_id") or "default").replace("/", "_").replace("\\", "_")
+        sid = (
+            str(data.get("session_id") or "default")
+            .replace("/", "_")
+            .replace("\\", "_")
+        )
         # CALIBRATED SILENCE: gate BEFORE burning the once-per-session marker, so a turn we
         # suppress now can still nudge on a later turn; fail-open allows on any gate error.
         if not _cs_allow("nudge", {"session_id": sid}):
@@ -152,8 +170,16 @@ def main() -> int:
             f"decision/state with basic-memory write_note (or note.py for the event "
             f"ledger) so it survives the next compaction/session. (One-time nudge.)"
         )
-        print(json.dumps({"hookSpecificOutput": {
-            "hookEventName": "Stop", "additionalContext": msg}}))
+        print(
+            json.dumps(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "Stop",
+                        "additionalContext": msg,
+                    }
+                }
+            )
+        )
         _cs_record("nudge", "persist:durable-work", sid)
     except Exception:
         pass  # fail-open

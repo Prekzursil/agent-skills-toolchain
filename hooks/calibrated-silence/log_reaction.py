@@ -27,6 +27,7 @@ skipped, so the logger never classifies a fresh interjection as its own reaction
 of hook ordering. Inject-nothing, exit 0, FAIL-OPEN. Opt-out: CALSIL_REACTION=off or a
 `.disabled` file in this directory.
 """
+
 from __future__ import annotations
 
 import json
@@ -41,21 +42,54 @@ sys.path.insert(0, str(THIS))
 import calibrated_silence as cs  # noqa: E402
 
 DISABLED = THIS / ".disabled"
-REACTION_WINDOW = int(os.environ.get("CALSIL_REACTION_WINDOW", "1800"))  # stale cutoff (s)
-SELF_EPSILON = float(os.environ.get("CALSIL_SELF_EPSILON", "2.0"))       # this-turn guard (s)
+REACTION_WINDOW = int(
+    os.environ.get("CALSIL_REACTION_WINDOW", "1800")
+)  # stale cutoff (s)
+SELF_EPSILON = float(
+    os.environ.get("CALSIL_SELF_EPSILON", "2.0")
+)  # this-turn guard (s)
 SUBSTANTIVE_WORDS = int(os.environ.get("CALSIL_SUBSTANTIVE_WORDS", "5"))
 
 # Terse dismissal vocabulary (an EXTERNAL pushback signal).
-_DISMISS_TOKENS = frozenset((
-    "no", "nope", "nah", "stop", "dont", "skip", "cancel", "nvm", "ignore", "wrong", "quiet",
-))
-_DISMISS_PHRASES = frozenset((
-    "no thanks", "no thank you", "not now", "not right now", "no need", "never mind",
-    "forget it", "leave it", "drop it", "maybe later", "skip it", "stop it", "shut up",
-))
+_DISMISS_TOKENS = frozenset(
+    (
+        "no",
+        "nope",
+        "nah",
+        "stop",
+        "dont",
+        "skip",
+        "cancel",
+        "nvm",
+        "ignore",
+        "wrong",
+        "quiet",
+    )
+)
+_DISMISS_PHRASES = frozenset(
+    (
+        "no thanks",
+        "no thank you",
+        "not now",
+        "not right now",
+        "no need",
+        "never mind",
+        "forget it",
+        "leave it",
+        "drop it",
+        "maybe later",
+        "skip it",
+        "stop it",
+        "shut up",
+    )
+)
 
-_GIT_NOTE = re.compile(r"note\.py|write_note|basic[-_]memory[^\n]*(write|note)", re.IGNORECASE)
-_BM_WRITE = re.compile(r"mcp__basic-memory__(write_note|edit_note|create)", re.IGNORECASE)
+_GIT_NOTE = re.compile(
+    r"note\.py|write_note|basic[-_]memory[^\n]*(write|note)", re.IGNORECASE
+)
+_BM_WRITE = re.compile(
+    r"mcp__basic-memory__(write_note|edit_note|create)", re.IGNORECASE
+)
 
 
 # --------------------------------------------------------------------------- pure classifier
@@ -99,7 +133,9 @@ def _acted_via_tools(itype, context_key, tool_keys) -> bool:
         return True
     # a persistence nudge is "acted on" when durable memory actually got written
     if str(itype) == "nudge" or ck.startswith("persist"):
-        if any(k.startswith("mcp:basic-memory") or k == "memory:write" for k in tool_keys):
+        if any(
+            k.startswith("mcp:basic-memory") or k == "memory:write" for k in tool_keys
+        ):
             return True
     return False
 
@@ -143,8 +179,11 @@ def _user_text(ev):
     if isinstance(content, str):
         return content
     if isinstance(content, list):
-        texts = [b.get("text", "") for b in content
-                 if isinstance(b, dict) and b.get("type") == "text"]
+        texts = [
+            b.get("text", "")
+            for b in content
+            if isinstance(b, dict) and b.get("type") == "text"
+        ]
         joined = " ".join(t for t in texts if t).strip()
         return joined or None
     return None
@@ -187,7 +226,11 @@ def _keys_for(tool_name, tool_input):
         if _BM_WRITE.search(tn):
             keys.append("memory:write")
     elif tn in ("SlashCommand",) or tn.startswith("/"):
-        c = (tn.lstrip("/") if tn != "SlashCommand" else str(ti.get("command") or "")).strip().lstrip("/")
+        c = (
+            (tn.lstrip("/") if tn != "SlashCommand" else str(ti.get("command") or ""))
+            .strip()
+            .lstrip("/")
+        )
         if c:
             keys.append(f"command:{c.split()[0]}".lower())
     elif tn in ("Bash", "PowerShell"):
@@ -209,7 +252,7 @@ def turn_signals(transcript_path):
             last_idx = i
             last_text = t
     tool_keys = set()
-    for ev in events[last_idx + 1:]:
+    for ev in events[last_idx + 1 :]:
         for name, inp in _tool_uses(ev):
             for k in _keys_for(name, inp):
                 tool_keys.add(k)
@@ -217,7 +260,9 @@ def turn_signals(transcript_path):
 
 
 # --------------------------------------------------------------------------- write-back
-def apply_reactions(rows, session_id, reaction_text, tool_keys, *, stop_mode=False, now=None):
+def apply_reactions(
+    rows, session_id, reaction_text, tool_keys, *, stop_mode=False, now=None
+):
     """Pure write-back planner. Mutates and returns `rows` with newly-resolved reactions.
 
     stop_mode=True only upgrades unknown -> acted via tools (never ignored/annoyed), because
@@ -233,7 +278,7 @@ def apply_reactions(rows, session_id, reaction_text, tool_keys, *, stop_mode=Fal
             if str(row.get("session_id")) != sid:
                 continue
             ts = float(row.get("ts", 0))
-            if ts > now - SELF_EPSILON:   # recorded this same turn -> not a reaction yet
+            if ts > now - SELF_EPSILON:  # recorded this same turn -> not a reaction yet
                 continue
             itype = str(row.get("type") or "")
             ckey = str(row.get("context_key") or "")
@@ -242,7 +287,7 @@ def apply_reactions(rows, session_id, reaction_text, tool_keys, *, stop_mode=Fal
                     row["reaction"] = "acted"
                     changed += 1
                 continue
-            if now - ts > REACTION_WINDOW:   # stale and never engaged
+            if now - ts > REACTION_WINDOW:  # stale and never engaged
                 if _acted_via_tools(itype, ckey, tool_keys):
                     row["reaction"] = "acted"
                 else:
@@ -258,7 +303,9 @@ def apply_reactions(rows, session_id, reaction_text, tool_keys, *, stop_mode=Fal
 
 def main() -> int:
     try:
-        if DISABLED.exists() or os.environ.get("CALSIL_REACTION", "").strip().lower() in ("off", "0", "false"):
+        if DISABLED.exists() or os.environ.get(
+            "CALSIL_REACTION", ""
+        ).strip().lower() in ("off", "0", "false"):
             return 0
         try:
             data = json.loads(sys.stdin.read() or "{}")
@@ -276,13 +323,17 @@ def main() -> int:
             reaction_text = str(data.get("prompt") or "")
             stop_mode = False
         else:
-            reaction_text = last_text  # used only for the rare manual call; stop_mode ignores it
+            reaction_text = (
+                last_text  # used only for the rare manual call; stop_mode ignores it
+            )
             stop_mode = True
 
         rows = cs.read_rows()
         if not rows:
             return 0
-        rows, changed = apply_reactions(rows, sid, reaction_text, tool_keys, stop_mode=stop_mode)
+        rows, changed = apply_reactions(
+            rows, sid, reaction_text, tool_keys, stop_mode=stop_mode
+        )
         if changed:
             cs._atomic_write_rows(rows)
     except Exception:

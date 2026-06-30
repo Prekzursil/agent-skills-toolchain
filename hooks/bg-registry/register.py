@@ -28,6 +28,7 @@ Bash — only done when the artifact lands or the pid dies). done_marker.py uses
 FAIL-OPEN: any error -> exit 0, nothing written. Opt-out: BG_REGISTRY=off or a .disabled
 file. NEVER blocks and (in hook mode) NEVER injects — it is a silent recorder.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -43,7 +44,11 @@ DISABLED = THIS / ".disabled"
 
 
 def _disabled() -> bool:
-    return DISABLED.exists() or os.environ.get("BG_REGISTRY", "").lower() in ("off", "0", "false")
+    return DISABLED.exists() or os.environ.get("BG_REGISTRY", "").lower() in (
+        "off",
+        "0",
+        "false",
+    )
 
 
 def _excerpt(s, n: int = 200) -> str:
@@ -52,6 +57,7 @@ def _excerpt(s, n: int = 200) -> str:
 
 
 def _gen_id(seed: str, prefix: str) -> str:
+    # nosemgrep: python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1 -- non-cryptographic id generation (background-task slug), not a security control
     h = hashlib.sha1((seed + str(C.now())).encode("utf-8", "replace")).hexdigest()[:10]
     return f"{prefix}-{h}"
 
@@ -64,10 +70,16 @@ def build_task_record(data: dict) -> dict:
     sub = str(ti.get("subagent_type") or "")
     name = str(ti.get("name") or "")
     # A fork / explicitly-backgrounded sub-agent is async (no synchronous turn-end done).
-    is_async = (sub == "fork") or bool(ti.get("run_in_background")) or bool(ti.get("background"))
-    rid = (str(data.get("tool_use_id") or "").strip()
-           or name
-           or _gen_id(prompt + desc, sub or "task"))
+    is_async = (
+        (sub == "fork")
+        or bool(ti.get("run_in_background"))
+        or bool(ti.get("background"))
+    )
+    rid = (
+        str(data.get("tool_use_id") or "").strip()
+        or name
+        or _gen_id(prompt + desc, sub or "task")
+    )
     return {
         "id": rid,
         "kind": "Task",
@@ -96,6 +108,7 @@ def run_hook() -> int:
 
 def run_cli(argv) -> int:
     import argparse
+
     ap = argparse.ArgumentParser(prog="register.py", add_help=True)
     ap.add_argument("--id", default="")
     ap.add_argument("--kind", default="background")
@@ -104,8 +117,11 @@ def run_cli(argv) -> int:
     ap.add_argument("--scope", default=None)
     ap.add_argument("--cmd", default="")
     ap.add_argument("--session", default="cli")
-    ap.add_argument("--sync", action="store_true",
-                    help="mark as a synchronous job (done when the turn ends)")
+    ap.add_argument(
+        "--sync",
+        action="store_true",
+        help="mark as a synchronous job (done when the turn ends)",
+    )
     a = ap.parse_args(argv)
     try:
         pid = int(a.pid) if a.pid not in (None, "", "None") else None
@@ -126,8 +142,11 @@ def run_cli(argv) -> int:
     }
     ok = C.append_record(a.session, rec)
     # Terminal-state marker (AGENTS.md s4) so a launcher script can confirm wiring.
-    print(f"SUCCESS:bg-registry registered {rid}" if ok
-          else "FAILED:bg-registry could not write record")
+    print(
+        f"SUCCESS:bg-registry registered {rid}"
+        if ok
+        else "FAILED:bg-registry could not write record"
+    )
     return 0
 
 

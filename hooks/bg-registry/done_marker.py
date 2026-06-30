@@ -16,6 +16,7 @@ it is SILENT (never injects) and FAIL-OPEN. Opt-out: BG_REGISTRY=off or a .disab
 Without this marker, reconcile would later mistake a cleanly-finished synchronous
 sub-agent for an orphan — so this is what keeps the orphan alert HIGH-signal.
 """
+
 from __future__ import annotations
 
 import os
@@ -30,7 +31,11 @@ DISABLED = THIS / ".disabled"
 
 
 def _disabled() -> bool:
-    return DISABLED.exists() or os.environ.get("BG_REGISTRY", "").lower() in ("off", "0", "false")
+    return DISABLED.exists() or os.environ.get("BG_REGISTRY", "").lower() in (
+        "off",
+        "0",
+        "false",
+    )
 
 
 def compute_done(eff: dict) -> list:
@@ -41,9 +46,18 @@ def compute_done(eff: dict) -> list:
             continue
         art = rec.get("expected_artifact")
         if art and C.artifact_complete(art):
-            updates.append({"id": rid, "status": "done", "reason": "artifact", "done_ts": C.now()})
+            updates.append(
+                {"id": rid, "status": "done", "reason": "artifact", "done_ts": C.now()}
+            )
         elif rec.get("sync"):
-            updates.append({"id": rid, "status": "done", "reason": "turn-ended", "done_ts": C.now()})
+            updates.append(
+                {
+                    "id": rid,
+                    "status": "done",
+                    "reason": "turn-ended",
+                    "done_ts": C.now(),
+                }
+            )
     return updates
 
 

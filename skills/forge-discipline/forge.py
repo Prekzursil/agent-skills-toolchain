@@ -29,6 +29,7 @@ Design constraints honoured (mirrors the workspace's existing hooks):
     dispatcher handles exactly these and only ever exits 0. userpromptsubmit and
     every gate (exit 2) therefore install as standalone settings.json entries.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -46,7 +47,9 @@ THIS = Path(__file__).resolve().parent
 TEMPLATES = THIS / "templates"
 HOME = Path.home()
 HOOKS_ROOT = (HOME / ".claude" / "hooks").as_posix()
-DISPATCH_MANIFEST = (HOME / ".claude" / "hooks" / "_dispatch" / "manifest.json").as_posix()
+DISPATCH_MANIFEST = (
+    HOME / ".claude" / "hooks" / "_dispatch" / "manifest.json"
+).as_posix()
 SETTINGS_JSON = (HOME / ".claude" / "settings.json").as_posix()
 DEFAULT_QUEUE = HOME / ".claude" / "forge-queue"
 
@@ -69,15 +72,16 @@ KIND_FIELD = {
     "tool": "tool_name",
     "command": "tool_input.command",
     "prompt": "prompt",
-    "response": None,   # special: parsed from transcript_path
-    "field": None,      # caller supplies --trigger-field
-    "always": None,     # no predicate: always fires (inject only)
+    "response": None,  # special: parsed from transcript_path
+    "field": None,  # caller supplies --trigger-field
+    "always": None,  # no predicate: always fires (inject only)
 }
 
 
 # ---------------------------------------------------------------------------
 # Spec construction + validation
 # ---------------------------------------------------------------------------
+
 
 def env_off_token(name: str) -> str:
     """FORGE_<NAME>_OFF env opt-out token for the generated hook."""
@@ -142,25 +146,42 @@ def validate_spec(spec: dict) -> None:
     # The template renderer substitutes @@TOKEN@@ markers; a user value containing
     # '@@' could have an inner token rewritten on a later pass (corrupting the
     # emitted message and letting a chaos test pass on the wrong text). Forbid it.
-    for fld in ("name", "action", "trigger_regex", "trigger_field", "skill_description",
-                "fire_example", "silent_example", "matcher"):
+    for fld in (
+        "name",
+        "action",
+        "trigger_regex",
+        "trigger_field",
+        "skill_description",
+        "fire_example",
+        "silent_example",
+        "matcher",
+    ):
         val = spec.get(fld)
         if isinstance(val, str) and "@@" in val:
-            raise ValueError(f"{fld} may not contain '@@' (reserved template token delimiter)")
+            raise ValueError(
+                f"{fld} may not contain '@@' (reserved template token delimiter)"
+            )
 
     kind = spec.get("trigger_kind")
     if kind not in KIND_FIELD:
-        raise ValueError(f"trigger_kind must be one of {sorted(KIND_FIELD)}: got {kind!r}")
+        raise ValueError(
+            f"trigger_kind must be one of {sorted(KIND_FIELD)}: got {kind!r}"
+        )
 
     if spec["gates"]:
         if event not in GATE_EVENTS:
             raise ValueError(
                 f"gates=True requires a blocking event {sorted(GATE_EVENTS)}; "
-                f"{event} cannot block (exit-2 is meaningless there)")
+                f"{event} cannot block (exit-2 is meaningless there)"
+            )
         if kind == "always":
-            raise ValueError("gates=True with trigger_kind=always would block everything - refused")
+            raise ValueError(
+                "gates=True with trigger_kind=always would block everything - refused"
+            )
     if kind == "response" and event != "stop":
-        raise ValueError("trigger_kind=response reads the final assistant message - only valid on event=stop")
+        raise ValueError(
+            "trigger_kind=response reads the final assistant message - only valid on event=stop"
+        )
     if kind == "prompt" and event != "userpromptsubmit":
         raise ValueError("trigger_kind=prompt - only valid on event=userpromptsubmit")
     if kind == "field" and not spec.get("trigger_field"):
@@ -168,7 +189,9 @@ def validate_spec(spec: dict) -> None:
 
     desc = spec.get("skill_description") or ""
     if "<" in desc or ">" in desc:
-        raise ValueError("skill_description cannot contain angle brackets (skill-validator rule)")
+        raise ValueError(
+            "skill_description cannot contain angle brackets (skill-validator rule)"
+        )
 
     if kind != "always":
         regex = spec.get("trigger_regex")
@@ -181,20 +204,27 @@ def validate_spec(spec: dict) -> None:
             raise ValueError(f"trigger_regex does not compile: {exc}") from exc
         fire = spec.get("fire_example")
         if not fire:
-            raise ValueError("fire_example is required (a sample value the trigger SHOULD match) "
-                             "so the chaos self-test can prove the hook fires")
+            raise ValueError(
+                "fire_example is required (a sample value the trigger SHOULD match) "
+                "so the chaos self-test can prove the hook fires"
+            )
         if not pat.search(fire):
-            raise ValueError(f"fire_example {fire!r} does NOT match trigger_regex {regex!r} - "
-                             "the chaos test would be a lie; fix the example or the regex")
+            raise ValueError(
+                f"fire_example {fire!r} does NOT match trigger_regex {regex!r} - "
+                "the chaos test would be a lie; fix the example or the regex"
+            )
         silent = spec.get("silent_example") or ""
         if pat.search(silent):
-            raise ValueError(f"silent_example {silent!r} DOES match trigger_regex {regex!r} - "
-                             "the 'stays silent' test would fail; choose a non-matching example")
+            raise ValueError(
+                f"silent_example {silent!r} DOES match trigger_regex {regex!r} - "
+                "the 'stays silent' test would fail; choose a non-matching example"
+            )
 
 
 # ---------------------------------------------------------------------------
 # Derived spec fields
 # ---------------------------------------------------------------------------
+
 
 def resolved_field(spec: dict):
     """The dotted payload path the predicate reads (None for response/always)."""
@@ -221,6 +251,7 @@ def default_matcher(spec: dict):
 # ---------------------------------------------------------------------------
 # Template rendering ( @@TOKEN@@ replacement - safe inside Python regex/code )
 # ---------------------------------------------------------------------------
+
 
 def render(tmpl: str, mapping: dict) -> str:
     out = tmpl
@@ -253,11 +284,20 @@ def base_mapping(spec: dict) -> dict:
 # Fixtures (drive both the unit test and the chaos self-test)
 # ---------------------------------------------------------------------------
 
+
 def build_fixtures(spec: dict) -> dict:
     extra: dict = {}
-    if spec["trigger_kind"] in ("command", "tool") or spec["event"] in ("pretooluse", "posttooluse"):
-        extra["tool_name"] = "Bash" if spec["trigger_kind"] == "command" else (
-            spec.get("fire_example") if spec["trigger_kind"] == "tool" else "Bash")
+    if spec["trigger_kind"] in ("command", "tool") or spec["event"] in (
+        "pretooluse",
+        "posttooluse",
+    ):
+        extra["tool_name"] = (
+            "Bash"
+            if spec["trigger_kind"] == "command"
+            else (
+                spec.get("fire_example") if spec["trigger_kind"] == "tool" else "Bash"
+            )
+        )
     return {
         "name": spec["name"],
         "event": CANON[spec["event"]],
@@ -276,23 +316,32 @@ def build_fixtures(spec: dict) -> dict:
 # Scaffolding
 # ---------------------------------------------------------------------------
 
+
 def scaffold(spec: dict, work: Path) -> list[str]:
     work.mkdir(parents=True, exist_ok=True)
     m = base_mapping(spec)
     written: list[str] = []
 
     if spec["gates"]:
-        (work / "tripwire.py").write_text(render(load_tmpl("tripwire.py.tmpl"), m), encoding="utf-8")
-        (work / "hook.py").write_text(render(load_tmpl("hook_gate.py.tmpl"), m), encoding="utf-8")
+        (work / "tripwire.py").write_text(
+            render(load_tmpl("tripwire.py.tmpl"), m), encoding="utf-8"
+        )
+        (work / "hook.py").write_text(
+            render(load_tmpl("hook_gate.py.tmpl"), m), encoding="utf-8"
+        )
         written += ["tripwire.py", "hook.py"]
     else:
-        (work / "hook.py").write_text(render(load_tmpl("hook_inject.py.tmpl"), m), encoding="utf-8")
+        (work / "hook.py").write_text(
+            render(load_tmpl("hook_inject.py.tmpl"), m), encoding="utf-8"
+        )
         written += ["hook.py"]
 
     if spec["needs_state"]:
         schema = {
             "discipline": spec["name"],
-            "store": (HOME / ".claude" / "forge-state" / spec["name"] / "ledger.ndjson").as_posix(),
+            "store": (
+                HOME / ".claude" / "forge-state" / spec["name"] / "ledger.ndjson"
+            ).as_posix(),
             "format": "ndjson (one JSON object per line, append-only)",
             "record": {
                 "ts": "float - unix epoch when recorded",
@@ -302,20 +351,27 @@ def scaffold(spec: dict, work: Path) -> list[str]:
             },
             "purpose": "session-scoped dedup so the same matched item is surfaced at most once",
         }
-        (work / "state_schema.json").write_text(json.dumps(schema, indent=2), encoding="utf-8")
+        (work / "state_schema.json").write_text(
+            json.dumps(schema, indent=2), encoding="utf-8"
+        )
         written += ["state_schema.json"]
 
     if spec["has_procedure"]:
         desc = spec.get("skill_description") or (
             f"Companion procedure for the {spec['name']} discipline (forged hook). "
-            f"Use when the {spec['name']} hook fires and a manual follow-up is needed.")
+            f"Use when the {spec['name']} hook fires and a manual follow-up is needed."
+        )
         sm = dict(m)
         sm["SKILL_DESCRIPTION"] = desc.replace("<", "(").replace(">", ")")
         sm["ACTION_PLAIN"] = spec["action"]
-        (work / "SKILL.md").write_text(render(load_tmpl("skill_stub.md.tmpl"), sm), encoding="utf-8")
+        (work / "SKILL.md").write_text(
+            render(load_tmpl("skill_stub.md.tmpl"), sm), encoding="utf-8"
+        )
         written += ["SKILL.md"]
 
-    (work / "fixtures.json").write_text(json.dumps(build_fixtures(spec), indent=2), encoding="utf-8")
+    (work / "fixtures.json").write_text(
+        json.dumps(build_fixtures(spec), indent=2), encoding="utf-8"
+    )
     (work / "spec.json").write_text(json.dumps(spec, indent=2), encoding="utf-8")
     written += ["fixtures.json", "spec.json"]
     return written
@@ -344,8 +400,14 @@ def run_script(path: Path) -> tuple[bool, str]:
     try:
         res = subprocess.run(
             [sys.executable, str(path)],
-            cwd=str(path.parent), capture_output=True, text=True,
-            encoding="utf-8", errors="replace", timeout=120, env=env)
+            cwd=str(path.parent),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=120,
+            env=env,
+        )
     except Exception as exc:  # pragma: no cover - subprocess launch failure
         return False, f"subprocess failed to launch: {exc}"
     out = (res.stdout or "") + (res.stderr or "")
@@ -355,6 +417,7 @@ def run_script(path: Path) -> tuple[bool, str]:
 # ---------------------------------------------------------------------------
 # Install-line computation + queue promotion
 # ---------------------------------------------------------------------------
+
 
 def fold_target(spec: dict) -> str:
     """'manifest' (one-line dispatcher fold) or 'settings' (standalone entry)."""
@@ -384,12 +447,14 @@ def install_block(spec: dict) -> tuple[str, str]:
 
     entry = {
         "matcher": default_matcher(spec) or ".*",
-        "hooks": [{
-            "type": "command",
-            "command": f'python "{hook_path}"',
-            "timeout": 8,
-            "statusMessage": f"{name} ({'tripwire' if spec['gates'] else 'inject'})",
-        }],
+        "hooks": [
+            {
+                "type": "command",
+                "command": f'python "{hook_path}"',
+                "timeout": 8,
+                "statusMessage": f"{name} ({'tripwire' if spec['gates'] else 'inject'})",
+            }
+        ],
     }
     return target, json.dumps(entry)
 
@@ -406,20 +471,28 @@ def write_install_md(spec: dict, work: Path, selftest_output: str) -> None:
     if target == "manifest":
         extra = ""
         if spec["event"] in ("pretooluse", "posttooluse"):
-            extra = (f"\n   NOTE: also confirm the dispatcher's settings.json `{canon}` matcher "
-                     f"covers this tool, or the event never reaches the dispatcher.")
-        step2 = (f"2. Add this ONE line to the `checks` array under `events.{canon}` in:\n"
-                 f"      {DISPATCH_MANIFEST}\n\n"
-                 f"      {one_liner}\n{extra}")
+            extra = (
+                f"\n   NOTE: also confirm the dispatcher's settings.json `{canon}` matcher "
+                f"covers this tool, or the event never reaches the dispatcher."
+            )
+        step2 = (
+            f"2. Add this ONE line to the `checks` array under `events.{canon}` in:\n"
+            f"      {DISPATCH_MANIFEST}\n\n"
+            f"      {one_liner}\n{extra}"
+        )
     else:
-        step2 = (f"2. Add this hook object to the `\"{canon}\"` array under `\"hooks\"` in:\n"
-                 f"      {SETTINGS_JSON}\n\n"
-                 f"      {one_liner}")
+        step2 = (
+            f'2. Add this hook object to the `"{canon}"` array under `"hooks"` in:\n'
+            f"      {SETTINGS_JSON}\n\n"
+            f"      {one_liner}"
+        )
     m["STEP2"] = step2
     m["TARGET"] = target
     m["SELFTEST_OUTPUT"] = selftest_output
     m["ENV_OFF"] = env_off_token(name)
-    (work / "INSTALL.md").write_text(render(load_tmpl("INSTALL.md.tmpl"), m), encoding="utf-8")
+    (work / "INSTALL.md").write_text(
+        render(load_tmpl("INSTALL.md.tmpl"), m), encoding="utf-8"
+    )
 
 
 def promote(work: Path, queue_dir: Path, name: str) -> Path:
@@ -438,7 +511,10 @@ def promote(work: Path, queue_dir: Path, name: str) -> Path:
 # Orchestration
 # ---------------------------------------------------------------------------
 
-def forge(spec: dict, queue_dir: Path, dry_run: bool = False, keep_work: bool = False) -> dict:
+
+def forge(
+    spec: dict, queue_dir: Path, dry_run: bool = False, keep_work: bool = False
+) -> dict:
     validate_spec(spec)
     work = Path(tempfile.mkdtemp(prefix=f"forge-{spec['name']}-"))
     result: dict = {"name": spec["name"], "work": str(work)}
@@ -448,19 +524,25 @@ def forge(spec: dict, queue_dir: Path, dry_run: bool = False, keep_work: bool = 
 
         unit_ok, unit_out = run_script(test_path)
         chaos_ok, chaos_out = run_script(chaos_path)
-        result.update({
-            "artifacts": artifacts,
-            "unit_ok": unit_ok, "unit_out": unit_out,
-            "chaos_ok": chaos_ok, "chaos_out": chaos_out,
-        })
+        result.update(
+            {
+                "artifacts": artifacts,
+                "unit_ok": unit_ok,
+                "unit_out": unit_out,
+                "chaos_ok": chaos_ok,
+                "chaos_out": chaos_out,
+            }
+        )
 
         selftest_report = (
             f"unit test : {'PASS' if unit_ok else 'FAIL'}\n{unit_out}\n\n"
-            f"chaos test: {'PASS' if chaos_ok else 'FAIL'}\n{chaos_out}\n")
+            f"chaos test: {'PASS' if chaos_ok else 'FAIL'}\n{chaos_out}\n"
+        )
         (work / "SELFTEST-RESULT.txt").write_text(
             f"discipline: {spec['name']}\nforged: {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
             f"verdict: {'PASS' if (unit_ok and chaos_ok) else 'FAIL'}\n\n{selftest_report}",
-            encoding="utf-8")
+            encoding="utf-8",
+        )
 
         passed = unit_ok and chaos_ok
         result["passed"] = passed
@@ -489,25 +571,63 @@ def forge(spec: dict, queue_dir: Path, dry_run: bool = False, keep_work: bool = 
 def _parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="forge.py",
-        description="Forge a named behavioral pattern into a self-tested, review-queued discipline (hook).")
+        description="Forge a named behavioral pattern into a self-tested, review-queued discipline (hook).",
+    )
     p.add_argument("--name", help="hyphen-case discipline name")
     p.add_argument("--event", choices=sorted(CANON), help="hook event")
-    p.add_argument("--action", help="inject message (may contain {count}) or block reason for a gate")
-    p.add_argument("--trigger-kind", choices=sorted(KIND_FIELD), help="how the predicate reads its source")
+    p.add_argument(
+        "--action",
+        help="inject message (may contain {count}) or block reason for a gate",
+    )
+    p.add_argument(
+        "--trigger-kind",
+        choices=sorted(KIND_FIELD),
+        help="how the predicate reads its source",
+    )
     p.add_argument("--trigger-regex", help="regex the source must match to fire")
     p.add_argument("--trigger-field", help="dotted payload path (trigger-kind=field)")
-    p.add_argument("--fire-example", help="a sample source value the trigger SHOULD match")
-    p.add_argument("--silent-example", help="a sample source value the trigger must NOT match")
-    p.add_argument("--matcher", help="tool_name matcher for the install line (pre/post-tool)")
-    p.add_argument("--skill-description", help="description for the SKILL stub (no angle brackets)")
-    p.add_argument("--needs-state", action="store_true", help="scaffold a state/ledger schema + session dedup")
-    p.add_argument("--gates", action="store_true", help="forge a blocking tripwire (exit-2 path)")
-    p.add_argument("--has-procedure", action="store_true", help="emit a companion SKILL stub")
-    p.add_argument("--case-sensitive", action="store_true", help="compile the trigger regex case-sensitively")
-    p.add_argument("--queue-dir", default=str(DEFAULT_QUEUE), help="review-queue root (default ~/.claude/forge-queue)")
+    p.add_argument(
+        "--fire-example", help="a sample source value the trigger SHOULD match"
+    )
+    p.add_argument(
+        "--silent-example", help="a sample source value the trigger must NOT match"
+    )
+    p.add_argument(
+        "--matcher", help="tool_name matcher for the install line (pre/post-tool)"
+    )
+    p.add_argument(
+        "--skill-description", help="description for the SKILL stub (no angle brackets)"
+    )
+    p.add_argument(
+        "--needs-state",
+        action="store_true",
+        help="scaffold a state/ledger schema + session dedup",
+    )
+    p.add_argument(
+        "--gates", action="store_true", help="forge a blocking tripwire (exit-2 path)"
+    )
+    p.add_argument(
+        "--has-procedure", action="store_true", help="emit a companion SKILL stub"
+    )
+    p.add_argument(
+        "--case-sensitive",
+        action="store_true",
+        help="compile the trigger regex case-sensitively",
+    )
+    p.add_argument(
+        "--queue-dir",
+        default=str(DEFAULT_QUEUE),
+        help="review-queue root (default ~/.claude/forge-queue)",
+    )
     p.add_argument("--spec", help="JSON spec file; explicit flags override its keys")
-    p.add_argument("--dry-run", action="store_true", help="scaffold + self-test in a temp dir; do NOT promote")
-    p.add_argument("--keep-work", action="store_true", help="keep the temp work dir for inspection")
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="scaffold + self-test in a temp dir; do NOT promote",
+    )
+    p.add_argument(
+        "--keep-work", action="store_true", help="keep the temp work dir for inspection"
+    )
     p.add_argument("--json", action="store_true", help="emit the result as JSON")
     return p
 
@@ -516,12 +636,16 @@ def main(argv=None) -> int:
     args = _parser().parse_args(argv)
     try:
         spec = build_spec(args)
-        result = forge(spec, Path(args.queue_dir), dry_run=args.dry_run, keep_work=args.keep_work)
+        result = forge(
+            spec, Path(args.queue_dir), dry_run=args.dry_run, keep_work=args.keep_work
+        )
     except ValueError as exc:
         print(f"FAILED:{getattr(args, 'name', None) or '?'} spec rejected - {exc}")
         return 1
     except Exception as exc:  # pragma: no cover - unexpected
-        print(f"FAILED:{getattr(args, 'name', None) or '?'} {type(exc).__name__}: {exc}")
+        print(
+            f"FAILED:{getattr(args, 'name', None) or '?'} {type(exc).__name__}: {exc}"
+        )
         return 1
 
     if args.json:
@@ -533,12 +657,16 @@ def main(argv=None) -> int:
         if not result.get("passed"):
             print("\n--- chaos output ---")
             print(result.get("chaos_out", ""))
-            print(f"\nFAILED:{name} self-test did not pass - nothing promoted to the queue")
+            print(
+                f"\nFAILED:{name} self-test did not pass - nothing promoted to the queue"
+            )
             return 1
         if result.get("promoted"):
             print(f"\nqueued     : {result['promoted']}")
             print(f"install via: ({result['target']}) {result['install_line']}")
-            print(f"\nSUCCESS:{name} forged + self-tested; staged for review (NOT auto-wired)")
+            print(
+                f"\nSUCCESS:{name} forged + self-tested; staged for review (NOT auto-wired)"
+            )
         else:
             print(f"\nSUCCESS:{name} forged + self-tested (dry-run; not promoted)")
     return 0

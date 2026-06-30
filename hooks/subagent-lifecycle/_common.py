@@ -3,6 +3,7 @@
 Stdlib-only. Fail-open: every exported function silently absorbs exceptions.
 Never raises; never blocks; never writes to disk on error.
 """
+
 from __future__ import annotations
 
 import json
@@ -33,6 +34,7 @@ STATE_ROOT: Path = Path(
 # Opt-out
 # ---------------------------------------------------------------------------
 
+
 def is_opted_out() -> bool:
     """Return True iff this hook should be silenced.
 
@@ -40,14 +42,17 @@ def is_opted_out() -> bool:
       1. A `.disabled` file next to this module.
       2. SUBAGENT_LIFECYCLE env var set to 'off', '0', or 'false'.
     """
-    return DISABLED.exists() or os.environ.get(
-        "SUBAGENT_LIFECYCLE", ""
-    ).lower() in ("off", "0", "false")
+    return DISABLED.exists() or os.environ.get("SUBAGENT_LIFECYCLE", "").lower() in (
+        "off",
+        "0",
+        "false",
+    )
 
 
 # ---------------------------------------------------------------------------
 # Goal retrieval from the event ledger
 # ---------------------------------------------------------------------------
+
 
 def get_goal(cwd: str) -> str | None:
     """Return the active goal text for *cwd* from the event-ledger, or None.
@@ -59,6 +64,7 @@ def get_goal(cwd: str) -> str | None:
         if _LEDGER_DIR not in sys.path:
             sys.path.insert(0, _LEDGER_DIR)
         import ledger  # noqa: PLC0415 — local import; ledger is stdlib-only
+
         st = ledger.state(str(cwd))
         return (st or {}).get("goal")
     except Exception:
@@ -68,6 +74,7 @@ def get_goal(cwd: str) -> str | None:
 # ---------------------------------------------------------------------------
 # Output formatting
 # ---------------------------------------------------------------------------
+
 
 def emit_context(
     event_name: str,
@@ -102,12 +109,12 @@ def emit_context(
 # Result-contract sidecar helpers
 # ---------------------------------------------------------------------------
 
+
 def _safe_key(session_id: str, agent_type: str) -> str:
     """Windows-safe filename segment from session_id + agent_type."""
     raw = f"{session_id}-{agent_type}"
     return (
-        "".join(c if c.isalnum() or c in "-_." else "-" for c in raw)[:80]
-        or "default"
+        "".join(c if c.isalnum() or c in "-_." else "-" for c in raw)[:80] or "default"
     )
 
 
@@ -119,9 +126,7 @@ def load_contract(session_id: str, agent_type: str) -> dict | None:
         STATE_ROOT/contracts/<safe_key>.json
     """
     try:
-        path = (
-            STATE_ROOT / "contracts" / f"{_safe_key(session_id, agent_type)}.json"
-        )
+        path = STATE_ROOT / "contracts" / f"{_safe_key(session_id, agent_type)}.json"
         if path.exists():
             return json.loads(path.read_text(encoding="utf-8"))
     except Exception:
@@ -147,7 +152,9 @@ def load_retries(session_id: str, agent_type: str, spawn_id: str = "") -> dict:
     return {}
 
 
-def save_retries(session_id: str, agent_type: str, state: dict, spawn_id: str = "") -> None:
+def save_retries(
+    session_id: str, agent_type: str, state: dict, spawn_id: str = ""
+) -> None:
     """Persist retry-counter state (best-effort; silently ignored on error).
 
     spawn_id mirrors load_retries — use the same value for a consistent key.

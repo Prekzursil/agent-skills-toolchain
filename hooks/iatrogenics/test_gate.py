@@ -15,6 +15,7 @@ Covers:
   - opt-out (env + .disabled)
   - L4 size cap (huge command does not hang/crash)
 """
+
 from __future__ import annotations
 
 import json
@@ -33,7 +34,10 @@ HOOK = str(HERE / "gate.py")
 # Helpers
 # ---------------------------------------------------------------------------
 
-def run_hook(payload: dict, env_extra: dict | None = None, timeout: int = 15) -> tuple[int, str, str]:
+
+def run_hook(
+    payload: dict, env_extra: dict | None = None, timeout: int = 15
+) -> tuple[int, str, str]:
     env = dict(os.environ)
     if env_extra:
         env.update(env_extra)
@@ -77,14 +81,18 @@ def _make_suppressing_ledger(path: Path, itype: str, count: int = 10) -> None:
     rows = []
     base_ts = time.time() - count * 120  # space them 2 min apart
     for i in range(count):
-        rows.append(json.dumps({
-            "ts": base_ts + i * 120,
-            "type": itype,
-            "context_key": f"test_{i}",
-            "session_id": "ledger-test",
-            "surfaced": True,
-            "reaction": "ignored",
-        }))
+        rows.append(
+            json.dumps(
+                {
+                    "ts": base_ts + i * 120,
+                    "type": itype,
+                    "context_key": f"test_{i}",
+                    "session_id": "ledger-test",
+                    "surfaced": True,
+                    "reaction": "ignored",
+                }
+            )
+        )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(rows) + "\n", encoding="utf-8")
 
@@ -93,13 +101,17 @@ def _make_suppressing_ledger(path: Path, itype: str, count: int = 10) -> None:
 # No-trigger: reversible actions
 # ---------------------------------------------------------------------------
 
+
 class TestNoTrigger:
     def test_reversible_bash_ls(self, tmp_path):
         """Plain 'ls -la' — reversible, no inject."""
         env = {"IATROGENICS_COUNTER_DIR": str(tmp_path)}
         rc, out, _ = run_hook(
-            {"tool_name": "Bash", "tool_input": {"command": "ls -la"},
-             "session_id": "rev-ls"},
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": "ls -la"},
+                "session_id": "rev-ls",
+            },
             env_extra=env,
         )
         assert rc == 0
@@ -109,8 +121,11 @@ class TestNoTrigger:
         """'git status' — read-only, no inject."""
         env = {"IATROGENICS_COUNTER_DIR": str(tmp_path)}
         rc, out, _ = run_hook(
-            {"tool_name": "Bash", "tool_input": {"command": "git status"},
-             "session_id": "rev-git"},
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": "git status"},
+                "session_id": "rev-git",
+            },
             env_extra=env,
         )
         assert rc == 0
@@ -120,8 +135,11 @@ class TestNoTrigger:
         """'rm somefile' without -f / -r — not matched by irreversible heuristic."""
         env = {"IATROGENICS_COUNTER_DIR": str(tmp_path)}
         rc, out, _ = run_hook(
-            {"tool_name": "Bash", "tool_input": {"command": "rm somefile.txt"},
-             "session_id": "rev-rm"},
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": "rm somefile.txt"},
+                "session_id": "rev-rm",
+            },
             env_extra=env,
         )
         assert rc == 0
@@ -131,10 +149,15 @@ class TestNoTrigger:
         """Edit to a normal source file — reversible (git-tracked), no inject."""
         env = {"IATROGENICS_COUNTER_DIR": str(tmp_path)}
         rc, out, _ = run_hook(
-            {"tool_name": "Edit",
-             "tool_input": {"file_path": "/home/user/project/src/main.py",
-                            "old_string": "x = 1", "new_string": "x = 2"},
-             "session_id": "rev-edit"},
+            {
+                "tool_name": "Edit",
+                "tool_input": {
+                    "file_path": "/home/user/project/src/main.py",
+                    "old_string": "x = 1",
+                    "new_string": "x = 2",
+                },
+                "session_id": "rev-edit",
+            },
             env_extra=env,
         )
         assert rc == 0
@@ -144,9 +167,11 @@ class TestNoTrigger:
         """mcp__frida-mcp__enumerate_processes — read-only, no inject."""
         env = {"IATROGENICS_COUNTER_DIR": str(tmp_path)}
         rc, out, _ = run_hook(
-            {"tool_name": "mcp__frida-mcp__enumerate_processes",
-             "tool_input": {},
-             "session_id": "rev-frida"},
+            {
+                "tool_name": "mcp__frida-mcp__enumerate_processes",
+                "tool_input": {},
+                "session_id": "rev-frida",
+            },
             env_extra=env,
         )
         assert rc == 0
@@ -157,14 +182,21 @@ class TestNoTrigger:
 # MCP tool triggers: fire on first occurrence (no first-occurrence skip)
 # ---------------------------------------------------------------------------
 
+
 class TestMcpToolTrigger:
     def test_cheatengine_write_integer_first_occurrence(self, tmp_path):
         """mcp__cheatengine__write_integer fires on occurrence #1 (MCP → immediate advisory)."""
         env = {"IATROGENICS_COUNTER_DIR": str(tmp_path), "CALIBRATED_SILENCE": "off"}
         rc, out, _ = run_hook(
-            {"tool_name": "mcp__cheatengine__write_integer",
-             "tool_input": {"address": "0x12345678", "value": 9999, "type": "4bytes"},
-             "session_id": "irr-ce1"},
+            {
+                "tool_name": "mcp__cheatengine__write_integer",
+                "tool_input": {
+                    "address": "0x12345678",
+                    "value": 9999,
+                    "type": "4bytes",
+                },
+                "session_id": "irr-ce1",
+            },
             env_extra=env,
         )
         assert rc == 0
@@ -176,9 +208,11 @@ class TestMcpToolTrigger:
         """mcp__cheatengine__auto_assemble fires on first occurrence."""
         env = {"IATROGENICS_COUNTER_DIR": str(tmp_path), "CALIBRATED_SILENCE": "off"}
         rc, out, _ = run_hook(
-            {"tool_name": "mcp__cheatengine__auto_assemble",
-             "tool_input": {"script": "mov [rax],1"},
-             "session_id": "irr-ce2"},
+            {
+                "tool_name": "mcp__cheatengine__auto_assemble",
+                "tool_input": {"script": "mov [rax],1"},
+                "session_id": "irr-ce2",
+            },
             env_extra=env,
         )
         assert rc == 0
@@ -188,10 +222,14 @@ class TestMcpToolTrigger:
         """mcp__frida-mcp__execute_in_session fires on first occurrence."""
         env = {"IATROGENICS_COUNTER_DIR": str(tmp_path), "CALIBRATED_SILENCE": "off"}
         rc, out, _ = run_hook(
-            {"tool_name": "mcp__frida-mcp__execute_in_session",
-             "tool_input": {"session_id": "s1",
-                            "script": "Memory.writeU8(ptr('0x1000'), 0)"},
-             "session_id": "irr-frida"},
+            {
+                "tool_name": "mcp__frida-mcp__execute_in_session",
+                "tool_input": {
+                    "session_id": "s1",
+                    "script": "Memory.writeU8(ptr('0x1000'), 0)",
+                },
+                "session_id": "irr-frida",
+            },
             env_extra=env,
         )
         assert rc == 0
@@ -201,9 +239,11 @@ class TestMcpToolTrigger:
         """mcp__frida-mcp__spawn_process fires on first occurrence."""
         env = {"IATROGENICS_COUNTER_DIR": str(tmp_path), "CALIBRATED_SILENCE": "off"}
         rc, out, _ = run_hook(
-            {"tool_name": "mcp__frida-mcp__spawn_process",
-             "tool_input": {"program": "/usr/bin/target"},
-             "session_id": "irr-spawn"},
+            {
+                "tool_name": "mcp__frida-mcp__spawn_process",
+                "tool_input": {"program": "/usr/bin/target"},
+                "session_id": "irr-spawn",
+            },
             env_extra=env,
         )
         assert rc == 0
@@ -214,13 +254,17 @@ class TestMcpToolTrigger:
 # Bash command triggers: SILENT on #1, fire from #2
 # ---------------------------------------------------------------------------
 
+
 class TestBashCmdTrigger:
     def test_bash_rm_rf_silent_on_first_occurrence(self, tmp_path):
         """'rm -rf' on first occurrence is SILENT — first use is likely intentional."""
         env = {"IATROGENICS_COUNTER_DIR": str(tmp_path)}
         rc, out, _ = run_hook(
-            {"tool_name": "Bash", "tool_input": {"command": "rm -rf /tmp/testdir"},
-             "session_id": "irr-rm-1st"},
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": "rm -rf /tmp/testdir"},
+                "session_id": "irr-rm-1st",
+            },
             env_extra=env,
         )
         assert rc == 0
@@ -228,8 +272,11 @@ class TestBashCmdTrigger:
 
     def test_bash_rm_rf_fires_on_second_occurrence(self, tmp_path):
         """'rm -rf' fires on the SECOND occurrence (recurrence established)."""
-        env = {"IATROGENICS_COUNTER_DIR": str(tmp_path), "IATROGENICS_K": "3",
-               "CALIBRATED_SILENCE": "off"}
+        env = {
+            "IATROGENICS_COUNTER_DIR": str(tmp_path),
+            "IATROGENICS_K": "3",
+            "CALIBRATED_SILENCE": "off",
+        }
         payload = {
             "tool_name": "Bash",
             "tool_input": {"command": "rm -rf /tmp/testdir"},
@@ -251,8 +298,11 @@ class TestBashCmdTrigger:
         """'rm -f' first occurrence is silent."""
         env = {"IATROGENICS_COUNTER_DIR": str(tmp_path)}
         rc, out, _ = run_hook(
-            {"tool_name": "Bash", "tool_input": {"command": "rm -f /tmp/lock.pid"},
-             "session_id": "irr-rmf"},
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": "rm -f /tmp/lock.pid"},
+                "session_id": "irr-rmf",
+            },
             env_extra=env,
         )
         assert rc == 0
@@ -262,9 +312,11 @@ class TestBashCmdTrigger:
         """'git reset --hard' first occurrence is silent."""
         env = {"IATROGENICS_COUNTER_DIR": str(tmp_path)}
         rc, out, _ = run_hook(
-            {"tool_name": "Bash",
-             "tool_input": {"command": "git reset --hard HEAD~1"},
-             "session_id": "irr-gitreset"},
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": "git reset --hard HEAD~1"},
+                "session_id": "irr-gitreset",
+            },
             env_extra=env,
         )
         assert rc == 0
@@ -274,9 +326,11 @@ class TestBashCmdTrigger:
         """'git push --force' first occurrence is silent."""
         env = {"IATROGENICS_COUNTER_DIR": str(tmp_path)}
         rc, out, _ = run_hook(
-            {"tool_name": "Bash",
-             "tool_input": {"command": "git push origin main --force"},
-             "session_id": "irr-gitpush"},
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": "git push origin main --force"},
+                "session_id": "irr-gitpush",
+            },
             env_extra=env,
         )
         assert rc == 0
@@ -286,9 +340,11 @@ class TestBashCmdTrigger:
         """mitmdump first occurrence is silent."""
         env = {"IATROGENICS_COUNTER_DIR": str(tmp_path)}
         rc, out, _ = run_hook(
-            {"tool_name": "Bash",
-             "tool_input": {"command": "mitmdump -s bc_inject.py -p 8080"},
-             "session_id": "irr-mitm"},
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": "mitmdump -s bc_inject.py -p 8080"},
+                "session_id": "irr-mitm",
+            },
             env_extra=env,
         )
         assert rc == 0
@@ -296,8 +352,11 @@ class TestBashCmdTrigger:
 
     def test_inject_occurrence_info_on_second_call(self, tmp_path):
         """Advisory on second Bash occurrence must state the occurrence number."""
-        env = {"IATROGENICS_COUNTER_DIR": str(tmp_path), "IATROGENICS_K": "3",
-               "CALIBRATED_SILENCE": "off"}
+        env = {
+            "IATROGENICS_COUNTER_DIR": str(tmp_path),
+            "IATROGENICS_K": "3",
+            "CALIBRATED_SILENCE": "off",
+        }
         payload = {
             "tool_name": "Bash",
             "tool_input": {"command": "rm -rf /tmp/d"},
@@ -317,13 +376,17 @@ class TestBashCmdTrigger:
 # Counter mechanics
 # ---------------------------------------------------------------------------
 
+
 class TestCounterMechanics:
     def test_bash_cmd_silences_after_k_plus_one_total(self, tmp_path):
         """For Bash commands: first occurrence is silent; fires K-1 times in K runs;
         the run after K total calls is also silent (count >= K)."""
         k = 3
-        env = {"IATROGENICS_COUNTER_DIR": str(tmp_path), "IATROGENICS_K": str(k),
-               "CALIBRATED_SILENCE": "off"}
+        env = {
+            "IATROGENICS_COUNTER_DIR": str(tmp_path),
+            "IATROGENICS_K": str(k),
+            "CALIBRATED_SILENCE": "off",
+        }
         payload = {
             "tool_name": "Bash",
             "tool_input": {"command": "rm -rf /tmp/counter_test_dir"},
@@ -349,19 +412,26 @@ class TestCounterMechanics:
     def test_different_targets_independent_counters(self, tmp_path):
         """Two different targets have independent counters."""
         k = 2
-        env = {"IATROGENICS_COUNTER_DIR": str(tmp_path), "IATROGENICS_K": str(k),
-               "CALIBRATED_SILENCE": "off"}
+        env = {
+            "IATROGENICS_COUNTER_DIR": str(tmp_path),
+            "IATROGENICS_K": str(k),
+            "CALIBRATED_SILENCE": "off",
+        }
         sess = "multi-target"
-        payload_a = {"tool_name": "Bash",
-                     "tool_input": {"command": "rm -rf /tmp/target_a"},
-                     "session_id": sess}
-        payload_b = {"tool_name": "Bash",
-                     "tool_input": {"command": "rm -rf /tmp/target_b"},
-                     "session_id": sess}
+        payload_a = {
+            "tool_name": "Bash",
+            "tool_input": {"command": "rm -rf /tmp/target_a"},
+            "session_id": sess,
+        }
+        payload_b = {
+            "tool_name": "Bash",
+            "tool_input": {"command": "rm -rf /tmp/target_b"},
+            "session_id": sess,
+        }
 
         # Exhaust target_a: call1=silent, call2=fire, call3=silent (count>=K)
-        run_hook(payload_a, env_extra=env)   # call 1: count=0, silent
-        run_hook(payload_a, env_extra=env)   # call 2: count=1, fires
+        run_hook(payload_a, env_extra=env)  # call 1: count=0, silent
+        run_hook(payload_a, env_extra=env)  # call 2: count=1, fires
         rc, out, _ = run_hook(payload_a, env_extra=env)  # call 3: count=2>=K, silent
         assert not fired(out)  # exhausted
 
@@ -377,10 +447,12 @@ class TestCounterMechanics:
 
     def test_counter_auto_clears_after_ttl(self, tmp_path):
         """Counter file older than TTL is discarded; MCP tool advisory fires again."""
-        env = {"IATROGENICS_COUNTER_DIR": str(tmp_path),
-               "IATROGENICS_K": "1",
-               "IATROGENICS_TTL_HOURS": "0.0001",  # ~0.36 seconds
-               "CALIBRATED_SILENCE": "off"}
+        env = {
+            "IATROGENICS_COUNTER_DIR": str(tmp_path),
+            "IATROGENICS_K": "1",
+            "IATROGENICS_TTL_HOURS": "0.0001",  # ~0.36 seconds
+            "CALIBRATED_SILENCE": "off",
+        }
         # Use an MCP tool (fires on first occurrence, unaffected by cmd-triggered skip)
         payload = {
             "tool_name": "mcp__cheatengine__write_integer",
@@ -408,6 +480,7 @@ class TestCounterMechanics:
 # Calibrated-silence gate
 # ---------------------------------------------------------------------------
 
+
 class TestCalibratedSilenceGate:
     def test_cs_does_not_suppress_distinct_high_severity(self, tmp_path):
         """SAFETY: a DISTINCT high-severity advisory (model-initiated memory write /
@@ -422,9 +495,11 @@ class TestCalibratedSilenceGate:
         }
         # MCP tool first occurrence = DISTINCT high-severity → bypasses CS → fires.
         rc, out, _ = run_hook(
-            {"tool_name": "mcp__cheatengine__write_integer",
-             "tool_input": {"address": "0x1000", "value": 0},
-             "session_id": "cs-distinct-highsev"},
+            {
+                "tool_name": "mcp__cheatengine__write_integer",
+                "tool_input": {"address": "0x1000", "value": 0},
+                "session_id": "cs-distinct-highsev",
+            },
             env_extra=env,
         )
         assert rc == 0
@@ -440,9 +515,11 @@ class TestCalibratedSilenceGate:
             "CALSIL_LEDGER_PATH": str(ledger),
             "CALIBRATED_SILENCE": "",
         }
-        payload = {"tool_name": "mcp__cheatengine__write_integer",
-                   "tool_input": {"address": "0x1000", "value": 0},
-                   "session_id": "cs-repeat-highsev"}
+        payload = {
+            "tool_name": "mcp__cheatengine__write_integer",
+            "tool_input": {"address": "0x1000", "value": 0},
+            "session_id": "cs-repeat-highsev",
+        }
         # 1st occurrence: distinct → bypass CS → fires.
         rc, out, _ = run_hook(payload, env_extra=env)
         assert rc == 0
@@ -459,9 +536,11 @@ class TestCalibratedSilenceGate:
             "CALIBRATED_SILENCE": "off",
         }
         rc, out, _ = run_hook(
-            {"tool_name": "mcp__cheatengine__write_integer",
-             "tool_input": {"address": "0x1000", "value": 0},
-             "session_id": "cs-off-test"},
+            {
+                "tool_name": "mcp__cheatengine__write_integer",
+                "tool_input": {"address": "0x1000", "value": 0},
+                "session_id": "cs-off-test",
+            },
             env_extra=env,
         )
         assert rc == 0
@@ -494,14 +573,18 @@ class TestCalibratedSilenceGate:
 # L4: input-size cap
 # ---------------------------------------------------------------------------
 
+
 class TestInputSizeCap:
     def test_huge_command_does_not_hang(self, tmp_path):
         """A command >256KB does not cause a hang or crash (size cap applied)."""
         env = {"IATROGENICS_COUNTER_DIR": str(tmp_path)}
         huge_cmd = "ls " + "x" * (300 * 1024)  # ~300KB
         rc, out, err = run_hook(
-            {"tool_name": "Bash", "tool_input": {"command": huge_cmd},
-             "session_id": "size-cap-test"},
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": huge_cmd},
+                "session_id": "size-cap-test",
+            },
             env_extra=env,
             timeout=10,
         )
@@ -515,8 +598,11 @@ class TestInputSizeCap:
         padding = "x" * (256 * 1024 + 100)
         cmd = padding + " rm -rf /tmp/late"
         rc, out, _ = run_hook(
-            {"tool_name": "Bash", "tool_input": {"command": cmd},
-             "session_id": "size-cap-miss"},
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": cmd},
+                "session_id": "size-cap-miss",
+            },
             env_extra=env,
         )
         assert rc == 0
@@ -526,6 +612,7 @@ class TestInputSizeCap:
 # ---------------------------------------------------------------------------
 # Fail-open tests
 # ---------------------------------------------------------------------------
+
 
 class TestFailOpen:
     def test_malformed_stdin(self):
@@ -564,14 +651,17 @@ class TestFailOpen:
 # Opt-out tests
 # ---------------------------------------------------------------------------
 
+
 class TestOptOut:
     def test_env_off(self, tmp_path):
         """IATROGENICS=off -> silent even for an irreversible payload."""
         env = {"IATROGENICS_COUNTER_DIR": str(tmp_path), "IATROGENICS": "off"}
         rc, out, _ = run_hook(
-            {"tool_name": "Bash",
-             "tool_input": {"command": "rm -rf /tmp/foo"},
-             "session_id": "opt-env"},
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": "rm -rf /tmp/foo"},
+                "session_id": "opt-env",
+            },
             env_extra=env,
         )
         assert rc == 0
@@ -581,9 +671,11 @@ class TestOptOut:
         """IATROGENICS=0 -> silent."""
         env = {"IATROGENICS_COUNTER_DIR": str(tmp_path), "IATROGENICS": "0"}
         rc, out, _ = run_hook(
-            {"tool_name": "mcp__cheatengine__write_integer",
-             "tool_input": {"address": "0x1000", "value": 0},
-             "session_id": "opt-zero"},
+            {
+                "tool_name": "mcp__cheatengine__write_integer",
+                "tool_input": {"address": "0x1000", "value": 0},
+                "session_id": "opt-zero",
+            },
             env_extra=env,
         )
         assert rc == 0
@@ -596,9 +688,11 @@ class TestOptOut:
             disabled.touch()
             env = {"IATROGENICS_COUNTER_DIR": str(tmp_path)}
             rc, out, _ = run_hook(
-                {"tool_name": "Bash",
-                 "tool_input": {"command": "rm -rf /tmp/bar"},
-                 "session_id": "opt-dis"},
+                {
+                    "tool_name": "Bash",
+                    "tool_input": {"command": "rm -rf /tmp/bar"},
+                    "session_id": "opt-dis",
+                },
                 env_extra=env,
             )
             assert rc == 0

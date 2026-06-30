@@ -10,12 +10,18 @@ Used by BOTH record.py (scan written content) and report.py (re-scan current fil
 confirm a recorded stub is STILL open). Kept tight to avoid flagging prose that merely
 mentions the word "stub".
 """
+
 from __future__ import annotations
 
 import re
 
-_COMMENT_TAG = re.compile(r"(?:#|//|/\*|<!--|;|^\s*\*)\s*(TODO|FIXME|HACK|XXX|STUB)\b(?![-\w])", re.IGNORECASE | re.MULTILINE)
-_NOTIMPL = re.compile(r"NotImplementedError|raise\s+NotImplemented\b|\bNotImplemented\b")
+_COMMENT_TAG = re.compile(
+    r"(?:#|//|/\*|<!--|;|^\s*\*)\s*(TODO|FIXME|HACK|XXX|STUB)\b(?![-\w])",
+    re.IGNORECASE | re.MULTILINE,
+)
+_NOTIMPL = re.compile(
+    r"NotImplementedError|raise\s+NotImplemented\b|\bNotImplemented\b"
+)
 _PHRASE = re.compile(
     r"implement(?:ed|ation)?\s+(?:this\s+|it\s+)?later"
     r"|wire\s+(?:this\s+|it\s+|them\s+)?(?:up\s+)?later"
@@ -84,7 +90,7 @@ def find_stubs(text: str) -> list[tuple[str, int, str]]:
 
     for m in _PASS_BODY.finditer(text):
         line_no = text.count("\n", 0, m.start()) + 1
-        header = text[m.start():m.end()].splitlines()[0]
+        header = text[m.start() : m.end()].splitlines()[0]
         add("pass-only-body", line_no, header)
 
     out.sort(key=lambda t: t[1])

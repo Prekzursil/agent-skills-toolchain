@@ -25,6 +25,7 @@ FAIL-OPEN: every unhandled error → exit 0, no output.
 Opt-outs:  env  PER_EDIT_CHECK=off  (any capitalisation)
            file .disabled  (sentinel in this hook directory)
 """
+
 from __future__ import annotations
 
 import json
@@ -34,8 +35,8 @@ import subprocess
 import sys
 
 HOOKDIR = os.path.dirname(os.path.abspath(__file__))
-MAX_FILE_BYTES = 512 * 1024   # 512 KB — skip generated/binary-heavy files
-TIMEOUT = 8                   # seconds — hard cap per subprocess call
+MAX_FILE_BYTES = 512 * 1024  # 512 KB — skip generated/binary-heavy files
+TIMEOUT = 8  # seconds — hard cap per subprocess call
 
 
 # ── per-language checkers ────────────────────────────────────────────────────
@@ -52,13 +53,17 @@ def _check_python(fp: str) -> tuple[list[str], bool]:
         if ruff:
             r = subprocess.run(
                 [ruff, "check", fp],
-                capture_output=True, text=True,
-                encoding="utf-8", errors="replace", timeout=TIMEOUT,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=TIMEOUT,
             )
             if r.returncode != 0:
                 raw = (r.stdout or "") + (r.stderr or "")
                 lines = [
-                    ln for ln in raw.splitlines()
+                    ln
+                    for ln in raw.splitlines()
                     # strip the "Found N error(s)." summary line — it is noise
                     if ln.strip() and not ln.lstrip().startswith("Found")
                 ]
@@ -71,8 +76,11 @@ def _check_python(fp: str) -> tuple[list[str], bool]:
         # fallback: py_compile (syntax check only — always available)
         r = subprocess.run(
             [sys.executable, "-m", "py_compile", fp],
-            capture_output=True, text=True,
-            encoding="utf-8", errors="replace", timeout=TIMEOUT,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=TIMEOUT,
         )
         if r.returncode != 0:
             lines = [ln for ln in (r.stderr or "").splitlines() if ln.strip()]
@@ -94,8 +102,11 @@ def _check_js(fp: str) -> tuple[list[str], bool]:
             return [], False
         r = subprocess.run(
             [node, "--check", fp],
-            capture_output=True, text=True,
-            encoding="utf-8", errors="replace", timeout=TIMEOUT,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=TIMEOUT,
         )
         if r.returncode != 0:
             lines = [ln for ln in (r.stderr or "").splitlines() if ln.strip()]
@@ -127,11 +138,12 @@ def _check_yaml(fp: str) -> tuple[list[str], bool]:
     """
     try:
         import yaml  # noqa: PLC0415 — conditional import
+
         with open(fp, encoding="utf-8", errors="replace") as fh:
             yaml.safe_load(fh)
         return [], False
     except ImportError:
-        return [], False   # pyyaml not installed — skip
+        return [], False  # pyyaml not installed — skip
     except Exception as exc:
         return [str(exc)], True
 
@@ -148,13 +160,13 @@ def _run_check(fp: str) -> tuple[list[str], bool]:
     if ext in (".js", ".mjs", ".cjs", ".jsx"):
         return _check_js(fp)
     if ext in (".ts", ".tsx"):
-        return [], False   # tsc too slow; node --check won't parse TS
+        return [], False  # tsc too slow; node --check won't parse TS
     if ext == ".json":
         return _check_json(fp)
     if ext in (".yaml", ".yml"):
         return _check_yaml(fp)
     if ext == ".rs":
-        return [], False   # cargo check too heavy for per-edit
+        return [], False  # cargo check too heavy for per-edit
     return [], False
 
 
@@ -214,12 +226,16 @@ def main() -> int:
             return 2
 
         # Soft inject: lint issues — nudge without blocking.
-        print(json.dumps({
-            "hookSpecificOutput": {
-                "hookEventName": "PostToolUse",
-                "additionalContext": msg,
-            }
-        }))
+        print(
+            json.dumps(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "PostToolUse",
+                        "additionalContext": msg,
+                    }
+                }
+            )
+        )
         return 0
 
     except Exception:

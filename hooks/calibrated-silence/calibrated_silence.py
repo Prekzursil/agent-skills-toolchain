@@ -56,6 +56,7 @@ CLI (evidence/debugging):
     python calibrated_silence.py --probe suggestion '{"prompt":"no"}'
     python calibrated_silence.py --stats
 """
+
 from __future__ import annotations
 
 import json
@@ -92,7 +93,7 @@ def _env_int(name: str, default: int) -> int:
 
 # Core operating point.
 BASE_THRESHOLD = _env_float("CALSIL_BASE_THRESHOLD", 0.40)  # neutral criterion
-MIN_SAMPLES = _env_int("CALSIL_MIN_SAMPLES", 5)             # cold-start allow band
+MIN_SAMPLES = _env_int("CALSIL_MIN_SAMPLES", 5)  # cold-start allow band
 DEFAULT_VALUE = _env_float("CALSIL_DEFAULT_VALUE", 1.0)
 # Per-type intrinsic value (V in EV). Higher value -> a lower effective probability bar
 # (a high-compounding "gem" earns a slot more easily than a routine nudge). Tunable priors.
@@ -109,23 +110,28 @@ VALUE = {
 # fatigue can RAISE the bar but never make a genuinely high-value/high-hit interjection
 # impossible — total silence is itself a failure mode we refuse).
 FATIGUE_MAX = _env_float("CALSIL_FATIGUE_MAX", 0.30)
-FATIGUE_CORR_W = _env_float("CALSIL_FATIGUE_CORR_W", 0.18)     # x correction-rate in [0,1]
-FATIGUE_TERSE = _env_float("CALSIL_FATIGUE_TERSE", 0.08)       # flat, if prompt is terse
-FATIGUE_LATE = _env_float("CALSIL_FATIGUE_LATE", 0.05)         # flat, if late hour
+FATIGUE_CORR_W = _env_float("CALSIL_FATIGUE_CORR_W", 0.18)  # x correction-rate in [0,1]
+FATIGUE_TERSE = _env_float("CALSIL_FATIGUE_TERSE", 0.08)  # flat, if prompt is terse
+FATIGUE_LATE = _env_float("CALSIL_FATIGUE_LATE", 0.05)  # flat, if late hour
 FATIGUE_DENSITY_W = _env_float("CALSIL_FATIGUE_DENSITY_W", 0.14)  # x density/cap
 
 # Windows / counts.
-CORR_RECENT = _env_int("CALSIL_CORR_RECENT", 12)          # rows for the correction proxy
+CORR_RECENT = _env_int("CALSIL_CORR_RECENT", 12)  # rows for the correction proxy
 DENSITY_WINDOW = _env_int("CALSIL_DENSITY_WINDOW", 1800)  # seconds counted as "recent"
-DENSITY_CAP = _env_int("CALSIL_DENSITY_CAP", 4)           # density saturates here
-TERSE_WORDS = _env_int("CALSIL_TERSE_WORDS", 4)           # <= this many words == terse
-WILSON_Z = _env_float("CALSIL_WILSON_Z", 1.96)           # 95% smoothing constant
-LEDGER_MAX = _env_int("CALSIL_LEDGER_MAX", 5000)         # rows kept on a rewrite/trim
-_TRIM_BYTES = 2_000_000                                   # append-path size guard
+DENSITY_CAP = _env_int("CALSIL_DENSITY_CAP", 4)  # density saturates here
+TERSE_WORDS = _env_int("CALSIL_TERSE_WORDS", 4)  # <= this many words == terse
+WILSON_Z = _env_float("CALSIL_WILSON_Z", 1.96)  # 95% smoothing constant
+LEDGER_MAX = _env_int("CALSIL_LEDGER_MAX", 5000)  # rows kept on a rewrite/trim
+_TRIM_BYTES = 2_000_000  # append-path size guard
 
 
 def _disabled() -> bool:
-    return os.environ.get("CALIBRATED_SILENCE", "").strip().lower() in ("off", "0", "false", "no")
+    return os.environ.get("CALIBRATED_SILENCE", "").strip().lower() in (
+        "off",
+        "0",
+        "false",
+        "no",
+    )
 
 
 # --------------------------------------------------------------------------- ledger I/O
@@ -189,8 +195,9 @@ def _maybe_trim(path=None) -> None:
         pass
 
 
-def record_interjection(itype, context_key, session_id="default", *,
-                        surfaced=True, path=None, now=None) -> bool:
+def record_interjection(
+    itype, context_key, session_id="default", *, surfaced=True, path=None, now=None
+) -> bool:
     """Append one interjection row (reaction='unknown') so the hit-rate gets a denominator.
 
     Consumers MUST call this WHEN they actually surface an interjection (right after the
@@ -240,7 +247,9 @@ def counts_by_type(rows) -> dict:
         try:
             t = str(row.get("type") or "")
             r = str(row.get("reaction") or "unknown")
-            bucket = out.setdefault(t, {"acted": 0, "ignored": 0, "annoyed": 0, "unknown": 0})
+            bucket = out.setdefault(
+                t, {"acted": 0, "ignored": 0, "annoyed": 0, "unknown": 0}
+            )
             if r not in bucket:
                 r = "unknown"
             bucket[r] += 1
@@ -263,9 +272,9 @@ def _now_epoch(context) -> float:
     try:
         if now is None:
             return time.time()
-        if hasattr(now, "timestamp"):       # datetime
+        if hasattr(now, "timestamp"):  # datetime
             return float(now.timestamp())
-        return float(now)                   # epoch number
+        return float(now)  # epoch number
     except Exception:
         return time.time()
 
@@ -295,7 +304,8 @@ def _recent_correction_rate(rows, context) -> float:
     try:
         sid = context.get("session_id")
         classified = [
-            r for r in rows
+            r
+            for r in rows
             if str(r.get("reaction")) in ("acted", "ignored", "annoyed")
             and (sid is None or str(r.get("session_id")) == str(sid))
         ]
@@ -396,7 +406,10 @@ def should_interject(itype: str, context: dict = None):
 
         # cold start: never suppress before we have learned anything
         if n < MIN_SAMPLES:
-            return True, f"allow:cold-start n={n}<{MIN_SAMPLES} (acted={acted} ignored={ignored})"
+            return (
+                True,
+                f"allow:cold-start n={n}<{MIN_SAMPLES} (acted={acted} ignored={ignored})",
+            )
 
         p_useful = wilson_center(acted, n)
         value = VALUE.get(str(itype), DEFAULT_VALUE)
@@ -404,8 +417,10 @@ def should_interject(itype: str, context: dict = None):
         bump, detail = fatigue_bump(itype, context, rows)
         criterion = BASE_THRESHOLD + bump
 
-        base = (f"p={p_useful:.2f} v={value} ev={ev:.3f} crit={criterion:.3f} "
-                f"(base={BASE_THRESHOLD} fat={bump:.3f}{detail}) n={n}")
+        base = (
+            f"p={p_useful:.2f} v={value} ev={ev:.3f} crit={criterion:.3f} "
+            f"(base={BASE_THRESHOLD} fat={bump:.3f}{detail}) n={n}"
+        )
         if ev >= criterion:
             return True, "allow " + base
         return False, "suppress " + base
@@ -422,8 +437,10 @@ def _cli(argv) -> int:
         for t in sorted(cbt):
             c = cbt[t]
             p, a, i = hit_rate(t, rows)
-            print(f"  {t:11s} acted={c['acted']:<4} ignored={c['ignored']:<4} "
-                  f"annoyed={c['annoyed']:<4} unknown={c['unknown']:<4}  p_useful={p:.2f}")
+            print(
+                f"  {t:11s} acted={c['acted']:<4} ignored={c['ignored']:<4} "
+                f"annoyed={c['annoyed']:<4} unknown={c['unknown']:<4}  p_useful={p:.2f}"
+            )
         return 0
     if len(argv) >= 2 and argv[1] == "--probe":
         itype = argv[2] if len(argv) > 2 else "suggestion"

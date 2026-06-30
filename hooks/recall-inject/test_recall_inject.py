@@ -3,6 +3,7 @@
 
 Run:  pytest test_recall_inject.py -v
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -16,11 +17,12 @@ import pytest
 THIS = Path(__file__).resolve().parent
 sys.path.insert(0, str(THIS))
 
-import build_index as bi
-import inject as inj
+import build_index as bi  # noqa: E402  # local sibling module; import follows sys.path setup
+import inject as inj  # noqa: E402  # local sibling module; import follows sys.path setup
 
 
 # ─────────────────────────────────────────────────────────────── helpers
+
 
 def _make_note(
     path: Path,
@@ -64,6 +66,7 @@ def _isolate_cs_ledger(tmp_path, monkeypatch):
         sys.path.insert(0, str(cs_dir))
     try:
         import calibrated_silence as _c
+
         empty = tmp_path / "cs_empty.jsonl"
         empty.write_text("", encoding="utf-8")
         monkeypatch.setattr(_c, "LEDGER_PATH", empty, raising=False)
@@ -101,7 +104,9 @@ class TestBuildIndex:
         assert "notes" in idx
         assert "vault_hash" in idx
         titles = [n["title"] for n in idx["notes"]]
-        assert any("Bromantane" in t for t in titles), f"expected Bromantane in {titles}"
+        assert any("Bromantane" in t for t in titles), (
+            f"expected Bromantane in {titles}"
+        )
         assert any("Trainer" in t for t in titles), f"expected Trainer in {titles}"
 
     def test_malformed_front_matter_no_crash(self, tmp_path):
@@ -140,8 +145,12 @@ class TestBuildIndex:
         vault.mkdir()
         _make_note(vault / "note.md", "Test note", "Test description.")
         ipath = tmp_path / "idx.json"
-        idx1 = bi.get_or_build_index(vault_dirs=[vault], memory_md_paths=[], index_path=ipath)
-        idx2 = bi.get_or_build_index(vault_dirs=[vault], memory_md_paths=[], index_path=ipath)
+        idx1 = bi.get_or_build_index(
+            vault_dirs=[vault], memory_md_paths=[], index_path=ipath
+        )
+        idx2 = bi.get_or_build_index(
+            vault_dirs=[vault], memory_md_paths=[], index_path=ipath
+        )
         assert idx1["vault_hash"] == idx2["vault_hash"]
         assert idx1["built_at"] == idx2["built_at"]  # loaded from disk → identical
 
@@ -151,11 +160,15 @@ class TestBuildIndex:
         vault.mkdir()
         _make_note(vault / "note.md", "Initial note", "Initial description.")
         ipath = tmp_path / "idx.json"
-        idx1 = bi.get_or_build_index(vault_dirs=[vault], memory_md_paths=[], index_path=ipath)
+        idx1 = bi.get_or_build_index(
+            vault_dirs=[vault], memory_md_paths=[], index_path=ipath
+        )
         # Write new file (ensures mtime/size differ)
         time.sleep(0.05)
         _make_note(vault / "note2.md", "New note", "Added later.")
-        idx2 = bi.get_or_build_index(vault_dirs=[vault], memory_md_paths=[], index_path=ipath)
+        idx2 = bi.get_or_build_index(
+            vault_dirs=[vault], memory_md_paths=[], index_path=ipath
+        )
         assert idx1["vault_hash"] != idx2["vault_hash"]
         assert len(idx2["notes"]) > len(idx1["notes"])
 
@@ -247,21 +260,27 @@ class TestMatchNotes:
         }
 
     def test_matching_keyword_returns_note(self):
-        idx = self._make_idx([
-            self._note(
-                "Bromantane vendors",
-                "pglchem is legit",
-                ["bromantane", "vendor", "pglchem", "legit"],
-            ),
-        ])
+        idx = self._make_idx(
+            [
+                self._note(
+                    "Bromantane vendors",
+                    "pglchem is legit",
+                    ["bromantane", "vendor", "pglchem", "legit"],
+                ),
+            ]
+        )
         matches = inj.match_notes("bromantane vendor sources", idx)
         assert len(matches) >= 1
         assert matches[0]["title"] == "Bromantane vendors"
 
     def test_no_match_returns_empty(self):
-        idx = self._make_idx([
-            self._note("Bromantane vendors", "pglchem", ["bromantane", "vendor", "pglchem"]),
-        ])
+        idx = self._make_idx(
+            [
+                self._note(
+                    "Bromantane vendors", "pglchem", ["bromantane", "vendor", "pglchem"]
+                ),
+            ]
+        )
         matches = inj.match_notes("what is the weather today", idx)
         assert matches == []
 
@@ -281,22 +300,28 @@ class TestMatchNotes:
 
     def test_strong_single_long_token_qualifies(self):
         """A single matched token ≥ STRONG_SINGLE_LEN chars is sufficient."""
-        idx = self._make_idx([
-            self._note("Bromantane vendors", "pglchem is legit", ["bromantane", "vendor"]),
-        ])
+        idx = self._make_idx(
+            [
+                self._note(
+                    "Bromantane vendors", "pglchem is legit", ["bromantane", "vendor"]
+                ),
+            ]
+        )
         # "bromantane" is 10 chars → strong single hit
         matches = inj.match_notes("where to buy bromantane online", idx)
         assert len(matches) >= 1
 
     def test_sorted_by_score_descending(self):
-        idx = self._make_idx([
-            self._note("Low score", "minor match", ["bromantane"]),
-            self._note(
-                "High score",
-                "many keyword hits",
-                ["bromantane", "vendor", "legit", "pglchem"],
-            ),
-        ])
+        idx = self._make_idx(
+            [
+                self._note("Low score", "minor match", ["bromantane"]),
+                self._note(
+                    "High score",
+                    "many keyword hits",
+                    ["bromantane", "vendor", "legit", "pglchem"],
+                ),
+            ]
+        )
         matches = inj.match_notes("bromantane vendor legit pglchem", idx)
         assert matches[0]["title"] == "High score"
 
@@ -310,9 +335,11 @@ class TestMatchNotes:
         the prompt tokenizer requires 3+ chars, so 'bc' in prompt is invisible."""
         # This tests that precision is maintained: short abbreviations in prompts
         # don't create false positives via the 3-char prompt token filter.
-        idx = self._make_idx([
-            self._note("BC note", "battle cats", ["bc", "battle", "cats"]),
-        ])
+        idx = self._make_idx(
+            [
+                self._note("BC note", "battle cats", ["bc", "battle", "cats"]),
+            ]
+        )
         # Prompt has only generic words and "bc" (2 chars, filtered by _tok)
         matches = inj.match_notes("check bc status now", idx)
         # "check" and "status" are not in note keywords → no match
@@ -320,7 +347,9 @@ class TestMatchNotes:
         # since we're checking the 2-char "bc" case specifically
         for m in matches:
             overlap = set(inj._tok("check bc status now")) & set(m["keywords"])
-            assert len(overlap) >= 2 or any(len(t) >= inj.STRONG_SINGLE_LEN for t in overlap)
+            assert len(overlap) >= 2 or any(
+                len(t) >= inj.STRONG_SINGLE_LEN for t in overlap
+            )
 
 
 # ─────────────────────────────────────────────────────────────── format_message
@@ -381,7 +410,10 @@ class TestRunFunction:
     def test_matching_prompt_returns_message(self, tmp_path):
         vault, ipath = self._setup(tmp_path)
         code, msg = inj.run(
-            {"prompt": "where to buy bromantane vendors online trusted", "session_id": _sid(tmp_path)},
+            {
+                "prompt": "where to buy bromantane vendors online trusted",
+                "session_id": _sid(tmp_path),
+            },
             vault_dirs=[vault],
             memory_md_paths=[],
             index_path=ipath,
@@ -393,7 +425,10 @@ class TestRunFunction:
     def test_no_match_returns_none(self, tmp_path):
         vault, ipath = self._setup(tmp_path)
         code, msg = inj.run(
-            {"prompt": "unrelated topic about quantum physics experiments", "session_id": _sid(tmp_path)},
+            {
+                "prompt": "unrelated topic about quantum physics experiments",
+                "session_id": _sid(tmp_path),
+            },
             vault_dirs=[vault],
             memory_md_paths=[],
             index_path=ipath,
@@ -406,13 +441,19 @@ class TestRunFunction:
         vault, ipath = self._setup(tmp_path)
         sid = "dedup_" + _sid(tmp_path)
         code1, msg1 = inj.run(
-            {"prompt": "bromantane vendor trusted sources purchase safely", "session_id": sid},
+            {
+                "prompt": "bromantane vendor trusted sources purchase safely",
+                "session_id": sid,
+            },
             vault_dirs=[vault],
             memory_md_paths=[],
             index_path=ipath,
         )
         code2, msg2 = inj.run(
-            {"prompt": "bromantane vendors legit suppliers trusted online", "session_id": sid},
+            {
+                "prompt": "bromantane vendors legit suppliers trusted online",
+                "session_id": sid,
+            },
             vault_dirs=[vault],
             memory_md_paths=[],
             index_path=ipath,
@@ -427,7 +468,10 @@ class TestRunFunction:
         vault, ipath = self._setup(tmp_path)
         monkeypatch.setenv("RECALL_INJECT", "off")
         code, msg = inj.run(
-            {"prompt": "bromantane vendor trusted sources purchase", "session_id": "env_off"},
+            {
+                "prompt": "bromantane vendor trusted sources purchase",
+                "session_id": "env_off",
+            },
             vault_dirs=[vault],
             memory_md_paths=[],
             index_path=ipath,
@@ -440,7 +484,10 @@ class TestRunFunction:
         vault, ipath = self._setup(tmp_path)
         monkeypatch.setattr(inj, "_disabled", lambda: True)
         code, msg = inj.run(
-            {"prompt": "bromantane vendor trusted sources purchase", "session_id": "fn_disabled"},
+            {
+                "prompt": "bromantane vendor trusted sources purchase",
+                "session_id": "fn_disabled",
+            },
             vault_dirs=[vault],
             memory_md_paths=[],
             index_path=ipath,
@@ -451,7 +498,10 @@ class TestRunFunction:
     def test_missing_vault_silent(self, tmp_path):
         """Non-existent vault → no crash, no injection."""
         code, msg = inj.run(
-            {"prompt": "bromantane vendor trusted sources purchase", "session_id": _sid(tmp_path)},
+            {
+                "prompt": "bromantane vendor trusted sources purchase",
+                "session_id": _sid(tmp_path),
+            },
             vault_dirs=[tmp_path / "nonexistent"],
             memory_md_paths=[],
             index_path=tmp_path / "idx.json",
@@ -475,7 +525,9 @@ class TestRunFunction:
         """main() emits valid JSON hookSpecificOutput when a match is found."""
         vault, ipath = self._setup(tmp_path)
         sid = "main_" + _sid(tmp_path)
-        data = json.dumps({"prompt": "bromantane vendor trusted purchase sources", "session_id": sid})
+        data = json.dumps(
+            {"prompt": "bromantane vendor trusted purchase sources", "session_id": sid}
+        )
         monkeypatch.setattr("sys.stdin", __import__("io").StringIO(data))
         # Patch vault/index paths via the _bi module's defaults
         monkeypatch.setattr(inj._bi, "find_vault_dirs", lambda: [vault])
@@ -530,7 +582,10 @@ class TestCalibratedSilenceGate:
         monkeypatch.setattr(inj, "_cs_allow", fake_cs_allow)
 
         inj.run(
-            {"prompt": "bromantane vendor trusted sources purchase safely", "session_id": _sid(tmp_path)},
+            {
+                "prompt": "bromantane vendor trusted sources purchase safely",
+                "session_id": _sid(tmp_path),
+            },
             vault_dirs=[vault],
             memory_md_paths=[],
             index_path=ipath,
@@ -543,7 +598,9 @@ class TestCalibratedSilenceGate:
             "should_interject would crash on .get() → AttributeError → fail-open"
         )
 
-    def test_cs_gate_suppresses_injection_when_returning_false(self, tmp_path, monkeypatch):
+    def test_cs_gate_suppresses_injection_when_returning_false(
+        self, tmp_path, monkeypatch
+    ):
         """When _cs_allow returns False the injection MUST be suppressed (gate actually gates).
 
         Before the M3 fix, _cs_allow always crashed internally and fell through
@@ -554,7 +611,10 @@ class TestCalibratedSilenceGate:
         monkeypatch.setattr(inj, "_cs_allow", lambda itype, ctx: False)
 
         code, msg = inj.run(
-            {"prompt": "bromantane vendor trusted sources purchase safely", "session_id": _sid(tmp_path)},
+            {
+                "prompt": "bromantane vendor trusted sources purchase safely",
+                "session_id": _sid(tmp_path),
+            },
             vault_dirs=[vault],
             memory_md_paths=[],
             index_path=ipath,
@@ -577,13 +637,20 @@ class TestCalibratedSilenceGate:
         monkeypatch.setattr(inj, "_cs_allow", fake_cs_allow)
 
         inj.run(
-            {"prompt": "bromantane vendor trusted sources purchase safely", "session_id": sid},
+            {
+                "prompt": "bromantane vendor trusted sources purchase safely",
+                "session_id": sid,
+            },
             vault_dirs=[vault],
             memory_md_paths=[],
             index_path=ipath,
         )
-        assert "prompt" in captured, f"ctx dict missing 'prompt' key; got {set(captured)}"
-        assert "session_id" in captured, f"ctx dict missing 'session_id' key; got {set(captured)}"
+        assert "prompt" in captured, (
+            f"ctx dict missing 'prompt' key; got {set(captured)}"
+        )
+        assert "session_id" in captured, (
+            f"ctx dict missing 'session_id' key; got {set(captured)}"
+        )
 
 
 # ─────────────────────────────────────────────────── L1: generic-word precision
@@ -595,15 +662,28 @@ class TestGenericWordPrecision:
     def _make_idx(self, notes: list[dict]) -> dict:
         return {"vault_hash": "test", "built_at": 0.0, "notes": notes}
 
-    def _note(self, title: str, summary: str, keywords: list[str], permalink: str = "main/t") -> dict:
-        return {"path": "t.md", "title": title, "summary": summary,
-                "permalink": permalink, "keywords": keywords}
+    def _note(
+        self, title: str, summary: str, keywords: list[str], permalink: str = "main/t"
+    ) -> dict:
+        return {
+            "path": "t.md",
+            "title": title,
+            "summary": summary,
+            "permalink": permalink,
+            "keywords": keywords,
+        }
 
     def test_generic_word_function_does_not_over_fire(self):
         """'function' is 8 chars but is in _GENERIC_LONG → must not qualify solo."""
-        idx = self._make_idx([
-            self._note("Function Guide", "guide to python functions", ["function", "guide", "python"]),
-        ])
+        idx = self._make_idx(
+            [
+                self._note(
+                    "Function Guide",
+                    "guide to python functions",
+                    ["function", "guide", "python"],
+                ),
+            ]
+        )
         # Only "function" overlaps; score=1 < MIN_SCORE; "function" is GENERIC_LONG
         matches = inj.match_notes("function signature explanation", idx)
         # "signature" / "explanation" are not in note keywords → overlap = {"function"} only
@@ -614,9 +694,15 @@ class TestGenericWordPrecision:
 
     def test_generic_word_database_does_not_over_fire(self):
         """'database' is 8 chars but generic — must not fire alone."""
-        idx = self._make_idx([
-            self._note("Database Setup", "setting up postgres", ["database", "postgres", "setup"]),
-        ])
+        idx = self._make_idx(
+            [
+                self._note(
+                    "Database Setup",
+                    "setting up postgres",
+                    ["database", "postgres", "setup"],
+                ),
+            ]
+        )
         matches = inj.match_notes("database connection error", idx)
         # overlap with "database" only (score=1), generic → no fire
         assert matches == [], (
@@ -625,9 +711,15 @@ class TestGenericWordPrecision:
 
     def test_generic_word_security_does_not_over_fire(self):
         """'security' is 8 chars and generic."""
-        idx = self._make_idx([
-            self._note("Security Review", "code security analysis", ["security", "review", "analysis"]),
-        ])
+        idx = self._make_idx(
+            [
+                self._note(
+                    "Security Review",
+                    "code security analysis",
+                    ["security", "review", "analysis"],
+                ),
+            ]
+        )
         matches = inj.match_notes("security check required", idx)
         assert matches == [], (
             f"Generic 'security' alone triggered: {[m['title'] for m in matches]}"
@@ -635,29 +727,47 @@ class TestGenericWordPrecision:
 
     def test_distinctive_long_token_still_qualifies(self):
         """Distinctive domain terms like 'bromantane' (10 chars, not in GENERIC_LONG) still fire."""
-        idx = self._make_idx([
-            self._note("Bromantane vendors", "pglchem is legit", ["bromantane", "vendor"]),
-        ])
+        idx = self._make_idx(
+            [
+                self._note(
+                    "Bromantane vendors", "pglchem is legit", ["bromantane", "vendor"]
+                ),
+            ]
+        )
         matches = inj.match_notes("where can I buy bromantane", idx)
-        assert len(matches) >= 1, "Distinctive domain term 'bromantane' should still qualify solo"
+        assert len(matches) >= 1, (
+            "Distinctive domain term 'bromantane' should still qualify solo"
+        )
 
     def test_distinctive_frida_still_qualifies(self):
         """'frida' is 5 chars — below STRONG_SINGLE_LEN but qualifies via multi-token score."""
-        idx = self._make_idx([
-            self._note("Frida hook", "attach frida to android process",
-                       ["frida", "android", "hook", "attach", "process"]),
-        ])
+        idx = self._make_idx(
+            [
+                self._note(
+                    "Frida hook",
+                    "attach frida to android process",
+                    ["frida", "android", "hook", "attach", "process"],
+                ),
+            ]
+        )
         # "frida" is only 5 chars so it won't hit the strong-single path; but with
         # "android" and "hook" also matching (score ≥ 2) it should still qualify.
         matches = inj.match_notes("frida android hook setup", idx)
-        assert len(matches) >= 1, "Multi-token match with 'frida android hook' should qualify"
+        assert len(matches) >= 1, (
+            "Multi-token match with 'frida android hook' should qualify"
+        )
 
     def test_two_distinct_generic_tokens_still_fire(self):
         """Two generic tokens together (score ≥ MIN_SCORE=2) still qualify — min-score path."""
-        idx = self._make_idx([
-            self._note("Security Analysis", "security code analysis",
-                       ["security", "analysis", "code"]),
-        ])
+        idx = self._make_idx(
+            [
+                self._note(
+                    "Security Analysis",
+                    "security code analysis",
+                    ["security", "analysis", "code"],
+                ),
+            ]
+        )
         # score=2 (security + analysis both match) → qualifies via score≥MIN_SCORE, not GENERIC path
         matches = inj.match_notes("security analysis review", idx)
         assert len(matches) >= 1, (

@@ -22,6 +22,7 @@ Output format (exit 0 + JSON to stdout when match found):
     }
   }
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -35,50 +36,156 @@ from pathlib import Path
 THIS = Path(__file__).resolve().parent
 sys.path.insert(0, str(THIS))
 
-import build_index as _bi
+import build_index as _bi  # noqa: E402  # local sibling module; import follows sys.path setup
 
 # Re-export _tok so tests can use `inj._tok(...)`
 _tok = _bi._tok
 
 # ─── tunable constants (env-overridable) ─────────────────────────────────────
-MIN_LEN = int(os.environ.get("RECALL_MIN_LEN", "15"))          # min prompt length to evaluate
-MIN_SCORE = int(os.environ.get("RECALL_MIN_SCORE", "2"))       # min token overlap to qualify
-STRONG_SINGLE_LEN = int(os.environ.get("RECALL_STRONG_LEN", "7"))  # single long token qualifies
-MAX_NOTES = int(os.environ.get("RECALL_MAX_NOTES", "3"))       # max injected notes
+MIN_LEN = int(os.environ.get("RECALL_MIN_LEN", "15"))  # min prompt length to evaluate
+MIN_SCORE = int(os.environ.get("RECALL_MIN_SCORE", "2"))  # min token overlap to qualify
+STRONG_SINGLE_LEN = int(
+    os.environ.get("RECALL_STRONG_LEN", "7")
+)  # single long token qualifies
+MAX_NOTES = int(os.environ.get("RECALL_MAX_NOTES", "3"))  # max injected notes
 
 # ─── generic long-word exclusion for strong-single-token path ─────────────────
 # Common English words that are ≥ STRONG_SINGLE_LEN chars but far too broad to
 # be a reliable solo trigger.  The strong-single-token path is reserved for
 # DISTINCTIVE terms (e.g. "bromantane", "battlecats", "frida", "pwntools").
 # All entries MUST be ≥ 7 chars (shorter words never reach this check).
-_GENERIC_LONG: frozenset[str] = frozenset((
-    "function", "database", "security", "analysis", "testing",
-    "working", "problem", "project", "example", "service",
-    "process", "message", "request", "response", "version",
-    "address", "content", "package", "install", "running",
-    "feature", "provide", "through", "without", "between",
-    "another", "include", "methods", "already", "because",
-    "current", "further", "looking", "reading", "writing",
-    "returns", "getting", "setting", "changes", "nothing",
-    "someone", "started", "stopped", "against", "created",
-    "updated", "deleted", "results", "related", "backend",
-    "frontend", "network", "storage", "systems", "program",
-    "classes", "imports", "modules", "scripts", "sources",
-    "objects", "actions", "options", "configs", "testing",
-    "management", "performance", "implementation", "configure",
-    "building", "creating", "handling", "executing", "checking",
-    "default", "timeout", "parsing", "logging", "debugging",
-    "deployment", "repository", "component", "directory",
-    "existing", "following", "available", "different", "something",
-    "previous", "required", "everything", "anything", "somewhere",
-    "interface", "variable", "parameter", "argument", "iterator",
-    "callback", "template", "language", "platform", "framework",
-    "instance", "container", "resource", "workflow", "question",
-    "document", "standard", "generate", "validate", "complete",
-    "describe", "describe", "solution", "possible", "specific",
-    "properly", "correctly", "actually", "recently", "normally",
-    "directly", "returned", "resolved", "allowed", "blocked",
-))
+_GENERIC_LONG: frozenset[str] = frozenset(
+    (
+        "function",
+        "database",
+        "security",
+        "analysis",
+        "testing",
+        "working",
+        "problem",
+        "project",
+        "example",
+        "service",
+        "process",
+        "message",
+        "request",
+        "response",
+        "version",
+        "address",
+        "content",
+        "package",
+        "install",
+        "running",
+        "feature",
+        "provide",
+        "through",
+        "without",
+        "between",
+        "another",
+        "include",
+        "methods",
+        "already",
+        "because",
+        "current",
+        "further",
+        "looking",
+        "reading",
+        "writing",
+        "returns",
+        "getting",
+        "setting",
+        "changes",
+        "nothing",
+        "someone",
+        "started",
+        "stopped",
+        "against",
+        "created",
+        "updated",
+        "deleted",
+        "results",
+        "related",
+        "backend",
+        "frontend",
+        "network",
+        "storage",
+        "systems",
+        "program",
+        "classes",
+        "imports",
+        "modules",
+        "scripts",
+        "sources",
+        "objects",
+        "actions",
+        "options",
+        "configs",
+        "testing",
+        "management",
+        "performance",
+        "implementation",
+        "configure",
+        "building",
+        "creating",
+        "handling",
+        "executing",
+        "checking",
+        "default",
+        "timeout",
+        "parsing",
+        "logging",
+        "debugging",
+        "deployment",
+        "repository",
+        "component",
+        "directory",
+        "existing",
+        "following",
+        "available",
+        "different",
+        "something",
+        "previous",
+        "required",
+        "everything",
+        "anything",
+        "somewhere",
+        "interface",
+        "variable",
+        "parameter",
+        "argument",
+        "iterator",
+        "callback",
+        "template",
+        "language",
+        "platform",
+        "framework",
+        "instance",
+        "container",
+        "resource",
+        "workflow",
+        "question",
+        "document",
+        "standard",
+        "generate",
+        "validate",
+        "complete",
+        "describe",
+        "describe",
+        "solution",
+        "possible",
+        "specific",
+        "properly",
+        "correctly",
+        "actually",
+        "recently",
+        "normally",
+        "directly",
+        "returned",
+        "resolved",
+        "allowed",
+        "blocked",
+    )
+)
 
 # ─── opt-out ─────────────────────────────────────────────────────────────────
 
@@ -95,6 +202,7 @@ def _disabled() -> bool:
 
 # ─── calibrated-silence gate ──────────────────────────────────────────────────
 
+
 def _cs_allow(itype: str, ctx: dict) -> bool:
     """Gate through calibrated-silence.should_interject; fail-open (True) on any error.
 
@@ -106,6 +214,7 @@ def _cs_allow(itype: str, ctx: dict) -> bool:
         if cs_dir.exists():
             sys.path.insert(0, str(cs_dir))
             import calibrated_silence as _c
+
             result = _c.should_interject(itype, ctx)
             # should_interject returns (bool, reason) or just bool
             return result[0] if isinstance(result, (tuple, list)) else bool(result)
@@ -121,6 +230,7 @@ def _cs_record(itype: str, ctx: dict, session_id: str) -> None:
         if cs_dir.exists():
             sys.path.insert(0, str(cs_dir))
             import calibrated_silence as _c
+
             if hasattr(_c, "record_interjection"):
                 _c.record_interjection(itype, ctx, session_id)
     except Exception:
@@ -128,6 +238,7 @@ def _cs_record(itype: str, ctx: dict, session_id: str) -> None:
 
 
 # ─── per-session dedup ────────────────────────────────────────────────────────
+
 
 def _first_seen(session_id: str, sig: str) -> bool:
     """Return True if this (session, note-set signature) is NEW.
@@ -154,9 +265,8 @@ def _first_seen(session_id: str, sig: str) -> bool:
 
 # ─── note matching ────────────────────────────────────────────────────────────
 
-def match_notes(
-    prompt: str, index: dict, min_score: int = MIN_SCORE
-) -> list[dict]:
+
+def match_notes(prompt: str, index: dict, min_score: int = MIN_SCORE) -> list[dict]:
     """Return up to MAX_NOTES notes that strongly match the prompt.
 
     Scoring: lexical token overlap (prompt tokens ∩ note keywords).
@@ -184,8 +294,7 @@ def match_notes(
             # like "function" or "database" that happen to be ≥ STRONG_SINGLE_LEN
             # chars must NOT fire on their own; they are in _GENERIC_LONG.
             if not any(
-                len(t) >= STRONG_SINGLE_LEN and t not in _GENERIC_LONG
-                for t in overlap
+                len(t) >= STRONG_SINGLE_LEN and t not in _GENERIC_LONG for t in overlap
             ):
                 continue
         scored.append((score, note))
@@ -195,6 +304,7 @@ def match_notes(
 
 
 # ─── message formatting ───────────────────────────────────────────────────────
+
 
 def format_message(matches: list[dict]) -> str:
     """Format matched notes as a terse additionalContext block."""
@@ -212,6 +322,7 @@ def format_message(matches: list[dict]) -> str:
 
 
 # ─── main run logic ───────────────────────────────────────────────────────────
+
 
 def run(
     data: dict,
@@ -236,8 +347,14 @@ def run(
         session_id = str(data.get("session_id", ""))
 
         # Resolve defaults through _bi so tests can monkeypatch them
-        resolved_vault_dirs = vault_dirs if vault_dirs is not None else _bi.find_vault_dirs()
-        resolved_memory_md = memory_md_paths if memory_md_paths is not None else _bi.find_memory_md_paths()
+        resolved_vault_dirs = (
+            vault_dirs if vault_dirs is not None else _bi.find_vault_dirs()
+        )
+        resolved_memory_md = (
+            memory_md_paths
+            if memory_md_paths is not None
+            else _bi.find_memory_md_paths()
+        )
         resolved_index_path = index_path if index_path is not None else _bi.INDEX_PATH
 
         # Load/build the index
@@ -276,6 +393,7 @@ def run(
 
 # ─── hook entry point ─────────────────────────────────────────────────────────
 
+
 def main() -> int:
     """UserPromptSubmit hook entry point.
 
@@ -291,12 +409,16 @@ def main() -> int:
     try:
         code, msg = run(data)
         if msg:
-            print(json.dumps({
-                "hookSpecificOutput": {
-                    "hookEventName": "UserPromptSubmit",
-                    "additionalContext": msg,
-                }
-            }))
+            print(
+                json.dumps(
+                    {
+                        "hookSpecificOutput": {
+                            "hookEventName": "UserPromptSubmit",
+                            "additionalContext": msg,
+                        }
+                    }
+                )
+            )
         return code
     except Exception:
         return 0  # fail-open

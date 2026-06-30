@@ -15,6 +15,7 @@ Required scenarios (spec):
 Subprocess is mocked throughout; real temp files are used so os.path.isfile
 and os.path.getsize calls behave naturally.
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -97,10 +98,7 @@ def _ruff_clean():
 def _ruff_lint(filename: str):
     return _proc(
         1,
-        stdout=(
-            f"{filename}:1:1: F401 `os` imported but unused\n"
-            f"Found 1 error.\n"
-        ),
+        stdout=(f"{filename}:1:1: F401 `os` imported but unused\nFound 1 error.\n"),
     )
 
 
@@ -120,8 +118,7 @@ def _node_syntax_err():
     return _proc(
         1,
         stderr=(
-            "app.js:1\nconst x = ;\n          ^\n\n"
-            "SyntaxError: Unexpected token ';'\n"
+            "app.js:1\nconst x = ;\n          ^\n\nSyntaxError: Unexpected token ';'\n"
         ),
     )
 
@@ -248,7 +245,7 @@ def test_python_syntax_error_blocks(tmp_path: Path):
     f.write_text("def foo(\n")
     mod = load_check()
     with (
-        mock.patch("shutil.which", return_value=None),   # no ruff → py_compile
+        mock.patch("shutil.which", return_value=None),  # no ruff → py_compile
         mock.patch("subprocess.run", return_value=_pycompile_syntax_err()),
     ):
         rc, out, err = run_hook(mod, make_event(str(f)))
@@ -302,7 +299,7 @@ def test_unknown_or_skipped_extension_silent(tmp_path: Path, ext: str):
 def test_js_no_node_silent(tmp_path: Path):
     """If node is absent, JS files are silently skipped."""
     f = tmp_path / "app.js"
-    f.write_text("const x = ;\n")   # would be syntax error if node ran
+    f.write_text("const x = ;\n")  # would be syntax error if node ran
     mod = load_check()
     with mock.patch("shutil.which", return_value=None):
         rc, out, err = run_hook(mod, make_event(str(f)))
@@ -313,11 +310,9 @@ def test_js_no_node_silent(tmp_path: Path):
 def test_yaml_no_pyyaml_silent(tmp_path: Path):
     """If pyyaml is not installed, YAML files are silently skipped."""
     f = tmp_path / "config.yaml"
-    f.write_text("key: : bad\n")   # invalid YAML
+    f.write_text("key: : bad\n")  # invalid YAML
     mod = load_check()
     # Simulate pyyaml absent by making import raise ImportError
-    real_import = __builtins__.__import__ if hasattr(__builtins__, "__import__") else __import__
-
     original_import = __import__
 
     def fake_import(name, *args, **kwargs):
@@ -334,14 +329,17 @@ def test_yaml_no_pyyaml_silent(tmp_path: Path):
 # ── 6. malformed stdin → exit 0 (fail-open) ─────────────────────────────────
 
 
-@pytest.mark.parametrize("bad_input", [
-    "{not valid json",
-    "",
-    "null",
-    "42",
-    "[]",
-    "true",
-])
+@pytest.mark.parametrize(
+    "bad_input",
+    [
+        "{not valid json",
+        "",
+        "null",
+        "42",
+        "[]",
+        "true",
+    ],
+)
 def test_malformed_stdin_fail_open(bad_input: str):
     mod = load_check()
     old_stdin, old_stdout = sys.stdin, sys.stdout
@@ -366,7 +364,9 @@ def test_env_opt_out_lowercase(tmp_path: Path):
     f = tmp_path / "bad.py"
     f.write_text("import os\n")
     mod = load_check()
-    rc, out, err = run_hook(mod, make_event(str(f)), env_overrides={"PER_EDIT_CHECK": "off"})
+    rc, out, err = run_hook(
+        mod, make_event(str(f)), env_overrides={"PER_EDIT_CHECK": "off"}
+    )
     assert rc == 0
     assert out.strip() == ""
 
@@ -375,7 +375,9 @@ def test_env_opt_out_uppercase(tmp_path: Path):
     f = tmp_path / "bad.py"
     f.write_text("import os\n")
     mod = load_check()
-    rc, out, err = run_hook(mod, make_event(str(f)), env_overrides={"PER_EDIT_CHECK": "OFF"})
+    rc, out, err = run_hook(
+        mod, make_event(str(f)), env_overrides={"PER_EDIT_CHECK": "OFF"}
+    )
     assert rc == 0
     assert out.strip() == ""
 
@@ -386,7 +388,7 @@ def test_disabled_sentinel_suppresses_check(tmp_path: Path):
     f.write_text("import os\n")
     (tmp_path / ".disabled").touch()
     mod = load_check()
-    mod.HOOKDIR = str(tmp_path)     # redirect the .disabled lookup
+    mod.HOOKDIR = str(tmp_path)  # redirect the .disabled lookup
     with (
         mock.patch("shutil.which", return_value="/usr/bin/ruff"),
         mock.patch("subprocess.run", return_value=_ruff_lint("bad.py")),
@@ -415,7 +417,7 @@ def test_non_write_tool_silent(tmp_path: Path, tool_name: str):
 def test_huge_file_skipped(tmp_path: Path):
     """Files over MAX_FILE_BYTES (~512 KB) are skipped without running the checker."""
     f = tmp_path / "big.py"
-    f.write_bytes(b"x = 1\n" * 100_000)   # ~600 KB
+    f.write_bytes(b"x = 1\n" * 100_000)  # ~600 KB
     mod = load_check()
     with (
         mock.patch("shutil.which", return_value="/usr/bin/ruff"),
@@ -432,7 +434,9 @@ def test_huge_file_skipped(tmp_path: Path):
 
 def test_missing_file_path_key_silent():
     mod = load_check()
-    rc, out, err = run_hook(mod, {"tool_name": "Edit", "tool_input": {}, "session_id": "s"})
+    rc, out, err = run_hook(
+        mod, {"tool_name": "Edit", "tool_input": {}, "session_id": "s"}
+    )
     assert rc == 0
     assert out.strip() == ""
 
@@ -472,8 +476,7 @@ def _ruff_e999(filename: str):
     return _proc(
         1,
         stdout=(
-            f"{filename}:1:9: E999 SyntaxError: unexpected token\n"
-            "Found 1 error.\n"
+            f"{filename}:1:9: E999 SyntaxError: unexpected token\nFound 1 error.\n"
         ),
     )
 

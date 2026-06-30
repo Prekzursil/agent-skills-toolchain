@@ -18,6 +18,7 @@ checkpoint is appended to <ckpt>/<sid>/index.ndjson for /rollback to read.
 NEVER blocks; inject-only is not even needed (silent). FAIL-OPEN: any error -> exit 0.
 Opt-out: EDIT_CHECKPOINTS=off or a .disabled file.
 """
+
 from __future__ import annotations
 
 import json
@@ -30,16 +31,18 @@ from pathlib import Path
 
 THIS = Path(__file__).resolve().parent
 DISABLED = THIS / ".disabled"
-CKPT_ROOT = Path(os.environ.get(
-    "EDIT_CHECKPOINTS_DIR", str(Path.home() / ".claude" / "checkpoints")))
+CKPT_ROOT = Path(
+    os.environ.get("EDIT_CHECKPOINTS_DIR", str(Path.home() / ".claude" / "checkpoints"))
+)
 MAX_COPY_BYTES = 25 * 1024 * 1024  # don't copy huge artifacts in non-git mode
 GIT = shutil.which("git")
 
 
 def _run_git(repo: str, *args, timeout=12):
     try:
-        p = subprocess.run([GIT, "-C", repo, *args], capture_output=True,
-                           text=True, timeout=timeout)
+        p = subprocess.run(
+            [GIT, "-C", repo, *args], capture_output=True, text=True, timeout=timeout
+        )
         return p.returncode, (p.stdout or "").strip(), (p.stderr or "").strip()
     except Exception:
         return 1, "", "exc"
@@ -67,7 +70,8 @@ def _turn_key(data: dict) -> str:
                     content = msg.get("content")
                     is_tool_result = isinstance(content, list) and any(
                         isinstance(b, dict) and b.get("type") == "tool_result"
-                        for b in content)
+                        for b in content
+                    )
                     if is_tool_result:
                         continue
                     last = ev.get("uuid") or last
@@ -120,8 +124,7 @@ def _git_toplevel(path_dir: str):
 def _checkpoint_git(sid: str, repo: str, turn: str, file_path: str) -> dict:
     """Create a stash-create snapshot for `repo` (idempotent per turn). Returns record."""
     sha = ""
-    rc, out, _ = _run_git(repo, "stash", "create",
-                          f"claude-checkpoint turn={turn}")
+    rc, out, _ = _run_git(repo, "stash", "create", f"claude-checkpoint turn={turn}")
     if rc == 0 and out:
         sha = out.splitlines()[-1].strip()
         ref = f"refs/claude-checkpoints/{turn}"
@@ -131,15 +134,23 @@ def _checkpoint_git(sid: str, repo: str, turn: str, file_path: str) -> dict:
         # Clean tree (no dirty changes) -> the restore point is just HEAD.
         rc2, head, _ = _run_git(repo, "rev-parse", "HEAD")
         kind, restore = "git-head-clean", (head if rc2 == 0 else "")
-    return {"ts": time.time(), "turn": turn, "type": kind, "repo": repo,
-            "restore": restore, "trigger_file": file_path}
+    return {
+        "ts": time.time(),
+        "turn": turn,
+        "type": kind,
+        "repo": repo,
+        "restore": restore,
+        "trigger_file": file_path,
+    }
 
 
 def _checkpoint_copy(sid: str, turn: str, file_path: str) -> dict | None:
     """Copy a single file (non-git) into the checkpoints dir, once per (turn,file)."""
     src = Path(file_path)
     if not src.exists() or not src.is_file():
-        return None  # brand-new file (Write of a non-existent path) -> nothing to back up
+        return (
+            None  # brand-new file (Write of a non-existent path) -> nothing to back up
+        )
     try:
         if src.stat().st_size > MAX_COPY_BYTES:
             return None
@@ -152,13 +163,23 @@ def _checkpoint_copy(sid: str, turn: str, file_path: str) -> dict | None:
         shutil.copy2(src, dest)
     except Exception:
         return None
-    return {"ts": time.time(), "turn": turn, "type": "copy",
-            "copy_path": str(dest), "original": str(src), "trigger_file": file_path}
+    return {
+        "ts": time.time(),
+        "turn": turn,
+        "type": "copy",
+        "copy_path": str(dest),
+        "original": str(src),
+        "trigger_file": file_path,
+    }
 
 
 def main() -> int:
     try:
-        if DISABLED.exists() or os.environ.get("EDIT_CHECKPOINTS", "").lower() in ("off", "0", "false"):
+        if DISABLED.exists() or os.environ.get("EDIT_CHECKPOINTS", "").lower() in (
+            "off",
+            "0",
+            "false",
+        ):
             return 0
         try:
             data = json.loads(sys.stdin.read() or "{}")
@@ -173,7 +194,11 @@ def main() -> int:
         cwd = data.get("cwd") or os.getcwd()
         if not os.path.isabs(fp):
             fp = os.path.join(cwd, fp)
-        sid = str(data.get("session_id") or "default").replace("/", "_").replace("\\", "_")
+        sid = (
+            str(data.get("session_id") or "default")
+            .replace("/", "_")
+            .replace("\\", "_")
+        )
         turn = _turn_key(data)
         st = _load_state(sid)
 

@@ -34,6 +34,7 @@ Coverage:
     - check_degenerate: SUCCESS:/FAILED: terminal markers are exempt (L3)
     - validate_contract: required_keywords, forbidden_keywords, min_length, empty contract
 """
+
 from __future__ import annotations
 
 import contextlib
@@ -57,6 +58,7 @@ if str(THIS) not in sys.path:
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(autouse=True)
 def isolated_state_dir(tmp_path, monkeypatch):
     """Redirect STATE_ROOT to tmp_path for every test so disk state never bleeds."""
@@ -67,6 +69,7 @@ def isolated_state_dir(tmp_path, monkeypatch):
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _fresh_import(module_name: str):
     """Import module_name after clearing it (and _common) from the module cache.
 
@@ -75,6 +78,7 @@ def _fresh_import(module_name: str):
     """
     for m in (module_name, "_common"):
         sys.modules.pop(m, None)
+    # nosemgrep: python.lang.security.audit.non-literal-import.non-literal-import -- test helper imports a fixed internal hook module by name, not untrusted input
     return importlib.import_module(module_name)
 
 
@@ -140,6 +144,7 @@ def _make_transcript(tmp_path: Path, text: str) -> Path:
 # ---------------------------------------------------------------------------
 # start.py tests
 # ---------------------------------------------------------------------------
+
 
 class TestSubagentStart:
     """Tests for the SubagentStart hook (start.py)."""
@@ -231,6 +236,7 @@ class TestSubagentStart:
 # stop.py tests
 # ---------------------------------------------------------------------------
 
+
 class TestSubagentStop:
     """Tests for the SubagentStop hook (stop.py).
 
@@ -248,13 +254,9 @@ class TestSubagentStop:
         """Convenience wrapper: patches load_contract / load_retries / save_retries."""
         patches = []
         if contracts is not None:
-            patches.append(
-                mock.patch("stop.load_contract", return_value=contracts)
-            )
+            patches.append(mock.patch("stop.load_contract", return_value=contracts))
         if retries is not None:
-            patches.append(
-                mock.patch("stop.load_retries", return_value=retries)
-            )
+            patches.append(mock.patch("stop.load_retries", return_value=retries))
             patches.append(mock.patch("stop.save_retries"))  # prevent disk writes
         return _capture_main("stop", payload, env_extras=env_extras, patches=patches)
 
@@ -454,6 +456,7 @@ class TestSubagentStop:
 # Real-payload tests (C1 · M1 · L3 — four mandated by adversarial review)
 # ---------------------------------------------------------------------------
 
+
 class TestSubagentStopRealPayload:
     """Realistic SubagentStop payload tests with no 'output' key — only transcript_path.
 
@@ -495,8 +498,7 @@ class TestSubagentStopRealPayload:
         code, out = self._run(payload, contracts=None)
         assert code == 0
         assert out is None, (
-            "Substantive transcript should produce no output — "
-            f"got: {out}"
+            f"Substantive transcript should produce no output — got: {out}"
         )
 
     def test_c1_degenerate_transcript_flags(self, tmp_path):
@@ -576,6 +578,7 @@ class TestSubagentStopRealPayload:
 # Unit tests — build_context
 # ---------------------------------------------------------------------------
 
+
 class TestBuildContext:
     """Unit tests for start.build_context (pure function, no I/O)."""
 
@@ -600,6 +603,7 @@ class TestBuildContext:
 # ---------------------------------------------------------------------------
 # Unit tests — check_degenerate
 # ---------------------------------------------------------------------------
+
 
 class TestCheckDegenerate:
     """Unit tests for stop.check_degenerate (pure function)."""
@@ -628,14 +632,15 @@ class TestCheckDegenerate:
         assert self._get()("done") is not None
 
     def test_substantive_output_passes(self):
-        assert self._get()(
-            "I completed the task. Modified main.py and added 3 tests. All passing."
-        ) is None
+        assert (
+            self._get()(
+                "I completed the task. Modified main.py and added 3 tests. All passing."
+            )
+            is None
+        )
 
     def test_medium_length_meaningful_passes(self):
-        assert self._get()(
-            "The refactor is complete. 5 files changed."
-        ) is None
+        assert self._get()("The refactor is complete. 5 files changed.") is None
 
     def test_returns_string_message_when_degenerate(self):
         result = self._get()("")
@@ -682,6 +687,7 @@ class TestCheckDegenerate:
 # Unit tests — validate_contract
 # ---------------------------------------------------------------------------
 
+
 class TestValidateContract:
     """Unit tests for stop.validate_contract (pure function)."""
 
@@ -695,9 +701,7 @@ class TestValidateContract:
         assert ok
 
     def test_required_keyword_missing_fails(self):
-        ok, reason = self._get()(
-            "Task done.", {"required_keywords": ["SUCCESS"]}
-        )
+        ok, reason = self._get()("Task done.", {"required_keywords": ["SUCCESS"]})
         assert not ok
         assert "SUCCESS" in reason
 

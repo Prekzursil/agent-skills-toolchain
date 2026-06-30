@@ -12,6 +12,7 @@ Stays silent : otherwise (no output).
 FAIL-OPEN    : any error -> exit 0, no output. Opt-out: env FORGE_TODO_SURFACER_OFF=1
                or a .disabled file in this directory.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -29,17 +30,21 @@ NAME = "todo-surfacer"
 EVENT = "Stop"
 KIND = "response"
 FIELD = None
-ACTION = 'You left {count} open TODO/FIXME marker(s) in your final message. Capture them as open loops before they are lost.'
+ACTION = "You left {count} open TODO/FIXME marker(s) in your final message. Capture them as open loops before they are lost."
 NEEDS_STATE = False
-_PATTERN = re.compile('\\b(TODO|FIXME)\\b|- \\[ \\]', re.IGNORECASE)
+_PATTERN = re.compile("\\b(TODO|FIXME)\\b|- \\[ \\]", re.IGNORECASE)
 
-_STATE_ROOT = Path(os.environ.get("FORGE_STATE_ROOT") or (Path.home() / ".claude" / "forge-state"))
+_STATE_ROOT = Path(
+    os.environ.get("FORGE_STATE_ROOT") or (Path.home() / ".claude" / "forge-state")
+)
 STATE_DIR = _STATE_ROOT / NAME
 STATE_FILE = STATE_DIR / "ledger.ndjson"
 
 
 def _disabled() -> bool:
-    return DISABLED.exists() or os.environ.get("FORGE_TODO_SURFACER_OFF", "").lower() in ("1", "on", "true")
+    return DISABLED.exists() or os.environ.get(
+        "FORGE_TODO_SURFACER_OFF", ""
+    ).lower() in ("1", "on", "true")
 
 
 def _dig(payload: dict, path):
@@ -74,7 +79,9 @@ def _final_assistant_text(transcript_path) -> str:
                 except Exception:
                     continue
                 msg = ev.get("message") if isinstance(ev, dict) else None
-                role = (msg or {}).get("role") if isinstance(msg, dict) else ev.get("role")
+                role = (
+                    (msg or {}).get("role") if isinstance(msg, dict) else ev.get("role")
+                )
                 if role != "assistant":
                     continue
                 content = (msg or ev).get("content")
@@ -126,8 +133,12 @@ def _record(key: str, session: str, count: int) -> None:
     try:
         STATE_DIR.mkdir(parents=True, exist_ok=True)
         with STATE_FILE.open("a", encoding="utf-8") as fh:
-            fh.write(json.dumps({"ts": time.time(), "session": session,
-                                 "key": key, "count": count}) + "\n")
+            fh.write(
+                json.dumps(
+                    {"ts": time.time(), "session": session, "key": key, "count": count}
+                )
+                + "\n"
+            )
     except Exception:
         pass
 
@@ -146,6 +157,7 @@ def build_message(payload: dict):
         return None
     if NEEDS_STATE:
         session = str(payload.get("session_id") or "default")
+        # nosemgrep: python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1 -- non-cryptographic dedup key, not a security control
         key = hashlib.sha1(src.encode("utf-8", "replace")).hexdigest()
         if _seen(key, session):
             return None
@@ -164,8 +176,16 @@ def main(argv=None) -> int:
             payload = {}
         msg = build_message(payload)
         if msg:
-            print(json.dumps({"hookSpecificOutput": {
-                "hookEventName": EVENT, "additionalContext": msg}}))
+            print(
+                json.dumps(
+                    {
+                        "hookSpecificOutput": {
+                            "hookEventName": EVENT,
+                            "additionalContext": msg,
+                        }
+                    }
+                )
+            )
     except Exception:
         pass  # fail-open: never crash a session
     return 0

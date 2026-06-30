@@ -16,6 +16,7 @@ can inject tmp_path roots without touching real data.
 
 Fail-open contract: any unhandled exception in compute_verdict → (PROGRESSING, reason, None).
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -25,10 +26,10 @@ from pathlib import Path
 from typing import Optional, Tuple
 
 # ── public constants (overridable via kwargs in tests) ─────────────────────────
-K = 8                    # how many ledger events to inspect
-REPEAT_THRESHOLD = 3     # fingerprint (tool+args) repeats → LOOPING  (mirrors anti-degen)
-FAILURE_REPEAT = 2       # same failure precondition text recurs → LOOPING
-MIN_ACTIVITY_TURNS = 4   # need at least this many 'turn' events before stall fires
+K = 8  # how many ledger events to inspect
+REPEAT_THRESHOLD = 3  # fingerprint (tool+args) repeats → LOOPING  (mirrors anti-degen)
+FAILURE_REPEAT = 2  # same failure precondition text recurs → LOOPING
+MIN_ACTIVITY_TURNS = 4  # need at least this many 'turn' events before stall fires
 
 PROGRESSING = "PROGRESSING"
 STALLED = "STALLED"
@@ -39,6 +40,7 @@ _DEFAULT_LEDGER_ROOT = Path.home() / ".claude" / "event-ledger"
 
 
 # ── internal helpers ───────────────────────────────────────────────────────────
+
 
 def _sha(text: str) -> str:
     """SHA-256 hex (non-crypto; sha256 per CWE-327 guidance)."""
@@ -61,9 +63,12 @@ def _legacy_slug(p: str) -> str:
 
 # ── fingerprint state ──────────────────────────────────────────────────────────
 
+
 def _load_fingerprint(session_id: str, anti_degen_root: Path) -> list:
     """Load the anti-degen sliding-window list. Returns [] on any error."""
-    safe = "".join(c if c.isalnum() or c in "-_." else "-" for c in str(session_id))[:80]
+    safe = "".join(c if c.isalnum() or c in "-_." else "-" for c in str(session_id))[
+        :80
+    ]
     f = anti_degen_root / f"{safe or 'unknown'}.json"
     if not f.exists():
         return []
@@ -96,7 +101,7 @@ def _detect_fp_loop(
         if len(entries) < threshold:
             continue
         output_hashes = {str(e.get("oh", "")) for e in entries}
-        if len(output_hashes) == 1:          # all same output → stuck
+        if len(output_hashes) == 1:  # all same output → stuck
             out_h = next(iter(output_hashes))
             loop_id = _sha(f"fp:{tool}:{ah}:{out_h}")[:16]
             return loop_id, tool, len(entries)
@@ -105,6 +110,7 @@ def _detect_fp_loop(
 
 
 # ── ledger events ──────────────────────────────────────────────────────────────
+
 
 def _load_events(project_path: str, k: int, ledger_root: Path) -> list:
     """Read the last k events from the event-ledger JSONL. Returns [] on any error."""
@@ -129,6 +135,7 @@ def _load_events(project_path: str, k: int, ledger_root: Path) -> list:
 
 
 # ── loop / stall detectors ─────────────────────────────────────────────────────
+
 
 def _detect_failure_loop(
     events: list, failure_repeat: int
@@ -191,6 +198,7 @@ def _detect_stall(events: list, min_activity_turns: int) -> bool:
 
 
 # ── public API ─────────────────────────────────────────────────────────────────
+
 
 def compute_verdict(
     session_id: str,

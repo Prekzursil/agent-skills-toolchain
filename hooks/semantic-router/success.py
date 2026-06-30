@@ -13,6 +13,7 @@ Per-session state prevents double-counting (one suggested++ per name per session
 used++ per name per session) and lets observe.py credit a use only to something that was
 actually suggested THIS session.
 """
+
 import json
 import os
 import tempfile

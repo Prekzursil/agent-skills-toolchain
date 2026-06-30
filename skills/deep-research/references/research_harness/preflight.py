@@ -41,7 +41,9 @@ def routable_servers() -> set[str]:
     return servers
 
 
-def run_preflight(probe: ProbeFn, servers: set[str] | None = None) -> dict[str, ProviderStatus]:
+def run_preflight(
+    probe: ProbeFn, servers: set[str] | None = None
+) -> dict[str, ProviderStatus]:
     """Probe each server, returning a server -> status map.
 
     ``probe(server)`` returns one of ``LIVE`` / ``DOWN`` / ``QUOTA``. Any probe

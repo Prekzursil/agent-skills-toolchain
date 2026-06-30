@@ -15,6 +15,7 @@ Proves:
   7. run() raises → main still returns 0 (fail-open, outer catch-all).
   8. Malformed / empty payload → returns 0, no crash.
 """
+
 from __future__ import annotations
 
 import io
@@ -74,6 +75,7 @@ def _parse_bell_json(stdout: str) -> dict | None:
 
 # ── test cases ────────────────────────────────────────────────────────────────
 
+
 def test_normal_payload_returns_0_and_prints_bell():
     """Valid notification → returns 0, stdout contains bell JSON."""
     payload = {
@@ -90,12 +92,16 @@ def test_normal_payload_returns_0_and_prints_bell():
     ok("stdout is valid JSON", parsed is not None, f"stdout={stdout!r}")
     if parsed:
         hso = parsed.get("hookSpecificOutput", {})
-        ok("hookEventName=Notification",
-           hso.get("hookEventName") == "Notification",
-           f"hookEventName={hso.get('hookEventName')!r}")
-        ok("terminalSequence is BEL (\\x07)",
-           hso.get("terminalSequence") == "\x07",
-           f"terminalSequence={hso.get('terminalSequence')!r}")
+        ok(
+            "hookEventName=Notification",
+            hso.get("hookEventName") == "Notification",
+            f"hookEventName={hso.get('hookEventName')!r}",
+        )
+        ok(
+            "terminalSequence is BEL (\\x07)",
+            hso.get("terminalSequence") == "\x07",
+            f"terminalSequence={hso.get('terminalSequence')!r}",
+        )
 
 
 def test_balloon_receives_correct_title_and_message():
@@ -106,27 +112,29 @@ def test_balloon_receives_correct_title_and_message():
         "hook_event_name": "Notification",
     }
     buf = io.StringIO()
-    with mock.patch("notify._send_balloon") as mock_balloon, \
-         redirect_stdout(buf):
+    with mock.patch("notify._send_balloon") as mock_balloon, redirect_stdout(buf):
         result = notify.main(payload)
 
     ok("balloon-title test returns 0", result == 0, f"got {result}")
     mock_balloon.assert_called_once()
     _args, kwargs = mock_balloon.call_args
-    ok("balloon title is 'Claude Code needs you'",
-       kwargs.get("title") == "Claude Code needs you",
-       f"title={kwargs.get('title')!r}")
-    ok("balloon body contains the message",
-       "Permission required" in kwargs.get("body", ""),
-       f"body={kwargs.get('body', '')!r}")
+    ok(
+        "balloon title is 'Claude Code needs you'",
+        kwargs.get("title") == "Claude Code needs you",
+        f"title={kwargs.get('title')!r}",
+    )
+    ok(
+        "balloon body contains the message",
+        "Permission required" in kwargs.get("body", ""),
+        f"body={kwargs.get('body', '')!r}",
+    )
 
 
 def test_empty_message_uses_fallback_body():
     """No message → fallback body, still returns 0, bell still emitted."""
     payload = {"session_id": "sess-xyz", "hook_event_name": "Notification"}
     buf = io.StringIO()
-    with mock.patch("notify._send_balloon") as mock_balloon, \
-         redirect_stdout(buf):
+    with mock.patch("notify._send_balloon") as mock_balloon, redirect_stdout(buf):
         result = notify.main(payload)
 
     ok("empty-message returns 0", result == 0, f"got {result}")
@@ -154,16 +162,20 @@ def test_send_balloon_raises_still_returns_0():
     """_send_balloon raising must not propagate — main returns 0."""
     payload = {"session_id": "s", "message": "oops", "hook_event_name": "Notification"}
     buf = io.StringIO()
-    with mock.patch("notify._send_balloon", side_effect=OSError("no display")), \
-         redirect_stdout(buf):
+    with (
+        mock.patch("notify._send_balloon", side_effect=OSError("no display")),
+        redirect_stdout(buf),
+    ):
         result = notify.main(payload)
     ok("balloon-raises returns 0", result == 0, f"got {result}")
 
 
 def test_run_raises_main_still_returns_0():
     """If run() itself raises, the outer catch-all in main returns 0."""
-    with mock.patch.object(notify, "run", side_effect=RuntimeError("boom")), \
-         mock.patch("builtins.print"):
+    with (
+        mock.patch.object(notify, "run", side_effect=RuntimeError("boom")),
+        mock.patch("builtins.print"),
+    ):
         result = notify.main({"session_id": "x", "message": "y"})
     ok("run-raises main returns 0", result == 0, f"got {result}")
 
@@ -189,6 +201,7 @@ def test_ps_escape_helper_safety():
 
 # ── runner ────────────────────────────────────────────────────────────────────
 
+
 def main() -> int:
     tests = [
         test_normal_payload_returns_0_and_prints_bell,
@@ -205,11 +218,12 @@ def main() -> int:
             t()
         except Exception as exc:
             import traceback
+
             _FAIL.append(t.__name__)
             print(f"FAIL: {t.__name__} [EXCEPTION] {exc}")
             traceback.print_exc()
 
-    print(f"\n{'='*50}")
+    print(f"\n{'=' * 50}")
     print(f"RESULT: {len(_PASS)} passed, {len(_FAIL)} failed")
     if _FAIL:
         print("FAILED:", ", ".join(_FAIL))

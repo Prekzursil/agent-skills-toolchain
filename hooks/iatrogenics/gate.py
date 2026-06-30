@@ -29,6 +29,7 @@ Settings.json wire spec (PreToolUse):
   Timeout:       5000
   StatusMessage: Iatrogenics watchful-waiting gate
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -57,10 +58,12 @@ _K = int(os.environ.get("IATROGENICS_K", "3"))
 # Auto-clear TTL for the per-session counter files (hours).
 _TTL_HOURS = float(os.environ.get("IATROGENICS_TTL_HOURS", "4"))
 # Directory for per-session counter state files.
-_COUNTER_DIR = Path(os.environ.get(
-    "IATROGENICS_COUNTER_DIR",
-    str(Path.home() / ".claude" / "iatrogenics"),
-))
+_COUNTER_DIR = Path(
+    os.environ.get(
+        "IATROGENICS_COUNTER_DIR",
+        str(Path.home() / ".claude" / "iatrogenics"),
+    )
+)
 # L4: maximum command length scanned by regex; skip beyond this to avoid O(n) on huge inputs.
 _MAX_CMD_BYTES = 256 * 1024
 
@@ -77,15 +80,15 @@ _IRREVERSIBLE_TOOL_RE = re.compile(
 # Bash / PowerShell command patterns that are hard or impossible to undo.
 _IRREVERSIBLE_CMD_RE = re.compile(
     r"\brm\b\s+(-[rf]+|-{1,2}(recursive|force)\b)"  # rm -rf, rm -f, rm --force
-    r"|Remove-Item\b.*-Force\b"                       # PowerShell destructive delete
-    r"|\bdd\b.*\bof="                                 # dd disk write
+    r"|Remove-Item\b.*-Force\b"  # PowerShell destructive delete
+    r"|\bdd\b.*\bof="  # dd disk write
     r"|git\s+(push\b.*--force\b|reset\b.*--hard\b|checkout\s+--\s)"  # destructive git
-    r"|\bsed\s+-i\b"                                  # in-place sed (no backup)
-    r"|\btruncate\b"                                  # truncate a file
-    r"|\bmkfs\b|\bformat\s+[A-Za-z]:"                # format disk
+    r"|\bsed\s+-i\b"  # in-place sed (no backup)
+    r"|\btruncate\b"  # truncate a file
+    r"|\bmkfs\b|\bformat\s+[A-Za-z]:"  # format disk
     r"|>\s*/dev/(?!null\b|zero\b|random\b|urandom\b|stdin\b|stdout\b|stderr\b)"
     r"|--overwrite\b|--force-overwrite\b"
-    r"|\bmitmproxy\b|\bmitmdump\b",                   # MITM (irreversible re: BC HGT)
+    r"|\bmitmproxy\b|\bmitmdump\b",  # MITM (irreversible re: BC HGT)
     re.IGNORECASE | re.VERBOSE,
 )
 
@@ -97,24 +100,33 @@ _IRREVERSIBLE_PATH_RE = re.compile(r"^/dev/|^\\\\.\\", re.IGNORECASE)
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _disabled() -> bool:
-    return (DISABLED.exists()
-            or os.environ.get("IATROGENICS", "").lower() in ("off", "0", "false"))
+    return DISABLED.exists() or os.environ.get("IATROGENICS", "").lower() in (
+        "off",
+        "0",
+        "false",
+    )
 
 
 def _emit(msg: str) -> None:
-    print(json.dumps({
-        "hookSpecificOutput": {
-            "hookEventName": "PreToolUse",
-            "additionalContext": msg,
-        }
-    }))
+    print(
+        json.dumps(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "additionalContext": msg,
+                }
+            }
+        )
+    )
 
 
 def _cs_allow(itype: str, context: dict) -> bool:
     """Gate through calibrated-silence. Fail-open = True if module unavailable."""
     try:
         import calibrated_silence  # noqa: PLC0415
+
         ctx = dict(context)
         ledger = os.environ.get("CALSIL_LEDGER_PATH")
         if ledger:
@@ -151,6 +163,7 @@ def _action_sig(tool_name: str, tool_input: dict) -> str:
         fp = str(tool_input.get("file_path") or "")
         target = (fp or cmd)[:120]
         raw = f"{tool_name}:{target}"
+        # nosemgrep: python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1 -- non-cryptographic action fingerprint for dedup, not a security control
         return hashlib.sha1(raw.encode("utf-8", "replace")).hexdigest()[:16]
     except Exception:
         return "unknown"
@@ -158,6 +171,7 @@ def _action_sig(tool_name: str, tool_input: dict) -> str:
 
 def _counter_path(session_id: str) -> Path:
     try:
+        # nosemgrep: python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1 -- non-cryptographic session-id slug for a state-file name, not a security control
         h = hashlib.sha1(session_id.encode("utf-8", "replace")).hexdigest()[:24]
         return _COUNTER_DIR / f"{h}.json"
     except Exception:
@@ -186,9 +200,7 @@ def _save_counter(session_id: str, counter: dict) -> None:
     try:
         _COUNTER_DIR.mkdir(parents=True, exist_ok=True)
         counter["_ts"] = time.time()
-        _counter_path(session_id).write_text(
-            json.dumps(counter), encoding="utf-8"
-        )
+        _counter_path(session_id).write_text(json.dumps(counter), encoding="utf-8")
     except Exception:
         pass
 
@@ -196,6 +208,7 @@ def _save_counter(session_id: str, counter: dict) -> None:
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
+
 
 def main() -> int:
     try:
@@ -209,9 +222,7 @@ def main() -> int:
 
         tool_name = str(payload.get("tool_name") or "")
         tool_input = payload.get("tool_input") or {}
-        session_id = str(
-            payload.get("session_id") or payload.get("cwd") or "default"
-        )
+        session_id = str(payload.get("session_id") or payload.get("cwd") or "default")
 
         if not _is_irreversible(tool_name, tool_input):
             return 0  # reversible action — no advisory needed

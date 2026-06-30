@@ -25,6 +25,7 @@ dispatcher's hardcoded _SHARED_NAMES tuple) — mirrors the proven bg-registry p
 Pure stdlib. Every public helper swallows its own errors (safe default) so callers stay
 simple and FAIL-OPEN.
 """
+
 from __future__ import annotations
 
 import fnmatch
@@ -47,18 +48,25 @@ DEFAULT_TTL_DAYS = int(os.environ.get("OPEN_LOOPS_TTL_DAYS", "30"))
 RECUR_THROTTLE_SEC = float(os.environ.get("OPEN_LOOPS_RECUR_SEC", str(6 * 3600)))
 
 PRED_TYPES = (
-    "cwd_glob", "branch_glob", "branch_regex", "file_exists",
-    "prompt_regex", "keyword", "always",
+    "cwd_glob",
+    "branch_glob",
+    "branch_regex",
+    "file_exists",
+    "prompt_regex",
+    "keyword",
+    "always",
 )
 
 # Words dropped when deriving keyword predicates from plain language.
-_STOP = frozenset("""
+_STOP = frozenset(
+    """
 a an the to of and or but if when whenever while is are be been being it its this that
 these those your you i me my we our us on in at for with about under over into onto from
 as do does did done so then than will would should could can may might must re-assert
 path paths dir dirs directory directories folder folders branch branches file files cwd
 matches matching match touch touching touched about-to about next time whenever am pm
-""".split())
+""".split()
+)
 
 
 # ---------------------------------------------------------------------------
@@ -70,8 +78,16 @@ def now() -> float:
 
 def emit(event_name: str, msg: str) -> None:
     """Inject additionalContext (the shared hookSpecificOutput shape)."""
-    print(json.dumps({"hookSpecificOutput": {
-        "hookEventName": event_name, "additionalContext": msg}}))
+    print(
+        json.dumps(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": event_name,
+                    "additionalContext": msg,
+                }
+            }
+        )
+    )
 
 
 def read_stdin() -> dict:
@@ -159,9 +175,15 @@ def append_trigger(rec: dict) -> bool:
         return False
 
 
-def make_trigger(condition: dict, action: str, *, ttl_days: int | None = None,
-                 recurring: bool = False, source: str = "manual",
-                 raw: str = "") -> dict:
+def make_trigger(
+    condition: dict,
+    action: str,
+    *,
+    ttl_days: int | None = None,
+    recurring: bool = False,
+    source: str = "manual",
+    raw: str = "",
+) -> dict:
     return {
         "id": short_id(),
         "condition": condition or {"mode": "any", "preds": []},
@@ -179,8 +201,12 @@ def make_trigger(condition: dict, action: str, *, ttl_days: int | None = None,
 # ---------------------------------------------------------------------------
 # Plain-language parsing (best-effort; explicit preds are the precise path).
 # ---------------------------------------------------------------------------
-_PATH_TOKEN = re.compile(r"""["'`]?((?:[a-zA-Z]:[\\/]|\.{0,2}[\\/])[^\s"'`]+|[^\s"'`]*[\\/][^\s"'`]+)["'`]?""")
-_GLOB_TOKEN = re.compile(r"""["'`]?([A-Za-z0-9_.\-]*[*?\[][A-Za-z0-9_.\-*?\[\]/]*)["'`]?""")
+_PATH_TOKEN = re.compile(
+    r"""["'`]?((?:[a-zA-Z]:[\\/]|\.{0,2}[\\/])[^\s"'`]+|[^\s"'`]*[\\/][^\s"'`]+)["'`]?"""
+)
+_GLOB_TOKEN = re.compile(
+    r"""["'`]?([A-Za-z0-9_.\-]*[*?\[][A-Za-z0-9_.\-*?\[\]/]*)["'`]?"""
+)
 
 
 def _path_core(token: str) -> str:
@@ -215,7 +241,8 @@ def _clause_to_pred(clause: str) -> dict | None:
     # branch matcher: "branch matches feat/*", "branch feat/*", "on branch main"
     if "branch" in low:
         m = _GLOB_TOKEN.search(c) or re.search(
-            r"(?:branch|matches|matching|is|=|on)\s+([A-Za-z0-9_./*?\-]+)", c, re.I)
+            r"(?:branch|matches|matching|is|=|on)\s+([A-Za-z0-9_./*?\-]+)", c, re.I
+        )
         if m:
             tok = m.group(1).strip("\"'`")
             if any(ch in tok for ch in "*?["):
@@ -230,8 +257,14 @@ def _clause_to_pred(clause: str) -> dict | None:
 
     # path / cwd matcher: any path-like token -> portable core glob
     pm = _PATH_TOKEN.search(c)
-    if pm and any(k in low for k in ("cwd", "under", "path", "dir", "directory", "folder", "in ")) \
-            or (pm and ("/" in pm.group(1) or "\\" in pm.group(1))):
+    if (
+        pm
+        and any(
+            k in low
+            for k in ("cwd", "under", "path", "dir", "directory", "folder", "in ")
+        )
+        or (pm and ("/" in pm.group(1) or "\\" in pm.group(1)))
+    ):
         core = _path_core(pm.group(1))
         if core:
             return {"type": "cwd_glob", "value": f"*{core}*"}
@@ -261,8 +294,12 @@ def parse_plain(text: str) -> tuple[dict, str]:
     if len(m) == 2:
         cond_part, action = m[0], m[1]
     # strip leading intent words
-    cond_part = re.sub(r"^\s*(when|whenever|if|remember to|remind me to)\s+", "", cond_part, flags=re.I)
-    action = re.sub(r"^\s*(remember to|remind me to|then)\s+", "", action, flags=re.I).strip()
+    cond_part = re.sub(
+        r"^\s*(when|whenever|if|remember to|remind me to)\s+", "", cond_part, flags=re.I
+    )
+    action = re.sub(
+        r"^\s*(remember to|remind me to|then)\s+", "", action, flags=re.I
+    ).strip()
 
     mode = "all" if re.search(r"\band\b", cond_part, re.I) else "any"
     preds: list[dict] = []
@@ -286,8 +323,12 @@ def parse_plain(text: str) -> tuple[dict, str]:
 # ---------------------------------------------------------------------------
 def git_branch(cwd: str) -> str:
     try:
-        out = subprocess.run(["git", "-C", str(cwd or "."), "rev-parse", "--abbrev-ref", "HEAD"],
-                             capture_output=True, text=True, timeout=4)
+        out = subprocess.run(
+            ["git", "-C", str(cwd or "."), "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=4,
+        )
         return out.stdout.strip() if out.returncode == 0 else ""
     except Exception:
         return ""
@@ -314,8 +355,11 @@ def _recent_files(transcript_path: str, limit: int = 40) -> list[str]:
             if not isinstance(content, list):
                 continue
             for b in content:
-                if isinstance(b, dict) and b.get("type") == "tool_use" \
-                        and b.get("name") in ("Edit", "Write", "MultiEdit"):
+                if (
+                    isinstance(b, dict)
+                    and b.get("type") == "tool_use"
+                    and b.get("name") in ("Edit", "Write", "MultiEdit")
+                ):
                     fp = (b.get("input") or {}).get("file_path")
                     if fp:
                         out.append(_norm(fp))
@@ -330,9 +374,14 @@ def build_ctx(payload: dict) -> dict:
     branch = git_branch(cwd)
     recent = _recent_files(str((payload or {}).get("transcript_path") or ""))
     haystack = " ".join([_norm(cwd), branch.lower(), prompt.lower(), " ".join(recent)])
-    return {"cwd": cwd, "branch": branch, "prompt": prompt,
-            "recent_files": recent, "haystack": haystack,
-            "source": str((payload or {}).get("source") or "")}
+    return {
+        "cwd": cwd,
+        "branch": branch,
+        "prompt": prompt,
+        "recent_files": recent,
+        "haystack": haystack,
+        "source": str((payload or {}).get("source") or ""),
+    }
 
 
 def _glob_or_sub(value: str, target: str) -> bool:
@@ -355,10 +404,10 @@ def eval_pred(pred: dict, ctx: dict) -> bool:
         if typ == "cwd_glob":
             return _glob_or_sub(val, ctx.get("cwd", ""))
         if typ == "branch_glob":
-            br = (ctx.get("branch") or "")
+            br = ctx.get("branch") or ""
             return bool(br) and fnmatch.fnmatch(br.lower(), _norm(val))
         if typ == "branch_regex":
-            br = (ctx.get("branch") or "")
+            br = ctx.get("branch") or ""
             return bool(br) and re.search(val, br, re.I) is not None
         if typ == "file_exists":
             fp = Path(val)
@@ -426,12 +475,17 @@ def ledger_open_loops(cwd: str) -> list[str]:
         if LEDGER_DIR not in sys.path:
             sys.path.insert(0, LEDGER_DIR)
         import ledger  # noqa: PLC0415
+
         st = ledger.state(cwd) or {}
         of = st.get("open_failures") or []
         if of:
-            sample = "; ".join(str(f.get("text", ""))[:50] for f in of[-2:] if f.get("text"))
-            out.append(f"{len(of)} unresolved failure(s) still open — close (milestone "
-                       f"--supersedes) or cheaply re-test, don't silently re-walk: {sample}")
+            sample = "; ".join(
+                str(f.get("text", ""))[:50] for f in of[-2:] if f.get("text")
+            )
+            out.append(
+                f"{len(of)} unresolved failure(s) still open — close (milestone "
+                f"--supersedes) or cheaply re-test, don't silently re-walk: {sample}"
+            )
         goal = st.get("goal")
         if goal:
             out.append(f"standing goal not yet marked complete: {str(goal)[:90]}")

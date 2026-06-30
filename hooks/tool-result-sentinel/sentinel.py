@@ -50,6 +50,7 @@ settings.json (PostToolUse, matcher "*"):
    "command":"python C:/Users/Prekzursil/.claude/hooks/tool-result-sentinel/sentinel.py",
    "timeout":8,"statusMessage":"Tool-result sentinel (failure boundary guard)"}
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -62,10 +63,12 @@ from pathlib import Path
 
 THIS = Path(__file__).resolve().parent
 DISABLED = THIS / ".disabled"
-WARN_ROOT = Path(os.environ.get(
-    "TOOL_SENTINEL_ROOT",
-    str(Path(tempfile.gettempdir()) / "claude-tool-sentinel"),
-))
+WARN_ROOT = Path(
+    os.environ.get(
+        "TOOL_SENTINEL_ROOT",
+        str(Path(tempfile.gettempdir()) / "claude-tool-sentinel"),
+    )
+)
 MAX_WARNED = 400  # cap the per-session warned-fingerprint list
 
 # Tools judged by STRUCTURE only (their text output legitimately contains "error").
@@ -95,7 +98,9 @@ _EXPECTS_CONTENT = re.compile(
     re.IGNORECASE,
 )
 # ... but these read patterns can legitimately be empty -> NOT empty-checked.
-_EMPTY_OK = re.compile(r"(?:list_|search_|find_|query|grep|_list\b|enumerate|scan)", re.IGNORECASE)
+_EMPTY_OK = re.compile(
+    r"(?:list_|search_|find_|query|grep|_list\b|enumerate|scan)", re.IGNORECASE
+)
 
 
 def _sha(text: str) -> str:
@@ -104,8 +109,13 @@ def _sha(text: str) -> str:
 
 def _args_hash(tool_input) -> str:
     try:
-        norm = json.dumps(tool_input, sort_keys=True, ensure_ascii=False,
-                          separators=(",", ":"), default=repr)
+        norm = json.dumps(
+            tool_input,
+            sort_keys=True,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            default=repr,
+        )
     except Exception:
         norm = repr(tool_input)
     return _sha(norm)[:32]
@@ -113,7 +123,9 @@ def _args_hash(tool_input) -> str:
 
 def _warn_file(session_id: str) -> Path:
     WARN_ROOT.mkdir(parents=True, exist_ok=True)
-    safe = "".join(c if c.isalnum() or c in "-_." else "-" for c in str(session_id))[:80]
+    safe = "".join(c if c.isalnum() or c in "-_." else "-" for c in str(session_id))[
+        :80
+    ]
     return WARN_ROOT / f"{safe or 'unknown'}.json"
 
 
@@ -158,8 +170,19 @@ def _gather_text(resp) -> str:
         if isinstance(o, str):
             parts.append(o)
         elif isinstance(o, dict):
-            for k in ("text", "stdout", "stderr", "message", "error", "detail",
-                      "content", "result", "output", "data", "body"):
+            for k in (
+                "text",
+                "stdout",
+                "stderr",
+                "message",
+                "error",
+                "detail",
+                "content",
+                "result",
+                "output",
+                "data",
+                "body",
+            ):
                 if k in o:
                     _walk(o[k], depth + 1)
         elif isinstance(o, list):
@@ -197,7 +220,14 @@ def _structural_failed(resp) -> tuple[bool, str]:
     if not isinstance(resp, dict):
         return False, ""
     # numeric exit/return codes
-    for key in ("exit_code", "exitCode", "returncode", "return_code", "code", "status_code"):
+    for key in (
+        "exit_code",
+        "exitCode",
+        "returncode",
+        "return_code",
+        "code",
+        "status_code",
+    ):
         val = resp.get(key)
         if val is not None:
             try:
@@ -248,7 +278,11 @@ def classify(tool_name: str, tool_input, resp) -> tuple[str, str]:
             return "FAILED", f"infra-failure text: '{m.group(0)}'"
 
     # 3. AMBIGUOUS: empty where content is expected (MCP must-return-content tools).
-    if is_mcp and _EXPECTS_CONTENT.search(tool_name) and not _EMPTY_OK.search(tool_name):
+    if (
+        is_mcp
+        and _EXPECTS_CONTENT.search(tool_name)
+        and not _EMPTY_OK.search(tool_name)
+    ):
         if _is_empty_result(resp):
             return "AMBIGUOUS", "empty result where content was expected"
 
@@ -257,7 +291,11 @@ def classify(tool_name: str, tool_input, resp) -> tuple[str, str]:
 
 def main() -> int:
     try:
-        if DISABLED.exists() or os.environ.get("TOOL_SENTINEL", "").lower() in ("off", "0", "false"):
+        if DISABLED.exists() or os.environ.get("TOOL_SENTINEL", "").lower() in (
+            "off",
+            "0",
+            "false",
+        ):
             return 0
         try:
             data = json.loads(sys.stdin.read() or "{}")
@@ -294,8 +332,16 @@ def main() -> int:
                 f"({reason}). Verify it actually did what you intended before "
                 f"relying on it — an empty/odd result is not a confirmed success."
             )
-        print(json.dumps({"hookSpecificOutput": {
-            "hookEventName": "PostToolUse", "additionalContext": msg}}))
+        print(
+            json.dumps(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "PostToolUse",
+                        "additionalContext": msg,
+                    }
+                }
+            )
+        )
     except Exception:
         pass  # fail-open: never crash a session
     return 0

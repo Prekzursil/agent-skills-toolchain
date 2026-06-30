@@ -36,6 +36,7 @@ settings.json (Stop, no matcher — also valid under SubagentStop):
    "command":"python C:/Users/Prekzursil/.claude/hooks/wire-check/check.py",
    "timeout":25,"statusMessage":"Wire-check reachability (dead-code / _v2 gate)"}
 """
+
 from __future__ import annotations
 
 import json
@@ -49,9 +50,31 @@ THIS = Path(__file__).resolve().parent
 DISABLED = THIS / ".disabled"
 MAX_SYMBOLS = 40
 MAX_FINDINGS = 6
-SRC_EXT = (".py", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".go", ".rs", ".java", ".rb",
-           ".c", ".cc", ".cpp", ".h", ".hpp", ".cs", ".kt", ".swift", ".scala", ".php")
-TEST_HINT = re.compile(r"(^|[/\\])(test_|tests?[/\\]|.*\.test\.|.*\.spec\.|conftest)", re.IGNORECASE)
+SRC_EXT = (
+    ".py",
+    ".ts",
+    ".tsx",
+    ".js",
+    ".jsx",
+    ".mjs",
+    ".go",
+    ".rs",
+    ".java",
+    ".rb",
+    ".c",
+    ".cc",
+    ".cpp",
+    ".h",
+    ".hpp",
+    ".cs",
+    ".kt",
+    ".swift",
+    ".scala",
+    ".php",
+)
+TEST_HINT = re.compile(
+    r"(^|[/\\])(test_|tests?[/\\]|.*\.test\.|.*\.spec\.|conftest)", re.IGNORECASE
+)
 
 # Top-level definitions (line-anchored over the added-line block).
 _DEF_TOPLEVEL = re.compile(
@@ -59,9 +82,13 @@ _DEF_TOPLEVEL = re.compile(
     r"(?:def|class|function|interface|type|enum|struct|trait)\s+([A-Za-z_]\w{2,})",
     re.MULTILINE,
 )
-_DEF_EXPORT_CONST = re.compile(r"^\s*export\s+(?:const|let)\s+([A-Za-z_]\w{2,})\s*[=:]", re.MULTILINE)
+_DEF_EXPORT_CONST = re.compile(
+    r"^\s*export\s+(?:const|let)\s+([A-Za-z_]\w{2,})\s*[=:]", re.MULTILINE
+)
 # UI handlers by naming convention (may be indented inside a component).
-_HANDLER = re.compile(r"\b(?:const|let|var|function)\s+(handle[A-Z]\w+|on[A-Z]\w{2,})\b")
+_HANDLER = re.compile(
+    r"\b(?:const|let|var|function)\s+(handle[A-Z]\w+|on[A-Z]\w{2,})\b"
+)
 # Route path literals.
 _ROUTE = re.compile(
     r"(?:\.(?:get|post|put|delete|patch|use|route|all)\s*\(|@(?:app|router|bp)\.route\s*\(|"
@@ -77,7 +104,9 @@ _VERSUF = re.compile(
 
 def _git(cwd: str, *args, timeout=10):
     try:
-        r = subprocess.run(["git", "-C", cwd, *args], capture_output=True, text=True, timeout=timeout)
+        r = subprocess.run(
+            ["git", "-C", cwd, *args], capture_output=True, text=True, timeout=timeout
+        )
         return r.stdout if r.returncode == 0 else None
     except Exception:
         return None
@@ -96,17 +125,35 @@ def _rg_lines(cwd: str, pattern: str, fixed=False, timeout=8) -> list[str]:
         pass
     # stdlib fallback (bounded) — only used if ripgrep is unavailable.
     out: list[str] = []
-    rx = re.compile((re.escape(pattern) if fixed else r"\b" + re.escape(pattern) + r"\b"))
+    rx = re.compile(
+        (re.escape(pattern) if fixed else r"\b" + re.escape(pattern) + r"\b")
+    )
     try:
         for dp, dns, fns in os.walk(cwd):
-            dns[:] = [d for d in dns if d not in (".git", "node_modules", ".venv", "venv",
-                      "__pycache__", "dist", "build", "target", ".next")]
+            dns[:] = [
+                d
+                for d in dns
+                if d
+                not in (
+                    ".git",
+                    "node_modules",
+                    ".venv",
+                    "venv",
+                    "__pycache__",
+                    "dist",
+                    "build",
+                    "target",
+                    ".next",
+                )
+            ]
             for fn in fns:
                 if not fn.lower().endswith(SRC_EXT):
                     continue
                 fp = os.path.join(dp, fn)
                 try:
-                    for i, line in enumerate(Path(fp).read_text("utf-8", "replace").splitlines(), 1):
+                    for i, line in enumerate(
+                        Path(fp).read_text("utf-8", "replace").splitlines(), 1
+                    ):
                         if rx.search(line):
                             out.append(f"{fp}:{i}:{line}")
                             if len(out) > 4000:
@@ -172,8 +219,10 @@ def _ref_count(cwd: str, name: str) -> int:
     """Count NON-definition references to `name` across the repo."""
     def_re = re.compile(
         r"(?:def|class|function|interface|type|enum|struct|trait|const|let|var)\s+"
-        + re.escape(name) + r"\b"
-        r"|\b" + re.escape(name) + r"\s*[=:]\s*(?:\(|async|function)")
+        + re.escape(name)
+        + r"\b"
+        r"|\b" + re.escape(name) + r"\s*[=:]\s*(?:\(|async|function)"
+    )
     refs = 0
     for line in _rg_lines(cwd, name):
         text = line.split(":", 2)[-1]
@@ -221,7 +270,9 @@ def analyze(cwd: str) -> list[str]:
             seen_sym.add(name)
             checked += 1
             if _ref_count(cwd, name) == 0:
-                findings.append(f"`{name}()` (added in {os.path.basename(abs_path)}) is referenced 0x")
+                findings.append(
+                    f"`{name}()` (added in {os.path.basename(abs_path)}) is referenced 0x"
+                )
             if len(findings) >= MAX_FINDINGS:
                 return findings
         for rp in sorted(routes):
@@ -229,7 +280,9 @@ def analyze(cwd: str) -> list[str]:
                 break
             checked += 1
             if _literal_count(cwd, rp) <= 1:
-                findings.append(f"route '{rp}' (added in {os.path.basename(abs_path)}) is linked/navigated 0x")
+                findings.append(
+                    f"route '{rp}' (added in {os.path.basename(abs_path)}) is linked/navigated 0x"
+                )
             if len(findings) >= MAX_FINDINGS:
                 return findings
 
@@ -245,7 +298,8 @@ def analyze(cwd: str) -> list[str]:
                 if not _base_is_live(cwd, base, changed):
                     findings.append(
                         f"`{os.path.basename(abs_path)}` looks like a versioned fork but no live "
-                        f"v1 `{base}` (file or reference) exists")
+                        f"v1 `{base}` (file or reference) exists"
+                    )
             if len(findings) >= MAX_FINDINGS:
                 return findings
     # versioned SYMBOLS too
@@ -256,7 +310,9 @@ def analyze(cwd: str) -> list[str]:
             if base and base.lower() not in dup_seen and len(base) >= 3:
                 dup_seen.add(base.lower())
                 if _ref_count(cwd, base) == 0:
-                    findings.append(f"symbol `{name}` looks versioned but base `{base}` is referenced 0x")
+                    findings.append(
+                        f"symbol `{name}` looks versioned but base `{base}` is referenced 0x"
+                    )
             if len(findings) >= MAX_FINDINGS:
                 break
     return findings
@@ -264,7 +320,11 @@ def analyze(cwd: str) -> list[str]:
 
 def main() -> int:
     try:
-        if DISABLED.exists() or os.environ.get("WIRE_CHECK", "").lower() in ("off", "0", "false"):
+        if DISABLED.exists() or os.environ.get("WIRE_CHECK", "").lower() in (
+            "off",
+            "0",
+            "false",
+        ):
             return 0
         try:
             data = json.loads(sys.stdin.read() or "{}")
@@ -286,8 +346,16 @@ def main() -> int:
             f"API / entry point. (File-level untracked imports are covered separately by "
             f"orphan-commit.)"
         )
-        print(json.dumps({"hookSpecificOutput": {
-            "hookEventName": "Stop", "additionalContext": msg}}))
+        print(
+            json.dumps(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "Stop",
+                        "additionalContext": msg,
+                    }
+                }
+            )
+        )
     except Exception:
         pass  # fail-open
     return 0

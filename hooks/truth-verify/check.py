@@ -21,6 +21,7 @@ Inject-only (exit 0, additionalContext) — an unverified claim is not dangerous
 irreversible (AGENTS.md s6), so no exit-2 block; a BLOCK stub is left disabled for
 the most egregious case. FAIL-OPEN. Opt-out: TRUTH_VERIFY=off or a .disabled file.
 """
+
 from __future__ import annotations
 
 import json
@@ -36,9 +37,9 @@ MODE = os.environ.get("TRUTH_VERIFY_MODE", "warn").lower()
 # Strong RE anchors — real addresses/offsets, not small constants like 0x1F.
 _ANCHOR = re.compile(
     r"(?:"
-    r"\bsub_[0-9A-Fa-f]{4,}\b"                                  # sub_8A3350
-    r"|\b0x[0-9A-Fa-f]{5,}\b"                                   # 0x008A3350 (>=5 hex)
-    r"|\boffset\s+(?:0x[0-9A-Fa-f]+|\d{3,})\b"                  # offset 4536 / offset 0x..
+    r"\bsub_[0-9A-Fa-f]{4,}\b"  # sub_8A3350
+    r"|\b0x[0-9A-Fa-f]{5,}\b"  # 0x008A3350 (>=5 hex)
+    r"|\boffset\s+(?:0x[0-9A-Fa-f]+|\d{3,})\b"  # offset 4536 / offset 0x..
     r"|\b(?:address|VA|RVA|file[\s_-]?offset)\s*(?:is|=|:|at)?\s*0x[0-9A-Fa-f]{4,}\b"
     r")",
     re.IGNORECASE,
@@ -86,7 +87,8 @@ def _is_human(ev: dict) -> bool:
         return False
     content = msg.get("content")
     if isinstance(content, list) and any(
-            isinstance(b, dict) and b.get("type") == "tool_result" for b in content):
+        isinstance(b, dict) and b.get("type") == "tool_result" for b in content
+    ):
         return False
     return True
 
@@ -94,8 +96,10 @@ def _is_human(ev: dict) -> bool:
 def _assistant_text(ev: dict):
     msg = ev.get("message") or {}
     role = msg.get("role") or ev.get("role")
-    if not ((ev.get("type") == "assistant" and msg.get("role") == "assistant")
-            or role == "assistant"):
+    if not (
+        (ev.get("type") == "assistant" and msg.get("role") == "assistant")
+        or role == "assistant"
+    ):
         return None
     content = msg.get("content")
     if content is None:
@@ -158,7 +162,11 @@ def _has_unhedged_anchor(text: str) -> bool:
 
 def main() -> int:
     try:
-        if MODE == "off" or DISABLED.exists() or os.environ.get("TRUTH_VERIFY", "").lower() in ("off", "0", "false"):
+        if (
+            MODE == "off"
+            or DISABLED.exists()
+            or os.environ.get("TRUTH_VERIFY", "").lower() in ("off", "0", "false")
+        ):
             return 0
         try:
             data = json.loads(sys.stdin.read() or "{}")
@@ -185,8 +193,16 @@ def main() -> int:
             "consistent anchor is the classic RE sunk-cost trap. (tests/build/coverage "
             "claims are handled separately by claim-guard.)"
         )
-        print(json.dumps({"hookSpecificOutput": {
-            "hookEventName": "Stop", "additionalContext": msg}}))
+        print(
+            json.dumps(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "Stop",
+                        "additionalContext": msg,
+                    }
+                }
+            )
+        )
     except Exception:
         pass  # fail-open
     return 0

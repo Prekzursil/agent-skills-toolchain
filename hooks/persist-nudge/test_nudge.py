@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Tests for persist-nudge. Runs WITHOUT pytest: `python test_nudge.py`."""
+
 import io
 import json
 import sys
@@ -21,21 +22,43 @@ def ok(name, cond):
 
 
 def edit_ev(n):
-    return {"type": "assistant", "message": {"role": "assistant",
-            "content": [{"type": "tool_use", "name": "Edit",
-                         "input": {"file_path": f"f{n}.py"}}]}}
+    return {
+        "type": "assistant",
+        "message": {
+            "role": "assistant",
+            "content": [
+                {"type": "tool_use", "name": "Edit", "input": {"file_path": f"f{n}.py"}}
+            ],
+        },
+    }
 
 
 def bash_ev(cmd):
-    return {"type": "assistant", "message": {"role": "assistant",
-            "content": [{"type": "tool_use", "name": "Bash",
-                         "input": {"command": cmd}}]}}
+    return {
+        "type": "assistant",
+        "message": {
+            "role": "assistant",
+            "content": [
+                {"type": "tool_use", "name": "Bash", "input": {"command": cmd}}
+            ],
+        },
+    }
 
 
 def bm_write_ev():
-    return {"type": "assistant", "message": {"role": "assistant",
-            "content": [{"type": "tool_use", "name": "mcp__basic-memory__write_note",
-                         "input": {"title": "x"}}]}}
+    return {
+        "type": "assistant",
+        "message": {
+            "role": "assistant",
+            "content": [
+                {
+                    "type": "tool_use",
+                    "name": "mcp__basic-memory__write_note",
+                    "input": {"title": "x"},
+                }
+            ],
+        },
+    }
 
 
 def transcript(events) -> str:
@@ -47,8 +70,11 @@ def transcript(events) -> str:
 def run(tp, sid, stop_active=False):
     buf = io.StringIO()
     old = sys.stdin
-    sys.stdin = io.StringIO(json.dumps(
-        {"transcript_path": tp, "session_id": sid, "stop_hook_active": stop_active}))
+    sys.stdin = io.StringIO(
+        json.dumps(
+            {"transcript_path": tp, "session_id": sid, "stop_hook_active": stop_active}
+        )
+    )
     try:
         with redirect_stdout(buf):
             nudge.main()
@@ -78,8 +104,10 @@ def main():
     ok("edits + basic-memory write_note -> silent", not fired(run(tp, "s3")))
 
     # 4. 6 edits + note.py Bash -> silent.
-    tp = transcript([edit_ev(i) for i in range(6)] +
-                    [bash_ev("python ~/.claude/hooks/event-ledger/note.py --kind decision x")])
+    tp = transcript(
+        [edit_ev(i) for i in range(6)]
+        + [bash_ev("python ~/.claude/hooks/event-ledger/note.py --kind decision x")]
+    )
     ok("edits + note.py -> silent", not fired(run(tp, "s4")))
 
     # 5. below threshold (3 edits, no commit) -> silent.

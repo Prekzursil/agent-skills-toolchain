@@ -27,6 +27,7 @@ By default new predicates APPEND to the current task's set (incremental arming).
 stdlib; writes ~/.claude/ulysses/tripwires.json . The store is overwritten only via this
 CLI or a logged override (see enforce.py disarm guard).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -65,27 +66,57 @@ def _parse_add(spec: str) -> dict | None:
 def _shorthand_preds(a) -> list[dict]:
     preds: list[dict] = []
     if a.guard_live_game:
-        preds.append({"id": _pid(), "type": "tool_match", "action": "HALT",
-                      "pattern": a.live_pattern or C.LIVE_WRITE_DEFAULT,
-                      "desc": "force a write into LIVE game memory (irreversible)"})
+        preds.append(
+            {
+                "id": _pid(),
+                "type": "tool_match",
+                "action": "HALT",
+                "pattern": a.live_pattern or C.LIVE_WRITE_DEFAULT,
+                "desc": "force a write into LIVE game memory (irreversible)",
+            }
+        )
     if a.max_edits is not None:
-        preds.append({"id": _pid(), "type": "path_reedit", "action": "ASK",
-                      "threshold": int(a.max_edits),
-                      "desc": f"re-editing the same file >= {a.max_edits} times"})
+        preds.append(
+            {
+                "id": _pid(),
+                "type": "path_reedit",
+                "action": "ASK",
+                "threshold": int(a.max_edits),
+                "desc": f"re-editing the same file >= {a.max_edits} times",
+            }
+        )
     if a.max_calls_since_test is not None:
-        preds.append({"id": _pid(), "type": "calls_since_test", "action": "ASK",
-                      "threshold": int(a.max_calls_since_test),
-                      "desc": f"> {a.max_calls_since_test} tool-calls without a passing test"})
+        preds.append(
+            {
+                "id": _pid(),
+                "type": "calls_since_test",
+                "action": "ASK",
+                "threshold": int(a.max_calls_since_test),
+                "desc": f"> {a.max_calls_since_test} tool-calls without a passing test",
+            }
+        )
     if a.guard_path:
         for pat in a.guard_path:
-            preds.append({"id": _pid(), "type": "path_match",
-                          "action": (a.guard_action or "ASK").upper(), "pattern": pat,
-                          "desc": f"touching {pat}"})
+            preds.append(
+                {
+                    "id": _pid(),
+                    "type": "path_match",
+                    "action": (a.guard_action or "ASK").upper(),
+                    "pattern": pat,
+                    "desc": f"touching {pat}",
+                }
+            )
     if a.guard_tool:
         for pat in a.guard_tool:
-            preds.append({"id": _pid(), "type": "tool_match",
-                          "action": (a.guard_action or "HALT").upper(), "pattern": pat,
-                          "desc": f"using tool ~ {pat}"})
+            preds.append(
+                {
+                    "id": _pid(),
+                    "type": "tool_match",
+                    "action": (a.guard_action or "HALT").upper(),
+                    "pattern": pat,
+                    "desc": f"using tool ~ {pat}",
+                }
+            )
     for spec in a.add or []:
         p = _parse_add(spec)
         if p:
@@ -101,19 +132,28 @@ def cmd_show(as_json: bool) -> int:
     if not store:
         print("ulysses: no active tripwires")
         return 0
-    print(f"ulysses task: {store.get('task', '(unnamed)')}  ttl_hours={store.get('ttl_hours', 0)}  "
-          f"armed_ts={int(store.get('armed_ts', 0))}")
+    print(
+        f"ulysses task: {store.get('task', '(unnamed)')}  ttl_hours={store.get('ttl_hours', 0)}  "
+        f"armed_ts={int(store.get('armed_ts', 0))}"
+    )
     for p in store.get("predicates") or []:
-        extra = {k: v for k, v in p.items() if k not in ("id", "type", "action", "desc")}
-        print(f"  [{p.get('action')}] {p.get('id')} {p.get('type')} {extra}  # {p.get('desc', '')}")
+        extra = {
+            k: v for k, v in p.items() if k not in ("id", "type", "action", "desc")
+        }
+        print(
+            f"  [{p.get('action')}] {p.get('id')} {p.get('type')} {extra}  # {p.get('desc', '')}"
+        )
     return 0
 
 
 def cmd_override(reason: str, as_json: bool) -> int:
     ok = C.log_override(reason)
     win = int(C.OVERRIDE_WINDOW_SEC // 60)
-    print(json.dumps({"override_logged": ok, "window_min": win}) if as_json
-          else f"ulysses: override logged ({'ok' if ok else 'FAILED'}); valid {win} min: {reason}")
+    print(
+        json.dumps({"override_logged": ok, "window_min": win})
+        if as_json
+        else f"ulysses: override logged ({'ok' if ok else 'FAILED'}); valid {win} min: {reason}"
+    )
     return 0 if ok else 1
 
 
@@ -121,7 +161,11 @@ def cmd_clear(as_json: bool) -> int:
     C.log_override("clear via arm.py")  # auditable
     store = {"task": None, "armed_ts": C.now(), "ttl_hours": 0, "predicates": []}
     ok = C.save_tripwires(store)
-    print(json.dumps({"cleared": ok}) if as_json else f"ulysses: tripwires cleared ({'ok' if ok else 'FAILED'})")
+    print(
+        json.dumps({"cleared": ok})
+        if as_json
+        else f"ulysses: tripwires cleared ({'ok' if ok else 'FAILED'})"
+    )
     return 0 if ok else 1
 
 
@@ -129,16 +173,24 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="author/manage Ulysses tripwires")
     ap.add_argument("--task", default=None)
     ap.add_argument("--ttl-hours", type=float, default=None, dest="ttl_hours")
-    ap.add_argument("--replace", action="store_true", help="replace the set instead of appending")
+    ap.add_argument(
+        "--replace", action="store_true", help="replace the set instead of appending"
+    )
     # shorthands
     ap.add_argument("--guard-live-game", action="store_true", dest="guard_live_game")
     ap.add_argument("--live-pattern", default=None, dest="live_pattern")
     ap.add_argument("--max-edits", type=int, default=None, dest="max_edits")
-    ap.add_argument("--max-calls-since-test", type=int, default=None, dest="max_calls_since_test")
+    ap.add_argument(
+        "--max-calls-since-test", type=int, default=None, dest="max_calls_since_test"
+    )
     ap.add_argument("--guard-path", action="append", dest="guard_path")
     ap.add_argument("--guard-tool", action="append", dest="guard_tool")
-    ap.add_argument("--guard-action", default=None, dest="guard_action",
-                    choices=["ASK", "HALT", "SNAPSHOT", "ask", "halt", "snapshot"])
+    ap.add_argument(
+        "--guard-action",
+        default=None,
+        dest="guard_action",
+        choices=["ASK", "HALT", "SNAPSHOT", "ask", "halt", "snapshot"],
+    )
     ap.add_argument("--add", action="append", help="TYPE:ACTION[:k=v,...]")
     # manage
     ap.add_argument("--show", action="store_true")
@@ -151,11 +203,21 @@ def main(argv=None) -> int:
     try:
         if a.list_types:
             print("predicate types:")
-            print("  tool_match        pattern=<regex>            block/ask on upcoming tool_name")
-            print("  path_match        pattern=<regex>            on upcoming file_path / bash cmd")
-            print("  path_reedit       threshold=<int>            Nth edit of a file this task")
-            print("  calls_since_test  threshold=<int>            > N tool-calls since tests passed")
-            print(f"actions: {', '.join(C.ACTIONS)}   (HALT=exit-2 block; ASK/SNAPSHOT=inject)")
+            print(
+                "  tool_match        pattern=<regex>            block/ask on upcoming tool_name"
+            )
+            print(
+                "  path_match        pattern=<regex>            on upcoming file_path / bash cmd"
+            )
+            print(
+                "  path_reedit       threshold=<int>            Nth edit of a file this task"
+            )
+            print(
+                "  calls_since_test  threshold=<int>            > N tool-calls since tests passed"
+            )
+            print(
+                f"actions: {', '.join(C.ACTIONS)}   (HALT=exit-2 block; ASK/SNAPSHOT=inject)"
+            )
             return 0
         if a.show:
             return cmd_show(a.json)
@@ -166,13 +228,19 @@ def main(argv=None) -> int:
 
         new_preds = _shorthand_preds(a)
         if not new_preds and a.task is None and a.ttl_hours is None:
-            ap.error("nothing to do — pass a shorthand (--guard-live-game/--max-edits/...), "
-                     "--add, --task, or a management flag (--show/--override/--clear)")
+            ap.error(
+                "nothing to do — pass a shorthand (--guard-live-game/--max-edits/...), "
+                "--add, --task, or a management flag (--show/--override/--clear)"
+            )
 
         store = None if a.replace else C.load_tripwires()
         if not store:
-            store = {"task": a.task, "armed_ts": C.now(),
-                     "ttl_hours": float(a.ttl_hours or 0), "predicates": []}
+            store = {
+                "task": a.task,
+                "armed_ts": C.now(),
+                "ttl_hours": float(a.ttl_hours or 0),
+                "predicates": [],
+            }
         if a.task is not None:
             store["task"] = a.task
         if a.ttl_hours is not None:
@@ -183,9 +251,11 @@ def main(argv=None) -> int:
         if a.json:
             print(json.dumps(store, ensure_ascii=False))
         else:
-            print(f"ulysses armed: task={store.get('task')!r}  "
-                  f"{len(store['predicates'])} tripwire(s), +{len(new_preds)} new  "
-                  f"ttl_hours={store.get('ttl_hours')}")
+            print(
+                f"ulysses armed: task={store.get('task')!r}  "
+                f"{len(store['predicates'])} tripwire(s), +{len(new_preds)} new  "
+                f"ttl_hours={store.get('ttl_hours')}"
+            )
             for p in new_preds:
                 print(f"  + [{p['action']}] {p['type']}  # {p.get('desc', '')}")
         return 0

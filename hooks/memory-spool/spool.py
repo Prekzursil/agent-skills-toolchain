@@ -12,6 +12,7 @@ this saves the note you were writing while it was down.
 SILENT recorder (never injects, never blocks). FAIL-OPEN: any error -> exit 0.
 Opt-out: MEMORY_SPOOL=off or a .disabled file.
 """
+
 from __future__ import annotations
 
 import os
@@ -26,7 +27,11 @@ DISABLED = THIS / ".disabled"
 
 
 def _disabled() -> bool:
-    return DISABLED.exists() or os.environ.get("MEMORY_SPOOL", "").lower() in ("off", "0", "false")
+    return DISABLED.exists() or os.environ.get("MEMORY_SPOOL", "").lower() in (
+        "off",
+        "0",
+        "false",
+    )
 
 
 def main() -> int:

@@ -14,6 +14,7 @@ tripwire.py, or the opt-out (env FORGE_NO_FORCE_PUSH_OFF=1 / a .disabled file) a
 predicate module fails open instead of exiting non-zero. A crashing gate that
 blocked (or errored on) every command would be far worse than a silent one.
 """
+
 from __future__ import annotations
 
 import json
@@ -26,7 +27,9 @@ DISABLED = THIS / ".disabled"
 
 
 def _disabled() -> bool:
-    return DISABLED.exists() or os.environ.get("FORGE_NO_FORCE_PUSH_OFF", "").lower() in ("1", "on", "true")
+    return DISABLED.exists() or os.environ.get(
+        "FORGE_NO_FORCE_PUSH_OFF", ""
+    ).lower() in ("1", "on", "true")
 
 
 def main(argv=None) -> int:

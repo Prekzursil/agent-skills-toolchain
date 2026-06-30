@@ -114,7 +114,13 @@ ROUTING_TABLE: dict[str, tuple[Provider, ...]] = {
     # Raw web discovery: firecrawl primary (best for raw links/extraction),
     # Perplexity as the high-priority cited-corroborator #2, SearXNG as the
     # high-priority KEY-FREE corroborator #3 (ahead of the keyed exa/tavily).
-    "web": (FIRECRAWL_SEARCH, PERPLEXITY_SMART, SEARXNG_SEARCH, EXA_SEARCH, TAVILY_SEARCH),
+    "web": (
+        FIRECRAWL_SEARCH,
+        PERPLEXITY_SMART,
+        SEARXNG_SEARCH,
+        EXA_SEARCH,
+        TAVILY_SEARCH,
+    ),
     # Synthesis ("explain/compare/consensus"): Perplexity primary (cited
     # synthesized answer), exa/firecrawl as raw-source fallbacks.
     "synthesis": (PERPLEXITY_SMART, EXA_SEARCH, FIRECRAWL_SEARCH),

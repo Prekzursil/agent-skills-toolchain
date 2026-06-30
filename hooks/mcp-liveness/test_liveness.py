@@ -7,6 +7,7 @@ read-only `initialize` against the real :8765 (skipped if it isn't running). All
 the critical config at a restart_helper that does NOT exist, so attempt_restart is
 a no-op (no real process is ever launched or killed).
 """
+
 import json
 import socket
 import sys
@@ -38,6 +39,7 @@ def free_port() -> int:
 
 class _NonMcpHandler(BaseHTTPRequestHandler):
     """Speaks HTTP + valid JSON, but NOT JSON-RPC MCP (dead-but-listening corpse)."""
+
     def do_POST(self):
         try:
             n = int(self.headers.get("Content-Length", 0))
@@ -65,23 +67,38 @@ def main():
     cfg = liveness.load_config()
 
     # 1. Config loads + keystone present.
-    check("config has basic-memory critical", "basic-memory" in (cfg.get("critical") or {}))
+    check(
+        "config has basic-memory critical",
+        "basic-memory" in (cfg.get("critical") or {}),
+    )
 
     # 2. DOWN: nothing listening on a free port -> state 'down'.
     p_down = free_port()
-    r = liveness.probe_critical("test-down",
-                                {"host": "127.0.0.1", "port": p_down,
-                                 "url": f"http://127.0.0.1:{p_down}/mcp"}, cfg)
+    r = liveness.probe_critical(
+        "test-down",
+        {"host": "127.0.0.1", "port": p_down, "url": f"http://127.0.0.1:{p_down}/mcp"},
+        cfg,
+    )
     check("free port classified as down", r["state"] == "down" and r["tcp"] is False)
 
     # 3. DEAD-LISTENING: TCP up + HTTP but not MCP -> 'dead-listening'.
     srv, p_corpse = start_corpse()
     try:
-        r = liveness.probe_critical("test-corpse",
-                                    {"host": "127.0.0.1", "port": p_corpse,
-                                     "url": f"http://127.0.0.1:{p_corpse}/mcp"}, cfg)
-        check("corpse classified as dead-listening",
-              r["state"] == "dead-listening" and r["tcp"] is True and r["mcp_ok"] is False)
+        r = liveness.probe_critical(
+            "test-corpse",
+            {
+                "host": "127.0.0.1",
+                "port": p_corpse,
+                "url": f"http://127.0.0.1:{p_corpse}/mcp",
+            },
+            cfg,
+        )
+        check(
+            "corpse classified as dead-listening",
+            r["state"] == "dead-listening"
+            and r["tcp"] is True
+            and r["mcp_ok"] is False,
+        )
     finally:
         srv.shutdown()
 
@@ -89,7 +106,10 @@ def main():
     bm = (cfg.get("critical") or {}).get("basic-memory", {})
     if liveness.tcp_up(bm.get("host", "127.0.0.1"), bm.get("port", 8765), 1.5):
         r = liveness.probe_critical("basic-memory", bm, cfg)
-        check("live basic-memory handshake -> up", r["state"] == "up" and r["mcp_ok"] is True)
+        check(
+            "live basic-memory handshake -> up",
+            r["state"] == "up" and r["mcp_ok"] is True,
+        )
     else:
         print("SKIP: live basic-memory not running on :8765 (up-case not asserted)")
 
@@ -98,15 +118,31 @@ def main():
     state_dir = Path(tempfile.mkdtemp(prefix="liveness-test-"))
     orig_state, orig_cfg_path = liveness.STATE_DIR, liveness.CONFIG_PATH
     fake_cfg = state_dir / "cfg.json"
-    fake_cfg.write_text(json.dumps({
-        "throttle_seconds": 60, "handshake_timeout": 1.0, "tcp_timeout": 0.5,
-        "critical": {"basic-memory": {
-            "host": "127.0.0.1", "port": p_down,
-            "url": f"http://127.0.0.1:{p_down}/mcp",
-            "auto_restart": True, "restart_helper": "does-not-exist.ps1",
-            "why": "test"}},
-        "reharness": {"registry": "", "auto_restart": False, "restart_hint": "x"},
-    }), encoding="utf-8")
+    fake_cfg.write_text(
+        json.dumps(
+            {
+                "throttle_seconds": 60,
+                "handshake_timeout": 1.0,
+                "tcp_timeout": 0.5,
+                "critical": {
+                    "basic-memory": {
+                        "host": "127.0.0.1",
+                        "port": p_down,
+                        "url": f"http://127.0.0.1:{p_down}/mcp",
+                        "auto_restart": True,
+                        "restart_helper": "does-not-exist.ps1",
+                        "why": "test",
+                    }
+                },
+                "reharness": {
+                    "registry": "",
+                    "auto_restart": False,
+                    "restart_hint": "x",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
     liveness.STATE_DIR = state_dir
     liveness.CONFIG_PATH = fake_cfg
     try:
@@ -120,34 +156,47 @@ def main():
         out1 = buf.getvalue()
         emitted = json.loads(out1) if out1.strip() else {}
         ctx = emitted.get("hookSpecificOutput", {}).get("additionalContext", "")
-        check("sessionstart down -> alert emitted",
-              "basic-memory" in ctx and "NOT being saved" in ctx)
+        check(
+            "sessionstart down -> alert emitted",
+            "basic-memory" in ctx and "NOT being saved" in ctx,
+        )
         st = liveness.load_state(sid)
         check("restart_attempted recorded", st.get("restart_attempted") is True)
         check("last_state recorded as down", st.get("last_state") == "down")
 
         # 6. pretool THROTTLE: force a recent 'up' check -> probe is skipped (silent).
         sid2 = "test-session-2"
-        liveness.save_state(sid2, {"last_check": time.time(), "last_state": "up",
-                                   "alerted_down": False, "restart_attempted": False})
+        liveness.save_state(
+            sid2,
+            {
+                "last_check": time.time(),
+                "last_state": "up",
+                "alerted_down": False,
+                "restart_attempted": False,
+            },
+        )
         buf2 = io.StringIO()
         with redirect_stdout(buf2):
             rc = liveness.run("pretool", {"session_id": sid2})
-        check("pretool throttle skips probe when recently up (silent)",
-              rc == 0 and buf2.getvalue().strip() == "")
+        check(
+            "pretool throttle skips probe when recently up (silent)",
+            rc == 0 and buf2.getvalue().strip() == "",
+        )
 
         # 7. pretool alert-dedup: after first down-alert, a second pretool stays silent.
         sid3 = "test-session-3"
         buf3 = io.StringIO()
         with redirect_stdout(buf3):
-            liveness.run("pretool", {"session_id": sid3})   # first: alerts
+            liveness.run("pretool", {"session_id": sid3})  # first: alerts
         first = buf3.getvalue()
         buf4 = io.StringIO()
         with redirect_stdout(buf4):
-            liveness.run("pretool", {"session_id": sid3})   # second: deduped
+            liveness.run("pretool", {"session_id": sid3})  # second: deduped
         second = buf4.getvalue()
-        check("pretool alerts once then dedups",
-              first.strip() != "" and second.strip() == "")
+        check(
+            "pretool alerts once then dedups",
+            first.strip() != "" and second.strip() == "",
+        )
     finally:
         liveness.STATE_DIR, liveness.CONFIG_PATH = orig_state, orig_cfg_path
 

@@ -13,7 +13,9 @@ from research_harness.cache import (
 
 
 def test_query_hash_is_stable_under_normalization():
-    a = query_hash("web", "firecrawl.firecrawl_search", "  Fusion  Energy ", {"limit": 8})
+    a = query_hash(
+        "web", "firecrawl.firecrawl_search", "  Fusion  Energy ", {"limit": 8}
+    )
     b = query_hash("web", "firecrawl.firecrawl_search", "fusion energy", {"limit": 8})
     assert a == b
     assert len(a) == 64  # sha-256 hex
@@ -61,7 +63,9 @@ def test_expired_entry_is_a_miss(tmp_path):
     )
     write_cache(tmp_path, entry)
     # now well past the 24h web TTL -> miss
-    assert read_cache(tmp_path, qhash, ttl=ttl_for("web"), now=ttl_for("web") + 1) is None
+    assert (
+        read_cache(tmp_path, qhash, ttl=ttl_for("web"), now=ttl_for("web") + 1) is None
+    )
     # still inside TTL -> hit
     assert read_cache(tmp_path, qhash, ttl=ttl_for("web"), now=10.0) is not None
 

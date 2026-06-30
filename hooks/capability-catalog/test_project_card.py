@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Self-contained tests for project_card + the inject.py extension.
 Run: python test_project_card.py  (uses temp dirs only)."""
+
 from __future__ import annotations
 
 import importlib
@@ -29,10 +30,14 @@ def main():
     os.environ["EVENT_LEDGER_ROOT"] = str(tmp / "ledger")
 
     import ledger
-    importlib.reload(ledger)          # pick up the temp EVENT_LEDGER_ROOT
+
+    importlib.reload(ledger)  # pick up the temp EVENT_LEDGER_ROOT
     import project_card
+
     importlib.reload(project_card)
-    project_card.PROJECTS_DIR = tmp / "projects"   # never pollute the real ~/.claude/projects
+    project_card.PROJECTS_DIR = (
+        tmp / "projects"
+    )  # never pollute the real ~/.claude/projects
 
     # a non-git worktree -> projid source==cwd -> deterministic legacy slug
     wt = tmp / "proj_work"
@@ -41,29 +46,51 @@ def main():
 
     print("== resume-strip projects ledger goal/failure/milestone (read-only) ==")
     ledger.append(wt_s, "goal", text="ship per-project intelligence")
-    ledger.append(wt_s, "failure", text="catalog re-dumped on compact", preconditions="source==compact")
+    ledger.append(
+        wt_s,
+        "failure",
+        text="catalog re-dumped on compact",
+        preconditions="source==compact",
+    )
     ledger.append(wt_s, "milestone", text="projid resolver shipped")
     (wt / ".beads" / "context").mkdir(parents=True, exist_ok=True)
     (wt / ".beads" / "context" / "execution-state.md").write_text(
-        "# Execution State\n\nCurrent position: WU3 resume-strip\n", encoding="utf-8")
+        "# Execution State\n\nCurrent position: WU3 resume-strip\n", encoding="utf-8"
+    )
     strip = project_card.build_resume_strip(wt_s)
     joined = " | ".join(strip)
     check("resume includes open failure", "catalog re-dumped" in joined)
     check("resume includes last milestone", "projid resolver shipped" in joined)
-    check("resume reads .beads execution-state", any("WU3 resume-strip" in b for b in strip))
+    check(
+        "resume reads .beads execution-state",
+        any("WU3 resume-strip" in b for b in strip),
+    )
     check("resume capped at 3 bullets", len(strip) <= 3)
     # goal is filler-only: surfaces when there is no milestone/failure/position signal
     gonly = tmp / "goalonly"
     gonly.mkdir()
     ledger.append(str(gonly), "goal", text="solo objective xyz")
-    check("goal surfaces as filler when alone",
-          any("solo objective xyz" in b for b in project_card.build_resume_strip(str(gonly))))
+    check(
+        "goal surfaces as filler when alone",
+        any(
+            "solo objective xyz" in b
+            for b in project_card.build_resume_strip(str(gonly))
+        ),
+    )
 
     print("== load_card: repo-committed wins over generated ==")
     (wt / ".claude").mkdir(parents=True, exist_ok=True)
     (wt / ".claude" / "project-card.json").write_text(
-        json.dumps({"schema": "project-card/v1", "display_name": "CommittedProj",
-                    "stack": "Electron + TS", "invariants": ["never mutate state"]}), encoding="utf-8")
+        json.dumps(
+            {
+                "schema": "project-card/v1",
+                "display_name": "CommittedProj",
+                "stack": "Electron + TS",
+                "invariants": ["never mutate state"],
+            }
+        ),
+        encoding="utf-8",
+    )
     pj = importlib.import_module("projid")
     pid = pj.resolve(wt_s)
     gen = project_card.card_path_for(pid.canonical_id)
@@ -73,11 +100,20 @@ def main():
     check("committed card wins", card.get("display_name") == "CommittedProj")
 
     print("== render_block: budget + content ==")
-    big = {"display_name": "Reframe", "stack": "Electron+Vite+TS",
-           "entrypoints": ["frontend/src/main.ts", "sidecar/app.py"],
-           "invariants": [f"invariant number {i} that is reasonably long " * 4 for i in range(12)],
-           "tools": ["serena", "repomix"], "skills": ["reframe"], "quality_bar": "100% coverage"}
-    block = project_card.render_block(big, ["where we left off bullet"], "Reframe", "6e307b0aaed9")
+    big = {
+        "display_name": "Reframe",
+        "stack": "Electron+Vite+TS",
+        "entrypoints": ["frontend/src/main.ts", "sidecar/app.py"],
+        "invariants": [
+            f"invariant number {i} that is reasonably long " * 4 for i in range(12)
+        ],
+        "tools": ["serena", "repomix"],
+        "skills": ["reframe"],
+        "quality_bar": "100% coverage",
+    }
+    block = project_card.render_block(
+        big, ["where we left off bullet"], "Reframe", "6e307b0aaed9"
+    )
     check("render <= 40 lines", len(block.splitlines()) <= 40)
     check("render <= char budget", len(block) <= project_card.MAX_CHARS)
     check("render names the project", "Reframe" in block and "project card" in block)
@@ -107,12 +143,15 @@ def main():
 
     print("== inject.py extension: catalog + card, dedup, skip-compact ==")
     import inject
+
     importlib.reload(inject)
-    inject.SEEN_DIR = tmp / "seen"   # isolate dedup from the real session store
+    inject.SEEN_DIR = tmp / "seen"  # isolate dedup from the real session store
 
     def run_inject(stdin_obj):
         old_in, old_out = sys.stdin, sys.stdout
-        sys.stdin = io.StringIO(json.dumps(stdin_obj)); cap = io.StringIO(); sys.stdout = cap
+        sys.stdin = io.StringIO(json.dumps(stdin_obj))
+        cap = io.StringIO()
+        sys.stdout = cap
         try:
             rc = inject.main()
         finally:
@@ -131,7 +170,9 @@ def main():
     rc, out3 = run_inject({"source": "compact", "session_id": "s-card-2", "cwd": wt_s})
     check("inject skips source==compact", out3.strip() == "")
 
-    print(f"\nRESULT: {'PASS' if not fails else 'FAIL: ' + ', '.join(fails)}  ({len(fails)} failures)")
+    print(
+        f"\nRESULT: {'PASS' if not fails else 'FAIL: ' + ', '.join(fails)}  ({len(fails)} failures)"
+    )
     return 1 if fails else 0
 
 

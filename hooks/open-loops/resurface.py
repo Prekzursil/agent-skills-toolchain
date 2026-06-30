@@ -24,6 +24,7 @@ Dispatcher interface: a `main(argv)` that reads the SessionStart payload on stdi
 prints ONE hookSpecificOutput JSON (or nothing). FAIL-OPEN. Opt-out: OPEN_LOOPS=off or
 a .disabled file in this dir.
 """
+
 from __future__ import annotations
 
 import os
@@ -40,7 +41,11 @@ _RECOVERY_SOURCES = ("resume", "compact", "clear")
 
 
 def _disabled() -> bool:
-    return DISABLED.exists() or os.environ.get("OPEN_LOOPS", "").lower() in ("off", "0", "false")
+    return DISABLED.exists() or os.environ.get("OPEN_LOOPS", "").lower() in (
+        "off",
+        "0",
+        "false",
+    )
 
 
 def build_message(payload: dict) -> str | None:
@@ -83,8 +88,10 @@ def build_message(payload: dict) -> str | None:
     if not lines:
         return None
     header = "## Open loops & prospective memory (Zeigarnik — re-enter, don't drop)"
-    footer = ("Close a loop when done: `python ~/.claude/hooks/open-loops/add.py "
-              "--close <id>`  |  add one: `add.py \"when <cond> -> <action>\"`")
+    footer = (
+        "Close a loop when done: `python ~/.claude/hooks/open-loops/add.py "
+        '--close <id>`  |  add one: `add.py "when <cond> -> <action>"`'
+    )
     return "\n".join([header, *lines, footer])
 
 

@@ -42,6 +42,7 @@ os.replace - can drop that one not-yet-surfaced line (which is NOT in the archiv
 was never surfaced); accepted because producers fire hourly/daily so the window is
 effectively never hit.
 """
+
 from __future__ import annotations
 
 import json
@@ -55,10 +56,14 @@ THIS = Path(__file__).resolve().parent
 DISABLED = THIS / ".disabled"
 HOME = Path.home()
 
-DIGEST_FILE = Path(os.environ.get(
-    "BG_DIGEST_FILE", str(HOME / ".claude" / "BACKGROUND-DIGEST.md")))
-ARCHIVE_FILE = Path(os.environ.get(
-    "BG_DIGEST_ARCHIVE", str(HOME / ".claude" / "BACKGROUND-DIGEST.archive.log")))
+DIGEST_FILE = Path(
+    os.environ.get("BG_DIGEST_FILE", str(HOME / ".claude" / "BACKGROUND-DIGEST.md"))
+)
+ARCHIVE_FILE = Path(
+    os.environ.get(
+        "BG_DIGEST_ARCHIVE", str(HOME / ".claude" / "BACKGROUND-DIGEST.archive.log")
+    )
+)
 MAX_SURFACE = int(os.environ.get("BG_DIGEST_MAX", "12"))
 ARCHIVE_MAX = int(os.environ.get("BG_DIGEST_ARCHIVE_MAX", "500"))
 
@@ -78,8 +83,16 @@ def _disabled() -> bool:
 
 def emit(event_name: str, msg: str) -> None:
     """Inject additionalContext (the shared hookSpecificOutput shape)."""
-    print(json.dumps({"hookSpecificOutput": {
-        "hookEventName": event_name, "additionalContext": msg}}))
+    print(
+        json.dumps(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": event_name,
+                    "additionalContext": msg,
+                }
+            }
+        )
+    )
 
 
 def _read_lines(path: Path) -> list[str]:
@@ -98,7 +111,9 @@ def _is_subagent(payload: dict) -> bool:
     agent-<id>.jsonl). We must NOT surface/consume there or the user's main session loses
     the notice. Unknown/empty transcript -> treat as main (safe default: surface)."""
     try:
-        tp = str((payload or {}).get("transcript_path") or "").replace("\\", "/").lower()
+        tp = (
+            str((payload or {}).get("transcript_path") or "").replace("\\", "/").lower()
+        )
         if not tp:
             return False
         return "/subagents/" in tp or Path(tp).name.startswith("agent-")
@@ -134,9 +149,12 @@ def build_message(lines: list[str]) -> tuple[str | None, list[str]]:
     body = list(surfaced)
     if overflow > 0:
         body.append(
-            f"...(+{overflow} more pending in {DIGEST_FILE.name}; will surface next session)")
-    footer = ("Each line is LOG + PROPOSE only - run the proposed command yourself if it "
-              f"still applies. Consumed history: {ARCHIVE_FILE.name}")
+            f"...(+{overflow} more pending in {DIGEST_FILE.name}; will surface next session)"
+        )
+    footer = (
+        "Each line is LOG + PROPOSE only - run the proposed command yourself if it "
+        f"still applies. Consumed history: {ARCHIVE_FILE.name}"
+    )
     return "\n".join([header, *body, footer]), surfaced
 
 
@@ -197,8 +215,8 @@ def main(argv=None) -> int:
             return 0
         msg, surfaced = build_message(_read_lines(DIGEST_FILE))
         if msg:
-            emit("SessionStart", msg)               # surface FIRST (write to the buffer)
-            if _archive(surfaced):                  # preserve; truncate ONLY if archived
+            emit("SessionStart", msg)  # surface FIRST (write to the buffer)
+            if _archive(surfaced):  # preserve; truncate ONLY if archived
                 _truncate_consumed(surfaced)
             # archive failed -> leave entries in the live file (re-surface next session)
     except Exception:

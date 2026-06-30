@@ -23,6 +23,7 @@ Flags: --ttl <days> (0 = never expire) · --recurring (re-fire, throttled) ·
 Pure stdlib. Writes to ~/.claude/open-loops/triggers.jsonl . FAIL-SOFT: a parse that
 finds no condition stores an `always` standing loop (surfaced at SessionStart).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -73,7 +74,9 @@ def cmd_list(as_json: bool) -> int:
     for t in triggers:
         flag = "FIRED" if t.get("fired") else "open "
         rec = " recurring" if t.get("recurring") else ""
-        print(f"[{flag}] {t['id']}{rec}  {_cond_summary(t.get('condition') or {})}  ->  {t.get('action', '')}")
+        print(
+            f"[{flag}] {t['id']}{rec}  {_cond_summary(t.get('condition') or {})}  ->  {t.get('action', '')}"
+        )
     return 0
 
 
@@ -85,12 +88,20 @@ def cmd_close(token: str, as_json: bool) -> int:
             hit = t
             break
     if not hit:
-        print(json.dumps({"closed": None, "error": "no match"}) if as_json else f"open-loops: no loop matching '{token}'")
+        print(
+            json.dumps({"closed": None, "error": "no match"})
+            if as_json
+            else f"open-loops: no loop matching '{token}'"
+        )
         return 1
     hit["fired"] = True
     hit["fired_ts"] = C.now()
     C.save_triggers(triggers)
-    print(json.dumps({"closed": hit["id"]}) if as_json else f"open-loops: closed {hit['id']} ({hit.get('action', '')})")
+    print(
+        json.dumps({"closed": hit["id"]})
+        if as_json
+        else f"open-loops: closed {hit['id']} ({hit.get('action', '')})"
+    )
     return 0
 
 
@@ -98,21 +109,32 @@ def cmd_gc(as_json: bool) -> int:
     before = C.load_triggers(gc=False)
     after = C.load_triggers(gc=True)
     removed = len(before) - len(after)
-    print(json.dumps({"gc_removed": removed, "remaining": len(after)}) if as_json
-          else f"open-loops: GC removed {removed} expired, {len(after)} remain")
+    print(
+        json.dumps({"gc_removed": removed, "remaining": len(after)})
+        if as_json
+        else f"open-loops: GC removed {removed} expired, {len(after)} remain"
+    )
     return 0
 
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="register/close/list open-loop triggers")
-    ap.add_argument("text", nargs="?", default="", help="plain-language 'when <cond> -> <action>'")
-    ap.add_argument("--action", default=None, help="explicit action text (overrides parsed)")
-    ap.add_argument("--ttl", type=int, default=None, help="ttl in days (0 = never expire)")
+    ap.add_argument(
+        "text", nargs="?", default="", help="plain-language 'when <cond> -> <action>'"
+    )
+    ap.add_argument(
+        "--action", default=None, help="explicit action text (overrides parsed)"
+    )
+    ap.add_argument(
+        "--ttl", type=int, default=None, help="ttl in days (0 = never expire)"
+    )
     ap.add_argument("--mode", choices=["any", "all"], default=None)
     ap.add_argument("--recurring", action="store_true")
     ap.add_argument("--source", default="manual")
     ap.add_argument("--cwd-glob", action="append", dest="cwd_glob")
-    ap.add_argument("--branch", action="append", dest="branch", help="branch glob, e.g. feat/*")
+    ap.add_argument(
+        "--branch", action="append", dest="branch", help="branch glob, e.g. feat/*"
+    )
     ap.add_argument("--branch-regex", action="append", dest="branch_regex")
     ap.add_argument("--file-exists", action="append", dest="file_exists")
     ap.add_argument("--prompt-regex", action="append", dest="prompt_regex")
@@ -138,7 +160,9 @@ def main(argv=None) -> int:
             raw = a.text or action
         else:
             if not a.text and not a.action:
-                ap.error("provide plain-language text, explicit predicate flags, or a management flag")
+                ap.error(
+                    "provide plain-language text, explicit predicate flags, or a management flag"
+                )
             cond, parsed_action = C.parse_plain(a.text)
             if a.mode:
                 cond["mode"] = a.mode
@@ -146,10 +170,18 @@ def main(argv=None) -> int:
             raw = a.text
 
         if not action.strip():
-            ap.error("could not determine an action — pass --action or include text after '->'")
+            ap.error(
+                "could not determine an action — pass --action or include text after '->'"
+            )
 
-        rec = C.make_trigger(cond, action, ttl_days=a.ttl, recurring=a.recurring,
-                             source=a.source, raw=raw)
+        rec = C.make_trigger(
+            cond,
+            action,
+            ttl_days=a.ttl,
+            recurring=a.recurring,
+            source=a.source,
+            raw=raw,
+        )
         C.append_trigger(rec)
         if a.json:
             print(json.dumps(rec, ensure_ascii=False))
