@@ -119,6 +119,9 @@ jobs:
   secrets:
     name: 5. secrets (gitleaks)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -126,6 +129,10 @@ jobs:
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
+          # gitleaks-action requires GITHUB_TOKEN to enumerate PR commits on
+          # pull_request events (push events work without it). Without this the
+          # secrets gate hard-fails on every PR (incl. Dependabot auto-merge).
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   deps:
     name: 6. deps (osv-scanner)
