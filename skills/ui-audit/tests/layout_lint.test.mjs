@@ -8,8 +8,65 @@ import assert from 'node:assert/strict';
 import {
   parsePx, isOnGrid, classifySpacing,
   parseRgb, parseAlpha, relLuminance, contrastRatio,
+  parseDurationMs, classifyMotion,
   lintBundle,
 } from '../layout_lint.mjs';
+
+// ---------------------------------------------------------------------------
+// DESIGN-EVAL v1 Track-A collectors: motion + affordance
+// ---------------------------------------------------------------------------
+describe('parseDurationMs', () => {
+  test('parses s and ms; none/empty → 0; comma-list → max', () => {
+    assert.equal(parseDurationMs('0.3s'), 300);
+    assert.equal(parseDurationMs('300ms'), 300);
+    assert.equal(parseDurationMs('0s'), 0);
+    assert.equal(parseDurationMs('none'), 0);
+    assert.equal(parseDurationMs(''), 0);
+    assert.equal(parseDurationMs('0.2s, 0.4s'), 400);
+  });
+});
+
+describe('classifyMotion (200-500ms band)', () => {
+  test('in-band + zero are fine; <100ms too-fast; >500ms too-slow', () => {
+    assert.equal(classifyMotion(0), null);
+    assert.equal(classifyMotion(300), null);
+    assert.equal(classifyMotion(50).band, 'too-fast');
+    assert.equal(classifyMotion(800).band, 'too-slow');
+  });
+});
+
+describe('lintBundle — motion + affordance rules', () => {
+  test('motion-duration flags an out-of-band transition', () => {
+    const f = lintBundle({ screen: 's', elements: [
+      { selector: '.hero', tagName: 'DIV', styles: { transitionDuration: '0.9s' } },
+    ] });
+    assert.ok(f.some(x => x.rule === 'motion-duration' && /too-slow/.test(x.message)));
+  });
+  test('reduced-motion fires when the page animates but ships no escape hatch', () => {
+    const f = lintBundle({ screen: 's', pageSignals: { hasReducedMotionRule: false, hasFocusVisibleRule: true }, elements: [
+      { selector: '.x', tagName: 'DIV', styles: { transitionDuration: '0.3s' } },
+    ] });
+    assert.ok(f.some(x => x.rule === 'reduced-motion'));
+  });
+  test('reduced-motion does NOT fire when a prefers-reduced-motion rule exists', () => {
+    const f = lintBundle({ screen: 's', pageSignals: { hasReducedMotionRule: true, hasFocusVisibleRule: true }, elements: [
+      { selector: '.x', tagName: 'DIV', styles: { transitionDuration: '0.3s' } },
+    ] });
+    assert.ok(!f.some(x => x.rule === 'reduced-motion'));
+  });
+  test('missing-focus-visible fires when controls suppress outline and no :focus-visible rule', () => {
+    const f = lintBundle({ screen: 's', pageSignals: { hasReducedMotionRule: true, hasFocusVisibleRule: false }, elements: [
+      { selector: 'button.b', tagName: 'BUTTON', isInteractive: true, styles: { outlineStyle: 'none', outlineWidth: '0px' } },
+    ] });
+    assert.ok(f.some(x => x.rule === 'missing-focus-visible'));
+  });
+  test('no pageSignals → no page-level motion/affordance findings (back-compat)', () => {
+    const f = lintBundle({ screen: 's', elements: [
+      { selector: 'button.b', tagName: 'BUTTON', isInteractive: true, styles: { outlineStyle: 'none', outlineWidth: '0px', transitionDuration: '0.3s' } },
+    ] });
+    assert.ok(!f.some(x => x.rule === 'reduced-motion' || x.rule === 'missing-focus-visible'));
+  });
+});
 
 // ---------------------------------------------------------------------------
 // parsePx

@@ -83,6 +83,37 @@ export function parsePx(cssVal) {
 }
 
 /**
+ * Parse a CSS time value → milliseconds. Handles `0s`, `300ms`, `0.3s`, and
+ * comma-lists (`0.2s, 0.4s` → the MAX, the slowest leg the user waits on).
+ * Returns 0 for none/empty. Used by the Track-A motion collector.
+ */
+export function parseDurationMs(cssVal) {
+  if (!cssVal || cssVal === 'none' || cssVal === 'normal') return 0;
+  const parts = String(cssVal).split(',').map(s => s.trim()).filter(Boolean);
+  let max = 0;
+  for (const p of parts) {
+    const m = p.match(/^([\d.]+)(ms|s)$/);
+    if (!m) continue;
+    const ms = m[2] === 's' ? parseFloat(m[1]) * 1000 : parseFloat(m[1]);
+    if (ms > max) max = ms;
+  }
+  return max;
+}
+
+/**
+ * Classify a motion duration against the SOTA 200-500ms band (DESIGN-EVAL v1 #9).
+ * 0 = no motion (fine). A nonzero duration that is too fast (<100ms, perceived as a
+ * jump) or too slow (>500ms, perceived as sluggish) is flagged.
+ * @returns {null | { ms:number, band:'too-fast'|'too-slow' }}
+ */
+export function classifyMotion(ms) {
+  if (!ms || ms <= 0) return null;
+  if (ms < 100) return { ms, band: 'too-fast' };
+  if (ms > 500) return { ms, band: 'too-slow' };
+  return null;
+}
+
+/**
  * True if px is 0 or an integer multiple of `grid` (within 0.5px tolerance).
  */
 export function isOnGrid(px, grid = 4) {
@@ -167,6 +198,8 @@ export function lintBundle(bundle, opts = {}) {
   // Accumulators for post-scan checks
   const typeTriples = new Set();
   const greyColors = [];
+  let pageHasMotion = false;                 // any nonzero transition/animation duration
+  let interactiveNoFocusOutline = 0;         // interactive els that suppress the focus outline
 
   for (const el of elements) {
     const { selector = '?', tagName = '', styles = {}, isInteractive = false, textContent = '', inlineStyle = '' } = el;
@@ -252,6 +285,29 @@ export function lintBundle(bundle, opts = {}) {
         if (chroma < 20) greyColors.push({ selector, cssColor: styles.color, c });
       }
     }
+
+    // --- 6. Motion duration (per-element; motion dimension) ---
+    const durMs = Math.max(parseDurationMs(styles.transitionDuration), parseDurationMs(styles.animationDuration));
+    if (durMs > 0) pageHasMotion = true;
+    const motionCls = classifyMotion(durMs);
+    if (motionCls) {
+      findings.push({
+        id: nextId('motion'),
+        severity: 'info',
+        rule: 'motion-duration',
+        selector,
+        value: `${motionCls.ms}ms`,
+        screen,
+        message: `${selector} animation/transition ${motionCls.ms}ms is ${motionCls.band} (outside the 200-500ms band)`,
+      });
+    }
+
+    // --- 7. Focus-visible signifier (affordance dimension) ---
+    if (isInteractive || INTERACTIVE_TAGS.has(tagName?.toUpperCase?.())) {
+      const outlineOff = styles.outlineStyle === 'none' ||
+        (parsePx(styles.outlineWidth) === 0 && styles.outlineStyle !== 'auto');
+      if (outlineOff) interactiveNoFocusOutline++;
+    }
   }
 
   // --- Post-scan: type-scale sprawl ---
@@ -287,6 +343,37 @@ export function lintBundle(bundle, opts = {}) {
       value: `${greyDupCount} near-dup grey pairs`,
       screen,
       message: `${greyDupCount} near-duplicate grey color pairs — consolidate to design tokens`,
+    });
+  }
+
+  // --- Post-scan: page-level motion + affordance signals (from capture's pageSignals) ---
+  const sig = bundle.pageSignals || {};
+
+  // reduced-motion (motion): the page animates but ships no prefers-reduced-motion
+  // escape hatch. Critical-error trigger for the motion dimension (no reduced-motion escape).
+  if (pageHasMotion && sig.hasReducedMotionRule === false) {
+    findings.push({
+      id: nextId('motion'),
+      severity: 'error',
+      rule: 'reduced-motion',
+      selector: 'document',
+      value: 'no prefers-reduced-motion rule',
+      screen,
+      message: 'page uses animation/transition but defines no prefers-reduced-motion media rule (no reduced-motion escape)',
+    });
+  }
+
+  // missing-focus-visible (affordance): interactive controls suppress the focus
+  // outline and the page defines no :focus-visible rule → no keyboard-focus signifier.
+  if (interactiveNoFocusOutline > 0 && sig.hasFocusVisibleRule === false) {
+    findings.push({
+      id: nextId('focus'),
+      severity: 'warning',
+      rule: 'missing-focus-visible',
+      selector: 'document',
+      value: `${interactiveNoFocusOutline} control(s) with outline:none`,
+      screen,
+      message: `${interactiveNoFocusOutline} interactive control(s) suppress the focus outline and the page has no :focus-visible rule — keyboard focus has no signifier`,
     });
   }
 

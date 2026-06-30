@@ -73,6 +73,20 @@ export function aggregate(input = {}) {
   const findingsByRule = {};
   for (const f of findings) if (f.rule) findingsByRule[f.rule] = (findingsByRule[f.rule] || 0) + 1;
 
+  // DESIGN-EVAL v1 dimension roll-ups for the two new collectors.
+  const byRule = (r) => findingsByRule[r] || 0;
+  const affordance = {
+    tapTarget: byRule('tap-target'),
+    missingFocusVisible: byRule('missing-focus-visible'),
+    deadControls: dead.length,
+    total: byRule('tap-target') + byRule('missing-focus-visible') + dead.length,
+  };
+  const motion = {
+    durationOutOfBand: byRule('motion-duration'),
+    noReducedMotion: byRule('reduced-motion'),
+    total: byRule('motion-duration') + byRule('reduced-motion'),
+  };
+
   const summary = {
     screens: screens.length,
     spacing: {
@@ -86,6 +100,8 @@ export function aggregate(input = {}) {
     axeViolations: axe.length,
     pageErrors: pageErrors.length,
     visualRegressions: regressions.length,
+    affordance,
+    motion,
   };
 
   return {
@@ -179,6 +195,8 @@ function printSummary(report) {
   console.log(`axe violations     : ${s.axeViolations}`);
   console.log(`page errors        : ${s.pageErrors}`);
   console.log(`visual regressions : ${s.visualRegressions}`);
+  if (s.affordance) console.log(`affordance         : ${s.affordance.total} (tap ${s.affordance.tapTarget} / dead ${s.affordance.deadControls} / focus ${s.affordance.missingFocusVisible})`);
+  if (s.motion) console.log(`motion             : ${s.motion.total} (duration ${s.motion.durationOutOfBand} / reduced-motion ${s.motion.noReducedMotion})`);
   if (s.pageErrors > 0) {
     for (const e of report.pageErrors) console.log(`  PAGEERROR [${e.screen}] ${e.name || 'Error'}: ${e.message}`);
   }

@@ -1,7 +1,7 @@
 # Skills Manifest
 
 > Auto-generated skill inventory for the agent-skills-toolchain repository.
-> Last updated: 2026-06-29
+> Last updated: 2026-06-30
 
 | Skill Name | Origin | Description |
 |---|---|---|
@@ -41,8 +41,11 @@
 | codex-vscode-host-routing | custom | Use when VS Code launches Codex from the wrong host or WSL becomes the default unexpectedly |
 | competitive-programming-solver | custom | Use when solving online judge, olympiad, or contest problems in C, C++, or Python |
 | consensus-tooluniverse-research | custom | Use when downloading or harvesting research from Consensus.app — extract searches browser-free from the page payload, resolve papers to DOIs and open-access PDFs via ToolUniverse, organize by topic with a bibliography, and capture the Consensus Meter graphs |
+| critique-panel | custom | Use to run the G3 CRITIQUE gate of the TCR design-review loop — a four named-persona panel (user-advocate / systems-consistency / a11y / brand-aesthetic) that each reason over ui-audit's Track-A numbers plus the screenshot, run the NN/g I-Like / I-Wish / What-If ritual, score the nine DESIGN-EVAL v1 dimensions 0-4 with critical-error overrides, then synthesize one deduped, severity-ranked findings list with a weighted composite and enumerated directions (the human decides at G4). A TRIAGE accelerator, not an oracle. Pairs with ui-audit and design-review-loop |
 | ddi-admet-research | custom | Use as the front-end for biomedical research via the ToolUniverse MCP - drug-drug interactions, ADMET/CYP, target research, FDA labels, repurposing, pharmacovigilance |
 | deepsource | built-in | Retrieve code review results from DeepSource - issues, vulnerabilities, and quality metrics |
+| design-review-loop | custom | Use to run the full named TCR design-review workflow as 8 sequenced gates (G0 PRIME, G1 AUDIT, G2 TRANSPOSE, G3 CRITIQUE, G4 DIRECT, G5 ITERATE, G6 RECONCILE, G7 VERIFY, then loop back to G1) over a running app. The orchestrator of the transpose-then-discuss-then-revert motion — invokes ui-audit at G1, transpose-to-figma at G2, critique-panel at G3, and figma-implement-design plus the revert-gate at G6, holding the per-gate question banks and the rule that every apply-back is a reversible commit reverted if it regresses any tracked axis |
+| design-tokens-pipeline | custom | Use for the W3C DTCG design-token round-trip the TCR design-review loop relies on at G5/G6 — extract tokens out of code (CSS custom properties + Tailwind theme dumps) into a DTCG JSON tree, validate the five DTCG v1.0 rules that break the Tokens-Studio to Style-Dictionary round-trip (missing-type, bad-alias, alias-cycle, raw-hex-in-code, reserved-misuse), and diff two token trees to emit BOTH the forward change set AND the inverse revert patch. Transforms via Style Dictionary + sd-transforms. Pairs with design-review-loop and figma |
 | develop-web-game | built-in | Use when Codex is building or iterating on a web game (HTML/JS) and needs a reliable development + testing loop |
 | dispatching-parallel-agents | marketplace:superpowers | Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies |
 | doc | built-in | Use when the task involves reading, creating, or editing .docx documents |
@@ -52,6 +55,7 @@
 | figma | built-in | Use the Figma MCP server to fetch design context, screenshots, variables, and assets from Figma |
 | figma-implement-design | built-in | Translate Figma nodes into production-ready code with 1:1 visual fidelity using the Figma MCP workflow |
 | finishing-a-development-branch | marketplace:superpowers | Use when implementation is complete, all tests pass, and you need to decide how to integrate the work |
+| firecrawl | custom | Web scraping, crawling, structured extraction, site mapping, and change monitoring via the Firecrawl MCP. Use to turn known or discovered URLs into clean markdown or schema-structured JSON, screenshot pages or extract brand identity (colors, fonts, spacing, components), crawl or map entire sites, harvest docs and cookbooks, run competitive or design research, parse local PDFs and Office files, search the web with operators and domain filters, monitor pages for meaningful changes, or drive an autonomous browse agent. Pairs with exa-search — Exa finds by meaning, Firecrawl fetches, extracts, crawls, and monitors |
 | format-codex-sessions | custom | Use when Codex rollout JSONL files need to be turned into readable Markdown conversations or transcripts |
 | frida | custom | Use when runtime hooking, device instrumentation, API tracing, or patch-on-the-fly behavior matters |
 | frida-mcp | custom | Use when installing or configuring frida-mcp as an MCP server for live Frida instrumentation |
@@ -133,7 +137,8 @@
 | test-driven-development | marketplace:superpowers | Use when implementing any feature or bugfix, before writing implementation code |
 | tiktok-public-research | custom | Use when the user wants to read public TikTok data - trending, a creator's public posts/likes, a hashtag feed, a video's metadata/comments/related, or user search - via the self-hosted tiktok MCP. Covers the read-only tool inventory, ms_token and residential-proxy reliability knobs, and hard limits (no own feed, no saved, no DMs, no posting; unofficial-API ban and IP-block risk) |
 | transcribe | built-in | Transcribe audio files to text with optional diarization and known-speaker hints |
-| ui-audit | custom | Drive a running web or Electron app and emit a deterministic UI/UX + functional audit — accessibility, contrast, spacing, tap targets, dead buttons, visual regression. READ-ONLY (drives and inspects, never edits app source). Emits terminal-state typed findings (SUCCESS:ui-audit-[id] / FAILED:ui-audit-[id]) + annotated findings JSON for downstream Track-B VLM design critique |
+| transpose-to-figma | custom | Use when lifting a running or built UI back onto the Figma canvas (the G2 TRANSPOSE / Code-to-Canvas edge of the design-review loop) and you must pick the right code-to-Figma path — story.to.design for the component-system loop, the Figma MCP generate_figma_design for live or localhost screens, or html.to.design for an audit-only DOM record. Also covers what survives the lossy round-trip (DTCG tokens + Code-Connected components) versus what is lost (state, routing, data, logic). Do NOT use for Figma-to-code (use figma-implement-design); covers Reframe, momentstudio, WebCoder, bilbo |
+| ui-audit | custom | Drive a running web or Electron app and emit a deterministic UI/UX + functional audit — accessibility, contrast, spacing, tap targets, dead buttons, affordance/focus-visible, motion duration, visual regression (Track-A) — then a structured design-quality VERDICT (Track-B) where Claude reasons over the pre-computed numbers plus the screenshot on the DESIGN-EVAL v1 rubric (nine dimensions scored 0-4, a critical-error override that forces a zero and caps the verdict, a weighted composite with color-contrast highest, and a one-dimension-per-call reliability protocol) against Refactoring-UI / Material / HIG / Nielsen / WCAG. READ-ONLY (drives and inspects, never edits app source). Emits terminal-state typed findings plus a typed critique schema with a computed weighted composite |
 | ui-ux-pro-max | built-in | UI/UX design intelligence with searchable database |
 | using-git-worktrees | marketplace:superpowers | Use when starting feature work that needs isolation from current workspace |
 | use-image-clipboard | custom | Use when needing to read an image from the Windows clipboard and save it to a temporary PNG file on disk — required workaround for Antigravity CLI which lacks native Alt+V image paste |

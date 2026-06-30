@@ -18,6 +18,63 @@ agent the tired mid-task self can't override), not in the model's good intention
 
 ---
 
+## 2026-06-30 — Design-review skill suite + DESIGN-EVAL ui-audit upgrade versioned
+
+The **design-SOTA research** thread (the TCR *transpose → critique → revert* design-review
+loop) landed as runnable skills in `skills/`, plus its research deliverables under
+`docs/design/`: five new skills, one upgraded skill, four docs. All six skills pass
+`quick_validate.py`; the pure-Node suites pass (design-tokens 12, critique-panel 19,
+design-review-loop 14).
+
+### Added — the TCR design-review skill suite (`skills/`)
+
+- **`design-review-loop`** — the orchestrator: the 8-gate TCR workflow (G0 PRIME → G1 AUDIT →
+  G2 TRANSPOSE → G3 CRITIQUE → G4 DIRECT → G5 ITERATE → G6 RECONCILE → G7 VERIFY → loop),
+  driving the *transpose-then-discuss-then-revert* motion with a first-class revert-gate (every
+  apply-back is a reversible commit, reverted if it regresses a tracked axis or touches logic).
+- **`critique-panel`** — the G3 CRITIQUE gate: a four named-persona panel (user-advocate /
+  systems-consistency / a11y / brand-aesthetic) that reasons over ui-audit's Track-A numbers +
+  the screenshot, runs the NN/g *I Like / I Wish / What If* ritual, scores the nine DESIGN-EVAL
+  v1 dimensions 0-4 with critical-error overrides, and synthesizes a deduped, severity-ranked
+  findings list with a weighted composite (a TRIAGE accelerator, not an oracle).
+- **`transpose-to-figma`** — the G2 TRANSPOSE gate: the *altitude selector* for the
+  code-to-Figma edge (story.to.design / the Figma MCP `generate_figma_design` / html.to.design)
+  and what survives the lossy round-trip (DTCG tokens + Code-Connected components) vs what is
+  lost (state, routing, data, logic).
+- **`design-tokens-pipeline`** — the G5/G6 token spine: the W3C-DTCG round-trip surface
+  (extract tokens from code → validate → diff with an inverse revert patch), transformable via
+  Style Dictionary + sd-transforms.
+- **`firecrawl`** — the web-data layer (scrape / crawl / map / structured-extract / search /
+  monitor / browse-agent via the Firecrawl MCP); the *fetch-and-structure* companion to
+  exa-search's *find-by-meaning*, feeding brand-identity extraction into the design loop.
+
+### Changed — `ui-audit` upgraded to the two-track DESIGN-EVAL engine
+
+After the deterministic **Track-A** audit (a11y, contrast, spacing, tap targets, dead buttons,
+affordance/focus-visible, motion, visual regression), `ui-audit` now adds **Track-B**: Claude
+reasons over the pre-computed numbers + the screenshot on the **DESIGN-EVAL v1** rubric — nine
+dimensions scored 0-4, a critical-error override that forces a zero and caps the verdict, a
+weighted composite (color-contrast weighted highest), and a one-dimension-per-call reliability
+protocol — against Refactoring-UI / Material / HIG / Nielsen / WCAG. New files: `critique.mjs`,
+`critique_schema.mjs`, `critique.schema.json`, `critique_rubric.md`, `uiclip_score.py` (opt-in
+numeric prior), plus fixtures/tests.
+
+### Fixed — `design-tokens-pipeline` validator test now asserts all five DTCG rules
+
+The bundled `tests/tokens.test.mjs` asserted only 2 of the 5 validators the SKILL.md claims.
+Extended it to assert **all five** by rule id (missing-type, bad-alias, alias-cycle,
+raw-hex-in-code, reserved-misuse) — the validator already fired for all five; the assertions
+were the gap. `npm test` green (12/12).
+
+### Added — design research deliverables (`docs/design/`)
+
+`DESIGN-WORKFLOW.md` (the 8-gate loop + per-gate method), `FIGMA-SETUP.md` (the Figma/Variables
+round-trip surface), `DESIGN-SKILLS-AND-EVAL.md` (the skill map + DESIGN-EVAL rubric), and
+`DESIGN-SKILLS-BUILT.md` (what shipped). Manifest: 5 rows added + the `ui-audit` row updated
+(`skills/SKILLS-MANIFEST.md`).
+
+---
+
 ## 2026-06-30 — Calibrated-silence over-suppression SAFETY fix + Binary Ninja GUI bring-up
 
 Two corrections to hooks landed in the prior `2026-06-29` waves. The first is a **safety

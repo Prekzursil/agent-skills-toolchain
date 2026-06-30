@@ -45,6 +45,10 @@ const STYLE_PROPS = [
   'color', 'backgroundColor',
   'width', 'height',
   'display', 'position',
+  // motion (Track-A motion collector): transition/animation durations.
+  'transitionDuration', 'transitionProperty', 'animationDuration', 'animationName',
+  // affordance (Track-A affordance collector): focus signifier + cursor.
+  'outlineStyle', 'outlineWidth', 'cursor',
 ];
 
 const MAX_ELEMENTS = 250;
@@ -91,6 +95,38 @@ async function waitForRender(page, { waitSelector, settleMs = DEFAULT_SETTLE_MS,
     try { await page.waitForSelector(waitSelector, { timeout: 8000, state: 'attached' }); } catch { /* selector may not appear — record what we have */ }
   }
   if (settleMs > 0) await new Promise(r => setTimeout(r, settleMs));
+}
+
+/**
+ * Page-level affordance + motion signals for the Track-A collectors (read once per
+ * screen). Walks the page's own stylesheets for a `prefers-reduced-motion` media
+ * rule (motion escape hatch) and a `:focus-visible` rule (keyboard-focus signifier).
+ * Cross-origin sheets that throw on `.cssRules` are skipped (counted as inaccessible).
+ * @returns {Promise<{hasReducedMotionRule:boolean, hasFocusVisibleRule:boolean, inaccessibleSheets:number}>}
+ */
+async function getPageSignals(page) {
+  try {
+    return await page.evaluate(() => {
+      let hasReducedMotionRule = false;
+      let hasFocusVisibleRule = false;
+      let inaccessibleSheets = 0;
+      const scan = (rules) => {
+        for (const r of rules) {
+          const txt = (r.cssText || '');
+          if (r.media && /prefers-reduced-motion/i.test(r.conditionText || r.media.mediaText || '')) hasReducedMotionRule = true;
+          if (/prefers-reduced-motion/i.test(txt)) hasReducedMotionRule = true;
+          if (/:focus-visible/i.test(r.selectorText || txt)) hasFocusVisibleRule = true;
+          if (r.cssRules) { try { scan(r.cssRules); } catch { /* nested */ } }
+        }
+      };
+      for (const sheet of Array.from(document.styleSheets)) {
+        try { scan(sheet.cssRules); } catch { inaccessibleSheets++; }
+      }
+      return { hasReducedMotionRule, hasFocusVisibleRule, inaccessibleSheets };
+    });
+  } catch {
+    return { hasReducedMotionRule: false, hasFocusVisibleRule: false, inaccessibleSheets: 0 };
+  }
 }
 
 async function getComputedStyles(page) {
@@ -147,6 +183,7 @@ async function buildBundle(page, screenName, rec, opts = {}) {
   try { a11ySnapshot = await page.accessibility.snapshot(); } catch { /* optional */ }
 
   const elements = await getComputedStyles(page);
+  const pageSignals = await getPageSignals(page);
 
   const bundle = {
     screen: screenName,
@@ -155,6 +192,7 @@ async function buildBundle(page, screenName, rec, opts = {}) {
     screenshotPath,
     a11ySnapshot,
     elements,
+    pageSignals,
     consoleMsgs: rec.consoleMsgs,
     networkRequests: rec.networkRequests,
     pageErrors: rec.pageErrors,
