@@ -1,6 +1,6 @@
 ---
 name: firecrawl
-description: Web scraping, crawling, structured extraction, site mapping, and change monitoring via the Firecrawl MCP. Use to turn known or discovered URLs into clean markdown or schema-structured JSON, screenshot pages or extract brand identity (colors, fonts, spacing, components), crawl or map entire sites, harvest docs and cookbooks, run competitive or design research, pull structured data with a schema, parse local PDFs and Office files, search the web with operators and domain filters, monitor pages for meaningful changes, search arXiv and GitHub, or drive an autonomous browse agent. Pairs with exa-search — Exa finds by meaning, Firecrawl fetches, extracts, crawls, and monitors.
+description: Web scraping, crawling, structured extraction, site mapping, and change monitoring via the Firecrawl MCP. Use to turn known or discovered URLs into clean markdown or schema-structured JSON, screenshot pages or extract brand identity (colors, fonts, spacing, components), crawl or map entire sites, harvest docs and cookbooks, run competitive or design research, pull structured data with a schema, parse local PDFs and Office files, search the web with operators and domain filters, monitor pages for meaningful changes, search arXiv and GitHub, or drive an autonomous browse agent. Pairs with the Exa MCP (`web_search_exa`) — Exa finds by meaning, Firecrawl fetches, extracts, crawls, and monitors.
 metadata:
   origin: custom
 ---
@@ -241,7 +241,7 @@ For each competitor URL: `firecrawl_scrape(formats:["branding","screenshot"])` �
 
 ## Related Skills
 
-- `exa-search` — neural/semantic search + code-context (the FIND half; Firecrawl is the FETCH half)
+- `exa` MCP (`web_search_exa` / `get_code_context_exa`) — neural/semantic search + code-context (the FIND half; Firecrawl is the FETCH half)
 - `deep-research` — multi-source cited research harness that routes Firecrawl (web + deep-read) alongside Exa, Tavily, Perplexity, scholarly-access
 - `design-system` / `ui-audit` — consume Firecrawl `branding` + `screenshot` output
 - `scholarly-access` / `paper-search` — academic retrieval that complements `firecrawl_research_*`
