@@ -664,7 +664,7 @@ You cannot adopt 40 things. Do these, in order. Stop if it stops helping.
 
 ### Dedup basis
 
-User's registered MCP servers (INVENTORY.md line 13): `apify, binary-ninja-mcp, browserstack, cheatengine, chrome-devtools, codacy, codecov, codex_consult, context7, deepscan, deepsource, digitalocean, docker, env, excel, figma, firecrawl, frida-mcp, ghidra-mcp, github, github_cli, hexstrike-ai, huggingface, ida-pro-mcp, instructions, integrations, linear, markitdown, mcp, mcp-graphql, memory, meta-tool, notion, options, pdf-reader, playwright, postgres, qlty, ralph-orchestrator, repomix, scrapegraph, semgrep, sentry, servers, sonarqube, tavily, vscode, workspace, x_codex`.
+User's registered MCP servers (INVENTORY.md line 13): `apify, binary-ninja-mcp, browserstack, cheatengine, chrome-devtools, codacy, codecov, codex_consult, context7, deepsource, digitalocean, docker, env, excel, figma, firecrawl, frida-mcp, ghidra-mcp, github, github_cli, hexstrike-ai, huggingface, ida-pro-mcp, instructions, integrations, linear, markitdown, mcp, mcp-graphql, memory, meta-tool, notion, options, pdf-reader, playwright, postgres, qlty, ralph-orchestrator, repomix, scrapegraph, semgrep, sentry, servers, sonarqube, tavily, vscode, workspace, x_codex`.
 
 I grepped `~/.claude.json` and `~/.agents/agents.json` for slack, sequential/thinking, time, filesystem, brave, fetch, atlassian, jira, gmail, gdrive, vercel, azure, cloudflare, redis, mongo, neon, supabase, clickhouse, obsidian, stripe, grafana, datadog, perplexity — **none matched** (the lone "time" hit was `startup_timeout_sec`, not the time server). The cryptic names `env / instructions / integrations / mcp / options / servers / workspace` are internal config aliases and are **not** credited as covering any canonical popular server. Per task guidance, over-flagging gaps is the safer error.
 
@@ -1146,13 +1146,13 @@ These ship in the official monorepo and share its star count. They are the bedro
 - **What they do:** Surface static-analysis findings, security hotspots, and metrics from each platform into the agent.
 - **Why it's a gamechanger:** Closes the "scan → read findings → fix" loop across four platforms; you cross-reference them via a code-quality-auditor subagent.
 - **Adopt:** already registered.
-- **Status:** ✅ (`codacy`, `sonarqube`, `deepsource`, `semgrep`, `qlty`, `deepscan`, `codecov` all registered)
+- **Status:** ✅ (`codacy`, `sonarqube`, `deepsource`, `semgrep`, `qlty`, `codecov` all registered)
 
 ---
 
 ### Coverage summary
 
-- **✅ HAVE:** memory, playwright, chrome-devtools, firecrawl, tavily, postgres, notion, linear, digitalocean, docker, sentry, context7, markitdown, apify, repomix, huggingface, figma, excel, codacy, sonarqube, deepsource, semgrep, qlty, deepscan, codecov, github, github_cli, browserstack, scrapegraph + RE stack (binary-ninja, cheatengine, frida, ghidra, hexstrike, ida-pro).
+- **✅ HAVE:** memory, playwright, chrome-devtools, firecrawl, tavily, postgres, notion, linear, digitalocean, docker, sentry, context7, markitdown, apify, repomix, huggingface, figma, excel, codacy, sonarqube, deepsource, semgrep, qlty, codecov, github, github_cli, browserstack, scrapegraph + RE stack (binary-ninja, cheatengine, frida, ghidra, hexstrike, ida-pro).
 - **🟡 PARTIAL (skill/plugin only, or related variant — no canonical MCP server):** fetch, git, exa, supabase, clickhouse, vercel, markdownify, playwright-ea, browser-tools.
 - **🔴 NET-NEW GAP:** filesystem, sequential-thinking, time, everything, browserbase, perplexity, brave-search, mongodb, redis, neon, genai-toolbox (multi-DB), elasticsearch, atlassian (Jira/Confluence), slack, gmail/google-workspace, asana, discord, awslabs, cloudflare, azure, terraform, grafana, snyk, obsidian, stripe, antv-chart, mcp-inspector.
 
@@ -1165,7 +1165,7 @@ Total servers covered: **~58**.
 
 Research agent #3 of 7. Domain: niche/specialized/hidden-gem MCP servers and the best discovery directories. Generated 2026-05-28. Year context: 2026.
 
-**Dedup baseline** (from INVENTORY.md — already owned, excluded or flagged): frida, ghidra-mcp, ida-pro-mcp, binary-ninja-mcp, hexstrike-ai, cheatengine, semgrep, codacy, sonarqube, deepsource, deepscan, qlty, apify, scrapegraph, firecrawl, tavily, playwright, chrome-devtools, browserstack, context7, repomix, markitdown, pdf-reader, excel, memory (basic KG), postgres, mcp-graphql, github, linear, notion, sentry, huggingface, docker, digitalocean, codecov. They also run **mcp-funnel** as a gateway/proxy (load-bearing for token reduction) — so gateway picks below are PARTIAL overlaps, listed as alternatives only.
+**Dedup baseline** (from INVENTORY.md — already owned, excluded or flagged): frida, ghidra-mcp, ida-pro-mcp, binary-ninja-mcp, hexstrike-ai, cheatengine, semgrep, codacy, sonarqube, deepsource, qlty, apify, scrapegraph, firecrawl, tavily, playwright, chrome-devtools, browserstack, context7, repomix, markitdown, pdf-reader, excel, memory (basic KG), postgres, mcp-graphql, github, linear, notion, sentry, huggingface, docker, digitalocean, codecov. They also run **mcp-funnel** as a gateway/proxy (load-bearing for token reduction) — so gateway picks below are PARTIAL overlaps, listed as alternatives only.
 
 Status legend: ✅ HAVE-equivalent · 🟡 PARTIAL (overlaps something owned) · 🔴 NET-NEW-GAP.
 

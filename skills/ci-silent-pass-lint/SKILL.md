@@ -104,7 +104,6 @@ Both consume the same primitive; neither re-implements it.
 | Codecov | `mcp__codecov__get_commit_coverage` | Yes — pass `commit_sha` directly |
 | DeepSource | `mcp__deepsource__run` with `isCommitOid: true` | Yes — pass `head_sha` as `runIdentifier` |
 | qlty | `mcp__qlty__qlty_check` (local run) | N/A — always at working-tree HEAD |
-| DeepScan | `gh api .../check-runs` (no MCP) | Via SHA in GitHub Checks API |
 | SonarCloud | `curl sonarcloud.io/api/qualitygates/project_status` (no MCP) | Via branch + timestamp |
 
 See `gate_findings_at_head.md` for exact parameters and extraction logic per provider.

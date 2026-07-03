@@ -7,7 +7,7 @@ Curated Windows-first workstation bundle for the canonical Codex profile at `C:\
 - **Modified local fork**: PromptBridge runtime overrides captured under `tools/mcp/agent-lanes-codex/local-overrides/` and `tools/web/agent-lanes-chatgpt-web/local-overrides/`.
 - **Curated upstream picks**: GitHub, GitHub CLI, Notion, Linear, Playwright, Chrome DevTools, Figma, Sentry, SonarQube, Semgrep, Docker, Memory, Context7, PostgreSQL, and selected optional extras including the upstream Cheat Engine bridge wrapper and HexStrike AI runtime.
 - **Curated community MCP picks**: Codecov is promoted into the active MCP bundle via `@egulatee/mcp-codecov`.
-- **Curated non-MCP integrations**: Chromatic remains intentionally outside the MCP set; Qlty stays on CLI + provider workflows, and DeepScan stays on VS Code + provider workflows.
+- **Curated non-MCP integrations**: Chromatic remains intentionally outside the MCP set; Qlty stays on CLI + provider workflows.
 
 ## Key workstation decisions
 - Canonical MCP source of truth: `C:\Users\Prekzursil\.codex\config.toml`
@@ -24,8 +24,8 @@ Curated Windows-first workstation bundle for the canonical Codex profile at `C:\
 - **Enabled but conservatively described**: Figma (auth-gated), SonarQube (configured against SonarQube Cloud), Semgrep (no cloud token provided in this stage), Cheat Engine (installed locally with successful pipe ping and read-only game analysis; treat writes as a separate risk lane), and HexStrike AI (installed locally with a localhost runtime and shared client launcher, but still lacking full Claude/Gemini stdio health proof)
 - **Enabled and verified**: `codex_consult` under the single-managed-server lane model; live `status`, `probe`, and `self-test` all returned `ok: true` on 2026-03-15
 - **Removed from the active workstation bundle**: Unity MCP was removed completely by owner preference, including local `D:` staging and env references
-- **Community-risk decision**: DeepSource is now enabled via a local Node wrapper because the available `deepsource-mcp-server` package is deprecated and its published main entrypoint does not start correctly on Windows without an explicit wrapper; Qlty and DeepScan remain intentionally outside MCP because the current supported workstation flows are non-MCP
-- **Non-MCP integrations**: the Codecov CLI on `D:` remains available for pre-push analysis; Chromatic uses a CLI + Playwright workspace on `D:` with `CHROMATIC_PROJECT_TOKEN` persisted locally; Qlty remains a CLI/provider workflow; and DeepScan remains a VS Code supplement/provider workflow
+- **Community-risk decision**: DeepSource is now enabled via a local Node wrapper because the available `deepsource-mcp-server` package is deprecated and its published main entrypoint does not start correctly on Windows without an explicit wrapper; Qlty remains intentionally outside MCP because the current supported workstation flows are non-MCP
+- **Non-MCP integrations**: the Codecov CLI on `D:` remains available for pre-push analysis; Chromatic uses a CLI + Playwright workspace on `D:` with `CHROMATIC_PROJECT_TOKEN` persisted locally; and Qlty remains a CLI/provider workflow
 
 ## 2026-03-30 cross-CLI parity snapshot
 
