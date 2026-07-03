@@ -85,12 +85,16 @@ claude mcp add --transport http figma-desktop http://127.0.0.1:3845/mcp
 - `add_code_connect_map` / `send_code_connect_mappings` — write node↔code-component bindings.
 
 ### 2.4 Rate limits & cost (budget for this)
-- Starter / View / Collab seats: **~6 tool calls/month** (effectively read-only trials — a toy).
-- Dev/Full seats: per-minute limits ≈ Tier-1 REST. **Get ≥1 Dev/Full seat for real throughput.**
-- `generate_figma_design` + `use_figma`: **free during beta**, explicitly slated to become **usage-based paid** — budget for it.
+> ⚠️ **Corrected 2026-07-03** — rate limits track **SEAT type, not plan**. The earlier "Starter = ~6 calls/month" was wrong (it conflated the free *plan* with the View/Collab *seat*).
+- **View / Collab seats: ~6 tool calls/month** (ANY plan — effectively a toy).
+- **Dev / Full seats: real per-minute throughput even on the FREE tier** — Starter **200/day, 10/min**; Professional 15/min; Organization 600/day, 20/min. ([official table](https://developers.figma.com/docs/figma-mcp-server/rate-limits-access/))
+- ⭐ **Figma for Education (free) grants a FULL seat** → full MCP read throughput at **no cost** for verified students/educators. Verified 2026-07-03 on a `tier:student` Full seat: `whoami` reports `seat:Full`, and `get_design_context` returns the full source tree with no throttle. So a paid seat is NOT required for real MCP throughput if you qualify for Education.
+- **Writes are rate-limit-EXEMPT** — `generate_figma_design`, `use_figma`, `add_code_connect_map`, `whoami` never count against the limit (**free during beta**, slated to become **usage-based paid**).
+- **Known bug:** seat/plan detection can lag a seat *change* (forum reports of "stuck at 6/month despite a new Dev seat") — re-auth the MCP if throughput doesn't match your seat.
 
 ### 2.5 Community read-only fallback
 **GLips / Framelink `figma-context-mcp`** — free, any Figma account, **read-only** (`get_figma_data`, `download_figma_images`). Good for cheap read/audit without a Dev seat, but **cannot transpose code→canvas** — you lose G2.
+> **When it's worth keeping (2026-07-03):** with a **Full seat** (including free **Figma for Education**), the official MCP already gives full read throughput + writes + `download_assets`, so this fallback is **optional/redundant** for interactive work. Keep it ONLY for **truly-headless** Figma reads (cron / gateway / detached CLI) where the official **OAuth** server is absent but a **PAT** (`FIGMA_ACCESS_TOKEN`) still works — otherwise prune it for leanness.
 
 ### 2.6 Code Connect — the single biggest fidelity lever (invest early)
 Maps a Figma component → its **real repo component**, so Dev Mode / MCP responses emit *your* `<Button>`/`<Card>`, not re-derived markup. Two setups: **UI** (inside Figma, language-agnostic, GitHub optional) and **CLI** (`@figma/code-connect`); supports one-to-many (React + SwiftUI + Compose + Vue). **Without it, blogs report ~85–90% styling inaccuracy / generic hardcoded JSX** (single-blog metric, directionally right). **Code-Connect-your-kit once** converts every future G6 from "generate fresh divs" into "reuse my components."
