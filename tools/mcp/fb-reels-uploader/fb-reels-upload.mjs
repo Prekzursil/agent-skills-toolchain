@@ -28,11 +28,12 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CREATE_URL = 'https://www.facebook.com/reels/create/';
+export const DEFAULT_PROFILE = path.join(__dirname, '.profile');
 
 function parseArgs(argv) {
   const o = { folder: null, start: 1, limit: Infinity, delaySec: 20, profile: path.join(__dirname, '.profile'),
@@ -55,7 +56,7 @@ function parseArgs(argv) {
 
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 
-async function dismissNagging(page) {
+export async function dismissNagging(page) {
   for (const name of ['Not now', 'Not Now', 'Cancel']) {
     const b = page.getByRole('button', { name, exact: true });
     if (await b.first().isVisible().catch(() => false)) await b.first().click().catch(() => {});
@@ -66,7 +67,7 @@ async function dismissNagging(page) {
 // IMPORTANT: do NOT re-navigate while the user is on a login/checkpoint page, or
 // the reload would wipe their half-typed credentials. Navigate once; only re-load
 // the composer after they've left the auth flow.
-async function waitForLogin(page, timeoutMs = 600000) {
+export async function waitForLogin(page, timeoutMs = 600000) {
   const start = Date.now();
   let prompted = false;
   let navedAfterAuth = true; // we'll goto once below
@@ -91,7 +92,7 @@ async function waitForLogin(page, timeoutMs = 600000) {
   return false;
 }
 
-async function setAudience(page, audience) {
+export async function setAudience(page, audience) {
   if (audience === 'public') return; // Reels default to Public already
   // Open the audience selector (button labelled with current audience, e.g. "Public ...")
   const sel = page.getByRole('button', { name: /^(Public|Friends|Only me)/i }).first();
@@ -107,7 +108,7 @@ async function setAudience(page, audience) {
   await sleep(600);
 }
 
-async function uploadOneReel(page, filePath, audience) {
+export async function uploadOneReel(page, filePath, audience) {
   await page.goto(CREATE_URL, { waitUntil: 'domcontentloaded' });
   await dismissNagging(page);
 
@@ -156,30 +157,48 @@ const HELP = `fb-reels-upload — upload local vertical videos to Facebook as Re
 First run opens a browser — log into Facebook once (session is then remembered).
 Uploads *.mp4 sorted by filename, strictly in order, one Reel per post, Public, no caption.`;
 
-async function main() {
-  const o = parseArgs(process.argv.slice(2));
-  if (o.help || !o.folder) { console.log(HELP); process.exit(o.help ? 0 : 2); }
-  if (!fs.existsSync(o.folder)) { console.error('Folder not found:', o.folder); process.exit(2); }
+/**
+ * Reusable batch driver shared by the CLI and the MCP wrapper. Library-safe:
+ * it never calls process.exit and returns a structured result. Order guarantee
+ * is preserved — it stops at the first failure rather than skipping ahead.
+ *
+ * @param {{folder?:string, files?:string[], start?:number, limit?:number,
+ *   delaySec?:number, profile?:string, audience?:string, headless?:boolean,
+ *   ext?:string}} opts
+ * @param {(msg:string)=>void} [emit] progress callback
+ * @returns {Promise<{ok:number, done:number, posted:string[], failed:string[], total:number}>}
+ */
+export async function runBatch(opts, emit = () => {}) {
+  const {
+    folder, files, start = 1, limit = Infinity, delaySec = 20,
+    profile = DEFAULT_PROFILE, audience = 'public', headless = false, ext = 'mp4',
+  } = opts || {};
 
-  const files = fs.readdirSync(o.folder)
-    .filter((f) => f.toLowerCase().endsWith('.' + o.ext))
-    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-  // nosemgrep: javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring -- internal CLI log message; o.ext is a developer-supplied CLI flag, not untrusted input
-  if (!files.length) { console.error('No .' + o.ext + ' files in', o.folder); process.exit(2); }
+  let list;
+  if (Array.isArray(files) && files.length) {
+    list = files.map((f) => ({ name: path.basename(f), full: path.resolve(f) }));
+  } else {
+    if (!folder) throw new Error('runBatch requires a folder or an explicit files[] list');
+    if (!fs.existsSync(folder)) throw new Error(`Folder not found: ${folder}`);
+    list = fs.readdirSync(folder)
+      .filter((f) => f.toLowerCase().endsWith('.' + ext))
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+      .map((name) => ({ name, full: path.join(folder, name) }));
+  }
+  if (!list.length) throw new Error(`No .${ext} files to upload`);
 
-  const stateFile = path.join(o.folder, '.fb-posted.json');
-  /** @type {{posted:string[]}} */
+  const stateDir = folder || path.dirname(list[0].full);
+  const stateFile = path.join(stateDir, '.fb-posted.json');
   let state = { posted: [] };
   if (fs.existsSync(stateFile)) { try { state = JSON.parse(fs.readFileSync(stateFile, 'utf8')); } catch {} }
   const posted = new Set(state.posted);
 
   const { chromium } = await import('playwright').catch(() => {
-    console.error(`\nPlaywright not installed. Run:\n  cd "${__dirname}"\n  npm install\n`);
-    process.exit(3);
+    throw new Error(`Playwright not installed. Run: cd "${__dirname}" && npm install`);
   });
-  fs.mkdirSync(o.profile, { recursive: true });
-  const ctx = await chromium.launchPersistentContext(o.profile, {
-    headless: o.headless,
+  fs.mkdirSync(profile, { recursive: true });
+  const ctx = await chromium.launchPersistentContext(profile, {
+    headless,
     viewport: { width: 1366, height: 900 },
     args: ['--disable-blink-features=AutomationControlled'],
   });
@@ -188,37 +207,48 @@ async function main() {
   let ok = 0; let done = 0; const failed = [];
   try {
     if (!(await waitForLogin(page))) throw new Error('Not logged into Facebook in time.');
-    log('Logged in. Starting uploads.');
-
-    for (let i = 0; i < files.length; i++) {
-      const n = i + 1;            // 1-based clip number
-      const file = files[i];
-      if (n < o.start) continue;
-      if (posted.has(file)) { log(`SKIP  ${n}/${files.length} ${file} (already posted)`); continue; }
-      if (done >= o.limit) { log(`Reached --limit ${o.limit}; stopping.`); break; }
-
-      const full = path.join(o.folder, file);
-      log(`POST  ${n}/${files.length} ${file} ...`);
+    emit('Logged in. Starting uploads.');
+    for (let i = 0; i < list.length; i++) {
+      const n = i + 1;
+      const { name, full } = list[i];
+      if (n < start) continue;
+      if (posted.has(name)) { emit(`SKIP  ${n}/${list.length} ${name} (already posted)`); continue; }
+      if (done >= limit) { emit(`Reached limit ${limit}; stopping.`); break; }
+      emit(`POST  ${n}/${list.length} ${name} ...`);
       try {
-        await uploadOneReel(page, full, o.audience);
-        posted.add(file);
+        await uploadOneReel(page, full, audience);
+        posted.add(name);
         state.posted = [...posted];
         fs.writeFileSync(stateFile, JSON.stringify(state, null, 2));
         ok++; done++;
-        log(`OK    ${n}/${files.length} ${file}  (posted ${ok})`);
+        emit(`OK    ${n}/${list.length} ${name}  (posted ${ok})`);
       } catch (e) {
-        failed.push(n);
-        log(`FAIL  ${n}/${files.length} ${file}: ${e.message}`);
-        log('Stopping to preserve order (fix the issue, then re-run — it resumes from here).');
-        break;   // order guarantee: do not skip ahead past a failure
+        failed.push(name);
+        emit(`FAIL  ${n}/${list.length} ${name}: ${e.message}`);
+        break; // order guarantee: do not skip ahead past a failure
       }
-      if (o.delaySec) { log(`(pausing ${o.delaySec}s before next)`); await sleep(o.delaySec * 1000); }
+      if (delaySec && done < limit) { emit(`(pausing ${delaySec}s before next)`); await sleep(delaySec * 1000); }
     }
   } finally {
     await ctx.close();
   }
-  log(`\nDONE posted=${ok} failed=[${failed}]`);
-  process.exit(failed.length ? 1 : 0);
+  return { ok, done, posted: [...posted], failed, total: list.length };
 }
 
-main().catch((e) => { console.error('Fatal:', e); process.exit(1); });
+async function main() {
+  const o = parseArgs(process.argv.slice(2));
+  if (o.help || !o.folder) { console.log(HELP); process.exit(o.help ? 0 : 2); }
+  try {
+    const r = await runBatch(o, log);
+    log(`\nDONE posted=${r.ok} failed=[${r.failed}]`);
+    process.exit(r.failed.length ? 1 : 0);
+  } catch (e) {
+    console.error('Fatal:', e.message);
+    process.exit(3);
+  }
+}
+
+// Only launch the browser when run directly, not when imported by the MCP wrapper.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((e) => { console.error('Fatal:', e); process.exit(1); });
+}

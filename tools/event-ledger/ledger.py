@@ -18,6 +18,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import sys
 import time
 from pathlib import Path
 
@@ -25,21 +26,72 @@ ROOT = Path(
     os.environ.get("EVENT_LEDGER_ROOT", str(Path.home() / ".claude" / "event-ledger"))
 )
 
+# Shared repo-identity resolver (hooks/_shared/projid.py). Imported best-effort and lazily
+# so the ledger keeps working even if it is missing/broken — identity resolution must never
+# crash a session (FAIL-OPEN).
+_projid_mod = None
+_projid_tried = False
+
+
+def _get_projid():
+    global _projid_mod, _projid_tried
+    if not _projid_tried:
+        _projid_tried = True
+        try:
+            shared = str(Path(__file__).resolve().parent.parent / "_shared")
+            if shared not in sys.path:
+                sys.path.insert(0, shared)
+            import projid as _p  # noqa: PLC0415 - lazy, fail-open
+
+            _projid_mod = _p
+        except Exception:
+            _projid_mod = None
+    return _projid_mod
+
+
 # Event kinds. "turn" = objective per-turn harvest (hook-written); decision/failure/goal/
 # milestone = annotations (agent- or hook-written). failure entries are first-class because
 # they carry the corrective signal a summary discards.
 KINDS = ("turn", "decision", "failure", "goal", "milestone", "note")
 
 
-def _slug(project_path: str) -> str:
-    """Stable, readable, collision-resistant per-project directory name."""
-    p = str(project_path or os.getcwd())
+def _legacy_slug(p: str) -> str:
+    """The original cwd-hash slug. Retained as the FAIL-OPEN fallback and so migrations can
+    still recognise pre-unification shard names."""
     base = Path(p).name or "root"
     h = hashlib.sha256(p.encode("utf-8", "replace")).hexdigest()[
         :8
     ]  # non-crypto slug; sha256 per CWE-327
     safe = "".join(c if c.isalnum() or c in "-_." else "-" for c in base)[:40]
     return f"{safe}-{h}"
+
+
+def _slug(project_path: str) -> str:
+    """Stable, readable, collision-resistant per-project directory name.
+
+    Prefers the shared ``projid`` resolver, so every worktree / sub-directory / case-variant
+    path of one repo collapses to ONE shard (fixes the cwd-hash fragmentation that split e.g.
+    Reframe across many shards). For a non-git directory projid reproduces the exact legacy
+    formula, so those shards are unchanged (zero churn). Falls back to the legacy slug if
+    projid is unavailable — never breaks a session.
+    """
+    p = str(project_path or os.getcwd())
+    mod = _get_projid()
+    if mod is not None:
+        try:
+            candidate = mod.ledger_slug(p)
+            legacy = _legacy_slug(p)
+            # CONTINUITY (deploy-safe without first migrating): if a pre-existing legacy shard
+            # for THIS exact cwd still lives directly under ROOT, keep writing to it so no prior
+            # history is silently abandoned. Once `projid migrate --apply` folds that shard into
+            # the canonical one (moving it under ROOT/.migrated/), this check fails and the
+            # canonical slug takes over automatically — and from then on all worktrees unify.
+            if candidate != legacy and (ROOT / legacy).is_dir():
+                return legacy
+            return candidate
+        except Exception:
+            pass
+    return _legacy_slug(p)
 
 
 def _dir(project_path: str) -> Path:
@@ -96,6 +148,13 @@ def append(project_path: str, kind: str, **fields) -> dict:
     # update the cheap projection (best-effort; events.jsonl is authoritative)
     state["seq"] = seq
     state["last_event_ts"] = ev["ts"]
+    # Record every distinct cwd that maps into this (now identity-unified) shard, so a repo
+    # opened from several worktrees keeps a non-destructive trail of where it was worked on.
+    if project_path:
+        aliases = state.get("aliases") or []
+        if str(project_path) not in aliases:
+            aliases.append(str(project_path))
+            state["aliases"] = aliases[-50:]
     if kind == "goal":
         state["goal"] = fields.get("text")
     if kind == "turn" and fields.get("head"):
