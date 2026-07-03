@@ -1,7 +1,7 @@
 # Skills Manifest
 
 > Auto-generated skill inventory for the agent-skills-toolchain repository.
-> Last updated: 2026-06-30
+> Last updated: 2026-07-03
 
 | Skill Name | Origin | Description |
 |---|---|---|
@@ -24,9 +24,7 @@
 |
 | brainstorming | marketplace:superpowers | You MUST use this before any creative work - creating features, building components, adding functionality |
 | chatgpt-apps | built-in | Build, scaffold, refactor, and troubleshoot ChatGPT Apps SDK applications that combine an MCP server and widget UI |
-| chatgpt5-web-curate | custom | Use when the user explicitly wants final curation or selection performed through the direct ChatGPT web lane |
-| chatgpt5-web-discuss | custom | Use when the user explicitly wants a discussion or sparring-partner interaction through ChatGPT web |
-| chatgpt5-web-query | custom | Use when the user explicitly wants a direct ChatGPT 5 web/Agentify interaction |
+| chatgpt5-web | custom | Direct browser-automation ChatGPT 5 web lane — one skill, three modes via a `mode:` arg (query / discuss / curate): a single direct question/task, a back-and-forth discussion or sparring session, or compare-candidates and pick/recommend the best. Not for the legacy agent-lanes-chatgpt-web-* routes or Codex-side lanes (use codex-consult) |
 | cheat-engine-workflow | custom | Use when performing Cheat Engine-driven runtime analysis, including value scanning, pointer sanity checks, AOB validation |
 | cheat-engine-x64dbg-ida-handoff | custom | Use when moving runtime findings between Cheat Engine, x64dbg, and IDA Pro |
 | cheminformatics-rdkit | custom | Use when you need license-free cheminformatics via the rdkit MCP server - molecular descriptors, fingerprints, Tanimoto similarity, scaffolds, and structure-format conversion |
@@ -47,6 +45,7 @@
 | design-review-loop | custom | Use to run the full named TCR design-review workflow as 8 sequenced gates (G0 PRIME, G1 AUDIT, G2 TRANSPOSE, G3 CRITIQUE, G4 DIRECT, G5 ITERATE, G6 RECONCILE, G7 VERIFY, then loop back to G1) over a running app. The orchestrator of the transpose-then-discuss-then-revert motion — invokes ui-audit at G1, transpose-to-figma at G2, critique-panel at G3, and figma-implement-design plus the revert-gate at G6, holding the per-gate question banks and the rule that every apply-back is a reversible commit reverted if it regresses any tracked axis |
 | design-tokens-pipeline | custom | Use for the W3C DTCG design-token round-trip the TCR design-review loop relies on at G5/G6 — extract tokens out of code (CSS custom properties + Tailwind theme dumps) into a DTCG JSON tree, validate the five DTCG v1.0 rules that break the Tokens-Studio to Style-Dictionary round-trip (missing-type, bad-alias, alias-cycle, raw-hex-in-code, reserved-misuse), and diff two token trees to emit BOTH the forward change set AND the inverse revert patch. Transforms via Style Dictionary + sd-transforms. Pairs with design-review-loop and figma |
 | develop-web-game | built-in | Use when Codex is building or iterating on a web game (HTML/JS) and needs a reliable development + testing loop |
+| devtu | custom | ToolUniverse (mims-harvard/ToolUniverse) development toolkit — one skill, eight sub-command modes: create a new scientific/API tool, fix an erroring tool, optimize tool JSON descriptions, optimize research skills, auto-discover life-science APIs and generate integration PRs, run the full self-improve/debug-test loop, apply tool-code quality patterns, or safely push and fix CI on GitHub. Mode picked from intent; each mode playbook lives under modes/ |
 | dispatching-parallel-agents | marketplace:superpowers | Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies |
 | doc | built-in | Use when the task involves reading, creating, or editing .docx documents |
 | drug-discovery-literature-bridge | custom | Use when extracting molecules, targets, assays, and clinical context from a paper (via the Scholarly Access MCP paper_* tools) to seed the drug-discovery stack — ToolUniverse DDI/ADMET/target tools and the RDKit MCP — keeping DOI provenance on every extracted entity |
@@ -74,6 +73,7 @@
 | ida-pro-mcp | custom | Use when installing or configuring mrexodia/ida-pro-mcp for IDA Pro |
 | imagegen | built-in | Use when the user asks to generate or edit images via the OpenAI Image API |
 | imhex | custom | Use when hex editing, binary analysis, pattern language parsing, file identification, hash computation, or hex dump generation is needed |
+| jina-reader | custom | Zero-RAM, server-less fetch of a single web page as clean LLM-ready markdown via a one-line HTTP GET to Jina Reader (r.jina.ai plus the target URL) — no MCP, no resident process. Cheapest first hop for a simple or mostly-static page; escalate to the Firecrawl MCP for JS-heavy/dynamic/crawl/extract, or exa web_fetch for batch URL reads |
 | jupyter-notebook | built-in | Use when the user asks to create, scaffold, or edit Jupyter notebooks (.ipynb) |
 | linear | built-in | Manage issues, projects and team workflows in Linear |
 | llm-security | built-in | Security guidelines for LLM applications based on OWASP Top 10 for LLM 2025 |
