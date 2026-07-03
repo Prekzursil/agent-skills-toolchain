@@ -51,6 +51,10 @@ def main():
         len(st["open_failures"]) == 1
         and st["open_failures"][0]["preconditions"] == "1mcp<=0.32.2",
     )
+    check(
+        "aliases records the cwd that mapped into this shard",
+        proj in (st.get("aliases") or []),
+    )
 
     print("== milestone tombstones a failure (supersedes) ==")
     fseq = st["open_failures"][0]["seq"]

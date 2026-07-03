@@ -26,6 +26,35 @@ import json
 import re
 import sys
 
+
+# --------------------------------------------------------------------------- calibrated-silence
+# Fail-open shim: every proactive interjection is SDT-gated by should_interject(). ANY error
+# (gate missing, corrupt ledger, bad input) returns ALLOW — suppression is the dangerous
+# failure, so we never let the gate silence a turn by crashing.
+def _cs_allow(itype, ctx):
+    try:
+        import sys as _s
+        from pathlib import Path as _P
+
+        _s.path.insert(
+            0, str(_P(__file__).resolve().parent.parent / "calibrated-silence")
+        )
+        import calibrated_silence as _c
+
+        return _c.should_interject(itype, ctx)[0]
+    except Exception:
+        return True
+
+
+def _cs_record(itype, ck, sid):
+    try:
+        import calibrated_silence as _c
+
+        _c.record_interjection(itype, ck, sid)
+    except Exception:
+        pass
+
+
 # ---------------------------------------------------------------------------
 # Vague-verb and pronoun lists (cheap heuristics — no dependencies)
 # ---------------------------------------------------------------------------
@@ -75,6 +104,28 @@ SHORT_WORD_THRESHOLD = 8
 VAGUE_SCORE_THRESHOLD = 3  # must hit at least 3 vagueness signals
 RECALL_WORD_THRESHOLD = (
     15  # prompts with >= this many words get a recall-first directive
+)
+
+# ToolUniverse-first router: fire ONLY on UNAMBIGUOUS biomedical/scientific terms (proper-noun
+# DBs + bio-specific tokens) so it never nags on code tasks (no bare "structure"/"target"/"string").
+# Supplies the external signal (which TU tools exist) + routes to the index — NOT an "are you sure?".
+TU_STRONG_RE = re.compile(
+    r"\b("
+    r"pubmed|openalex|crossref|pubtator|europepmc|"
+    r"smiles|inchi|pubchem|chembl|chebi|opsin|unichem|"
+    r"gtopdb|guide.?to.?pharmacology|bindingdb|dgidb|pharos|opentargets|"
+    r"uniprot|alphafold|pdbe|rcsb|foldseek|interpro|swissmodel|esmfold|"
+    r"admet|admetai|swissadme|aopwiki|"
+    r"faers|openfda|dailymed|pharmacovigilance|boxed.warning|"
+    r"clinvar|gnomad|dbsnp|ensembl|alphamissense|spliceai|"
+    r"mondo|hgnc|"
+    r"gtex|depmap|cbioportal|protein.atlas|"
+    r"enrichr|g:?profiler|msigdb|omnipath|reactome|kegg|signor|"
+    r"ic50|ec50|binding.affinit|drug.gene.interaction|"
+    r"clinical.trial|nct\d|"
+    r"blood.brain.barrier|druglik|lipinski"
+    r")\b",
+    re.IGNORECASE,
 )
 
 
@@ -146,6 +197,19 @@ def _recall_directive() -> str:
     )
 
 
+def _tu_directive() -> str:
+    return (
+        "**[ToolUniverse-first]** This is a biomedical/scientific query and ToolUniverse "
+        "(2,526 tools / 12 domains, live via `mcp__tooluniverse__find_tools`) very likely has a "
+        "primary-source tool for it. BEFORE web-searching:\n"
+        "1. Check `~/.claude/TU-MODULE-INDEX.md` for the matching module + its real tool names.\n"
+        "2. Call `mcp__tooluniverse__find_tools` / `grep_tools` then `execute_tool` for the data "
+        "(pull abbreviated names verbatim from `list_tools` — never guess).\n"
+        "3. Web search is the FALLBACK only. If a TU tool is down, record it once (no retry-loop) "
+        "and use the module's documented fallback in the index."
+    )
+
+
 def main() -> int:
     try:
         raw = sys.stdin.read() or "{}"
@@ -160,11 +224,24 @@ def main() -> int:
         if prompt.startswith("*"):
             return 0
 
+        sid = str(data.get("session_id") or "default")
+        ctx = {"prompt": prompt, "session_id": sid}
+
+        # Each lane is an independent interjection type, SDT-gated + recorded when surfaced.
         pieces = []
-        if _vagueness_score(prompt) >= VAGUE_SCORE_THRESHOLD:
+        if _vagueness_score(prompt) >= VAGUE_SCORE_THRESHOLD and _cs_allow(
+            "question", ctx
+        ):
             pieces.append(_guidance(prompt))
-        if len(prompt.split()) >= RECALL_WORD_THRESHOLD:
+            _cs_record("question", "skill:clarify-requirements", sid)
+        if len(prompt.split()) >= RECALL_WORD_THRESHOLD and _cs_allow(
+            "suggestion", ctx
+        ):
             pieces.append(_recall_directive())
+            _cs_record("suggestion", "mcp:basic-memory", sid)
+        if TU_STRONG_RE.search(prompt) and _cs_allow("route", ctx):
+            pieces.append(_tu_directive())
+            _cs_record("route", "mcp:tooluniverse", sid)
         if pieces:
             print(
                 json.dumps(
