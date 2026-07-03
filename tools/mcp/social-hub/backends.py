@@ -18,6 +18,8 @@ import os
 from dataclasses import dataclass, field
 from typing import Mapping
 
+from accounts import AccountPolicy, FileSlot
+
 # Repo roots (mirrors the exact commands registered in ~/.mcp.json).
 REPOS = "C:/Users/Prekzursil/source/repos"
 TOOLCHAIN = "C:/Users/Prekzursil/source/agent-skills-toolchain"
@@ -39,17 +41,36 @@ class BackendSpec:
     env: Mapping[str, str] = field(default_factory=dict)
     can_enumerate_offline: bool = True
     note: str = ""
+    account: AccountPolicy | None = None
 
     def child_env(self) -> dict[str, str]:
         """Full child environment: inherit os.environ, then layer overrides.
 
         Inheriting the parent environment is what carries the credentials each
         backend needs (IG_APP_VERSION, FB_COOKIES_PATH, TIKTOK_MS_TOKEN, HTTP
-        proxies, ...) without hard-coding any secret here.
+        proxies, ...) without hard-coding any secret here. The hub then layers
+        the ACTIVE account's env on top of this at spawn time (see
+        ``hub.RuntimeBackend``), so per-account credentials win.
         """
         merged = dict(os.environ)
         merged.update(self.env)
         return merged
+
+
+# ---- per-account session/cookie file slots (see accounts.FileSlot) ----------
+# Social logins are FILE-based, so each backend declares WHERE it reads its
+# session/cookie artifact and whether an env var can redirect it (copy-free) or
+# it must be copied onto a fixed path. Verified against each backend's source:
+#   * insta-mcp  reads  <INSTA_DATA_DIR or repo/data>/session.json   (env: dir)
+#   * fb-mcp     reads  <FB_COOKIES_PATH or repo/data/cookies.json>  (env: file)
+#   * whatsapp   reads  <repo>/auth_info/ (Baileys), FIXED -> copy-only
+_IG_SESSION = FileSlot(key="session", dest=f"{REPOS}/insta-mcp/data",
+                       env_var="INSTA_DATA_DIR", is_dir=True)
+_FB_COOKIES = FileSlot(key="cookies",
+                       dest=f"{REPOS}/fb-messenger-mcp/data/cookies.json",
+                       env_var="FB_COOKIES_PATH", is_dir=False)
+_WA_AUTH = FileSlot(key="auth", dest=f"{REPOS}/whatsapp-mcp/auth_info",
+                    env_var="", is_dir=True)
 
 
 def default_backends() -> list[BackendSpec]:
@@ -66,6 +87,10 @@ def default_backends() -> list[BackendSpec]:
             # fallback cache; --refresh upgrades it to live schemas when logged in.
             can_enumerate_offline=False,
             note="needs data/session.json + IG_APP_VERSION; auths at startup",
+            # Multi-account: each account points INSTA_DATA_DIR at its own dir
+            # (holding session.json); IG_APP_VERSION etc. ride in the env bundle.
+            account=AccountPolicy(platform="insta", mode="env", label="Instagram",
+                                  files=(_IG_SESSION,)),
         ),
         BackendSpec(
             id="tiktok",
@@ -74,6 +99,9 @@ def default_backends() -> list[BackendSpec]:
             cmd=(TIKTOK_PY, f"{REPOS}/tiktok-mcp/server.py"),
             cache="tiktok.json",
             note="keyless public read; some tools need TIKTOK_PROXY off home IP",
+            # Keyless/no session file; accounts just rotate TIKTOK_MS_TOKEN /
+            # TIKTOK_PROXY env bundles (no file slot).
+            account=AccountPolicy(platform="tiktok", mode="env", label="TikTok"),
         ),
         BackendSpec(
             id="fb",
@@ -82,6 +110,11 @@ def default_backends() -> list[BackendSpec]:
             cmd=(FB_PY, f"{REPOS}/fb-messenger-mcp/server.py"),
             cache="fb-messenger.json",
             note="needs data/cookies.json; enumerates offline (no startup auth)",
+            # Multi-account: each account points FB_COOKIES_PATH at its own
+            # cookies.json; FB_PAGE_ACCESS_TOKEN etc. ride in the env bundle.
+            account=AccountPolicy(platform="fb", mode="env",
+                                  label="Facebook Messenger",
+                                  files=(_FB_COOKIES,)),
         ),
         BackendSpec(
             id="wa",
@@ -94,6 +127,10 @@ def default_backends() -> list[BackendSpec]:
             cache="whatsapp.json",
             can_enumerate_offline=False,
             note="parked POC; QR pairing at startup; degrades to a clear error",
+            # Baileys reads a FIXED auth_info/ dir (no env override) -> switching
+            # COPIES the active account's auth_info onto that path before respawn.
+            account=AccountPolicy(platform="wa", mode="env", label="WhatsApp",
+                                  files=(_WA_AUTH,)),
         ),
         BackendSpec(
             id="fbreels",

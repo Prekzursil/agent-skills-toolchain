@@ -34,7 +34,10 @@ import sys
 import threading
 import time
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+_HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, _HERE)
+# accounts.py is shared with social-hub, so it lives one level up in _shared.
+sys.path.insert(0, os.path.join(os.path.dirname(_HERE), "_shared"))
 
 import accounts  # noqa: E402
 from backends import BackendSpec, default_backends  # noqa: E402

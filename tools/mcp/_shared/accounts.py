@@ -16,6 +16,16 @@ Two account modes:
   subscriptions, gcloud configurations). ``list``/``switch``/``add``/``remove``
   delegate to the CLI (the CLI is the source of truth); no env is injected.
 
+File-based creds (social platforms): a login is often a FILE, not just env --
+Instagram's ``session.json``, fb-messenger's ``cookies.json``, WhatsApp's
+Baileys ``auth_info/`` directory. An ``env``-mode account may therefore also
+carry a ``files`` map (``{slot_key: source_path}``); each platform declares the
+matching ``FileSlot``s on its policy. On switch/cycle the hub makes the active
+account's file the one the backend loads, by EITHER pointing the backend's
+configurable-path env var at it (``INSTA_DATA_DIR`` -> a dir, ``FB_COOKIES_PATH``
+-> a file; copy-free) OR, when the backend has no such override (WhatsApp),
+COPYING the account's source onto the backend's fixed path before respawn.
+
 Seeding: if an ``env`` platform has no stored accounts but its registration env
 vars are all present, an in-memory ``default`` account is synthesized from
 ``${ENV}`` references. It is never persisted -- literal secrets only reach the
@@ -74,6 +84,33 @@ class CliProfileSpec:
 
 
 @dataclass(frozen=True)
+class FileSlot:
+    """A session/cookie artifact a backend loads from a FIXED location.
+
+    Social logins are FILE-based, so a multi-account model must swap the ACTIVE
+    file per account -- not just env. Each account supplies the SOURCE path for a
+    slot in its ``files`` map (``{key: path}``); the store then makes that source
+    the one the backend reads:
+
+    * ``env_var`` set  -- the backend honours a configurable path via this env
+      var (``INSTA_DATA_DIR`` -> a directory, ``FB_COOKIES_PATH`` -> a file), so
+      the hub simply exports the account's source as that var. Copy-free; the
+      primary, non-destructive mechanism.
+    * ``env_var`` empty -- the backend reads only its fixed ``dest`` (WhatsApp's
+      Baileys ``auth_info/``), so the hub COPIES the account's source onto
+      ``dest`` before respawn. The ONLY mechanism for such backends.
+
+    ``dest`` is the backend's fixed path (used for the copy + for reporting).
+    ``is_dir`` marks a directory artifact (copied recursively) vs a single file.
+    """
+
+    key: str
+    dest: str
+    env_var: str = ""
+    is_dir: bool = False
+
+
+@dataclass(frozen=True)
 class AccountPolicy:
     """Per-platform account policy handed to the store by the hub."""
 
@@ -82,6 +119,17 @@ class AccountPolicy:
     seed_env: tuple[str, ...] = ()
     cli: CliProfileSpec | None = None
     label: str = ""
+    files: tuple[FileSlot, ...] = ()
+
+
+@dataclass(frozen=True)
+class FileAction:
+    """One planned copy of an account's source artifact onto a backend path."""
+
+    key: str
+    src: str
+    dest: str
+    is_dir: bool
 
 
 def _default_runner(argv: tuple[str, ...]) -> tuple[int, str, str]:
@@ -113,12 +161,38 @@ def resolve_env(env: Mapping[str, str], environ: Mapping[str, str]) -> dict[str,
     return out
 
 
+def resolve_path(path: str) -> str:
+    """Normalize an account file source: expand ``~`` and ``$VAR``/``%VAR%``."""
+    return os.path.expanduser(os.path.expandvars(path)) if isinstance(path, str) else path
+
+
+def copy_artifact(src: str, dest: str, is_dir: bool) -> None:
+    """Replace ``dest`` with a copy of ``src`` (file or directory tree).
+
+    Used only for backends with no configurable-path env var (WhatsApp): the
+    active account's session directory/file is copied onto the fixed path the
+    backend reads before it respawns. Raises on failure so the caller can report.
+    """
+    if is_dir:
+        if os.path.isdir(dest):
+            shutil.rmtree(dest, ignore_errors=True)
+        shutil.copytree(src, dest)
+    else:
+        parent = os.path.dirname(dest)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+        shutil.copyfile(src, dest)
+
+
 def account_tool_defs(prefix: str, platform: str, mode: str,
-                      label: str = "") -> list[dict]:
+                      label: str = "",
+                      file_slots: tuple[str, ...] = ()) -> list[dict]:
     """The six synthetic account-management tool schemas for one backend.
 
     Names are ``<prefix>_account_<op>`` so they never collide across backends
     (prefixes are unique) and are always safe to prefix (they are hub-native).
+    ``file_slots`` (session/cookie slot keys) enriches the ``add`` schema so a
+    social account can carry per-account session/cookie FILE paths.
     """
     who = label or platform
     string = {"type": "string"}
@@ -131,11 +205,23 @@ def account_tool_defs(prefix: str, platform: str, mode: str,
                                            "may be literals or ${ENV} refs.",
                             "additionalProperties": {"type": "string"}}
         add_required = ["name", "env"]
+        if file_slots:
+            add_props["files"] = {
+                "type": "object",
+                "description": "Per-account session/cookie file (or dir) paths, "
+                               "keyed by slot: " + ", ".join(file_slots) + ". "
+                               "Switching points the backend at this account's "
+                               "file. env may be {} when only files differ.",
+                "additionalProperties": {"type": "string"}}
+            add_required = ["name"]  # a file-only account needs no env bundle
     else:
         add_required = ["name"]
     empty = {"type": "object", "properties": {}}
+    files_tip = (" Accounts may carry per-account session/cookie files "
+                 f"({', '.join(file_slots)})." if file_slots else "")
     tip = (f" Manages the user's OWN {who} accounts "
-           f"({'env-var profiles' if mode == 'env' else 'CLI profiles'}).")
+           f"({'env-var profiles' if mode == 'env' else 'CLI profiles'})."
+           + files_tip)
     return [
         {"name": f"{prefix}_account_list",
          "description": f"List the configured {who} accounts and which is active."
@@ -225,17 +311,81 @@ class AccountStore:
             self._data[pol.platform] = rec
         return rec
 
-    def active_env(self, platform: str) -> dict[str, str]:
-        """Resolved env for the active account (env mode); {} otherwise."""
-        pol = self.policies.get(platform)
-        if pol is None or pol.mode != "env":
-            return {}
+    def _active_account(self, pol: AccountPolicy) -> dict | None:
+        """The active account record for an env-mode platform, or None."""
         rec = self._view(pol)
         active = rec.get("active")
         for acct in rec.get("accounts", []):
             if acct.get("name") == active:
-                return resolve_env(acct.get("env", {}), self.environ)
-        return {}
+                return acct
+        return None
+
+    def active_env(self, platform: str) -> dict[str, str]:
+        """Resolved env for the active account (env mode); {} otherwise.
+
+        Includes any ``env_var`` file-slot pointers (``INSTA_DATA_DIR`` /
+        ``FB_COOKIES_PATH``) the active account supplies a source for, so a
+        backend with a configurable path is redirected WITHOUT a copy.
+        """
+        pol = self.policies.get(platform)
+        if pol is None or pol.mode != "env":
+            return {}
+        acct = self._active_account(pol)
+        if acct is None:
+            return {}
+        out = resolve_env(acct.get("env", {}), self.environ)
+        files = acct.get("files") or {}
+        for slot in pol.files:
+            if slot.env_var and isinstance(files.get(slot.key), str) and files[slot.key]:
+                out[slot.env_var] = resolve_path(files[slot.key])
+        return out
+
+    def active_files(self, platform: str) -> list[FileAction]:
+        """Copy actions for the active account's env_var-LESS file slots.
+
+        Slots WITH an ``env_var`` are redirected purely via env (see
+        ``active_env``); only slots without one need a physical copy onto the
+        backend's fixed path (WhatsApp's ``auth_info/``).
+        """
+        pol = self.policies.get(platform)
+        if pol is None or pol.mode != "env" or not pol.files:
+            return []
+        acct = self._active_account(pol)
+        if acct is None:
+            return []
+        files = acct.get("files") or {}
+        actions: list[FileAction] = []
+        for slot in pol.files:
+            src = files.get(slot.key)
+            if not slot.env_var and isinstance(src, str) and src:
+                actions.append(FileAction(slot.key, resolve_path(src),
+                                          slot.dest, slot.is_dir))
+        return actions
+
+    def materialize_files(
+        self, platform: str,
+        copier: "Callable[[str, str, bool], None] | None" = None,
+    ) -> dict:
+        """Copy the active account's copy-only artifacts onto their fixed paths.
+
+        Called by the hub on switch/cycle before it respawns the backend, so the
+        child loads the newly-active account's session. Never raises; returns a
+        report of what was copied and any per-slot errors.
+        """
+        do_copy = copier or copy_artifact
+        copied: list[str] = []
+        errors: list[dict] = []
+        for act in self.active_files(platform):
+            if not os.path.exists(act.src):
+                errors.append({"key": act.key, "src": act.src,
+                               "error": "source path does not exist"})
+                continue
+            try:
+                do_copy(act.src, act.dest, act.is_dir)
+                copied.append(act.key)
+            except (OSError, shutil.Error) as exc:
+                errors.append({"key": act.key, "error": str(exc)})
+        return {"platform": platform, "copied": copied, "errors": errors}
 
     # ---- cli-mode helpers ------------------------------------------------
     @staticmethod
@@ -282,10 +432,12 @@ class AccountStore:
                        source="cli")
         rec = self._view(pol)
         active = rec.get("active")
-        keys = next((sorted(a.get("env", {}))
-                     for a in rec.get("accounts", []) if a.get("name") == active),
-                    [])
-        return _ok(pol, "current", active=active, env_keys=keys, source="store")
+        acct = next((a for a in rec.get("accounts", []) if a.get("name") == active),
+                    None)
+        keys = sorted((acct or {}).get("env", {}))
+        file_keys = sorted((acct or {}).get("files", {}))
+        return _ok(pol, "current", active=active, env_keys=keys,
+                   file_keys=file_keys, source="store")
 
     def _op_add(self, pol: AccountPolicy, args: dict) -> dict:
         name = _need_name(args)
@@ -296,14 +448,27 @@ class AccountStore:
                     f"add is not supported for {pol.platform}; {cli.add_hint}")
             rc, out, err = self.runner(self._fill(cli.add_cmd, name))
             return _cli_result(pol, "add", rc, out, err, name=name)
-        env = args.get("env")
-        if not isinstance(env, dict) or not env:
-            raise _AccountError("'env' must be a non-empty object of str->str")
+        env = args.get("env") or {}
+        files = args.get("files") or {}
+        if not isinstance(env, dict):
+            raise _AccountError("'env' must be an object of str->str")
+        if not isinstance(files, dict):
+            raise _AccountError("'files' must be an object of slot->path")
+        if not env and not files:
+            raise _AccountError(
+                "provide a non-empty 'env' bundle and/or a 'files' map")
+        known = {s.key for s in pol.files}
+        unknown = [k for k in files if k not in known]
+        if unknown:
+            raise _AccountError(
+                f"unknown file slot(s) {unknown}; valid: {sorted(known) or 'none'}")
         rec = self._materialize(pol)
         if any(a.get("name") == name for a in rec["accounts"]):
             raise _AccountError(f"account {name!r} already exists")
-        rec["accounts"].append({"name": name,
-                                "env": {str(k): str(v) for k, v in env.items()}})
+        entry = {"name": name, "env": {str(k): str(v) for k, v in env.items()}}
+        if files:
+            entry["files"] = {str(k): str(v) for k, v in files.items()}
+        rec["accounts"].append(entry)
         if not rec.get("active"):
             rec["active"] = name
         self._persist()

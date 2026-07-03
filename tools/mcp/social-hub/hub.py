@@ -32,13 +32,20 @@ import sys
 import threading
 import time
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+_HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, _HERE)
+# accounts.py is shared with cloud-hub, so it lives one level up in _shared.
+sys.path.insert(0, os.path.join(os.path.dirname(_HERE), "_shared"))
 
+import accounts  # noqa: E402
 from backends import BackendSpec, default_backends  # noqa: E402
 from registry import Plan, build_plan  # noqa: E402
 
 HUB_VERSION = "0.1.0"
-CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "caches")
+CACHE_DIR = os.path.join(_HERE, "caches")
+# The gitignored per-user account store (may hold literal secrets -> never
+# committed; see _shared/accounts.py + .gitignore).
+ACCOUNTS_PATH = os.path.join(_HERE, "accounts.json")
 INIT_ID = "_hub_init"
 ENUM_TIMEOUT = 45.0   # seconds to wait for a backend's initialize/tools-list
 SPAWN_TIMEOUT = 30.0  # seconds to wait for a lazy child to become ready
@@ -95,14 +102,41 @@ def _drain_until(q: "queue.Queue[str | None]", want_id, deadline: float,
 class RuntimeBackend:
     """A fronted backend plus its (lazily spawned) child process."""
 
-    def __init__(self, spec: BackendSpec, out_write) -> None:
+    def __init__(self, spec: BackendSpec, out_write, account_env=None) -> None:
         self.spec = spec
         self._out = out_write            # callable(str) -> emits a raw JSON line
+        # callable() -> dict[str,str] of the active account's env, layered on top
+        # of the base child env at spawn time (account creds win). None = no
+        # account layer for this backend.
+        self._account_env = account_env
         self.proc: subprocess.Popen | None = None
         self.q: "queue.Queue[str | None]" = queue.Queue()
         self.started = False
         self.ok = False
         self.error = ""
+
+    def _spawn_env(self) -> dict[str, str]:
+        """Base child env with the ACTIVE account's env layered on top."""
+        env = self.spec.child_env()
+        if self._account_env is not None:
+            try:
+                env.update(self._account_env() or {})
+            except (KeyError, ValueError, TypeError):
+                pass  # a malformed account must never block a spawn
+        return env
+
+    def restart(self) -> None:
+        """Kill the child and reset state so the NEXT call respawns it.
+
+        Used when the active account changes: the hub kills the child now and the
+        new credentials take effect on the next lazy ``tools/call`` spawn.
+        """
+        self._terminate()
+        self.proc = None
+        self.started = False
+        self.ok = False
+        self.error = ""
+        self.q = queue.Queue()
 
     def ensure_started(self) -> bool:
         """Spawn + initialize the child once; return readiness (cached)."""
@@ -110,7 +144,7 @@ class RuntimeBackend:
             return self.ok and self._alive()
         self.started = True
         try:
-            self.proc = _spawn(self.spec.cmd, self.spec.child_env())
+            self.proc = _spawn(self.spec.cmd, self._spawn_env())
         except OSError as exc:
             self.error = f"spawn failed: {exc}"
             return False
@@ -177,7 +211,8 @@ class RuntimeBackend:
 class HubServer:
     """The multiplexing MCP server: one stdin loop, N lazy backends."""
 
-    def __init__(self, specs: list[BackendSpec], plan: Plan, emit=None) -> None:
+    def __init__(self, specs: list[BackendSpec], plan: Plan, emit=None,
+                 account_store: "accounts.AccountStore | None" = None) -> None:
         self.specs = specs
         self.plan = plan
         self._out_lock = threading.Lock()
@@ -185,8 +220,43 @@ class HubServer:
         # injectable so tests can capture traffic without racing stdout; the
         # default writes newline-delimited JSON to stdout under a lock.
         self._emit = emit or self._emit_stdout
-        self.backends = {s.id: RuntimeBackend(s, self._emit)
+        # The multi-account store (injectable for tests). Backends without an
+        # account policy simply get no account layer.
+        self.account_store = account_store or accounts.AccountStore(
+            ACCOUNTS_PATH, [s.account for s in specs if s.account])
+        self.backends = {s.id: RuntimeBackend(s, self._emit,
+                                              self._account_env_for(s))
                          for s in specs}
+        self._platform_backend = {s.account.platform: s.id
+                                  for s in specs if s.account}
+        # Synthetic hub-native account tools (never forwarded to a child) merged
+        # into the advertised surface alongside the real backend tools.
+        self.account_tools, self.account_routes = self._account_surface(specs)
+        self.all_tools = list(plan.tools) + self.account_tools
+
+    def _account_env_for(self, spec: BackendSpec):
+        """A callable resolving the active env for an env-mode backend (or None)."""
+        if not spec.account or spec.account.mode != "env":
+            return None
+        platform = spec.account.platform
+        return lambda: self.account_store.active_env(platform)
+
+    def _account_surface(self, specs: list[BackendSpec]):
+        """Build the synthetic account-tool defs + their routing table."""
+        tools: list[dict] = []
+        routes: dict[str, tuple[str, str]] = {}
+        for spec in specs:
+            pol = spec.account
+            if not pol:
+                continue
+            file_slots = tuple(s.key for s in pol.files)
+            for tool in accounts.account_tool_defs(spec.prefix, pol.platform,
+                                                   pol.mode, spec.label,
+                                                   file_slots=file_slots):
+                tools.append(tool)
+                op = tool["name"].rsplit("_account_", 1)[1]
+                routes[tool["name"]] = (pol.platform, op)
+        return tools, routes
 
     def _emit_stdout(self, raw_json_line: str) -> None:
         with self._out_lock:
@@ -214,6 +284,9 @@ class HubServer:
 
     def handle_call(self, msg: dict, mid) -> None:
         name = (msg.get("params") or {}).get("name")
+        if isinstance(name, str) and name in self.account_routes:
+            self._handle_account(msg, mid, name)
+            return
         route = self.plan.routing.get(name) if isinstance(name, str) else None
         if route is None:
             self._error(mid, -32602, f"Unknown tool: {name!r}")
@@ -233,13 +306,42 @@ class HubServer:
                 f"{backend.error}.")
         # success path: the response is delivered asynchronously by the pump.
 
+    def _handle_account(self, msg: dict, mid, name: str) -> None:
+        """Handle a hub-native ``<prefix>_account_*`` tool without forwarding.
+
+        Account management is served by the hub itself (via the AccountStore). A
+        ``switch``/``cycle`` additionally (1) copies the newly-active account's
+        session/cookie artifact onto any backend path that has no env override
+        (WhatsApp's fixed ``auth_info/``), then (2) kills+respawns the owning
+        backend so the new session/credentials take effect on its next lazy spawn.
+        Backends that honour a configurable path (Instagram ``INSTA_DATA_DIR``,
+        fb-messenger ``FB_COOKIES_PATH``) are redirected via env at that respawn,
+        so they need no copy.
+        """
+        platform, op = self.account_routes[name]
+        args = (msg.get("params") or {}).get("arguments") or {}
+        result = self.account_store.handle(platform, op, args)
+        if result.get("ok") and result.get("respawn"):
+            files = self.account_store.materialize_files(platform)
+            if files.get("copied") or files.get("errors"):
+                result["files"] = files
+            bid = self._platform_backend.get(platform)
+            if bid is not None:
+                self.backends[bid].restart()
+            result["note"] = ("backend killed; the next tools/call respawns it "
+                              "with the new active account's credentials/session")
+        self._reply(mid, {
+            "content": [{"type": "text",
+                         "text": json.dumps(result, ensure_ascii=False, indent=2)}],
+            "isError": not result.get("ok", False)})
+
     def dispatch(self, msg: dict) -> None:
         method = msg.get("method")
         mid = msg.get("id")
         if method == "initialize":
             self._reply(mid, self._initialize_result(msg.get("params") or {}))
         elif method == "tools/list":
-            self._reply(mid, {"tools": self.plan.tools})
+            self._reply(mid, {"tools": self.all_tools})
         elif method == "tools/call":
             self.handle_call(msg, mid)
         elif method == "ping":
@@ -335,8 +437,11 @@ def _cmd_print_plan() -> int:
     per_backend: dict[str, int] = {s.id: 0 for s in specs}
     for route in plan.routing.values():
         per_backend[route.backend_id] += 1
+    n_account = sum(len(accounts.ACCOUNT_OPS) for s in specs if s.account)
     summary = {
-        "total_tools": len(plan.tools),
+        "backend_tools": len(plan.tools),
+        "account_tools": n_account,
+        "total_exposed": len(plan.tools) + n_account,
         "per_backend": per_backend,
         "collisions": plan.collisions,
         "renamed": {name: [r.backend_id, r.original_name]

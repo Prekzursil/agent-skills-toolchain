@@ -32,6 +32,44 @@ Unique names are kept **exactly**. Cross-backend collisions get a minimal
 
 `python hub.py --print-plan` prints the live merged plan (counts, collisions, renames, degraded backends).
 
+## Multi-account + cycling (`../_shared/accounts.py`)
+
+Each social backend can hold **several named accounts** for the user's OWN
+accounts, switch the active one, and **cycle** through them — via six hub-native
+tools per backend, merged into `tools/list` **without spawning** and handled by
+the hub itself (never forwarded to a child):
+
+`<prefix>_account_list` · `_current` · `_add` · `_remove` · `_switch` · `_cycle`
+(e.g. `ig_account_switch`, `fb_account_cycle`, `wa_account_add`, `tt_account_list`).
+Wired for **ig** (Instagram), **tt** (TikTok), **fb** (fb-messenger), **wa**
+(WhatsApp); `fbreels` has none.
+
+**Social logins are FILE-based**, so an account also carries a `files` map
+(`{slot: path}`) pointing at *its own* session/cookie artifact. Switching swaps
+which file the backend loads, two ways:
+
+- **env pointer (copy-free)** — Instagram honours `INSTA_DATA_DIR` (a dir holding
+  `session.json`) and fb-messenger honours `FB_COOKIES_PATH` (a `cookies.json`),
+  so the hub just exports the active account's path at respawn. Slot keys:
+  `session` (ig), `cookies` (fb).
+- **copy onto a fixed path** — WhatsApp's Baileys reads a fixed `auth_info/` dir
+  with no env override, so switching **copies** that account's `auth` dir onto it
+  before respawn.
+
+Env-only creds (IG_APP_VERSION, FB_PAGE_ACCESS_TOKEN, TIKTOK_MS_TOKEN/proxy) ride
+in each account's `env` bundle (literal or `${ENV}` refs) and are layered on at
+spawn (account creds win). **Switch/cycle = (file swap +) kill + lazy-respawn.**
+Accounts live in the **gitignored** `accounts.json` (copy `accounts.example.json`;
+may hold literal secrets — never commit). With zero accounts configured every
+backend behaves exactly as before (uses its own default session file).
+
+> **ToS caution:** switching/cycling accounts to evade a platform's per-account
+> limits may violate its Terms of Service; this is ordinary management of the
+> user's OWN accounts.
+
+`accounts.py` is **shared** with `cloud-hub` (stdlib-only, no backend coupling),
+so both hubs get the same cswap-style layer from one module.
+
 ## Runtime / commands
 
 ```
