@@ -2,9 +2,9 @@
 
 Generated from `code --list-extensions --show-versions` plus workstation-specific keep/optional/review heuristics. This is an audit-and-signoff inventory; it is not an uninstall script.
 
-- Total installed extensions: **146**
+- Total installed extensions: **145**
 - Classified keep: **28**
-- Classified optional: **95**
+- Classified optional: **94**
 - Candidate-remove: **23**
 - Keep means actively useful for the current Windows-first Codex / MCP workflow.
 - Candidate-remove means overlap, likely noise, or low value pending owner signoff.
@@ -71,7 +71,6 @@ Generated from `code --list-extensions --show-versions` plus workstation-specifi
 - `d-biehl.robotcode@2.2.0`
 - `dart-code.dart-code@3.130.1`
 - `dbcode.dbcode@1.28.15` — optional: overlaps PostgreSQL and DB viewer tooling
-- `deepscan.vscode-deepscan@1.70.0`
 - `devprod.vulnerability-extension@1.2026.304002`
 - `donjayamanne.githistory@0.6.20`
 - `formulahendry.auto-close-tag@0.5.15`

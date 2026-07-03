@@ -65,7 +65,6 @@ ALLOW_SUBSTRINGS: tuple[str, ...] = (
     "sonar",
     "codacy",
     "deepsource",
-    "deepscan",
     "qlty",
     "sentry",
     "github_cli",

@@ -65,7 +65,7 @@ Reviewers correctly rejected a blanket "stateless → safe." Each server is clas
 
 | Disposition | Servers (class) | Rationale |
 |---|---|---|
-| **→ Gateway** | tooluniverse(S), scholarly-access(S), academia(S), rdkit(S), schrodinger(S), huggingface(S), firecrawl(S), scrapegraph(S), apify(S), markitdown(S), pdf-reader(S), excel(S), ocr(S), repomix(S), mcp-graphql(S), **github(I)**, linear(I), notion(I), figma(I), codacy(I), codecov(I), deepsource(I), deepscan(I), qlty(I), sonarqube(I), sentry(I), semgrep-OSS(S), digitalocean(I), browserstack(I), tiktok(I), insta-mcp(I), fb-messenger(I) | Stateless or single-identity request/response; safe behind shared daemon. (I)-class share ONE token → §5 least-privilege + default-deny scoping. |
+| **→ Gateway** | tooluniverse(S), scholarly-access(S), academia(S), rdkit(S), schrodinger(S), huggingface(S), firecrawl(S), scrapegraph(S), apify(S), markitdown(S), pdf-reader(S), excel(S), ocr(S), repomix(S), mcp-graphql(S), **github(I)**, linear(I), notion(I), figma(I), codacy(I), codecov(I), deepsource(I), qlty(I), sonarqube(I), sentry(I), semgrep-OSS(S), digitalocean(I), browserstack(I), tiktok(I), insta-mcp(I), fb-messenger(I) | Stateless or single-identity request/response; safe behind shared daemon. (I)-class share ONE token → §5 least-privilege + default-deny scoping. |
 | **LOCAL (moved from gateway in v2)** | **basic-memory(M)** — shared markdown+vector vault, concurrent writes corrupt; **postgres(M)** — connection/txn state; **docker(M)** — container name/port collisions | Concurrent multi-session access through one shared child = corruption/races. Keep local/stdio (or per-client) until a serialization guarantee is proven. |
 | **LOCAL (stateful / RE / ralph)** | ida-pro-mcp, ghidra-mcp, binary-ninja-mcp, frida-mcp, cheatengine, hexstrike-ai, ralph-orchestrator, **playwright**, codex-bridge | Per-target state; sharing → collision. RE fleet in RE-project `.mcp.json` (ralph-visible, daemon-independent → G3). |
 | **→ claude.ai remote** (drop local dupes) | context7, tavily *(exa, wolfram already remote)* | 0 local RAM; already connected. |
@@ -156,7 +156,7 @@ Reconciles the existing 6 funnel profiles (`default|minimal|re|web|quality|data`
 | `web` | firecrawl, scrapegraph, apify, tavily*(remote)*, browserstack |
 | `docs` | markitdown, pdf-reader, excel, ocr, repomix |
 | `dev` | github, linear, notion, figma, mcp-graphql |
-| `quality` | codacy, codecov, deepsource, deepscan, qlty, sonarqube, sentry, semgrep-OSS |
+| `quality` | codacy, codecov, deepsource, qlty, sonarqube, sentry, semgrep-OSS |
 | `infra` *(default-deny)* | digitalocean *(docker/postgres are LOCAL in v2)* |
 | `social` | tiktok, insta-mcp, fb-messenger |
 

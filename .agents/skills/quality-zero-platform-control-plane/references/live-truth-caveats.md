@@ -21,7 +21,7 @@ These notes are derived from controller and GitHub audits on 2026-03-23. Treat t
 
 - Source class: workflow review | repo postmortem | derived session summary
 - Reusable lesson:
-  - Local controller verification can pass tests and profile validation while provider-backed gates remain blocked by missing `SONAR_TOKEN`, `CODACY_API_TOKEN`, `DEEPSCAN_API_TOKEN`, or `DEEPSCAN_OPEN_ISSUES_URL`.
+  - Local controller verification can pass tests and profile validation while provider-backed gates remain blocked by missing `SONAR_TOKEN` or `CODACY_API_TOKEN`.
   - Trusted-runner Codex auth and provider browser bootstrap are separate rollout lanes.
 - Guardrail or prompt consequence:
   - Report provider/runner gaps as `blocked`.
