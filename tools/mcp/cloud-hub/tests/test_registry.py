@@ -74,13 +74,14 @@ def test_real_committed_caches_build_a_clean_plan():
         per[route.backend_id] = per.get(route.backend_id, 0) + 1
     # Deterministic backends: the two built wrappers, the single-tool gcloud MCP,
     # and the hand-authored azure subset.
-    assert per["modal"] == 6 and per["lightning"] == 7
+    assert per["modal"] == 6 and per["lightning"] == 9
     assert per["gcloud"] == 1 and per["azure"] == 14
     # Live-enumerated adopt backends: present and substantial (re-running
     # `hub.py --refresh` may shift these as upstream packages evolve).
     assert per["runpod"] >= 40 and per["kaggle"] >= 40 and per["rclone"] >= 40
     # Names are preserved verbatim; no cross-backend collision; nothing degraded.
     assert plan.collisions == {} and not plan.degraded
-    for name in ("modal_run", "lightning_machine_types", "run_gcloud_command",
-                 "list-pods", "azmcp_subscription_list"):
+    for name in ("modal_run", "lightning_machine_types",
+                 "lightning_studio_switch_machine", "lightning_studio_upload_file",
+                 "run_gcloud_command", "list-pods", "azmcp_subscription_list"):
         assert name in plan.routing and plan.routing[name].renamed is False

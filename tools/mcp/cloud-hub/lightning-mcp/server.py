@@ -101,6 +101,50 @@ def lightning_studio_run(name: str, command: str, teamspace: str = "") -> str:
 
 
 @mcp.tool()
+def lightning_studio_switch_machine(name: str, machine: str, teamspace: str = "",
+                                    interruptible: bool = False) -> str:
+    """Hot-swap a running Studio to a different machine (GPU) type in place.
+
+    Keeps the Studio's filesystem; only the attached compute changes. Bills the
+    new machine by the second -- stop the Studio when done.
+    """
+    sdk, err = _sdk()
+    if err:
+        return _fail(err)
+    try:
+        studio = _studio(sdk, name, teamspace)
+        studio.switch_machine(getattr(sdk.Machine, machine, machine),
+                              interruptible=interruptible)
+        return json.dumps({"ok": True, "studio": name, "machine": machine,
+                           "status": str(getattr(studio, "status", "switched"))},
+                          ensure_ascii=False)
+    except Exception as exc:  # noqa: BLE001
+        return _fail(f"studio_switch_machine failed: {exc}")
+
+
+@mcp.tool()
+def lightning_studio_upload_file(name: str, file_path: str, remote_path: str = "",
+                                 teamspace: str = "") -> str:
+    """Upload a local file into a started Studio's filesystem.
+
+    ``remote_path`` defaults to the basename in the Studio home. The Studio must
+    be started (a machine attached) for the upload to land. The SDK progress bar
+    is disabled so it cannot corrupt this server's stdio JSON-RPC stream.
+    """
+    sdk, err = _sdk()
+    if err:
+        return _fail(err)
+    try:
+        _studio(sdk, name, teamspace).upload_file(
+            file_path, remote_path or None, progress_bar=False)
+        return json.dumps({"ok": True, "studio": name, "file": file_path,
+                           "remote_path": remote_path or None},
+                          ensure_ascii=False)
+    except Exception as exc:  # noqa: BLE001
+        return _fail(f"studio_upload_file failed: {exc}")
+
+
+@mcp.tool()
 def lightning_job_submit(name: str, command: str, machine: str = "T4",
                          teamspace: str = "", studio: str = "") -> str:
     """Submit an async Lightning Job on a machine. Bills while running."""
