@@ -76,8 +76,53 @@ def make_transcript(final_text: str) -> str:
     return str(p)
 
 
+def find_stubs_precision_cases():
+    """Unit cases for stubscan.find_stubs — the pragma exemption + reach-forward fix."""
+    sys.path.insert(0, str(DIR))
+    import stubscan  # noqa: PLC0415
+
+    def flagged(text: str, needle: str) -> bool:
+        return any(needle in sn for _, _, sn in stubscan.find_stubs(text))
+
+    proto = (
+        "class B(Protocol):\n"
+        "    def analyze(self, p: str) -> int:\n"
+        '        """doc."""\n'
+        "        ...  # pragma: no cover - Protocol stub\n"
+        "    def release(self) -> None:\n"
+        "        ...  # pragma: no cover - Protocol stub\n"
+    )
+    # A complete multi-line-signature fn must NOT reach forward to a later stub body.
+    reach = (
+        "def merge(\n"
+        "    a: int,\n"
+        "    b: int,\n"
+        ") -> tuple[int, ...]:\n"
+        '    """doc."""\n'
+        "    if a <= 0:\n"
+        '        raise ValueError("x")\n'
+        "    return (a, b)\n"
+        "\n"
+        "class B(Protocol):\n"
+        "    def analyze(self) -> int:\n"
+        "        ...  # pragma: no cover - Protocol stub\n"
+    )
+    out = [
+        ("Protocol ...-body w/ pragma -> not flagged",
+         flagged(proto, "analyze") or flagged(proto, "release"), False),
+        ("complete multi-line fn not reach-flagged",
+         flagged(reach, "def merge("), False),
+        ("real pass-only body still flagged",
+         flagged("def todo_impl(x):\n    pass\n", "todo_impl"), True),
+        ("real ...-only body (no pragma) still flagged",
+         flagged("def not_done(x):\n    ...\n", "not_done"), True),
+        ("bare TODO still flags", flagged("x = 1  # TODO: fix\n", "TODO"), True),
+    ]
+    return [(n, got, want, "") for (n, got, want) in out]
+
+
 def main() -> int:
-    cases = []
+    cases = list(find_stubs_precision_cases())
     workdir = Path(tempfile.gettempdir()) / f"sl-work-{uuid.uuid4().hex}"
     workdir.mkdir(parents=True, exist_ok=True)
     ledroot = str(workdir / "ledger")
