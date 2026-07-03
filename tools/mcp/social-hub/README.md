@@ -11,15 +11,42 @@ Why not a normal aggregator (mcp-funnel / 1mcp)? Those rename tools to
 `serverName__tool`, which breaks skills that hardcode `mcp__insta-mcp__*` etc. This
 hub preserves names and only renames on a genuine cross-backend collision.
 
-## Backends & tool surface (60 tools)
+## Backends & tool surface (88 tools)
 
 | id | backend | tools | notes |
 |----|---------|-------|-------|
 | `insta` | insta-mcp (Instagram) | 36 | needs `data/session.json` + `IG_APP_VERSION`; auths at startup |
 | `tiktok` | tiktok-mcp (public scraper) | 9 | keyless; some tools need `TIKTOK_PROXY` off a home IP |
-| `fb` | fb-messenger-mcp | 5 | needs `data/cookies.json`; enumerates offline |
+| `fb` | fb-messenger-mcp | 33 | Messenger + Page + IG-Graph + **E2EE DMs**; needs `data/cookies.json` (+ `fr` cookie for E2EE) |
 | `wa` | whatsapp-mcp (Baileys) | 7 | parked POC; QR at startup; degrades to a clear error |
 | `fbreels` | fb-reels-uploader | 3 | wraps the Reels upload CLI; one-time FB login (below) |
+
+### IG & FB capability map (best-of-both, no dedup)
+
+The IG publish/insights/moderation surface is intentionally **doubled** — the two
+paths need different account types, so both are kept; pick by the account you hold:
+
+| Job | Personal account → **insta** (private API) | Business/creator → **fb** `ig_graph_*` (official Graph API) |
+|-----|--------------------------------------------|-------------------------------------------------------------|
+| Post to IG | `upload_reel` / `upload_photo` / `upload_video` / `upload_album` | `ig_graph_publish` |
+| IG insights | `get_post_insights` | `ig_graph_insights` |
+| IG comment moderation | `add_comment` / `reply_to_comment` / `like_comment` | `ig_graph_moderate_comments` |
+
+`insta` = ToS-risky but works on an ordinary personal account; `ig_graph_*` = official
++ durable but needs an IG **Business/Creator** account linked to a FB Page (+ a
+`FB_PAGE_ACCESS_TOKEN`). There is **no name collision** — the two sets have distinct
+names, so both are always exposed; the choice is account-driven, not a conflict.
+
+Facebook coverage (the `fb` backend, 33 tools) now matches Instagram's breadth
+*within what Meta's APIs allow*: **Messenger** (`list_threads`/`read_thread`/
+`fb_send_message`/`fb_react_to_message`/`fb_unsend_message`/`fb_forward_message`/
+`fb_send_typing`/`fb_create_group`), **Page** (`fb_page_post`/`fb_page_schedule_post`/
+`fb_page_upload_photo`·`video`·`reel`·`story`/`fb_page_read_posts`·`read_comments`/
+`fb_page_moderate`/`fb_page_insights`/`fb_page_message`), **IG-Graph** (above), and
+**E2EE personal DMs** (`fb_dm_list`/`fb_dm_read`/`fb_dm_send`/`fb_dm_react`/
+`fb_dm_status`, via the fbchat-v2 bridge — needs the `fr` cookie present). FB has
+**no personal-profile post API**, so personal-profile posting stays on the Playwright
+`fbreels` path.
 
 ### Collision policy
 
