@@ -1,0 +1,279 @@
+#!/usr/bin/env python3
+"""Tests for the reusable multi-account layer (``accounts.py``) and its wiring
+into the hub: env-mode add/list/switch/cycle/current, seeding-from-env,
+persistence, the CLI-profile path for Azure/gcloud (via a mock runner, no real
+CLI state), env injection at spawn, and kill+respawn on switch."""
+from __future__ import annotations
+
+import json
+import os
+import queue
+import sys
+import time
+
+import pytest
+
+HUB_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, HUB_DIR)
+
+import accounts  # noqa: E402
+import hub  # noqa: E402
+from accounts import AccountPolicy, AccountStore  # noqa: E402
+from backends import BackendSpec, default_backends  # noqa: E402
+from registry import build_plan  # noqa: E402
+
+PY = sys.executable
+FAKE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fake_backend.py")
+
+
+# --------------------------------------------------------------------------- #
+# env-mode account store
+# --------------------------------------------------------------------------- #
+def _env_store(tmp_path, environ):
+    pol = AccountPolicy(platform="rp", mode="env", seed_env=("RP_KEY",),
+                        label="RunPod")
+    return AccountStore(str(tmp_path / "acc.json"), [pol], environ=environ), pol
+
+
+def test_seed_from_env_creates_default(tmp_path):
+    store, _ = _env_store(tmp_path, {"RP_KEY": "secret123"})
+    listing = store.handle("rp", "list", {})
+    assert listing["ok"] and listing["accounts"] == ["default"]
+    assert listing["active"] == "default"
+    # The seeded default resolves the ${RP_KEY} ref back to the real value.
+    assert store.active_env("rp") == {"RP_KEY": "secret123"}
+
+
+def test_no_seed_when_env_absent(tmp_path):
+    store, _ = _env_store(tmp_path, {})  # RP_KEY not present
+    listing = store.handle("rp", "list", {})
+    assert listing["accounts"] == [] and listing["active"] is None
+    assert store.active_env("rp") == {}
+
+
+def test_add_switch_cycle_current_remove(tmp_path):
+    store, _ = _env_store(tmp_path, {"RP_KEY": "secret123"})
+    add = store.handle("rp", "add", {"name": "alt", "env": {"RP_KEY": "literalABC"}})
+    assert add["ok"] and store.handle("rp", "list", {})["accounts"] == ["default", "alt"]
+
+    sw = store.handle("rp", "switch", {"name": "alt"})
+    assert sw["ok"] and sw["respawn"] is True
+    assert store.active_env("rp") == {"RP_KEY": "literalABC"}
+
+    cyc = store.handle("rp", "cycle", {})  # alt -> default (round-robin)
+    assert cyc["active"] == "default" and cyc["respawn"] is True
+    assert store.active_env("rp") == {"RP_KEY": "secret123"}
+
+    cur = store.handle("rp", "current", {})  # keys only, never values
+    assert cur["active"] == "default" and cur["env_keys"] == ["RP_KEY"]
+
+    rm = store.handle("rp", "remove", {"name": "alt"})
+    assert rm["ok"] and store.handle("rp", "list", {})["accounts"] == ["default"]
+
+
+def test_env_store_persists_across_reload(tmp_path):
+    store, pol = _env_store(tmp_path, {"RP_KEY": "secret123"})
+    store.handle("rp", "add", {"name": "alt", "env": {"RP_KEY": "xyz"}})
+    store.handle("rp", "switch", {"name": "alt"})
+    fresh = AccountStore(str(tmp_path / "acc.json"), [pol], environ={"RP_KEY": "s"})
+    assert fresh.handle("rp", "list", {})["active"] == "alt"
+    # No literal secret leaked to disk: the seeded default stays a ${REF}.
+    on_disk = json.loads((tmp_path / "acc.json").read_text(encoding="utf-8"))
+    assert on_disk["rp"]["accounts"][0]["env"]["RP_KEY"] == "${RP_KEY}"
+
+
+def test_add_duplicate_and_bad_env_rejected(tmp_path):
+    store, _ = _env_store(tmp_path, {"RP_KEY": "s"})
+    dup = store.handle("rp", "add", {"name": "default", "env": {"RP_KEY": "x"}})
+    assert not dup["ok"] and "already exists" in dup["error"]
+    bad = store.handle("rp", "add", {"name": "x", "env": "notadict"})
+    assert not bad["ok"]
+
+
+def test_switch_unknown_account_errors(tmp_path):
+    store, _ = _env_store(tmp_path, {"RP_KEY": "s"})
+    res = store.handle("rp", "switch", {"name": "ghost"})
+    assert not res["ok"] and "no such account" in res["error"]
+
+
+# --------------------------------------------------------------------------- #
+# cli-mode (Azure / gcloud) via a MOCK runner -- no real CLI state touched
+# --------------------------------------------------------------------------- #
+class _MockCli:
+    """A fake az/gcloud runner returning canned profile listings."""
+
+    def __init__(self):
+        self.calls: list[tuple[str, ...]] = []
+
+    def __call__(self, argv):
+        self.calls.append(tuple(argv))
+        a = list(argv)
+        if a[:3] == ["gcloud", "config", "configurations"]:
+            if any(x in a for x in ("activate", "create", "delete")):
+                return 0, "", ""
+            if "--filter=is_active:true" in a:
+                return 0, "default\n", ""
+            return 0, "default\nwork\n", ""
+        if a[:2] == ["az", "account"]:
+            if a[2] == "set":
+                return 0, "", ""
+            if a[2] == "show":
+                return 0, "Azure subscription 1\n", ""
+            if a[2] == "list":
+                return 0, "Azure subscription 1\nAzure for Students\n", ""
+        return 0, "", ""
+
+
+def _cli_store(tmp_path, runner):
+    specs = {s.id: s for s in default_backends()}
+    pols = [specs["azure"].account, specs["gcloud"].account]
+    return AccountStore(str(tmp_path / "cli.json"), pols, environ={}, runner=runner)
+
+
+def test_gcloud_list_current_switch_cycle(tmp_path):
+    runner = _MockCli()
+    store = _cli_store(tmp_path, runner)
+    lst = store.handle("gcloud", "list", {})
+    assert lst["accounts"] == ["default", "work"] and lst["active"] == "default"
+
+    sw = store.handle("gcloud", "switch", {"name": "work"})
+    assert sw["ok"] and sw["respawn"] is True
+    assert ("gcloud", "config", "configurations", "activate", "work") in runner.calls
+
+    cyc = store.handle("gcloud", "cycle", {})  # active default -> work
+    assert cyc["ok"] and cyc["active"] == "work" and cyc["respawn"] is True
+
+
+def test_azure_list_switch_and_add_unsupported(tmp_path):
+    runner = _MockCli()
+    store = _cli_store(tmp_path, runner)
+    lst = store.handle("azure", "list", {})
+    assert lst["accounts"] == ["Azure subscription 1", "Azure for Students"]
+    assert lst["active"] == "Azure subscription 1"
+
+    sw = store.handle("azure", "switch", {"name": "Azure for Students"})
+    assert sw["ok"] and sw["respawn"] is True
+    assert ("az", "account", "set", "--subscription",
+            "Azure for Students") in runner.calls
+
+    # Azure subscriptions cannot be "added" via the CLI -> clear hint, no crash.
+    add = store.handle("azure", "add", {"name": "new"})
+    assert not add["ok"] and "az login" in add["error"]
+
+
+def test_gcloud_add_creates_configuration(tmp_path):
+    runner = _MockCli()
+    store = _cli_store(tmp_path, runner)
+    res = store.handle("gcloud", "add", {"name": "prod"})
+    assert res["ok"]
+    assert ("gcloud", "config", "configurations", "create", "prod") in runner.calls
+
+
+def test_cli_active_env_is_empty(tmp_path):
+    # cli-mode backends inject no env (the CLI holds the state).
+    store = _cli_store(tmp_path, _MockCli())
+    assert store.active_env("azure") == {} and store.active_env("gcloud") == {}
+
+
+def test_account_tool_defs_shape():
+    defs = accounts.account_tool_defs("rp", "runpod", "env", "RunPod")
+    names = [d["name"] for d in defs]
+    assert names == ["rp_account_list", "rp_account_current", "rp_account_add",
+                     "rp_account_remove", "rp_account_switch", "rp_account_cycle"]
+    add = next(d for d in defs if d["name"] == "rp_account_add")
+    assert "env" in add["inputSchema"]["required"]  # env mode requires env
+    cli_add = next(d for d in accounts.account_tool_defs("az", "azure", "cli")
+                   if d["name"] == "az_account_add")
+    assert cli_add["inputSchema"]["required"] == ["name"]  # cli add: name only
+
+
+# --------------------------------------------------------------------------- #
+# hub wiring: env injection at spawn + kill/respawn on switch
+# --------------------------------------------------------------------------- #
+def test_runtime_backend_layers_active_account_env():
+    spec = BackendSpec(id="rp", label="RunPod", prefix="rp",
+                       cmd=("noop",), cache="rp.json", env={"BASE": "1"})
+    rb = hub.RuntimeBackend(spec, lambda _s: None,
+                            account_env=lambda: {"RP_KEY": "xyz", "BASE": "win"})
+    env = rb._spawn_env()
+    assert env["RP_KEY"] == "xyz"      # account env injected
+    assert env["BASE"] == "win"        # account creds win over spec.env
+
+
+class _Capture:
+    def __init__(self):
+        self._q: "queue.Queue[dict]" = queue.Queue()
+
+    def __call__(self, line: str) -> None:
+        self._q.put(json.loads(line))
+
+    def wait(self, n: int, timeout: float = 30.0) -> list[dict]:
+        got: list[dict] = []
+        end = time.monotonic() + timeout
+        while len(got) < n and (rem := end - time.monotonic()) > 0:
+            try:
+                got.append(self._q.get(timeout=rem))
+            except queue.Empty:
+                break
+        return got
+
+
+@pytest.fixture
+def account_hub(tmp_path):
+    spec = BackendSpec(
+        id="alpha", label="Alpha", prefix="al",
+        cmd=(PY, FAKE, "alpha", "alpha_only"), cache="alpha.json",
+        account=AccountPolicy(platform="alpha", mode="env",
+                              seed_env=("ALPHA_KEY",)))
+    cache_dir = str(tmp_path)
+    old = hub.CACHE_DIR
+    hub.CACHE_DIR = cache_dir
+    ok, _n, msg = hub.refresh_backend(spec)
+    assert ok, msg
+    plan = build_plan([spec], cache_dir)
+    store = AccountStore(str(tmp_path / "acc.json"), [spec.account],
+                         environ={"ALPHA_KEY": "k1"})
+    cap = _Capture()
+    server = hub.HubServer([spec], plan, emit=cap, account_store=store)
+    try:
+        yield server, store, cap
+    finally:
+        hub.CACHE_DIR = old
+        for backend in server.backends.values():
+            backend._terminate()
+
+
+def test_account_tools_listed_and_served_without_spawn(account_hub):
+    server, _store, cap = account_hub
+    server.dispatch({"jsonrpc": "2.0", "id": 1, "method": "tools/list",
+                     "params": {}})
+    tools = {t["name"] for t in cap.wait(1)[0]["result"]["tools"]}
+    assert {"al_account_list", "al_account_switch", "al_account_cycle",
+            "alpha_only"} <= tools
+    server.dispatch({"jsonrpc": "2.0", "id": 2, "method": "tools/call",
+                     "params": {"name": "al_account_list", "arguments": {}}})
+    reply = cap.wait(1)[0]
+    payload = json.loads(reply["result"]["content"][0]["text"])
+    assert payload["accounts"] == ["default"]
+    # Account management never spawns the backend.
+    assert server.backends["alpha"].proc is None
+
+
+def test_switch_kills_and_resets_backend(account_hub):
+    server, store, cap = account_hub
+    # Start the backend with a real call.
+    server.dispatch({"jsonrpc": "2.0", "id": 10, "method": "tools/call",
+                     "params": {"name": "alpha_only", "arguments": {}}})
+    assert cap.wait(1)[0]["id"] == 10
+    assert server.backends["alpha"].proc is not None
+
+    store.handle("alpha", "add", {"name": "two", "env": {"ALPHA_KEY": "k2"}})
+    server.dispatch({"jsonrpc": "2.0", "id": 11, "method": "tools/call",
+                     "params": {"name": "al_account_switch",
+                                "arguments": {"name": "two"}}})
+    reply = cap.wait(1)[0]
+    payload = json.loads(reply["result"]["content"][0]["text"])
+    assert payload["ok"] and payload["active"] == "two"
+    # The backend was killed + reset; the next call would respawn with new creds.
+    assert server.backends["alpha"].proc is None
+    assert server.backends["alpha"].started is False
