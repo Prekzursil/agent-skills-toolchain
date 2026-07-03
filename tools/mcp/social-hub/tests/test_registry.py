@@ -68,10 +68,10 @@ def test_missing_cache_marks_degraded(tmp_path):
 
 
 def test_real_committed_caches_match_expected():
-    """Locks in the real invariant: 60 tools, sole collision = search_messages."""
+    """Locks in the real invariant: 88 tools, sole collision = search_messages."""
     specs = default_backends()
     plan = build_plan(specs, os.path.join(HUB_DIR, "caches"))
-    assert len(plan.tools) == 60
+    assert len(plan.tools) == 88
     assert plan.collisions == {"search_messages": ["fb", "wa"]}
     assert plan.routing["fb_search_messages"].original_name == "search_messages"
     assert plan.routing["wa_search_messages"].original_name == "search_messages"
