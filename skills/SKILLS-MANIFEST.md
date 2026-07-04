@@ -1,7 +1,7 @@
 # Skills Manifest
 
 > Auto-generated skill inventory for the agent-skills-toolchain repository.
-> Last updated: 2026-07-03
+> Last updated: 2026-07-04
 
 | Skill Name | Origin | Description |
 |---|---|---|
@@ -37,6 +37,7 @@
 | codex-runtime-recovery | custom | Use when Codex state is split across Windows, WSL, or VS Code, sessions disappear, or state_5.sqlite files churn |
 | codex-session-reunion | custom | Use when Codex sessions or rollout JSONL files are spread across Windows, WSL, backups, or VS Code mirrors |
 | codex-vscode-host-routing | custom | Use when VS Code launches Codex from the wrong host or WSL becomes the default unexpectedly |
+| comp-pharm-cascade | custom | Route a congeneric small-molecule series against a protein target through a cost-escalating cascade (experimental-anchor data → Boltz-2 ML breadth+pose → Schrödinger FEP/MM-GBSA physics → EXESS QM mechanism → figures) with consensus checks at the pose and published-number gates; verify the experimental anchor before spending compute |
 | competitive-programming-solver | custom | Use when solving online judge, olympiad, or contest problems in C, C++, or Python |
 | consensus-tooluniverse-research | custom | Use when downloading or harvesting research from Consensus.app — extract searches browser-free from the page payload, resolve papers to DOIs and open-access PDFs via ToolUniverse, organize by topic with a bibliography, and capture the Consensus Meter graphs |
 | critique-panel | custom | Use to run the G3 CRITIQUE gate of the TCR design-review loop — a four named-persona panel (user-advocate / systems-consistency / a11y / brand-aesthetic) that each reason over ui-audit's Track-A numbers plus the screenshot, run the NN/g I-Like / I-Wish / What-If ritual, score the nine DESIGN-EVAL v1 dimensions 0-4 with critical-error overrides, then synthesize one deduped, severity-ranked findings list with a weighted composite and enumerated directions (the human decides at G4). A TRIAGE accelerator, not an oracle. Pairs with ui-audit and design-review-loop |
