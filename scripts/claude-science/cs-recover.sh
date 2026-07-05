@@ -17,8 +17,9 @@ rm -rf "$DD"/sbx-bind-src/sock-* 2>/dev/null
 echo "cleared daemon.sock, operon.lock, stale sandbox sockets"
 echo
 
-echo "=== 4) clean start (detached) ==="
-claude-science serve --no-browser --detached 2>&1 | tail -5
+echo "=== 4) clean start (detached, pinned) ==="
+CS_EXTRA=$(cat "$HOME/.cs-serve-extra" 2>/dev/null || true)
+claude-science serve --no-browser --detached --no-auto-update $CS_EXTRA 2>&1 | tail -5
 sleep 7
 echo
 
