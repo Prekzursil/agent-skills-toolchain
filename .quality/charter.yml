@@ -1,0 +1,46 @@
+# Machine-readable declaration of the closed quality-gate set for this repository.
+#
+# Consumed by .quality/charter_check.sh (the charter <-> workflow consistency gate) and
+# detected by the QZT reusable-quality.yml workflow. Keep this in sync with QUALITY-CHARTER.md
+# (the human charter) and .github/workflows/quality.yml (one-in / one-out): each gate below
+# MUST have at least one matching `gate-<slug>` step/job in the workflow, and vice versa.
+#
+# This is the toolchain's adoption of the QZT lean-gate model. Every gate is a version-pinned
+# tool configured from an in-repo file; there is no SaaS quality platform, no baseline file,
+# and no network-fetched rule pack in the gate.
+
+gates:
+  - slug: lint-format
+    tools: ["ruff 0.15.17"]
+    enforces: >-
+      Lint + format + security-lint across Python (ruff check + ruff format --check),
+      honoring the committed ruff.toml. Auto-fixers: ruff check --fix; ruff format.
+  - slug: types
+    tools: ["basedpyright 1.39.8"]
+    enforces: >-
+      basedpyright (standard mode) over the SOURCE of the two shipped Python packages —
+      tools/mcp-manager (core, ui, app.py) and tools/scholarly-access-mcp (scholarly_access) —
+      each checked from its own root with its deps installed so imports resolve.
+  - slug: tests-coverage
+    tools: ["pytest + pytest-cov", "node --test"]
+    enforces: >-
+      Strict 100% line+branch coverage for the two Python packages (mcp-manager,
+      scholarly-access-mcp) plus the node workspace tests (root + agentify-desktop).
+      Reasoned `# pragma: no cover -- <reason>` only for genuinely-untestable branches.
+  - slug: sast
+    tools: ["opengrep 1.23.0", "semgrep CE 1.166.0 (local)"]
+    enforces: >-
+      Static security analysis using the curated in-repo ruleset under .quality/opengrep/
+      (NOT --config auto). Clean-zero: 0 findings, no baseline; reasoned inline
+      `# nosemgrep: <rule-id> -- <reason>` suppressions only.
+  - slug: secrets
+    tools: ["gitleaks"]
+    enforces: >-
+      Secret scan with the committed .gitleaks.toml allowlist (owner-intentional private-env
+      store + reasoned doc/fixture placeholders only). Gate on 0.
+  - slug: deps
+    tools: ["osv-scanner 2.x"]
+    enforces: >-
+      Known-CVE scan of the committed npm lockfiles (root + agentify-desktop). Reasoned,
+      dated per-CVE ignores only in osv-scanner.toml; no baseline. Dependabot handles
+      freshness separately (not part of the 6-gate set).

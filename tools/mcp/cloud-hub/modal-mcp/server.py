@@ -10,6 +10,7 @@ returns a clear error instead of crashing.
 GPU cost awareness: ``modal_run``/``modal_deploy`` can start billable compute.
 Confirm intent before running; ``modal_app_stop`` is the off-switch.
 """
+
 from __future__ import annotations
 
 import json
@@ -26,16 +27,28 @@ def _modal(*args: str, timeout: int = _TIMEOUT) -> dict:
     """Invoke the modal CLI, capturing output. Never raises."""
     exe = shutil.which("modal")
     if not exe:
-        return {"ok": False, "error": "modal CLI not found; `pip install modal` "
-                "and set MODAL_TOKEN_ID + MODAL_TOKEN_SECRET (or ~/.modal.toml)"}
+        return {
+            "ok": False,
+            "error": "modal CLI not found; `pip install modal` "
+            "and set MODAL_TOKEN_ID + MODAL_TOKEN_SECRET (or ~/.modal.toml)",
+        }
     try:
-        proc = subprocess.run([exe, *args], capture_output=True, text=True,
-                              encoding="utf-8", errors="replace", timeout=timeout)
+        proc = subprocess.run(
+            [exe, *args],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
+        )
     except (OSError, subprocess.TimeoutExpired) as exc:
         return {"ok": False, "error": f"modal {' '.join(args)} failed: {exc}"}
-    return {"ok": proc.returncode == 0, "returncode": proc.returncode,
-            "stdout": (proc.stdout or "").strip()[:8000],
-            "stderr": (proc.stderr or "").strip()[:2000]}
+    return {
+        "ok": proc.returncode == 0,
+        "returncode": proc.returncode,
+        "stdout": (proc.stdout or "").strip()[:8000],
+        "stderr": (proc.stderr or "").strip()[:2000],
+    }
 
 
 @mcp.tool()

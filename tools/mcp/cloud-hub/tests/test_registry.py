@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Pure-logic tests for the plan builder: collision detection, name merging,
 routing, and degraded-backend handling. No child processes are spawned."""
+
 from __future__ import annotations
 
 import json
@@ -15,15 +16,25 @@ from registry import build_plan  # noqa: E402
 
 
 def _spec(bid: str, prefix: str, cache: str) -> BackendSpec:
-    return BackendSpec(id=bid, label=f"lbl-{bid}", prefix=prefix,
-                       cmd=("noop",), cache=cache)
+    return BackendSpec(
+        id=bid, label=f"lbl-{bid}", prefix=prefix, cmd=("noop",), cache=cache
+    )
 
 
 def _write_cache(cache_dir: str, fname: str, tools: list[str]) -> None:
-    payload = {"initialize": {"protocolVersion": "2024-11-05"},
-               "tools": {"tools": [
-                   {"name": t, "description": f"desc {t}",
-                    "inputSchema": {"type": "object"}} for t in tools]}}
+    payload = {
+        "initialize": {"protocolVersion": "2024-11-05"},
+        "tools": {
+            "tools": [
+                {
+                    "name": t,
+                    "description": f"desc {t}",
+                    "inputSchema": {"type": "object"},
+                }
+                for t in tools
+            ]
+        },
+    }
     with open(os.path.join(cache_dir, fname), "w", encoding="utf-8") as fh:
         json.dump(payload, fh)
 
@@ -82,10 +93,17 @@ def test_real_committed_caches_build_a_clean_plan():
     assert per["runpod"] >= 40 and per["kaggle"] >= 40 and per["rclone"] >= 40
     # Names are preserved verbatim; no cross-backend collision; nothing degraded.
     assert plan.collisions == {} and not plan.degraded
-    for name in ("modal_run", "lightning_machine_types",
-                 "lightning_studio_switch_machine", "lightning_studio_upload_file",
-                 "run_gcloud_command", "list-pods", "azmcp_subscription_list",
-                 "ovh_ssh_exec", "ovh_api_raw"):
+    for name in (
+        "modal_run",
+        "lightning_machine_types",
+        "lightning_studio_switch_machine",
+        "lightning_studio_upload_file",
+        "run_gcloud_command",
+        "list-pods",
+        "azmcp_subscription_list",
+        "ovh_ssh_exec",
+        "ovh_api_raw",
+    ):
         assert name in plan.routing and plan.routing[name].renamed is False
 
 
@@ -97,8 +115,11 @@ def test_backend_specs_ovh_and_kaggle_fix():
     ovh = specs["ovh"]
     assert ovh.prefix == "ov" and ovh.account is not None
     assert ovh.account.platform == "ovh" and ovh.account.mode == "env"
-    assert ovh.account.seed_env == ("OVH_APPLICATION_KEY",
-                                    "OVH_APPLICATION_SECRET", "OVH_CONSUMER_KEY")
+    assert ovh.account.seed_env == (
+        "OVH_APPLICATION_KEY",
+        "OVH_APPLICATION_SECRET",
+        "OVH_CONSUMER_KEY",
+    )
     # Kaggle seed_env fixed to the real two-var auth (regression guard: was the
     # single, useless KAGGLE_API_TOKEN that matched neither the platform nor the
     # accounts.example bundle).

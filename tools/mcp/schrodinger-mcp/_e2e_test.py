@@ -8,6 +8,7 @@ drivers share (ligprep / qikprop / glide / glide_grid / prepwizard / prime_mmgbs
 
 Run:  .venv\\Scripts\\python.exe _e2e_test.py
 """
+
 from __future__ import annotations
 
 import os
@@ -24,14 +25,21 @@ def main() -> int:
     print(f"[ws] {ws}")
 
     r1 = server.smiles_to_3d(WARFARIN, mae, "warfarin")
-    print("[smiles_to_3d]", {k: r1.get(k) for k in ("out_path", "atoms", "error")} if isinstance(r1, dict) else r1)
+    print(
+        "[smiles_to_3d]",
+        {k: r1.get(k) for k in ("out_path", "atoms", "error")}
+        if isinstance(r1, dict)
+        else r1,
+    )
     if not os.path.exists(mae):
         print("VERDICT: FAIL (warfarin.mae not produced)")
         return 1
 
     r2 = server.qikprop_admet(mae, timeout_s=600)
     keys = ("returncode", "csv", "error")
-    print("[qikprop_admet]", {k: r2.get(k) for k in keys} if isinstance(r2, dict) else r2)
+    print(
+        "[qikprop_admet]", {k: r2.get(k) for k in keys} if isinstance(r2, dict) else r2
+    )
     if isinstance(r2, dict) and r2.get("csv_head"):
         print("[qikprop csv head]", r2["csv_head"][:300])
 
