@@ -12,6 +12,7 @@ Keeping this as plain data (a frozen dataclass list) makes the planner in
 ``registry.py`` trivially unit-testable without touching the filesystem or
 spawning a single child process.
 """
+
 from __future__ import annotations
 
 import os
@@ -64,13 +65,18 @@ class BackendSpec:
 #   * insta-mcp  reads  <INSTA_DATA_DIR or repo/data>/session.json   (env: dir)
 #   * fb-mcp     reads  <FB_COOKIES_PATH or repo/data/cookies.json>  (env: file)
 #   * whatsapp   reads  <repo>/auth_info/ (Baileys), FIXED -> copy-only
-_IG_SESSION = FileSlot(key="session", dest=f"{REPOS}/insta-mcp/data",
-                       env_var="INSTA_DATA_DIR", is_dir=True)
-_FB_COOKIES = FileSlot(key="cookies",
-                       dest=f"{REPOS}/fb-messenger-mcp/data/cookies.json",
-                       env_var="FB_COOKIES_PATH", is_dir=False)
-_WA_AUTH = FileSlot(key="auth", dest=f"{REPOS}/whatsapp-mcp/auth_info",
-                    env_var="", is_dir=True)
+_IG_SESSION = FileSlot(
+    key="session", dest=f"{REPOS}/insta-mcp/data", env_var="INSTA_DATA_DIR", is_dir=True
+)
+_FB_COOKIES = FileSlot(
+    key="cookies",
+    dest=f"{REPOS}/fb-messenger-mcp/data/cookies.json",
+    env_var="FB_COOKIES_PATH",
+    is_dir=False,
+)
+_WA_AUTH = FileSlot(
+    key="auth", dest=f"{REPOS}/whatsapp-mcp/auth_info", env_var="", is_dir=True
+)
 
 
 def default_backends() -> list[BackendSpec]:
@@ -89,8 +95,9 @@ def default_backends() -> list[BackendSpec]:
             note="needs data/session.json + IG_APP_VERSION; auths at startup",
             # Multi-account: each account points INSTA_DATA_DIR at its own dir
             # (holding session.json); IG_APP_VERSION etc. ride in the env bundle.
-            account=AccountPolicy(platform="insta", mode="env", label="Instagram",
-                                  files=(_IG_SESSION,)),
+            account=AccountPolicy(
+                platform="insta", mode="env", label="Instagram", files=(_IG_SESSION,)
+            ),
         ),
         BackendSpec(
             id="tiktok",
@@ -112,9 +119,12 @@ def default_backends() -> list[BackendSpec]:
             note="needs data/cookies.json; enumerates offline (no startup auth)",
             # Multi-account: each account points FB_COOKIES_PATH at its own
             # cookies.json; FB_PAGE_ACCESS_TOKEN etc. ride in the env bundle.
-            account=AccountPolicy(platform="fb", mode="env",
-                                  label="Facebook Messenger",
-                                  files=(_FB_COOKIES,)),
+            account=AccountPolicy(
+                platform="fb",
+                mode="env",
+                label="Facebook Messenger",
+                files=(_FB_COOKIES,),
+            ),
         ),
         BackendSpec(
             id="wa",
@@ -129,8 +139,9 @@ def default_backends() -> list[BackendSpec]:
             note="parked POC; QR pairing at startup; degrades to a clear error",
             # Baileys reads a FIXED auth_info/ dir (no env override) -> switching
             # COPIES the active account's auth_info onto that path before respawn.
-            account=AccountPolicy(platform="wa", mode="env", label="WhatsApp",
-                                  files=(_WA_AUTH,)),
+            account=AccountPolicy(
+                platform="wa", mode="env", label="WhatsApp", files=(_WA_AUTH,)
+            ),
         ),
         BackendSpec(
             id="fbreels",

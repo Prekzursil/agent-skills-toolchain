@@ -164,7 +164,9 @@ def _action_sig(tool_name: str, tool_input: dict) -> str:
         target = (fp or cmd)[:120]
         raw = f"{tool_name}:{target}"
         # nosemgrep: python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1 -- non-cryptographic action fingerprint for dedup, not a security control
-        return hashlib.sha1(raw.encode("utf-8", "replace")).hexdigest()[:16]
+        return hashlib.sha1(
+            raw.encode("utf-8", "replace"), usedforsecurity=False
+        ).hexdigest()[:16]
     except Exception:
         return "unknown"
 
@@ -172,7 +174,9 @@ def _action_sig(tool_name: str, tool_input: dict) -> str:
 def _counter_path(session_id: str) -> Path:
     try:
         # nosemgrep: python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1 -- non-cryptographic session-id slug for a state-file name, not a security control
-        h = hashlib.sha1(session_id.encode("utf-8", "replace")).hexdigest()[:24]
+        h = hashlib.sha1(
+            session_id.encode("utf-8", "replace"), usedforsecurity=False
+        ).hexdigest()[:24]
         return _COUNTER_DIR / f"{h}.json"
     except Exception:
         return _COUNTER_DIR / "default.json"

@@ -12,6 +12,7 @@ stdin/stdout ARE the hub's MCP pipes (this process only waits).
 If ``rclone`` is not installed the daemon cannot start; the client then fails to
 connect and the hub surfaces a clear per-tool error -- the hub never crashes.
 """
+
 from __future__ import annotations
 
 import os
@@ -55,8 +56,11 @@ def _ensure_rcd(host: str, port: int) -> None:
     try:
         subprocess.Popen(
             [rclone, "rcd", "--rc-no-auth", "--rc-addr", f":{port}"],
-            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL, creationflags=flags)
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            creationflags=flags,
+        )
     except OSError:
         return
     for _ in range(50):  # up to ~5s for the daemon to bind
@@ -71,7 +75,9 @@ def main() -> int:
     # Our stdio (the hub's MCP pipes) is inherited by the client unchanged.
     try:
         client = subprocess.Popen(list(MCP_CMD))
-    except OSError as exc:  # npx/node missing: emit nothing, let the hub time out cleanly
+    except (
+        OSError
+    ) as exc:  # npx/node missing: emit nothing, let the hub time out cleanly
         print(f"rclone-mcp launch failed: {exc}", file=sys.stderr)
         return 127
     return client.wait()

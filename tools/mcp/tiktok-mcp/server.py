@@ -17,6 +17,7 @@ Results are geo-localized to the egress IP (or proxy region). Each tool spins up
 headless-Chromium TikTok session (robust over fast — a scraper session can go stale), then
 closes it. Counts are clamped to [1, 50].
 """
+
 from __future__ import annotations
 
 import os
@@ -29,11 +30,10 @@ from TikTokApi import TikTokApi
 try:  # exception surface differs across TikTokApi point releases — degrade gracefully
     from TikTokApi.exceptions import EmptyResponseException, InvalidResponseException
 except Exception:  # pragma: no cover - defensive import
-    class EmptyResponseException(Exception):
-        ...
 
-    class InvalidResponseException(Exception):
-        ...
+    class EmptyResponseException(Exception): ...
+
+    class InvalidResponseException(Exception): ...
 
 
 def _load_env() -> None:
@@ -86,7 +86,9 @@ def _proxies() -> Optional[list[dict[str, str]]]:
     u = urlparse(_PROXY)
     if not u.hostname:
         return None
-    settings: dict[str, str] = {"server": f"{u.scheme or 'http'}://{u.hostname}:{u.port or 80}"}
+    settings: dict[str, str] = {
+        "server": f"{u.scheme or 'http'}://{u.hostname}:{u.port or 80}"
+    }
     if u.username:
         settings["username"] = u.username
     if u.password:
@@ -154,7 +156,12 @@ def _trim_video(raw: dict[str, Any]) -> dict[str, Any]:
 def _trim_user(raw: dict[str, Any]) -> dict[str, Any]:
     """Reduce a raw TikTok user object to identity + counts, tolerating the several
     shapes the API returns (search item vs userInfo vs flat user)."""
-    user = _g(raw, "userInfo", "user") or _g(raw, "user_info", "user") or raw.get("user") or raw
+    user = (
+        _g(raw, "userInfo", "user")
+        or _g(raw, "user_info", "user")
+        or raw.get("user")
+        or raw
+    )
     stats = (
         _g(raw, "userInfo", "stats")
         or _g(raw, "user_info", "stats")
@@ -171,8 +178,11 @@ def _trim_user(raw: dict[str, Any]) -> dict[str, Any]:
         "privateAccount": user.get("privateAccount"),
         "stats": {
             "followerCount": stats.get("followerCount") or stats.get("follower_count"),
-            "followingCount": stats.get("followingCount") or stats.get("following_count"),
-            "heartCount": stats.get("heartCount") or stats.get("heart") or stats.get("heart_count"),
+            "followingCount": stats.get("followingCount")
+            or stats.get("following_count"),
+            "heartCount": stats.get("heartCount")
+            or stats.get("heart")
+            or stats.get("heart_count"),
             "videoCount": stats.get("videoCount") or stats.get("video_count"),
         },
     }
@@ -212,7 +222,9 @@ async def tiktok_trending(count: int = 20) -> dict[str, Any]:
     try:
         async with TikTokApi() as api:
             await _open(api)
-            videos = [_trim_video(v.as_dict) async for v in api.trending.videos(count=count)]
+            videos = [
+                _trim_video(v.as_dict) async for v in api.trending.videos(count=count)
+            ]
         return {"count": len(videos), "videos": videos}
     except Exception as exc:  # noqa: BLE001 - surface a structured error, never crash the tool
         return _err(exc)
@@ -246,7 +258,8 @@ async def tiktok_user_posts(username: str, count: int = 20) -> dict[str, Any]:
         async with TikTokApi() as api:
             await _open(api)
             videos = [
-                _trim_video(v.as_dict) async for v in api.user(username=username).videos(count=count)
+                _trim_video(v.as_dict)
+                async for v in api.user(username=username).videos(count=count)
             ]
         return {"username": username, "count": len(videos), "videos": videos}
     except Exception as exc:  # noqa: BLE001
@@ -265,10 +278,16 @@ async def tiktok_user_liked(username: str, count: int = 20) -> dict[str, Any]:
         async with TikTokApi() as api:
             await _open(api)
             videos = [
-                _trim_video(v.as_dict) async for v in api.user(username=username).liked(count=count)
+                _trim_video(v.as_dict)
+                async for v in api.user(username=username).liked(count=count)
             ]
         note = None if videos else "empty — the account likely keeps its likes private"
-        return {"username": username, "count": len(videos), "videos": videos, "note": note}
+        return {
+            "username": username,
+            "count": len(videos),
+            "videos": videos,
+            "note": note,
+        }
     except Exception as exc:  # noqa: BLE001
         return _err(exc)
 
@@ -284,7 +303,8 @@ async def tiktok_hashtag(tag: str, count: int = 20) -> dict[str, Any]:
         async with TikTokApi() as api:
             await _open(api)
             videos = [
-                _trim_video(v.as_dict) async for v in api.hashtag(name=tag).videos(count=count)
+                _trim_video(v.as_dict)
+                async for v in api.hashtag(name=tag).videos(count=count)
             ]
         return {"tag": tag, "count": len(videos), "videos": videos}
     except Exception as exc:  # noqa: BLE001
@@ -322,7 +342,9 @@ async def tiktok_comments(url_or_id: str, count: int = 20) -> dict[str, Any]:
         async with TikTokApi() as api:
             await _open(api)
             video = api.video(url=url_or_id) if is_url else api.video(id=url_or_id)
-            comments = [_trim_comment(c.as_dict) async for c in video.comments(count=count)]
+            comments = [
+                _trim_comment(c.as_dict) async for c in video.comments(count=count)
+            ]
         return {"count": len(comments), "comments": comments}
     except Exception as exc:  # noqa: BLE001
         return _err(exc)
@@ -341,7 +363,9 @@ async def tiktok_related_videos(url_or_id: str, count: int = 20) -> dict[str, An
         async with TikTokApi() as api:
             await _open(api)
             video = api.video(url=url_or_id) if is_url else api.video(id=url_or_id)
-            videos = [_trim_video(v.as_dict) async for v in video.related_videos(count=count)]
+            videos = [
+                _trim_video(v.as_dict) async for v in video.related_videos(count=count)
+            ]
         return {"count": len(videos), "videos": videos}
     except Exception as exc:  # noqa: BLE001
         return _err(exc)
@@ -359,7 +383,10 @@ async def tiktok_search_users(query: str, count: int = 10) -> dict[str, Any]:
     try:
         async with TikTokApi() as api:
             await _open(api)
-            users = [_trim_user(u.as_dict) async for u in api.search.users(query, count=count)]
+            users = [
+                _trim_user(u.as_dict)
+                async for u in api.search.users(query, count=count)
+            ]
         return {"query": query, "count": len(users), "users": users}
     except Exception as exc:  # noqa: BLE001
         return _err(exc)

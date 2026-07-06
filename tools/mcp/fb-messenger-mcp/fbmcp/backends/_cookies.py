@@ -5,6 +5,7 @@ The E2EE bridge REQUIRES c_user, xs, datr AND fr (the non-E2EE read/send tools
 only need c_user + xs, so a cookies.json that works for those may still be
 missing datr/fr for E2EE).
 """
+
 from __future__ import annotations
 
 import json
