@@ -54,11 +54,16 @@ from PySide6.QtGui import QAction, QColor  # noqa: E402
 from PySide6.QtWidgets import (  # noqa: E402
     QAbstractItemView,
     QApplication,
+    QComboBox,
+    QDialog,
+    QDialogButtonBox,
     QHeaderView,
     QInputDialog,
     QLabel,
+    QLineEdit,
     QMainWindow,
     QMessageBox,
+    QPlainTextEdit,
     QStatusBar,
     QTableWidget,
     QTableWidgetItem,
@@ -285,6 +290,109 @@ def _switch_funnel_profile(name: str) -> tuple[bool, str]:
     return funnel_adapter.switch_profile(name)
 
 
+def _preset_names() -> list[str]:
+    """Selectable preset names ('core' first, then the named bundles)."""
+    from core import presets
+
+    return ["core", *presets.read_catalog().names()]
+
+
+class _PresetApplySummary(TypedDict):
+    """Result of applying a preset selection to the current project."""
+
+    preset: str
+    disabled: int
+    enabled: int
+    unknown: list[str]
+    unmatched: list[str]
+
+
+def _apply_preset_bg(
+    selected: list[str], inventory_ids: list[str], project_path: str
+) -> _PresetApplySummary:
+    """Resolve + apply a preset selection for one project (runs in a worker).
+
+    Writes ONLY the project's disabledMcpServers via the safe path. Servers
+    outside the supplied inventory are never touched. Takes effect NEXT session.
+    """
+    from pathlib import Path as _Path
+
+    from core import presets
+
+    claude_json = _Path.home() / ".claude.json"
+    ts = int(time.time())
+    backup_dir = claude_json.parent / ".mcp-manager-backups" / f"preset-{ts}"
+    result = presets.apply_selection(
+        selected, inventory_ids, claude_json, project_path, backup_dir=backup_dir
+    )
+    return {
+        "preset": ", ".join(selected),
+        "disabled": len(result.newly_disabled),
+        "enabled": len(result.newly_enabled),
+        "unknown": result.resolve.unknown_presets,
+        "unmatched": result.resolve.unmatched_members,
+    }
+
+
+# paste state -> display AuthStatus
+_PASTE_STATUS: dict[str, AuthStatus] = {
+    "connected": AuthStatus.CONNECTED,
+    "failed": AuthStatus.FAILED,
+    "needs_auth": AuthStatus.NEEDS_AUTH,
+    "disabled": AuthStatus.UNKNOWN,
+    "unknown": AuthStatus.UNKNOWN,
+}
+
+
+def _rows_from_paste(text: str) -> list[ServerRow]:
+    """Parse a pasted /mcp dump into ServerRow objects for the table."""
+    from core import paste_parse
+
+    rows: list[ServerRow] = []
+    for srv in paste_parse.parse_mcp_panel(text):
+        rows.append(
+            ServerRow(
+                id=srv.name,
+                name=srv.name,
+                planes=["claude"],
+                enabled=srv.enabled,
+                status=_PASTE_STATUS.get(srv.state, AuthStatus.UNKNOWN),
+                auth=srv.state,
+            )
+        )
+    return rows
+
+
+@final
+class _PasteDialog(QDialog):
+    """A modal text area for pasting a raw ``/mcp`` panel dump."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Paste /mcp server list")
+        self.resize(560, 460)
+        layout = QVBoxLayout(self)
+        layout.addWidget(
+            QLabel(
+                "Paste the text of Claude Code's /mcp panel below.\n"
+                "Lines like 'apktool-mcp · ✔ connected · 16 tools' are parsed "
+                "into an inventory you can bulk-apply a preset against."
+            )
+        )
+        self._edit = QPlainTextEdit()
+        self._edit.setPlaceholderText("apktool-mcp · ✔ connected · 16 tools ...")
+        layout.addWidget(self._edit)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        _ = buttons.accepted.connect(self.accept)
+        _ = buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def text(self) -> str:
+        return self._edit.toPlainText()
+
+
 # ── Main window ───────────────────────────────────────────────────────────────
 
 
@@ -300,8 +408,12 @@ class McpManagerWindow(QMainWindow):
         self._pool = QThreadPool.globalInstance()
         self._rows: list[ServerRow] = []
         self._busy = False
-        # project_path key used by core.claude_adapter (mirrors the TUI default)
-        self._project_path = str(Path.home()).replace("\\", "/")
+        # project_path key used by core.claude_adapter. Key off the LAUNCH cwd
+        # (what the enforce hook uses), NOT Path.home() — otherwise "this
+        # project" edits land on the wrong ~/.claude.json key.
+        self._project_path = str(Path.cwd()).replace("\\", "/")
+        # When set, a pasted /mcp dump is the inventory instead of live rows.
+        self._pasted_inventory: list[str] | None = None
 
         self._build_ui()
         # Kick off the first refresh after the window is shown so an empty table
@@ -342,10 +454,55 @@ class McpManagerWindow(QMainWindow):
             toolbar.addAction(act)
             self._actions[label] = act
 
-        # Central widget: header label + table.
+        # ── Claude-plane preset bar (bulk enable-list apply) ─────────────────
+        preset_bar = QToolBar("Presets")
+        preset_bar.setMovable(False)
+        self.addToolBarBreak()
+        self.addToolBar(preset_bar)
+        preset_bar.addWidget(QLabel(" Preset: "))
+        self._preset_combo = QComboBox()
+        self._reload_presets()
+        preset_bar.addWidget(self._preset_combo)
+        for label, handler, tip in (
+            (
+                "Apply Preset",
+                self.on_apply_preset,
+                "Enable this preset's servers for THIS project (disables the "
+                "rest). Applies NEXT session — restart to take effect.",
+            ),
+            (
+                "Save Selection",
+                self.on_save_preset,
+                "Save the selected rows as a new named preset (enable-list)",
+            ),
+            (
+                "Paste /mcp List",
+                self.on_paste_list,
+                "Paste a raw /mcp panel dump to use as the inventory",
+            ),
+            (
+                "Try Live (experimental)",
+                self.on_try_live,
+                "EXPERIMENTAL: drive the /mcp TUI via keystrokes — fragile, "
+                "may fail. Requires a pasted list + target window.",
+            ),
+        ):
+            act = QAction(label, self)
+            act.setToolTip(tip)
+            _ = act.triggered.connect(handler)
+            preset_bar.addAction(act)
+            self._actions[label] = act
+
+        # Central widget: search + header label + table.
         central = QWidget()
         layout = QVBoxLayout(central)
         layout.setContentsMargins(8, 8, 8, 4)
+
+        self._search = QLineEdit()
+        self._search.setPlaceholderText("Filter servers (fuzzy)…")
+        self._search.setClearButtonEnabled(True)
+        _ = self._search.textChanged.connect(self._apply_filter)
+        layout.addWidget(self._search)
 
         self._summary = QLabel("Loading…")
         self._summary.setTextFormat(Qt.TextFormat.PlainText)
@@ -438,6 +595,18 @@ class McpManagerWindow(QMainWindow):
             f"{len(self._rows)} servers   |   {enabled} enabled   |   "
             + f"{connected} connected"
         )
+        self._apply_filter()
+
+    # ── Fuzzy filter ─────────────────────────────────────────────────────────
+
+    def _apply_filter(self, *_args: object) -> None:
+        """Hide table rows whose name doesn't match the search box (fuzzy)."""
+        from core import presets
+
+        query = self._search.text()
+        visible = set(presets.fuzzy_filter(query, [r.name for r in self._rows]))
+        for i, row in enumerate(self._rows):
+            self.table.setRowHidden(i, row.name not in visible)
 
     # ── Refresh (background) ─────────────────────────────────────────────────
 
@@ -547,6 +716,156 @@ class McpManagerWindow(QMainWindow):
             + f"{len(s['changed'])} newly disabled "
             + f"(of {s['count']} in loadout)."
         )
+
+    # ── Named presets (Claude-plane bulk enable-list) ────────────────────────
+
+    def _reload_presets(self) -> None:
+        self._preset_combo.clear()
+        try:
+            self._preset_combo.addItems(_preset_names())
+        except Exception as exc:  # noqa: BLE001
+            self._set_status(f"Could not load presets: {exc}")
+
+    def _current_inventory_ids(self) -> list[str]:
+        """Inventory to resolve against: a pasted dump if present, else live."""
+        if self._pasted_inventory is not None:
+            return list(self._pasted_inventory)
+        return [r.id for r in self._rows]
+
+    def on_apply_preset(self, *_args: object) -> None:
+        if self._busy:
+            return
+        name = self._preset_combo.currentText()
+        if not name:
+            self._set_status("No preset selected.")
+            return
+        inventory = self._current_inventory_ids()
+        if not inventory:
+            self._set_status("No inventory — Refresh or paste a /mcp list first.")
+            return
+        source = "pasted list" if self._pasted_inventory is not None else "live rows"
+        confirm = QMessageBox.question(
+            self,
+            "Apply preset",
+            f"Enable preset '{name}' for this project (using {source}, "
+            + f"{len(inventory)} servers)?\n\n"
+            + "Servers not in the preset are DISABLED. A timestamped backup of "
+            + "~/.claude.json is written first.\n\n"
+            + "APPLIES NEXT SESSION — restart Claude Code to take effect.",
+        )
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+        self._set_busy(True)
+        self._set_status(f"Applying preset '{name}'…")
+        worker = _Worker(_apply_preset_bg, [name], inventory, self._project_path)
+        _ = worker.signals.result.connect(self._on_preset_result)
+        _ = worker.signals.error.connect(self._on_toggle_error)
+        _ = worker.signals.finished.connect(self._after_write)
+        self._pool.start(worker)
+
+    @Slot(object)
+    def _on_preset_result(self, summary: object) -> None:
+        s = cast("_PresetApplySummary", summary)
+        if s["unknown"]:
+            self._set_status("Unknown preset(s): " + ", ".join(s["unknown"]))
+            return
+        msg = (
+            f"Preset '{s['preset']}' applied: {s['disabled']} disabled, "
+            + f"{s['enabled']} enabled. APPLIES NEXT SESSION — restart Claude Code."
+        )
+        self._set_status(msg)
+
+    def on_save_preset(self, *_args: object) -> None:
+        rows = self._selected_rows()
+        if not rows:
+            self._set_status("Select the servers to save as a preset first.")
+            return
+        name, ok = QInputDialog.getText(self, "Save preset", "Preset name:")
+        if not ok or not name.strip():
+            return
+        members = [r.name for r in rows]
+        try:
+            from core import presets
+
+            changed = presets.save_preset(name.strip(), members)
+        except Exception as exc:  # noqa: BLE001
+            self._set_status(f"Could not save preset: {exc}")
+            return
+        self._reload_presets()
+        verb = "saved" if changed else "unchanged"
+        self._set_status(f"Preset '{name.strip()}' {verb} ({len(members)} servers).")
+
+    def on_paste_list(self, *_args: object) -> None:
+        dialog = _PasteDialog(self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        text = dialog.text()
+        try:
+            rows = _rows_from_paste(text)
+        except Exception as exc:  # noqa: BLE001
+            self._set_status(f"Paste parse failed: {exc}")
+            return
+        if not rows:
+            self._set_status("No servers parsed from the pasted list.")
+            return
+        self._pasted_inventory = [r.id for r in rows]
+        self._populate(rows)
+        self._set_status(
+            f"Using pasted inventory ({len(rows)} servers). Pick a preset and "
+            + "Apply — changes take effect NEXT session (restart)."
+        )
+
+    def on_try_live(self, *_args: object) -> None:
+        _ = QMessageBox.warning(
+            self,
+            "Experimental — fragile, may fail",
+            "This drives the interactive /mcp TUI with BLIND keystrokes. The "
+            "list is arrows-only and scrolling; there is NO reliable success "
+            "signal. It can mis-toggle. This is a best-effort escape hatch, not "
+            "a reliable path — verify /mcp manually afterwards.",
+        )
+        if self._pasted_inventory is None:
+            self._set_status("Paste a /mcp list first (Try Live needs its order).")
+            return
+        name = self._preset_combo.currentText()
+        window_title, ok = QInputDialog.getText(
+            self, "Target window", "Terminal window title (partial):"
+        )
+        if not ok or not window_title.strip():
+            return
+        try:
+            from core import live_macro, paste_parse, presets
+
+            # Rebuild ParsedServer order from the current table rows.
+            servers = [
+                paste_parse.ParsedServer(
+                    name=r.name,
+                    state="disabled" if not r.enabled else "connected",
+                )
+                for r in self._rows
+            ]
+            resolved = presets.resolve_disabled(
+                presets.read_catalog(), [name], self._pasted_inventory
+            )
+            plan = live_macro.plan_navigation(servers, set(resolved.to_enable))
+            ok2, msg = live_macro.run_macro(
+                plan,
+                window_title.strip(),
+                focuser=live_macro.default_focuser,
+                sender=(lambda _step: None),
+                dry_run=True,
+            )
+        except Exception as exc:  # noqa: BLE001
+            self._set_status(f"Try Live failed to plan: {exc}")
+            return
+        _ = QMessageBox.information(
+            self,
+            "Try Live — dry run",
+            f"{msg}\n\nPlanned {len(plan)} keystroke step(s).\n\n"
+            + "This was a DRY RUN (nothing sent). Live sending is CLI-only "
+            + "(app.py try-live --apply) and remains experimental.",
+        )
+        self._set_status(f"Try Live planned {len(plan)} step(s) (dry run).")
 
     # ── Funnel profile switch (background) ───────────────────────────────────
 
