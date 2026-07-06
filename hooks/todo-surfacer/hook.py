@@ -158,7 +158,9 @@ def build_message(payload: dict):
     if NEEDS_STATE:
         session = str(payload.get("session_id") or "default")
         # nosemgrep: python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1 -- non-cryptographic dedup key, not a security control
-        key = hashlib.sha1(src.encode("utf-8", "replace")).hexdigest()
+        key = hashlib.sha1(
+            src.encode("utf-8", "replace"), usedforsecurity=False
+        ).hexdigest()
         if _seen(key, session):
             return None
         _record(key, session, count)

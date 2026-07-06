@@ -58,7 +58,9 @@ def _excerpt(s, n: int = 200) -> str:
 
 def _gen_id(seed: str, prefix: str) -> str:
     # nosemgrep: python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1 -- non-cryptographic id generation (background-task slug), not a security control
-    h = hashlib.sha1((seed + str(C.now())).encode("utf-8", "replace")).hexdigest()[:10]
+    h = hashlib.sha1(
+        (seed + str(C.now())).encode("utf-8", "replace"), usedforsecurity=False
+    ).hexdigest()[:10]
     return f"{prefix}-{h}"
 
 
