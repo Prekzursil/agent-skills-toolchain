@@ -148,7 +148,7 @@ def run_macro(
 def default_focuser(title: str) -> tuple[bool, str]:  # pragma: no cover - OS driving
     """Focus a top-level window by (partial) title via pywinauto."""
     try:
-        from pywinauto import Desktop  # type: ignore
+        from pywinauto import Desktop  # pyright: ignore[reportMissingImports]
 
         win = Desktop(backend="uia").window(title_re=f".*{title}.*")
         win.set_focus()
@@ -173,7 +173,7 @@ def make_pyautogui_sender(
     """Build a Sender that presses keys with pyautogui (real terminal driving)."""
     import time
 
-    import pyautogui  # type: ignore
+    import pyautogui  # pyright: ignore[reportMissingModuleSource]
 
     def _send(step: NavStep) -> None:
         key = _KEY_FOR_ACTION.get(step.action, "enter")
