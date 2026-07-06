@@ -5,6 +5,7 @@ runtime ``hub.py``/``backends.py`` add it to ``sys.path`` themselves, but the
 tests import those modules directly, so mirror that here -- pytest loads this
 conftest before collecting the test modules.
 """
+
 import os
 import sys
 

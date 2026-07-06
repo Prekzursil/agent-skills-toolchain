@@ -4,6 +4,7 @@ Preserved verbatim from the initial server: whoami, list_threads, read_thread,
 search_messages, thread_info. Personal 1:1 Messenger DMs are E2EE and are NOT
 handled here (see the T4 fb_dm_* tools).
 """
+
 from __future__ import annotations
 
 import json

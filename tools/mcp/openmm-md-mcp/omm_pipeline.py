@@ -23,6 +23,7 @@ Artifact names inside a job_dir:
   equilibrated.pdb, state_equil.xml,
   prod.dcd, prod.chk, prod.log, state_prod.xml, prod_status.json
 """
+
 from __future__ import annotations
 
 import json
@@ -55,10 +56,14 @@ def _ensure_dll_path() -> None:
         os.path.join(prefix, "bin"),
     ]
     present = [d for d in subdirs if os.path.isdir(d)]
-    os.environ["PATH"] = os.pathsep.join(present) + os.pathsep + os.environ.get("PATH", "")
+    os.environ["PATH"] = (
+        os.pathsep.join(present) + os.pathsep + os.environ.get("PATH", "")
+    )
     for d in present:
         try:
-            _DLL_HANDLES.append(os.add_dll_directory(d))  # keep handles alive at module scope
+            _DLL_HANDLES.append(
+                os.add_dll_directory(d)
+            )  # keep handles alive at module scope
         except OSError:
             pass
 
@@ -83,13 +88,33 @@ _WATER_RESNAMES = {"HOH", "WAT", "H2O", "TIP", "T3P", "SPC"}
 # element. Element-based assignment lets us parametrize arbitrary ligands for which no
 # GB template exists. Documented as an approximation on the mmgbsa tool.
 _GB_RADII = {
-    "H": 0.12, "C": 0.17, "N": 0.155, "O": 0.15, "F": 0.15, "P": 0.185,
-    "S": 0.18, "Cl": 0.17, "Br": 0.185, "I": 0.198, "Na": 0.133, "Mg": 0.100,
-    "K": 0.176, "Ca": 0.137, "Zn": 0.110,
+    "H": 0.12,
+    "C": 0.17,
+    "N": 0.155,
+    "O": 0.15,
+    "F": 0.15,
+    "P": 0.185,
+    "S": 0.18,
+    "Cl": 0.17,
+    "Br": 0.185,
+    "I": 0.198,
+    "Na": 0.133,
+    "Mg": 0.100,
+    "K": 0.176,
+    "Ca": 0.137,
+    "Zn": 0.110,
 }
 _GB_SCALE = {
-    "H": 0.85, "C": 0.72, "N": 0.79, "O": 0.85, "F": 0.88, "P": 0.86,
-    "S": 0.96, "Cl": 0.80, "Br": 0.80, "I": 0.80,
+    "H": 0.85,
+    "C": 0.72,
+    "N": 0.79,
+    "O": 0.85,
+    "F": 0.88,
+    "P": 0.86,
+    "S": 0.96,
+    "Cl": 0.80,
+    "Br": 0.80,
+    "I": 0.80,
 }
 
 
@@ -161,7 +186,9 @@ def status_probe() -> dict[str, Any]:
             integ = mm.VerletIntegrator(0.001 * unit.picosecond)
             props = {"Precision": "mixed"} if name in ("CUDA", "OpenCL") else {}
             ctx = mm.Context(sysm, integ, plat, props)
-            ctx.setPositions(unit.Quantity(np.array([[0, 0, 0], [0, 0, 0.1]]), unit.nanometer))
+            ctx.setPositions(
+                unit.Quantity(np.array([[0, 0, 0], [0, 0, 0.1]]), unit.nanometer)
+            )
             ctx.getState(getEnergy=True)
             entry["works"] = True
             if name in ("CUDA", "OpenCL"):
@@ -172,7 +199,9 @@ def status_probe() -> dict[str, Any]:
                         pass
             if name == "CUDA":
                 cuda_ok = True
-                cuda_detail = {k: entry.get(k) for k in ("DeviceName", "DeviceIndex", "Precision")}
+                cuda_detail = {
+                    k: entry.get(k) for k in ("DeviceName", "DeviceIndex", "Precision")
+                }
             del ctx, integ
         except Exception as e:  # platform present but unusable on this box
             entry["works"] = False
@@ -209,7 +238,10 @@ def status_probe() -> dict[str, Any]:
         nagl = len(list_available_nagl_models()) > 0
     except Exception:
         nagl = False
-    info["ligand_charge_backends"] = {"gasteiger": info["versions"]["rdkit"] is not None, "nagl": nagl}
+    info["ligand_charge_backends"] = {
+        "gasteiger": info["versions"]["rdkit"] is not None,
+        "nagl": nagl,
+    }
     info["ligand_ff_default"] = DEFAULT_LIGAND_FF
     info["summary"] = (
         f"OpenMM {info['openmm_version']} | CUDA={'YES' if cuda_ok else 'NO'}"
@@ -381,7 +413,9 @@ def prepare(
     # --- write a reference complex.pdb (protein + ligand, no solvent) ---
     modeller = Modeller(fixer.topology, fixer.positions)
     if offmols:
-        modeller.add(offmols[0].to_topology().to_openmm(), offmols[0].conformers[0].to_openmm())
+        modeller.add(
+            offmols[0].to_topology().to_openmm(), offmols[0].conformers[0].to_openmm()
+        )
     with open(job / "complex.pdb", "w") as fh:
         PDBFile.writeFile(modeller.topology, modeller.positions, fh)
 
@@ -392,11 +426,17 @@ def prepare(
         from openmm.app import NoCutoff, HBonds
 
         ff = _build_forcefield(spec, offmols)
-        vac = ff.createSystem(modeller.topology, nonbondedMethod=NoCutoff, constraints=HBonds)
+        vac = ff.createSystem(
+            modeller.topology, nonbondedMethod=NoCutoff, constraints=HBonds
+        )
         integ = mm.VerletIntegrator(0.001 * unit.picosecond)
         ctx = mm.Context(vac, integ, mm.Platform.getPlatformByName("Reference"))
         ctx.setPositions(modeller.positions)
-        e = ctx.getState(getEnergy=True).getPotentialEnergy().value_in_unit(unit.kilojoule_per_mole)
+        e = (
+            ctx.getState(getEnergy=True)
+            .getPotentialEnergy()
+            .value_in_unit(unit.kilojoule_per_mole)
+        )
         feas = {"parametrized": True, "vacuum_energy_kJ_per_mol": round(e, 2)}
         del ctx, integ
     except Exception as e:
@@ -442,7 +482,9 @@ def solvate(
     if model not in WATER_FF:
         raise ValueError(f"water_model must be one of {sorted(WATER_FF)}")
     if box_shape not in ("cube", "dodecahedron", "octahedron"):
-        raise ValueError("box_shape must be one of ('cube', 'dodecahedron', 'octahedron')")
+        raise ValueError(
+            "box_shape must be one of ('cube', 'dodecahedron', 'octahedron')"
+        )
     spec["water_model"], spec["water_ff"] = model, WATER_FF[model]
 
     prot = PDBFile(str(job / "protein_fixed.pdb"))
@@ -475,7 +517,9 @@ def solvate(
 
     with open(job / "solvated.pdb", "w") as fh:
         PDBFile.writeFile(modeller.topology, modeller.positions, fh)
-    (job / "system.xml").write_text(mm.XmlSerializer.serialize(system), encoding="utf-8")
+    (job / "system.xml").write_text(
+        mm.XmlSerializer.serialize(system), encoding="utf-8"
+    )
 
     n_total = modeller.topology.getNumAtoms()
     n_waters = sum(1 for r in modeller.topology.residues() if r.name in _WATER_RESNAMES)
@@ -485,7 +529,9 @@ def solvate(
         n_total_atoms=n_total,
         n_waters=n_waters,
         hydrogen_mass_amu=hydrogen_mass_amu,
-        recommended_timestep_fs=(4.0 if hydrogen_mass_amu and hydrogen_mass_amu >= 3.5 else 2.0),
+        recommended_timestep_fs=(
+            4.0 if hydrogen_mass_amu and hydrogen_mass_amu >= 3.5 else 2.0
+        ),
     )
     _write_spec(job, spec)
     return {
@@ -524,7 +570,9 @@ def get_platform(name: str, allow_fallback: bool = True):
     raise RuntimeError("no OpenMM platform available")
 
 
-def _add_position_restraint(system, topology, positions, k_kcal: float, n_solute: int) -> int:
+def _add_position_restraint(
+    system, topology, positions, k_kcal: float, n_solute: int
+) -> int:
     """Harmonic restraint on solute heavy atoms (first n_solute atoms, excluding H).
     k in kcal/mol/A^2 -> kJ/mol/nm^2 via *418.4."""
     import openmm as mm
@@ -553,7 +601,9 @@ def _add_position_restraint(system, topology, positions, k_kcal: float, n_solute
 def _state_xml(context, path: Path) -> None:
     import openmm as mm
 
-    st = context.getState(getPositions=True, getVelocities=True, enforcePeriodicBox=True)
+    st = context.getState(
+        getPositions=True, getVelocities=True, enforcePeriodicBox=True
+    )
     path.write_text(mm.XmlSerializer.serialize(st), encoding="utf-8")
 
 
@@ -579,18 +629,32 @@ def minimize(
 
     job = _job(job_dir, create=False)
     pdb = PDBFile(str(job / "solvated.pdb"))
-    system = mm.XmlSerializer.deserialize((job / "system.xml").read_text(encoding="utf-8"))
-    integ = mm.LangevinMiddleIntegrator(300 * unit.kelvin, 1.0 / unit.picosecond, 0.002 * unit.picosecond)
+    system = mm.XmlSerializer.deserialize(
+        (job / "system.xml").read_text(encoding="utf-8")
+    )
+    integ = mm.LangevinMiddleIntegrator(
+        300 * unit.kelvin, 1.0 / unit.picosecond, 0.002 * unit.picosecond
+    )
     plat, props, used = get_platform(platform, allow_fallback)
     sim = Simulation(pdb.topology, system, integ, plat, props)
     sim.context.setPositions(pdb.positions)
-    e0 = sim.context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(unit.kilojoule_per_mole)
+    e0 = (
+        sim.context.getState(getEnergy=True)
+        .getPotentialEnergy()
+        .value_in_unit(unit.kilojoule_per_mole)
+    )
     sim.minimizeEnergy(
         tolerance=float(tolerance_kj_nm) * unit.kilojoule_per_mole / unit.nanometer,
         maxIterations=int(max_iterations),
     )
-    e1 = sim.context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(unit.kilojoule_per_mole)
-    pos = sim.context.getState(getPositions=True, enforcePeriodicBox=True).getPositions()
+    e1 = (
+        sim.context.getState(getEnergy=True)
+        .getPotentialEnergy()
+        .value_in_unit(unit.kilojoule_per_mole)
+    )
+    pos = sim.context.getState(
+        getPositions=True, enforcePeriodicBox=True
+    ).getPositions()
     with open(job / "minimized.pdb", "w") as fh:
         PDBFile.writeFile(pdb.topology, pos, fh)
     _state_xml(sim.context, job / "state_min.xml")
@@ -626,12 +690,18 @@ def equilibrate(
     spec = _read_spec(job)
     pdb = PDBFile(str(job / "solvated.pdb"))
     ref = PDBFile(str(job / "minimized.pdb")).positions
-    system = mm.XmlSerializer.deserialize((job / "system.xml").read_text(encoding="utf-8"))
+    system = mm.XmlSerializer.deserialize(
+        (job / "system.xml").read_text(encoding="utf-8")
+    )
 
     n_restrained = 0
     if restraint_k and restraint_k > 0:
         n_restrained = _add_position_restraint(
-            system, pdb.topology, ref, restraint_k, spec.get("n_solute_atoms", spec["n_protein_atoms"])
+            system,
+            pdb.topology,
+            ref,
+            restraint_k,
+            spec.get("n_solute_atoms", spec["n_protein_atoms"]),
         )
 
     dt = float(timestep_fs) / 1000.0
@@ -648,12 +718,22 @@ def equilibrate(
         sim.step(int(nvt_steps))
     # NPT
     if int(npt_steps) > 0:
-        system.addForce(mm.MonteCarloBarostat(float(pressure_bar) * unit.bar, float(temperature_K) * unit.kelvin, 25))
+        system.addForce(
+            mm.MonteCarloBarostat(
+                float(pressure_bar) * unit.bar, float(temperature_K) * unit.kelvin, 25
+            )
+        )
         sim.context.reinitialize(preserveState=True)
         sim.step(int(npt_steps))
 
-    e = sim.context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(unit.kilojoule_per_mole)
-    pos = sim.context.getState(getPositions=True, enforcePeriodicBox=True).getPositions()
+    e = (
+        sim.context.getState(getEnergy=True)
+        .getPotentialEnergy()
+        .value_in_unit(unit.kilojoule_per_mole)
+    )
+    pos = sim.context.getState(
+        getPositions=True, enforcePeriodicBox=True
+    ).getPositions()
     with open(job / "equilibrated.pdb", "w") as fh:
         PDBFile.writeFile(pdb.topology, pos, fh)
     _state_xml(sim.context, job / "state_equil.xml")
@@ -693,7 +773,13 @@ def production_run(
     detached worker for long ones (see server.py --worker)."""
     import openmm as mm
     from openmm import unit
-    from openmm.app import PDBFile, Simulation, DCDReporter, StateDataReporter, CheckpointReporter
+    from openmm.app import (
+        PDBFile,
+        Simulation,
+        DCDReporter,
+        StateDataReporter,
+        CheckpointReporter,
+    )
 
     job = _job(job_dir, create=False)
     status = job / "prod_status.json"
@@ -718,13 +804,21 @@ def production_run(
 
     try:
         pdb = PDBFile(str(job / "solvated.pdb"))
-        system = mm.XmlSerializer.deserialize((job / "system.xml").read_text(encoding="utf-8"))
+        system = mm.XmlSerializer.deserialize(
+            (job / "system.xml").read_text(encoding="utf-8")
+        )
         if ensemble.upper() == "NPT":
             system.addForce(
-                mm.MonteCarloBarostat(float(pressure_bar) * unit.bar, float(temperature_K) * unit.kelvin, 25)
+                mm.MonteCarloBarostat(
+                    float(pressure_bar) * unit.bar,
+                    float(temperature_K) * unit.kelvin,
+                    25,
+                )
             )
         integ = mm.LangevinMiddleIntegrator(
-            float(temperature_K) * unit.kelvin, 1.0 / unit.picosecond, dt * unit.picosecond
+            float(temperature_K) * unit.kelvin,
+            1.0 / unit.picosecond,
+            dt * unit.picosecond,
         )
         plat, props, used = get_platform(platform, allow_fallback)
         sim = Simulation(pdb.topology, system, integ, plat, props)
@@ -734,8 +828,15 @@ def production_run(
         sim.reporters.append(CheckpointReporter(str(job / "prod.chk"), chk_steps))
         sim.reporters.append(
             StateDataReporter(
-                str(job / "prod.log"), report_steps, step=True, potentialEnergy=True,
-                temperature=True, volume=True, speed=True, progress=True, totalSteps=total_steps,
+                str(job / "prod.log"),
+                report_steps,
+                step=True,
+                potentialEnergy=True,
+                temperature=True,
+                volume=True,
+                speed=True,
+                progress=True,
+                totalSteps=total_steps,
             )
         )
         t0 = time.time()
@@ -747,21 +848,45 @@ def production_run(
             done += n
             elapsed = time.time() - t0
             ns_day = (done * dt / 1000.0) / (elapsed / 86400.0) if elapsed > 0 else 0.0
-            _status("RUNNING", done, {"platform_used": used, "elapsed_s": round(elapsed, 1),
-                                      "speed_ns_per_day": round(ns_day, 2)})
+            _status(
+                "RUNNING",
+                done,
+                {
+                    "platform_used": used,
+                    "elapsed_s": round(elapsed, 1),
+                    "speed_ns_per_day": round(ns_day, 2),
+                },
+            )
         _state_xml(sim.context, job / "state_prod.xml")
         elapsed = time.time() - t0
-        _status("SUCCESS", done, {
-            "platform_used": used, "elapsed_s": round(elapsed, 1),
-            "speed_ns_per_day": round((total_steps * dt / 1000.0) / (elapsed / 86400.0), 2) if elapsed > 0 else None,
-            "trajectory": str(job / "prod.dcd"), "checkpoint": str(job / "prod.chk"),
-            "final_state": str(job / "state_prod.xml"),
-        })
+        _status(
+            "SUCCESS",
+            done,
+            {
+                "platform_used": used,
+                "elapsed_s": round(elapsed, 1),
+                "speed_ns_per_day": round(
+                    (total_steps * dt / 1000.0) / (elapsed / 86400.0), 2
+                )
+                if elapsed > 0
+                else None,
+                "trajectory": str(job / "prod.dcd"),
+                "checkpoint": str(job / "prod.chk"),
+                "final_state": str(job / "state_prod.xml"),
+            },
+        )
         return json.loads(status.read_text(encoding="utf-8"))
     except Exception as e:
         import traceback
 
-        _status("FAILED", 0, {"error": f"{type(e).__name__}: {e}", "traceback": traceback.format_exc()[-1500:]})
+        _status(
+            "FAILED",
+            0,
+            {
+                "error": f"{type(e).__name__}: {e}",
+                "traceback": traceback.format_exc()[-1500:],
+            },
+        )
         raise
 
 
@@ -791,8 +916,13 @@ def analyze(
     t.superpose(t, 0, atom_indices=ca if len(ca) else prot_heavy)
 
     def _summ(a: np.ndarray) -> dict[str, float]:
-        return {"mean": float(np.mean(a)), "std": float(np.std(a)), "min": float(np.min(a)),
-                "max": float(np.max(a)), "last": float(a[-1])}
+        return {
+            "mean": float(np.mean(a)),
+            "std": float(np.std(a)),
+            "min": float(np.min(a)),
+            "max": float(np.max(a)),
+            "last": float(a[-1]),
+        }
 
     rmsd_nm = md.rmsd(t, t, 0, atom_indices=ca if len(ca) else prot_heavy)
     rmsf_nm = md.rmsf(t, t, 0, atom_indices=ca if len(ca) else prot_heavy)
@@ -808,19 +938,27 @@ def analyze(
         "job_dir": str(job),
         "n_frames": int(t.n_frames),
         "protein_ca_rmsd_A": {k: round(v * 10.0, 4) for k, v in _summ(rmsd_nm).items()},
-        "protein_ca_rmsf_A": {"mean": round(float(np.mean(rmsf_nm)) * 10, 4),
-                              "max": round(float(np.max(rmsf_nm)) * 10, 4)},
-        "radius_of_gyration_A": {k: round(v * 10.0, 4) for k, v in _summ(rg_nm).items()},
+        "protein_ca_rmsf_A": {
+            "mean": round(float(np.mean(rmsf_nm)) * 10, 4),
+            "max": round(float(np.max(rmsf_nm)) * 10, 4),
+        },
+        "radius_of_gyration_A": {
+            k: round(v * 10.0, 4) for k, v in _summ(rg_nm).items()
+        },
         "protein_hbonds_baker_hubbard": n_hbonds,
     }
 
     if spec.get("has_ligand"):
         nP, nL = spec["n_protein_atoms"], spec["n_ligand_atoms"]
         lig_idx = np.arange(nP, nP + nL)
-        lig_heavy = np.array([i for i in lig_idx if t.topology.atom(int(i)).element.symbol != "H"])
+        lig_heavy = np.array(
+            [i for i in lig_idx if t.topology.atom(int(i)).element.symbol != "H"]
+        )
         # binding-site RMSD: ligand heavy-atom RMSD after protein alignment (already superposed)
         ref = t.xyz[0, lig_heavy]
-        lig_rmsd = np.sqrt(np.mean(np.sum((t.xyz[:, lig_heavy] - ref) ** 2, axis=2), axis=1))
+        lig_rmsd = np.sqrt(
+            np.mean(np.sum((t.xyz[:, lig_heavy] - ref) ** 2, axis=2), axis=1)
+        )
         # contacts: protein heavy atoms within cutoff of any ligand heavy atom, per frame
         pairs = np.array([[p, lg] for p in prot_heavy for lg in lig_heavy])
         if len(pairs) > 200000:  # cap for speed on big proteins
@@ -828,9 +966,14 @@ def analyze(
         d = md.compute_distances(t, pairs)
         contacts = np.sum(d < float(contact_cutoff_nm), axis=1)
         arrays.update(ligand_rmsd_nm=lig_rmsd, contacts=contacts)
-        result["ligand_binding_rmsd_A"] = {k: round(v * 10.0, 4) for k, v in _summ(lig_rmsd).items()}
-        result["protein_ligand_contacts"] = {"mean": round(float(np.mean(contacts)), 2),
-                                             "min": int(np.min(contacts)), "max": int(np.max(contacts))}
+        result["ligand_binding_rmsd_A"] = {
+            k: round(v * 10.0, 4) for k, v in _summ(lig_rmsd).items()
+        }
+        result["protein_ligand_contacts"] = {
+            "mean": round(float(np.mean(contacts)), 2),
+            "min": int(np.min(contacts)),
+            "max": int(np.max(contacts)),
+        }
         result["binding_stability_note"] = (
             "Low, stable ligand_binding_rmsd + sustained contacts => stable pose; a rising "
             "RMSD / dropping contacts => the ligand is drifting/unbinding."
@@ -894,7 +1037,10 @@ def mmgbsa(
     job = _job(job_dir, create=False)
     spec = _read_spec(job)
     if not spec.get("has_ligand"):
-        return {"status": "FAILED", "error": "mmgbsa requires a protein-ligand complex (no ligand in this job)"}
+        return {
+            "status": "FAILED",
+            "error": "mmgbsa requires a protein-ligand complex (no ligand in this job)",
+        }
 
     nP, nL = spec["n_protein_atoms"], spec["n_ligand_atoms"]
     offmol, _ = _load_ligand(spec["ligand_sdf"], spec.get("charge_method", "auto"))
@@ -903,7 +1049,9 @@ def mmgbsa(
     prot = PDBFile(str(job / "protein_fixed.pdb"))
     complex_mod = Modeller(prot.topology, prot.positions)
     complex_mod.add(offmol.to_topology().to_openmm(), offmol.conformers[0].to_openmm())
-    lig_mod = Modeller(offmol.to_topology().to_openmm(), offmol.conformers[0].to_openmm())
+    lig_mod = Modeller(
+        offmol.to_topology().to_openmm(), offmol.conformers[0].to_openmm()
+    )
 
     ctx_c = _mm_gb_energy_context(complex_mod.topology, [offmol], spec)
     ctx_r = _mm_gb_energy_context(prot.topology, [], spec)
@@ -917,14 +1065,18 @@ def mmgbsa(
 
     def _e(ctx, xyz_nm) -> float:
         ctx.setPositions(unit.Quantity(np.asarray(xyz_nm, dtype=float), unit.nanometer))
-        return ctx.getState(getEnergy=True).getPotentialEnergy().value_in_unit(unit.kilojoule_per_mole)
+        return (
+            ctx.getState(getEnergy=True)
+            .getPotentialEnergy()
+            .value_in_unit(unit.kilojoule_per_mole)
+        )
 
     dG = []
     for fi in frames:
         solute = t.xyz[fi, : nP + nL]
         ec = _e(ctx_c, solute)
         er = _e(ctx_r, solute[:nP])
-        el = _e(ctx_l, solute[nP: nP + nL])
+        el = _e(ctx_l, solute[nP : nP + nL])
         dG.append(ec - er - el)
     dG = np.asarray(dG)
     kcal = dG / 4.184
@@ -933,8 +1085,14 @@ def mmgbsa(
         "job_dir": str(job),
         "method": "OpenMM OBC2/GBSA single-trajectory (no entropy, element-based radii)",
         "n_frames_used": int(len(dG)),
-        "dG_bind_kJ_per_mol": {"mean": round(float(np.mean(dG)), 2), "std": round(float(np.std(dG)), 2)},
-        "dG_bind_kcal_per_mol": {"mean": round(float(np.mean(kcal)), 2), "std": round(float(np.std(kcal)), 2)},
+        "dG_bind_kJ_per_mol": {
+            "mean": round(float(np.mean(dG)), 2),
+            "std": round(float(np.std(dG)), 2),
+        },
+        "dG_bind_kcal_per_mol": {
+            "mean": round(float(np.mean(kcal)), 2),
+            "std": round(float(np.std(kcal)), 2),
+        },
         "fidelity_note": (
             "APPROXIMATION. This is an OpenMM-native OBC2/GBSA single-trajectory estimate with "
             "NO configurational entropy (-TdS) and generic element-based GB radii. It is useful "

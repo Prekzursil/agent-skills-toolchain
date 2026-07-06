@@ -42,7 +42,6 @@ The 4 research-relevant servers (`tooluniverse`, `rdkit`, `schrodinger`, plus
 | `codacy` | Codacy code-quality. | disabled (project) | stdio | `cmd /c npx -y @codacy/codacy-mcp@latest` · env `CODACY_ACCOUNT_TOKEN`, `CODACY_API_TOKEN` |
 | `codecov` | Codecov coverage reports. | disabled (project) | stdio | `cmd /c npx -y @egulatee/mcp-codecov@latest` · env `CODECOV_BASE_URL`, `CODECOV_TOKEN` |
 | `context7` | Up-to-date library/API docs (Upstash). | disabled (project) | stdio | `cmd /c npx -y @upstash/context7-mcp` · env `CONTEXT7_API_KEY` |
-| `deepscan` | DeepScan static analysis (node + JDK 17). | disabled (project) | stdio | `node ...\meta-tool\src\deepscan_mcp_server.mjs` · env `DEEPSCAN_JAVA_BIN` |
 | `deepsource` | DeepSource code analysis. | disabled (project) | stdio | `node ...\deepsource-mcp-server\deepsource-mcp-wrapper.mjs` · env `DEEPSOURCE_API_KEY` |
 | `digitalocean` | DigitalOcean Apps. | disabled (project) | stdio | `cmd /c npx -y @digitalocean/mcp --services apps --transport stdio` · env `DIGITALOCEAN_API_TOKEN` |
 | `docker` | Docker control (uvx docker-mcp). | disabled (project) | stdio | `...\.local\bin\uvx.exe docker-mcp` |

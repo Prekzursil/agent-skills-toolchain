@@ -47,7 +47,7 @@ def _cwd_slug(cwd: str) -> str:
     """12-char sha1 slug of a normalized cwd path (case-folded)."""
     norm = cwd.replace("\\", "/").lower().rstrip("/")
     # nosemgrep: python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1 -- non-cryptographic cwd-path slug for a state key, not a security control
-    return hashlib.sha1(norm.encode("utf-8")).hexdigest()[:12]
+    return hashlib.sha1(norm.encode("utf-8"), usedforsecurity=False).hexdigest()[:12]
 
 
 def sidecar_path(sd: Path, key_type: str, key: str) -> Path:

@@ -13,7 +13,6 @@
 - DeepSource API docs: https://docs.deepsource.com/docs/api-reference
 - DeepSource archived community MCP repo: https://github.com/sapientpants/deepsource-mcp-server
 - Qlty docs: https://docs.qlty.sh
-- DeepScan docs: https://deepscan.io/docs
 - Chromatic CLI docs: https://www.chromatic.com/docs/cli/
 - Chromatic Playwright guide: https://www.chromatic.com/docs/getting-started-with-playwright/
 

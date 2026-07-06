@@ -19,7 +19,7 @@ Input:
 
 Output per provider (assemble into a list):
   {
-    "provider"       : str,   # "codacy" | "codecov" | "deepsource" | "qlty" | "deepscan"
+    "provider"       : str,   # "codacy" | "codecov" | "deepsource" | "qlty"
     "finding_count"  : int,   # issues/violations at head_sha; -1 = unavailable
     "gate_status"    : str,   # "pass" | "fail" | "unknown"
     "sha_checked"    : str,   # SHA the provider actually analyzed
@@ -148,22 +148,7 @@ Extraction logic:
 
 Check qlty config presence first: `mcp__qlty__qlty_status` (params: `repo_dir`).
 
-### 2E. DeepScan — no connected MCP server
-
-DeepScan does not have a connected MCP server. Options:
-
-1. **GitHub Checks API** via `gh` CLI:
-   ```bash
-   gh api repos/<owner>/<repo>/commits/<head_sha>/check-runs \
-     --jq '[.check_runs[] | select(.name | test("DeepScan";"i"))] | .[0] | {conclusion, completed_at}'
-   ```
-   - `gate_status` ← `conclusion == "success"` → `"pass"` else `"fail"`
-   - `sha_checked` ← `head_sha` (you queried for this SHA)
-
-2. **Open-issues API** (if `DEEPSCAN_POLICY_MODE=open_issues`):
-   Set `DEEPSCAN_OPEN_ISSUES_URL` env var and query it with `curl`.
-
-### 2F. SonarQube / SonarCloud — no connected MCP server
+### 2E. SonarQube / SonarCloud — no connected MCP server
 
 SonarQube/SonarCloud does not have a connected MCP server. Use the REST API directly:
 

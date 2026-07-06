@@ -1,5 +1,6 @@
 """T3 non-E2EE send/react tools: verify each maps to the right fbchat-muqit
 Client method with the right argument order (the load-bearing part)."""
+
 from __future__ import annotations
 
 import json
@@ -31,7 +32,11 @@ def client(monkeypatch):
 
 
 async def test_send_message(client, get_tool):
-    out = json.loads(await get_tool("fb_send_message")(thread_id="T", text="hi", reply_to_message="M"))
+    out = json.loads(
+        await get_tool("fb_send_message")(
+            thread_id="T", text="hi", reply_to_message="M"
+        )
+    )
     client.send_message.assert_awaited_once_with("hi", "T", reply_to_message="M")
     assert out["message_id"] == "MID123" and out["sent"] is True
 

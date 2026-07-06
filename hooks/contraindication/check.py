@@ -106,7 +106,9 @@ def _seen_path(session_id: str) -> Path:
     """Per-session state file path (sha1 of the session id, like iatrogenics)."""
     try:
         # nosemgrep: python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1 -- non-cryptographic session-id slug for a state-file name, not a security control
-        h = hashlib.sha1(session_id.encode("utf-8", "replace")).hexdigest()[:24]
+        h = hashlib.sha1(
+            session_id.encode("utf-8", "replace"), usedforsecurity=False
+        ).hexdigest()[:24]
         return _SEEN_DIR / f"{h}.json"
     except Exception:
         return _SEEN_DIR / "default.json"

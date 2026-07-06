@@ -31,7 +31,7 @@ Tool name must contain one of these substrings (case-insensitive):
 
 These tools legitimately return high-entropy, exploit-shaped, or security-tool output that would produce enormous false-positive noise.  Allowlist takes precedence over the scan-list.
 
-`ghidra`, `ida`, `frida`, `binary-ninja`, `cheatengine`, `hexstrike`, `semgrep`, `sonar`, `codacy`, `deepsource`, `deepscan`, `qlty`, `sentry`, `github_cli`, `gh_`, `postgres`
+`ghidra`, `ida`, `frida`, `binary-ninja`, `cheatengine`, `hexstrike`, `semgrep`, `sonar`, `codacy`, `deepsource`, `qlty`, `sentry`, `github_cli`, `gh_`, `postgres`
 
 ## Injection signals detected
 

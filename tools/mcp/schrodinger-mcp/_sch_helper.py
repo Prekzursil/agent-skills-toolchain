@@ -5,18 +5,23 @@
 The MCP server (server.py, in its own venv) invokes this via subprocess so it
 never has to import `schrodinger` directly (which only works under `run`).
 """
-import sys, os, json
+
+import sys
+import os
+import json
 
 
 def _info(_a):
     out = {"schrodinger_path": os.environ.get("SCHRODINGER", "")}
     try:
         import schrodinger
+
         out["schrodinger_build"] = getattr(schrodinger, "__version__", "n/a")
     except Exception as e:
         out["schrodinger_build"] = "ERR " + repr(e)
     try:
         import rdkit
+
         out["rdkit"] = rdkit.__version__
     except Exception as e:
         out["rdkit"] = "ERR " + repr(e)
@@ -27,6 +32,7 @@ def _smiles_to_3d(a):
     """SMILES -> 3D structure file (.sdf or .mae). 3D via RDKit ETKDGv3 + MMFF."""
     from rdkit import Chem
     from rdkit.Chem import AllChem
+
     smiles, out_path, title = a["smiles"], a["out_path"], a.get("title", "")
     m = Chem.MolFromSmiles(smiles)
     if m is None:
@@ -49,18 +55,24 @@ def _smiles_to_3d(a):
         w.close()
     else:  # .mae / .maegz via schrodinger structure (keeps 3D coords from rdkit)
         from schrodinger.adapter import to_structure
+
         st = to_structure(m)
         if title:
             st.title = title
         st.write(out_path)
-    return {"ok": True, "out_path": out_path, "atoms": m.GetNumAtoms(),
-            "size_bytes": os.path.getsize(out_path)}
+    return {
+        "ok": True,
+        "out_path": out_path,
+        "atoms": m.GetNumAtoms(),
+        "size_bytes": os.path.getsize(out_path),
+    }
 
 
 def _properties(a):
     """Drug-likeness descriptor panel for a SMILES (RDKit)."""
     from rdkit import Chem
     from rdkit.Chem import Descriptors, Crippen, Lipinski, rdMolDescriptors
+
     m = Chem.MolFromSmiles(a["smiles"])
     if m is None:
         return {"error": "invalid SMILES: " + a["smiles"]}
@@ -68,7 +80,10 @@ def _properties(a):
     hbd, hba = Lipinski.NumHDonors(m), Lipinski.NumHAcceptors(m)
     return {
         "formula": rdMolDescriptors.CalcMolFormula(m),
-        "mw": round(mw, 2), "logp": round(logp, 2), "hbd": hbd, "hba": hba,
+        "mw": round(mw, 2),
+        "logp": round(logp, 2),
+        "hbd": hbd,
+        "hba": hba,
         "tpsa": round(Descriptors.TPSA(m), 2),
         "rotatable_bonds": Descriptors.NumRotatableBonds(m),
         "rings": rdMolDescriptors.CalcNumRings(m),
@@ -80,6 +95,7 @@ def _properties(a):
 def _convert(a):
     """Convert any structure file to another format via schrodinger.structure."""
     from schrodinger import structure
+
     src, dst = a["src"], a["dst"]
     n = 0
     with structure.StructureWriter(dst) as w:
@@ -91,8 +107,13 @@ def _convert(a):
 
 def _job_common(j, complete):
     """Shared completed-job fields. `succeeded()` RAISES unless complete, so gate it."""
-    out = {"jobid": j.JobId, "status": j.Status, "is_complete": complete,
-           "program": j.Program, "name": j.Name}
+    out = {
+        "jobid": j.JobId,
+        "status": j.Status,
+        "is_complete": complete,
+        "program": j.Program,
+        "name": j.Name,
+    }
     try:
         out["progress"] = j.getProgressAsString()
     except Exception:
@@ -115,6 +136,7 @@ def _job_common(j, complete):
 def _job_status(a):
     """Read a Job Control job's live status by id (works cross-process via the job server)."""
     from schrodinger.job import jobcontrol as jc
+
     j = jc.Job(a["jobid"])
     j.readAgain()
     return _job_common(j, j.isComplete())
@@ -124,6 +146,7 @@ def _job_wait(a):
     """Poll a Job Control job until it completes or `timeout` (s) elapses."""
     import time
     from schrodinger.job import jobcontrol as jc
+
     timeout = float(a.get("timeout", 600))
     poll = max(1.0, float(a.get("poll", 5)))
     deadline = time.time() + timeout
@@ -144,6 +167,7 @@ def _launch(a):
     For manager scripts (e.g. thermal_mmgbsa.py) that are not themselves
     jobcontrol launchers; jobcontrol-aware drivers self-submit without -WAIT."""
     from schrodinger.job import jobcontrol as jc
+
     job = jc.launch_job(a["argv"], launch_dir=a.get("launch_dir") or None)
     return {"jobid": job.JobId, "name": job.Name, "program": job.Program}
 
@@ -155,6 +179,7 @@ def _trj_analyze(a):
     ligand RMSD after protein fit. Returns per-frame series + summary stats."""
     import numpy as np
     from schrodinger.application.desmond.packages import analysis, traj_util
+
     cms_file = a["cms_file"]
     fit_asl = a.get("fit_asl", 'protein and atom.ptype " CA "')
     lig_asl = a.get("lig_asl") or ""
@@ -167,8 +192,11 @@ def _trj_analyze(a):
         return {"error": f"fit_asl matched 0 atoms: {fit_asl!r}"}
     fit_ref = cms.extract(fit_aids).getXYZ()
     analyzers, keys = [], []
-    analyzers.append(analysis.RMSD(msys, cms, fit_aids, fit_ref,
-                                   fit_aids=fit_aids, fit_ref_pos=fit_ref))
+    analyzers.append(
+        analysis.RMSD(
+            msys, cms, fit_aids, fit_ref, fit_aids=fit_aids, fit_ref_pos=fit_ref
+        )
+    )
     keys.append("protein_ca_rmsd")
     analyzers.append(analysis.RMSF(msys, cms, fit_aids, fit_aids, fit_ref))
     keys.append("protein_ca_rmsf")
@@ -178,36 +206,54 @@ def _trj_analyze(a):
         lig_aids = cms.select_atom(f"({lig_asl}) and not atom.ele H")
         if lig_aids:
             lig_ref = cms.extract(lig_aids).getXYZ()
-            analyzers.append(analysis.RMSD(msys, cms, lig_aids, lig_ref,
-                                           fit_aids=fit_aids, fit_ref_pos=fit_ref))
+            analyzers.append(
+                analysis.RMSD(
+                    msys, cms, lig_aids, lig_ref, fit_aids=fit_aids, fit_ref_pos=fit_ref
+                )
+            )
             keys.append("ligand_rmsd")
     results = analysis.analyze(tr, *analyzers)
     if len(analyzers) == 1:
         results = [results]
-    out = {"cms_file": cms_file, "n_frames": len(tr),
-           "sim_time_ns": round(tr[-1].time / 1000.0, 4) if tr else None,
-           "series": {}, "summary": {}}
+    out = {
+        "cms_file": cms_file,
+        "n_frames": len(tr),
+        "sim_time_ns": round(tr[-1].time / 1000.0, 4) if tr else None,
+        "series": {},
+        "summary": {},
+    }
     for key, series in zip(keys, results):
         arr = np.asarray(series, dtype=float)
         if arr.ndim == 1 and key != "protein_ca_rmsf":  # per-frame series
             out["series"][key] = [round(float(x), 4) for x in arr.tolist()]
-            out["summary"][key] = {"mean": round(float(arr.mean()), 4),
-                                   "min": round(float(arr.min()), 4),
-                                   "max": round(float(arr.max()), 4),
-                                   "last": round(float(arr[-1]), 4)}
+            out["summary"][key] = {
+                "mean": round(float(arr.mean()), 4),
+                "min": round(float(arr.min()), 4),
+                "max": round(float(arr.max()), 4),
+                "last": round(float(arr[-1]), 4),
+            }
         else:  # RMSF = per-atom (mean over frames already)
             flat = arr.ravel()
             out["series"][key] = [round(float(x), 4) for x in flat.tolist()][:2000]
-            out["summary"][key] = {"mean": round(float(flat.mean()), 4),
-                                   "min": round(float(flat.min()), 4),
-                                   "max": round(float(flat.max()), 4),
-                                   "n": int(flat.size)}
+            out["summary"][key] = {
+                "mean": round(float(flat.mean()), 4),
+                "min": round(float(flat.min()), 4),
+                "max": round(float(flat.max()), 4),
+                "n": int(flat.size),
+            }
     return out
 
 
-CMDS = {"info": _info, "smiles_to_3d": _smiles_to_3d, "properties": _properties,
-        "convert": _convert, "job_status": _job_status, "job_wait": _job_wait,
-        "launch": _launch, "trj_analyze": _trj_analyze}
+CMDS = {
+    "info": _info,
+    "smiles_to_3d": _smiles_to_3d,
+    "properties": _properties,
+    "convert": _convert,
+    "job_status": _job_status,
+    "job_wait": _job_wait,
+    "launch": _launch,
+    "trj_analyze": _trj_analyze,
+}
 
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "info"

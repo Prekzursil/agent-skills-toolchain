@@ -21,7 +21,7 @@ Live MCP and agent configuration snapshots from the Windows development workstat
 Across all three platforms (Codex, Claude, Gemini), the following MCP servers are configured:
 
 **Reverse Engineering**: binary-ninja-mcp, ghidra-mcp, ida-pro-mcp, frida-mcp, cheatengine, hexstrike-ai
-**Code Quality**: semgrep, codacy, codecov, deepsource, deepscan, sonarqube, qlty, meta-tool
+**Code Quality**: semgrep, codacy, codecov, deepsource, sonarqube, qlty, meta-tool
 **Browser/Web**: chrome-devtools, playwright, browserstack, firecrawl, scrapegraph, tavily
 **Productivity**: github, github_cli, linear, notion, figma, sentry, memory, excel, pdf-reader, markitdown
 **Infrastructure**: docker, postgres, digitalocean, ralph-orchestrator, apify, stripe
