@@ -1,12 +1,17 @@
 # mcp-manager
 
-Cross-plane MCP server manager — read-only inventory CLI + Textual TUI.
+Cross-plane MCP server manager — inventory CLI + PySide6 desktop GUI, with
+named **presets** for one-action bulk enable/disable on the Claude plane.
 
 Manages three configuration planes from a single interface:
 
 - **Claude plane** — `~/.claude.json` (user scope + per-project `disabledMcpServers`)
 - **Codex plane** — `~/.codex/config.toml` (`[mcp_servers.<name>].enabled`)
 - **Funnel plane** — `~/.mcp-funnel-profiles.json` + `mcp-profile.ps1` profile switcher
+
+> **Timing (read this):** MCP servers spawn once at session start. Every config
+> change here **applies to the NEXT session — restart Claude Code to take
+> effect.** Nothing in this tool toggles a *running* session live.
 
 ---
 
@@ -35,6 +40,75 @@ uv run app.py duplicates    # just the cross-plane duplicate servers
 uv run app.py consolidate   # user-skill consolidation analysis (no deletions)
 uv run app.py json          # full machine-readable inventory as JSON
 ```
+
+## Presets (Claude plane) — bulk enable/disable
+
+A **preset** is a named list of servers to ENABLE. Presets are stored in
+`~/.mcp-presets.json` (seeded on first use) and **compose** — list several and
+their enable-sets union. `core` is always on; applying `core` alone is the RAM
+kill-switch. The resolver inverts the enable-set against the live inventory:
+
+```text
+disabled = all_known_servers - (core  ∪  selected_presets)
+```
+
+Only the **current project's** `disabledMcpServers` is written (safe mtime-merge
++ timestamped backup). Servers outside the inventory (your hand-curated
+`claude.ai *` / `plugin:*` disables) are never touched.
+
+```powershell
+uv run app.py preset list                 # show core + every named preset
+uv run app.py use re                       # enable RE bundle for THIS project
+uv run app.py use re research              # compose two bundles
+uv run app.py use core                     # kill-switch: only the 8 core servers
+uv run app.py use re --dry-run             # resolve + preview, write nothing
+uv run app.py preset save myset a b c      # save a new enable-list preset
+uv run app.py preset delete myset
+```
+
+Seeded catalog: `core` (basic-memory, tavily, exa, context7, github_cli,
+deepwiki, huggingface, figma) plus `re`, `chem`, `research`, `social`, `cloud`,
+`media`, `docs`. Spec abbreviations are stored as the exact live server names
+(e.g. `ida` → `ida-pro-mcp`) so resolution is exact.
+
+### Paste-parse fallback
+
+When `claude mcp list` isn't available (or you prefer it), paste the raw `/mcp`
+panel and use it as the inventory + current state:
+
+```powershell
+uv run app.py parse-list dump.txt          # parse a pasted /mcp dump (stdin ok)
+uv run app.py use re --from-paste dump.txt  # resolve against the pasted list
+```
+
+Lines like `apktool-mcp · ✔ connected · 16 tools`, `codecov · ✘ failed`, and
+`hexstrike-ai · ◯ disabled` parse into `(name, state, tool_count)`; the header
+(`74 servers`) and footer (`↑/↓ to navigate`) chrome is skipped.
+
+### EXPERIMENTAL: `try-live` keystroke macro
+
+Claude Code has **no** robust external live-toggle. `try-live` is a fragile,
+opt-in escape hatch that computes an arrow-navigation plan from a pasted panel
+order and (with `--apply`) blind-drives the `/mcp` TUI in a target window. It is
+**not reliable** — there is no success signal; verify `/mcp` manually.
+
+```powershell
+uv run app.py try-live re --from-paste dump.txt --window "Terminal"           # dry-run
+uv run app.py try-live re --from-paste dump.txt --window "Terminal" --apply    # send keys
+```
+
+## Desktop GUI
+
+```powershell
+uv run python -m ui.gui        # (or)  uv run python ui/gui.py
+```
+
+A native window with a live server table plus a **preset bar**: a preset
+dropdown + **Apply Preset** (bulk enable/disable for this project), **Save
+Selection** (turn selected rows into a preset), **Paste /mcp List** (use a
+pasted dump as inventory), a **fuzzy filter** box, and an **experimental Try
+Live** button. Every apply says *"applies next session — restart to take
+effect."*
 
 ## TUI usage
 
@@ -142,9 +216,10 @@ The following were explicitly scoped out and are not implemented:
 
 - **Claude `claude mcp enable/disable` verb**: no such CLI verb exists. Toggle
   is implemented via the `disabledMcpServers` array.
-- **Persistent TUI state / saved loadouts beyond the defaults file**: the TUI
-  reads the single `~/.claude/.mcp-disabled-defaults.json` file; multi-named
-  loadout storage is not implemented.
+- **Live mid-session toggle**: not architecturally possible from an external
+  tool — config edits apply next session (see the timing note up top). The
+  `try-live` macro is a fragile, honest best-effort escape hatch, not a
+  reliable path.
 - **Codex CLI auth** (`codex mcp login`): the tool shows the command but does
   not invoke it.
 - **Antigravity / other AI planes**: not supported; only Claude, Codex, and the
@@ -159,8 +234,8 @@ The following were explicitly scoped out and are not implemented:
 ## Development
 
 ```powershell
-uv run pytest -q          # run all 137 tests
-uv run pytest --cov=core  # coverage report
+uv run pytest -q                    # run all 299 tests (offline)
+uv run pytest --cov=core --cov=app  # coverage report (100% on core/ + app.py)
 ```
 
 Tests are fully offline (no real config files accessed; all adapters accept
