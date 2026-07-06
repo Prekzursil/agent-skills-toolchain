@@ -11,23 +11,53 @@ Why not a normal aggregator (mcp-funnel / 1mcp)? Those rename tools to
 `serverName__tool`. This hub preserves names and only renames on a genuine
 cross-backend collision (none today).
 
-## Backends & tool surface (185 backend tools + 42 account tools = 227)
+## Backends & tool surface (214 backend tools + 48 account tools = 262)
 
 | id | backend | pkg / runtime | tools | adopt/build | auth | cache |
 |----|---------|---------------|------:|-------------|------|-------|
 | `runpod` | RunPod | `npx @runpod/mcp-server@latest` | 50 | adopt | `RUNPOD_API_KEY` | live |
 | `azure` | Azure | `npx @azure/mcp@latest server start` | 14 | adopt | `az login` | **hand-authored** |
 | `gcloud` | Google Cloud | `npx @google-cloud/gcloud-mcp` | 1 | adopt | gcloud ADC + `GOOGLE_CLOUD_PROJECT` | live |
-| `kaggle` | Kaggle | `uvx kaggle-mcp-server` | 51 | adopt | `KAGGLE_API_TOKEN` / `~/.kaggle/kaggle.json` | live |
+| `kaggle` | Kaggle | `uvx kaggle-mcp-server` | 51 | adopt | `KAGGLE_USERNAME`+`KAGGLE_KEY` / `~/.kaggle/kaggle.json` | live |
 | `rclone` | rclone | `npx rclone-mcp` (over `rclone rcd`) | 56 | adopt | RC daemon on :5572 | live |
 | `modal` | Modal | built FastMCP wrapper (`modal` CLI) | 6 | build | `MODAL_TOKEN_ID`+`MODAL_TOKEN_SECRET` | live |
-| `lightning` | Lightning AI | built FastMCP wrapper (`lightning_sdk`) | 7 | build | `LIGHTNING_USER_ID`+`LIGHTNING_API_KEY` | live |
+| `lightning` | Lightning AI | built FastMCP wrapper (`lightning_sdk`) | 9 | build | `LIGHTNING_USER_ID`+`LIGHTNING_API_KEY` | live |
+| `ovh` | OVHcloud | vendored TS MCP (`node ovh-mcp/dist/index.js`) | 27 | vendor+build | `OVH_APPLICATION_KEY`+`_SECRET`+`_CONSUMER_KEY` (or OAuth2) per region | live |
 
 `azure` is a **hand-authored** representative cache: `@azure/mcp` is a .NET tool that
 did not emit an MCP handshake under piped stdio in the build harness (the Node
 backends enumerated fine). Run `python hub.py --refresh azure` in the environment
 where it starts cleanly to replace it with the live schema. Its `az_account_*`
 switching tools work regardless (they drive the `az` CLI).
+
+### OVHcloud (`ovh`) — vendored build + region rotation
+
+`ovh` fronts [`hlebtkachenko/ovhcloud-mcp`](https://github.com/hlebtkachenko/ovhcloud-mcp)
+(MIT), vendored under `ovh-mcp/` because it is **not published to npm**. It is a
+TypeScript server, so it needs a one-time build (source is committed;
+`node_modules/`+`dist/` are gitignored):
+
+```
+cd ovh-mcp && npm install && npm run build     # produces dist/index.js
+```
+
+(`package-lock.json` is committed-ignored by repo policy, so use `npm install`, not `npm ci`.)
+
+27 tools: VPS lifecycle, DNS, billing, **`ovh_ssh_exec`** (run commands on a host),
+and an API explorer + **`ovh_api_raw`** that reaches ANY of OVH's 500+ endpoints —
+including Public Cloud (`/cloud/project/…`) GPU-instance create/list/delete, which
+have no purpose-built tool. `tools/list` needs no creds, so the cache enumerates
+offline.
+
+**Region + creds are per account.** Each `ov` account bundles `OVH_ENDPOINT`
+(`ovh-eu` | `ovh-ca` | `ovh-us`) alongside its credentials, so
+`ov_account_switch ca|eu|us` flips **both** region and credentials in one call
+(OVHcloud EU/CA/US are separate legal entities with separate accounts — the
+endpoint must match the account). Creds may be the API-key trio
+(`OVH_APPLICATION_KEY`/`_SECRET`/`_CONSUMER_KEY`, from
+[ovh.com/auth/api/createToken](https://www.ovh.com/auth/api/createToken)) OR OAuth2
+(`OVH_CLIENT_ID`/`OVH_CLIENT_SECRET`); the env bundle is auth-agnostic. See the
+`ovh` block in `accounts.example.json` for the three-region template.
 
 ### Collision policy
 
@@ -48,7 +78,7 @@ spawning** and handled by the hub itself (never forwarded to a child):
 
 Two modes:
 
-- **env** (runpod, kaggle, modal, lightning, rclone) — an account is a bundle of
+- **env** (runpod, kaggle, modal, lightning, ovh, rclone) — an account is a bundle of
   env vars (literal values or `${ENV}` refs). The active account's env is injected
   when the hub spawns that backend. Stored in the **gitignored** `accounts.json`.
 - **cli** (azure, gcloud) — an account maps to the platform CLI's own profiles
@@ -110,12 +140,17 @@ launcher are real Python entry points run under the hub's own interpreter.
   "args": ["C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\mcp\\cloud-hub\\hub.py"],
   "env": {
     "RUNPOD_API_KEY": "${RUNPOD_API_KEY}",
-    "KAGGLE_API_TOKEN": "${KAGGLE_API_TOKEN}",
+    "KAGGLE_USERNAME": "${KAGGLE_USERNAME}",
+    "KAGGLE_KEY": "${KAGGLE_KEY}",
     "GOOGLE_CLOUD_PROJECT": "${GOOGLE_CLOUD_PROJECT}",
     "MODAL_TOKEN_ID": "${MODAL_TOKEN_ID}",
     "MODAL_TOKEN_SECRET": "${MODAL_TOKEN_SECRET}",
     "LIGHTNING_USER_ID": "${LIGHTNING_USER_ID}",
-    "LIGHTNING_API_KEY": "${LIGHTNING_API_KEY}"
+    "LIGHTNING_API_KEY": "${LIGHTNING_API_KEY}",
+    "OVH_ENDPOINT": "${OVH_ENDPOINT}",
+    "OVH_APPLICATION_KEY": "${OVH_APPLICATION_KEY}",
+    "OVH_APPLICATION_SECRET": "${OVH_APPLICATION_SECRET}",
+    "OVH_CONSUMER_KEY": "${OVH_CONSUMER_KEY}"
   }
 }
 ```
@@ -123,6 +158,7 @@ launcher are real Python entry points run under the hub's own interpreter.
 Azure + gcloud inherit their CLI logins (`az login`, `gcloud auth`) — no key env.
 The hub's interpreter needs `mcp` + `modal` installed (and `lightning-sdk` for the
 Lightning tools). Node ≥ 20, `uv`, and the `rclone`/`az`/`gcloud` CLIs on PATH.
+The `ovh` backend needs its one-time build (`cd ovh-mcp && npm ci && npm run build`).
 
 ## Tests
 

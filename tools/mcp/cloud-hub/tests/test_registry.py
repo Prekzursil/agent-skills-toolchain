@@ -66,16 +66,17 @@ def test_missing_cache_marks_degraded(tmp_path):
 
 
 def test_real_committed_caches_build_a_clean_plan():
-    """Locks the committed surface: 7 backends, no collisions, none degraded."""
+    """Locks the committed surface: 8 backends, no collisions, none degraded."""
     specs = default_backends()
     plan = build_plan(specs, os.path.join(HUB_DIR, "caches"))
     per: dict[str, int] = {}
     for route in plan.routing.values():
         per[route.backend_id] = per.get(route.backend_id, 0) + 1
     # Deterministic backends: the two built wrappers, the single-tool gcloud MCP,
-    # and the hand-authored azure subset.
+    # the hand-authored azure subset, and the vendored OVH TS server.
     assert per["modal"] == 6 and per["lightning"] == 9
     assert per["gcloud"] == 1 and per["azure"] == 14
+    assert per["ovh"] == 27
     # Live-enumerated adopt backends: present and substantial (re-running
     # `hub.py --refresh` may shift these as upstream packages evolve).
     assert per["runpod"] >= 40 and per["kaggle"] >= 40 and per["rclone"] >= 40
@@ -83,5 +84,25 @@ def test_real_committed_caches_build_a_clean_plan():
     assert plan.collisions == {} and not plan.degraded
     for name in ("modal_run", "lightning_machine_types",
                  "lightning_studio_switch_machine", "lightning_studio_upload_file",
-                 "run_gcloud_command", "list-pods", "azmcp_subscription_list"):
+                 "run_gcloud_command", "list-pods", "azmcp_subscription_list",
+                 "ovh_ssh_exec", "ovh_api_raw"):
         assert name in plan.routing and plan.routing[name].renamed is False
+
+
+def test_backend_specs_ovh_and_kaggle_fix():
+    """Locks the OVH backend wiring + the Kaggle seed_env audit fix."""
+    specs = {s.id: s for s in default_backends()}
+    # OVH backend present, env-mode rotator seeded with the API-key trio.
+    assert "ovh" in specs
+    ovh = specs["ovh"]
+    assert ovh.prefix == "ov" and ovh.account is not None
+    assert ovh.account.platform == "ovh" and ovh.account.mode == "env"
+    assert ovh.account.seed_env == ("OVH_APPLICATION_KEY",
+                                    "OVH_APPLICATION_SECRET", "OVH_CONSUMER_KEY")
+    # Kaggle seed_env fixed to the real two-var auth (regression guard: was the
+    # single, useless KAGGLE_API_TOKEN that matched neither the platform nor the
+    # accounts.example bundle).
+    assert specs["kaggle"].account.seed_env == ("KAGGLE_USERNAME", "KAGGLE_KEY")
+    # Prefixes stay unique across all 8 backends.
+    prefixes = [s.prefix for s in specs.values()]
+    assert len(prefixes) == len(set(prefixes)) == 8

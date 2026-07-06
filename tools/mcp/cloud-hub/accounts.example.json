@@ -1,5 +1,5 @@
 {
-  "_comment": "Copy this to accounts.json (GITIGNORED) to hold MULTIPLE named accounts per platform for the hub's <prefix>_account_* tools. env values may be literal secrets OR ${ENV} references resolved from the hub's environment at spawn time. Prefer ${ENV} refs so this file stays secret-free. Env-mode platforms: runpod, kaggle, modal, lightning, rclone. CLI-mode platforms (azure, gcloud) need NO entries here -- their accounts are the CLI's own profiles (az subscriptions / gcloud configurations) and are managed live via the az_/gc_ account tools. If a platform is omitted and its registration env vars are present, the hub seeds a single in-memory 'default' account automatically.",
+  "_comment": "Copy this to accounts.json (GITIGNORED) to hold MULTIPLE named accounts per platform for the hub's <prefix>_account_* tools. env values may be literal secrets OR ${ENV} references resolved from the hub's environment at spawn time. Prefer ${ENV} refs so this file stays secret-free. Env-mode platforms: runpod, kaggle, modal, lightning, ovh, rclone. CLI-mode platforms (azure, gcloud) need NO entries here -- their accounts are the CLI's own profiles (az subscriptions / gcloud configurations) and are managed live via the az_/gc_ account tools. If an env-mode platform is omitted and ALL its registration (seed_env) vars are present in the hub env, the hub seeds a single in-memory 'default' account automatically -- EXCEPT rclone, which has no seed_env (its RCLONE_URL comes from spec.env, so it never auto-seeds a default). OVH note: each ovh account bundles OVH_ENDPOINT (ovh-eu | ovh-ca | ovh-us) alongside its creds, so ov_account_switch flips BOTH region and credentials. Creds may be the API-key trio (OVH_APPLICATION_KEY/SECRET/CONSUMER_KEY -- create at ovh.com/auth/api/createToken) OR OAuth2 (OVH_CLIENT_ID/OVH_CLIENT_SECRET); the env bundle is auth-agnostic.",
   "runpod": {
     "active": "personal",
     "accounts": [
@@ -18,6 +18,15 @@
     "accounts": [
       { "name": "default", "env": { "MODAL_TOKEN_ID": "${MODAL_TOKEN_ID}", "MODAL_TOKEN_SECRET": "${MODAL_TOKEN_SECRET}" } },
       { "name": "team", "env": { "MODAL_TOKEN_ID": "${MODAL_TOKEN_ID_TEAM}", "MODAL_TOKEN_SECRET": "${MODAL_TOKEN_SECRET_TEAM}" } }
+    ]
+  },
+  "ovh": {
+    "active": "ca",
+    "accounts": [
+      { "name": "ca", "env": { "OVH_ENDPOINT": "ovh-ca", "OVH_APPLICATION_KEY": "${OVH_APPLICATION_KEY}", "OVH_APPLICATION_SECRET": "${OVH_APPLICATION_SECRET}", "OVH_CONSUMER_KEY": "${OVH_CONSUMER_KEY}" } },
+      { "name": "eu", "env": { "OVH_ENDPOINT": "ovh-eu", "OVH_APPLICATION_KEY": "${OVH_APPLICATION_KEY_EU}", "OVH_APPLICATION_SECRET": "${OVH_APPLICATION_SECRET_EU}", "OVH_CONSUMER_KEY": "${OVH_CONSUMER_KEY_EU}" } },
+      { "name": "us", "env": { "OVH_ENDPOINT": "ovh-us", "OVH_APPLICATION_KEY": "${OVH_APPLICATION_KEY_US}", "OVH_APPLICATION_SECRET": "${OVH_APPLICATION_SECRET_US}", "OVH_CONSUMER_KEY": "${OVH_CONSUMER_KEY_US}" } },
+      { "name": "ca-oauth2", "env": { "OVH_ENDPOINT": "ovh-ca", "OVH_CLIENT_ID": "${OVH_CLIENT_ID}", "OVH_CLIENT_SECRET": "${OVH_CLIENT_SECRET}" } }
     ]
   }
 }

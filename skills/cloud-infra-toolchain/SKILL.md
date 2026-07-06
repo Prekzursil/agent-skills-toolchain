@@ -1,6 +1,6 @@
 ---
 name: cloud-infra-toolchain
-description: "Use when working with the user's cloud-infrastructure MCP stack fronted by the cloud-hub multiplexer - RunPod, Azure, Google Cloud, Kaggle, rclone, Modal, and Lightning AI behind one lazy MCP slot. Covers which platform does what, adopt-vs-build status, per-platform auth + the account-switch/cycle multi-account layer, the workflows (train on Kaggle, rent a GPU on RunPod/Modal/Lightning, deploy to Cloud Run/AKS, move data with rclone), the rclone rcd daemon prereq, the Windows `cmd /c npx` note, GPU cost-awareness + read-before-destroy operating rules, and the per-backend tool inventory. Multi-accounting can breach a platform's ToS - flag it."
+description: "Use when working with the user's cloud-infrastructure MCP stack fronted by the cloud-hub multiplexer - RunPod, Azure, Google Cloud, Kaggle, rclone, Modal, Lightning AI, and OVHcloud behind one lazy MCP slot. Covers which platform does what, adopt-vs-build-vs-vendor status, per-platform auth + the account-switch/cycle multi-account layer (incl. OVH region rotation ca/eu/us), the workflows (train on Kaggle, rent a GPU on RunPod/Modal/Lightning/OVH, deploy to Cloud Run/AKS, move data with rclone), the rclone rcd daemon prereq, the Windows `cmd /c npx` note, GPU cost-awareness + read-before-destroy operating rules, and the per-backend tool inventory. Multi-accounting can breach a platform's ToS - flag it."
 ---
 
 # Cloud Infrastructure MCP Toolchain
@@ -10,19 +10,21 @@ description: "Use when working with the user's cloud-infrastructure MCP stack fr
 The user's cloud-infra MCP servers are fronted by **`cloud-hub`** — one lazy,
 name-preserving multiplexer (`tools/mcp/cloud-hub/`) that answers `tools/list`
 from committed caches **without spawning** and lazily spawns **only** the owning
-backend on a `tools/call`. Seven platforms, **185 backend tools + 42 account
-tools = 227**, behind a single MCP registration. Five servers are **adopted**
-(existing MCP packages) and two are **built** thin FastMCP wrappers.
+backend on a `tools/call`. Eight platforms, **214 backend tools + 48 account
+tools = 262**, behind a single MCP registration. Five servers are **adopted**
+(existing MCP packages), two are **built** thin FastMCP wrappers, and one
+(OVHcloud) is a **vendored** TS server built from source.
 
 | Platform | pkg / runtime | Auth | Adopt/Build | Tools | Hard limits |
 |---|---|---|---|---:|---|
 | **RunPod** | `npx @runpod/mcp-server@latest` (Node) | `RUNPOD_API_KEY` | adopt | 50 | GPU billed per-second; pods/endpoints cost money while running |
 | **Azure** | `npx @azure/mcp@latest server start` (.NET) | `az login` | adopt | 14* | *hand-authored cache (the .NET server didn't enumerate under piped stdio); `--refresh azure` upgrades it |
 | **Google Cloud** | `npx @google-cloud/gcloud-mcp` (Node) | gcloud ADC + `GOOGLE_CLOUD_PROJECT` | adopt | 1 | single `run_gcloud_command` passthrough — full gcloud surface, full gcloud risk |
-| **Kaggle** | `uvx kaggle-mcp-server` (Python) | `KAGGLE_API_TOKEN` / `~/.kaggle/kaggle.json` | adopt | 51 | free-tier GPU/TPU quota (~30h/wk); kernels are public unless set private |
+| **Kaggle** | `uvx kaggle-mcp-server` (Python) | `KAGGLE_USERNAME`+`KAGGLE_KEY` / `~/.kaggle/kaggle.json` | adopt | 51 | free-tier GPU/TPU quota (~30h/wk); kernels are public unless set private |
 | **rclone** | `npx rclone-mcp` over `rclone rcd` | RC daemon :5572 | adopt | 56 | **needs the rcd daemon** (auto-started); `sync`/`move`/`delete` are destructive |
 | **Modal** | built FastMCP wrapper (`modal` CLI) | `MODAL_TOKEN_ID`+`MODAL_TOKEN_SECRET` | build | 6 | `run`/`deploy` start billable compute |
-| **Lightning AI** | built FastMCP wrapper (`lightning_sdk`) | `LIGHTNING_USER_ID`+`LIGHTNING_API_KEY` | build | 7 | Studios/Jobs bill by the second; `lightning-sdk` must be installed |
+| **Lightning AI** | built FastMCP wrapper (`lightning_sdk`) | `LIGHTNING_USER_ID`+`LIGHTNING_API_KEY` | build | 9 | Studios/Jobs bill by the second; `lightning-sdk` must be installed |
+| **OVHcloud** | vendored TS MCP (`node ovh-mcp/dist/index.js`) | `OVH_APPLICATION_KEY`+`_SECRET`+`_CONSUMER_KEY` (or OAuth2) per region | vendor+build | 27 | GPU instances bill hourly; `ov_account_switch ca\|eu\|us` flips region+creds (EU/CA/US are separate entities) |
 
 The two built wrappers **pre-namespace** their tools (`modal_*`, `lightning_*`) so
 the hub's collision-prefix never fires. There are **no cross-backend collisions**
@@ -36,11 +38,13 @@ tools per backend (served without spawning, handled by the hub):
 
 `<prefix>_account_list · _current · _add · _remove · _switch · _cycle`
 — prefixes: `rp` RunPod · `az` Azure · `gc` gcloud · `kg` Kaggle · `rc` rclone ·
-`md` Modal · `lg` Lightning. E.g. `rp_account_switch`, `kg_account_cycle`,
-`md_account_add`, `az_account_list`.
+`md` Modal · `lg` Lightning · `ov` OVHcloud. E.g. `rp_account_switch`,
+`kg_account_cycle`, `md_account_add`, `az_account_list`, `ov_account_switch`.
 
-- **env-mode** (runpod, kaggle, modal, lightning, rclone): an account is a bundle of
+- **env-mode** (runpod, kaggle, modal, lightning, ovh, rclone): an account is a bundle of
   env vars (literal or `${ENV}` refs), stored in the **gitignored** `accounts.json`.
+  For **OVH** each account also carries `OVH_ENDPOINT` (`ovh-eu`/`ovh-ca`/`ovh-us`),
+  so `ov_account_switch ca|eu|us` flips region AND credentials in one call.
   The active account's env is injected when the hub spawns that backend.
 - **cli-mode** (azure, gcloud): an account is the CLI's own profile — Azure
   subscriptions (`az account set`) / gcloud configurations
@@ -64,10 +68,11 @@ tools per backend (served without spawning, handled by the hub):
 | RunPod | Console → Settings → API Keys → `RUNPOD_API_KEY` |
 | Azure | `az login` (device or browser); account = a subscription from `az account list` |
 | Google Cloud | `gcloud auth login` + `gcloud auth application-default login`; set `GOOGLE_CLOUD_PROJECT`; account = a `gcloud config configurations` profile |
-| Kaggle | kaggle.com → Account → Create New API Token → `~/.kaggle/kaggle.json` (or `KAGGLE_API_TOKEN`) |
+| Kaggle | kaggle.com → Account → Create New API Token → `~/.kaggle/kaggle.json` (or `KAGGLE_USERNAME`+`KAGGLE_KEY`) |
 | rclone | `rclone config` to add remotes; the hub launcher starts `rclone rcd --rc-no-auth --rc-addr :5572` |
 | Modal | `modal token new` (writes `~/.modal.toml`) or `MODAL_TOKEN_ID`+`MODAL_TOKEN_SECRET` |
 | Lightning AI | lightning.ai → Settings → Keys → `LIGHTNING_USER_ID`+`LIGHTNING_API_KEY`; `pip install lightning-sdk` |
+| OVHcloud | [ovh.com/auth/api/createToken](https://www.ovh.com/auth/api/createToken) → `OVH_APPLICATION_KEY`+`_SECRET`+`_CONSUMER_KEY` (or OAuth2 `OVH_CLIENT_ID`+`OVH_CLIENT_SECRET`). One `ov` account **per region** (set `OVH_ENDPOINT`=`ovh-eu`/`ovh-ca`/`ovh-us` in each). Build once: `cd ovh-mcp && npm ci && npm run build` |
 
 Credentials pass to the hub via its registration `env` block (see the cloud-hub
 README) and/or `accounts.json`. Never inline a secret in a command or commit it.
@@ -92,6 +97,13 @@ Datasets: `dataset_download` (inputs), `dataset_create`/`dataset_create_version`
 - **Lightning Studio/Job**: `lightning_machine_types` → `lightning_studio_start
   name machine=A10G` → `lightning_studio_run` (or `lightning_job_submit` for async)
   → **`lightning_studio_stop`/`lightning_job_stop`**. Best for interactive dev.
+- **OVHcloud instance** (persistent root VM, EU/CA/US): `ov_account_switch ca|eu|us`
+  to pick region, then drive Public Cloud via **`ovh_api_raw`** (no purpose-built
+  tool): `POST /cloud/project/{proj}/instance` with a GPU flavor (`l40s-90`,
+  `a100-180`, `l4-90`) → poll `GET .../instance/{id}` until `ACTIVE` → read the
+  public IP → run the job over **`ovh_ssh_exec`** → **`DELETE .../instance/{id}`**
+  when done to stop billing. Best when you need a full **root** install (e.g.
+  Schrödinger + a served FlexLM license) that a serverless container can't host.
 
 ### Deploy an app
 - **Cloud Run (GCP):** `run_gcloud_command` with `run deploy <svc> --source . --region
@@ -166,6 +178,14 @@ real Python entry points run under the hub's own interpreter.
   `azmcp_keyvault_key_list`, `azmcp_aks_cluster_list`, `azmcp_bestpractices_get`.
 - **Google Cloud** (`gc`, 1): `run_gcloud_command` — runs any `gcloud` command
   (compute, run, storage, container/GKE, ...).
+- **OVHcloud** (`ov`, 27): VPS lifecycle (`ovh_vps_list`/`_info`/`_start`/`_stop`/
+  `_reboot`/`_snapshot`/`_create_snapshot`/`_ips`/`_monitoring`), DNS (`ovh_domain_list`,
+  `ovh_domain_dns_records`/`_create`/`_update`/`_delete`/`_refresh`, `ovh_domain_zone_info`),
+  billing (`ovh_account_info`, `ovh_services`, `ovh_invoices`, `ovh_invoice_detail`),
+  **SSH** (`ovh_ssh_exec` run a command, `ovh_ssh_check`), and the API layer
+  (`ovh_api_catalog`/`_search`/`_endpoint_detail`, **`ovh_api_raw`** = call ANY of
+  500+ OVH endpoints incl. Public Cloud `/cloud/project/…` GPU instances). Region +
+  creds per `ov` account (`ovh-eu`/`ovh-ca`/`ovh-us`).
 
 **Registration + full mechanics:** see `tools/mcp/cloud-hub/README.md`. The hub is
 not wired into `~/.mcp.json` by this skill — the orchestrator registers it.
