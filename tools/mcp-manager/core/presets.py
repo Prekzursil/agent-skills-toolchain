@@ -257,9 +257,7 @@ def write_catalog(
     raw[_CORE_KEY] = list(catalog.core)
     raw[_PRESETS_KEY] = {k: list(v) for k, v in catalog.presets.items()}
     path.parent.mkdir(parents=True, exist_ok=True)
-    _ = path.write_text(
-        json.dumps(raw, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
+    _ = path.write_text(json.dumps(raw, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
 def ensure_catalog_file(path: Path = _PRESETS_PATH) -> PresetCatalog:

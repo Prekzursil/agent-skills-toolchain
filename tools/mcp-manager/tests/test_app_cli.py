@@ -107,7 +107,11 @@ from core import live_macro as _lm  # noqa: E402
 
 def _empty_resolve() -> ResolveResult:
     return ResolveResult(
-        to_disable=[], to_enable=[], matched={}, unmatched_members=[], unknown_presets=[]
+        to_disable=[],
+        to_enable=[],
+        matched={},
+        unmatched_members=[],
+        unknown_presets=[],
     )
 
 

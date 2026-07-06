@@ -97,7 +97,9 @@ def cmd_consolidate() -> None:
 
 
 def cmd_json() -> None:
-    json.dump(build_inventory(HOME, project_path=current_project_path()), sys.stdout, indent=2)
+    json.dump(
+        build_inventory(HOME, project_path=current_project_path()), sys.stdout, indent=2
+    )
 
 
 # ── argument helpers ──────────────────────────────────────────────────────────
@@ -225,7 +227,9 @@ def _preset_delete(rest: list[str]) -> int:
 def cmd_use(args: list[str]) -> int:
     selected, valued, bare = _split_flags(args)
     if not selected:
-        print("Usage: use <preset...> [--from-paste <file>] [--project <path>] [--dry-run]")
+        print(
+            "Usage: use <preset...> [--from-paste <file>] [--project <path>] [--dry-run]"
+        )
         return 2
     project_path = valued.get("project") or current_project_path()
     inv = _resolve_inventory(valued.get("from-paste"), project_path)
@@ -302,7 +306,9 @@ def cmd_try_live(args: list[str]) -> int:
     print("Blind arrow-navigation of the /mcp TUI. No reliable success signal.")
     print("=" * 68)
     if not selected:
-        print("Usage: try-live <preset...> --from-paste <file> --window \"<title>\" [--apply]")
+        print(
+            'Usage: try-live <preset...> --from-paste <file> --window "<title>" [--apply]'
+        )
         return 2
     from_paste = valued.get("from-paste")
     if from_paste is None:

@@ -383,8 +383,7 @@ class _PasteDialog(QDialog):
         self._edit.setPlaceholderText("apktool-mcp · ✔ connected · 16 tools ...")
         layout.addWidget(self._edit)
         buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok
-            | QDialogButtonBox.StandardButton.Cancel
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
         _ = buttons.accepted.connect(self.accept)
         _ = buttons.rejected.connect(self.reject)

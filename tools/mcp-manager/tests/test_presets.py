@@ -129,9 +129,7 @@ class TestWriteCatalog:
 
     def test_preserves_unknown_keys(self, tmp_path: Path):
         p = tmp_path / "presets.json"
-        p.write_text(
-            json.dumps({"_comment": "keep me", "core": []}), encoding="utf-8"
-        )
+        p.write_text(json.dumps({"_comment": "keep me", "core": []}), encoding="utf-8")
         cat = pm.read_catalog(p)
         cat.core.append("new")
         pm.write_catalog(cat, p, backup=False)
@@ -271,6 +269,17 @@ class TestResolveDisabled:
         res = pm.resolve_disabled(cat, ["re"], ["ida-pro-mcp"])
         assert res.to_enable == ["ida-pro-mcp"]
 
+    def test_member_in_core_and_preset_deduplicated(self):
+        # 'basic-memory' is in core AND in the selected preset, so the second
+        # occurrence hits the dedup-skip branch in _collect_enable_members.
+        cat = pm.PresetCatalog(
+            core=["basic-memory"], presets={"dup": ["basic-memory", "docker"]}
+        )
+        inv = ["basic-memory", "docker"]
+        res = pm.resolve_disabled(cat, ["dup"], inv)
+        assert set(res.to_enable) == {"basic-memory", "docker"}
+        assert res.to_disable == []
+
 
 # ── apply_selection ───────────────────────────────────────────────────────────
 
@@ -321,3 +330,18 @@ class TestApplySelection:
             [], ["basic-memory"], cj, "C:/proj", backup_dir=tmp_path / "bak"
         )
         assert res.newly_disabled == []
+
+    def test_already_disabled_not_recounted(self, tmp_path: Path):
+        # 'docker' is in to_disable but ALREADY disabled, so set_server_disabled
+        # returns False and it is not re-counted in newly_disabled (skip branch).
+        cat = pm.PresetCatalog(core=["basic-memory"], presets={})
+        cj = self._claude_json(tmp_path, disabled=["docker"])
+        inv = ["basic-memory", "docker"]
+        res = pm.apply_selection(
+            [], inv, cj, "C:/proj", catalog=cat, backup_dir=tmp_path / "bak"
+        )
+        arr = json.loads(cj.read_text(encoding="utf-8"))["projects"]["C:/proj"][
+            "disabledMcpServers"
+        ]
+        assert "docker" in arr  # still disabled
+        assert res.newly_disabled == []  # not re-counted
