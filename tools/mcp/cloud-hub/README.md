@@ -59,6 +59,11 @@ endpoint must match the account). Creds may be the API-key trio
 (`OVH_CLIENT_ID`/`OVH_CLIENT_SECRET`); the env bundle is auth-agnostic. See the
 `ovh` block in `accounts.example.json` for the three-region template.
 
+`ov_account_add` (like every env-mode backend) accepts an optional **`label`**
+— e.g. the account email — surfaced by `ov_account_list`/`_current` as
+`name → label`, so you can tell which OVH identity each switch-name maps to
+(confirm the live identity any time with `ovh_account_info` = `GET /me`).
+
 ### Collision policy
 
 Unique names are kept **exactly**. Cross-backend collisions would get a minimal

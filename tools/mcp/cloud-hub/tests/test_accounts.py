@@ -82,6 +82,22 @@ def test_env_store_persists_across_reload(tmp_path):
     assert on_disk["rp"]["accounts"][0]["env"]["RP_KEY"] == "${RP_KEY}"
 
 
+def test_account_label_stored_and_shown(tmp_path):
+    """Optional label (e.g. the account email) is stored on add and surfaced by
+    list (a name->label map) + current, so accounts are identifiable beyond the
+    switch name -- the cswap/Modal-style identity the user asked for."""
+    store, _ = _env_store(tmp_path, {"RP_KEY": "s"})
+    assert store.handle("rp", "add",
+                        {"name": "work", "env": {"RP_KEY": "k"},
+                         "label": "andrei@work.com"})["ok"]
+    lst = store.handle("rp", "list", {})
+    assert lst["labels"] == {"work": "andrei@work.com"}
+    assert "default" not in lst["labels"]  # unlabeled accounts absent from the map
+    store.handle("rp", "switch", {"name": "work"})
+    cur = store.handle("rp", "current", {})
+    assert cur["active"] == "work" and cur["label"] == "andrei@work.com"
+
+
 def test_add_duplicate_and_bad_env_rejected(tmp_path):
     store, _ = _env_store(tmp_path, {"RP_KEY": "s"})
     dup = store.handle("rp", "add", {"name": "default", "env": {"RP_KEY": "x"}})

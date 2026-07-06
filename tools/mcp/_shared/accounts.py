@@ -204,6 +204,12 @@ def account_tool_defs(prefix: str, platform: str, mode: str,
                             "description": "Env vars for this account; values "
                                            "may be literals or ${ENV} refs.",
                             "additionalProperties": {"type": "string"}}
+        add_props["label"] = {"type": "string",
+                              "description": "Optional human label / identity for "
+                                             "this account (e.g. the account email "
+                                             "or a friendly name), shown by "
+                                             "list/current so you know which "
+                                             "underlying account each name maps to."}
         add_required = ["name", "env"]
         if file_slots:
             add_props["files"] = {
@@ -420,8 +426,11 @@ class AccountStore:
             names, active = self._cli_names(_require_cli(pol))
             return _ok(pol, "list", accounts=names, active=active, source="cli")
         rec = self._view(pol)
+        accts = rec.get("accounts", [])
         return _ok(pol, "list",
-                   accounts=[a.get("name") for a in rec.get("accounts", [])],
+                   accounts=[a.get("name") for a in accts],
+                   labels={a["name"]: a["label"] for a in accts
+                           if a.get("name") and a.get("label")},
                    active=rec.get("active"), source="store")
 
     def _op_current(self, pol: AccountPolicy, _args: dict) -> dict:
@@ -436,8 +445,8 @@ class AccountStore:
                     None)
         keys = sorted((acct or {}).get("env", {}))
         file_keys = sorted((acct or {}).get("files", {}))
-        return _ok(pol, "current", active=active, env_keys=keys,
-                   file_keys=file_keys, source="store")
+        return _ok(pol, "current", active=active, label=(acct or {}).get("label"),
+                   env_keys=keys, file_keys=file_keys, source="store")
 
     def _op_add(self, pol: AccountPolicy, args: dict) -> dict:
         name = _need_name(args)
@@ -468,6 +477,9 @@ class AccountStore:
         entry = {"name": name, "env": {str(k): str(v) for k, v in env.items()}}
         if files:
             entry["files"] = {str(k): str(v) for k, v in files.items()}
+        label = args.get("label")
+        if isinstance(label, str) and label.strip():
+            entry["label"] = label.strip()
         rec["accounts"].append(entry)
         if not rec.get("active"):
             rec["active"] = name
