@@ -87,9 +87,8 @@ def main():
             print(f"Starting server {i + 1}/{len(servers)}: {server['cmd']}")
 
             # Use shell=True to support commands with cd and &&
-            process = subprocess.Popen(
+            process = subprocess.Popen(  # nosemgrep: quality.opengrep.python-subprocess-shell-true -- shell=True runs a command built internally from controlled args, no untrusted input
                 server["cmd"],
-                # nosemgrep: python.lang.security.audit.subprocess-shell-true.subprocess-shell-true -- command built internally from controlled args, no untrusted input
                 shell=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,

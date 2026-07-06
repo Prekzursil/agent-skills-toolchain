@@ -44,6 +44,7 @@ Switching or cycling accounts to evade a platform's per-account free-tier or
 rate limits may violate that platform's Terms of Service; this tooling is
 ordinary account management for the user's OWN accounts.
 """
+
 from __future__ import annotations
 
 import json
@@ -144,8 +145,13 @@ def _default_runner(argv: tuple[str, ...]) -> tuple[int, str, str]:
         return 127, "", "empty command"
     exe = shutil.which(argv[0]) or argv[0]
     try:
-        proc = subprocess.run([exe, *argv[1:]], capture_output=True, text=True,
-                              encoding="utf-8", errors="replace")
+        proc = subprocess.run(
+            [exe, *argv[1:]],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
         return proc.returncode, proc.stdout or "", proc.stderr or ""
     except OSError as exc:
         return 127, "", str(exc)
@@ -163,7 +169,9 @@ def resolve_env(env: Mapping[str, str], environ: Mapping[str, str]) -> dict[str,
 
 def resolve_path(path: str) -> str:
     """Normalize an account file source: expand ``~`` and ``$VAR``/``%VAR%``."""
-    return os.path.expanduser(os.path.expandvars(path)) if isinstance(path, str) else path
+    return (
+        os.path.expanduser(os.path.expandvars(path)) if isinstance(path, str) else path
+    )
 
 
 def copy_artifact(src: str, dest: str, is_dir: bool) -> None:
@@ -184,9 +192,13 @@ def copy_artifact(src: str, dest: str, is_dir: bool) -> None:
         shutil.copyfile(src, dest)
 
 
-def account_tool_defs(prefix: str, platform: str, mode: str,
-                      label: str = "",
-                      file_slots: tuple[str, ...] = ()) -> list[dict]:
+def account_tool_defs(
+    prefix: str,
+    platform: str,
+    mode: str,
+    label: str = "",
+    file_slots: tuple[str, ...] = (),
+) -> list[dict]:
     """The six synthetic account-management tool schemas for one backend.
 
     Names are ``<prefix>_account_<op>`` so they never collide across backends
@@ -196,56 +208,77 @@ def account_tool_defs(prefix: str, platform: str, mode: str,
     """
     who = label or platform
     string = {"type": "string"}
-    name_arg = {"type": "object", "properties": {"name": string},
-                "required": ["name"]}
+    name_arg = {"type": "object", "properties": {"name": string}, "required": ["name"]}
     add_props: dict = {"name": string}
     if mode == "env":
-        add_props["env"] = {"type": "object",
-                            "description": "Env vars for this account; values "
-                                           "may be literals or ${ENV} refs.",
-                            "additionalProperties": {"type": "string"}}
+        add_props["env"] = {
+            "type": "object",
+            "description": "Env vars for this account; values "
+            "may be literals or ${ENV} refs.",
+            "additionalProperties": {"type": "string"},
+        }
         add_required = ["name", "env"]
         if file_slots:
             add_props["files"] = {
                 "type": "object",
                 "description": "Per-account session/cookie file (or dir) paths, "
-                               "keyed by slot: " + ", ".join(file_slots) + ". "
-                               "Switching points the backend at this account's "
-                               "file. env may be {} when only files differ.",
-                "additionalProperties": {"type": "string"}}
+                "keyed by slot: " + ", ".join(file_slots) + ". "
+                "Switching points the backend at this account's "
+                "file. env may be {} when only files differ.",
+                "additionalProperties": {"type": "string"},
+            }
             add_required = ["name"]  # a file-only account needs no env bundle
     else:
         add_required = ["name"]
     empty = {"type": "object", "properties": {}}
-    files_tip = (" Accounts may carry per-account session/cookie files "
-                 f"({', '.join(file_slots)})." if file_slots else "")
-    tip = (f" Manages the user's OWN {who} accounts "
-           f"({'env-var profiles' if mode == 'env' else 'CLI profiles'})."
-           + files_tip)
+    files_tip = (
+        " Accounts may carry per-account session/cookie files "
+        f"({', '.join(file_slots)})."
+        if file_slots
+        else ""
+    )
+    tip = (
+        f" Manages the user's OWN {who} accounts "
+        f"({'env-var profiles' if mode == 'env' else 'CLI profiles'})." + files_tip
+    )
     return [
-        {"name": f"{prefix}_account_list",
-         "description": f"List the configured {who} accounts and which is active."
-                        + tip,
-         "inputSchema": empty},
-        {"name": f"{prefix}_account_current",
-         "description": f"Show the currently active {who} account." + tip,
-         "inputSchema": empty},
-        {"name": f"{prefix}_account_add",
-         "description": f"Add a named {who} account." + tip,
-         "inputSchema": {"type": "object", "properties": add_props,
-                         "required": add_required}},
-        {"name": f"{prefix}_account_remove",
-         "description": f"Remove a named {who} account." + tip,
-         "inputSchema": name_arg},
-        {"name": f"{prefix}_account_switch",
-         "description": f"Switch the active {who} account by name; the hub "
-                        f"kills+respawns the backend so new creds take effect."
-                        + tip,
-         "inputSchema": name_arg},
-        {"name": f"{prefix}_account_cycle",
-         "description": f"Rotate to the NEXT {who} account (round-robin); the "
-                        f"hub kills+respawns the backend." + tip,
-         "inputSchema": empty},
+        {
+            "name": f"{prefix}_account_list",
+            "description": f"List the configured {who} accounts and which is active."
+            + tip,
+            "inputSchema": empty,
+        },
+        {
+            "name": f"{prefix}_account_current",
+            "description": f"Show the currently active {who} account." + tip,
+            "inputSchema": empty,
+        },
+        {
+            "name": f"{prefix}_account_add",
+            "description": f"Add a named {who} account." + tip,
+            "inputSchema": {
+                "type": "object",
+                "properties": add_props,
+                "required": add_required,
+            },
+        },
+        {
+            "name": f"{prefix}_account_remove",
+            "description": f"Remove a named {who} account." + tip,
+            "inputSchema": name_arg,
+        },
+        {
+            "name": f"{prefix}_account_switch",
+            "description": f"Switch the active {who} account by name; the hub "
+            f"kills+respawns the backend so new creds take effect." + tip,
+            "inputSchema": name_arg,
+        },
+        {
+            "name": f"{prefix}_account_cycle",
+            "description": f"Rotate to the NEXT {who} account (round-robin); the "
+            f"hub kills+respawns the backend." + tip,
+            "inputSchema": empty,
+        },
     ]
 
 
@@ -256,9 +289,13 @@ class AccountStore:
     delegate to an (injectable) ``runner`` so they can be unit-tested.
     """
 
-    def __init__(self, path: str, policies: Iterable[AccountPolicy],
-                 environ: Mapping[str, str] | None = None,
-                 runner: Runner | None = None) -> None:
+    def __init__(
+        self,
+        path: str,
+        policies: Iterable[AccountPolicy],
+        environ: Mapping[str, str] | None = None,
+        runner: Runner | None = None,
+    ) -> None:
         self.path = path
         self.policies: dict[str, AccountPolicy] = {p.platform: p for p in policies}
         self.environ = environ if environ is not None else os.environ
@@ -288,9 +325,12 @@ class AccountStore:
     def _seed_record(self, pol: AccountPolicy) -> dict | None:
         """Synthesize an in-memory ``default`` record from registration env."""
         if pol.seed_env and all(n in self.environ for n in pol.seed_env):
-            return {"active": "default",
-                    "accounts": [{"name": "default",
-                                  "env": {n: f"${{{n}}}" for n in pol.seed_env}}]}
+            return {
+                "active": "default",
+                "accounts": [
+                    {"name": "default", "env": {n: f"${{{n}}}" for n in pol.seed_env}}
+                ],
+            }
         return None
 
     def _view(self, pol: AccountPolicy) -> dict:
@@ -305,9 +345,14 @@ class AccountStore:
         rec = self._data.get(pol.platform)
         if not rec or not rec.get("accounts"):
             seed = self._seed_record(pol)
-            rec = {"active": seed["active"],
-                   "accounts": [dict(a) for a in seed["accounts"]]} if seed \
+            rec = (
+                {
+                    "active": seed["active"],
+                    "accounts": [dict(a) for a in seed["accounts"]],
+                }
+                if seed
                 else {"active": None, "accounts": []}
+            )
             self._data[pol.platform] = rec
         return rec
 
@@ -336,7 +381,11 @@ class AccountStore:
         out = resolve_env(acct.get("env", {}), self.environ)
         files = acct.get("files") or {}
         for slot in pol.files:
-            if slot.env_var and isinstance(files.get(slot.key), str) and files[slot.key]:
+            if (
+                slot.env_var
+                and isinstance(files.get(slot.key), str)
+                and files[slot.key]
+            ):
                 out[slot.env_var] = resolve_path(files[slot.key])
         return out
 
@@ -358,12 +407,14 @@ class AccountStore:
         for slot in pol.files:
             src = files.get(slot.key)
             if not slot.env_var and isinstance(src, str) and src:
-                actions.append(FileAction(slot.key, resolve_path(src),
-                                          slot.dest, slot.is_dir))
+                actions.append(
+                    FileAction(slot.key, resolve_path(src), slot.dest, slot.is_dir)
+                )
         return actions
 
     def materialize_files(
-        self, platform: str,
+        self,
+        platform: str,
         copier: "Callable[[str, str, bool], None] | None" = None,
     ) -> dict:
         """Copy the active account's copy-only artifacts onto their fixed paths.
@@ -377,8 +428,13 @@ class AccountStore:
         errors: list[dict] = []
         for act in self.active_files(platform):
             if not os.path.exists(act.src):
-                errors.append({"key": act.key, "src": act.src,
-                               "error": "source path does not exist"})
+                errors.append(
+                    {
+                        "key": act.key,
+                        "src": act.src,
+                        "error": "source path does not exist",
+                    }
+                )
                 continue
             try:
                 do_copy(act.src, act.dest, act.is_dir)
@@ -420,24 +476,36 @@ class AccountStore:
             names, active = self._cli_names(_require_cli(pol))
             return _ok(pol, "list", accounts=names, active=active, source="cli")
         rec = self._view(pol)
-        return _ok(pol, "list",
-                   accounts=[a.get("name") for a in rec.get("accounts", [])],
-                   active=rec.get("active"), source="store")
+        return _ok(
+            pol,
+            "list",
+            accounts=[a.get("name") for a in rec.get("accounts", [])],
+            active=rec.get("active"),
+            source="store",
+        )
 
     def _op_current(self, pol: AccountPolicy, _args: dict) -> dict:
         if pol.mode == "cli":
             _rc, out, _err = self.runner(_require_cli(pol).current_cmd)
             lines = self._lines(out)
-            return _ok(pol, "current", active=(lines[0] if lines else None),
-                       source="cli")
+            return _ok(
+                pol, "current", active=(lines[0] if lines else None), source="cli"
+            )
         rec = self._view(pol)
         active = rec.get("active")
-        acct = next((a for a in rec.get("accounts", []) if a.get("name") == active),
-                    None)
+        acct = next(
+            (a for a in rec.get("accounts", []) if a.get("name") == active), None
+        )
         keys = sorted((acct or {}).get("env", {}))
         file_keys = sorted((acct or {}).get("files", {}))
-        return _ok(pol, "current", active=active, env_keys=keys,
-                   file_keys=file_keys, source="store")
+        return _ok(
+            pol,
+            "current",
+            active=active,
+            env_keys=keys,
+            file_keys=file_keys,
+            source="store",
+        )
 
     def _op_add(self, pol: AccountPolicy, args: dict) -> dict:
         name = _need_name(args)
@@ -445,7 +513,8 @@ class AccountStore:
             cli = _require_cli(pol)
             if not cli.add_cmd:
                 raise _AccountError(
-                    f"add is not supported for {pol.platform}; {cli.add_hint}")
+                    f"add is not supported for {pol.platform}; {cli.add_hint}"
+                )
             rc, out, err = self.runner(self._fill(cli.add_cmd, name))
             return _cli_result(pol, "add", rc, out, err, name=name)
         env = args.get("env") or {}
@@ -455,13 +524,13 @@ class AccountStore:
         if not isinstance(files, dict):
             raise _AccountError("'files' must be an object of slot->path")
         if not env and not files:
-            raise _AccountError(
-                "provide a non-empty 'env' bundle and/or a 'files' map")
+            raise _AccountError("provide a non-empty 'env' bundle and/or a 'files' map")
         known = {s.key for s in pol.files}
         unknown = [k for k in files if k not in known]
         if unknown:
             raise _AccountError(
-                f"unknown file slot(s) {unknown}; valid: {sorted(known) or 'none'}")
+                f"unknown file slot(s) {unknown}; valid: {sorted(known) or 'none'}"
+            )
         rec = self._materialize(pol)
         if any(a.get("name") == name for a in rec["accounts"]):
             raise _AccountError(f"account {name!r} already exists")
@@ -480,7 +549,8 @@ class AccountStore:
             cli = _require_cli(pol)
             if not cli.remove_cmd:
                 raise _AccountError(
-                    f"remove is not supported for {pol.platform}; {cli.remove_hint}")
+                    f"remove is not supported for {pol.platform}; {cli.remove_hint}"
+                )
             rc, out, err = self.runner(self._fill(cli.remove_cmd, name))
             return _cli_result(pol, "remove", rc, out, err, name=name)
         rec = self._materialize(pol)
@@ -514,8 +584,7 @@ class AccountStore:
             names, active = self._cli_names(cli)
             nxt = _next_name(names, active)
             rc, out, err = self.runner(self._fill(cli.activate_cmd, nxt))
-            res = _cli_result(pol, "cycle", rc, out, err, active=nxt,
-                              previous=active)
+            res = _cli_result(pol, "cycle", rc, out, err, active=nxt, previous=active)
             res["respawn"] = res["ok"]
             return res
         rec = self._materialize(pol)
@@ -554,19 +623,21 @@ def _next_name(names: list[str], active: str | None) -> str:
 
 
 def _ok(pol: AccountPolicy, op: str, **extra) -> dict:
-    return {"ok": True, "platform": pol.platform, "mode": pol.mode,
-            "op": op, **extra}
+    return {"ok": True, "platform": pol.platform, "mode": pol.mode, "op": op, **extra}
 
 
 def _err(platform: str, op: str, message: str) -> dict:
     return {"ok": False, "platform": platform, "op": op, "error": message}
 
 
-def _cli_result(pol: AccountPolicy, op: str, rc: int, out: str, err: str,
-                **extra) -> dict:
-    res = _ok(pol, op, **extra) if rc == 0 else _err(pol.platform, op,
-                                                     (err or out).strip()
-                                                     or f"CLI exited {rc}")
+def _cli_result(
+    pol: AccountPolicy, op: str, rc: int, out: str, err: str, **extra
+) -> dict:
+    res = (
+        _ok(pol, op, **extra)
+        if rc == 0
+        else _err(pol.platform, op, (err or out).strip() or f"CLI exited {rc}")
+    )
     res["source"] = "cli"
     if out.strip():
         res["stdout"] = out.strip()[:2000]

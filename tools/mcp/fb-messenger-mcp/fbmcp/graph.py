@@ -13,6 +13,7 @@ Instagram account needs NO app review. Auth via environment:
 Nothing here uses cookies - it is entirely the official Graph API, so it never
 touches the E2EE / private-API surface.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -229,13 +230,14 @@ def register_graph_tools(mcp: FastMCP) -> None:
         confirm T1 setup before posting."""
         gc = graph_client()
         out: dict = {"version": gc.version}
-        out["me"] = await gc.get(
-            "me", {"fields": "id,name,category,tasks"}
-        )
+        out["me"] = await gc.get("me", {"fields": "id,name,category,tasks"})
         if gc.app_id and gc.app_secret:
             out["debug_token"] = await gc.get(
                 "debug_token",
-                {"input_token": gc.token, "access_token": f"{gc.app_id}|{gc.app_secret}"},
+                {
+                    "input_token": gc.token,
+                    "access_token": f"{gc.app_id}|{gc.app_secret}",
+                },
             )
         return dump(out)
 
@@ -245,7 +247,9 @@ def register_graph_tools(mcp: FastMCP) -> None:
         """Publish a text (and optional link) post to your Page feed. Returns the
         new post id. Needs pages_manage_posts."""
         gc = graph_client()
-        res = await gc.post(f"{_page(gc)}/feed", data={"message": message, "link": link})
+        res = await gc.post(
+            f"{_page(gc)}/feed", data={"message": message, "link": link}
+        )
         return dump(res)
 
     @mcp.tool()
@@ -307,7 +311,11 @@ def register_graph_tools(mcp: FastMCP) -> None:
         if video_url:
             res = await gc.post(
                 f"{page}/videos",
-                data={"file_url": video_url, "title": title, "description": description},
+                data={
+                    "file_url": video_url,
+                    "title": title,
+                    "description": description,
+                },
                 video=True,
             )
         elif video_path:
@@ -363,9 +371,7 @@ def register_graph_tools(mcp: FastMCP) -> None:
             )
         else:
             return dump({"error": "provide an image_* or video_* argument"})
-        res = await gc.post(
-            f"{page}/photo_stories", data={"photo_id": photo.get("id")}
-        )
+        res = await gc.post(f"{page}/photo_stories", data={"photo_id": photo.get("id")})
         return dump({"photo": photo, "story": res})
 
     # -- Page: reading + moderation --------------------------------------- #
@@ -422,14 +428,18 @@ def register_graph_tools(mcp: FastMCP) -> None:
             res = await gc.delete(f"{comment_id}/likes")
         else:
             return dump(
-                {"error": f"unknown action '{action}'",
-                 "valid": ["reply", "hide", "unhide", "delete", "like", "unlike"]}
+                {
+                    "error": f"unknown action '{action}'",
+                    "valid": ["reply", "hide", "unhide", "delete", "like", "unlike"],
+                }
             )
         return dump({"action": act, "comment_id": comment_id, "result": res})
 
     @mcp.tool()
     async def fb_page_insights(
-        metric: str, period: str = "day", since: Optional[str] = None,
+        metric: str,
+        period: str = "day",
+        since: Optional[str] = None,
         until: Optional[str] = None,
     ) -> str:
         """Read Page insights. metric = comma-separated metric names (e.g.
@@ -480,7 +490,11 @@ def register_graph_tools(mcp: FastMCP) -> None:
                 return dump({"error": "REELS requires video_url"})
             container = await gc.post(
                 f"{ig}/media",
-                data={"media_type": "REELS", "video_url": video_url, "caption": caption},
+                data={
+                    "media_type": "REELS",
+                    "video_url": video_url,
+                    "caption": caption,
+                },
             )
         else:
             if not image_url:
@@ -529,7 +543,9 @@ def register_graph_tools(mcp: FastMCP) -> None:
             res = await gc.delete(comment_id)
         else:
             return dump(
-                {"error": f"unknown action '{action}'",
-                 "valid": ["reply", "hide", "unhide", "delete"]}
+                {
+                    "error": f"unknown action '{action}'",
+                    "valid": ["reply", "hide", "unhide", "delete"],
+                }
             )
         return dump({"action": act, "comment_id": comment_id, "result": res})

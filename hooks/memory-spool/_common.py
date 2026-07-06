@@ -81,7 +81,9 @@ def payload_key(tool_name: str, tool_input: dict) -> str:
     except Exception:
         blob = str(tool_name) + "|" + repr(tool_input)
     # nosemgrep: python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1 -- non-cryptographic dedup fingerprint, not a security control
-    return hashlib.sha1(blob.encode("utf-8", "replace")).hexdigest()[:12]
+    return hashlib.sha1(
+        blob.encode("utf-8", "replace"), usedforsecurity=False
+    ).hexdigest()[:12]
 
 
 def title_of(tool_name: str, tool_input: dict) -> str:

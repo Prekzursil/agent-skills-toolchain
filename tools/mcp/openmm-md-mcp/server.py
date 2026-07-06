@@ -15,6 +15,7 @@ The eight tools chain through a `job_dir` on disk (prepare -> solvate -> minimiz
 equilibrate -> production -> analyze -> mmgbsa). Heavy logic lives in omm_pipeline.py;
 these are thin, validated wrappers returning terminal-state JSON envelopes.
 """
+
 from __future__ import annotations
 
 import json
@@ -52,7 +53,11 @@ def _call(fn, **kw) -> dict[str, Any]:
 
 
 def _default_job_dir() -> str:
-    d = Path(tempfile.gettempdir()) / "openmm-md" / f"run-{time.strftime('%Y%m%d-%H%M%S')}"
+    d = (
+        Path(tempfile.gettempdir())
+        / "openmm-md"
+        / f"run-{time.strftime('%Y%m%d-%H%M%S')}"
+    )
     return str(d)
 
 
@@ -93,15 +98,26 @@ def openmm_prepare(
     ligand.sdf, complex.pdb, spec.json and runs a vacuum parametrization feasibility check."""
     jd = job_dir or _default_job_dir()
     out = _call(
-        omm.prepare, protein=protein, job_dir=jd, ligand_smiles=ligand_smiles,
-        ligand_file=ligand_file, water_model=water_model, ligand_ff=ligand_ff, ph=ph,
-        keep_water=keep_water, keep_hetero=keep_hetero, charge_method=charge_method,
+        omm.prepare,
+        protein=protein,
+        job_dir=jd,
+        ligand_smiles=ligand_smiles,
+        ligand_file=ligand_file,
+        water_model=water_model,
+        ligand_ff=ligand_ff,
+        ph=ph,
+        keep_water=keep_water,
+        keep_hetero=keep_hetero,
+        charge_method=charge_method,
     )
     if out.get("status") == "SUCCESS":
         out["summary"] = (
             f"SUCCESS: prepared {out['n_protein_atoms']} protein atoms"
-            + (f" + ligand ({out['n_ligand_atoms']} atoms, charges={out.get('charge_method_used')})"
-               if out.get("has_ligand") else "")
+            + (
+                f" + ligand ({out['n_ligand_atoms']} atoms, charges={out.get('charge_method_used')})"
+                if out.get("has_ligand")
+                else ""
+            )
             + f" in {out['job_dir']}"
         )
     return out
@@ -126,9 +142,15 @@ def openmm_solvate(
     + HBond constraints + rigid water and serializes it. Set `hydrogen_mass_amu=4.0` for
     hydrogen-mass repartitioning (enables a 4 fs timestep). Writes solvated.pdb + system.xml."""
     return _call(
-        omm.solvate, job_dir=job_dir, padding_nm=padding_nm, ion_conc_M=ion_conc_M,
-        box_shape=box_shape, neutralize=neutralize, nonbonded_cutoff_nm=nonbonded_cutoff_nm,
-        hydrogen_mass_amu=hydrogen_mass_amu, water_model=water_model,
+        omm.solvate,
+        job_dir=job_dir,
+        padding_nm=padding_nm,
+        ion_conc_M=ion_conc_M,
+        box_shape=box_shape,
+        neutralize=neutralize,
+        nonbonded_cutoff_nm=nonbonded_cutoff_nm,
+        hydrogen_mass_amu=hydrogen_mass_amu,
+        water_model=water_model,
     )
 
 
@@ -144,8 +166,12 @@ def openmm_minimize(
     (kJ/mol/nm). `platform` defaults to CUDA; allow_fallback degrades to OpenCL/CPU with the
     actual platform reported. Writes minimized.pdb + state_min.xml; returns initial/final energy."""
     return _call(
-        omm.minimize, job_dir=job_dir, max_iterations=max_iterations,
-        tolerance_kj_nm=tolerance_kj_nm, platform=platform, allow_fallback=allow_fallback,
+        omm.minimize,
+        job_dir=job_dir,
+        max_iterations=max_iterations,
+        tolerance_kj_nm=tolerance_kj_nm,
+        platform=platform,
+        allow_fallback=allow_fallback,
     )
 
 
@@ -166,9 +192,16 @@ def openmm_equilibrate(
     `pressure_bar`) from the minimized state. Writes equilibrated.pdb + state_equil.xml.
     Defaults: 25k NVT + 25k NPT steps at 2 fs (= 100 ps). Set restraint_k=0 to disable."""
     return _call(
-        omm.equilibrate, job_dir=job_dir, temperature_K=temperature_K, pressure_bar=pressure_bar,
-        nvt_steps=nvt_steps, npt_steps=npt_steps, timestep_fs=timestep_fs,
-        restraint_k=restraint_k, platform=platform, allow_fallback=allow_fallback,
+        omm.equilibrate,
+        job_dir=job_dir,
+        temperature_K=temperature_K,
+        pressure_bar=pressure_bar,
+        nvt_steps=nvt_steps,
+        npt_steps=npt_steps,
+        timestep_fs=timestep_fs,
+        restraint_k=restraint_k,
+        platform=platform,
+        allow_fallback=allow_fallback,
     )
 
 
@@ -215,14 +248,24 @@ def openmm_production(
     if status_file.exists():
         cur = json.loads(status_file.read_text(encoding="utf-8"))
         if cur.get("status") == "RUNNING":
-            cur["note"] = "A production run is already RUNNING for this job_dir; not launching another."
+            cur["note"] = (
+                "A production run is already RUNNING for this job_dir; not launching another."
+            )
             cur["status_file"] = str(status_file)
             return cur
 
     kw = dict(
-        job_dir=str(job), ns=ns, timestep_fs=timestep_fs, temperature_K=temperature_K,
-        pressure_bar=pressure_bar, ensemble=ensemble, report_ps=report_ps, traj_ps=traj_ps,
-        checkpoint_ps=checkpoint_ps, platform=platform, allow_fallback=allow_fallback,
+        job_dir=str(job),
+        ns=ns,
+        timestep_fs=timestep_fs,
+        temperature_K=temperature_K,
+        pressure_bar=pressure_bar,
+        ensemble=ensemble,
+        report_ps=report_ps,
+        traj_ps=traj_ps,
+        checkpoint_ps=checkpoint_ps,
+        platform=platform,
+        allow_fallback=allow_fallback,
     )
 
     if blocking:
@@ -234,7 +277,10 @@ def openmm_production(
     try:
         pid = _launch_worker(str(job), kw)
     except Exception as e:
-        return {"status": "FAILED", "error": f"could not launch worker: {type(e).__name__}: {e}"}
+        return {
+            "status": "FAILED",
+            "error": f"could not launch worker: {type(e).__name__}: {e}",
+        }
     return {
         "status": "SUCCESS",
         "action": "launched",
@@ -244,7 +290,7 @@ def openmm_production(
         "trajectory": str(job / "prod.dcd"),
         "summary": f"SUCCESS: detached {ns} ns MD launched (pid {pid}). Poll with openmm_production(poll=True).",
         "note": "Detached MD started. Poll by calling openmm_production(job_dir, poll=True) or "
-                "reading status_file (JSON: status/progress/ns_done/speed_ns_per_day).",
+        "reading status_file (JSON: status/progress/ns_done/speed_ns_per_day).",
     }
 
 
@@ -262,8 +308,13 @@ def openmm_analyze(
     ligand binding-site RMSD (a binding-stability signal). Full per-frame arrays are saved to
     analysis.npz; a numeric summary (Angstrom) is returned."""
     return _call(
-        omm.analyze, job_dir=job_dir, trajectory=trajectory, topology=topology,
-        stride=stride, hbond_freq=hbond_freq, contact_cutoff_nm=contact_cutoff_nm,
+        omm.analyze,
+        job_dir=job_dir,
+        trajectory=trajectory,
+        topology=topology,
+        stride=stride,
+        hbond_freq=hbond_freq,
+        contact_cutoff_nm=contact_cutoff_nm,
     )
 
 
@@ -282,8 +333,12 @@ def openmm_mmgbsa(
     prime_mmgbsa / thermal_mmgbsa) and AmberTools MMPBSA.py (Linux-only). See the returned
     fidelity_note. Returns mean +/- std dG in kJ/mol and kcal/mol."""
     return _call(
-        omm.mmgbsa, job_dir=job_dir, trajectory=trajectory, stride=stride,
-        start_frame=start_frame, max_frames=max_frames,
+        omm.mmgbsa,
+        job_dir=job_dir,
+        trajectory=trajectory,
+        stride=stride,
+        start_frame=start_frame,
+        max_frames=max_frames,
     )
 
 
@@ -300,17 +355,40 @@ def _launch_worker(job_dir: str, kw: dict[str, Any]) -> int:
     dt = float(kw.get("timestep_fs", 2.0)) / 1000.0
     total = max(1, int(round(float(kw.get("ns", 0.0)) * 1000.0 / dt)))
     (job / "prod_status.json").write_text(
-        json.dumps({"status": "STARTING", "step": 0, "total_steps": total,
-                    "progress": 0.0, "ns_target": kw.get("ns")}), encoding="utf-8")
+        json.dumps(
+            {
+                "status": "STARTING",
+                "step": 0,
+                "total_steps": total,
+                "progress": 0.0,
+                "ns_target": kw.get("ns"),
+            }
+        ),
+        encoding="utf-8",
+    )
     logf = open(job / "prod_worker.log", "w", encoding="utf-8")  # noqa: SIM115 (child owns it)
     cmd = [sys.executable, str(Path(__file__).resolve()), "--worker", str(argfile)]
     if sys.platform == "win32":
         flags = 0x00000008 | 0x00000200 | 0x08000000  # DETACHED | NEW_GROUP | NO_WINDOW
-        p = subprocess.Popen(cmd, stdout=logf, stderr=logf, stdin=subprocess.DEVNULL,
-                             creationflags=flags, cwd=str(job), close_fds=True)
+        p = subprocess.Popen(
+            cmd,
+            stdout=logf,
+            stderr=logf,
+            stdin=subprocess.DEVNULL,
+            creationflags=flags,
+            cwd=str(job),
+            close_fds=True,
+        )
     else:
-        p = subprocess.Popen(cmd, stdout=logf, stderr=logf, stdin=subprocess.DEVNULL,
-                             start_new_session=True, cwd=str(job), close_fds=True)
+        p = subprocess.Popen(
+            cmd,
+            stdout=logf,
+            stderr=logf,
+            stdin=subprocess.DEVNULL,
+            start_new_session=True,
+            cwd=str(job),
+            close_fds=True,
+        )
     return p.pid
 
 

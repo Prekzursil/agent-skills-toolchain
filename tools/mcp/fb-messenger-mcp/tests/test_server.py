@@ -1,19 +1,36 @@
 """Server wiring: original tools preserved + full expanded tool set present."""
+
 from __future__ import annotations
 
 ORIGINAL_5 = {"whoami", "list_threads", "read_thread", "search_messages", "thread_info"}
 
 T3_SEND = {
-    "fb_send_message", "fb_send_file", "fb_react_to_message", "fb_unsend_message",
-    "fb_forward_message", "fb_mark_read", "fb_send_typing", "fb_create_group",
+    "fb_send_message",
+    "fb_send_file",
+    "fb_react_to_message",
+    "fb_unsend_message",
+    "fb_forward_message",
+    "fb_mark_read",
+    "fb_send_typing",
+    "fb_create_group",
 }
 
 T1_GRAPH = {
-    "fb_graph_token_info", "fb_page_post", "fb_page_schedule_post",
-    "fb_page_upload_photo", "fb_page_upload_video", "fb_page_upload_reel",
-    "fb_page_upload_story", "fb_page_read_posts", "fb_page_read_comments",
-    "fb_page_moderate", "fb_page_insights", "fb_page_message",
-    "ig_graph_publish", "ig_graph_insights", "ig_graph_moderate_comments",
+    "fb_graph_token_info",
+    "fb_page_post",
+    "fb_page_schedule_post",
+    "fb_page_upload_photo",
+    "fb_page_upload_video",
+    "fb_page_upload_reel",
+    "fb_page_upload_story",
+    "fb_page_read_posts",
+    "fb_page_read_comments",
+    "fb_page_moderate",
+    "fb_page_insights",
+    "fb_page_message",
+    "ig_graph_publish",
+    "ig_graph_insights",
+    "ig_graph_moderate_comments",
 }
 
 T4_DM = {"fb_dm_status", "fb_dm_list", "fb_dm_read", "fb_dm_send", "fb_dm_react"}
