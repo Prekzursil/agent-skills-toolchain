@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Pure-logic tests for the plan builder: collision detection, name merging,
 routing, and degraded-backend handling. No child processes are spawned."""
+
 from __future__ import annotations
 
 import json
@@ -15,15 +16,25 @@ from registry import build_plan  # noqa: E402
 
 
 def _spec(bid: str, prefix: str, cache: str) -> BackendSpec:
-    return BackendSpec(id=bid, label=f"lbl-{bid}", prefix=prefix,
-                       cmd=("noop",), cache=cache)
+    return BackendSpec(
+        id=bid, label=f"lbl-{bid}", prefix=prefix, cmd=("noop",), cache=cache
+    )
 
 
 def _write_cache(cache_dir: str, fname: str, tools: list[str]) -> None:
-    payload = {"initialize": {"protocolVersion": "2024-11-05"},
-               "tools": {"tools": [
-                   {"name": t, "description": f"desc {t}",
-                    "inputSchema": {"type": "object"}} for t in tools]}}
+    payload = {
+        "initialize": {"protocolVersion": "2024-11-05"},
+        "tools": {
+            "tools": [
+                {
+                    "name": t,
+                    "description": f"desc {t}",
+                    "inputSchema": {"type": "object"},
+                }
+                for t in tools
+            ]
+        },
+    }
     with open(os.path.join(cache_dir, fname), "w", encoding="utf-8") as fh:
         json.dump(payload, fh)
 

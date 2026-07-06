@@ -1,5 +1,6 @@
 """T4 E2EE DM: cookie loading, JID mapping, backend call shape, honest
 success reporting, and graceful 'not configured' behavior (no creds needed)."""
+
 from __future__ import annotations
 
 import json
@@ -21,8 +22,11 @@ from fbmcp.backends.fbchat_v2_backend import FbchatV2Backend
 # --------------------------------------------------------------------------- #
 def _c3c(tmp_path, **kv):
     p = tmp_path / "cookies.json"
-    p.write_text(json.dumps([{"key": k, "value": v, "domain": ".facebook.com"}
-                             for k, v in kv.items()]))
+    p.write_text(
+        json.dumps(
+            [{"key": k, "value": v, "domain": ".facebook.com"} for k, v in kv.items()]
+        )
+    )
     return str(p)
 
 
@@ -68,12 +72,34 @@ def test_to_jid_custom_suffix(monkeypatch):
 
 def test_parse_dms_excludes_groups():
     b = FbchatV2Backend(cookies_path="x")
-    data_get = json.dumps({
-        "o0": {"data": {"viewer": {"message_threads": {"nodes": [
-            {"thread_key": {"thread_fbid": "555", "other_user_id": None}, "name": "Group"},
-            {"thread_key": {"thread_fbid": None, "other_user_id": "777"}, "name": "Alice"},
-        ]}}}}
-    })
+    data_get = json.dumps(
+        {
+            "o0": {
+                "data": {
+                    "viewer": {
+                        "message_threads": {
+                            "nodes": [
+                                {
+                                    "thread_key": {
+                                        "thread_fbid": "555",
+                                        "other_user_id": None,
+                                    },
+                                    "name": "Group",
+                                },
+                                {
+                                    "thread_key": {
+                                        "thread_fbid": None,
+                                        "other_user_id": "777",
+                                    },
+                                    "name": "Alice",
+                                },
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    )
     out = b._parse_dms({"dataGet": data_get}, limit=20)
     assert out["count"] == 1
     assert out["dms"][0]["other_user_id"] == "777"
@@ -111,8 +137,12 @@ async def test_backend_react_uses_bridge_rpc():
 
     sender.bridge.call.assert_called_once_with(
         "sendE2EEReaction",
-        {"chatJid": "777@s.whatsapp.net", "messageId": "MID",
-         "senderJid": "777@s.whatsapp.net", "emoji": "❤"},
+        {
+            "chatJid": "777@s.whatsapp.net",
+            "messageId": "MID",
+            "senderJid": "777@s.whatsapp.net",
+            "emoji": "❤",
+        },
     )
 
 

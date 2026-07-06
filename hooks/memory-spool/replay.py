@@ -22,6 +22,7 @@ fires for entries that truly could not be auto-replayed.
 FAIL-OPEN: any error -> exit 0 (never blocks a session). Opt-out: MEMORY_SPOOL=off or a
 .disabled file. Preview with --dry-run.
 """
+
 from __future__ import annotations
 
 import os
@@ -36,13 +37,17 @@ import _common as C  # noqa: E402
 DISABLED = THIS / ".disabled"
 # The basic-memory CLI writes the vault directly (independent of the MCP server).
 BM_EXE = os.environ.get(
-    "BASIC_MEMORY_EXE", str(Path.home() / ".local" / "bin" / "basic-memory.exe"))
+    "BASIC_MEMORY_EXE", str(Path.home() / ".local" / "bin" / "basic-memory.exe")
+)
 TIMEOUT = float(os.environ.get("MEMORY_SPOOL_REPLAY_TIMEOUT", "45"))
 
 
 def _disabled() -> bool:
-    return DISABLED.exists() or os.environ.get(
-        "MEMORY_SPOOL", "").lower() in ("off", "0", "false")
+    return DISABLED.exists() or os.environ.get("MEMORY_SPOOL", "").lower() in (
+        "off",
+        "0",
+        "false",
+    )
 
 
 def build_write_argv(payload: dict) -> list[str] | None:
@@ -57,8 +62,17 @@ def build_write_argv(payload: dict) -> list[str] | None:
     if not title or (not content.strip() and len(title) <= 2):
         return None
     folder = str(payload.get("directory") or payload.get("folder") or "").strip() or "/"
-    argv = [BM_EXE, "tool", "write-note", "--title", title,
-            "--folder", folder, "--overwrite", "--local"]
+    argv = [
+        BM_EXE,
+        "tool",
+        "write-note",
+        "--title",
+        title,
+        "--folder",
+        folder,
+        "--overwrite",
+        "--local",
+    ]
     tags = payload.get("tags")
     if tags:
         argv += ["--tags", tags if isinstance(tags, str) else ",".join(map(str, tags))]
@@ -83,12 +97,17 @@ def _spawn_detached() -> None:
     try:
         flags = 0
         if os.name == "nt":
-            flags = (getattr(subprocess, "CREATE_NO_WINDOW", 0)
-                     | getattr(subprocess, "DETACHED_PROCESS", 0))
+            flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) | getattr(
+                subprocess, "DETACHED_PROCESS", 0
+            )
         subprocess.Popen(
             [sys.executable, os.path.abspath(__file__), "--quiet"],
-            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL, close_fds=True, creationflags=flags)
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            close_fds=True,
+            creationflags=flags,
+        )
     except Exception:  # noqa: BLE001
         pass
 
@@ -99,8 +118,16 @@ def _run(argv: list[str], stdin_text: str) -> bool:
     # then hangs the stdin-writer thread. encoding+env make the round-trip lossless.
     try:
         env = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1")
-        r = subprocess.run(argv, input=stdin_text, capture_output=True, text=True,
-                           encoding="utf-8", errors="replace", timeout=TIMEOUT, env=env)
+        r = subprocess.run(
+            argv,
+            input=stdin_text,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=TIMEOUT,
+            env=env,
+        )
         return r.returncode == 0
     except Exception:  # noqa: BLE001
         return False
@@ -138,7 +165,7 @@ def main(argv) -> int:
         if _disabled():
             return 0
         if "--spawn" in argv:
-            if C.list_spools():   # only pay the process cost when there is work
+            if C.list_spools():  # only pay the process cost when there is work
                 _spawn_detached()
             return 0
         dry = "--dry-run" in argv
@@ -152,11 +179,13 @@ def main(argv) -> int:
         if dry:
             print(counts)
         elif done and "--quiet" not in argv:
-            C.emit("SessionStart",
-                   f"[memory-spool] auto-replayed {counts['replayed']} + GC'd "
-                   f"{counts['garbage']} stale memory write(s) direct to the basic-memory "
-                   f"vault; {counts['keep']} write(s) + {counts['skip']} edit(s) still "
-                   f"pending.")
+            C.emit(
+                "SessionStart",
+                f"[memory-spool] auto-replayed {counts['replayed']} + GC'd "
+                f"{counts['garbage']} stale memory write(s) direct to the basic-memory "
+                f"vault; {counts['keep']} write(s) + {counts['skip']} edit(s) still "
+                f"pending.",
+            )
         return 0
     except Exception:
         return 0  # fail-open

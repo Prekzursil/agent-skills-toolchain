@@ -7,6 +7,7 @@ backends spawned; a ``tools/call`` lazily spawns ONLY the owning backend; a
 collision-renamed name is rewritten back to its original before forwarding; and
 a broken backend degrades to a clear per-tool error without crashing the hub.
 """
+
 from __future__ import annotations
 
 import json
@@ -53,8 +54,13 @@ class Capture:
 
 
 def _fake(bid: str, prefix: str, tools: list[str], cache: str) -> BackendSpec:
-    return BackendSpec(id=bid, label=f"fake-{bid}", prefix=prefix,
-                       cmd=(PY, FAKE, bid, ",".join(tools)), cache=cache)
+    return BackendSpec(
+        id=bid,
+        label=f"fake-{bid}",
+        prefix=prefix,
+        cmd=(PY, FAKE, bid, ",".join(tools)),
+        cache=cache,
+    )
 
 
 @pytest.fixture
@@ -63,8 +69,13 @@ def hub_env(tmp_path):
     specs = [
         _fake("alpha", "al", ["shared_tool", "alpha_only"], "alpha.json"),
         _fake("beta", "be", ["shared_tool", "beta_only"], "beta.json"),
-        BackendSpec(id="broken", label="broken-backend", prefix="bk",
-                    cmd=(PY, BROKEN), cache="broken.json"),
+        BackendSpec(
+            id="broken",
+            label="broken-backend",
+            prefix="bk",
+            cmd=(PY, BROKEN),
+            cache="broken.json",
+        ),
     ]
     old = hub.CACHE_DIR
     hub.CACHE_DIR = cache_dir
@@ -74,9 +85,21 @@ def hub_env(tmp_path):
     # The broken backend cannot enumerate; hand-write a cache so its tool is
     # LISTED but calls to it must fail gracefully.
     with open(os.path.join(cache_dir, "broken.json"), "w", encoding="utf-8") as fh:
-        json.dump({"initialize": {}, "tools": {"tools": [
-            {"name": "broken_tool", "description": "x",
-             "inputSchema": {"type": "object"}}]}}, fh)
+        json.dump(
+            {
+                "initialize": {},
+                "tools": {
+                    "tools": [
+                        {
+                            "name": "broken_tool",
+                            "description": "x",
+                            "inputSchema": {"type": "object"},
+                        }
+                    ]
+                },
+            },
+            fh,
+        )
     plan = build_plan(specs, cache_dir)
     cap = Capture()
     server = hub.HubServer(specs, plan, emit=cap)
@@ -95,8 +118,13 @@ def test_tools_list_served_without_spawning(hub_env):
     msgs = cap.wait(2)
     listing = [m for m in msgs if m.get("id") == 2][0]
     names = {t["name"] for t in listing["result"]["tools"]}
-    assert names == {"al_shared_tool", "alpha_only", "be_shared_tool",
-                     "beta_only", "broken_tool"}
+    assert names == {
+        "al_shared_tool",
+        "alpha_only",
+        "be_shared_tool",
+        "beta_only",
+        "broken_tool",
+    }
     # The RAM promise: nothing was spawned to answer tools/list.
     for backend in server.backends.values():
         assert backend.proc is None
@@ -104,8 +132,14 @@ def test_tools_list_served_without_spawning(hub_env):
 
 def test_initialize_echoes_version_and_identifies_hub(hub_env):
     server, _plan, cap = hub_env
-    server.dispatch({"jsonrpc": "2.0", "id": 1, "method": "initialize",
-                     "params": {"protocolVersion": "2025-06-18"}})
+    server.dispatch(
+        {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {"protocolVersion": "2025-06-18"},
+        }
+    )
     server.dispatch({"jsonrpc": "2.0", "id": 2, "method": "ping"})
     msgs = cap.wait(2)
     init = [m for m in msgs if m.get("id") == 1][0]
@@ -117,8 +151,14 @@ def test_initialize_echoes_version_and_identifies_hub(hub_env):
 
 def test_call_spawns_only_the_owning_backend(hub_env):
     server, _plan, cap = hub_env
-    server.dispatch({"jsonrpc": "2.0", "id": 10, "method": "tools/call",
-                     "params": {"name": "alpha_only", "arguments": {"x": 1}}})
+    server.dispatch(
+        {
+            "jsonrpc": "2.0",
+            "id": 10,
+            "method": "tools/call",
+            "params": {"name": "alpha_only", "arguments": {"x": 1}},
+        }
+    )
     reply = cap.wait(1)[0]
     assert reply["id"] == 10
     payload = json.loads(reply["result"]["content"][0]["text"])
@@ -132,8 +172,14 @@ def test_call_spawns_only_the_owning_backend(hub_env):
 
 def test_collision_name_rewritten_to_original_on_forward(hub_env):
     server, _plan, cap = hub_env
-    server.dispatch({"jsonrpc": "2.0", "id": 20, "method": "tools/call",
-                     "params": {"name": "be_shared_tool", "arguments": {}}})
+    server.dispatch(
+        {
+            "jsonrpc": "2.0",
+            "id": 20,
+            "method": "tools/call",
+            "params": {"name": "be_shared_tool", "arguments": {}},
+        }
+    )
     reply = cap.wait(1)[0]
     assert reply["id"] == 20
     payload = json.loads(reply["result"]["content"][0]["text"])
@@ -146,23 +192,41 @@ def test_collision_name_rewritten_to_original_on_forward(hub_env):
 
 def test_broken_backend_degrades_without_crashing(hub_env):
     server, _plan, cap = hub_env
-    server.dispatch({"jsonrpc": "2.0", "id": 30, "method": "tools/call",
-                     "params": {"name": "broken_tool", "arguments": {}}})
+    server.dispatch(
+        {
+            "jsonrpc": "2.0",
+            "id": 30,
+            "method": "tools/call",
+            "params": {"name": "broken_tool", "arguments": {}},
+        }
+    )
     reply = cap.wait(1)[0]
     assert reply["id"] == 30
     assert reply["result"]["isError"] is True
     assert "unavailable" in reply["result"]["content"][0]["text"]
     # The hub is still alive: a healthy call afterwards still succeeds.
-    server.dispatch({"jsonrpc": "2.0", "id": 31, "method": "tools/call",
-                     "params": {"name": "alpha_only", "arguments": {}}})
+    server.dispatch(
+        {
+            "jsonrpc": "2.0",
+            "id": 31,
+            "method": "tools/call",
+            "params": {"name": "alpha_only", "arguments": {}},
+        }
+    )
     reply2 = cap.wait(1)[0]
     assert json.loads(reply2["result"]["content"][0]["text"])["backend"] == "alpha"
 
 
 def test_unknown_tool_returns_error(hub_env):
     server, _plan, cap = hub_env
-    server.dispatch({"jsonrpc": "2.0", "id": 40, "method": "tools/call",
-                     "params": {"name": "does_not_exist"}})
+    server.dispatch(
+        {
+            "jsonrpc": "2.0",
+            "id": 40,
+            "method": "tools/call",
+            "params": {"name": "does_not_exist"},
+        }
+    )
     reply = cap.wait(1)[0]
     assert reply["id"] == 40
     assert reply["error"]["code"] == -32602
