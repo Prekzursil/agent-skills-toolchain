@@ -28,6 +28,7 @@ social skill): use a WARMED account, one STATIC residential/ISP proxy
 (FB_DM_PROXY), HUMAN cadence, and LOW volume. Automating a personal account is
 against Meta ToS and risks action on the account.
 """
+
 from __future__ import annotations
 
 import os

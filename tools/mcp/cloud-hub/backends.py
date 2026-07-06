@@ -17,6 +17,7 @@ Keeping this as plain data (a frozen dataclass list) makes the planner in
 ``registry.py`` and the account layer trivially unit-testable without touching
 the filesystem or spawning a single child process.
 """
+
 from __future__ import annotations
 
 import os
@@ -81,12 +82,17 @@ _AZURE_CLI = CliProfileSpec(
 )
 _GCLOUD_CLI = CliProfileSpec(
     list_cmd=("gcloud", "config", "configurations", "list", "--format=value(name)"),
-    current_cmd=("gcloud", "config", "configurations", "list",
-                 "--filter=is_active:true", "--format=value(name)"),
+    current_cmd=(
+        "gcloud",
+        "config",
+        "configurations",
+        "list",
+        "--filter=is_active:true",
+        "--format=value(name)",
+    ),
     activate_cmd=("gcloud", "config", "configurations", "activate", "{name}"),
     add_cmd=("gcloud", "config", "configurations", "create", "{name}"),
-    remove_cmd=("gcloud", "config", "configurations", "delete", "{name}",
-                "--quiet"),
+    remove_cmd=("gcloud", "config", "configurations", "delete", "{name}", "--quiet"),
 )
 
 
@@ -101,8 +107,12 @@ def default_backends() -> list[BackendSpec]:
             cache="runpod.json",
             can_enumerate_offline=False,
             note="needs RUNPOD_API_KEY; manages pods/endpoints/templates/volumes",
-            account=AccountPolicy(platform="runpod", mode="env",
-                                  seed_env=("RUNPOD_API_KEY",), label="RunPod"),
+            account=AccountPolicy(
+                platform="runpod",
+                mode="env",
+                seed_env=("RUNPOD_API_KEY",),
+                label="RunPod",
+            ),
         ),
         BackendSpec(
             id="azure",
@@ -112,8 +122,9 @@ def default_backends() -> list[BackendSpec]:
             cache="azure.json",
             can_enumerate_offline=False,
             note="inherits `az login`; account = Azure subscription (cli-profile)",
-            account=AccountPolicy(platform="azure", mode="cli", cli=_AZURE_CLI,
-                                  label="Azure"),
+            account=AccountPolicy(
+                platform="azure", mode="cli", cli=_AZURE_CLI, label="Azure"
+            ),
         ),
         BackendSpec(
             id="gcloud",
@@ -123,9 +134,10 @@ def default_backends() -> list[BackendSpec]:
             cache="gcloud.json",
             can_enumerate_offline=False,
             note="inherits gcloud ADC + GOOGLE_CLOUD_PROJECT; account = gcloud "
-                 "configuration (cli-profile)",
-            account=AccountPolicy(platform="gcloud", mode="cli", cli=_GCLOUD_CLI,
-                                  label="Google Cloud"),
+            "configuration (cli-profile)",
+            account=AccountPolicy(
+                platform="gcloud", mode="cli", cli=_GCLOUD_CLI, label="Google Cloud"
+            ),
         ),
         BackendSpec(
             id="kaggle",
@@ -135,9 +147,13 @@ def default_backends() -> list[BackendSpec]:
             cache="kaggle.json",
             can_enumerate_offline=False,
             note="needs KAGGLE_API_TOKEN or ~/.kaggle/kaggle.json; kernels + "
-                 "datasets + competitions",
-            account=AccountPolicy(platform="kaggle", mode="env",
-                                  seed_env=("KAGGLE_API_TOKEN",), label="Kaggle"),
+            "datasets + competitions",
+            account=AccountPolicy(
+                platform="kaggle",
+                mode="env",
+                seed_env=("KAGGLE_API_TOKEN",),
+                label="Kaggle",
+            ),
         ),
         BackendSpec(
             id="rclone",
@@ -150,7 +166,7 @@ def default_backends() -> list[BackendSpec]:
             env={"RCLONE_URL": f"http://{RCLONE_RC_ADDR}"},
             can_enumerate_offline=False,
             note="needs a running `rclone rcd` (auto-started by the launcher); "
-                 "copy/sync/move/about across 70+ remotes",
+            "copy/sync/move/about across 70+ remotes",
             # No seed_env: RCLONE_URL comes from spec.env; extra accounts (other
             # rcd endpoints / remotes) are added explicitly and override it.
             account=AccountPolicy(platform="rclone", mode="env", label="rclone"),
@@ -163,10 +179,13 @@ def default_backends() -> list[BackendSpec]:
             cache="modal.json",
             can_enumerate_offline=True,
             note="thin FastMCP wrapper over the `modal` CLI/SDK; needs "
-                 "MODAL_TOKEN_ID + MODAL_TOKEN_SECRET (or ~/.modal.toml)",
-            account=AccountPolicy(platform="modal", mode="env",
-                                  seed_env=("MODAL_TOKEN_ID", "MODAL_TOKEN_SECRET"),
-                                  label="Modal"),
+            "MODAL_TOKEN_ID + MODAL_TOKEN_SECRET (or ~/.modal.toml)",
+            account=AccountPolicy(
+                platform="modal",
+                mode="env",
+                seed_env=("MODAL_TOKEN_ID", "MODAL_TOKEN_SECRET"),
+                label="Modal",
+            ),
         ),
         BackendSpec(
             id="lightning",
@@ -176,9 +195,12 @@ def default_backends() -> list[BackendSpec]:
             cache="lightning.json",
             can_enumerate_offline=True,
             note="thin FastMCP wrapper over `lightning_sdk`; needs "
-                 "LIGHTNING_USER_ID + LIGHTNING_API_KEY",
-            account=AccountPolicy(platform="lightning", mode="env",
-                                  seed_env=("LIGHTNING_USER_ID", "LIGHTNING_API_KEY"),
-                                  label="Lightning AI"),
+            "LIGHTNING_USER_ID + LIGHTNING_API_KEY",
+            account=AccountPolicy(
+                platform="lightning",
+                mode="env",
+                seed_env=("LIGHTNING_USER_ID", "LIGHTNING_API_KEY"),
+                label="Lightning AI",
+            ),
         ),
     ]

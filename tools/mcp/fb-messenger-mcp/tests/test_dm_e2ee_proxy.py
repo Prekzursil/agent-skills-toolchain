@@ -9,6 +9,7 @@ capture os.environ at the exact moment each egress would fire (the real
 `requests.get/post` reads env at request time; the real `subprocess.Popen`
 inherits env at spawn time), which is a faithful stand-in for the real network.
 """
+
 from __future__ import annotations
 
 import json
@@ -127,10 +128,25 @@ async def test_data_fb_direct_when_unset(monkeypatch):
 async def test_list_threads_applies_proxy_to_requests():
     captured: dict = {}
     data_get = json.dumps(
-        {"o0": {"data": {"viewer": {"message_threads": {"nodes": [
-            {"thread_key": {"thread_fbid": None, "other_user_id": "777"},
-             "name": "Alice"},
-        ]}}}}}
+        {
+            "o0": {
+                "data": {
+                    "viewer": {
+                        "message_threads": {
+                            "nodes": [
+                                {
+                                    "thread_key": {
+                                        "thread_fbid": None,
+                                        "other_user_id": "777",
+                                    },
+                                    "name": "Alice",
+                                },
+                            ]
+                        }
+                    }
+                }
+            }
+        }
     )
 
     def fake_list(data_fb):  # stands in for requests.post in _all_thread_data
@@ -170,8 +186,12 @@ async def test_send_applies_proxy_to_subprocess_env():
     sender = _capturing_sender(captured)
     b = FbchatV2Backend(cookies_path="x", proxy=PROXY)
     b._dataFB = {"cookieFacebook": "c_user=1;"}
-    b._lib = lambda: (MagicMock(), MagicMock(), MagicMock(return_value=sender),
-                      MagicMock())
+    b._lib = lambda: (
+        MagicMock(),
+        MagicMock(),
+        MagicMock(return_value=sender),
+        MagicMock(),
+    )
 
     res = await b.send("100012345678", "hello")
 
@@ -186,8 +206,12 @@ async def test_send_direct_when_unset():
     sender = _capturing_sender(captured)
     b = FbchatV2Backend(cookies_path="x", proxy=None)  # FB_DM_PROXY unset
     b._dataFB = {"cookieFacebook": "c_user=1;"}
-    b._lib = lambda: (MagicMock(), MagicMock(), MagicMock(return_value=sender),
-                      MagicMock())
+    b._lib = lambda: (
+        MagicMock(),
+        MagicMock(),
+        MagicMock(return_value=sender),
+        MagicMock(),
+    )
 
     await b.send("100012345678", "hello")
 
@@ -200,8 +224,12 @@ async def test_react_applies_proxy_to_subprocess_env():
     sender = _capturing_sender(captured)
     b = FbchatV2Backend(cookies_path="x", proxy=PROXY)
     b._dataFB = {"cookieFacebook": "c_user=1;"}
-    b._lib = lambda: (MagicMock(), MagicMock(), MagicMock(return_value=sender),
-                      MagicMock())
+    b._lib = lambda: (
+        MagicMock(),
+        MagicMock(),
+        MagicMock(return_value=sender),
+        MagicMock(),
+    )
 
     await b.react("777", "MID", "❤")
 
@@ -238,19 +266,24 @@ async def test_read_thread_applies_proxy_to_requests_and_subprocess(monkeypatch)
 
     # Make the daemon-thread capture deterministic: the backend's time.sleep
     # (the listen window) waits until connect_mqtt has recorded the env.
-    monkeypatch.setattr(be.time, "sleep",
-                        lambda _s: holder[-1].captured.wait(timeout=5))
+    monkeypatch.setattr(
+        be.time, "sleep", lambda _s: holder[-1].captured.wait(timeout=5)
+    )
 
     b = FbchatV2Backend(cookies_path="x", proxy=PROXY)
     b._dataFB = {"cookieFacebook": "c_user=1;"}
-    b._lib = lambda: (MagicMock(), MagicMock(), MagicMock(),
-                      MagicMock(side_effect=_Listener))
+    b._lib = lambda: (
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(side_effect=_Listener),
+    )
 
     out = await b.read_thread("777", limit=5, listen_seconds=0)
 
     lst = holder[-1]
-    assert lst.env_at_init == {k: PROXY for k in KEYS}      # requests path
-    assert lst.env_at_connect == {k: PROXY for k in KEYS}   # bridge Popen path
+    assert lst.env_at_init == {k: PROXY for k in KEYS}  # requests path
+    assert lst.env_at_connect == {k: PROXY for k in KEYS}  # bridge Popen path
     assert out["count"] == 0
     _assert_no_leak()
 
@@ -277,13 +310,18 @@ async def test_read_thread_direct_when_unset(monkeypatch):
         def stop(self):
             self._stop.set()
 
-    monkeypatch.setattr(be.time, "sleep",
-                        lambda _s: holder[-1].captured.wait(timeout=5))
+    monkeypatch.setattr(
+        be.time, "sleep", lambda _s: holder[-1].captured.wait(timeout=5)
+    )
 
     b = FbchatV2Backend(cookies_path="x", proxy=None)  # FB_DM_PROXY unset
     b._dataFB = {"cookieFacebook": "c_user=1;"}
-    b._lib = lambda: (MagicMock(), MagicMock(), MagicMock(),
-                      MagicMock(side_effect=_Listener))
+    b._lib = lambda: (
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(side_effect=_Listener),
+    )
 
     await b.read_thread("777", limit=5, listen_seconds=0)
 
@@ -398,8 +436,12 @@ async def test_list_threads_respects_limit():
     )
     b = FbchatV2Backend(cookies_path="x", proxy=None)
     b._dataFB = {"cookieFacebook": "c_user=1;"}
-    b._lib = lambda: (MagicMock(), lambda _d: {"dataGet": data_get}, MagicMock(),
-                      MagicMock())
+    b._lib = lambda: (
+        MagicMock(),
+        lambda _d: {"dataGet": data_get},
+        MagicMock(),
+        MagicMock(),
+    )
 
     out = await b.list_threads(limit=1)
 
@@ -425,8 +467,12 @@ async def test_read_thread_listener_fallback_and_stop_error(monkeypatch):
     monkeypatch.setattr(be.time, "sleep", lambda _s: None)
     b = FbchatV2Backend(cookies_path="x", proxy=None)
     b._dataFB = {"cookieFacebook": "c_user=1;"}
-    b._lib = lambda: (MagicMock(), MagicMock(), MagicMock(),
-                      MagicMock(side_effect=_Listener))
+    b._lib = lambda: (
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(side_effect=_Listener),
+    )
 
     out = await b.read_thread("777", limit=5, listen_seconds=0)
 

@@ -376,7 +376,9 @@ def main():
         sig_src = "".join(
             sorted(sum([p.split(": ", 1)[1].split(",") for p in parts], []))
         )
-        sig = hashlib.md5(sig_src.encode("utf-8", "replace")).hexdigest()[:12]
+        sig = hashlib.md5(
+            sig_src.encode("utf-8", "replace"), usedforsecurity=False
+        ).hexdigest()[:12]
         if not _first_seen(sid, sig):
             return 0
         # CALIBRATED SILENCE: gate the bundle AFTER dedup (record_suggested already ran inside

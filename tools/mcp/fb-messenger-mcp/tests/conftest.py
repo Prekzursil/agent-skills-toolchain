@@ -1,5 +1,6 @@
 """Shared pytest fixtures. Adds the repo root to sys.path so `import fbmcp`
 works no matter where pytest is invoked from."""
+
 from __future__ import annotations
 
 import os

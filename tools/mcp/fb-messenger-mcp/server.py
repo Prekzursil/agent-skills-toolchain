@@ -14,6 +14,7 @@ fb_dm_* tools handle E2EE 1:1 DMs via a separate bridge (see NOTICE / LICENSE).
 
 Auth setup for every tier lives in README.md.
 """
+
 from __future__ import annotations
 
 import os

@@ -5,6 +5,7 @@ end-to-end encrypted. Uses the SAME facebook.com cookies as the read tools
 (data/cookies.json or FB_COOKIES_PATH). Personal 1:1 DMs are E2EE and are NOT
 handled here - use the T4 fb_dm_* tools for those.
 """
+
 from __future__ import annotations
 
 from typing import Optional
@@ -54,15 +55,11 @@ def register_send_tools(mcp: FastMCP) -> None:
         return dump({"sent": True, "message_id": mid, "thread_id": thread_id})
 
     @mcp.tool()
-    async def fb_react_to_message(
-        thread_id: str, message_id: str, emoji: str
-    ) -> str:
+    async def fb_react_to_message(thread_id: str, message_id: str, emoji: str) -> str:
         """React to a message in a non-E2EE thread with an emoji (e.g. '❤️')."""
         async with fb_client() as c:
             await c.react(emoji, message_id, thread_id)
-        return dump(
-            {"reacted": True, "message_id": message_id, "emoji": emoji}
-        )
+        return dump({"reacted": True, "message_id": message_id, "emoji": emoji})
 
     @mcp.tool()
     async def fb_unsend_message(thread_id: str, message_id: str) -> str:

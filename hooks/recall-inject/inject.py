@@ -378,7 +378,8 @@ def run(
 
         # Per-session dedup: compute a stable signature for this note set
         sig = hashlib.md5(
-            "|".join(sorted(n["title"] for n in matches)).encode("utf-8")
+            "|".join(sorted(n["title"] for n in matches)).encode("utf-8"),
+            usedforsecurity=False,
         ).hexdigest()[:12]
         if not _first_seen(session_id, sig):
             return 0, None

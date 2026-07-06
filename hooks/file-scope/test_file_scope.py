@@ -522,7 +522,9 @@ class TestSetScope:
         )
         assert rc == 0
         # nosemgrep: python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1 -- test mirrors the production non-cryptographic cwd-path slug, not a security control
-        slug = hashlib.sha1("c:/project/workspace".encode()).hexdigest()[:12]
+        slug = hashlib.sha1(
+            "c:/project/workspace".encode(), usedforsecurity=False
+        ).hexdigest()[:12]
         assert (tmp_path / "scopes" / f"cwd-{slug}.json").exists()
         assert "SUCCESS" in out
 

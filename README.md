@@ -65,6 +65,54 @@ Details: [`tools/scholarly-access-mcp/README.md`](tools/scholarly-access-mcp/REA
 [`docs/workflows/deep-research-literature-workflow.md`](docs/workflows/deep-research-literature-workflow.md) ·
 skills: `scholarly-literature-review`, `oa-pdf-retrieval`, `citation-mapping`, `biomedical-paper-triage`, `drug-discovery-literature-bridge`.
 
+## Quality & Security
+
+A single lean, deterministic **`quality`** CI workflow ([`.github/workflows/quality.yml`](.github/workflows/quality.yml))
+enforces a closed set of 6 gates — every tool version-pinned and configured from an in-repo file
+(no SaaS platform, no `--config auto`, no baseline files). This is the toolchain's adoption of the
+[quality-zero-platform](https://github.com/Prekzursil/quality-zero-platform) lean-gate model, as
+proven in [reframe](https://github.com/Prekzursil/reframe).
+
+| Gate | Tool (pinned) | Enforces |
+|------|---------------|----------|
+| lint-format | ruff 0.15.17 | `ruff check` + `ruff format --check` (honors `ruff.toml`) |
+| types | basedpyright 1.39.8 | per-package source type-check (`mcp-manager`, `scholarly-access-mcp`) |
+| tests-coverage | pytest + node | 100% branch coverage for the two Python packages + node tests |
+| sast | opengrep 1.23.0 | curated in-repo ruleset [`.quality/opengrep/`](.quality/opengrep) (clean-zero) |
+| secrets | gitleaks | committed `.gitleaks.toml` allowlist |
+| deps | osv-scanner | known-CVE scan of the npm lockfiles ([`osv-scanner.toml`](osv-scanner.toml)) |
+
+Full charter and rules: [`QUALITY-CHARTER.md`](QUALITY-CHARTER.md); machine-readable gate
+declaration: [`.quality/charter.yml`](.quality/charter.yml) (kept in sync with the workflow by
+`.quality/charter_check.sh`).
+
+### Run the gates locally
+
+```bash
+# 1. lint-format (ruff, pinned via uv — or `pip install ruff==0.15.17`)
+uvx ruff@0.15.17 check .
+uvx ruff@0.15.17 format --check .
+
+# 4. sast (semgrep CE is rule-compatible with opengrep)
+semgrep scan --config .quality/opengrep --error --metrics off \
+  --exclude node_modules --exclude .venv --exclude vendor \
+  --exclude dist --exclude out --exclude build .
+
+# charter <-> workflow consistency
+bash .quality/charter_check.sh
+
+# 2 + 3. per-package types + 100% coverage
+( cd tools/mcp-manager && pip install -e ".[dev]" \
+    && basedpyright core ui app.py \
+    && pytest --cov=. --cov-branch --cov-fail-under=100 )
+( cd tools/scholarly-access-mcp && pip install -e . \
+    && basedpyright scholarly_access \
+    && pytest --cov=scholarly_access --cov-branch --cov-fail-under=100 )
+```
+
+**Security policy** — how to report a vulnerability (private), scope, and disclosure
+expectations: [`SECURITY.md`](SECURITY.md).
+
 ## codex_consult: Plug-and-Play Consultation
 
 The codex_consult system provides AI consultation via two lanes:

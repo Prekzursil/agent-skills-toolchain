@@ -24,6 +24,7 @@ Modes::
 Transport = newline-delimited JSON-RPC (MCP stdio), stdlib only, matching the
 lazy_proxy style.
 """
+
 from __future__ import annotations
 
 import json
@@ -47,19 +48,26 @@ HUB_VERSION = "0.1.0"
 CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "caches")
 # The gitignored per-user account store (may hold literal secrets -> never
 # committed; see accounts.py + .gitignore).
-ACCOUNTS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                             "accounts.json")
+ACCOUNTS_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "accounts.json"
+)
 INIT_ID = "_hub_init"
-ENUM_TIMEOUT = 45.0   # seconds to wait for a backend's initialize/tools-list
+ENUM_TIMEOUT = 45.0  # seconds to wait for a backend's initialize/tools-list
 SPAWN_TIMEOUT = 30.0  # seconds to wait for a lazy child to become ready
 
 
 def _spawn(cmd: tuple[str, ...], env: dict[str, str]) -> subprocess.Popen:
     """Spawn an MCP child with UTF-8 pipes (Windows defaults to cp1252)."""
     return subprocess.Popen(
-        list(cmd), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL, text=True, bufsize=1,
-        encoding="utf-8", errors="replace", env=env,
+        list(cmd),
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+        bufsize=1,
+        encoding="utf-8",
+        errors="replace",
+        env=env,
     )
 
 
@@ -72,8 +80,9 @@ def _reader(proc: subprocess.Popen, q: "queue.Queue[str | None]") -> None:
         q.put(None)
 
 
-def _drain_until(q: "queue.Queue[str | None]", want_id, deadline: float,
-                 on_other=None) -> dict:
+def _drain_until(
+    q: "queue.Queue[str | None]", want_id, deadline: float, on_other=None
+) -> dict:
     """Read queued lines until a JSON-RPC message with id==want_id appears.
 
     Non-matching JSON messages are handed to ``on_other`` (or dropped). Raises
@@ -107,7 +116,7 @@ class RuntimeBackend:
 
     def __init__(self, spec: BackendSpec, out_write, account_env=None) -> None:
         self.spec = spec
-        self._out = out_write            # callable(str) -> emits a raw JSON line
+        self._out = out_write  # callable(str) -> emits a raw JSON line
         # callable() -> dict[str,str] of the active account's env, layered on top
         # of the base child env at spawn time (account creds win). None = no
         # account layer for this backend.
@@ -151,16 +160,23 @@ class RuntimeBackend:
         except OSError as exc:
             self.error = f"spawn failed: {exc}"
             return False
-        threading.Thread(target=_reader, args=(self.proc, self.q),
-                         daemon=True).start()
-        self._send({"jsonrpc": "2.0", "id": INIT_ID, "method": "initialize",
-                    "params": {"protocolVersion": "2024-11-05",
-                               "capabilities": {},
-                               "clientInfo": {"name": "cloud-hub",
-                                              "version": HUB_VERSION}}})
+        threading.Thread(target=_reader, args=(self.proc, self.q), daemon=True).start()
+        self._send(
+            {
+                "jsonrpc": "2.0",
+                "id": INIT_ID,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {},
+                    "clientInfo": {"name": "cloud-hub", "version": HUB_VERSION},
+                },
+            }
+        )
         try:
-            _drain_until(self.q, INIT_ID, time.monotonic() + SPAWN_TIMEOUT,
-                         on_other=self._out)
+            _drain_until(
+                self.q, INIT_ID, time.monotonic() + SPAWN_TIMEOUT, on_other=self._out
+            )
         except (TimeoutError, EOFError) as exc:
             self.error = f"initialize failed: {exc}"
             self._terminate()
@@ -214,8 +230,13 @@ class RuntimeBackend:
 class HubServer:
     """The multiplexing MCP server: one stdin loop, N lazy backends."""
 
-    def __init__(self, specs: list[BackendSpec], plan: Plan, emit=None,
-                 account_store: "accounts.AccountStore | None" = None) -> None:
+    def __init__(
+        self,
+        specs: list[BackendSpec],
+        plan: Plan,
+        emit=None,
+        account_store: "accounts.AccountStore | None" = None,
+    ) -> None:
         self.specs = specs
         self.plan = plan
         self._out_lock = threading.Lock()
@@ -226,12 +247,12 @@ class HubServer:
         # The multi-account store (injectable for tests). Backends without an
         # account policy simply get no account layer.
         self.account_store = account_store or accounts.AccountStore(
-            ACCOUNTS_PATH, [s.account for s in specs if s.account])
-        self.backends = {s.id: RuntimeBackend(s, self._emit,
-                                              self._account_env_for(s))
-                         for s in specs}
-        self._platform_backend = {s.account.platform: s.id
-                                  for s in specs if s.account}
+            ACCOUNTS_PATH, [s.account for s in specs if s.account]
+        )
+        self.backends = {
+            s.id: RuntimeBackend(s, self._emit, self._account_env_for(s)) for s in specs
+        }
+        self._platform_backend = {s.account.platform: s.id for s in specs if s.account}
         # Synthetic hub-native account tools (never forwarded to a child) merged
         # into the advertised surface alongside the real backend tools.
         self.account_tools, self.account_routes = self._account_surface(specs)
@@ -252,8 +273,9 @@ class HubServer:
             pol = spec.account
             if not pol:
                 continue
-            for tool in accounts.account_tool_defs(spec.prefix, pol.platform,
-                                                   pol.mode, spec.label):
+            for tool in accounts.account_tool_defs(
+                spec.prefix, pol.platform, pol.mode, spec.label
+            ):
                 tools.append(tool)
                 op = tool["name"].rsplit("_account_", 1)[1]
                 routes[tool["name"]] = (pol.platform, op)
@@ -265,23 +287,30 @@ class HubServer:
             sys.stdout.flush()
 
     def _reply(self, mid, result: dict) -> None:
-        self._emit(json.dumps({"jsonrpc": "2.0", "id": mid,
-                               "result": result}))
+        self._emit(json.dumps({"jsonrpc": "2.0", "id": mid, "result": result}))
 
     def _error(self, mid, code: int, message: str) -> None:
-        self._emit(json.dumps({"jsonrpc": "2.0", "id": mid,
-                               "error": {"code": code, "message": message}}))
+        self._emit(
+            json.dumps(
+                {
+                    "jsonrpc": "2.0",
+                    "id": mid,
+                    "error": {"code": code, "message": message},
+                }
+            )
+        )
 
     def _tool_error(self, mid, text: str) -> None:
         """A tools/call failure surfaced as an MCP result (isError)."""
-        self._reply(mid, {"content": [{"type": "text", "text": text}],
-                          "isError": True})
+        self._reply(mid, {"content": [{"type": "text", "text": text}], "isError": True})
 
     def _initialize_result(self, params: dict) -> dict:
         pv = (params or {}).get("protocolVersion") or "2024-11-05"
-        return {"protocolVersion": pv,
-                "capabilities": {"tools": {"listChanged": False}},
-                "serverInfo": {"name": "cloud-hub", "version": HUB_VERSION}}
+        return {
+            "protocolVersion": pv,
+            "capabilities": {"tools": {"listChanged": False}},
+            "serverInfo": {"name": "cloud-hub", "version": HUB_VERSION},
+        }
 
     def handle_call(self, msg: dict, mid) -> None:
         name = (msg.get("params") or {}).get("name")
@@ -298,13 +327,15 @@ class HubServer:
                 mid,
                 f"[cloud-hub] backend '{backend.spec.label}' is unavailable: "
                 f"{backend.error}. Its other tools stay listed; fix the "
-                f"credentials/login for that backend and restart the session.")
+                f"credentials/login for that backend and restart the session.",
+            )
             return
         if not backend.forward_call(msg, route.original_name):
             self._tool_error(
                 mid,
                 f"[cloud-hub] failed to forward to '{backend.spec.label}': "
-                f"{backend.error}.")
+                f"{backend.error}.",
+            )
         # success path: the response is delivered asynchronously by the pump.
 
     def _handle_account(self, msg: dict, mid, name: str) -> None:
@@ -321,12 +352,22 @@ class HubServer:
             bid = self._platform_backend.get(platform)
             if bid is not None:
                 self.backends[bid].restart()
-            result["note"] = ("backend killed; the next tools/call respawns it "
-                              "with the new active account's credentials")
-        self._reply(mid, {
-            "content": [{"type": "text",
-                         "text": json.dumps(result, ensure_ascii=False, indent=2)}],
-            "isError": not result.get("ok", False)})
+            result["note"] = (
+                "backend killed; the next tools/call respawns it "
+                "with the new active account's credentials"
+            )
+        self._reply(
+            mid,
+            {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": json.dumps(result, ensure_ascii=False, indent=2),
+                    }
+                ],
+                "isError": not result.get("ok", False),
+            },
+        )
 
     def dispatch(self, msg: dict) -> None:
         method = msg.get("method")
@@ -363,7 +404,9 @@ class HubServer:
         return 0
 
 
-def refresh_backend(spec: BackendSpec, timeout: float = ENUM_TIMEOUT) -> tuple[bool, int, str]:
+def refresh_backend(
+    spec: BackendSpec, timeout: float = ENUM_TIMEOUT
+) -> tuple[bool, int, str]:
     """Spawn a backend once, capture initialize + tools/list, write its cache.
 
     Never overwrites a good committed cache with a failure. Returns
@@ -376,19 +419,39 @@ def refresh_backend(spec: BackendSpec, timeout: float = ENUM_TIMEOUT) -> tuple[b
     q: "queue.Queue[str | None]" = queue.Queue()
     threading.Thread(target=_reader, args=(proc, q), daemon=True).start()
     try:
-        proc.stdin.write(json.dumps(  # type: ignore[union-attr]
-            {"jsonrpc": "2.0", "id": 1, "method": "initialize",
-             "params": {"protocolVersion": "2024-11-05", "capabilities": {},
-                        "clientInfo": {"name": "cloud-hub-refresh",
-                                       "version": HUB_VERSION}}}) + "\n")
+        proc.stdin.write(
+            json.dumps(  # type: ignore[union-attr]
+                {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "initialize",
+                    "params": {
+                        "protocolVersion": "2024-11-05",
+                        "capabilities": {},
+                        "clientInfo": {
+                            "name": "cloud-hub-refresh",
+                            "version": HUB_VERSION,
+                        },
+                    },
+                }
+            )
+            + "\n"
+        )
         proc.stdin.flush()  # type: ignore[union-attr]
         deadline = time.monotonic() + timeout
         init = _drain_until(q, 1, deadline)
-        proc.stdin.write(json.dumps(  # type: ignore[union-attr]
-            {"jsonrpc": "2.0", "method": "notifications/initialized"}) + "\n")
-        proc.stdin.write(json.dumps(  # type: ignore[union-attr]
-            {"jsonrpc": "2.0", "id": 2, "method": "tools/list",
-             "params": {}}) + "\n")
+        proc.stdin.write(
+            json.dumps(  # type: ignore[union-attr]
+                {"jsonrpc": "2.0", "method": "notifications/initialized"}
+            )
+            + "\n"
+        )
+        proc.stdin.write(
+            json.dumps(  # type: ignore[union-attr]
+                {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}
+            )
+            + "\n"
+        )
         proc.stdin.flush()  # type: ignore[union-attr]
         tools = _drain_until(q, 2, deadline)
     except (TimeoutError, EOFError, OSError) as exc:
@@ -437,8 +500,11 @@ def _cmd_print_plan() -> int:
         "total_exposed": len(plan.tools) + n_account,
         "per_backend": per_backend,
         "collisions": plan.collisions,
-        "renamed": {name: [r.backend_id, r.original_name]
-                    for name, r in plan.routing.items() if r.renamed},
+        "renamed": {
+            name: [r.backend_id, r.original_name]
+            for name, r in plan.routing.items()
+            if r.renamed
+        },
         "degraded": plan.degraded,
     }
     print(json.dumps(summary, indent=2, ensure_ascii=False))
