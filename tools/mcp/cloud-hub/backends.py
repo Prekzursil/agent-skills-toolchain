@@ -36,6 +36,10 @@ PYTHON = sys.executable
 RCLONE_LAUNCH = os.path.join(HERE, "rclone_launch.py")
 MODAL_SERVER = os.path.join(HERE, "modal-mcp", "server.py")
 LIGHTNING_SERVER = os.path.join(HERE, "lightning-mcp", "server.py")
+# Vendored TS MCP (hlebtkachenko/ovhcloud-mcp): built to dist/ via
+# `npm ci && npm run build` in ovh-mcp/. node is a real .exe but resolved
+# through `cmd /c` so PATH lookup matches the npx/uvx launchers on Windows.
+OVH_SERVER = os.path.join(HERE, "ovh-mcp", "dist", "index.js")
 
 # rclone-mcp is a client of a local rclone RC daemon.
 RCLONE_RC_ADDR = "localhost:5572"
@@ -146,12 +150,12 @@ def default_backends() -> list[BackendSpec]:
             cmd=("cmd", "/c", "uvx", "kaggle-mcp-server"),
             cache="kaggle.json",
             can_enumerate_offline=False,
-            note="needs KAGGLE_API_TOKEN or ~/.kaggle/kaggle.json; kernels + "
-            "datasets + competitions",
+            note="needs KAGGLE_USERNAME+KAGGLE_KEY or ~/.kaggle/kaggle.json; "
+            "kernels + datasets + competitions",
             account=AccountPolicy(
                 platform="kaggle",
                 mode="env",
-                seed_env=("KAGGLE_API_TOKEN",),
+                seed_env=("KAGGLE_USERNAME", "KAGGLE_KEY"),
                 label="Kaggle",
             ),
         ),
@@ -201,6 +205,31 @@ def default_backends() -> list[BackendSpec]:
                 mode="env",
                 seed_env=("LIGHTNING_USER_ID", "LIGHTNING_API_KEY"),
                 label="Lightning AI",
+            ),
+        ),
+        BackendSpec(
+            id="ovh",
+            label="OVHcloud (hlebtkachenko/ovhcloud-mcp)",
+            prefix="ov",
+            cmd=("cmd", "/c", "node", OVH_SERVER),
+            cache="ovh.json",
+            can_enumerate_offline=True,
+            note="vendored TS MCP (node dist/index.js; `npm install && npm run "
+            "build` in ovh-mcp/ once). 27 tools: VPS, DNS, billing, SSH, API "
+            "explorer (ovh_api_raw reaches Public Cloud instances too). "
+            "Region + creds are PER ACCOUNT: each ov account bundles "
+            "OVH_ENDPOINT (ovh-eu|ovh-ca|ovh-us) + OVH_APPLICATION_KEY/"
+            "SECRET/CONSUMER_KEY (or OAuth2 OVH_CLIENT_ID/SECRET), so "
+            "`ov_account_switch ca|eu|us` flips region AND credentials.",
+            account=AccountPolicy(
+                platform="ovh",
+                mode="env",
+                seed_env=(
+                    "OVH_APPLICATION_KEY",
+                    "OVH_APPLICATION_SECRET",
+                    "OVH_CONSUMER_KEY",
+                ),
+                label="OVHcloud",
             ),
         ),
     ]
