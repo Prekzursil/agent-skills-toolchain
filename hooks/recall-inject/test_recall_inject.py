@@ -47,7 +47,10 @@ def _make_note(
 
 def _sid(tmp_path: Path) -> str:
     """Unique session ID per test (avoids dedup cross-contamination)."""
-    return "ts" + hashlib.md5(str(tmp_path).encode()).hexdigest()[:12]
+    return (
+        "ts"
+        + hashlib.md5(str(tmp_path).encode(), usedforsecurity=False).hexdigest()[:12]
+    )
 
 
 @pytest.fixture(autouse=True)

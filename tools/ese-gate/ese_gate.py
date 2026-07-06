@@ -206,9 +206,8 @@ def _run_candidate(
 
         # Run the test command.
         try:
-            proc = subprocess.run(
+            proc = subprocess.run(  # nosemgrep: quality.opengrep.python-subprocess-shell-true -- shell=True runs a command built internally from controlled args, no untrusted input
                 test_cmd,
-                # nosemgrep: python.lang.security.audit.subprocess-shell-true.subprocess-shell-true -- command built internally from controlled args, no untrusted input
                 shell=True,
                 cwd=sandbox,
                 capture_output=True,

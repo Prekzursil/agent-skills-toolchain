@@ -12,6 +12,7 @@ A *plan* answers three questions the runtime needs:
     ORIGINAL name (so the call is rewritten before forwarding), and
   * which backends are degraded (no usable cache) so their tools can be flagged.
 """
+
 from __future__ import annotations
 
 import json
@@ -71,9 +72,7 @@ def _name_owners(
     return owners
 
 
-def build_plan(
-    specs: list[BackendSpec], cache_dir: str
-) -> Plan:
+def build_plan(specs: list[BackendSpec], cache_dir: str) -> Plan:
     """Compute the merged plan from committed caches (no spawning)."""
     tools_by_backend: dict[str, list[dict]] = {}
     plan = Plan()

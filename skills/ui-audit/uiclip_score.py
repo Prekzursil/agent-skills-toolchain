@@ -23,6 +23,7 @@ Usage:
   python uiclip_score.py --screenshot home.png --allow-download  # fetch (~600MB) + score
   python uiclip_score.py --screenshot home.png --allow-download --out uiclip.json
 """
+
 import argparse
 import importlib.util
 import json
@@ -32,7 +33,9 @@ import sys
 DEFAULT_MODEL = "biglab/uiclip-jitteredwebsites-2-224-paraphrased"
 DEFAULT_PROCESSOR = "openai/clip-vit-base-patch32"
 # UIClip scores design quality as image<->text similarity to a "well-designed" description.
-DEFAULT_PROMPT = "ui screenshot. a high quality, modern, professional, well-designed user interface."
+DEFAULT_PROMPT = (
+    "ui screenshot. a high quality, modern, professional, well-designed user interface."
+)
 
 REQUIRED = ("torch", "transformers", "PIL")
 
@@ -52,11 +55,21 @@ def ram_status(min_free_gb):
     """Best-effort free-RAM check. ok=None means 'could not measure'."""
     try:
         import psutil  # noqa: PLC0415
-        avail = psutil.virtual_memory().available / (1024 ** 3)
-        return {"available_gb": round(avail, 2), "min_free_gb": min_free_gb,
-                "ok": avail >= min_free_gb, "source": "psutil"}
+
+        avail = psutil.virtual_memory().available / (1024**3)
+        return {
+            "available_gb": round(avail, 2),
+            "min_free_gb": min_free_gb,
+            "ok": avail >= min_free_gb,
+            "source": "psutil",
+        }
     except Exception:  # noqa: BLE001 - psutil absent or failed; degrade to 'unknown'
-        return {"available_gb": None, "min_free_gb": min_free_gb, "ok": None, "source": "unknown"}
+        return {
+            "available_gb": None,
+            "min_free_gb": min_free_gb,
+            "ok": None,
+            "source": "unknown",
+        }
 
 
 def model_cache_dir(model_id):
@@ -104,33 +117,71 @@ def compute_score(screenshot, model_id, processor_id, prompt, offline):
     image = Image.open(screenshot).convert("RGB")
     inputs = processor(text=[prompt], images=image, return_tensors="pt", padding=True)
     with torch.no_grad():
-        img = torch.nn.functional.normalize(model.get_image_features(pixel_values=inputs["pixel_values"]), dim=-1)
+        img = torch.nn.functional.normalize(
+            model.get_image_features(pixel_values=inputs["pixel_values"]), dim=-1
+        )
         txt = torch.nn.functional.normalize(
-            model.get_text_features(input_ids=inputs["input_ids"], attention_mask=inputs.get("attention_mask")), dim=-1)
+            model.get_text_features(
+                input_ids=inputs["input_ids"],
+                attention_mask=inputs.get("attention_mask"),
+            ),
+            dim=-1,
+        )
         cosine = float((img @ txt.T).squeeze().item())  # [-1, 1]
     return round((cosine + 1.0) / 2.0, 4)  # -> [0, 1]
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="Optional UIClip design-quality prior (opt-in, RAM-guarded).")
+    ap = argparse.ArgumentParser(
+        description="Optional UIClip design-quality prior (opt-in, RAM-guarded)."
+    )
     ap.add_argument("--screenshot", help="path to the screenshot to score")
     ap.add_argument("--out", help="also write the JSON result here")
-    ap.add_argument("--check", action="store_true", help="report readiness only (no load, no download)")
-    ap.add_argument("--allow-download", action="store_true", help="permit fetching ~600MB weights, then score")
-    ap.add_argument("--use-cache", action="store_true", help="score only if the model is already cached (no download)")
+    ap.add_argument(
+        "--check",
+        action="store_true",
+        help="report readiness only (no load, no download)",
+    )
+    ap.add_argument(
+        "--allow-download",
+        action="store_true",
+        help="permit fetching ~600MB weights, then score",
+    )
+    ap.add_argument(
+        "--use-cache",
+        action="store_true",
+        help="score only if the model is already cached (no download)",
+    )
     ap.add_argument("--force", action="store_true", help="override the RAM guard")
-    ap.add_argument("--self-test", action="store_true", help="force the unavailable branch (deterministic test hook)")
-    ap.add_argument("--min-free-gb", type=float, default=2.0, help="minimum free RAM to allow model load (default 2.0)")
+    ap.add_argument(
+        "--self-test",
+        action="store_true",
+        help="force the unavailable branch (deterministic test hook)",
+    )
+    ap.add_argument(
+        "--min-free-gb",
+        type=float,
+        default=2.0,
+        help="minimum free RAM to allow model load (default 2.0)",
+    )
     ap.add_argument("--model", default=DEFAULT_MODEL)
     ap.add_argument("--processor", default=DEFAULT_PROCESSOR)
     ap.add_argument("--prompt", default=DEFAULT_PROMPT)
     args = ap.parse_args(argv)
 
-    result = {"tool": "uiclip_score", "model": args.model, "screenshot": args.screenshot, "score": None}
+    result = {
+        "tool": "uiclip_score",
+        "model": args.model,
+        "screenshot": args.screenshot,
+        "score": None,
+    }
 
     # Deterministic test hook: behave as if the model stack is unavailable.
     if args.self_test or os.environ.get("UICLIP_FORCE_UNAVAILABLE") == "1":
-        result.update(status="unavailable", reason="forced unavailable (self-test) — chain degrades to rubric-only")
+        result.update(
+            status="unavailable",
+            reason="forced unavailable (self-test) — chain degrades to rubric-only",
+        )
         return emit(result, args.out)
 
     deps = probe_deps()
@@ -140,25 +191,40 @@ def main(argv=None):
     if args.check or not args.screenshot:
         ram = ram_status(args.min_free_gb)
         ready = all(deps[d] for d in REQUIRED) and ram.get("ok") is True
-        result.update(status="ok", mode="check", deps=deps, ram=ram,
-                      model_cached=bool(cached), ready_to_score=ready,
-                      note=("ready" if ready else "not ready — see deps/ram; scoring stays opt-in via --allow-download/--use-cache"))
+        result.update(
+            status="ok",
+            mode="check",
+            deps=deps,
+            ram=ram,
+            model_cached=bool(cached),
+            ready_to_score=ready,
+            note=(
+                "ready"
+                if ready
+                else "not ready — see deps/ram; scoring stays opt-in via --allow-download/--use-cache"
+            ),
+        )
         if not args.screenshot and not args.check:
             result["reason"] = "no --screenshot given; nothing to score"
         return emit(result, args.out)
 
     # Opt-in gate: nothing loads unless explicitly enabled.
     if not (args.allow_download or args.use_cache):
-        result.update(status="skipped",
-                      reason="scoring is opt-in and RAM-heavy; pass --allow-download (fetch ~600MB + score) "
-                             "or --use-cache (score only if already cached). Track-B runs rubric-only without it.")
+        result.update(
+            status="skipped",
+            reason="scoring is opt-in and RAM-heavy; pass --allow-download (fetch ~600MB + score) "
+            "or --use-cache (score only if already cached). Track-B runs rubric-only without it.",
+        )
         return emit(result, args.out)
 
     # Graceful: missing deps.
     missing = [d for d in REQUIRED if not deps[d]]
     if missing:
-        result.update(status="unavailable", deps=deps,
-                      reason=f"missing python deps: {', '.join(missing)} — install torch+transformers+Pillow to enable")
+        result.update(
+            status="unavailable",
+            deps=deps,
+            reason=f"missing python deps: {', '.join(missing)} — install torch+transformers+Pillow to enable",
+        )
         return emit(result, args.out)
 
     # RAM guard (the OOM-safety the user asked for).
@@ -166,26 +232,40 @@ def main(argv=None):
     result["ram"] = ram
     if not args.force:
         if ram.get("ok") is False:
-            result.update(status="skipped",
-                          reason=f"insufficient free RAM ({ram['available_gb']}GB < {args.min_free_gb}GB) — pass --force to override")
+            result.update(
+                status="skipped",
+                reason=f"insufficient free RAM ({ram['available_gb']}GB < {args.min_free_gb}GB) — pass --force to override",
+            )
             return emit(result, args.out)
         if ram.get("ok") is None:
-            result.update(status="skipped",
-                          reason="cannot measure free RAM (psutil missing) — pass --force to proceed at your own risk")
+            result.update(
+                status="skipped",
+                reason="cannot measure free RAM (psutil missing) — pass --force to proceed at your own risk",
+            )
             return emit(result, args.out)
 
     # Cache gate for --use-cache (no network allowed).
     offline = args.use_cache and not args.allow_download
     if offline and not cached:
-        result.update(status="unavailable", model_cached=False,
-                      reason="model not in HF cache and --use-cache forbids download — pass --allow-download to fetch")
+        result.update(
+            status="unavailable",
+            model_cached=False,
+            reason="model not in HF cache and --use-cache forbids download — pass --allow-download to fetch",
+        )
         return emit(result, args.out)
 
     # Actually score (guarded).
     try:
-        score = compute_score(args.screenshot, args.model, args.processor, args.prompt, offline)
-        result.update(status="ok", score=score, model_cached=bool(cached), offline=offline,
-                      note="design-quality prior in [0,1] (image<->'well-designed' text similarity); weak prior, not ground truth")
+        score = compute_score(
+            args.screenshot, args.model, args.processor, args.prompt, offline
+        )
+        result.update(
+            status="ok",
+            score=score,
+            model_cached=bool(cached),
+            offline=offline,
+            note="design-quality prior in [0,1] (image<->'well-designed' text similarity); weak prior, not ground truth",
+        )
     except Exception as exc:  # noqa: BLE001 - any load/inference failure degrades gracefully
         result.update(status="error", reason=f"{type(exc).__name__}: {exc}")
     return emit(result, args.out)

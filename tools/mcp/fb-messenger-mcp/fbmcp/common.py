@@ -1,4 +1,5 @@
 """Shared config + serialization helpers for the fb-messenger MCP server."""
+
 from __future__ import annotations
 
 import dataclasses

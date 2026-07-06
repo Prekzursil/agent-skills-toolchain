@@ -3,6 +3,7 @@
 The single HTTP choke point `fbmcp.graph._do_http` is replaced with a recorder,
 so no network happens and we assert the request the tool WOULD send.
 """
+
 from __future__ import annotations
 
 import json
@@ -17,14 +18,34 @@ def rec(monkeypatch):
     """Record every _do_http call; return a canned Graph-ish response."""
     calls: list[dict] = []
 
-    async def fake(method, url, *, params=None, data=None, files=None,
-                   headers=None, content=None, timeout=120.0):
+    async def fake(
+        method,
+        url,
+        *,
+        params=None,
+        data=None,
+        files=None,
+        headers=None,
+        content=None,
+        timeout=120.0,
+    ):
         calls.append(
-            {"method": method, "url": url, "params": params, "data": data,
-             "files": files, "headers": headers, "content": content}
+            {
+                "method": method,
+                "url": url,
+                "params": params,
+                "data": data,
+                "files": files,
+                "headers": headers,
+                "content": content,
+            }
         )
-        return {"id": "c1", "post_id": "p1", "video_id": "v1",
-                "upload_url": "https://rupload.facebook.com/x"}
+        return {
+            "id": "c1",
+            "post_id": "p1",
+            "video_id": "v1",
+            "upload_url": "https://rupload.facebook.com/x",
+        }
 
     monkeypatch.setattr(graph, "_do_http", fake)
     return calls
@@ -178,7 +199,9 @@ async def test_page_moderate(env, rec, get_tool, action, expect_method, expect_s
 
 
 async def test_page_moderate_reply_needs_message(env, rec, get_tool):
-    out = json.loads(await get_tool("fb_page_moderate")(action="reply", comment_id="C1"))
+    out = json.loads(
+        await get_tool("fb_page_moderate")(action="reply", comment_id="C1")
+    )
     assert "error" in out and rec == []
 
 
@@ -237,7 +260,9 @@ async def test_ig_insights_media(env, rec, get_tool):
 
 
 async def test_ig_moderate_reply(env, rec, get_tool):
-    await get_tool("ig_graph_moderate_comments")(action="reply", comment_id="X1", message="hi")
+    await get_tool("ig_graph_moderate_comments")(
+        action="reply", comment_id="X1", message="hi"
+    )
     assert rec[-1]["url"].endswith("/X1/replies")
     assert rec[-1]["data"]["message"] == "hi"
 

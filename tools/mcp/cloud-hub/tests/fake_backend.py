@@ -7,6 +7,7 @@ It enumerates the given tools and, on ``tools/call``, echoes back the tool NAME
 it actually received (so a test can prove the hub rewrote a collision-renamed
 name back to its original before forwarding) plus the arguments.
 """
+
 from __future__ import annotations
 
 import json
@@ -32,26 +33,66 @@ def main() -> int:
         method = msg.get("method")
         mid = msg.get("id")
         if method == "initialize":
-            _out({"jsonrpc": "2.0", "id": mid,
-                  "result": {"protocolVersion": "2024-11-05",
-                             "capabilities": {"tools": {}},
-                             "serverInfo": {"name": name, "version": "1"}}})
+            _out(
+                {
+                    "jsonrpc": "2.0",
+                    "id": mid,
+                    "result": {
+                        "protocolVersion": "2024-11-05",
+                        "capabilities": {"tools": {}},
+                        "serverInfo": {"name": name, "version": "1"},
+                    },
+                }
+            )
         elif method == "tools/list":
-            _out({"jsonrpc": "2.0", "id": mid, "result": {"tools": [
-                {"name": t, "description": f"{name} {t}",
-                 "inputSchema": {"type": "object", "properties": {}}}
-                for t in tools]}})
+            _out(
+                {
+                    "jsonrpc": "2.0",
+                    "id": mid,
+                    "result": {
+                        "tools": [
+                            {
+                                "name": t,
+                                "description": f"{name} {t}",
+                                "inputSchema": {"type": "object", "properties": {}},
+                            }
+                            for t in tools
+                        ]
+                    },
+                }
+            )
         elif method == "tools/call":
             params = msg.get("params") or {}
-            _out({"jsonrpc": "2.0", "id": mid, "result": {"content": [
-                {"type": "text", "text": json.dumps(
-                    {"backend": name, "received_name": params.get("name"),
-                     "arguments": params.get("arguments")})}]}})
+            _out(
+                {
+                    "jsonrpc": "2.0",
+                    "id": mid,
+                    "result": {
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": json.dumps(
+                                    {
+                                        "backend": name,
+                                        "received_name": params.get("name"),
+                                        "arguments": params.get("arguments"),
+                                    }
+                                ),
+                            }
+                        ]
+                    },
+                }
+            )
         elif method and method.startswith("notifications/"):
             continue
         elif mid is not None:
-            _out({"jsonrpc": "2.0", "id": mid,
-                  "error": {"code": -32601, "message": "unsupported"}})
+            _out(
+                {
+                    "jsonrpc": "2.0",
+                    "id": mid,
+                    "error": {"code": -32601, "message": "unsupported"},
+                }
+            )
     return 0
 
 

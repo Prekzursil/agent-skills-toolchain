@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Pure-logic tests for the plan builder: collision detection, name merging,
 routing, and degraded-backend handling. No child processes are spawned."""
+
 from __future__ import annotations
 
 import json
@@ -15,15 +16,25 @@ from registry import build_plan  # noqa: E402
 
 
 def _spec(bid: str, prefix: str, cache: str) -> BackendSpec:
-    return BackendSpec(id=bid, label=f"lbl-{bid}", prefix=prefix,
-                       cmd=("noop",), cache=cache)
+    return BackendSpec(
+        id=bid, label=f"lbl-{bid}", prefix=prefix, cmd=("noop",), cache=cache
+    )
 
 
 def _write_cache(cache_dir: str, fname: str, tools: list[str]) -> None:
-    payload = {"initialize": {"protocolVersion": "2024-11-05"},
-               "tools": {"tools": [
-                   {"name": t, "description": f"desc {t}",
-                    "inputSchema": {"type": "object"}} for t in tools]}}
+    payload = {
+        "initialize": {"protocolVersion": "2024-11-05"},
+        "tools": {
+            "tools": [
+                {
+                    "name": t,
+                    "description": f"desc {t}",
+                    "inputSchema": {"type": "object"},
+                }
+                for t in tools
+            ]
+        },
+    }
     with open(os.path.join(cache_dir, fname), "w", encoding="utf-8") as fh:
         json.dump(payload, fh)
 
@@ -81,7 +92,13 @@ def test_real_committed_caches_build_a_clean_plan():
     assert per["runpod"] >= 40 and per["kaggle"] >= 40 and per["rclone"] >= 40
     # Names are preserved verbatim; no cross-backend collision; nothing degraded.
     assert plan.collisions == {} and not plan.degraded
-    for name in ("modal_run", "lightning_machine_types",
-                 "lightning_studio_switch_machine", "lightning_studio_upload_file",
-                 "run_gcloud_command", "list-pods", "azmcp_subscription_list"):
+    for name in (
+        "modal_run",
+        "lightning_machine_types",
+        "lightning_studio_switch_machine",
+        "lightning_studio_upload_file",
+        "run_gcloud_command",
+        "list-pods",
+        "azmcp_subscription_list",
+    ):
         assert name in plan.routing and plan.routing[name].renamed is False
