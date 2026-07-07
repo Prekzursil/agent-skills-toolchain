@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -70,21 +71,82 @@ _RUNTIME_KINDS = (
     "machines",
 )
 
+# OAuth 2.0 device-code + refresh (RFC 8628) against Phylo's WorkOS issuer.
+# Verified from signin.phylo.bio/.well-known/oauth-authorization-server: a PUBLIC
+# client (token_endpoint_auth_method "none" -> NO client secret), with a
+# device_authorization + token endpoint, grants incl. device_code + refresh_token,
+# and the offline_access scope. So the user authorizes in a browser (device flow)
+# and the connector auto-mints access tokens from the resulting refresh token --
+# BIOMNI_TOKEN then never has to be pasted/refreshed by hand.
+SIGNIN_BASE = os.environ.get("BIOMNI_SIGNIN_BASE", "https://signin.phylo.bio").rstrip(
+    "/"
+)
+OAUTH_CLIENT_ID = os.environ.get(
+    "BIOMNI_CLIENT_ID", "client_01KEFGHEBJP3XMFBQ0TR34DW77"
+)
+OAUTH_SCOPE = "openid profile email offline_access"
+DEVICE_AUTH_ENDPOINT = SIGNIN_BASE + "/oauth2/device_authorization"
+TOKEN_ENDPOINT = SIGNIN_BASE + "/oauth2/token"
+_REFRESH_SKEW = 60.0  # mint a new access token this many seconds before expiry
+
+# In-process access-token cache — per SPAWNED child, i.e. per ACTIVE account (the
+# hub kills+respawns the child on account switch, so it never leaks across
+# accounts). Never persisted; the refresh token is the only durable secret.
+_token_cache: dict = {}  # {access_token, expires_at, source}
+# A device authorization awaiting the user's browser approval (this session only).
+_pending_device: dict = {}  # {device_code, interval, expires_at}
+
 
 # --------------------------------------------------------------------------- #
 # Auth + the single network seam (tests monkeypatch ``_api``)
 # --------------------------------------------------------------------------- #
 def _token() -> tuple[str, str]:
-    """Read the Bearer token from the env; return (token, error_message)."""
-    tok = os.environ.get("BIOMNI_TOKEN", "").strip()
-    if not tok:
+    """Resolve a Bearer access token; return (token, error_message).
+
+    Priority: (1) ``BIOMNI_TOKEN`` -- a static session Bearer token (the original
+    path, unchanged); (2) a refresh token, from ``BIOMNI_REFRESH_TOKEN`` (env,
+    per-account) or the device-login state file, auto-minted into a short-lived
+    access token cached in-process and refreshed ~60s before expiry. A rotated
+    refresh token is persisted back to the state file. Never returns/logs the
+    refresh token itself.
+    """
+    static = os.environ.get("BIOMNI_TOKEN", "").strip()
+    if static:
+        return static, ""
+    env_refresh = os.environ.get("BIOMNI_REFRESH_TOKEN", "").strip()
+    state = {} if env_refresh else _load_state()
+    refresh_token = env_refresh or (state.get("refresh_token") or "").strip()
+    source = "env" if env_refresh else "state"
+    if not refresh_token:
         return "", (
-            "BIOMNI_TOKEN not set. Sign in at " + WEB_BASE + " and provide the "
-            "session Bearer token as BIOMNI_TOKEN (the cloud-hub injects the active "
-            "`biomni` account's token; add accounts with bm_account_add). There is "
-            "no API-key product yet, so refresh the token when it expires."
+            "No Biomni credentials. Set BIOMNI_TOKEN (a session Bearer token) or "
+            "BIOMNI_REFRESH_TOKEN, or run bm_auth_login to sign in via the OAuth "
+            "device-code flow (you approve in a browser). The cloud-hub injects the "
+            "active `biomni` account's creds; add accounts with bm_account_add."
         )
-    return tok, ""
+    cached = _token_cache.get("access_token")
+    if cached and _token_cache.get("expires_at", 0.0) - _REFRESH_SKEW > time.time():
+        return cached, ""
+    data, err = _refresh_access_token(refresh_token)
+    if err:
+        return "", (
+            err + " -- the refresh token may be revoked/expired; run bm_auth_login "
+            "to re-authorize (or update BIOMNI_REFRESH_TOKEN)."
+        )
+    access = str(data["access_token"])
+    _token_cache["access_token"] = access
+    _token_cache["expires_at"] = time.time() + float(data.get("expires_in") or 3600)
+    _token_cache["source"] = source
+    new_refresh = data.get("refresh_token")
+    if (
+        source == "state"
+        and isinstance(new_refresh, str)
+        and new_refresh
+        and new_refresh != refresh_token
+    ):
+        state["refresh_token"] = new_refresh
+        _save_state(state)
+    return access, ""
 
 
 def _api(
@@ -128,6 +190,89 @@ def _parse(text: str) -> object:
         return json.loads(stripped)
     except json.JSONDecodeError:
         return text
+
+
+# --------------------------------------------------------------------------- #
+# OAuth device-code + refresh helpers (RFC 8628) -- the second network seam
+# --------------------------------------------------------------------------- #
+def _state_path() -> str:
+    """Path to the local device-login token store (outside the repo; chmod 600)."""
+    return os.environ.get("BIOMNI_TOKEN_STATE") or os.path.join(
+        os.path.expanduser("~"), ".biomni-mcp", "token.json"
+    )
+
+
+def _load_state() -> dict:
+    """Read the local token state ({refresh_token: ...}); {} if missing/unreadable."""
+    try:
+        with open(_state_path(), encoding="utf-8") as fh:
+            data = json.load(fh)
+        return data if isinstance(data, dict) else {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def _save_state(state: dict) -> None:
+    """Atomically write the token state with restrictive (0600) permissions."""
+    path = _state_path()
+    parent = os.path.dirname(path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        json.dump(state, fh)
+    os.replace(tmp, path)
+    try:  # best-effort lockdown (Windows honours only the read-only bit)
+        os.chmod(path, 0o600)
+    except OSError:
+        pass
+
+
+def _mask(secret) -> str | None:
+    """Non-reversible preview of a secret (never the full value) for status output."""
+    if not secret or not isinstance(secret, str):
+        return None
+    return f"...{secret[-4:]}" if len(secret) > 8 else "set"
+
+
+def _oauth_post(endpoint: str, form: dict) -> tuple[int, object]:
+    """POST an ``x-www-form-urlencoded`` body to an OAuth endpoint; (status, parsed).
+
+    Separate from ``_api`` (Bearer+JSON to api.phylo.bio): this is the
+    UNauthenticated token/device endpoint seam at the WorkOS issuer. A public
+    client, so no client secret is sent. Tests monkeypatch this.
+    """
+    data = urllib.parse.urlencode(form).encode("utf-8")
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Accept": "application/json",
+    }
+    req = urllib.request.Request(endpoint, data=data, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:  # noqa: S310
+            return resp.status, _parse(resp.read().decode("utf-8", "replace"))
+    except urllib.error.HTTPError as exc:
+        return exc.code, _parse(exc.read().decode("utf-8", "replace"))
+    except (urllib.error.URLError, OSError, ValueError) as exc:
+        return 0, {"error": f"OAuth POST {endpoint} failed: {exc}"}
+
+
+def _refresh_access_token(refresh_token: str) -> tuple[dict, str]:
+    """Exchange a refresh token for a fresh access token; return (data, error)."""
+    status, parsed = _oauth_post(
+        TOKEN_ENDPOINT,
+        {
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token,
+            "client_id": OAUTH_CLIENT_ID,
+        },
+    )
+    if status == 200 and isinstance(parsed, dict) and parsed.get("access_token"):
+        return parsed, ""
+    detail = ""
+    if isinstance(parsed, dict):
+        detail = str(parsed.get("error_description") or parsed.get("error") or parsed)
+    return {}, f"token refresh failed (HTTP {status}): {detail}".rstrip(": ")
 
 
 # --------------------------------------------------------------------------- #
@@ -432,6 +577,170 @@ def bm_whoami() -> str:
 def bm_capabilities() -> str:
     """List the account's platform capabilities/feature flags (``GET /v2/capabilities``)."""
     return _call("GET", "/v2/capabilities")
+
+
+# --------------------------------------------------------------------------- #
+# OAuth device-code login + auto-refresh (you approve in a browser)
+# --------------------------------------------------------------------------- #
+@mcp.tool()
+def bm_auth_login() -> str:
+    """Start OAuth device-code login -- returns a code + URL for YOU to approve.
+
+    ``POST {signin}/oauth2/device_authorization``. Open the returned
+    ``verification_uri_complete`` in a browser and approve (you sign in there --
+    this tool never sees your password). Then call ``bm_auth_poll`` to finish. On
+    success the refresh token is stored locally (chmod 600, never echoed) and the
+    connector auto-mints access tokens from it, so BIOMNI_TOKEN no longer expires
+    on you. For multi-account rotation, promote it to a per-account
+    BIOMNI_REFRESH_TOKEN instead (see bm_auth_status).
+    """
+    status, parsed = _oauth_post(
+        DEVICE_AUTH_ENDPOINT, {"client_id": OAUTH_CLIENT_ID, "scope": OAUTH_SCOPE}
+    )
+    if status != 200 or not isinstance(parsed, dict) or not parsed.get("device_code"):
+        return _fail(f"device authorization failed (HTTP {status})", response=parsed)
+    _pending_device.clear()
+    _pending_device.update(
+        device_code=str(parsed["device_code"]),
+        interval=float(parsed.get("interval") or 5),
+        expires_at=time.time() + float(parsed.get("expires_in") or 600),
+    )
+    return json.dumps(
+        {
+            "ok": True,
+            "action_required": "Open the URL, approve, then call bm_auth_poll.",
+            "user_code": parsed.get("user_code"),
+            "verification_uri": parsed.get("verification_uri"),
+            "verification_uri_complete": parsed.get("verification_uri_complete")
+            or parsed.get("verification_uri"),
+            "expires_in": parsed.get("expires_in"),
+        },
+        ensure_ascii=False,
+    )
+
+
+@mcp.tool()
+def bm_auth_poll(max_wait_seconds: float = 25.0) -> str:
+    """Finish device-code login: poll for approval, then save the refresh token.
+
+    ``POST {signin}/oauth2/token`` (grant_type=device_code). Call after
+    ``bm_auth_login`` once you've approved in the browser. Polls up to
+    ``max_wait_seconds`` (respecting the server ``interval``); returns
+    ``authorization_pending`` if you haven't approved yet -- just call it again. On
+    success the tokens are written to the local state file (chmod 600) and only the
+    identity/expiry are returned -- NEVER the token values.
+    """
+    if not _pending_device.get("device_code"):
+        return _fail("no pending login; call bm_auth_login first")
+    if time.time() > _pending_device.get("expires_at", 0.0):
+        _pending_device.clear()
+        return _fail("the device code expired; call bm_auth_login again")
+    interval = max(1.0, float(_pending_device.get("interval", 5.0)))
+    deadline = time.time() + max(0.0, max_wait_seconds)
+    while True:
+        status, parsed = _oauth_post(
+            TOKEN_ENDPOINT,
+            {
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": _pending_device["device_code"],
+                "client_id": OAUTH_CLIENT_ID,
+            },
+        )
+        if status == 200 and isinstance(parsed, dict) and parsed.get("access_token"):
+            state = _load_state()
+            if parsed.get("refresh_token"):
+                state["refresh_token"] = str(parsed["refresh_token"])
+            _save_state(state)
+            _pending_device.clear()
+            _token_cache.clear()  # force a fresh mint on the next API call
+            return json.dumps(
+                {
+                    "ok": True,
+                    "authenticated": True,
+                    "saved_to": _state_path(),
+                    "has_refresh_token": bool(parsed.get("refresh_token")),
+                    "access_token_expires_in": parsed.get("expires_in"),
+                    "note": "Refresh token stored locally; the connector auto-mints "
+                    "access tokens from it. For account rotation, set it as a "
+                    "per-account BIOMNI_REFRESH_TOKEN.",
+                },
+                ensure_ascii=False,
+            )
+        err = parsed.get("error") if isinstance(parsed, dict) else None
+        if err in ("authorization_pending", "slow_down"):
+            if err == "slow_down":
+                interval += 5
+            if time.time() >= deadline:
+                return json.dumps(
+                    {
+                        "ok": False,
+                        "pending": True,
+                        "error": err,
+                        "hint": "approve at the bm_auth_login URL, then call "
+                        "bm_auth_poll again",
+                    },
+                    ensure_ascii=False,
+                )
+            time.sleep(interval)
+            continue
+        return _fail(f"device token exchange failed (HTTP {status})", response=parsed)
+
+
+@mcp.tool()
+def bm_auth_status() -> str:
+    """Report the current auth source + access-token freshness (tokens masked).
+
+    Shows whether creds come from BIOMNI_TOKEN (static), BIOMNI_REFRESH_TOKEN
+    (env, rotates with the account), or the device-login state file -- plus the
+    cached access token's remaining lifetime. Never reveals token values.
+    """
+    static = bool(os.environ.get("BIOMNI_TOKEN", "").strip())
+    env_refresh = bool(os.environ.get("BIOMNI_REFRESH_TOKEN", "").strip())
+    has_state_refresh = bool((_load_state().get("refresh_token") or "").strip())
+    if static:
+        source = "BIOMNI_TOKEN (static)"
+    elif env_refresh:
+        source = "BIOMNI_REFRESH_TOKEN (env)"
+    elif has_state_refresh:
+        source = "device-login state file"
+    else:
+        source = "none"
+    remaining = None
+    if _token_cache.get("expires_at"):
+        remaining = round(float(_token_cache["expires_at"]) - time.time(), 1)
+    return json.dumps(
+        {
+            "ok": True,
+            "authenticated": source != "none",
+            "auth_source": source,
+            "cached_access_token": _mask(_token_cache.get("access_token")),
+            "access_token_expires_in_seconds": remaining,
+            "state_file": _state_path(),
+            "client_id": OAUTH_CLIENT_ID,
+        },
+        ensure_ascii=False,
+    )
+
+
+@mcp.tool()
+def bm_auth_logout() -> str:
+    """Clear the locally-stored device-login refresh token + in-process token cache.
+
+    Deletes the state file (does NOT touch the BIOMNI_TOKEN / BIOMNI_REFRESH_TOKEN
+    env vars -- those are user-owned). Re-run bm_auth_login to sign in again.
+    """
+    path = _state_path()
+    removed = False
+    try:
+        os.remove(path)
+        removed = True
+    except OSError:
+        pass
+    _token_cache.clear()
+    _pending_device.clear()
+    return json.dumps(
+        {"ok": True, "cleared_state_file": removed, "path": path}, ensure_ascii=False
+    )
 
 
 # --------------------------------------------------------------------------- #

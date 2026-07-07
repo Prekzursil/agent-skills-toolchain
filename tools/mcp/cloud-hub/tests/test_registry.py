@@ -92,7 +92,7 @@ def test_real_committed_caches_build_a_clean_plan():
     assert per["databricks"] == 65
     assert per["compute"] == 10
     # Biomni built FastMCP wrapper (api.phylo.bio/v2): full bm_* surface.
-    assert per["biomni"] == 21
+    assert per["biomni"] == 25
     # Live-enumerated adopt backends: present and substantial (re-running
     # `hub.py --refresh` may shift these as upstream packages evolve).
     assert per["runpod"] >= 40 and per["kaggle"] >= 40 and per["rclone"] >= 40

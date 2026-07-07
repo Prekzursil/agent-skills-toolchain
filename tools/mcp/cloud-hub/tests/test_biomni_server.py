@@ -40,7 +40,7 @@ def _fake_api(capture: dict, status: int = 200, payload=None):
 def test_enumerates_full_biomni_surface_offline():
     tools = asyncio.run(biomni_server.mcp.list_tools())
     names = {t.name for t in tools}
-    assert len(names) == 21
+    assert len(names) == 25
     assert all(n.startswith("bm_") for n in names)
     for name in (
         "bm_create_session",
@@ -52,15 +52,22 @@ def test_enumerates_full_biomni_surface_offline():
         "bm_session_runtime",
         "bm_billing_balance",
         "bm_api_raw",
+        "bm_auth_login",
+        "bm_auth_poll",
+        "bm_auth_status",
+        "bm_auth_logout",
     ):
         assert name in names
 
 
-def test_token_absent_returns_clear_hint(monkeypatch):
+def test_no_credentials_returns_clear_hint(monkeypatch):
     monkeypatch.delenv("BIOMNI_TOKEN", raising=False)
+    monkeypatch.delenv("BIOMNI_REFRESH_TOKEN", raising=False)
+    monkeypatch.setattr(biomni_server, "_load_state", lambda: {})
+    biomni_server._token_cache.clear()
     out = json.loads(biomni_server.bm_list_projects())
     assert out["ok"] is False
-    assert "BIOMNI_TOKEN not set" in out["error"]
+    assert "No Biomni credentials" in out["error"]
 
 
 # --------------------------------------------------------------------------- #
@@ -163,3 +170,172 @@ def test_401_returns_refresh_hint(monkeypatch):
     out = json.loads(biomni_server.bm_whoami())
     assert out["ok"] is False and out["status"] == 401
     assert "expired or invalid" in out["error"]
+
+
+# --------------------------------------------------------------------------- #
+# OAuth device-code + auto-refresh (monkeypatch the ``_oauth_post`` seam)
+# --------------------------------------------------------------------------- #
+def _fake_oauth(capture: dict, status: int = 200, payload=None):
+    """Build a fake ``_oauth_post`` recording (endpoint, form) -> (status, payload)."""
+
+    def _oauth_post(endpoint, form):
+        capture.update(endpoint=endpoint, form=form)
+        return status, (payload or {})
+
+    return _oauth_post
+
+
+def test_refresh_token_env_mints_access_token(monkeypatch):
+    api_seen: dict = {}
+    monkeypatch.delenv("BIOMNI_TOKEN", raising=False)
+    monkeypatch.setenv("BIOMNI_REFRESH_TOKEN", "rt-1")
+    biomni_server._token_cache.clear()
+    monkeypatch.setattr(
+        biomni_server,
+        "_oauth_post",
+        _fake_oauth({}, payload={"access_token": "at-fresh", "expires_in": 3600}),
+    )
+    monkeypatch.setattr(biomni_server, "_api", _fake_api(api_seen, payload={}))
+    out = json.loads(biomni_server.bm_list_projects())
+    # The env refresh token was exchanged and the MINTED access token is the bearer.
+    assert out["ok"]
+    assert api_seen["token"] == "at-fresh"
+
+
+def test_refresh_failure_surfaces_login_hint(monkeypatch):
+    monkeypatch.delenv("BIOMNI_TOKEN", raising=False)
+    monkeypatch.setenv("BIOMNI_REFRESH_TOKEN", "rt-bad")
+    biomni_server._token_cache.clear()
+    monkeypatch.setattr(
+        biomni_server,
+        "_oauth_post",
+        _fake_oauth({}, status=400, payload={"error": "invalid_grant"}),
+    )
+    out = json.loads(biomni_server.bm_list_projects())
+    assert out["ok"] is False
+    assert "refresh failed" in out["error"] and "bm_auth_login" in out["error"]
+
+
+def test_refresh_from_state_persists_rotation(monkeypatch):
+    api_seen: dict = {}
+    saved: dict = {}
+    monkeypatch.delenv("BIOMNI_TOKEN", raising=False)
+    monkeypatch.delenv("BIOMNI_REFRESH_TOKEN", raising=False)
+    biomni_server._token_cache.clear()
+    monkeypatch.setattr(biomni_server, "_load_state", lambda: {"refresh_token": "old"})
+    monkeypatch.setattr(biomni_server, "_save_state", lambda s: saved.update(s))
+    monkeypatch.setattr(
+        biomni_server,
+        "_oauth_post",
+        _fake_oauth(
+            {},
+            payload={
+                "access_token": "at-2",
+                "refresh_token": "new-rt",
+                "expires_in": 3600,
+            },
+        ),
+    )
+    monkeypatch.setattr(biomni_server, "_api", _fake_api(api_seen, payload={}))
+    out = json.loads(biomni_server.bm_whoami())
+    assert out["ok"] and api_seen["token"] == "at-2"
+    # A rotated refresh token from the state-file source is persisted back.
+    assert saved.get("refresh_token") == "new-rt"
+
+
+def test_auth_login_returns_user_code(monkeypatch):
+    seen: dict = {}
+    biomni_server._pending_device.clear()
+    monkeypatch.setattr(
+        biomni_server,
+        "_oauth_post",
+        _fake_oauth(
+            seen,
+            payload={
+                "device_code": "dev-1",
+                "user_code": "WXYZ-1234",
+                "verification_uri": "https://signin.phylo.bio/device",
+                "verification_uri_complete": "https://signin.phylo.bio/device?code=WXYZ-1234",
+                "interval": 5,
+                "expires_in": 600,
+            },
+        ),
+    )
+    out = json.loads(biomni_server.bm_auth_login())
+    assert out["ok"] and out["user_code"] == "WXYZ-1234"
+    assert "verification_uri_complete" in out
+    assert seen["endpoint"].endswith("/oauth2/device_authorization")
+    assert biomni_server._pending_device["device_code"] == "dev-1"
+
+
+def test_auth_poll_success_saves_and_masks(monkeypatch):
+    saved: dict = {}
+    biomni_server._pending_device.clear()
+    biomni_server._pending_device.update(
+        device_code="dev-1", interval=1.0, expires_at=biomni_server.time.time() + 600
+    )
+    monkeypatch.setattr(biomni_server, "_load_state", lambda: {})
+    monkeypatch.setattr(biomni_server, "_save_state", lambda s: saved.update(s))
+    monkeypatch.setattr(biomni_server, "_state_path", lambda: "/tmp/biomni-token.json")
+    monkeypatch.setattr(
+        biomni_server,
+        "_oauth_post",
+        _fake_oauth(
+            {},
+            payload={"access_token": "at", "refresh_token": "rt", "expires_in": 3600},
+        ),
+    )
+    raw = biomni_server.bm_auth_poll(max_wait_seconds=0)
+    out = json.loads(raw)
+    assert out["ok"] and out["authenticated"] and out["has_refresh_token"]
+    assert saved.get("refresh_token") == "rt"
+    # The raw token values must NEVER appear in the tool output.
+    assert '"rt"' not in raw and '"at"' not in raw
+    assert not biomni_server._pending_device  # cleared on success
+
+
+def test_auth_poll_pending_when_not_yet_approved(monkeypatch):
+    biomni_server._pending_device.clear()
+    biomni_server._pending_device.update(
+        device_code="dev-1", interval=1.0, expires_at=biomni_server.time.time() + 600
+    )
+    monkeypatch.setattr(
+        biomni_server,
+        "_oauth_post",
+        _fake_oauth({}, status=400, payload={"error": "authorization_pending"}),
+    )
+    out = json.loads(biomni_server.bm_auth_poll(max_wait_seconds=0))
+    assert out["ok"] is False and out["pending"] is True
+    assert out["error"] == "authorization_pending"
+
+
+def test_auth_poll_without_login_errors(monkeypatch):
+    biomni_server._pending_device.clear()
+    out = json.loads(biomni_server.bm_auth_poll())
+    assert out["ok"] is False and "no pending login" in out["error"]
+
+
+def test_auth_status_masks_token(monkeypatch):
+    monkeypatch.delenv("BIOMNI_TOKEN", raising=False)
+    monkeypatch.setenv("BIOMNI_REFRESH_TOKEN", "rt-1")
+    monkeypatch.setattr(biomni_server, "_load_state", lambda: {})
+    biomni_server._token_cache.clear()
+    biomni_server._token_cache.update(
+        access_token="supersecrettoken", expires_at=biomni_server.time.time() + 100
+    )
+    out = json.loads(biomni_server.bm_auth_status())
+    assert out["auth_source"] == "BIOMNI_REFRESH_TOKEN (env)"
+    # Masked preview only -- the full token is never exposed.
+    assert out["cached_access_token"] == "...oken"
+    assert "supersecrettoken" not in json.dumps(out)
+
+
+def test_auth_logout_clears(tmp_path, monkeypatch):
+    state_file = tmp_path / "token.json"
+    state_file.write_text('{"refresh_token": "rt"}', encoding="utf-8")
+    monkeypatch.setattr(biomni_server, "_state_path", lambda: str(state_file))
+    biomni_server._token_cache.update(access_token="x", expires_at=1.0)
+    out = json.loads(biomni_server.bm_auth_logout())
+    assert out["ok"] and out["cleared_state_file"] is True
+    assert not state_file.exists()
+    assert not biomni_server._token_cache
