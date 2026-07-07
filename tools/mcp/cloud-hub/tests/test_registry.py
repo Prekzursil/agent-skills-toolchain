@@ -77,7 +77,7 @@ def test_missing_cache_marks_degraded(tmp_path):
 
 
 def test_real_committed_caches_build_a_clean_plan():
-    """Locks the committed surface: 9 backends, no collisions, none degraded."""
+    """Locks the committed surface: 10 backends, no collisions, none degraded."""
     specs = default_backends()
     plan = build_plan(specs, os.path.join(HUB_DIR, "caches"))
     per: dict[str, int] = {}
@@ -85,9 +85,11 @@ def test_real_committed_caches_build_a_clean_plan():
         per[route.backend_id] = per.get(route.backend_id, 0) + 1
     # Deterministic backends: the three built wrappers, the single-tool gcloud
     # MCP, the hand-authored azure subset, and the vendored OVH TS server.
-    assert per["modal"] == 6 and per["lightning"] == 9
+    assert per["modal"] == 41 and per["lightning"] == 9
     assert per["gcloud"] == 1 and per["azure"] == 14
     assert per["ovh"] == 27
+    # Databricks built FastMCP wrapper (databricks-sdk): full dbx_* surface.
+    assert per["databricks"] == 65
     assert per["compute"] == 10
     # Live-enumerated adopt backends: present and substantial (re-running
     # `hub.py --refresh` may shift these as upstream packages evolve).
@@ -105,6 +107,8 @@ def test_real_committed_caches_build_a_clean_plan():
         "ovh_ssh_exec",
         "ovh_api_raw",
         "compute_provision",
+        "dbx_run_on_cluster",
+        "dbx_api_raw",
     ):
         assert name in plan.routing and plan.routing[name].renamed is False
 
@@ -126,9 +130,9 @@ def test_backend_specs_ovh_and_kaggle_fix():
     # single, useless KAGGLE_API_TOKEN that matched neither the platform nor the
     # accounts.example bundle).
     assert specs["kaggle"].account.seed_env == ("KAGGLE_USERNAME", "KAGGLE_KEY")
-    # Prefixes stay unique across all 9 backends.
+    # Prefixes stay unique across all 10 backends.
     prefixes = [s.prefix for s in specs.values()]
-    assert len(prefixes) == len(set(prefixes)) == 9
+    assert len(prefixes) == len(set(prefixes)) == 10
 
 
 def test_backend_spec_compute():
@@ -145,3 +149,17 @@ def test_backend_spec_compute():
     # It runs the built FastMCP wrapper under the hub's own interpreter.
     assert compute.cmd[0] == sys.executable
     assert compute.cmd[1].endswith("server.py")
+
+
+def test_backend_specs_databricks():
+    """Locks the Databricks backend wiring (built databricks-sdk FastMCP wrapper)."""
+    specs = {s.id: s for s in default_backends()}
+    assert "databricks" in specs
+    dbx = specs["databricks"]
+    # Prefix `db`; enumerates offline (lazy SDK import) like modal/lightning.
+    assert dbx.prefix == "db" and dbx.can_enumerate_offline is True
+    assert dbx.cache == "databricks.json"
+    # Env-mode rotator seeded with the workspace host + PAT.
+    assert dbx.account is not None
+    assert dbx.account.platform == "databricks" and dbx.account.mode == "env"
+    assert dbx.account.seed_env == ("DATABRICKS_HOST", "DATABRICKS_TOKEN")
