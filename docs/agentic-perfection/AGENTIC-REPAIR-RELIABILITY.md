@@ -75,6 +75,34 @@ behaviour is opt-in via an env flag, so nothing regresses; block stays off until
 - **Back-port.** Both hooks were live-only in `~/.claude/hooks` and orphaned from this repo; this branch
   captures them into version control so `sync-hooks.ps1` manages them going forward.
 
+## CASE STUDY — Reframe "Make Shorts" (2026-07-07, the thesis, proven)
+
+A live validation, not a hypothetical. Reframe shipped v1.4 with **100% coverage, green units** — and
+Make Shorts never produced a file on Windows. A held-out golden-journey (`app/e2e/golden-journey.spec.ts`)
+that drove the real Electron GUI + live Python sidecar and asserted a real vertical short on disk
+red-repro'd it, and — iterating red→fix→red — peeled back **three distinct Windows-only code bugs**, each
+sitting exactly at a seam the tests mock and Linux CI can't reach:
+
+1. **CRLF in WSL shell scripts** — `set -euo pipefail\r` aborts under WSL bash.
+2. **verthor teardown SIGSEGV** — a valid 1080×1920 short is rendered + flushed, then the process
+   SIGSEGVs at mediapipe/tflite atexit; the wrapper's `set -e` discarded the good output.
+3. **vidstab `.trf` path** — an absolute Windows path breaks ffmpeg's `-vf` filtergraph parser (the drive
+   colon reads as an option break; no escaping works). Never manifests on Linux (`/tmp/...`, no colon).
+
+Why coverage was useless here: `reframe.py` is deliberately *"unit-testable with no WSL, no mediapipe, no
+real verthor"* (mocked seam), the ffmpeg runner is an injected seam (tests never spawn ffmpeg), and CI
+runs on Linux. So every bug lived precisely where the proxy metric can't see. **The golden-journey caught
+what the entire test suite structurally could not**, and after the three fixes the full pipeline produces
+a real short end-to-end (`job.done → clips:[…]`). A fourth blocker (the claudeshorts YuNet model not
+provisioned) turned out to be a first-run *setup* step, not a code bug — the journey distinguishes those
+too. Full write-up: `Reframe/docs/research/GOLDEN-JOURNEY-FINDINGS-2026-07-07.md`.
+
+**Process lesson (for the harness itself):** for a multi-stage pipeline failure, **capture the actual
+error before fixing** — do not infer the failing stage from surviving artifacts. Here the intermediate on
+disk (`.cut.mp4` only) pointed at "reframe", but the real error was two stages earlier (stabilize); a
+direct sidecar-RPC harness that drained the job's stderr (`jobs.py` `log.error` traceback) was what named
+it. Inference cost several fix-the-wrong-thing detours until an external capture nailed it.
+
 ## NORTH-STAR REPAIR FLOW (how a repair session should go)
 
 audit-first (map the app's user journeys AND which are broken, with evidence) → confirm the golden
