@@ -30,18 +30,20 @@ foreach ($f in 'cs-start.sh', 'cs-recover.sh', 'cs-restore.sh', 'cs-backup.sh', 
 wsl.exe -d $distro -- bash -lc 'grep -q ".local/bin" ~/.profile 2>/dev/null || echo "export PATH=\$HOME/.local/bin:\$PATH" >> ~/.profile; echo "[wsl] ~/.profile PATH ok"'
 
 # --- 4. Wire the in-WSL [boot] supervisor (self-heal on every VM start; no systemd) ---
-# /etc/wsl.conf needs root; `wsl -u root` runs as root without a password prompt. Idempotent.
-$me = wsl.exe -d $distro -- bash -lc 'echo $USER'
-$me = ("$me").Trim()
-$bootCmd = "command=su - $me -c 'setsid nohup /home/$me/.local/bin/cs-supervisor >> /home/$me/.claude-science/supervisor.log 2>&1 &'"
-$wslconf = @"
-grep -q 'cs-supervisor' /etc/wsl.conf 2>/dev/null && { echo '[wsl] [boot] supervisor already wired'; exit 0; }
-touch /etc/wsl.conf
-grep -q '^\[boot\]' /etc/wsl.conf || printf '\n[boot]\n' >> /etc/wsl.conf
-sed -i "/^\[boot\]/a $bootCmd" /etc/wsl.conf
-echo '[wsl] wired [boot] cs-supervisor (takes effect after: wsl --shutdown)'
-"@
-try { wsl.exe -d $distro -u root -- bash -lc $wslconf } catch { Write-Host "[warn] could not edit /etc/wsl.conf as root: $($_.Exception.Message). Add the [boot] line manually." }
+# /etc/wsl.conf needs root; `wsl -u root` runs as root without a password. We build the new file
+# in PowerShell and write it via base64 to avoid nested PowerShell->wsl->bash quoting (the su/sed
+# form breaks: single quotes + $ in the [boot] command). Idempotent (skips if already wired).
+$me = ("$(wsl.exe -d $distro -- bash -lc 'echo $USER')").Trim()
+$already = ("$(wsl.exe -d $distro -u root -- bash -c 'grep -c cs-supervisor /etc/wsl.conf 2>/dev/null || echo 0')").Trim()
+if ($already -ne '0') {
+  Write-Host '[wsl] [boot] supervisor already wired'
+} else {
+  $existing = ("$(wsl.exe -d $distro -u root -- bash -c 'cat /etc/wsl.conf 2>/dev/null')").TrimEnd()
+  $boot = "`n`n[boot]`ncommand = su - $me -c 'setsid nohup /home/$me/.local/bin/cs-supervisor >> /home/$me/.claude-science/supervisor.log 2>&1 &'"
+  $b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($existing + $boot + "`n")))
+  try { wsl.exe -d $distro -u root -- bash -c "echo $b64 | base64 -d > /etc/wsl.conf" | Out-Null; Write-Host '[wsl] wired [boot] cs-supervisor (takes effect after: wsl --shutdown)' }
+  catch { Write-Host "[warn] could not edit /etc/wsl.conf as root: $($_.Exception.Message). Add the [boot] line manually." }
+}
 
 # --- 5. Browser tab-death regfix (HKCU policy, no admin): exempt Claude sites from tab discard ---
 $sites = @('claude.ai', '[*.]claude.ai', 'localhost', '127.0.0.1')
