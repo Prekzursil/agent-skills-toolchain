@@ -397,6 +397,33 @@ class AccountStore:
                 out[slot.env_var] = resolve_path(files[slot.key])
         return out
 
+    def env_for(self, platform: str, name: str) -> dict[str, str]:
+        """Resolved env for a SPECIFIC named account (env mode); {} if absent.
+
+        Like ``active_env`` but for an EXPLICITLY named account, so a caller that
+        routes per-key (search-hub's rotator lazily spawns one child per API key)
+        can bind a child to ANY key, not only the active one. Read-only: it never
+        changes which account is active. Additive helper -- the six account ops,
+        ``active_env`` and file handling are untouched.
+        """
+        pol = self.policies.get(platform)
+        if pol is None or pol.mode != "env":
+            return {}
+        rec = self._view(pol)
+        acct = next((a for a in rec.get("accounts", []) if a.get("name") == name), None)
+        if acct is None:
+            return {}
+        out = resolve_env(acct.get("env", {}), self.environ)
+        files = acct.get("files") or {}
+        for slot in pol.files:
+            if (
+                slot.env_var
+                and isinstance(files.get(slot.key), str)
+                and files[slot.key]
+            ):
+                out[slot.env_var] = resolve_path(files[slot.key])
+        return out
+
     def active_files(self, platform: str) -> list[FileAction]:
         """Copy actions for the active account's env_var-LESS file slots.
 
