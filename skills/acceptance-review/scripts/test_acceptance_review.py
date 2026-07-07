@@ -5,6 +5,7 @@ Run:  python test_acceptance_review.py    (stdlib unittest; exits non-zero on fa
 Covers: reward-hack scan, reviewer routing / graceful degradation, verdict parse,
 prompt assembly, journey/artifact discovery on a synthetic tree.
 """
+
 from __future__ import annotations
 
 import tempfile
@@ -29,7 +30,9 @@ class TestScanRewardHack(unittest.TestCase):
         self.assertIn("xfail", kinds)
 
     def test_ignores_removed_lines_and_hunk_headers(self):
-        diff = "-    x  # pragma: no cover\n+++ b/f.py\n context line pragma: no cover\n"
+        diff = (
+            "-    x  # pragma: no cover\n+++ b/f.py\n context line pragma: no cover\n"
+        )
         self.assertEqual(ar.scan_reward_hack(diff), [])
 
     def test_flags_coverage_and_marker_and_ci_edits(self):
@@ -49,8 +52,12 @@ class TestScanRewardHack(unittest.TestCase):
 
 class TestChooseReviewer(unittest.TestCase):
     def test_auto_prefers_codex_then_gemini(self):
-        self.assertEqual(ar.choose_reviewer("auto", {"codex": True, "gemini": True})[0], "codex")
-        self.assertEqual(ar.choose_reviewer("auto", {"codex": False, "gemini": True})[0], "gemini")
+        self.assertEqual(
+            ar.choose_reviewer("auto", {"codex": True, "gemini": True})[0], "codex"
+        )
+        self.assertEqual(
+            ar.choose_reviewer("auto", {"codex": False, "gemini": True})[0], "gemini"
+        )
 
     def test_auto_degrades_to_claude_when_no_cli(self):
         r, reason = ar.choose_reviewer("auto", {"codex": False, "gemini": False})
@@ -66,7 +73,9 @@ class TestChooseReviewer(unittest.TestCase):
         self.assertEqual(r, "claude")
 
     def test_explicit_claude_always_claude(self):
-        self.assertEqual(ar.choose_reviewer("claude", {"codex": True, "gemini": True})[0], "claude")
+        self.assertEqual(
+            ar.choose_reviewer("claude", {"codex": True, "gemini": True})[0], "claude"
+        )
 
 
 class TestParseVerdict(unittest.TestCase):
@@ -148,7 +157,9 @@ class TestDiscovery(unittest.TestCase):
             (root / "e2e").mkdir()
             (root / "e2e" / "golden.spec.ts").write_text("x", encoding="utf-8")
             (root / "node_modules" / "e2e").mkdir(parents=True)
-            (root / "node_modules" / "e2e" / "junk.spec.ts").write_text("x", encoding="utf-8")
+            (root / "node_modules" / "e2e" / "junk.spec.ts").write_text(
+                "x", encoding="utf-8"
+            )
             (root / "out").mkdir()
             (root / "out" / "short.mp4").write_text("data", encoding="utf-8")
             journeys = ar.find_journey_specs(root)

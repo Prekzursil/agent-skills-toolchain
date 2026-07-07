@@ -131,7 +131,9 @@ _REWARD_HACK_PATTERNS = (
     ),
     (
         "marker_deselect",
-        re.compile(r"-m\s+['\"]?not\s+e2e|addopts|--ignore\b|--deselect\b", re.IGNORECASE),
+        re.compile(
+            r"-m\s+['\"]?not\s+e2e|addopts|--ignore\b|--deselect\b", re.IGNORECASE
+        ),
     ),
     (
         "ci_trigger_edit",
@@ -179,7 +181,10 @@ def choose_reviewer(pref: str, available: dict[str, bool]) -> tuple[str, str]:
         for cli in order:
             if cli != pref and available.get(cli):
                 return cli, f"{pref} absent; using {cli} (cross-model)"
-        return "claude", f"{pref} absent and no other cross-model CLI; fresh Claude subagent"
+        return (
+            "claude",
+            f"{pref} absent and no other cross-model CLI; fresh Claude subagent",
+        )
     if pref == "claude":
         return "claude", "fresh Claude subagent (explicit request)"
     # auto
@@ -304,7 +309,10 @@ def find_artifacts(repo: Path, newer_than: float = 0.0, limit: int = 40) -> list
 
 def probe_clis() -> dict[str, bool]:
     """Which independent-reviewer CLIs are actually on PATH (real availability)."""
-    return {"codex": shutil.which("codex") is not None, "gemini": shutil.which("gemini") is not None}
+    return {
+        "codex": shutil.which("codex") is not None,
+        "gemini": shutil.which("gemini") is not None,
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -373,18 +381,22 @@ def build_prompt(evidence: dict) -> str:
         if hacks
         else "  (none detected in the diff)"
     )
-    diff_note = " (TRUNCATED — read files directly if you need more)" if diff["diff_truncated"] else ""
+    diff_note = (
+        " (TRUNCATED — read files directly if you need more)"
+        if diff["diff_truncated"]
+        else ""
+    )
 
     return f"""{_PROMPT_HEADER}
 
 ================================================================================
-CHANGE UNDER REVIEW  (base: {diff['base']})
+CHANGE UNDER REVIEW  (base: {diff["base"]})
 ================================================================================
 Changed files:
-{_bullets(diff['changed_files'], 'no files changed')}
+{_bullets(diff["changed_files"], "no files changed")}
 
 Diffstat:
-{diff['stat'] or '  (empty)'}
+{diff["stat"] or "  (empty)"}
 
 ================================================================================
 DECLARED JOURNEYS / E2E SPECS ON DISK
@@ -404,7 +416,7 @@ REWARD-HACK SURFACE (net-new exam-weakening in the diff — where gaming hides)
 ================================================================================
 UNIFIED DIFF{diff_note}
 ================================================================================
-{diff['unified_diff'] or '(no diff content)'}
+{diff["unified_diff"] or "(no diff content)"}
 """
 
 
@@ -421,7 +433,15 @@ def build_reviewer_command(
     """
     prompt = prompt_file.read_text(encoding="utf-8")
     if reviewer == "codex":
-        argv = ["codex", "exec", "-s", "read-only", "-C", str(repo), "--skip-git-repo-check"]
+        argv = [
+            "codex",
+            "exec",
+            "-s",
+            "read-only",
+            "-C",
+            str(repo),
+            "--skip-git-repo-check",
+        ]
         if model:
             argv += ["-m", model]
         argv.append(prompt)
@@ -453,7 +473,11 @@ def dispatch_cli(argv: list[str], repo: Path, timeout: int) -> dict:
         partial = (exc.stdout or "") if isinstance(exc.stdout, str) else ""
         return {"returncode": None, "output": partial, "timed_out": True}
     except (OSError, subprocess.SubprocessError) as exc:
-        return {"returncode": None, "output": f"dispatch error: {exc}", "timed_out": False}
+        return {
+            "returncode": None,
+            "output": f"dispatch error: {exc}",
+            "timed_out": False,
+        }
 
 
 # --------------------------------------------------------------------------- #
@@ -483,7 +507,9 @@ def gather(repo: Path, base_ref: str | None) -> dict:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Cross-model acceptance-review harness.")
     ap.add_argument("--repo", default=os.getcwd(), help="Target repo (default: cwd).")
-    ap.add_argument("--base", default=None, help="Diff base ref (default: auto merge-base).")
+    ap.add_argument(
+        "--base", default=None, help="Diff base ref (default: auto merge-base)."
+    )
     ap.add_argument("--out", default=None, help="Output dir for evidence + prompt.")
     ap.add_argument(
         "--reviewer",
@@ -491,11 +517,19 @@ def main(argv: list[str] | None = None) -> int:
         choices=["auto", "codex", "gemini", "claude"],
         help="Reviewer preference (default: auto = best cross-model CLI).",
     )
-    ap.add_argument("--model", default=None, help="Model override for the reviewer CLI.")
-    ap.add_argument("--dispatch", action="store_true", help="Actually run the CLI reviewer.")
+    ap.add_argument(
+        "--model", default=None, help="Model override for the reviewer CLI."
+    )
+    ap.add_argument(
+        "--dispatch", action="store_true", help="Actually run the CLI reviewer."
+    )
     ap.add_argument("--timeout", type=int, default=240, help="Dispatch timeout secs.")
-    ap.add_argument("--strict", action="store_true", help="Exit 20 on a dispatched BLOCK verdict.")
-    ap.add_argument("--json", action="store_true", help="Print the evidence bundle as JSON.")
+    ap.add_argument(
+        "--strict", action="store_true", help="Exit 20 on a dispatched BLOCK verdict."
+    )
+    ap.add_argument(
+        "--json", action="store_true", help="Print the evidence bundle as JSON."
+    )
     args = ap.parse_args(argv)
 
     repo = Path(args.repo).resolve()
@@ -512,7 +546,9 @@ def main(argv: list[str] | None = None) -> int:
     prompt = build_prompt(evidence)
     prompt_file = out_dir / "review-prompt.md"
     prompt_file.write_text(prompt, encoding="utf-8")
-    (out_dir / "evidence.json").write_text(json.dumps(evidence, indent=2), encoding="utf-8")
+    (out_dir / "evidence.json").write_text(
+        json.dumps(evidence, indent=2), encoding="utf-8"
+    )
 
     if args.json:
         print(json.dumps(evidence, indent=2))
@@ -524,10 +560,14 @@ def main(argv: list[str] | None = None) -> int:
     print(f"repo            : {repo}")
     print(f"base            : {evidence['diff']['base']}")
     print(f"changed files   : {len(evidence['diff']['changed_files'])}")
-    print(f"declared journeys: {len(evidence['journeys'])}  {evidence['journeys'] or '(NONE)'}")
+    print(
+        f"declared journeys: {len(evidence['journeys'])}  {evidence['journeys'] or '(NONE)'}"
+    )
     print(f"artifacts found : {len(evidence['artifacts'])}")
     print(f"reward-hack hits: {len(evidence['reward_hack'])}")
-    print(f"CLIs on PATH    : codex={evidence['clis']['codex']} gemini={evidence['clis']['gemini']}")
+    print(
+        f"CLIs on PATH    : codex={evidence['clis']['codex']} gemini={evidence['clis']['gemini']}"
+    )
     print(f"reviewer        : {reviewer}  ({reason})")
     print(f"prompt written  : {prompt_file}")
     print("=" * 72)
@@ -545,7 +585,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if not args.dispatch:
-        print("\nTo run the independent review, either re-run with --dispatch, or execute:")
+        print(
+            "\nTo run the independent review, either re-run with --dispatch, or execute:"
+        )
         print("    " + " ".join(_shellish(a) for a in cmd[:-1]) + " <prompt-from-file>")
         print(f"(prompt is in {prompt_file}; pass it as the final argument)\n")
         return 0
@@ -556,9 +598,13 @@ def main(argv: list[str] | None = None) -> int:
     print(result["output"])
     print("-" * 72)
     if result["timed_out"]:
-        print(f"REVIEWER TIMED OUT after {args.timeout}s — verdict INCONCLUSIVE (treat as BLOCK).")
+        print(
+            f"REVIEWER TIMED OUT after {args.timeout}s — verdict INCONCLUSIVE (treat as BLOCK)."
+        )
         verdict = verdict or "BLOCK"
-    print(f"PARSED VERDICT  : {verdict or 'INCONCLUSIVE (no VERDICT token — treat as BLOCK)'}")
+    print(
+        f"PARSED VERDICT  : {verdict or 'INCONCLUSIVE (no VERDICT token — treat as BLOCK)'}"
+    )
     (out_dir / "verdict.txt").write_text(result["output"], encoding="utf-8")
 
     if args.strict and (verdict == "BLOCK" or verdict is None):
