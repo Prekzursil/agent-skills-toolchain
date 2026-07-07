@@ -60,19 +60,24 @@ try {
   Write-Information -InformationAction Continue '[reg] tab-death exceptions applied (Chrome + Edge)'
 } catch { Write-Information -InformationAction Continue "[warn] regfix skipped: $($_.Exception.Message)" }
 
-# --- 6. One-click shortcut (Desktop + Start Menu) -> flash-free `cs open` via a tiny VBS ---
-$vbs = Join-Path $winDir 'cs-open.vbs'
-@"
-Set s = CreateObject("WScript.Shell")
-s.Run "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File ""$winDir\cs.ps1"" open", 0, False
-"@ | Set-Content -Encoding ascii $vbs
+# --- 6. One-click shortcut (Desktop + Start Menu) -> flash-free `cs open` via conhost --headless.
+# NOT wscript+.vbs: VBScript is deprecated and REMOVED on Win11 24H2+/Canary (build 28xxx has no
+# ".vbs" script engine), so the old launcher silently no-ops there ("no script engine for .vbs").
+# conhost --headless is the VBScript-free flash-free replacement (Win10 1809+/Win11): it runs the
+# hidden daemon-ensure with no console window while the browser opens visibly.
+$conhost = Join-Path $env:SystemRoot 'System32\conhost.exe'
+$lnkArgs = "--headless powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$winDir\cs.ps1`" open"
 $ws = New-Object -ComObject WScript.Shell
 foreach ($dir in @([Environment]::GetFolderPath('Desktop'), (Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs'))) {
   $lnk = $ws.CreateShortcut((Join-Path $dir 'Claude Science.lnk'))
-  $lnk.TargetPath = 'wscript.exe'; $lnk.Arguments = "`"$vbs`""; $lnk.IconLocation = 'shell32.dll,13'
+  $lnk.TargetPath = $conhost; $lnk.Arguments = $lnkArgs; $lnk.WorkingDirectory = $winDir
+  $lnk.IconLocation = 'shell32.dll,13'
   $lnk.Description = 'Open Claude Science (ensures the daemon is up first)'; $lnk.Save()
 }
-Write-Information -InformationAction Continue '[ok] "Claude Science" shortcut on Desktop + Start Menu (flash-free -> cs open)'
+# retire any dead VBScript launcher left by a prior install
+$oldVbs = Join-Path $winDir 'cs-open.vbs'
+if (Test-Path $oldVbs) { Remove-Item $oldVbs -Force -ErrorAction SilentlyContinue }
+Write-Information -InformationAction Continue '[ok] "Claude Science" shortcut on Desktop + Start Menu (flash-free via conhost --headless -> cs open)'
 
 # --- 7. Register the always-on tasks (watchdog + weekly maintenance) ---
 & (Join-Path $here 'register-tasks.ps1')
