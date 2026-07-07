@@ -1,73 +1,72 @@
-# cs-watchdog — Windows-side supervisor for the Claude Science WSL2 daemon.
-# The single most robust layer (no sudo): it lives OUTSIDE WSL, so it recovers states
-# nothing inside WSL can (idle-terminated distro, hung daemon, post-reboot). It:
-#   - keepalives WSL every cycle ('wsl -e true' < the ~60s idle timeout) so the distro never sleeps
-#   - probes 127.0.0.1:8000 (any HTTP status incl. 401 = alive; no response = DOWN/WEDGED)
-#   - auto-recovers with a 2-strike debounce + a crash-loop breaker (max 3 recoveries / 15 min)
-#   - disk-guards: warns when the WSL ext4 drops below the floor (disk-full mid-WAL = corruption)
-# Written to run under BOTH Windows PowerShell 5.1 (Task Scheduler default) and pwsh 7.
-# Registered at logon by register-tasks.ps1. Logs to %LOCALAPPDATA%\claude-science-watchdog.log
+# cs-watchdog — Windows-side supervisor for the Claude Science WSL2 daemon (the OUTER net:
+# recovers idled-out distro / hung daemon / post-reboot states nothing inside WSL can).
+# Hardened 2026-07-07 (audit): single-instance MUTEX (was: two instances racing cs-recover and
+# killing each other's daemon), LATENCY-aware wedge detection (was: any-HTTP=alive, blind to the
+# ~164s freeze), HEARTBEAT file (hung != healthy), TIMEOUT-wrapped wsl calls (a frozen VM used to
+# hang the loop -> keepalive stopped -> 60s idle-kill -> silent death), immediate ensure-up on
+# start (no 60s 2-strike gap), host-RAM WARN guard (the oversubscription that causes the freeze),
+# log rotation, and post-recover re-probe (was: reset $fails regardless of outcome).
 $ErrorActionPreference = 'SilentlyContinue'
-$Distro    = 'Ubuntu'
-$Url       = 'http://127.0.0.1:8000/'
-$MinFreeGB = 10
-$Log       = Join-Path $env:LOCALAPPDATA 'claude-science-watchdog.log'
-$fails = 0
-$recoveries = 0
-$lastRecover = [DateTime]::MinValue
+. (Join-Path $PSScriptRoot 'cs-lib.ps1')     # Test-CSHealth, Invoke-CSWsl, $script:CSUrl/CSDistro/CSSlowMs
+$Log         = Join-Path $env:LOCALAPPDATA 'claude-science-watchdog.log'
+$Beat        = Join-Path $env:LOCALAPPDATA 'claude-science-watchdog.heartbeat'
+$MinFreeGB   = 10       # WSL ext4 floor (disk-full mid-WAL risks DB corruption)
+$MinRamGB    = 3        # host free-RAM floor (below = warn; oversubscription freezes WSL = the wedge)
+$SlowStrikes = 3        # consecutive SLOW probes (~90s) => wedged => recover
+$DownStrikes = 2        # consecutive DOWN probes => recover
 
-function Write-WdLog($m) {
-  ("{0}  {1}" -f (Get-Date).ToString('s'), $m) | Out-File -Append -Encoding utf8 -FilePath $Log
-}
+function Write-WdLog($m) { ("{0}  {1}" -f (Get-Date).ToString('s'), $m) | Out-File -Append -Encoding utf8 -FilePath $Log }
+function Write-Beat($state, $ms) { "$([DateTime]::UtcNow.ToString('o')) state=$state latency=${ms}ms recoveries=$script:recoveries" | Set-Content -Encoding utf8 -Path $Beat }
 
-function Test-DaemonAlive {
-  # any HTTP response (incl. 401 auth gate) = alive; no response = down/wedged. 5.1- and 7-safe.
-  try {
-    $req = [System.Net.HttpWebRequest]::Create($Url)
-    $req.Timeout = 5000
-    $req.Method = 'GET'
-    $resp = $req.GetResponse()
-    $resp.Close()
-    return $true
-  } catch [System.Net.WebException] {
-    if ($_.Exception.Response) { return $true }
-    return $false
-  } catch {
-    return $false
+# --- single-instance guard: first writer wins, late starters exit (kills the dual-watchdog race) ---
+$mtx = New-Object System.Threading.Mutex($false, 'Global\ClaudeScienceWatchdog')
+$own = $false
+try { $own = $mtx.WaitOne(0) } catch [System.Threading.AbandonedMutexException] { $own = $true }   # prior instance died holding it
+if (-not $own) { Write-WdLog 'another watchdog already holds the mutex - exiting'; exit 0 }
+
+# --- log rotation (was: unbounded Out-File -Append) ---
+if ((Test-Path $Log) -and (Get-Item $Log).Length -gt 5MB) { Move-Item $Log "$Log.1" -Force }
+
+$fails = 0; $slow = 0; $script:recoveries = 0; $script:lastRecover = [DateTime]::MinValue; $tick = 0
+Write-WdLog "watchdog started (probe=$script:CSUrl slow>=$($script:CSSlowMs)ms strikes=$SlowStrikes; disk floor=${MinFreeGB}GB ram floor=${MinRamGB}GB)"
+
+# --- immediate ensure-up: do the obvious first start now, don't wait for 2 failed strikes ---
+Write-WdLog 'startup: ensuring CS is up'
+[void](Invoke-CSWsl 'cs-start' 45)
+
+function Invoke-WdRecover($why) {
+  if ($script:recoveries -ge 3 -and ((Get-Date) - $script:lastRecover).TotalMinutes -lt 15) {
+    Write-WdLog "CRASH-LOOP BREAKER tripped ($script:recoveries recoveries/15min) - backing off, NOT restarting. Investigate: cs doctor"
+    return
   }
+  Write-WdLog "recover ($why)"
+  $r = Invoke-CSWsl 'cs-recover' 75
+  if ($r -eq '__WSL_TIMEOUT__') { Write-WdLog 'cs-recover WSL call TIMED OUT (VM wedged) - terminating distro for a clean boot'; & wsl.exe -t $script:CSDistro 2>$null }
+  $script:recoveries++; $script:lastRecover = Get-Date
 }
 
-Write-WdLog "watchdog started (probe=$Url interval=30s floor=${MinFreeGB}GB)"
-$tick = 0
 while ($true) {
-  & wsl -d $Distro -e true 2>$null            # keepalive: hold a WSL process < idle timeout
-
-  if (Test-DaemonAlive) {
-    $fails = 0
-    if (((Get-Date) - $lastRecover).TotalMinutes -ge 15) { $recoveries = 0 }
-  } else {
-    $fails++
-    if ($fails -ge 2) {                         # 2-strike debounce (ignore a transient GC pause)
-      if ($recoveries -ge 3 -and ((Get-Date) - $lastRecover).TotalMinutes -lt 15) {
-        Write-WdLog "CRASH-LOOP BREAKER tripped ($recoveries recoveries/15min) - backing off, NOT restarting. Investigate."
-      } else {
-        Write-WdLog "unhealthy x$fails -> cs-recover"
-        & wsl -d $Distro -e sh -lc 'cs-recover' 2>$null
-        $recoveries++
-        $lastRecover = Get-Date
-        $fails = 0
-      }
-    }
+  $h = Test-CSHealth
+  Write-Beat $h.State $h.Ms
+  switch ($h.State) {
+    'HEALTHY' { $fails = 0; $slow = 0; if (((Get-Date) - $script:lastRecover).TotalMinutes -ge 15) { $script:recoveries = 0 } }
+    'SLOW'    { $slow++; $fails = 0; if ($slow -ge $SlowStrikes) { Invoke-WdRecover "WEDGE latency=$($h.Ms)ms"; $slow = 0; Start-Sleep 8; if ((Test-CSHealth).State -ne 'HEALTHY') { Write-WdLog 'still unhealthy after wedge-recover' } } }
+    'DOWN'    { $slow = 0; $fails++; if ($fails -ge $DownStrikes) { Invoke-WdRecover 'DOWN'; Start-Sleep 8; if ((Test-CSHealth).State -eq 'DOWN') { Write-WdLog 'still DOWN after recover' } else { $fails = 0 } } }
   }
 
   $tick++
-  if ($tick % 10 -eq 0) {                        # disk guard ~every 5 min
-    $free = & wsl -d $Distro -e sh -lc 'df -BG --output=avail "$HOME" | tail -1 | tr -dc 0-9' 2>$null
+  if ($tick % 10 -eq 0) {
+    $os = Get-CimInstance Win32_OperatingSystem
+    $ramGB = [math]::Round($os.FreePhysicalMemory / 1MB, 1)
+    if ($ramGB -lt $MinRamGB) {
+      $t = Get-Process | Sort-Object WorkingSet64 -Descending | Select-Object -First 1
+      Write-WdLog ("LOW HOST RAM: ${ramGB}GB free (< ${MinRamGB}GB) - WSL freeze/wedge risk. top: {0} {1}MB" -f $t.ProcessName, [math]::Round($t.WorkingSet64 / 1MB))
+    }
+    $free = Invoke-CSWsl 'df -BG --output=avail "$HOME" | tail -1 | tr -dc 0-9' 15
     $g = 0
-    if ($free -and [int]::TryParse(("$free").Trim(), [ref]$g) -and $g -lt $MinFreeGB) {
-      Write-WdLog "LOW DISK: ${g}GB free on WSL ext4 (< ${MinFreeGB}GB) - disk-full mid-WAL risks DB corruption."
+    if ($free -ne '__WSL_TIMEOUT__' -and [int]::TryParse(("$free").Trim(), [ref]$g) -and $g -lt $MinFreeGB) {
+      Write-WdLog "LOW WSL DISK: ${g}GB free (< ${MinFreeGB}GB) - disk-full mid-WAL risks DB corruption."
     }
   }
-
   Start-Sleep -Seconds 30
 }
