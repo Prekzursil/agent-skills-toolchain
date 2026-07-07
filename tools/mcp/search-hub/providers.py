@@ -134,6 +134,41 @@ def _npx(pkg: str) -> tuple[str, ...]:
     return ("cmd", "/c", "npx", "-y", pkg)
 
 
+# Exa's npm stdio server (``exa-mcp-server``) HARDCODES only web_search_exa +
+# web_fetch_exa (verified 2026-07-07: no --tools/env/config flag expands it). The
+# FULL 14-tool surface — advanced search, company/linkedin/people research,
+# code-context, crawling, deep-researcher, and the agent-run deep-research tools —
+# is only available on Exa's HTTP endpoint via ``?tools=``. We bridge that endpoint
+# stdio<-HTTP with ``mcp-remote``, which interpolates the per-rotation key from the
+# EXA_API_KEY env var into the ``x-api-key`` header (verified: 14 tools exposed,
+# per-key rotation preserved because the hub still sets EXA_API_KEY per child).
+_EXA_TOOLS = (
+    "web_search_exa,web_search_advanced_exa,web_fetch_exa,company_research_exa,"
+    "linkedin_search_exa,people_search_exa,get_code_context_exa,crawling_exa,"
+    "deep_researcher_start,deep_researcher_check,"
+    "agent_create_run,agent_wait_for_run,agent_get_run_output,agent_cancel_run"
+)
+
+
+def _exa_remote() -> tuple[str, ...]:
+    """Stdio->HTTP bridge to Exa's FULL-surface endpoint; key from EXA_API_KEY env.
+
+    mcp-remote substitutes ``${EXA_API_KEY}`` from its own environment (cmd.exe
+    would not — it uses %VAR%), so the hub's per-key env injection still drives
+    rotation while unlocking every Exa tool the neutered npm server dropped.
+    """
+    return (
+        "cmd",
+        "/c",
+        "npx",
+        "-y",
+        "mcp-remote",
+        "https://mcp.exa.ai/mcp?tools=" + _EXA_TOOLS,
+        "--header",
+        "x-api-key:${EXA_API_KEY}",
+    )
+
+
 def default_providers() -> list[ProviderSpec]:
     """The three fronted search providers (order = tool-merge order).
 
@@ -147,7 +182,7 @@ def default_providers() -> list[ProviderSpec]:
             label="Exa",
             prefix="ex",
             key_env="EXA_API_KEY",
-            cmd=_npx("exa-mcp-server"),
+            cmd=_exa_remote(),  # full 14-tool HTTP surface (npm server only had 2)
             cache="exa.json",
             usage_url="",  # Exa has NO per-key balance API -> error-driven only
             usage_kind="",
