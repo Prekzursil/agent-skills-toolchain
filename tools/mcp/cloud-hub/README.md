@@ -11,7 +11,7 @@ Why not a normal aggregator (mcp-funnel / 1mcp)? Those rename tools to
 `serverName__tool`. This hub preserves names and only renames on a genuine
 cross-backend collision (none today).
 
-## Backends & tool surface (214 backend tools + 48 account tools = 262)
+## Backends & tool surface (279 backend tools + 54 account tools = 333)
 
 | id | backend | pkg / runtime | tools | adopt/build | auth | cache |
 |----|---------|---------------|------:|-------------|------|-------|
@@ -23,6 +23,7 @@ cross-backend collision (none today).
 | `modal` | Modal | built FastMCP wrapper (`modal` CLI) | 6 | build | `MODAL_TOKEN_ID`+`MODAL_TOKEN_SECRET` | live |
 | `lightning` | Lightning AI | built FastMCP wrapper (`lightning_sdk`) | 9 | build | `LIGHTNING_USER_ID`+`LIGHTNING_API_KEY` | live |
 | `ovh` | OVHcloud | vendored TS MCP (`node ovh-mcp/dist/index.js`) | 27 | vendor+build | `OVH_APPLICATION_KEY`+`_SECRET`+`_CONSUMER_KEY` (or OAuth2) per region | live |
+| `databricks` | Databricks | built FastMCP wrapper (`databricks-sdk`) | 65 | build | `DATABRICKS_HOST` + (`DATABRICKS_CLIENT_ID`/`_SECRET` or `DATABRICKS_TOKEN`) | live |
 
 `azure` is a **hand-authored** representative cache: `@azure/mcp` is a .NET tool that
 did not emit an MCP handshake under piped stdio in the build harness (the Node
@@ -63,6 +64,42 @@ endpoint must match the account). Creds may be the API-key trio
 — e.g. the account email — surfaced by `ov_account_list`/`_current` as
 `name → label`, so you can tell which OVH identity each switch-name maps to
 (confirm the live identity any time with `ovh_account_info` = `GET /me`).
+
+### Databricks (`databricks`) — built `databricks-sdk` wrapper
+
+`databricks` is a built FastMCP wrapper (`databricks-mcp/server.py`) over the
+official **`databricks-sdk`** (Python), pre-namespaced `dbx_*` (65 tools). Like
+the modal/lightning wrappers it lazy-imports the SDK, so `tools/list` enumerates
+offline (cache is live-generated); a call without the SDK or credentials returns
+a clear install/auth hint. SDK stdout + `logging` are silenced so the JSON-RPC
+stream stays clean.
+
+Surface: **clusters** (list/get/create/edit/start/restart/resize/terminate/
+permanent_delete + `dbx_node_types`/`dbx_spark_versions`; GPU via a GPU
+`node_type_id` + a `*-gpu-ml` runtime), **Command Execution** (the compute
+primitive — `dbx_ctx_create`/`_status`/`_destroy`, `dbx_exec`, and
+`dbx_run_on_cluster` convenience; **classic all-purpose clusters only**),
+**jobs + runs**, **DBFS + Unity Catalog Volumes**, **SQL warehouses +
+`dbx_sql_exec`**, **model serving** (incl. `dbx_serving_query`), **secrets +
+repos**, `dbx_current_user`, and **`dbx_api_raw`** (call ANY Databricks REST
+endpoint — the escape hatch).
+
+**Auth:** SDK unified auth. Default is **OAuth M2M service principal**
+(`DATABRICKS_HOST` + `DATABRICKS_CLIENT_ID` + `DATABRICKS_CLIENT_SECRET`); **PAT**
+is the fallback (`DATABRICKS_HOST` + `DATABRICKS_TOKEN`); a `~/.databrickscfg`
+profile (`DATABRICKS_CONFIG_PROFILE`) also works. Each `db` account bundles
+`DATABRICKS_HOST` with its creds, so `db_account_switch` flips **both** workspace
+URL and credentials (the OVH per-region pattern, per-workspace). See the
+`databricks` block in `accounts.example.json`.
+
+**Guardrails:** the destructive / code-executing tools
+(`dbx_cluster_terminate`, `dbx_cluster_permanent_delete`, `dbx_warehouse_delete`,
+`dbx_exec`, `dbx_run_on_cluster`) are gated behind `confirm=True` (else a dry-run
+preview). Cluster/warehouse lifecycle tools expose an opt-in `wait` flag (the SDK
+`*_and_wait` variants). Docstrings carry `$$$` cost cautions — clusters/
+warehouses bill while running, so set `autotermination_minutes` / `auto_stop_mins`
+and terminate/stop when done. `databricks-sdk` must be installed in the hub's
+interpreter for live calls (`pip install databricks-sdk`).
 
 ### Collision policy
 
@@ -155,19 +192,24 @@ launcher are real Python entry points run under the hub's own interpreter.
     "OVH_ENDPOINT": "${OVH_ENDPOINT}",
     "OVH_APPLICATION_KEY": "${OVH_APPLICATION_KEY}",
     "OVH_APPLICATION_SECRET": "${OVH_APPLICATION_SECRET}",
-    "OVH_CONSUMER_KEY": "${OVH_CONSUMER_KEY}"
+    "OVH_CONSUMER_KEY": "${OVH_CONSUMER_KEY}",
+    "DATABRICKS_HOST": "${DATABRICKS_HOST}",
+    "DATABRICKS_CLIENT_ID": "${DATABRICKS_CLIENT_ID}",
+    "DATABRICKS_CLIENT_SECRET": "${DATABRICKS_CLIENT_SECRET}",
+    "DATABRICKS_TOKEN": "${DATABRICKS_TOKEN}"
   }
 }
 ```
 
 Azure + gcloud inherit their CLI logins (`az login`, `gcloud auth`) — no key env.
 The hub's interpreter needs `mcp` + `modal` installed (and `lightning-sdk` for the
-Lightning tools). Node ≥ 20, `uv`, and the `rclone`/`az`/`gcloud` CLIs on PATH.
+Lightning tools, `databricks-sdk` for the Databricks tools). Node ≥ 20, `uv`, and
+the `rclone`/`az`/`gcloud` CLIs on PATH.
 The `ovh` backend needs its one-time build (`cd ovh-mcp && npm ci && npm run build`).
 
 ## Tests
 
 ```
-python -m pytest tests -q     # 24 tests: plan logic + lazy-spawn + account layer
+python -m pytest tests -q     # 36 tests: plan logic + lazy-spawn + account layer + databricks wrapper
 python e2e_live.py            # live: routes an account tool + modal_app_list (Windows)
 ```
