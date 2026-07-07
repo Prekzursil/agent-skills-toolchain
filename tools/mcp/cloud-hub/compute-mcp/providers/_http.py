@@ -140,6 +140,7 @@ def ovh_sign(
     payload = "+".join(
         [app_secret, consumer_key, method.upper(), url, body, str(timestamp)]
     )
+    # nosemgrep: quality.opengrep.python-weak-hash-md5-sha1 -- OVH API request-signing protocol mandates SHA1 ($1$ scheme); not a security choice we control
     return "$1$" + hashlib.sha1(payload.encode("utf-8")).hexdigest()  # noqa: S324
 
 
