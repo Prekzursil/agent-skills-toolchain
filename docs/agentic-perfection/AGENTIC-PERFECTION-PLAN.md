@@ -3,6 +3,10 @@
      MAST failure taxonomy (arXiv 2503.13657) + the self-calibration LAW (Huang ICLR'24: intrinsic
      same-context self-correction FAILS — every check needs an EXTERNAL signal). -->
 
+> **See also:** [AGENTIC-REPAIR-RELIABILITY.md](AGENTIC-REPAIR-RELIABILITY.md) — the functional-acceptance
+> layer (2026-07-07): closes green-but-broken repair by requiring a held-out golden-journey run as the
+> done-signal (extends `claim-guard` G1 + `test-tamper-guard` G2; SOTA-cited).
+
 ## STRUCTURAL DIAGNOSIS (the unifying insight)
 The shipped B1 hooks (mcp-liveness, claim-guard, truth-verify, fresh-verify, orphan-commit, anti-degen,
 goal-reinject, edit-checkpoints) already cover the famous IN-CONTEXT failure modes. The residual silent-
