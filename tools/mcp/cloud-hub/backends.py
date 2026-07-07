@@ -36,6 +36,7 @@ PYTHON = sys.executable
 RCLONE_LAUNCH = os.path.join(HERE, "rclone_launch.py")
 MODAL_SERVER = os.path.join(HERE, "modal-mcp", "server.py")
 LIGHTNING_SERVER = os.path.join(HERE, "lightning-mcp", "server.py")
+DATABRICKS_SERVER = os.path.join(HERE, "databricks-mcp", "server.py")
 # Vendored TS MCP (hlebtkachenko/ovhcloud-mcp): built to dist/ via
 # `npm ci && npm run build` in ovh-mcp/. node is a real .exe but resolved
 # through `cmd /c` so PATH lookup matches the npx/uvx launchers on Windows.
@@ -230,6 +231,22 @@ def default_backends() -> list[BackendSpec]:
                     "OVH_CONSUMER_KEY",
                 ),
                 label="OVHcloud",
+            ),
+        ),
+        BackendSpec(
+            id="databricks",
+            label="Databricks",
+            prefix="db",
+            cmd=(PYTHON, DATABRICKS_SERVER),
+            cache="databricks.json",
+            can_enumerate_offline=True,
+            note="databricks-sdk wrapper; DATABRICKS_HOST + (CLIENT_ID/_SECRET "
+            "or TOKEN)",
+            account=AccountPolicy(
+                platform="databricks",
+                mode="env",
+                seed_env=("DATABRICKS_HOST", "DATABRICKS_TOKEN"),
+                label="Databricks",
             ),
         ),
     ]

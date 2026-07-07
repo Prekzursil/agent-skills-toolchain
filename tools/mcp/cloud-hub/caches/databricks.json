@@ -1,0 +1,2342 @@
+{
+  "initialize": {
+    "protocolVersion": "2024-11-05",
+    "capabilities": {
+      "experimental": {},
+      "prompts": {
+        "listChanged": false
+      },
+      "resources": {
+        "subscribe": false,
+        "listChanged": false
+      },
+      "tools": {
+        "listChanged": false
+      }
+    },
+    "serverInfo": {
+      "name": "databricks",
+      "version": "1.23.3"
+    }
+  },
+  "tools": {
+    "tools": [
+      {
+        "name": "dbx_cluster_list",
+        "description": "List all-purpose clusters in the workspace (``w.clusters.list``).",
+        "inputSchema": {
+          "properties": {},
+          "title": "dbx_cluster_listArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_cluster_listOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_cluster_get",
+        "description": "Get one cluster's full details/state by id (``w.clusters.get``).",
+        "inputSchema": {
+          "properties": {
+            "cluster_id": {
+              "title": "Cluster Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "cluster_id"
+          ],
+          "title": "dbx_cluster_getArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_cluster_getOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_cluster_create",
+        "description": "Create an all-purpose cluster. $$$ bills while RUNNING.\n\nGPU: set ``node_type_id`` to a GPU instance (AWS ``g4dn.xlarge``/``g5.xlarge``,\nAzure ``Standard_NC*``, GCP ``a2-*``) and ``spark_version`` to a ``*-gpu-ml``\nimage from ``dbx_spark_versions``. Give ``num_workers`` OR both ``autoscale_min``\nand ``autoscale_max``. Set ``autotermination_minutes`` so an idle cluster\nstops itself. ``wait=True`` blocks until RUNNING. Advanced fields (Docker\nimage, data_security_mode, cloud attrs) -> ``dbx_api_raw POST\n/api/2.1/clusters/create``.\n",
+        "inputSchema": {
+          "properties": {
+            "cluster_name": {
+              "title": "Cluster Name",
+              "type": "string"
+            },
+            "spark_version": {
+              "title": "Spark Version",
+              "type": "string"
+            },
+            "node_type_id": {
+              "title": "Node Type Id",
+              "type": "string"
+            },
+            "num_workers": {
+              "default": 0,
+              "title": "Num Workers",
+              "type": "integer"
+            },
+            "autoscale_min": {
+              "default": 0,
+              "title": "Autoscale Min",
+              "type": "integer"
+            },
+            "autoscale_max": {
+              "default": 0,
+              "title": "Autoscale Max",
+              "type": "integer"
+            },
+            "driver_node_type_id": {
+              "default": "",
+              "title": "Driver Node Type Id",
+              "type": "string"
+            },
+            "autotermination_minutes": {
+              "default": 0,
+              "title": "Autotermination Minutes",
+              "type": "integer"
+            },
+            "policy_id": {
+              "default": "",
+              "title": "Policy Id",
+              "type": "string"
+            },
+            "spark_conf_json": {
+              "default": "",
+              "title": "Spark Conf Json",
+              "type": "string"
+            },
+            "custom_tags_json": {
+              "default": "",
+              "title": "Custom Tags Json",
+              "type": "string"
+            },
+            "wait": {
+              "default": false,
+              "title": "Wait",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "cluster_name",
+            "spark_version",
+            "node_type_id"
+          ],
+          "title": "dbx_cluster_createArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_cluster_createOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_cluster_edit",
+        "description": "Edit an existing cluster's config (``w.clusters.edit``); full new spec.\n\nThe cluster must be TERMINATED or RUNNING; edit replaces the configuration.\nSame field shape as ``dbx_cluster_create``. ``wait=True`` blocks until RUNNING.\n",
+        "inputSchema": {
+          "properties": {
+            "cluster_id": {
+              "title": "Cluster Id",
+              "type": "string"
+            },
+            "spark_version": {
+              "title": "Spark Version",
+              "type": "string"
+            },
+            "node_type_id": {
+              "title": "Node Type Id",
+              "type": "string"
+            },
+            "num_workers": {
+              "default": 0,
+              "title": "Num Workers",
+              "type": "integer"
+            },
+            "autoscale_min": {
+              "default": 0,
+              "title": "Autoscale Min",
+              "type": "integer"
+            },
+            "autoscale_max": {
+              "default": 0,
+              "title": "Autoscale Max",
+              "type": "integer"
+            },
+            "driver_node_type_id": {
+              "default": "",
+              "title": "Driver Node Type Id",
+              "type": "string"
+            },
+            "autotermination_minutes": {
+              "default": 0,
+              "title": "Autotermination Minutes",
+              "type": "integer"
+            },
+            "spark_conf_json": {
+              "default": "",
+              "title": "Spark Conf Json",
+              "type": "string"
+            },
+            "custom_tags_json": {
+              "default": "",
+              "title": "Custom Tags Json",
+              "type": "string"
+            },
+            "wait": {
+              "default": false,
+              "title": "Wait",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "cluster_id",
+            "spark_version",
+            "node_type_id"
+          ],
+          "title": "dbx_cluster_editArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_cluster_editOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_cluster_start",
+        "description": "Start a terminated cluster (``w.clusters.start``). $$$ bills once RUNNING.",
+        "inputSchema": {
+          "properties": {
+            "cluster_id": {
+              "title": "Cluster Id",
+              "type": "string"
+            },
+            "wait": {
+              "default": false,
+              "title": "Wait",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "cluster_id"
+          ],
+          "title": "dbx_cluster_startArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_cluster_startOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_cluster_restart",
+        "description": "Restart a running cluster (``w.clusters.restart``).",
+        "inputSchema": {
+          "properties": {
+            "cluster_id": {
+              "title": "Cluster Id",
+              "type": "string"
+            },
+            "wait": {
+              "default": false,
+              "title": "Wait",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "cluster_id"
+          ],
+          "title": "dbx_cluster_restartArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_cluster_restartOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_cluster_resize",
+        "description": "Resize a running cluster (``w.clusters.resize``): fixed workers or autoscale.",
+        "inputSchema": {
+          "properties": {
+            "cluster_id": {
+              "title": "Cluster Id",
+              "type": "string"
+            },
+            "num_workers": {
+              "default": 0,
+              "title": "Num Workers",
+              "type": "integer"
+            },
+            "autoscale_min": {
+              "default": 0,
+              "title": "Autoscale Min",
+              "type": "integer"
+            },
+            "autoscale_max": {
+              "default": 0,
+              "title": "Autoscale Max",
+              "type": "integer"
+            },
+            "wait": {
+              "default": false,
+              "title": "Wait",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "cluster_id"
+          ],
+          "title": "dbx_cluster_resizeArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_cluster_resizeOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_cluster_terminate",
+        "description": "Terminate (stop) a cluster, keeping its config (``w.clusters.delete``).\n\nGuardrail: pass ``confirm=True`` to actually terminate. The cluster can be\nrestarted later with ``dbx_cluster_start``.\n",
+        "inputSchema": {
+          "properties": {
+            "cluster_id": {
+              "title": "Cluster Id",
+              "type": "string"
+            },
+            "confirm": {
+              "default": false,
+              "title": "Confirm",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "cluster_id"
+          ],
+          "title": "dbx_cluster_terminateArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_cluster_terminateOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_cluster_permanent_delete",
+        "description": "PERMANENTLY delete a cluster + its config (``w.clusters.permanent_delete``).\n\nGuardrail: pass ``confirm=True``. Irreversible -- the cluster cannot be\nrestarted afterwards (unlike ``dbx_cluster_terminate``).\n",
+        "inputSchema": {
+          "properties": {
+            "cluster_id": {
+              "title": "Cluster Id",
+              "type": "string"
+            },
+            "confirm": {
+              "default": false,
+              "title": "Confirm",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "cluster_id"
+          ],
+          "title": "dbx_cluster_permanent_deleteArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_cluster_permanent_deleteOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_node_types",
+        "description": "List available node (instance) types incl. GPU (``w.clusters.list_node_types``).",
+        "inputSchema": {
+          "properties": {},
+          "title": "dbx_node_typesArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_node_typesOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_spark_versions",
+        "description": "List available Databricks Runtime (Spark) versions (``w.clusters.spark_versions``).\n\nGPU clusters need a ``*-gpu-ml`` runtime (e.g. ``13.3.x-gpu-ml-scala2.12``).\n",
+        "inputSchema": {
+          "properties": {},
+          "title": "dbx_spark_versionsArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_spark_versionsOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_ctx_create",
+        "description": "Create an execution context on a running cluster (blocks until ready).\n\nReturns the ``context_id`` used by ``dbx_exec``. ``language`` is one of\npython|sql|scala|r. Works only on classic all-purpose clusters.\n",
+        "inputSchema": {
+          "properties": {
+            "cluster_id": {
+              "title": "Cluster Id",
+              "type": "string"
+            },
+            "language": {
+              "default": "python",
+              "title": "Language",
+              "type": "string"
+            }
+          },
+          "required": [
+            "cluster_id"
+          ],
+          "title": "dbx_ctx_createArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_ctx_createOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_ctx_status",
+        "description": "Get an execution context's status (``w.command_execution.context_status``).",
+        "inputSchema": {
+          "properties": {
+            "cluster_id": {
+              "title": "Cluster Id",
+              "type": "string"
+            },
+            "context_id": {
+              "title": "Context Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "cluster_id",
+            "context_id"
+          ],
+          "title": "dbx_ctx_statusArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_ctx_statusOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_ctx_destroy",
+        "description": "Destroy an execution context (``w.command_execution.destroy``).",
+        "inputSchema": {
+          "properties": {
+            "cluster_id": {
+              "title": "Cluster Id",
+              "type": "string"
+            },
+            "context_id": {
+              "title": "Context Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "cluster_id",
+            "context_id"
+          ],
+          "title": "dbx_ctx_destroyArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_ctx_destroyOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_exec",
+        "description": "Run a command in an existing context and wait for the result.\n\nGuardrail: executes arbitrary code on the cluster -- pass ``confirm=True``.\n``language`` is python|sql|scala|r. Create the context first with\n``dbx_ctx_create`` (or use ``dbx_run_on_cluster`` for the whole cycle).\n",
+        "inputSchema": {
+          "properties": {
+            "cluster_id": {
+              "title": "Cluster Id",
+              "type": "string"
+            },
+            "context_id": {
+              "title": "Context Id",
+              "type": "string"
+            },
+            "command": {
+              "title": "Command",
+              "type": "string"
+            },
+            "language": {
+              "default": "python",
+              "title": "Language",
+              "type": "string"
+            },
+            "confirm": {
+              "default": false,
+              "title": "Confirm",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "cluster_id",
+            "context_id",
+            "command"
+          ],
+          "title": "dbx_execArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_execOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_run_on_cluster",
+        "description": "Convenience: create context -> execute -> collect -> destroy, in one call.\n\nGuardrail: executes arbitrary code -- pass ``confirm=True``. The context is\nalways destroyed afterwards, even on error. Classic all-purpose clusters only.\n",
+        "inputSchema": {
+          "properties": {
+            "cluster_id": {
+              "title": "Cluster Id",
+              "type": "string"
+            },
+            "command": {
+              "title": "Command",
+              "type": "string"
+            },
+            "language": {
+              "default": "python",
+              "title": "Language",
+              "type": "string"
+            },
+            "confirm": {
+              "default": false,
+              "title": "Confirm",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "cluster_id",
+            "command"
+          ],
+          "title": "dbx_run_on_clusterArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_run_on_clusterOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_job_create",
+        "description": "Create a job from a full Jobs-API settings body (``POST /jobs/create``).\n\n``settings_json`` is the Jobs REST 2.1 request body, e.g.\n``{\"name\": \"...\", \"tasks\": [{\"task_key\": \"...\", \"notebook_task\": {...},\n\"new_cluster\": {...}}]}``. Returns the new ``job_id``.\n",
+        "inputSchema": {
+          "properties": {
+            "settings_json": {
+              "title": "Settings Json",
+              "type": "string"
+            }
+          },
+          "required": [
+            "settings_json"
+          ],
+          "title": "dbx_job_createArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_job_createOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_job_get",
+        "description": "Get a job's definition + settings by id (``w.jobs.get``).",
+        "inputSchema": {
+          "properties": {
+            "job_id": {
+              "title": "Job Id",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "job_id"
+          ],
+          "title": "dbx_job_getArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_job_getOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_job_list",
+        "description": "List jobs (``w.jobs.list``), optionally filtered by exact ``name``.",
+        "inputSchema": {
+          "properties": {
+            "limit": {
+              "default": 25,
+              "title": "Limit",
+              "type": "integer"
+            },
+            "name": {
+              "default": "",
+              "title": "Name",
+              "type": "string"
+            }
+          },
+          "title": "dbx_job_listArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_job_listOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_job_update",
+        "description": "Partially update a job's settings (``POST /jobs/update``).\n\n``new_settings_json`` is the ``new_settings`` object (fields to overwrite).\n",
+        "inputSchema": {
+          "properties": {
+            "job_id": {
+              "title": "Job Id",
+              "type": "integer"
+            },
+            "new_settings_json": {
+              "title": "New Settings Json",
+              "type": "string"
+            }
+          },
+          "required": [
+            "job_id",
+            "new_settings_json"
+          ],
+          "title": "dbx_job_updateArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_job_updateOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_job_delete",
+        "description": "Delete a job by id (``w.jobs.delete``).",
+        "inputSchema": {
+          "properties": {
+            "job_id": {
+              "title": "Job Id",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "job_id"
+          ],
+          "title": "dbx_job_deleteArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_job_deleteOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_job_run_now",
+        "description": "Trigger a job run now (``POST /jobs/run-now``). $$$ starts compute.\n\n``params_json`` (optional) merges run params, e.g.\n``{\"notebook_params\": {\"k\": \"v\"}}`` or ``{\"python_params\": [\"--flag\"]}``.\nReturns the new ``run_id``.\n",
+        "inputSchema": {
+          "properties": {
+            "job_id": {
+              "title": "Job Id",
+              "type": "integer"
+            },
+            "params_json": {
+              "default": "",
+              "title": "Params Json",
+              "type": "string"
+            }
+          },
+          "required": [
+            "job_id"
+          ],
+          "title": "dbx_job_run_nowArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_job_run_nowOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_run_submit",
+        "description": "Submit a one-off run without creating a job (``POST /jobs/runs/submit``).\n\n``run_json`` is the runs-submit body, e.g. ``{\"run_name\": \"...\", \"tasks\":\n[{\"task_key\": \"...\", \"notebook_task\": {...}, \"new_cluster\": {...}}]}``.\n$$$ starts compute. Returns the new ``run_id``.\n",
+        "inputSchema": {
+          "properties": {
+            "run_json": {
+              "title": "Run Json",
+              "type": "string"
+            }
+          },
+          "required": [
+            "run_json"
+          ],
+          "title": "dbx_run_submitArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_run_submitOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_run_get",
+        "description": "Get a run's status + task tree (``w.jobs.get_run``).",
+        "inputSchema": {
+          "properties": {
+            "run_id": {
+              "title": "Run Id",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "run_id"
+          ],
+          "title": "dbx_run_getArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_run_getOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_run_get_output",
+        "description": "Get a completed run/task's output + logs (``w.jobs.get_run_output``).\n\nPass a single-task run id (or a task run id), not a multi-task parent run id.\n",
+        "inputSchema": {
+          "properties": {
+            "run_id": {
+              "title": "Run Id",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "run_id"
+          ],
+          "title": "dbx_run_get_outputArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_run_get_outputOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_run_list",
+        "description": "List runs (``w.jobs.list_runs``), optionally scoped to one ``job_id``.",
+        "inputSchema": {
+          "properties": {
+            "job_id": {
+              "default": 0,
+              "title": "Job Id",
+              "type": "integer"
+            },
+            "limit": {
+              "default": 25,
+              "title": "Limit",
+              "type": "integer"
+            },
+            "active_only": {
+              "default": false,
+              "title": "Active Only",
+              "type": "boolean"
+            }
+          },
+          "title": "dbx_run_listArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_run_listOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_run_cancel",
+        "description": "Cancel a running run (``w.jobs.cancel_run``).",
+        "inputSchema": {
+          "properties": {
+            "run_id": {
+              "title": "Run Id",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "run_id"
+          ],
+          "title": "dbx_run_cancelArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_run_cancelOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_run_repair",
+        "description": "Repair (re-run failed tasks of) a run (``POST /jobs/runs/repair``).\n\n``params_json`` (optional) e.g. ``{\"rerun_all_failed_tasks\": true}`` or\n``{\"rerun_tasks\": [\"task_key\"], \"notebook_params\": {...}}``.\n",
+        "inputSchema": {
+          "properties": {
+            "run_id": {
+              "title": "Run Id",
+              "type": "integer"
+            },
+            "params_json": {
+              "default": "",
+              "title": "Params Json",
+              "type": "string"
+            }
+          },
+          "required": [
+            "run_id"
+          ],
+          "title": "dbx_run_repairArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_run_repairOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_dbfs_list",
+        "description": "List a DBFS path (``w.dbfs.list``), e.g. ``dbfs:/`` or ``/tmp``.",
+        "inputSchema": {
+          "properties": {
+            "path": {
+              "default": "/",
+              "title": "Path",
+              "type": "string"
+            }
+          },
+          "title": "dbx_dbfs_listArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_dbfs_listOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_dbfs_put",
+        "description": "Write UTF-8 text to a DBFS file (``w.dbfs.put``; base64, ~1MB cap).\n\nFor larger/binary files use a Volume (``dbx_volume_upload``) or the raw API.\n",
+        "inputSchema": {
+          "properties": {
+            "path": {
+              "title": "Path",
+              "type": "string"
+            },
+            "contents": {
+              "title": "Contents",
+              "type": "string"
+            },
+            "overwrite": {
+              "default": true,
+              "title": "Overwrite",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "path",
+            "contents"
+          ],
+          "title": "dbx_dbfs_putArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_dbfs_putOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_dbfs_get",
+        "description": "Read a DBFS file (``w.dbfs.read``; up to ~1MB, base64-decoded to text).",
+        "inputSchema": {
+          "properties": {
+            "path": {
+              "title": "Path",
+              "type": "string"
+            }
+          },
+          "required": [
+            "path"
+          ],
+          "title": "dbx_dbfs_getArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_dbfs_getOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_dbfs_mkdirs",
+        "description": "Recursively create a DBFS directory (``w.dbfs.mkdirs``).",
+        "inputSchema": {
+          "properties": {
+            "path": {
+              "title": "Path",
+              "type": "string"
+            }
+          },
+          "required": [
+            "path"
+          ],
+          "title": "dbx_dbfs_mkdirsArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_dbfs_mkdirsOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_dbfs_delete",
+        "description": "Delete a DBFS file or directory (``w.dbfs.delete``; ``recursive`` for dirs).",
+        "inputSchema": {
+          "properties": {
+            "path": {
+              "title": "Path",
+              "type": "string"
+            },
+            "recursive": {
+              "default": false,
+              "title": "Recursive",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "path"
+          ],
+          "title": "dbx_dbfs_deleteArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_dbfs_deleteOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_dbfs_move",
+        "description": "Move/rename within DBFS (``w.dbfs.move``).",
+        "inputSchema": {
+          "properties": {
+            "source_path": {
+              "title": "Source Path",
+              "type": "string"
+            },
+            "destination_path": {
+              "title": "Destination Path",
+              "type": "string"
+            }
+          },
+          "required": [
+            "source_path",
+            "destination_path"
+          ],
+          "title": "dbx_dbfs_moveArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_dbfs_moveOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_volume_upload",
+        "description": "Upload UTF-8 text to a Unity Catalog Volume file (``w.files.upload``).\n\n``volume_path`` looks like ``/Volumes/<catalog>/<schema>/<volume>/file.txt``.\n",
+        "inputSchema": {
+          "properties": {
+            "volume_path": {
+              "title": "Volume Path",
+              "type": "string"
+            },
+            "contents": {
+              "title": "Contents",
+              "type": "string"
+            },
+            "overwrite": {
+              "default": true,
+              "title": "Overwrite",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "volume_path",
+            "contents"
+          ],
+          "title": "dbx_volume_uploadArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_volume_uploadOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_volume_download",
+        "description": "Download a Volume file (``w.files.download``; utf-8 text or base64, capped).",
+        "inputSchema": {
+          "properties": {
+            "volume_path": {
+              "title": "Volume Path",
+              "type": "string"
+            }
+          },
+          "required": [
+            "volume_path"
+          ],
+          "title": "dbx_volume_downloadArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_volume_downloadOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_volume_ls",
+        "description": "List a Volume directory (``w.files.list_directory_contents``).",
+        "inputSchema": {
+          "properties": {
+            "directory_path": {
+              "title": "Directory Path",
+              "type": "string"
+            }
+          },
+          "required": [
+            "directory_path"
+          ],
+          "title": "dbx_volume_lsArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_volume_lsOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_volume_mkdir",
+        "description": "Create a Volume directory (``w.files.create_directory``).",
+        "inputSchema": {
+          "properties": {
+            "directory_path": {
+              "title": "Directory Path",
+              "type": "string"
+            }
+          },
+          "required": [
+            "directory_path"
+          ],
+          "title": "dbx_volume_mkdirArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_volume_mkdirOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_volume_rm",
+        "description": "Delete a Volume file, or a directory when ``is_directory`` (``w.files.delete*``).",
+        "inputSchema": {
+          "properties": {
+            "path": {
+              "title": "Path",
+              "type": "string"
+            },
+            "is_directory": {
+              "default": false,
+              "title": "Is Directory",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "path"
+          ],
+          "title": "dbx_volume_rmArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_volume_rmOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_warehouse_list",
+        "description": "List SQL warehouses (``w.warehouses.list``).",
+        "inputSchema": {
+          "properties": {},
+          "title": "dbx_warehouse_listArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_warehouse_listOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_warehouse_get",
+        "description": "Get one SQL warehouse's details/state (``w.warehouses.get``).",
+        "inputSchema": {
+          "properties": {
+            "warehouse_id": {
+              "title": "Warehouse Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "warehouse_id"
+          ],
+          "title": "dbx_warehouse_getArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_warehouse_getOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_warehouse_create",
+        "description": "Create a SQL warehouse (``w.warehouses.create``). $$$ bills while running.\n\n``cluster_size`` is a T-shirt size ('2X-Small'..'4X-Large'); ``warehouse_type``\nis PRO|CLASSIC. ``auto_stop_mins`` idles it off. ``wait=True`` blocks until\nRUNNING.\n",
+        "inputSchema": {
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "cluster_size": {
+              "default": "2X-Small",
+              "title": "Cluster Size",
+              "type": "string"
+            },
+            "warehouse_type": {
+              "default": "PRO",
+              "title": "Warehouse Type",
+              "type": "string"
+            },
+            "auto_stop_mins": {
+              "default": 10,
+              "title": "Auto Stop Mins",
+              "type": "integer"
+            },
+            "min_num_clusters": {
+              "default": 1,
+              "title": "Min Num Clusters",
+              "type": "integer"
+            },
+            "max_num_clusters": {
+              "default": 1,
+              "title": "Max Num Clusters",
+              "type": "integer"
+            },
+            "enable_serverless_compute": {
+              "default": false,
+              "title": "Enable Serverless Compute",
+              "type": "boolean"
+            },
+            "wait": {
+              "default": false,
+              "title": "Wait",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "title": "dbx_warehouse_createArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_warehouse_createOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_warehouse_edit",
+        "description": "Edit a SQL warehouse's config (``w.warehouses.edit``); only set fields change.",
+        "inputSchema": {
+          "properties": {
+            "warehouse_id": {
+              "title": "Warehouse Id",
+              "type": "string"
+            },
+            "name": {
+              "default": "",
+              "title": "Name",
+              "type": "string"
+            },
+            "cluster_size": {
+              "default": "",
+              "title": "Cluster Size",
+              "type": "string"
+            },
+            "auto_stop_mins": {
+              "default": 0,
+              "title": "Auto Stop Mins",
+              "type": "integer"
+            },
+            "min_num_clusters": {
+              "default": 0,
+              "title": "Min Num Clusters",
+              "type": "integer"
+            },
+            "max_num_clusters": {
+              "default": 0,
+              "title": "Max Num Clusters",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "warehouse_id"
+          ],
+          "title": "dbx_warehouse_editArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_warehouse_editOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_warehouse_delete",
+        "description": "Delete a SQL warehouse (``w.warehouses.delete``).\n\nGuardrail: pass ``confirm=True``. Prefer ``dbx_warehouse_stop`` if you only\nwant to pause billing.\n",
+        "inputSchema": {
+          "properties": {
+            "warehouse_id": {
+              "title": "Warehouse Id",
+              "type": "string"
+            },
+            "confirm": {
+              "default": false,
+              "title": "Confirm",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "warehouse_id"
+          ],
+          "title": "dbx_warehouse_deleteArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_warehouse_deleteOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_warehouse_start",
+        "description": "Start a SQL warehouse (``w.warehouses.start``). $$$ bills once RUNNING.",
+        "inputSchema": {
+          "properties": {
+            "warehouse_id": {
+              "title": "Warehouse Id",
+              "type": "string"
+            },
+            "wait": {
+              "default": false,
+              "title": "Wait",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "warehouse_id"
+          ],
+          "title": "dbx_warehouse_startArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_warehouse_startOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_warehouse_stop",
+        "description": "Stop a SQL warehouse to pause billing (``w.warehouses.stop``).",
+        "inputSchema": {
+          "properties": {
+            "warehouse_id": {
+              "title": "Warehouse Id",
+              "type": "string"
+            },
+            "wait": {
+              "default": false,
+              "title": "Wait",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "warehouse_id"
+          ],
+          "title": "dbx_warehouse_stopArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_warehouse_stopOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_sql_exec",
+        "description": "Run a SQL statement on a warehouse and return the result inline.\n\n``w.statement_execution.execute_statement``. Set ``catalog``/``schema`` to\nscope; ``wait_timeout`` is '5s'..'50s' (or '0s' to poll); ``row_limit`` caps\nreturned rows. For long queries the response includes a ``statement_id`` to\nfetch later via ``dbx_api_raw GET /api/2.0/sql/statements/{id}``.\n",
+        "inputSchema": {
+          "properties": {
+            "warehouse_id": {
+              "title": "Warehouse Id",
+              "type": "string"
+            },
+            "statement": {
+              "title": "Statement",
+              "type": "string"
+            },
+            "catalog": {
+              "default": "",
+              "title": "Catalog",
+              "type": "string"
+            },
+            "schema": {
+              "default": "",
+              "title": "Schema",
+              "type": "string"
+            },
+            "wait_timeout": {
+              "default": "30s",
+              "title": "Wait Timeout",
+              "type": "string"
+            },
+            "row_limit": {
+              "default": 0,
+              "title": "Row Limit",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "warehouse_id",
+            "statement"
+          ],
+          "title": "dbx_sql_execArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_sql_execOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_serving_create",
+        "description": "Create a model serving endpoint (``POST /serving-endpoints``). $$$ bills.\n\n``config_json`` is the full create body, e.g. ``{\"name\": \"...\", \"config\":\n{\"served_entities\": [{\"entity_name\": \"cat.sch.model\", \"entity_version\": \"1\",\n\"workload_size\": \"Small\", \"scale_to_zero_enabled\": true}]}}``.\n",
+        "inputSchema": {
+          "properties": {
+            "config_json": {
+              "title": "Config Json",
+              "type": "string"
+            }
+          },
+          "required": [
+            "config_json"
+          ],
+          "title": "dbx_serving_createArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_serving_createOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_serving_update_config",
+        "description": "Update a serving endpoint's served entities/traffic (``PUT .../config``).\n\n``config_json`` is the config body (``served_entities``/``traffic_config``).\n",
+        "inputSchema": {
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "config_json": {
+              "title": "Config Json",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "config_json"
+          ],
+          "title": "dbx_serving_update_configArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_serving_update_configOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_serving_get",
+        "description": "Get a serving endpoint's state + config (``w.serving_endpoints.get``).",
+        "inputSchema": {
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "title": "dbx_serving_getArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_serving_getOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_serving_list",
+        "description": "List model serving endpoints (``w.serving_endpoints.list``).",
+        "inputSchema": {
+          "properties": {},
+          "title": "dbx_serving_listArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_serving_listOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_serving_delete",
+        "description": "Delete a serving endpoint (``w.serving_endpoints.delete``).",
+        "inputSchema": {
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "title": "dbx_serving_deleteArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_serving_deleteOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_serving_query",
+        "description": "Query (score) a serving endpoint (``POST .../invocations``). $$$ per call.\n\n``inputs_json`` matches the endpoint's signature, e.g. ``{\"inputs\": [[...]]}``,\n``{\"dataframe_records\": [{...}]}``, or ``{\"messages\": [{\"role\": \"user\",\n\"content\": \"hi\"}]}`` for a chat/LLM endpoint.\n",
+        "inputSchema": {
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "inputs_json": {
+              "title": "Inputs Json",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "inputs_json"
+          ],
+          "title": "dbx_serving_queryArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_serving_queryOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_secret_scope_create",
+        "description": "Create a secret scope (``w.secrets.create_scope``).\n\n``initial_manage_principal='users'`` grants all workspace users MANAGE.\n",
+        "inputSchema": {
+          "properties": {
+            "scope": {
+              "title": "Scope",
+              "type": "string"
+            },
+            "initial_manage_principal": {
+              "default": "",
+              "title": "Initial Manage Principal",
+              "type": "string"
+            }
+          },
+          "required": [
+            "scope"
+          ],
+          "title": "dbx_secret_scope_createArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_secret_scope_createOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_secret_scope_list",
+        "description": "List secret scopes (``w.secrets.list_scopes``).",
+        "inputSchema": {
+          "properties": {},
+          "title": "dbx_secret_scope_listArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_secret_scope_listOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_secret_scope_delete",
+        "description": "Delete a secret scope and all its secrets (``w.secrets.delete_scope``).",
+        "inputSchema": {
+          "properties": {
+            "scope": {
+              "title": "Scope",
+              "type": "string"
+            }
+          },
+          "required": [
+            "scope"
+          ],
+          "title": "dbx_secret_scope_deleteArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_secret_scope_deleteOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_secret_put",
+        "description": "Put a string secret into a scope (``w.secrets.put_secret``).\n\nThe value is write-only via the API; it is never echoed back by this tool.\n",
+        "inputSchema": {
+          "properties": {
+            "scope": {
+              "title": "Scope",
+              "type": "string"
+            },
+            "key": {
+              "title": "Key",
+              "type": "string"
+            },
+            "string_value": {
+              "title": "String Value",
+              "type": "string"
+            }
+          },
+          "required": [
+            "scope",
+            "key",
+            "string_value"
+          ],
+          "title": "dbx_secret_putArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_secret_putOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_secret_get",
+        "description": "Read a secret's value from a scope (``w.secrets.get_secret``).\n\nReturns the value decoded to utf-8 text when possible, else base64. Only\nworks for Databricks-backed scopes the caller can read.\n",
+        "inputSchema": {
+          "properties": {
+            "scope": {
+              "title": "Scope",
+              "type": "string"
+            },
+            "key": {
+              "title": "Key",
+              "type": "string"
+            }
+          },
+          "required": [
+            "scope",
+            "key"
+          ],
+          "title": "dbx_secret_getArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_secret_getOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_repo_create",
+        "description": "Clone a Git repo into the workspace (``w.repos.create``).\n\n``provider`` is gitHub|gitLab|bitbucketCloud|azureDevOpsServices|... ; ``path``\nis the workspace Repos path (e.g. ``/Repos/me/proj``). Needs a configured Git\ncredential for private repos.\n",
+        "inputSchema": {
+          "properties": {
+            "url": {
+              "title": "Url",
+              "type": "string"
+            },
+            "provider": {
+              "title": "Provider",
+              "type": "string"
+            },
+            "path": {
+              "default": "",
+              "title": "Path",
+              "type": "string"
+            },
+            "branch": {
+              "default": "",
+              "title": "Branch",
+              "type": "string"
+            }
+          },
+          "required": [
+            "url",
+            "provider"
+          ],
+          "title": "dbx_repo_createArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_repo_createOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_repo_get",
+        "description": "Get a workspace Repo's state (``w.repos.get``).",
+        "inputSchema": {
+          "properties": {
+            "repo_id": {
+              "title": "Repo Id",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "repo_id"
+          ],
+          "title": "dbx_repo_getArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_repo_getOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_repo_list",
+        "description": "List workspace Repos (``w.repos.list``), optionally under ``path_prefix``.",
+        "inputSchema": {
+          "properties": {
+            "path_prefix": {
+              "default": "",
+              "title": "Path Prefix",
+              "type": "string"
+            }
+          },
+          "title": "dbx_repo_listArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_repo_listOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_repo_update",
+        "description": "Check out a branch or tag in a Repo (``w.repos.update``).",
+        "inputSchema": {
+          "properties": {
+            "repo_id": {
+              "title": "Repo Id",
+              "type": "integer"
+            },
+            "branch": {
+              "default": "",
+              "title": "Branch",
+              "type": "string"
+            },
+            "tag": {
+              "default": "",
+              "title": "Tag",
+              "type": "string"
+            }
+          },
+          "required": [
+            "repo_id"
+          ],
+          "title": "dbx_repo_updateArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_repo_updateOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_repo_delete",
+        "description": "Delete a workspace Repo (``w.repos.delete``).",
+        "inputSchema": {
+          "properties": {
+            "repo_id": {
+              "title": "Repo Id",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "repo_id"
+          ],
+          "title": "dbx_repo_deleteArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_repo_deleteOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_current_user",
+        "description": "Show the authenticated identity (``w.current_user.me``).\n\nUse to confirm which service principal / user the current credentials map to.\n",
+        "inputSchema": {
+          "properties": {},
+          "title": "dbx_current_userArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_current_userOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "dbx_api_raw",
+        "description": "Call ANY Databricks REST endpoint (``w.api_client.do``) -- the escape hatch.\n\n``method`` GET|POST|PUT|PATCH|DELETE; ``path`` e.g. ``/api/2.1/clusters/list``;\n``body_json``/``query_json`` are optional JSON strings. Use for endpoints\nwithout a purpose-built tool (Unity Catalog, pipelines, model registry, ...).\n",
+        "inputSchema": {
+          "properties": {
+            "method": {
+              "title": "Method",
+              "type": "string"
+            },
+            "path": {
+              "title": "Path",
+              "type": "string"
+            },
+            "body_json": {
+              "default": "",
+              "title": "Body Json",
+              "type": "string"
+            },
+            "query_json": {
+              "default": "",
+              "title": "Query Json",
+              "type": "string"
+            }
+          },
+          "required": [
+            "method",
+            "path"
+          ],
+          "title": "dbx_api_rawArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "dbx_api_rawOutput",
+          "type": "object"
+        }
+      }
+    ]
+  }
+}
