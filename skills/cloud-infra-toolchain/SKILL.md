@@ -22,7 +22,7 @@ tools = 333**, behind a single MCP registration. Five servers are **adopted**
 | **Google Cloud** | `npx @google-cloud/gcloud-mcp` (Node) | gcloud ADC + `GOOGLE_CLOUD_PROJECT` | adopt | 1 | single `run_gcloud_command` passthrough — full gcloud surface, full gcloud risk |
 | **Kaggle** | `uvx kaggle-mcp-server` (Python) | `KAGGLE_USERNAME`+`KAGGLE_KEY` / `~/.kaggle/kaggle.json` | adopt | 51 | free-tier GPU/TPU quota (~30h/wk); kernels are public unless set private |
 | **rclone** | `npx rclone-mcp` over `rclone rcd` | RC daemon :5572 | adopt | 56 | **needs the rcd daemon** (auto-started); `sync`/`move`/`delete` are destructive |
-| **Modal** | built FastMCP wrapper (`modal` CLI) | `MODAL_TOKEN_ID`+`MODAL_TOKEN_SECRET` | build | 6 | `run`/`deploy` start billable compute |
+| **Modal** | built FastMCP wrapper (`modal` CLI + SDK) | `MODAL_TOKEN_ID`+`MODAL_TOKEN_SECRET` | build | 41 | `run`/`deploy` + any `gpu=` sandbox/function start billable per-second compute; destructive ops gated behind `confirm`/`dry_run` |
 | **Lightning AI** | built FastMCP wrapper (`lightning_sdk`) | `LIGHTNING_USER_ID`+`LIGHTNING_API_KEY` | build | 9 | Studios/Jobs bill by the second; `lightning-sdk` must be installed |
 | **OVHcloud** | vendored TS MCP (`node ovh-mcp/dist/index.js`) | `OVH_APPLICATION_KEY`+`_SECRET`+`_CONSUMER_KEY` (or OAuth2) per region | vendor+build | 27 | GPU instances bill hourly; `ov_account_switch ca\|eu\|us` flips region+creds (EU/CA/US are separate entities) |
 | **Databricks** | built FastMCP wrapper (`databricks-sdk`) | `DATABRICKS_HOST` + (`DATABRICKS_CLIENT_ID`/`_SECRET` OAuth M2M, or `DATABRICKS_TOKEN` PAT) | build | 65 | clusters/warehouses bill while running (set auto-termination); Command Execution is **classic all-purpose clusters only**; destructive/exec tools gated behind `confirm=True` |
@@ -98,6 +98,13 @@ Datasets: `dataset_download` (inputs), `dataset_create`/`dataset_create_version`
   `run-endpoint`/`runsync-endpoint` → `get-job-status`.
 - **Modal** (ephemeral function run): `modal_run app.py::fn` or `modal_deploy`;
   stop with `modal_app_stop`. Best for containerized batch/serverless GPU.
+- **Modal Sandbox** (interactive GPU container — the Schrödinger path):
+  `modal_estimate_cost` to price it → `modal_sandbox_create image=... gpu=a100`
+  (mount data via `volumes=` or `modal_cloud_bucket_mount_config`) →
+  `modal_sandbox_exec`/`_write_file`/`_upload` to install + run (e.g. a portable
+  Suite + FlexLM) → `modal_sandbox_snapshot` to bake a reusable image and skip the
+  re-install next run → **`modal_sandbox_terminate confirm=true`** to stop billing.
+  Reattach to a running box any time with `modal_sandbox_from_id` (stateless).
 - **Lightning Studio/Job**: `lightning_machine_types` → `lightning_studio_start
   name machine=A10G` → `lightning_studio_run` (or `lightning_job_submit` for async)
   → **`lightning_studio_stop`/`lightning_job_stop`**. Best for interactive dev.
@@ -180,8 +187,18 @@ real Python entry points run under the hub's own interpreter.
   size, check, hashsum, uploadfile, publiclink, settier), `config_*` (listremotes,
   create, update, delete, dump, providers), `core_*` (stats, transferred, bwlimit,
   command, version, quit).
-- **Modal** (`md`, 6): `modal_run`, `modal_deploy`, `modal_app_list`, `modal_app_stop`,
-  `modal_volume_ls`, `modal_secret_list`.
+- **Modal** (`md`, 41): CLI apps/run (`modal_run`, `modal_deploy`, `modal_app_list`,
+  `modal_app_stop`, `modal_app_logs`); **Sandboxes** (SDK container engagement —
+  `modal_sandbox_create` with image/gpu/cpu/memory/volumes/`CloudBucketMount`/secrets,
+  `_exec`, `_exec_stream`, `_write_file`/`_read_file`, `_upload`/`_download`,
+  `_ls`/`_mkdir`/`_rm`/`_stat`, `_list`, `_from_id` reattach, `_poll`/`_wait`/
+  `_terminate`, `_tags`, `_snapshot` → reusable image); **functions/containers**
+  (`modal_function_call`/`_spawn`, `modal_functioncall_get`, `modal_container_list`/
+  `_exec`/`_logs`/`_stop`); **resources** (`modal_volume_create`/`_ls`/`_put`/`_get`/
+  `_rm`/`_delete`, `modal_secret_list`/`_create`, `modal_cloud_bucket_mount_config`);
+  **identity/cost** (`modal_whoami`, `modal_estimate_cost` — local calc, no billing
+  API). Every tool takes an optional per-call `account`/`environment` (fresh
+  `modal.Client` per call; no global switch); destructive ops gated by `confirm`/`dry_run`.
 - **Lightning AI** (`lg`, 7): `lightning_machine_types`, `lightning_studio_start/stop/run`,
   `lightning_job_submit/status/stop`.
 - **Azure** (`az`, 14, hand-authored): `azmcp_subscription_list`, `azmcp_group_list`,

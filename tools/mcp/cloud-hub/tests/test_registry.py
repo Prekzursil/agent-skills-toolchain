@@ -85,7 +85,7 @@ def test_real_committed_caches_build_a_clean_plan():
         per[route.backend_id] = per.get(route.backend_id, 0) + 1
     # Deterministic backends: the three built wrappers, the single-tool gcloud
     # MCP, the hand-authored azure subset, and the vendored OVH TS server.
-    assert per["modal"] == 6 and per["lightning"] == 9
+    assert per["modal"] == 41 and per["lightning"] == 9
     assert per["gcloud"] == 1 and per["azure"] == 14
     assert per["ovh"] == 27
     # Databricks built FastMCP wrapper (databricks-sdk): full dbx_* surface.

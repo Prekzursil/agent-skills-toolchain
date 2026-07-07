@@ -20,7 +20,7 @@ cross-backend collision (none today).
 | `gcloud` | Google Cloud | `npx @google-cloud/gcloud-mcp` | 1 | adopt | gcloud ADC + `GOOGLE_CLOUD_PROJECT` | live |
 | `kaggle` | Kaggle | `uvx kaggle-mcp-server` | 51 | adopt | `KAGGLE_USERNAME`+`KAGGLE_KEY` / `~/.kaggle/kaggle.json` | live |
 | `rclone` | rclone | `npx rclone-mcp` (over `rclone rcd`) | 56 | adopt | RC daemon on :5572 | live |
-| `modal` | Modal | built FastMCP wrapper (`modal` CLI) | 6 | build | `MODAL_TOKEN_ID`+`MODAL_TOKEN_SECRET` | live |
+| `modal` | Modal | built FastMCP wrapper (`modal` CLI + SDK) | 41 | build | `MODAL_TOKEN_ID`+`MODAL_TOKEN_SECRET` | live |
 | `lightning` | Lightning AI | built FastMCP wrapper (`lightning_sdk`) | 9 | build | `LIGHTNING_USER_ID`+`LIGHTNING_API_KEY` | live |
 | `ovh` | OVHcloud | vendored TS MCP (`node ovh-mcp/dist/index.js`) | 27 | vendor+build | `OVH_APPLICATION_KEY`+`_SECRET`+`_CONSUMER_KEY` (or OAuth2) per region | live |
 | `databricks` | Databricks | built FastMCP wrapper (`databricks-sdk`) | 65 | build | `DATABRICKS_HOST` + (`DATABRICKS_CLIENT_ID`/`_SECRET` or `DATABRICKS_TOKEN`) | live |
@@ -65,6 +65,48 @@ endpoint must match the account). Creds may be the API-key trio
 `name → label`, so you can tell which OVH identity each switch-name maps to
 (confirm the live identity any time with `ovh_account_info` = `GET /me`).
 
+### Modal (`md`) — CLI + SDK: sandboxes, functions, resources, per-call rotation
+
+`modal` is a **built** FastMCP wrapper split across `modal-mcp/server.py` (CLI
+path), `modal-mcp/sandbox.py` (SDK path), and `modal-mcp/_modal_common.py`
+(shared helpers). `tools/list` enumerates with **zero credentials** — the
+`modal` SDK is imported lazily only on the first real SDK call, and all library
+stdout is redirected to stderr so it can never corrupt the stdio JSON-RPC stream.
+
+**41 tools** across four tiers:
+
+- **Sandboxes** (SDK, the container-engagement primitive): `modal_sandbox_create`
+  (image/gpu/cpu/memory/volumes/`CloudBucketMount`/secrets), `_exec`,
+  `_exec_stream`, `_write_file`/`_read_file`, `_upload`/`_download`, `_ls`/`_mkdir`/
+  `_rm`/`_stat`, `_list`, **`_from_id`** (stateless reattach), `_poll`/`_wait`/
+  `_terminate`, `_tags`, and **`_snapshot`** (`snapshot_filesystem()` → a reusable
+  image, e.g. bake a Suite install once).
+- **Function / container** (SDK + CLI): `modal_function_call`/`_spawn`,
+  `modal_functioncall_get`, `modal_app_logs`, `modal_container_list`/`_exec`/
+  `_logs`/`_stop`.
+- **Resources** (CLI): `modal_volume_create`/`_put`/`_get`/`_rm`/`_delete`,
+  `modal_secret_create`, plus `modal_cloud_bucket_mount_config` (a local helper
+  that builds a bucket-mount config for `modal_sandbox_create`).
+- **Identity / cost** (CLI + local): `modal_whoami`, `modal_estimate_cost` (a
+  LOCAL calc from GPU/CPU/memory-seconds — Modal exposes **no public billing
+  API**).
+
+**Per-invocation rotation.** Every `modal_*` tool takes an optional
+`account`/`environment` arg. When `account=<name>` is set, that call builds a
+**fresh** `modal.Client.from_credentials(...)` (threaded via `client=` on
+`Sandbox.create`/`from_id`/`list`, `App.lookup`, `Function.from_name`, …) — or,
+for the CLI path, a per-call env overlay — from `MODAL_TOKEN_ID_<NAME>` /
+`MODAL_TOKEN_SECRET_<NAME>` (else a `[<name>]` profile in `~/.modal.toml`).
+**No global "active profile" is ever mutated** (concurrency-safe: parallel calls
+can't contaminate each other). This is *in addition* to `md_account_switch`,
+which flips the ambient account by kill+respawn. `environment` threads
+`MODAL_ENVIRONMENT` / the CLI `--env`; an `md` account may bundle `MODAL_ENVIRONMENT`.
+
+**Cost + destructive gating.** `gpu=` on a sandbox/function starts **billable**
+per-second compute — always `modal_sandbox_terminate` when done. Destructive ops
+(`modal_sandbox_terminate`, `modal_container_stop`, `modal_volume_rm`,
+`modal_volume_delete`) are gated behind `confirm=true` (or `dry_run=true` to
+preview).
 ### Databricks (`databricks`) — built `databricks-sdk` wrapper
 
 `databricks` is a built FastMCP wrapper (`databricks-mcp/server.py`) over the
