@@ -77,7 +77,7 @@ def test_missing_cache_marks_degraded(tmp_path):
 
 
 def test_real_committed_caches_build_a_clean_plan():
-    """Locks the committed surface: 10 backends, no collisions, none degraded."""
+    """Locks the committed surface: 11 backends, no collisions, none degraded."""
     specs = default_backends()
     plan = build_plan(specs, os.path.join(HUB_DIR, "caches"))
     per: dict[str, int] = {}
@@ -91,6 +91,8 @@ def test_real_committed_caches_build_a_clean_plan():
     # Databricks built FastMCP wrapper (databricks-sdk): full dbx_* surface.
     assert per["databricks"] == 65
     assert per["compute"] == 10
+    # Biomni built FastMCP wrapper (api.phylo.bio/v2): full bm_* surface.
+    assert per["biomni"] == 21
     # Live-enumerated adopt backends: present and substantial (re-running
     # `hub.py --refresh` may shift these as upstream packages evolve).
     assert per["runpod"] >= 40 and per["kaggle"] >= 40 and per["rclone"] >= 40
@@ -109,6 +111,8 @@ def test_real_committed_caches_build_a_clean_plan():
         "compute_provision",
         "dbx_run_on_cluster",
         "dbx_api_raw",
+        "bm_create_session",
+        "bm_api_raw",
     ):
         assert name in plan.routing and plan.routing[name].renamed is False
 
@@ -130,9 +134,9 @@ def test_backend_specs_ovh_and_kaggle_fix():
     # single, useless KAGGLE_API_TOKEN that matched neither the platform nor the
     # accounts.example bundle).
     assert specs["kaggle"].account.seed_env == ("KAGGLE_USERNAME", "KAGGLE_KEY")
-    # Prefixes stay unique across all 10 backends.
+    # Prefixes stay unique across all 11 backends.
     prefixes = [s.prefix for s in specs.values()]
-    assert len(prefixes) == len(set(prefixes)) == 10
+    assert len(prefixes) == len(set(prefixes)) == 11
 
 
 def test_backend_spec_compute():
