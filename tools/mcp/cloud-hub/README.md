@@ -11,7 +11,7 @@ Why not a normal aggregator (mcp-funnel / 1mcp)? Those rename tools to
 `serverName__tool`. This hub preserves names and only renames on a genuine
 cross-backend collision (none today).
 
-## Backends & tool surface (345 backend tools + 60 account tools = 405)
+## Backends & tool surface (349 backend tools + 60 account tools = 409)
 
 | id | backend | pkg / runtime | tools | adopt/build | auth | cache |
 |----|---------|---------------|------:|-------------|------|-------|
@@ -25,7 +25,7 @@ cross-backend collision (none today).
 | `ovh` | OVHcloud | vendored TS MCP (`node ovh-mcp/dist/index.js`) | 27 | vendor+build | `OVH_APPLICATION_KEY`+`_SECRET`+`_CONSUMER_KEY` (or OAuth2) per region | live |
 | `compute` | Compute (unified) | built FastMCP wrapper (`compute-mcp/`) | 10 | build | per-provider (reuses RunPod/OVH/Lightning creds) | live |
 | `databricks` | Databricks | built FastMCP wrapper (`databricks-sdk`) | 65 | build | `DATABRICKS_HOST` + (`DATABRICKS_CLIENT_ID`/`_SECRET` or `DATABRICKS_TOKEN`) | live |
-| `biomni` | Biomni Lab (Phylo) | built FastMCP wrapper (`api.phylo.bio/v2`, stdlib) | 21 | build | `BIOMNI_TOKEN` (Bearer, per account) | live |
+| `biomni` | Biomni Lab (Phylo) | built FastMCP wrapper (`api.phylo.bio/v2`, stdlib) | 25 | build | `BIOMNI_TOKEN` (Bearer) or OAuth device-code (auto-refresh) | live |
 
 `azure` is a **hand-authored** representative cache: `@azure/mcp` is a .NET tool that
 did not emit an MCP handshake under piped stdio in the build harness (the Node
@@ -179,7 +179,7 @@ interpreter for live calls (`pip install databricks-sdk`).
 
 `biomni` is a built FastMCP wrapper (`biomni-mcp/server.py`) over Phylo's
 **reverse-engineered** Biomni Lab REST API (`api.phylo.bio/v2`), pre-namespaced
-`bm_*` (21 tools). It drives the **hosted** [biomni.phylo.bio](https://biomni.phylo.bio)
+`bm_*` (25 tools). It drives the **hosted** [biomni.phylo.bio](https://biomni.phylo.bio)
 far past its official 10-tool claude.ai connector. Stdlib-only (`urllib`, zero new
 deps); auth is read lazily so `tools/list` enumerates offline (cache is
 live-generated) and a call without a token returns a clear auth hint.
@@ -193,14 +193,28 @@ message content), **effort tiers** (`bm_list_model_profiles`), **projects +
 sessions** (`bm_list_projects`/`bm_create_project`/`bm_list_sessions`), **live
 runtime introspection** (`bm_session_runtime` → background-processes | gpu-sandboxes
 | hpc-jobs | hpc-pipelines | machines), **files/results**, **usage/billing**
-(`bm_billing_balance`/`_subscription`), `bm_whoami`/`bm_capabilities`, and
-**`bm_api_raw`** (call ANY api.phylo.bio endpoint — the escape hatch).
+(`bm_billing_balance`/`_subscription`), `bm_whoami`/`bm_capabilities`,
+**OAuth device-code login** (`bm_auth_login`/`bm_auth_poll`/`bm_auth_status`/
+`bm_auth_logout`), and **`bm_api_raw`** (call ANY api.phylo.bio endpoint — the
+escape hatch).
 
-**Auth:** `BIOMNI_TOKEN` = a Bearer access token from a signed-in
-biomni.phylo.bio session (WorkOS-issued; there is no API-key product yet, so it is
-refreshed by the user when it expires). Each `biomni` account is a `BIOMNI_TOKEN`
-bundle, so `bm_account_switch`/`bm_account_cycle` rotate between the user's Biomni
-accounts (email-labelled). See the `biomni` block in `accounts.example.json`.
+**Auth (two modes):**
+1. **Static Bearer** — `BIOMNI_TOKEN` = an access token from a signed-in
+   biomni.phylo.bio session. Simplest, but expires and must be refreshed by hand.
+2. **OAuth device-code + auto-refresh** (recommended) — run `bm_auth_login`, open
+   the returned URL, approve in a browser (you sign in there; the tool never sees
+   your password), then `bm_auth_poll`. The refresh token is stored locally
+   (`~/.biomni-mcp/token.json`, chmod 600, **never** echoed) and the connector
+   auto-mints access tokens from it via the WorkOS token endpoint (public client,
+   no secret) — so it stops expiring on you. Verified endpoints:
+   `signin.phylo.bio/oauth2/{device_authorization,token}`, grants `device_code` +
+   `refresh_token`, scope `offline_access`.
+
+Each `biomni` account is a `BIOMNI_TOKEN` **or** `BIOMNI_REFRESH_TOKEN` bundle, so
+`bm_account_switch`/`bm_account_cycle` rotate between the user's Biomni accounts
+(email-labelled). See the `biomni` block in `accounts.example.json`. `bm_auth_status`
+reports which auth source is active and the cached access token's remaining life
+(token values masked).
 
 **$$$ + rotation:** creating a session and starting processing consume the
 account's Biomni usage/credits (the agent runs on real HPC/GPU). Poll

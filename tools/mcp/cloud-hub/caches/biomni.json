@@ -605,6 +605,100 @@
         }
       },
       {
+        "name": "bm_auth_login",
+        "description": "Start OAuth device-code login -- returns a code + URL for YOU to approve.\n\n``POST {signin}/oauth2/device_authorization``. Open the returned\n``verification_uri_complete`` in a browser and approve (you sign in there --\nthis tool never sees your password). Then call ``bm_auth_poll`` to finish. On\nsuccess the refresh token is stored locally (chmod 600, never echoed) and the\nconnector auto-mints access tokens from it, so BIOMNI_TOKEN no longer expires\non you. For multi-account rotation, promote it to a per-account\nBIOMNI_REFRESH_TOKEN instead (see bm_auth_status).\n",
+        "inputSchema": {
+          "properties": {},
+          "title": "bm_auth_loginArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "bm_auth_loginOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "bm_auth_poll",
+        "description": "Finish device-code login: poll for approval, then save the refresh token.\n\n``POST {signin}/oauth2/token`` (grant_type=device_code). Call after\n``bm_auth_login`` once you've approved in the browser. Polls up to\n``max_wait_seconds`` (respecting the server ``interval``); returns\n``authorization_pending`` if you haven't approved yet -- just call it again. On\nsuccess the tokens are written to the local state file (chmod 600) and only the\nidentity/expiry are returned -- NEVER the token values.\n",
+        "inputSchema": {
+          "properties": {
+            "max_wait_seconds": {
+              "default": 25.0,
+              "title": "Max Wait Seconds",
+              "type": "number"
+            }
+          },
+          "title": "bm_auth_pollArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "bm_auth_pollOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "bm_auth_status",
+        "description": "Report the current auth source + access-token freshness (tokens masked).\n\nShows whether creds come from BIOMNI_TOKEN (static), BIOMNI_REFRESH_TOKEN\n(env, rotates with the account), or the device-login state file -- plus the\ncached access token's remaining lifetime. Never reveals token values.\n",
+        "inputSchema": {
+          "properties": {},
+          "title": "bm_auth_statusArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "bm_auth_statusOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "bm_auth_logout",
+        "description": "Clear the locally-stored device-login refresh token + in-process token cache.\n\nDeletes the state file (does NOT touch the BIOMNI_TOKEN / BIOMNI_REFRESH_TOKEN\nenv vars -- those are user-owned). Re-run bm_auth_login to sign in again.\n",
+        "inputSchema": {
+          "properties": {},
+          "title": "bm_auth_logoutArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "bm_auth_logoutOutput",
+          "type": "object"
+        }
+      },
+      {
         "name": "bm_api_raw",
         "description": "Call ANY api.phylo.bio endpoint -- the escape hatch for uncovered routes.\n\n``method`` GET|POST|PUT|PATCH|DELETE; ``path`` is an absolute API path starting\nwith ``/`` (e.g. ``/v2/users/me/memory``, ``/v2/mcp/servers``,\n``/v2/cloud-storage/connections``). ``body_json``/``query_json`` are optional JSON\nstrings. Caution: this can reach mutating/destructive routes (a ``DELETE`` on a\nproject) on the user's OWN account -- confirm intent before calling those.\n",
         "inputSchema": {
