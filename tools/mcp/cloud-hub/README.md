@@ -242,6 +242,28 @@ picked up, and **never logs the token** (`/__broker/health` shows a masked
 preview only). This keeps the literal token in the store + the broker process
 only, never in `accounts.json`, the hub, or the model.
 
+**Refresh-at-source (fully hands-off renewal):** `biomni-mcp/refresher.py` keeps
+the broker's store fresh so you never re-grab a token. Phylo's WorkOS refresh
+token lives in an HttpOnly cookie and rotates (one-time-use), so it can't be
+copied out — the durable way is to let a browser that OWNS the session mint fresh
+Bearers. Requires Playwright (`pip install playwright && playwright install
+chromium`):
+
+```
+python biomni-mcp/refresher.py login              # YOU sign in once (headed, persisted profile)
+python biomni-mcp/refresher.py watch --interval 1800   # headless: refresh the store every 30 min
+```
+
+`login` opens a headed browser with a persisted profile; you authenticate once
+(nothing here handles your password). `refresh`/`watch` then run that profile
+**headless**, let the app mint a fresh Bearer, capture it from the
+`api.phylo.bio` `Authorization` header, and write it to the broker's store
+(`--out-file` default, or `--out-keyring service:user`). Multi-account = one
+profile per account (`--profile ~/.biomni-mcp/profiles/<name>`). The token flows
+browser → refresher → store, entirely local and masked in all output — the proxy
+broker then serves it. Periodic `watch` runs also keep the WorkOS session
+sliding-alive; a hard re-`login` is only needed after its absolute max lifetime.
+
 ### Collision policy
 
 Unique names are kept **exactly**. Cross-backend collisions would get a minimal
