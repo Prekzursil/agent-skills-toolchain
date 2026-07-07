@@ -36,7 +36,14 @@ def test_default_providers_env_and_cmds():
     assert specs["exa"].key_env == "EXA_API_KEY"
     assert specs["tavily"].key_env == "TAVILY_API_KEY"
     assert specs["firecrawl"].key_env == "FIRECRAWL_API_KEY"
-    assert specs["exa"].cmd == ("cmd", "/c", "npx", "-y", "exa-mcp-server")
+    # Exa's npm stdio server hardcodes only 2 tools, so we bridge the FULL-surface
+    # HTTP endpoint via mcp-remote, injecting the per-rotation EXA_API_KEY into the
+    # x-api-key header (mcp-remote does the ${VAR} substitution).
+    exa_cmd = specs["exa"].cmd
+    assert exa_cmd[:5] == ("cmd", "/c", "npx", "-y", "mcp-remote")
+    assert exa_cmd[5].startswith("https://mcp.exa.ai/mcp?tools=")
+    assert "deep_researcher_start" in exa_cmd[5] and "agent_create_run" in exa_cmd[5]
+    assert exa_cmd[6:] == ("--header", "x-api-key:${EXA_API_KEY}")
     assert specs["tavily"].cmd == ("cmd", "/c", "npx", "-y", "tavily-mcp@latest")
     assert specs["firecrawl"].cmd == ("cmd", "/c", "npx", "-y", "firecrawl-mcp@latest")
     assert {s.prefix for s in specs.values()} == {"ex", "tv", "fc"}
