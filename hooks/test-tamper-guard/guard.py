@@ -40,7 +40,7 @@ MODE = os.environ.get("TEST_TAMPER_MODE", "warn").lower()
 # Only the HIGH-CONFIDENCE signals block under TEST_TAMPER_MODE=block. These are
 # externally anchored to a real `git diff --cached` and have very low false-positive
 # risk. `trivial_assert_added` is deliberately EXCLUDED — a real `assert True`
-# (e.g. a placeholder in a genuinely-new scaffold) is more likely benign, so it
+# (e.g. one written into a genuinely-new scaffold) is more likely benign, so it
 # stays a warn even in block mode.
 _BLOCK_SIGNALS: frozenset[str] = frozenset(
     {"file_deleted", "assertion_net_drop", "skip_added"}
