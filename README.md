@@ -9,6 +9,10 @@ Full configuration and toolchain repo for all my AI agents: Codex CLI, Claude Co
 git clone https://github.com/Prekzursil/agent-skills-toolchain.git
 cd agent-skills-toolchain
 
+# Unlock encrypted credential stores (accounts.json) for plug-and-play MCP hubs.
+# Needs git-crypt + the exported key from your password manager. See docs/SECRETS.md.
+git-crypt unlock /path/to/agent-skills-toolchain.gitcrypt.key
+
 # Install dependencies
 npm install
 
@@ -209,6 +213,8 @@ The split matters because these surfaces have different runtime models, auth exp
   - repo-level helpers such as validation, `sync-skills.ps1`, and `sync-hooks.ps1`; `scripts/agentic-perfection/` holds the program's host-side scripts (basic-memory launcher/watchdog, world-watch, resource-guard)
 - `release/`
   - packaging-only workspace for future Windows/Linux/macOS bundles; not a live execution surface
+- `userscripts/`
+  - browser Tampermonkey/Violentmonkey userscripts (personal `*.user.js` conveniences); see [`userscripts/README.md`](userscripts/README.md)
 
 ## Current repo themes
 
@@ -279,6 +285,12 @@ The live tool surfaces are first-class repo homes for bounded tool projects and 
 - [`tools/mcp/`](tools/mcp/README.md)
 - [`tools/editor/`](tools/editor/README.md)
 - [`tools/web/`](tools/web/README.md)
+
+### Userscripts
+
+Browser userscripts (Tampermonkey/Violentmonkey) live in [`userscripts/`](userscripts/README.md):
+
+- `github-pat-quick-fill.user.js` - one-click **max all** GitHub fine-grained PAT permissions; DOM-driven (no hardcoded permission list), survives GitHub adding/removing permissions, handles every permission category.
 
 Current bounded projects:
 
