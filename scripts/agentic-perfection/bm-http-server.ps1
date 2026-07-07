@@ -45,6 +45,9 @@ $env:DO_NOT_TRACK         = '1'
 # FASTEMBED_CACHE_PATH (.models), not HF_HOME.
 
 "$(Get-Date -Format o)  starting basic-memory streamable-http on 127.0.0.1:$Port" | Add-Content $Log
+# Anti-thrash: stamp the relaunch marker so the watchdog + liveness-restart DEFER while this start binds
+# (their 75s grace reads this file's mtime), instead of killing a warming-up server on their next probe.
+Set-Content -Path (Join-Path $env:TEMP 'bm-relaunch.marker') -Value (Get-Date -Format o) -ErrorAction SilentlyContinue
 
 # Launch with -PassThru (NOT -Wait) so the start-lock can be RELEASED once the port
 # binds, then wait on the daemon WITHOUT holding the lock. Holding the lock for the
@@ -55,12 +58,25 @@ $args = @('mcp', '--transport', 'streamable-http', '--host', '127.0.0.1',
           '--port', "$Port", '--path', '/mcp')
 $proc = Start-Process -FilePath $BmExe -ArgumentList $args -NoNewWindow -PassThru `
     -RedirectStandardOutput $Log -RedirectStandardError $ErrLog
+$bound = $false
 for ($i = 0; $i -lt 60; $i++) {
     if ($proc.HasExited) { "$(Get-Date -Format o)  daemon exited during startup (code $($proc.ExitCode))" | Add-Content $Log; break }
     if (Test-NetConnection -ComputerName 127.0.0.1 -Port $Port -InformationLevel Quiet -WarningAction SilentlyContinue) {
-        "$(Get-Date -Format o)  bound on :$Port - releasing start-lock, holding daemon" | Add-Content $Log; break
+        "$(Get-Date -Format o)  bound on :$Port - releasing start-lock, holding daemon" | Add-Content $Log; $bound = $true; break
     }
     Start-Sleep -Seconds 1
 }
 try { $lockStream.Close() } catch {}   # release the start-lock (bound or failed) -> future restarts never deadlock
-if (-not $proc.HasExited) { $proc.WaitForExit() }   # keep task Running + daemon alive, WITHOUT the lock
+if ($bound) {
+    if (-not $proc.HasExited) { $proc.WaitForExit() }   # healthy: hold task Running + block duplicate launches
+} else {
+    # Did NOT bind within 60s but the shim chain may still be alive (port-collision / hung startup).
+    # Do NOT WaitForExit on a non-serving process: that pins the task 'Running', so IgnoreNew blocks the
+    # 5-min relaunch AND the watchdog's Start-ScheduledTask is refused (0x800710E0) -> permanent DOWN.
+    # Kill the stale chain and EXIT so the task returns to Ready and a clean retry can run.
+    "$(Get-Date -Format o)  did NOT bind in 60s - killing stale chain + exiting so a retry can run" | Add-Content $Log
+    try { if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue } } catch {}
+    Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -like '*basic-memory*8765*' } |
+        ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }
+}
