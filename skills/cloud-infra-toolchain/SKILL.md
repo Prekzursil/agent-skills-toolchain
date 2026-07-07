@@ -10,9 +10,9 @@ description: "Use when working with the user's cloud-infrastructure MCP stack fr
 The user's cloud-infra MCP servers are fronted by **`cloud-hub`** — one lazy,
 name-preserving multiplexer (`tools/mcp/cloud-hub/`) that answers `tools/list`
 from committed caches **without spawning** and lazily spawns **only** the owning
-backend on a `tools/call`. Nine platforms, **279 backend tools + 54 account
-tools = 333**, behind a single MCP registration. Five servers are **adopted**
-(existing MCP packages), three are **built** thin FastMCP wrappers, and one
+backend on a `tools/call`. Ten platforms, **324 backend tools + 54 account
+tools = 378**, behind a single MCP registration. Five servers are **adopted**
+(existing MCP packages), four are **built** thin FastMCP wrappers, and one
 (OVHcloud) is a **vendored** TS server built from source.
 
 | Platform | pkg / runtime | Auth | Adopt/Build | Tools | Hard limits |
