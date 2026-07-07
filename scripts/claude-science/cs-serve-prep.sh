@@ -2,6 +2,7 @@
 export PATH="$HOME/.local/bin:$PATH"
 
 if ! grep -q '.local/bin' "$HOME/.profile" 2>/dev/null; then
+  # shellcheck disable=SC2016  # intentional: write the literal $HOME/$PATH line into .profile, do not expand now
   echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.profile"
   echo "[+] added ~/.local/bin to ~/.profile"
 else

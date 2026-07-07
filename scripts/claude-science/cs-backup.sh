@@ -42,6 +42,6 @@ cp -a "$DD/encryption.key" "$KEYDEST/encryption.key" 2>/dev/null && echo "[backu
 [ -d "$DD/.oauth-tokens" ] && cp -a "$DD/.oauth-tokens" "$KEYDEST/" 2>/dev/null && echo "[backup] oauth-tokens -> $KEYDEST"
 
 # retention: keep last 7
-ls -1t "$DEST"/operon-*.db 2>/dev/null | tail -n +8 | xargs -r rm -f
-ls -1t "$DEST"/data-*.tar.gz 2>/dev/null | tail -n +8 | xargs -r rm -f
+find "$DEST" -maxdepth 1 -name 'operon-*.db' 2>/dev/null | sort -r | tail -n +8 | while IFS= read -r f; do rm -f "$f"; done
+find "$DEST" -maxdepth 1 -name 'data-*.tar.gz' 2>/dev/null | sort -r | tail -n +8 | while IFS= read -r f; do rm -f "$f"; done
 echo "[backup] done -> $DEST  |  free: $(df -h "$DEST" | awk 'NR==2{print $4}')"

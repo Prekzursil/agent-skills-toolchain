@@ -1,7 +1,8 @@
 #!/bin/bash
 # cs-maintain — weekly offline SQLite maintenance for the Claude Science daemon.
 # Stops the daemon, backs up FIRST, integrity-checks, checkpoints/vacuums/optimizes,
-# then restarts pinned (--no-auto-update). Reduces the lock-contention wedge frequency.
+# then restarts pinned (--no-auto-update). NOTE: ANALYZE/VACUUM/checkpoint here are tiny-DB
+# hygiene, NOT the wedge fix -- the ~164s wedge is host-RAM freezing WSL, not DB cost (2026-07-07 audit).
 set -uo pipefail
 export PATH="$HOME/.local/bin:$PATH"
 DD="$HOME/.claude-science"
@@ -36,7 +37,8 @@ else
   echo "[maintain] journal_mode: $(sqlite3 "$DB" 'PRAGMA journal_mode;')"
   # Refuse to VACUUM (rewrites the whole DB in place) with no rollback point: assert cs-backup
   # just wrote a fresh operon-*.db (< 10 min old) to $DEST. If not, WARN loudly and SKIP VACUUM.
-  fresh_bk=$(find "$DEST" -maxdepth 1 -name 'operon-*.db' -mmin -10 2>/dev/null | head -1)
+  # -size +0c: a fresh but ZERO-byte snapshot is not a usable rollback point -> require non-empty
+  fresh_bk=$(find "$DEST" -maxdepth 1 -name 'operon-*.db' -mmin -10 -size +0c 2>/dev/null | head -1)
   if [ -z "$fresh_bk" ]; then
     echo "!!! [maintain] NO fresh backup (operon-*.db < 10 min old) in $DEST"
     echo "!!! [maintain] SKIPPING destructive VACUUM (no rollback point) — checkpoint+optimize only"
@@ -48,11 +50,11 @@ else
 fi
 
 # server-log retention: drop server-*.log older than 14 days (keep ~/.claude-science/logs bounded)
-find "$DD/logs" -maxdepth 1 -name 'server-*.log' -mtime +14 2>/dev/null | xargs -r rm -f
+find "$DD/logs" -maxdepth 1 -name 'server-*.log' -mtime +14 -delete 2>/dev/null || true
 echo "[maintain] pruned server logs older than 14 days"
 
 echo "[maintain] restart (pinned, no auto-update)"
-CS_EXTRA=$(cat "$HOME/.cs-serve-extra" 2>/dev/null || true)
-claude-science serve --no-browser --detached --no-auto-update $CS_EXTRA 2>&1 | tail -3
+read -ra cs_extra <<<"$(cat "$HOME/.cs-serve-extra" 2>/dev/null || true)"
+claude-science serve --no-browser --detached --no-auto-update "${cs_extra[@]}" 2>&1 | tail -3
 sleep 6
 claude-science status 2>/dev/null | grep -E '"running"|"pid"' || echo "[maintain] WARN: not running after restart"

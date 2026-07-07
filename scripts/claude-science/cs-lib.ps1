@@ -1,4 +1,4 @@
-# cs-lib — shared Claude Science health/probe helpers.
+# cs-lib -- shared Claude Science health/probe helpers.
 # Dot-sourced by cs.ps1, cs-doctor.ps1, and cs-watchdog.ps1 so the wedge-detection is identical
 # everywhere (no drift). A wedged daemon (WSL frozen under host-RAM pressure) still ACCEPTS the
 # socket but answers slowly/never -> latency is the signal the old any-HTTP-status probe missed.
@@ -9,6 +9,10 @@ $script:CSHardCap = 8000     # ms socket/read timeout; an accepted-but-frozen so
 
 function Invoke-CSWsl {
   # Run a WSL login-shell command with a HARD timeout, so a frozen VM can never hang the caller.
+  # Job inputs are passed explicitly via -ArgumentList and received through param($d,$c) below --
+  # no closure capture, so $using: does not apply (PSSA false positive). Live-verified: cs status
+  # gathers WSL pid/disk/RAM through this path correctly.
+  [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseUsingScopeModifierInNewRunspaces', '', Justification = 'Args passed via -ArgumentList/param(), not closure-captured.')]
   param([string]$Cmd, [int]$TimeoutSec = 20)
   $job = Start-Job { param($d, $c) & wsl.exe -d $d -e bash -lc "export PATH=`$HOME/.local/bin:`$PATH; $c" 2>&1 } -ArgumentList $script:CSDistro, $Cmd
   if (Wait-Job $job -Timeout $TimeoutSec) { $o = Receive-Job $job; Remove-Job $job -Force -ErrorAction SilentlyContinue; return ($o -join "`n") }
