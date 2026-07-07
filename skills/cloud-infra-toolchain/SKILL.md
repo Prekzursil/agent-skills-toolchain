@@ -10,10 +10,11 @@ description: "Use when working with the user's cloud-infrastructure MCP stack fr
 The user's cloud-infra MCP servers are fronted by **`cloud-hub`** — one lazy,
 name-preserving multiplexer (`tools/mcp/cloud-hub/`) that answers `tools/list`
 from committed caches **without spawning** and lazily spawns **only** the owning
-backend on a `tools/call`. Eight platforms, **214 backend tools + 48 account
-tools = 262**, behind a single MCP registration. Five servers are **adopted**
-(existing MCP packages), two are **built** thin FastMCP wrappers, and one
-(OVHcloud) is a **vendored** TS server built from source.
+backend on a `tools/call`. Nine platforms, **224 backend tools + 48 account
+tools = 272**, behind a single MCP registration. Five servers are **adopted**
+(existing MCP packages), three are **built** FastMCP servers (two thin CLI/SDK
+wrappers + the unified compute layer), and one (OVHcloud) is a **vendored** TS
+server built from source.
 
 | Platform | pkg / runtime | Auth | Adopt/Build | Tools | Hard limits |
 |---|---|---|---|---:|---|
@@ -25,10 +26,39 @@ tools = 262**, behind a single MCP registration. Five servers are **adopted**
 | **Modal** | built FastMCP wrapper (`modal` CLI) | `MODAL_TOKEN_ID`+`MODAL_TOKEN_SECRET` | build | 6 | `run`/`deploy` start billable compute |
 | **Lightning AI** | built FastMCP wrapper (`lightning_sdk`) | `LIGHTNING_USER_ID`+`LIGHTNING_API_KEY` | build | 9 | Studios/Jobs bill by the second; `lightning-sdk` must be installed |
 | **OVHcloud** | vendored TS MCP (`node ovh-mcp/dist/index.js`) | `OVH_APPLICATION_KEY`+`_SECRET`+`_CONSUMER_KEY` (or OAuth2) per region | vendor+build | 27 | GPU instances bill hourly; `ov_account_switch ca\|eu\|us` flips region+creds (EU/CA/US are separate entities) |
+| **Compute (unified)** | built FastMCP wrapper (`compute-mcp/`) | per-provider (reuses RunPod/OVH/Lightning creds) | build | 10 | GPU billed while running; `terminate=true` needs `confirm=true`; `dry_run=true` previews |
 
-The two built wrappers **pre-namespace** their tools (`modal_*`, `lightning_*`) so
-the hub's collision-prefix never fires. There are **no cross-backend collisions**
-today, so every tool keeps its original name.
+The built wrappers **pre-namespace** their tools (`modal_*`, `lightning_*`,
+`compute_*`) so the hub's collision-prefix never fires. There are **no
+cross-backend collisions** today, so every tool keeps its original name.
+
+## Unified compute layer (`compute`)
+
+`compute` (built FastMCP wrapper, `compute-mcp/`) adds **ten normalized
+`compute_*` verbs** that dispatch **directly** to the RunPod, OVH, and Lightning
+APIs, so one provider-agnostic surface drives the whole rent-a-GPU lifecycle
+instead of three different tool families:
+
+`compute_provision · compute_status · compute_ls · compute_exec · compute_logs ·
+compute_pull · compute_push · compute_teardown · compute_cost · compute_catalog`
+
+- A box is addressed by an opaque handle `compute://provider/kind/ident`
+  (`runpod/pod/ID`, `ovh/instance/serviceName/ID`,
+  `lightning/studio/[teamspace/]name`) returned by `compute_provision`.
+- **Param mapping:** `gpu` becomes RunPod gpuTypeIds / OVH flavorId / Lightning
+  machine; `image` becomes imageName / imageId; `region` becomes dataCenterIds /
+  OVH region; `project` is the OVH Public Cloud serviceName; `teamspace` is the
+  Lightning teamspace.
+- **exec/pull/push:** RunPod & OVH over ssh/scp (resolved public IP); Lightning
+  via the SDK (`Studio.run` / `upload_file`). `pull`/`push` auto-pick scp vs the
+  rclone RC daemon by path (`remote:path` → rclone; `via=` forces it).
+- **Creds reuse:** no `cp_account_*` layer — `compute_*` reads the SAME
+  `accounts.json` / seed-env credentials as the `runpod`/`ovh`/`lightning`
+  backends; pick a non-active account per call with `account=`.
+- **Safety:** `terminate=true` deletes and needs `confirm=true` (else a `would:`
+  preview); `dry_run=true` previews provision/teardown uncalled. Honest notes
+  fill gaps (OVH has no stop-without-billing; Lightning has no cost API / file
+  download).
 
 ## Multi-account + cycling (cswap-style)
 
@@ -186,6 +216,12 @@ real Python entry points run under the hub's own interpreter.
   (`ovh_api_catalog`/`_search`/`_endpoint_detail`, **`ovh_api_raw`** = call ANY of
   500+ OVH endpoints incl. Public Cloud `/cloud/project/…` GPU instances). Region +
   creds per `ov` account (`ovh-eu`/`ovh-ca`/`ovh-us`).
+- **Compute (unified)** (`compute_*`, 10): `compute_provision`, `compute_status`,
+  `compute_ls`, `compute_exec`, `compute_logs`, `compute_pull`, `compute_push`,
+  `compute_teardown`, `compute_cost`, `compute_catalog` — one normalized GPU
+  lifecycle over RunPod pods / OVH Public Cloud instances / Lightning Studios,
+  dispatching straight to each provider API (collision prefix `cp`; no
+  `cp_account_*` layer — it reuses the `rp`/`ov`/`lg` credentials).
 
 **Registration + full mechanics:** see `tools/mcp/cloud-hub/README.md`. The hub is
 not wired into `~/.mcp.json` by this skill — the orchestrator registers it.

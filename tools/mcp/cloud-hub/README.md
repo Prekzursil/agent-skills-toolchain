@@ -11,7 +11,7 @@ Why not a normal aggregator (mcp-funnel / 1mcp)? Those rename tools to
 `serverName__tool`. This hub preserves names and only renames on a genuine
 cross-backend collision (none today).
 
-## Backends & tool surface (214 backend tools + 48 account tools = 262)
+## Backends & tool surface (224 backend tools + 48 account tools = 272)
 
 | id | backend | pkg / runtime | tools | adopt/build | auth | cache |
 |----|---------|---------------|------:|-------------|------|-------|
@@ -23,6 +23,7 @@ cross-backend collision (none today).
 | `modal` | Modal | built FastMCP wrapper (`modal` CLI) | 6 | build | `MODAL_TOKEN_ID`+`MODAL_TOKEN_SECRET` | live |
 | `lightning` | Lightning AI | built FastMCP wrapper (`lightning_sdk`) | 9 | build | `LIGHTNING_USER_ID`+`LIGHTNING_API_KEY` | live |
 | `ovh` | OVHcloud | vendored TS MCP (`node ovh-mcp/dist/index.js`) | 27 | vendor+build | `OVH_APPLICATION_KEY`+`_SECRET`+`_CONSUMER_KEY` (or OAuth2) per region | live |
+| `compute` | Compute (unified) | built FastMCP wrapper (`compute-mcp/`) | 10 | build | per-provider (reuses RunPod/OVH/Lightning creds) | live |
 
 `azure` is a **hand-authored** representative cache: `@azure/mcp` is a .NET tool that
 did not emit an MCP handshake under piped stdio in the build harness (the Node
@@ -63,6 +64,37 @@ endpoint must match the account). Creds may be the API-key trio
 — e.g. the account email — surfaced by `ov_account_list`/`_current` as
 `name → label`, so you can tell which OVH identity each switch-name maps to
 (confirm the live identity any time with `ovh_account_info` = `GET /me`).
+
+### Compute (unified) (`compute`) — one GPU lifecycle over three providers
+
+`compute` is a locally-built FastMCP wrapper (`compute-mcp/`) exposing **ten
+normalized `compute_*` verbs** that dispatch **directly** to the RunPod, OVH, and
+Lightning AI provider APIs — the hub stays a passthrough (it never proxies a
+provider SDK itself). One provider-agnostic surface for the whole rent-a-GPU
+lifecycle:
+
+`compute_provision` · `compute_status` · `compute_ls` · `compute_exec` ·
+`compute_logs` · `compute_pull` · `compute_push` · `compute_teardown` ·
+`compute_cost` · `compute_catalog`
+
+A box is addressed by an opaque handle `compute://<provider>/<kind>/<ident>`
+returned by `compute_provision` (`runpod/pod/<id>`,
+`ovh/instance/<serviceName>/<id>`, `lightning/studio/[<teamspace>/]<name>`).
+
+- **Zero new deps.** stdlib `urllib`+`hashlib` HTTP (incl. OVH's `$1$` SHA-1
+  request signing), `lightning_sdk` in-process, and subprocess `ssh`/`scp` for
+  `exec`/`pull`/`push`. `pull`/`push` auto-select scp vs the rclone RC daemon by
+  path (an rclone `remote:path` routes to rclone; a `via=` override forces one).
+- **Creds are reused, not re-declared.** `compute_*` resolves the SAME per-account
+  credentials the hub injects for the `runpod`/`ovh`/`lightning` backends (via
+  `accounts.json` + seed env), so there is **no `cp_account_*` layer** — switch
+  accounts with `rp_`/`ov_`/`lg_account_*` or the per-verb `account=` argument.
+- **Safety gates.** `compute_teardown terminate=true` (and the OVH/RunPod deletes)
+  need `confirm=true` or are refused with a `would:` preview; `dry_run=true` on
+  provision/teardown returns the exact request **uncalled**. Every verb answers
+  the same `{ok, provider, handle?, state?, …, error?}` envelope; honest notes
+  fill capability gaps (OVH has no stop-without-billing; Lightning has no public
+  cost API or SDK file-download).
 
 ### Collision policy
 
@@ -168,6 +200,6 @@ The `ovh` backend needs its one-time build (`cd ovh-mcp && npm ci && npm run bui
 ## Tests
 
 ```
-python -m pytest tests -q     # 24 tests: plan logic + lazy-spawn + account layer
+python -m pytest tests -q     # 85 tests: plan logic + lazy-spawn + account + compute layers
 python e2e_live.py            # live: routes an account tool + modal_app_list (Windows)
 ```

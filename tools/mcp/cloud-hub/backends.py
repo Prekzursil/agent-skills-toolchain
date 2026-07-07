@@ -36,6 +36,9 @@ PYTHON = sys.executable
 RCLONE_LAUNCH = os.path.join(HERE, "rclone_launch.py")
 MODAL_SERVER = os.path.join(HERE, "modal-mcp", "server.py")
 LIGHTNING_SERVER = os.path.join(HERE, "lightning-mcp", "server.py")
+# Locally-built FastMCP wrapper: normalized compute_* verbs that dispatch
+# directly to the RunPod / OVH / Lightning provider APIs (hub stays passthrough).
+COMPUTE_SERVER = os.path.join(HERE, "compute-mcp", "server.py")
 # Vendored TS MCP (hlebtkachenko/ovhcloud-mcp): built to dist/ via
 # `npm ci && npm run build` in ovh-mcp/. node is a real .exe but resolved
 # through `cmd /c` so PATH lookup matches the npx/uvx launchers on Windows.
@@ -231,5 +234,16 @@ def default_backends() -> list[BackendSpec]:
                 ),
                 label="OVHcloud",
             ),
+        ),
+        BackendSpec(
+            id="compute",
+            label="Compute (unified)",
+            prefix="cp",
+            cmd=(PYTHON, COMPUTE_SERVER),
+            cache="compute.json",
+            can_enumerate_offline=True,
+            note="normalized compute_* verbs over RunPod/OVH/Lightning; "
+            "dispatches to provider APIs",
+            account=None,
         ),
     ]

@@ -1,0 +1,516 @@
+{
+  "initialize": {
+    "protocolVersion": "2024-11-05",
+    "capabilities": {
+      "experimental": {},
+      "prompts": {
+        "listChanged": false
+      },
+      "resources": {
+        "subscribe": false,
+        "listChanged": false
+      },
+      "tools": {
+        "listChanged": false
+      }
+    },
+    "serverInfo": {
+      "name": "compute",
+      "version": "1.23.3"
+    }
+  },
+  "tools": {
+    "tools": [
+      {
+        "name": "compute_provision",
+        "description": "Provision a GPU/CPU box on a provider (runpod | ovh | lightning).\n\nMaps one param set onto each provider: gpu becomes RunPod gpuTypeIds / OVH\nflavorId / Lightning machine; image becomes imageName / imageId; region\nbecomes dataCenterIds / OVH region; template becomes RunPod templateId;\nports is a comma-separated list (RunPod, e.g. '8888/http,22/tcp'); project\nis the OVH Public Cloud serviceName; teamspace is the Lightning teamspace;\nssh_key is the OVH sshKeyId. Returns a compute:// handle for the other verbs.\n\nCOST: starts billable compute (per-second on RunPod/Lightning, hourly on\nOVH). Set dry_run=true to return the exact request WITHOUT creating anything.\n",
+        "inputSchema": {
+          "properties": {
+            "provider": {
+              "title": "Provider",
+              "type": "string"
+            },
+            "gpu": {
+              "default": "",
+              "title": "Gpu",
+              "type": "string"
+            },
+            "image": {
+              "default": "",
+              "title": "Image",
+              "type": "string"
+            },
+            "region": {
+              "default": "",
+              "title": "Region",
+              "type": "string"
+            },
+            "name": {
+              "default": "",
+              "title": "Name",
+              "type": "string"
+            },
+            "gpu_count": {
+              "default": 1,
+              "title": "Gpu Count",
+              "type": "integer"
+            },
+            "disk_gb": {
+              "default": 20,
+              "title": "Disk Gb",
+              "type": "integer"
+            },
+            "ports": {
+              "default": "",
+              "title": "Ports",
+              "type": "string"
+            },
+            "template": {
+              "default": "",
+              "title": "Template",
+              "type": "string"
+            },
+            "project": {
+              "default": "",
+              "title": "Project",
+              "type": "string"
+            },
+            "teamspace": {
+              "default": "",
+              "title": "Teamspace",
+              "type": "string"
+            },
+            "ssh_key": {
+              "default": "",
+              "title": "Ssh Key",
+              "type": "string"
+            },
+            "account": {
+              "default": "",
+              "title": "Account",
+              "type": "string"
+            },
+            "dry_run": {
+              "default": false,
+              "title": "Dry Run",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "provider"
+          ],
+          "title": "compute_provisionArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "compute_provisionOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "compute_exec",
+        "description": "Run a shell command on a provisioned box; returns stdout/stderr/exit_code.\n\nRunPod/OVH run it over SSH (needs the box to expose a public IP + SSH);\nLightning runs it inside the Studio via the SDK. Pass the compute:// handle\nfrom compute_provision.\n",
+        "inputSchema": {
+          "properties": {
+            "handle": {
+              "title": "Handle",
+              "type": "string"
+            },
+            "command": {
+              "title": "Command",
+              "type": "string"
+            },
+            "account": {
+              "default": "",
+              "title": "Account",
+              "type": "string"
+            }
+          },
+          "required": [
+            "handle",
+            "command"
+          ],
+          "title": "compute_execArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "compute_execOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "compute_logs",
+        "description": "Best-effort recent logs for a box (tails syslog/journal over SSH).\n\nHonest note: none of the three providers exposes a compute log-stream API,\nso this is a best-effort SSH tail (RunPod/OVH) or a pointer to compute_exec\ninside a Lightning Studio.\n",
+        "inputSchema": {
+          "properties": {
+            "handle": {
+              "title": "Handle",
+              "type": "string"
+            },
+            "lines": {
+              "default": 200,
+              "title": "Lines",
+              "type": "integer"
+            },
+            "account": {
+              "default": "",
+              "title": "Account",
+              "type": "string"
+            }
+          },
+          "required": [
+            "handle"
+          ],
+          "title": "compute_logsArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "compute_logsOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "compute_pull",
+        "description": "Download a file from a box to a local path.\n\nMechanism is auto-selected: an rclone remote path ('remote:sub/path') uses\nthe local rclone RC daemon; otherwise scp over the box's SSH endpoint. Force\nit with via='scp' or via='rclone'. Lightning has no SDK download -- use an\nrclone remote or the Studio UI.\n",
+        "inputSchema": {
+          "properties": {
+            "handle": {
+              "title": "Handle",
+              "type": "string"
+            },
+            "remote_path": {
+              "title": "Remote Path",
+              "type": "string"
+            },
+            "local_path": {
+              "title": "Local Path",
+              "type": "string"
+            },
+            "via": {
+              "default": "",
+              "title": "Via",
+              "type": "string"
+            },
+            "account": {
+              "default": "",
+              "title": "Account",
+              "type": "string"
+            }
+          },
+          "required": [
+            "handle",
+            "remote_path",
+            "local_path"
+          ],
+          "title": "compute_pullArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "compute_pullOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "compute_push",
+        "description": "Upload a local file to a box.\n\nMechanism is auto-selected: an rclone remote path uses the rclone RC daemon;\notherwise scp (RunPod/OVH) or Studio.upload_file (Lightning). Force it with\nvia='scp' or via='rclone'.\n",
+        "inputSchema": {
+          "properties": {
+            "handle": {
+              "title": "Handle",
+              "type": "string"
+            },
+            "local_path": {
+              "title": "Local Path",
+              "type": "string"
+            },
+            "remote_path": {
+              "title": "Remote Path",
+              "type": "string"
+            },
+            "via": {
+              "default": "",
+              "title": "Via",
+              "type": "string"
+            },
+            "account": {
+              "default": "",
+              "title": "Account",
+              "type": "string"
+            }
+          },
+          "required": [
+            "handle",
+            "local_path",
+            "remote_path"
+          ],
+          "title": "compute_pushArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "compute_pushOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "compute_teardown",
+        "description": "Stop a box, or delete it with terminate=true (bills stop on delete).\n\nDefault (terminate=false) stops billing where the provider supports it\n(RunPod stop, Lightning stop; OVH has no stop-without-billing and returns a\nnote). terminate=true is IRREVERSIBLE and requires confirm=true -- without\nit the call is refused with a 'would' preview. dry_run=true previews the\nrequest without calling.\n",
+        "inputSchema": {
+          "properties": {
+            "handle": {
+              "title": "Handle",
+              "type": "string"
+            },
+            "terminate": {
+              "default": false,
+              "title": "Terminate",
+              "type": "boolean"
+            },
+            "confirm": {
+              "default": false,
+              "title": "Confirm",
+              "type": "boolean"
+            },
+            "dry_run": {
+              "default": false,
+              "title": "Dry Run",
+              "type": "boolean"
+            },
+            "account": {
+              "default": "",
+              "title": "Account",
+              "type": "string"
+            }
+          },
+          "required": [
+            "handle"
+          ],
+          "title": "compute_teardownArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "compute_teardownOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "compute_status",
+        "description": "Get a box's current state (normalized 'state' + the raw provider object).",
+        "inputSchema": {
+          "properties": {
+            "handle": {
+              "title": "Handle",
+              "type": "string"
+            },
+            "account": {
+              "default": "",
+              "title": "Account",
+              "type": "string"
+            }
+          },
+          "required": [
+            "handle"
+          ],
+          "title": "compute_statusArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "compute_statusOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "compute_ls",
+        "description": "List boxes on a provider (runpod | ovh | lightning).\n\nOVH needs project (the Public Cloud serviceName, or set OVH_CLOUD_PROJECT_ID);\nLightning needs teamspace to enumerate studios.\n",
+        "inputSchema": {
+          "properties": {
+            "provider": {
+              "title": "Provider",
+              "type": "string"
+            },
+            "project": {
+              "default": "",
+              "title": "Project",
+              "type": "string"
+            },
+            "teamspace": {
+              "default": "",
+              "title": "Teamspace",
+              "type": "string"
+            },
+            "account": {
+              "default": "",
+              "title": "Account",
+              "type": "string"
+            }
+          },
+          "required": [
+            "provider"
+          ],
+          "title": "compute_lsArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "compute_lsOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "compute_cost",
+        "description": "Report account balance / current spend for a provider.\n\nRunPod returns clientBalance + currentSpendPerHr (USD); OVH returns credit\nbalance + the project's current usage (EUR); Lightning reports cost only on\nits dashboard (honest note, no public balance API).\n",
+        "inputSchema": {
+          "properties": {
+            "provider": {
+              "title": "Provider",
+              "type": "string"
+            },
+            "project": {
+              "default": "",
+              "title": "Project",
+              "type": "string"
+            },
+            "account": {
+              "default": "",
+              "title": "Account",
+              "type": "string"
+            }
+          },
+          "required": [
+            "provider"
+          ],
+          "title": "compute_costArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "compute_costOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "compute_catalog",
+        "description": "List the GPU/flavor/machine catalog for a provider.\n\nRunPod lists GPU types; OVH lists flavors (filter with region) + the\nproject's regions (needs project); Lightning lists Studio machine types.\n",
+        "inputSchema": {
+          "properties": {
+            "provider": {
+              "title": "Provider",
+              "type": "string"
+            },
+            "region": {
+              "default": "",
+              "title": "Region",
+              "type": "string"
+            },
+            "project": {
+              "default": "",
+              "title": "Project",
+              "type": "string"
+            },
+            "account": {
+              "default": "",
+              "title": "Account",
+              "type": "string"
+            }
+          },
+          "required": [
+            "provider"
+          ],
+          "title": "compute_catalogArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "compute_catalogOutput",
+          "type": "object"
+        }
+      }
+    ]
+  }
+}
