@@ -40,6 +40,9 @@ LIGHTNING_SERVER = os.path.join(HERE, "lightning-mcp", "server.py")
 # directly to the RunPod / OVH / Lightning provider APIs (hub stays passthrough).
 COMPUTE_SERVER = os.path.join(HERE, "compute-mcp", "server.py")
 DATABRICKS_SERVER = os.path.join(HERE, "databricks-mcp", "server.py")
+# Locally-built FastMCP wrapper over Phylo's reverse-engineered Biomni Lab REST
+# API (api.phylo.bio/v2). Bearer token per account (BIOMNI_TOKEN); stdlib-only.
+BIOMNI_SERVER = os.path.join(HERE, "biomni-mcp", "server.py")
 # Vendored TS MCP (hlebtkachenko/ovhcloud-mcp): built to dist/ via
 # `npm ci && npm run build` in ovh-mcp/. node is a real .exe but resolved
 # through `cmd /c` so PATH lookup matches the npx/uvx launchers on Windows.
@@ -105,7 +108,7 @@ _GCLOUD_CLI = CliProfileSpec(
 
 
 def default_backends() -> list[BackendSpec]:
-    """The seven cloud backends fronted by the hub (order = merge order)."""
+    """The cloud backends fronted by the hub (order = merge order)."""
     return [
         BackendSpec(
             id="runpod",
@@ -261,6 +264,29 @@ def default_backends() -> list[BackendSpec]:
                 mode="env",
                 seed_env=("DATABRICKS_HOST", "DATABRICKS_TOKEN"),
                 label="Databricks",
+            ),
+        ),
+        BackendSpec(
+            id="biomni",
+            label="Biomni Lab (Phylo api.phylo.bio/v2)",
+            prefix="bm",
+            cmd=(PYTHON, BIOMNI_SERVER),
+            cache="biomni.json",
+            can_enumerate_offline=True,
+            note="thin FastMCP wrapper over Phylo's reverse-engineered Biomni Lab "
+            "REST API; drives the HOSTED biomni.phylo.bio far past its official "
+            "10-tool connector -- effort (model_profile standard|fast|premium), "
+            "skill + @-resource attach, live HPC/GPU/process introspection, usage/"
+            "billing, and a raw escape hatch. Each biomni account is a BIOMNI_TOKEN "
+            "bundle (Bearer from a signed-in session; no API-key product yet), so "
+            "bm_account_switch|cycle rotates between the user's Biomni accounts "
+            "(email-labelled) -- pair with bm_billing_balance to rotate before one "
+            "runs dry.",
+            account=AccountPolicy(
+                platform="biomni",
+                mode="env",
+                seed_env=("BIOMNI_TOKEN",),
+                label="Biomni Lab",
             ),
         ),
     ]

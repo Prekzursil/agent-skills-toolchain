@@ -1,0 +1,654 @@
+{
+  "initialize": {
+    "protocolVersion": "2024-11-05",
+    "capabilities": {
+      "experimental": {},
+      "prompts": {
+        "listChanged": false
+      },
+      "resources": {
+        "subscribe": false,
+        "listChanged": false
+      },
+      "tools": {
+        "listChanged": false
+      }
+    },
+    "serverInfo": {
+      "name": "biomni",
+      "version": "1.23.3"
+    }
+  },
+  "tools": {
+    "tools": [
+      {
+        "name": "bm_create_session",
+        "description": "Create a Biomni agent session (a task) and optionally kick off its first run.\n\n``POST /v2/agent/sessions/create``. ``model_profile`` is the EFFORT tier --\nstandard | fast | premium (``max`` is accepted as an alias for premium). $$$\nwith ``submit_initial_message=True`` (default) the ``content`` is submitted and\nthe agent starts running immediately (consumes usage); set it False to create an\nempty session then compose ``bm_send_message`` + ``bm_start_processing`` (needed\nto attach skills / ``@``-resources to the first message). ``project_id`` comes\nfrom ``bm_list_projects`` (or ``bm_create_project``). Returns the ``session_id``\n(``sess_...``) used by every other session tool.\n",
+        "inputSchema": {
+          "properties": {
+            "project_id": {
+              "title": "Project Id",
+              "type": "string"
+            },
+            "content": {
+              "title": "Content",
+              "type": "string"
+            },
+            "model_profile": {
+              "default": "standard",
+              "title": "Model Profile",
+              "type": "string"
+            },
+            "submit_initial_message": {
+              "default": true,
+              "title": "Submit Initial Message",
+              "type": "boolean"
+            },
+            "session_mode": {
+              "default": "agent",
+              "title": "Session Mode",
+              "type": "string"
+            }
+          },
+          "required": [
+            "project_id",
+            "content"
+          ],
+          "title": "bm_create_sessionArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "bm_create_sessionOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "bm_send_message",
+        "description": "Send a user message to a session (does NOT start the run -- call bm_start_processing).\n\n``POST /v2/agent/{session_id}/user_message``. Two attachment mechanisms:\n* RESOURCES (tools / databases / packages) -> ``@name`` mentions INSIDE\n  ``content`` (e.g. ``\"@Addgene @airr analyse ...\"``). This is how the app\n  attaches ``@@``-resources; there is no separate field.\n* SKILLS -> ``attached_skills_json``, a JSON array of skill objects from\n  ``bm_list_skills``, each ``{\"id\",\"name\",\"category\",\"intent\":\"use\"}``. Only\n  ACTIVE skills apply (toggle with ``bm_set_skill_status``).\nSet ``is_clarification_response=True`` when answering the agent's own follow-up\nquestion. Follow with ``bm_start_processing`` to run the agent on this message.\n",
+        "inputSchema": {
+          "properties": {
+            "session_id": {
+              "title": "Session Id",
+              "type": "string"
+            },
+            "content": {
+              "title": "Content",
+              "type": "string"
+            },
+            "attached_skills_json": {
+              "default": "",
+              "title": "Attached Skills Json",
+              "type": "string"
+            },
+            "is_clarification_response": {
+              "default": false,
+              "title": "Is Clarification Response",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "session_id",
+            "content"
+          ],
+          "title": "bm_send_messageArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "bm_send_messageOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "bm_start_processing",
+        "description": "Start the agent processing the session's latest message. $$$ consumes usage.\n\n``POST /v2/agent/{session_id}/start_processing``. Use after ``bm_send_message``;\n``bm_create_session(submit_initial_message=True)`` already starts the first run.\n",
+        "inputSchema": {
+          "properties": {
+            "session_id": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "session_id"
+          ],
+          "title": "bm_start_processingArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "bm_start_processingOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "bm_cancel",
+        "description": "Cancel/stop a running session (``POST /v2/agent/{session_id}/cancel``).",
+        "inputSchema": {
+          "properties": {
+            "session_id": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "session_id"
+          ],
+          "title": "bm_cancelArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "bm_cancelOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "bm_get_session",
+        "description": "Get a session's full state -- status, model_profile, notebook path, iterations.\n\n``GET /v2/agent/{session_id}``.\n",
+        "inputSchema": {
+          "properties": {
+            "session_id": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "session_id"
+          ],
+          "title": "bm_get_sessionArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "bm_get_sessionOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "bm_get_messages",
+        "description": "",
+        "inputSchema": {
+          "properties": {
+            "session_id": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "session_id"
+          ],
+          "title": "bm_get_messagesArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "bm_get_messagesOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "bm_get_streaming",
+        "description": "Best-effort LIVE stream snapshot of a running session.\n\n``GET /v2/agent/{session_id}/streaming``. This may be a long-lived stream, so the\nread is bounded by ``timeout_seconds`` (default 12s); on timeout it returns an\nerror hint -- use ``bm_get_messages`` for reliable polling. Useful to peek at an\nactively-processing session without waiting for it to finish.\n",
+        "inputSchema": {
+          "properties": {
+            "session_id": {
+              "title": "Session Id",
+              "type": "string"
+            },
+            "timeout_seconds": {
+              "default": 12.0,
+              "title": "Timeout Seconds",
+              "type": "number"
+            }
+          },
+          "required": [
+            "session_id"
+          ],
+          "title": "bm_get_streamingArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "bm_get_streamingOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "bm_list_model_profiles",
+        "description": "List the effort tiers and which is default (``GET /v2/agent/model-profiles``).\n\nReturns the profiles the account can use -- standard (default) | fast |\npremium (\"Max\", multimodal) -- the values ``bm_create_session(model_profile=...)``\naccepts.\n",
+        "inputSchema": {
+          "properties": {},
+          "title": "bm_list_model_profilesArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "bm_list_model_profilesOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "bm_list_skills",
+        "description": "List the account's Biomni skills catalog (``GET /v2/know-how/all-skills``).\n\nEach skill has an ``id``, ``name``, ``category``, and active/inactive status.\nCopy the ones you want into ``bm_send_message(attached_skills_json=...)``; toggle\navailability with ``bm_set_skill_status``.\n",
+        "inputSchema": {
+          "properties": {},
+          "title": "bm_list_skillsArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "bm_list_skillsOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "bm_set_skill_status",
+        "description": "Activate or deactivate a skill (``PATCH /v2/know-how/skills/{skill_id}/status``).\n\n``status`` is ``active`` or ``inactive``. Only active skills are eligible to be\nattached to a message.\n",
+        "inputSchema": {
+          "properties": {
+            "skill_id": {
+              "title": "Skill Id",
+              "type": "string"
+            },
+            "status": {
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skill_id",
+            "status"
+          ],
+          "title": "bm_set_skill_statusArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "bm_set_skill_statusOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "bm_list_projects",
+        "description": "List the account's projects (``GET /v2/projects``). Each has a ``proj_...`` id.",
+        "inputSchema": {
+          "properties": {},
+          "title": "bm_list_projectsArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "bm_list_projectsOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "bm_create_project",
+        "description": "Create a project (``POST /v2/projects``); returns its ``proj_...`` id.\n\nSessions are created inside a project (``bm_create_session(project_id=...)``).\n",
+        "inputSchema": {
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "description": {
+              "default": "",
+              "title": "Description",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "title": "bm_create_projectArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "bm_create_projectOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "bm_list_sessions",
+        "description": "List a project's sessions/tasks (``GET /v2/agent/projects/{project_id}/sessions``).",
+        "inputSchema": {
+          "properties": {
+            "project_id": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "project_id"
+          ],
+          "title": "bm_list_sessionsArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "bm_list_sessionsOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "bm_session_runtime",
+        "description": "Introspect a session's live compute (``GET /v2/agent/{session_id}/{kind}``).\n\n``kind`` is one of: background-processes | gpu-sandboxes | hpc-jobs |\nhpc-pipelines | machines. Shows what the agent is actually running on the\nbackend -- long-running processes, GPU sandboxes, HPC jobs/pipelines, and the\nmachines allocated to the session.\n",
+        "inputSchema": {
+          "properties": {
+            "session_id": {
+              "title": "Session Id",
+              "type": "string"
+            },
+            "kind": {
+              "default": "background-processes",
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          "required": [
+            "session_id"
+          ],
+          "title": "bm_session_runtimeArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "bm_session_runtimeOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "bm_list_results",
+        "description": "",
+        "inputSchema": {
+          "properties": {},
+          "title": "bm_list_resultsArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "bm_list_resultsOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "bm_files_tree",
+        "description": "List the account's file tree (``GET /v2/files/tree``).",
+        "inputSchema": {
+          "properties": {},
+          "title": "bm_files_treeArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "bm_files_treeOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "bm_billing_balance",
+        "description": "Show the account's remaining usage/credit balance (``GET /billing/balance``).\n\nPoll this to decide when to ``bm_account_cycle`` to a fresh Biomni account\nbefore the active one is exhausted.\n",
+        "inputSchema": {
+          "properties": {},
+          "title": "bm_billing_balanceArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "bm_billing_balanceOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "bm_billing_subscription",
+        "description": "Show the account's subscription/plan (``GET /billing/subscription``).",
+        "inputSchema": {
+          "properties": {},
+          "title": "bm_billing_subscriptionArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "bm_billing_subscriptionOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "bm_whoami",
+        "description": "Show the authenticated Biomni identity (``GET /v2/auth/me``).\n\nConfirms which account the active BIOMNI_TOKEN maps to (pair with\n``bm_account_current`` to see which named account is active in the hub).\n",
+        "inputSchema": {
+          "properties": {},
+          "title": "bm_whoamiArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "bm_whoamiOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "bm_capabilities",
+        "description": "List the account's platform capabilities/feature flags (``GET /v2/capabilities``).",
+        "inputSchema": {
+          "properties": {},
+          "title": "bm_capabilitiesArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "bm_capabilitiesOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "bm_api_raw",
+        "description": "Call ANY api.phylo.bio endpoint -- the escape hatch for uncovered routes.\n\n``method`` GET|POST|PUT|PATCH|DELETE; ``path`` is an absolute API path starting\nwith ``/`` (e.g. ``/v2/users/me/memory``, ``/v2/mcp/servers``,\n``/v2/cloud-storage/connections``). ``body_json``/``query_json`` are optional JSON\nstrings. Caution: this can reach mutating/destructive routes (a ``DELETE`` on a\nproject) on the user's OWN account -- confirm intent before calling those.\n",
+        "inputSchema": {
+          "properties": {
+            "method": {
+              "title": "Method",
+              "type": "string"
+            },
+            "path": {
+              "title": "Path",
+              "type": "string"
+            },
+            "body_json": {
+              "default": "",
+              "title": "Body Json",
+              "type": "string"
+            },
+            "query_json": {
+              "default": "",
+              "title": "Query Json",
+              "type": "string"
+            }
+          },
+          "required": [
+            "method",
+            "path"
+          ],
+          "title": "bm_api_rawArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "bm_api_rawOutput",
+          "type": "object"
+        }
+      }
+    ]
+  }
+}

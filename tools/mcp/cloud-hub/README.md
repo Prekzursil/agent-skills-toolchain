@@ -11,7 +11,7 @@ Why not a normal aggregator (mcp-funnel / 1mcp)? Those rename tools to
 `serverName__tool`. This hub preserves names and only renames on a genuine
 cross-backend collision (none today).
 
-## Backends & tool surface (324 backend tools + 54 account tools = 378)
+## Backends & tool surface (345 backend tools + 60 account tools = 405)
 
 | id | backend | pkg / runtime | tools | adopt/build | auth | cache |
 |----|---------|---------------|------:|-------------|------|-------|
@@ -25,6 +25,7 @@ cross-backend collision (none today).
 | `ovh` | OVHcloud | vendored TS MCP (`node ovh-mcp/dist/index.js`) | 27 | vendor+build | `OVH_APPLICATION_KEY`+`_SECRET`+`_CONSUMER_KEY` (or OAuth2) per region | live |
 | `compute` | Compute (unified) | built FastMCP wrapper (`compute-mcp/`) | 10 | build | per-provider (reuses RunPod/OVH/Lightning creds) | live |
 | `databricks` | Databricks | built FastMCP wrapper (`databricks-sdk`) | 65 | build | `DATABRICKS_HOST` + (`DATABRICKS_CLIENT_ID`/`_SECRET` or `DATABRICKS_TOKEN`) | live |
+| `biomni` | Biomni Lab (Phylo) | built FastMCP wrapper (`api.phylo.bio/v2`, stdlib) | 21 | build | `BIOMNI_TOKEN` (Bearer, per account) | live |
 
 `azure` is a **hand-authored** representative cache: `@azure/mcp` is a .NET tool that
 did not emit an MCP handshake under piped stdio in the build harness (the Node
@@ -173,6 +174,39 @@ preview). Cluster/warehouse lifecycle tools expose an opt-in `wait` flag (the SD
 warehouses bill while running, so set `autotermination_minutes` / `auto_stop_mins`
 and terminate/stop when done. `databricks-sdk` must be installed in the hub's
 interpreter for live calls (`pip install databricks-sdk`).
+
+### Biomni Lab (`biomni`) — built `api.phylo.bio/v2` wrapper
+
+`biomni` is a built FastMCP wrapper (`biomni-mcp/server.py`) over Phylo's
+**reverse-engineered** Biomni Lab REST API (`api.phylo.bio/v2`), pre-namespaced
+`bm_*` (21 tools). It drives the **hosted** [biomni.phylo.bio](https://biomni.phylo.bio)
+far past its official 10-tool claude.ai connector. Stdlib-only (`urllib`, zero new
+deps); auth is read lazily so `tools/list` enumerates offline (cache is
+live-generated) and a call without a token returns a clear auth hint.
+
+Surface: **session lifecycle** (`bm_create_session` with `model_profile` =
+EFFORT tier standard|fast|premium, `bm_send_message`, `bm_start_processing`,
+`bm_cancel`, `bm_get_session`/`_messages`/`_streaming`), **skills + `@`-resources**
+(`bm_list_skills`, `bm_set_skill_status`; skills attach via
+`bm_send_message(attached_skills_json=…)`, resources via `@name` mentions in the
+message content), **effort tiers** (`bm_list_model_profiles`), **projects +
+sessions** (`bm_list_projects`/`bm_create_project`/`bm_list_sessions`), **live
+runtime introspection** (`bm_session_runtime` → background-processes | gpu-sandboxes
+| hpc-jobs | hpc-pipelines | machines), **files/results**, **usage/billing**
+(`bm_billing_balance`/`_subscription`), `bm_whoami`/`bm_capabilities`, and
+**`bm_api_raw`** (call ANY api.phylo.bio endpoint — the escape hatch).
+
+**Auth:** `BIOMNI_TOKEN` = a Bearer access token from a signed-in
+biomni.phylo.bio session (WorkOS-issued; there is no API-key product yet, so it is
+refreshed by the user when it expires). Each `biomni` account is a `BIOMNI_TOKEN`
+bundle, so `bm_account_switch`/`bm_account_cycle` rotate between the user's Biomni
+accounts (email-labelled). See the `biomni` block in `accounts.example.json`.
+
+**$$$ + rotation:** creating a session and starting processing consume the
+account's Biomni usage/credits (the agent runs on real HPC/GPU). Poll
+`bm_billing_balance` and `bm_account_cycle` to a fresh account **before** the active
+one runs dry. `bm_api_raw` can reach mutating/`DELETE` routes on the user's own
+account — confirm intent before calling those.
 
 ### Collision policy
 
