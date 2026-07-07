@@ -100,16 +100,39 @@ _pending_device: dict = {}  # {device_code, interval, expires_at}
 # --------------------------------------------------------------------------- #
 # Auth + the single network seam (tests monkeypatch ``_api``)
 # --------------------------------------------------------------------------- #
+def _broker_mode() -> bool:
+    """True when a LOCAL token-broker fronts the API (loopback ``BIOMNI_API_BASE``).
+
+    In broker mode the connector holds NO real token: a local reverse proxy
+    (``biomni-mcp/broker.py``) injects the real ``Authorization`` header, reading it
+    from a secure store (1Password / OS keyring / chmod-600 file). Enabled by
+    ``BIOMNI_BROKER`` being truthy, or by an ``API_BASE`` whose host is loopback.
+    """
+    if os.environ.get("BIOMNI_BROKER", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    ):
+        return True
+    host = urllib.parse.urlsplit(API_BASE).hostname or ""
+    return host in ("127.0.0.1", "localhost", "::1")
+
+
 def _token() -> tuple[str, str]:
     """Resolve a Bearer access token; return (token, error_message).
 
-    Priority: (1) ``BIOMNI_TOKEN`` -- a static session Bearer token (the original
-    path, unchanged); (2) a refresh token, from ``BIOMNI_REFRESH_TOKEN`` (env,
-    per-account) or the device-login state file, auto-minted into a short-lived
-    access token cached in-process and refreshed ~60s before expiry. A rotated
-    refresh token is persisted back to the state file. Never returns/logs the
-    refresh token itself.
+    Priority: (0) BROKER MODE -- if a local token-broker fronts the API
+    (``BIOMNI_BROKER`` / loopback ``BIOMNI_API_BASE``), return a sentinel and let the
+    broker inject the real Bearer, so the connector never holds it; (1)
+    ``BIOMNI_TOKEN`` -- a static session Bearer token; (2) a refresh token, from
+    ``BIOMNI_REFRESH_TOKEN`` (env, per-account) or the device-login state file,
+    auto-minted into a short-lived access token cached in-process and refreshed
+    ~60s before expiry. A rotated refresh token is persisted back to the state
+    file. Never returns/logs the refresh token itself.
     """
+    if _broker_mode():
+        return "broker", ""
     static = os.environ.get("BIOMNI_TOKEN", "").strip()
     if static:
         return static, ""
