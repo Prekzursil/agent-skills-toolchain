@@ -10,9 +10,9 @@ description: "Use when working with the user's cloud-infrastructure MCP stack fr
 The user's cloud-infra MCP servers are fronted by **`cloud-hub`** — one lazy,
 name-preserving multiplexer (`tools/mcp/cloud-hub/`) that answers `tools/list`
 from committed caches **without spawning** and lazily spawns **only** the owning
-backend on a `tools/call`. Eight platforms, **249 backend tools + 48 account
-tools = 297**, behind a single MCP registration. Five servers are **adopted**
-(existing MCP packages), two are **built** thin FastMCP wrappers, and one
+backend on a `tools/call`. Nine platforms, **279 backend tools + 54 account
+tools = 333**, behind a single MCP registration. Five servers are **adopted**
+(existing MCP packages), three are **built** thin FastMCP wrappers, and one
 (OVHcloud) is a **vendored** TS server built from source.
 
 | Platform | pkg / runtime | Auth | Adopt/Build | Tools | Hard limits |
@@ -25,10 +25,11 @@ tools = 297**, behind a single MCP registration. Five servers are **adopted**
 | **Modal** | built FastMCP wrapper (`modal` CLI + SDK) | `MODAL_TOKEN_ID`+`MODAL_TOKEN_SECRET` | build | 41 | `run`/`deploy` + any `gpu=` sandbox/function start billable per-second compute; destructive ops gated behind `confirm`/`dry_run` |
 | **Lightning AI** | built FastMCP wrapper (`lightning_sdk`) | `LIGHTNING_USER_ID`+`LIGHTNING_API_KEY` | build | 9 | Studios/Jobs bill by the second; `lightning-sdk` must be installed |
 | **OVHcloud** | vendored TS MCP (`node ovh-mcp/dist/index.js`) | `OVH_APPLICATION_KEY`+`_SECRET`+`_CONSUMER_KEY` (or OAuth2) per region | vendor+build | 27 | GPU instances bill hourly; `ov_account_switch ca\|eu\|us` flips region+creds (EU/CA/US are separate entities) |
+| **Databricks** | built FastMCP wrapper (`databricks-sdk`) | `DATABRICKS_HOST` + (`DATABRICKS_CLIENT_ID`/`_SECRET` OAuth M2M, or `DATABRICKS_TOKEN` PAT) | build | 65 | clusters/warehouses bill while running (set auto-termination); Command Execution is **classic all-purpose clusters only**; destructive/exec tools gated behind `confirm=True` |
 
-The two built wrappers **pre-namespace** their tools (`modal_*`, `lightning_*`) so
-the hub's collision-prefix never fires. There are **no cross-backend collisions**
-today, so every tool keeps its original name.
+The three built wrappers **pre-namespace** their tools (`modal_*`, `lightning_*`,
+`dbx_*`) so the hub's collision-prefix never fires. There are **no cross-backend
+collisions** today, so every tool keeps its original name.
 
 ## Multi-account + cycling (cswap-style)
 
@@ -38,13 +39,15 @@ tools per backend (served without spawning, handled by the hub):
 
 `<prefix>_account_list · _current · _add · _remove · _switch · _cycle`
 — prefixes: `rp` RunPod · `az` Azure · `gc` gcloud · `kg` Kaggle · `rc` rclone ·
-`md` Modal · `lg` Lightning · `ov` OVHcloud. E.g. `rp_account_switch`,
+`md` Modal · `lg` Lightning · `ov` OVHcloud · `db` Databricks. E.g. `rp_account_switch`,
 `kg_account_cycle`, `md_account_add`, `az_account_list`, `ov_account_switch`.
 
-- **env-mode** (runpod, kaggle, modal, lightning, ovh, rclone): an account is a bundle of
-  env vars (literal or `${ENV}` refs), stored in the **gitignored** `accounts.json`.
-  For **OVH** each account also carries `OVH_ENDPOINT` (`ovh-eu`/`ovh-ca`/`ovh-us`),
-  so `ov_account_switch ca|eu|us` flips region AND credentials in one call.
+- **env-mode** (runpod, kaggle, modal, lightning, ovh, rclone, databricks): an account is
+  a bundle of env vars (literal or `${ENV}` refs), stored in the **gitignored**
+  `accounts.json`. For **OVH** each account also carries `OVH_ENDPOINT`
+  (`ovh-eu`/`ovh-ca`/`ovh-us`), so `ov_account_switch ca|eu|us` flips region AND
+  credentials in one call. For **Databricks** each account bundles `DATABRICKS_HOST`
+  with its creds, so `db_account_switch` flips workspace URL AND credentials.
   The active account's env is injected when the hub spawns that backend.
 - **cli-mode** (azure, gcloud): an account is the CLI's own profile — Azure
   subscriptions (`az account set`) / gcloud configurations
@@ -73,6 +76,7 @@ tools per backend (served without spawning, handled by the hub):
 | Modal | `modal token new` (writes `~/.modal.toml`) or `MODAL_TOKEN_ID`+`MODAL_TOKEN_SECRET` |
 | Lightning AI | lightning.ai → Settings → Keys → `LIGHTNING_USER_ID`+`LIGHTNING_API_KEY`; `pip install lightning-sdk` |
 | OVHcloud | [ovh.com/auth/api/createToken](https://www.ovh.com/auth/api/createToken) → `OVH_APPLICATION_KEY`+`_SECRET`+`_CONSUMER_KEY` (or OAuth2 `OVH_CLIENT_ID`+`OVH_CLIENT_SECRET`). One `ov` account **per region** (set `OVH_ENDPOINT`=`ovh-eu`/`ovh-ca`/`ovh-us` in each). Build once: `cd ovh-mcp && npm ci && npm run build` |
+| Databricks | Workspace URL → `DATABRICKS_HOST` (e.g. `https://dbc-xxxx.cloud.databricks.com`). Default = OAuth **M2M service principal**: `DATABRICKS_CLIENT_ID`+`DATABRICKS_CLIENT_SECRET` (workspace → Settings → Identity and access → Service principals → OAuth secrets). PAT fallback: `DATABRICKS_TOKEN` (Settings → Developer → Access tokens). One `db` account **per workspace** (bundles `DATABRICKS_HOST`+creds). `pip install databricks-sdk` |
 
 Credentials pass to the hub via its registration `env` block (see the cloud-hub
 README) and/or `accounts.json`. Never inline a secret in a command or commit it.
@@ -87,7 +91,7 @@ README) and/or `accounts.json`. Never inline a secret in a command or commit it.
 Datasets: `dataset_download` (inputs), `dataset_create`/`dataset_create_version`
 (publish results). Competitions: `competition_download` → train → `competition_submit`.
 
-### Rent a GPU (three options — pick by workload)
+### Rent a GPU (options — pick by workload)
 - **RunPod pod** (persistent box): `list-gpu-types` → `create-pod` → `start-pod` →
   work → **`stop-pod`** (keeps disk, stops billing) or **`delete-pod`/`terminate`**
   (removes it). `get-billing` to check spend. Serverless: `create-endpoint` →
@@ -111,6 +115,14 @@ Datasets: `dataset_download` (inputs), `dataset_create`/`dataset_create_version`
   public IP → run the job over **`ovh_ssh_exec`** → **`DELETE .../instance/{id}`**
   when done to stop billing. Best when you need a full **root** install (e.g.
   Schrödinger + a served FlexLM license) that a serverless container can't host.
+- **Databricks GPU cluster** (managed Spark + notebooks): `dbx_spark_versions` /
+  `dbx_node_types` → `dbx_cluster_create name spark_version=<*-gpu-ml>
+  node_type_id=<GPU> autotermination_minutes=30 wait=true` → run code with
+  `dbx_run_on_cluster cluster_id "<code>" confirm=true` (Command Execution =
+  **classic all-purpose clusters only**) → **`dbx_cluster_terminate confirm=true`**.
+  Best for GPU **data/ML/analytics next to Databricks-hosted data**; the driver /
+  CUDA floor is pinned by the runtime image, so for a custom **root** Suite install
+  (Schrödinger) prefer Modal/RunPod/OVH and route per-job.
 
 ### Deploy an app
 - **Cloud Run (GCP):** `run_gcloud_command` with `run deploy <svc> --source . --region
@@ -203,6 +215,19 @@ real Python entry points run under the hub's own interpreter.
   (`ovh_api_catalog`/`_search`/`_endpoint_detail`, **`ovh_api_raw`** = call ANY of
   500+ OVH endpoints incl. Public Cloud `/cloud/project/…` GPU instances). Region +
   creds per `ov` account (`ovh-eu`/`ovh-ca`/`ovh-us`).
+- **Databricks** (`db`, 65): clusters (`dbx_cluster_list`/`_get`/`_create`/`_edit`/
+  `_start`/`_restart`/`_resize`/`_terminate`/`_permanent_delete`, `dbx_node_types`,
+  `dbx_spark_versions`; GPU = GPU `node_type_id` + a `*-gpu-ml` runtime), **Command
+  Execution** (`dbx_ctx_create`/`_status`/`_destroy`, `dbx_exec`, `dbx_run_on_cluster`
+  — run code on a **classic all-purpose** cluster), jobs + runs (`dbx_job_*`,
+  `dbx_run_submit`/`_get`/`_get_output`/`_list`/`_cancel`/`_repair`), storage
+  (`dbx_dbfs_*`, `dbx_volume_*` for Unity Catalog Volumes), SQL warehouses
+  (`dbx_warehouse_*`, **`dbx_sql_exec`**), model serving (`dbx_serving_*` incl.
+  `dbx_serving_query`), secrets + repos (`dbx_secret_*`, `dbx_repo_*`),
+  `dbx_current_user`, and **`dbx_api_raw`** (call ANY Databricks REST endpoint).
+  Destructive/exec tools (`dbx_cluster_terminate`/`_permanent_delete`,
+  `dbx_warehouse_delete`, `dbx_exec`, `dbx_run_on_cluster`) need `confirm=True`;
+  lifecycle tools take an opt-in `wait`. Per-`db`-account = per workspace.
 
 **Registration + full mechanics:** see `tools/mcp/cloud-hub/README.md`. The hub is
 not wired into `~/.mcp.json` by this skill — the orchestrator registers it.

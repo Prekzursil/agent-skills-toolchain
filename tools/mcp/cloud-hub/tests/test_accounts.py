@@ -222,6 +222,35 @@ def test_account_tool_defs_shape():
     assert cli_add["inputSchema"]["required"] == ["name"]  # cli add: name only
 
 
+def test_databricks_account_env_seed_and_tools(tmp_path):
+    """Databricks is an env-mode backend: it exposes the six db_account_* tools
+    and seeds a 'default' account from DATABRICKS_HOST + DATABRICKS_TOKEN (the
+    OVH/Kaggle env-rotator pattern, per-workspace credentials)."""
+    dbx = {s.id: s for s in default_backends()}["databricks"]
+    assert dbx.prefix == "db"
+    # Hub-native account surface: db_account_list/current/add/remove/switch/cycle.
+    defs = accounts.account_tool_defs(
+        dbx.prefix, dbx.account.platform, dbx.account.mode, dbx.label
+    )
+    assert [d["name"] for d in defs] == [
+        "db_account_list",
+        "db_account_current",
+        "db_account_add",
+        "db_account_remove",
+        "db_account_switch",
+        "db_account_cycle",
+    ]
+    # Seeding: both registration vars present -> in-memory 'default' account.
+    env = {
+        "DATABRICKS_HOST": "https://dbc-x.cloud.databricks.com",
+        "DATABRICKS_TOKEN": "dapiABC",
+    }
+    store = AccountStore(str(tmp_path / "acc.json"), [dbx.account], environ=env)
+    listing = store.handle("databricks", "list", {})
+    assert listing["ok"] and listing["accounts"] == ["default"]
+    assert store.active_env("databricks") == env
+
+
 # --------------------------------------------------------------------------- #
 # hub wiring: env injection at spawn + kill/respawn on switch
 # --------------------------------------------------------------------------- #
