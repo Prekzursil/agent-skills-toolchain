@@ -77,7 +77,7 @@ def test_missing_cache_marks_degraded(tmp_path):
 
 
 def test_real_committed_caches_build_a_clean_plan():
-    """Locks the committed surface: 9 backends, no collisions, none degraded."""
+    """Locks the committed surface: 10 backends, no collisions, none degraded."""
     specs = default_backends()
     plan = build_plan(specs, os.path.join(HUB_DIR, "caches"))
     per: dict[str, int] = {}
@@ -90,6 +90,7 @@ def test_real_committed_caches_build_a_clean_plan():
     assert per["ovh"] == 27
     # Databricks built FastMCP wrapper (databricks-sdk): full dbx_* surface.
     assert per["databricks"] == 65
+    assert per["compute"] == 10
     # Live-enumerated adopt backends: present and substantial (re-running
     # `hub.py --refresh` may shift these as upstream packages evolve).
     assert per["runpod"] >= 40 and per["kaggle"] >= 40 and per["rclone"] >= 40
@@ -105,6 +106,7 @@ def test_real_committed_caches_build_a_clean_plan():
         "azmcp_subscription_list",
         "ovh_ssh_exec",
         "ovh_api_raw",
+        "compute_provision",
         "dbx_run_on_cluster",
         "dbx_api_raw",
     ):
@@ -128,9 +130,25 @@ def test_backend_specs_ovh_and_kaggle_fix():
     # single, useless KAGGLE_API_TOKEN that matched neither the platform nor the
     # accounts.example bundle).
     assert specs["kaggle"].account.seed_env == ("KAGGLE_USERNAME", "KAGGLE_KEY")
-    # Prefixes stay unique across all 9 backends.
+    # Prefixes stay unique across all 10 backends.
     prefixes = [s.prefix for s in specs.values()]
-    assert len(prefixes) == len(set(prefixes)) == 9
+    assert len(prefixes) == len(set(prefixes)) == 10
+
+
+def test_backend_spec_compute():
+    """Locks the new unified-compute backend wiring."""
+    specs = {s.id: s for s in default_backends()}
+    assert "compute" in specs
+    compute = specs["compute"]
+    assert compute.prefix == "cp"
+    assert compute.cache == "compute.json"
+    assert compute.can_enumerate_offline is True
+    # Passthrough-only: the compute server resolves creds itself per verb, so the
+    # hub attaches NO account policy (there are no cp_account_* tools).
+    assert compute.account is None
+    # It runs the built FastMCP wrapper under the hub's own interpreter.
+    assert compute.cmd[0] == sys.executable
+    assert compute.cmd[1].endswith("server.py")
 
 
 def test_backend_specs_databricks():
