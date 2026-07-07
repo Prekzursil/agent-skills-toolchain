@@ -4,6 +4,61 @@
 
 These scripts wrap the daemon lifecycle so it's one command from any Windows or WSL shell.
 
+## One-command control (`cs`)
+
+`cs.ps1` is the single front door — everything else is plumbing it drives. **401 on
+`/` = alive** (auth gate); a **slow/timeout** response = **WEDGED** (WSL frozen,
+usually host-RAM pressure), which `cs fix` recovers. It targets `127.0.0.1:8000`
+only — **LOCAL scope**.
+
+```powershell
+pwsh -File .\cs.ps1 <verb>     # or /cs <verb> from Claude Code
+```
+
+| Verb | What it does |
+|---|---|
+| **`cs open`** | Ensure up (start-if-down / recover-if-wedged), **wait for readiness** (not a blind sleep), then open the UI. The human one-click. |
+| **`cs ensure`** | Headless ensure-up for **tools/agents** → `SUCCESS:cs-up` / `FAILED:cs-down` (exit 0/1). Call before any `:8000` request. |
+| **`cs status [-Json]`** | State + measured **latency** + a `wedged` flag + WSL daemon detail. `-Json` for machine parsing. |
+| **`cs fix`** | Graceful force-recover: stop → clear stale locks → restart pinned. The wedge cure. (alias `cs recover`.) |
+| **`cs stop`** | Stop the daemon. |
+| **`cs backup`** | Online SQLite snapshot to `D:\Backups\claude-science` (key stored separately, last 7 kept). Safe while up. |
+| **`cs restore <ts\|latest>`** | Roll back to a snapshot (keeps a pre-restore safety copy, drops stale WAL/SHM, restarts, verifies). |
+| **`cs doctor`** | Full-stack **PASS/WARN/FAIL** report (see below). |
+
+### `cs doctor` output
+
+A read-only, one-shot report that operationalizes the 2026-07-07 audit into a
+repeatable table. Each row is PASS `[+]` / WARN `[!]` / FAIL `[X]` / INFO `[i]`:
+
+- **WSL reachable** — distro answers (a timeout ⇒ VM wedged).
+- **CS daemon** — `state=HEALTHY|SLOW|DOWN http=… latency=…ms`; a SLOW state is flagged `*** WEDGED ***`.
+- **daemon detail** — pid / version / uptime.
+- **DB** — `operon-cli.db` integrity + `journal_mode` + size.
+- **WSL disk free** — ext4 headroom (disk-full mid-WAL risks DB corruption).
+- **Host RAM free** + top 3 consumers — the freeze root cause.
+- **Watchdog registered** / **Watchdog instances** — catches the duplicate-watchdog race.
+- **Watchdog heartbeat** — age of the heartbeat file; catches a silently-hung watchdog.
+- **Backup freshness** — newest snapshot age.
+- **Tab-death regfix** — Chrome/Edge discard-exception policy applied.
+
+Ends with a `N FAIL, N WARN, N PASS` summary; any FAIL prints `→ try: cs fix then re-run: cs doctor`.
+
+## Reliability hardening (2026-07-07)
+
+Following a live reliability audit (the recurring pain was **"off/wedged when
+needed"**, not crashes), the suite was hardened:
+
+- **Latency-aware wedge detection** (`cs-lib.ps1`, shared by `cs`, `cs-doctor`, and both supervisors so the signal never drifts). The old "any HTTP response = alive" probe was blind to the ~164 s SQLite/RAM freeze; now a response `≥ 4 s` reads as **WEDGED** and triggers recovery.
+- **Single-instance watchdog + heartbeat** (`cs-watchdog.ps1`). A `Global\` mutex kills the dual-watchdog race (two instances were recovering each other's daemon); a heartbeat file makes a **hung** watchdog distinguishable from a **healthy-quiet** one. Plus timeout-wrapped WSL calls, immediate ensure-up on start, a host-RAM WARN guard, log rotation, and a crash-loop breaker (backs off after 3 recoveries / 15 min).
+- **Graceful recover, backup-first.** `cs fix` clears stale locks then restarts pinned; `cs-restore.sh` keeps a pre-restore safety copy and verifies before declaring success.
+- **In-WSL self-heal** (`cs-supervisor.sh`) as defense-in-depth alongside the Windows watchdog — launched by `/etc/wsl.conf [boot] command=`, it ensures CS up the instant the VM boots (closing the logon/boot gap) then latency-probes and self-recovers with its own heartbeat. **No systemd** — deliberately, to avoid the systemd-resolved/DNS blast-radius on this distro.
+- **Fast-ensure, not resident.** `cs open` / `cs ensure` are one-shot (ensure-then-exit); nothing heavyweight stays resident, so the daemon idles out and **RAM frees when idle** — the supervisors, not the ensure path, keep it alive.
+- **`cs-restore` added** — the missing inverse of `cs-backup` (a backup you can't restore is false safety).
+- **Consolidated setup** — `install.ps1` lays the `cs*` launchers on PATH (Windows + WSL), `register-tasks.ps1` wires the logon watchdog + weekly maintenance, plus the tab-death regfix and a `cs open` shortcut.
+
+> **Out of scope (local-only):** `schrodinger-bridge.ps1` (stdio→HTTP bridge attempt for the Schrödinger MCP — kept but not recommended) and `cs-tailscale-serve.ps1` (remote/Tailscale exposure) are **not** part of the local one-click flow.
+
 ## Install (one-time, no sudo)
 
 ```bash
@@ -19,14 +74,26 @@ apt-get download socat && dpkg-deb -x socat_*.deb /tmp/socat-x && cp /tmp/socat-
 
 `cs-install.sh` automates the install + verify.
 
-## Commands (put `~/.local/bin` on PATH; the `.ps1`/`.cmd` go in a Windows PATH dir)
+## Low-level scripts (`cs` drives these)
+
+Prefer the `cs` dispatcher above. These are the primitives it calls; run them
+directly only for scripting or debugging (put `~/.local/bin` on PATH; the
+`.ps1`/`.cmd` go in a Windows PATH dir):
 
 | Command | What it does |
 |---|---|
 | **`cs-start`** | Gentle: starts the daemon **only if down**, never kills a running one, then opens the UI. |
-| **`cs-recover`** | Force-restart: `pkill -9`, clears stale `daemon.sock`/`operon.lock`/`sbx-bind-src/sock-*`, restarts, reopens UI. Use when the daemon **wedges**. |
+| **`cs-recover`** | Force-restart: `pkill -9`, clears stale `daemon.sock`/`operon.lock`/`sbx-bind-src/sock-*`, restarts, reopens UI. Use when the daemon **wedges** (`cs fix` wraps this). |
+| **`cs-watchdog.ps1`** | Windows-side supervisor (logon task) — the outer net that recovers an idled-out distro / hung daemon / post-reboot state. |
+| **`cs-supervisor.sh`** | In-WSL self-heal (defense-in-depth) launched at VM boot. |
+| **`cs-backup` / `cs-restore`** | Online SQLite snapshot to D: / rollback. |
+| **`cs-maintain`** | Weekly offline SQLite maintenance (registered task, Sun 04:00). |
+| **`register-tasks.ps1`** | Installs the logon watchdog + weekly maintenance (no admin; falls back to a Startup-folder launcher). |
 
-Each exists in three flavors so it works from PowerShell (`.ps1`), cmd (`.cmd`), and WSL bash (the extension-less script). Install with `install.ps1` (copies to `~\.local\bin` + `~/.local/bin`).
+`cs-start`/`cs-recover` each exist in three flavors so they work from PowerShell
+(`.ps1`), cmd (`.cmd`), and WSL bash (the extension-less script). Install with
+`install.ps1` (copies to `~\.local\bin` + `~/.local/bin`), then `register-tasks.ps1`
+for always-on supervision.
 
 ## Why `cs-recover` exists (beta gotcha)
 

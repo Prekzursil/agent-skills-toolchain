@@ -7,7 +7,18 @@ DD="$HOME/.claude-science"
 DEST="/mnt/d/Backups/claude-science"
 KEYDEST="/mnt/d/Backups/claude-science-keys"
 TS=$(date +%Y%m%d-%H%M%S)
-mkdir -p "$DEST" "$KEYDEST"
+
+# GUARD: `set -uo pipefail` has NO `-e`, so a failed mkdir / unwritable dest would silently
+# continue and the caller would never notice the backup didn't land. Verify D: is mounted and
+# DEST is writable; otherwise bail LOUD. (This backup is the rollback point cs-maintain checks for.)
+if command -v mountpoint >/dev/null 2>&1 && ! mountpoint -q /mnt/d 2>/dev/null; then
+  echo "!!! backup dest not writable (D: mounted?) — /mnt/d is not a mount point" >&2
+  exit 1
+fi
+if ! mkdir -p "$DEST" "$KEYDEST" 2>/dev/null || [ ! -w "$DEST" ]; then
+  echo "!!! backup dest not writable (D: mounted?) — cannot create/write $DEST" >&2
+  exit 1
+fi
 chmod 700 "$KEYDEST" 2>/dev/null || true
 
 DB=$(find "$DD/orgs" -name operon-cli.db 2>/dev/null | head -1)
