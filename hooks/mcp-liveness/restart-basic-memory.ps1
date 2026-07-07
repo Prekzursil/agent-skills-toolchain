@@ -55,6 +55,19 @@ function Is-BasicMemoryPid([int]$procId) {
 
 Log "begin (KillCorpse=$KillCorpse)"
 
+# STARTUP GRACE (anti-thrash, marker-based): if a (re)launch was stamped <75s ago and the port is NOT
+# bound yet, a server is mid-start (its 60s bind-wait is running) -> force-recovering kills the warming-up
+# server before it binds = a restart thrash on every memory-op probe. Defer. File mtime avoids the CIM
+# CreationDate subtraction (op_Subtraction throw) that silently defeated the previous guard.
+$Marker = Join-Path $env:TEMP 'bm-relaunch.marker'
+if (-not $DryRun -and (Test-Path $Marker)) {
+    $mAge = ((Get-Date) - (Get-Item $Marker).LastWriteTime).TotalSeconds
+    if ($mAge -lt 75 -and -not (Get-PortOwnerPid $Port)) {
+        Log "relaunched $([int]$mAge)s ago and port not bound (launcher mid-start) - DEFER, no thrash"
+        return
+    }
+}
+
 try {
     if ($KillCorpse) {
         $ownerPid = Get-PortOwnerPid $Port
@@ -82,9 +95,21 @@ try {
     $taskOk = $false
     $t = Get-ScheduledTask -TaskName $Task -ErrorAction SilentlyContinue
     if ($t) {
-        Log "Stop+Start scheduled task '$Task'"
-        Stop-ScheduledTask  -TaskName $Task -ErrorAction SilentlyContinue
-        Start-Sleep -Milliseconds 500
+        # Force-recover, not a plain Stop+Start: a blocked launcher (WaitForExit on a server that never
+        # bound) pins the task 'Running', so Start-ScheduledTask fails with 0x800710E0 ('operator refused')
+        # and the daemon stays DOWN. Kill any stuck launcher + stale server procs, End the task, and clear
+        # the start-lock FIRST, so the relaunch is always accepted.
+        Set-Content -Path $Marker -Value (Get-Date -Format o) -ErrorAction SilentlyContinue   # stamp THIS relaunch (anti-thrash cooldown for all restarters)
+        Log "force-recover: kill stuck launcher/procs + End task '$Task', clear lock, then relaunch"
+        Get-CimInstance Win32_Process -Filter "Name='pwsh.exe' OR Name='powershell.exe'" -ErrorAction SilentlyContinue |
+            Where-Object { $_.CommandLine -like '*bm-http-server.ps1*' } |
+            ForEach-Object { taskkill /PID $_.ProcessId /F /T 2>&1 | Out-Null }
+        Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction SilentlyContinue |
+            Where-Object { $_.CommandLine -like '*basic-memory*8765*' } |
+            ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force } catch {} }
+        schtasks /End /TN $Task 2>&1 | Out-Null
+        Remove-Item (Join-Path $env:TEMP 'bm-http-server.lock') -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Milliseconds 800
         Start-ScheduledTask -TaskName $Task -ErrorAction SilentlyContinue
         $taskOk = $true
     }
