@@ -222,6 +222,26 @@ account's Biomni usage/credits (the agent runs on real HPC/GPU). Poll
 one runs dry. `bm_api_raw` can reach mutating/`DELETE` routes on the user's own
 account — confirm intent before calling those.
 
+**Token-broker (zero-token operation — "access without exposure"):** for setups
+where the token must never touch the connector's config or an agent's context,
+run `biomni-mcp/broker.py` — a stdlib reverse proxy bound to `127.0.0.1` that
+**injects** the `Authorization: Bearer` header itself, reading the real token from
+a secure source (1Password `op read op://…`, OS keyring, or a chmod-600 file).
+Point the connector at it and it holds **no** token:
+
+```
+python biomni-mcp/broker.py --port 8787            # reads BIOMNI_BROKER_OP_REF / _KEYRING / _TOKEN_FILE / _TOKEN
+# then, on the biomni account/env:
+BIOMNI_API_BASE=http://127.0.0.1:8787   BIOMNI_BROKER=1
+```
+
+In broker mode the connector's `_token()` returns a sentinel and sends no real
+Bearer — the broker overwrites `Authorization` with the value from the secure
+store, caches it for `BIOMNI_BROKER_TTL` (default 60s) so a rotated token is
+picked up, and **never logs the token** (`/__broker/health` shows a masked
+preview only). This keeps the literal token in the store + the broker process
+only, never in `accounts.json`, the hub, or the model.
+
 ### Collision policy
 
 Unique names are kept **exactly**. Cross-backend collisions would get a minimal

@@ -339,3 +339,20 @@ def test_auth_logout_clears(tmp_path, monkeypatch):
     assert out["ok"] and out["cleared_state_file"] is True
     assert not state_file.exists()
     assert not biomni_server._token_cache
+
+
+# --------------------------------------------------------------------------- #
+# Broker mode (a local token-broker fronts the API; the connector holds no token)
+# --------------------------------------------------------------------------- #
+def test_broker_mode_returns_sentinel_and_needs_no_token(monkeypatch):
+    seen: dict = {}
+    monkeypatch.delenv("BIOMNI_TOKEN", raising=False)
+    monkeypatch.delenv("BIOMNI_REFRESH_TOKEN", raising=False)
+    monkeypatch.setenv("BIOMNI_BROKER", "1")
+    biomni_server._token_cache.clear()
+    tok, err = biomni_server._token()
+    assert tok == "broker" and err == ""
+    # A tool call proceeds with the sentinel; the local broker injects the real Bearer.
+    monkeypatch.setattr(biomni_server, "_api", _fake_api(seen, payload={"p": []}))
+    out = json.loads(biomni_server.bm_list_projects())
+    assert out["ok"] and seen["token"] == "broker"
