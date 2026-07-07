@@ -120,8 +120,17 @@ switch ($Verb.ToLower()) {
   'open' {
     if (Invoke-EnsureUp) {
       Set-CSTabRegfix
-      Start-Process $script:CSUrl
-      Write-CSInfo "opened $script:CSUrl"
+      # Open the AUTHENTICATED single-use login URL from `claude-science url` (a fresh nonce each time),
+      # NOT the bare origin: http://127.0.0.1:8000/ lands on the SIGNED-OUT page because the daemon
+      # auths via a ?nonce= token. Falls back to the bare origin only if the nonce fetch fails.
+      $login = $script:CSUrl
+      $urlOut = Invoke-CSWsl 'claude-science url 2>/dev/null' 15
+      if ($urlOut -and $urlOut -ne '__WSL_TIMEOUT__') {
+        $m = [regex]::Match($urlOut, 'https?://(?:localhost|127\.0\.0\.1):\d+/\S*')
+        if ($m.Success) { $login = $m.Value }
+      }
+      Start-Process $login
+      Write-CSInfo "opened $login"
     } else {
       Write-Warning 'CS did not come up; run: cs doctor'
       exit 1
