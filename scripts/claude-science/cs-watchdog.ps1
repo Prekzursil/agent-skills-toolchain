@@ -1,4 +1,4 @@
-# cs-watchdog — Windows-side supervisor for the Claude Science WSL2 daemon (the OUTER net:
+# cs-watchdog -- Windows-side supervisor for the Claude Science WSL2 daemon (the OUTER net:
 # recovers idled-out distro / hung daemon / post-reboot states nothing inside WSL can).
 # Hardened 2026-07-07 (audit): single-instance MUTEX (was: two instances racing cs-recover and
 # killing each other's daemon), LATENCY-aware wedge detection (was: any-HTTP=alive, blind to the

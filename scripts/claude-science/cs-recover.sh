@@ -16,7 +16,7 @@ echo "=== 0) safety backup before destructive recover ==="
 if command -v cs-backup >/dev/null 2>&1; then cs-backup 2>&1 | tail -2 || echo "(backup failed — continuing recover)"; else echo "(cs-backup not on PATH — skipping backup)"; fi
 
 echo "=== 1) crash cause (tail of newest server log) ==="
-newest=$(ls -t "$DD"/logs/server-*.log 2>/dev/null | head -1)
+newest=$(find "$DD"/logs -maxdepth 1 -name 'server-*.log' -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
 [ -n "$newest" ] && tail -12 "$newest" || echo "(no server log)"
 
 echo "=== 2) graceful stop, then SCOPED kill ==="
@@ -41,8 +41,8 @@ echo "=== 4) wait for port 8000 to free, then clean start (pinned) ==="
 for i in 1 2 3 4 5 6; do
   if (exec 3<>/dev/tcp/127.0.0.1/8000) 2>/dev/null; then exec 3>&- 2>/dev/null; echo "port still busy, waiting ($i)"; sleep 1; else break; fi
 done
-CS_EXTRA=$(cat "$HOME/.cs-serve-extra" 2>/dev/null || true)
-claude-science serve --no-browser --detached --no-auto-update $CS_EXTRA 2>&1 | tail -3
+read -ra cs_extra <<<"$(cat "$HOME/.cs-serve-extra" 2>/dev/null || true)"
+claude-science serve --no-browser --detached --no-auto-update "${cs_extra[@]}" 2>&1 | tail -3
 sleep 6
 
 echo "=== 5) verify ==="

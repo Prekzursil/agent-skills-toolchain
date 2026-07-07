@@ -15,7 +15,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $repo 'server.py'))) { throw "server
 $env:SCHRODINGER = 'D:\Program Files\Schrodinger 2026-2'
 
 Set-Location $repo
-Write-Host "Schrodinger bridge -> http://127.0.0.1:$port/sse   (SCHRODINGER=$env:SCHRODINGER)"
-Write-Host "Add that URL in Claude Science: Customize > Connectors > + Add connector (transport SSE)."
+Write-Information -InformationAction Continue "Schrodinger bridge -> http://127.0.0.1:$port/sse   (SCHRODINGER=$env:SCHRODINGER)"
+Write-Information -InformationAction Continue "Add that URL in Claude Science: Customize > Connectors > + Add connector (transport SSE)."
 # supergateway wraps the stdio MCP server as SSE
 npx -y supergateway --stdio "`"$py`" server.py" --port $port --cors --healthEndpoint /healthz

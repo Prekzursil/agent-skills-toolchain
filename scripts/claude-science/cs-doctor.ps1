@@ -1,4 +1,4 @@
-# cs-doctor — one read-only full-stack health report for Claude Science (local).
+# cs-doctor -- one read-only full-stack health report for Claude Science (local).
 # Operationalizes the 2026-07-07 reliability audit into a repeatable PASS/WARN/FAIL table, and
 # auto-detects the two gremlins that recur: a DUPLICATE watchdog and a STALE/hung watchdog.
 $ErrorActionPreference = 'SilentlyContinue'
@@ -65,7 +65,7 @@ Add-Row 'Tab-death regfix' $(if (Test-Path 'HKCU:\SOFTWARE\Policies\Google\Chrom
 
 # render
 "`n  Claude Science - doctor  ($(Get-Date -Format 's'))`n"
-($script:rows | Format-Table -AutoSize @{L = ' '; E = { switch ($_.Status) { 'PASS' { '[+]' } 'FAIL' { '[X]' } 'WARN' { '[!]' } default { '[i]' } } } }, Check, Status, Detail | Out-String).TrimEnd() | Write-Host
+($script:rows | Format-Table -AutoSize @{L = ' '; E = { switch ($_.Status) { 'PASS' { '[+]' } 'FAIL' { '[X]' } 'WARN' { '[!]' } default { '[i]' } } } }, Check, Status, Detail | Out-String).TrimEnd()
 $fail = @($script:rows | Where-Object Status -eq 'FAIL').Count
 $warn = @($script:rows | Where-Object Status -eq 'WARN').Count
 $pass = @($script:rows | Where-Object Status -eq 'PASS').Count

@@ -1,14 +1,14 @@
 #!/bin/bash
 set -uo pipefail
 export PATH="$HOME/.local/bin:$PATH"
-cd /tmp
+cd /tmp || exit 1
 
 # 1) socat without sudo: download the .deb and extract just the binary
 if ! command -v socat >/dev/null 2>&1; then
   echo "=== installing socat WITHOUT sudo (extract from .deb) ==="
   rm -f socat_*.deb
   if apt-get download socat >/tmp/apt-dl.log 2>&1; then
-    DEB=$(ls -1 socat_*.deb 2>/dev/null | head -1)
+    DEB=$(find . -maxdepth 1 -name 'socat_*.deb' 2>/dev/null | head -1)
     echo "downloaded: $DEB"
     rm -rf /tmp/socat-x
     dpkg-deb -x "$DEB" /tmp/socat-x

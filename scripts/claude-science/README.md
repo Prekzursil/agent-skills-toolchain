@@ -99,6 +99,28 @@ for always-on supervision.
 
 The daemon can wedge on **SQLite lock contention** (`operon-cli.db`; server log shows `[perf] db_lock_hold TxMutex 500–1000ms`). That leaves a stale `daemon.sock`/`operon.lock`, which makes a naive `stop`→`serve` **hang**. `cs-recover` clears the locks first. Verify reachability with `Test-NetConnection localhost 8000` (NOT `Get-NetTCPConnection`, which doesn't see mirrored WSL ports); a healthy daemon returns **HTTP 401** on `/` (auth gate).
 
+## Freeing host RAM (the real wedge lever)
+
+The wedge is a **host-RAM** problem, not a Claude Science bug: when free RAM drops, Windows
+freezes the WSL2 VM and the daemon stalls mid-SQLite. The durable fix is giving the VM RAM
+headroom. The heaviest neighbours, each with a **config-only** knob (no uninstall needed):
+
+- **LM Studio** — idle models pin GB of RAM. Enable **Just-in-Time model loading** + **auto-unload
+  after idle** (Settings; e.g. 10 min) so an unused model releases its RAM. Highest-yield lever.
+- **Docker Desktop (WSL2 backend)** — caps *all* WSL memory via `%USERPROFILE%\.wslconfig`, then
+  `wsl --shutdown` to apply:
+  ```ini
+  [wsl2]
+  memory=8GB      # hard ceiling for the WSL VM; leaves headroom for Windows + Claude Science
+  ```
+- **BOINC** — raise **"suspend when memory in use > N%"** (Options → Computing preferences), or
+  suspend it while using Claude Science, so it yields RAM under pressure.
+- **A large Claude Code / agent fleet** — many concurrent sessions each hold MCP children; close
+  idle sessions when the VM is starved.
+
+`cs doctor`'s **Host RAM free** row names the current top-3 consumers, so you can see which
+neighbour to lean on. After freeing RAM, `cs fix` clears the wedge.
+
 ## Extensibility notes
 
 - **Hooks:** unsupported — Claude Science has no Claude-Code-style hook system.
