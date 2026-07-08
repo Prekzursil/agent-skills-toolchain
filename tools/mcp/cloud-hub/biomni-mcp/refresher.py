@@ -30,6 +30,7 @@ Examples:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 import time
@@ -113,6 +114,58 @@ def resolve_store(args) -> dict:
         service, _, user = args.out_keyring.partition(":")
         return {"kind": "keyring", "service": service, "user": user or "biomni"}
     return {"kind": "file", "path": args.out_file or _default_store_file()}
+
+
+def plan_accounts(
+    names: list[str], base_port: int, profiles_dir: str = "", tokens_dir: str = ""
+) -> list[dict]:
+    """Map account names -> profile dir, token-store file, broker port, connector env.
+
+    One broker + one refresher profile per account; the port increments so
+    ``bm_account_cycle`` rotates by pointing the connector at the next broker.
+    """
+    base = os.path.join(os.path.expanduser("~"), ".biomni-mcp")
+    profiles_dir = profiles_dir or os.path.join(base, "profiles")
+    tokens_dir = tokens_dir or os.path.join(base, "tokens")
+    return [
+        {
+            "name": name,
+            "profile": os.path.join(profiles_dir, name),
+            "store_file": os.path.join(tokens_dir, name),
+            "port": base_port + i,
+            "api_base": f"http://127.0.0.1:{base_port + i}",
+        }
+        for i, name in enumerate(names)
+    ]
+
+
+def render_accounts_block(plan: list[dict]) -> str:
+    """The cloud-hub accounts.json ``biomni`` block for the plan — NO tokens, just handles."""
+    accounts = [
+        {
+            "name": a["name"],
+            "label": f"{a['name']} (broker :{a['port']})",
+            "env": {"BIOMNI_API_BASE": a["api_base"], "BIOMNI_BROKER": "1"},
+        }
+        for a in plan
+    ]
+    active = plan[0]["name"] if plan else None
+    return json.dumps({"biomni": {"active": active, "accounts": accounts}}, indent=2)
+
+
+def render_daemons(plan: list[dict]) -> list[str]:
+    """Per-account daemon commands: one broker + one refresher-watch pair each."""
+    lines: list[str] = []
+    for a in plan:
+        lines.append(
+            f"BIOMNI_BROKER_TOKEN_FILE={a['store_file']} "
+            f"python biomni-mcp/broker.py --port {a['port']}"
+        )
+        lines.append(
+            f"python biomni-mcp/refresher.py watch "
+            f"--profile {a['profile']} --out-file {a['store_file']}"
+        )
+    return lines
 
 
 # --------------------------------------------------------------------------- #
@@ -227,6 +280,55 @@ def cmd_watch(args) -> int:
             return 0
 
 
+def cmd_gather(args) -> int:
+    """Cycle headed sign-ins across accounts; store each token; emit the rotation wiring.
+
+    YOU sign into each profile (pick a different Google account + approve — each is a
+    real grant of Phylo access to that identity). The cycling, per-account token
+    capture/storage, and the accounts.json + daemon wiring are automated.
+    """
+    if args.accounts:
+        names = [n.strip() for n in args.accounts.split(",") if n.strip()]
+    else:
+        names = [f"account{i + 1}" for i in range(args.count)]
+    if not names:
+        print(
+            "[refresher] give --accounts name1,name2,... or --count N", file=sys.stderr
+        )
+        return 2
+    plan = plan_accounts(names, args.base_port)
+    print(
+        f"[refresher] gathering {len(names)} account(s). Each opens a HEADED sign-in — "
+        "pick a DIFFERENT Google account per profile and approve."
+    )
+    done: list[dict] = []
+    for a in plan:
+        print(f"\n[refresher] --- {a['name']} --- sign in when the browser opens.")
+        token, err = _capture_bearer(
+            a["profile"], args.url, headless=False, timeout_ms=LOGIN_TIMEOUT_MS
+        )
+        if err:
+            print(f"[refresher] {a['name']}: SKIPPED ({err})", file=sys.stderr)
+            continue
+        print(
+            f"[refresher] {a['name']}: {write_token({'kind': 'file', 'path': a['store_file']}, token)}"
+        )
+        done.append(a)
+    if not done:
+        print("[refresher] no accounts gathered.", file=sys.stderr)
+        return 1
+    print(
+        "\n=== accounts.json `biomni` block (paste into the git-crypt accounts.json) ==="
+    )
+    print(render_accounts_block(done))
+    print(
+        "\n=== per-account daemons (run each, e.g. as background/scheduled tasks) ==="
+    )
+    for line in render_daemons(done):
+        print("  " + line)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(
         description="Biomni refresh-at-source broker (Playwright)"
@@ -253,6 +355,16 @@ def build_parser() -> argparse.ArgumentParser:
     w.add_argument(
         "--interval", type=int, default=1800, help="seconds between refreshes"
     )
+    g = sub.add_parser(
+        "gather", help="cycle headed sign-ins across accounts + emit rotation wiring"
+    )
+    g.add_argument("--accounts", default="", help="comma-separated account names")
+    g.add_argument(
+        "--count", type=int, default=0, help="or: N generic accounts (account1..N)"
+    )
+    g.add_argument(
+        "--base-port", type=int, default=8787, help="first broker port (incremented)"
+    )
     return ap
 
 
@@ -260,9 +372,12 @@ def main(argv: list[str]) -> int:
     args = build_parser().parse_args(argv)
     if not hasattr(args, "interval"):
         args.interval = 1800
-    return {"login": cmd_login, "refresh": cmd_refresh, "watch": cmd_watch}[args.cmd](
-        args
-    )
+    return {
+        "login": cmd_login,
+        "refresh": cmd_refresh,
+        "watch": cmd_watch,
+        "gather": cmd_gather,
+    }[args.cmd](args)
 
 
 if __name__ == "__main__":

@@ -261,7 +261,18 @@ python biomni-mcp/refresher.py watch --interval 1800   # headless: refresh the s
 (`--out-file` default, or `--out-keyring service:user`). Multi-account = one
 profile per account (`--profile ~/.biomni-mcp/profiles/<name>`). The token flows
 browser → refresher → store, entirely local and masked in all output — the proxy
-broker then serves it. Periodic `watch` runs also keep the WorkOS session
+broker then serves it.
+
+**Onboard many accounts at once — `gather`:** `python biomni-mcp/refresher.py
+gather --accounts andrei,marius,dan` cycles a headed sign-in for **each** account
+(you pick a different Google/identity per profile and approve — each is a real,
+deliberate grant of Phylo access to that identity; the agent never authenticates
+for you), captures + stores each token, then **prints the ready-to-paste
+`accounts.json` `biomni` rotation block** (one loopback handle per account, no
+tokens) **and the per-account daemon commands** (one `broker.py` + one
+`refresher.py watch` each, on incrementing ports). `bm_account_cycle` then rotates
+across them. The cycling, capture, storage, and wiring are automated; only the
+per-account sign-in is yours. Periodic `watch` runs also keep the WorkOS session
 sliding-alive; a hard re-`login` is only needed after its absolute max lifetime.
 
 ### Collision policy

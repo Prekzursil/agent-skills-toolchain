@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import json
 import os
 import sys
 import types
@@ -94,3 +95,37 @@ def test_playwright_missing_returns_clear_hint():
     mod, err = biomni_refresher._playwright()
     if mod is None:
         assert "pip install playwright" in err
+
+
+# --------------------------------------------------------------------------- #
+# gather: multi-account planning + rotation-wiring emission (no browser)
+# --------------------------------------------------------------------------- #
+def test_plan_accounts_increments_ports():
+    plan = biomni_refresher.plan_accounts(["andrei", "marius"], base_port=8787)
+    assert [a["name"] for a in plan] == ["andrei", "marius"]
+    assert [a["port"] for a in plan] == [8787, 8788]
+    assert plan[0]["api_base"] == "http://127.0.0.1:8787"
+    assert plan[1]["profile"].endswith(os.path.join("profiles", "marius"))
+    assert plan[1]["store_file"].endswith(os.path.join("tokens", "marius"))
+
+
+def test_render_accounts_block_has_no_token_just_handles():
+    plan = biomni_refresher.plan_accounts(["andrei", "marius"], base_port=8787)
+    block = json.loads(biomni_refresher.render_accounts_block(plan))
+    assert block["biomni"]["active"] == "andrei"
+    envs = [a["env"] for a in block["biomni"]["accounts"]]
+    assert envs[0] == {"BIOMNI_API_BASE": "http://127.0.0.1:8787", "BIOMNI_BROKER": "1"}
+    assert envs[1]["BIOMNI_API_BASE"] == "http://127.0.0.1:8788"
+    # No token key anywhere — only loopback handles.
+    assert "BIOMNI_TOKEN" not in json.dumps(block)
+    assert "BIOMNI_REFRESH_TOKEN" not in json.dumps(block)
+
+
+def test_render_daemons_one_broker_and_watch_per_account():
+    plan = biomni_refresher.plan_accounts(["andrei"], base_port=8790)
+    lines = biomni_refresher.render_daemons(plan)
+    assert len(lines) == 2
+    assert (
+        "broker.py --port 8790" in lines[0] and "BIOMNI_BROKER_TOKEN_FILE=" in lines[0]
+    )
+    assert "refresher.py watch" in lines[1] and "--profile" in lines[1]
