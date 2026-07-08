@@ -95,6 +95,37 @@ directly only for scripting or debugging (put `~/.local/bin` on PATH; the
 `install.ps1` (copies to `~\.local\bin` + `~/.local/bin`), then `register-tasks.ps1`
 for always-on supervision.
 
+## Environments fail to create ("Package downloads blocked by network policy")
+
+If the **Environments** panel shows `python` / `r` / `compute-provider-modal` /
+`claude-science-mcp` **Failed** with conda/libmamba errors like
+`Failed to connect to conda.anaconda.org port 443 via localhost after 0 ms`, the cause is
+**NOT your network or the sandbox proxy** — it is the **account plan**.
+
+**Root cause (verified 2026-07-08 via the UI):** Claude Science's compute-environment
+provisioning (what downloads the conda packages) is a **Pro/Max feature**. If the CS UI is signed
+into a **Free** account it shows *"Claude Science is available for Pro and Max plans — Upgrade to
+try"*; env builds are blocked and surface as *"package downloads blocked by network policy"*, and
+the remedy it points at (Settings → Network → Package mirror) is **itself behind the plan gate** —
+so there is nothing to configure on a Free account.
+
+**What was ruled OUT — don't re-chase these:** the WSL egress path is healthy. The daemon's
+`socat` **SOCKS5h proxy is up and reaches conda directly**:
+`curl --socks5-hostname localhost:<port> https://conda.anaconda.org/... → HTTP 200`. The host has
+internet; the sandbox `resolv.conf` intentionally has no nameserver (uses `HTTP_PROXY`/`ALL_PROXY`);
+`host_grants` is **filesystem mounts**, not network; `userAllowedDomains: []` is irrelevant. There
+is **no CLI / env-var / config-file lever** for the package mirror (operon-DB + web-UI managed; the
+daemon API is nonce-session gated, so a curl-set isn't practical).
+
+**Fix (account action — the user's, needs their login):** sign the CS UI into a **Pro/Max**
+account (account menu → *Sign in with a different account*), or upgrade the current one. The WSL
+daemon holds the prior account's session (`~/.claude-science` + the DB `oauth_tokens`), so a full
+switch may need the daemon to re-auth — `cs fix` after switching if the session goes stale.
+
+**Fast triage next time:** `cs open` → account menu shows the plan; if **Settings** shows *"Upgrade
+to try"*, the **account** is the blocker, not the network. (Lesson: check the plan/entitlement
+BEFORE the network stack.)
+
 ## Why `cs-recover` exists (beta gotcha)
 
 The daemon can wedge on **SQLite lock contention** (`operon-cli.db`; server log shows `[perf] db_lock_hold TxMutex 500–1000ms`). That leaves a stale `daemon.sock`/`operon.lock`, which makes a naive `stop`→`serve` **hang**. `cs-recover` clears the locks first. Verify reachability with `Test-NetConnection localhost 8000` (NOT `Get-NetTCPConnection`, which doesn't see mirrored WSL ports); a healthy daemon returns **HTTP 401** on `/` (auth gate).
