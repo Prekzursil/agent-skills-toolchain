@@ -151,12 +151,12 @@ def test_capture_routes_cookie_when_cdp_set(monkeypatch):
     monkeypatch.setattr(
         biomni_refresher,
         "_capture_cookie",
-        lambda cdp, url, name, t: (seen.update(route=("cookie", name)) or ("CK", "")),
+        lambda cdp, url, name, t: seen.update(route=("cookie", name)) or ("CK", ""),
     )
     monkeypatch.setattr(
         biomni_refresher,
         "_capture_bearer",
-        lambda *a, **k: (seen.update(route=("bearer", None)) or ("BR", "")),
+        lambda *a, **k: seen.update(route=("bearer", None)) or ("BR", ""),
     )
     args = argparse.Namespace(
         cdp="http://127.0.0.1:9222",
@@ -175,7 +175,7 @@ def test_capture_routes_bearer_without_cdp(monkeypatch):
     monkeypatch.setattr(
         biomni_refresher,
         "_capture_bearer",
-        lambda *a, **k: (seen.update(route="bearer") or ("BR", "")),
+        lambda *a, **k: seen.update(route="bearer") or ("BR", ""),
     )
     args = argparse.Namespace(
         cdp="", url="u", cookie_name="session_id", timeout_ms=1000, profile="p"
