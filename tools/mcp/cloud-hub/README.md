@@ -225,15 +225,21 @@ account — confirm intent before calling those.
 **Token-broker (zero-token operation — "access without exposure"):** for setups
 where the token must never touch the connector's config or an agent's context,
 run `biomni-mcp/broker.py` — a stdlib reverse proxy bound to `127.0.0.1` that
-**injects** the `Authorization: Bearer` header itself, reading the real token from
-a secure source (1Password `op read op://…`, OS keyring, or a chmod-600 file).
-Point the connector at it and it holds **no** token:
+**injects** the real auth itself, reading it from a secure source (1Password
+`op read op://…`, OS keyring, or a chmod-600 file). Biomni's live API authenticates
+with a **`session_id` cookie** (verified against the running app — there is no
+Bearer), so the broker injects `Cookie: session_id=…` by default
+(`BIOMNI_BROKER_AUTH=cookie`; `bearer` mode is available for endpoints that want it).
+Point the connector at it and it holds **no** secret:
 
 ```
-python biomni-mcp/broker.py --port 8787            # reads BIOMNI_BROKER_OP_REF / _KEYRING / _TOKEN_FILE / _TOKEN
+python biomni-mcp/broker.py --port 18787           # reads BIOMNI_BROKER_OP_REF / _KEYRING / _TOKEN_FILE / _TOKEN
 # then, on the biomni account/env:
-BIOMNI_API_BASE=http://127.0.0.1:8787   BIOMNI_BROKER=1
+BIOMNI_API_BASE=http://127.0.0.1:18787   BIOMNI_BROKER=1
 ```
+
+(Windows note: some low ports like `8787` are OS-reserved — `WinError 10013` on
+bind — so a high port like `18787` is used above.)
 
 In broker mode the connector's `_token()` returns a sentinel and sends no real
 Bearer — the broker overwrites `Authorization` with the value from the secure
@@ -255,13 +261,12 @@ python biomni-mcp/refresher.py watch --interval 1800   # headless: refresh the s
 ```
 
 `login` opens a headed browser with a persisted profile; you authenticate once
-(nothing here handles your password). `refresh`/`watch` then run that profile
-**headless**, let the app mint a fresh Bearer, capture it from the
-`api.phylo.bio` `Authorization` header, and write it to the broker's store
-(`--out-file` default, or `--out-keyring service:user`). Multi-account = one
-profile per account (`--profile ~/.biomni-mcp/profiles/<name>`). The token flows
-browser → refresher → store, entirely local and masked in all output — the proxy
-broker then serves it.
+(nothing here handles your password). `refresh`/`watch` then write the fresh
+session token to the broker's store (`--out-file` default, or `--out-keyring
+service:user`). **For Biomni (Google SSO) the working capture is `--cdp` — see the
+note below** — which reads the `session_id` cookie from your live Chrome. The
+secret flows browser → refresher → store, entirely local and masked in all output
+— the proxy broker then serves it.
 
 **Onboard many accounts at once — `gather`:** `python biomni-mcp/refresher.py
 gather --accounts andrei,marius,dan` cycles a headed sign-in for **each** account
@@ -285,11 +290,12 @@ Chrome** (no automation → Google is happy), start that Chrome with
 
 ```
 chrome.exe --remote-debugging-port=9222 --user-data-dir=%LOCALAPPDATA%\biomni-chrome
-python biomni-mcp/refresher.py watch --cdp http://127.0.0.1:9222 --interval 1800
+python biomni-mcp/refresher.py --cdp http://127.0.0.1:9222 watch --interval 1800
 ```
 
-The refresher **attaches** to that already-signed-in Chrome and reads the fresh
-Bearer from its live session — **no bot login happens**, so Google's block never
+(`--cdp` is a global flag, so it goes **before** the subcommand.) The refresher
+**attaches** to that already-signed-in Chrome and reads the fresh **`session_id`
+cookie** from its live session — **no bot login happens**, so Google's block never
 applies and nothing is evaded. Use a **dedicated** `--user-data-dir` (not your main
 profile) since remote debugging exposes that browser to local processes.
 
