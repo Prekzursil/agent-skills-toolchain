@@ -413,13 +413,16 @@ def bm_send_message(
 
 
 @mcp.tool()
-def bm_start_processing(session_id: str) -> str:
-    """Start the agent processing the session's latest message. $$$ consumes usage.
+def bm_start_processing(session_id: str, message_id: str = "") -> str:
+    """Start the agent processing a session message. $$$ consumes usage.
 
-    ``POST /v2/agent/{session_id}/start_processing``. Use after ``bm_send_message``;
+    ``POST /v2/agent/{session_id}/start_processing?message_id=…`` -- the API REQUIRES
+    the ``message_id`` (the value ``bm_send_message`` returned) as a query param, so
+    pass it. Use after ``bm_send_message``;
     ``bm_create_session(submit_initial_message=True)`` already starts the first run.
     """
-    return _call("POST", f"/v2/agent/{session_id}/start_processing", {})
+    query = {"message_id": message_id} if message_id.strip() else None
+    return _call("POST", f"/v2/agent/{session_id}/start_processing", {}, query)
 
 
 @mcp.tool()
@@ -586,14 +589,49 @@ def bm_billing_subscription() -> str:
     return _call("GET", "/billing/subscription")
 
 
+def _scrub_secrets(node) -> None:
+    """Recursively replace secret-bearing values in a parsed JSON tree, in place.
+
+    Redacts ``external_api_keys`` (the user's stored third-party keys) and any field
+    whose name looks like a secret, so a user's own credentials never enter an
+    agent's context. Key NAMES are kept (so you still see WHICH keys are set); only
+    the values are replaced with ``"[redacted]"``.
+    """
+    _secretish = ("api_key", "apikey", "secret", "token", "password", "credential")
+    if isinstance(node, dict):
+        for key, val in node.items():
+            low = key.lower()
+            if low == "external_api_keys" and isinstance(val, dict):
+                node[key] = dict.fromkeys(val, "[redacted]")
+            elif any(t in low for t in _secretish) and isinstance(val, str) and val:
+                node[key] = "[redacted]"
+            else:
+                _scrub_secrets(val)
+    elif isinstance(node, list):
+        for item in node:
+            _scrub_secrets(item)
+
+
+def _redact_secrets(payload: str) -> str:
+    """Redact secret-bearing fields from a JSON result string; pass through on error."""
+    try:
+        obj = json.loads(payload)
+    except (json.JSONDecodeError, TypeError):
+        return payload
+    _scrub_secrets(obj)
+    return json.dumps(obj, ensure_ascii=False, default=str)
+
+
 @mcp.tool()
 def bm_whoami() -> str:
-    """Show the authenticated Biomni identity (``GET /v2/auth/me``).
+    """Show the authenticated Biomni identity (``GET /v2/auth/me``) -- secrets REDACTED.
 
-    Confirms which account the active BIOMNI_TOKEN maps to (pair with
-    ``bm_account_current`` to see which named account is active in the hub).
+    Confirms which account the active session maps to (pair with
+    ``bm_account_current`` for the hub-side name). The response's stored
+    ``external_api_keys`` and any token-like fields are REDACTED so a user's own
+    third-party credentials never enter an agent's context.
     """
-    return _call("GET", "/v2/auth/me")
+    return _redact_secrets(_call("GET", "/v2/auth/me"))
 
 
 @mcp.tool()

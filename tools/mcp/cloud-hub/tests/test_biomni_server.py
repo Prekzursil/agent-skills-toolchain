@@ -356,3 +356,49 @@ def test_broker_mode_returns_sentinel_and_needs_no_token(monkeypatch):
     monkeypatch.setattr(biomni_server, "_api", _fake_api(seen, payload={"p": []}))
     out = json.loads(biomni_server.bm_list_projects())
     assert out["ok"] and seen["token"] == "broker"
+
+
+# --------------------------------------------------------------------------- #
+# start_processing passes message_id; whoami redacts stored secrets
+# --------------------------------------------------------------------------- #
+def test_start_processing_passes_message_id(monkeypatch):
+    seen: dict = {}
+    monkeypatch.setenv("BIOMNI_TOKEN", "t")
+    monkeypatch.setattr(
+        biomni_server, "_api", _fake_api(seen, payload={"task_id": "x"})
+    )
+    out = json.loads(biomni_server.bm_start_processing("sess_1", "msg_9"))
+    assert out["ok"]
+    assert seen["path"] == "/v2/agent/sess_1/start_processing"
+    assert seen["query"] == {"message_id": "msg_9"}  # the API requires it as a query
+    # No message_id -> no query (the API then 422s, which is the caller's signal).
+    seen2: dict = {}
+    monkeypatch.setattr(biomni_server, "_api", _fake_api(seen2, payload={}))
+    biomni_server.bm_start_processing("sess_1")
+    assert seen2["query"] is None
+
+
+def test_whoami_redacts_stored_secrets(monkeypatch):
+    payload = {
+        "email": "you@example.com",
+        "theme": "light",
+        "preferences": {
+            "external_api_keys": {
+                "boltz": "sk_live_SECRETVAL",
+                "nvidia": "nvapi-SECRETVAL",
+            }
+        },
+        "some_token": "tok-SECRETVAL",
+    }
+    monkeypatch.setenv("BIOMNI_TOKEN", "t")
+    monkeypatch.setattr(biomni_server, "_api", _fake_api({}, payload=payload))
+    raw = biomni_server.bm_whoami()
+    data = json.loads(raw)["data"]
+    # Non-secret fields pass through; key NAMES kept, VALUES redacted; secrets gone.
+    assert data["email"] == "you@example.com" and data["theme"] == "light"
+    assert data["preferences"]["external_api_keys"] == {
+        "boltz": "[redacted]",
+        "nvidia": "[redacted]",
+    }
+    assert data["some_token"] == "[redacted]"
+    assert "SECRETVAL" not in raw
