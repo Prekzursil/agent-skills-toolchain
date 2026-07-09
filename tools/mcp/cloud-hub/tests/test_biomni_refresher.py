@@ -129,3 +129,11 @@ def test_render_daemons_one_broker_and_watch_per_account():
         "broker.py --port 8790" in lines[0] and "BIOMNI_BROKER_TOKEN_FILE=" in lines[0]
     )
     assert "refresher.py watch" in lines[1] and "--profile" in lines[1]
+
+
+def test_cdp_arg_plumbs_through():
+    parsed = biomni_refresher.build_parser().parse_args(
+        ["--cdp", "http://127.0.0.1:9222", "refresh"]
+    )
+    assert parsed.cdp == "http://127.0.0.1:9222"
+    assert biomni_refresher.build_parser().parse_args(["refresh"]).cdp == ""
