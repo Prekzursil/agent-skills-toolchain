@@ -6,12 +6,18 @@ HttpOnly cookie and rotates it (one-time-use), so a copied refresh token can't b
 shared — the ONLY stable way to keep a fresh Bearer without a human each time is to
 let a browser that OWNS the session mint it. This does exactly that:
 
-  * ``login``  — launch a HEADED browser with a PERSISTED profile; YOU sign in once.
-                 The session cookie lives in the profile from then on.
-  * ``refresh``— launch that profile HEADLESS, let the app mint a fresh Bearer, capture
-                 it from the ``api.phylo.bio`` ``Authorization`` header, and write it to
-                 the broker's store (a chmod-600 file or the OS keyring).
-  * ``watch``  — ``refresh`` on a loop (also keeps the WorkOS session sliding-alive).
+Biomni's live API authenticates with a ``session_id`` COOKIE (no Bearer — verified
+against the running app). Google blocks OAuth sign-in inside an automation-driven
+browser, so the WORKING path is ``--cdp``: you sign into Biomni in your NORMAL Chrome
+(started with ``--remote-debugging-port``), and the refresher ATTACHES over CDP and
+reads the ``session_id`` cookie from that live session — no bot login, nothing evaded.
+
+  * ``login``  — launch a HEADED persisted profile; YOU sign in once (dead for Google
+                 SSO — use ``--cdp`` instead).
+  * ``refresh``— capture the fresh session token and write it to the broker's store
+                 (chmod-600 file or OS keyring). With ``--cdp`` it reads the ``session_id``
+                 cookie from your attached Chrome (the Biomni path).
+  * ``watch``  — ``refresh`` on a loop (also keeps the session sliding-alive).
 
 ``broker.py`` then serves that stored token to the connector, which holds none. The
 token flows browser -> this process -> store, entirely LOCAL; it is never printed
@@ -184,6 +190,54 @@ def _playwright():
     return sync_playwright, None
 
 
+def _capture_cookie(
+    cdp_url: str, url: str, cookie_name: str, timeout_ms: int
+) -> tuple[str, str]:
+    """Attach to a running Chrome via CDP and read Biomni's session cookie; (value, error).
+
+    Biomni authenticates to api.phylo.bio with a ``session_id`` COOKIE (no Bearer),
+    so we read that cookie from the live, already-signed-in session — no bot login,
+    nothing evaded. If it isn't present yet, we open the app once to let it set.
+    """
+    sync_playwright, err = _playwright()
+    if err:
+        return "", err
+
+    def _find(ctx) -> str:
+        for c in ctx.cookies(["https://api.phylo.bio"]):
+            if c.get("name") == cookie_name and c.get("value"):
+                return c["value"]
+        return ""
+
+    with sync_playwright() as p:
+        try:
+            browser = p.chromium.connect_over_cdp(cdp_url)
+        except Exception as exc:  # noqa: BLE001
+            return "", (
+                f"could not attach to Chrome at {cdp_url} ({exc}); start Chrome with "
+                "--remote-debugging-port=9222 (ideally a dedicated profile)."
+            )
+        ctx = browser.contexts[0] if browser.contexts else browser.new_context()
+        value = _find(ctx)
+        if not value:  # open the app once to trigger the session cookie, then re-read
+            page = ctx.new_page()
+            try:
+                page.goto(url, timeout=60_000)
+                page.wait_for_timeout(min(8000, timeout_ms))
+                value = _find(ctx)
+            except Exception:  # noqa: BLE001
+                value = _find(ctx)
+            finally:
+                with contextlib.suppress(Exception):
+                    page.close()
+    if value:
+        return value, ""
+    return "", (
+        f"no '{cookie_name}' cookie for api.phylo.bio in that Chrome — sign into "
+        "Biomni there first, then retry."
+    )
+
+
 def _capture_bearer(
     profile: str, url: str, headless: bool, timeout_ms: int, cdp_url: str = ""
 ) -> tuple[str, str]:
@@ -277,16 +331,20 @@ def cmd_login(args) -> int:
     return 0
 
 
-def cmd_refresh(args) -> int:
-    """Headless one-shot: capture a fresh Bearer and write it to the store."""
-    store = resolve_store(args)
-    token, err = _capture_bearer(
-        args.profile,
-        args.url,
-        headless=True,
-        timeout_ms=args.timeout_ms,
-        cdp_url=args.cdp,
+def _capture(args) -> tuple[str, str]:
+    """Route to the working capture: session COOKIE via CDP (Biomni's real auth), else
+    the legacy header capture via a persisted profile (dead for Google SSO)."""
+    if args.cdp:
+        return _capture_cookie(args.cdp, args.url, args.cookie_name, args.timeout_ms)
+    return _capture_bearer(
+        args.profile, args.url, headless=True, timeout_ms=args.timeout_ms
     )
+
+
+def cmd_refresh(args) -> int:
+    """Headless one-shot: capture the fresh session token and write it to the store."""
+    store = resolve_store(args)
+    token, err = _capture(args)
     if err:
         print(f"[refresher] refresh failed: {err}", file=sys.stderr)
         return 1
@@ -299,13 +357,7 @@ def cmd_watch(args) -> int:
     store = resolve_store(args)
     print(f"[refresher] watching: refresh every {args.interval}s -> {store['kind']}")
     while True:
-        token, err = _capture_bearer(
-            args.profile,
-            args.url,
-            headless=True,
-            timeout_ms=args.timeout_ms,
-            cdp_url=args.cdp,
-        )
+        token, err = _capture(args)
         if err:
             print(f"[refresher] refresh failed (will retry): {err}", file=sys.stderr)
         else:
@@ -388,7 +440,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--cdp",
         default="",
         help="attach to a running Chrome via CDP (e.g. http://127.0.0.1:9222) and "
-        "read the token from its live session — no bot login (refresh/watch only)",
+        "read the session cookie from its live session — no bot login (refresh/watch)",
+    )
+    ap.add_argument(
+        "--cookie-name",
+        default="session_id",
+        help="the api.phylo.bio auth cookie to capture in CDP mode (default session_id)",
     )
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("login", help="headed sign-in (once per profile)")

@@ -137,3 +137,48 @@ def test_cdp_arg_plumbs_through():
     )
     assert parsed.cdp == "http://127.0.0.1:9222"
     assert biomni_refresher.build_parser().parse_args(["refresh"]).cdp == ""
+
+
+def test_cookie_name_default_is_session_id():
+    assert (
+        biomni_refresher.build_parser().parse_args(["refresh"]).cookie_name
+        == "session_id"
+    )
+
+
+def test_capture_routes_cookie_when_cdp_set(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(
+        biomni_refresher,
+        "_capture_cookie",
+        lambda cdp, url, name, t: seen.update(route=("cookie", name)) or ("CK", ""),
+    )
+    monkeypatch.setattr(
+        biomni_refresher,
+        "_capture_bearer",
+        lambda *a, **k: seen.update(route=("bearer", None)) or ("BR", ""),
+    )
+    args = argparse.Namespace(
+        cdp="http://127.0.0.1:9222",
+        url="u",
+        cookie_name="session_id",
+        timeout_ms=1000,
+        profile="p",
+    )
+    tok, _ = biomni_refresher._capture(args)
+    # CDP set -> COOKIE capture (Biomni's real auth), never the dead Bearer path.
+    assert tok == "CK" and seen["route"] == ("cookie", "session_id")
+
+
+def test_capture_routes_bearer_without_cdp(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(
+        biomni_refresher,
+        "_capture_bearer",
+        lambda *a, **k: seen.update(route="bearer") or ("BR", ""),
+    )
+    args = argparse.Namespace(
+        cdp="", url="u", cookie_name="session_id", timeout_ms=1000, profile="p"
+    )
+    tok, _ = biomni_refresher._capture(args)
+    assert tok == "BR" and seen["route"] == "bearer"

@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
-"""Biomni localhost token-broker — inject the Bearer so the connector never holds it.
+"""Biomni localhost token-broker — inject the session so the connector never holds it.
 
 A stdlib reverse proxy bound to 127.0.0.1 that forwards to api.phylo.bio and
-OVERWRITES the ``Authorization`` header with the real Bearer, read from a secure
-source (1Password ``op``, OS keyring, or a chmod-600 file). The biomni MCP
-connector points ``BIOMNI_API_BASE`` at this broker (and sets ``BIOMNI_BROKER=1``),
-sends NO real token, and the broker adds it -- so the literal token lives ONLY in
-the secure store + this process, never in the connector's config, the agent's
-context, or any log.
+INJECTS the real auth, read from a secure source (1Password ``op``, OS keyring, or
+a chmod-600 file). Biomni's live API authenticates with a ``session_id`` COOKIE
+(verified against the running app — every request carries the cookie, there is no
+Authorization header), so the default ``BIOMNI_BROKER_AUTH=cookie`` injects
+``Cookie: session_id=<secret>``; ``bearer`` mode (``Authorization: Bearer``) is
+kept for any endpoint that wants it. The biomni MCP connector points
+``BIOMNI_API_BASE`` at this broker (and sets ``BIOMNI_BROKER=1``), sends NO real
+auth, and the broker adds it -- so the literal secret lives ONLY in the secure
+store + this process, never in the connector's config, the agent's context, or any log.
 
 This is the "access without exposure" pattern: the connector/agent handles only a
 loopback handle; resolution happens HERE, in deterministic code, not in the model.
@@ -44,9 +47,17 @@ DEFAULT_PORT = 8787
 DEFAULT_TTL = 60.0
 HEALTH_PATH = "/__broker/health"
 
-# Hop-by-hop headers (RFC 7230 §6.1) + auth/host/length that the proxy rewrites.
+# Biomni's live API authenticates with a `session_id` COOKIE (verified against the
+# running app: every api.phylo.bio request carries the cookie, no Authorization
+# header exists). So the broker injects a Cookie by default. ``bearer`` mode is
+# kept for any endpoint that does take an Authorization header.
+AUTH_MODE = os.environ.get("BIOMNI_BROKER_AUTH", "cookie").strip().lower()
+COOKIE_NAME = os.environ.get("BIOMNI_BROKER_COOKIE_NAME", "session_id").strip()
+
+# Hop-by-hop headers (RFC 7230 §6.1) + auth/host/cookie/length the proxy rewrites.
 _STRIP_HEADERS = {
     "authorization",
+    "cookie",
     "host",
     "content-length",
     "connection",
@@ -156,14 +167,25 @@ class TokenCache:
 # Header rewriting (pure — unit-tested)
 # --------------------------------------------------------------------------- #
 def upstream_headers(
-    incoming: list[tuple[str, str]], token: str, upstream_host: str
+    incoming: list[tuple[str, str]],
+    secret: str,
+    upstream_host: str,
+    auth_mode: str = "cookie",
+    cookie_name: str = "session_id",
 ) -> dict[str, str]:
-    """Copy incoming headers minus auth/host/hop-by-hop; inject the real Bearer + Host."""
+    """Copy incoming headers minus auth/host/cookie/hop-by-hop; inject the real auth + Host.
+
+    ``auth_mode`` ``cookie`` (default — Biomni's real auth) sets
+    ``Cookie: <cookie_name>=<secret>``; ``bearer`` sets ``Authorization: Bearer <secret>``.
+    """
     out: dict[str, str] = {}
     for key, val in incoming:
         if key.lower() not in _STRIP_HEADERS:
             out[key] = val
-    out["Authorization"] = f"Bearer {token}"
+    if auth_mode == "bearer":
+        out["Authorization"] = f"Bearer {secret}"
+    else:
+        out["Cookie"] = f"{cookie_name}={secret}"
     out["Host"] = upstream_host
     return out
 
@@ -200,6 +222,8 @@ def make_handler(upstream: str, cache: TokenCache):
                     "token_source": source,
                     "token_present": bool(token),
                     "token_masked": _mask(token),
+                    "auth_mode": AUTH_MODE,
+                    "cookie_name": COOKIE_NAME if AUTH_MODE != "bearer" else None,
                 },
             )
 
@@ -222,7 +246,9 @@ def make_handler(upstream: str, cache: TokenCache):
                 return
             length = int(self.headers.get("Content-Length") or 0)
             body = self.rfile.read(length) if length else None
-            headers = upstream_headers(self.headers.items(), token, upstream_host)
+            headers = upstream_headers(
+                self.headers.items(), token, upstream_host, AUTH_MODE, COOKIE_NAME
+            )
             req = urllib.request.Request(
                 upstream + self.path, data=body, headers=headers, method=self.command
             )

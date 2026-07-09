@@ -55,24 +55,35 @@ def test_resolve_none_when_nothing_set():
 # --------------------------------------------------------------------------- #
 # The header rewrite — the security-critical property
 # --------------------------------------------------------------------------- #
-def test_upstream_headers_overwrites_auth_and_strips_hop_by_hop():
+def test_upstream_headers_cookie_default_and_strips_incoming_auth():
     incoming = [
         ("Authorization", "Bearer DUMMY-FROM-CONNECTOR"),
+        ("Cookie", "session_id=STALE"),
         ("Host", "127.0.0.1:8787"),
         ("Content-Length", "5"),
         ("Connection", "keep-alive"),
         ("X-Custom", "keepme"),
         ("Accept", "application/json"),
     ]
-    out = biomni_broker.upstream_headers(incoming, "REAL-SECRET", "api.phylo.bio")
-    # The real Bearer replaces whatever the connector sent; Host points upstream.
-    assert out["Authorization"] == "Bearer REAL-SECRET"
+    out = biomni_broker.upstream_headers(incoming, "REAL-SESSION", "api.phylo.bio")
+    # Default is COOKIE mode (Biomni's real auth): inject the real session cookie,
+    # drop the connector's Authorization AND its stale Cookie; Host points upstream.
+    assert out["Cookie"] == "session_id=REAL-SESSION"
+    assert "Authorization" not in out
     assert out["Host"] == "api.phylo.bio"
     # Hop-by-hop + length are stripped; benign headers pass through.
     assert "Content-Length" not in out and "Connection" not in out
     assert out["X-Custom"] == "keepme" and out["Accept"] == "application/json"
-    # The connector's dummy token never survives.
+    # Neither the connector's dummy Bearer nor its stale cookie survives.
     assert "DUMMY-FROM-CONNECTOR" not in "".join(out.values())
+    assert "STALE" not in "".join(out.values())
+
+
+def test_upstream_headers_bearer_mode():
+    out = biomni_broker.upstream_headers(
+        [("Accept", "application/json")], "TOK", "api.phylo.bio", auth_mode="bearer"
+    )
+    assert out["Authorization"] == "Bearer TOK" and "Cookie" not in out
 
 
 # --------------------------------------------------------------------------- #
