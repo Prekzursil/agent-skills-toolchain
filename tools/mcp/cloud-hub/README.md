@@ -275,6 +275,24 @@ across them. The cycling, capture, storage, and wiring are automated; only the
 per-account sign-in is yours. Periodic `watch` runs also keep the WorkOS session
 sliding-alive; a hard re-`login` is only needed after its absolute max lifetime.
 
+**Google-SSO note + CDP mode:** if the account signs in with **Continue with
+Google**, Google **blocks the sign-in inside an automation-controlled browser**
+(*"This browser or app may not be secure"*) — so the `login`/`gather` (fresh
+persisted-profile) flows do not work for Google SSO, and evading that bot-detection
+is out of scope. The workaround is **CDP mode**: sign into Biomni in your **normal
+Chrome** (no automation → Google is happy), start that Chrome with
+`--remote-debugging-port=9222`, and run `refresh`/`watch` with `--cdp`:
+
+```
+chrome.exe --remote-debugging-port=9222 --user-data-dir=%LOCALAPPDATA%\biomni-chrome
+python biomni-mcp/refresher.py watch --cdp http://127.0.0.1:9222 --interval 1800
+```
+
+The refresher **attaches** to that already-signed-in Chrome and reads the fresh
+Bearer from its live session — **no bot login happens**, so Google's block never
+applies and nothing is evaded. Use a **dedicated** `--user-data-dir` (not your main
+profile) since remote debugging exposes that browser to local processes.
+
 ### Collision policy
 
 Unique names are kept **exactly**. Cross-backend collisions would get a minimal

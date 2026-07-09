@@ -30,6 +30,7 @@ Examples:
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import sys
@@ -184,20 +185,39 @@ def _playwright():
 
 
 def _capture_bearer(
-    profile: str, url: str, headless: bool, timeout_ms: int
+    profile: str, url: str, headless: bool, timeout_ms: int, cdp_url: str = ""
 ) -> tuple[str, str]:
-    """Open ``url`` with the persisted profile, capture a fresh Bearer; (token, error)."""
+    """Capture a fresh Bearer from api.phylo.bio; (token, error).
+
+    Persistent-profile mode (default) launches its own browser. CDP mode
+    (``cdp_url`` set) ATTACHES to your already-running, already-signed-in Chrome
+    (started with ``--remote-debugging-port``) and reads the token from that live
+    session — no bot login happens, so Google's automation block never applies.
+    """
     sync_playwright, err = _playwright()
     if err:
         return "", err
     captured: list[str] = []
     landed_on_signin = {"v": False}
     with sync_playwright() as p:
-        ctx = p.chromium.launch_persistent_context(
-            user_data_dir=profile, headless=headless
-        )
-        try:
+        own_page = False
+        if cdp_url:
+            try:
+                browser = p.chromium.connect_over_cdp(cdp_url)
+            except Exception as exc:  # noqa: BLE001
+                return "", (
+                    f"could not attach to Chrome at {cdp_url} ({exc}); start Chrome "
+                    "with --remote-debugging-port=9222 (ideally a dedicated profile)."
+                )
+            ctx = browser.contexts[0] if browser.contexts else browser.new_context()
+            page = ctx.new_page()
+            own_page = True
+        else:
+            ctx = p.chromium.launch_persistent_context(
+                user_data_dir=profile, headless=headless
+            )
             page = ctx.pages[0] if ctx.pages else ctx.new_page()
+        try:
 
             def _on_request(req):
                 if API_HOST in req.url:
@@ -213,19 +233,27 @@ def _capture_bearer(
                     break
                 if SIGNIN_HOST in (page.url or ""):
                     landed_on_signin["v"] = True
-                    if not headless:  # login mode: keep waiting for the human
-                        pass
-                    else:
+                    if (
+                        headless or cdp_url
+                    ):  # only headed profile-login waits for a human
                         break
                 page.wait_for_timeout(1000)
         finally:
-            ctx.close()
+            if cdp_url:
+                if own_page:  # close only OUR tab; never close the user's real Chrome
+                    with contextlib.suppress(Exception):
+                        page.close()
+            else:
+                ctx.close()
     token = select_bearer(captured)
     if token:
         return token, ""
     if landed_on_signin["v"]:
         return "", (
-            "not signed in for this profile (redirected to signin.phylo.bio) — run "
+            "that Chrome is not signed into Biomni (redirected to signin.phylo.bio) — "
+            "sign in there, then retry."
+            if cdp_url
+            else "not signed in for this profile (redirected to signin.phylo.bio) — run "
             "`refresher.py login` and complete sign-in in the browser."
         )
     return "", "no api.phylo.bio Authorization header seen before timeout"
@@ -253,7 +281,11 @@ def cmd_refresh(args) -> int:
     """Headless one-shot: capture a fresh Bearer and write it to the store."""
     store = resolve_store(args)
     token, err = _capture_bearer(
-        args.profile, args.url, headless=True, timeout_ms=args.timeout_ms
+        args.profile,
+        args.url,
+        headless=True,
+        timeout_ms=args.timeout_ms,
+        cdp_url=args.cdp,
     )
     if err:
         print(f"[refresher] refresh failed: {err}", file=sys.stderr)
@@ -268,7 +300,11 @@ def cmd_watch(args) -> int:
     print(f"[refresher] watching: refresh every {args.interval}s -> {store['kind']}")
     while True:
         token, err = _capture_bearer(
-            args.profile, args.url, headless=True, timeout_ms=args.timeout_ms
+            args.profile,
+            args.url,
+            headless=True,
+            timeout_ms=args.timeout_ms,
+            cdp_url=args.cdp,
         )
         if err:
             print(f"[refresher] refresh failed (will retry): {err}", file=sys.stderr)
@@ -347,6 +383,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     ap.add_argument(
         "--timeout-ms", type=int, default=CAPTURE_TIMEOUT_MS, help="capture timeout"
+    )
+    ap.add_argument(
+        "--cdp",
+        default="",
+        help="attach to a running Chrome via CDP (e.g. http://127.0.0.1:9222) and "
+        "read the token from its live session — no bot login (refresh/watch only)",
     )
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("login", help="headed sign-in (once per profile)")
