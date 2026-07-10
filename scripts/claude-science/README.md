@@ -99,32 +99,31 @@ for always-on supervision.
 
 If the **Environments** panel shows `python` / `r` / `compute-provider-modal` /
 `claude-science-mcp` **Failed** with conda/libmamba errors like
-`Failed to connect to conda.anaconda.org port 443 via localhost after 0 ms`, the cause is
-**NOT your network or the sandbox proxy** — it is the **account plan**.
+`Failed to connect to conda.anaconda.org port 443 via localhost after 0 ms`, this is a
+**Claude Science-internal sandbox-networking bug** — NOT anything you can configure. Report it to
+Anthropic; don't burn time on the fixes below that DON'T work.
 
-**Root cause (verified 2026-07-08 via the UI):** Claude Science's compute-environment
-provisioning (what downloads the conda packages) is a **Pro/Max feature**. If the CS UI is signed
-into a **Free** account it shows *"Claude Science is available for Pro and Max plans — Upgrade to
-try"*; env builds are blocked and surface as *"package downloads blocked by network policy"*, and
-the remedy it points at (Settings → Network → Package mirror) is **itself behind the plan gate** —
-so there is nothing to configure on a Free account.
+**The signature:** the env-create sandbox cannot reach `conda.anaconda.org` through its localhost
+egress proxy, while the AGENT's own tool sandboxes reach it fine (`HTTP 200`). Same host, same
+network — only the env-create / MCP-catalog sandboxes are denied (`SOCKS5 error 2 = "connection not
+allowed by ruleset"`). That asymmetry is inside CS's sandbox wiring.
 
-**What was ruled OUT — don't re-chase these:** the WSL egress path is healthy. The daemon's
-`socat` **SOCKS5h proxy is up and reaches conda directly**:
-`curl --socks5-hostname localhost:<port> https://conda.anaconda.org/... → HTTP 200`. The host has
-internet; the sandbox `resolv.conf` intentionally has no nameserver (uses `HTTP_PROXY`/`ALL_PROXY`);
-`host_grants` is **filesystem mounts**, not network; `userAllowedDomains: []` is irrelevant. There
-is **no CLI / env-var / config-file lever** for the package mirror (operon-DB + web-UI managed; the
-daemon API is nonce-session gated, so a curl-set isn't practical).
+**Six hypotheses, ALL refuted (2026-07-08 → 07-10) — do NOT re-chase any of these:**
+1. **Account plan** — fails identically on **Free AND Max** accounts (verified via UI + `active-org.json`). Not the plan.
+2. **Network egress** — the daemon's `socat` SOCKS5h proxy is up and reaches conda directly (`curl --socks5-hostname localhost:<port> conda.anaconda.org → 200`); host has internet.
+3. **`Customize → Permissions` grant / `userAllowedDomains`** — empty but irrelevant; the UI "Package management" domain toggle shows **ON**, conda still denied.
+4. **Package mirror** (`Settings → Network → Package mirror`) — set Conda=`https://conda.anaconda.org`, pip=`https://pypi.org/simple` (saved to `preferences.json`); error only changed to *"configured mirrors could not be reached."*
+5. **WSL firewall** — `firewall=false` in `.wslconfig` + `wsl --shutdown`: no change.
+6. **WSL networking mode** — `networkingMode=nat` vs `mirrored` + `wsl --shutdown`: fails identically (the "via localhost" signature *looked* like a mirrored-mode loopback bug — it isn't).
 
-**Fix (account action — the user's, needs their login):** sign the CS UI into a **Pro/Max**
-account (account menu → *Sign in with a different account*), or upgrade the current one. The WSL
-daemon holds the prior account's session (`~/.claude-science` + the DB `oauth_tokens`), so a full
-switch may need the daemon to re-auth — `cs fix` after switching if the session goes stale.
+**There is NO user-side lever** (no CLI/env/config-file; the mirror is operon-DB + nonce-gated-UI
+managed). **Fix = report to Anthropic:** `CS → Settings → Diagnostics → Download logs`, attach the
+asymmetry evidence (env-create bridge `SOCKS5 error 2` vs agent bridge `HTTP 200`). Environments
+can't be created on this setup until Anthropic fixes the env-create sandbox's egress.
 
-**Fast triage next time:** `cs open` → account menu shows the plan; if **Settings** shows *"Upgrade
-to try"*, the **account** is the blocker, not the network. (Lesson: check the plan/entitlement
-BEFORE the network stack.)
+**Meta-lesson:** when the *agent's* path works but the *feature's* path fails inside a vendor's
+sealed component, escalate to "vendor bug" EARLY — don't cycle host-side hypotheses (this one
+burned an account-switch that churned the user's session for nothing).
 
 ## Why `cs-recover` exists (beta gotcha)
 
