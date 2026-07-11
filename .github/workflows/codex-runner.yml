@@ -1,0 +1,134 @@
+name: Codex Runner
+
+# Runs OpenAI Codex non-interactively against ANY of your repos, on your ChatGPT
+# subscription (auth.json), and opens a PR with the result. Lives in this ONE
+# private repo; the CODEX_RUNNER_PAT decides which target repos it may touch.
+#
+# Trigger is workflow_dispatch ONLY: only users with write access to THIS repo can
+# start it, so no outside/fork actor can reach the auth.json secret. Never add
+# pull_request_target or a fork-triggerable event to this file.
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_repo:
+        description: "Target repo as owner/name (e.g. Prekzursil/momentstudio)"
+        required: true
+        type: string
+      task:
+        description: "What Codex should do (the codex exec prompt)"
+        required: true
+        type: string
+      base_branch:
+        description: "Branch to start from (blank = the repo's default branch)"
+        required: false
+        type: string
+      model:
+        description: "Model slug — adjust if your account rejects the default"
+        required: false
+        default: "gpt-5.5"
+        type: string
+
+# This runner repo itself needs no write; all target-repo access comes from the PAT.
+permissions:
+  contents: read
+
+# Serialize runs so concurrent jobs never race on the shared auth.json token refresh.
+concurrency:
+  group: codex-runner
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Preflight — required secrets present
+        env:
+          CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
+          CODEX_RUNNER_PAT: ${{ secrets.CODEX_RUNNER_PAT }}
+        run: |
+          [ -n "$CODEX_AUTH_JSON" ] || { echo "::error::Set the CODEX_AUTH_JSON secret (contents of ~/.codex/auth.json)."; exit 1; }
+          [ -n "$CODEX_RUNNER_PAT" ] || { echo "::error::Set the CODEX_RUNNER_PAT secret (fine-grained PAT, contents+PR write on target repos)."; exit 1; }
+
+      - name: Set up Node + Codex CLI
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install Codex CLI (pinned)
+        run: npm install -g @openai/codex@0.144.1
+
+      - name: Reconstruct Codex auth (ChatGPT subscription)
+        env:
+          CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
+          MODEL: ${{ inputs.model }}
+        run: |
+          CODEX_HOME="$RUNNER_TEMP/codex-home"
+          mkdir -p "$CODEX_HOME"; chmod 700 "$CODEX_HOME"
+          printf '%s' "$CODEX_AUTH_JSON" > "$CODEX_HOME/auth.json"
+          chmod 600 "$CODEX_HOME/auth.json"
+          {
+            echo 'cli_auth_credentials_store = "file"'
+            printf 'model = "%s"\n' "$MODEL"
+            echo 'approval_policy = "never"'
+            echo 'sandbox_mode = "workspace-write"'
+          } > "$CODEX_HOME/config.toml"
+          echo "CODEX_HOME=$CODEX_HOME" >> "$GITHUB_ENV"
+
+      - name: Checkout target repo (via PAT)
+        env:
+          RUNNER_PAT: ${{ secrets.CODEX_RUNNER_PAT }}
+          TARGET_REPO: ${{ inputs.target_repo }}
+          BASE_BRANCH: ${{ inputs.base_branch }}
+        run: |
+          git config --global user.name "codex-runner[bot]"
+          git config --global user.email "codex-runner@users.noreply.github.com"
+          git clone --depth 1 ${BASE_BRANCH:+--branch "$BASE_BRANCH"} \
+            "https://x-access-token:${RUNNER_PAT}@github.com/${TARGET_REPO}.git" work
+
+      - name: Run Codex on the target repo
+        working-directory: work
+        env:
+          TASK: ${{ inputs.task }}
+        run: |
+          # TASK is passed as an argv element, never spliced into the shell.
+          # NOTE: --full-auto + the config.toml (approval_policy=never,
+          # sandbox_mode=workspace-write) make this non-interactive. If your Codex
+          # version rejects the flag or model slug, the first run says so — adjust here.
+          codex exec --full-auto "$TASK"
+
+      - name: Open a PR if Codex made changes
+        working-directory: work
+        env:
+          RUNNER_PAT: ${{ secrets.CODEX_RUNNER_PAT }}
+          TARGET_REPO: ${{ inputs.target_repo }}
+          TASK: ${{ inputs.task }}
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "Codex made no changes — nothing to PR."; exit 0
+          fi
+          BRANCH="codex/$(date -u +%Y%m%d-%H%M%S)"
+          git checkout -b "$BRANCH"
+          git add -A
+          git commit -m "codex: automated change" -m "Task: $TASK"
+          git push origin "$BRANCH"   # clone remote already carries the PAT
+          GH_TOKEN="$RUNNER_PAT" gh pr create \
+            --repo "$TARGET_REPO" --head "$BRANCH" \
+            --title "Codex: automated change" \
+            --body "Opened by the codex-runner (agent-skills-toolchain). Task:
+
+$TASK
+
+Review carefully before merging — never auto-merge to payment/auth or protected branches."
+
+      # --- Optional reliability step: persist the refreshed auth.json -------------
+      # Codex rotates its refresh token on each renewal; without writing the updated
+      # file back, a later run can fail once the stored token rotates out. Enable this
+      # ONLY if your CODEX_RUNNER_PAT also has "Secrets: write" on THIS repo.
+      #
+      # - name: Persist refreshed auth.json back to the secret
+      #   if: always()
+      #   env:
+      #     RUNNER_PAT: ${{ secrets.CODEX_RUNNER_PAT }}
+      #   run: |
+      #     GH_TOKEN="$RUNNER_PAT" gh secret set CODEX_AUTH_JSON \
+      #       --repo "${{ github.repository }}" --body "$(cat "$CODEX_HOME/auth.json")"
