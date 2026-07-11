@@ -111,14 +111,15 @@ jobs:
           git add -A
           git commit -m "codex: automated change" -m "Task: $TASK"
           git push origin "$BRANCH"   # clone remote already carries the PAT
+          printf '%s\n\n%s\n\n%s\n' \
+            "Opened by the codex-runner (agent-skills-toolchain)." \
+            "Task: $TASK" \
+            "Review carefully before merging; never auto-merge to payment/auth or protected branches." \
+            > "$RUNNER_TEMP/pr-body.md"
           GH_TOKEN="$RUNNER_PAT" gh pr create \
             --repo "$TARGET_REPO" --head "$BRANCH" \
             --title "Codex: automated change" \
-            --body "Opened by the codex-runner (agent-skills-toolchain). Task:
-
-$TASK
-
-Review carefully before merging — never auto-merge to payment/auth or protected branches."
+            --body-file "$RUNNER_TEMP/pr-body.md"
 
       # --- Optional reliability step: persist the refreshed auth.json -------------
       # Codex rotates its refresh token on each renewal; without writing the updated
