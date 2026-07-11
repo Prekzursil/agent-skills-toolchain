@@ -34,6 +34,7 @@
 | cloudflare-deploy | built-in | Deploy applications and infrastructure to Cloudflare using Workers, Pages, and related platform services |
 | code-security | built-in | Security guidelines for writing secure code |
 | codex-consult | custom | Use when the user wants a Codex-side orchestration pass — consult, curate, or review — via codex_local_* / codex_orchestrator_* tools instead of direct ChatGPT web automation; one skill, three modes (replaces the codex-local-* and agent-lanes-codex-* lanes) |
+| codex-fleet-github | custom | Use when dispatching, sweeping, monitoring, or planning autonomous Codex-on-GitHub runs across the private fleet via the codex-fleet-github MCP; drives the Wave-1 codex-runner.yml with propose-only draft PRs and fail-closed auth; four tools (fleet_dispatch / fleet_sweep / fleet_status / fleet_orchestrate) |
 | codex-orchestrate | custom | Route a task to the right codex-as-MCP orchestration tool by intent — one skill, all modes: brainstorm (codex_brainstorm), discuss (codex_discuss), coordinate/fix (codex_coordinate), review/audit (codex_review), curate/governance (codex_curate), triage (codex_consult). Replaces the per-mode wrappers codex-audit/brainstorm/coordinate/curate/discuss/fix/governance/review/triage |
 | codex-runtime-recovery | custom | Use when Codex state is split across Windows, WSL, or VS Code, sessions disappear, or state_5.sqlite files churn |
 | codex-session-reunion | custom | Use when Codex sessions or rollout JSONL files are spread across Windows, WSL, backups, or VS Code mirrors |
