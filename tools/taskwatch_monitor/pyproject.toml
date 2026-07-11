@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "taskwatch-monitor"
+version = "0.1.0"
+description = "General-purpose long-task progress monitor — source-agnostic engine, rich CLI/TUI, MCP server, auto-attach hook"
+requires-python = ">=3.11"
+dependencies = [
+    "rich>=13",
+    "tomlkit>=0.12",
+    # P4 mcp_server: the upstream MCP SDK. Imported as `mcp` — which is exactly
+    # why the sub-package is `mcp_server`, never `mcp` (no import shadowing).
+    "mcp>=1.2.0",
+]
+
+[project.scripts]
+# The stdio MCP server entrypoint (mirrors scholarly-access-mcp's console
+# script). Lands with P4; the CLI keeps its own `taskwatch` entry in cli.app.
+taskwatch-mcp = "mcp_server.server:main"
+
+# Flat-layout package set is explicit (mirrors mcp-manager): setuptools
+# auto-discovery refuses to choose between multiple top-level packages. This
+# list GROWS one entry per build phase as each sub-package lands:
+#   P1 core · P2 probes · P3 cli · P4 mcp_server · P5 hooks · P6 ui
+# (the MCP sub-package is `mcp_server`, never `mcp`, to avoid shadowing the
+# `mcp` SDK import; the mcp SDK dep is added to [project.dependencies] in P4.)
+[tool.setuptools]
+packages = ["core", "probes", "cli", "mcp_server", "hooks", "ui"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7",
+    "pytest-cov>=4",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[tool.coverage.run]
+# The rich Live render loop (ui/tui.py) is presentation / event-loop code
+# exercised by visual review, not unit tests; its testable logic is extracted
+# into ui/render.py + core/* (100% covered). Same reasoned, greppable omit as
+# mcp-manager's ui/app.py — NOT a threshold change. All non-render logic
+# (core, cli, mcp_server, hooks, probes) must still hit 100% line+branch.
+omit = [
+    "ui/tui.py",
+]
+
+[tool.basedpyright]
+# The gate runs `basedpyright <packages>` at STANDARD mode (see
+# .github/workflows/quality.yml). Pinned here so the gate is reproducible and
+# does not inherit basedpyright's stricter config-less default. Only package
+# SOURCE is checked; tests are intentionally looser.
+typeCheckingMode = "standard"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7",
+    "pytest-cov>=4",
+]
