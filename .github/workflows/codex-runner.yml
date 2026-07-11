@@ -289,21 +289,35 @@ jobs:
             || GH_TOKEN="$RUNNER_PAT" gh pr create --repo "$TARGET_REPO" --head "$BRANCH" ${BASE_BRANCH:+--base "$BASE_BRANCH"} --draft \
                  --title "Codex: automated change" --body-file "$RUNNER_TEMP/pr-body.md"
 
-      - name: Cleanup (always)
-        if: always()
-        run: |
-          rm -rf "$CODEX_HOME" "$HOME/.agents/skills" "$RUNNER_TEMP/codex-last.txt" 2>/dev/null || true
-
       # --- Token-refresh write-back (Wave 2 prerequisite; OFF until CODEX_SECRETS_PAT exists) --------
       # Codex rotates its refresh token on renewal; a scheduled fleet sweep silently dies ~8 days after
       # the secret was captured unless the refreshed auth.json is stored back. Enable ONLY after adding a
       # SEPARATE CODEX_SECRETS_PAT with **Secrets: write on THIS repo only** (never the RUNNER_PAT).
       #
+      # SAFETY (why this shape — do not "simplify" back):
+      #  - MUST stay BEFORE "Cleanup (always)": Cleanup does `rm -rf "$CODEX_HOME"`, so a write-back
+      #    placed AFTER it would read a just-deleted auth.json -> empty body -> BLANK the secret.
+      #  - `[ -s "$CODEX_HOME/auth.json" ]` guard: a missing/empty file exits 0 (no-op) and can NEVER
+      #    overwrite the good secret with nothing.
+      #  - stdin redirect (`< auth.json`), NOT `--body "$(cat …)"`: streams the file directly; no
+      #    command-substitution that could yield an empty --body or expose the token on the arg list.
+      #  - `$GITHUB_REPOSITORY` env var (not a `${{ github.repository }}` splice) keeps the value out
+      #    of the rendered shell line.
+      #  - `if: always()` so the refreshed token is captured even when codex/guard/PR steps failed;
+      #    the in-step `[ -n "$GH_TOKEN" ]` guard makes it a no-op until the PAT exists (opt-in).
+      #  - `continue-on-error: true` so a write-back failure never fails the whole run.
+      #
       # - name: Persist refreshed auth.json back to the secret
       #   if: always()
+      #   continue-on-error: true
       #   env:
-      #     SECRETS_PAT: ${{ secrets.CODEX_SECRETS_PAT }}
+      #     GH_TOKEN: ${{ secrets.CODEX_SECRETS_PAT }}
       #   run: |
-      #     [ -n "$SECRETS_PAT" ] || exit 0
-      #     GH_TOKEN="$SECRETS_PAT" gh secret set CODEX_AUTH_JSON \
-      #       --repo "${{ github.repository }}" --body "$(cat "$CODEX_HOME/auth.json")"
+      #     [ -n "$GH_TOKEN" ] || exit 0                    # opt-in: no CODEX_SECRETS_PAT -> no-op
+      #     [ -s "$CODEX_HOME/auth.json" ] || exit 0        # never blank the secret from a missing/empty file
+      #     gh secret set CODEX_AUTH_JSON --repo "$GITHUB_REPOSITORY" < "$CODEX_HOME/auth.json"
+
+      - name: Cleanup (always)
+        if: always()
+        run: |
+          rm -rf "$CODEX_HOME" "$HOME/.agents/skills" "$RUNNER_TEMP/codex-last.txt" 2>/dev/null || true
