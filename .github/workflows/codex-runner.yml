@@ -70,7 +70,7 @@ jobs:
             echo 'cli_auth_credentials_store = "file"'
             printf 'model = "%s"\n' "$MODEL"
             echo 'approval_policy = "never"'
-            echo 'sandbox_mode = "workspace-write"'
+            echo 'sandbox_mode = "danger-full-access"'
           } > "$CODEX_HOME/config.toml"
           echo "CODEX_HOME=$CODEX_HOME" >> "$GITHUB_ENV"
 
@@ -91,10 +91,10 @@ jobs:
           TASK: ${{ inputs.task }}
         run: |
           # TASK is passed as an argv element, never spliced into the shell.
-          # NOTE: --full-auto + the config.toml (approval_policy=never,
-          # sandbox_mode=workspace-write) make this non-interactive. If your Codex
-          # version rejects the flag or model slug, the first run says so — adjust here.
-          codex exec --full-auto "$TASK"
+          # The GitHub runner is already ephemeral + isolated, and Codex's bubblewrap
+          # sandbox is DENIED write access there (verified) — so bypass the internal
+          # sandbox + approvals, matching the owner's local danger-full-access setup.
+          codex exec --dangerously-bypass-approvals-and-sandbox "$TASK"
 
       - name: Open a PR if Codex made changes
         working-directory: work
