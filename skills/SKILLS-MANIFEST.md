@@ -87,6 +87,7 @@
 | mechanistic-ddi-pipeline | custom | Use to produce a mechanistic drug-drug-interaction verdict by combining ToolUniverse CYP/DDI knowledge with Schrodinger structure and docking evidence |
 | mise | custom | Use when managing dev tool or language runtime versions with mise (mise-en-place) — global vs per-project pins, per-directory env vars, the task runner, non-language CLI installs, or Windows PowerShell setup |
 | multi-agent-quickstart | custom | Use when learning how to choose between the Codex multi-agent orchestration tools |
+| multi-ai-mingle | custom | Use when the user wants seamless LOCAL collaboration between Claude Code and OpenAI Codex on one machine — fan out parallel Codex threads from Claude via the official codex mcp-server, plus a live symmetric chat + file-lease channel via mcp_agent_mail (replaces AgentBridge). Covers mount, the shared agent-mail http channel, verify-then-commit, and the real API sequence (ensure_project + codenames + tokens + contacts) |
 | netlify-deploy | built-in | Deploy web projects to Netlify using the Netlify CLI |
 | notion-knowledge-capture | built-in | Capture conversations and decisions into structured Notion pages |
 | notion-meeting-intelligence | built-in | Prepare meeting materials with Notion context and Codex research |
