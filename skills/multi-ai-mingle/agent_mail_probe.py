@@ -21,6 +21,7 @@ Prints terminal-state lines: SUCCESS:<id> / FAILED:<id> <reason>. Exit code = fa
 Env in: AM_URL, AM_TOKEN (server bearer, may be empty), AM_PROJECT (abs path key), AM_MARK.
 Run from inside the mcp_agent_mail repo via `uv run python agent_mail_probe.py`.
 """
+
 import os
 import re
 import sys
@@ -84,7 +85,12 @@ async def _register(s, role):
     """Register a stand-in agent for `role`; return (assigned_name, registration_token)."""
     r = await s.call_tool(
         "register_agent",
-        {"project_key": AM_PROJECT, "program": role, "model": "probe", "format": "json"},
+        {
+            "project_key": AM_PROJECT,
+            "program": role,
+            "model": "probe",
+            "format": "json",
+        },
     )
     if _is_error(r):
         bad(f"register_{role}", _text(r)[:180])
@@ -95,7 +101,10 @@ async def _register(s, role):
     if not name:
         bad(f"register_{role}", f"no assigned name in result: {txt[:150]}")
         return None, None
-    print(f"note: role={role} -> agent={name} token={'yes' if tok else 'NONE'}", file=sys.stderr)
+    print(
+        f"note: role={role} -> agent={name} token={'yes' if tok else 'NONE'}",
+        file=sys.stderr,
+    )
     return name, tok
 
 
@@ -105,14 +114,26 @@ async def _establish_contact(s, frm, frm_tok, to, to_tok):
     try:
         await s.call_tool(
             "request_contact",
-            {"project_key": AM_PROJECT, "from_agent": frm, "to_agent": to, "reason": "probe", "registration_token": frm_tok},
+            {
+                "project_key": AM_PROJECT,
+                "from_agent": frm,
+                "to_agent": to,
+                "reason": "probe",
+                "registration_token": frm_tok,
+            },
         )
     except Exception as e:  # noqa: BLE001
         print(f"note: request_contact({frm}->{to}) {e!r}", file=sys.stderr)
     try:
         await s.call_tool(
             "respond_contact",
-            {"project_key": AM_PROJECT, "to_agent": to, "from_agent": frm, "accept": True, "registration_token": to_tok},
+            {
+                "project_key": AM_PROJECT,
+                "to_agent": to,
+                "from_agent": frm,
+                "accept": True,
+                "registration_token": to_tok,
+            },
         )
     except Exception as e:  # noqa: BLE001
         print(f"note: respond_contact({to} accepts {frm}) {e!r}", file=sys.stderr)
@@ -179,15 +200,22 @@ async def main():
                 agent_a, tok_a = await _register(s, "claude")
                 agent_b, tok_b = await _register(s, "codex")
                 if not (agent_a and agent_b):
-                    bad("registration", "could not register two distinct agents; skipping messaging")
+                    bad(
+                        "registration",
+                        "could not register two distinct agents; skipping messaging",
+                    )
                     return FAILURES
 
                 # Establish mutual accepted contact both ways before messaging.
                 await _establish_contact(s, agent_a, tok_a, agent_b, tok_b)
                 await _establish_contact(s, agent_b, tok_b, agent_a, tok_a)
 
-                await _send_and_check(s, "symmetric_a_to_b", agent_a, tok_a, agent_b, tok_b)
-                await _send_and_check(s, "symmetric_b_to_a", agent_b, tok_b, agent_a, tok_a)
+                await _send_and_check(
+                    s, "symmetric_a_to_b", agent_a, tok_a, agent_b, tok_b
+                )
+                await _send_and_check(
+                    s, "symmetric_b_to_a", agent_b, tok_b, agent_a, tok_a
+                )
 
                 lease_path = f"probe/{AM_MARK}.txt"
                 try:
@@ -213,9 +241,15 @@ async def main():
                         },
                     )
                     if _is_error(acq):
-                        bad("file_lease_roundtrip", f"acquire errored: {_text(acq)[:200]}")
+                        bad(
+                            "file_lease_roundtrip",
+                            f"acquire errored: {_text(acq)[:200]}",
+                        )
                     elif _is_error(rel):
-                        bad("file_lease_roundtrip", f"release errored: {_text(rel)[:200]}")
+                        bad(
+                            "file_lease_roundtrip",
+                            f"release errored: {_text(rel)[:200]}",
+                        )
                     else:
                         ok("file_lease_roundtrip")
                 except Exception as e:  # noqa: BLE001
