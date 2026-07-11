@@ -1,0 +1,309 @@
+name: Codex Runner
+
+# Runs OpenAI Codex non-interactively against ANY of your repos, on your ChatGPT
+# subscription (auth.json), MIRRORING your local Codex setup (harness hooks +
+# curated MCPs + skills + AGENTS.md + max effort), and opens a DRAFT PR.
+#
+# SECURITY (deliberate — do not weaken):
+#  - workflow_dispatch ONLY: only users with write access to THIS repo can start it,
+#    so no fork/outside actor can reach the auth.json secret. NEVER add
+#    pull_request_target or any fork-triggerable event.
+#  - Inputs pass through env:, never spliced into a shell line (no code-injection).
+#  - Propose-only draft PR, never merge. Guardrails cap the blast radius.
+#  - Egress is AUDITED (not blocked) by harden-runner so research MCPs / web_search
+#    keep working (owner choice); a credential exfil would be visible in the run's
+#    egress log and the token can be revoked. To fully firewall, switch egress-policy
+#    to `block` with an allowed-endpoints list. See docs/codex-fleet-expansion-decision-queue.md.
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_repo:
+        description: "Target repo as owner/name (e.g. Prekzursil/momentstudio)"
+        required: true
+        type: string
+      task:
+        description: "What Codex should do (the codex exec prompt)"
+        required: true
+        type: string
+      base_branch:
+        description: "Branch to start from AND open the PR against (blank = default branch)"
+        required: false
+        type: string
+      model:
+        description: "Model slug (adjust if your account rejects the default)"
+        required: false
+        default: "gpt-5.6-sol"
+        type: string
+      effort:
+        description: "Reasoning effort (minimal|low|medium|high|xhigh|max|ultra)"
+        required: false
+        default: "max"
+        type: string
+      max_changed_files:
+        description: "Abort (no PR) if Codex changes more files than this"
+        required: false
+        default: "40"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codex-runner
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Harden runner (egress audit — monitors outbound; does not block research)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Preflight — required secrets present
+        env:
+          CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
+          CODEX_RUNNER_PAT: ${{ secrets.CODEX_RUNNER_PAT }}
+        run: |
+          [ -n "$CODEX_AUTH_JSON" ] || { echo "::error::Set the CODEX_AUTH_JSON secret (contents of ~/.codex/auth.json)."; exit 1; }
+          [ -n "$CODEX_RUNNER_PAT" ] || { echo "::error::Set the CODEX_RUNNER_PAT secret (fine-grained PAT, contents+PR write on target repos)."; exit 1; }
+
+      - name: Validate inputs (effort allowlist + model shape)
+        env:
+          MODEL: ${{ inputs.model }}
+          EFFORT: ${{ inputs.effort }}
+          MAX_FILES: ${{ inputs.max_changed_files }}
+        run: |
+          case "$EFFORT" in minimal|low|medium|high|xhigh|max|ultra) ;; *) echo "::error::invalid effort '$EFFORT'"; exit 1 ;; esac
+          printf '%s' "$MODEL" | grep -qE '^[A-Za-z0-9][A-Za-z0-9._-]*$' || { echo "::error::invalid model slug"; exit 1; }
+          printf '%s' "$MAX_FILES" | grep -qE '^[0-9]+$' || { echo "::error::max_changed_files must be an integer"; exit 1; }
+
+      - name: Checkout this runner repo (for the ci/ parity payload)
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          path: runner
+          persist-credentials: false
+
+      - name: Set up Node + Python
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.11"
+      - name: Install Codex CLI (pinned)
+        run: npm install -g @openai/codex@0.144.1
+
+      - name: Reconstruct auth + write the PARITY config (max effort + curated MCPs)
+        env:
+          CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
+          MODEL: ${{ inputs.model }}
+          EFFORT: ${{ inputs.effort }}
+          HAVE_CONTEXT7: ${{ secrets.CONTEXT7_API_KEY != '' }}
+          HAVE_TAVILY: ${{ secrets.TAVILY_API_KEY != '' }}
+          HAVE_FIRECRAWL: ${{ secrets.FIRECRAWL_API_KEY != '' }}
+        run: |
+          CODEX_HOME="$RUNNER_TEMP/codex-home"
+          mkdir -p "$CODEX_HOME"; chmod 700 "$CODEX_HOME"
+          printf '%s' "$CODEX_AUTH_JSON" > "$CODEX_HOME/auth.json"
+          chmod 600 "$CODEX_HOME/auth.json"
+
+          {
+            echo 'cli_auth_credentials_store = "file"'
+            printf 'model = "%s"\n' "$MODEL"
+            printf 'model_reasoning_effort = "%s"\n' "$EFFORT"
+            echo 'model_verbosity = "high"'
+            echo 'approval_policy = "never"'
+            echo 'sandbox_mode = "danger-full-access"'
+            echo 'web_search = "live"'
+            echo ''
+            echo '[shell_environment_policy]'
+            echo 'inherit = "all"'
+          } > "$CODEX_HOME/config.toml"
+
+          # Curated MCP set: no-secret servers always on; secret-bearing web MCPs only
+          # when their key is present (so a missing key never leaves a failing MCP).
+          # The 93-tool GitHub MCP is omitted (the runner has `gh` CLI); basic-memory
+          # + RE/GUI cannot run headless. Secrets reach the codex step's env below.
+          {
+            echo ''
+            echo '[mcp_servers.deepwiki]'
+            echo 'url = "https://mcp.deepwiki.com/mcp"'
+            echo 'startup_timeout_sec = 30'
+            echo ''
+            echo '[mcp_servers.exa]'
+            echo 'url = "https://mcp.exa.ai/mcp"'
+            echo 'startup_timeout_sec = 30'
+            echo ''
+            echo '[mcp_servers.repomix]'
+            echo 'command = "npx"'
+            echo 'args = ["-y", "repomix", "--mcp"]'
+            echo 'startup_timeout_sec = 60'
+          } >> "$CODEX_HOME/config.toml"
+
+          if [ "$HAVE_CONTEXT7" = "true" ]; then
+            printf '\n[mcp_servers.context7]\ncommand = "npx"\nargs = ["-y", "@upstash/context7-mcp"]\nstartup_timeout_sec = 60\nenv_vars = ["CONTEXT7_API_KEY"]\n' >> "$CODEX_HOME/config.toml"
+          fi
+          if [ "$HAVE_TAVILY" = "true" ]; then
+            printf '\n[mcp_servers.tavily]\ncommand = "npx"\nargs = ["-y", "tavily-mcp@0.2.15"]\nstartup_timeout_sec = 60\nenv_vars = ["TAVILY_API_KEY"]\n' >> "$CODEX_HOME/config.toml"
+          fi
+          if [ "$HAVE_FIRECRAWL" = "true" ]; then
+            printf '\n[mcp_servers.firecrawl]\ncommand = "npx"\nargs = ["-y", "firecrawl-mcp@latest"]\nstartup_timeout_sec = 60\nenv_vars = ["FIRECRAWL_API_KEY"]\n' >> "$CODEX_HOME/config.toml"
+          fi
+
+          echo "CODEX_HOME=$CODEX_HOME" >> "$GITHUB_ENV"
+
+      - name: Install the parity payload (AGENTS.md + curated skills + harness hooks)
+        run: |
+          cp "$GITHUB_WORKSPACE/runner/ci/AGENTS.ci.md" "$CODEX_HOME/AGENTS.md"
+          mkdir -p "$HOME/.agents/skills"
+          cp -r "$GITHUB_WORKSPACE"/runner/ci/skills-allowlist/* "$HOME/.agents/skills/" 2>/dev/null || true
+          echo "skills installed: $(find "$HOME/.agents/skills" -mindepth 1 -maxdepth 1 -type d | wc -l)"
+
+          # Harness hooks -> the vendored pure-stdlib dispatcher. HARNESS_CREDENTIAL_GUARD=1
+          # turns the credential-file-read block ON for CI (it is OFF locally by owner
+          # directive). --dangerously-bypass-hook-trust (on codex exec) trusts our hooks;
+          # the target's own .codex/ is removed before exec so only OUR hooks are trusted.
+          HARNESS_STATE="$RUNNER_TEMP/harness-state"; mkdir -p "$HARNESS_STATE"
+          {
+            echo "AGENT_HARNESS_STATE_ROOT=$HARNESS_STATE"
+            echo "HARNESS_CI=1"
+            echo "HARNESS_CREDENTIAL_GUARD=1"
+          } >> "$GITHUB_ENV"
+          python "$GITHUB_WORKSPACE/runner/ci/gen_hooks.py"
+
+      - name: Checkout target repo (via PAT) + scrub token + strip repo-local agent config
+        env:
+          RUNNER_PAT: ${{ secrets.CODEX_RUNNER_PAT }}
+          TARGET_REPO: ${{ inputs.target_repo }}
+          BASE_BRANCH: ${{ inputs.base_branch }}
+        run: |
+          git config --global user.name "codex-runner[bot]"
+          git config --global user.email "codex-runner@users.noreply.github.com"
+          git clone --depth 1 ${BASE_BRANCH:+--branch "$BASE_BRANCH"} \
+            "https://x-access-token:${RUNNER_PAT}@github.com/${TARGET_REPO}.git" work
+          # Remove the embedded PAT so the danger-full-access Codex step can never read it.
+          git -C work remote set-url origin "https://github.com/${TARGET_REPO}.git"
+          # Defuse the CVE-2026-47751 class: a target-shipped .codex/ (config/hooks/MCP)
+          # must not be auto-trusted by --dangerously-bypass-hook-trust.
+          rm -rf work/.codex 2>/dev/null || true
+          echo "ORIG_HEAD=$(git -C work rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Run Codex on the target repo (parity)
+        working-directory: work
+        env:
+          TASK: ${{ inputs.task }}
+          CONTEXT7_API_KEY: ${{ secrets.CONTEXT7_API_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
+        run: |
+          # TASK is an argv element, never spliced into the shell line. -o captures the
+          # final message so we can log the outcome (a non-zero exit fails the run).
+          set +e
+          codex exec --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust \
+            -o "$RUNNER_TEMP/codex-last.txt" "$TASK"
+          rc=$?
+          set -e
+          echo "codex exit code: $rc"
+          if [ "$rc" -ne 0 ]; then echo "::error::codex exec failed (exit $rc)."; exit "$rc"; fi
+          # Normalize: if Codex committed its own work, un-commit it back to the working
+          # tree so the single guard/PR path below handles committed + uncommitted alike.
+          git reset --soft "$ORIG_HEAD" 2>/dev/null || true
+          echo "---- Codex final message ----"
+          sed 's/^/  /' "$RUNNER_TEMP/codex-last.txt" 2>/dev/null | tail -30 || true
+
+      - name: Guardrails — diff-cap + forbidden-paths (abort without a PR if tripped)
+        id: guard
+        working-directory: work
+        env:
+          MAX_FILES: ${{ inputs.max_changed_files }}
+        run: |
+          git add -A
+          CHANGED="$(git diff --cached --name-only)"   # git-tracked, unquoted paths
+          if [ -z "$CHANGED" ]; then
+            echo "no_changes=1" >> "$GITHUB_OUTPUT"
+            echo "Codex made no changes — nothing to PR."; exit 0
+          fi
+          N="$(printf '%s\n' "$CHANGED" | grep -c . || true)"
+          echo "changed files: $N (cap: $MAX_FILES)"
+          if [ "$N" -gt "$MAX_FILES" ]; then
+            echo "::error::Codex changed $N files (> cap $MAX_FILES). Aborting without a PR."
+            git --no-pager diff --cached --stat | tail -40
+            exit 1
+          fi
+          if printf '%s\n' "$CHANGED" | grep -qiE '(^|/)\.github/workflows/|\.pem($|/)|(^|/)\.env|(^|/)id_(rsa|ed25519|ecdsa|dsa)|(^|/)\.git/'; then
+            echo "::error::Change touches a forbidden path (.github/workflows, .env, key, or .git). Aborting."
+            printf '%s\n' "$CHANGED" | grep -iE '(^|/)\.github/workflows/|\.pem($|/)|(^|/)\.env|(^|/)id_(rsa|ed25519|ecdsa|dsa)|(^|/)\.git/'
+            exit 1
+          fi
+          echo "no_changes=0" >> "$GITHUB_OUTPUT"
+
+      - name: Secret-scan the diff (gitleaks, checksum-pinned) before opening a PR
+        if: steps.guard.outputs.no_changes == '0'
+        working-directory: work
+        run: |
+          V=8.21.2
+          curl -fsSL --proto '=https' -o "/tmp/gitleaks_${V}_linux_x64.tar.gz" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${V}/gitleaks_${V}_linux_x64.tar.gz"
+          curl -fsSL --proto '=https' -o /tmp/gl-checksums.txt \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${V}/gitleaks_${V}_checksums.txt"
+          ( cd /tmp && grep "gitleaks_${V}_linux_x64.tar.gz" gl-checksums.txt | sha256sum -c - ) \
+            || { echo "::error::gitleaks tarball checksum mismatch — aborting."; exit 1; }
+          tar -xzf "/tmp/gitleaks_${V}_linux_x64.tar.gz" -C /tmp gitleaks
+          if ! /tmp/gitleaks protect --staged --redact --no-banner; then
+            echo "::error::gitleaks found a secret in the proposed diff. Aborting — no PR opened."
+            exit 1
+          fi
+
+      - name: Open a DRAFT PR
+        if: steps.guard.outputs.no_changes == '0'
+        working-directory: work
+        env:
+          RUNNER_PAT: ${{ secrets.CODEX_RUNNER_PAT }}
+          TARGET_REPO: ${{ inputs.target_repo }}
+          BASE_BRANCH: ${{ inputs.base_branch }}
+          TASK: ${{ inputs.task }}
+        run: |
+          BRANCH="codex/$(date -u +%Y%m%d-%H%M%S)"
+          git checkout -b "$BRANCH"
+          git add -A                              # self-contained: stage regardless of prior steps
+          git commit -m "codex: automated change" -m "Task: $TASK"
+          # Re-supply the token inline only for the push (it is NOT in .git/config).
+          git push "https://x-access-token:${RUNNER_PAT}@github.com/${TARGET_REPO}.git" "$BRANCH"
+          {
+            echo "Opened by the **codex-runner** (agent-skills-toolchain) — autonomous, propose-only."
+            echo ""
+            echo "**Task:** $TASK"
+            echo ""
+            echo "Review carefully before merging. Never auto-merge to payment/auth or protected branches."
+            echo "Parity note: harness+skills+effort mirror local; basic-memory + RE/GUI MCPs are absent in CI."
+          } > "$RUNNER_TEMP/pr-body.md"
+          GH_TOKEN="$RUNNER_PAT" gh pr create \
+            --repo "$TARGET_REPO" --head "$BRANCH" ${BASE_BRANCH:+--base "$BASE_BRANCH"} --draft \
+            --title "Codex: automated change" \
+            --body-file "$RUNNER_TEMP/pr-body.md" \
+            --label "codex-runner" --assignee "Prekzursil" \
+            || GH_TOKEN="$RUNNER_PAT" gh pr create --repo "$TARGET_REPO" --head "$BRANCH" ${BASE_BRANCH:+--base "$BASE_BRANCH"} --draft \
+                 --title "Codex: automated change" --body-file "$RUNNER_TEMP/pr-body.md"
+
+      - name: Cleanup (always)
+        if: always()
+        run: |
+          rm -rf "$CODEX_HOME" "$HOME/.agents/skills" "$RUNNER_TEMP/codex-last.txt" 2>/dev/null || true
+
+      # --- Token-refresh write-back (Wave 2 prerequisite; OFF until CODEX_SECRETS_PAT exists) --------
+      # Codex rotates its refresh token on renewal; a scheduled fleet sweep silently dies ~8 days after
+      # the secret was captured unless the refreshed auth.json is stored back. Enable ONLY after adding a
+      # SEPARATE CODEX_SECRETS_PAT with **Secrets: write on THIS repo only** (never the RUNNER_PAT).
+      #
+      # - name: Persist refreshed auth.json back to the secret
+      #   if: always()
+      #   env:
+      #     SECRETS_PAT: ${{ secrets.CODEX_SECRETS_PAT }}
+      #   run: |
+      #     [ -n "$SECRETS_PAT" ] || exit 0
+      #     GH_TOKEN="$SECRETS_PAT" gh secret set CODEX_AUTH_JSON \
+      #       --repo "${{ github.repository }}" --body "$(cat "$CODEX_HOME/auth.json")"
