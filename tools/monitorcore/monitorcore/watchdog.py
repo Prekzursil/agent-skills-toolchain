@@ -9,8 +9,9 @@ optional).
 F4 injectable-runner refactor: :func:`alert` (a PowerShell toast) and :func:`maybe_kill`
 (``taskkill`` on the ``claude.exe`` tree) take an injected ``runner`` (default
 ``subprocess.run``) so tests drive every branch with a FAKE runner — no real toast, no real
-``taskkill`` that would kill the live ``claude.exe``. The continuous poll loop is the sole
-irreducible, interactive boundary and is the only ``# pragma: no cover`` here.
+``taskkill`` that would kill the live ``claude.exe``. The continuous poll loop is split into a
+pure per-iteration :func:`_watch_step` (fully tested) and a thin ``while`` shell whose ``sleep``
+seam lets tests drive its exit paths — so nothing here needs a coverage pragma.
 
 Usage:
   python -m monitorcore.watchdog                    # autodetect newest subagents dir, alert
@@ -121,7 +122,38 @@ def _build_parser() -> argparse.ArgumentParser:
     return ap
 
 
-def _watch_forever(  # pragma: no cover -- interactive continuous poll loop (no real terminal state in tests)
+def _watch_step(
+    d: str,
+    stale_s: float,
+    stale_min: float,
+    alerted_for: str | None,
+    *,
+    kill: bool,
+    runner,
+) -> str | None:
+    """Run one poll iteration; return the updated throttle state.
+
+    ``alerted_for`` is the transcript path already alerted for. A still-frozen poll on the SAME
+    transcript is throttled (no repeat toast, state unchanged); a fresh freeze fires one alert
+    (and an optional ``--kill``) and latches; recovery clears the latch. Pure apart from the
+    injected ``runner`` — so tests drive every branch without a real toast/``taskkill``.
+    """
+    frozen, p, age = check_once(d, stale_s)
+    if frozen and p != alerted_for:
+        alert(
+            f"{os.path.basename(p or '?')} idle {age / 60:.1f} min (> {stale_min}). "
+            f"Send any message to revive the SSE stream.",
+            runner=runner,
+        )
+        if kill:
+            maybe_kill(p, runner=runner)
+        return p
+    if not frozen:
+        return None
+    return alerted_for
+
+
+def _watch_forever(
     d: str,
     stale_s: float,
     stale_min: float,
@@ -131,21 +163,13 @@ def _watch_forever(  # pragma: no cover -- interactive continuous poll loop (no 
     runner,
     sleep,
 ) -> int:
+    """Poll :func:`_watch_step` until interrupted; the ``sleep`` seam lets tests drive exits."""
     alerted_for = None  # throttle: one alert per freeze episode
     while True:
         try:
-            frozen, p, age = check_once(d, stale_s)
-            if frozen and p != alerted_for:
-                alert(
-                    f"{os.path.basename(p or '?')} idle {age / 60:.1f} min (> {stale_min}). "
-                    f"Send any message to revive the SSE stream.",
-                    runner=runner,
-                )
-                if kill:
-                    maybe_kill(p, runner=runner)
-                alerted_for = p
-            elif not frozen:
-                alerted_for = None
+            alerted_for = _watch_step(
+                d, stale_s, stale_min, alerted_for, kill=kill, runner=runner
+            )
             sleep(poll)
         except KeyboardInterrupt:
             print("\n[WATCHDOG] stopped.")

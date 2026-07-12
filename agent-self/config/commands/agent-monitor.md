@@ -33,8 +33,12 @@ python -u -m monitorcore.agent_tail <path-to-agent-*.jsonl> --backfill 8
 Both surfaces are **100% read-only** — they only read each subagent's own JSONL transcript, so
 they never disturb the monitored session.
 
-- Status (`running` / `working` / `done` / `stalled`) is derived from the TRANSCRIPT
-  (`monitorcore.agent_state.agent_status`), not a fragile mtime cutoff.
+- Per-agent status: the discovery table's `running` flag is a recent-activity (mtime) signal,
+  and the cockpit shows a coarse `running` / `done` / `error` / `idle` state. A finer
+  transcript-derived deriver (`monitorcore.agent_state.agent_status` →
+  `running` / `working` / `done` / `stalled`) is ported and unit-tested but not yet wired to a
+  launchable surface — it feeds a live status display once the `AgentSource` monitor adapter
+  lands (a later PR, which also adds `working` to the `Snapshot.state` enum).
 - Freeze detection for long autonomous loops: `python -m monitorcore.watchdog` (alert-first;
   `--kill` optional).
 

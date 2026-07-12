@@ -3,8 +3,9 @@
 Every subprocess boundary (the PowerShell toast in ``alert``, the ``taskkill`` in
 ``maybe_kill``) is driven by a FAKE ``runner`` that records argv and can raise — so NO real
 toast pops and NO real ``claude.exe`` is killed. Frozen/fresh states are forced by stamping a
-fixture transcript's mtime. The continuous ``_watch_forever`` loop is monkeypatched out so the
-``--once`` and loop dispatch branches of ``main`` are both covered without an infinite loop.
+fixture transcript's mtime. ``_watch_forever`` is tested directly by injecting a ``sleep`` seam
+that raises to drive its exit paths, and is monkeypatched out of the ``main`` dispatch test so
+the ``--once`` vs loop routing is covered without an infinite loop.
 """
 
 from __future__ import annotations
@@ -115,6 +116,110 @@ def test_check_once_fresh(tmp_path):
     _make_agent(tmp_path, mtime=time.time())
     frozen, _p, age = wd.check_once(str(tmp_path), stale_s=10_000.0)
     assert frozen is False and age < 10_000.0
+
+
+# ───────────────────────── _watch_step ─────────────────────────
+def test_watch_step_fresh_clears_latch(tmp_path):
+    import time
+
+    _make_agent(tmp_path, mtime=time.time())  # fresh -> not frozen
+    runner = FakeRunner()
+    # a previous episode had latched "/old"; recovery must clear it and NOT re-alert
+    state = wd._watch_step(
+        str(tmp_path), 10_000.0, 25.0, "/old", kill=False, runner=runner
+    )
+    assert state is None
+    assert runner.calls == []
+
+
+def test_watch_step_frozen_new_alerts_and_latches(tmp_path):
+    _make_agent(tmp_path, mtime=1000)  # ancient -> frozen
+    frozen, p, _age = wd.check_once(str(tmp_path), 100.0)
+    assert frozen
+    runner = FakeRunner()
+    state = wd._watch_step(str(tmp_path), 100.0, 25.0, None, kill=False, runner=runner)
+    assert state == p  # latched onto the frozen transcript
+    argvs = [c[0] for c in runner.calls]
+    assert wd._TOAST_ARGV in argvs  # alert fired
+    assert ["taskkill", "/IM", "claude.exe", "/T", "/F"] not in argvs  # kill=False
+
+
+def test_watch_step_frozen_same_is_throttled(tmp_path):
+    _make_agent(tmp_path, mtime=1000)
+    frozen, p, _age = wd.check_once(str(tmp_path), 100.0)
+    assert frozen
+    runner = FakeRunner()
+    # already alerted for this exact transcript -> throttled, state unchanged, no new toast
+    state = wd._watch_step(str(tmp_path), 100.0, 25.0, p, kill=False, runner=runner)
+    assert state == p
+    assert runner.calls == []
+
+
+def test_watch_step_frozen_with_kill(tmp_path):
+    _make_agent(tmp_path, mtime=1000)
+    runner = FakeRunner()
+    state = wd._watch_step(str(tmp_path), 100.0, 25.0, None, kill=True, runner=runner)
+    assert state is not None
+    argvs = [c[0] for c in runner.calls]
+    assert wd._TOAST_ARGV in argvs
+    assert ["taskkill", "/IM", "claude.exe", "/T", "/F"] in argvs
+
+
+# ───────────────────────── _watch_forever ─────────────────────────
+def test_watch_forever_stops_on_keyboardinterrupt(tmp_path, capsys):
+    _make_agent(tmp_path, mtime=1000)  # frozen -> alerts once before the interrupt
+    runner = FakeRunner()
+
+    def fake_sleep(_secs):
+        raise KeyboardInterrupt
+
+    rc = wd._watch_forever(
+        str(tmp_path),
+        100.0,
+        25.0,
+        kill=False,
+        poll=1.0,
+        runner=runner,
+        sleep=fake_sleep,
+    )
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "WATCHDOG FREEZE ALERT" in out  # the loop body ran _watch_step -> alert
+    assert "[WATCHDOG] stopped." in out
+
+
+def test_watch_forever_recovers_from_exception(tmp_path, monkeypatch, capsys):
+    runner = FakeRunner()
+    checks = {"n": 0}
+
+    def flaky_check_once(_d, _stale):
+        checks["n"] += 1
+        if checks["n"] == 1:
+            raise RuntimeError("transient glob error")
+        return (False, None, 0.0)  # 2nd iteration: fresh no-op
+
+    monkeypatch.setattr(wd, "check_once", flaky_check_once)
+
+    sleeps = {"n": 0}
+
+    def counting_sleep(_secs):
+        # sleep #1 runs inside the exception handler; sleep #2 ends the clean 2nd
+        # iteration and is caught by the KeyboardInterrupt branch to exit.
+        sleeps["n"] += 1
+        if sleeps["n"] >= 2:
+            raise KeyboardInterrupt
+
+    rc = wd._watch_forever(
+        str(tmp_path),
+        100.0,
+        25.0,
+        kill=False,
+        poll=1.0,
+        runner=runner,
+        sleep=counting_sleep,
+    )
+    assert rc == 0
+    assert "non-fatal: transient glob error" in capsys.readouterr().out
 
 
 # ───────────────────────── main ─────────────────────────
