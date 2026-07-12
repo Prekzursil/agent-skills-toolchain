@@ -15,7 +15,21 @@ import os
 from dataclasses import dataclass, field
 
 import workflow_run as wr
+from monitorcore.report_doc import ReportDoc, Section
 from workflow_run import TimelineEvent
+
+# Provenance keys surfaced (in order) as front-matter / HTML head meta / a header list.
+_META_KEYS = (
+    "wf_id",
+    "name",
+    "session",
+    "scope",
+    "redaction_mode",
+    "generated_at",
+    "schema_version",
+)
+# Rollup counts carried to the generic renderers (each formats its own order/style).
+_ROLLUP_KEYS = ("running", "done", "error", "idle", "total", "tokens")
 
 
 # ───────────────────────── data model ─────────────────────────
@@ -168,6 +182,7 @@ def collect_run(
     projects: str = wr.DEFAULT_PROJECTS,
     scope: str = "run",
     agents: list[str] | None = None,
+    generated_at: str | None = None,
 ) -> ExportModel:
     """Build a fully-materialized ``ExportModel`` for ``wf_id``.
 
@@ -176,6 +191,10 @@ def collect_run(
     matching a requested label are included. An unknown label raises ``ValueError`` (listing the
     available labels); a missing ``wf_id`` raises ``LookupError`` (with near-matches). Reuses the
     shared ``workflow_run`` parser; does NOT touch ``fleet_rollup`` or ``agent_prompt``.
+
+    ``generated_at`` is INJECTABLE: production leaves it ``None`` (stamped as the current UTC
+    instant), tests pin it to a fixed ISO string so the rendered export is deterministic
+    (the golden-output harness depends on this).
     """
     run = _find_run(wf_id, projects)
     wf_dir = run.subagents_dir()
@@ -204,7 +223,8 @@ def collect_run(
     phases = _group_phases(exports)
     rollup = _rollup(exports)
 
-    generated_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    if generated_at is None:
+        generated_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
     redaction_mode = "strict"
     provenance = {
         "wf_id": run.wf_id,
@@ -230,4 +250,54 @@ def collect_run(
         session=run.session,
         manifest_path=run.manifest_path,
         provenance=provenance,
+    )
+
+
+# ───────────────────────── ExportModel → generic ReportDoc ─────────────────────────
+def _card(agent: AgentExport) -> Section:
+    """Map one drilled agent onto a generic entity-card ``Section``."""
+    return Section(
+        title=agent.label,
+        anchor=agent.agent_id,
+        card=True,
+        badge=agent.state,
+        model=agent.model,
+        tokens=agent.tokens,
+        tool_calls=agent.tool_calls,
+        attempt=agent.attempt,
+        duration_ms=agent.duration_ms,
+        lead=agent.headline,
+        task=agent.task,
+        output=agent.output,
+        timeline=tuple(agent.timeline),
+    )
+
+
+def export_model(model: ExportModel) -> ReportDoc:
+    """Map a fully-materialized ``ExportModel`` onto the generic ``ReportDoc`` the shared
+    ``monitorcore`` renderers consume.
+
+    Pure and total: phases become group ``Section`` s of agent-card ``Section`` s; provenance
+    and rollup become ordered doc-level metadata; ``generated_at`` is carried through already
+    injected by ``collect_run`` (never re-stamped here), keeping the rendered output
+    deterministic. Redaction/escaping stay in the render path, so the cards carry RAW strings.
+    """
+    blocks = tuple(
+        Section(
+            title=phase.title,
+            anchor=f"phase-{phase.index}",
+            index=phase.index,
+            children=tuple(_card(a) for a in phase.agents),
+        )
+        for phase in model.phases
+    )
+    return ReportDoc(
+        title=model.name,
+        subtitle=model.wf_id,
+        generated_at=model.generated_at,
+        meta=tuple((k, str(model.provenance.get(k, ""))) for k in _META_KEYS),
+        rollup=tuple((k, int(model.rollup.get(k, 0))) for k in _ROLLUP_KEYS),
+        active=model.active,
+        redaction_mode=model.redaction_mode,
+        blocks=blocks,
     )
