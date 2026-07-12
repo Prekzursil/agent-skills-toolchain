@@ -33,7 +33,7 @@ import shutil
 import subprocess
 import tempfile
 
-from .textsafe import strip_ansi
+from monitorcore.textsafe import strip_ansi
 
 __all__ = ["detect_engines", "render_pdf"]
 

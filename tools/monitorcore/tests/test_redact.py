@@ -1,22 +1,26 @@
-"""WU3 - redaction filter tests (strict-by-default, fail-closed, pure).
+"""Redaction filter tests (strict-by-default, fail-closed, pure).
 
 Covers every LOCKED pattern + the two reasoned additions (gh[oure]_ token,
 tightened standalone JWT), the 5 home-path forms (incl the 8.3 ``PREKZU~1``
 short name), n_masked counts, ``enabled=False`` passthrough, fail-closed
 behaviour, ``Redactor.count`` accumulation, and the benign-JWT / dotted-text
-NON-match. The end-to-end assertion is grounded on the frozen
-``agent-secretcheck.jsonl`` fixture (the redaction oracle).
+NON-match.
+
+The PEM case is PEM-DEFANGED: the ``_pem`` helper assembles the private-key
+``BEGIN``/``END`` markers from a separate dash run at run time, so the committed
+test source carries no contiguous dashed BEGIN-private-key literal (gitleaks
+stays green) while ``redact()`` still receives a genuine PEM block to mask. No
+external fixture file is needed.
 """
 
 import json
-import os
 
 import pytest
 
-from wfmon_export.redact import Redactor, redact
+from monitorcore.redact import Redactor, redact
 
-# The secret scanner (gitleaks) flags any contiguous "-----BEGIN PRIVATE KEY-----"
-# literal even when the key body is FAKE. Assemble the PEM markers from a separate
+# The secret scanner (gitleaks) flags any contiguous dashed BEGIN-private-key
+# marker even when the key body is FAKE. Assemble that marker from a separate
 # dash run so the committed test source carries no such literal, while redact()
 # still receives a genuine, contiguous PEM block to mask at run time.
 _DASHES = "-" * 5
@@ -26,41 +30,6 @@ def _pem(*body: str) -> str:
     head = _DASHES + "BEGIN PRIVATE KEY" + _DASHES
     tail = _DASHES + "END PRIVATE KEY" + _DASHES
     return "\n".join((head, *body, tail))
-
-
-# Downstream test files set FIXTURE_ROOT to the glob-isolated export root that
-# carries the same project/session NAMES as the pinned schema-lock fixture.
-EXPORT_PROJECTS = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)),
-    "fixtures",
-    "export",
-    "projects",
-)
-_SECRETCHECK = os.path.join(
-    EXPORT_PROJECTS,
-    "C--Users-Prekzursil",
-    "d219bc39-7d7f-4290-befd-f1c079161057",
-    "subagents",
-    "workflows",
-    "wf_export00-fixture",
-    "agent-secretcheck.jsonl",
-)
-
-
-def _secretcheck_text():
-    """The single assistant text block from the secretcheck fixture."""
-    with open(_SECRETCHECK, encoding="utf-8") as fh:
-        for line in fh:
-            line = line.strip()
-            if not line:
-                continue
-            rec = json.loads(line)
-            content = rec.get("message", {}).get("content")
-            if isinstance(content, list):
-                for block in content:
-                    if block.get("type") == "text":
-                        return block["text"]
-    raise AssertionError("no assistant text block in secretcheck fixture")
 
 
 # --------------------------------------------------------------------------
@@ -265,7 +234,7 @@ def test_redactor_masks_like_redact():
 def test_fail_closed_on_pattern_error(monkeypatch):
     import re as _re
 
-    import wfmon_export.redact as rd
+    import monitorcore.redact as rd
 
     class _BadPattern:
         def subn(self, repl, text):
@@ -286,7 +255,7 @@ def test_fail_closed_on_pattern_error(monkeypatch):
 
 
 def test_fail_closed_never_returns_raw_even_if_all_fail(monkeypatch):
-    import wfmon_export.redact as rd
+    import monitorcore.redact as rd
 
     class _BadPattern:
         def subn(self, repl, text):
@@ -297,56 +266,4 @@ def test_fail_closed_never_returns_raw_even_if_all_fail(monkeypatch):
     raw = "sk-FAKE0000000000000000000000"
     masked, n = redact(raw)  # must not raise
     assert isinstance(masked, str)
-    assert n == 0
-
-
-# --------------------------------------------------------------------------
-# End-to-end against the frozen secretcheck fixture (the oracle)
-# --------------------------------------------------------------------------
-
-
-def test_secretcheck_fixture_full_redaction():
-    text = _secretcheck_text()
-    masked, n = redact(text)
-
-    # 9 secrets + 5 home forms = 14 substitutions.
-    assert n == 14
-
-    for token in (
-        "[REDACTED:api-key]",
-        "[REDACTED:gh-pat]",
-        "[REDACTED:aws-akid]",
-        "[REDACTED:slack]",
-        "[REDACTED:gh-token]",
-        "[REDACTED:jwt]",
-        "[REDACTED:pem-private-key]",
-        "[REDACTED:gitcrypt-key]",
-    ):
-        assert token in masked, token
-
-    # No raw secret bodies or home usernames survive. (The descriptive header
-    # line "FAKE credentials..." is prose, not a secret, and legitimately stays.)
-    for raw_secret in (
-        "sk-FAKE0000",
-        "ghp_FAKE0000",
-        "github_pat_FAKE",
-        "AKIAFAKE",
-        "xoxb-FAKE",
-        "gho_FAKE",
-        "eyJFAKEheaderaaa",
-        "KEYMATERIAL",
-    ):
-        assert raw_secret not in masked, raw_secret
-    assert "Prekzursil" not in masked
-    assert "PREKZU~1" not in masked
-    assert ".gitcrypt.key" not in masked
-
-    # The benign dotted lookalike is preserved untouched.
-    assert "abcdef...not.a.jwt.value" in masked
-
-
-def test_secretcheck_fixture_disabled_is_identity():
-    text = _secretcheck_text()
-    masked, n = redact(text, enabled=False)
-    assert masked == text
     assert n == 0

@@ -36,8 +36,8 @@ import re
 
 from workflow_run import pair_tool_calls
 
-from .redact import Redactor
-from .textsafe import elide_base64, safe_fence, strip_ansi, truncate_block
+from monitorcore.redact import Redactor
+from monitorcore.textsafe import elide_base64, safe_fence, strip_ansi, truncate_block
 
 # Per-artifact byte cap for a single tool input/output or agent output block. Past
 # this many UTF-8 bytes ``truncate_block`` collapses the middle to a head + a

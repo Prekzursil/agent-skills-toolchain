@@ -1,4 +1,4 @@
-"""Unit tests for ``wfmon_export.textsafe`` (WU4).
+"""Unit tests for ``monitorcore.textsafe``.
 
 All functions under test are PURE (no filesystem, no globals). Coverage targets every
 branch: ANSI CSI/single-char escapes, the five HTML meta-chars, dynamic-length fences
@@ -8,7 +8,7 @@ offset marker, UTF-8-safe boundary backoff on both the head and tail cuts, the d
 ``data:...;base64,`` URI and a long standalone run.
 """
 
-from wfmon_export.textsafe import (
+from monitorcore.textsafe import (
     cap_artifact,
     elide_base64,
     html_escape,

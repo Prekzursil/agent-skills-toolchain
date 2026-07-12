@@ -12,18 +12,17 @@ Public package-level re-exports (all stdlib-safe at import time):
 ``render_pdf`` (the feature-detected PDF ladder), and ``run_export`` (the shared CLI
 + keybind entry point).
 
-Two callables are deliberately NOT re-exported at package level because each would
-SHADOW a submodule attribute of the same name, breaking
-``from wfmon_export import <name> as <module>``:
-
-* ``redact`` (function) would shadow the ``wfmon_export.redact`` submodule.
-* ``render_html`` (function) would shadow the ``wfmon_export.render_html`` submodule
-  (which ``tests/test_render_html.py`` imports as a module).
-
-Import those two directly from their submodules instead::
+``render_html`` (function) is deliberately NOT re-exported at package level because it
+would SHADOW the ``wfmon_export.render_html`` submodule attribute of the same name
+(which ``tests/test_render_html.py`` imports as a module), breaking
+``from wfmon_export import render_html as <module>``. Import it directly instead::
 
     from wfmon_export.render_html import render_html
-    from wfmon_export.redact import Redactor, redact
+
+The redaction primitives now live in the vendored ``monitorcore`` package (extracted
+from this skill as a shared leaf); import them from there::
+
+    from monitorcore.redact import Redactor, redact
 
 (The ``render_md`` module's public function is named ``render_markdown``, so it has
 no such clash and IS re-exported; likewise ``detect_engines`` / ``render_pdf`` do not

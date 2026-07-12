@@ -27,8 +27,8 @@ import json
 import workflow_run as wr
 
 from .model import ExportModel
-from .redact import Redactor
-from .textsafe import elide_base64, html_escape, strip_ansi, truncate_block
+from monitorcore.redact import Redactor
+from monitorcore.textsafe import elide_base64, html_escape, strip_ansi, truncate_block
 
 __all__ = ["render_html", "TOOL_OUTPUT_CAP"]
 
