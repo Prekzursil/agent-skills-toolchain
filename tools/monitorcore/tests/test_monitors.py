@@ -76,6 +76,14 @@ def test_load_monitors_parses_tables_and_skips_scalar():
     assert specs["nolaunch"].trigger_tool == ""
 
 
+def test_load_monitors_parses_autolaunch_default_and_explicit():
+    specs = m.load_monitors(str(FIX))
+    # explicit autolaunch is parsed; a monitor without the key defaults to "open"
+    assert specs["agentmon"].autolaunch == "remind"
+    assert specs["wfmon"].autolaunch == "open"
+    assert specs["nolaunch"].autolaunch == "open"
+
+
 # ───────────────────────── match_triggers ─────────────────────────
 def test_match_triggers_maps_task_and_workflow():
     specs = m.load_monitors(str(FIX))

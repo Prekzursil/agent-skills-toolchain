@@ -4,10 +4,12 @@ r"""monitor-autolaunch/check.py — generalized PreToolUse monitor auto-launcher
 The generalized successor to the wfmon-only workflow-monitor-autolaunch hook. Reads the
 ``monitors.toml`` registry through the shared, 100%-gated ``monitorcore.monitors`` core; for every
 registered monitor whose ``trigger_tool`` matches the tool Claude is about to run
-(``Workflow`` → wfmon, ``Task`` → agentmon, …) it opens that monitor ONCE per session in a
-reusable named Windows-Terminal window (via the shared launch-argv builder), and injects a
-one-line reminder that ``mon <name>`` reopens it. The reminder (locked-scope gap #5) is folded
-into ``_emit`` and iterated PER matched monitor — there is no separate reminder hook.
+(``Workflow`` → wfmon, ``Task`` → agentmon, …) it acts per the monitor's ``autolaunch`` mode:
+``"open"`` opens that monitor ONCE per session in a reusable named Windows-Terminal window (via
+the shared launch-argv builder) — correct for a persistent poller like wfmon; ``"remind"`` skips
+the launch and emits a one-time ``mon <name>`` nudge instead — correct for a one-shot spawner like
+agentmon that would otherwise race the not-yet-created transcript at PreToolUse. The reminder is
+folded into ``_emit`` and iterated PER matched monitor — there is no separate reminder hook.
 
 THIN SHIM: all parsing / trigger-matching / argv-building lives in ``monitorcore.monitors``; this
 file owns only the per-session lock, the opt-out gates, the DETACHED spawn, and the reminder text.
@@ -103,6 +105,22 @@ def main() -> None:
                 Path(tempfile.gettempdir())
                 / f"monitor-autolaunch-{spec.name}-{sid}.lock"
             )
+            # One-shot snapshot monitors (autolaunch="remind", e.g. agentmon) must NOT be
+            # auto-opened: at a Task's PreToolUse the just-triggered agent's transcript does not
+            # exist yet, so the spawner would flash an empty window and the per-session lock would
+            # then never retry. Nudge the user to open it by hand once the agents are live. Read
+            # the field defensively — a stale deployed spec without it falls back to "open".
+            if getattr(spec, "autolaunch", "open") == "remind":
+                if not lock.exists():
+                    _emit(
+                        f"🛰 This {tool} will spawn agents — run `mon {spec.name}` to live-tail "
+                        f"them once they're running (one tail window per active agent)."
+                    )
+                    try:
+                        lock.write_text("1", encoding="utf-8")
+                    except OSError:
+                        pass
+                continue
             if lock.exists():
                 _emit(
                     f"🛰 {spec.name} is watching this {tool} live "

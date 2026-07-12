@@ -9,13 +9,23 @@
 #   entry        = the launchable entry script within that dir
 #   trigger_tool = the Claude tool whose invocation auto-opens this monitor (via the hook);
 #                  omit it for a monitor that is launchable by hand but never auto-opened.
+#   autolaunch   = what the hook does when trigger_tool fires: "open" (default) auto-opens the
+#                  monitor window — correct for a PERSISTENT poller (wfmon) that keeps picking up
+#                  agents as they appear; "remind" emits a one-time `mon <name>` nudge instead —
+#                  correct for a ONE-SHOT spawner (agentmon) that would otherwise race the
+#                  not-yet-created subagent transcript at PreToolUse and find nothing.
 
 [wfmon]
 dir = "workflow-monitor"
 entry = "workflow_monitor.py"
 trigger_tool = "Workflow"
+# autolaunch defaults to "open" — the cockpit is a persistent poller, safe to auto-open.
 
 [agentmon]
 dir = "run-agent-monitor"
 entry = "agentmon.py"
 trigger_tool = "Task"
+# One-shot snapshot spawner: at a Task's PreToolUse the subagent transcript doesn't exist yet,
+# so auto-opening would flash an empty window and the per-session lock would never retry.
+# Remind the user to run `mon agentmon` once the agents are live instead.
+autolaunch = "remind"

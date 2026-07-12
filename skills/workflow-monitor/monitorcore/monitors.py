@@ -3,7 +3,8 @@
 The shared, 100%-gated CORE behind the generalized ``mon <name>`` launcher (``mon.cmd``) and the
 generalized ``monitor-autolaunch`` hook. Everything here is pure + deterministic:
 
-- :class:`MonitorSpec` — one registered monitor (``name`` / ``dir`` / ``entry`` / ``trigger_tool``).
+- :class:`MonitorSpec` — one registered monitor (``name`` / ``dir`` / ``entry`` / ``trigger_tool`` /
+  ``autolaunch``: ``"open"`` auto-opens on trigger, ``"remind"`` only nudges ``mon <name>``).
 - :func:`load_monitors` — parse a ``monitors.toml`` registry with the stdlib ``tomllib`` (NEVER
   ``tomlkit`` — this module only READS; the ``~/.agents`` sync is a file copy, not a TOML rewrite,
   so a write-round-trip dep would needlessly ImportError the vendored stdlib-only skill).
@@ -47,12 +48,21 @@ _ENV_TOML = "MONITORCORE_MONITORS_TOML"
 
 @dataclass(frozen=True)
 class MonitorSpec:
-    """A single registered monitor from ``monitors.toml``."""
+    """A single registered monitor from ``monitors.toml``.
+
+    ``autolaunch`` governs what the auto-launch hook does when ``trigger_tool`` fires:
+    ``"open"`` (default) auto-opens the monitor window — correct for a PERSISTENT poller (wfmon)
+    that keeps picking up agents as they appear; ``"remind"`` emits a one-time reminder to run
+    ``mon <name>`` by hand instead — correct for a ONE-SHOT snapshot spawner (agentmon) that would
+    otherwise race the not-yet-created transcript at ``PreToolUse`` and find nothing. Either way
+    the monitor is still launchable by hand via ``mon <name>``.
+    """
 
     name: str
     dir: str
     entry: str
     trigger_tool: str
+    autolaunch: str = "open"
 
 
 def _py() -> str:
@@ -77,7 +87,8 @@ def load_monitors(path: str) -> dict[str, MonitorSpec]:
     """Parse a ``monitors.toml`` registry (stdlib ``tomllib``) into ``{name: MonitorSpec}``.
 
     Each top-level ``[table]`` is one monitor; a non-table top-level key (e.g. a stray scalar)
-    is ignored. Missing ``dir`` / ``entry`` / ``trigger_tool`` default to ``""``.
+    is ignored. Missing ``dir`` / ``entry`` / ``trigger_tool`` default to ``""``; a missing
+    ``autolaunch`` defaults to ``"open"``.
     """
     with open(path, "rb") as fh:
         data = tomllib.load(fh)
@@ -90,6 +101,7 @@ def load_monitors(path: str) -> dict[str, MonitorSpec]:
             dir=str(tbl.get("dir", "")),
             entry=str(tbl.get("entry", "")),
             trigger_tool=str(tbl.get("trigger_tool", "")),
+            autolaunch=str(tbl.get("autolaunch", "open")),
         )
     return specs
 
