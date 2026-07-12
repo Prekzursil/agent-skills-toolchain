@@ -23,13 +23,18 @@ import json
 
 from .redact import Redactor
 from .report_doc import Block, Code, Heading, KV, ReportDoc, Section, Table, Text
-from .textsafe import elide_base64, html_escape, strip_ansi, truncate_block
+from .textsafe import (
+    TOOL_OUTPUT_CAP,
+    elide_base64,
+    html_escape,
+    strip_ansi,
+    truncate_block,
+)
 from .timeline import TimelineEvent, pair_tool_calls
 
+# ``TOOL_OUTPUT_CAP`` is the shared per-artifact byte cap defined once in ``textsafe`` and
+# re-exported here for back-compat (``from monitorcore.render_html import TOOL_OUTPUT_CAP``).
 __all__ = ["render_html", "TOOL_OUTPUT_CAP"]
-
-# Per-string byte cap applied in the render path (head+tail with a byte-offset marker).
-TOOL_OUTPUT_CAP = 8000
 
 _CSS = """
 :root { color-scheme: light dark; }

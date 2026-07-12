@@ -24,12 +24,17 @@ import re
 
 from .redact import Redactor
 from .report_doc import Block, Code, Heading, KV, ReportDoc, Section, Table, Text
-from .textsafe import elide_base64, safe_fence, strip_ansi, truncate_block
+from .textsafe import (
+    TOOL_OUTPUT_CAP,
+    elide_base64,
+    safe_fence,
+    strip_ansi,
+    truncate_block,
+)
 from .timeline import TimelineEvent, pair_tool_calls
 
-# Per-artifact UTF-8 byte cap for a single content block before ``truncate_block``
-# collapses the middle to a head + a byte-offset marker + a tail.
-TOOL_OUTPUT_CAP = 8000
+# ``TOOL_OUTPUT_CAP`` is the shared per-artifact byte cap defined once in ``textsafe`` and
+# re-exported here for back-compat (``from monitorcore.render_md import TOOL_OUTPUT_CAP``).
 
 _WS_RE = re.compile(r"\s+")
 

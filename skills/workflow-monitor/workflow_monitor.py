@@ -48,6 +48,11 @@ except Exception:  # pragma: no cover - fallback when the vendored package is ab
 # truth for the former ``_bucket`` / ``wfmon_export.model._state_bucket`` duplication).
 from monitorcore.agent_state import bucket_agent  # noqa: E402
 
+# The Task/Result-pane truncation cap is the SHARED monitorcore primitive (single source of
+# truth for the former cockpit ``DETAIL_CHARS`` / ``render_md`` / ``render_html`` ×3 duplication
+# of the 8000-byte cap). Aliased so the two call sites keep the cockpit-local name.
+from monitorcore.textsafe import TOOL_OUTPUT_CAP as DETAIL_CHARS  # noqa: E402
+
 from rich.text import Text  # noqa: E402
 from textual import work  # noqa: E402
 from textual.app import App, ComposeResult  # noqa: E402
@@ -71,7 +76,8 @@ BACKFILL = 14  # transcript events shown when an agent is first selected
 FEED_WIDTH = 160  # width passed to the event renderer
 STALL_MS = 90_000  # idle-while-active threshold → triage "STALL"
 POLL_SEC = 1.0  # fleet refresh cadence
-DETAIL_CHARS = 8000  # truncate Task/Result panes to keep the UI snappy
+# DETAIL_CHARS (Task/Result-pane truncation) is imported above from monitorcore.textsafe
+# (TOOL_OUTPUT_CAP) — the single shared source of the 8000-byte cap.
 FEED_TAIL_WINDOW = 65_536  # bytes scanned from EOF to find the last complete line
 STATUSES = ("running", "done", "error", "idle")
 
