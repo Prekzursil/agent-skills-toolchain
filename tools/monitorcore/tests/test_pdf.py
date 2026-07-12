@@ -1,4 +1,4 @@
-"""Unit tests for ``wfmon_export.pdf`` (WU8) - the feature-detected PDF ladder.
+"""Unit tests for ``monitorcore.pdf`` - the feature-detected PDF ladder.
 
 No real PDF engine is required or invoked: subprocess-based rungs are exercised with an
 injected fake ``runner`` and monkeypatched binary discovery, and import-based rungs
@@ -21,7 +21,7 @@ import types
 
 import pytest
 
-import wfmon_export.pdf as pdf
+import monitorcore.pdf as pdf
 
 HTML = "<html><body><h1>run</h1></body></html>"
 MD = "# run\n\nhello\n"
@@ -178,6 +178,26 @@ def test_chrome_binary_missing(monkeypatch):
     monkeypatch.setattr(pdf.shutil, "which", lambda name: None)
     monkeypatch.setattr(pdf.os.path, "isfile", lambda p: False)
     assert pdf._chrome_binary() is None
+
+
+def test_program_files_binary_skips_absent_first_root(monkeypatch):
+    # Both ProgramFiles roots set + first candidate absent -> the loop continues to the
+    # second root (the pdf.py 76->72 back-edge). Otherwise unreachable on linux CI, where
+    # no ProgramFiles* env var is set, so `base` is always falsy and line 76 (the isfile
+    # check) is never reached with a real candidate.
+    monkeypatch.setitem(os.environ, "ProgramFiles(x86)", r"C:\PF86")
+    monkeypatch.setitem(os.environ, "ProgramFiles", r"C:\PF")
+    seen: list[str] = []
+
+    def fake_isfile(path: str) -> bool:
+        seen.append(path)
+        return len(seen) == 2  # first candidate missing, second present
+
+    monkeypatch.setattr(pdf.os.path, "isfile", fake_isfile)
+    assert pdf._program_files_binary("App/bin.exe") == os.path.join(
+        r"C:\PF", "App", "bin.exe"
+    )
+    assert len(seen) == 2  # first root checked then skipped -> loop continued (76->72)
 
 
 # ----------------------------------------------------------- chromium version probe

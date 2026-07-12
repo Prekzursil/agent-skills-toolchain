@@ -2,15 +2,19 @@
 
 ``run_export`` is the ONE code path behind both the ``wfmon export`` CLI and the
 cockpit ``e`` keybind: it collects the run (``model.collect_run`` - the only
-filesystem reader), renders the requested format with the PURE renderers,
-optionally drives the feature-detected PDF ladder, and writes the artifact under a
-READ-ONLY out-guard that refuses to write anywhere beneath ``~/.claude/projects``
-(8.3 short-name paths such as ``PREKZU~1`` included, even when the target does not
-exist yet). Stdlib-only at import time.
+filesystem reader), maps it to the generic ``ReportDoc`` (``model.export_model``),
+then hands off to the shared ``monitorcore.export.export_report`` pipeline (render →
+write → feature-detected PDF ladder), under a READ-ONLY out-guard that refuses to
+write anywhere beneath ``~/.claude/projects`` (8.3 short-name paths such as
+``PREKZU~1`` included, even when the target does not exist yet). The out-guard
+*mechanism* (short-name/junction expansion + containment) and the export pipeline now
+live in ``monitorcore``; this module keeps only the Claude-Code specifics — the guarded
+root, the ``--projects`` default, the ``wf id`` argument surface, and ``run_export``.
+Stdlib-only at import time.
 
 ``main`` strips a single leading ``export`` token (so ``wfmon export <id>``,
 ``python -m wfmon_export export <id>`` and ``python -m wfmon_export <id>`` all
-parse), then dispatches through ``run_export``, printing the written path, the PDF
+parse), then dispatches through the pipeline, printing the written path, the PDF
 engine used, and the redaction status. Exit codes: ``0`` success · ``1`` a
 render/write error (a forced PDF that could only degrade to HTML included) · ``2``
 bad args / out-guard violation / unknown ``wf_id`` / unknown agent label.
@@ -20,17 +24,13 @@ from __future__ import annotations
 
 import argparse
 import os
-import re
 import sys
 import tempfile
-from typing import NamedTuple
 
 import workflow_run as wr
+from monitorcore.export import ExportResult, export_report, under_root
 
-from .model import collect_run
-from .pdf import render_pdf
-from .render_html import render_html
-from .render_md import render_markdown
+from .model import collect_run, export_model
 
 __all__ = ["build_parser", "run_export", "main"]
 
@@ -48,14 +48,6 @@ _PDF_ENGINES = (
     "fpdf2",
     "html",
 )
-_EXT = {"md": ".md", "html": ".html", "pdf": ".pdf"}
-
-# Anchored to the exact audit-banner strings the renderers emit
-# (``... N masked``): render_md -> ``> **redaction: strict** - N masked`` and
-# render_html -> ``redaction: strict &mdash; N masked``. The off-banners carry no
-# ``<digits> masked`` run, so a miss means "redaction: off". The banner precedes any
-# transcript content, so ``search`` (first match) reads the banner, not the body.
-_MASKED_RE = re.compile(r"redaction:.{0,40}?(\d+)\s+masked", re.IGNORECASE | re.DOTALL)
 
 
 # ───────────────────────── label parsing ─────────────────────────
@@ -64,59 +56,16 @@ def _split_labels(raw: str) -> list[str]:
     return [a.strip() for a in raw.split(",") if a.strip()]
 
 
-# ───────────────────────── read-only out-guard ─────────────────────────
-def _resolve_for_guard(path: str) -> str:
-    """Resolve ``path`` for the read-only out-guard comparison.
-
-    Walk up to the nearest EXISTING ancestor, ``realpath`` it (expanding 8.3 short
-    names like ``PREKZU~1`` -> ``Prekzursil`` plus any junctions/symlinks), rejoin
-    the non-existent tail, then ``normcase``. This makes the guard robust even when
-    the requested ``--out`` directory does not exist yet (the common case).
-    """
-    head = os.path.abspath(path)
-    tail: list[str] = []
-    while not os.path.exists(head):
-        parent, part = os.path.split(head)
-        if parent == head:  # reached a (non-existent) filesystem root; stop ascending
-            break
-        tail.append(part)
-        head = parent
-    resolved = os.path.join(os.path.realpath(head), *reversed(tail))
-    return os.path.normcase(resolved)
-
-
+# ───────────────────────── read-only out-guard root (CC-specific) ─────────────────────────
 def _claude_projects_root() -> str:
     """The read-only fleet root the exporter must never write beneath."""
     return os.path.join(os.path.expanduser("~"), ".claude", "projects")
 
 
-def _under_read_only_root(out: str) -> bool:
-    """True if ``out`` resolves to, or under, the guarded ``~/.claude/projects`` tree."""
-    root = _resolve_for_guard(_claude_projects_root())
-    target = _resolve_for_guard(out)
-    return target == root or target.startswith(root + os.sep)
-
-
 # ───────────────────────── the shared export core ─────────────────────────
-class _Export(NamedTuple):
-    """Internal export result: the written path, the PDF rung used ('' for md/html),
-    and the mask count parsed from the artifact ('None' => redaction off)."""
-
-    path: str
-    engine: str
-    masked: int | None
-
-
 def _basename(wf_id: str, scope: str) -> str:
     """``<wf_id>`` for a whole-run export, ``<wf_id>.<scope>`` for a scoped one."""
     return wf_id if scope == "run" else f"{wf_id}.{scope}"
-
-
-def _extract_masked(rendered: str) -> int | None:
-    """Read the mask count straight off the rendered audit banner (single source of
-    truth); ``None`` when the banner reports ``redaction: off``."""
-    match = _MASKED_RE.search(rendered)
-    return int(match.group(1)) if match else None
 
 
 def _export(
@@ -131,9 +80,9 @@ def _export(
     redact: bool = True,
     out: str | None = None,
     projects: str = wr.DEFAULT_PROJECTS,
-) -> _Export:
+) -> ExportResult:
     out_dir = out or os.path.join(tempfile.gettempdir(), _DEFAULT_OUT_DIRNAME)
-    if _under_read_only_root(out_dir):
+    if under_root(out_dir, _claude_projects_root()):
         raise ValueError(
             f"refusing to write under the read-only ~/.claude/projects tree: {out_dir}"
         )
@@ -144,29 +93,17 @@ def _export(
         model.redaction_mode = "off"
         model.provenance["redaction_mode"] = "off"
 
-    os.makedirs(out_dir, exist_ok=True)  # created on demand
-    base = _basename(wf_id, scope)
-
-    if fmt == "md":
-        text = render_markdown(model, tools=tools, thinking=thinking, redact=redact)
-        path = os.path.join(out_dir, base + _EXT["md"])
-        with open(path, "w", encoding="utf-8") as fh:
-            fh.write(text)
-        return _Export(os.path.abspath(path), "", _extract_masked(text))
-
-    if fmt == "html":
-        text = render_html(model, tools=tools, thinking=thinking, redact=redact)
-        path = os.path.join(out_dir, base + _EXT["html"])
-        with open(path, "w", encoding="utf-8") as fh:
-            fh.write(text)
-        return _Export(os.path.abspath(path), "", _extract_masked(text))
-
-    # pdf: render BOTH channels (html for the browser/xhtml rungs, md for pandoc/typst)
-    html = render_html(model, tools=tools, thinking=thinking, redact=redact)
-    md = render_markdown(model, tools=tools, thinking=thinking, redact=redact)
-    out_path = os.path.join(out_dir, base + _EXT["pdf"])
-    engine, written = render_pdf(html, md, out_path, engine=pdf_engine)
-    return _Export(os.path.abspath(written), engine, _extract_masked(html))
+    doc = export_model(model)
+    return export_report(
+        doc,
+        out_dir,
+        _basename(wf_id, scope),
+        fmt=fmt,
+        tools=tools,
+        thinking=thinking,
+        redact=redact,
+        pdf_engine=pdf_engine,
+    )
 
 
 def run_export(
@@ -182,7 +119,7 @@ def run_export(
     out: str | None = None,
     projects: str = wr.DEFAULT_PROJECTS,
 ) -> str:
-    """Collect, render, (optionally) PDF, and write one run export; return the abs path.
+    """Collect, map, render, (optionally) PDF, and write one run export; return the abs path.
 
     Shared by the ``wfmon export`` CLI and the cockpit ``e`` keybind. Raises
     ``LookupError`` (unknown ``wf_id``), ``ValueError`` (unknown label / scope

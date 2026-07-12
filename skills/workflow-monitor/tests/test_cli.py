@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""``wfmon_export.cli`` tests: ``build_parser`` / ``run_export`` / ``main`` +
-``_resolve_for_guard`` out-guard against the frozen ``wf_export00-fixture``.
+"""``wfmon_export.cli`` tests: ``build_parser`` / ``run_export`` / ``main`` + the
+CC-specific read-only out-guard (``_claude_projects_root``) against the frozen
+``wf_export00-fixture``.
 
 All fixture-reading tests point at the ISOLATED export fixture root
 ``fixtures/export/projects`` (never the live ``~/.claude`` tree). Every write goes
 to a ``tmp_path`` (or a monkeypatched tempdir) so the suite never pollutes the real
 export directory. The read-only out-guard is proven for a plain sub-directory, an
-existing-directory alias, and a NON-EXISTENT 8.3 short-name (``PREKZU~1``) path.
+existing-directory alias, and a NON-EXISTENT 8.3 short-name (``PREKZU~1``) path. The
+guard *mechanism* (``resolve_for_guard``/``under_root``) and the ``extract_masked``
+banner parse now live in ``monitorcore.export`` and are unit-tested in that lane.
 """
 
 from __future__ import annotations
@@ -18,6 +21,7 @@ from pathlib import Path
 
 import pytest
 
+import monitorcore.export as mcx
 import workflow_run as wr
 from wfmon_export import cli
 
@@ -28,14 +32,6 @@ WF_ID = "wf_export00-fixture"
 
 
 # ───────────────────────── small host helpers ─────────────────────────
-def _free_drive() -> str | None:
-    """A drive letter that is NOT mounted (for the guard's root-terminate branch)."""
-    for letter in "ZYXWVUT":
-        if not os.path.exists(f"{letter}:\\"):
-            return letter
-    return None
-
-
 def _short_home() -> str | None:
     """The 8.3 short-name home (e.g. ``C:\\Users\\PREKZU~1``) if the host tempdir is
     expressed that way, else ``None``."""
@@ -106,53 +102,6 @@ def test_split_labels_helper():
     assert cli._split_labels("solo") == ["solo"]
     assert cli._split_labels("") == []
     assert cli._split_labels("  ,  ") == []
-
-
-# ═════════════════════════ _extract_masked (banner parse) ═════════════════════════
-def test_extract_masked_md_html_and_off():
-    # md audit banner
-    assert cli._extract_masked("> **redaction: strict** - 7 masked\nrest") == 7
-    # html audit banner
-    assert (
-        cli._extract_masked(
-            '<div class="banner audit">redaction: strict &mdash; 3 masked</div>'
-        )
-        == 3
-    )
-    # off banners carry no "<digits> masked" run -> None
-    assert (
-        cli._extract_masked("> **redaction: off** - secrets NOT masked (`--no-redact`)")
-        is None
-    )
-    assert cli._extract_masked('<div class="banner audit">redaction: off</div>') is None
-    # the FIRST (banner) match wins over later transcript content
-    assert cli._extract_masked("redaction: strict - 2 masked\n... 99 masked ...") == 2
-
-
-# ═════════════════════════ _resolve_for_guard ═════════════════════════
-def test_resolve_for_guard_normcases_and_expands(tmp_path):
-    # an existing dir resolves to its canonical (realpath) normcased form
-    p = str(tmp_path)
-    resolved = cli._resolve_for_guard(p)
-    assert resolved == os.path.normcase(os.path.realpath(p))
-
-
-def test_resolve_for_guard_nonexistent_tail(tmp_path):
-    # nearest existing ancestor is realpath'd, the non-existent tail rejoined
-    p = str(tmp_path / "no" / "such" / "dir")
-    resolved = cli._resolve_for_guard(p)
-    assert resolved.startswith(os.path.normcase(os.path.realpath(str(tmp_path))))
-    assert resolved.endswith(os.path.normcase(os.path.join("no", "such", "dir")))
-
-
-def test_resolve_for_guard_free_drive_terminates():
-    letter = _free_drive()
-    if letter is None:  # pragma: no cover - virtually every host has a free letter
-        pytest.skip("no free drive letter available")
-    # walks up to a NON-existent filesystem root and stops (no infinite loop)
-    resolved = cli._resolve_for_guard(f"{letter}:\\nope\\deep\\sub")
-    assert resolved
-    assert resolved == os.path.normcase(resolved)
 
 
 # ═════════════════════════ run_export: happy paths ═════════════════════════
@@ -252,7 +201,7 @@ def test_run_export_pdf_success_via_injected_engine(tmp_path, monkeypatch):
             f.write(b"%PDF-1.4 fake")
         return "edge", out_path
 
-    monkeypatch.setattr(cli, "render_pdf", fake_render_pdf)
+    monkeypatch.setattr(mcx, "render_pdf", fake_render_pdf)
     path = cli.run_export(WF_ID, projects=EXPORT_PROJECTS, fmt="pdf", out=str(tmp_path))
     assert path.endswith(".pdf")
     assert os.path.isfile(path)
@@ -349,7 +298,7 @@ def test_main_pdf_success_prints_engine_exit0(tmp_path, monkeypatch, capsys):
             f.write(b"%PDF-1.4 fake")
         return "edge", out_path
 
-    monkeypatch.setattr(cli, "render_pdf", fake_render_pdf)
+    monkeypatch.setattr(mcx, "render_pdf", fake_render_pdf)
     code = cli.main(
         [
             WF_ID,
@@ -466,8 +415,11 @@ def test_dunder_main_module_exposes_main():
 
 def test_package_reexports_cli_and_renderers():
     import wfmon_export
-    from wfmon_export.pdf import detect_engines as de_fn
-    from wfmon_export.pdf import render_pdf as rp_fn
+
+    # The PDF ladder now lives in the vendored monitorcore package; wfmon_export
+    # re-exports it from there (extracted out of the skill in WU3).
+    from monitorcore.pdf import detect_engines as de_fn
+    from monitorcore.pdf import render_pdf as rp_fn
     from wfmon_export.render_md import render_markdown as rm_fn
 
     assert wfmon_export.run_export is cli.run_export

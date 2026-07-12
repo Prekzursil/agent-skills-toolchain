@@ -24,42 +24,12 @@ WF_DIR = os.path.join(
 KITCHENSINK = os.path.join(WF_DIR, "agent-kitchensink.jsonl")
 TASKORDER = os.path.join(WF_DIR, "agent-taskorder.jsonl")
 
-
-# ───────────────────────── _flatten_content ─────────────────────────
-def test_flatten_content_str_passthrough():
-    assert wr._flatten_content("hello world") == "hello world"
-
-
-def test_flatten_content_list_text_and_other():
-    content = [
-        {"type": "text", "text": "first"},
-        {"type": "image", "source": {"k": "v"}},
-        "bare-string",
-    ]
-    out = wr._flatten_content(content)
-    assert out == 'first\n{"type": "image", "source": {"k": "v"}}\n"bare-string"'
-
-
-def test_flatten_content_dict_text_extracted():
-    # the real advisor_tool_result shape: a single {type:text,text} dict
-    assert wr._flatten_content({"type": "text", "text": "advisor hi"}) == "advisor hi"
-
-
-def test_flatten_content_dict_arbitrary_json():
-    assert (
-        wr._flatten_content({"error": "boom", "code": 2})
-        == '{"error": "boom", "code": 2}'
-    )
-
-
-def test_flatten_content_other_str_coerced():
-    assert wr._flatten_content(None) == "None"
-    assert wr._flatten_content(123) == "123"
-
-
-def test_flatten_content_text_missing_key():
-    # a text block with no "text" key flattens to "" (str of missing default)
-    assert wr._flatten_content([{"type": "text"}]) == ""
+# NOTE: the PURE timeline IR (`TimelineEvent`, `_flatten_content`, `report_headline`,
+# `pair_tool_calls`) was extracted into `monitorcore.timeline` and its unit tests live
+# in `tools/monitorcore/tests/test_timeline.py`. What remains here exercises the wfmon
+# adapter's transcript readers (`agent_timeline` / `agent_task`), which stay in
+# `workflow_run` and still build `TimelineEvent`s / call `pair_tool_calls` via the
+# re-export shim.
 
 
 # ───────────────────────── agent_timeline ─────────────────────────
@@ -242,20 +212,3 @@ def test_pair_tool_calls_ordered_with_orphan():
     assert by_id["srv_web_1"].tool_id == "srv_web_1"
     assert by_id["tool_err_1"].is_error is True
     assert by_id["tool_orphan_1"] is None  # orphan -> None
-
-
-def test_pair_tool_calls_empty_without_tool_use():
-    only_text = [wr.TimelineEvent(kind="text", seq=0, text="x")]
-    assert wr.pair_tool_calls(only_text) == []
-
-
-def test_pair_matches_first_later_result_only():
-    # a result appearing BEFORE its use (lower seq) is not matched; a later same-id result is
-    events = [
-        wr.TimelineEvent(kind="tool_result", seq=0, tool_id="dup"),
-        wr.TimelineEvent(kind="tool_use", seq=1, tool_id="dup"),
-        wr.TimelineEvent(kind="tool_result", seq=2, tool_id="dup"),
-    ]
-    ((use, res),) = wr.pair_tool_calls(events)
-    assert use.seq == 1
-    assert res.seq == 2
