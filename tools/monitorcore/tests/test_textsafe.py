@@ -9,6 +9,7 @@ offset marker, UTF-8-safe boundary backoff on both the head and tail cuts, the d
 """
 
 from monitorcore.textsafe import (
+    TOOL_OUTPUT_CAP,
     cap_artifact,
     elide_base64,
     html_escape,
@@ -16,6 +17,20 @@ from monitorcore.textsafe import (
     strip_ansi,
     truncate_block,
 )
+
+# --------------------------------------------------------------------------- TOOL_OUTPUT_CAP
+
+
+def test_tool_output_cap_is_the_single_shared_source():
+    """The per-artifact byte cap is defined ONCE in ``textsafe`` and re-exported by both
+    renderers (killing the former ``render_md`` / ``render_html`` / cockpit ×3 duplication).
+    The identity checks prove the renderers reference this object, not a re-typed literal."""
+    from monitorcore import render_html, render_md
+
+    assert TOOL_OUTPUT_CAP == 8000
+    assert render_md.TOOL_OUTPUT_CAP is TOOL_OUTPUT_CAP
+    assert render_html.TOOL_OUTPUT_CAP is TOOL_OUTPUT_CAP
+
 
 # --------------------------------------------------------------------------- strip_ansi
 

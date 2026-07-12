@@ -26,7 +26,14 @@ __all__ = [
     "truncate_block",
     "cap_artifact",
     "elide_base64",
+    "TOOL_OUTPUT_CAP",
 ]
+
+# Per-artifact UTF-8 byte cap for a single content block before ``truncate_block`` collapses
+# the middle to a head + a byte-offset marker + a tail. The SINGLE source of truth for this
+# cap: the Markdown/HTML renderers re-export it and the cockpit's Task/Result panes reuse it
+# (was formerly duplicated ×3 as separate ``= 8000`` literals).
+TOOL_OUTPUT_CAP = 8000
 
 # ECMA-48: a CSI sequence (ESC [ params intermediates final) tried first, else a two-byte
 # escape (ESC + any final byte 0x30-0x7E, e.g. ESC c reset, ESC = keypad).

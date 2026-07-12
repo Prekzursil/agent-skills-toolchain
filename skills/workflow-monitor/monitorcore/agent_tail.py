@@ -1,17 +1,18 @@
-#!/usr/bin/env python3
-"""Live, read-only pretty-tail of ONE Claude Code subagent transcript.
+"""Event->coloured-line mapper for ONE Claude Code subagent transcript.
 
 Claude Code persists every Task subagent as an append-only JSONL at
-  ~/.claude/projects/<project>/<session>/subagents/agent-<id>.jsonl
-with a small sidecar agent-<id>.meta.json ({agentType, description, name, toolUseId}).
+``~/.claude/projects/<project>/<session>/subagents/agent-<id>.jsonl`` with a small
+sidecar ``agent-<id>.meta.json`` (``{agentType, description, name, toolUseId}``).
 
-This renders that transcript as a clean, colored, realtime feed — one line per
-event (thinking / text / tool call / tool result). It only ever READS the file,
-so it is safe to run against an agent that the live Claude Code instance is
-still writing, and it sidesteps the glitchy inline TUI entirely.
+This module renders that transcript as clean, coloured, one-line-per-event feed lines
+(thinking / text / tool call / tool result). It only ever READS the file, so it is safe
+to run against an agent the live Claude Code instance is still writing.
 
-Usage:
-  python agent_tail.py <path-to-agent-*.jsonl> [--backfill N] [--poll S] [--width W]
+Vendored into ``monitorcore`` (from the personal ``agent-monitor`` tool) so consumers
+import it as ``monitorcore.agent_tail`` instead of a hardcoded personal-directory
+sys.path hack. The wfmon cockpit uses only ``render(entry, width)`` + ``read_tail_entries(path, n)``;
+``header``/``fmt_ts``/``_enable_vt`` support the standalone one-agent-per-terminal tail.
+Being stdlib-only, it stays importable under a consuming skill's plain Python.
 """
 
 from __future__ import annotations
@@ -20,15 +21,17 @@ import argparse
 import datetime as dt
 import json
 import os
+import shutil
 import sys
 import time
 
 
 # ── ANSI colors (enable VT on Windows consoles) ──────────────────────────────
 def _enable_vt() -> None:
+    """Enable UTF-8 output + ANSI/VT processing on Windows consoles (no-op elsewhere)."""
     for _s in (sys.stdout, sys.stderr):
         try:
-            _s.reconfigure(
+            _s.reconfigure(  # pyright: ignore[reportAttributeAccessIssue]
                 encoding="utf-8", errors="replace"
             )  # survive cp1252 consoles
         except Exception:
@@ -37,7 +40,9 @@ def _enable_vt() -> None:
         try:
             import ctypes
 
-            k = ctypes.windll.kernel32
+            # ``windll`` only exists on Windows; fetch dynamically so the type
+            # checker does not flag it on the (non-Windows) CI runner.
+            k = getattr(ctypes, "windll").kernel32
             h = k.GetStdHandle(-11)
             mode = ctypes.c_uint32()
             if k.GetConsoleMode(h, ctypes.byref(mode)):
@@ -71,7 +76,7 @@ def fmt_ts(iso: str | None) -> str:
         return iso[-9:-1] if len(iso) > 9 else iso
 
 
-def _one_line(s: str, width: int) -> str:
+def _one_line(s: object, width: int) -> str:
     s = " ".join(str(s).split())
     return s if len(s) <= width else s[: width - 1] + "…"
 
@@ -91,7 +96,7 @@ _KEY_ARGS = (
 )
 
 
-def _tool_summary(name: str, inp: dict, width: int) -> str:
+def _tool_summary(name: str, inp: object, width: int) -> str:
     if not isinstance(inp, dict):
         return _one_line(inp, width)
     for k in _KEY_ARGS:
@@ -103,7 +108,8 @@ def _tool_summary(name: str, inp: dict, width: int) -> str:
 
 def render(entry: dict, width: int) -> list[str]:
     """Turn one transcript JSON entry into 0+ printable colored lines."""
-    msg = entry.get("message") if isinstance(entry.get("message"), dict) else {}
+    raw_msg = entry.get("message")
+    msg = raw_msg if isinstance(raw_msg, dict) else {}
     ts = fmt_ts(entry.get("timestamp"))
     content = msg.get("content")
     out: list[str] = []
@@ -183,7 +189,87 @@ def header(jsonl_path: str, width: int) -> None:
     print(f"{BOLD}{MAG}{bar}{R}")
 
 
-def main() -> int:
+# ── live-tail CLI (spawn target: ``python -m monitorcore.agent_tail <jsonl>``) ─
+def _default_width() -> int:
+    """Terminal width, defaulting to 140 when it can't be determined."""
+    try:
+        return shutil.get_terminal_size((140, 40)).columns
+    except Exception:
+        return 140
+
+
+def _wait_for_file(
+    path: str, *, sleep, exists=os.path.exists, limit: int = 240
+) -> bool:
+    """Block until ``path`` exists; return ``False`` if it never appears within ``limit`` polls."""
+    waited = 0
+    while not exists(path):
+        if waited == 0:
+            print(f"{YEL}Waiting for {path} …{R}")
+        sleep(0.5)
+        waited += 1
+        if waited > limit:
+            print(f"{RED}File never appeared: {path}{R}")
+            return False
+    return True
+
+
+def _follow_step(path, state, width, idle, *, now, out=print):
+    """One poll iteration: emit newly-appended events; return the updated follow state.
+
+    ``state`` is ``(pos, buf, last_event, idle_announced)``. New complete lines past ``pos``
+    are parsed + rendered; a truncated/rotated file restarts from the top; a quiet stretch
+    past ``idle`` seconds prints a single idle notice. A transient ``OSError`` (share lock)
+    leaves the state unchanged for the next poll.
+    """
+    pos, buf, last_event, idle_announced = state
+    try:
+        sz = os.path.getsize(path)
+        if sz < pos:  # file truncated / rotated -> restart from top
+            pos, buf = 0, b""
+        if sz > pos:
+            with open(path, "rb") as fh:
+                fh.seek(pos)
+                chunk = fh.read()
+            pos = sz
+            buf += chunk
+            *lines, buf = buf.split(b"\n")
+            for raw in lines:
+                raw = raw.strip()
+                if not raw.startswith(b"{"):
+                    continue
+                try:
+                    entry = json.loads(raw.decode("utf-8", "ignore"))
+                except Exception:
+                    continue
+                for ln in render(entry, width):
+                    out(ln)
+                    last_event = now()
+                    idle_announced = False
+        elif not idle_announced and (now() - last_event) > idle:
+            age = int(now() - last_event)
+            out(f"{DIM}… idle {age}s (no new events; agent may be done or thinking){R}")
+            idle_announced = True
+    except OSError:
+        pass  # transient share/lock; retry next poll
+    return (pos, buf, last_event, idle_announced)
+
+
+def _follow_forever(  # pragma: no cover -- interactive live poll loop (no real terminal state in tests)
+    path, width, poll, idle, *, sleep, now=time.time
+) -> int:
+    state = (os.path.getsize(path), b"", now(), False)
+    while True:
+        try:
+            state = _follow_step(path, state, width, idle, now=now)
+        except KeyboardInterrupt:
+            print(f"\n{DIM}stopped watching{R}")
+            return 0
+        sleep(poll)
+
+
+def main(argv=None, *, sleep=time.sleep) -> int:
+    """Live pretty-tail of one subagent transcript (header + backfill + follow loop)."""
     _enable_vt()
     ap = argparse.ArgumentParser(
         description="Live pretty-tail of one Claude Code subagent."
@@ -199,83 +285,22 @@ def main() -> int:
         default=20.0,
         help="seconds of silence before an idle notice",
     )
-    try:
-        import shutil
+    ap.add_argument("--width", type=int, default=_default_width())
+    a = ap.parse_args(argv)
 
-        default_w = shutil.get_terminal_size((140, 40)).columns
-    except Exception:
-        default_w = 140
-    ap.add_argument("--width", type=int, default=default_w)
-    a = ap.parse_args()
+    if not _wait_for_file(a.jsonl, sleep=sleep):
+        return 1
 
-    path = a.jsonl
-    # Wait for the file to appear (agent may not have written yet).
-    waited = 0
-    while not os.path.exists(path):
-        if waited == 0:
-            print(f"{YEL}Waiting for {path} …{R}")
-        time.sleep(0.5)
-        waited += 1
-        if waited > 240:
-            print(f"{RED}File never appeared: {path}{R}")
-            return 1
-
-    header(path, a.width)
+    header(a.jsonl, a.width)
     if a.backfill:
         print(f"{DIM}── last {a.backfill} events ──{R}")
-        for e in read_tail_entries(path, a.backfill):
+        for e in read_tail_entries(a.jsonl, a.backfill):
             for ln in render(e, a.width):
                 print(ln)
         print(f"{DIM}── live ──{R}")
 
-    # Seek to current EOF, then poll for appended bytes.
-    buf = b""
-    pos = os.path.getsize(path)
-    last_event = time.time()
-    idle_announced = False
-    while True:
-        try:
-            sz = os.path.getsize(path)
-            if sz < pos:  # file truncated / rotated -> restart from top
-                pos = 0
-                buf = b""
-            if sz > pos:
-                with open(path, "rb") as fh:
-                    fh.seek(pos)
-                    chunk = fh.read()
-                pos = sz
-                buf += chunk
-                *lines, buf = buf.split(b"\n")
-                for raw in lines:
-                    raw = raw.strip()
-                    if not raw.startswith(b"{"):
-                        continue
-                    try:
-                        entry = json.loads(raw.decode("utf-8", "ignore"))
-                    except Exception:
-                        continue
-                    for ln in render(entry, a.width):
-                        print(ln, flush=True)
-                        last_event = time.time()
-                        idle_announced = False
-            else:
-                if not idle_announced and (time.time() - last_event) > a.idle:
-                    age = int(time.time() - last_event)
-                    print(
-                        f"{DIM}… idle {age}s (no new events; agent may be done or thinking){R}",
-                        flush=True,
-                    )
-                    idle_announced = True
-        except KeyboardInterrupt:
-            print(f"\n{DIM}stopped watching{R}")
-            return 0
-        except OSError:
-            pass  # transient share/lock; retry next poll
-        time.sleep(a.poll)
+    return _follow_forever(a.jsonl, a.width, a.poll, a.idle, sleep=sleep)
 
 
-if __name__ == "__main__":
-    try:
-        sys.exit(main())
-    except KeyboardInterrupt:
-        sys.exit(0)
+if __name__ == "__main__":  # pragma: no cover -- module CLI entrypoint
+    raise SystemExit(main())

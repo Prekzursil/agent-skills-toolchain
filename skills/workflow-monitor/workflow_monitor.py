@@ -17,7 +17,7 @@ WHOLE FLEET (all sessions/projects) with O(changed) polling, and renders a full 
 STRICTLY READ-ONLY: every path is opened for reading only; the live run is never mutated. All file I/O runs
 in Textual thread-workers (fleet poll + per-agent detail load + feed tail) so the UI thread never blocks.
 
-The Feed reuses ``agent_tail.render`` (the D:\\agent-monitor event→coloured-line mapper) and converts its
+The Feed reuses ``monitorcore.agent_tail.render`` (the vendored event→coloured-line mapper) and converts its
 ANSI output to Rich ``Text`` via ``Text.from_ansi`` for the RichLog. A self-contained fallback renderer is
 used if that module is unavailable.
 """
@@ -34,14 +34,24 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import workflow_run as wr  # noqa: E402
 
-# ── reuse agent_tail.render (ANSI event lines) for the Feed pane ─────────────
-_AGENT_TAIL_DIR = r"D:\agent-monitor"
+# ── reuse the vendored agent_tail.render (ANSI event lines) for the Feed pane ─
+# The ``monitorcore`` package is vendored alongside this skill, so this import
+# resolves without the old hardcoded personal-directory sys.path hack. The guard
+# is kept so the self-contained fallback renderer below stays reachable if the
+# vendored package is ever absent.
 try:
-    if _AGENT_TAIL_DIR not in sys.path:
-        sys.path.insert(0, _AGENT_TAIL_DIR)
-    import agent_tail  # type: ignore  # noqa: E402
-except Exception:  # pragma: no cover - fallback when D:\agent-monitor is absent
+    from monitorcore import agent_tail  # noqa: E402
+except Exception:  # pragma: no cover - fallback when the vendored package is absent
     agent_tail = None
+
+# The coarse agent-state bucket is the SHARED monitorcore primitive (single source of
+# truth for the former ``_bucket`` / ``wfmon_export.model._state_bucket`` duplication).
+from monitorcore.agent_state import bucket_agent  # noqa: E402
+
+# The Task/Result-pane truncation cap is the SHARED monitorcore primitive (single source of
+# truth for the former cockpit ``DETAIL_CHARS`` / ``render_md`` / ``render_html`` ×3 duplication
+# of the 8000-byte cap). Aliased so the two call sites keep the cockpit-local name.
+from monitorcore.textsafe import TOOL_OUTPUT_CAP as DETAIL_CHARS  # noqa: E402
 
 from rich.text import Text  # noqa: E402
 from textual import work  # noqa: E402
@@ -66,7 +76,8 @@ BACKFILL = 14  # transcript events shown when an agent is first selected
 FEED_WIDTH = 160  # width passed to the event renderer
 STALL_MS = 90_000  # idle-while-active threshold → triage "STALL"
 POLL_SEC = 1.0  # fleet refresh cadence
-DETAIL_CHARS = 8000  # truncate Task/Result panes to keep the UI snappy
+# DETAIL_CHARS (Task/Result-pane truncation) is imported above from monitorcore.textsafe
+# (TOOL_OUTPUT_CAP) — the single shared source of the 8000-byte cap.
 FEED_TAIL_WINDOW = 65_536  # bytes scanned from EOF to find the last complete line
 STATUSES = ("running", "done", "error", "idle")
 
@@ -85,13 +96,9 @@ def _now_ms() -> float:
 
 
 def _bucket(a: "wr.WFAgent") -> str:
-    if a.errored:
-        return "error"
-    if a.state == "done":
-        return "done"
-    if a.running:
-        return "running"
-    return "idle"
+    # Delegates to the shared monitorcore bucket (journal_state omitted == the cockpit's
+    # manifest-only view); keeps this file free of the duplicated state-mapping logic.
+    return bucket_agent(errored=a.errored, state=a.state, running=a.running)
 
 
 def _agent_priority(a: "wr.WFAgent", now: float) -> int:
