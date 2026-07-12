@@ -25,15 +25,16 @@ from this skill as a shared leaf); import them from there::
     from monitorcore.redact import Redactor, redact
 
 (The ``render_md`` module's public function is named ``render_markdown``, so it has
-no such clash and IS re-exported; likewise ``detect_engines`` / ``render_pdf`` do not
-collide with the ``pdf`` submodule name.)
+no such clash and IS re-exported. The PDF ladder (``detect_engines`` / ``render_pdf``)
+now lives in the vendored ``monitorcore.pdf`` module and is re-exported from there.)
 """
 
 from __future__ import annotations
 
+from monitorcore.pdf import detect_engines, render_pdf
+
 from .cli import run_export
 from .model import AgentExport, ExportModel, PhaseExport, collect_run
-from .pdf import detect_engines, render_pdf
 from .render_md import render_markdown
 
 __all__: list[str] = [

@@ -1,4 +1,4 @@
-"""Unit tests for ``wfmon_export.pdf`` (WU8) - the feature-detected PDF ladder.
+"""Unit tests for ``monitorcore.pdf`` - the feature-detected PDF ladder.
 
 No real PDF engine is required or invoked: subprocess-based rungs are exercised with an
 injected fake ``runner`` and monkeypatched binary discovery, and import-based rungs
@@ -21,7 +21,7 @@ import types
 
 import pytest
 
-import wfmon_export.pdf as pdf
+import monitorcore.pdf as pdf
 
 HTML = "<html><body><h1>run</h1></body></html>"
 MD = "# run\n\nhello\n"

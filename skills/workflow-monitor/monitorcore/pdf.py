@@ -1,4 +1,4 @@
-"""Feature-detected PDF ladder for the wfmon export (stdlib-only at import time).
+"""Feature-detected PDF ladder for the shared export path (stdlib-only at import time).
 
 ``render_pdf`` turns a rendered HTML+Markdown pair into a PDF using the best available
 engine, walking DOWN a fixed ladder on any failure and ALWAYS ending by writing the
@@ -226,7 +226,7 @@ def _playwright_rung(html: str, md: str, out_path: str, runner) -> tuple[bool, s
     if not _has_module("playwright"):
         return False, ""
     try:
-        from playwright.sync_api import sync_playwright
+        from playwright.sync_api import sync_playwright  # pyright: ignore[reportMissingImports]
 
         with sync_playwright() as pw:
             browser = pw.chromium.launch()
@@ -257,7 +257,7 @@ def _xhtml2pdf_rung(html: str, md: str, out_path: str, runner) -> tuple[bool, st
     if not _has_module("xhtml2pdf"):
         return False, ""
     try:
-        from xhtml2pdf import pisa
+        from xhtml2pdf import pisa  # pyright: ignore[reportMissingImports]
 
         with open(out_path, "wb") as dest:
             result = pisa.CreatePDF(html, dest=dest)
@@ -272,7 +272,7 @@ def _fpdf2_rung(html: str, md: str, out_path: str, runner) -> tuple[bool, str]:
     if not _has_module("fpdf"):
         return False, ""
     try:
-        from fpdf import FPDF
+        from fpdf import FPDF  # pyright: ignore[reportMissingModuleSource]
 
         doc = FPDF()
         doc.set_auto_page_break(True, margin=15)

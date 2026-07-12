@@ -466,8 +466,11 @@ def test_dunder_main_module_exposes_main():
 
 def test_package_reexports_cli_and_renderers():
     import wfmon_export
-    from wfmon_export.pdf import detect_engines as de_fn
-    from wfmon_export.pdf import render_pdf as rp_fn
+
+    # The PDF ladder now lives in the vendored monitorcore package; wfmon_export
+    # re-exports it from there (extracted out of the skill in WU3).
+    from monitorcore.pdf import detect_engines as de_fn
+    from monitorcore.pdf import render_pdf as rp_fn
     from wfmon_export.render_md import render_markdown as rm_fn
 
     assert wfmon_export.run_export is cli.run_export

@@ -24,11 +24,10 @@ from __future__ import annotations
 
 import json
 
-import workflow_run as wr
-
 from .model import ExportModel
 from monitorcore.redact import Redactor
 from monitorcore.textsafe import elide_base64, html_escape, strip_ansi, truncate_block
+from monitorcore.timeline import pair_tool_calls
 
 __all__ = ["render_html", "TOOL_OUTPUT_CAP"]
 
@@ -275,7 +274,7 @@ def _render_tool(use, result, tools: str, red: Redactor) -> str:
 
 
 def _render_timeline(agent, tools: str, thinking: bool, red: Redactor) -> str:
-    results_by_id = {u.tool_id: r for u, r in wr.pair_tool_calls(agent.timeline)}
+    results_by_id = {u.tool_id: r for u, r in pair_tool_calls(agent.timeline)}
     parts = ['<div class="timeline">']
     for ev in agent.timeline:
         if ev.kind == "thinking":

@@ -28,7 +28,7 @@ from typing import NamedTuple
 import workflow_run as wr
 
 from .model import collect_run
-from .pdf import render_pdf
+from monitorcore.pdf import render_pdf
 from .render_html import render_html
 from .render_md import render_markdown
 

@@ -193,12 +193,9 @@ def test_report_headline(run: wr.WFRun):
     )
     assert out  # journal `result` recovered the clean output
     assert wr.report_headline(out) == "HEADLINE ANSWER (yes/no)"
-
-
-def test_report_headline_pure():
-    assert wr.report_headline("# Title\nbody") == "Title"
-    assert wr.report_headline("plain first line\nsecond") == "plain first line"
-    assert wr.report_headline("") == ""
+    # NOTE: report_headline's pure-branch unit tests moved to
+    # tools/monitorcore/tests/test_timeline.py (the symbol now lives in
+    # monitorcore.timeline; `wr.report_headline` resolves via the re-export shim).
 
 
 # ── FleetPoller O(changed) contract ──
