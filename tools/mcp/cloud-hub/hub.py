@@ -41,6 +41,7 @@ sys.path.insert(0, _HERE)
 sys.path.insert(0, os.path.join(os.path.dirname(_HERE), "_shared"))
 
 import accounts  # noqa: E402
+import hardening  # noqa: E402
 from backends import BackendSpec, default_backends  # noqa: E402
 from registry import Plan, build_plan  # noqa: E402
 
@@ -256,7 +257,13 @@ class HubServer:
         # Synthetic hub-native account tools (never forwarded to a child) merged
         # into the advertised surface alongside the real backend tools.
         self.account_tools, self.account_routes = self._account_surface(specs)
-        self.all_tools = list(plan.tools) + self.account_tools
+        # D6: enrich the advertised surface (readOnly/destructive annotations,
+        # usage examples, owned-account-tool schema tightening). Pure + additive:
+        # a backend's own metadata always wins over an inferred hint.
+        self.all_tools = hardening.enrich_tools(list(plan.tools) + self.account_tools)
+        # D4: server-side destructive-op confirm gate. SHADOW by default (observe
+        # + log only, never blocks); HARNESS_HUB_CONFIRM_MODE=enforce to activate.
+        self._confirm_gate = hardening.ConfirmGate(log_dir=_HERE)
 
     def _account_env_for(self, spec: BackendSpec):
         """A callable resolving the active env for an env-mode backend (or None)."""
@@ -321,6 +328,11 @@ class HubServer:
         if route is None:
             self._error(mid, -32602, f"Unknown tool: {name!r}")
             return
+        gate = self._confirm_gate.check(route.original_name, msg)
+        if gate.blocked:
+            self._tool_error(mid, gate.message)
+            return
+        msg = gate.request  # enforce-mode may have stripped the hub-native _confirm
         backend = self.backends[route.backend_id]
         if not backend.ensure_started():
             self._tool_error(
@@ -365,6 +377,8 @@ class HubServer:
                         "text": json.dumps(result, ensure_ascii=False, indent=2),
                     }
                 ],
+                # D6: structured result mirroring the account-tool outputSchema.
+                "structuredContent": result,
                 "isError": not result.get("ok", False),
             },
         )
