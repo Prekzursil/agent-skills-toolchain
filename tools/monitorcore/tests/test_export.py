@@ -94,6 +94,16 @@ def test_resolve_for_guard_free_drive_terminates():
     assert resolved and resolved == os.path.normcase(resolved)
 
 
+def test_resolve_for_guard_ascends_to_root(monkeypatch):
+    # Force the ascent to reach a filesystem root (parent == head) on ANY platform.
+    # With nothing existing, the loop climbs to the root and takes the `break` guard --
+    # otherwise unreachable on POSIX via real paths, where "/" always exists (so the
+    # free-drive test above only exercises the break on Windows).
+    monkeypatch.setattr(mcx.os.path, "exists", lambda _p: False)
+    resolved = resolve_for_guard(os.path.join(os.sep, "nope", "deep"))
+    assert resolved == os.path.normcase(resolved)
+
+
 def test_under_root_containment(tmp_path):
     root = tmp_path / "ro"
     root.mkdir()
