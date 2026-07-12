@@ -1,8 +1,17 @@
-"""One-shot golden capture (STEP 0, PR-B1 WU4).
+"""Golden regeneration tool (PR-B1 WU4) -- NOT a test; kept for provenance.
 
-Run with the skill on sys.path to snapshot the PRE-refactor wfmon renderers for the
-frozen ``wf_export00-fixture`` at a pinned ``generated_at``. Not a test; kept for
-provenance/regeneration. The committed golden bytes are the byte-identity baseline.
+Regenerates the committed ``wf_export00`` golden MD/HTML for the frozen
+``wf_export00-fixture`` at a pinned ``generated_at`` by driving wfmon_export's
+renderers.
+
+DANGER -- post-refactor those imports resolve to the thin shims that route through
+the new ``monitorcore`` renderers, so running this against the current tree
+re-baselines the golden bytes against the CURRENT code and silently defeats the
+byte-identity regression guard in ``tests/test_golden.py``. It therefore refuses to
+run unless ``MONITORCORE_GOLDEN_REBASELINE=1`` is set, forcing a conscious
+acknowledgement that you intend to accept a real output change. The originally
+committed golden was captured from PR-A's pre-refactor renderers and is the baseline
+the extraction was proven byte-identical against.
 """
 
 from __future__ import annotations
@@ -46,6 +55,14 @@ def write(name, md, html):
 
 
 def main():
+    if os.environ.get("MONITORCORE_GOLDEN_REBASELINE") != "1":
+        raise SystemExit(
+            "_capture refuses to run: it drives wfmon_export's renderers, which "
+            "post-refactor route through monitorcore, so regenerating golden here "
+            "re-baselines the byte-identity guard against the current code. Set "
+            "MONITORCORE_GOLDEN_REBASELINE=1 only if you intend to accept a real "
+            "output change."
+        )
     combos = {
         "full": dict(tools="full", thinking=True, redact=True),
         "summary": dict(tools="summary", thinking=True, redact=True),
