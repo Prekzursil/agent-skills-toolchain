@@ -102,6 +102,24 @@ class WFRun:
         return os.path.join(base, "subagents", "workflows", self.wf_id)
 
 
+@dataclass
+class TimelineEvent:
+    """One ordered event drilled out of an agent transcript (assistant + user records).
+
+    ``kind`` ∈ {'thinking', 'text', 'tool_use', 'tool_result'}; ``seq`` is the 0-based
+    emission index in file order (the stable pairing/ordering key for renderers).
+    """
+
+    kind: str
+    seq: int
+    text: str = ""  # thinking / text
+    name: str = ""  # tool_use
+    tool_input: dict = field(default_factory=dict)  # tool_use
+    tool_id: str = ""  # tool_use.id OR tool_result.tool_use_id (the pairing key)
+    output: str = ""  # tool_result (flattened content)
+    is_error: bool = False  # tool_result
+
+
 # ───────────────────────── manifest parsing ─────────────────────────
 def _i(d: dict, k: str) -> int:
     v = d.get(k)
@@ -337,7 +355,156 @@ def report_headline(text: str) -> str:
     return head.lstrip("# ").strip()
 
 
-if __name__ == "__main__":  # tiny CLI smoke: print the live fleet board
+# ───────────────────────── ordered timeline drill-down (assistant + user records) ─────────────────────────
+def _flatten_content(content) -> str:
+    """Flatten a tool_result / advisor content payload to text. Pure, total (never raises).
+
+    ``str`` → passthrough; ``list`` → per block ({type:text,text} → text, any other → json.dumps),
+    joined with newlines; ``dict`` → normalized to a single-element list then reuse the list path
+    (so the real ``advisor_tool_result`` {type:text,text} dict yields its text, arbitrary dicts → json);
+    anything else → ``str(content)``.
+    """
+    if isinstance(content, str):
+        return content
+    if isinstance(content, dict):
+        content = [content]
+    if isinstance(content, list):
+        parts = []
+        for b in content:
+            if isinstance(b, dict) and b.get("type") == "text":
+                parts.append(str(b.get("text", "")))
+            else:
+                parts.append(json.dumps(b, ensure_ascii=False))
+        return "\n".join(parts)
+    return str(content)
+
+
+def agent_timeline(agent_jsonl: str) -> list[TimelineEvent]:
+    """Ordered event stream from an agent-<id>.jsonl transcript, in file order.
+
+    Walks assistant AND user records (tool_use lives in assistant records, tool_result in user
+    records). Records whose ``message`` is not a dict (attachment + system) are skipped. Empty
+    text / signature-only-empty thinking blocks are dropped. ``seq`` is the 0-based emission index.
+    Defensive: ``[]`` on OSError; malformed JSON lines skipped; unknown block types ignored.
+    """
+    events: list[TimelineEvent] = []
+    seq = 0
+    try:
+        with open(agent_jsonl, encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rec = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                msg = rec.get("message")
+                if not isinstance(msg, dict):
+                    continue
+                content = msg.get("content")
+                if isinstance(content, str):
+                    if content.strip():
+                        events.append(TimelineEvent(kind="text", seq=seq, text=content))
+                        seq += 1
+                    continue
+                if not isinstance(content, list):
+                    continue
+                for b in content:
+                    if not isinstance(b, dict):
+                        continue
+                    bt = b.get("type")
+                    if bt == "text":
+                        t = b.get("text", "")
+                        if isinstance(t, str) and t.strip():
+                            events.append(TimelineEvent(kind="text", seq=seq, text=t))
+                            seq += 1
+                    elif bt == "thinking":
+                        th = b.get("thinking", "")
+                        if isinstance(th, str) and th.strip():
+                            events.append(
+                                TimelineEvent(kind="thinking", seq=seq, text=th)
+                            )
+                            seq += 1
+                    elif bt in ("tool_use", "server_tool_use"):
+                        events.append(
+                            TimelineEvent(
+                                kind="tool_use",
+                                seq=seq,
+                                name=_s(b, "name"),
+                                tool_input=dict(b.get("input") or {}),
+                                tool_id=_s(b, "id"),
+                            )
+                        )
+                        seq += 1
+                    elif bt in ("tool_result", "advisor_tool_result"):
+                        events.append(
+                            TimelineEvent(
+                                kind="tool_result",
+                                seq=seq,
+                                tool_id=_s(b, "tool_use_id"),
+                                is_error=bool(b.get("is_error")),
+                                output=_flatten_content(b.get("content")),
+                            )
+                        )
+                        seq += 1
+                    # unknown block types are ignored
+    except OSError:
+        return []
+    return events
+
+
+def agent_task(agent_jsonl: str) -> str:
+    """The spawn prompt = the FIRST ``type == "user"`` record with non-empty ``_text_of``.
+
+    NOT ``agent_prompt``'s max-by-length. Correctly skips leading tool-result-only user records
+    (their ``_text_of`` is ""). Returns "" if none / unreadable. Reuses ``_text_of``.
+    """
+    try:
+        with open(agent_jsonl, encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rec = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if rec.get("type") != "user":
+                    continue
+                msg = rec.get("message")
+                if not isinstance(msg, dict):
+                    continue
+                txt = _text_of(msg)
+                if txt.strip():
+                    return txt
+    except OSError:
+        return ""
+    return ""
+
+
+def pair_tool_calls(
+    events: list[TimelineEvent],
+) -> list[tuple[TimelineEvent, TimelineEvent | None]]:
+    """One ``(tool_use, tool_result_or_None)`` pair per tool_use, in file order.
+
+    Matched by ``tool_id`` to the first later ``tool_result`` with the same id (``None`` = orphan /
+    run ended first). Pure. Renderers derive ``{u.tool_id: r for u, r in pair_tool_calls(tl)}`` to
+    nest each result under its use and skip the standalone tool_result while iterating the timeline.
+    """
+    results = [e for e in events if e.kind == "tool_result"]
+    pairs: list[tuple[TimelineEvent, TimelineEvent | None]] = []
+    for e in events:
+        if e.kind != "tool_use":
+            continue
+        match = next(
+            (r for r in results if r.tool_id == e.tool_id and r.seq > e.seq), None
+        )
+        pairs.append((e, match))
+    return pairs
+
+
+if __name__ == "__main__":  # pragma: no cover
     poller = FleetPoller()
     runs = poller.poll()
     roll = fleet_rollup(runs)

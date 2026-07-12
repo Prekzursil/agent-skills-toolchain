@@ -35,3 +35,24 @@ paths = [
   '''tools/editor/metaswarm/skills/start/rubrics/security-review-rubric\.md''',
   '''tools/editor/ralph-orchestrator/vendor/.*tests/.*\.rs''',
 ]
+
+# --- Allowlist for the wfmon-export redaction fixture ---------------------------
+# The export redactor is proven against synthetic FAKE example secrets (one of
+# each locked pattern: sk-, ghp_, github_pat_, AKIA, xoxb-, gho_, a dummy JWT, a
+# placeholder PEM) frozen into this fixture transcript. None are live credentials;
+# they exist so the redactor can prove it masks every form. The redactor's own
+# unit test assembles its PEM marker at run time (no committed literal), so only
+# the fixture needs a waiver here.
+#
+# This waiver MUST use the singular [allowlist] form, NOT a plural [[allowlists]]
+# block: gitleaks 8.24.3 (pinned in gitleaks-action@ff98106, the CI secrets gate)
+# does not apply plural [[allowlists]] path/regex waivers to the multi-line
+# `private-key` rule — only the singular top-level [allowlist] suppresses that
+# finding (verified against the pinned 8.24.3 binary in CI diff-mode). The plural
+# blocks above are correct as-is: they waive single-line findings, which plural
+# waivers do handle.
+[allowlist]
+description = "wfmon-export redaction fixture (synthetic FAKE example secrets, not live)"
+paths = [
+  '''skills/workflow-monitor/fixtures/export/.*''',
+]
