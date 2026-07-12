@@ -109,3 +109,99 @@ blank or wrong.
 this Textual monitor (the live whole-fleet board). Neither should reparse manifests or journals
 independently — both import this module, so a schema fix or defensive tweak lands once and both
 tools benefit, and the fixture test above protects both.
+
+## Export (`wfmon_export`) — snapshot a run to Markdown / HTML / PDF
+
+`workflow_run.py` grows a small **add-only** timeline layer (`TimelineEvent`, `_flatten_content`,
+`agent_timeline`, `agent_task`, `pair_tool_calls`) that walks a subagent's `agent-<id>.jsonl` in
+file order into a typed event stream (`thinking` / `text` / `tool_use` / `tool_result`), pairs each
+tool call with its result by `tool_use.id`, and recovers the spawn prompt (the first non-empty
+`user` message — deliberately **not** the largest, so a huge later message can't shadow it). The
+text-only `agent_transcript` / `agent_prompt` contract is untouched.
+
+On top of that sits the **`wfmon_export`** package. It is stdlib-only at import time; the optional
+PDF engines are feature-detected and imported *inside* functions, never at module top, so a missing
+dependency can never break the cockpit or the CLI.
+
+- **`model.py` is the only filesystem reader in the export path.** `collect_run(wf_id, *, projects,
+  scope, agents)` locates the manifest, reads the journal + transcripts once, and fully
+  materializes an immutable `ExportModel` (phases → agents, each with task / output / headline /
+  timeline, plus a scoped `rollup` and a `provenance` dict carrying `CC_SCHEMA_VERSION`). Per-agent
+  `state` is bucketed locally (`_state_bucket`) into `running` / `done` / `error` / `idle` with **no
+  import of `workflow_monitor`**.
+- **The renderers are pure functions of `ExportModel`** — no filesystem access in the render path.
+  `render_markdown(model, *, tools, thinking, redact)` and `render_html(...)` both emit provenance
+  (Markdown YAML front-matter / HTML `<header>`), a **redaction audit banner** (`N masked` or
+  `redaction: off`), a **"run still active — snapshot"** banner when the run is non-terminal, status
+  badges, a TOC, and a **fan-out DAG** built from `model.phases` (Markdown = a `mermaid` flowchart TD
+  of phase→agent + phase→phase edges plus an indented ASCII fallback; HTML = the same DAG inline),
+  then per-phase per-agent cards with collapsible tool blocks. `--tools full|summary|none` and
+  `--no-thinking` are honored by **both** renderers. `render_html` is fully self-contained (inline
+  `<style>` + `<script>`, no external/CDN refs), with a sticky TOC, a client-side text filter,
+  collapse-all / expand-all, and `@media print` CSS + an `onbeforeprint` expand-all hook, and it
+  doubles as the guaranteed PDF fallback.
+
+### CLI
+
+`wfmon export <wf_id> [options]` (via `wfmon.cmd`, `python -m wfmon_export`, or the cockpit `e`
+keybind — all three share the one `run_export` core):
+
+```
+--scope run|subset|agent    default run; subset/agent REQUIRE --agents
+--agents LABEL1,LABEL2       comma-separated agent LABELS (case-insensitive, label-set semantics:
+                             ALL agents matching a label are included; unknown label lists the
+                             available labels and exits 2)
+--format md|html|pdf         default md
+--pdf-engine ENGINE          force a PDF rung (typst|playwright|edge|chrome|pandoc|xhtml2pdf|fpdf2|
+                             html); ignored unless --format pdf
+--tools full|summary|none    default full (honored by md + html)
+--no-thinking                drop thinking events (honored by md + html)
+--no-redact                  opt out of STRICT redaction; prints an explicit 'redaction: off' banner
+--out DIR                    output dir; default <tempfile.gettempdir()>/wfmon-exports/ (created on demand)
+--projects DIR               fleet-root override (default ~/.claude/projects); used by tests + the keybind
+```
+
+Output: writes `<out>/<wf_id>[.<scope>].<ext>` and prints the absolute path, the PDF engine used
+(pdf only), and `N masked` (or `redaction: off`). `wfmon.cmd` forwards the whole tail including the
+leading `export` token; `main()` strips a single leading `export`, so `wfmon export <wf_id>`,
+`python -m wfmon_export export <wf_id>`, and `python -m wfmon_export <wf_id>` all parse.
+
+### Redaction (strict by default, fail-closed)
+
+A pure `str → str` render-time filter, ON by default. Secrets are masked first, then home paths
+collapse to `~`. Each substitution runs in its own try/except so a regex fault yields the partially
+masked text — **never the raw string**. Masked classes: `sk-*` API keys (incl `sk-ant-*`), GitHub
+PATs (`ghp_*`, `github_pat_*`) and oauth/user/server/refresh tokens (`gh[oure]_*`), AWS access-key
+ids (`AKIA…`), Slack tokens (`xox[baprs]-…`), `Bearer` JWTs and standalone JWTs (tightened so both
+leading segments must start `eyJ` — benign dotted base64 does **not** match), PEM `PRIVATE KEY`
+blocks, and `*.gitcrypt.key` paths. Home-path forms collapsed: `C:\Users\<u>`, `C:/Users/<u>`,
+`/c/Users/<u>`, `/mnt/c/Users/<u>`, and the 8.3 short name `PREKZU~1`. The count feeds the audit
+banner; `--no-redact` is explicit and banner-flagged.
+
+### PDF ladder (feature-detected; never imports a PDF lib at module top)
+
+`detect_engines()` lists the available rungs in priority order — `html` is always present and last.
+`render_pdf(html, md, out_path, *, engine=None, runner=subprocess.run)` auto-selects the first
+available non-`html` rung (or a forced `--pdf-engine`), and on **any** failure walks down the ladder,
+always ending by writing the self-contained HTML next to `out_path` and returning `("html", path)` —
+it never raises to the user. Each library/binary is imported or spawned inside its own try/except;
+detection uses `shutil.which` (typst / pandoc / msedge / chrome) and `importlib.util.find_spec`
+(playwright / xhtml2pdf / fpdf) with **no PDF library imported at detection time**.
+
+| # | engine | detect | how |
+|---|---|---|---|
+| 1 | `typst` | `which(typst)` **and** `which(pandoc)` | `pandoc <md> --pdf-engine=typst` |
+| 2 | `playwright` | `find_spec(playwright)` | `page.set_content(html)` → `page.pdf(print_background=True)` |
+| 3 | `edge` | `which(msedge)` / Edge install path | Edge headless `--print-to-pdf` (Edge-141 `--headless=new`→`old` ladder) |
+| 4 | `chrome` | `which(chrome)` / Chrome install path | Chrome headless `--print-to-pdf` (same headless ladder) |
+| 5 | `pandoc` | `which(pandoc)` (without typst) | `pandoc <md> -o <pdf>` |
+| 6 | `xhtml2pdf` | `find_spec(xhtml2pdf)` | `pisa.CreatePDF(html, dest=...)` |
+| 7 | `fpdf2` | `find_spec(fpdf)` | redacted, ansi-stripped plaintext → `FPDF.multi_cell` |
+| 8 | `html` | always (terminal) | writes the self-contained interactive HTML; never fails |
+
+### Read-only out-guard
+
+Export **only ever reads** `~/.claude`. `--out` is resolved via `_resolve_for_guard` (realpath of
+the nearest existing ancestor + normalized non-existent tail + `normcase`, which expands 8.3 short
+names such as `PREKZU~1`) and **refused with exit 2** if it resolves to or under
+`~/.claude/projects/**` — even when the target directory does not exist yet.

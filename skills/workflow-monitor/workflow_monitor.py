@@ -27,6 +27,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import tempfile
 import time
 
 # ── import the M1 shared parser (same directory) ────────────────────────────
@@ -328,6 +329,7 @@ class WorkflowMonitor(App):
         Binding("ctrl+q", "quit", "Quit", show=False),
         Binding("f", "toggle_follow", "Follow"),
         Binding("r", "force_poll", "Refresh"),
+        Binding("e", "export", "Export"),
     ]
 
     def compose(self) -> ComposeResult:
@@ -753,6 +755,74 @@ class WorkflowMonitor(App):
 
     def action_force_poll(self) -> None:
         self._schedule_poll()
+
+    # ── export (read-only snapshot of the current selection) ──
+    def _agent_label(self, wf_id: str, agent_id: str) -> str | None:
+        """The label of ``agent_id`` inside run ``wf_id`` (``collect_run`` scopes by label)."""
+        run = next((r for r in self._runs_all if r.wf_id == wf_id), None)
+        if run is None:
+            return None
+        a = next((x for x in run.agents if x.agent_id == agent_id), None)
+        if a is None:
+            return None
+        return a.label or None
+
+    def action_export(self) -> None:
+        """Export the selected run (or one agent) to a redacted timeline doc, off-thread.
+
+        Reads the selection from ``tree.cursor_node.data`` (NOT ``_sel_key`` — that only ever
+        holds *agent* selections, so a highlighted run/phase node would export the wrong thing):
+        ``agent`` → scope=agent pre-filled with that agent's label; ``run``/``phase``/``more`` →
+        scope=run for the enclosing run. Nothing selectable → a warning toast.
+        """
+        node = self.query_one("#tree", Tree).cursor_node
+        d = node.data if node is not None else None
+        scope = "run"
+        agents: list[str] | None = None
+        if d and d[0] == "agent":
+            _, wf_id, agent_id = d
+            label = self._agent_label(wf_id, agent_id)
+            if not label:
+                self.notify("select a run/agent first", severity="warning")
+                return
+            scope = "agent"
+            agents = [label]
+        elif d and d[0] in ("run", "phase", "more"):
+            wf_id = d[1]
+        else:
+            self.notify("select a run/agent first", severity="warning")
+            return
+        out = os.path.join(tempfile.gettempdir(), "wfmon-exports")
+        self._export_worker(wf_id, scope, agents, out)
+
+    @work(thread=True, group="export", exclusive=False)
+    def _export_worker(
+        self, wf_id: str, scope: str, agents: list[str] | None, out: str
+    ) -> None:
+        """Run the export off the UI thread. Lazy-imports ``run_export`` INSIDE the worker so a
+        missing OPTIONAL pdf dep (or an as-yet-unbuilt export module) can never break startup;
+        mirrors the ``_poll_worker``/``_load_detail`` thread-worker pattern. Read-only + idempotent.
+        """
+        try:
+            from wfmon_export.cli import run_export
+
+            path = run_export(
+                wf_id,
+                scope=scope,
+                agents=agents,
+                fmt="md",
+                tools="full",
+                thinking=True,
+                redact=True,
+                out=out,
+                projects=self.poller.projects,
+            )
+        except Exception as exc:
+            self.call_from_thread(
+                self.notify, f"export failed: {exc}", severity="warning"
+            )
+            return
+        self.call_from_thread(self.notify, f"exported → {path}")
 
 
 def main() -> int:
