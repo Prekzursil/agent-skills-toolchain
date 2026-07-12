@@ -44,6 +44,10 @@ try:
 except Exception:  # pragma: no cover - fallback when the vendored package is absent
     agent_tail = None
 
+# The coarse agent-state bucket is the SHARED monitorcore primitive (single source of
+# truth for the former ``_bucket`` / ``wfmon_export.model._state_bucket`` duplication).
+from monitorcore.agent_state import bucket_agent  # noqa: E402
+
 from rich.text import Text  # noqa: E402
 from textual import work  # noqa: E402
 from textual.app import App, ComposeResult  # noqa: E402
@@ -86,13 +90,9 @@ def _now_ms() -> float:
 
 
 def _bucket(a: "wr.WFAgent") -> str:
-    if a.errored:
-        return "error"
-    if a.state == "done":
-        return "done"
-    if a.running:
-        return "running"
-    return "idle"
+    # Delegates to the shared monitorcore bucket (journal_state omitted == the cockpit's
+    # manifest-only view); keeps this file free of the duplicated state-mapping logic.
+    return bucket_agent(errored=a.errored, state=a.state, running=a.running)
 
 
 def _agent_priority(a: "wr.WFAgent", now: float) -> int:

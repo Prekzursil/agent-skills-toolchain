@@ -17,10 +17,13 @@ Being stdlib-only, it stays importable under a consuming skill's plain Python.
 
 from __future__ import annotations
 
+import argparse
 import datetime as dt
 import json
 import os
+import shutil
 import sys
+import time
 
 
 # ── ANSI colors (enable VT on Windows consoles) ──────────────────────────────
@@ -184,3 +187,120 @@ def header(jsonl_path: str, width: int) -> None:
         print(f"{MAG}║{R} {m['description']}")
     print(f"{DIM}║ {os.path.basename(jsonl_path)}{R}")
     print(f"{BOLD}{MAG}{bar}{R}")
+
+
+# ── live-tail CLI (spawn target: ``python -m monitorcore.agent_tail <jsonl>``) ─
+def _default_width() -> int:
+    """Terminal width, defaulting to 140 when it can't be determined."""
+    try:
+        return shutil.get_terminal_size((140, 40)).columns
+    except Exception:
+        return 140
+
+
+def _wait_for_file(
+    path: str, *, sleep, exists=os.path.exists, limit: int = 240
+) -> bool:
+    """Block until ``path`` exists; return ``False`` if it never appears within ``limit`` polls."""
+    waited = 0
+    while not exists(path):
+        if waited == 0:
+            print(f"{YEL}Waiting for {path} …{R}")
+        sleep(0.5)
+        waited += 1
+        if waited > limit:
+            print(f"{RED}File never appeared: {path}{R}")
+            return False
+    return True
+
+
+def _follow_step(path, state, width, idle, *, now, out=print):
+    """One poll iteration: emit newly-appended events; return the updated follow state.
+
+    ``state`` is ``(pos, buf, last_event, idle_announced)``. New complete lines past ``pos``
+    are parsed + rendered; a truncated/rotated file restarts from the top; a quiet stretch
+    past ``idle`` seconds prints a single idle notice. A transient ``OSError`` (share lock)
+    leaves the state unchanged for the next poll.
+    """
+    pos, buf, last_event, idle_announced = state
+    try:
+        sz = os.path.getsize(path)
+        if sz < pos:  # file truncated / rotated -> restart from top
+            pos, buf = 0, b""
+        if sz > pos:
+            with open(path, "rb") as fh:
+                fh.seek(pos)
+                chunk = fh.read()
+            pos = sz
+            buf += chunk
+            *lines, buf = buf.split(b"\n")
+            for raw in lines:
+                raw = raw.strip()
+                if not raw.startswith(b"{"):
+                    continue
+                try:
+                    entry = json.loads(raw.decode("utf-8", "ignore"))
+                except Exception:
+                    continue
+                for ln in render(entry, width):
+                    out(ln)
+                    last_event = now()
+                    idle_announced = False
+        elif not idle_announced and (now() - last_event) > idle:
+            age = int(now() - last_event)
+            out(f"{DIM}… idle {age}s (no new events; agent may be done or thinking){R}")
+            idle_announced = True
+    except OSError:
+        pass  # transient share/lock; retry next poll
+    return (pos, buf, last_event, idle_announced)
+
+
+def _follow_forever(  # pragma: no cover -- interactive live poll loop (no real terminal state in tests)
+    path, width, poll, idle, *, sleep, now=time.time
+) -> int:
+    state = (os.path.getsize(path), b"", now(), False)
+    while True:
+        try:
+            state = _follow_step(path, state, width, idle, now=now)
+        except KeyboardInterrupt:
+            print(f"\n{DIM}stopped watching{R}")
+            return 0
+        sleep(poll)
+
+
+def main(argv=None, *, sleep=time.sleep) -> int:
+    """Live pretty-tail of one subagent transcript (header + backfill + follow loop)."""
+    _enable_vt()
+    ap = argparse.ArgumentParser(
+        description="Live pretty-tail of one Claude Code subagent."
+    )
+    ap.add_argument("jsonl", help="path to agent-<id>.jsonl")
+    ap.add_argument(
+        "--backfill", type=int, default=8, help="recent events to show on open"
+    )
+    ap.add_argument("--poll", type=float, default=0.6, help="poll interval seconds")
+    ap.add_argument(
+        "--idle",
+        type=float,
+        default=20.0,
+        help="seconds of silence before an idle notice",
+    )
+    ap.add_argument("--width", type=int, default=_default_width())
+    a = ap.parse_args(argv)
+
+    if not _wait_for_file(a.jsonl, sleep=sleep):
+        return 1
+
+    header(a.jsonl, a.width)
+    if a.backfill:
+        print(f"{DIM}── last {a.backfill} events ──{R}")
+        for e in read_tail_entries(a.jsonl, a.backfill):
+            for ln in render(e, a.width):
+                print(ln)
+        print(f"{DIM}── live ──{R}")
+
+    return _follow_forever(a.jsonl, a.width, a.poll, a.idle, sleep=sleep)
+
+
+if __name__ == "__main__":  # pragma: no cover -- module CLI entrypoint
+    raise SystemExit(main())

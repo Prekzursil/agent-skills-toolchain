@@ -15,6 +15,7 @@ import os
 from dataclasses import dataclass, field
 
 import workflow_run as wr
+from monitorcore.agent_state import bucket_agent
 from monitorcore.report_doc import ReportDoc, Section
 from workflow_run import TimelineEvent
 
@@ -88,18 +89,17 @@ class ExportModel:
 def _state_bucket(agent: wr.WFAgent, journal_state: str | None) -> str:
     """Collapse a manifest row + journal state into a display bucket.
 
-    ``error`` if the manifest marks the agent errored; else ``done`` if the journal recorded a
-    ``result`` OR the manifest state is ``done``; else ``running`` if the agent is in a running
-    state; else ``idle``. (``journal_states`` only ever yields ``started``/``result`` and cannot
-    express error - error is authoritative from the manifest's ``WFAgent.errored``.)
+    Thin adapter onto the shared :func:`monitorcore.agent_state.bucket_agent` (the single
+    source of truth that also backs ``workflow_monitor._bucket`` — the former duplication is
+    gone). ``error`` if the manifest marks the agent errored; else ``done`` if the journal
+    recorded a ``result`` OR the manifest state is ``done``; else ``running``; else ``idle``.
     """
-    if agent.errored:
-        return "error"
-    if journal_state == "result" or agent.state == "done":
-        return "done"
-    if agent.running:
-        return "running"
-    return "idle"
+    return bucket_agent(
+        errored=agent.errored,
+        state=agent.state,
+        running=agent.running,
+        journal_state=journal_state,
+    )
 
 
 # ───────────────────────── manifest discovery ─────────────────────────

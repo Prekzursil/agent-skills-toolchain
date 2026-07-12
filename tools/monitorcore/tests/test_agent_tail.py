@@ -1,6 +1,6 @@
 """Tests for the vendored subagent-transcript renderer (``monitorcore.agent_tail``).
 
-These tests do NOT travel from the source tree (``tools/agent-monitor`` had none) — they
+These tests do NOT travel from the source tree (the retired agent-monitor tool had none) — they
 are authored here to bring the vendored module to 100% line+branch coverage. They assert
 the exact coloured OUTPUT of ``render`` (byte-for-byte, using timestamp-less entries so the
 strings are timezone-independent), exercise every ``render`` event-kind branch, cover
@@ -339,3 +339,143 @@ def test_enable_vt_windows_windll_missing_is_swallowed(monkeypatch):
 @pytest.mark.parametrize("iso", ["", None])
 def test_fmt_ts_falsy_parametrized(iso):
     assert at.fmt_ts(iso) == "--:--:--"
+
+
+# ───────────────────────── live-tail CLI (added in WU7) ─────────────────────────
+def test_default_width_returns_columns(monkeypatch):
+    monkeypatch.setattr(
+        at.shutil,
+        "get_terminal_size",
+        lambda _fallback: type("S", (), {"columns": 77})(),
+    )
+    assert at._default_width() == 77
+
+
+def test_default_width_falls_back_on_error(monkeypatch):
+    def boom(_fallback):
+        raise OSError("no tty")
+
+    monkeypatch.setattr(at.shutil, "get_terminal_size", boom)
+    assert at._default_width() == 140
+
+
+def test_wait_for_file_present_immediately():
+    assert (
+        at._wait_for_file("/anything", sleep=lambda _s: None, exists=lambda _p: True)
+        is True
+    )
+
+
+def test_wait_for_file_never_appears(capsys):
+    slept = []
+    ok = at._wait_for_file(
+        "/ghost", sleep=lambda s: slept.append(s), exists=lambda _p: False, limit=2
+    )
+    assert ok is False
+    out = capsys.readouterr().out
+    assert "Waiting for /ghost" in out and "File never appeared" in out
+    assert slept == [0.5, 0.5, 0.5]  # limit+1 polls before giving up
+
+
+def test_wait_for_file_appears_after_polls():
+    calls = {"n": 0}
+
+    def exists(_p):
+        calls["n"] += 1
+        return calls["n"] >= 3  # missing twice, then appears
+
+    assert at._wait_for_file("/late", sleep=lambda _s: None, exists=exists) is True
+
+
+def test_follow_step_emits_new_entries(tmp_path):
+    p = tmp_path / "agent-x.jsonl"
+    p.write_text(
+        "garbage\n"  # non-{ -> skipped
+        "{bad json\n"  # unparseable -> skipped
+        + '{"message": {"content": [{"type": "text", "text": "hello"}]}}\n',
+        encoding="utf-8",
+    )
+    out = []
+    pos, buf, last, announced = at._follow_step(
+        str(p), (0, b"", 0.0, False), 160, 20.0, now=lambda: 100.0, out=out.append
+    )
+    assert any("📝 hello" in ln for ln in out)
+    assert (
+        pos == p.stat().st_size and buf == b"" and last == 100.0 and announced is False
+    )
+
+
+def test_follow_step_truncation_resets(tmp_path):
+    p = tmp_path / "agent-x.jsonl"
+    p.write_text(
+        '{"message": {"content": [{"type": "text", "text": "again"}]}}\n',
+        encoding="utf-8",
+    )
+    out = []
+    # pos far past EOF -> truncation branch resets to 0 then re-reads
+    _pos, _buf, _last, _ann = at._follow_step(
+        str(p),
+        (10_000, b"stale", 0.0, False),
+        160,
+        20.0,
+        now=lambda: 5.0,
+        out=out.append,
+    )
+    assert any("📝 again" in ln for ln in out)
+
+
+def test_follow_step_idle_notice_once(tmp_path):
+    p = tmp_path / "agent-x.jsonl"
+    p.write_text("{}\n", encoding="utf-8")
+    size = p.stat().st_size
+    out = []
+    state = at._follow_step(
+        str(p), (size, b"", 0.0, False), 160, 20.0, now=lambda: 1000.0, out=out.append
+    )
+    assert any("idle" in ln for ln in out) and state[3] is True
+    # already announced -> no second notice
+    out.clear()
+    at._follow_step(str(p), state, 160, 20.0, now=lambda: 2000.0, out=out.append)
+    assert out == []
+
+
+def test_follow_step_not_yet_idle_is_silent(tmp_path):
+    p = tmp_path / "agent-x.jsonl"
+    p.write_text("{}\n", encoding="utf-8")
+    size = p.stat().st_size
+    out = []
+    at._follow_step(
+        str(p), (size, b"", 5.0, False), 160, 20.0, now=lambda: 10.0, out=out.append
+    )
+    assert out == []  # 10 - 5 = 5s < 20s idle threshold
+
+
+def test_follow_step_oserror_leaves_state_unchanged():
+    state = (5, b"x", 1.0, True)
+    assert (
+        at._follow_step("/no/such/file.jsonl", state, 160, 20.0, now=lambda: 9.0)
+        == state
+    )
+
+
+def test_main_returns_1_when_file_never_appears(monkeypatch):
+    monkeypatch.setattr(at, "_wait_for_file", lambda *a, **k: False)
+    assert at.main(["/ghost.jsonl"]) == 1
+
+
+def test_main_backfill_then_follow(monkeypatch, capsys):
+    monkeypatch.setattr(at, "_follow_forever", lambda *a, **k: 0)
+    rc = at.main([str(_FIXTURE_JSONL), "--backfill", "3", "--width", "120"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "fixture-agent" in out  # header
+    assert "last 3 events" in out and "live" in out
+    assert "Starting the fixture task" in out  # a backfilled entry rendered
+
+
+def test_main_skips_backfill_when_zero(monkeypatch, capsys):
+    monkeypatch.setattr(at, "_follow_forever", lambda *a, **k: 0)
+    rc = at.main([str(_FIXTURE_JSONL), "--backfill", "0", "--width", "120"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "last 0 events" not in out  # backfill block skipped
