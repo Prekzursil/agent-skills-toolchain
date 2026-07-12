@@ -62,12 +62,33 @@ def test_autodetect_none_when_empty(tmp_path, monkeypatch):
 def test_autodetect_picks_most_recent(tmp_path, monkeypatch):
     monkeypatch.setattr(wd.os.path, "expanduser", lambda _p: str(tmp_path))
     base = tmp_path / ".claude" / "projects"
-    _make_agent(base / "projA" / "sess1" / "subagents", mtime=1000)
+    proj_a = base / "projA" / "sess1" / "subagents"
     newer = base / "projB" / "sess2" / "subagents"
+    proj_c = base / "projC" / "sess3" / "subagents"
+    _make_agent(proj_a, mtime=1000)
     _make_agent(newer, mtime=5000)
-    # projC (globbed last, alphabetically) has the OLDEST activity -> exercises the
-    # ``m > best_m`` FALSE branch after the max is already set.
-    _make_agent(base / "projC" / "sess3" / "subagents", mtime=100)
+    _make_agent(proj_c, mtime=100)
+    # glob.glob order is filesystem- AND Python-version-dependent: real 3.11/ext4 CI globbed
+    # these in increasing-mtime order, so `m > best_m` was ALWAYS true, the loop-continue
+    # (False) branch was never taken, and branch coverage dropped to 99%. Force a
+    # deterministic order (newest FIRST) so the two later/older dirs always exercise that
+    # False branch on every platform+interpreter. Delegate the per-dir file glob to the real
+    # implementation so newest_jsonl_mtime still reads the fixture mtimes.
+    real_glob = wd.glob.glob
+    ordered = [str(newer), str(proj_a), str(proj_c)]
+
+    def fake_glob(pat):
+        if pat.endswith(
+            "agent-*.jsonl"
+        ):  # newest_jsonl_mtime's real per-dir file lookup
+            return real_glob(pat)
+        if "workflows" in pat:  # the second discovery glob — no matches in this fixture
+            return []
+        return (
+            ordered  # the primary subagents-discovery glob, in fixed newest-first order
+        )
+
+    monkeypatch.setattr(wd.glob, "glob", fake_glob)
     assert wd.autodetect_subagents_dir() == str(newer)
 
 
