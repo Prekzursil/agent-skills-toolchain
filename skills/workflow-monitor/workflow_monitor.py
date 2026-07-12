@@ -17,7 +17,7 @@ WHOLE FLEET (all sessions/projects) with O(changed) polling, and renders a full 
 STRICTLY READ-ONLY: every path is opened for reading only; the live run is never mutated. All file I/O runs
 in Textual thread-workers (fleet poll + per-agent detail load + feed tail) so the UI thread never blocks.
 
-The Feed reuses ``agent_tail.render`` (the D:\\agent-monitor event→coloured-line mapper) and converts its
+The Feed reuses ``monitorcore.agent_tail.render`` (the vendored event→coloured-line mapper) and converts its
 ANSI output to Rich ``Text`` via ``Text.from_ansi`` for the RichLog. A self-contained fallback renderer is
 used if that module is unavailable.
 """
@@ -34,13 +34,14 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import workflow_run as wr  # noqa: E402
 
-# ── reuse agent_tail.render (ANSI event lines) for the Feed pane ─────────────
-_AGENT_TAIL_DIR = r"D:\agent-monitor"
+# ── reuse the vendored agent_tail.render (ANSI event lines) for the Feed pane ─
+# The ``monitorcore`` package is vendored alongside this skill, so this import
+# resolves without the old hardcoded personal-directory sys.path hack. The guard
+# is kept so the self-contained fallback renderer below stays reachable if the
+# vendored package is ever absent.
 try:
-    if _AGENT_TAIL_DIR not in sys.path:
-        sys.path.insert(0, _AGENT_TAIL_DIR)
-    import agent_tail  # type: ignore  # noqa: E402
-except Exception:  # pragma: no cover - fallback when D:\agent-monitor is absent
+    from monitorcore import agent_tail  # noqa: E402
+except Exception:  # pragma: no cover - fallback when the vendored package is absent
     agent_tail = None
 
 from rich.text import Text  # noqa: E402
