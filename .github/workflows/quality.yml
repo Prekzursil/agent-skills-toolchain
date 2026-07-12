@@ -64,6 +64,15 @@ jobs:
       # in .quality/charter.yml diverges from the gate-<slug> markers in this workflow.
       - name: charter consistency check
         run: bash .quality/charter_check.sh
+      # monitorcore is VENDORED into consuming skills as a committed copy (sync-skills.ps1
+      # deploys committed skill dirs wholesale). tools/monitorcore/ is the single CI-gated
+      # source of truth; this fails the gate if the vendored copy has drifted. Deliberately
+      # NOT a `gate-<slug>` step name so charter_check.sh's reverse check ignores it.
+      - name: monitorcore vendor-drift (tools == vendored)
+        run: |
+          diff -r --exclude=__pycache__ \
+            tools/monitorcore/monitorcore \
+            skills/workflow-monitor/monitorcore
 
   types:
     name: gate-types (basedpyright)
@@ -94,6 +103,11 @@ jobs:
         run: |
           pip install -e ".[dev]"
           basedpyright core probes cli mcp_server hooks ui
+      - name: gate-types monitorcore (source)
+        working-directory: tools/monitorcore
+        run: |
+          pip install -e ".[dev]"
+          basedpyright monitorcore
 
   test-node:
     name: gate-tests-coverage (node workspaces)
@@ -134,6 +148,11 @@ jobs:
         run: |
           pip install -e ".[dev]"
           pytest --cov=. --cov-branch --cov-report=term-missing --cov-fail-under=100
+      - name: gate-tests-coverage monitorcore
+        working-directory: tools/monitorcore
+        run: |
+          pip install -e ".[dev]"
+          pytest --cov=monitorcore --cov-branch --cov-report=term-missing --cov-fail-under=100
 
   sast:
     name: gate-sast (opengrep)
