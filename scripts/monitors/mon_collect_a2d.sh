@@ -32,7 +32,7 @@ for L in gabapentin baclofen pregabalin R_phenibut; do
       if ls "$t"/*-out.tgz >/dev/null 2>&1; then trials=$((trials+1)); fi
     done
   fi
-  if [ "$ok" -ge 1 ] || [ "$out" = 1 ]; then st=done; bdone=$((bdone+1))
+  if [ "$ok" -ge 1 ] || [ "$out" = 1 ]; then st=done; bdone=$((bdone+1)); trials=8
   elif [ -n "$fail" ]; then st=failed
   elif [ -n "$pid" ]; then st=running
   else st=pending; fi
