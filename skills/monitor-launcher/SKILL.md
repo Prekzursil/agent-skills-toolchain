@@ -28,6 +28,7 @@ the sibling `workflow-monitor` skill). The `.cmd` files here and the `monitor-au
 ```bat
 mon wfmon           :: whole-fleet workflow cockpit (skills/workflow-monitor/workflow_monitor.py)
 mon agentmon        :: one live tail terminal per active subagent
+mon codex           :: newest Codex rollout through monitorcore's CodexSource adapter
 ```
 
 ## PATH / deploy

@@ -65,7 +65,7 @@ def test_default_monitors_path_default(monkeypatch):
 def test_load_monitors_parses_tables_and_skips_scalar():
     specs = m.load_monitors(str(FIX))
     # the stray top-level `schema = 1` scalar is skipped (non-table)
-    assert set(specs) == {"wfmon", "agentmon", "nolaunch"}
+    assert set(specs) == {"wfmon", "agentmon", "codex", "nolaunch"}
     assert specs["wfmon"] == m.MonitorSpec(
         name="wfmon",
         dir="workflow-monitor",
@@ -74,6 +74,7 @@ def test_load_monitors_parses_tables_and_skips_scalar():
     )
     # missing trigger_tool defaults to ""
     assert specs["nolaunch"].trigger_tool == ""
+    assert specs["codex"].trigger_tool == ""
 
 
 def test_load_monitors_parses_autolaunch_default_and_explicit():
@@ -213,6 +214,27 @@ def test_main_success_forwards_args(monkeypatch, capsys):
     assert argv[7] == os.path.join("/root", "run-agent-monitor", "agentmon.py")
     assert argv[-1] == "--x"
     assert "launched agentmon" in capsys.readouterr().out
+
+
+def test_main_launches_codex_entry_and_forwards_args(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "executable", "py")
+    runner = FakeRunner()
+    rc = m.main(
+        ["codex", "--once"], monitors_path=str(FIX), skills_root="/root", runner=runner
+    )
+    assert rc == 0
+    argv = runner.calls[0][0]
+    assert argv[7] == os.path.join("/root", "workflow-monitor", "codex_monitor.py")
+    assert argv[-1] == "--once"
+    assert "launched codex" in capsys.readouterr().out
+
+
+def test_shipped_registry_has_codex_entry_and_existing_target():
+    repo = Path(__file__).resolve().parents[3]
+    registry = repo / "skills" / "monitor-launcher" / "monitors.toml"
+    specs = m.load_monitors(str(registry))
+    assert specs["codex"].trigger_tool == ""
+    assert Path(m.resolve_entry(specs["codex"], str(repo / "skills"))).is_file()
 
 
 def test_main_reads_sys_argv_when_none(monkeypatch):
