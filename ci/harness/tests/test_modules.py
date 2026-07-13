@@ -29,6 +29,7 @@ from harness.modules import (
     SanitizedCheckpointModule,
     SecretGuardModule,
     SubagentLifecycleModule,
+    _canonical_tree,
     resolve_mode,
     stage,
 )
@@ -1791,6 +1792,48 @@ def test_canonical_edit_guard_notebook_path_extracted(iso, tmp_path, monkeypatch
     out = SecretGuardModule().run(event(tmp_path, "PreToolUse", tool_name="NotebookEdit",
                                         tool_input={"notebook_path": target}))
     assert out.action == "inject" and out.reason_code == "canonical_config_edit"
+
+
+def test_canonical_edit_guard_fires_for_codex_profile(iso, tmp_path, monkeypatch):
+    # A repo-sourced $CODEX_HOME/profiles/<name>.config.toml profile IS a deployed
+    # tree -> a direct edit fires + points at tools/codex/profiles in the repo.
+    monkeypatch.setenv("HARNESS_LIVE_CODEX_HOME", str(tmp_path / ".codex"))
+    monkeypatch.setenv("HARNESS_GATE_MODE__canonical_config_edit", "enforce")
+    target = str(tmp_path / ".codex" / "profiles" / "audit-readonly-max.config.toml")
+    out = SecretGuardModule().run(event(tmp_path, "PreToolUse", tool_name="Write",
+                                        tool_input={"file_path": target}))
+    assert out.action == "inject" and out.reason_code == "canonical_config_edit"
+    assert any("tools/codex/profiles/" in c for c in out.additional_context)
+
+
+@pytest.mark.parametrize("leaf", ["config.toml", "auth.json", "sessions/2026/rollout.jsonl"])
+def test_canonical_edit_guard_ignores_unrelated_codex_files(iso, tmp_path, monkeypatch, leaf):
+    # Anti-blast-radius: codex's OWN config.toml / auth.json / session store live at
+    # the CODEX_HOME ROOT, ABOVE the profiles/ subdir -> classified None -> never fires
+    # (the guard root is the subdir, so the secrets-bearing home is out of the tree).
+    monkeypatch.setenv("HARNESS_LIVE_CODEX_HOME", str(tmp_path / ".codex"))
+    monkeypatch.setenv("HARNESS_REPO_DIR", str(tmp_path / "repo"))
+    monkeypatch.setenv("HARNESS_GATE_MODE__canonical_config_edit", "enforce")
+    target = str(tmp_path / ".codex" / leaf)
+    out = SecretGuardModule().run(event(tmp_path, "PreToolUse", tool_name="Write",
+                                        tool_input={"file_path": target}))
+    assert out.action == "allow"
+
+
+def test_canonical_edit_guard_codex_shadow_by_default(iso, tmp_path, monkeypatch):
+    # Ships on the HEURISTIC shadow ladder -> observe-only unless explicitly enforced.
+    monkeypatch.setenv("HARNESS_LIVE_CODEX_HOME", str(tmp_path / ".codex"))
+    target = str(tmp_path / ".codex" / "profiles" / "fanout-json.config.toml")
+    ev = event(tmp_path, "PreToolUse", tool_name="Write", tool_input={"file_path": target})
+    assert SecretGuardModule().run(ev).action == "allow"
+
+
+def test_canonical_tree_classifies_codex_profile(iso, tmp_path, monkeypatch):
+    # Ledger stamp path: profiles/* classifies 'codex_profiles'; a CODEX_HOME-root
+    # file classifies None (byte-identical, unstamped mutation event).
+    monkeypatch.setenv("HARNESS_LIVE_CODEX_HOME", str(tmp_path / ".codex"))
+    assert _canonical_tree(str(tmp_path / ".codex" / "profiles" / "x.config.toml")) == "codex_profiles"
+    assert _canonical_tree(str(tmp_path / ".codex" / "config.toml")) is None
 
 
 def test_canonical_edit_guard_has_contract():

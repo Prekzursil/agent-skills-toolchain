@@ -167,7 +167,7 @@ GATE_CONTRACTS: dict[str, dict[str, str]] = {
     "code_first_drift": {"metric": "design_first", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires once when >=5 style-file edits and no design tool was used"},
     "session_hazard": {"metric": "concurrency_safety", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires on a fresh session that has live siblings"},
     "bc_offset": {"metric": "stale_offset_catch", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires only in BC context when the live .so sha != pinned"},
-    "canonical_config_edit": {"metric": "deployed_edit_caught", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires only on a write tool targeting a deployed ~/.agents/harness|skills or ~/.claude/hooks path; never on repo or settings.json"},
+    "canonical_config_edit": {"metric": "deployed_edit_caught", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires only on a write tool targeting a deployed ~/.agents/harness|skills, ~/.claude/hooks, or $CODEX_HOME/profiles path; never on repo, settings.json, or an unrelated ~/.codex file"},
     "basic_memory_nudge": {"metric": "capture_discipline", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires at most once per session, only when a canonical edit occurred and no basic-memory write did"},
 }
 
@@ -399,12 +399,40 @@ def _result_is_failure(result: Any) -> bool:
 # nudge gate, and the ledger mutation stamp). Env overrides make the DEPLOYED
 # trees + the repo checkout redirectable in tests, mirroring how _config_drift
 # uses HARNESS_SETTINGS_PATH / HARNESS_INSTALLED_PATH. --------------------------
+def _canonical_codex_home() -> Path:
+    """Resolve the CANONICAL CODEX_HOME (the real ~/.codex, never an ephemeral
+    scoped one). HARNESS_LIVE_CODEX_HOME is the explicit deploy/test override
+    (mirrors HARNESS_LIVE_AGENTS_DIR / HARNESS_LIVE_HOOKS_DIR); otherwise env
+    CODEX_HOME, else ~/.codex. Fail-open to ~/.codex on any error."""
+    try:
+        return Path(
+            os.environ.get("HARNESS_LIVE_CODEX_HOME")
+            or os.environ.get("CODEX_HOME")
+            or (Path.home() / ".codex")
+        )
+    except Exception:
+        return Path.home() / ".codex"
+
+
 def _live_trees() -> dict[str, Path]:
-    """The 3 DEPLOYED-from-repo trees, keyed by their canonical name.
-    Env overrides make them redirectable in tests (defaults = production layout)."""
+    """The DEPLOYED-from-repo trees, keyed by their canonical name.
+    Env overrides make them redirectable in tests (defaults = production layout).
+
+    `codex_profiles` is the repo-sourced Codex PROFILES tree. It is pinned to the
+    dedicated SUBDIR `$CODEX_HOME/profiles/`, NOT the CODEX_HOME root, so the tree
+    contains ONLY deployed files -- codex's own hand-maintained config.toml /
+    auth.json / sessions / sqlite live one level up and are structurally OUT of
+    the tree (never classified, so the guard never nags an unrelated ~/.codex
+    edit -- the anti-blast-radius invariant the other trees hold)."""
     agents = Path(os.environ.get("HARNESS_LIVE_AGENTS_DIR") or (Path.home() / ".agents"))
     hooks = Path(os.environ.get("HARNESS_LIVE_HOOKS_DIR") or (Path.home() / ".claude" / "hooks"))
-    return {"harness": agents / "harness", "skills": agents / "skills", "hooks": hooks}
+    codex_profiles = _canonical_codex_home() / "profiles"
+    return {
+        "harness": agents / "harness",
+        "skills": agents / "skills",
+        "hooks": hooks,
+        "codex_profiles": codex_profiles,
+    }
 
 
 def _repo_root() -> Path:
@@ -424,8 +452,8 @@ def _under(target: str, root: Path) -> bool:
 
 
 def _canonical_tree(path: str) -> Optional[str]:
-    """Classify an edit target. Returns 'harness'|'skills'|'hooks' (a DEPLOYED copy),
-    'repo' (the git source-of-truth checkout), or None (neither).
+    """Classify an edit target. Returns 'harness'|'skills'|'hooks'|'codex_profiles'
+    (a DEPLOYED copy), 'repo' (the git source-of-truth checkout), or None (neither).
     Deployed trees are checked FIRST; repo is the fallthrough (they are disjoint in
     production, but the order makes the intent explicit)."""
     if not path:
@@ -679,12 +707,18 @@ class SecretGuardModule:
         if not target:
             return HookResult.success()
         tree = _canonical_tree(target)
-        # Fire ONLY for the 3 DEPLOYED trees. 'repo' edits are the CORRECT action
+        # Fire ONLY for the DEPLOYED trees. 'repo' edits are the CORRECT action
         # (never nag them); None = an ordinary file (e.g. ~/.claude/settings.json,
-        # which is hand-maintained and NOT under ~/.claude/hooks/) -> silent.
-        if tree not in {"harness", "skills", "hooks"}:
+        # which is hand-maintained and NOT under ~/.claude/hooks/, or an unrelated
+        # ~/.codex/config.toml which lives ABOVE the profiles/ subdir) -> silent.
+        if tree not in {"harness", "skills", "hooks", "codex_profiles"}:
             return HookResult.success()
-        repo_sub = {"harness": "ci/harness", "skills": "skills", "hooks": "hooks"}[tree]
+        repo_sub = {
+            "harness": "ci/harness",
+            "skills": "skills",
+            "hooks": "hooks",
+            "codex_profiles": "tools/codex/profiles",
+        }[tree]
         raw = HookResult.success(
             action="inject",
             reason_code="canonical_config_edit",
