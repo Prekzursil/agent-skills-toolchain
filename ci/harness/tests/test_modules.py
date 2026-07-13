@@ -2047,6 +2047,23 @@ def test_harness_change_detects_canonical_edit_without_doc(iso, tmp_path, monkey
     assert target in out.additional_context[0]
 
 
+def test_harness_change_message_is_honest_about_pr(iso, tmp_path, monkeypatch):
+    # WU-4 review NIT-1 (honesty): the L2 gate only checks doc-this-session, NOT PR
+    # linkage -- so the advisory must not CLAIM to have checked a PR. It says a doc was
+    # not seen this session and attributes PR/manifest linkage to the separate L1 gate.
+    monkeypatch.setenv("HARNESS_GATE_MODE__harness_change_doc_pr", "enforce")
+    monkeypatch.setenv("HARNESS_REPO_DIR", str(tmp_path / "repo"))
+    out = EnforcementScaffoldModule(state_root=tmp_path).run(
+        event(tmp_path, "PreToolUse", tool_name="Edit",
+              tool_input={"file_path": str(tmp_path / "repo" / "ci" / "harness" / "x.py")})
+    )
+    msg = out.additional_context[0]
+    assert "no accompanying doc write was seen this session" in msg
+    assert "L1 pre-commit gate" in msg
+    # It must NOT assert PR linkage as a thing this L2 gate actually verified.
+    assert "no toolchain PR is" not in msg and "WITHOUT DOC+PR" not in msg
+
+
 def test_harness_change_suppressed_after_doc_write_this_session(iso, tmp_path, monkeypatch):
     monkeypatch.setenv("HARNESS_GATE_MODE__harness_change_doc_pr", "enforce")
     monkeypatch.setenv("HARNESS_REPO_DIR", str(tmp_path / "repo"))

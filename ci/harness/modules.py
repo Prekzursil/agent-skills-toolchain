@@ -2242,8 +2242,12 @@ SCAFFOLD_GATE_ENV: dict[str, str] = {
 
 
 def _enforcement_enabled() -> bool:
-    """Global kill-switch: HARNESS_ENFORCE=off (or 0/false/no) silences the entire
-    Wave-0 SHADOW enforcement scaffold. Default (unset) = enabled (SHADOW)."""
+    """Global kill-switch for the WU-4 SCAFFOLD gates ONLY. HARNESS_ENFORCE=off (or
+    0/false/no) silences the three Wave-0 enforcement-scaffold gates below
+    (cleanup_after_work / doc_reconciliation / harness_change_doc_pr) at once. It does
+    NOT touch the OTHER harness gates (secret / config_drift / claim_warning / ... each
+    keep their own HARNESS_* controls and shadow ladder). Default (unset) = enabled
+    (SHADOW). Name is kept per the WU-4 spec; its scope is exactly these three gates."""
     return os.environ.get("HARNESS_ENFORCE", "").strip().lower() not in _OFF_VALUES
 
 
@@ -2306,16 +2310,22 @@ class EnforcementScaffoldModule:
 
     # -- event routing (NEVER on Stop / StopFailure / SubagentStop) ---------- #
     def run(self, event: Any) -> HookResult:
-        etype = str(getattr(event, "event", "") or "")
-        if etype == "SessionStart":
-            return self._guarded(self._cleanup_after_work, event)
-        if etype == "PreToolUse":
-            return _merge_results([
-                self._guarded(self._doc_reconciliation, event),
-                self._guarded(self._harness_change_doc_pr, event),
-            ])
-        # Every other event -- crucially Stop / StopFailure / SubagentStop -- is inert.
-        return HookResult.success()
+        try:
+            etype = str(getattr(event, "event", "") or "")
+            if etype == "SessionStart":
+                return self._guarded(self._cleanup_after_work, event)
+            if etype == "PreToolUse":
+                return _merge_results([
+                    self._guarded(self._doc_reconciliation, event),
+                    self._guarded(self._harness_change_doc_pr, event),
+                ])
+            # Every other event -- crucially Stop / StopFailure / SubagentStop -- is inert.
+            return HookResult.success()
+        except Exception:
+            # Module-boundary fail-open: symmetric with _guarded so the _merge_results
+            # fan-in (and any routing slip) can never break dispatch (defense-in-depth
+            # with the dispatcher's own per-module try/except).
+            return HookResult.success()
 
     @staticmethod
     def _guarded(detector, event: Any) -> HookResult:
@@ -2397,14 +2407,19 @@ class EnforcementScaffoldModule:
                 return HookResult.success()
         except OSError:
             return HookResult.success()
-        dup = self._near_duplicate_sibling(tpath)
-        if dup is None:
-            return HookResult.success()
+        # Cooldown check BEFORE the parent-dir glob: the family key derives from the new
+        # file's OWN name, so a family already surfaced this session short-circuits here
+        # and the (shallow, non-recursive) sibling glob is skipped -- no redundant FS work.
         key = self._doc_stem_key(tpath.name)
+        if not key:
+            return HookResult.success()
         state = self._state(event)
         logged = state.get("doc_reconcile_logged") or []
         if key in logged or len(logged) >= self._DOC_LOG_CAP:
             return HookResult.success()  # already surfaced this family this session
+        dup = self._near_duplicate_sibling(tpath)
+        if dup is None:
+            return HookResult.success()
         state["doc_reconcile_logged"] = logged + [key]
         self._write_state(event, state)
         raw = HookResult.success(
@@ -2473,10 +2488,10 @@ class EnforcementScaffoldModule:
             action="inject",
             reason_code="harness_change_doc_pr",
             additional_context=[
-                f"HARNESS CHANGE WITHOUT DOC+PR: {target} (the '{label}' canonical artifact) is "
-                "being changed but no doc/docs write was seen this session and no toolchain PR is "
-                "linked. Per RFC B2 §1.4 a harness/skill/MCP/hook change needs an accompanying doc "
-                "+ a toolchain PR. Surfaced only; nothing blocked."
+                f"HARNESS CHANGE WITHOUT DOC: {target} (the '{label}' canonical artifact) is being "
+                "changed but no accompanying doc write was seen this session. Capture the change "
+                "rationale in a doc (RFC B2 §1.4); PR/manifest linkage is enforced by the separate "
+                "L1 pre-commit gate, not this L2 advisory. Surfaced only; nothing blocked."
             ],
         )
         return stage("harness_change_doc_pr", TIER_HEURISTIC, event, raw)
