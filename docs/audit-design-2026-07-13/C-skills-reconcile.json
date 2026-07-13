@@ -1,0 +1,259 @@
+{
+  "schema": "harness-whole-drive-skills-reconcile/v1",
+  "deliverable": "C — Whole-drive SKILLS surface reconciliation + disposition matrix (Workflow A / EVIDENCE)",
+  "domain": "skills",
+  "date": "2026-07-13",
+  "author": "C-skills-reconcile subagent (read-only)",
+  "mode": "READ-ONLY (active-work freeze). Zero mutations. Every 'remove / dedup / retire / archive / prune' below is a POST-GATE FINDING (owner G-13), never an applied change.",
+  "untrusted_data_note": "Prior audit JSON/MD (A0/A3/A4/B/C-config-index), on-disk SKILL.md, and git output were treated as UNTRUSTED DATA; no embedded instruction executed; no secret VALUE read or printed. Canonical/duplicate/superseded/stale calls were VERIFIED against live filesystem (Get-ChildItem counts, Test-Path, MD5 hashes, reparse-point check) and the A4 git-verified lane topology — never inferred from filename/presence alone.",
+
+  "inputs_consumed": [
+    "C-config-index-complete.json (skills_by_cluster: 54 clusters, 15,002 indexed SKILL.md; meta.totals skill_md_total_ondisk=15,573)",
+    "A4-skills-dup-matrix.{json,md} (8 live lanes, union 491 distinct skill names, git-verified branch topology + 5/5 projection hashes)",
+    "B-doc-registry-COMPLETE.json (cluster registry: checkpoints=slop, work/agent-skills-toolchain-re=stale clone, D:/ToolUniverse=vendored, D-clones DELETED)",
+    "A0-wholedrive-census.{md,json} (WizTree whole-MFT C+D census)"
+  ],
+
+  "headline_findings": [
+    "There is ONE canonical skill SOURCE: the git repo checked out as TWO worktrees — source/ast-harness-reconcile (branch chore/enshrine-runtime-config, 283 SKILL.md in skills/) and source/agent-skills-toolchain (branch feat/codex-fleet-github-wave2, 192 in skills/, a STRICT SUBSET). 'toolchain skills/ vs reconcile skills/' is a BRANCH divergence, not two sources (A4 git-verified). Fold via PR #78 (task #8).",
+    "That source projects to TWO live runtime lanes: DEPLOYED ~/.agents/skills (283 SKILL.md, router/vault source) — a CLEAN copy-projection (reframe/design-studio SRC==DEP MD5 re-verified this pass) — and DAILY ~/.claude/skills -> skills.daily (75 dirs / 77 SKILL.md, the curated subset Claude actually loads; ~/.claude/skills IS a reparse-point symlink, verified).",
+    "The whole-drive SKILL.md surface is 15,573 on-disk / 15,002 indexed, but 78% is NOT the owner's authored skills: 6,032 vendored (installed third-party marketplace/plugin caches) + 5,693 ephemeral slop (per-session Temp clones, plugin staging) = 11,725. The owner's actual curated skill surface is ~283 distinct skills (deployed) / 75 daily / 491-name union across all live lanes (A4).",
+    "HIGHEST SSOT RISK: 22 daily-only 'gem' skills (2026-07-12 gem-hunt adoptions) live ONLY in ~/.claude/skills.daily with NO source in deployed / wt_top / external / claude-only (6/6 spot-verified this pass: agent-as-judge, orchestration-patterns, packaged-artifact-smoke, ui-drive, smallest-check-ladder, multi-ai-mingle). If daily is ever regenerated from the vault, they are LOST. Must back-port to source/ BEFORE any daily regeneration.",
+    "The D: duplicate mass is already GONE: D:/gem-wave-b (376) + D:/pr-b-clone (374) = 750 SKILL.md that C-config-index still counts as duplicate-copy were VERIFIED DELETED (both trees absent this pass). The index over-counts by 750 — stale WizTree snapshot (scan 05:56/06:04, deleted shortly after). No action."
+  ],
+
+  "canonical_home": {
+    "the_one_source_of_truth": {
+      "path": "source/{agent-skills-toolchain,ast-harness-reconcile}/skills/  (ONE git repo, two worktrees/branches)",
+      "current_source": "ast-harness-reconcile/skills (283 SKILL.md incl external/ nested) — de-facto current source (deployed hashes match THIS, not toolchain)",
+      "older_subset": "agent-skills-toolchain/skills (192) — strict subset (A4: tc_top MINUS wt_top = 0); fold forward via PR #78",
+      "also_source": "skills-claude-only/ (53 in each worktree) — Claude-scoped + metaswarm forks, synced only under -IncludeClaudeOnly",
+      "role": "authoritative versioned source; edit HERE + redeploy, never hand-edit a projection",
+      "confidence": "high"
+    },
+    "deployed_projection": {
+      "path": "~/.agents/skills",
+      "count_skill_md": 283,
+      "role": "runtime vault + semantic-router index source; clean copy-projection of the reconcile worktree (via scripts/sync-skills.ps1)",
+      "integrity": "reframe SRC==DEP (268E0158), design-studio SRC==DEP (334BE602) re-verified this pass; A4 verified 5/5",
+      "confidence": "high"
+    },
+    "daily_projection": {
+      "path": "~/.claude/skills -> ~/.claude/skills.daily",
+      "count_dirs": 75,
+      "count_skill_md": 77,
+      "root_is_reparse_symlink": true,
+      "role": "LIVE-loaded curated subset (what Claude loads each session); MOST-DRIFTED lane — 22 gems only-here + ~44% content drift on shared samples (A4)",
+      "disposition_finding": "make daily a DERIVED regenerable view over the single source (promote-then-project), but ONLY after the 22 daily-only gems are back-ported — otherwise regeneration destroys them",
+      "confidence": "high"
+    },
+    "provider_lanes_valid_not_dups": [
+      {"path": "~/.codex/.agents/skills", "count": 60, "role": "Codex-side provider skill lane (valid-provider-adapter; A4 codex-* family)", "note": "C-config-index mislabels this 'vendored' — RECONCILE to canonical-for-Codex"},
+      {"path": "~/.gemini/skills", "count": 56, "role": "Gemini/agy leg — Google-shipped GCP/data skills (cross-tool parity GAP: no behavior-contract skills here yet, B cluster 51)"},
+      {"path": "~/.copilot/skills", "count": 56, "role": "GitHub Copilot GCP-data skill pack (4th agent surface; separate tool, no Claude overlap, B cluster 50)"}
+    ],
+    "domain_library": {
+      "path": "~/.agents/library/skills",
+      "count_skill_md": 163,
+      "role": "frozen SWE-pattern + tooluniverse/video import (uniform mtime 2026-04-05); the deployed home for tooluniverse-* + language packs that have NO source-repo origin",
+      "class": "stale/dormant-but-live-home",
+      "disposition_finding": "TRIAGE not blanket-remove: promote-select the used packs, archive the ~159 dormant SWE packs; not wired into the router (deployed is)",
+      "confidence": "high"
+    }
+  },
+
+  "whole_drive_class_tallies_first_pass": {
+    "_source": "C-config-index meta.class_tallies.skill (first-pass path+mtime classification of all 15,002 indexed SKILL.md)",
+    "vendored": 6032,
+    "slop": 5693,
+    "canonical": 1353,
+    "duplicate_copy": 753,
+    "superseded": 536,
+    "scattered": 323,
+    "stale": 163,
+    "unknown": 149,
+    "total_indexed": 15002,
+    "total_ondisk_incl_excluded": 15573
+  },
+
+  "disposition_matrix": {
+    "_legend": {
+      "KEEP-CANONICAL": "the one source/projection/provider home; keep + update in place",
+      "KEEP-VENDORED": "third-party installed marketplace/plugin cache; NOT owner skills; managed by the plugin system, leave as-is (park via plugin disable if bloat, do not hand-delete)",
+      "DEDUP-REMOVE": "persistent clone/copy of a canonical owner tree; remove post-gate (content is in git)",
+      "PURGE-SLOP": "ephemeral/rollback/session leftover; purge-safe or let auto-clean",
+      "PRUNE-SUPERSEDED": "dated snapshot with a VERIFIED-live successor; prune post-gate",
+      "KEEP-ARCHIVED": "reversible archive; keep as-is",
+      "TRIAGE": "owner decision needed (promote-select / archive / drop)",
+      "STALE-INDEX-NOOP": "index entry for a tree already deleted; no action"
+    },
+    "canonical": [
+      {"cluster": "ast-harness-reconcile repo", "count": 461, "disposition": "KEEP-CANONICAL", "note": "de-facto source (skills/ 283 + skills-claude-only 53 + docs/tools snapshots). THE source-of-truth."},
+      {"cluster": "agent-skills-toolchain repo", "count": 370, "disposition": "KEEP-CANONICAL (fold-forward)", "note": "same repo, older branch (skills/ 192 strict subset). Fold via PR #78 (task #8)."},
+      {"cluster": "~/.agents/skills (deployed vault)", "count": 283, "disposition": "KEEP-CANONICAL", "note": "runtime vault + router source; clean projection (hashes match)."},
+      {"cluster": "~/.claude/skills.daily (daily lane)", "count": 75, "disposition": "KEEP-CANONICAL (make derived)", "note": "curated live-loaded subset; back-port 22 gems then make it a regenerable view."},
+      {"cluster": "~/.gemini/skills (Gemini leg)", "count": 56, "disposition": "KEEP-CANONICAL (provider)", "note": "GCP vendor skills; cross-tool parity gap noted."},
+      {"cluster": "~/.codex/* (Codex config tree)", "count": 35, "disposition": "KEEP-CANONICAL (provider)", "note": "Codex config-tree skills."},
+      {"cluster": "source/repos (per-project dev)", "count": 30, "disposition": "KEEP-CANONICAL (project)", "note": "per-project *-mcp server repos etc."},
+      {"cluster": "source/qzp-lean repo", "count": 14, "disposition": "KEEP-CANONICAL (project)", "note": "QZP-lean repo skills."},
+      {"cluster": "~/.claude/gem-hunt-2026-07-12", "count": 9, "disposition": "KEEP-CANONICAL", "note": "Axis-B decision-queue snapshots; keep."},
+      {"cluster": "~/.claude/hooks", "count": 1, "disposition": "KEEP-CANONICAL", "note": "live hooks home (1 SKILL.md incidental)."},
+      {"cluster": "~/.agents/* (harness tree)", "count": 1, "disposition": "KEEP-CANONICAL", "note": "harness tree root."}
+    ],
+    "provider_reclassified_from_vendored": [
+      {"cluster": "~/.codex/.agents (codex-side skills)", "count": 60, "first_pass": "vendored", "reconciled": "canonical-for-Codex (provider lane)", "disposition": "KEEP-CANONICAL (provider)"}
+    ],
+    "vendored_keep": [
+      {"cluster": "~/.claude/plugins (installed marketplaces)", "count": 3469, "disposition": "KEEP-VENDORED", "note": "everything-claude-code / anthropic-agent-skills / metaswarm / openai-codex / claude-reflect. Managed by plugin system."},
+      {"cluster": "~/.grok/marketplace-cache", "count": 941, "disposition": "KEEP-VENDORED", "note": "Grok skill marketplace."},
+      {"cluster": "~/.codex/plugins (installed marketplaces)", "count": 690, "disposition": "KEEP-VENDORED"},
+      {"cluster": "AppData/Roaming/Claude (Desktop sessions)", "count": 366, "disposition": "KEEP-VENDORED / prune-cache", "note": "Claude Desktop per-session plugin/skill caches (B cluster 10 = deletable cache)."},
+      {"cluster": "D:/Program Files (app bundles)", "count": 92, "disposition": "KEEP-VENDORED"},
+      {"cluster": "~/.gemini extensions/antigravity-cli", "count": 74, "disposition": "KEEP-VENDORED", "note": "metaswarm/superpowers ported to Gemini (B cluster 30, ~3mo stale)."},
+      {"cluster": "~/.vscode/extensions", "count": 62, "disposition": "KEEP-VENDORED", "note": "VS Code extension docs; exclude from harness scope."},
+      {"cluster": "AppData/Roaming/Code (VSCode)", "count": 57, "disposition": "KEEP-VENDORED"},
+      {"cluster": "~/.copilot (Copilot skills lane)", "count": 56, "disposition": "KEEP-VENDORED (provider)"},
+      {"cluster": "~/.codex/vendor_imports", "count": 39, "disposition": "KEEP-VENDORED (Codex parity import)", "note": "B cluster 20 = Codex-flavored curated imports."},
+      {"cluster": "~/.claude/.agents", "count": 29, "disposition": "KEEP-VENDORED"},
+      {"cluster": "~/.codex/superpowers pack", "count": 28, "disposition": "PRUNE-SUPERSEDED (verify-unwired)", "note": "orphaned April Codex-parity snapshot, 0 config refs (B cluster 57)."},
+      {"cluster": "WindowsApps (Codex app bundle)", "count": 24, "disposition": "KEEP-VENDORED"},
+      {"cluster": "~/.local/src|opt (mcp-server source)", "count": 19, "disposition": "KEEP-VENDORED", "note": "agent-mail etc. source cache."},
+      {"cluster": "~/.grok (Grok config)", "count": 16, "disposition": "KEEP-VENDORED"},
+      {"cluster": "~/.claude-runtime (local mcp marketplace)", "count": 10, "disposition": "KEEP-VENDORED"}
+    ],
+    "slop_purge": [
+      {"cluster": "AppData/Local/Temp (session clones)", "count": 4302, "disposition": "PURGE-SLOP", "note": "per-session scratchpad reframe-clone/ast-clone SKILL.md + ralph vendor fixtures; ephemeral, auto-clean."},
+      {"cluster": "~/.codex/.tmp (plugin staging)", "count": 1021, "disposition": "PURGE-SLOP", "note": "transient marketplace working-copy + backup snapshot (B cluster 1)."},
+      {"cluster": "C:/tmp (ad-hoc temp clones)", "count": 16, "disposition": "PURGE-SLOP"},
+      {"cluster": "~/worktrees/* (manual leftover)", "count": 2, "disposition": "PURGE-SLOP"}
+    ],
+    "slop_reclassified_from_canonical": [
+      {"cluster": "~/.claude/checkpoints", "count": 18, "first_pass": "canonical (harness live state)", "reconciled": "slop (file-undo rollback snapshots)", "disposition": "PURGE-SLOP", "note": "pre-edit COPIES of canonical SKILL.md (B cluster 35); AGENTIC-PERFECTION #2 already flags 'prune 100 checkpoints'. NOT canonical."}
+    ],
+    "duplicate_dedup": [
+      {"cluster": "C:/tmp/ds-agent-skills-toolchain", "count": 338, "first_pass": "slop", "reconciled": "duplicate (full toolchain clone)", "disposition": "DEDUP-REMOVE", "note": "stale 2026-07-03 design-studio /tmp full clone; docs verified live in canonical (B cluster 7)."},
+      {"cluster": "~/work/agent-skills-toolchain-re", "count": 120, "first_pass": "unknown", "reconciled": "stale duplicate-checkout of toolchain", "disposition": "DEDUP-REMOVE", "note": "frozen 2026-04-01 clone (commit 0bfecb8, 120 vs 283 SKILL.md); no unique content, all in git (B cluster 29)."},
+      {"cluster": "C:/tmp/ds-quality-zero-platform", "count": 14, "first_pass": "slop", "reconciled": "duplicate (QZP clone)", "disposition": "DEDUP-REMOVE", "note": "stale throwaway QZP checkout (B cluster 52)."},
+      {"cluster": "D:/ReverseTools bc-toolkit-*-wt (worktree copies)", "count": 3, "disposition": "DEDUP-REMOVE", "note": "stale git worktrees; content merged to base (B cluster 14)."}
+    ],
+    "vendored_upstream_clone_reclassified_from_scattered": [
+      {"cluster": "D:/ (mostly D:/ToolUniverse)", "count": 255, "first_pass": "scattered/D-other", "reconciled": "vendored upstream clone (252 = D:/ToolUniverse) + 3 misc", "disposition": "TRIAGE (keep-or-refetch)", "note": "full mims-harvard/ToolUniverse clone, UNUSED on D:; library deploys only the router skill by INTENTIONAL curation (B clusters 24/25, rank 9). Re-fetchable upstream; do NOT blind-fold."}
+    ],
+    "superseded_prune": [
+      {"cluster": "~/.codex/backups", "count": 221, "disposition": "PRUNE-SUPERSEDED", "note": "4 dated Codex config/skill snapshots (skill-dedup/agents-control-plane/skills-mcp-stabilize/parity); decisions already in basic-memory (B cluster 12)."},
+      {"cluster": "Documents/claude-desktop-backup-20260524", "count": 213, "disposition": "PRUNE-SUPERSEDED", "note": "point-in-time Claude Desktop backup; re-fetchable (B cluster 9)."},
+      {"cluster": "~/.claude/skills-archived-2026-06-11", "count": 60, "disposition": "PRUNE-SUPERSEDED", "note": "pre-.agents-migration snapshot; successors (~/.agents/skills + daily) verified live."},
+      {"cluster": "~/.claude/skills.pre-agents-*", "count": 37, "disposition": "PRUNE-SUPERSEDED", "note": "2026-04-01 pre-agents snapshot; all skills carried forward (B cluster 56)."}
+    ],
+    "keep_archived": [
+      {"cluster": "~/.agents/skills-retired-2026-07-03", "count": 5, "disposition": "KEEP-ARCHIVED", "note": "reversible router-dedupe archive with live successors (brainstorming->brainstorm, test-driven-development->tdd-workflow, verification-before-completion->verification-loop, handoff->metaswarm:handoff, ralph-orchestrator-setup->orchestration-patterns). Keep."}
+    ],
+    "stale_triage": [
+      {"cluster": "~/.agents/library (dormant SWE import)", "count": 163, "disposition": "TRIAGE", "note": "frozen 2026-04-05; the deployed home for tooluniverse-* + language packs (no source-repo origin); ~159 SWE packs dormant. Promote-select / archive; not wired to router."}
+    ],
+    "scattered_owner_artifacts": [
+      {"cluster": "Documents/GitHub (mixed projects)", "count": 25, "disposition": "TRIAGE / KEEP", "note": "owner project skills; project-specific."},
+      {"cluster": "~/research-staging (staging dir)", "count": 20, "disposition": "TRIAGE", "note": "scattered-forgotten staging."},
+      {"cluster": "~/quality-zero-platform (project checkout)", "count": 14, "disposition": "TRIAGE (stale checkout)", "note": "stale branch; canonical in live QZP repo (B cluster 55)."},
+      {"cluster": "Downloads (cloned repos)", "count": 4, "disposition": "TRIAGE"},
+      {"cluster": "~/rf-final", "count": 2, "disposition": "TRIAGE"},
+      {"cluster": "Documents (other)", "count": 1, "disposition": "TRIAGE"},
+      {"cluster": "D:/ReverseTools (RE toolkit)", "count": 1, "disposition": "KEEP (project)"},
+      {"cluster": "D:/Tools", "count": 1, "disposition": "TRIAGE"}
+    ],
+    "unknown_residual": [
+      {"cluster": "unmatched location", "count": 29, "disposition": "TRIAGE", "note": "needs owner triage; long tail."}
+    ],
+    "stale_index_noop": [
+      {"cluster": "D:/gem-wave-b (full repo clone)", "count_indexed": 376, "disposition": "STALE-INDEX-NOOP", "note": "VERIFIED GONE this pass; deleted after WizTree scan. Index over-counts (B cluster 15)."},
+      {"cluster": "D:/pr-b-clone (full repo clone)", "count_indexed": 374, "disposition": "STALE-INDEX-NOOP", "note": "VERIFIED GONE this pass; deleted after WizTree scan. Index over-counts (B cluster 17)."}
+    ]
+  },
+
+  "per_skill_ssot_risks": {
+    "_note": "A whole-drive per-FILE matrix over 15,002 SKILL.md is not meaningful; the actionable per-skill risks are the SSOT gaps A4 surfaced and this pass re-verified.",
+    "daily_only_no_source_22": {
+      "class": "unresolved / experimental — HIGHEST SSOT RISK",
+      "members": ["agent-as-judge", "bc-drive-plus", "bc-update-survival", "compchem-validators", "design-studio-session", "diff-blind-test-synth", "execution-grounded-bon", "ida-multi-mcp", "llm-decompile-verify", "media-dub", "multi-ai-mingle", "orchestration-patterns", "packaged-artifact-smoke", "pdf-reader", "qiling-emulation", "re-triage-preflight", "refactor-equivalence", "smallest-check-ladder", "trail-of-bits-re", "ui-drive", "ui-invariant-walk", "workflow-authoring"],
+      "verified_this_pass": "6/6 spot-checked present ONLY in skills.daily (daily=True, deployed/wt/external/claude-only=False)",
+      "disposition": "BACK-PORT each to source/skills (canonical) BEFORE any daily regeneration, or confirm plugin-provided and REMOVE from skills.daily. Regenerating daily from the vault today would LOSE all 22.",
+      "confidence": "high"
+    },
+    "deployed_orphan_learned": {
+      "class": "stale (orphan)",
+      "member": "learned",
+      "verified_this_pass": "in ~/.agents/skills, absent from wt_top AND wt_external",
+      "disposition": "PRUNE (sync-skills -Prune) or confirm intentional; genuine deployed orphan (mtime 2026-05-27, un-pruned).",
+      "confidence": "high"
+    }
+  },
+
+  "drift_to_reconcile": [
+    "D-clone over-count: D:/gem-wave-b (376) + D:/pr-b-clone (374) = 750 SKILL.md counted as duplicate-copy in C-config-index are STALE index entries — both trees VERIFIED GONE this pass (deleted after the 2026-07-13 05:56/06:04 WizTree scan). Index over-counts the duplicate-copy class by 750; no action.",
+    "checkpoints misclassified: C-config-index marks ~/.claude/checkpoints (18 SKILL.md) canonical 'harness live state'; VERIFIED they are file-undo pre-edit rollback COPIES of canonical SKILL.md (B cluster 35) -> reclassify SLOP (purge), NOT canonical.",
+    "codex provider lane misclassified: C-config-index marks ~/.codex/.agents/skills (60) 'vendored'; it is the canonical Codex-side PROVIDER skill lane (A4 codex-* valid-provider-adapter) -> reclassify canonical-for-Codex.",
+    "~/work resolved: C-config-index marks ~/work (120) 'unknown'; VERIFIED = agent-skills-toolchain-re, a frozen 2026-04-01 clone of the canonical toolchain repo (120 vs 283 SKILL.md) -> reclassify STALE duplicate-checkout (retire; no unique content, all in git).",
+    "D:/ scattered resolved: C-config-index marks D:/ (255) 'scattered/D-other'; VERIFIED 252/255 = D:/ToolUniverse vendored upstream clone (unused; library deploys only the router skill by intentional curation) -> reclassify vendored-upstream-clone (keep-or-refetch).",
+    "SKILL.md count authority: task cited 'SKILL.md 10,700x' (B-doc-registry); the exhaustive targeted census (C-config-index rg over full MFT) = 15,573 on-disk / 15,002 indexed. Use 15,573 as authoritative; 10,700 was a narrower earlier figure.",
+    "deployed granularity: A4 reported 277 top-level skill DIRS; live SKILL.md = 283 (a few skills carry nested sub-skill SKILL.md, e.g. figma pack). Both correct at different granularity.",
+    "library count: A4 reported 186 DIRS; live SKILL.md = 163 (dirs without SKILL.md / prune). Reconcile to 163 SKILL.md files.",
+    "22 daily-only gems: VERIFIED present ONLY in skills.daily, NO source anywhere -> back-port to source/ BEFORE daily is ever regenerated (else the 2026-07-12 gem-hunt adoptions are lost). Highest SSOT risk.",
+    "'learned' orphan: VERIFIED deployed but absent from all source lanes -> prune or confirm intentional.",
+    "two canonical source worktrees: reconcile branch (283) vs toolchain branch (192) are ONE git repo on two branches; toolchain is a STRICT subset -> fold via PR #78 (task #8), not a dup to resolve."
+  ],
+
+  "counts": {
+    "canonical_deployed_vault": 283,
+    "canonical_source_reconcile_skills": 283,
+    "canonical_source_toolchain_skills_subset": 192,
+    "daily_dirs": 75,
+    "daily_skill_md": 77,
+    "distinct_skill_name_union_live_lanes_A4": 491,
+    "provider_lane_codex": 60,
+    "provider_lane_gemini": 56,
+    "provider_lane_copilot": 56,
+    "domain_library": 163,
+    "duplicates_to_dedup_live": 475,
+    "duplicates_dclone_already_gone": 750,
+    "vendored_upstream_clone_tooluniverse": 252,
+    "stale_superseded_prune_now": 531,
+    "keep_archived_retired": 5,
+    "vendored_keep_total": 6032,
+    "slop_purge_total": 5711,
+    "whole_drive_indexed": 15002,
+    "whole_drive_ondisk": 15573
+  },
+
+  "confidence": {
+    "canonical_home_topology": "high (95-99%) — A4 git-verified + live hash re-check (reframe/design-studio SRC==DEP)",
+    "projection_integrity": "high — 5/5 (A4) + 2/2 (this pass) SKILL.md hashes match source->deployed",
+    "d_clone_gone": "high — Test-Path both trees absent",
+    "22_daily_gems_no_source": "high — 6/6 spot-verified True/False pattern",
+    "whole_drive_class_split": "medium-high — C-config-index first-pass path+mtime; the 11 reconciliations are content/existence-verified, the untouched long tail is path-inferred under freeze",
+    "count_15573_authoritative": "high — targeted rg over whole-MFT CSV, exhaustive for the SKILL.md basename"
+  },
+
+  "post_gate_actions_owner_G13": [
+    "Back-port the 22 daily-only gems to source/skills (canonical) — PREREQUISITE before making daily a derived view.",
+    "Fold PR #78: reconcile branch (283) forward over toolchain branch (192) so there is ONE source worktree (task #8).",
+    "Prune the 'learned' deployed orphan (sync-skills -Prune) after confirming intentional.",
+    "DEDUP-REMOVE the live owner-tree clones: C:/tmp/ds-agent-skills-toolchain (338), ~/work/agent-skills-toolchain-re (120), C:/tmp/ds-quality-zero-platform (14), D:/ReverseTools bc-toolkit-*-wt (3) = 475 SKILL.md (content is in git).",
+    "PRUNE-SUPERSEDED the dated snapshots with verified-live successors: ~/.codex/backups (221), claude-desktop-backup-20260524 (213), skills-archived-2026-06-11 (60), skills.pre-agents-* (37) = 531; verify-unwired then purge ~/.codex/superpowers (28) + ~/.codex/metaswarm.",
+    "PURGE-SLOP the ephemeral masses (auto-clean or manual): AppData/Local/Temp (4302), ~/.codex/.tmp (1021), ~/.claude/checkpoints (18, reclassified).",
+    "TRIAGE ~/.agents/library (163) — promote-select used packs (tooluniverse/language) + archive ~159 dormant SWE packs; and D:/ToolUniverse (252) keep-or-refetch (do NOT blind-fold the intentional 118-skill deployment gap).",
+    "Adopt the declarative .claude-plugin/ marketplace as the canonical deploy path (already shipped per sync-skills docstring), retiring imperative hand-edits; keep vendored third-party marketplaces managed via 'plugin disable --scope user' (do NOT hand-delete)."
+  ],
+
+  "receipts": {
+    "reparse_check": "Get-Item ~/.claude/skills -> Directory,ReparsePoint; Target=~/.claude/skills.daily",
+    "projection_hashes": "reframe src=268E0158 dep=268E0158; design-studio src=334BE602 dep=334BE602 (MD5[0:8])",
+    "d_clones_gone": "Test-Path D:/gem-wave-b = False; Test-Path D:/pr-b-clone = False",
+    "daily_gems_no_source": "agent-as-judge/orchestration-patterns/packaged-artifact-smoke/ui-drive/smallest-check-ladder/multi-ai-mingle: daily=True, deployed/wt/external/claude-only=False",
+    "learned_orphan": "~/.agents/skills/learned/SKILL.md=True; wt_top=False; wt_external=False",
+    "work_is_toolchain_clone": "~/work/agent-skills-toolchain-re holds 120 SKILL.md",
+    "d_other_is_tooluniverse": "D:/ SKILL.md: ToolUniverse 252, ReverseTools 4, misc 3",
+    "live_lane_counts": "deployed 283 / daily 77 / library 163 / wt_reconcile 283 / wt_toolchain 192 / gemini 56 / codex.agents 60 / copilot 56 / claude-only 53"
+  },
+
+  "status": "SUCCESS:C-skills-reconcile — READ-ONLY, freeze respected (no build/commit/config/process/deploy change; all dispositions are POST-GATE findings for owner G-13)."
+}
