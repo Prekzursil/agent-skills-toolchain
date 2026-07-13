@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from typing import Any
@@ -52,6 +53,21 @@ def redact_text(text: str, *, redact_paths: bool = False, max_chars: int | None 
     if max_chars is not None and len(value) > max_chars:
         value = value[: max(0, max_chars - 16)].rstrip() + "\n[TRUNCATED]"
     return value
+
+
+def redact_id(value: Any, *, length: int = 12) -> str:
+    """Reduce a session/invocation id to a stable, non-reversible short digest.
+
+    Correlation IDs must be attributable across a Stop-loop yet never stored raw:
+    a raw id can embed a filesystem path, a user handle, or otherwise correlate a
+    person across logs (A1 req#7). A truncated SHA-256 keeps equal ids equal (so a
+    Stop-storm is still joinable) while discarding the raw value. Empty in -> empty
+    out so a missing id renders as an empty field rather than a constant hash.
+    """
+    text = str(value or "")
+    if not text:
+        return ""
+    return hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()[: max(4, length)]
 
 
 def _to_text(value: Any) -> str:

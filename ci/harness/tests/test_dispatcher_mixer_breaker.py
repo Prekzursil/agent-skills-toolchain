@@ -383,7 +383,8 @@ def test_terminal_jsonl_record_shape_is_unperturbed(tmp_path):
     dispatcher.dispatch(_pre(tmp_path), provider="claude", event_name="PreToolUse")
     line = (state_root / "terminal.jsonl").read_text(encoding="utf-8").strip()
     record = json.loads(line)
-    # Exactly the pre-existing fields — no breaker/mixer keys leak into terminal.jsonl.
+    # The 8 pre-existing fields + the A1 req#7 correlation-ID/re-entrancy fields —
+    # and NO breaker/mixer bookkeeping keys leak into terminal.jsonl.
     assert set(record.keys()) == {
         "ts",
         "terminal",
@@ -393,8 +394,15 @@ def test_terminal_jsonl_record_shape_is_unperturbed(tmp_path):
         "reason_code",
         "elapsed_ms",
         "failed_modules",
+        "session_id",
+        "invocation_id",
+        "reentrant",
+        "stop_hook_active",
     }
     assert record["terminal"] == "SUCCESS:hook-pretooluse"
+    # A non-Stop event is never re-entrant, and its ids are redacted (never raw "s").
+    assert record["reentrant"] is False and record["stop_hook_active"] is False
+    assert record["session_id"] and record["session_id"] != "s"
 
 
 def test_fail_open_preserved_with_breaker(tmp_path):

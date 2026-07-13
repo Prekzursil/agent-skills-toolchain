@@ -6,6 +6,7 @@ import os
 import re
 import sys
 import time
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -17,7 +18,7 @@ if __package__ in {None, ""}:
     from harness.ledger import default_state_root
     from harness.models import HookResult
     from harness.modules import build_default_modules
-    from harness.redaction import redact_text
+    from harness.redaction import redact_id, redact_text
     from harness.storage import atomic_write_json, read_json
 else:
     from . import modules as _modules
@@ -25,7 +26,7 @@ else:
     from .ledger import default_state_root
     from .models import HookResult
     from .modules import build_default_modules
-    from .redaction import redact_text
+    from .redaction import redact_id, redact_text
     from .storage import atomic_write_json, read_json
 
 
@@ -119,6 +120,38 @@ _STERILE_RE = re.compile(
 
 def _iso_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+# --------------------------------------------------------------------------- #
+# A1 · STOP RE-ENTRANCY GUARD (dispatcher-boundary, R2-2)
+#
+# The host marks a re-invoked Stop with stop_hook_active; adapters.normalize_event
+# surfaces it as event.trigger. Any additionalContext/block emitted on such a Stop
+# re-triggers the host counter and loops (the "Stop 3/4" / ~53k-token drain, A1).
+# The short-circuit is HOISTED here to the boundary so it protects the harness
+# regardless of WHICH module fires — not just ClaimWarningModule's own module-local
+# guard (which remains as defense-in-depth for direct module invocation).
+# --------------------------------------------------------------------------- #
+_REENTRANT_TRIGGERS = frozenset({"stop_hook_active", "true", "1"})
+
+
+def _is_reentrant_stop(event: Any) -> bool:
+    """True for a Stop the host has already re-invoked (normalized re-entrancy)."""
+    return (
+        str(getattr(event, "event", "")) == "Stop"
+        and str(getattr(event, "trigger", "")).strip().lower() in _REENTRANT_TRIGGERS
+    )
+
+
+def _raw_stop_hook_active(raw: Any) -> bool:
+    """The RAW host re-entrancy flag coerced to a bool for telemetry (A1 req#2).
+
+    Recorded alongside the normalized ``reentrant`` field so a recurrence can be
+    attributed to the raw signal, not only the harness's interpretation of it.
+    """
+    if not isinstance(raw, dict):
+        return False
+    return str(raw.get("stop_hook_active", "")).strip().lower() in {"true", "1"}
 
 
 def _env_int(name: str, default: int, floor: int) -> int:
@@ -244,6 +277,24 @@ class HarnessDispatcher:
     ) -> HookResult:
         started = time.perf_counter()
         event = normalize_event(raw, provider=provider, event_name=event_name)
+        invocation_id = self._invocation_id(raw)
+        reentrant = _is_reentrant_stop(event)
+
+        # A1 permanent fix (R2-2): short-circuit at the DISPATCHER boundary BEFORE
+        # any module runs — a re-entrant Stop or a StopFailure never reaches the
+        # context-injecting modules, so nothing can re-trigger the host Stop loop.
+        guard = self._boundary_short_circuit(
+            event,
+            provider=provider,
+            event_name=event_name,
+            started=started,
+            raw=raw,
+            invocation_id=invocation_id,
+            reentrant=reentrant,
+        )
+        if guard is not None:
+            return guard
+
         action = "allow"
         reason_code = "ok"
         # (priority, reason_code, text) per surviving context — feeds the G3 mixer.
@@ -326,8 +377,79 @@ class HarnessDispatcher:
             event_name=event_name,
             elapsed_ms=(time.perf_counter() - started) * 1000,
             failed_modules=failed_modules,
+            event=event,
+            raw=raw,
+            invocation_id=invocation_id,
+            reentrant=reentrant,
         )
         return result
+
+    # -- A1 boundary short-circuit ------------------------------------------- #
+
+    def _boundary_short_circuit(
+        self,
+        event: Any,
+        *,
+        provider: str,
+        event_name: str,
+        started: float,
+        raw: dict[str, Any],
+        invocation_id: str,
+        reentrant: bool,
+    ) -> HookResult | None:
+        """A1 permanent fix (R2-2): dispatcher-boundary Stop short-circuit.
+
+        Runs BEFORE the module fan-out. Returns an allow/empty HookResult (and
+        records the terminal) for a Stop event that must bypass every module, else
+        None so normal dispatch proceeds. Two observe-only cases (never block/inject):
+
+          * re-entrant Stop (host set stop_hook_active) -> force allow so NO module
+            can re-inject additionalContext and re-trigger the host Stop counter (the
+            "Stop 3/4" / 53k-token drain). This is the boundary fix: it holds no
+            matter which module fired, closing the module-local hole.
+          * StopFailure -> record as ``stopfailure`` so an error termination is
+            attributable and never mis-counted as a normal completion claim.
+
+        Fail-open: any error returns None (fall through to normal dispatch).
+        """
+        try:
+            if str(getattr(event, "event", "")) == "StopFailure":
+                reason_code = "stopfailure"
+            elif reentrant:
+                reason_code = "ok"
+            else:
+                return None
+            # Match the normal path's event-suffixed terminal status so the
+            # monitoring layer joins re-entrant/stopfailure rows by event uniformly.
+            result = HookResult(
+                status=f"SUCCESS:hook-{str(event_name).lower()}",
+                action="allow",
+                reason_code=reason_code,
+                additional_context=[],
+                continuation=None,
+            )
+            self._record_terminal(
+                result,
+                provider=provider,
+                event_name=event_name,
+                elapsed_ms=(time.perf_counter() - started) * 1000,
+                failed_modules=[],
+                event=event,
+                raw=raw,
+                invocation_id=invocation_id,
+                reentrant=reentrant,
+            )
+            return result
+        except Exception:
+            return None
+
+    @staticmethod
+    def _invocation_id(raw: dict[str, Any]) -> str:
+        """A stable-per-invocation correlation id (A1 req#7). Prefer a host-supplied
+        id; else mint one (each dispatch is one hook process = one invocation). The
+        value is redacted at write time, so a host id is never stored raw."""
+        host = raw.get("invocation_id") if isinstance(raw, dict) else None
+        return str(host) if host else uuid.uuid4().hex
 
     # -- G3 injection mixer -------------------------------------------------- #
 
@@ -480,6 +602,10 @@ class HarnessDispatcher:
         event_name: str,
         elapsed_ms: float,
         failed_modules: list[str],
+        event: Any = None,
+        raw: dict[str, Any] | None = None,
+        invocation_id: str = "",
+        reentrant: bool = False,
     ) -> None:
         try:
             self.state_root.mkdir(parents=True, exist_ok=True)
@@ -492,6 +618,13 @@ class HarnessDispatcher:
                 "reason_code": result.reason_code,
                 "elapsed_ms": round(elapsed_ms, 3),
                 "failed_modules": [redact_text(name, max_chars=80) for name in failed_modules],
+                # A1 req#7 correlation IDs (redacted, never raw) + raw/normalized
+                # re-entrancy — the join key the monitoring layer needs to tie a
+                # Stop-storm to a run.
+                "session_id": redact_id(getattr(event, "session_id", "")),
+                "invocation_id": redact_id(invocation_id),
+                "reentrant": bool(reentrant),
+                "stop_hook_active": _raw_stop_hook_active(raw),
             }
             with (self.state_root / "terminal.jsonl").open("a", encoding="utf-8") as handle:
                 handle.write(json.dumps(record, ensure_ascii=True, separators=(",", ":")) + "\n")
