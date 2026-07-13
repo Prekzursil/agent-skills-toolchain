@@ -408,9 +408,14 @@ class ConfirmGate:
       ``_confirm`` flag and forwards.
     """
 
-    def __init__(self, mode: str | None = None, log_dir: str | None = None,
-                 sink_path: str | None = None, clock=time.time) -> None:
-        env_mode = (mode if mode is not None else os.environ.get(_MODE_ENV) or "shadow")
+    def __init__(
+        self,
+        mode: str | None = None,
+        log_dir: str | None = None,
+        sink_path: str | None = None,
+        clock=time.time,
+    ) -> None:
+        env_mode = mode if mode is not None else os.environ.get(_MODE_ENV) or "shadow"
         self.mode = env_mode.lower() if env_mode.lower() in _VALID_MODES else "shadow"
         if sink_path is not None:
             self.sink_path = sink_path
@@ -430,7 +435,9 @@ class ConfirmGate:
                 return Decision(False, request)
             args = ((request or {}).get("params") or {}).get("arguments") or {}
             if self.mode == "shadow":
-                logged = self._log(original_name, args, would_block=not _confirmed(args))
+                logged = self._log(
+                    original_name, args, would_block=not _confirmed(args)
+                )
                 return Decision(False, request, shadow_logged=logged)
             # enforce
             if _confirmed(args):

@@ -51,9 +51,16 @@ def test_social_classification(name, expected):
 
 def test_no_social_tool_is_confirm_gated():
     # social-hub has no irreversible-resource-destruction tools
-    for name in ("fb_page_post", "upload_reel", "ig_graph_publish",
-                 "fb_send_message", "fb_unsend_message", "block_user",
-                 "get_saved_posts", "search_messages"):
+    for name in (
+        "fb_page_post",
+        "upload_reel",
+        "ig_graph_publish",
+        "fb_send_message",
+        "fb_unsend_message",
+        "block_user",
+        "get_saved_posts",
+        "search_messages",
+    ):
         assert hardening.confirm_required(name) is False
 
 
@@ -91,7 +98,9 @@ class _Capture:
 @pytest.fixture
 def social_hub(tmp_path):
     spec = BackendSpec(
-        id="ig", label="fake-ig", prefix="ig",
+        id="ig",
+        label="fake-ig",
+        prefix="ig",
         cmd=(PY, FAKE, "ig", "get_saved_posts,fb_page_post"),
         cache="ig.json",
     )
@@ -121,9 +130,14 @@ def test_social_tools_list_enriched(social_hub):
 
 def test_social_write_forwards_normally(social_hub):
     server, cap = social_hub
-    server.dispatch({"jsonrpc": "2.0", "id": 2, "method": "tools/call",
-                     "params": {"name": "fb_page_post",
-                                "arguments": {"message": "hi"}}})
+    server.dispatch(
+        {
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "tools/call",
+            "params": {"name": "fb_page_post", "arguments": {"message": "hi"}},
+        }
+    )
     echoed = json.loads(cap.wait(1)[0]["result"]["content"][0]["text"])
     assert echoed["arguments"] == {"message": "hi"}  # gate never touches a write
     assert server.backends["ig"].proc is not None

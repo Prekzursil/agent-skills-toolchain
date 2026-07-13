@@ -137,18 +137,26 @@ def test_annotations_unknown_empty():
 # enrich_tools (pure, additive)                                                #
 # --------------------------------------------------------------------------- #
 def _tool(name, **kw):
-    t = {"name": name, "description": f"desc {name}",
-         "inputSchema": {"type": "object", "properties": {}}}
+    t = {
+        "name": name,
+        "description": f"desc {name}",
+        "inputSchema": {"type": "object", "properties": {}},
+    }
     t.update(kw)
     return t
 
 
 def test_enrich_adds_annotations_and_is_pure():
-    src = [_tool("thing_delete", inputSchema={
-        "type": "object",
-        "properties": {"target": {"type": "string"}},
-        "required": ["target"],
-    })]
+    src = [
+        _tool(
+            "thing_delete",
+            inputSchema={
+                "type": "object",
+                "properties": {"target": {"type": "string"}},
+                "required": ["target"],
+            },
+        )
+    ]
     out = hardening.enrich_tools(src)
     assert out[0]["annotations"]["destructiveHint"] is True
     # purity: the input tool was not mutated
@@ -157,8 +165,9 @@ def test_enrich_adds_annotations_and_is_pure():
 
 
 def test_enrich_additive_never_clobbers_backend_hint():
-    src = [_tool("thing_delete", annotations={"destructiveHint": False,
-                                              "title": "Custom"})]
+    src = [
+        _tool("thing_delete", annotations={"destructiveHint": False, "title": "Custom"})
+    ]
     out = hardening.enrich_tools(src)
     # backend explicitly said NOT destructive -> preserved (additive setdefault)
     assert out[0]["annotations"]["destructiveHint"] is False
@@ -174,23 +183,35 @@ def test_enrich_preserves_existing_output_schema():
 
 
 def test_enrich_account_tool_tightened():
-    src = [_tool("md_account_add", inputSchema={
-        "type": "object",
-        "properties": {"name": {"type": "string"}, "env": {"type": "object"}},
-        "required": ["name", "env"],
-    })]
+    src = [
+        _tool(
+            "md_account_add",
+            inputSchema={
+                "type": "object",
+                "properties": {"name": {"type": "string"}, "env": {"type": "object"}},
+                "required": ["name", "env"],
+            },
+        )
+    ]
     out = hardening.enrich_tools(src)
     assert out[0]["inputSchema"]["additionalProperties"] is False
     assert out[0]["outputSchema"]["type"] == "object"
 
 
 def test_enrich_example_on_confirm_gated_tool():
-    src = [_tool("modal_sandbox_terminate", inputSchema={
-        "type": "object",
-        "properties": {"sandbox_id": {"type": "string"},
-                       "confirm": {"type": "boolean"}},
-        "required": ["sandbox_id"],
-    })]
+    src = [
+        _tool(
+            "modal_sandbox_terminate",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "sandbox_id": {"type": "string"},
+                    "confirm": {"type": "boolean"},
+                },
+                "required": ["sandbox_id"],
+            },
+        )
+    ]
     out = hardening.enrich_tools(src)
     desc = out[0]["description"]
     assert "Examples:" in desc
@@ -198,9 +219,15 @@ def test_enrich_example_on_confirm_gated_tool():
 
 
 def test_enrich_no_example_on_simple_readonly():
-    src = [_tool("modal_secret_list", inputSchema={
-        "type": "object", "properties": {"account": {"type": "string"}},
-    })]
+    src = [
+        _tool(
+            "modal_secret_list",
+            inputSchema={
+                "type": "object",
+                "properties": {"account": {"type": "string"}},
+            },
+        )
+    ]
     out = hardening.enrich_tools(src)
     assert "Examples:" not in out[0]["description"]
 
@@ -209,8 +236,12 @@ def test_enrich_no_example_on_simple_readonly():
 # ConfirmGate                                                                   #
 # --------------------------------------------------------------------------- #
 def _call(name, args=None):
-    return {"jsonrpc": "2.0", "id": 1, "method": "tools/call",
-            "params": {"name": name, "arguments": args or {}}}
+    return {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/call",
+        "params": {"name": name, "arguments": args or {}},
+    }
 
 
 def test_gate_off_is_noop(tmp_path):
@@ -342,7 +373,9 @@ class _Capture:
 @pytest.fixture
 def infra_hub(tmp_path):
     spec = BackendSpec(
-        id="infra", label="fake-infra", prefix="in",
+        id="infra",
+        label="fake-infra",
+        prefix="in",
         cmd=(PY, FAKE, "infra", "widget_delete,widget_list"),
         cache="infra.json",
     )
@@ -375,7 +408,8 @@ def test_tools_list_is_enriched(infra_hub):
 def test_enforce_blocks_destructive_call_without_spawning(infra_hub):
     server, cap, tmp_path = infra_hub
     server._confirm_gate = hardening.ConfirmGate(
-        mode="enforce", sink_path=str(tmp_path / "s.jsonl"))
+        mode="enforce", sink_path=str(tmp_path / "s.jsonl")
+    )
     server.dispatch(_call_named("widget_delete", {"target": "x"}))
     reply = cap.wait(1)[0]
     assert reply["result"]["isError"] is True
@@ -386,7 +420,8 @@ def test_enforce_blocks_destructive_call_without_spawning(infra_hub):
 def test_enforce_forwards_with_confirm_and_strips_hub_key(infra_hub):
     server, cap, tmp_path = infra_hub
     server._confirm_gate = hardening.ConfirmGate(
-        mode="enforce", sink_path=str(tmp_path / "s.jsonl"))
+        mode="enforce", sink_path=str(tmp_path / "s.jsonl")
+    )
     server.dispatch(_call_named("widget_delete", {"target": "x", "_confirm": True}))
     reply = cap.wait(1)[0]
     echoed = json.loads(reply["result"]["content"][0]["text"])
@@ -399,7 +434,8 @@ def test_enforce_forwards_with_confirm_and_strips_hub_key(infra_hub):
 def test_shadow_forwards_destructive_unchanged(infra_hub):
     server, cap, tmp_path = infra_hub
     server._confirm_gate = hardening.ConfirmGate(
-        mode="shadow", sink_path=str(tmp_path / "s.jsonl"))
+        mode="shadow", sink_path=str(tmp_path / "s.jsonl")
+    )
     server.dispatch(_call_named("widget_delete", {"target": "x"}))
     reply = cap.wait(1)[0]
     echoed = json.loads(reply["result"]["content"][0]["text"])
@@ -410,5 +446,9 @@ def test_shadow_forwards_destructive_unchanged(infra_hub):
 
 
 def _call_named(name, args):
-    return {"jsonrpc": "2.0", "id": 99, "method": "tools/call",
-            "params": {"name": name, "arguments": args}}
+    return {
+        "jsonrpc": "2.0",
+        "id": 99,
+        "method": "tools/call",
+        "params": {"name": name, "arguments": args},
+    }
