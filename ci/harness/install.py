@@ -673,18 +673,27 @@ def _source_commit(src: Path) -> str | None:
 
 
 def _write_receipt(
-    dst: Path, src: Path, target: str, file_hashes: dict[str, str], backup: Path | None
+    dst: Path,
+    src: Path,
+    target: str,
+    file_hashes: dict[str, str],
+    backup: Path | None,
+    source_commit: str | None = None,
 ) -> dict[str, Any]:
     """Write/EXTEND <target>/installed.json with the deploy receipt (merge-preserve
     any pre-existing keys). Timestamp = datetime.now (ordinary metadata); the
-    integrity fields (per-file sha256) are content-based."""
+    integrity fields (per-file sha256) are content-based. ``source_commit`` records
+    the deployed revision for provenance -- a caller-supplied value (e.g. the
+    runner's ``git rev-parse HEAD``) wins; else it falls back to the source tree's
+    own HEAD (``_source_commit``), which is None off a git tree."""
     receipt_path = dst / "installed.json"
     existing = read_json(receipt_path, {})
     base = existing if isinstance(existing, dict) else {}
+    resolved_commit = source_commit if source_commit is not None else _source_commit(src)
     receipt = {
         **base,
         "deployed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "source_commit": _source_commit(src),
+        "source_commit": resolved_commit,
         "target": target,
         "files": {rel: file_hashes[rel] for rel in sorted(file_hashes)},
         "backup_path": str(backup) if backup is not None else None,
@@ -702,6 +711,7 @@ def deploy(
     source_dir: Path | None = None,
     live_dir: Path | None = None,
     target: str = "harness",
+    source_commit: str | None = None,
     lock_stale_seconds: float = DEPLOY_LOCK_STALE_SECONDS,
     _after_stage: Callable[[], None] | None = None,
     _after_write: Callable[[], None] | None = None,
@@ -794,7 +804,7 @@ def deploy(
             return 1
 
         # RECEIPT: write/extend <target>/installed.json.
-        receipt = _write_receipt(dst, src, target, candidate_hashes, backup)
+        receipt = _write_receipt(dst, src, target, candidate_hashes, backup, source_commit=source_commit)
         _emit({"status": "deployed", "target": target, "deployed_to": str(dst),
                "source": str(src), "count": len(copied), "copied": copied,
                "backup": str(backup) if backup is not None else None,

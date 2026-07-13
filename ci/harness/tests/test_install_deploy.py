@@ -235,6 +235,32 @@ def test_deploy_receipt_records_hashes_and_extends_existing(tmp_path, monkeypatc
 
 
 # --------------------------------------------------------------------------- #
+# 6. receipt provenance: caller-supplied source_commit wins
+# --------------------------------------------------------------------------- #
+
+
+def test_deploy_receipt_records_caller_supplied_source_commit(tmp_path, monkeypatch):
+    # PROVENANCE: a caller-supplied source_commit (e.g. the runner's
+    # `git rev-parse HEAD`) is recorded verbatim, taking precedence over the
+    # source tree's own HEAD -- so the receipt is auditable even when deploying
+    # from a non-git archive (where _source_commit would yield None).
+    monkeypatch.setattr(install_mod, "BACKUPS_DIR", tmp_path / "backups")
+    src = _src_tree(tmp_path / "src", {"modules.py": "# m\n"})
+    live = tmp_path / "live"
+
+    code = deploy(
+        source_dir=src,
+        live_dir=live,
+        target="harness",
+        source_commit="deadbeefcafe1234567890abcdef000000000000",
+    )
+
+    assert code == 0
+    receipt = json.loads((live / "installed.json").read_text(encoding="utf-8"))
+    assert receipt["source_commit"] == "deadbeefcafe1234567890abcdef000000000000"
+
+
+# --------------------------------------------------------------------------- #
 # target validation (one target per call)
 # --------------------------------------------------------------------------- #
 
