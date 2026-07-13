@@ -1,0 +1,160 @@
+# Claude Code WorktreeCreate hook.
+# stdin: JSON { cwd, worktree_config: { base_directory, worktree_name, source_ref } }
+# stdout (on exit 0): absolute path of the created worktree. Non-zero exit aborts creation.
+# EAP=Continue so git's normal stderr progress ("Preparing worktree ...") isn't thrown as an
+# error; success is judged by $LASTEXITCODE. The tool CWD here is ~/.agents/harness (not a repo)
+# and the session isn't rooted in one repo, so we resolve the target repo from, in order:
+# a hint file -> worktree_config.base_directory -> $env:CLAUDE_PROJECT_DIR -> cwd (first git repo).
+#
+# G5 rules-vault wiring (ADDITIVE / SHADOW): after the worktree exists, symlink the user rules
+# vault (~/.claude/rules/common) into the worktree as PROJECT-scoped rules, and compile a flat
+# Codex-parity digest. Rationale: Claude Code issue #21858 -- user-level (~/.claude/rules)
+# path-scoped rules silently ignore their `paths:` frontmatter, so they bind reliably only in
+# home-dir sessions; project-scoped `.claude/rules` DO honor `paths:`. A Codex thread launched in
+# the same worktree has no frontmatter parser, so a flattened digest gives cross-tool parity.
+# The wiring is observe/log-only: every failure is swallowed and logged; it can NEVER change the
+# hook's exit code or stdout (which must stay exactly the worktree path). Kill-switch:
+# set CLAUDE_RULES_WIRING=0 (or false/off/no) to disable entirely.
+$ErrorActionPreference = "Continue"
+function Test-GitRepo($d) {
+    if (-not $d) { return $false }
+    & git -C $d rev-parse --is-inside-work-tree *> $null
+    return ($LASTEXITCODE -eq 0)
+}
+
+function Write-RulesLog($msg) {
+    # Best-effort shadow sink; never throws.
+    try {
+        $log = Join-Path $HOME ".claude\logs\rules-wiring.log"
+        $dir = Split-Path $log
+        if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force *> $null }
+        Add-Content -LiteralPath $log -Value ("{0} {1}" -f (Get-Date).ToString("s"), $msg) -Encoding utf8
+    } catch { }
+}
+
+function Remove-Frontmatter($text) {
+    # Strip a single leading YAML frontmatter block (--- ... ---) if present.
+    if (-not $text) { return "" }
+    return [regex]::Replace($text, '^﻿?---\r?\n.*?\r?\n---\r?\n', '', `
+        [System.Text.RegularExpressions.RegexOptions]::Singleline)
+}
+
+function Invoke-RulesVaultWiring($Worktree) {
+    # SHADOW mode: observe/log only. The whole body is guarded so nothing here can reach the
+    # caller's catch (which exits 1) or emit to stdout. Worktree creation is never blocked.
+    try {
+        $switch = $env:CLAUDE_RULES_WIRING
+        if ($switch -and ($switch -match '^(0|false|off|no)$')) {
+            Write-RulesLog "SKIP disabled via CLAUDE_RULES_WIRING=$switch"; return
+        }
+        if (-not $Worktree -or -not (Test-Path $Worktree)) {
+            Write-RulesLog "SKIP worktree missing: $Worktree"; return
+        }
+
+        $src = if ($env:CLAUDE_RULES_SOURCE) { $env:CLAUDE_RULES_SOURCE } `
+               else { Join-Path $HOME ".claude\rules\common" }
+        if (-not (Test-Path $src)) { Write-RulesLog "SKIP no rules vault at $src"; return }
+
+        $rulesDir = Join-Path $Worktree ".claude\rules"
+        $dest     = Join-Path $rulesDir "common"
+
+        # 1) Link rules/common into the worktree so it is PROJECT-scoped (#21858 workaround).
+        if (Test-Path $dest) {
+            $item = Get-Item -LiteralPath $dest -Force
+            if ($item.LinkType) {
+                Write-RulesLog "OK link already present $dest -> $($item.Target)"
+            } else {
+                # Repo ships its own rules/common -- never clobber owner/repo content.
+                Write-RulesLog "SKIP non-clobber: real dir already at $dest"
+            }
+        } else {
+            if (-not (Test-Path $rulesDir)) { New-Item -ItemType Directory -Path $rulesDir -Force *> $null }
+            try {
+                New-Item -ItemType Junction -Path $dest -Target $src -ErrorAction Stop *> $null
+                Write-RulesLog "LINK junction $dest -> $src"
+            } catch {
+                # Junctions can fail across volumes / on some FS; fall back to a copy (still additive).
+                Copy-Item -LiteralPath $src -Destination $dest -Recurse -Force
+                Write-RulesLog "LINK junction failed ($_); copied vault to $dest"
+            }
+        }
+
+        # 2) Codex rules-parity compile step: flatten rules/common bodies (frontmatter stripped)
+        #    into one always-loadable digest under our own namespace. Never touches repo AGENTS.md
+        #    or any tracked file -- output lives only under .claude/rules/_compiled/.
+        try {
+            $compiledDir = Join-Path $rulesDir "_compiled"
+            if (-not (Test-Path $compiledDir)) { New-Item -ItemType Directory -Path $compiledDir -Force *> $null }
+            $outFile = Join-Path $compiledDir "codex-rules.md"
+
+            $sb = [System.Text.StringBuilder]::new()
+            [void]$sb.AppendLine("<!-- GENERATED by create-worktree.ps1 (G5 rules-vault wiring). Regenerated per worktree; do not edit. -->")
+            [void]$sb.AppendLine("# Compiled common rules (Codex / cross-tool parity)")
+            [void]$sb.AppendLine("")
+            [void]$sb.AppendLine("Flattened from ~/.claude/rules/common so a Codex thread in this worktree sees the same")
+            [void]$sb.AppendLine("standards Claude's path-scoped rules provide (Claude Code issue #21858 parity).")
+
+            $files = Get-ChildItem -LiteralPath $src -Filter *.md -File -ErrorAction Stop | Sort-Object Name
+            foreach ($f in $files) {
+                $body = Remove-Frontmatter (Get-Content -LiteralPath $f.FullName -Raw)
+                [void]$sb.AppendLine("")
+                [void]$sb.AppendLine("<!-- source: rules/common/$($f.Name) -->")
+                [void]$sb.AppendLine($body.TrimEnd())
+            }
+            Set-Content -LiteralPath $outFile -Value $sb.ToString() -Encoding utf8
+            Write-RulesLog "COMPILE wrote $outFile ($($files.Count) rule files)"
+        } catch {
+            Write-RulesLog "COMPILE failed: $_"
+        }
+    } catch {
+        Write-RulesLog "WIRING error (swallowed): $_"
+    }
+}
+
+try {
+    $in = [Console]::In.ReadToEnd() | ConvertFrom-Json
+    $wc = $in.worktree_config
+
+    $cands = @()
+    $targetFile = Join-Path $HOME ".claude\hooks\worktree-target.txt"
+    if (Test-Path $targetFile) {
+        $t = (Get-Content $targetFile -Raw).Trim()
+        if ($t) { $cands += $t }
+    }
+    if ($wc -and $wc.base_directory) { $cands += $wc.base_directory }
+    if ($env:CLAUDE_PROJECT_DIR) { $cands += $env:CLAUDE_PROJECT_DIR }
+    if ($in.cwd) { $cands += $in.cwd }
+
+    $base = $null
+    foreach ($c in $cands) { if (Test-GitRepo $c) { $base = $c; break } }
+    if (-not $base) { [Console]::Error.WriteLine("no git repo among candidates: $($cands -join ' | ')"); exit 1 }
+    $base = $base -replace '/', '\'
+
+    $name = if ($wc -and $wc.worktree_name) { $wc.worktree_name } else { "agent-$(Get-Random)" }
+    $name = ($name -replace '[^A-Za-z0-9._-]', '-')
+
+    $ref = if ($wc) { $wc.source_ref } else { $null }
+    if (-not $ref -or $ref -eq 'fresh') { $ref = 'HEAD' }
+
+    $dest = Join-Path (Join-Path $HOME ".claude\agent-worktrees") $name
+    $parent = Split-Path $dest
+    if (-not (Test-Path $parent)) { New-Item -ItemType Directory -Path $parent -Force *> $null }
+    if (Test-Path $dest) {
+        & git -C $base worktree remove --force $dest 2>&1 | Out-Null
+        & git -C $base worktree prune 2>&1 | Out-Null
+    }
+
+    # --detach so it never collides with a branch already checked out in the main worktree.
+    $out = & git -C $base worktree add --detach $dest $ref 2>&1 | Out-String
+    if ($LASTEXITCODE -ne 0) { [Console]::Error.WriteLine("git worktree add failed: $out"); exit 1 }
+
+    # G5: wire the rules vault into the worktree (additive/shadow; never affects exit or stdout).
+    Invoke-RulesVaultWiring -Worktree $dest
+
+    Write-Output $dest
+    exit 0
+}
+catch {
+    [Console]::Error.WriteLine("WorktreeCreate hook error: $_")
+    exit 1
+}

@@ -10,6 +10,13 @@ metadata:
 
 # design-review-loop Skill
 
+> **SUPERSEDED by `design-studio` (mode-routed successor).** The live skill was renamed to
+> **`design-studio`**, which runs this SAME TCR design-review loop (G0 PRIME → G7 VERIFY, the
+> revert-gate) plus a thin mode router (direct · audit · mirror · critique · iterate ·
+> implement · verify · loop · drive · session). For new work use **`design-studio`** (or
+> `design-studio loop` for the whole pass). This entry is retained for provenance and so
+> in-flight invocations of the old name still resolve — it is **not** deleted.
+
 The **TCR Loop orchestrator** — the named entry point that drives a design-review pass
 as **8 sequenced gates** and wires the *existing* leaf skills as the gate implementations.
 **TCR = Transpose · Critique · Reconcile** — the three verbs that ARE the *transpose →

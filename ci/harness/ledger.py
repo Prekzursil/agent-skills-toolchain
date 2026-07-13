@@ -5,6 +5,7 @@ import json
 import os
 import re
 import time
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -81,6 +82,252 @@ def _sanitize_value(value: Any, depth: int = 0) -> Any:
     if value is None or isinstance(value, (bool, int, float)):
         return value
     return redact_text(repr(value), redact_paths=True, max_chars=1000)
+
+
+# ---------------------------------------------------------------------------
+# A1 · Typed receipts (SI-1) + B4 · taint propagation (SI-5-adjacent).
+#
+# This module owns the FOUNDATION data + storage + query half only. The pure
+# classifier below is imported by modules.py (LedgerModule stamps the receipt_*
+# fields + kind=="mutation" events at the PostToolUse call site; ClaimWarning
+# v2 gates on has_fresh_receipt / receipt_for_fingerprint). The claim/falsify
+# TRIGGERS (note.py, fresh-context-verify) live in modules.py and are out of
+# scope here. Names are load-bearing — other lanes depend on them verbatim.
+# ---------------------------------------------------------------------------
+
+RECEIPT_CLASSES: tuple[str, ...] = (
+    "test",
+    "build",
+    "lint",
+    "typecheck",
+    "coverage",
+    "run",
+    "e2e",
+    "health",
+)
+
+# Claim family -> receipt classes that would substantiate it. has_fresh_receipt
+# reads the tuple as ANY-of (one fresh pass substantiates), matching the
+# has_verification any-green back-compat shim.
+CLAIM_RECEIPT_MAP: dict[str, tuple[str, ...]] = {
+    "tests_pass": ("test",),
+    "fixed": ("test", "run"),
+    "builds": ("build", "typecheck"),
+    "type_clean": ("typecheck",),
+    "lint_clean": ("lint",),
+    "coverage": ("coverage",),
+    "healthy": ("health",),
+    "e2e_pass": ("e2e",),
+}
+
+# Standards-of-proof stake tiers (SI-1): risk class -> burden-of-proof label.
+STAKE_TIERS: dict[str, str] = {
+    "routine": "preponderance",
+    "multifile": "clear_and_convincing",
+    "irreversible": "beyond_reasonable_doubt",
+}
+
+# Bounded, chronological windows for the receipt/taint queries. Kept small so a
+# hook never reparses a large ledger; replay() itself caps at 200.
+_RECEIPT_SCAN_LIMIT = 120
+_TAINT_SCAN_LIMIT = 200
+
+
+@dataclass(frozen=True)
+class Receipt:
+    """A typed verification receipt (SI-1).
+
+    ``seq``/``ts`` are 0/'' at classification time — classify_receipt is a pure
+    function that runs before the ledger event exists; the stored event's own
+    seq/ts are authoritative when a receipt is reconstructed from storage via
+    receipt_for_fingerprint / has_fresh_receipt.
+    """
+
+    receipt_class: str
+    status: str  # "pass" | "fail" | "unknown"
+    passed: int
+    failed: int
+    fingerprint: str
+    seq: int
+    ts: str
+
+
+# Ordered (most-specific first) class signatures. First match wins so that e.g.
+# `pytest --cov` is coverage, `python -m pytest` is test, `npm run build` is
+# build. Multi-char tokens (containing a space/symbol) match literally; bare
+# alnum tokens are word-bounded to avoid "latest"->test / "runtime"->run hits.
+_RECEIPT_SIGNATURES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("coverage", ("--cov", "cov-report", "--coverage", "coverage.py", "nyc", "c8", "codecov")),
+    ("e2e", ("playwright", "cypress", "e2e", "nightwatch", "puppeteer", "selenium", "webdriverio")),
+    ("typecheck", ("tsc", "mypy", "pyright", "basedpyright", "type-check", "typecheck")),
+    ("lint", ("eslint", "ruff", "flake8", "pylint", "prettier", "biome", "clippy", "golangci", "opengrep", "semgrep", "--check", "lint")),
+    ("test", ("pytest", "jest", "vitest", "mocha", "unittest", "rspec", "phpunit", "go test", "cargo test", "npm test", "test")),
+    ("build", ("cargo build", "go build", "webpack", "vite build", "electron-builder", "cmake", "gradle", "mvn", "msbuild", "meson", "ninja", "compile", "make", "build")),
+    ("run", ("python", "node", "npm start", "cargo run", "go run", "uv run", "pnpm start", "bun run", "deno run", "dotnet run", "./", "run")),
+)
+
+
+def _token_in(command: str, token: str) -> bool:
+    """Word-bounded match for bare alnum tokens; literal substring otherwise."""
+    if not token.isalnum():
+        return token in command
+    return re.search(r"(?<![a-z0-9])" + re.escape(token) + r"(?![a-z0-9])", command) is not None
+
+
+def _receipt_command(tool_name: str, tool_input: Any) -> str:
+    """Extract a runnable argv/command string, or '' for non-command tools.
+
+    ``tool_name`` is part of the SI-1 signature and is accepted verbatim; the
+    command is resolved from the input payload (Bash/PowerShell carry it under
+    ``command``; a bare string input IS the command; write/read tools carry no
+    command and yield '' so they never mint a receipt).
+    """
+    _ = tool_name
+    if isinstance(tool_input, str):
+        return tool_input.strip()
+    if isinstance(tool_input, dict):
+        for key in ("command", "cmd", "script", "argv"):
+            value = tool_input.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+            if isinstance(value, (list, tuple)) and value:
+                return " ".join(str(part) for part in value).strip()
+    return ""
+
+
+def _is_health_command(lower: str) -> bool:
+    if any(
+        token in lower
+        for token in ("healthz", "readyz", "livez", "/health", "healthcheck", "health-check")
+    ):
+        return True
+    if _token_in(lower, "ping"):
+        return True
+    return _token_in(lower, "curl") and any(
+        word in lower for word in ("health", "ready", "live", "status")
+    )
+
+
+def _classify_command(command: str) -> str | None:
+    lower = command.lower()
+    if _is_health_command(lower):
+        return "health"
+    for receipt_class, tokens in _RECEIPT_SIGNATURES:
+        if any(_token_in(lower, token) for token in tokens):
+            return receipt_class
+    return None
+
+
+def _result_text(result: Any) -> str:
+    if isinstance(result, str):
+        return result
+    try:
+        return json.dumps(result, ensure_ascii=False, default=repr)
+    except (TypeError, ValueError):
+        return repr(result)
+
+
+def _exit_code(result: Any) -> int | None:
+    if isinstance(result, dict):
+        for key in ("exit_code", "exitCode", "returncode"):
+            value = result.get(key)
+            if isinstance(value, bool):
+                continue
+            if isinstance(value, int):
+                return value
+            if isinstance(value, str) and value.strip().lstrip("-").isdigit():
+                return int(value)
+    return None
+
+
+_COUNT_PASSED = re.compile(r"(\d+)\s+pass(?:ed)?", re.I)
+_COUNT_FAILED = re.compile(r"(\d+)\s+(?:fail(?:ed|ures?)?|errors?)", re.I)
+
+
+def _sum_matches(pattern: re.Pattern[str], text: str) -> int:
+    total = 0
+    for match in pattern.finditer(text):
+        try:
+            total += int(match.group(1))
+        except (TypeError, ValueError):
+            continue
+    return total
+
+
+def _parse_counts(result: Any) -> tuple[int, int]:
+    text = _result_text(result)
+    return _sum_matches(_COUNT_PASSED, text), _sum_matches(_COUNT_FAILED, text)
+
+
+def _receipt_status(result: Any, passed: int, failed: int) -> str:
+    if failed > 0:
+        return "fail"
+    exit_code = _exit_code(result)
+    if exit_code is not None:
+        return "pass" if exit_code == 0 else "fail"
+    if passed > 0:
+        return "pass"
+    text = _result_text(result)
+    positive = re.search(r"\b(?:success|succeeded|healthy|ready|ok|pass(?:ed)?)\b", text, re.I)
+    negative = re.search(r"\b(?:fail(?:ed|ure)?|error|traceback|exception)\b", text, re.I)
+    if positive and not negative:
+        return "pass"
+    return "unknown"
+
+
+def argv_fingerprint(command: str) -> str:
+    """sha256 of whitespace-normalized argv — the failing-command identity used
+    by the repro-fingerprint fix-gate. Case-preserving (distinct commands stay
+    distinct); only runs of whitespace are collapsed. Pure hex, so it survives
+    the ledger's secret/path sanitizer untouched."""
+    normalized = " ".join(str(command or "").split())
+    return hashlib.sha256(normalized.encode("utf-8", "replace")).hexdigest()
+
+
+def classify_receipt(tool_name: str, tool_input: Any, tool_result: Any) -> Receipt | None:
+    """Pure argv+exit+parsed-count heuristic -> a typed Receipt, or None when the
+    tool carries no runnable command or the command is unclassifiable (SI-1)."""
+    command = _receipt_command(tool_name, tool_input)
+    if not command:
+        return None
+    receipt_class = _classify_command(command)
+    if receipt_class is None:
+        return None
+    passed, failed = _parse_counts(tool_result)
+    return Receipt(
+        receipt_class=receipt_class,
+        status=_receipt_status(tool_result, passed, failed),
+        passed=passed,
+        failed=failed,
+        fingerprint=argv_fingerprint(command),
+        seq=0,
+        ts="",
+    )
+
+
+def _as_int(value: Any) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _receipt_from_event(event: dict[str, Any]) -> Receipt | None:
+    """Reconstruct a Receipt from a stored tool_result event's receipt_* fields,
+    binding the event's own seq/ts. Returns None for events with no (valid)
+    typed receipt so legacy tool_result events are ignored by the receipt path."""
+    receipt_class = str(event.get("receipt_class") or "")
+    if receipt_class not in RECEIPT_CLASSES:
+        return None
+    return Receipt(
+        receipt_class=receipt_class,
+        status=str(event.get("receipt_status") or "unknown"),
+        passed=_as_int(event.get("receipt_passed")),
+        failed=_as_int(event.get("receipt_failed")),
+        fingerprint=str(event.get("receipt_fp") or ""),
+        seq=_as_int(event.get("seq")),
+        ts=str(event.get("ts") or ""),
+    )
 
 
 class _FileLock:
@@ -169,6 +416,9 @@ class EventLedger:
             "decisions": [],
             "open_failures": [],
             "last_event_ts": None,
+            # A1 freshness anchor: newest file-mutation position (see reducers).
+            "last_mutation_seq": 0,
+            "last_mutation_ts": None,
         }
         loaded = read_json(self._state_path(cwd), default)
         if not isinstance(loaded, dict):
@@ -360,6 +610,8 @@ class EventLedger:
                 "decisions": list(fallback.get("decisions") or []),
                 "open_failures": list(fallback.get("open_failures") or []),
                 "last_event_ts": fallback.get("last_event_ts"),
+                "last_mutation_seq": int(fallback.get("last_mutation_seq") or 0),
+                "last_mutation_ts": fallback.get("last_mutation_ts"),
             }
         )
         for event in events:
@@ -393,6 +645,15 @@ class EventLedger:
                         for item in state["open_failures"]
                         if item.get("seq") not in supersedes
                     ]
+            elif kind == "mutation":
+                # A1 freshness source: track the newest file-mutation position so
+                # has_fresh_receipt can reject stale-green receipts. Additive to
+                # the decision/failure/milestone reducers — never mutates them.
+                state["last_mutation_seq"] = max(
+                    int(state.get("last_mutation_seq") or 0), seq
+                )
+                if event.get("ts"):
+                    state["last_mutation_ts"] = event["ts"]
         state["decisions"] = state["decisions"][-20:]
         state["open_failures"] = state["open_failures"][-20:]
         return state
@@ -413,6 +674,8 @@ class EventLedger:
             "decisions": [],
             "open_failures": [],
             "last_event_ts": fallback.get("last_event_ts"),
+            "last_mutation_seq": int(fallback.get("last_mutation_seq") or 0),
+            "last_mutation_ts": fallback.get("last_mutation_ts"),
         }
         failures: list[dict[str, Any]] = []
         decisions: list[dict[str, Any]] = []
@@ -439,6 +702,12 @@ class EventLedger:
                 supersedes = set(event.get("supersedes_failures") or [])
                 if supersedes:
                     failures = [item for item in failures if item.get("seq") not in supersedes]
+            elif kind == "mutation":
+                state["last_mutation_seq"] = max(
+                    int(state.get("last_mutation_seq") or 0), seq
+                )
+                if event.get("ts"):
+                    state["last_mutation_ts"] = event["ts"]
         state["decisions"] = decisions[-20:]
         state["open_failures"] = failures[-20:]
         return state
@@ -486,6 +755,10 @@ class EventLedger:
             }
             if event_id:
                 event["event_id"] = event_id
+            # Additive fields flow through verbatim (secret/path-sanitized): the
+            # A1 receipt_* fields + kind=="mutation" {path} are stamped by the
+            # modules.py PostToolUse call site, and the B4 derived_from:list
+            # provenance edge is stored here and indexed by taint_dependents().
             for key, value in fields.items():
                 clean_key = _safe_component(str(key), 48)
                 event[clean_key] = _sanitize_value(value)
@@ -670,7 +943,120 @@ class EventLedger:
             "legacy_seq": int(state.get("legacy_seq") or 0),
         }
 
-    def has_verification(self, cwd: str, turn_id: str = "") -> bool:
+    # ------------------------------------------------------------------
+    # A1 · receipt + freshness query surface (SI-1) and B4 · taint (SI-5-adj).
+    # All additive + read-mostly; consumed by modules.py (ClaimWarning v2) and
+    # by the external falsification trigger. Bounded, chronological scans.
+    # ------------------------------------------------------------------
+
+    def _scan_events(self, cwd: str, *, limit: int = _RECEIPT_SCAN_LIMIT) -> list[dict[str, Any]]:
+        """Bounded, ts+seq-sorted recent events for the receipt/taint queries."""
+        return self.replay(cwd, limit=limit)
+
+    def last_mutation_seq(self, cwd: str, turn_id: str = "") -> int:
+        """Highest seq of a kind=='mutation' event (optionally scoped to a turn).
+
+        Powers freshness ordering: a receipt is 'fresh' only if it post-dates the
+        last file mutation of the turn (kills stale-green). Mirrors the lenient
+        turn match used by has_verification (an empty turn_id counts for any turn).
+        """
+        latest = 0
+        for item in self._scan_events(cwd):
+            if item.get("kind") != "mutation":
+                continue
+            if turn_id and item.get("turn_id") not in {"", turn_id}:
+                continue
+            latest = max(latest, _as_int(item.get("seq")))
+        return latest
+
+    def _receipts(self, cwd: str, turn_id: str = "") -> list[Receipt]:
+        receipts: list[Receipt] = []
+        for item in self._scan_events(cwd):
+            if item.get("kind") != "tool_result":
+                continue
+            if turn_id and item.get("turn_id") not in {"", turn_id}:
+                continue
+            receipt = _receipt_from_event(item)
+            if receipt is not None:
+                receipts.append(receipt)
+        return receipts
+
+    def has_fresh_receipt(
+        self,
+        cwd: str,
+        turn_id: str,
+        required_classes: tuple[str, ...],
+        *,
+        min_seq: int | None = None,
+    ) -> bool:
+        """True when a status=='pass' receipt in one of required_classes has a seq
+        strictly greater than the turn's last mutation (and than min_seq, when
+        given). ANY-of over required_classes — one fresh pass substantiates,
+        matching the has_verification any-green shim. The strict seq>floor rule is
+        the stale-green killer (SI-1 freshness rule)."""
+        required = {name for name in (required_classes or ()) if name}
+        if not required:
+            return False
+        floor = self.last_mutation_seq(cwd, turn_id)
+        if min_seq is not None:
+            floor = max(floor, _as_int(min_seq))
+        return any(
+            receipt.receipt_class in required
+            and receipt.status == "pass"
+            and receipt.seq > floor
+            for receipt in self._receipts(cwd, turn_id)
+        )
+
+    def receipt_for_fingerprint(self, cwd: str, fingerprint: str) -> Receipt | None:
+        """Most-recent typed receipt whose argv-fingerprint matches (repro-gate)."""
+        if not fingerprint:
+            return None
+        target = str(fingerprint)
+        match: Receipt | None = None
+        for item in self._scan_events(cwd):
+            if item.get("kind") != "tool_result":
+                continue
+            if str(item.get("receipt_fp") or "") != target:
+                continue
+            receipt = _receipt_from_event(item)
+            if receipt is not None:
+                match = receipt
+        return match
+
+    def last_failed_fingerprint(self, cwd: str, turn_id: str = "") -> str | None:
+        """Argv-fingerprint of the most recent FAILED typed receipt, or None.
+
+        The repro-fingerprint fix-gate reads this to learn WHICH failing command
+        a 'fixed' claim must prove green, then pairs it with
+        receipt_for_fingerprint to check for a later passing rerun of that same
+        argv. Scans the same bounded, ts+seq-ordered window as the sibling
+        receipt queries and returns the fingerprint of the LATEST tool_result
+        whose reconstructed receipt is a fail with a non-empty fingerprint. Turn
+        scoping mirrors last_mutation_seq (an empty turn_id counts for any turn).
+        Fail-open: a scan/parse error yields None rather than raising into the
+        hook."""
+        try:
+            match: str | None = None
+            for item in self._scan_events(cwd):
+                if item.get("kind") != "tool_result":
+                    continue
+                if turn_id and item.get("turn_id") not in {"", turn_id}:
+                    continue
+                receipt = _receipt_from_event(item)
+                if (
+                    receipt is not None
+                    and receipt.status == "fail"
+                    and receipt.fingerprint
+                ):
+                    match = receipt.fingerprint
+            return match
+        except Exception:
+            return None
+
+    def _has_legacy_verification(self, cwd: str, turn_id: str = "") -> bool:
+        # Pre-receipt behavior, kept verbatim: any tool_result flagged
+        # verified==True (no typed receipt fields). Ledgers written before the
+        # modules.py receipt-stamping lane lands still satisfy the done-gate.
         for item in reversed(self.replay(cwd, limit=60)):
             if item.get("kind") != "tool_result":
                 continue
@@ -679,6 +1065,45 @@ class EventLedger:
             if item.get("verified") is True:
                 return True
         return False
+
+    def has_verification(self, cwd: str, turn_id: str = "") -> bool:
+        # Thin back-compat shim (SI-1): delegate to has_fresh_receipt over ALL
+        # receipt classes, falling back to the legacy verified==True signal for
+        # events written before receipt fields existed. test_modules.py asserts it.
+        if self.has_fresh_receipt(cwd, turn_id, RECEIPT_CLASSES):
+            return True
+        return self._has_legacy_verification(cwd, turn_id)
+
+    def taint_dependents(self, cwd: str, falsified_ref: str) -> list[int]:
+        """B4: return seqs of events whose derived_from lists falsified_ref, and
+        drop a kind=='taint' marker (fail-open). Single-level by design — the
+        external falsification TRIGGER (note.py / fresh-context-verify) owns DAG
+        traversal by re-invoking with each dependent's own identifier."""
+        if not falsified_ref:
+            return []
+        ref = str(falsified_ref)
+        dependents: list[int] = []
+        for item in self._scan_events(cwd, limit=_TAINT_SCAN_LIMIT):
+            derived = item.get("derived_from")
+            if not isinstance(derived, list):
+                continue
+            if any(str(entry) == ref for entry in derived):
+                seq = _as_int(item.get("seq"))
+                if seq:
+                    dependents.append(seq)
+        dependents = sorted(set(dependents))
+        try:
+            self.append(
+                cwd,
+                "taint",
+                dedupe_key=f"taint:{ref}:{dependents}",
+                falsified_ref=ref,
+                tainted_seqs=dependents,
+            )
+        except Exception:
+            # Advisory marker only — never let taint bookkeeping raise into a hook.
+            pass
+        return dependents
 
     def _find_legacy(self, cwd: str) -> tuple[dict[str, Any], Path | None]:
         key = project_key(cwd)

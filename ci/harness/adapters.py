@@ -15,7 +15,59 @@ _CONTEXT_EVENTS = {
     "UserPromptSubmit",
     "PreToolUse",
     "PostToolUse",
+    # Post-cutoff native events whose handlers inject context. Registering them
+    # here makes an inject render as native additionalContext (not a bare
+    # systemMessage) so the PostCompact re-anchor, the Agent-Teams lifecycle
+    # watchers (TaskCompleted/TaskCreated/TeammateIdle) and the failure channel
+    # (PostToolUseFailure/PermissionDenied) surface their context in-band.
+    # ConfigChange is intentionally NOT here: a config-drift sentinel is a
+    # system-level notice, so its inject renders as systemMessage.
+    "PostCompact",
+    "TaskCompleted",
+    "TaskCreated",
+    "TeammateIdle",
+    "PostToolUseFailure",
+    "PermissionDenied",
 }
+
+# Native events that carry an agent/teammate identity in their payload. Their
+# transcript, when present under the generic `transcript_path` key, is mapped
+# onto the agent envelope (SubagentStart/Stop already did this).
+_AGENT_EVENTS = {
+    "SubagentStart",
+    "SubagentStop",
+    "TaskCreated",
+    "TaskCompleted",
+    "TeammateIdle",
+}
+
+# Payload aliases that all mean "the outcome/result of this event". The
+# failure channel (PostToolUseFailure/PermissionDenied) reports the error or
+# the denial reason under one of these; mapping it onto the EXISTING
+# tool.result field lets the verification / anti-degeneration modules observe
+# a failure without any new HookEvent field.
+_RESULT_ALIASES = (
+    "tool_response",
+    "tool_output",
+    "tool_result",
+    "error",
+    "tool_error",
+    "error_message",
+    "errorMessage",
+    "permission_decision_reason",
+    "permissionDecisionReason",
+    "reason",
+    "failure",
+    "result",
+)
+
+
+def _first_present(data: dict[str, Any], keys: tuple[str, ...]) -> Any:
+    for key in keys:
+        value = data.get(key)
+        if value is not None:
+            return value
+    return None
 
 
 def normalize_event(raw: dict[str, Any], *, provider: str, event_name: str) -> HookEvent:
@@ -25,15 +77,29 @@ def normalize_event(raw: dict[str, Any], *, provider: str, event_name: str) -> H
 
     data = raw if isinstance(raw, dict) else {}
     reported_event = str(data.get("hook_event_name") or event_name or "")
-    tool_result = data.get("tool_response")
-    if tool_result is None:
-        tool_result = data.get("tool_output")
-    if tool_result is None:
-        tool_result = data.get("tool_result")
+    # Result resolution keeps the historical order (tool_response/output/result
+    # first) so existing normalization is unchanged; the failure-channel aliases
+    # only fill in when no standard result key is present.
+    tool_result = _first_present(data, _RESULT_ALIASES)
 
     transcript = data.get("agent_transcript_path")
-    if transcript is None and reported_event in {"SubagentStart", "SubagentStop"}:
+    if transcript is None and reported_event in _AGENT_EVENTS:
         transcript = data.get("transcript_path")
+
+    # Agent/teammate/task identity: an Agent-Teams task or teammate event names
+    # its actor under task_* / teammate_* keys; map those onto the existing
+    # agent envelope so the subagent/lifecycle modules recognize them.
+    agent_id = _first_present(data, ("agent_id", "task_id", "taskId", "teammate_id", "teammateId"))
+    agent_type = _first_present(
+        data, ("agent_type", "task_type", "task_name", "taskName", "teammate", "teammate_name")
+    )
+
+    # A task summary is the closest existing analogue to an assistant message,
+    # so a TaskCompleted/TeammateIdle summary maps onto last_assistant_message
+    # when the host did not provide one directly.
+    last_message = _first_present(
+        data, ("last_assistant_message", "summary", "task_summary", "taskSummary")
+    )
 
     return HookEvent(
         schema_version=1,
@@ -49,13 +115,20 @@ def normalize_event(raw: dict[str, Any], *, provider: str, event_name: str) -> H
             input=data.get("tool_input") if data.get("tool_input") is not None else {},
             result=tool_result,
         ),
-        last_assistant_message=str(data.get("last_assistant_message") or ""),
+        last_assistant_message=str(last_message or ""),
         prompt=str(data.get("prompt") or ""),
         source=str(data.get("source") or ""),
-        trigger=str(data.get("trigger") or ""),
+        trigger=str(
+            data.get("trigger")
+            or (
+                "stop_hook_active"
+                if str(data.get("stop_hook_active", "")).lower() in {"true", "1"}
+                else ""
+            )
+        ),
         agent=AgentEnvelope(
-            id=str(data.get("agent_id") or ""),
-            type=str(data.get("agent_type") or ""),
+            id=str(agent_id or ""),
+            type=str(agent_type or ""),
             transcript_path=str(transcript or ""),
         ),
     )
@@ -118,4 +191,3 @@ def render_output(
         return {"systemMessage": message}
 
     return {}
-
