@@ -127,6 +127,30 @@ def test_non_reentrant_stop_still_runs_modules(tmp_path):
     assert result.additional_context
 
 
+def test_reentrant_guard_trips_on_raw_stop_hook_active_despite_competing_trigger(tmp_path):
+    # WU-1 review NIT #2: a future provider (e.g. Codex) could send a truthy
+    # NON-reentrant `trigger` AND stop_hook_active=true on a Stop. normalize_event
+    # PREFERS the host trigger, so event.trigger would read "manual" (not
+    # "stop_hook_active") — yet the boundary must STILL short-circuit off the RAW
+    # stop_hook_active flag OR-ed in at the dispatch() boundary.
+    modules = [_AlwaysInject(), _AlwaysBlockOnStop()]
+    dispatcher = HarnessDispatcher(modules=modules, state_root=tmp_path / "state")
+    payload = {
+        "session_id": "sess-raw",
+        "cwd": str(tmp_path),
+        "hook_event_name": "Stop",
+        "trigger": "manual",  # competing, non-reentrant, host-supplied trigger
+        "stop_hook_active": True,  # the raw re-entrancy signal
+        "last_assistant_message": "Everything is fixed and done.",
+    }
+    result = dispatcher.dispatch(payload, provider="claude", event_name="Stop")
+    assert result.action == "allow"
+    assert result.additional_context == []
+    # Telemetry still attributes it: normalized reentrant True + raw flag True.
+    row = _read_rows(tmp_path / "state")[0]
+    assert row["reentrant"] is True and row["stop_hook_active"] is True
+
+
 # --------------------------------------------------------------------------- #
 # T4 / T7 — correlation IDs present + threaded through both code paths.
 # --------------------------------------------------------------------------- #

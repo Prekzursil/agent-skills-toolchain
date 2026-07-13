@@ -70,6 +70,21 @@ def _first_present(data: dict[str, Any], keys: tuple[str, ...]) -> Any:
     return None
 
 
+# The normalized event.trigger values that mark a re-entrant Stop. The host sets
+# stop_hook_active on a re-invoked Stop, which normalize_event (below) surfaces as
+# trigger="stop_hook_active"; "true"/"1" also tolerate a provider that passes the
+# raw flag straight through as the trigger. Defined ONCE here — next to the
+# normalize_event that produces the trigger — and imported by BOTH the dispatcher
+# boundary guard and the ClaimWarningModule module-local guard, so the two guards
+# share one truthy set and cannot drift (WU-1 review NIT #1).
+_REENTRANT_TRIGGER_VALUES = frozenset({"stop_hook_active", "true", "1"})
+
+
+def is_reentrant_trigger(trigger: Any) -> bool:
+    """True if a normalized event.trigger value indicates a re-entrant Stop."""
+    return str(trigger or "").strip().lower() in _REENTRANT_TRIGGER_VALUES
+
+
 def normalize_event(raw: dict[str, Any], *, provider: str, event_name: str) -> HookEvent:
     provider_name = str(provider or "").lower()
     if provider_name not in SUPPORTED_PROVIDERS:

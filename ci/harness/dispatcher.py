@@ -14,7 +14,7 @@ from typing import Any
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from harness import modules as _modules
-    from harness.adapters import normalize_event, render_output
+    from harness.adapters import is_reentrant_trigger, normalize_event, render_output
     from harness.ledger import default_state_root
     from harness.models import HookResult
     from harness.modules import build_default_modules
@@ -22,7 +22,7 @@ if __package__ in {None, ""}:
     from harness.storage import atomic_write_json, read_json
 else:
     from . import modules as _modules
-    from .adapters import normalize_event, render_output
+    from .adapters import is_reentrant_trigger, normalize_event, render_output
     from .ledger import default_state_root
     from .models import HookResult
     from .modules import build_default_modules
@@ -130,16 +130,15 @@ def _iso_now() -> str:
 # re-triggers the host counter and loops (the "Stop 3/4" / ~53k-token drain, A1).
 # The short-circuit is HOISTED here to the boundary so it protects the harness
 # regardless of WHICH module fires — not just ClaimWarningModule's own module-local
-# guard (which remains as defense-in-depth for direct module invocation).
+# guard (which remains as defense-in-depth for direct module invocation). The truthy
+# trigger set lives ONCE in adapters.is_reentrant_trigger, shared with that guard.
 # --------------------------------------------------------------------------- #
-_REENTRANT_TRIGGERS = frozenset({"stop_hook_active", "true", "1"})
 
 
 def _is_reentrant_stop(event: Any) -> bool:
     """True for a Stop the host has already re-invoked (normalized re-entrancy)."""
-    return (
-        str(getattr(event, "event", "")) == "Stop"
-        and str(getattr(event, "trigger", "")).strip().lower() in _REENTRANT_TRIGGERS
+    return str(getattr(event, "event", "")) == "Stop" and is_reentrant_trigger(
+        getattr(event, "trigger", "")
     )
 
 
@@ -278,7 +277,14 @@ class HarnessDispatcher:
         started = time.perf_counter()
         event = normalize_event(raw, provider=provider, event_name=event_name)
         invocation_id = self._invocation_id(raw)
-        reentrant = _is_reentrant_stop(event)
+        # Boundary re-entrancy = the normalized trigger says so, OR the RAW host
+        # stop_hook_active flag is truthy on a Stop. OR-ing the raw signal makes the
+        # guard robust to a provider (e.g. Codex) that sends a competing non-reentrant
+        # trigger alongside stop_hook_active — raw truthy always trips the guard.
+        # Cannot regress Claude: its Stop payload carries no competing trigger. (NIT #2)
+        reentrant = _is_reentrant_stop(event) or (
+            str(getattr(event, "event", "")) == "Stop" and _raw_stop_hook_active(raw)
+        )
 
         # A1 permanent fix (R2-2): short-circuit at the DISPATCHER boundary BEFORE
         # any module runs — a re-entrant Stop or a StopFailure never reaches the

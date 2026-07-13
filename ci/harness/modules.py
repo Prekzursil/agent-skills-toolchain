@@ -10,11 +10,13 @@ from pathlib import Path
 from typing import Any, Iterable, Optional
 
 try:
+    from .adapters import is_reentrant_trigger
     from .ledger import EventLedger, default_state_root, project_key
     from .models import HookEvent, HookResult
     from .redaction import contains_secret, redact_text
     from .storage import atomic_write_json, atomic_write_text, read_json
 except ImportError:
+    from adapters import is_reentrant_trigger
     from ledger import EventLedger, default_state_root, project_key
     from models import HookEvent, HookResult
     from redaction import contains_secret, redact_text
@@ -1738,11 +1740,7 @@ class ClaimWarningModule:
         # the host's stop-hook cap (the "Stop 3/4" / 53k-token drain). Stay silent so
         # the agent can actually stop — the one-shot nudge already fired on the first
         # Stop. (adapters.normalize_event maps the host's stop_hook_active flag here.)
-        if event.event == "Stop" and str(getattr(event, "trigger", "")).lower() in {
-            "stop_hook_active",
-            "true",
-            "1",
-        }:
+        if event.event == "Stop" and is_reentrant_trigger(getattr(event, "trigger", "")):
             return HookResult.success()
         message = event.last_assistant_message or ""
         families = [name for name, pattern in self._FAMILIES if pattern.search(message)]
