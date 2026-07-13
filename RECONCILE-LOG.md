@@ -10,6 +10,40 @@ companion step (see the enforcement wiring).
 
 ---
 
+## 2026-07-13 (Wave-0) — Deploy + push (audit-gate converged)
+
+**Branch:** `chore/enshrine-runtime-config` · **Commit:** `6fa8047` (Wave-0) · **PUSHED** to `origin`
+(agent-skills-toolchain), tracking set. Audit-gate converged (independent Codex audit + our discovery
++ direct git/disk verification → `docs/phase3-discovery-2026-07-13/AUDIT-DESIGN-CONVERGED.md`).
+
+### Done
+- **CAS-lite deploy mechanism** (`install.py deploy()`): LOCK → PLAN → BACKUP → STAGE →
+  pre-write-CAS-abort → per-file `os.replace` → post-write-parity+restore → receipt. Right-sized (no
+  11-state journal / compensation engine / bundle store) per owner spec. +7 tests; 456 harness green.
+- **DEPLOYED clean HEAD → live** `~/.agents/harness` (from `git archive HEAD`, NOT the dirty tree —
+  held task-9 excluded). 28 files, parity clean, backup taken. **Enforcement now LIVE** (was inert:
+  `_canonical_config_edit_guard`/`_basic_memory_nudge` absent pre-deploy → 4 matches post). Live libs
+  import clean; hot-swap safe.
+- **CLAUDE.md** AgentBridge → RETIRED pointer. **Branch pushed** (fresh branch, no `main` risk, no force).
+- Deploy-plan adversarially reviewed (PROCEED-WITH-FIXES; 5 must-fixes closed) + `deploy()` code
+  reviewed (every failure path traced).
+
+### Known-open (NOT Wave-0 scope)
+- `install.py --check`: `hooks.claude` OK; **`hooks.codex` config drift** (pre-existing — the deploy
+  touched only the harness TREE, not `settings.json`) → Codex-parity/config-reconcile wave. The
+  drift-detector correctly flagged it (SSOT working).
+- Deploy-backup of live lands in `<repo>/ci/harness/backups/` (gitignored) not the live tree — minor
+  `BACKUPS_DIR` location smell; functional (restore path recorded in the receipt).
+- `source_commit: null` in the receipt (deployed from a non-git archive) — cosmetic; SHA = `6fa8047`.
+
+### Held / deferred
+- **task-9 (codex-invoke)** — complete + high-quality but self-reviewed only; HELD, folds into the
+  **Axis-C unified cross-vendor workflow design** (next, fresh session).
+- MCP user-scope promote (`-PruneExtraUserServers`) — needs Claude fully closed.
+- PR to fold branch → toolchain mainline (D0.2) — link offered on push; owner's call.
+
+---
+
 ## 2026-07-13 — Initial centralization (config-drift audit)
 
 **Branch:** `chore/enshrine-runtime-config` · **Base:** `feat/codex-fleet-github-wave2`@`80a5863`
