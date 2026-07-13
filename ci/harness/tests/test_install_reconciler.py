@@ -13,6 +13,7 @@ from harness.install import (
     _summarize,
     bootstrap,
     build_reconcile_report,
+    deploy,
     desired_documents,
     install,
     main,
@@ -550,3 +551,167 @@ def test_drift_item_is_drift_property():
     assert DriftItem("x", "drift", False).is_drift is False
     assert DriftItem("x", "unmanaged", False).is_drift is False
     assert DriftItem("x", "ok", True).is_drift is False
+
+
+# --------------------------------------------------------------------------- #
+# deploy: repo harness (ci/harness) -> live ~/.agents/harness
+# --------------------------------------------------------------------------- #
+#
+# SAFETY: every deploy test passes an EXPLICIT source_dir/live_dir under tmp_path
+# (or monkeypatches HERE/LIVE_HARNESS_DIR to tmp). No test ever touches the real
+# ~/.agents tree.
+
+
+def _make_source_tree(src):
+    """A fake ci/harness source tree with real files + runtime junk to exclude."""
+    src.mkdir(parents=True, exist_ok=True)
+    (src / "modules.py").write_text("# modules\n", encoding="utf-8")
+    (src / "installed.json").write_text("{}", encoding="utf-8")
+    (src / "foo.bak").write_text("stale backup\n", encoding="utf-8")
+    (src / "backups").mkdir()
+    (src / "backups" / "x").write_text("old\n", encoding="utf-8")
+    (src / "__pycache__").mkdir()
+    (src / "__pycache__" / "y.pyc").write_text("bytecode\n", encoding="utf-8")
+    (src / "sub").mkdir()
+    (src / "sub" / "a.py").write_text("# a\n", encoding="utf-8")
+    return src
+
+
+def test_deploy_copies_source_excluding_runtime_state(tmp_path):
+    src = _make_source_tree(tmp_path / "source")
+    live = tmp_path / "live"
+
+    code = deploy(source_dir=src, live_dir=live)
+
+    assert code == 0
+    # real source files land
+    assert (live / "modules.py").read_text(encoding="utf-8") == "# modules\n"
+    assert (live / "sub" / "a.py").read_text(encoding="utf-8") == "# a\n"
+    # runtime state is excluded
+    assert not (live / "installed.json").exists()
+    assert not (live / "backups").exists()
+    assert not (live / "__pycache__").exists()
+    assert not (live / "foo.bak").exists()
+
+
+def test_deploy_backs_up_existing_live_tree(tmp_path, monkeypatch):
+    src = _make_source_tree(tmp_path / "source")
+    live = tmp_path / "live"
+    backups = tmp_path / "backups"
+    monkeypatch.setattr(install_mod, "BACKUPS_DIR", backups)
+    # pre-populate live with a sentinel that the backup must capture
+    live.mkdir(parents=True, exist_ok=True)
+    (live / "sentinel.py").write_text("# sentinel\n", encoding="utf-8")
+
+    code = deploy(source_dir=src, live_dir=live)
+
+    assert code == 0
+    copies = list(backups.rglob("sentinel.py"))
+    assert len(copies) == 1
+    assert copies[0].read_text(encoding="utf-8") == "# sentinel\n"
+    # the backup lives under a deploy-<stamp>/harness/ prefix
+    assert copies[0].parent.name == "harness"
+    assert copies[0].parent.parent.name.startswith("deploy-")
+
+
+def test_deploy_backup_excludes_runtime_state(tmp_path, monkeypatch):
+    src = _make_source_tree(tmp_path / "source")
+    live = tmp_path / "live"
+    backups = tmp_path / "backups"
+    monkeypatch.setattr(install_mod, "BACKUPS_DIR", backups)
+    # pre-populate live with BOTH a real file and runtime junk
+    live.mkdir(parents=True, exist_ok=True)
+    (live / "keep.py").write_text("# keep\n", encoding="utf-8")
+    (live / "installed.json").write_text("{}", encoding="utf-8")
+    (live / "__pycache__").mkdir()
+    (live / "__pycache__" / "z.pyc").write_text("bytecode\n", encoding="utf-8")
+
+    deploy(source_dir=src, live_dir=live)
+
+    assert list(backups.rglob("keep.py"))
+    # runtime junk must not be backed up either
+    assert not list(backups.rglob("installed.json"))
+    assert not list(backups.rglob("*.pyc"))
+
+
+def test_deploy_is_idempotent(tmp_path, monkeypatch):
+    src = _make_source_tree(tmp_path / "source")
+    live = tmp_path / "live"
+    monkeypatch.setattr(install_mod, "BACKUPS_DIR", tmp_path / "backups")
+
+    def _snapshot(root):
+        return {
+            str(p.relative_to(root)): p.read_bytes()
+            for p in sorted(root.rglob("*"))
+            if p.is_file()
+        }
+
+    import io
+    from contextlib import redirect_stdout
+
+    buf1 = io.StringIO()
+    with redirect_stdout(buf1):
+        deploy(source_dir=src, live_dir=live)
+    first_tree = _snapshot(live)
+    first_copied = json.loads(buf1.getvalue())["copied"]
+
+    buf2 = io.StringIO()
+    with redirect_stdout(buf2):
+        deploy(source_dir=src, live_dir=live)
+    second_tree = _snapshot(live)
+    second_copied = json.loads(buf2.getvalue())["copied"]
+
+    assert first_copied == second_copied
+    assert first_tree == second_tree
+
+
+def test_deploy_prints_copied_manifest(tmp_path, monkeypatch, capsys):
+    src = _make_source_tree(tmp_path / "source")
+    live = tmp_path / "live"
+    monkeypatch.setattr(install_mod, "BACKUPS_DIR", tmp_path / "backups")
+
+    deploy(source_dir=src, live_dir=live)
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["deployed_to"] == str(live)
+    assert payload["count"] == len(payload["copied"])
+    assert "modules.py" in payload["copied"]
+    # normpath means the nested file uses the OS separator; check by parts
+    import os
+
+    assert os.path.join("sub", "a.py") in payload["copied"]
+
+
+def test_deploy_no_live_dir_skips_backup(tmp_path, monkeypatch):
+    src = _make_source_tree(tmp_path / "source")
+    live = tmp_path / "live"  # does not exist yet
+    backups = tmp_path / "backups"
+    monkeypatch.setattr(install_mod, "BACKUPS_DIR", backups)
+
+    code = deploy(source_dir=src, live_dir=live)
+
+    assert code == 0
+    # tree materialized
+    assert (live / "modules.py").exists()
+    # no backup created (nothing was live)
+    assert not backups.exists()
+
+
+def test_main_deploy_subcommand(tmp_path, monkeypatch):
+    src = _make_source_tree(tmp_path / "source")
+    live = tmp_path / "live"
+    monkeypatch.setattr(install_mod, "HERE", src)
+    monkeypatch.setattr(install_mod, "LIVE_HARNESS_DIR", live)
+    monkeypatch.setattr(install_mod, "BACKUPS_DIR", tmp_path / "backups")
+
+    code = main(["--deploy"])
+
+    assert code == 0
+    assert (live / "modules.py").exists()
+    assert (live / "sub" / "a.py").exists()
+    assert not (live / "installed.json").exists()
+
+
+def test_main_deploy_is_mutually_exclusive_with_check():
+    with pytest.raises(SystemExit):
+        main(["--deploy", "--check"])

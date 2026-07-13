@@ -167,6 +167,8 @@ GATE_CONTRACTS: dict[str, dict[str, str]] = {
     "code_first_drift": {"metric": "design_first", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires once when >=5 style-file edits and no design tool was used"},
     "session_hazard": {"metric": "concurrency_safety", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires on a fresh session that has live siblings"},
     "bc_offset": {"metric": "stale_offset_catch", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires only in BC context when the live .so sha != pinned"},
+    "canonical_config_edit": {"metric": "deployed_edit_caught", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires only on a write tool targeting a deployed ~/.agents/harness|skills or ~/.claude/hooks path; never on repo or settings.json"},
+    "basic_memory_nudge": {"metric": "capture_discipline", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires at most once per session, only when a canonical edit occurred and no basic-memory write did"},
 }
 
 
@@ -393,6 +395,56 @@ def _result_is_failure(result: Any) -> bool:
     return bool(re.search(r"\b(?:error|failed|failure|traceback|exception)\b", text, re.I))
 
 
+# --- Canonical-tree classifier (shared by the edit-guard gate, the basic-memory
+# nudge gate, and the ledger mutation stamp). Env overrides make the DEPLOYED
+# trees + the repo checkout redirectable in tests, mirroring how _config_drift
+# uses HARNESS_SETTINGS_PATH / HARNESS_INSTALLED_PATH. --------------------------
+def _live_trees() -> dict[str, Path]:
+    """The 3 DEPLOYED-from-repo trees, keyed by their canonical name.
+    Env overrides make them redirectable in tests (defaults = production layout)."""
+    agents = Path(os.environ.get("HARNESS_LIVE_AGENTS_DIR") or (Path.home() / ".agents"))
+    hooks = Path(os.environ.get("HARNESS_LIVE_HOOKS_DIR") or (Path.home() / ".claude" / "hooks"))
+    return {"harness": agents / "harness", "skills": agents / "skills", "hooks": hooks}
+
+
+def _repo_root() -> Path:
+    return Path(os.environ.get("HARNESS_REPO_DIR") or (Path.home() / "source" / "agent-skills-toolchain"))
+
+
+def _under(target: str, root: Path) -> bool:
+    """True when normalized `target` is `root` or lives beneath it. Case/sep-insensitive
+    (Windows). Never resolves symlinks (so ~/.claude/skills -> skills.daily still matches
+    the literal the agent typed). Fail-closed to False on any error."""
+    try:
+        t = os.path.normcase(os.path.normpath(os.path.abspath(str(target))))
+        r = os.path.normcase(os.path.normpath(str(root)))
+        return bool(t) and (t == r or t.startswith(r + os.sep))
+    except Exception:
+        return False
+
+
+def _canonical_tree(path: str) -> Optional[str]:
+    """Classify an edit target. Returns 'harness'|'skills'|'hooks' (a DEPLOYED copy),
+    'repo' (the git source-of-truth checkout), or None (neither).
+    Deployed trees are checked FIRST; repo is the fallthrough (they are disjoint in
+    production, but the order makes the intent explicit)."""
+    if not path:
+        return None
+    for name, root in _live_trees().items():
+        if _under(path, root):
+            return name
+    if _under(path, _repo_root()):
+        return "repo"
+    return None
+
+
+def _edit_target(tool_input: Any) -> str:
+    """Extract the edited file path from a write-tool input envelope."""
+    if not isinstance(tool_input, dict):
+        return ""
+    return str(tool_input.get("file_path") or tool_input.get("path") or tool_input.get("notebook_path") or "")
+
+
 class SecretGuardModule:
     name = "secret_guard"
 
@@ -582,6 +634,14 @@ class SecretGuardModule:
                     "Direct credential-file access was blocked (HARNESS_CREDENTIAL_GUARD is enabled). Use the credential manager or an approved environment reference, or unset the flag to disable this block."
                 ],
             )
+        # Canonical-config edit guard (NEW gate; shadow-first). Fires only for a write
+        # tool targeting a DEPLOYED-from-repo copy; every other tool call is untouched.
+        try:
+            guard = self._canonical_config_edit_guard(event)
+            if guard.action != "allow":
+                return guard
+        except Exception:
+            pass
         # Metered-MCP preflight advisory (NEW gate; shadow-first). Only fires for a
         # metered MCP tool name on PreToolUse; every existing tool call is untouched.
         try:
@@ -607,6 +667,35 @@ class SecretGuardModule:
             ],
         )
         return stage("metered_mcp", TIER_HEURISTIC, event, raw)
+
+    _EDIT_TOOLS = ("Edit", "Write", "MultiEdit", "NotebookEdit")
+
+    def _canonical_config_edit_guard(self, event: HookEvent) -> HookResult:
+        if event.event != "PreToolUse":
+            return HookResult.success()
+        if str(event.tool.name or "") not in self._EDIT_TOOLS:
+            return HookResult.success()
+        target = _edit_target(event.tool.input)
+        if not target:
+            return HookResult.success()
+        tree = _canonical_tree(target)
+        # Fire ONLY for the 3 DEPLOYED trees. 'repo' edits are the CORRECT action
+        # (never nag them); None = an ordinary file (e.g. ~/.claude/settings.json,
+        # which is hand-maintained and NOT under ~/.claude/hooks/) -> silent.
+        if tree not in {"harness", "skills", "hooks"}:
+            return HookResult.success()
+        repo_sub = {"harness": "ci/harness", "skills": "skills", "hooks": "hooks"}[tree]
+        raw = HookResult.success(
+            action="inject",
+            reason_code="canonical_config_edit",
+            additional_context=[
+                f"DEPLOYED COPY EDIT: {target} is a DEPLOYED-from-repo copy (the '{tree}' tree). "
+                f"Edit the REPO SOURCE instead — ~/source/agent-skills-toolchain/{repo_sub}/... — "
+                "then run the deployer (install.py --deploy). A direct edit here is invisible to git "
+                "and will be OVERWRITTEN on the next deploy."
+            ],
+        )
+        return stage("canonical_config_edit", TIER_HEURISTIC, event, raw)
 
     def _config_drift(self, event: HookEvent) -> HookResult:
         settings_path = os.environ.get("HARNESS_SETTINGS_PATH") or str(
@@ -852,6 +941,12 @@ class LedgerModule:
                 or ""
             )
         unique = ":".join([event.provider, event.session_id, event.turn_id, "mutation", event.tool.id or _digest([event.tool.name, path, event.tool.input])])
+        # Stamp the canonical-tree enum at APPEND time: the raw `path` is redacted to
+        # [PATH] by the ledger's _sanitize_value, so it is useless for canonical-tree
+        # detection after the fact. A short alnum token ('harness'|'skills'|'hooks'|
+        # 'repo') survives redaction unchanged. Absent when the edit is not canonical
+        # (keeps non-canonical mutation events byte-identical, so existing tests hold).
+        canonical = _canonical_tree(path)
         self.ledger.append(
             event.cwd,
             "mutation",
@@ -860,6 +955,7 @@ class LedgerModule:
             turn_id=event.turn_id,
             path=path,
             tool=event.tool.name,
+            **({"canonical_tree": canonical} if canonical else {}),
         )
 
     def _injection_tripwire(self, event: HookEvent) -> HookResult:
@@ -1625,6 +1721,11 @@ class ClaimWarningModule:
                 results.append(detector(event, message, families))
             except Exception:
                 results.append(HookResult.success())
+        if event.event == "Stop":
+            try:
+                results.append(self._basic_memory_nudge(event))
+            except Exception:
+                results.append(HookResult.success())
         return _merge_results(results)
 
     def _has_evidence(self, event: HookEvent, families: list[str]) -> bool:
@@ -1773,6 +1874,60 @@ class ClaimWarningModule:
             ],
         )
         return stage("wep_hedge", TIER_HEURISTIC, event, raw)
+
+    # Basic-memory write tools whose presence in the ledger means the change
+    # rationale WAS captured this session. Substring match over the tool name.
+    _BM_WRITE_TOOLS = ("basic-memory__write_note", "basic-memory__edit_note",
+                       "basic-memory__canvas", "basic-memory__create_memory_project")
+
+    def _basic_memory_nudge(self, event: HookEvent) -> HookResult:
+        # Fires once per session when a canonical config file was edited but no
+        # basic-memory write happened. Derives both facts from the bounded, project-
+        # scoped ledger replay window (the only "session" proxy the ledger exposes;
+        # sessions share one cwd). If the ledger can't answer -> stay silent (fail-open
+        # toward NO nag, the safe direction for an advisory).
+        try:
+            events = self.ledger.replay(event.cwd, limit=120)
+        except Exception:
+            return HookResult.success()
+        edited_canonical = any(
+            e.get("kind") == "mutation" and e.get("canonical_tree")
+            for e in events
+        )
+        if not edited_canonical:
+            return HookResult.success()
+        wrote_bm = any(
+            e.get("kind") == "tool_result"
+            and any(t in str(e.get("tool") or "") for t in self._BM_WRITE_TOOLS)
+            for e in events
+        )
+        if wrote_bm:
+            return HookResult.success()
+        # Once-per-session cooldown (gentle): nag at most once. Reuses the module-level
+        # _session_hash + default_state_root + read_json/atomic_write_json.
+        marker = default_state_root() / "basic-memory-nudge" / f"{_session_hash(event)}.json"
+        if isinstance(read_json(marker, {}), dict) and read_json(marker, {}).get("nudged"):
+            return HookResult.success()
+        raw = HookResult.success(
+            action="inject",
+            reason_code="basic_memory_nudge",
+            additional_context=[
+                "CAPTURE THE WHY: you edited a canonical config/harness/skill/hook file this "
+                "session but wrote nothing to basic-memory. Before finishing, capture the change "
+                "rationale with mcp__basic-memory__write_note so the decision survives compaction "
+                "(AGENTS.md section 8)."
+            ],
+        )
+        staged = stage("basic_memory_nudge", TIER_HEURISTIC, event, raw)
+        # Only record the cooldown when the gate actually surfaced (advise/enforce);
+        # in shadow it returns allow, so we don't burn the one-shot before it's promoted.
+        if staged.action != "allow":
+            try:
+                (default_state_root() / "basic-memory-nudge").mkdir(parents=True, exist_ok=True)
+                atomic_write_json(marker, {"nudged": True})
+            except OSError:
+                pass
+        return staged
 
 
 class SubagentLifecycleModule:

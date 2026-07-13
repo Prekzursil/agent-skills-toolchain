@@ -1062,7 +1062,7 @@ def test_every_new_gate_has_a_contract():
         "injection_quarantine", "config_drift", "metered_mcp", "postcompact_reanchor",
         "budget_pacing", "stigmergic_prior", "tool_memo", "stuck_signature", "zero_diff",
         "receipt_gate", "compchem_claim", "wep_hedge", "ipass_readback", "code_first_drift",
-        "bc_offset", "session_hazard",
+        "bc_offset", "session_hazard", "canonical_config_edit", "basic_memory_nudge",
     ):
         assert gate in GATE_CONTRACTS
         contract = GATE_CONTRACTS[gate]
@@ -1703,4 +1703,197 @@ def test_bc_offset_guard_silent_on_match(iso, tmp_path, monkeypatch):
     monkeypatch.setenv("HARNESS_GATE_MODE__bc_offset", "enforce")
     out = BcOffsetGuardModule().run(event(tmp_path, "UserPromptSubmit",
                                           prompt="continue the battlecats offset work please here"))
+    assert out.action == "allow"
+
+
+# =============================================================================
+# Canonical-config edit guard (PreToolUse, SecretGuardModule)
+# =============================================================================
+def test_canonical_edit_guard_shadow_by_default_enforce_on_demand(iso, tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(tmp_path / "agents"))
+    target = str(tmp_path / "agents" / "harness" / "modules.py")
+    ev = event(tmp_path, "PreToolUse", tool_name="Edit",
+               tool_input={"file_path": target, "old_string": "a", "new_string": "b"})
+    assert SecretGuardModule().run(ev).action == "allow"  # shadow default
+    monkeypatch.setenv("HARNESS_GATE_MODE__canonical_config_edit", "enforce")
+    out = SecretGuardModule().run(ev)
+    assert out.action == "inject" and out.reason_code == "canonical_config_edit"
+    assert any("ci/harness" in c for c in out.additional_context)
+
+
+@pytest.mark.parametrize(
+    "which, sub, repo_sub",
+    [
+        ("agents", "harness", "ci/harness"),
+        ("agents", "skills", "skills"),
+        ("hooks", "", "hooks"),
+    ],
+)
+def test_canonical_edit_guard_maps_each_tree(iso, tmp_path, monkeypatch, which, sub, repo_sub):
+    monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(tmp_path / "agents"))
+    monkeypatch.setenv("HARNESS_LIVE_HOOKS_DIR", str(tmp_path / ".claude" / "hooks"))
+    monkeypatch.setenv("HARNESS_GATE_MODE__canonical_config_edit", "enforce")
+    if which == "agents":
+        target = str(tmp_path / "agents" / sub / "x.py")
+    else:
+        target = str(tmp_path / ".claude" / "hooks" / "x.py")
+    out = SecretGuardModule().run(event(tmp_path, "PreToolUse", tool_name="Edit",
+                                        tool_input={"file_path": target}))
+    assert out.action == "inject" and out.reason_code == "canonical_config_edit"
+    assert any(f"toolchain/{repo_sub}/" in c for c in out.additional_context)
+
+
+def test_canonical_edit_guard_ignores_settings_json(iso, tmp_path, monkeypatch):
+    # ~/.claude/settings.json is directly under ~/.claude/, NOT under ~/.claude/hooks/
+    # -> classified None -> never fires. This hand-maintained file must stay editable.
+    monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(tmp_path / "agents"))
+    monkeypatch.setenv("HARNESS_LIVE_HOOKS_DIR", str(tmp_path / ".claude" / "hooks"))
+    monkeypatch.setenv("HARNESS_REPO_DIR", str(tmp_path / "repo"))
+    monkeypatch.setenv("HARNESS_GATE_MODE__canonical_config_edit", "enforce")
+    target = str(tmp_path / ".claude" / "settings.json")
+    out = SecretGuardModule().run(event(tmp_path, "PreToolUse", tool_name="Edit",
+                                        tool_input={"file_path": target}))
+    assert out.action == "allow"
+
+
+def test_canonical_edit_guard_ignores_repo_edits(iso, tmp_path, monkeypatch):
+    # A repo-source edit is the CORRECT action -> 'repo' is excluded from the firing set.
+    monkeypatch.setenv("HARNESS_REPO_DIR", str(tmp_path / "repo"))
+    monkeypatch.setenv("HARNESS_GATE_MODE__canonical_config_edit", "enforce")
+    target = str(tmp_path / "repo" / "ci" / "harness" / "modules.py")
+    out = SecretGuardModule().run(event(tmp_path, "PreToolUse", tool_name="Edit",
+                                        tool_input={"file_path": target}))
+    assert out.action == "allow"
+
+
+def test_canonical_edit_guard_noop_for_non_write_tools(iso, tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(tmp_path / "agents"))
+    monkeypatch.setenv("HARNESS_GATE_MODE__canonical_config_edit", "enforce")
+    canonical = str(tmp_path / "agents" / "harness" / "modules.py")
+    out = SecretGuardModule().run(event(tmp_path, "PreToolUse", tool_name="Bash",
+                                        tool_input={"command": f"vim {canonical}"}))
+    assert out.action == "allow"
+
+
+def test_canonical_edit_guard_noop_off_pretooluse(iso, tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(tmp_path / "agents"))
+    monkeypatch.setenv("HARNESS_GATE_MODE__canonical_config_edit", "enforce")
+    canonical = str(tmp_path / "agents" / "harness" / "modules.py")
+    out = SecretGuardModule().run(event(tmp_path, "PostToolUse", tool_name="Edit",
+                                        tool_input={"file_path": canonical}))
+    assert out.action == "allow"
+
+
+def test_canonical_edit_guard_notebook_path_extracted(iso, tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(tmp_path / "agents"))
+    monkeypatch.setenv("HARNESS_GATE_MODE__canonical_config_edit", "enforce")
+    target = str(tmp_path / "agents" / "harness" / "x.ipynb")
+    out = SecretGuardModule().run(event(tmp_path, "PreToolUse", tool_name="NotebookEdit",
+                                        tool_input={"notebook_path": target}))
+    assert out.action == "inject" and out.reason_code == "canonical_config_edit"
+
+
+def test_canonical_edit_guard_has_contract():
+    contract = GATE_CONTRACTS["canonical_config_edit"]
+    assert set(contract) >= {"metric", "owner", "deadline", "fire_rate"}
+
+
+# =============================================================================
+# basic-memory nudge (Stop, ClaimWarningModule) + canonical_tree ledger stamp
+# =============================================================================
+def _canon_write(ledger, tmp_path, target, use_id="w1"):
+    LedgerModule(ledger).run(
+        event(tmp_path, "PostToolUse", tool_name="Write", tool_use_id=use_id,
+              tool_input={"file_path": target, "content": "y"},
+              tool_response={"ok": True})
+    )
+
+
+def test_ledger_stamps_canonical_tree_on_deployed_edit(iso, tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(tmp_path / "agents"))
+    ledger = EventLedger(tmp_path / "state")
+    _canon_write(ledger, tmp_path, str(tmp_path / "agents" / "harness" / "x.py"), "w1")
+    _canon_write(ledger, tmp_path, str(tmp_path / "src" / "app.py"), "w2")
+    muts = [e for e in ledger.replay(str(tmp_path), limit=20) if e["kind"] == "mutation"]
+    assert any(e.get("canonical_tree") == "harness" for e in muts)
+    # The non-canonical edit stamps NO canonical_tree key (byte-identical guard).
+    assert any("canonical_tree" not in e for e in muts)
+
+
+def test_basic_memory_nudge_fires_when_canonical_edit_no_bm_write(iso, tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(tmp_path / "agents"))
+    monkeypatch.setenv("HARNESS_GATE_MODE__basic_memory_nudge", "enforce")
+    ledger = EventLedger(tmp_path / "state")
+    _canon_write(ledger, tmp_path, str(tmp_path / "agents" / "harness" / "x.py"))
+    out = ClaimWarningModule(ledger).run(event(tmp_path, "Stop"))
+    assert out.action == "inject" and out.reason_code == "basic_memory_nudge"
+
+
+def test_basic_memory_nudge_silent_when_bm_write_present(iso, tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(tmp_path / "agents"))
+    monkeypatch.setenv("HARNESS_GATE_MODE__basic_memory_nudge", "enforce")
+    ledger = EventLedger(tmp_path / "state")
+    _canon_write(ledger, tmp_path, str(tmp_path / "agents" / "harness" / "x.py"))
+    LedgerModule(ledger).run(
+        event(tmp_path, "PostToolUse", tool_name="mcp__basic-memory__write_note",
+              tool_use_id="bm1", tool_input={"title": "t"}, tool_response={"ok": True})
+    )
+    out = ClaimWarningModule(ledger).run(event(tmp_path, "Stop"))
+    assert out.action == "allow"
+
+
+def test_basic_memory_nudge_silent_without_canonical_edit(iso, tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_GATE_MODE__basic_memory_nudge", "enforce")
+    ledger = EventLedger(tmp_path / "state")
+    _canon_write(ledger, tmp_path, str(tmp_path / "src" / "app.py"))
+    out = ClaimWarningModule(ledger).run(event(tmp_path, "Stop"))
+    assert out.action == "allow"
+
+
+def test_basic_memory_nudge_reentrant_stop_is_silent(iso, tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(tmp_path / "agents"))
+    monkeypatch.setenv("HARNESS_GATE_MODE__basic_memory_nudge", "enforce")
+    ledger = EventLedger(tmp_path / "state")
+    _canon_write(ledger, tmp_path, str(tmp_path / "agents" / "harness" / "x.py"))
+    out = ClaimWarningModule(ledger).run(event(tmp_path, "Stop", trigger="stop_hook_active"))
+    assert out.action == "allow" and not out.additional_context
+
+
+def test_basic_memory_nudge_cooldown_once_per_session(iso, tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(tmp_path / "agents"))
+    monkeypatch.setenv("HARNESS_GATE_MODE__basic_memory_nudge", "enforce")
+    ledger = EventLedger(tmp_path / "state")
+    _canon_write(ledger, tmp_path, str(tmp_path / "agents" / "harness" / "x.py"))
+    module = ClaimWarningModule(ledger)
+    first = module.run(event(tmp_path, "Stop"))
+    second = module.run(event(tmp_path, "Stop"))
+    assert first.action == "inject" and first.reason_code == "basic_memory_nudge"
+    assert second.action == "allow"
+
+
+def test_basic_memory_nudge_shadow_is_silent_and_does_not_burn_cooldown(iso, tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(tmp_path / "agents"))
+    monkeypatch.setenv("HARNESS_SHADOW_SAMPLE", "1")
+    ledger = EventLedger(tmp_path / "state")
+    _canon_write(ledger, tmp_path, str(tmp_path / "agents" / "harness" / "x.py"))
+    module = ClaimWarningModule(ledger)
+    shadow_out = module.run(event(tmp_path, "Stop"))  # default heuristic -> shadow
+    assert shadow_out.action == "allow"
+    sink = list((iso / "shadow").glob("shadow-*.jsonl"))
+    assert sink and "basic_memory_nudge" in sink[0].read_text(encoding="utf-8")
+    # The one-shot cooldown was NOT consumed in shadow -> a promoted enforce still injects.
+    monkeypatch.setenv("HARNESS_GATE_MODE__basic_memory_nudge", "enforce")
+    enforced = module.run(event(tmp_path, "Stop"))
+    assert enforced.action == "inject" and enforced.reason_code == "basic_memory_nudge"
+
+
+def test_basic_memory_nudge_failopen_on_ledger_error(iso, tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_GATE_MODE__basic_memory_nudge", "enforce")
+    ledger = EventLedger(tmp_path / "state")
+
+    def _boom(*args, **kwargs):
+        raise RuntimeError("ledger down")
+
+    monkeypatch.setattr(ledger, "replay", _boom)
+    out = ClaimWarningModule(ledger).run(event(tmp_path, "Stop"))
     assert out.action == "allow"

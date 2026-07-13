@@ -64,6 +64,13 @@ SKILLS_LINK = HOME / ".claude" / "skills"
 HERE = Path(__file__).resolve().parent
 BACKUPS_DIR = HERE / "backups"
 INSTALLED_MANIFEST = HERE / "installed.json"
+
+LIVE_HARNESS_DIR = HOME / ".agents" / "harness"
+# Runtime state that must never be copied INTO the live tree (nor backed up):
+DEPLOY_EXCLUDE_NAMES = frozenset({
+    "installed.json", "backups", "__pycache__", ".pytest_cache", ".ruff_cache",
+})
+DEPLOY_EXCLUDE_SUFFIXES = (".bak",)
 # Optional owner-authored file pinning the EXPECTED value of each observed
 # (non-hook) dimension. Its presence promotes those dimensions from
 # observe-only to drift-asserting. Absent = the dimensions are reported but
@@ -480,6 +487,56 @@ def install(*, check: bool = False) -> int:
     return 0
 
 
+# --------------------------------------------------------------------------- #
+# Deploy (--deploy): repo harness (ci/harness) -> live ~/.agents/harness
+# --------------------------------------------------------------------------- #
+
+
+def _deploy_ignore(dir_path: str, names: list[str]) -> set[str]:
+    """shutil.copytree/ignore-compatible predicate: drop runtime-state names + *.bak."""
+    return {
+        n for n in names
+        if n in DEPLOY_EXCLUDE_NAMES or n.endswith(DEPLOY_EXCLUDE_SUFFIXES)
+    }
+
+
+def deploy(*, source_dir: Path | None = None, live_dir: Path | None = None) -> int:
+    """Copy the repo harness (ci/harness) -> the live ~/.agents/harness, EXCLUDING
+    runtime state (installed.json, backups/, __pycache__, .pytest_cache, .ruff_cache,
+    *.bak). Backs the live tree up first (like install()); idempotent; prints copied files."""
+    src = (source_dir or HERE).resolve()
+    dst = (live_dir or LIVE_HARNESS_DIR)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+
+    # 1. Back up the existing live tree (same runtime-state exclusions -> the backup
+    #    is source-clean too). Skip when there is nothing live yet.
+    if dst.exists():
+        backup = BACKUPS_DIR / f"deploy-{stamp}" / "harness"
+        backup.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(dst, backup, ignore=_deploy_ignore, dirs_exist_ok=False)
+
+    # 2. Deterministic walk + copy (so we can PRINT exactly what we copied, and prune
+    #    excluded DIRS in-place so we never descend into __pycache__/backups).
+    copied: list[str] = []
+    for root, dirs, files in os.walk(src):
+        dirs[:] = sorted(d for d in dirs if d not in DEPLOY_EXCLUDE_NAMES)
+        rel_root = os.path.relpath(root, src)
+        for name in sorted(files):
+            if name in DEPLOY_EXCLUDE_NAMES or name.endswith(DEPLOY_EXCLUDE_SUFFIXES):
+                continue
+            rel = os.path.normpath(os.path.join(rel_root, name))
+            target = dst / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(os.path.join(root, name), target)
+            copied.append(rel)
+
+    sys.stdout.write(
+        json.dumps({"deployed_to": str(dst), "source": str(src),
+                    "count": len(copied), "copied": copied}, ensure_ascii=False, indent=2) + "\n"
+    )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Install + reconcile shared lifecycle hook registrations"
@@ -497,9 +554,17 @@ def main(argv: list[str] | None = None) -> int:
         help="idempotently create state dirs + default module-modes.json, "
         "then (re)generate the hook registrations",
     )
+    group.add_argument(
+        "--deploy",
+        action="store_true",
+        help="copy the repo harness (ci/harness) into the live ~/.agents/harness, "
+        "excluding runtime state; backs the live tree up first; idempotent",
+    )
     args = parser.parse_args(argv)
     if args.bootstrap:
         return bootstrap()
+    if args.deploy:
+        return deploy()
     return install(check=args.check)
 
 
