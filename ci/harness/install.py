@@ -19,6 +19,12 @@ This module owns three CLI surfaces:
 * ``install.py --bootstrap`` idempotently creates the harness state directories
   and a default ``module-modes.json`` (the SI-2 shadow-ladder mode file), then
   (re)generates the hook registrations. Safe to run repeatedly.
+* ``install.py --deploy [--target harness|skills|hooks]`` CAS-lite deploys ONE
+  repo tree into its live target: a staged/atomic per-file copy guarded by a
+  single-writer lock, a plan-time content hash, a pre-write compare-and-swap
+  (abort if live changed since PLAN), and a fail-closed post-write parity check
+  that restores the pre-deploy backup on any mismatch, then writes a receipt.
+  See the "Deploy" section banner for the full phase composition.
 
 The reconciler is an install-time CLI drift check, NOT a runtime dispatcher
 gate: it produces no ``HookResult`` and never injects or blocks a live session,
@@ -39,21 +45,24 @@ import hashlib
 import json
 import os
 import shutil
+import subprocess
 import sys
+import tempfile
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from harness.ledger import default_state_root
     from harness.registration import build_hooks
-    from harness.storage import atomic_write_json
+    from harness.storage import atomic_write_json, read_json
 else:
     from .ledger import default_state_root
     from .registration import build_hooks
-    from .storage import atomic_write_json
+    from .storage import atomic_write_json, read_json
 
 
 HOME = Path.home()
@@ -67,10 +76,20 @@ INSTALLED_MANIFEST = HERE / "installed.json"
 
 LIVE_HARNESS_DIR = HOME / ".agents" / "harness"
 # Runtime state that must never be copied INTO the live tree (nor backed up):
+# installed.json is the deploy RECEIPT (written per-deploy, never copied FROM
+# source); backups/, __pycache__/, .venv/ are generated trees; .deploy.lock is
+# the single-writer lock; .deploy-stage-* are the atomic staging temp dirs.
 DEPLOY_EXCLUDE_NAMES = frozenset({
     "installed.json", "backups", "__pycache__", ".pytest_cache", ".ruff_cache",
+    ".venv", ".deploy.lock",
 })
 DEPLOY_EXCLUDE_SUFFIXES = (".bak",)
+# The CAS-lite deploy machinery (ONE target per call).
+DEPLOY_TARGETS = ("harness", "skills", "hooks")
+DEPLOY_LOCK_NAME = ".deploy.lock"
+DEPLOY_STAGE_PREFIX = ".deploy-stage-"
+# A lock older than this (seconds) is treated as stale (crashed writer) and stolen.
+DEPLOY_LOCK_STALE_SECONDS = 600.0
 # Optional owner-authored file pinning the EXPECTED value of each observed
 # (non-hook) dimension. Its presence promotes those dimensions from
 # observe-only to drift-asserting. Absent = the dimensions are reported but
@@ -488,53 +507,307 @@ def install(*, check: bool = False) -> int:
 
 
 # --------------------------------------------------------------------------- #
-# Deploy (--deploy): repo harness (ci/harness) -> live ~/.agents/harness
+# Deploy (--deploy): repo tree (ci/harness | skills | hooks) -> its live target.
+#
+# CAS-LITE deploy: a right-sized, staged/atomic copy with optimistic-concurrency
+# integrity (NOT an 11-state journal, a compensating-transaction engine, or a
+# content-addressed bundle store). One target per call. The phases compose as:
+#
+#   LOCK      single-writer ~/.agents/harness/.deploy.lock (pid+ts, stale-steal)
+#   PLAN      sha256 every managed LIVE file (current) AND every candidate file
+#   BACKUP    pre-deploy copy of the live tree (last-known-good, runtime-clean)
+#   STAGE     copy candidates into a temp dir on the SAME filesystem as the target
+#   CAS       re-hash each live file immediately before the write phase; if it !=
+#             the plan-time hash, ABORT the whole deploy (live changed since PLAN)
+#   WRITE     per-file os.replace (atomic; never a partial file)
+#   PARITY    re-hash live vs candidate; on ANY mismatch RESTORE the backup + FAIL
+#   RECEIPT   write/extend <target>/installed.json (deployed_at, source_commit,
+#             target, per-file sha256, backup_path)
+#
+# Only the PARITY hashes must be content-based; timestamps in the receipt are
+# ordinary datetime.now() metadata.
 # --------------------------------------------------------------------------- #
 
 
+class DeployLockError(RuntimeError):
+    """The single-writer deploy lock is held by a live (non-stale) writer."""
+
+    def __init__(self, held: dict[str, Any]) -> None:
+        super().__init__("deploy lock is held")
+        self.held = held
+
+
+class DeployCASConflict(RuntimeError):
+    """A managed live file changed between PLAN and the pre-write re-hash."""
+
+    def __init__(self, rel: str, expected: str | None, actual: str | None) -> None:
+        super().__init__(f"CAS conflict on {rel}")
+        self.rel = rel
+        self.expected = expected
+        self.actual = actual
+
+
+def _is_excluded_name(name: str) -> bool:
+    """True when a file/dir basename is runtime state that never deploys/backs up."""
+    return (
+        name in DEPLOY_EXCLUDE_NAMES
+        or name.endswith(DEPLOY_EXCLUDE_SUFFIXES)
+        or ".bak-" in name  # timestamped in-place backups (foo.py.bak-<stamp>)
+        or name.startswith(DEPLOY_STAGE_PREFIX)  # a crashed staging dir
+    )
+
+
 def _deploy_ignore(dir_path: str, names: list[str]) -> set[str]:
-    """shutil.copytree/ignore-compatible predicate: drop runtime-state names + *.bak."""
-    return {
-        n for n in names
-        if n in DEPLOY_EXCLUDE_NAMES or n.endswith(DEPLOY_EXCLUDE_SUFFIXES)
-    }
+    """shutil.copytree/ignore-compatible predicate: drop all runtime-state names."""
+    return {n for n in names if _is_excluded_name(n)}
 
 
-def deploy(*, source_dir: Path | None = None, live_dir: Path | None = None) -> int:
-    """Copy the repo harness (ci/harness) -> the live ~/.agents/harness, EXCLUDING
-    runtime state (installed.json, backups/, __pycache__, .pytest_cache, .ruff_cache,
-    *.bak). Backs the live tree up first (like install()); idempotent; prints copied files."""
-    src = (source_dir or HERE).resolve()
-    dst = (live_dir or LIVE_HARNESS_DIR)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+def _hash_file(path: Path) -> str:
+    """Content hash (sha256 of raw bytes) of a single file."""
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
-    # 1. Back up the existing live tree (same runtime-state exclusions -> the backup
-    #    is source-clean too). Skip when there is nothing live yet.
-    if dst.exists():
-        backup = BACKUPS_DIR / f"deploy-{stamp}" / "harness"
-        backup.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(dst, backup, ignore=_deploy_ignore, dirs_exist_ok=False)
 
-    # 2. Deterministic walk + copy (so we can PRINT exactly what we copied, and prune
-    #    excluded DIRS in-place so we never descend into __pycache__/backups).
-    copied: list[str] = []
-    for root, dirs, files in os.walk(src):
-        dirs[:] = sorted(d for d in dirs if d not in DEPLOY_EXCLUDE_NAMES)
-        rel_root = os.path.relpath(root, src)
+def _managed_files(root: Path) -> dict[str, Path]:
+    """The deterministic managed-file set under ``root`` -> {relpath: abspath}.
+
+    Excludes runtime state (installed.json, backups/, __pycache__, .venv,
+    .deploy.lock, *.bak/*.bak-*, staging dirs). Deterministic: dirs and files are
+    walked sorted so ``copied`` order is stable across runs."""
+    result: dict[str, Path] = {}
+    if not root.exists():
+        return result
+    for dirpath, dirs, files in os.walk(root):
+        dirs[:] = sorted(d for d in dirs if not _is_excluded_name(d))
+        rel_root = os.path.relpath(dirpath, root)
         for name in sorted(files):
-            if name in DEPLOY_EXCLUDE_NAMES or name.endswith(DEPLOY_EXCLUDE_SUFFIXES):
+            if _is_excluded_name(name):
                 continue
             rel = os.path.normpath(os.path.join(rel_root, name))
-            target = dst / rel
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(os.path.join(root, name), target)
-            copied.append(rel)
+            result[rel] = Path(dirpath) / name
+    return result
 
-    sys.stdout.write(
-        json.dumps({"deployed_to": str(dst), "source": str(src),
-                    "count": len(copied), "copied": copied}, ensure_ascii=False, indent=2) + "\n"
+
+def _managed_hashes(root: Path) -> dict[str, str]:
+    """Plan-time content hashes of every managed file currently under ``root``."""
+    return {rel: _hash_file(path) for rel, path in _managed_files(root).items()}
+
+
+def _default_source(target: str) -> Path:
+    """Repo-side source tree for a deploy target (module globals => monkeypatchable)."""
+    if target == "harness":
+        return HERE
+    repo_root = HERE.resolve().parents[1]  # ci/harness -> ci -> <repo root>
+    return repo_root / ("skills" if target == "skills" else "hooks")
+
+
+def _default_live(target: str) -> Path:
+    """Live target dir. Honors the HARNESS_LIVE_* env overrides (tests), else the
+    module globals (so an existing LIVE_HARNESS_DIR monkeypatch keeps working)."""
+    if target == "harness":
+        env = os.environ.get("HARNESS_LIVE_AGENTS_DIR")
+        return (Path(env) / "harness") if env else LIVE_HARNESS_DIR
+    if target == "skills":
+        agents = os.environ.get("HARNESS_LIVE_AGENTS_DIR") or str(HOME / ".agents")
+        return Path(agents) / "skills"
+    return Path(os.environ.get("HARNESS_LIVE_HOOKS_DIR") or (HOME / ".claude" / "hooks"))
+
+
+def _acquire_deploy_lock(live_dir: Path, stale_seconds: float) -> Path:
+    """Take the single-writer lock; raise DeployLockError if a live writer holds it.
+
+    A lock whose timestamp is older than ``stale_seconds`` (a crashed writer) is
+    stolen. Records {pid, timestamp, iso} for diagnostics."""
+    live_dir.mkdir(parents=True, exist_ok=True)
+    lock = live_dir / DEPLOY_LOCK_NAME
+    now = time.time()
+    if lock.exists():
+        info = read_json(lock, {})
+        info = info if isinstance(info, dict) else {}
+        ts = info.get("timestamp")
+        if isinstance(ts, (int, float)) and (now - ts) <= stale_seconds:
+            raise DeployLockError(held={"pid": info.get("pid"), "timestamp": ts})
+        # else: stale / unreadable -> steal it.
+    atomic_write_json(
+        lock,
+        {
+            "pid": os.getpid(),
+            "timestamp": now,
+            "iso": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        },
     )
-    return 0
+    return lock
+
+
+def _release_deploy_lock(lock: Path) -> None:
+    """Always-safe lock release (used in a finally); never raises."""
+    try:
+        lock.unlink(missing_ok=True)
+    except OSError:
+        pass
+
+
+def _restore_tree(backup: Path, dst: Path) -> None:
+    """Restore last-known-good: copy every backed-up managed file back over dst."""
+    for rel, path in _managed_files(backup).items():
+        target = dst / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(path, target)
+
+
+def _source_commit(src: Path) -> str | None:
+    """git rev-parse HEAD for the source tree, or None (fail-open, never raises)."""
+    try:
+        proc = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=str(src),
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if proc.returncode != 0:
+        return None
+    return proc.stdout.strip() or None
+
+
+def _write_receipt(
+    dst: Path, src: Path, target: str, file_hashes: dict[str, str], backup: Path | None
+) -> dict[str, Any]:
+    """Write/EXTEND <target>/installed.json with the deploy receipt (merge-preserve
+    any pre-existing keys). Timestamp = datetime.now (ordinary metadata); the
+    integrity fields (per-file sha256) are content-based."""
+    receipt_path = dst / "installed.json"
+    existing = read_json(receipt_path, {})
+    base = existing if isinstance(existing, dict) else {}
+    receipt = {
+        **base,
+        "deployed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "source_commit": _source_commit(src),
+        "target": target,
+        "files": {rel: file_hashes[rel] for rel in sorted(file_hashes)},
+        "backup_path": str(backup) if backup is not None else None,
+    }
+    atomic_write_json(receipt_path, receipt)
+    return receipt
+
+
+def _emit(payload: dict[str, Any]) -> None:
+    sys.stdout.write(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+
+
+def deploy(
+    *,
+    source_dir: Path | None = None,
+    live_dir: Path | None = None,
+    target: str = "harness",
+    lock_stale_seconds: float = DEPLOY_LOCK_STALE_SECONDS,
+    _after_stage: Callable[[], None] | None = None,
+    _after_write: Callable[[], None] | None = None,
+) -> int:
+    """CAS-lite deploy of one repo tree -> its live target (see the section banner).
+
+    Returns 0 on success; 1 on any integrity/contention failure (lock held, CAS
+    conflict, or a post-write parity mismatch -- fail-CLOSED, restoring the backup).
+    ``target`` selects the tree (harness | skills | hooks); deploy ONE per call.
+    ``_after_stage`` / ``_after_write`` are internal lifecycle probes (default
+    None) used by tests to inject a concurrent live change at the CAS / parity
+    seam; production callers leave them unset."""
+    if target not in DEPLOY_TARGETS:
+        raise ValueError(f"unsupported deploy target: {target!r}")
+    src = (source_dir or _default_source(target)).resolve()
+    dst = live_dir or _default_live(target)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    # Capture pre-existence BEFORE the lock mkdirs the target (governs backup).
+    live_pre_existed = dst.exists()
+
+    lock_path: Path | None = None
+    try:
+        try:
+            lock_path = _acquire_deploy_lock(dst, lock_stale_seconds)
+        except DeployLockError as exc:
+            _emit({"status": "failed", "target": target,
+                   "reason": "lock_contention", "held_by": exc.held})
+            return 1
+
+        # PLAN: content hashes for the current live tree AND the candidate tree.
+        candidate = _managed_files(src)
+        candidate_hashes = {rel: _hash_file(path) for rel, path in candidate.items()}
+        live_plan_hashes = _managed_hashes(dst)
+
+        # BACKUP the pre-deploy live tree (last-known-good), runtime-clean. Only
+        # when the target pre-existed -- a brand-new target has nothing to save.
+        backup: Path | None = None
+        if live_pre_existed:
+            backup = BACKUPS_DIR / f"deploy-{stamp}" / target
+            backup.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(dst, backup, ignore=_deploy_ignore, dirs_exist_ok=False)
+
+        # STAGE every candidate into a temp dir on the SAME filesystem as dst, so
+        # the WRITE phase is a same-fs os.replace (atomic, never a partial file).
+        with tempfile.TemporaryDirectory(
+            prefix=DEPLOY_STAGE_PREFIX, dir=str(dst)
+        ) as stage_root:
+            stage = Path(stage_root)
+            for rel, srcp in candidate.items():
+                staged = stage / rel
+                staged.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(srcp, staged)
+
+            if _after_stage is not None:
+                _after_stage()  # test seam: simulate a concurrent live change
+
+            # PRE-WRITE CAS: re-hash each managed live file immediately before the
+            # write phase; a divergence from the plan-time hash means live changed
+            # since PLAN -> abort the WHOLE deploy with NO writes (optimistic
+            # concurrency). Running the full check before any os.replace is what
+            # makes "without writing that file" hold for every file, not just one.
+            for rel in sorted(candidate):
+                live_target = dst / rel
+                current = _hash_file(live_target) if live_target.exists() else None
+                if current != live_plan_hashes.get(rel):
+                    raise DeployCASConflict(rel, live_plan_hashes.get(rel), current)
+
+            # WRITE: per-file atomic replace out of the stage into live.
+            copied: list[str] = []
+            for rel in sorted(candidate):
+                live_target = dst / rel
+                live_target.parent.mkdir(parents=True, exist_ok=True)
+                os.replace(stage / rel, live_target)
+                copied.append(rel)
+
+        if _after_write is not None:
+            _after_write()  # test seam: simulate post-write corruption
+
+        # POST-WRITE PARITY (fail-CLOSED): live must byte-match the candidate. Any
+        # mismatch -> restore the last-known-good backup and FAIL (never pass).
+        mismatches = [
+            rel for rel in candidate if _hash_file(dst / rel) != candidate_hashes[rel]
+        ]
+        if mismatches:
+            if backup is not None:
+                _restore_tree(backup, dst)
+            _emit({"status": "failed", "target": target,
+                   "reason": "parity_mismatch", "mismatches": sorted(mismatches),
+                   "restored_from": str(backup) if backup is not None else None})
+            return 1
+
+        # RECEIPT: write/extend <target>/installed.json.
+        receipt = _write_receipt(dst, src, target, candidate_hashes, backup)
+        _emit({"status": "deployed", "target": target, "deployed_to": str(dst),
+               "source": str(src), "count": len(copied), "copied": copied,
+               "backup": str(backup) if backup is not None else None,
+               "receipt": receipt})
+        return 0
+    except DeployCASConflict as exc:
+        _emit({"status": "failed", "target": target, "reason": "cas_conflict",
+               "file": exc.rel, "expected_hash": exc.expected,
+               "actual_hash": exc.actual})
+        return 1
+    finally:
+        if lock_path is not None:
+            _release_deploy_lock(lock_path)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -557,14 +830,21 @@ def main(argv: list[str] | None = None) -> int:
     group.add_argument(
         "--deploy",
         action="store_true",
-        help="copy the repo harness (ci/harness) into the live ~/.agents/harness, "
-        "excluding runtime state; backs the live tree up first; idempotent",
+        help="CAS-lite deploy of the repo tree into its live target (staged/atomic, "
+        "single-writer lock, pre-write CAS, post-write parity, receipt); "
+        "backs the live tree up first; idempotent",
+    )
+    parser.add_argument(
+        "--target",
+        choices=DEPLOY_TARGETS,
+        default="harness",
+        help="which tree to deploy (ONE per call); only used with --deploy",
     )
     args = parser.parse_args(argv)
     if args.bootstrap:
         return bootstrap()
     if args.deploy:
-        return deploy()
+        return deploy(target=args.target)
     return install(check=args.check)
 
 

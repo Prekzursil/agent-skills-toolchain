@@ -587,11 +587,16 @@ def test_deploy_copies_source_excluding_runtime_state(tmp_path):
     # real source files land
     assert (live / "modules.py").read_text(encoding="utf-8") == "# modules\n"
     assert (live / "sub" / "a.py").read_text(encoding="utf-8") == "# a\n"
-    # runtime state is excluded
-    assert not (live / "installed.json").exists()
+    # runtime state is excluded from the COPY
     assert not (live / "backups").exists()
     assert not (live / "__pycache__").exists()
     assert not (live / "foo.bak").exists()
+    # live/installed.json is now the DEPLOY RECEIPT (runtime state written per
+    # deploy), NOT the copied source stub ("{}") -- proving the stub was excluded.
+    receipt = json.loads((live / "installed.json").read_text(encoding="utf-8"))
+    assert "deployed_at" in receipt and receipt["target"] == "harness"
+    # the single-writer lock is released after a successful deploy
+    assert not (live / ".deploy.lock").exists()
 
 
 def test_deploy_backs_up_existing_live_tree(tmp_path, monkeypatch):
@@ -640,10 +645,13 @@ def test_deploy_is_idempotent(tmp_path, monkeypatch):
     monkeypatch.setattr(install_mod, "BACKUPS_DIR", tmp_path / "backups")
 
     def _snapshot(root):
+        # Exclude installed.json: it is the deploy RECEIPT, whose deployed_at
+        # timestamp legitimately differs run-to-run. The DEPLOYED TREE itself
+        # (every managed file) must be byte-identical across idempotent runs.
         return {
             str(p.relative_to(root)): p.read_bytes()
             for p in sorted(root.rglob("*"))
-            if p.is_file()
+            if p.is_file() and p.name != "installed.json"
         }
 
     import io
@@ -709,7 +717,9 @@ def test_main_deploy_subcommand(tmp_path, monkeypatch):
     assert code == 0
     assert (live / "modules.py").exists()
     assert (live / "sub" / "a.py").exists()
-    assert not (live / "installed.json").exists()
+    # source installed.json stub excluded; live installed.json is the receipt
+    receipt = json.loads((live / "installed.json").read_text(encoding="utf-8"))
+    assert receipt["target"] == "harness"
 
 
 def test_main_deploy_is_mutually_exclusive_with_check():
