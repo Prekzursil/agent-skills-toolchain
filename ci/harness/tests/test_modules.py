@@ -23,13 +23,19 @@ from harness.modules import (
     BcOffsetGuardModule,
     ClaimWarningModule,
     DesignToolReminderModule,
+    EnforcementScaffoldModule,
     GoalModule,
     LedgerModule,
     RecallModule,
     SanitizedCheckpointModule,
+    SCAFFOLD_GATE_ENV,
     SecretGuardModule,
     SubagentLifecycleModule,
     _canonical_tree,
+    _enforcement_enabled,
+    _scaffold_artifact_label,
+    _scaffold_gate_enabled,
+    build_default_modules,
     resolve_mode,
     stage,
 )
@@ -59,6 +65,7 @@ def test_fixed_module_order_is_security_then_continuity_then_quality():
         "design_tool_reminder",
         "subagent_lifecycle",
         "bc_offset_guard",
+        "enforcement_scaffold",
     )
 
 
@@ -1826,6 +1833,329 @@ def test_canonical_edit_guard_codex_shadow_by_default(iso, tmp_path, monkeypatch
     target = str(tmp_path / ".codex" / "profiles" / "fanout-json.config.toml")
     ev = event(tmp_path, "PreToolUse", tool_name="Write", tool_input={"file_path": target})
     assert SecretGuardModule().run(ev).action == "allow"
+
+
+# =============================================================================
+# WU-4 · Wave-0 SHADOW enforcement scaffold (cleanup + doc-reconciliation +
+# harness-change->doc+PR). SHADOW = observe + log, ZERO teeth; NEVER on Stop.
+# =============================================================================
+def _enforce_scaffold(monkeypatch):
+    """Force all three scaffold gates to enforce so a detection surfaces (inject) —
+    used only to VERIFY the detectors; the SHIPPED default is shadow (log-only)."""
+    for gate in ("cleanup_after_work", "doc_reconciliation", "harness_change_doc_pr"):
+        monkeypatch.setenv(f"HARNESS_GATE_MODE__{gate}", "enforce")
+
+
+@pytest.mark.parametrize("etype", ["Stop", "StopFailure", "SubagentStop"])
+def test_scaffold_never_fires_on_stop_family(iso, tmp_path, monkeypatch, etype):
+    # The A1 invariant: a Stop-time inject re-triggers the host re-entrancy counter.
+    # Even with a canonical harness edit in the payload + gates forced enforce, a
+    # Stop-family event MUST be inert (allow, no detection, no shadow log).
+    _enforce_scaffold(monkeypatch)
+    monkeypatch.setenv("HARNESS_SHADOW_SAMPLE", "1")
+    monkeypatch.setenv("HARNESS_REPO_DIR", str(tmp_path / "repo"))
+    target = str(tmp_path / "repo" / "ci" / "harness" / "modules.py")
+    out = EnforcementScaffoldModule(state_root=tmp_path).run(
+        event(tmp_path, etype, tool_name="Edit", tool_input={"file_path": target})
+    )
+    assert out.action == "allow"
+    assert not (iso / "shadow").exists()
+
+
+def test_scaffold_global_kill_switch_disables_all(iso, tmp_path, monkeypatch):
+    _enforce_scaffold(monkeypatch)
+    monkeypatch.setenv("HARNESS_REPO_DIR", str(tmp_path / "repo"))
+    target = str(tmp_path / "repo" / "ci" / "harness" / "x.py")
+    ev = event(tmp_path, "PreToolUse", tool_name="Edit", tool_input={"file_path": target})
+    # Control: without the global kill-switch a canonical edit detects (enforce -> inject).
+    assert EnforcementScaffoldModule(state_root=tmp_path / "a").run(ev).reason_code == "harness_change_doc_pr"
+    # HARNESS_ENFORCE=off silences every scaffold gate at once.
+    monkeypatch.setenv("HARNESS_ENFORCE", "off")
+    assert EnforcementScaffoldModule(state_root=tmp_path / "b").run(ev).action == "allow"
+    assert _enforcement_enabled() is False
+
+
+def test_scaffold_per_gate_kill_switch_isolates_one(iso, tmp_path, monkeypatch):
+    _enforce_scaffold(monkeypatch)
+    scan = tmp_path / "scan"
+    (scan / "plugins" / "cache").mkdir(parents=True)
+    for i in range(3):
+        (scan / "plugins" / "cache" / f"temp_subdir_{i}.clone").write_text("x")
+    monkeypatch.setenv("HARNESS_CLEANUP_SCAN_DIR", str(scan))
+    ev = event(tmp_path, "SessionStart")
+    # Control: cleanup detects the clone accumulation.
+    assert EnforcementScaffoldModule(state_root=tmp_path / "a").run(ev).reason_code == "cleanup_after_work"
+    # HARNESS_CLEANUP=off silences ONLY cleanup; the other gates stay live.
+    monkeypatch.setenv("HARNESS_CLEANUP", "off")
+    assert EnforcementScaffoldModule(state_root=tmp_path / "b").run(ev).action == "allow"
+    assert _scaffold_gate_enabled("cleanup_after_work") is False
+    assert _scaffold_gate_enabled("doc_reconciliation") is True
+
+
+# -- Gate 1 · cleanup-after-work ------------------------------------------- #
+def test_cleanup_detects_clone_and_worktree_residue(iso, tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_GATE_MODE__cleanup_after_work", "enforce")
+    scan = tmp_path / "scan"
+    (scan / "plugins" / "cache").mkdir(parents=True)
+    for i in range(3):
+        (scan / "plugins" / "cache" / f"temp_subdir_{i}.clone").write_text("x")
+    (scan / "worktree-target.txt").write_text("stale")
+    (scan / "create-worktree.ps1.bak-123").write_text("stale")
+    monkeypatch.setenv("HARNESS_CLEANUP_SCAN_DIR", str(scan))
+    out = EnforcementScaffoldModule(state_root=tmp_path).run(event(tmp_path, "SessionStart"))
+    assert out.action == "inject" and out.reason_code == "cleanup_after_work"
+    assert any("cleanup candidate" in c for c in out.additional_context)
+
+
+def test_cleanup_silent_when_scan_dir_clean(iso, tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_GATE_MODE__cleanup_after_work", "enforce")
+    scan = tmp_path / "scan"
+    scan.mkdir()
+    monkeypatch.setenv("HARNESS_CLEANUP_SCAN_DIR", str(scan))
+    out = EnforcementScaffoldModule(state_root=tmp_path).run(event(tmp_path, "SessionStart"))
+    assert out.action == "allow"
+
+
+def test_cleanup_conservative_below_clone_threshold(iso, tmp_path, monkeypatch):
+    # A lone/couple .clone dirs are normal churn; only ACCUMULATION (>=3) is surfaced.
+    monkeypatch.setenv("HARNESS_GATE_MODE__cleanup_after_work", "enforce")
+    scan = tmp_path / "scan"
+    (scan / "plugins" / "cache").mkdir(parents=True)
+    for i in range(2):
+        (scan / "plugins" / "cache" / f"temp_subdir_{i}.clone").write_text("x")
+    monkeypatch.setenv("HARNESS_CLEANUP_SCAN_DIR", str(scan))
+    out = EnforcementScaffoldModule(state_root=tmp_path).run(event(tmp_path, "SessionStart"))
+    assert out.action == "allow"
+
+
+def test_cleanup_fires_at_most_once_per_session(iso, tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_GATE_MODE__cleanup_after_work", "enforce")
+    scan = tmp_path / "scan"
+    scan.mkdir()
+    (scan / "worktree-debug.json").write_text("x")
+    monkeypatch.setenv("HARNESS_CLEANUP_SCAN_DIR", str(scan))
+    module = EnforcementScaffoldModule(state_root=tmp_path)
+    first = module.run(event(tmp_path, "SessionStart"))
+    second = module.run(event(tmp_path, "SessionStart"))
+    assert first.action == "inject" and second.action == "allow"
+
+
+def test_cleanup_shadow_by_default_logs_zero_teeth(iso, tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_SHADOW_SAMPLE", "1")
+    scan = tmp_path / "scan"
+    scan.mkdir()
+    (scan / "worktree-target.txt").write_text("x")
+    monkeypatch.setenv("HARNESS_CLEANUP_SCAN_DIR", str(scan))
+    out = EnforcementScaffoldModule(state_root=tmp_path).run(event(tmp_path, "SessionStart"))
+    assert out.action == "allow"  # zero teeth in shadow (detect + log only)
+    sink = list((iso / "shadow").glob("shadow-*.jsonl"))
+    assert sink and "cleanup_after_work" in sink[0].read_text(encoding="utf-8")
+    # The shadow sink is SEPARATE — never the terminal log or the ledger.
+    assert not (iso / "terminal.jsonl").exists() and not (iso / "ledger").exists()
+
+
+# -- Gate 2 · doc-reconciliation ------------------------------------------- #
+@pytest.mark.parametrize(
+    "existing, new",
+    [
+        ("PLAN-v2.md", "PLAN.md"),
+        ("design-final.md", "design.md"),
+        ("report.md", "report-2026-07-13.md"),
+        ("spec-draft.md", "spec.md"),
+    ],
+)
+def test_doc_reconciliation_detects_near_duplicate(iso, tmp_path, monkeypatch, existing, new):
+    monkeypatch.setenv("HARNESS_GATE_MODE__doc_reconciliation", "enforce")
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / existing).write_text("# existing")
+    out = EnforcementScaffoldModule(state_root=tmp_path).run(
+        event(tmp_path, "PreToolUse", tool_name="Write",
+              tool_input={"file_path": str(docs / new), "content": "# new"})
+    )
+    assert out.action == "inject" and out.reason_code == "doc_reconciliation"
+    assert any(existing in c for c in out.additional_context)
+
+
+def test_doc_reconciliation_silent_cases(iso, tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_GATE_MODE__doc_reconciliation", "enforce")
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "readme.md").write_text("# readme")
+    module = EnforcementScaffoldModule(state_root=tmp_path)
+    # (a) unique stem, no near-duplicate sibling -> silent
+    assert module.run(event(tmp_path, "PreToolUse", tool_name="Write",
+                            tool_input={"file_path": str(docs / "architecture.md")})).action == "allow"
+    # (b) Edit (not a fresh Write) of a doc is the correct fold action -> silent
+    (docs / "plan-v2.md").write_text("x")
+    (docs / "plan.md").write_text("y")
+    assert module.run(event(tmp_path, "PreToolUse", tool_name="Edit",
+                            tool_input={"file_path": str(docs / "plan.md")})).action == "allow"
+    # (c) Write to an EXISTING doc path is an overwrite/edit, not a fork -> silent
+    assert module.run(event(tmp_path, "PreToolUse", tool_name="Write",
+                            tool_input={"file_path": str(docs / "plan.md")})).action == "allow"
+    # (d) a non-doc target -> silent
+    assert module.run(event(tmp_path, "PreToolUse", tool_name="Write",
+                            tool_input={"file_path": str(tmp_path / "app.py")})).action == "allow"
+
+
+def test_doc_reconciliation_once_per_doc_family(iso, tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_GATE_MODE__doc_reconciliation", "enforce")
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "plan-v2.md").write_text("x")
+    module = EnforcementScaffoldModule(state_root=tmp_path)
+    first = module.run(event(tmp_path, "PreToolUse", tool_name="Write",
+                             tool_input={"file_path": str(docs / "plan.md")}))
+    second = module.run(event(tmp_path, "PreToolUse", tool_name="Write",
+                              tool_input={"file_path": str(docs / "plan-final.md")}))
+    assert first.action == "inject" and second.action == "allow"
+
+
+def test_doc_reconciliation_shadow_by_default_zero_teeth(iso, tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_SHADOW_SAMPLE", "1")
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "plan-final.md").write_text("x")
+    out = EnforcementScaffoldModule(state_root=tmp_path).run(
+        event(tmp_path, "PreToolUse", tool_name="Write",
+              tool_input={"file_path": str(docs / "plan.md")})
+    )
+    assert out.action == "allow"
+    sink = list((iso / "shadow").glob("shadow-*.jsonl"))
+    assert sink and "doc_reconciliation" in sink[0].read_text(encoding="utf-8")
+
+
+# -- Gate 3 · harness-change -> doc+PR ------------------------------------- #
+@pytest.mark.parametrize("kind", ["repo_harness", "repo_skills", "repo_mcp", "repo_hooks", "deployed_harness"])
+def test_harness_change_detects_canonical_edit_without_doc(iso, tmp_path, monkeypatch, kind):
+    monkeypatch.setenv("HARNESS_GATE_MODE__harness_change_doc_pr", "enforce")
+    monkeypatch.setenv("HARNESS_REPO_DIR", str(tmp_path / "repo"))
+    monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(tmp_path / "agents"))
+    targets = {
+        "repo_harness": tmp_path / "repo" / "ci" / "harness" / "modules.py",
+        "repo_skills": tmp_path / "repo" / "skills" / "foo" / "helper.py",
+        "repo_mcp": tmp_path / "repo" / "tools" / "mcp" / "canonical-mcp-servers.json",
+        "repo_hooks": tmp_path / "repo" / "hooks" / "dispatch.py",
+        "deployed_harness": tmp_path / "agents" / "harness" / "modules.py",
+    }
+    target = str(targets[kind])
+    out = EnforcementScaffoldModule(state_root=tmp_path).run(
+        event(tmp_path, "PreToolUse", tool_name="Edit", tool_input={"file_path": target})
+    )
+    assert out.action == "inject" and out.reason_code == "harness_change_doc_pr"
+    assert target in out.additional_context[0]
+
+
+def test_harness_change_suppressed_after_doc_write_this_session(iso, tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_GATE_MODE__harness_change_doc_pr", "enforce")
+    monkeypatch.setenv("HARNESS_REPO_DIR", str(tmp_path / "repo"))
+    module = EnforcementScaffoldModule(state_root=tmp_path)
+    # A docs/*.md write this session records that a doc accompanied the change.
+    module.run(event(tmp_path, "PreToolUse", tool_name="Write",
+                     tool_input={"file_path": str(tmp_path / "docs" / "harness-change.md")}))
+    out = module.run(event(tmp_path, "PreToolUse", tool_name="Edit",
+                           tool_input={"file_path": str(tmp_path / "repo" / "ci" / "harness" / "x.py")}))
+    assert out.action == "allow"
+
+
+def test_harness_change_silent_for_ordinary_repo_file(iso, tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_GATE_MODE__harness_change_doc_pr", "enforce")
+    monkeypatch.setenv("HARNESS_REPO_DIR", str(tmp_path / "repo"))
+    out = EnforcementScaffoldModule(state_root=tmp_path).run(
+        event(tmp_path, "PreToolUse", tool_name="Edit",
+              tool_input={"file_path": str(tmp_path / "repo" / "src" / "app.py")})
+    )
+    assert out.action == "allow"
+
+
+def test_harness_change_fires_at_most_once_per_session(iso, tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_GATE_MODE__harness_change_doc_pr", "enforce")
+    monkeypatch.setenv("HARNESS_REPO_DIR", str(tmp_path / "repo"))
+    module = EnforcementScaffoldModule(state_root=tmp_path)
+    first = module.run(event(tmp_path, "PreToolUse", tool_name="Edit",
+                             tool_input={"file_path": str(tmp_path / "repo" / "ci" / "harness" / "a.py")}))
+    second = module.run(event(tmp_path, "PreToolUse", tool_name="Edit",
+                              tool_input={"file_path": str(tmp_path / "repo" / "ci" / "harness" / "b.py")}))
+    assert first.action == "inject" and second.action == "allow"
+
+
+def test_harness_change_shadow_by_default_zero_teeth(iso, tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_SHADOW_SAMPLE", "1")
+    monkeypatch.setenv("HARNESS_REPO_DIR", str(tmp_path / "repo"))
+    out = EnforcementScaffoldModule(state_root=tmp_path).run(
+        event(tmp_path, "PreToolUse", tool_name="Edit",
+              tool_input={"file_path": str(tmp_path / "repo" / "ci" / "harness" / "x.py")})
+    )
+    assert out.action == "allow"
+    sink = list((iso / "shadow").glob("shadow-*.jsonl"))
+    assert sink and "harness_change_doc_pr" in sink[0].read_text(encoding="utf-8")
+
+
+# -- Scaffold-wide invariants ---------------------------------------------- #
+def test_scaffold_gates_never_block_even_under_enforce(iso, tmp_path, monkeypatch):
+    # Zero teeth: an L2 shadow gate emits at most `inject`, NEVER `block`/`deny`, so
+    # even a manual enforce promotion can never fail-closed or wedge the host.
+    _enforce_scaffold(monkeypatch)
+    monkeypatch.setenv("HARNESS_REPO_DIR", str(tmp_path / "repo"))
+    scan = tmp_path / "scan"
+    scan.mkdir()
+    (scan / "worktree-target.txt").write_text("x")
+    monkeypatch.setenv("HARNESS_CLEANUP_SCAN_DIR", str(scan))
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "plan-v2.md").write_text("x")
+    scenarios = {
+        "cleanup": event(tmp_path, "SessionStart"),
+        "doc": event(tmp_path, "PreToolUse", tool_name="Write",
+                     tool_input={"file_path": str(docs / "plan.md")}),
+        "harness": event(tmp_path, "PreToolUse", tool_name="Edit",
+                         tool_input={"file_path": str(tmp_path / "repo" / "ci" / "harness" / "x.py")}),
+    }
+    for name, ev in scenarios.items():
+        out = EnforcementScaffoldModule(state_root=tmp_path / name).run(ev)
+        assert out.action == "inject", f"{name} should detect under enforce"
+        assert out.action != "block"
+
+
+def test_scaffold_detector_exception_is_swallowed(iso, tmp_path, monkeypatch):
+    # Fail-open: any exception inside a gate is swallowed -> normal flow (allow).
+    monkeypatch.setenv("HARNESS_GATE_MODE__cleanup_after_work", "enforce")
+    module = EnforcementScaffoldModule(state_root=tmp_path)
+
+    def boom(_event):
+        raise RuntimeError("scan blew up")
+
+    monkeypatch.setattr(module, "_scan_cleanup_candidates", boom)
+    assert module.run(event(tmp_path, "SessionStart")).action == "allow"
+
+
+def test_scaffold_module_in_default_build_and_order(tmp_path):
+    names = [getattr(m, "name", "") for m in build_default_modules(tmp_path)]
+    assert "enforcement_scaffold" in names
+    assert "enforcement_scaffold" in MODULE_ORDER
+
+
+def test_scaffold_gates_have_contracts_and_kill_switch_env():
+    assert SCAFFOLD_GATE_ENV == {
+        "cleanup_after_work": "HARNESS_CLEANUP",
+        "doc_reconciliation": "HARNESS_DOC_RECONCILE",
+        "harness_change_doc_pr": "HARNESS_CHANGE_DOC_PR",
+    }
+    for gate in SCAFFOLD_GATE_ENV:
+        assert gate in GATE_CONTRACTS
+        assert set(GATE_CONTRACTS[gate]) >= {"metric", "owner", "deadline", "fire_rate"}
+
+
+def test_scaffold_artifact_label_classifies(tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_REPO_DIR", str(tmp_path / "repo"))
+    monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(tmp_path / "agents"))
+    assert _scaffold_artifact_label(str(tmp_path / "repo" / "ci" / "harness" / "m.py")) == "harness"
+    assert _scaffold_artifact_label(str(tmp_path / "repo" / "skills" / "s" / "x.py")) == "skills"
+    assert _scaffold_artifact_label(str(tmp_path / "repo" / "tools" / "mcp" / "canonical-mcp-servers.json")) == "mcp"
+    assert _scaffold_artifact_label(str(tmp_path / "agents" / "harness" / "m.py")) == "harness"
+    assert _scaffold_artifact_label(str(tmp_path / "repo" / "src" / "app.py")) is None
+    assert _scaffold_artifact_label("") is None
 
 
 def test_canonical_tree_classifies_codex_profile(iso, tmp_path, monkeypatch):
