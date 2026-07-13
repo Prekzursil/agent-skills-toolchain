@@ -626,10 +626,18 @@ class SecretGuardModule:
         installed = read_json(Path(installed_path), None)
         if not isinstance(current, dict) or not isinstance(installed, dict):
             return HookResult.success()
+        # install.py records the curated sections under manifest["settings"] (the
+        # sha256/installed_at/backup fields sit alongside it). Compare the live
+        # settings against THAT snapshot — not against installed.get(key), which
+        # would compare a populated hooks dict to None and false-positive on every
+        # event. Fail-open on a pre-snapshot / shapeless manifest (no "settings").
+        baseline = installed.get("settings")
+        if not isinstance(baseline, dict):
+            return HookResult.success()
         drift = [
             key
             for key in ("hooks", "mcpServers", "disabledMcpServers")
-            if _digest(current.get(key)) != _digest(installed.get(key))
+            if _digest(current.get(key)) != _digest(baseline.get(key))
         ]
         if not drift:
             return HookResult.success()

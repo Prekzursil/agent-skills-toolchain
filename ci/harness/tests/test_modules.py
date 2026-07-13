@@ -13,7 +13,6 @@ from harness.modules import (
     GATE_CONTRACTS,
     MODE_ADVISE,
     MODE_ENFORCE,
-    MODE_OFF,
     MODE_SHADOW,
     MODULE_ORDER,
     TIER_ADVISORY,
@@ -31,7 +30,6 @@ from harness.modules import (
     SecretGuardModule,
     SubagentLifecycleModule,
     resolve_mode,
-    shadow_log,
     stage,
 )
 from harness.models import HookResult
@@ -1181,10 +1179,26 @@ def test_injection_tripwire_ignores_clean_content_and_non_ingest_tools(iso, tmp_
 # =============================================================================
 # D5 · config drift + metered-MCP preflight (SecretGuard branches)
 # =============================================================================
+def _manifest(sections: dict) -> str:
+    # The REAL installed.json shape install.py writes: curated sections nested
+    # under "settings", alongside installed_at/backup/sha256.
+    return json.dumps(
+        {
+            "installed_at": "2026-07-13T00:00:00+00:00",
+            "backup": "b",
+            "sha256": {"claude": "x", "codex": "y"},
+            "settings": sections,
+        }
+    )
+
+
 def test_config_drift_shadow_by_default_enforce_on_demand(iso, tmp_path, monkeypatch):
     settings = tmp_path / "settings.json"
     installed = tmp_path / "installed.json"
-    installed.write_text(json.dumps({"mcpServers": {"a": 1}, "hooks": {}, "disabledMcpServers": []}), encoding="utf-8")
+    installed.write_text(
+        _manifest({"mcpServers": {"a": 1}, "hooks": {}, "disabledMcpServers": []}),
+        encoding="utf-8",
+    )
     settings.write_text(json.dumps({"mcpServers": {"a": 1, "b": 2}, "hooks": {}, "disabledMcpServers": []}), encoding="utf-8")
     monkeypatch.setenv("HARNESS_SETTINGS_PATH", str(settings))
     monkeypatch.setenv("HARNESS_INSTALLED_PATH", str(installed))
@@ -1197,13 +1211,92 @@ def test_config_drift_shadow_by_default_enforce_on_demand(iso, tmp_path, monkeyp
 
 
 def test_config_drift_no_change_is_silent(iso, tmp_path, monkeypatch):
-    same = json.dumps({"mcpServers": {"a": 1}, "hooks": {}, "disabledMcpServers": []})
-    (tmp_path / "s.json").write_text(same, encoding="utf-8")
-    (tmp_path / "i.json").write_text(same, encoding="utf-8")
+    sections = {"mcpServers": {"a": 1}, "hooks": {}, "disabledMcpServers": []}
+    (tmp_path / "s.json").write_text(json.dumps(sections), encoding="utf-8")
+    (tmp_path / "i.json").write_text(_manifest(sections), encoding="utf-8")
     monkeypatch.setenv("HARNESS_SETTINGS_PATH", str(tmp_path / "s.json"))
     monkeypatch.setenv("HARNESS_INSTALLED_PATH", str(tmp_path / "i.json"))
     monkeypatch.setenv("HARNESS_GATE_MODE__config_drift", "enforce")
     assert SecretGuardModule().run(event(tmp_path, "ConfigChange")).action == "allow"
+
+
+def test_config_drift_fires_when_live_hooks_differ_from_snapshot(iso, tmp_path, monkeypatch):
+    # A hand-edited live hooks block (differs from the installed snapshot) is the
+    # exact case the gate exists to catch — proves it compares settings["hooks"].
+    settings = tmp_path / "settings.json"
+    installed = tmp_path / "installed.json"
+    installed.write_text(
+        _manifest({"hooks": {"SessionStart": [1]}, "mcpServers": {}, "disabledMcpServers": []}),
+        encoding="utf-8",
+    )
+    settings.write_text(
+        json.dumps({"hooks": {"SessionStart": [1, 2]}, "mcpServers": {}, "disabledMcpServers": []}),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("HARNESS_SETTINGS_PATH", str(settings))
+    monkeypatch.setenv("HARNESS_INSTALLED_PATH", str(installed))
+    monkeypatch.setenv("HARNESS_GATE_MODE__config_drift", "enforce")
+    out = SecretGuardModule().run(event(tmp_path, "ConfigChange"))
+    assert out.action == "inject" and out.reason_code == "config_drift"
+    assert "hooks" in out.additional_context[0]
+
+
+def test_config_drift_silent_on_presnapshot_manifest(iso, tmp_path, monkeypatch):
+    # A legacy manifest with NO "settings" key must NOT false-positive: with no
+    # comparable baseline the gate stays silent (fail-open), even when enforced.
+    # This is the regression guard for the old shape-mismatch (right path, no
+    # snapshot -> would otherwise report drift on every event).
+    settings = tmp_path / "settings.json"
+    installed = tmp_path / "installed.json"
+    installed.write_text(
+        json.dumps({"installed_at": "t", "backup": "b", "sha256": {"claude": "x", "codex": "y"}}),
+        encoding="utf-8",
+    )
+    settings.write_text(
+        json.dumps({"hooks": {"SessionStart": [1]}, "mcpServers": {"a": 1}, "disabledMcpServers": []}),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("HARNESS_SETTINGS_PATH", str(settings))
+    monkeypatch.setenv("HARNESS_INSTALLED_PATH", str(installed))
+    monkeypatch.setenv("HARNESS_GATE_MODE__config_drift", "enforce")
+    assert SecretGuardModule().run(event(tmp_path, "ConfigChange")).action == "allow"
+
+
+def test_config_drift_roundtrips_with_real_install_manifest(iso, tmp_path, monkeypatch):
+    # END-TO-END guard against the shape divergence peer review caught: install()
+    # WRITES the manifest and _config_drift READS the SAME file. If either side's
+    # notion of manifest["settings"] drifts, this fails.
+    import harness.install as install_mod
+
+    claude_settings = tmp_path / "claude" / "settings.json"
+    codex_hooks = tmp_path / "codex" / "hooks.json"
+    manifest = tmp_path / "installed.json"
+    claude_settings.parent.mkdir(parents=True, exist_ok=True)
+    claude_settings.write_text(
+        json.dumps(
+            {"model": "opus", "hooks": {"stale": []}, "mcpServers": {"m": 1}, "disabledMcpServers": ["d"]}
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(install_mod, "CLAUDE_SETTINGS", claude_settings)
+    monkeypatch.setattr(install_mod, "CODEX_HOOKS", codex_hooks)
+    monkeypatch.setattr(install_mod, "BACKUPS_DIR", tmp_path / "backups")
+    monkeypatch.setattr(install_mod, "INSTALLED_MANIFEST", manifest)
+    assert install_mod.install(check=False) == 0
+
+    monkeypatch.setenv("HARNESS_SETTINGS_PATH", str(claude_settings))
+    monkeypatch.setenv("HARNESS_INSTALLED_PATH", str(manifest))
+    monkeypatch.setenv("HARNESS_GATE_MODE__config_drift", "enforce")
+    # Immediately after install the live settings == the snapshot -> NO drift.
+    assert SecretGuardModule().run(event(tmp_path, "ConfigChange")).action == "allow"
+
+    # Hand-edit the live mcpServers AFTER install -> the gate catches the delta.
+    drifted = json.loads(claude_settings.read_text(encoding="utf-8"))
+    drifted["mcpServers"] = {"m": 1, "n": 2}
+    claude_settings.write_text(json.dumps(drifted), encoding="utf-8")
+    out = SecretGuardModule().run(event(tmp_path, "ConfigChange"))
+    assert out.action == "inject" and out.reason_code == "config_drift"
+    assert "mcpServers" in out.additional_context[0]
 
 
 def test_metered_mcp_preflight_enforced(iso, tmp_path, monkeypatch):

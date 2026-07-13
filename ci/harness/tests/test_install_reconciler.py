@@ -473,11 +473,16 @@ def test_install_write_path_preserves_manifest_shape(tmp_path, monkeypatch):
     assert json.loads(codex.read_text(encoding="utf-8")) == {"hooks": build_hooks("codex")}
 
     recorded = json.loads(manifest.read_text(encoding="utf-8"))
-    # D5 contract: modules.py re-hashes against this exact shape.
-    assert set(recorded) == {"installed_at", "backup", "sha256"}
+    # D5 contract: modules.py._config_drift compares the live settings against
+    # the "settings" snapshot; the sha256 fields are preserved alongside it.
+    assert set(recorded) == {"installed_at", "backup", "sha256", "settings"}
     assert set(recorded["sha256"]) == {"claude", "codex"}
     assert len(recorded["sha256"]["claude"]) == 64
     assert len(recorded["sha256"]["codex"]) == 64
+    # The snapshot carries exactly the three curated sections the gate compares;
+    # "hooks" is the freshly-built block (mcp* are None here — absent in source).
+    assert set(recorded["settings"]) == {"hooks", "mcpServers", "disabledMcpServers"}
+    assert recorded["settings"]["hooks"] == build_hooks("claude")
     # atomic backup copy exists
     backup_dir = tmp_path / "backups"
     copies = list(backup_dir.rglob("claude-settings.json"))

@@ -5,7 +5,8 @@ This module owns three CLI surfaces:
 
 * ``install.py`` (no flag) writes the freshly-built hook registrations into
   ``~/.claude/settings.json`` and ``~/.codex/hooks.json``, taking an atomic
-  timestamped backup and recording a sha256 manifest at ``installed.json``.
+  timestamped backup and recording a manifest (sha256 + a curated-settings
+  snapshot) at ``installed.json``.
 * ``install.py --check`` reconciles the live workspace against what the
   installer would produce and emits a STRUCTURED drift report (not just an
   exit code): the hook registrations it OWNS (always managed), plus the
@@ -27,8 +28,9 @@ code ARE the CLI-equivalent of shadow mode -- consumed by the nightly
 self-maintenance routine, never surfaced to the user mid-session.
 
 The ``installed.json`` manifest shape ({installed_at, backup, sha256:{claude,
-codex}}) is a load-bearing contract: modules.py (D5, ConfigChange) re-hashes
-the live settings against it to detect config drift, so it is preserved exactly.
+codex}, settings:{hooks, mcpServers, disabledMcpServers}}) is a load-bearing
+contract: modules.py (D5, ConfigChange) compares the live settings against the
+``settings`` snapshot to detect config drift, so it is preserved exactly.
 """
 from __future__ import annotations
 
@@ -462,6 +464,16 @@ def install(*, check: bool = False) -> int:
         "sha256": {
             "claude": hashlib.sha256(CLAUDE_SETTINGS.read_bytes()).hexdigest(),
             "codex": hashlib.sha256(CODEX_HOOKS.read_bytes()).hexdigest(),
+        },
+        # Snapshot the curated sections the ConfigChange gate (modules.py
+        # _config_drift, D5) compares the live settings against. Stored as real
+        # values (None when a section is absent) so the baseline carries the
+        # installed hooks/MCP state itself, not just a hash of it. `claude` is
+        # the desired settings dict just written to CLAUDE_SETTINGS, so its
+        # "hooks" is the freshly-built block and mcp* mirror the live file.
+        "settings": {
+            key: claude.get(key)
+            for key in ("hooks", "mcpServers", "disabledMcpServers")
         },
     }
     atomic_write_json(INSTALLED_MANIFEST, manifest)
