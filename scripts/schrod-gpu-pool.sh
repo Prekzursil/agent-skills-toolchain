@@ -7,7 +7,7 @@ set -uo pipefail
 POOL_ROOT="${SCHROD_POOL_ROOT:-/root/schrod_pool}"
 MARK="$POOL_ROOT/.default_dir"
 ngpus(){ nvidia-smi -L 2>/dev/null | wc -l; }
-_orig_default(){ ls -d /tmp/jobserverd-* 2>/dev/null | head -1; }
+_orig_default(){ local dir; for dir in /tmp/jobserverd-*; do [ -d "$dir" ] && { printf '%s\n' "$dir"; return; }; done; }
 start(){
   local N="${1:-$(ngpus)}"; mkdir -p "$POOL_ROOT"
   local DEF; DEF="$(_orig_default)"; echo "$DEF" > "$MARK"
