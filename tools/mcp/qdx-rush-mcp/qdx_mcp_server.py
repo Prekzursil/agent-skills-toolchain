@@ -2,7 +2,7 @@
 QDX Rush / EXESS MCP server  (v2 — hardened)
 ============================================
 Drives QDX's Rush cloud (quantum chemistry + drug-discovery) via `rush-py` 7.1.0:
-  • EXESS QM — single-point energy, QM interaction energy (binding), geometry opt, QM/MM, generic driver
+  • EXESS QM — single-point energy, ESP-fit/Mulliken charges, QM interaction energy, geometry opt, QM/MM
   • fast NN-xTB, fragmented EXESS, structure prep, SMILES→3D, MSA, Boltz co-fold+affinity, PB solvation
   • run lifecycle — status, PARSED result collection, save-to-disk, list, delete
 
@@ -152,6 +152,49 @@ def _exkw(aux_basis=None, functional=None, gpus=None, walltime_min=None, target=
     return kw
 
 
+def _parse_charge_exports(exports) -> dict:
+    """Return complete atom-charge arrays without the truncation applied by _fields()."""
+    if not isinstance(exports, dict):
+        return {}
+
+    out = {}
+    for key in ("chelpg_charges", "mulliken_charges"):
+        values = exports.get(key)
+        if values is None:
+            continue
+        if not isinstance(values, (list, tuple)) or not values:
+            raise ValueError(f"EXESS export '{key}' is not a non-empty charge array")
+        try:
+            out[key] = [float(value) for value in values]
+        except (TypeError, ValueError) as e:
+            raise ValueError(
+                f"EXESS export '{key}' contains a non-numeric charge"
+            ) from e
+
+    if not out:
+        return {}
+
+    lengths = {len(values) for values in out.values()}
+    if len(lengths) != 1:
+        raise ValueError("CHELPG and Mulliken charge arrays have different atom counts")
+
+    primary = out.get("chelpg_charges") or out["mulliken_charges"]
+    out.update(
+        {
+            "charges": primary,
+            "charge_model": ("CHELPG" if "chelpg_charges" in out else "Mulliken"),
+            "n_atoms": len(primary),
+            "units": "elementary_charge",
+            "atom_order": "input_topology",
+        }
+    )
+    if "chelpg_charges" in out:
+        out["chelpg_charge_sum"] = round(sum(out["chelpg_charges"]), 10)
+    if "mulliken_charges" in out:
+        out["mulliken_charge_sum"] = round(sum(out["mulliken_charges"]), 10)
+    return out
+
+
 # ----------------------------------------------------------------- result parsers (the F1 fix)
 def _parse_exess(raw) -> dict:
     res = exess.ResultRef.from_raw_output(raw).fetch()
@@ -183,7 +226,22 @@ def _parse_exess(raw) -> dict:
         round(total * HARTREE_TO_KCAL, 4) if total is not None else None
     )
     d["is_interaction_energy"] = d.get("reference_fragment") is not None
+    d.update(_parse_charge_exports(res.exports))
     return d
+
+
+def _parse_charges(raw) -> dict:
+    res = exess.ResultRef.from_raw_output(raw).fetch()
+    out = _parse_charge_exports(res.exports)
+    missing = [key for key in ("chelpg_charges", "mulliken_charges") if key not in out]
+    if missing:
+        raise ValueError(
+            f"EXESS result is missing charge exports: {', '.join(missing)}"
+        )
+    method = getattr(res.calc.qmmbe, "method", None)
+    if isinstance(method, str):
+        out["method"] = method
+    return out
 
 
 def _parse_nnxtb(raw) -> dict:
@@ -253,6 +311,8 @@ _PARSERS = {
     "interaction_energy": _parse_exess,
     "calculate": _parse_exess,
     "qmmm": _parse_exess,
+    "charges": _parse_charges,
+    "esp_charges": _parse_charges,
     "nnxtb": _parse_nnxtb,
     "boltz": _parse_boltz,
     "pbsa": _parse_pbsa,
@@ -314,6 +374,59 @@ def exess_energy(
         )
         return json.dumps(
             {"run_id": str(run.id), "kind": "energy", "method": method, "basis": basis}
+        )
+    except Exception as e:  # noqa: BLE001
+        return _err(e)
+
+
+@mcp.tool()
+def exess_esp_charges(
+    structure_path: str,
+    method: str = "RestrictedKSDFT",
+    basis: str = "cc-pVDZ",
+    aux_basis: str | None = None,
+    functional: str | None = None,
+    gpus: int | None = None,
+    walltime_min: int | None = None,
+    target: str | None = None,
+    name: str = "exess_esp_charges",
+) -> str:
+    """Submit QM partial charges for a LIGAND-ONLY topology. CHELPG is the electrostatic-potential (ESP)
+    fit used as `charges`; Mulliken charges are returned for comparison. The topology supplies protonation
+    and formal charge. Returns a run_id; retrieve arrays with run_collect(run_id, kind='charges')."""
+    bad = _validate(method, aux_basis)
+    if bad:
+        return json.dumps({"error": "invalid_request", "message": bad})
+
+    try:
+        run = exess.energy(
+            structure_path,
+            method=method,
+            basis=basis,
+            frag_keywords=None,
+            export_keywords=exess.ExportKeywords(
+                export_chelpg_charges=True,
+                export_mulliken_charges=True,
+            ),
+            convert_hdf5_to_json=True,
+            run_opts=_opts(name),
+            **_exkw(aux_basis, functional, gpus, walltime_min, target),
+        )
+        return json.dumps(
+            {
+                "run_id": str(run.id),
+                "kind": "charges",
+                "method": method,
+                "basis": basis,
+                "aux_basis": aux_basis,
+                "functional": (
+                    functional
+                    if functional is not None
+                    else ("B3LYP" if method == "RestrictedKSDFT" else None)
+                ),
+                "charge_models": ["CHELPG", "Mulliken"],
+                "next": "run_collect(run_id, kind='charges')",
+            }
         )
     except Exception as e:  # noqa: BLE001
         return _err(e)
@@ -734,7 +847,7 @@ def run_status(run_id: str) -> str:
 @mcp.tool()
 def run_collect(run_id: str, kind: str = "auto", max_wait_seconds: int = 1800) -> str:
     """Wait for a run and return PARSED results (energies in hartree + kcal/mol; affinities; etc.).
-    kind: exess | interaction | optimization | nnxtb | boltz | pbsa | auto (tries each). Timeout is
+    kind: exess | interaction | optimization | charges | nnxtb | boltz | pbsa | auto (tries each). Timeout is
     non-terminal → {'status':'still_running'}. For QM/MM/optimization/fried/boltz raise max_wait_seconds."""
     try:
         raw = _with_retry(rush.collect_run, run_id, max_wait_time=max_wait_seconds)
