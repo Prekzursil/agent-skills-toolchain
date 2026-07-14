@@ -5,6 +5,8 @@
 The MCP server (server.py, in its own venv) invokes this via subprocess so it
 never has to import `schrodinger` directly (which only works under `run`).
 """
+
+import ast
 import sys
 import os
 import json
@@ -14,11 +16,13 @@ def _info(_a):
     out = {"schrodinger_path": os.environ.get("SCHRODINGER", "")}
     try:
         import schrodinger
+
         out["schrodinger_build"] = getattr(schrodinger, "__version__", "n/a")
     except Exception as e:
         out["schrodinger_build"] = "ERR " + repr(e)
     try:
         import rdkit
+
         out["rdkit"] = rdkit.__version__
     except Exception as e:
         out["rdkit"] = "ERR " + repr(e)
@@ -29,6 +33,7 @@ def _smiles_to_3d(a):
     """SMILES -> 3D structure file (.sdf or .mae). 3D via RDKit ETKDGv3 + MMFF."""
     from rdkit import Chem
     from rdkit.Chem import AllChem
+
     smiles, out_path, title = a["smiles"], a["out_path"], a.get("title", "")
     m = Chem.MolFromSmiles(smiles)
     if m is None:
@@ -51,18 +56,24 @@ def _smiles_to_3d(a):
         w.close()
     else:  # .mae / .maegz via schrodinger structure (keeps 3D coords from rdkit)
         from schrodinger.adapter import to_structure
+
         st = to_structure(m)
         if title:
             st.title = title
         st.write(out_path)
-    return {"ok": True, "out_path": out_path, "atoms": m.GetNumAtoms(),
-            "size_bytes": os.path.getsize(out_path)}
+    return {
+        "ok": True,
+        "out_path": out_path,
+        "atoms": m.GetNumAtoms(),
+        "size_bytes": os.path.getsize(out_path),
+    }
 
 
 def _properties(a):
     """Drug-likeness descriptor panel for a SMILES (RDKit)."""
     from rdkit import Chem
     from rdkit.Chem import Descriptors, Crippen, Lipinski, rdMolDescriptors
+
     m = Chem.MolFromSmiles(a["smiles"])
     if m is None:
         return {"error": "invalid SMILES: " + a["smiles"]}
@@ -70,7 +81,10 @@ def _properties(a):
     hbd, hba = Lipinski.NumHDonors(m), Lipinski.NumHAcceptors(m)
     return {
         "formula": rdMolDescriptors.CalcMolFormula(m),
-        "mw": round(mw, 2), "logp": round(logp, 2), "hbd": hbd, "hba": hba,
+        "mw": round(mw, 2),
+        "logp": round(logp, 2),
+        "hbd": hbd,
+        "hba": hba,
         "tpsa": round(Descriptors.TPSA(m), 2),
         "rotatable_bonds": Descriptors.NumRotatableBonds(m),
         "rings": rdMolDescriptors.CalcNumRings(m),
@@ -82,6 +96,7 @@ def _properties(a):
 def _convert(a):
     """Convert any structure file to another format via schrodinger.structure."""
     from schrodinger import structure
+
     src, dst = a["src"], a["dst"]
     n = 0
     with structure.StructureWriter(dst) as w:
@@ -93,8 +108,13 @@ def _convert(a):
 
 def _job_common(j, complete):
     """Shared completed-job fields. `succeeded()` RAISES unless complete, so gate it."""
-    out = {"jobid": j.JobId, "status": j.Status, "is_complete": complete,
-           "program": j.Program, "name": j.Name}
+    out = {
+        "jobid": j.JobId,
+        "status": j.Status,
+        "is_complete": complete,
+        "program": j.Program,
+        "name": j.Name,
+    }
     try:
         out["progress"] = j.getProgressAsString()
     except Exception:
@@ -117,6 +137,7 @@ def _job_common(j, complete):
 def _job_status(a):
     """Read a Job Control job's live status by id (works cross-process via the job server)."""
     from schrodinger.job import jobcontrol as jc
+
     j = jc.Job(a["jobid"])
     j.readAgain()
     return _job_common(j, j.isComplete())
@@ -126,6 +147,7 @@ def _job_wait(a):
     """Poll a Job Control job until it completes or `timeout` (s) elapses."""
     import time
     from schrodinger.job import jobcontrol as jc
+
     timeout = float(a.get("timeout", 600))
     poll = max(1.0, float(a.get("poll", 5)))
     deadline = time.time() + timeout
@@ -146,6 +168,7 @@ def _launch(a):
     For manager scripts (e.g. thermal_mmgbsa.py) that are not themselves
     jobcontrol launchers; jobcontrol-aware drivers self-submit without -WAIT."""
     from schrodinger.job import jobcontrol as jc
+
     job = jc.launch_job(a["argv"], launch_dir=a.get("launch_dir") or None)
     return {"jobid": job.JobId, "name": job.Name, "program": job.Program}
 
@@ -157,6 +180,7 @@ def _trj_analyze(a):
     ligand RMSD after protein fit. Returns per-frame series + summary stats."""
     import numpy as np
     from schrodinger.application.desmond.packages import analysis, traj_util
+
     cms_file = a["cms_file"]
     fit_asl = a.get("fit_asl", 'protein and atom.ptype " CA "')
     lig_asl = a.get("lig_asl") or ""
@@ -169,8 +193,11 @@ def _trj_analyze(a):
         return {"error": f"fit_asl matched 0 atoms: {fit_asl!r}"}
     fit_ref = cms.extract(fit_aids).getXYZ()
     analyzers, keys = [], []
-    analyzers.append(analysis.RMSD(msys, cms, fit_aids, fit_ref,
-                                   fit_aids=fit_aids, fit_ref_pos=fit_ref))
+    analyzers.append(
+        analysis.RMSD(
+            msys, cms, fit_aids, fit_ref, fit_aids=fit_aids, fit_ref_pos=fit_ref
+        )
+    )
     keys.append("protein_ca_rmsd")
     analyzers.append(analysis.RMSF(msys, cms, fit_aids, fit_aids, fit_ref))
     keys.append("protein_ca_rmsf")
@@ -180,30 +207,41 @@ def _trj_analyze(a):
         lig_aids = cms.select_atom(f"({lig_asl}) and not atom.ele H")
         if lig_aids:
             lig_ref = cms.extract(lig_aids).getXYZ()
-            analyzers.append(analysis.RMSD(msys, cms, lig_aids, lig_ref,
-                                           fit_aids=fit_aids, fit_ref_pos=fit_ref))
+            analyzers.append(
+                analysis.RMSD(
+                    msys, cms, lig_aids, lig_ref, fit_aids=fit_aids, fit_ref_pos=fit_ref
+                )
+            )
             keys.append("ligand_rmsd")
     results = analysis.analyze(tr, *analyzers)
     if len(analyzers) == 1:
         results = [results]
-    out = {"cms_file": cms_file, "n_frames": len(tr),
-           "sim_time_ns": round(tr[-1].time / 1000.0, 4) if tr else None,
-           "series": {}, "summary": {}}
+    out = {
+        "cms_file": cms_file,
+        "n_frames": len(tr),
+        "sim_time_ns": round(tr[-1].time / 1000.0, 4) if tr else None,
+        "series": {},
+        "summary": {},
+    }
     for key, series in zip(keys, results):
         arr = np.asarray(series, dtype=float)
         if arr.ndim == 1 and key != "protein_ca_rmsf":  # per-frame series
             out["series"][key] = [round(float(x), 4) for x in arr.tolist()]
-            out["summary"][key] = {"mean": round(float(arr.mean()), 4),
-                                   "min": round(float(arr.min()), 4),
-                                   "max": round(float(arr.max()), 4),
-                                   "last": round(float(arr[-1]), 4)}
+            out["summary"][key] = {
+                "mean": round(float(arr.mean()), 4),
+                "min": round(float(arr.min()), 4),
+                "max": round(float(arr.max()), 4),
+                "last": round(float(arr[-1]), 4),
+            }
         else:  # RMSF = per-atom (mean over frames already)
             flat = arr.ravel()
             out["series"][key] = [round(float(x), 4) for x in flat.tolist()][:2000]
-            out["summary"][key] = {"mean": round(float(flat.mean()), 4),
-                                   "min": round(float(flat.min()), 4),
-                                   "max": round(float(flat.max()), 4),
-                                   "n": int(flat.size)}
+            out["summary"][key] = {
+                "mean": round(float(flat.mean()), 4),
+                "min": round(float(flat.min()), 4),
+                "max": round(float(flat.max()), 4),
+                "n": int(flat.size),
+            }
     return out
 
 
@@ -231,11 +269,13 @@ def _trj_analyze(a):
 
 # ---------- small scisol-graph probes (tolerate value/version drift) ----------
 
+
 def _val_unc(x):
     """Best-effort (value, uncertainty) from a scisol Measurement (.val/.unc) / (val,unc) / float.
     NaN is treated as missing (Measurement.val/.unc can be NaN) so it never leaks into JSON or a
     threshold comparison (NaN compares False and would silently disable a reliability flag)."""
     import math
+
     if x is None:
         return None, None
     if hasattr(x, "val"):
@@ -328,7 +368,7 @@ def _add_fep_edge(g, na, nb):
     NO precomputed atom-mapping, so it is a topological placeholder — verify/complete it in Maestro
     before submitting to fep_plus."""
     try:
-        g.add_edge(na, nb)          # confirmed signature: takes the two Node objects
+        g.add_edge(na, nb)  # confirmed signature: takes the two Node objects
         return True, "Graph.add_edge(node,node)"
     except Exception as ex:
         return False, "add_edge failed: %r" % (ex,)
@@ -344,19 +384,24 @@ def _scisol_fep_graph_cls():
     import importlib
     import pkgutil
     import schrodinger.application.scisol.packages.fep as fep
+
     names = ["submaps", "graph"]
     pkg_dir = os.path.dirname(fep.__file__)
     names += [n for _, n, _ in pkgutil.iter_modules([pkg_dir]) if n not in names]
     for name in names:
         try:
-            m = importlib.import_module("schrodinger.application.scisol.packages.fep." + name)
+            m = importlib.import_module(
+                "schrodinger.application.scisol.packages.fep." + name
+            )
         except Exception:
             continue
         cls = getattr(m, "Graph", None)
         if cls is not None and hasattr(cls, "deserialize"):
             return cls
-    raise ImportError("no scisol FEP Graph class with deserialize() found in "
-                      "schrodinger.application.scisol.packages.fep")
+    raise ImportError(
+        "no scisol FEP Graph class with deserialize() found in "
+        "schrodinger.application.scisol.packages.fep"
+    )
 
 
 def _cycle_closure(edge_list, thresh):
@@ -364,6 +409,7 @@ def _cycle_closure(edge_list, thresh):
     edge closes one independent cycle whose closure residual (edge ddG minus the tree-path ddG sum)
     should be ~0 for a well-converged map. edge_list = [(from_id, to_id, ddg), ...]."""
     from collections import deque
+
     nodes = set()
     for f, t, _d in edge_list:
         nodes.add(f)
@@ -411,11 +457,15 @@ def _cycle_closure(edge_list, thresh):
         h = round(d - ps, 4)  # closure residual around this fundamental cycle (ideal 0)
         cycles.append({"closes": f"{f}->{t}", "hysteresis": h, "flag": abs(h) > thresh})
         worst = abs(h) if worst is None else max(worst, abs(h))
-    return {"n_independent_cycles": len(non_tree), "cycles": cycles[:200],
-            "max_abs_hysteresis": round(worst, 4) if worst is not None else None}
+    return {
+        "n_independent_cycles": len(non_tree),
+        "cycles": cycles[:200],
+        "max_abs_hysteresis": round(worst, 4) if worst is not None else None,
+    }
 
 
 # ---------- fep_map_build backend: inject manual edges + QC the authored graph ----------
+
 
 def _fep_map_qc(a):
     """Load an authored .fmp, inject manual extra_edges, QC connectivity + independent cycles,
@@ -453,10 +503,14 @@ def _fep_map_qc(a):
             edges_added.append([a_id, b_id])
             existing.add(frozenset((a_id, b_id)))
         else:
-            warnings.append("could not add extra_edge %s->%s (%s)" % (a_id, b_id, detail))
+            warnings.append(
+                "could not add extra_edge %s->%s (%s)" % (a_id, b_id, detail)
+            )
     if edges_added:
-        warnings.append("%d manual edge(s) added carry no precomputed atom-mapping — verify them "
-                        "in Maestro's FEP Mapper before submitting to fep_plus" % len(edges_added))
+        warnings.append(
+            "%d manual edge(s) added carry no precomputed atom-mapping — verify them "
+            "in Maestro's FEP Mapper before submitting to fep_plus" % len(edges_added)
+        )
 
     # QC over the (possibly mutated) graph — pure Python union-find, no scisol internals needed.
     ids = [_node_id(n) for n in g.nodes_iter()]
@@ -498,27 +552,46 @@ def _fep_map_qc(a):
     independent_cycles = max(0, n_edges - n_nodes + n_comp)  # cyclomatic number
 
     if budget and n_edges > budget:
-        warnings.append("edge count %d exceeds local GPU budget %d (each edge is ~GPU-hours of "
-                        "FEP; split the map or drop weak perturbations)" % (n_edges, budget))
+        warnings.append(
+            "edge count %d exceeds local GPU budget %d (each edge is ~GPU-hours of "
+            "FEP; split the map or drop weak perturbations)" % (n_edges, budget)
+        )
     if disconnected:
-        warnings.append("%d disconnected/orphan node(s) — FEP+ needs one connected graph: %s"
-                        % (len(disconnected), disconnected[:20]))
+        warnings.append(
+            "%d disconnected/orphan node(s) — FEP+ needs one connected graph: %s"
+            % (len(disconnected), disconnected[:20])
+        )
     if n_nodes and n_comp > 1:
-        warnings.append("graph has %d components; only the largest will give consistent dG" % n_comp)
+        warnings.append(
+            "graph has %d components; only the largest will give consistent dG" % n_comp
+        )
 
     try:
         g.write(out_fmp)
     except Exception as e:
-        return {"error": "graph.write(out_fmp) failed: " + repr(e),
-                "n_nodes": n_nodes, "n_edges": n_edges, "edges_added": edges_added,
-                "disconnected_nodes": disconnected, "warnings": warnings}
-    return {"fmp": out_fmp if os.path.exists(out_fmp) else None,
-            "n_nodes": n_nodes, "n_edges": n_edges, "n_components": n_comp,
-            "independent_cycles": independent_cycles, "disconnected_nodes": disconnected,
-            "edges_added": edges_added, "node_degree": deg, "warnings": warnings}
+        return {
+            "error": "graph.write(out_fmp) failed: " + repr(e),
+            "n_nodes": n_nodes,
+            "n_edges": n_edges,
+            "edges_added": edges_added,
+            "disconnected_nodes": disconnected,
+            "warnings": warnings,
+        }
+    return {
+        "fmp": out_fmp if os.path.exists(out_fmp) else None,
+        "n_nodes": n_nodes,
+        "n_edges": n_edges,
+        "n_components": n_comp,
+        "independent_cycles": independent_cycles,
+        "disconnected_nodes": disconnected,
+        "edges_added": edges_added,
+        "node_degree": deg,
+        "warnings": warnings,
+    }
 
 
 # ---------- fep_parse_results backend: read the -out.fmp into structured results ----------
+
 
 def _fep_parse_results(a):
     """Deserialize a completed FEP map and extract per-edge ddG / per-node dG / cycle-closure /
@@ -537,12 +610,22 @@ def _fep_parse_results(a):
         pv, pu = _val_unc(_first_attr(n, ("pred_dg", "predicted_dg", "ccc_dg")))
         ev, eu = _val_unc(_first_attr(n, ("exp_dg", "experimental_dg")))
         title = _first_attr(n, ("title",))
-        if title is None:  # Node has no .title; the ligand name lives on its structure (ct)
+        if (
+            title is None
+        ):  # Node has no .title; the ligand name lives on its structure (ct)
             st = _first_attr(n, ("struc", "structure", "ct"))
             title = getattr(st, "title", None) if st is not None else None
         node_dg[nid] = pv
-        nodes_out.append({"id": nid, "title": title,
-                          "pred_dg": pv, "pred_dg_unc": pu, "exp_dg": ev, "exp_dg_unc": eu})
+        nodes_out.append(
+            {
+                "id": nid,
+                "title": title,
+                "pred_dg": pv,
+                "pred_dg_unc": pu,
+                "exp_dg": ev,
+                "exp_dg_unc": eu,
+            }
+        )
 
     edges_out, edge_list, recommend = [], [], []
     for e in g.edges_iter():
@@ -556,15 +639,22 @@ def _fep_parse_results(a):
         if ddg is None and cpx is not None and sol is not None:
             ddg = round(cpx - sol, 4)  # ddG_bind = dG_complex - dG_solvent
             if cpx_u is not None and sol_u is not None:
-                ddg_u = round((cpx_u ** 2 + sol_u ** 2) ** 0.5, 4)
+                ddg_u = round((cpx_u**2 + sol_u**2) ** 0.5, 4)
         # overlap / fwd-rev convergence are NOT graph Edge attrs in 2026-2 -> best-effort, usually None.
         overlap = _num(_first_attr(e, ("overlap", "phase_space_overlap")))
         fwd = _num(_first_attr(e, ("forward_ddg", "ddg_forward")))
         rev = _num(_first_attr(e, ("reverse_ddg", "ddg_reverse")))
-        conv = round(abs(fwd - rev), 4) if (fwd is not None and rev is not None) else None
+        conv = (
+            round(abs(fwd - rev), 4) if (fwd is not None and rev is not None) else None
+        )
         resid = None
-        if (f in node_dg and t in node_dg and node_dg.get(f) is not None
-                and node_dg.get(t) is not None and ddg is not None):
+        if (
+            f in node_dg
+            and t in node_dg
+            and node_dg.get(f) is not None
+            and node_dg.get(t) is not None
+            and ddg is not None
+        ):
             resid = round((node_dg[t] - node_dg[f]) - ddg, 4)
 
         reasons = []
@@ -577,23 +667,44 @@ def _fep_parse_results(a):
         if resid is not None and abs(resid) > hyst:
             reasons.append("cycle-closure residual %.2f > %.2f" % (resid, hyst))
 
-        row = {"from": f, "to": t, "short_id": _short_id(e),
-               "ddg": ddg, "ddg_unc": ddg_u, "ccc_ddg": cccddg, "ccc_ddg_unc": cccddg_u,
-               "complex_dg": cpx, "solvent_dg": sol,
-               "overlap": overlap, "fwd_rev_hysteresis": conv,
-               "cycle_closure_residual": resid, "reliable": not reasons}
+        row = {
+            "from": f,
+            "to": t,
+            "short_id": _short_id(e),
+            "ddg": ddg,
+            "ddg_unc": ddg_u,
+            "ccc_ddg": cccddg,
+            "ccc_ddg_unc": cccddg_u,
+            "complex_dg": cpx,
+            "solvent_dg": sol,
+            "overlap": overlap,
+            "fwd_rev_hysteresis": conv,
+            "cycle_closure_residual": resid,
+            "reliable": not reasons,
+        }
         edges_out.append(row)
         if f and t and ddg is not None:
             edge_list.append((f, t, ddg))
         if reasons:
-            recommend.append({"from": f, "to": t, "short_id": row["short_id"], "reasons": reasons})
+            recommend.append(
+                {"from": f, "to": t, "short_id": row["short_id"], "reasons": reasons}
+            )
 
     cc = _cycle_closure(edge_list, hyst)
-    return {"fmp": out_fmp, "n_nodes": len(nodes_out), "n_edges": len(edges_out),
-            "nodes": nodes_out[:500], "edges": edges_out[:1000],
-            "cycle_closure": cc, "recommend_extend": recommend,
-            "thresholds": {"hysteresis_kcal": hyst, "overlap_min": overlap_min,
-                           "ddg_unc_kcal": unc_thresh}}
+    return {
+        "fmp": out_fmp,
+        "n_nodes": len(nodes_out),
+        "n_edges": len(edges_out),
+        "nodes": nodes_out[:500],
+        "edges": edges_out[:1000],
+        "cycle_closure": cc,
+        "recommend_extend": recommend,
+        "thresholds": {
+            "hysteresis_kcal": hyst,
+            "overlap_min": overlap_min,
+            "ddg_unc_kcal": unc_thresh,
+        },
+    }
 
 
 # ============================================================================
@@ -615,8 +726,19 @@ def _fep_parse_results(a):
 # standard terminal X-H cap bond lengths (Angstrom), by the heavy atom being capped
 _QM_XH = {"C": 1.09, "N": 1.01, "O": 0.96, "S": 1.34, "P": 1.42, "B": 1.19}
 # nominal (neutral) valence used by the cluster valence self-check
-_QM_VALENCE = {"H": 1, "C": 4, "N": 3, "O": 2, "S": 2, "P": 3,
-               "F": 1, "Cl": 1, "Br": 1, "I": 1, "B": 3}
+_QM_VALENCE = {
+    "H": 1,
+    "C": 4,
+    "N": 3,
+    "O": 2,
+    "S": 2,
+    "P": 3,
+    "F": 1,
+    "Cl": 1,
+    "Br": 1,
+    "I": 1,
+    "B": 3,
+}
 
 
 def _qm_cluster_extract(a):
@@ -684,7 +806,9 @@ def _qm_cluster_extract(a):
         return int(sum(st.atom[i].formal_charge for i in idxs))
 
     def _mult(idxs, q, ncaps):
-        electrons = sum(st.atom[i].atomic_number for i in idxs) + ncaps  # each cap H adds 1 e
+        electrons = (
+            sum(st.atom[i].atomic_number for i in idxs) + ncaps
+        )  # each cap H adds 1 e
         return 1 if (electrons - q) % 2 == 0 else 2
 
     lig_q, pocket_q = _charge(lig_set), _charge(pocket_set)
@@ -705,9 +829,19 @@ def _qm_cluster_extract(a):
             if nb.index in included:
                 order_sum += border.get(frozenset((i, nb.index)), 1)
         fc = int(at.formal_charge)
-        if order_sum not in (nominal, nominal + fc):   # tolerate charged lone-pair states (N+, O-)
-            anomalies.append({"atom": i, "element": at.element, "order_sum": order_sum,
-                              "nominal": nominal, "formal_charge": fc})
+        if order_sum not in (
+            nominal,
+            nominal + fc,
+        ):  # tolerate charged lone-pair states (N+, O-)
+            anomalies.append(
+                {
+                    "atom": i,
+                    "element": at.element,
+                    "order_sum": order_sum,
+                    "nominal": nominal,
+                    "formal_charge": fc,
+                }
+            )
     valence_ok = (len(lig_caps) + len(pocket_caps) == cut_bonds) and not anomalies
 
     def _write_xyz(path, atoms, comment):
@@ -722,25 +856,52 @@ def _qm_cluster_extract(a):
     pocket_xyz = os.path.join(out_dir, stem + "_pocket.xyz")
     complex_xyz = os.path.join(out_dir, stem + "_complex.xyz")
     _write_xyz(lig_xyz, lig_atoms, f"ligand  q={lig_q} mult={lig_mult}")
-    _write_xyz(pocket_xyz, pocket_atoms,
-               f"pocket(capped)  q={pocket_q} mult={pocket_mult} caps={len(pocket_caps)}")
-    _write_xyz(complex_xyz, complex_atoms, f"complex  q={complex_q} mult={complex_mult}")
+    _write_xyz(
+        pocket_xyz,
+        pocket_atoms,
+        f"pocket(capped)  q={pocket_q} mult={pocket_mult} caps={len(pocket_caps)}",
+    )
+    _write_xyz(
+        complex_xyz, complex_atoms, f"complex  q={complex_q} mult={complex_mult}"
+    )
 
     nL, nP = len(lig_atoms), len(pocket_atoms)
     manifest = {
-        "complex_mae": a["complex_mae"], "ligand_asl": lig_asl, "radius": radius, "cap": a["cap"],
+        "complex_mae": a["complex_mae"],
+        "ligand_asl": lig_asl,
+        "radius": radius,
+        "cap": a["cap"],
         "n_input_structures": len(sts),
-        "n_atoms": {"ligand": nL, "pocket": nP, "complex": nL + nP,
-                    "caps_added": len(lig_caps) + len(pocket_caps)},
+        "n_atoms": {
+            "ligand": nL,
+            "pocket": nP,
+            "complex": nL + nP,
+            "caps_added": len(lig_caps) + len(pocket_caps),
+        },
         "total_charge": {"ligand": lig_q, "pocket": pocket_q, "complex": complex_q},
-        "net_charge_per_fragment": {"ligand": lig_q, "pocket": pocket_q, "complex": complex_q},
-        "multiplicity": {"ligand": lig_mult, "pocket": pocket_mult, "complex": complex_mult},
+        "net_charge_per_fragment": {
+            "ligand": lig_q,
+            "pocket": pocket_q,
+            "complex": complex_q,
+        },
+        "multiplicity": {
+            "ligand": lig_mult,
+            "pocket": pocket_mult,
+            "complex": complex_mult,
+        },
         "fragment_atom_ranges": {"ligand": [1, nL], "pocket": [nL + 1, nL + nP]},
         "cut_bonds": cut_bonds,
-        "valence_check": {"passed": bool(valence_ok),
-                          "caps_equal_cuts": len(lig_caps) + len(pocket_caps) == cut_bonds,
-                          "n_anomalies": len(anomalies), "anomalies": anomalies[:25]},
-        "files": {"ligand_xyz": lig_xyz, "pocket_xyz": pocket_xyz, "complex_xyz": complex_xyz},
+        "valence_check": {
+            "passed": bool(valence_ok),
+            "caps_equal_cuts": len(lig_caps) + len(pocket_caps) == cut_bonds,
+            "n_anomalies": len(anomalies),
+            "anomalies": anomalies[:25],
+        },
+        "files": {
+            "ligand_xyz": lig_xyz,
+            "pocket_xyz": pocket_xyz,
+            "complex_xyz": complex_xyz,
+        },
     }
     manifest_path = os.path.join(out_dir, stem + "_qmcluster.json")
     with open(manifest_path, "w") as fh:
@@ -756,11 +917,17 @@ def _jaguar_in(a):
     genkeys kwarg is applied through setValues() by the constructor (verified input.py:281-322)."""
     from schrodinger import structure
     from schrodinger.application.jaguar.input import JaguarInput
+
     st = next(iter(structure.StructureReader(a["structure_file"])))
     genkeys = {k: str(v) for k, v in (a.get("genkeys") or {}).items()}
     ji = JaguarInput(structure=st, genkeys=genkeys)
     ji.saveAs(a["out_in"])
-    return {"ok": True, "in_file": a["out_in"], "atoms": st.atom_total, "genkeys": genkeys}
+    return {
+        "ok": True,
+        "in_file": a["out_in"],
+        "atoms": st.atom_total,
+        "genkeys": genkeys,
+    }
 
 
 def _jaguar_energy(a):
@@ -768,10 +935,14 @@ def _jaguar_energy(a):
     energy plus gas/solution-phase energies and a `converged` flag (status == OK). Attribute
     names verified against the installed jaguar-v13.2 output.py/results.py."""
     from schrodinger.application.jaguar.output import JaguarOutput
+
     try:
         jo = JaguarOutput(a["out_file"])
     except Exception as e:
-        return {"error": "JaguarOutput parse failed: " + repr(e), "out_file": a["out_file"]}
+        return {
+            "error": "JaguarOutput parse failed: " + repr(e),
+            "out_file": a["out_file"],
+        }
     out = {"ok": True, "out_file": a["out_file"]}
     for attr in ("energy", "gas_phase_energy", "solution_phase_energy"):
         try:
@@ -779,12 +950,14 @@ def _jaguar_energy(a):
         except Exception:
             v = None
         out[attr] = float(v) if isinstance(v, (int, float)) else v
-    try:                                    # status is an int 0/1/2 == UNKNOWN/OK/SPLAT; OK => ok
+    try:  # status is an int 0/1/2 == UNKNOWN/OK/SPLAT; OK => ok
         status = getattr(jo, "status", None)
-        out["converged"] = (status == JaguarOutput.OK) if isinstance(status, int) else None
+        out["converged"] = (
+            (status == JaguarOutput.OK) if isinstance(status, int) else None
+        )
     except Exception:
         out["converged"] = None
-    try:                                    # solvation flag lives on jo.opts in this build
+    try:  # solvation flag lives on jo.opts in this build
         sv = getattr(jo, "solvation", None)
         if sv is None:
             opts = getattr(jo, "opts", None)
@@ -805,11 +978,15 @@ def _jaguar_pka_in(a):
     from schrodinger import structure
     from schrodinger.application.jaguar import input as jaginp
     import schrodinger.infra.mm as mm
+
     st = next(iter(structure.StructureReader(a["structure_file"])))
     out_in = a["out_in"]
-    jaginp.JaguarInput(structure=st).saveAs(out_in)     # bare .in for the site scan
+    jaginp.JaguarInput(structure=st).saveAs(out_in)  # bare .in for the site scan
     sites = []
-    for cand in (os.path.splitext(out_in)[0], out_in):   # driver passes a jobname; try both forms
+    for cand in (
+        os.path.splitext(out_in)[0],
+        out_in,
+    ):  # driver passes a jobname; try both forms
         try:
             found = mm.mmjag_pka_find_sites(cand, False)  # allow_zwit=False
         except Exception:
@@ -817,16 +994,26 @@ def _jaguar_pka_in(a):
         if found:
             sites = [str(s) for s in found]
             break
-    genkeys = {"ipka_prot_deprot": "both", "ipka_solv_opt": "1",
-               "ipka_max_conf": "1", "ipka_csrch_acc": "0",
-               "ipka_lower_cut": "0.0", "ipka_upper_cut": "14.0"}
+    genkeys = {
+        "ipka_prot_deprot": "both",
+        "ipka_solv_opt": "1",
+        "ipka_max_conf": "1",
+        "ipka_csrch_acc": "0",
+        "ipka_lower_cut": "0.0",
+        "ipka_upper_cut": "14.0",
+    }
     if sites:
         genkeys["ipkasites"] = ",".join(sites)
     else:
         genkeys["ipkasearch"] = "all"
     jaginp.JaguarInput(structure=st, genkeys=genkeys).saveAs(out_in)
-    return {"ok": True, "in_file": out_in, "sites": sites, "n_sites": len(sites),
-            "site_mode": "ipkasites" if sites else "ipkasearch"}
+    return {
+        "ok": True,
+        "in_file": out_in,
+        "sites": sites,
+        "n_sites": len(sites),
+        "site_mode": "ipkasites" if sites else "ipkasearch",
+    }
 
 
 def _epik_pka_parse(a):
@@ -844,8 +1031,12 @@ def _epik_pka_parse(a):
 
     out = {"ok": True, "output": a["output"], "structures": []}
     for st in structure.StructureReader(a["output"]):
-        rec = {"title": st.title, "total_charge": int(st.formal_charge),
-               "structure_pka": _pka_props(st.property), "site_pka": []}
+        rec = {
+            "title": st.title,
+            "total_charge": int(st.formal_charge),
+            "structure_pka": _pka_props(st.property),
+            "site_pka": [],
+        }
         for at in st.atom:
             ap = _pka_props(at.property)
             if ap:
@@ -853,7 +1044,7 @@ def _epik_pka_parse(a):
         out["structures"].append(rec)
         if len(out["structures"]) >= 50:
             break
-    if out["structures"]:                       # convenience: surface acidic/basic macro pKa
+    if out["structures"]:  # convenience: surface acidic/basic macro pKa
         for k, v in out["structures"][0]["structure_pka"].items():
             kl = k.lower()
             if "acid" in kl:
@@ -881,6 +1072,7 @@ def _proplist(a):
     Else subset columns by case-insensitive substring, with optional numeric-aware sort_by /
     descending / limit. This is the structure-file counterpart of qikprop_parse_results (CSV)."""
     from schrodinger import structure
+
     src = a["src"]
     props = a.get("properties") or []
     sort_by = a.get("sort_by") or ""
@@ -906,13 +1098,23 @@ def _proplist(a):
         return {"src": src, "n_structures": 0, "property_keys": [], "structures": []}
     all_keys = sorted(keytypes)
     if not props:  # discovery / no-arg mode: list all keys so the caller can pick
-        return {"src": src, "mode": "keys", "n_structures": n, "truncated": truncated,
-                "property_keys": all_keys, "property_types": keytypes,
-                "sample": {k: rows[0].get(k) for k in all_keys}}
+        return {
+            "src": src,
+            "mode": "keys",
+            "n_structures": n,
+            "truncated": truncated,
+            "property_keys": all_keys,
+            "property_types": keytypes,
+            "sample": {k: rows[0].get(k) for k in all_keys},
+        }
     # subset: always keep title/name identifier columns + any key matching a substring
-    id_keys = [k for k in all_keys
-               if k.lower() in ("s_m_title", "s_m_entry_name", "s_m_entry_id")
-               or "title" in k.lower() or "name" in k.lower()]
+    id_keys = [
+        k
+        for k in all_keys
+        if k.lower() in ("s_m_title", "s_m_entry_name", "s_m_entry_id")
+        or "title" in k.lower()
+        or "name" in k.lower()
+    ]
     keep, seen = [], set()
     for k in all_keys:
         if k in seen:
@@ -920,23 +1122,36 @@ def _proplist(a):
         if k in id_keys or any(p.lower() in k.lower() for p in props):
             keep.append(k)
             seen.add(k)
-    table = [dict({"_index": i + 1}, **{k: r.get(k) for k in keep})
-             for i, r in enumerate(rows)]
+    table = [
+        dict({"_index": i + 1}, **{k: r.get(k) for k in keep})
+        for i, r in enumerate(rows)
+    ]
     if sort_by:  # resolve sort_by to an actual kept key (exact, else substring)
         skey = next((k for k in keep if k.lower() == sort_by.lower()), None)
         if skey is None:
             skey = next((k for k in keep if sort_by.lower() in k.lower()), None)
         if skey is not None:
+
             def _key(row):
                 v = row.get(skey)
                 try:
-                    return (0, float(v))  # numeric-aware ordering (scores are r_ floats)
+                    return (
+                        0,
+                        float(v),
+                    )  # numeric-aware ordering (scores are r_ floats)
                 except (TypeError, ValueError):
                     return (1, str(v) if v is not None else "")
+
             table.sort(key=_key, reverse=descending)
-    return {"src": src, "mode": "table", "n_structures": n, "truncated": truncated,
-            "columns": ["_index"] + keep, "sorted_by": sort_by or None,
-            "structures": table[:limit]}
+    return {
+        "src": src,
+        "mode": "table",
+        "n_structures": n,
+        "truncated": truncated,
+        "columns": ["_index"] + keep,
+        "sorted_by": sort_by or None,
+        "structures": table[:limit],
+    }
 
 
 # ============================================================================
@@ -975,6 +1190,7 @@ def _max_ring_oop(mol):
     """Max out-of-plane deviation (A) of any AROMATIC ring from its best-fit plane (RDKit + SVD).
     Returns None if there is no aromatic ring / no 3D conformer."""
     import numpy as np
+
     if mol is None or mol.GetNumConformers() == 0:
         return None
     ri = mol.GetRingInfo()
@@ -984,8 +1200,16 @@ def _max_ring_oop(mol):
         if not all(mol.GetAtomWithIdx(idx).GetIsAromatic() for idx in ring):
             continue
         found = True
-        pts = np.array([[conf.GetAtomPosition(i).x, conf.GetAtomPosition(i).y,
-                         conf.GetAtomPosition(i).z] for i in ring])
+        pts = np.array(
+            [
+                [
+                    conf.GetAtomPosition(i).x,
+                    conf.GetAtomPosition(i).y,
+                    conf.GetAtomPosition(i).z,
+                ]
+                for i in ring
+            ]
+        )
         cen = pts.mean(axis=0)
         # plane normal = last right-singular vector of the centered coords
         _, _, vt = np.linalg.svd(pts - cen)
@@ -1002,11 +1226,14 @@ def _mmff_strain(mol):
     import math
     from rdkit import Chem
     from rdkit.Chem import AllChem
+
     if mol is None or mol.GetNumConformers() == 0:
         return None, None
     try:
         m = Chem.Mol(mol)
-        m = Chem.AddHs(m, addCoords=True)  # no-op if H already explicit; keeps 3D geometry
+        m = Chem.AddHs(
+            m, addCoords=True
+        )  # no-op if H already explicit; keeps 3D geometry
         props = AllChem.MMFFGetMoleculeProperties(m, mmffVariant="MMFF94s")
         if props is None:
             return None, None
@@ -1041,8 +1268,11 @@ def _pose_validity(a):
     from schrodinger import structure, adapter
     from schrodinger.structutils import measure
     from schrodinger.structutils.interactions.steric_clash import (
-        get_steric_clashes, sphere_overlap_volume)
+        get_steric_clashes,
+        sphere_overlap_volume,
+    )
     from rdkit import Chem, RDLogger
+
     RDLogger.DisableLog("rdApp.*")  # keep noise off (rdkit logs stderr, but be tidy)
 
     pv = a["pose_viewer"]
@@ -1079,8 +1309,11 @@ def _pose_validity(a):
             g = st.property.get("r_i_docking_score")
         gs.append(g)
         mm.append(st.property.get("r_psp_MMGBSA_dG_Bind"))
-    consensus_available = (len(poses) >= 3 and all(x is not None for x in gs)
-                           and all(x is not None for x in mm))
+    consensus_available = (
+        len(poses) >= 3
+        and all(x is not None for x in gs)
+        and all(x is not None for x in mm)
+    )
     gs_rank = _rank(gs) if consensus_available else None
     mm_rank = _rank(mm) if consensus_available else None
     cons_thr = max(2, (len(poses) + 1) // 2)
@@ -1143,7 +1376,9 @@ def _pose_validity(a):
             # --- internal steric clash (structutils; exclude 1-4 bonded) ---
             n_internal = None
             try:
-                n_internal = len(get_steric_clashes(lig, cutoff=clash_cutoff, include1_4=False))
+                n_internal = len(
+                    get_steric_clashes(lig, cutoff=clash_cutoff, include1_4=False)
+                )
                 if n_internal:
                     failed.append("internal_clash")
             except Exception as e:
@@ -1196,7 +1431,9 @@ def _pose_validity(a):
                 "internal_clashes": n_internal,
                 "protein_clashes": n_protein,
                 "clash_overlap_volume_A3": overlap_vol,
-                "max_aromatic_ring_oop_A": (round(ring_oop, 3) if ring_oop is not None else None),
+                "max_aromatic_ring_oop_A": (
+                    round(ring_oop, 3) if ring_oop is not None else None
+                ),
                 "bad_bond_lengths": bad_bonds,
                 "glide_gscore": (round(gs[i], 3) if gs[i] is not None else None),
                 "mmgbsa_dg_bind": (round(mm[i], 3) if mm[i] is not None else None),
@@ -1207,8 +1444,16 @@ def _pose_validity(a):
                 row["diagnostics"] = notes
             results.append(row)
         except Exception as e:  # never let one pose kill the batch
-            results.append({"pose": i + 1, "pass": False, "failed_checks": ["exception"],
-                            "strain_kcal": None, "consensus_flag": None, "error": repr(e)[:300]})
+            results.append(
+                {
+                    "pose": i + 1,
+                    "pass": False,
+                    "failed_checks": ["exception"],
+                    "strain_kcal": None,
+                    "consensus_flag": None,
+                    "error": repr(e)[:300],
+                }
+            )
 
     out = {
         "pose_viewer": pv,
@@ -1250,7 +1495,9 @@ def _pose_ifp(a):
     except Exception as e:
         return {"error": f"could not read {pv}: {e!r}"}
     if len(sts) < 2:
-        return {"error": "pose file must contain a receptor (first CT) followed by >=1 ligand pose"}
+        return {
+            "error": "pose file must contain a receptor (first CT) followed by >=1 ligand pose"
+        }
     receptor = sts[0]
     poses = sts[1:]
 
@@ -1294,67 +1541,102 @@ def _pose_ifp(a):
             diagnostics = {}
 
             def _blank(lab):
-                return {"residue": lab, "hbonds": [], "salt_bridges": [], "pi_pi": [],
-                        "pi_cation": [], "hydrophobic": []}
+                return {
+                    "residue": lab,
+                    "hbonds": [],
+                    "salt_bridges": [],
+                    "pi_pi": [],
+                    "pi_cation": [],
+                    "hydrophobic": [],
+                }
 
             def _bump(lab, kind, info):
                 per_res.setdefault(lab, _blank(lab))[kind].append(info)
 
             # --- hydrogen bonds (ligand <-> receptor) ---
             try:
-                for donor, acc in hbond.get_hydrogen_bonds(cx, atoms1=lig_atoms, atoms2=rec_atoms):
+                for donor, acc in hbond.get_hydrogen_bonds(
+                    cx, atoms1=lig_atoms, atoms2=rec_atoms
+                ):
                     rec_at = donor if donor.index <= n_rec else acc
                     role = "donor" if rec_at is donor else "acceptor"
                     dist = measure.measure_distance(donor, acc)
                     ang = _hbond_angle(cx, measure, donor, acc)
-                    _bump(_reslabel(rec_at), "hbonds", {
-                        "receptor_role": role,
-                        "receptor_atom": (rec_at.pdbname or "").strip() or rec_at.element,
-                        "distance": round(dist, 2),
-                        "angle": (round(ang, 1) if ang is not None else None),
-                    })
+                    _bump(
+                        _reslabel(rec_at),
+                        "hbonds",
+                        {
+                            "receptor_role": role,
+                            "receptor_atom": (rec_at.pdbname or "").strip()
+                            or rec_at.element,
+                            "distance": round(dist, 2),
+                            "angle": (round(ang, 1) if ang is not None else None),
+                        },
+                    )
             except Exception as e:
                 diagnostics["hbond_error"] = repr(e)[:200]
 
             # --- salt bridges (InputOrder -> (ligand_atom, receptor_atom)) ---
             try:
                 for al, ar in interactions.get_salt_bridges(
-                        cx, group1=lig_atoms, group2=rec_atoms, order_by=OrderBy.InputOrder):
-                    _bump(_reslabel(ar), "salt_bridges", {
-                        "receptor_atom": (ar.pdbname or "").strip() or ar.element,
-                        "ligand_atom": (al.pdbname or "").strip() or al.element,
-                        "distance": round(measure.measure_distance(al, ar), 2),
-                    })
+                    cx, group1=lig_atoms, group2=rec_atoms, order_by=OrderBy.InputOrder
+                ):
+                    _bump(
+                        _reslabel(ar),
+                        "salt_bridges",
+                        {
+                            "receptor_atom": (ar.pdbname or "").strip() or ar.element,
+                            "ligand_atom": (al.pdbname or "").strip() or al.element,
+                            "distance": round(measure.measure_distance(al, ar), 2),
+                        },
+                    )
             except Exception as e:
                 diagnostics["salt_bridge_error"] = repr(e)[:200]
 
             # --- pi-pi (ring1 = ligand, ring2 = receptor) ---
             try:
                 for pp in interactions.find_pi_pi_interactions(
-                        cx, atoms1=lig_atoms, atoms2=rec_atoms):
+                    cx, atoms1=lig_atoms, atoms2=rec_atoms
+                ):
                     rlab = _reslabel(cx.atom[pp.ring2.atoms[0]])
-                    _bump(rlab, "pi_pi", {
-                        "type": ("face-to-face" if pp.face_to_face else "edge-to-face"),
-                        "distance": round(pp.distance, 2),
-                        "angle": round(pp.angle, 1),
-                    })
+                    _bump(
+                        rlab,
+                        "pi_pi",
+                        {
+                            "type": (
+                                "face-to-face" if pp.face_to_face else "edge-to-face"
+                            ),
+                            "distance": round(pp.distance, 2),
+                            "angle": round(pp.angle, 1),
+                        },
+                    )
             except Exception as e:
                 diagnostics["pi_pi_error"] = repr(e)[:200]
 
             # --- pi-cation (either side can carry the cation) ---
             try:
                 for pc in interactions.find_pi_cation_interactions(
-                        cx, atoms1=lig_atoms, atoms2=rec_atoms):
+                    cx, atoms1=lig_atoms, atoms2=rec_atoms
+                ):
                     cation_idx = pc.cation_centroid.atoms[0]
-                    if cation_idx <= n_rec:  # receptor Arg/Lys/His cation -> ligand ring
+                    if (
+                        cation_idx <= n_rec
+                    ):  # receptor Arg/Lys/His cation -> ligand ring
                         lab, rrole = _reslabel(cx.atom[cation_idx]), "cation"
                     else:  # ligand cation (e.g. phenibut NH3+) -> receptor aromatic ring
-                        lab, rrole = _reslabel(cx.atom[pc.pi_centroid.atoms[0]]), "aromatic"
-                    _bump(lab, "pi_cation", {
-                        "receptor_role": rrole,
-                        "distance": round(pc.distance, 2),
-                        "angle": round(pc.angle, 1),
-                    })
+                        lab, rrole = (
+                            _reslabel(cx.atom[pc.pi_centroid.atoms[0]]),
+                            "aromatic",
+                        )
+                    _bump(
+                        lab,
+                        "pi_cation",
+                        {
+                            "receptor_role": rrole,
+                            "distance": round(pc.distance, 2),
+                            "angle": round(pc.angle, 1),
+                        },
+                    )
             except Exception as e:
                 diagnostics["pi_cation_error"] = repr(e)[:200]
 
@@ -1380,7 +1662,11 @@ def _pose_ifp(a):
                                         if d < hyd[lab][0]:
                                             hyd[lab][0] = d
                     for lab, (mind, cnt) in hyd.items():
-                        _bump(lab, "hydrophobic", {"min_distance": round(mind, 2), "contacts": cnt})
+                        _bump(
+                            lab,
+                            "hydrophobic",
+                            {"min_distance": round(mind, 2), "contacts": cnt},
+                        )
             except Exception as e:
                 diagnostics["hydrophobic_error"] = repr(e)[:200]
 
@@ -1402,7 +1688,12 @@ def _pose_ifp(a):
         except Exception as e:  # never let one pose kill the batch
             results.append({"pose": i + 1, "error": repr(e)[:300]})
 
-    return {"pose_maegz": pv, "recept_asl": recept_asl, "n_poses": len(poses), "poses": results}
+    return {
+        "pose_maegz": pv,
+        "recept_asl": recept_asl,
+        "n_poses": len(poses),
+        "poses": results,
+    }
 
 
 # ============================================================================
@@ -1427,10 +1718,13 @@ def _pose_viewer_split(a):
     if mode not in ("complex", "ligand", "receptor"):
         return {"error": "mode must be complex|ligand|receptor"}
     from schrodinger import structure
+
     os.makedirs(out_dir, exist_ok=True)
     sts = list(structure.StructureReader(pv))
     if len(sts) < 2:
-        return {"error": f"not a pose-viewer (need receptor + >=1 pose; got {len(sts)} structures)"}
+        return {
+            "error": f"not a pose-viewer (need receptor + >=1 pose; got {len(sts)} structures)"
+        }
     receptor, poses = sts[0], sts[1:]
     stem = os.path.splitext(os.path.basename(pv))[0]
     if stem.endswith("_pv"):
@@ -1438,30 +1732,162 @@ def _pose_viewer_split(a):
     if mode == "receptor":
         dest = os.path.join(out_dir, stem + "_receptor.maegz")
         receptor.write(dest)
-        return {"ok": True, "mode": mode, "n_poses": len(poses), "n_files": 1,
-                "files": [dest], "receptor_title": receptor.title}
+        return {
+            "ok": True,
+            "mode": mode,
+            "n_poses": len(poses),
+            "n_files": 1,
+            "files": [dest],
+            "receptor_title": receptor.title,
+        }
     files, entries = [], []
     for i, lig in enumerate(poses, start=1):
         if mode == "complex":
             dest = os.path.join(out_dir, f"{stem}_pose{i}_pv.maegz")
             with structure.StructureWriter(dest) as w:
-                w.append(receptor)   # receptor first, ligand last = single-pose pose-viewer
+                w.append(
+                    receptor
+                )  # receptor first, ligand last = single-pose pose-viewer
                 w.append(lig)
         else:  # ligand
             dest = os.path.join(out_dir, f"{stem}_pose{i}_lig.maegz")
             lig.write(dest)
         files.append(dest)
         entries.append({"pose": i, "title": lig.title, "file": dest})
-    return {"ok": True, "mode": mode, "receptor_title": receptor.title,
-            "n_poses": len(poses), "n_files": len(files), "files": files, "poses": entries}
+    return {
+        "ok": True,
+        "mode": mode,
+        "receptor_title": receptor.title,
+        "n_poses": len(poses),
+        "n_files": len(files),
+        "files": files,
+        "poses": entries,
+    }
+
+
+def _parse_property_filter(property_filter):
+    """Parse the documented numeric/boolean descriptor expression without executable code."""
+    if len(property_filter) > 500:
+        raise ValueError("invalid property_filter (max 500 chars)")
+    try:
+        filter_expr = ast.parse(property_filter, mode="eval")
+    except (SyntaxError, ValueError) as exc:
+        detail = getattr(exc, "msg", str(exc))
+        raise ValueError(f"invalid property_filter syntax: {detail}") from exc
+
+    allowed_nodes = (
+        ast.Expression,
+        ast.BoolOp,
+        ast.BinOp,
+        ast.UnaryOp,
+        ast.Compare,
+        ast.Name,
+        ast.Constant,
+        ast.Load,
+        ast.And,
+        ast.Or,
+        ast.Not,
+        ast.UAdd,
+        ast.USub,
+        ast.Add,
+        ast.Sub,
+        ast.Mult,
+        ast.Div,
+        ast.FloorDiv,
+        ast.Mod,
+        ast.Eq,
+        ast.NotEq,
+        ast.Lt,
+        ast.LtE,
+        ast.Gt,
+        ast.GtE,
+    )
+    filter_nodes = list(ast.walk(filter_expr))
+    if len(filter_nodes) > 100:
+        raise ValueError("invalid property_filter (max 100 syntax nodes)")
+    descriptor_names = {"mw", "logp", "hbd", "hba", "tpsa", "rotb", "rings", "qed"}
+    for node in filter_nodes:
+        if not isinstance(node, allowed_nodes):
+            raise ValueError(
+                "unsupported property_filter syntax: " + type(node).__name__
+            )
+        if isinstance(node, ast.Name) and node.id not in descriptor_names:
+            raise ValueError(f"unknown property_filter descriptor: {node.id}")
+        if isinstance(node, ast.Constant) and type(node.value) not in (
+            bool,
+            int,
+            float,
+        ):
+            raise ValueError("property_filter constants must be numeric or boolean")
+    return filter_expr.body
+
+
+def _eval_property_filter(node, values):
+    """Evaluate a node already accepted by _parse_property_filter."""
+    if isinstance(node, ast.Constant):
+        return node.value
+    if isinstance(node, ast.Name):
+        return values[node.id]
+    if isinstance(node, ast.BoolOp):
+        result = _eval_property_filter(node.values[0], values)
+        for value in node.values[1:]:
+            if isinstance(node.op, ast.And):
+                if not result:
+                    return result
+            elif result:
+                return result
+            result = _eval_property_filter(value, values)
+        return result
+    if isinstance(node, ast.UnaryOp):
+        operand = _eval_property_filter(node.operand, values)
+        if isinstance(node.op, ast.Not):
+            return not bool(operand)
+        if isinstance(node.op, ast.UAdd):
+            return +operand
+        return -operand
+    if isinstance(node, ast.BinOp):
+        left = _eval_property_filter(node.left, values)
+        right = _eval_property_filter(node.right, values)
+        if isinstance(node.op, ast.Add):
+            return left + right
+        if isinstance(node.op, ast.Sub):
+            return left - right
+        if isinstance(node.op, ast.Mult):
+            return left * right
+        if isinstance(node.op, ast.Div):
+            return left / right
+        if isinstance(node.op, ast.FloorDiv):
+            return left // right
+        return left % right
+    if isinstance(node, ast.Compare):
+        left = _eval_property_filter(node.left, values)
+        for op, comparator in zip(node.ops, node.comparators):
+            right = _eval_property_filter(comparator, values)
+            if isinstance(op, ast.Eq):
+                passed = left == right
+            elif isinstance(op, ast.NotEq):
+                passed = left != right
+            elif isinstance(op, ast.Lt):
+                passed = left < right
+            elif isinstance(op, ast.LtE):
+                passed = left <= right
+            elif isinstance(op, ast.Gt):
+                passed = left > right
+            else:
+                passed = left >= right
+            if not passed:
+                return False
+            left = right
+        return True
+    raise ValueError("unsupported property_filter syntax")
 
 
 def _reaction_enumerate(a):
     """Combinatorial R-group / reaction enumeration from a reaction SMARTS + one reagent file per
     reactant slot, via bundled RDKit. Dedups by canonical SMILES, applies an optional descriptor
     filter, caps at max_products, writes products to .sdf (default) or .smi."""
-    import itertools
     import gzip
+    import itertools
     from rdkit import Chem
     from rdkit.Chem import AllChem, Descriptors, Crippen, Lipinski, rdMolDescriptors
 
@@ -1486,13 +1912,17 @@ def _reaction_enumerate(a):
                     mols.append(m)
         elif low.endswith((".mae", ".maegz", ".mae.gz")):
             from schrodinger import structure
+
             # Use the high-level bundled-RDKit adapter (all kwargs defaulted). The raw
             # schrodinger.adapter.to_rdkit REQUIRES a second options object, so calling it
             # bare raises TypeError; rdkit_adapter.to_rdkit builds those options internally.
             from schrodinger.rdkit.rdkit_adapter import to_rdkit
+
             for st in structure.StructureReader(path):
                 try:
-                    m = to_rdkit(st, implicitH=True)  # implicit H => matches SMILES-derived reagents
+                    m = to_rdkit(
+                        st, implicitH=True
+                    )  # implicit H => matches SMILES-derived reagents
                 except Exception:
                     m = None
                 if m is not None:
@@ -1518,8 +1948,10 @@ def _reaction_enumerate(a):
         return {"error": f"could not parse reaction SMARTS: {core_smarts!r}"}
     n_slots = rxn.GetNumReactantTemplates()
     if n_slots != len(reagent_files):
-        return {"error": f"reaction has {n_slots} reactant slot(s) but "
-                         f"{len(reagent_files)} reagent file(s) given"}
+        return {
+            "error": f"reaction has {n_slots} reactant slot(s) but "
+            f"{len(reagent_files)} reagent file(s) given"
+        }
     reagents = []
     for f in reagent_files:
         ms = _read_reagents(f)
@@ -1527,29 +1959,30 @@ def _reaction_enumerate(a):
             return {"error": f"no valid reagents read from {f}"}
         reagents.append(ms)
 
-    # Descriptor filter sandbox (defense-in-depth on top of the empty-builtins eval): allow only
-    # descriptor names / numbers / operators, and reject dunder/import/lambda/** (attribute-escape
-    # + big-int DoS) and over-long expressions. ns holds only floats/ints, so with no builtins and
-    # no dunders there is no reachable object graph to escape through.
+    # Calls, attributes, indexing, comprehensions, and all other executable forms are rejected.
+    filter_expr = None
     if property_filter:
-        _allowed = set("abcdefghijklmnopqrstuvwxyz0123456789_. \t<>=!+-*/%()")
-        _bad = set(property_filter.lower()) - _allowed
-        if _bad:
-            return {"error": f"unsafe property_filter chars: {sorted(_bad)}"}
-        if len(property_filter) > 500 or any(t in property_filter
-                                             for t in ("__", "import", "lambda", "**")):
-            return {"error": "unsafe property_filter (no dunder/import/lambda/**, max 500 chars)"}
+        try:
+            filter_expr = _parse_property_filter(property_filter)
+        except ValueError as exc:
+            return {"error": str(exc)}
 
     def _passes(mol):
-        if not property_filter:
+        if filter_expr is None:
             return True
-        ns = {"mw": Descriptors.MolWt(mol), "logp": Crippen.MolLogP(mol),
-              "hbd": Lipinski.NumHDonors(mol), "hba": Lipinski.NumHAcceptors(mol),
-              "tpsa": Descriptors.TPSA(mol), "rotb": Descriptors.NumRotatableBonds(mol),
-              "rings": rdMolDescriptors.CalcNumRings(mol), "qed": Descriptors.qed(mol)}
+        ns = {
+            "mw": Descriptors.MolWt(mol),
+            "logp": Crippen.MolLogP(mol),
+            "hbd": Lipinski.NumHDonors(mol),
+            "hba": Lipinski.NumHAcceptors(mol),
+            "tpsa": Descriptors.TPSA(mol),
+            "rotb": Descriptors.NumRotatableBonds(mol),
+            "rings": rdMolDescriptors.CalcNumRings(mol),
+            "qed": Descriptors.qed(mol),
+        }
         try:
-            return bool(eval(property_filter, {"__builtins__": {}}, ns))  # noqa: S307 (sandboxed)
-        except Exception:
+            return bool(_eval_property_filter(filter_expr, ns))
+        except (ArithmeticError, TypeError, ValueError):
             return False
 
     seen, products = set(), []
@@ -1574,7 +2007,9 @@ def _reaction_enumerate(a):
                     continue
                 seen.add(smi)
                 names = [r.GetProp("_Name") for r in combo if r.HasProp("_Name")]
-                prod.SetProp("_Name", "_".join(names) if names else f"prod{len(products) + 1}")
+                prod.SetProp(
+                    "_Name", "_".join(names) if names else f"prod{len(products) + 1}"
+                )
                 products.append(prod)
                 if len(products) >= max_products:
                     done = True
@@ -1585,8 +2020,11 @@ def _reaction_enumerate(a):
             break
 
     if not products:
-        return {"error": "no products generated (check that the reaction SMARTS atom-mapping "
-                         "matches the reagents)", "combos_tried": combos_tried}
+        return {
+            "error": "no products generated (check that the reaction SMARTS atom-mapping "
+            "matches the reagents)",
+            "combos_tried": combos_tried,
+        }
 
     os.makedirs(os.path.dirname(out_file) or ".", exist_ok=True)
     low = out_file.lower()
@@ -1603,11 +2041,17 @@ def _reaction_enumerate(a):
                 pass
             w.write(m)
         w.close()
-    return {"ok": True, "out_file": out_file, "n_products": len(products),
-            "n_reactant_slots": n_slots, "reagent_counts": [len(r) for r in reagents],
-            "combos_tried": combos_tried, "capped": len(products) >= max_products,
-            "combo_limit_hit": combos_tried > max_combos,
-            "size_bytes": os.path.getsize(out_file) if os.path.exists(out_file) else 0}
+    return {
+        "ok": True,
+        "out_file": out_file,
+        "n_products": len(products),
+        "n_reactant_slots": n_slots,
+        "reagent_counts": [len(r) for r in reagents],
+        "combos_tried": combos_tried,
+        "capped": len(products) >= max_products,
+        "combo_limit_hit": combos_tried > max_combos,
+        "size_bytes": os.path.getsize(out_file) if os.path.exists(out_file) else 0,
+    }
 
 
 def _mmod_confsearch(a):
@@ -1617,6 +2061,7 @@ def _mmod_confsearch(a):
     (ComUtil.mcmm only serializes the names into the .com; it never opens the input itself)."""
     from schrodinger import structure
     from schrodinger.application.macromodel import utils as mmod_utils
+
     input_mae = a["input_mae"]
     out_mae = a["out_mae"]
     ffld = a.get("ffld", "OPLS4")
@@ -1652,14 +2097,23 @@ def _mmod_confsearch(a):
         mcu.solv = True
         mcu.SOLV[2] = 9
     else:
-        return {"error": f"unsupported solvent {solvent!r}; use Water|None|CHCl3|Octanol"}
+        return {
+            "error": f"unsupported solvent {solvent!r}; use Water|None|CHCl3|Octanol"
+        }
     if mcu.solv:
         mcu.exnb = True  # extended nonbonded list, recommended with a GB/SA continuum
     out_base = os.path.basename(out_mae)
     com_file = os.path.join(wd, job + ".com")
     written = mcu.mcmm(mae_file=in_base, com_file=com_file, out_file=out_base)
-    return {"ok": True, "com_file": written, "jobname": job, "wd": wd,
-            "staged_input": staged, "n_input": n, "expected_out": os.path.join(wd, out_base)}
+    return {
+        "ok": True,
+        "com_file": written,
+        "jobname": job,
+        "wd": wd,
+        "staged_input": staged,
+        "n_input": n,
+        "expected_out": os.path.join(wd, out_base),
+    }
 
 
 # ============================================================================
@@ -1699,6 +2153,7 @@ def _trj_interactions(a):
     hydrophobic) contacts, plus compact per-frame contact counts. Needs a completed
     -out.cms (its sibling _trj is auto-found by read_cms_and_traj)."""
     from schrodinger.application.desmond.packages import analysis, traj_util
+
     cms_file = a["cms_file"]
     prot_asl = a.get("prot_asl") or "protein"
     lig_asl = a.get("lig_asl") or "not protein and not water and not ion"
@@ -1721,10 +2176,16 @@ def _trj_interactions(a):
         return {"error": "trajectory has 0 frames", "cms_file": cms_file}
 
     # ProtLigInter result-key -> stable interaction-type label (verified vs 2026-2 source).
-    TYPES = {"HBondResult": "hbond", "PiPiResult": "pi_pi",
-             "PiCatResult": "pi_cation", "PolarResult": "salt_bridge",
-             "MetalResult": "metal", "WaterBridgeResult": "water_bridge",
-             "HalogenBondResult": "halogen_bond", "HydrophobicResult": "hydrophobic"}
+    TYPES = {
+        "HBondResult": "hbond",
+        "PiPiResult": "pi_pi",
+        "PiCatResult": "pi_cation",
+        "PolarResult": "salt_bridge",
+        "MetalResult": "metal",
+        "WaterBridgeResult": "water_bridge",
+        "HalogenBondResult": "halogen_bond",
+        "HydrophobicResult": "hydrophobic",
+    }
 
     def _res_label(aid):
         # Receptor-residue key "chain:RESNAME_resnum" from the full-system cms atom
@@ -1745,15 +2206,17 @@ def _trj_interactions(a):
 
     counts = {t: [0] * n for t in TYPES.values()}
     counts["total"] = [0] * n
-    present = {}     # (residue, type) -> number of frames the contact is present
-    res_any = {}     # residue -> number of frames with any contact
+    present = {}  # (residue, type) -> number of frames the contact is present
+    res_any = {}  # residue -> number of frames with any contact
     for fi, fr in enumerate(frames):
         seen_res = set()
         for key, items in (fr or {}).items():
             typ = TYPES.get(key)
             if not typ or not items:
                 continue
-            residues = set()  # dedupe multiple same-type contacts to one residue / frame
+            residues = (
+                set()
+            )  # dedupe multiple same-type contacts to one residue / frame
             for item in items:
                 aid = _recv_aid(item)
                 if aid is None:
@@ -1770,25 +2233,36 @@ def _trj_interactions(a):
         for res in seen_res:
             res_any[res] = res_any.get(res, 0) + 1
 
-    persistence = [{"residue": r, "type": t, "frames_present": c,
-                    "persistence": round(c / n, 4)}
-                   for (r, t), c in present.items()]
-    persistence.sort(key=lambda d: (d["persistence"], d["frames_present"]), reverse=True)
+    persistence = [
+        {"residue": r, "type": t, "frames_present": c, "persistence": round(c / n, 4)}
+        for (r, t), c in present.items()
+    ]
+    persistence.sort(
+        key=lambda d: (d["persistence"], d["frames_present"]), reverse=True
+    )
     by_residue = {}
     for (r, t), c in present.items():
         by_residue.setdefault(r, {})[t] = round(c / n, 4)
     for r, c in res_any.items():
         by_residue.setdefault(r, {})["any"] = round(c / n, 4)
 
-    return {"cms_file": cms_file, "n_frames": n,
-            "sim_time_ns": round(tr[-1].time / 1000.0, 4) if tr else None,
-            "prot_asl": prot_asl, "lig_asl": lig_asl, "metal_asl": metal_asl,
-            "per_frame_counts": counts,
-            "persistence": persistence[:top],
-            "by_residue": by_residue,
-            "summary": {"n_frames": n, "n_contacts": len(persistence),
-                        "n_residues": len(by_residue),
-                        "top_contacts": persistence[:15]}}
+    return {
+        "cms_file": cms_file,
+        "n_frames": n,
+        "sim_time_ns": round(tr[-1].time / 1000.0, 4) if tr else None,
+        "prot_asl": prot_asl,
+        "lig_asl": lig_asl,
+        "metal_asl": metal_asl,
+        "per_frame_counts": counts,
+        "persistence": persistence[:top],
+        "by_residue": by_residue,
+        "summary": {
+            "n_frames": n,
+            "n_contacts": len(persistence),
+            "n_residues": len(by_residue),
+            "top_contacts": persistence[:15],
+        },
+    }
 
 
 # ============================================================================
@@ -1820,7 +2294,9 @@ def _cns_mpo(a):
             return 0.0
         return (bad - x) / (bad - good)
 
-    def _hump(x, a0, a1, b1, b0):  # 0 below a0, rise to 1 at a1, plateau to b1, fall to 0 at b0
+    def _hump(
+        x, a0, a1, b1, b0
+    ):  # 0 below a0, rise to 1 at a1, plateau to b1, fall to 0 at b0
         if x <= a0 or x >= b0:
             return 0.0
         if x < a1:
@@ -1840,6 +2316,7 @@ def _cns_mpo(a):
     mols = []  # (title, smiles, rdkit_mol)
     if a.get("structure_file"):
         from schrodinger import structure, adapter
+
         for i, st in enumerate(structure.StructureReader(a["structure_file"])):
             title = st.title or ("mol_%d" % (i + 1))
             rm = None
@@ -1847,7 +2324,9 @@ def _cns_mpo(a):
                 rm = adapter.to_rdkit(st)
             except Exception:
                 rm = None
-            if rm is None:  # fall back via a canonical SMILES (structutils.smiles is retired in 2026-2)
+            if (
+                rm is None
+            ):  # fall back via a canonical SMILES (structutils.smiles is retired in 2026-2)
                 try:
                     rm = Chem.MolFromSmiles(adapter.to_smiles(st))
                 except Exception:
@@ -1867,7 +2346,9 @@ def _cns_mpo(a):
     out = []
     for title, smi, m in mols:
         if m is None:
-            out.append({"title": title, "smiles": smi, "error": "invalid/unreadable molecule"})
+            out.append(
+                {"title": title, "smiles": smi, "error": "invalid/unreadable molecule"}
+            )
             continue
         clogp = Crippen.MolLogP(m)
         mw = Descriptors.MolWt(m)
@@ -1877,26 +2358,47 @@ def _cns_mpo(a):
         qed = Descriptors.qed(m)
         clogd, approx = _logd(clogp, pkas.get(title))
         approx_any = approx_any or approx
-        comp = {"clogp": round(_dec(clogp, 3.0, 5.0), 3), "clogd": round(_dec(clogd, 2.0, 4.0), 3),
-                "mw": round(_dec(mw, 360.0, 500.0), 3), "hbd": round(_dec(hbd, 0.5, 3.5), 3),
-                "tpsa": round(_hump(tpsa, 20.0, 40.0, 90.0, 120.0), 3)}
+        comp = {
+            "clogp": round(_dec(clogp, 3.0, 5.0), 3),
+            "clogd": round(_dec(clogd, 2.0, 4.0), 3),
+            "mw": round(_dec(mw, 360.0, 500.0), 3),
+            "hbd": round(_dec(hbd, 0.5, 3.5), 3),
+            "tpsa": round(_hump(tpsa, 20.0, 40.0, 90.0, 120.0), 3),
+        }
         mpo = sum(comp.values())
-        out.append({"title": title, "smiles": Chem.MolToSmiles(m) if smi is None else smi,
-                    "mw": round(mw, 2), "clogp": round(clogp, 2), "clogd": round(clogd, 2),
-                    "tpsa": round(tpsa, 2), "hbd": hbd, "hba": hba, "qed": round(qed, 3),
-                    "cns_mpo": round(mpo, 3), "cns_mpo_max": 5.0, "components": comp,
-                    "clogd_approximated": approx, "pass": bool((mpo / 5.0) >= thr)})
-    return {"n": len(out), "mpo_norm_min": thr,
-            "note": "5-parameter CNS-MPO surrogate (pKa term omitted; RDKit has no pKa). "
-                    "ClogD approximated from ClogP unless per-title 'pkas' supplied."
-                    + (" Some ClogD values are approximated." if approx_any else ""),
-            "molecules": out}
+        out.append(
+            {
+                "title": title,
+                "smiles": Chem.MolToSmiles(m) if smi is None else smi,
+                "mw": round(mw, 2),
+                "clogp": round(clogp, 2),
+                "clogd": round(clogd, 2),
+                "tpsa": round(tpsa, 2),
+                "hbd": hbd,
+                "hba": hba,
+                "qed": round(qed, 3),
+                "cns_mpo": round(mpo, 3),
+                "cns_mpo_max": 5.0,
+                "components": comp,
+                "clogd_approximated": approx,
+                "pass": bool((mpo / 5.0) >= thr),
+            }
+        )
+    return {
+        "n": len(out),
+        "mpo_norm_min": thr,
+        "note": "5-parameter CNS-MPO surrogate (pKa term omitted; RDKit has no pKa). "
+        "ClogD approximated from ClogP unless per-title 'pkas' supplied."
+        + (" Some ClogD values are approximated." if approx_any else ""),
+        "molecules": out,
+    }
 
 
 def _pv_scores(a):
     """Best Glide score per ligand title from a pose file (a *_pv.maegz / poses maegz). Skips the
     receptor entry (no score property); keeps the minimum (best) r_i_glide_gscore per title."""
     from schrodinger import structure
+
     prop = a.get("score_prop", "r_i_glide_gscore")
     alt = "r_i_docking_score"
     best, n_poses = {}, 0
@@ -1912,15 +2414,20 @@ def _pv_scores(a):
         if title not in best or s < best[title]:
             best[title] = s
     ranked = sorted(best.items(), key=lambda kv: kv[1])
-    return {"n_titles": len(best), "n_poses": n_poses, "score_prop": prop,
-            "scores": {t: round(s, 4) for t, s in best.items()},
-            "ranked_titles": [t for t, _ in ranked]}
+    return {
+        "n_titles": len(best),
+        "n_poses": n_poses,
+        "score_prop": prop,
+        "scores": {t: round(s, 4) for t, s in best.items()},
+        "ranked_titles": [t for t, _ in ranked],
+    }
 
 
 def _write_subset(a):
     """Write structures whose title is in `titles` from `src` to `dst` (format from dst suffix)."""
     import os
     from schrodinger import structure
+
     keep = set(a["titles"])
     n = 0
     with structure.StructureWriter(a["dst"]) as w:
@@ -1928,8 +2435,11 @@ def _write_subset(a):
             if (st.title or "") in keep:
                 w.append(st)
                 n += 1
-    return {"dst": a["dst"], "n_written": n,
-            "size_bytes": os.path.getsize(a["dst"]) if os.path.exists(a["dst"]) else 0}
+    return {
+        "dst": a["dst"],
+        "n_written": n,
+        "size_bytes": os.path.getsize(a["dst"]) if os.path.exists(a["dst"]) else 0,
+    }
 
 
 def _enumerate_analogs(a):
@@ -1939,16 +2449,26 @@ def _enumerate_analogs(a):
     canonical SMILES, capped by `max_products`) plus the all-H parent (title 'parent')."""
     import itertools
     from rdkit import Chem
+
     core_smi = a["core_smiles"]
     core = Chem.MolFromSmiles(core_smi)
     if core is None:
         return {"error": "invalid core_smiles: %r" % core_smi}
-    maps = sorted({at.GetAtomMapNum() for at in core.GetAtoms()
-                   if at.GetSymbol() == "*" and at.GetAtomMapNum() > 0})
+    maps = sorted(
+        {
+            at.GetAtomMapNum()
+            for at in core.GetAtoms()
+            if at.GetSymbol() == "*" and at.GetAtomMapNum() > 0
+        }
+    )
     if not maps:
-        return {"error": "core_smiles has no attachment dummies [*:n] (e.g. 'c1ccccc1[*:1]')"}
+        return {
+            "error": "core_smiles has no attachment dummies [*:n] (e.g. 'c1ccccc1[*:1]')"
+        }
     if not hasattr(Chem, "molzip"):
-        return {"error": "bundled RDKit lacks Chem.molzip (need >=2020.09) for enumeration"}
+        return {
+            "error": "bundled RDKit lacks Chem.molzip (need >=2020.09) for enumeration"
+        }
     rgroups = a.get("rgroups") or {}
     cap = int(a.get("max_products", 5000))
 
@@ -1995,17 +2515,35 @@ def _enumerate_analogs(a):
         seen.add(smi)
         is_parent = all(_is_h(s) for s in combo)
         idx += 1
-        products.append({"title": "parent" if is_parent else "an_%04d" % idx, "smiles": smi,
-                         "rgroups": {str(mn): (s if not _is_h(s) else "[H]")
-                                     for mn, s in zip(maps, combo)},
-                         "is_parent": is_parent})
+        products.append(
+            {
+                "title": "parent" if is_parent else "an_%04d" % idx,
+                "smiles": smi,
+                "rgroups": {
+                    str(mn): (s if not _is_h(s) else "[H]")
+                    for mn, s in zip(maps, combo)
+                },
+                "is_parent": is_parent,
+            }
+        )
     if not any(p["is_parent"] for p in products):
         psmi = _build(["[H]"] * len(maps))
         if psmi and psmi not in seen:
-            products.insert(0, {"title": "parent", "smiles": psmi,
-                                "rgroups": {str(mn): "[H]" for mn in maps}, "is_parent": True})
-    return {"n": len(products), "attachment_points": list(maps),
-            "truncated": truncated, "molecules": products}
+            products.insert(
+                0,
+                {
+                    "title": "parent",
+                    "smiles": psmi,
+                    "rgroups": {str(mn): "[H]" for mn in maps},
+                    "is_parent": True,
+                },
+            )
+    return {
+        "n": len(products),
+        "attachment_points": list(maps),
+        "truncated": truncated,
+        "molecules": products,
+    }
 
 
 def _cluster_frames(a):
@@ -2019,6 +2557,7 @@ def _cluster_frames(a):
     import numpy as np
     from schrodinger.structutils.analyze import evaluate_asl
     from schrodinger.application.desmond.packages import traj_util, topo
+
     cms_file = a["cms_file"]
     n = max(1, int(a.get("n_snapshots", 5)))
     stride = max(1, int(a.get("stride", 1)))
@@ -2039,7 +2578,9 @@ def _cluster_frames(a):
     if not ca_aids:
         return {"error": "fit_asl matched 0 atoms: %r" % fit_asl}
     ca_gids = topo.aids2gids(cms, ca_aids, include_pseudoatoms=False)
-    coords = np.array([np.asarray(fr.pos())[ca_gids] for fr in tr], dtype=float)  # (F, A, 3)
+    coords = np.array(
+        [np.asarray(fr.pos())[ca_gids] for fr in tr], dtype=float
+    )  # (F, A, 3)
     cen = coords - coords.mean(axis=1, keepdims=True)
     flat = cen.reshape(frames, -1)
     natoms = cen.shape[1]
@@ -2058,7 +2599,9 @@ def _cluster_frames(a):
         centers.append(nxt)
         mind = np.minimum(mind, np.array([_rmsd(nxt, j) for j in range(frames)]))
     centers = sorted(set(centers))
-    assign = np.array([int(np.argmin([_rmsd(c, j) for c in centers])) for j in range(frames)])
+    assign = np.array(
+        [int(np.argmin([_rmsd(c, j) for c in centers])) for j in range(frames)]
+    )
 
     snaps = []
     for k, ci in enumerate(centers):
@@ -2081,13 +2624,25 @@ def _cluster_frames(a):
             xs = [full.atom[i].x for i in site_idx]
             ys = [full.atom[i].y for i in site_idx]
             zs = [full.atom[i].z for i in site_idx]
-            center = [round(sum(xs) / len(xs), 4), round(sum(ys) / len(ys), 4),
-                      round(sum(zs) / len(zs), 4)]
-        snaps.append({"snapshot_mae": dst if os.path.exists(dst) else None,
-                      "frame_index": int(ci), "cluster_size": int((assign == k).sum()),
-                      "grid_center": center})
-    return {"n_snapshots": len(snaps), "n_frames": frames,
-            "centers": [int(c) for c in centers], "snapshots": snaps}
+            center = [
+                round(sum(xs) / len(xs), 4),
+                round(sum(ys) / len(ys), 4),
+                round(sum(zs) / len(zs), 4),
+            ]
+        snaps.append(
+            {
+                "snapshot_mae": dst if os.path.exists(dst) else None,
+                "frame_index": int(ci),
+                "cluster_size": int((assign == k).sum()),
+                "grid_center": center,
+            }
+        )
+    return {
+        "n_snapshots": len(snaps),
+        "n_frames": frames,
+        "centers": [int(c) for c in centers],
+        "snapshots": snaps,
+    }
 
 
 # ============================================================================
@@ -2112,6 +2667,7 @@ def _fep_edges(a):
     import importlib
     import pkgutil
     import schrodinger.application.scisol.packages.fep as fep
+
     graph_cls = None
     module = None
     # Fast-path the known module names (submaps = 2026-2, graph = older), then scan the rest.
@@ -2120,7 +2676,9 @@ def _fep_edges(a):
     names += [n for _, n, _ in pkgutil.iter_modules([pkg_dir]) if n not in names]
     for name in names:
         try:
-            m = importlib.import_module("schrodinger.application.scisol.packages.fep." + name)
+            m = importlib.import_module(
+                "schrodinger.application.scisol.packages.fep." + name
+            )
         except Exception:
             continue
         cls = getattr(m, "Graph", None)
@@ -2128,7 +2686,10 @@ def _fep_edges(a):
             graph_cls, module = cls, name
             break
     if graph_cls is None:
-        return {"error": "no scisol FEP Graph class with deserialize() found", "fmp": a["fmp"]}
+        return {
+            "error": "no scisol FEP Graph class with deserialize() found",
+            "fmp": a["fmp"],
+        }
     g = graph_cls.deserialize(a["fmp"])
     edges = sum(1 for _ in g.edges_iter())
     try:
@@ -2159,6 +2720,7 @@ def _count_structures(a):
     .sdf/.pdb; formats StructureReader cannot stream — e.g. bare .smi — yield None, not an error).
     Returns {"counts": {path: n | None}, "errors": {path: repr}} (errors omitted when empty)."""
     from schrodinger import structure
+
     counts, errors = {}, {}
     for p in a.get("paths", []):
         try:
@@ -2193,16 +2755,20 @@ def _al_prep(a):
     import os
     import json
     import random
+
     out = {"rdkit": False, "sklearn": False}
     import numpy as np
+
     try:
         from rdkit import Chem
         from rdkit.DataStructs import ConvertToNumpyArray
+
         out["rdkit"] = True
     except Exception as e:
         return {"error": "rdkit unavailable: " + repr(e)}
     try:
         import sklearn  # noqa: F401
+
         out["sklearn"] = True
     except Exception:
         out["sklearn"] = False
@@ -2210,6 +2776,7 @@ def _al_prep(a):
     radius, nbits = int(a.get("fp_radius", 2)), int(a.get("fp_bits", 2048))
     try:
         from rdkit.Chem import rdFingerprintGenerator as _rfg
+
         _gen = _rfg.GetMorganGenerator(radius=radius, fpSize=nbits)
 
         def _fp(m):
@@ -2232,19 +2799,32 @@ def _al_prep(a):
                     raw.append((parts[1] if len(parts) > 1 else f"mol_{i}", parts[0]))
     elif ext == ".csv":
         import csv as _c
+
         with open(library, newline="") as fh:
             rdr = list(_c.reader(fh))
         if rdr:
             hdr = [h.lower() for h in rdr[0]]
             si = next((k for k, h in enumerate(hdr) if "smiles" in h), 0)
-            ni = next((k for k, h in enumerate(hdr) if h in ("name", "title", "id", "mol_id")), None)
+            ni = next(
+                (
+                    k
+                    for k, h in enumerate(hdr)
+                    if h in ("name", "title", "id", "mol_id")
+                ),
+                None,
+            )
             for i, row in enumerate(rdr[1:]):
                 if row and si < len(row) and row[si].strip():
-                    t = row[ni].strip() if (ni is not None and ni < len(row) and row[ni].strip()) else f"mol_{i}"
+                    t = (
+                        row[ni].strip()
+                        if (ni is not None and ni < len(row) and row[ni].strip())
+                        else f"mol_{i}"
+                    )
                     raw.append((t, row[si].strip()))
     else:  # structure file -> canonical SMILES
         from schrodinger import structure
         from schrodinger.structutils import analyze
+
         for i, st in enumerate(structure.StructureReader(library)):
             raw.append((st.title or f"mol_{i}", analyze.generate_smiles(st)))
     if not raw:
@@ -2257,7 +2837,7 @@ def _al_prep(a):
         # Collapse any internal whitespace (spaces/tabs/newlines) so the title survives the
         # `<smiles> <title>` .smi format and matches back exactly when glide keys results by title.
         t = "_".join(str(t).split()) or f"mol_{i}"
-        if t in seen:                       # keep titles unique (glide keys results by title)
+        if t in seen:  # keep titles unique (glide keys results by title)
             seen[t] += 1
             t = f"{t}_{seen[t]}"
         else:
@@ -2274,15 +2854,25 @@ def _al_prep(a):
     lib_cache = os.path.join(out_dir, "_al_lib.json")
     np.save(fp_cache, X)
     with open(lib_cache, "w") as fh:
-        json.dump({"titles": titles, "smiles": smis, "fp_radius": radius, "fp_bits": nbits}, fh)
+        json.dump(
+            {"titles": titles, "smiles": smis, "fp_radius": radius, "fp_bits": nbits},
+            fh,
+        )
     n = len(titles)
     seed_idx = random.Random(seed).sample(range(n), min(batch, n))
     seed_smi = os.path.join(out_dir, "_al_batch_0.smi")
     with open(seed_smi, "w") as fh:
         for i in seed_idx:
             fh.write(f"{smis[i]} {titles[i]}\n")
-    out.update({"n_library": n, "fp_cache": fp_cache, "lib_cache": lib_cache,
-                "seed_smi": seed_smi, "seed_titles": [titles[i] for i in seed_idx]})
+    out.update(
+        {
+            "n_library": n,
+            "fp_cache": fp_cache,
+            "lib_cache": lib_cache,
+            "seed_smi": seed_smi,
+            "seed_titles": [titles[i] for i in seed_idx],
+        }
+    )
     return out
 
 
@@ -2291,6 +2881,7 @@ def _al_scores(a):
     Reads r_i_docking_score (falling back to r_i_glide_gscore); entries with neither (the receptor)
     are skipped. Lower score = better. Returns {scores: {title: score}, n}."""
     from schrodinger import structure
+
     best = {}
     for st in structure.StructureReader(a["pose_file"]):
         sc = None
@@ -2299,7 +2890,7 @@ def _al_scores(a):
                 sc = float(st.property[key])
                 break
         if sc is None:
-            continue                        # receptor / non-scored entry
+            continue  # receptor / non-scored entry
         t = st.title or st.property.get("s_m_title", "")
         if t and (t not in best or sc < best[t]):
             best[t] = sc
@@ -2315,6 +2906,7 @@ def _al_acquire(a):
     import os
     import json
     import numpy as np
+
     try:
         from sklearn.ensemble import RandomForestRegressor
         from sklearn.linear_model import Ridge
@@ -2336,41 +2928,68 @@ def _al_acquire(a):
     labeled_set = set(labeled)
     unl_idx = [i for i, t in enumerate(titles) if t not in labeled_set]
     if not unl_idx:
-        return {"error": "library exhausted - no unlabeled molecules remain", "batch_smi": None}
+        return {
+            "error": "library exhausted - no unlabeled molecules remain",
+            "batch_smi": None,
+        }
     Xtr = X[tr_idx].astype(np.float32)
     ytr = np.array([labeled[titles[i]] for i in tr_idx], dtype=np.float32)
     Xun = X[unl_idx].astype(np.float32)
     if surrogate == "rf":
-        model = RandomForestRegressor(n_estimators=100, random_state=seed, n_jobs=-1).fit(Xtr, ytr)
+        model = RandomForestRegressor(
+            n_estimators=100, random_state=seed, n_jobs=-1
+        ).fit(Xtr, ytr)
         mean = model.predict(Xun)
         std = np.stack([t.predict(Xun) for t in model.estimators_]).std(axis=0)
         base = RandomForestRegressor(n_estimators=60, random_state=seed, n_jobs=-1)
     else:  # ridge point estimate + bootstrap-ensemble uncertainty
         rng = np.random.RandomState(seed)
         n = len(ytr)
-        preds = np.stack([Ridge(alpha=1.0).fit(Xtr[bi], ytr[bi]).predict(Xun)
-                          for bi in (rng.randint(0, n, n) for _ in range(min(25, max(5, n))))])
+        preds = np.stack(
+            [
+                Ridge(alpha=1.0).fit(Xtr[bi], ytr[bi]).predict(Xun)
+                for bi in (rng.randint(0, n, n) for _ in range(min(25, max(5, n))))
+            ]
+        )
         mean, std = preds.mean(axis=0), preds.std(axis=0)
         base = Ridge(alpha=1.0)
-    ucb = mean - kappa * std                # minimize docking score -> smallest UCB is most promising
+    ucb = mean - kappa * std  # minimize docking score -> smallest UCB is most promising
     order = list(np.argsort(ucb)[:acquire_n])
     pick = [unl_idx[j] for j in order]
     stats = {"surrogate": surrogate, "n_train": int(len(tr_idx))}
     if len(tr_idx) >= 5:
         try:
             cv = min(5, len(tr_idx))
-            stats["r2_cv"] = round(float(cross_val_score(base, Xtr, ytr, cv=cv, scoring="r2").mean()), 4)
-            stats["rmse_cv"] = round(float(-cross_val_score(
-                base, Xtr, ytr, cv=cv, scoring="neg_root_mean_squared_error").mean()), 4)
+            stats["r2_cv"] = round(
+                float(cross_val_score(base, Xtr, ytr, cv=cv, scoring="r2").mean()), 4
+            )
+            stats["rmse_cv"] = round(
+                float(
+                    -cross_val_score(
+                        base, Xtr, ytr, cv=cv, scoring="neg_root_mean_squared_error"
+                    ).mean()
+                ),
+                4,
+            )
         except Exception as e:
             stats["cv_error"] = repr(e)
     batch_smi = os.path.join(out_dir, f"_al_batch_{it}.smi")
     with open(batch_smi, "w") as fh:
         for i in pick:
             fh.write(f"{smis[i]} {titles[i]}\n")
-    return {"batch_smi": batch_smi, "batch_titles": [titles[i] for i in pick], "model": stats,
-            "predicted_top": [{"title": titles[unl_idx[j]], "pred": round(float(mean[j]), 4),
-                               "ucb": round(float(ucb[j]), 4)} for j in order[:10]]}
+    return {
+        "batch_smi": batch_smi,
+        "batch_titles": [titles[i] for i in pick],
+        "model": stats,
+        "predicted_top": [
+            {
+                "title": titles[unl_idx[j]],
+                "pred": round(float(mean[j]), 4),
+                "ucb": round(float(ucb[j]), 4),
+            }
+            for j in order[:10]
+        ],
+    }
 
 
 def _al_write_smiles(a):
@@ -2378,6 +2997,7 @@ def _al_write_smiles(a):
     Returns {out_smi, n} (out_smi is None if no title resolved)."""
     import os  # noqa: F401  (kept explicit; path is pre-joined by the caller)
     import json
+
     with open(os.path.join(a["out_dir"], "_al_lib.json")) as fh:
         lib = json.load(fh)
     idx = {t: i for i, t in enumerate(lib["titles"])}
@@ -2390,34 +3010,51 @@ def _al_write_smiles(a):
     return {"out_smi": out_smi if wrote else None, "n": wrote}
 
 
-CMDS = {"info": _info, "smiles_to_3d": _smiles_to_3d, "properties": _properties,
-        "convert": _convert, "job_status": _job_status, "job_wait": _job_wait,
-        "launch": _launch, "trj_analyze": _trj_analyze,
-        # g01_feploop
-        "fep_map_qc": _fep_map_qc, "fep_parse_results": _fep_parse_results,
-        # g02_qmprep
-        "qm_cluster_extract": _qm_cluster_extract, "jaguar_in": _jaguar_in,
-        "jaguar_energy": _jaguar_energy, "jaguar_pka_in": _jaguar_pka_in,
-        "epik_pka_parse": _epik_pka_parse,
-        # g03_parse
-        "proplist": _proplist,
-        # g04_poseqc
-        "pose_validity": _pose_validity, "pose_ifp": _pose_ifp,
-        # g05_structglue
-        "pose_viewer_split": _pose_viewer_split, "reaction_enumerate": _reaction_enumerate,
-        "mmod_confsearch": _mmod_confsearch,
-        # g06_traj
-        "trj_interactions": _trj_interactions,
-        # g10_composites
-        "cns_mpo": _cns_mpo, "pv_scores": _pv_scores, "write_subset": _write_subset,
-        "enumerate_analogs": _enumerate_analogs, "cluster_frames": _cluster_frames,
-        # g11_monitor
-        "fep_edges": _fep_edges,
-        # g12_filters
-        "count_structures": _count_structures,
-        # g13_mlcompose
-        "al_prep": _al_prep, "al_scores": _al_scores, "al_acquire": _al_acquire,
-        "al_write_smiles": _al_write_smiles}
+CMDS = {
+    "info": _info,
+    "smiles_to_3d": _smiles_to_3d,
+    "properties": _properties,
+    "convert": _convert,
+    "job_status": _job_status,
+    "job_wait": _job_wait,
+    "launch": _launch,
+    "trj_analyze": _trj_analyze,
+    # g01_feploop
+    "fep_map_qc": _fep_map_qc,
+    "fep_parse_results": _fep_parse_results,
+    # g02_qmprep
+    "qm_cluster_extract": _qm_cluster_extract,
+    "jaguar_in": _jaguar_in,
+    "jaguar_energy": _jaguar_energy,
+    "jaguar_pka_in": _jaguar_pka_in,
+    "epik_pka_parse": _epik_pka_parse,
+    # g03_parse
+    "proplist": _proplist,
+    # g04_poseqc
+    "pose_validity": _pose_validity,
+    "pose_ifp": _pose_ifp,
+    # g05_structglue
+    "pose_viewer_split": _pose_viewer_split,
+    "reaction_enumerate": _reaction_enumerate,
+    "mmod_confsearch": _mmod_confsearch,
+    # g06_traj
+    "trj_interactions": _trj_interactions,
+    # g10_composites
+    "cns_mpo": _cns_mpo,
+    "pv_scores": _pv_scores,
+    "write_subset": _write_subset,
+    "enumerate_analogs": _enumerate_analogs,
+    "cluster_frames": _cluster_frames,
+    # g11_monitor
+    "fep_edges": _fep_edges,
+    # g12_filters
+    "count_structures": _count_structures,
+    # g13_mlcompose
+    "al_prep": _al_prep,
+    "al_scores": _al_scores,
+    "al_acquire": _al_acquire,
+    "al_write_smiles": _al_write_smiles,
+}
 
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "info"

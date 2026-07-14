@@ -12,6 +12,7 @@ Config (cross-platform):
   - $SCHRODINGER : install root. Defaults to the Windows path; on POSIX set it.
 Transport: stdio (Claude Code / Claude Desktop).
 """
+
 import os
 import re
 import csv as _csv
@@ -38,6 +39,7 @@ mcp = FastMCP("schrodinger")
 
 # ---------- internal (not MCP tools) ----------
 
+
 def _run() -> str:
     win = os.path.join(SCHRODINGER, "run.exe")
     return win if os.path.exists(win) else os.path.join(SCHRODINGER, "run")
@@ -50,7 +52,9 @@ def _driver(name: str) -> str:
         for cand in (os.path.join(base, name + ".exe"), os.path.join(base, name)):
             if os.path.exists(cand):
                 return cand
-    return os.path.join(SCHRODINGER, name)  # fall back to root name for a sensible error
+    return os.path.join(
+        SCHRODINGER, name
+    )  # fall back to root name for a sensible error
 
 
 def _safe_path(p: str, must_exist: bool = False) -> str:
@@ -58,7 +62,9 @@ def _safe_path(p: str, must_exist: bool = False) -> str:
     Rejects empty/flag-like ('-...') values and normalizes to absolute."""
     if not isinstance(p, str) or not p.strip() or p.strip().startswith("-"):
         raise ValueError(f"invalid/unsafe path: {p!r}")
-    if any(ch in p for ch in "\r\n\x00"):  # a newline could inject a 2nd Glide .in directive line
+    if any(
+        ch in p for ch in "\r\n\x00"
+    ):  # a newline could inject a 2nd Glide .in directive line
         raise ValueError(f"unsafe path (control char): {p!r}")
     ap = os.path.abspath(p)
     if must_exist and not os.path.exists(ap):
@@ -69,10 +75,15 @@ def _safe_path(p: str, must_exist: bool = False) -> str:
 # Server-chosen environment-overlay keys a tool may set on a child process. These are
 # set by SERVER code (never from a client string) to route a GPU job (CUDA_VISIBLE_DEVICES)
 # or carry the license flag; any other key is dropped, so a tool cannot smuggle env in.
-_ENV_OVERLAY_ALLOW = frozenset({
-    "CUDA_VISIBLE_DEVICES", "SCHRODINGER_FEATURE_FLAGS",
-    "SCHRODINGER_JOBSERVER_CONFIG_FILE", "SCHRODINGER_JOBDB2", "OPLSDIR",
-})
+_ENV_OVERLAY_ALLOW = frozenset(
+    {
+        "CUDA_VISIBLE_DEVICES",
+        "SCHRODINGER_FEATURE_FLAGS",
+        "SCHRODINGER_JOBSERVER_CONFIG_FILE",
+        "SCHRODINGER_JOBDB2",
+        "OPLSDIR",
+    }
+)
 
 
 def _exec(argv, timeout=300, cwd=None, env=None):
@@ -96,8 +107,15 @@ def _exec(argv, timeout=300, cwd=None, env=None):
         for k, v in env.items():
             if k in _ENV_OVERLAY_ALLOW and v is not None:
                 child_env[k] = str(v)
-    return subprocess.run(argv, capture_output=True, text=True, timeout=timeout, cwd=cwd,
-                          stdin=subprocess.DEVNULL, env=child_env)
+    return subprocess.run(
+        argv,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        cwd=cwd,
+        stdin=subprocess.DEVNULL,
+        env=child_env,
+    )
 
 
 def _helper(cmd: str, args: dict, timeout: int = 300) -> dict:
@@ -111,7 +129,11 @@ def _helper(cmd: str, args: dict, timeout: int = 300) -> dict:
         line = line.strip()
         if line.startswith("{"):
             return json.loads(line)
-    return {"error": "no JSON from helper", "stdout": p.stdout[-1500:], "stderr": p.stderr[-1500:]}
+    return {
+        "error": "no JSON from helper",
+        "stdout": p.stdout[-1500:],
+        "stderr": p.stderr[-1500:],
+    }
 
 
 # ---------- async job control (the enabler for MD/FEP/WaterMap) ----------
@@ -136,9 +158,12 @@ def _ensure_job_server() -> dict:
         if "RUNNING" in (p.stdout + p.stderr).upper():
             return {"job_server": "running"}
         s = _jsc("start", timeout=120)
-        blob = (s.stdout + s.stderr)
+        blob = s.stdout + s.stderr
         up = ("available" in blob.lower()) or ("started" in blob.lower())
-        return {"job_server": "started" if up else "start_failed", "detail": blob[-400:]}
+        return {
+            "job_server": "started" if up else "start_failed",
+            "detail": blob[-400:],
+        }
     except Exception as e:  # never let server management crash a tool
         return {"job_server": "error", "detail": repr(e)}
 
@@ -159,15 +184,26 @@ def _submit_async(argv, cwd=None, timeout=300, env=None, total=None) -> dict:
     try:
         p = _exec(argv, timeout=timeout, cwd=cwd, env=env)
     except subprocess.TimeoutExpired:
-        return {"error": f"submission did not return within {timeout}s", "job_server": srv}
+        return {
+            "error": f"submission did not return within {timeout}s",
+            "job_server": srv,
+        }
     blob = (p.stdout or "") + "\n" + (p.stderr or "")
     m = _JOBID_RE.search(blob)
     if not m:
-        return {"error": "no JobId in launcher output - submission likely failed",
-                "job_server": srv, "returncode": p.returncode,
-                "stdout_tail": p.stdout[-1500:], "stderr_tail": p.stderr[-1500:]}
-    res = {"jobid": m.group(1), "job_server": srv, "returncode": p.returncode,
-           "stdout_tail": p.stdout[-600:]}
+        return {
+            "error": "no JobId in launcher output - submission likely failed",
+            "job_server": srv,
+            "returncode": p.returncode,
+            "stdout_tail": p.stdout[-1500:],
+            "stderr_tail": p.stderr[-1500:],
+        }
+    res = {
+        "jobid": m.group(1),
+        "job_server": srv,
+        "returncode": p.returncode,
+        "stdout_tail": p.stdout[-600:],
+    }
     # --- taskwatch heartbeat + auto-register (best-effort; never fails the submit) ---
     try:
         driver = os.path.splitext(os.path.basename(argv[0]))[0] if argv else ""
@@ -181,14 +217,16 @@ def _submit_async(argv, cwd=None, timeout=300, env=None, total=None) -> dict:
                     driver = os.path.splitext(os.path.basename(_s))[0]
                     break
         derived = _derive_total(driver, argv, cwd) if total is None else total
-        res["progress"] = _emit_progress(cwd or ".", driver, derived,
-                                          log_path=_predict_log(driver, argv, cwd))
+        res["progress"] = _emit_progress(
+            cwd or ".", driver, derived, log_path=_predict_log(driver, argv, cwd)
+        )
     except Exception:
         pass
     return res
 
 
 # ---------- structure / cheminformatics (license-token-free) ----------
+
 
 @mcp.tool()
 def schrodinger_version() -> str:
@@ -223,7 +261,9 @@ def smiles_to_3d(smiles: str, out_path: str, title: str = "") -> dict:
     Extension picks the format (.mae for Glide/Prime downstream, .sdf for portability)."""
     out_path = _safe_path(out_path)
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
-    return _helper("smiles_to_3d", {"smiles": smiles, "out_path": out_path, "title": title})
+    return _helper(
+        "smiles_to_3d", {"smiles": smiles, "out_path": out_path, "title": title}
+    )
 
 
 @mcp.tool()
@@ -250,7 +290,11 @@ def run_schrodinger_python(code: str, timeout_s: int = 300) -> dict:
         tmp = f.name
     try:
         p = _exec([_run(), "python3", tmp], timeout=timeout_s)
-        return {"returncode": p.returncode, "stdout": p.stdout[-8000:], "stderr": p.stderr[-4000:]}
+        return {
+            "returncode": p.returncode,
+            "stdout": p.stdout[-8000:],
+            "stderr": p.stderr[-4000:],
+        }
     except subprocess.TimeoutExpired:
         return {"error": f"timeout after {timeout_s}s"}
     finally:
@@ -262,6 +306,7 @@ def run_schrodinger_python(code: str, timeout_s: int = 300) -> dict:
 
 # ---------- product drivers (consume license tokens; synchronous -WAIT) ----------
 
+
 @mcp.tool()
 def ligprep(input_file: str, output_mae: str, timeout_s: int = 1200) -> dict:
     """LigPrep: prepared 3D ligand states (ionization/tautomers/stereo) from .smi/.sdf/.mae -> MAE."""
@@ -271,19 +316,34 @@ def ligprep(input_file: str, output_mae: str, timeout_s: int = 1200) -> dict:
     except (ValueError, FileNotFoundError) as e:
         return {"error": str(e)}
     low = input_file.lower()
-    inflag = "-ismi" if low.endswith(".smi") else ("-isd" if low.endswith((".sdf", ".sd")) else "-imae")
+    inflag = (
+        "-ismi"
+        if low.endswith(".smi")
+        else ("-isd" if low.endswith((".sdf", ".sd")) else "-imae")
+    )
     # LigPrep requires -omae to resolve UNDER the cwd; an absolute path (esp. with an 8.3
     # short name like PREKZU~1) fails its "not under the current working directory" check.
     # Run in the output dir and pass just the basename.
     wd = os.path.dirname(output_mae) or "."
     os.makedirs(wd, exist_ok=True)
-    argv = [_driver("ligprep"), inflag, input_file, "-omae", os.path.basename(output_mae), "-WAIT"]
+    argv = [
+        _driver("ligprep"),
+        inflag,
+        input_file,
+        "-omae",
+        os.path.basename(output_mae),
+        "-WAIT",
+    ]
     try:
         p = _exec(argv, timeout=timeout_s, cwd=wd)
     except subprocess.TimeoutExpired:
         return {"error": f"timeout after {timeout_s}s"}
-    return {"returncode": p.returncode, "output": output_mae if os.path.exists(output_mae) else None,
-            "stdout_tail": p.stdout[-1500:], "stderr_tail": p.stderr[-1500:]}
+    return {
+        "returncode": p.returncode,
+        "output": output_mae if os.path.exists(output_mae) else None,
+        "stdout_tail": p.stdout[-1500:],
+        "stderr_tail": p.stderr[-1500:],
+    }
 
 
 @mcp.tool()
@@ -301,8 +361,12 @@ def qikprop_admet(structure_file: str, timeout_s: int = 900) -> dict:
     except subprocess.TimeoutExpired:
         return {"error": f"timeout after {timeout_s}s"}
     csv = os.path.join(wd, base + ".CSV")
-    res = {"returncode": p.returncode, "csv": csv if os.path.exists(csv) else None,
-           "stdout_tail": p.stdout[-1500:], "stderr_tail": p.stderr[-1500:]}
+    res = {
+        "returncode": p.returncode,
+        "csv": csv if os.path.exists(csv) else None,
+        "stdout_tail": p.stdout[-1500:],
+        "stderr_tail": p.stderr[-1500:],
+    }
     if os.path.exists(csv):
         with open(csv) as fh:
             res["csv_head"] = "".join(fh.readlines()[:3])
@@ -310,7 +374,9 @@ def qikprop_admet(structure_file: str, timeout_s: int = 900) -> dict:
 
 
 @mcp.tool()
-def glide_dock(grid_file: str, ligands_mae: str, precision: str = "SP", timeout_s: int = 3600) -> dict:
+def glide_dock(
+    grid_file: str, ligands_mae: str, precision: str = "SP", timeout_s: int = 3600
+) -> dict:
     """Glide docking of prepared ligands into a precomputed grid (.zip). precision = HTVS|SP|XP.
     Returns the *_pv.maegz pose-viewer path. Consumes a Glide license token."""
     try:
@@ -325,7 +391,9 @@ def glide_dock(grid_file: str, ligands_mae: str, precision: str = "SP", timeout_
     infile = os.path.join(wd, job + ".in")
     with open(infile, "w") as fh:
         # POSE_OUTTYPE poseviewer => writes <job>_pv.maegz (receptor + poses), the input prime_mmgbsa needs.
-        fh.write(f"GRIDFILE {grid_file}\nLIGANDFILE {ligands_mae}\nPRECISION {precision}\nPOSE_OUTTYPE poseviewer\n")
+        fh.write(
+            f"GRIDFILE {grid_file}\nLIGANDFILE {ligands_mae}\nPRECISION {precision}\nPOSE_OUTTYPE poseviewer\n"
+        )
     argv = [_driver("glide"), infile, "-WAIT", "-OVERWRITE"]
     try:
         p = _exec(argv, timeout=timeout_s, cwd=wd)
@@ -334,8 +402,12 @@ def glide_dock(grid_file: str, ligands_mae: str, precision: str = "SP", timeout_
     pv = os.path.join(wd, job + "_pv.maegz")
     raw = os.path.join(wd, job + "_raw.maegz")
     poses = pv if os.path.exists(pv) else (raw if os.path.exists(raw) else None)
-    res = {"returncode": p.returncode, "poses": poses,
-           "stdout_tail": p.stdout[-1500:], "stderr_tail": p.stderr[-1500:]}
+    res = {
+        "returncode": p.returncode,
+        "poses": poses,
+        "stdout_tail": p.stdout[-1500:],
+        "stderr_tail": p.stderr[-1500:],
+    }
     if poses is None:
         # job ran but no pose-viewer (e.g. "NO GOOD POSES FOUND") — surface the per-ligand status
         skip = os.path.join(wd, job + "_skip.csv")
@@ -346,8 +418,13 @@ def glide_dock(grid_file: str, ligands_mae: str, precision: str = "SP", timeout_
 
 
 @mcp.tool()
-def prepwizard(input_file: str, output_mae: str, ph: float = 7.0, fill_sidechains: bool = True,
-               timeout_s: int = 1800) -> dict:
+def prepwizard(
+    input_file: str,
+    output_mae: str,
+    ph: float = 7.0,
+    fill_sidechains: bool = True,
+    timeout_s: int = 1800,
+) -> dict:
     """Protein Preparation Wizard: clean a raw receptor (.pdb/.mae) for docking - add hydrogens,
     assign bond orders, optionally fill missing side chains, and set protonation at `ph` (PROPKA).
     Output is a prepared .mae ready for glide_grid. (prepwizard lives in $SCHRODINGER/utilities.)"""
@@ -365,13 +442,24 @@ def prepwizard(input_file: str, output_mae: str, ph: float = 7.0, fill_sidechain
         p = _exec(argv, timeout=timeout_s, cwd=os.path.dirname(output_mae) or ".")
     except subprocess.TimeoutExpired:
         return {"error": f"timeout after {timeout_s}s"}
-    return {"returncode": p.returncode, "output": output_mae if os.path.exists(output_mae) else None,
-            "stdout_tail": p.stdout[-1500:], "stderr_tail": p.stderr[-1500:]}
+    return {
+        "returncode": p.returncode,
+        "output": output_mae if os.path.exists(output_mae) else None,
+        "stdout_tail": p.stdout[-1500:],
+        "stderr_tail": p.stderr[-1500:],
+    }
 
 
 @mcp.tool()
-def glide_grid(receptor_mae: str, out_grid_zip: str, center: str = "", ligand_molnum: int = 0,
-               inner_box: int = 10, outer_box: int = 30, timeout_s: int = 1800) -> dict:
+def glide_grid(
+    receptor_mae: str,
+    out_grid_zip: str,
+    center: str = "",
+    ligand_molnum: int = 0,
+    inner_box: int = 10,
+    outer_box: int = 30,
+    timeout_s: int = 1800,
+) -> dict:
     """Generate a Glide docking grid (.zip) from a prepared receptor (.mae/.maegz) - the step
     glide_dock needs and that no other tool produced. Define the box EITHER with explicit
     `center="x,y,z"` coordinates OR with `ligand_molnum` (1-based molecule number of a
@@ -382,7 +470,9 @@ def glide_grid(receptor_mae: str, out_grid_zip: str, center: str = "", ligand_mo
     except (ValueError, FileNotFoundError) as e:
         return {"error": str(e)}
     if not center and not ligand_molnum:
-        return {"error": "provide either center='x,y,z' or ligand_molnum (1-based) to define the grid box"}
+        return {
+            "error": "provide either center='x,y,z' or ligand_molnum (1-based) to define the grid box"
+        }
     if center and not all(c in "0123456789.,-+eE " for c in center):
         return {"error": f"center must be numeric 'x,y,z', got {center!r}"}
     wd = os.path.dirname(out_grid_zip) or "."
@@ -394,16 +484,24 @@ def glide_grid(receptor_mae: str, out_grid_zip: str, center: str = "", ligand_mo
         lines.append(f"GRID_CENTER {center.replace(' ', '')}")
     else:
         lines.append(f"LIGAND_MOLECULE {int(ligand_molnum)}")
-    lines += [f"INNERBOX {inner_box}, {inner_box}, {inner_box}",
-              f"OUTERBOX {outer_box}, {outer_box}, {outer_box}"]
+    lines += [
+        f"INNERBOX {inner_box}, {inner_box}, {inner_box}",
+        f"OUTERBOX {outer_box}, {outer_box}, {outer_box}",
+    ]
     with open(infile, "w") as fh:
         fh.write("\n".join(lines) + "\n")
     try:
-        p = _exec([_driver("glide"), infile, "-WAIT", "-OVERWRITE"], timeout=timeout_s, cwd=wd)
+        p = _exec(
+            [_driver("glide"), infile, "-WAIT", "-OVERWRITE"], timeout=timeout_s, cwd=wd
+        )
     except subprocess.TimeoutExpired:
         return {"error": f"timeout after {timeout_s}s"}
-    return {"returncode": p.returncode, "grid": out_grid_zip if os.path.exists(out_grid_zip) else None,
-            "stdout_tail": p.stdout[-1500:], "stderr_tail": p.stderr[-1500:]}
+    return {
+        "returncode": p.returncode,
+        "grid": out_grid_zip if os.path.exists(out_grid_zip) else None,
+        "stdout_tail": p.stdout[-1500:],
+        "stderr_tail": p.stderr[-1500:],
+    }
 
 
 @mcp.tool()
@@ -420,15 +518,20 @@ def prime_mmgbsa(pose_viewer: str, timeout_s: int = 3600) -> dict:
     # Prime derives the jobname by dropping a trailing _pv: <job>_pv.maegz -> <job>-out.csv
     job = base[:-3] if base.endswith("_pv") else base
     try:
-        p = _exec([_driver("prime_mmgbsa"), pose_viewer, "-WAIT"], timeout=timeout_s, cwd=wd)
+        p = _exec(
+            [_driver("prime_mmgbsa"), pose_viewer, "-WAIT"], timeout=timeout_s, cwd=wd
+        )
     except subprocess.TimeoutExpired:
         return {"error": f"timeout after {timeout_s}s"}
     csv = os.path.join(wd, job + "-out.csv")
     out_mae = os.path.join(wd, job + "-out.maegz")
-    res = {"returncode": p.returncode,
-           "csv": csv if os.path.exists(csv) else None,
-           "out_maegz": out_mae if os.path.exists(out_mae) else None,
-           "stdout_tail": p.stdout[-1500:], "stderr_tail": p.stderr[-1500:]}
+    res = {
+        "returncode": p.returncode,
+        "csv": csv if os.path.exists(csv) else None,
+        "out_maegz": out_mae if os.path.exists(out_mae) else None,
+        "stdout_tail": p.stdout[-1500:],
+        "stderr_tail": p.stderr[-1500:],
+    }
     if os.path.exists(csv):
         with open(csv) as fh:
             res["csv_head"] = "".join(fh.readlines()[:3])
@@ -436,6 +539,7 @@ def prime_mmgbsa(pose_viewer: str, timeout_s: int = 3600) -> dict:
 
 
 # ---------- structure acquisition (no license token) ----------
+
 
 @mcp.tool()
 def pdb_fetch(pdb_id: str, out_dir: str, fmt: str = "pdb") -> dict:
@@ -464,6 +568,7 @@ def pdb_fetch(pdb_id: str, out_dir: str, fmt: str = "pdb") -> dict:
 
 # ---------- ADMET result parsing (no license token; closes the QikProp loop) ----------
 
+
 @mcp.tool()
 def qikprop_parse_results(csv_path: str, properties: list = None) -> dict:
     """Parse a QikProp .CSV into structured per-molecule ADMET rows (pure file read, no token).
@@ -480,8 +585,11 @@ def qikprop_parse_results(csv_path: str, properties: list = None) -> dict:
     cols = list(rows[0].keys())
     if properties:
         idcols = [c for c in cols if c.lower() in ("molecule", "title", "name")]
-        keep = idcols + [c for c in cols if c not in idcols
-                         and any(p.lower() in c.lower() for p in properties)]
+        keep = idcols + [
+            c
+            for c in cols
+            if c not in idcols and any(p.lower() in c.lower() for p in properties)
+        ]
         rows = [{k: r.get(k) for k in keep} for r in rows]
         cols = keep
     return {"columns": cols, "n_molecules": len(rows), "molecules": rows[:200]}
@@ -489,9 +597,16 @@ def qikprop_parse_results(csv_path: str, properties: list = None) -> dict:
 
 # ---------- pocket detection (synchronous -WAIT; consumes a SiteMap token) ----------
 
+
 @mcp.tool()
-def sitemap(receptor_mae: str, out_dir: str, job_name: str = "sitemap_job",
-            max_sites: int = 5, sitescore_min: float = 0.80, timeout_s: int = 1800) -> dict:
+def sitemap(
+    receptor_mae: str,
+    out_dir: str,
+    job_name: str = "sitemap_job",
+    max_sites: int = 5,
+    sitescore_min: float = 0.80,
+    timeout_s: int = 1800,
+) -> dict:
     """SiteMap: detect & rank druggable pockets on a prepared receptor (.mae) - locates the
     orthosteric + any allosteric/cryptic sites before grid generation. Returns the *_out.maegz
     (parse SiteScore/Dscore/volume via run_schrodinger_python). NOTE: untested against a live
@@ -504,19 +619,33 @@ def sitemap(receptor_mae: str, out_dir: str, job_name: str = "sitemap_job",
     if not job_name.replace("_", "").replace("-", "").isalnum():
         return {"error": f"invalid job_name: {job_name!r}"}
     os.makedirs(out_dir, exist_ok=True)
-    argv = [_driver("sitemap"), "-WAIT", "-prot", receptor_mae,
-            "-maxsites", str(int(max_sites)), "-sitescore_cutoff", str(float(sitescore_min)),
-            "-j", job_name]
+    argv = [
+        _driver("sitemap"),
+        "-WAIT",
+        "-prot",
+        receptor_mae,
+        "-maxsites",
+        str(int(max_sites)),
+        "-sitescore_cutoff",
+        str(float(sitescore_min)),
+        "-j",
+        job_name,
+    ]
     try:
         p = _exec(argv, timeout=timeout_s, cwd=out_dir)
     except subprocess.TimeoutExpired:
         return {"error": f"timeout after {timeout_s}s"}
     out_mae = os.path.join(out_dir, job_name + "_out.maegz")
-    return {"returncode": p.returncode, "out_maegz": out_mae if os.path.exists(out_mae) else None,
-            "stdout_tail": p.stdout[-1500:], "stderr_tail": p.stderr[-1500:]}
+    return {
+        "returncode": p.returncode,
+        "out_maegz": out_mae if os.path.exists(out_mae) else None,
+        "stdout_tail": p.stdout[-1500:],
+        "stderr_tail": p.stderr[-1500:],
+    }
 
 
 # ---------- QM pKa (synchronous -WAIT; consumes a JAGUAR token) ----------
+
 
 @mcp.tool()
 def jaguar_pka(structure_file: str, out_dir: str, timeout_s: int = 7200) -> dict:
@@ -539,8 +668,11 @@ def jaguar_pka(structure_file: str, out_dir: str, timeout_s: int = 7200) -> dict
     # and lstrip('-') guarantees it can never be read as a flag.
     job = _jobname(structure_file, "_pka").lstrip("-") or "job_pka"
     in_file = os.path.join(out_dir, job + ".in")
-    built = _helper("jaguar_pka_in",
-                    {"structure_file": structure_file, "out_in": in_file}, timeout=600)
+    built = _helper(
+        "jaguar_pka_in",
+        {"structure_file": structure_file, "out_in": in_file},
+        timeout=600,
+    )
     if not isinstance(built, dict) or "error" in built or not os.path.exists(in_file):
         return {"error": "failed to build Jaguar pKa input", "detail": built}
     argv = [_driver("jaguar"), "run", os.path.basename(in_file), "-NOJOBID"]
@@ -549,9 +681,14 @@ def jaguar_pka(structure_file: str, out_dir: str, timeout_s: int = 7200) -> dict
     except subprocess.TimeoutExpired:
         return {"error": f"timeout after {timeout_s}s", "sites": built.get("sites")}
     out = os.path.join(out_dir, job + ".out")
-    res = {"returncode": p.returncode, "pka_out": out if os.path.exists(out) else None,
-           "pka_in": in_file, "sites": built.get("sites"),
-           "stdout_tail": p.stdout[-2000:], "stderr_tail": p.stderr[-1500:]}
+    res = {
+        "returncode": p.returncode,
+        "pka_out": out if os.path.exists(out) else None,
+        "pka_in": in_file,
+        "sites": built.get("sites"),
+        "stdout_tail": p.stdout[-2000:],
+        "stderr_tail": p.stderr[-1500:],
+    }
     if os.path.exists(out):
         try:
             with open(out, encoding="utf-8", errors="replace") as fh:
@@ -565,9 +702,15 @@ def jaguar_pka(structure_file: str, out_dir: str, timeout_s: int = 7200) -> dict
 
 # ---------- protonation enumeration (synchronous -WAIT; consumes an Epik token) ----------
 
+
 @mcp.tool()
-def epik_enumerate(input_mae: str, output_mae: str, ph: float = 7.4, ph_tolerance: float = 2.0,
-                   timeout_s: int = 1800) -> dict:
+def epik_enumerate(
+    input_mae: str,
+    output_mae: str,
+    ph: float = 7.4,
+    ph_tolerance: float = 2.0,
+    timeout_s: int = 1800,
+) -> dict:
     """Epik: enumerate protonation/tautomer states at a target pH (more rigorous than LigPrep's
     built-in call) - for phenibut/analog zwitterion species at physiological or local (lysosomal,
     BBB-transporter) pH. Returns the output MAE. NOTE: untested against a live run; verify first use."""
@@ -578,22 +721,45 @@ def epik_enumerate(input_mae: str, output_mae: str, ph: float = 7.4, ph_toleranc
         return {"error": str(e)}
     wd = os.path.dirname(output_mae) or "."
     os.makedirs(wd, exist_ok=True)
-    argv = [_driver("epik"), "-imae", input_mae, "-omae", os.path.basename(output_mae),
-            "-ph", str(float(ph)), "-pht", str(float(ph_tolerance)), "-WAIT"]
+    argv = [
+        _driver("epik"),
+        "-imae",
+        input_mae,
+        "-omae",
+        os.path.basename(output_mae),
+        "-ph",
+        str(float(ph)),
+        "-pht",
+        str(float(ph_tolerance)),
+        "-WAIT",
+    ]
     try:
         p = _exec(argv, timeout=timeout_s, cwd=wd)
     except subprocess.TimeoutExpired:
         return {"error": f"timeout after {timeout_s}s"}
-    return {"returncode": p.returncode, "output": output_mae if os.path.exists(output_mae) else None,
-            "stdout_tail": p.stdout[-1500:], "stderr_tail": p.stderr[-1500:]}
+    return {
+        "returncode": p.returncode,
+        "output": output_mae if os.path.exists(output_mae) else None,
+        "stdout_tail": p.stdout[-1500:],
+        "stderr_tail": p.stderr[-1500:],
+    }
 
 
 # ---------- publication figures (no Schrodinger token; bundled Incentive PyMOL) ----------
 
+
 @mcp.tool()
-def pymol_render(input_files: list, output_png: str, width: int = 1600, height: int = 1200,
-                 dpi: int = 300, style: str = "publication", highlight_selection: str = "",
-                 pml_commands: str = "", timeout_s: int = 180) -> dict:
+def pymol_render(
+    input_files: list,
+    output_png: str,
+    width: int = 1600,
+    height: int = 1200,
+    dpi: int = 300,
+    style: str = "publication",
+    highlight_selection: str = "",
+    pml_commands: str = "",
+    timeout_s: int = 180,
+) -> dict:
     """Render a ray-traced PNG from structure files (.mae/.maegz/.pdb/.sdf) via headless PyMOL.
     Uses the bundled Schrodinger-Incentive PyMOL (reads .mae natively), closing the only gap in
     the automated pipeline - figure generation. style = publication|cartoon|surface|sticks.
@@ -611,7 +777,9 @@ def pymol_render(input_files: list, output_png: str, width: int = 1600, height: 
     os.makedirs(os.path.dirname(output_png) or ".", exist_ok=True)
     for inj in (highlight_selection, pml_commands):
         if any(c in inj for c in "\r\n\x00"):
-            return {"error": "unsafe newline/null in highlight_selection or pml_commands"}
+            return {
+                "error": "unsafe newline/null in highlight_selection or pml_commands"
+            }
     pml = [f"load {f}, obj{i}" for i, f in enumerate(ins)] + ["hide everything"]
     if style == "surface":
         pml += ["show surface, polymer", "show sticks, hetatm and not solvent"]
@@ -620,16 +788,31 @@ def pymol_render(input_files: list, output_png: str, width: int = 1600, height: 
     elif style == "cartoon":
         pml += ["show cartoon, polymer", "show sticks, hetatm and not solvent"]
     else:  # publication
-        pml += ["show cartoon, polymer", "show sticks, hetatm and not solvent", "util.cbag hetatm"]
+        pml += [
+            "show cartoon, polymer",
+            "show sticks, hetatm and not solvent",
+            "util.cbag hetatm",
+        ]
     if highlight_selection:
-        pml += [f"select hl, {highlight_selection}", "show sticks, hl", "color wheat, hl"]
-    pml += ["bg_color white", "set ray_shadows, 0", "set ray_opaque_background, on",
-            "set antialias, 2", f"viewport {int(width)}, {int(height)}"]
+        pml += [
+            f"select hl, {highlight_selection}",
+            "show sticks, hl",
+            "color wheat, hl",
+        ]
+    pml += [
+        "bg_color white",
+        "set ray_shadows, 0",
+        "set ray_opaque_background, on",
+        "set antialias, 2",
+        f"viewport {int(width)}, {int(height)}",
+    ]
     if pml_commands:
         pml.append(pml_commands)
-    pml += [f"ray {int(width)}, {int(height)}",
-            f"png {output_png}, width={int(width)}, height={int(height)}, dpi={int(dpi)}, ray=0",
-            "quit"]
+    pml += [
+        f"ray {int(width)}, {int(height)}",
+        f"png {output_png}, width={int(width)}, height={int(height)}, dpi={int(dpi)}, ray=0",
+        "quit",
+    ]
     with tempfile.NamedTemporaryFile("w", suffix=".pml", delete=False, dir=HERE) as f:
         f.write("\n".join(pml))
         script = f.name
@@ -644,16 +827,20 @@ def pymol_render(input_files: list, output_png: str, width: int = 1600, height: 
         except OSError:
             pass
     ok = os.path.exists(output_png)
-    return {"returncode": p.returncode, "output_png": output_png if ok else None,
-            "size_bytes": os.path.getsize(output_png) if ok else 0,
-            "stdout_tail": p.stdout[-800:], "stderr_tail": p.stderr[-800:]}
+    return {
+        "returncode": p.returncode,
+        "output_png": output_png if ok else None,
+        "size_bytes": os.path.getsize(output_png) if ok else 0,
+        "stdout_tail": p.stdout[-800:],
+        "stderr_tail": p.stderr[-800:],
+    }
 
 
 # ---------- Desmond molecular dynamics (P1 headline) ----------
 # The shipped Desmond standard NPT relaxation protocol, embedded verbatim
 # (from $SCHRODINGER/mmshare-*/data/desmond/desmond_npt_relax.msj). Reproduced
 # exactly so it stays valid without depending on the mmshare version in the path.
-_DESMOND_RELAX_MSJ = '''task {
+_DESMOND_RELAX_MSJ = """task {
   task = "desmond:auto"
   set_family = {
     desmond = {
@@ -759,7 +946,7 @@ simulate {
   eneseq.interval         = 0.3
   trajectory.center       = solute
 }
-'''
+"""
 
 _DESMOND_TASK_ONLY = 'task {\n  task = "desmond:auto"\n}\n'
 
@@ -771,29 +958,51 @@ def _jobname(path: str, suffix: str = "") -> str:
     return (base + suffix)[:60]
 
 
-def _production_stage(time_ps: float, ensemble: str, temperature_k: float,
-                      pressure_bar: float, timestep_fs: float, traj_interval_ps: float) -> str:
+def _production_stage(
+    time_ps: float,
+    ensemble: str,
+    temperature_k: float,
+    pressure_bar: float,
+    timestep_fs: float,
+    traj_interval_ps: float,
+) -> str:
     dt = round(timestep_fs / 1000.0, 6)
     ts = f"[{dt} {dt} {round(dt * 3, 6)}]"
-    lines = ['simulate {', '  title       = "Production MD"',
-             f'  time        = {time_ps}', f'  timestep    = {ts}',
-             f'  temperature = {temperature_k}', '  ensemble = {',
-             f'    class          = {ensemble}', '    method         = MTK',
-             '    thermostat.tau = 1.0']
+    lines = [
+        "simulate {",
+        '  title       = "Production MD"',
+        f"  time        = {time_ps}",
+        f"  timestep    = {ts}",
+        f"  temperature = {temperature_k}",
+        "  ensemble = {",
+        f"    class          = {ensemble}",
+        "    method         = MTK",
+        "    thermostat.tau = 1.0",
+    ]
     if ensemble == "NPT":
-        lines.append('    barostat.tau   = 2.0')
-    lines.append('  }')
+        lines.append("    barostat.tau   = 2.0")
+    lines.append("  }")
     if ensemble == "NPT" and abs(pressure_bar - 1.01325) > 1e-6:
-        lines.append(f'  pressure = {pressure_bar}')
-    lines += [f'  trajectory.interval = {traj_interval_ps}',
-              f'  eneseq.interval     = {max(1.0, traj_interval_ps / 5.0)}', '}']
+        lines.append(f"  pressure = {pressure_bar}")
+    lines += [
+        f"  trajectory.interval = {traj_interval_ps}",
+        f"  eneseq.interval     = {max(1.0, traj_interval_ps / 5.0)}",
+        "}",
+    ]
     return "\n".join(lines) + "\n"
 
 
 @mcp.tool()
-def desmond_setup(input_structure: str, out_cms: str, box_shape: str = "orthorhombic",
-                  buffer_width: float = 10.0, solvent: str = "SPC", neutralize: bool = True,
-                  forcefield: str = "OPLS4", timeout_s: int = 3600) -> dict:
+def desmond_setup(
+    input_structure: str,
+    out_cms: str,
+    box_shape: str = "orthorhombic",
+    buffer_width: float = 10.0,
+    solvent: str = "SPC",
+    neutralize: bool = True,
+    forcefield: str = "OPLS4",
+    timeout_s: int = 3600,
+) -> dict:
     """Desmond system builder: solvate + neutralize a prepared structure (.mae/.pdb) into a
     Desmond `-out.cms` ready for desmond_md. Runs `multisim` build_geometry + assign_forcefield
     synchronously (minutes). box_shape=orthorhombic|cubic|triclinic|...; solvent=SPC|TIP3P|TIP4P|
@@ -804,37 +1013,89 @@ def desmond_setup(input_structure: str, out_cms: str, box_shape: str = "orthorho
         out_cms = _safe_path(out_cms)
     except (ValueError, FileNotFoundError) as e:
         return {"error": str(e)}
-    if box_shape not in ("orthorhombic", "cubic", "triclinic", "dodecahedron_hexagon",
-                         "cube", "truncated_octahedron"):
+    if box_shape not in (
+        "orthorhombic",
+        "cubic",
+        "triclinic",
+        "dodecahedron_hexagon",
+        "cube",
+        "truncated_octahedron",
+    ):
         return {"error": f"unsupported box_shape: {box_shape!r}"}
     wd = os.path.dirname(out_cms) or "."
     os.makedirs(wd, exist_ok=True)
     job = _jobname(out_cms, "_setup")
-    build = ['task {', '  task = "desmond:auto"', '}', '', 'build_geometry {',
-             f'  box_shape         = {box_shape}', f'  buffer_width      = {float(buffer_width)}',
-             '  rezero_system     = yes', f'  neutralize_system = {"yes" if neutralize else "no"}',
-             f'  solvent           = {solvent}', '}', '', 'assign_forcefield {',
-             f'  forcefield = {forcefield}', '}', '']
+    build = [
+        "task {",
+        '  task = "desmond:auto"',
+        "}",
+        "",
+        "build_geometry {",
+        f"  box_shape         = {box_shape}",
+        f"  buffer_width      = {float(buffer_width)}",
+        "  rezero_system     = yes",
+        f"  neutralize_system = {'yes' if neutralize else 'no'}",
+        f"  solvent           = {solvent}",
+        "}",
+        "",
+        "assign_forcefield {",
+        f"  forcefield = {forcefield}",
+        "}",
+        "",
+    ]
     msj = os.path.join(wd, job + ".msj")
     with open(msj, "w") as fh:
         fh.write("\n".join(build))
     srv = _ensure_job_server()
-    argv = [_driver("multisim"), "-JOBNAME", job, "-m", os.path.basename(msj),
-            "-o", os.path.basename(out_cms), input_structure, "-HOST", "localhost", "-WAIT"]
+    argv = [
+        _driver("multisim"),
+        "-JOBNAME",
+        job,
+        "-m",
+        os.path.basename(msj),
+        "-o",
+        os.path.basename(out_cms),
+        input_structure,
+        "-HOST",
+        "localhost",
+        "-WAIT",
+    ]
     try:
         p = _exec(argv, timeout=timeout_s, cwd=wd)
     except subprocess.TimeoutExpired:
         return {"error": f"timeout after {timeout_s}s", "job_server": srv}
-    out = out_cms if os.path.exists(out_cms) else (
-        os.path.join(wd, job + "-out.cms") if os.path.exists(os.path.join(wd, job + "-out.cms")) else None)
-    return {"returncode": p.returncode, "out_cms": out, "msj": msj, "job_server": srv,
-            "stdout_tail": p.stdout[-1500:], "stderr_tail": p.stderr[-1500:]}
+    out = (
+        out_cms
+        if os.path.exists(out_cms)
+        else (
+            os.path.join(wd, job + "-out.cms")
+            if os.path.exists(os.path.join(wd, job + "-out.cms"))
+            else None
+        )
+    )
+    return {
+        "returncode": p.returncode,
+        "out_cms": out,
+        "msj": msj,
+        "job_server": srv,
+        "stdout_tail": p.stdout[-1500:],
+        "stderr_tail": p.stderr[-1500:],
+    }
 
 
 @mcp.tool()
-def desmond_md(system_cms: str, out_cms: str = "", time_ns: float = 10.0, ensemble: str = "NPT",
-               temperature_K: float = 300.0, pressure_bar: float = 1.01325, timestep_fs: float = 2.0,
-               traj_interval_ps: float = 50.0, relax: bool = True, timeout_s: int = 300) -> dict:
+def desmond_md(
+    system_cms: str,
+    out_cms: str = "",
+    time_ns: float = 10.0,
+    ensemble: str = "NPT",
+    temperature_K: float = 300.0,
+    pressure_bar: float = 1.01325,
+    timestep_fs: float = 2.0,
+    traj_interval_ps: float = 50.0,
+    relax: bool = True,
+    timeout_s: int = 300,
+) -> dict:
     """Desmond production MD on a solvated `-out.cms` (from desmond_setup). ASYNC: submits via
     the P0 job-control layer (no -WAIT) and returns a {jobid} - poll with job_status / job_wait.
     Prepends the shipped standard NPT relaxation protocol when relax=True. Parameterize time_ns,
@@ -857,13 +1118,29 @@ def desmond_md(system_cms: str, out_cms: str = "", time_ns: float = 10.0, ensemb
         return {"error": str(e)}
     job = _jobname(out_cms)
     head = _DESMOND_RELAX_MSJ if relax else _DESMOND_TASK_ONLY
-    prod = _production_stage(float(time_ns) * 1000.0, ensemble, float(temperature_K),
-                             float(pressure_bar), float(timestep_fs), float(traj_interval_ps))
+    prod = _production_stage(
+        float(time_ns) * 1000.0,
+        ensemble,
+        float(temperature_K),
+        float(pressure_bar),
+        float(timestep_fs),
+        float(traj_interval_ps),
+    )
     msj = os.path.join(wd, job + "_prod.msj")
     with open(msj, "w") as fh:
         fh.write(head + "\n" + prod)
-    argv = [_driver("multisim"), "-JOBNAME", job, "-m", os.path.basename(msj),
-            "-o", os.path.basename(out_cms), system_cms, "-HOST", "localhost"]
+    argv = [
+        _driver("multisim"),
+        "-JOBNAME",
+        job,
+        "-m",
+        os.path.basename(msj),
+        "-o",
+        os.path.basename(out_cms),
+        system_cms,
+        "-HOST",
+        "localhost",
+    ]
     res = _submit_async(argv, cwd=wd, timeout=timeout_s)
     res["msj"] = msj
     res["expected_out_cms"] = out_cms
@@ -872,8 +1149,13 @@ def desmond_md(system_cms: str, out_cms: str = "", time_ns: float = 10.0, ensemb
 
 
 @mcp.tool()
-def desmond_trajectory_analysis(cms_file: str, lig_asl: str = "", fit_asl: str = "",
-                                stride: int = 1, timeout_s: int = 900) -> dict:
+def desmond_trajectory_analysis(
+    cms_file: str,
+    lig_asl: str = "",
+    fit_asl: str = "",
+    stride: int = 1,
+    timeout_s: int = 900,
+) -> dict:
     """Analyze a completed Desmond MD trajectory (its `-out.cms`; the sibling `_trj` is auto-found).
     Uses schrodinger.application.desmond.packages.analysis to compute protein C-alpha RMSD (per-frame
     series + mean/min/max/last), C-alpha RMSF (per-residue), radius of gyration, and - if `lig_asl`
@@ -892,9 +1174,16 @@ def desmond_trajectory_analysis(cms_file: str, lig_asl: str = "", fit_asl: str =
 
 
 @mcp.tool()
-def thermal_mmgbsa(cms_file: str, job_name: str = "", lig_asl: str = "", start_frame: int = 0,
-                   end_frame: int = -1, step_size: int = 1, njobs: int = 1,
-                   timeout_s: int = 300) -> dict:
+def thermal_mmgbsa(
+    cms_file: str,
+    job_name: str = "",
+    lig_asl: str = "",
+    start_frame: int = 0,
+    end_frame: int = -1,
+    step_size: int = 1,
+    njobs: int = 1,
+    timeout_s: int = 300,
+) -> dict:
     """Thermal MM-GBSA: per-frame Prime MM-GBSA binding energies over a Desmond MD trajectory
     (a more converged dG than single-pose Prime). Wraps `$SCHRODINGER/run thermal_mmgbsa.py
     <-out.cms> -j <name> -start_frame N -end_frame M -step_size K -HOST localhost:NJOBS -NJOBS N`.
@@ -906,9 +1195,21 @@ def thermal_mmgbsa(cms_file: str, job_name: str = "", lig_asl: str = "", start_f
         return {"error": str(e)}
     wd = os.path.dirname(cms_file) or "."
     job = _jobname(job_name or (os.path.basename(cms_file) + "_tmmgbsa"))
-    argv = [_run(), "thermal_mmgbsa.py", cms_file, "-j", job,
-            "-start_frame", str(int(start_frame)), "-step_size", str(max(1, int(step_size))),
-            "-HOST", f"localhost:{max(1, int(njobs))}", "-NJOBS", str(max(1, int(njobs)))]
+    argv = [
+        _run(),
+        "thermal_mmgbsa.py",
+        cms_file,
+        "-j",
+        job,
+        "-start_frame",
+        str(int(start_frame)),
+        "-step_size",
+        str(max(1, int(step_size))),
+        "-HOST",
+        f"localhost:{max(1, int(njobs))}",
+        "-NJOBS",
+        str(max(1, int(njobs))),
+    ]
     if int(end_frame) >= 0:
         argv += ["-end_frame", str(int(end_frame))]
     if lig_asl:
@@ -926,6 +1227,7 @@ def thermal_mmgbsa(cms_file: str, job_name: str = "", lig_asl: str = "", start_f
 
 # ---------- async job-control MCP tools (P0 enabler) ----------
 
+
 @mcp.tool()
 def job_server_control(action: str = "status") -> dict:
     """Control the local Schrodinger job server that async jobs (MD/FEP/WaterMap) require.
@@ -937,8 +1239,12 @@ def job_server_control(action: str = "status") -> dict:
         p = _jsc(action)
     except subprocess.TimeoutExpired:
         return {"error": "jsc timed out"}
-    return {"action": action, "returncode": p.returncode,
-            "stdout_tail": p.stdout[-800:], "stderr_tail": p.stderr[-800:]}
+    return {
+        "action": action,
+        "returncode": p.returncode,
+        "stdout_tail": p.stdout[-800:],
+        "stderr_tail": p.stderr[-800:],
+    }
 
 
 @mcp.tool()
@@ -959,11 +1265,15 @@ def job_wait(jobid: str, timeout_s: int = 600, poll_s: int = 5) -> dict:
     if not isinstance(jobid, str) or not jobid.strip() or jobid.strip().startswith("-"):
         return {"error": f"invalid jobid: {jobid!r}"}
     timeout_s = max(1, int(timeout_s))
-    return _helper("job_wait", {"jobid": jobid.strip(), "timeout": timeout_s, "poll": max(1, int(poll_s))},
-                   timeout=timeout_s + 60)
+    return _helper(
+        "job_wait",
+        {"jobid": jobid.strip(), "timeout": timeout_s, "poll": max(1, int(poll_s))},
+        timeout=timeout_s + 60,
+    )
 
 
 # ---------- cheap CPU workflows (P3: fast, local, high-ROI) ----------
+
 
 def _canvas_in_flag(path: str) -> str:
     low = path.lower()
@@ -977,8 +1287,13 @@ def _canvas_in_flag(path: str) -> str:
 
 
 @mcp.tool()
-def confgen(input_structure: str, num_confs: int = 0, max_confs: int = 0, out_maegz: str = "",
-            timeout_s: int = 600) -> dict:
+def confgen(
+    input_structure: str,
+    num_confs: int = 0,
+    max_confs: int = 0,
+    out_maegz: str = "",
+    timeout_s: int = 600,
+) -> dict:
     """ConfGen: generate a 3D conformer ensemble for small molecules (.mae/.sdf/.mol2). Fast, CPU,
     runs locally with -NOJOBID (no job server needed). num_confs (-n target count; 0 = auto by
     quality mode), max_confs (-m cap per input). Writes <job>-out.maegz next to the input.
@@ -988,10 +1303,19 @@ def confgen(input_structure: str, num_confs: int = 0, max_confs: int = 0, out_ma
     except (ValueError, FileNotFoundError) as e:
         return {"error": str(e)}
     wd = os.path.dirname(input_structure) or "."
-    stem = os.path.basename(out_maegz) if out_maegz else (
-        os.path.splitext(os.path.basename(input_structure))[0] + "_confgen")
+    stem = (
+        os.path.basename(out_maegz)
+        if out_maegz
+        else (os.path.splitext(os.path.basename(input_structure))[0] + "_confgen")
+    )
     job = _jobname(re.sub(r"-out$", "", os.path.splitext(stem)[0]))
-    argv = [_driver("confgen"), os.path.basename(input_structure), "-j", job, "-NOJOBID"]
+    argv = [
+        _driver("confgen"),
+        os.path.basename(input_structure),
+        "-j",
+        job,
+        "-NOJOBID",
+    ]
     if int(max_confs) > 0:
         argv += ["-m", str(int(max_confs))]
     if int(num_confs) > 0:
@@ -1001,13 +1325,23 @@ def confgen(input_structure: str, num_confs: int = 0, max_confs: int = 0, out_ma
     except subprocess.TimeoutExpired:
         return {"error": f"timeout after {timeout_s}s"}
     out = os.path.join(wd, job + "-out.maegz")
-    return {"returncode": p.returncode, "out_maegz": out if os.path.exists(out) else None,
-            "stdout_tail": p.stdout[-1000:], "stderr_tail": p.stderr[-1000:]}
+    return {
+        "returncode": p.returncode,
+        "out_maegz": out if os.path.exists(out) else None,
+        "stdout_tail": p.stdout[-1000:],
+        "stderr_tail": p.stderr[-1000:],
+    }
 
 
 @mcp.tool()
-def shape_screen(shape_query: str, screen_library: str, out_dir: str = "", flexible: bool = False,
-                 max_confs: int = 0, timeout_s: int = 1800) -> dict:
+def shape_screen(
+    shape_query: str,
+    screen_library: str,
+    out_dir: str = "",
+    flexible: bool = False,
+    max_confs: int = 0,
+    timeout_s: int = 1800,
+) -> dict:
     """Shape screen: rank a library by 3D shape similarity to a query molecule. shape_query &
     screen_library = .mae/.maegz/.sdf. flexible=True generates conformers on the fly (-flex).
     Similarity is written as r_phase_Shape_Sim on <job>_align.maegz. CPU (use shape_screen_gpu on
@@ -1023,8 +1357,18 @@ def shape_screen(shape_query: str, screen_library: str, out_dir: str = "", flexi
         return {"error": str(e)}
     os.makedirs(wd, exist_ok=True)
     job = "shape_screen_job"
-    argv = [_driver("shape_screen"), "-shape", shape_query, "-screen", screen_library,
-            "-JOB", job, "-HOST", "localhost", "-WAIT"]
+    argv = [
+        _driver("shape_screen"),
+        "-shape",
+        shape_query,
+        "-screen",
+        screen_library,
+        "-JOB",
+        job,
+        "-HOST",
+        "localhost",
+        "-WAIT",
+    ]
     if flexible:
         argv.append("-flex")
         if int(max_confs) > 0:
@@ -1035,19 +1379,33 @@ def shape_screen(shape_query: str, screen_library: str, out_dir: str = "", flexi
     except subprocess.TimeoutExpired:
         return {"error": f"timeout after {timeout_s}s", "job_server": srv}
     aligned = os.path.join(wd, job + "_align.maegz")
-    return {"returncode": p.returncode, "job_server": srv,
-            "aligned_maegz": aligned if os.path.exists(aligned) else None,
-            "stdout_tail": p.stdout[-1200:], "stderr_tail": p.stderr[-1200:]}
+    return {
+        "returncode": p.returncode,
+        "job_server": srv,
+        "aligned_maegz": aligned if os.path.exists(aligned) else None,
+        "stdout_tail": p.stdout[-1200:],
+        "stderr_tail": p.stderr[-1200:],
+    }
 
 
 @mcp.tool()
-def canvas_fingerprints(input_structures: str, out_fp: str, fptype: str = "linear",
-                        timeout_s: int = 600) -> dict:
+def canvas_fingerprints(
+    input_structures: str, out_fp: str, fptype: str = "linear", timeout_s: int = 600
+) -> dict:
     """Canvas 2D fingerprints for a whole library (.mae/.sdf/.smi/.csv) -> binary .fp file.
     fptype = linear|dendritic|radial|maccs|molprint2D|torsion|pairwise|triplet|quartet. Local, CPU.
     Feed the .fp to canvasFPMatrix / canvasSearch for similarity. Returns {out_fp, returncode}."""
-    valid = {"linear", "dendritic", "radial", "maccs", "molprint2d", "torsion",
-             "pairwise", "triplet", "quartet"}
+    valid = {
+        "linear",
+        "dendritic",
+        "radial",
+        "maccs",
+        "molprint2d",
+        "torsion",
+        "pairwise",
+        "triplet",
+        "quartet",
+    }
     if fptype.lower() not in valid:
         return {"error": f"fptype must be one of {sorted(valid)}"}
     try:
@@ -1055,19 +1413,32 @@ def canvas_fingerprints(input_structures: str, out_fp: str, fptype: str = "linea
         out_fp = _safe_path(out_fp)
     except (ValueError, FileNotFoundError) as e:
         return {"error": str(e)}
-    argv = [_driver("canvasFPGen"), _canvas_in_flag(input_structures), input_structures,
-            "-o", out_fp, "-fptype", fptype.lower()]
+    argv = [
+        _driver("canvasFPGen"),
+        _canvas_in_flag(input_structures),
+        input_structures,
+        "-o",
+        out_fp,
+        "-fptype",
+        fptype.lower(),
+    ]
     os.makedirs(os.path.dirname(out_fp) or ".", exist_ok=True)
     try:
         p = _exec(argv, timeout=timeout_s, cwd=os.path.dirname(out_fp) or ".")
     except subprocess.TimeoutExpired:
         return {"error": f"timeout after {timeout_s}s"}
-    return {"returncode": p.returncode, "out_fp": out_fp if os.path.exists(out_fp) else None,
-            "stdout_tail": p.stdout[-1000:], "stderr_tail": p.stderr[-1000:]}
+    return {
+        "returncode": p.returncode,
+        "out_fp": out_fp if os.path.exists(out_fp) else None,
+        "stdout_tail": p.stdout[-1000:],
+        "stderr_tail": p.stderr[-1000:],
+    }
 
 
 @mcp.tool()
-def canvas_descriptors(input_structures: str, out_csv: str, timeout_s: int = 600) -> dict:
+def canvas_descriptors(
+    input_structures: str, out_csv: str, timeout_s: int = 600
+) -> dict:
     """Canvas molecular descriptors: a broad physicochemical/topological panel for a whole library
     (.mae/.sdf/.smi/.csv) -> CSV (-All). Complements molecule_properties (which is single-SMILES).
     Local, CPU. Returns {out_csv, csv_head, returncode}."""
@@ -1076,16 +1447,26 @@ def canvas_descriptors(input_structures: str, out_csv: str, timeout_s: int = 600
         out_csv = _safe_path(out_csv)
     except (ValueError, FileNotFoundError) as e:
         return {"error": str(e)}
-    argv = [_driver("canvasMolDescriptors"), _canvas_in_flag(input_structures), input_structures,
-            "-All", "-ocsv", out_csv]
+    argv = [
+        _driver("canvasMolDescriptors"),
+        _canvas_in_flag(input_structures),
+        input_structures,
+        "-All",
+        "-ocsv",
+        out_csv,
+    ]
     os.makedirs(os.path.dirname(out_csv) or ".", exist_ok=True)
     try:
         p = _exec(argv, timeout=timeout_s, cwd=os.path.dirname(out_csv) or ".")
     except subprocess.TimeoutExpired:
         return {"error": f"timeout after {timeout_s}s"}
     ok = os.path.exists(out_csv)
-    res = {"returncode": p.returncode, "out_csv": out_csv if ok else None,
-           "stdout_tail": p.stdout[-1000:], "stderr_tail": p.stderr[-1000:]}
+    res = {
+        "returncode": p.returncode,
+        "out_csv": out_csv if ok else None,
+        "stdout_tail": p.stdout[-1000:],
+        "stderr_tail": p.stderr[-1000:],
+    }
     if ok:
         with open(out_csv) as fh:
             res["csv_head"] = "".join(fh.readlines()[:2])
@@ -1093,9 +1474,14 @@ def canvas_descriptors(input_structures: str, out_csv: str, timeout_s: int = 600
 
 
 @mcp.tool()
-def phase_pharmacophore(pose_viewer: str, out_dir: str, n_features: int = 7,
-                        excluded_volumes: bool = False, feature_defs: str = "",
-                        timeout_s: int = 1800) -> dict:
+def phase_pharmacophore(
+    pose_viewer: str,
+    out_dir: str,
+    n_features: int = 7,
+    excluded_volumes: bool = False,
+    feature_defs: str = "",
+    timeout_s: int = 1800,
+) -> dict:
     """Phase e-pharmacophores: build a structure-based pharmacophore hypothesis (.phypo) from a
     Glide XP pose-viewer by mapping XP descriptor energies onto features. `pose_viewer` = a Glide XP
     *_pv.maegz written WITH XP descriptors. n_features caps features (-f); excluded_volumes adds
@@ -1109,7 +1495,15 @@ def phase_pharmacophore(pose_viewer: str, out_dir: str, n_features: int = 7,
         return {"error": str(e)}
     os.makedirs(out_dir, exist_ok=True)
     job = "epharm_hypo"
-    argv = [_driver("epharmacophores"), "-pv", pose_viewer, "-f", str(int(n_features)), "-j", job]
+    argv = [
+        _driver("epharmacophores"),
+        "-pv",
+        pose_viewer,
+        "-f",
+        str(int(n_features)),
+        "-j",
+        job,
+    ]
     if excluded_volumes:
         argv.append("-xvol")
     if fd:
@@ -1119,13 +1513,25 @@ def phase_pharmacophore(pose_viewer: str, out_dir: str, n_features: int = 7,
     except subprocess.TimeoutExpired:
         return {"error": f"timeout after {timeout_s}s"}
     hypo = os.path.join(out_dir, job + ".phypo")
-    return {"returncode": p.returncode, "hypothesis": hypo if os.path.exists(hypo) else None,
-            "stdout_tail": p.stdout[-1200:], "stderr_tail": p.stderr[-1200:]}
+    return {
+        "returncode": p.returncode,
+        "hypothesis": hypo if os.path.exists(hypo) else None,
+        "stdout_tail": p.stdout[-1200:],
+        "stderr_tail": p.stderr[-1200:],
+    }
 
 
 @mcp.tool()
-def phase_screen(library: str, hypothesis: str, out_dir: str, flexible: bool = True,
-                 max_confs: int = 0, min_sites: int = 0, njobs: int = 1, timeout_s: int = 3600) -> dict:
+def phase_screen(
+    library: str,
+    hypothesis: str,
+    out_dir: str,
+    flexible: bool = True,
+    max_confs: int = 0,
+    min_sites: int = 0,
+    njobs: int = 1,
+    timeout_s: int = 3600,
+) -> dict:
     """Phase pharmacophore screen: rank a ligand library against a hypothesis (.phypo). library =
     .mae/.sdf/.maegz or a Phase DB. flexible=True samples conformers on the fly (-flex). min_sites
     (-match) = minimum features that must match. Runs under Job Control (auto-starts the server).
@@ -1139,8 +1545,17 @@ def phase_screen(library: str, hypothesis: str, out_dir: str, flexible: bool = T
     os.makedirs(out_dir, exist_ok=True)
     job = "phase_screen_job"
     nj = max(1, int(njobs))
-    argv = [_driver("phase_screen"), library, hypothesis, job,
-            "-HOST", f"localhost:{nj}", "-NJOBS", str(nj), "-WAIT"]
+    argv = [
+        _driver("phase_screen"),
+        library,
+        hypothesis,
+        job,
+        "-HOST",
+        f"localhost:{nj}",
+        "-NJOBS",
+        str(nj),
+        "-WAIT",
+    ]
     if flexible:
         argv.append("-flex")
         if int(max_confs) > 0:
@@ -1153,16 +1568,27 @@ def phase_screen(library: str, hypothesis: str, out_dir: str, flexible: bool = T
     except subprocess.TimeoutExpired:
         return {"error": f"timeout after {timeout_s}s", "job_server": srv}
     hits = os.path.join(out_dir, job + "-hits.maegz")
-    return {"returncode": p.returncode, "job_server": srv,
-            "hits_maegz": hits if os.path.exists(hits) else None,
-            "stdout_tail": p.stdout[-1200:], "stderr_tail": p.stderr[-1200:]}
+    return {
+        "returncode": p.returncode,
+        "job_server": srv,
+        "hits_maegz": hits if os.path.exists(hits) else None,
+        "stdout_tail": p.stdout[-1200:],
+        "stderr_tail": p.stderr[-1200:],
+    }
 
 
 # ---------- GPU free-energy (P2: small systems only on 6GB - needs Desmond engine) ----------
 
+
 @mcp.tool()
-def fep_plus(fmp_map: str, out_dir: str = "", subhost_gpus: int = 1, mode: str = "connected",
-             maxjob: int = 1, timeout_s: int = 300) -> dict:
+def fep_plus(
+    fmp_map: str,
+    out_dir: str = "",
+    subhost_gpus: int = 1,
+    mode: str = "connected",
+    maxjob: int = 1,
+    timeout_s: int = 300,
+) -> dict:
     """FEP+ relative binding free energy on a prebuilt FEP map (.fmp) or a multi-ligand pose-viewer
     (.maegz - the fep_plus driver auto-builds the map). ASYNC (GPU, long) via the P0 job-control
     layer -> {jobid}; poll job_status. GPU-scheduling `mode`:
@@ -1189,23 +1615,50 @@ def fep_plus(fmp_map: str, out_dir: str = "", subhost_gpus: int = 1, mode: str =
     job = _jobname(fmp_map)
     nj = max(1, int(subhost_gpus))
     if mode == "connected":
-        argv = [_driver("fep_plus"), fmp_map, "-JOBNAME", job, "-HOST", "localhost",
-                "-SUBHOST", "localhost", "-ppj", str(nj), "-maxjob", str(max(0, int(maxjob)))]
+        argv = [
+            _driver("fep_plus"),
+            fmp_map,
+            "-JOBNAME",
+            job,
+            "-HOST",
+            "localhost",
+            "-SUBHOST",
+            "localhost",
+            "-ppj",
+            str(nj),
+            "-maxjob",
+            str(max(0, int(maxjob))),
+        ]
     else:  # per_edge - throughput-only, keep the legacy -SUBHOST localhost:N style
-        argv = [_driver("fep_plus"), fmp_map, "-JOBNAME", job, "-HOST", "localhost",
-                "-SUBHOST", f"localhost:{nj}"]
+        argv = [
+            _driver("fep_plus"),
+            fmp_map,
+            "-JOBNAME",
+            job,
+            "-HOST",
+            "localhost",
+            "-SUBHOST",
+            f"localhost:{nj}",
+        ]
     res = _submit_async(argv, cwd=wd, timeout=timeout_s)
     res["mode"] = mode
     res["expected_out_fmp"] = os.path.join(wd, job + "_out.fmp")
     if mode == "per_edge":
-        res["warning"] = ("per-edge is throughput-only, NOT validation-grade "
-                          "(cycle-closure/neg-control fails)")
+        res["warning"] = (
+            "per-edge is throughput-only, NOT validation-grade "
+            "(cycle-closure/neg-control fails)"
+        )
     return res
 
 
 @mcp.tool()
-def watermap(structure: str, msj_file: str = "", out_cms: str = "", subhost_gpus: int = 1,
-             timeout_s: int = 300) -> dict:
+def watermap(
+    structure: str,
+    msj_file: str = "",
+    out_cms: str = "",
+    subhost_gpus: int = 1,
+    timeout_s: int = 300,
+) -> dict:
     """WaterMap: hydration-site thermodynamics (Desmond MD + water clustering) around a binding
     site - locates high-dG 'unhappy' waters to target. ASYNC -> {jobid}. `structure` = a
     complex/solvated .cms/.mae. `msj_file` = WaterMap protocol msj; defaults to the shipped
@@ -1217,7 +1670,11 @@ def watermap(structure: str, msj_file: str = "", out_cms: str = "", subhost_gpus
         out_cms = _safe_path(out_cms) if out_cms else ""
     except (ValueError, FileNotFoundError) as e:
         return {"error": str(e)}
-    wd = (os.path.dirname(out_cms) or ".") if out_cms else (os.path.dirname(structure) or ".")
+    wd = (
+        (os.path.dirname(out_cms) or ".")
+        if out_cms
+        else (os.path.dirname(structure) or ".")
+    )
     os.makedirs(wd, exist_ok=True)
     job = _jobname(out_cms or (os.path.basename(structure) + "_wmap"))
     if msj_file:
@@ -1226,15 +1683,30 @@ def watermap(structure: str, msj_file: str = "", out_cms: str = "", subhost_gpus
         except (ValueError, FileNotFoundError) as e:
             return {"error": str(e)}
     else:  # fall back to the shipped GPU template
-        found = glob.glob(os.path.join(SCHRODINGER, "mmshare-*", "data", "desmond",
-                                       "watermap_gpu_template.msj"))
+        found = glob.glob(
+            os.path.join(
+                SCHRODINGER, "mmshare-*", "data", "desmond", "watermap_gpu_template.msj"
+            )
+        )
         if not found:
-            return {"error": "no msj_file given and shipped watermap_gpu_template.msj not found"}
+            return {
+                "error": "no msj_file given and shipped watermap_gpu_template.msj not found"
+            }
         msj = os.path.join(wd, job + "_wmap.msj")
         shutil.copyfile(found[0], msj)
     nj = max(1, int(subhost_gpus))
-    argv = [_driver("watermap"), "-JOBNAME", job, "-m", os.path.basename(msj),
-            "-HOST", "localhost", "-SUBHOST", f"localhost:{nj}", structure]
+    argv = [
+        _driver("watermap"),
+        "-JOBNAME",
+        job,
+        "-m",
+        os.path.basename(msj),
+        "-HOST",
+        "localhost",
+        "-SUBHOST",
+        f"localhost:{nj}",
+        structure,
+    ]
     if out_cms:
         argv += ["-o", os.path.basename(out_cms)]
     res = _submit_async(argv, cwd=wd, timeout=timeout_s)
@@ -1245,14 +1717,23 @@ def watermap(structure: str, msj_file: str = "", out_cms: str = "", subhost_gpus
 # ---------- advanced docking (P4: Glide+Prime, no Desmond) ----------
 
 _COVALENT_RXNS = {
-    "Michael Addition", "Nucleophilic Addition to a Double Bond",
-    "Nucleophilic Addition to a Triple Bond", "Nucleophilic Substitution",
-    "Nucleophilic Substitution of a Carbamate", "Boronic Acid Addition", "Epoxide Opening",
-    "Imine Condensation", "Phosphonate Addition", "Beta Lactam Addition",
+    "Michael Addition",
+    "Nucleophilic Addition to a Double Bond",
+    "Nucleophilic Addition to a Triple Bond",
+    "Nucleophilic Substitution",
+    "Nucleophilic Substitution of a Carbamate",
+    "Boronic Acid Addition",
+    "Epoxide Opening",
+    "Imine Condensation",
+    "Phosphonate Addition",
+    "Beta Lactam Addition",
     "Conjugate Addition to Alkene (nitrile activated)",
     "Conjugate Addition to Alkyne (carbonyl activated)",
-    "Conjugate Addition to Alkyne (aryl activated)", "Disulfide Formation",
-    "Ion Pair to Covalent Bond: Lig(-1)/Rec(+1)", "Ion Pair to Covalent Bond: Lig(+1)/Rec(-1)"}
+    "Conjugate Addition to Alkyne (aryl activated)",
+    "Disulfide Formation",
+    "Ion Pair to Covalent Bond: Lig(-1)/Rec(+1)",
+    "Ion Pair to Covalent Bond: Lig(+1)/Rec(-1)",
+}
 
 _IFD_STANDARD_INP = """INPUT_FILE {receptor}
 
@@ -1297,9 +1778,15 @@ STAGE SCORING
 
 
 @mcp.tool()
-def induced_fit_docking(inp_file: str = "", receptor_mae: str = "", ligand_mae: str = "",
-                        binding_site: str = "", precision: str = "SP", out_dir: str = "",
-                        timeout_s: int = 300) -> dict:
+def induced_fit_docking(
+    inp_file: str = "",
+    receptor_mae: str = "",
+    ligand_mae: str = "",
+    binding_site: str = "",
+    precision: str = "SP",
+    out_dir: str = "",
+    timeout_s: int = 300,
+) -> dict:
     """Induced-Fit Docking (IFD): Glide+Prime flexible-receptor docking (models receptor
     side-chain/backbone rearrangement). ASYNC -> {jobid}. Provide EITHER a prepared `inp_file`
     (an IFD .inp protocol - the exact, verified ifd interface) OR receptor_mae + ligand_mae +
@@ -1315,7 +1802,9 @@ def induced_fit_docking(inp_file: str = "", receptor_mae: str = "", ligand_mae: 
             wd = os.path.dirname(inp) or "."
         else:
             if not (receptor_mae and ligand_mae and binding_site):
-                return {"error": "provide inp_file OR (receptor_mae + ligand_mae + binding_site)"}
+                return {
+                    "error": "provide inp_file OR (receptor_mae + ligand_mae + binding_site)"
+                }
             if any(c in binding_site for c in "\r\n\x00"):
                 return {"error": "unsafe binding_site"}
             rec = _safe_path(receptor_mae, must_exist=True)
@@ -1324,8 +1813,11 @@ def induced_fit_docking(inp_file: str = "", receptor_mae: str = "", ligand_mae: 
             os.makedirs(wd, exist_ok=True)
             inp = os.path.join(wd, "ifd_job.inp")
             with open(inp, "w") as fh:
-                fh.write(_IFD_STANDARD_INP.format(receptor=rec, ligand=lig,
-                                                  site=binding_site, precision=precision))
+                fh.write(
+                    _IFD_STANDARD_INP.format(
+                        receptor=rec, ligand=lig, site=binding_site, precision=precision
+                    )
+                )
     except (ValueError, FileNotFoundError) as e:
         return {"error": str(e)}
     argv = [_driver("ifd"), os.path.basename(inp), "-HOST", "localhost"]
@@ -1335,9 +1827,16 @@ def induced_fit_docking(inp_file: str = "", receptor_mae: str = "", ligand_mae: 
 
 
 @mcp.tool()
-def covalent_docking(receptor_mae: str, ligand_mae: str, attachment_residue: str,
-                     rxn_type: str = "Michael Addition", mode: str = "score", out_dir: str = "",
-                     njobs: int = 1, timeout_s: int = 300) -> dict:
+def covalent_docking(
+    receptor_mae: str,
+    ligand_mae: str,
+    attachment_residue: str,
+    rxn_type: str = "Michael Addition",
+    mode: str = "score",
+    out_dir: str = "",
+    njobs: int = 1,
+    timeout_s: int = 300,
+) -> dict:
     """Covalent docking: dock ligands that form a covalent bond to a receptor residue (e.g. a
     warhead to a catalytic Cys). attachment_residue = '<chain>:<resnum>' (e.g. 'A:145', ':3').
     rxn_type = a supported reaction name (Michael Addition, Nucleophilic Substitution, Boronic
@@ -1347,9 +1846,13 @@ def covalent_docking(receptor_mae: str, ligand_mae: str, attachment_residue: str
     if mode not in ("leadopt", "enrichment", "score", "attach"):
         return {"error": "mode must be leadopt|enrichment|score|attach"}
     if rxn_type not in _COVALENT_RXNS:
-        return {"error": f"unsupported rxn_type; must be one of {sorted(_COVALENT_RXNS)}"}
+        return {
+            "error": f"unsupported rxn_type; must be one of {sorted(_COVALENT_RXNS)}"
+        }
     if not re.fullmatch(r"[A-Za-z]?:[0-9]+[A-Za-z]?", attachment_residue or ""):
-        return {"error": "attachment_residue must be '<chain>:<resnum>' e.g. 'A:145' or ':3'"}
+        return {
+            "error": "attachment_residue must be '<chain>:<resnum>' e.g. 'A:145' or ':3'"
+        }
     try:
         receptor_mae = _safe_path(receptor_mae, must_exist=True)
         ligand_mae = _safe_path(ligand_mae, must_exist=True)
@@ -1359,9 +1862,22 @@ def covalent_docking(receptor_mae: str, ligand_mae: str, attachment_residue: str
     os.makedirs(wd, exist_ok=True)
     job = "covdock_job"
     nj = max(1, int(njobs))
-    argv = [_driver("covalent_docking"), receptor_mae, ligand_mae, attachment_residue,
-            "-rxn_type", rxn_type, "-mode", mode, "-JOBNAME", job,
-            "-HOST", f"localhost:{nj}", "-NJOBS", str(nj)]
+    argv = [
+        _driver("covalent_docking"),
+        receptor_mae,
+        ligand_mae,
+        attachment_residue,
+        "-rxn_type",
+        rxn_type,
+        "-mode",
+        mode,
+        "-JOBNAME",
+        job,
+        "-HOST",
+        f"localhost:{nj}",
+        "-NJOBS",
+        str(nj),
+    ]
     res = _submit_async(argv, cwd=wd, timeout=timeout_s)
     res["expected_poses"] = os.path.join(wd, job + "-out.maegz")
     return res
@@ -1384,9 +1900,15 @@ def covalent_docking(receptor_mae: str, ligand_mae: str, attachment_residue: str
 
 # ---------- FEP+ map authoring (local prep; LOMAP is CPU, no Desmond/GPU, no token) ----------
 
+
 @mcp.tool()
-def fep_map_build(ligands_mae: str, out_fmp: str, extra_edges: list = None,
-                  gpu_edge_budget: int = 24, timeout_s: int = 1800) -> dict:
+def fep_map_build(
+    ligands_mae: str,
+    out_fmp: str,
+    extra_edges: list = None,
+    gpu_edge_budget: int = 24,
+    timeout_s: int = 1800,
+) -> dict:
     """Author a FEP+ perturbation map (.fmp) from prepared ligands (.mae/.maegz — e.g. LigPrep
     output or a pose-viewer _pv.mae) - the input fep_plus needs and the local prep step no other
     tool produced. LOMAP-authors the graph via the VERIFIED CLI
@@ -1410,8 +1932,10 @@ def fep_map_build(ligands_mae: str, out_fmp: str, extra_edges: list = None,
         return {"error": "extra_edges must be a list of [from_id, to_id] node-id pairs"}
     wd = os.path.dirname(out_fmp) or "."
     os.makedirs(wd, exist_ok=True)
-    job = _jobname(out_fmp, "_map")            # sanitized basename ([A-Za-z0-9_-], no extension)
-    base_fmp = os.path.join(wd, job + ".fmp")  # fep_mapper writes <basename>.fmp from -o <basename>
+    job = _jobname(out_fmp, "_map")  # sanitized basename ([A-Za-z0-9_-], no extension)
+    base_fmp = os.path.join(
+        wd, job + ".fmp"
+    )  # fep_mapper writes <basename>.fmp from -o <basename>
     # -FROM scisol makes `run` resolve fep_mapper.py inside the scisol package's scripts dir.
     # -o takes a BASENAME (no extension) — passing "job.fmp" would yield "job.fmp.fmp".
     argv = [_run(), "-FROM", "scisol", "fep_mapper.py", ligands_mae, "-o", job]
@@ -1423,15 +1947,28 @@ def fep_map_build(ligands_mae: str, out_fmp: str, extra_edges: list = None,
     cand = [base_fmp] + sorted(glob.glob(os.path.join(wd, job + "*.fmp")))
     produced = next((c for c in cand if os.path.exists(c)), None)
     if produced is None:
-        return {"error": "fep_mapper produced no .fmp (mapping failed or CLI mismatch)",
-                "returncode": p.returncode, "argv_tail": " ".join(argv[-4:]),
-                "stdout_tail": p.stdout[-1500:], "stderr_tail": p.stderr[-1500:]}
-    qc = _helper("fep_map_qc", {"in_fmp": produced, "out_fmp": out_fmp,
-                                "extra_edges": extra_edges or [],
-                                "gpu_edge_budget": int(gpu_edge_budget)}, timeout=300)
+        return {
+            "error": "fep_mapper produced no .fmp (mapping failed or CLI mismatch)",
+            "returncode": p.returncode,
+            "argv_tail": " ".join(argv[-4:]),
+            "stdout_tail": p.stdout[-1500:],
+            "stderr_tail": p.stderr[-1500:],
+        }
+    qc = _helper(
+        "fep_map_qc",
+        {
+            "in_fmp": produced,
+            "out_fmp": out_fmp,
+            "extra_edges": extra_edges or [],
+            "gpu_edge_budget": int(gpu_edge_budget),
+        },
+        timeout=300,
+    )
     qc["returncode"] = p.returncode
     qc.setdefault("base_fmp", produced)
-    if "error" in qc:  # helper (schrodinger-side) failed — surface the mapper subprocess tails too
+    if (
+        "error" in qc
+    ):  # helper (schrodinger-side) failed — surface the mapper subprocess tails too
         qc.setdefault("stdout_tail", p.stdout[-800:])
         qc["stderr_tail"] = p.stderr[-1200:]
     return qc
@@ -1439,9 +1976,14 @@ def fep_map_build(ligands_mae: str, out_fmp: str, extra_edges: list = None,
 
 # ---------- FEP+ result parsing (no license token; closes the fep_plus loop) ----------
 
+
 @mcp.tool()
-def fep_parse_results(out_fmp: str, hysteresis_kcal: float = 1.0, overlap_min: float = 0.10,
-                      ddg_unc_kcal: float = 1.0) -> dict:
+def fep_parse_results(
+    out_fmp: str,
+    hysteresis_kcal: float = 1.0,
+    overlap_min: float = 0.10,
+    ddg_unc_kcal: float = 1.0,
+) -> dict:
     """Parse a completed FEP+ map (the `-out.fmp` fep_plus writes) into structured results - pure
     file read via scisol fep.graph.Graph.deserialize, no license token. Extracts per-edge Bennett
     ddG +/- unc (with the cycle-closure-corrected ccc_ddg and complex/solvent legs when present),
@@ -1458,10 +2000,16 @@ def fep_parse_results(out_fmp: str, hysteresis_kcal: float = 1.0, overlap_min: f
         out_fmp = _safe_path(out_fmp, must_exist=True)
     except (ValueError, FileNotFoundError) as e:
         return {"error": str(e)}
-    return _helper("fep_parse_results", {"out_fmp": out_fmp,
-                                         "hysteresis_kcal": float(hysteresis_kcal),
-                                         "overlap_min": float(overlap_min),
-                                         "ddg_unc_kcal": float(ddg_unc_kcal)}, timeout=180)
+    return _helper(
+        "fep_parse_results",
+        {
+            "out_fmp": out_fmp,
+            "hysteresis_kcal": float(hysteresis_kcal),
+            "overlap_min": float(overlap_min),
+            "ddg_unc_kcal": float(ddg_unc_kcal),
+        },
+        timeout=180,
+    )
 
 
 # ============================================================================
@@ -1503,9 +2051,16 @@ def fep_parse_results(out_fmp: str, hysteresis_kcal: float = 1.0, overlap_min: f
 
 # ---------- QM cluster extraction (no license token; structure library) ----------
 
+
 @mcp.tool()
-def qm_cluster_extract(complex_mae: str, ligand_asl: str, radius: float = 5.0, cap: str = "H",
-                       out_dir: str = "", timeout_s: int = 300) -> dict:
+def qm_cluster_extract(
+    complex_mae: str,
+    ligand_asl: str,
+    radius: float = 5.0,
+    cap: str = "H",
+    out_dir: str = "",
+    timeout_s: int = 300,
+) -> dict:
     """Carve a capped QM cluster from a protein-ligand complex (.mae/.maegz) for QM / QM-MM. Selects
     whole residues within `radius` A of `ligand_asl` (ASL fillres+within), severs each backbone/
     side-chain bond crossing the cluster boundary, H-caps the cut along the ORIGINAL bond vector
@@ -1515,28 +2070,49 @@ def qm_cluster_extract(complex_mae: str, ligand_asl: str, radius: float = 5.0, c
     No license token (schrodinger.structure only). Feeds qdx-rush ExESS or jaguar_qm."""
     try:
         complex_mae = _safe_path(complex_mae, must_exist=True)
-        out_dir = _safe_path(out_dir) if out_dir else (os.path.dirname(complex_mae) or ".")
+        out_dir = (
+            _safe_path(out_dir) if out_dir else (os.path.dirname(complex_mae) or ".")
+        )
     except (ValueError, FileNotFoundError) as e:
         return {"error": str(e)}
     # ligand_asl is a query string (goes to schrodinger's ASL evaluator, not a shell); it is
     # JSON-encoded into one _helper argv element -> inert. Block only control chars (newline
     # could smuggle a second ASL/directive line the same way _safe_path guards paths).
-    if not isinstance(ligand_asl, str) or not ligand_asl.strip() or \
-            any(c in ligand_asl for c in "\r\n\x00"):
+    if (
+        not isinstance(ligand_asl, str)
+        or not ligand_asl.strip()
+        or any(c in ligand_asl for c in "\r\n\x00")
+    ):
         return {"error": "invalid/unsafe ligand_asl"}
     if cap != "H":
         return {"error": "only cap='H' (hydrogen capping) is implemented"}
     os.makedirs(out_dir, exist_ok=True)
-    return _helper("qm_cluster_extract",
-                   {"complex_mae": complex_mae, "ligand_asl": ligand_asl,
-                    "radius": float(radius), "cap": cap, "out_dir": out_dir}, timeout=timeout_s)
+    return _helper(
+        "qm_cluster_extract",
+        {
+            "complex_mae": complex_mae,
+            "ligand_asl": ligand_asl,
+            "radius": float(radius),
+            "cap": cap,
+            "out_dir": out_dir,
+        },
+        timeout=timeout_s,
+    )
 
 
 # ---------- Jaguar QM single-point / optimization (synchronous -NOJOBID; JAGUAR token) ----------
 
+
 @mcp.tool()
-def jaguar_qm(structure_file: str, out_dir: str, mode: str = "sp", theory: str = "B97-3c",
-              solvent: str = "", molchg: int = 0, timeout_s: int = 7200) -> dict:
+def jaguar_qm(
+    structure_file: str,
+    out_dir: str,
+    mode: str = "sp",
+    theory: str = "B97-3c",
+    solvent: str = "",
+    molchg: int = 0,
+    timeout_s: int = 7200,
+) -> dict:
     """Jaguar QM energy on a SMALL structure (.mae/.sdf). Builds a Jaguar .in (&gen
     dftname/igeopt/molchg[/isolv]) via the jaguar input API, then runs `jaguar run <in> -NOJOBID`
     (single job, synchronous, in-process - no job server). mode = sp|opt|ts (igeopt 0/1/2). theory
@@ -1556,18 +2132,22 @@ def jaguar_qm(structure_file: str, out_dir: str, mode: str = "sp", theory: str =
         return {"error": "unsafe theory/solvent (no spaces/newlines)"}
     os.makedirs(out_dir, exist_ok=True)
     genkeys = {"dftname": theory, "igeopt": str(igeopt), "molchg": str(int(molchg))}
-    if not theory.lower().endswith("-3c"):        # composites carry their own basis; others need one
+    if not theory.lower().endswith(
+        "-3c"
+    ):  # composites carry their own basis; others need one
         genkeys["basis"] = "6-31G**"
-    if solvent:                                   # PBF self-consistent reaction field
+    if solvent:  # PBF self-consistent reaction field
         genkeys["isolv"] = "2"
         genkeys["solvent"] = solvent
     # job basename flows into argv as a POSITIONAL arg -> _jobname sanitizes to [A-Za-z0-9_-]
     # and lstrip('-') guarantees it can never be read as a flag.
     job = _jobname(structure_file, "_qm").lstrip("-") or "job_qm"
     in_file = os.path.join(out_dir, job + ".in")
-    built = _helper("jaguar_in",
-                    {"structure_file": structure_file, "out_in": in_file, "genkeys": genkeys},
-                    timeout=180)
+    built = _helper(
+        "jaguar_in",
+        {"structure_file": structure_file, "out_in": in_file, "genkeys": genkeys},
+        timeout=180,
+    )
     if not isinstance(built, dict) or "error" in built or not os.path.exists(in_file):
         return {"error": "failed to build Jaguar input", "detail": built}
     argv = [_driver("jaguar"), "run", os.path.basename(in_file), "-NOJOBID"]
@@ -1576,9 +2156,15 @@ def jaguar_qm(structure_file: str, out_dir: str, mode: str = "sp", theory: str =
     except subprocess.TimeoutExpired:
         return {"error": f"timeout after {timeout_s}s"}
     out_file = os.path.join(out_dir, job + ".out")
-    res = {"returncode": p.returncode, "in_file": in_file, "theory": theory, "mode": mode,
-           "out_file": out_file if os.path.exists(out_file) else None,
-           "stdout_tail": p.stdout[-1500:], "stderr_tail": p.stderr[-1500:]}
+    res = {
+        "returncode": p.returncode,
+        "in_file": in_file,
+        "theory": theory,
+        "mode": mode,
+        "out_file": out_file if os.path.exists(out_file) else None,
+        "stdout_tail": p.stdout[-1500:],
+        "stderr_tail": p.stderr[-1500:],
+    }
     if os.path.exists(out_file):
         parsed = _helper("jaguar_energy", {"out_file": out_file}, timeout=180)
         if isinstance(parsed, dict):
@@ -1591,9 +2177,16 @@ def jaguar_qm(structure_file: str, out_dir: str, mode: str = "sp", theory: str =
 
 # ---------- fast Epik ML pKa (synchronous -WAIT; consumes an Epik token) ----------
 
+
 @mcp.tool()
-def epik_pka(input_mae: str, out_dir: str, ph: float = 7.4, query_only: bool = True,
-             report: bool = False, timeout_s: int = 1800) -> dict:
+def epik_pka(
+    input_mae: str,
+    out_dir: str,
+    ph: float = 7.4,
+    query_only: bool = True,
+    report: bool = False,
+    timeout_s: int = 1800,
+) -> dict:
     """Fast Epik v7 (EpikX) ML pKa on a structure (.mae/.sdf/.smi/.csv) via `epikx --query` -
     predicts site pKas WITHOUT enumerating a full protonation-state ensemble (distinct from
     epik_enumerate). Annotates the output with r_epik_acidic/basic_macro-pKa + per-atom
@@ -1611,8 +2204,15 @@ def epik_pka(input_mae: str, out_dir: str, ph: float = 7.4, query_only: bool = T
     # never start with '-' even if the input file's basename does.
     stem = _jobname(input_mae).lstrip("-") or "job"
     out_mae = os.path.join(out_dir, stem + "_epikpka.mae")
-    use_query = bool(query_only) and not report          # Epik: report and query are exclusive
-    argv = [_driver("epikx"), input_mae, os.path.basename(out_mae), "-ph", str(float(ph)), "-WAIT"]
+    use_query = bool(query_only) and not report  # Epik: report and query are exclusive
+    argv = [
+        _driver("epikx"),
+        input_mae,
+        os.path.basename(out_mae),
+        "-ph",
+        str(float(ph)),
+        "-WAIT",
+    ]
     if use_query:
         argv.append("--query")
     if report:
@@ -1621,9 +2221,13 @@ def epik_pka(input_mae: str, out_dir: str, ph: float = 7.4, query_only: bool = T
         p = _exec(argv, timeout=timeout_s, cwd=out_dir)
     except subprocess.TimeoutExpired:
         return {"error": f"timeout after {timeout_s}s"}
-    res = {"returncode": p.returncode, "mode": "query" if use_query else "predict_states",
-           "output": out_mae if os.path.exists(out_mae) else None,
-           "stdout_tail": p.stdout[-1500:], "stderr_tail": p.stderr[-1500:]}
+    res = {
+        "returncode": p.returncode,
+        "mode": "query" if use_query else "predict_states",
+        "output": out_mae if os.path.exists(out_mae) else None,
+        "stdout_tail": p.stdout[-1500:],
+        "stderr_tail": p.stderr[-1500:],
+    }
     if report:
         rep = glob.glob(os.path.join(out_dir, "*_report"))
         res["report_dir"] = rep[0] if rep else None
@@ -1650,10 +2254,16 @@ def epik_pka(input_mae: str, out_dir: str, ph: float = 7.4, query_only: bool = T
 
 # ---------- structure property tabulation (no license token; generalizes qikprop_parse_results) ----------
 
+
 @mcp.tool()
-def structure_properties_extract(structure_file: str, properties: list = None, sort_by: str = "",
-                                 descending: bool = False, limit: int = 200,
-                                 timeout_s: int = 300) -> dict:
+def structure_properties_extract(
+    structure_file: str,
+    properties: list = None,
+    sort_by: str = "",
+    descending: bool = False,
+    limit: int = 200,
+    timeout_s: int = 300,
+) -> dict:
     """Tabulate the per-structure properties embedded in a structure file (.mae/.maegz/.sdf/.sdfgz/
     .pdb) - the m2io keys Glide/Prime/IFD/Epik/SiteMap/BPMD write onto each pose: r_i_glide_gscore,
     r_i_glide_emodel, r_psp_MMGBSA_dG_Bind, r_psp_IFDScore, r_epik_*, r_sitemap_SiteScore/Dscore,
@@ -1667,12 +2277,21 @@ def structure_properties_extract(structure_file: str, properties: list = None, s
         structure_file = _safe_path(structure_file, must_exist=True)
     except (ValueError, FileNotFoundError) as e:
         return {"error": str(e)}
-    return _helper("proplist", {"src": structure_file, "properties": properties or [],
-                                "sort_by": sort_by, "descending": bool(descending),
-                                "limit": max(1, int(limit))}, timeout=timeout_s)
+    return _helper(
+        "proplist",
+        {
+            "src": structure_file,
+            "properties": properties or [],
+            "sort_by": sort_by,
+            "descending": bool(descending),
+            "limit": max(1, int(limit)),
+        },
+        timeout=timeout_s,
+    )
 
 
 # ---------- backend readiness doctor (local, read-only; no license token) ----------
+
 
 @mcp.tool()
 def backend_doctor(deep: bool = False) -> dict:
@@ -1686,8 +2305,19 @@ def backend_doctor(deep: bool = False) -> dict:
     ENABLES SCHRODINGER_LICENSE_MANAGER. Operational-readiness companion to backend_info."""
     lmstat_re = re.compile(
         r"Users of (\S+):\s+\(Total of (\d+) license[s]? issued;\s+"
-        r"Total of (\d+) license[s]? in use\)", re.IGNORECASE)
-    key_feats = ("GLIDE", "PRIME", "FEP_GPGPU", "QIKPROP", "JAGUAR", "DESMOND", "EPIK", "CANVAS")
+        r"Total of (\d+) license[s]? in use\)",
+        re.IGNORECASE,
+    )
+    key_feats = (
+        "GLIDE",
+        "PRIME",
+        "FEP_GPGPU",
+        "QIKPROP",
+        "JAGUAR",
+        "DESMOND",
+        "EPIK",
+        "CANVAS",
+    )
 
     def _tokens():
         """licadmin STAT -> {feature: {issued, in_use}} (FlexLM lmstat passthrough)."""
@@ -1698,9 +2328,15 @@ def backend_doctor(deep: bool = False) -> dict:
         except (FileNotFoundError, OSError) as e:
             return {}, f"licadmin not runnable: {e!r}", None
         blob = (p.stdout or "") + "\n" + (p.stderr or "")
-        toks = {feat: {"issued": int(iss), "in_use": int(use)}
-                for feat, iss, use in lmstat_re.findall(blob)}
-        return toks, (None if toks else "no FlexLM feature lines parsed from licadmin STAT"), blob[-1200:]
+        toks = {
+            feat: {"issued": int(iss), "in_use": int(use)}
+            for feat, iss, use in lmstat_re.findall(blob)
+        }
+        return (
+            toks,
+            (None if toks else "no FlexLM feature lines parsed from licadmin STAT"),
+            blob[-1200:],
+        )
 
     def _license_valid():
         """Secondary probe for a local-entitlement (SLM) license, where STAT lists no pools.
@@ -1726,7 +2362,9 @@ def backend_doctor(deep: bool = False) -> dict:
         for line in (p.stdout or "").splitlines():
             m = re.match(r"GPU (\d+):\s+(.*?)\s+\(UUID:\s+(\S+?)\)", line.strip())
             if m:
-                out.append({"index": int(m.group(1)), "name": m.group(2), "uuid": m.group(3)})
+                out.append(
+                    {"index": int(m.group(1)), "name": m.group(2), "uuid": m.group(3)}
+                )
         return out
 
     def _job_server():
@@ -1736,14 +2374,21 @@ def backend_doctor(deep: bool = False) -> dict:
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
             return {"running": False, "note": f"jsc status error: {e!r}"}
         blob = (p.stdout or "") + (p.stderr or "")
-        return {"running": "RUNNING" in blob.upper(), "returncode": p.returncode,
-                "detail": blob[-400:]}
+        return {
+            "running": "RUNNING" in blob.upper(),
+            "returncode": p.returncode,
+            "detail": blob[-400:],
+        }
 
     def _desmond():
         """Detect the Desmond MD engine install (product dir or backend binary under mmshare)."""
-        hits = (glob.glob(os.path.join(SCHRODINGER, "desmond-v*"))
-                or glob.glob(os.path.join(SCHRODINGER, "mmshare-v*", "bin", "*", "desmond"))
-                or glob.glob(os.path.join(SCHRODINGER, "mmshare-v*", "bin", "*", "desmond.exe")))
+        hits = (
+            glob.glob(os.path.join(SCHRODINGER, "desmond-v*"))
+            or glob.glob(os.path.join(SCHRODINGER, "mmshare-v*", "bin", "*", "desmond"))
+            or glob.glob(
+                os.path.join(SCHRODINGER, "mmshare-v*", "bin", "*", "desmond.exe")
+            )
+        )
         return bool(hits), (hits[0] if hits else None)
 
     toks, tok_note, stat_tail = _tokens()
@@ -1751,7 +2396,9 @@ def backend_doctor(deep: bool = False) -> dict:
     gpus = _gpus()
     desmond_present, desmond_path = _desmond()
 
-    ver = None  # instant version.txt read (no subprocess), mirroring schrodinger_version
+    ver = (
+        None  # instant version.txt read (no subprocess), mirroring schrodinger_version
+    )
     vt = os.path.join(SCHRODINGER, "version.txt")
     try:
         if os.path.exists(vt):
@@ -1767,17 +2414,26 @@ def backend_doctor(deep: bool = False) -> dict:
             key_tokens[feat] = match
 
     stat_ok = bool(toks and any(c["issued"] > 0 for c in toks.values()))
-    if stat_ok:  # STAT already proves a served license -> skip the extra debug-sources probe
+    if (
+        stat_ok
+    ):  # STAT already proves a served license -> skip the extra debug-sources probe
         license_valid, license_ok = None, True
     else:
         license_valid = _license_valid()
         license_ok = license_valid is True
 
-    res = {"schrodinger": SCHRODINGER, "suite_version": ver,
-           "tokens": toks, "key_tokens": key_tokens,
-           "job_server": js, "gpus": gpus, "gpu_count": len(gpus),
-           "desmond_engine": desmond_present, "desmond_engine_path": desmond_path,
-           "license_ok": license_ok}
+    res = {
+        "schrodinger": SCHRODINGER,
+        "suite_version": ver,
+        "tokens": toks,
+        "key_tokens": key_tokens,
+        "job_server": js,
+        "gpus": gpus,
+        "gpu_count": len(gpus),
+        "desmond_engine": desmond_present,
+        "desmond_engine_path": desmond_path,
+        "license_ok": license_ok,
+    }
     if tok_note:
         res["licadmin_note"] = tok_note
         if stat_tail:
@@ -1787,30 +2443,44 @@ def backend_doctor(deep: bool = False) -> dict:
 
     if deep:  # x509 license-cure audit (Linux) + feature-flag assertion
         path = os.path.join(SCHRODINGER, "internal", "lib", "libmmfileshared.so")
-        cure = {"present": os.path.exists(path), "path": path,
-                "expected_md5": "a34a793bd05237c30f8cdc4ac750d290", "expected_bytes": 1080144}
+        cure = {
+            "present": os.path.exists(path),
+            "path": path,
+            "expected_md5": "a34a793bd05237c30f8cdc4ac750d290",
+            "expected_bytes": 1080144,
+        }
         if cure["present"]:
             try:
                 with open(path, "rb") as fh:
                     data = fh.read()
-                cure["md5"] = hashlib.md5(data, usedforsecurity=False).hexdigest()  # integrity, not crypto
+                cure["md5"] = hashlib.md5(
+                    data, usedforsecurity=False
+                ).hexdigest()  # integrity, not crypto
                 cure["size_bytes"] = len(data)
-                cure["matches_cure"] = (cure["md5"] == cure["expected_md5"]
-                                        and cure["size_bytes"] == cure["expected_bytes"])
+                cure["matches_cure"] = (
+                    cure["md5"] == cure["expected_md5"]
+                    and cure["size_bytes"] == cure["expected_bytes"]
+                )
             except OSError as e:
                 cure["error"] = repr(e)
         else:
-            cure["note"] = ("absent - expected on the Windows suite; the x509 libmmfileshared.so "
-                            "cure is Linux-only")
+            cure["note"] = (
+                "absent - expected on the Windows suite; the x509 libmmfileshared.so "
+                "cure is Linux-only"
+            )
         res["license_cure"] = cure
         flags = os.environ.get("SCHRODINGER_FEATURE_FLAGS", "")
         res["feature_flags"] = flags
         # Enabling form is `+SCHRODINGER_LICENSE_MANAGER` (a bare token also enables); an explicit
         # `-SCHRODINGER_LICENSE_MANAGER` DISABLES it - a bare substring test would false-positive.
         _lm = "SCHRODINGER_LICENSE_MANAGER"
-        res["feature_flags_ok"] = ("+" + _lm) in flags or (_lm in flags and ("-" + _lm) not in flags)
+        res["feature_flags_ok"] = ("+" + _lm) in flags or (
+            _lm in flags and ("-" + _lm) not in flags
+        )
 
-    res["ready"] = bool(license_ok and js.get("running"))  # license serving + job server reachable
+    res["ready"] = bool(
+        license_ok and js.get("running")
+    )  # license serving + job server reachable
     return res
 
 
@@ -1826,9 +2496,15 @@ def backend_doctor(deep: bool = False) -> dict:
 
 # ---------- pose QC (license-token-free; RDKit + structutils in the interpreter) ----------
 
+
 @mcp.tool()
-def pose_validity(pose_viewer_maegz: str, ref_input: str = "", strain_threshold_kcal: float = 20.0,
-                  clash_ratio_cutoff: float = 0.75, timeout_s: int = 600) -> dict:
+def pose_validity(
+    pose_viewer_maegz: str,
+    ref_input: str = "",
+    strain_threshold_kcal: float = 20.0,
+    clash_ratio_cutoff: float = 0.75,
+    timeout_s: int = 600,
+) -> dict:
     """PoseBusters-style per-pose QC on a Glide pose-viewer (*_pv.maegz) or a Prime -out.maegz
     (structure[0] = receptor, rest = ligand poses). Per pose: RDKit sanitize + InChI round-trip,
     bond-length sanity, aromatic-ring planarity, internal + ligand-protein steric clash (with
@@ -1843,14 +2519,22 @@ def pose_validity(pose_viewer_maegz: str, ref_input: str = "", strain_threshold_
         ref = _safe_path(ref_input, must_exist=True) if ref_input else ""
     except (ValueError, FileNotFoundError) as e:
         return {"error": str(e)}
-    return _helper("pose_validity", {"pose_viewer": pose_viewer_maegz, "ref_input": ref,
-                                     "strain_threshold": float(strain_threshold_kcal),
-                                     "clash_cutoff": float(clash_ratio_cutoff)}, timeout=timeout_s)
+    return _helper(
+        "pose_validity",
+        {
+            "pose_viewer": pose_viewer_maegz,
+            "ref_input": ref,
+            "strain_threshold": float(strain_threshold_kcal),
+            "clash_cutoff": float(clash_ratio_cutoff),
+        },
+        timeout=timeout_s,
+    )
 
 
 @mcp.tool()
-def pose_interaction_fingerprint(pose_maegz: str, recept_asl: str = "protein",
-                                 timeout_s: int = 600) -> dict:
+def pose_interaction_fingerprint(
+    pose_maegz: str, recept_asl: str = "protein", timeout_s: int = 600
+) -> dict:
     """Per-residue protein-ligand interaction fingerprint for docked poses in a pose-viewer
     (structure[0] = receptor, rest = ligand poses). Via schrodinger.structutils.interactions:
     H-bonds (receptor donor/acceptor role + distance/angle), salt bridges, pi-pi (face/edge-to-
@@ -1864,7 +2548,11 @@ def pose_interaction_fingerprint(pose_maegz: str, recept_asl: str = "protein",
         return {"error": str(e)}
     if any(c in recept_asl for c in "\r\n\x00"):
         return {"error": "unsafe recept_asl (control char)"}
-    return _helper("pose_ifp", {"pose_maegz": pose_maegz, "recept_asl": recept_asl}, timeout=timeout_s)
+    return _helper(
+        "pose_ifp",
+        {"pose_maegz": pose_maegz, "recept_asl": recept_asl},
+        timeout=timeout_s,
+    )
 
 
 # ============================================================================
@@ -1887,11 +2575,12 @@ def pose_interaction_fingerprint(pose_maegz: str, recept_asl: str = "protein",
 #   - Fixed the .mae reagent path in _reaction_enumerate (helper): the bundled RDKit adapter
 #     is schrodinger.rdkit.rdkit_adapter.to_rdkit (all-defaulted kwargs), NOT the raw
 #     schrodinger.adapter.to_rdkit which requires a second `options` object.
-#   - Tightened the property_filter eval sandbox (char allowlist + no dunder/import/lambda/**).
+#   - Replaced the property_filter eval sandbox with an allowlisted AST comparison parser.
 # ==================================================================================
 
 
 # ---------- pose-viewer splitting (no license token; structure library) ----------
+
 
 @mcp.tool()
 def pose_viewer_split(pv_maegz: str, out_dir: str, mode: str = "complex") -> dict:
@@ -1908,14 +2597,22 @@ def pose_viewer_split(pv_maegz: str, out_dir: str, mode: str = "complex") -> dic
     except (ValueError, FileNotFoundError) as e:
         return {"error": str(e)}
     os.makedirs(out_dir, exist_ok=True)
-    return _helper("pose_viewer_split", {"pv_maegz": pv_maegz, "out_dir": out_dir, "mode": mode})
+    return _helper(
+        "pose_viewer_split", {"pv_maegz": pv_maegz, "out_dir": out_dir, "mode": mode}
+    )
 
 
 # ---------- combinatorial / R-group enumeration (no license token; RDKit) ----------
 
+
 @mcp.tool()
-def reaction_enumerate(core_smarts: str, reagent_files: list, out_file: str,
-                       max_products: int = 1000, property_filter: str = "") -> dict:
+def reaction_enumerate(
+    core_smarts: str,
+    reagent_files: list,
+    out_file: str,
+    max_products: int = 1000,
+    property_filter: str = "",
+) -> dict:
     """Combinatorial R-group / reaction enumeration: apply a reaction SMARTS to one reagent file
     per reactant slot and write the enumerated products to .sdf (default) or .smi. `core_smarts` =
     an atom-mapped RDKit reaction SMARTS (e.g. '[C:1](=O)[OH].[N:2]>>[C:1](=O)[N:2]');
@@ -1924,9 +2621,14 @@ def reaction_enumerate(core_smarts: str, reagent_files: list, out_file: str,
     (e.g. 'mw<=500 and hbd<=5 and logp<=5'). Dedups by canonical SMILES, caps at max_products.
     RDKit-backed in the Schrodinger interpreter (no license token). Returns {out_file, n_products}."""
     if not isinstance(reagent_files, list) or not reagent_files:
-        return {"error": "reagent_files must be a non-empty list (one file per reactant slot)"}
-    if not isinstance(core_smarts, str) or not core_smarts.strip() \
-            or any(c in core_smarts for c in "\r\n\x00"):
+        return {
+            "error": "reagent_files must be a non-empty list (one file per reactant slot)"
+        }
+    if (
+        not isinstance(core_smarts, str)
+        or not core_smarts.strip()
+        or any(c in core_smarts for c in "\r\n\x00")
+    ):
         return {"error": "invalid core_smarts (non-empty, no newline/control chars)"}
     if property_filter and any(c in property_filter for c in "\r\n\x00"):
         return {"error": "invalid property_filter (no newline/control chars)"}
@@ -1937,16 +2639,30 @@ def reaction_enumerate(core_smarts: str, reagent_files: list, out_file: str,
         out_file = _safe_path(out_file)
     except (ValueError, FileNotFoundError) as e:
         return {"error": str(e)}
-    return _helper("reaction_enumerate", {"core_smarts": core_smarts, "reagent_files": rf,
-                                          "out_file": out_file, "max_products": int(max_products),
-                                          "property_filter": property_filter}, timeout=600)
+    return _helper(
+        "reaction_enumerate",
+        {
+            "core_smarts": core_smarts,
+            "reagent_files": rf,
+            "out_file": out_file,
+            "max_products": int(max_products),
+            "property_filter": property_filter,
+        },
+        timeout=600,
+    )
 
 
 # ---------- MacroModel MCMM conformational search (consumes a MacroModel token) ----------
 
+
 @mcp.tool()
-def macromodel_confsearch(input_mae: str, out_mae: str, ffld: str = "OPLS4", solvent: str = "Water",
-                          timeout_s: int = 1800) -> dict:
+def macromodel_confsearch(
+    input_mae: str,
+    out_mae: str,
+    ffld: str = "OPLS4",
+    solvent: str = "Water",
+    timeout_s: int = 1800,
+) -> dict:
     """MacroModel MCMM (Monte Carlo Multiple Minimum) exhaustive conformational search + strain
     energy on a small molecule (.mae/.maegz/.sdf). Python writes a valid <job>.com via
     schrodinger.application.macromodel.utils.ComUtil.mcmm() (no shell - ComUtil keeps the no-shell
@@ -1964,8 +2680,21 @@ def macromodel_confsearch(input_mae: str, out_mae: str, ffld: str = "OPLS4", sol
     # ffld strings the ComUtil ctor genuinely resolves (regex chain + mm.opls_name_to_version);
     # OPLS3/OPLS3e/S-OPLS/OPLS4 all map to FFLD version 16. Names outside this set silently fall
     # back to OPLS_2005 in ComUtil, so we reject them rather than run the wrong force field.
-    valid_ff = {"AMBER", "AMBER94", "MM2", "MM3", "MMFF", "MMFFs", "OPLS",
-                "OPLS_2003", "OPLS_2005", "OPLS3", "OPLS3e", "S-OPLS", "OPLS4"}
+    valid_ff = {
+        "AMBER",
+        "AMBER94",
+        "MM2",
+        "MM3",
+        "MMFF",
+        "MMFFs",
+        "OPLS",
+        "OPLS_2003",
+        "OPLS_2005",
+        "OPLS3",
+        "OPLS3e",
+        "S-OPLS",
+        "OPLS4",
+    }
     if ffld not in valid_ff:
         return {"error": f"ffld must be one of {sorted(valid_ff)}"}
     if solvent not in ("Water", "None", "CHCl3", "Octanol"):
@@ -1976,8 +2705,17 @@ def macromodel_confsearch(input_mae: str, out_mae: str, ffld: str = "OPLS4", sol
     if not job.replace("_", "").replace("-", "").isalnum():
         return {"error": f"could not derive a safe job name from {out_mae!r}"}
     # 1) ComUtil writes the .com (+ stages a local input .mae) inside the Schrodinger interpreter.
-    setup = _helper("mmod_confsearch", {"input_mae": input_mae, "out_mae": out_mae,
-                                        "ffld": ffld, "solvent": solvent, "job": job, "wd": wd})
+    setup = _helper(
+        "mmod_confsearch",
+        {
+            "input_mae": input_mae,
+            "out_mae": out_mae,
+            "ffld": ffld,
+            "solvent": solvent,
+            "job": job,
+            "wd": wd,
+        },
+    )
     if setup.get("error") or not setup.get("com_file"):
         return {"error": "MacroModel .com setup failed", "detail": setup}
     # 2) bmin runs the search (MacroModel license token; -WAIT synchronous, under Job Control).
@@ -1987,14 +2725,24 @@ def macromodel_confsearch(input_mae: str, out_mae: str, ffld: str = "OPLS4", sol
     try:
         p = _exec(argv, timeout=timeout_s, cwd=wd)
     except subprocess.TimeoutExpired:
-        return {"error": f"timeout after {timeout_s}s", "com": setup.get("com_file"),
-                "job_server": srv}
+        return {
+            "error": f"timeout after {timeout_s}s",
+            "com": setup.get("com_file"),
+            "job_server": srv,
+        }
     alt = os.path.join(wd, job + "-out.mae")
     out = out_mae if os.path.exists(out_mae) else (alt if os.path.exists(alt) else None)
-    res = {"returncode": p.returncode, "out_mae": out, "com": setup.get("com_file"),
-           "staged_input": setup.get("staged_input"), "job_server": srv,
-           "ffld": ffld, "solvent": solvent,
-           "stdout_tail": p.stdout[-1200:], "stderr_tail": p.stderr[-1200:]}
+    res = {
+        "returncode": p.returncode,
+        "out_mae": out,
+        "com": setup.get("com_file"),
+        "staged_input": setup.get("staged_input"),
+        "job_server": srv,
+        "ffld": ffld,
+        "solvent": solvent,
+        "stdout_tail": p.stdout[-1200:],
+        "stderr_tail": p.stderr[-1200:],
+    }
     log = os.path.join(wd, job + ".log")
     if os.path.exists(log):
         try:
@@ -2019,9 +2767,15 @@ def macromodel_confsearch(input_mae: str, out_mae: str, ffld: str = "OPLS4", sol
 
 
 @mcp.tool()
-def desmond_interactions(cms_file: str, lig_asl: str = "", prot_asl: str = "protein",
-                         metal_asl: str = "", stride: int = 1, top: int = 200,
-                         timeout_s: int = 900) -> dict:
+def desmond_interactions(
+    cms_file: str,
+    lig_asl: str = "",
+    prot_asl: str = "protein",
+    metal_asl: str = "",
+    stride: int = 1,
+    top: int = 200,
+    timeout_s: int = 900,
+) -> dict:
     """Protein-ligand interaction FINGERPRINT + persistence over a completed Desmond MD
     trajectory (pass its `-out.cms`; the sibling `_trj` is auto-found). Runs
     schrodinger.application.desmond.packages.analysis.ProtLigInter across EVERY frame and
@@ -2037,7 +2791,11 @@ def desmond_interactions(cms_file: str, lig_asl: str = "", prot_asl: str = "prot
         cms_file = _safe_path(cms_file, must_exist=True)
     except (ValueError, FileNotFoundError) as e:
         return {"error": str(e)}
-    args = {"cms_file": cms_file, "stride": max(1, int(stride)), "top": max(1, int(top))}
+    args = {
+        "cms_file": cms_file,
+        "stride": max(1, int(stride)),
+        "top": max(1, int(top)),
+    }
     if lig_asl:
         args["lig_asl"] = lig_asl
     if prot_asl:
@@ -2048,10 +2806,17 @@ def desmond_interactions(cms_file: str, lig_asl: str = "", prot_asl: str = "prot
 
 
 @mcp.tool()
-def desmond_membrane_setup(input_mae: str, out_cms: str, membrane: str = "POPC",
-                           box_shape: str = "orthorhombic", buffer_width: float = 10.0,
-                           solvent: str = "SPC", salt_conc: float = 0.15,
-                           forcefield: str = "OPLS4", timeout_s: int = 300) -> dict:
+def desmond_membrane_setup(
+    input_mae: str,
+    out_cms: str,
+    membrane: str = "POPC",
+    box_shape: str = "orthorhombic",
+    buffer_width: float = 10.0,
+    solvent: str = "SPC",
+    salt_conc: float = 0.15,
+    forcefield: str = "OPLS4",
+    timeout_s: int = 300,
+) -> dict:
     """Desmond MEMBRANE system builder: embed a prepared, PRE-ORIENTED solute (.mae/.pdb) in a
     placed lipid bilayer, then solvate + salt -> a Desmond `-out.cms` ready for desmond_md.
     Like desmond_setup but writes a `build_geometry` with a `membrane_box = { lipid = <membrane> }`
@@ -2071,7 +2836,9 @@ def desmond_membrane_setup(input_mae: str, out_cms: str, membrane: str = "POPC",
     except (ValueError, FileNotFoundError) as e:
         return {"error": str(e)}
     if box_shape not in ("orthorhombic", "triclinic"):
-        return {"error": f"unsupported box_shape for a membrane: {box_shape!r} (use orthorhombic)"}
+        return {
+            "error": f"unsupported box_shape for a membrane: {box_shape!r} (use orthorhombic)"
+        }
     # These flow into the .msj config file -> constrain to inert tokens (no newline/brace
     # injection of extra msj stages).
     if not re.fullmatch(r"[A-Za-z0-9]+", membrane or ""):
@@ -2089,16 +2856,37 @@ def desmond_membrane_setup(input_mae: str, out_cms: str, membrane: str = "POPC",
     # background NaCl, neutralize_system zeroes net charge, scale_solvent_vdw=0.75 is the
     # standard membrane-pack relaxation, and assign_forcefield carries the water model.
     build = [
-        'task {', '  task = "desmond:auto"', '}', '',
-        'build_geometry {',
-        '  box = {', f'    shape     = {box_shape}', '    size_type = buffer', '  }',
-        '  membrane_box = {', f'    lipid = {membrane}', f'    size  = [{bw} {bw} {bw}]', '  }',
-        '  salt = {', f'    concentration = {float(salt_conc)}',
-        '    negative_ion  = Cl', '    positive_ion  = Na', '  }',
-        '  neutralize_system   = true', f'  override_forcefield = {forcefield}',
-        '  rezero_system       = false', '  scale_solvent_vdw   = 0.75',
-        f'  solvent             = {solvent}', '}', '',
-        'assign_forcefield {', f'  forcefield = {forcefield}', f'  water      = {solvent}', '}', '']
+        "task {",
+        '  task = "desmond:auto"',
+        "}",
+        "",
+        "build_geometry {",
+        "  box = {",
+        f"    shape     = {box_shape}",
+        "    size_type = buffer",
+        "  }",
+        "  membrane_box = {",
+        f"    lipid = {membrane}",
+        f"    size  = [{bw} {bw} {bw}]",
+        "  }",
+        "  salt = {",
+        f"    concentration = {float(salt_conc)}",
+        "    negative_ion  = Cl",
+        "    positive_ion  = Na",
+        "  }",
+        "  neutralize_system   = true",
+        f"  override_forcefield = {forcefield}",
+        "  rezero_system       = false",
+        "  scale_solvent_vdw   = 0.75",
+        f"  solvent             = {solvent}",
+        "}",
+        "",
+        "assign_forcefield {",
+        f"  forcefield = {forcefield}",
+        f"  water      = {solvent}",
+        "}",
+        "",
+    ]
     msj = os.path.join(wd, job + ".msj")
     try:
         os.makedirs(wd, exist_ok=True)
@@ -2106,8 +2894,18 @@ def desmond_membrane_setup(input_mae: str, out_cms: str, membrane: str = "POPC",
             fh.write("\n".join(build) + "\n")
     except OSError as e:
         return {"error": f"could not write msj {msj!r}: {e}"}
-    argv = [_driver("multisim"), "-JOBNAME", job, "-m", os.path.basename(msj),
-            "-o", os.path.basename(out_cms), input_mae, "-HOST", "localhost"]
+    argv = [
+        _driver("multisim"),
+        "-JOBNAME",
+        job,
+        "-m",
+        os.path.basename(msj),
+        "-o",
+        os.path.basename(out_cms),
+        input_mae,
+        "-HOST",
+        "localhost",
+    ]
     res = _submit_async(argv, cwd=wd, timeout=timeout_s)
     res["msj"] = msj
     res["membrane"] = membrane
@@ -2149,10 +2947,18 @@ def desmond_membrane_setup(input_mae: str, out_cms: str, membrane: str = "POPC",
 # per-job config.) Proven + productionized: memory note "Schrodinger multi-GPU on one node",
 # tool schrod-gpu-pool.sh (PR #79).
 
+
 @mcp.tool()
-def schrodinger_gpu_pool(action: str = "status", gpus: int = 0, gpu: int = -1,
-                         argv: list = None, pool_dir: str = "", default_dir: str = "",
-                         cwd: str = "", timeout_s: int = 300) -> dict:
+def schrodinger_gpu_pool(
+    action: str = "status",
+    gpus: int = 0,
+    gpu: int = -1,
+    argv: list = None,
+    pool_dir: str = "",
+    default_dir: str = "",
+    cwd: str = "",
+    timeout_s: int = 300,
+) -> dict:
     """Multi-GPU job-server pool: one CUDA_VISIBLE_DEVICES-pinned local jobserverd per GPU - the
     proven cure for 'every Desmond/BPMD subjob lands on GPU0' on a shared job server. Actions:
       'start' (gpus=N): stand up N per-GPU servers - for i in 0..N-1 run `jsc local-server-dir
@@ -2174,7 +2980,11 @@ def schrodinger_gpu_pool(action: str = "status", gpus: int = 0, gpu: int = -1,
         return {"error": "action must be start|submit|status|stop"}
     jsc = _driver("jsc")
     try:
-        base = _safe_path(pool_dir) if pool_dir else os.path.join(tempfile.gettempdir(), "sch_gpu_pool")
+        base = (
+            _safe_path(pool_dir)
+            if pool_dir
+            else os.path.join(tempfile.gettempdir(), "sch_gpu_pool")
+        )
         restore_to = _safe_path(default_dir) if default_dir else ""
     except (ValueError, FileNotFoundError) as e:
         return {"error": str(e)}
@@ -2186,7 +2996,9 @@ def schrodinger_gpu_pool(action: str = "status", gpus: int = 0, gpu: int = -1,
             c = _exec([jsc, "local-server-dir"], timeout=60)
         except (subprocess.TimeoutExpired, OSError):
             return ""
-        for tok in ((c.stdout or "") + " " + (c.stderr or "")).replace("\n", " ").split():
+        for tok in (
+            ((c.stdout or "") + " " + (c.stderr or "")).replace("\n", " ").split()
+        ):
             if os.path.isdir(tok):
                 return tok
         return ""
@@ -2206,8 +3018,14 @@ def schrodinger_gpu_pool(action: str = "status", gpus: int = 0, gpu: int = -1,
                 pass
 
     def _warn(orig):
-        return None if orig else ("could not capture the original default server dir; pass "
-                                  "default_dir= to guarantee a deterministic restore")
+        return (
+            None
+            if orig
+            else (
+                "could not capture the original default server dir; pass "
+                "default_dir= to guarantee a deterministic restore"
+            )
+        )
 
     if action == "start":
         n = int(gpus)
@@ -2220,31 +3038,61 @@ def schrodinger_gpu_pool(action: str = "status", gpus: int = 0, gpu: int = -1,
             for i in range(n):
                 d = os.path.join(base, "js_gpu%d" % i)
                 os.makedirs(d, exist_ok=True)
-                sset = _set(d)  # route the global default at this GPU's dir before starting it
+                sset = _set(
+                    d
+                )  # route the global default at this GPU's dir before starting it
                 try:
-                    sstart = _exec([jsc, "local-server-start"], timeout=step_to,
-                                   env={"CUDA_VISIBLE_DEVICES": str(i)})
+                    sstart = _exec(
+                        [jsc, "local-server-start"],
+                        timeout=step_to,
+                        env={"CUDA_VISIBLE_DEVICES": str(i)},
+                    )
                 except (subprocess.TimeoutExpired, OSError) as e:
-                    servers.append({"gpu": i, "dir": d,
-                                    "set_rc": sset.returncode if sset else None,
-                                    "error": "jsc local-server-start failed: %s" % e})
+                    servers.append(
+                        {
+                            "gpu": i,
+                            "dir": d,
+                            "set_rc": sset.returncode if sset else None,
+                            "error": "jsc local-server-start failed: %s" % e,
+                        }
+                    )
                     continue
                 blob = (sstart.stdout or "") + (sstart.stderr or "")
                 up = any(k in blob.lower() for k in ("available", "started", "running"))
-                servers.append({"gpu": i, "dir": d,
-                                "set_rc": sset.returncode if sset else None,
-                                "start_rc": sstart.returncode, "up": up, "start_tail": blob[-400:]})
+                servers.append(
+                    {
+                        "gpu": i,
+                        "dir": d,
+                        "set_rc": sset.returncode if sset else None,
+                        "start_rc": sstart.returncode,
+                        "up": up,
+                        "start_tail": blob[-400:],
+                    }
+                )
         finally:
             _restore(orig)
-        return {"action": "start", "pool_dir": base, "n": n, "servers": servers,
-                "restored_default": orig or None, "restore_warning": _warn(orig), "os": os.name}
+        return {
+            "action": "start",
+            "pool_dir": base,
+            "n": n,
+            "servers": servers,
+            "restored_default": orig or None,
+            "restore_warning": _warn(orig),
+            "os": os.name,
+        }
 
     if action == "submit":
         g = int(gpu)
         if not 0 <= g <= 63:
             return {"error": "submit requires gpu in 0..63"}
-        if not isinstance(argv, list) or not argv or not all(isinstance(x, str) and x for x in argv):
-            return {"error": "submit requires argv=[non-empty strings] (the full job command)"}
+        if (
+            not isinstance(argv, list)
+            or not argv
+            or not all(isinstance(x, str) and x for x in argv)
+        ):
+            return {
+                "error": "submit requires argv=[non-empty strings] (the full job command)"
+            }
         if any("\x00" in x or "\r" in x or "\n" in x for x in argv):
             return {"error": "unsafe control char (null/newline) in argv"}
         try:
@@ -2253,29 +3101,53 @@ def schrodinger_gpu_pool(action: str = "status", gpus: int = 0, gpu: int = -1,
             return {"error": str(e)}
         d = os.path.join(base, "js_gpu%d" % g)
         if not os.path.isdir(d):
-            return {"error": "no server dir for gpu %d at %s - run action='start' first" % (g, d)}
+            return {
+                "error": "no server dir for gpu %d at %s - run action='start' first"
+                % (g, d)
+            }
         orig = restore_to or _curdir()
         p, err = None, None
         try:
-            _set(d)  # route the global default at GPU g's server before the job connects
-            p = _exec(argv, timeout=int(timeout_s), cwd=job_cwd,
-                      env={"CUDA_VISIBLE_DEVICES": str(g)})
+            _set(
+                d
+            )  # route the global default at GPU g's server before the job connects
+            p = _exec(
+                argv,
+                timeout=int(timeout_s),
+                cwd=job_cwd,
+                env={"CUDA_VISIBLE_DEVICES": str(g)},
+            )
         except subprocess.TimeoutExpired:
-            err = ("job did not return within %ss - a -WAIT/JobDJ launcher blocks this call; "
-                   "pass a self-submitting jobcontrol launcher instead" % timeout_s)
+            err = (
+                "job did not return within %ss - a -WAIT/JobDJ launcher blocks this call; "
+                "pass a self-submitting jobcontrol launcher instead" % timeout_s
+            )
         except OSError as e:
             err = "could not launch job (argv[0]=%r): %s" % (argv[0], e)
         finally:
             _restore(orig)  # restore ALWAYS, even on error; the job stays on its server
         if err or p is None:
-            return {"action": "submit", "gpu": g, "server_dir": d, "error": err or "job did not run",
-                    "restored_default": orig or None, "restore_warning": _warn(orig)}
+            return {
+                "action": "submit",
+                "gpu": g,
+                "server_dir": d,
+                "error": err or "job did not run",
+                "restored_default": orig or None,
+                "restore_warning": _warn(orig),
+            }
         blob = (p.stdout or "") + "\n" + (p.stderr or "")
         m = _JOBID_RE.search(blob)
-        return {"action": "submit", "gpu": g, "server_dir": d, "returncode": p.returncode,
-                "jobid": m.group(1) if m else None, "restored_default": orig or None,
-                "restore_warning": _warn(orig), "stdout_tail": (p.stdout or "")[-1000:],
-                "stderr_tail": (p.stderr or "")[-1000:]}
+        return {
+            "action": "submit",
+            "gpu": g,
+            "server_dir": d,
+            "returncode": p.returncode,
+            "jobid": m.group(1) if m else None,
+            "restored_default": orig or None,
+            "restore_warning": _warn(orig),
+            "stdout_tail": (p.stdout or "")[-1000:],
+            "stderr_tail": (p.stderr or "")[-1000:],
+        }
 
     # status | stop: iterate the discovered per-GPU server dirs
     pools = sorted(glob.glob(os.path.join(base, "js_gpu*")))
@@ -2293,18 +3165,31 @@ def schrodinger_gpu_pool(action: str = "status", gpus: int = 0, gpu: int = -1,
                 _set(d)
                 r = _exec([jsc, sub], timeout=step_to)
             except (subprocess.TimeoutExpired, OSError) as e:
-                rows.append({"dir": d, "gpu": gpu_idx, "error": "jsc %s failed: %s" % (sub, e)})
+                rows.append(
+                    {"dir": d, "gpu": gpu_idx, "error": "jsc %s failed: %s" % (sub, e)}
+                )
                 continue
             blob = (r.stdout or "") + (r.stderr or "")
-            row = {"dir": d, "gpu": gpu_idx, "returncode": r.returncode, "tail": blob[-400:]}
+            row = {
+                "dir": d,
+                "gpu": gpu_idx,
+                "returncode": r.returncode,
+                "tail": blob[-400:],
+            }
             if action == "status":
                 row["running"] = "RUNNING" in blob.upper()
             rows.append(row)
     finally:
         _restore(orig)
     key = "servers" if action == "status" else "stopped"
-    return {"action": action, "pool_dir": base, "n": len(rows), key: rows,
-            "restored_default": orig or None, "restore_warning": _warn(orig)}
+    return {
+        "action": action,
+        "pool_dir": base,
+        "n": len(rows),
+        key: rows,
+        "restored_default": orig or None,
+        "restore_warning": _warn(orig),
+    }
 
 
 # ---------- Linux license cure (mutates the install tree; NOT the obsolete x509 hook) ----------
@@ -2322,6 +3207,7 @@ def schrodinger_gpu_pool(action: str = "status", gpus: int = 0, gpu: int = -1,
 #      `feature_flags` CLI utility - do NOT invent one).
 # shutil.copyfile ONLY (never a truncating New-Item-style create). SUPERSEDES the fragile
 # root_inf.pem + trust_hook LD_PRELOAD + sitecustomize monkey-patch dance (do NOT re-introduce it).
+
 
 @mcp.tool()
 def install_cure(patched_so: str, license_file: str = "", timeout_s: int = 120) -> dict:
@@ -2361,8 +3247,13 @@ def install_cure(patched_so: str, license_file: str = "", timeout_s: int = 120) 
     except OSError as e:
         return {"error": "cannot read patched_so: %s" % e}
     if src_md5 != good_md5 or src_size != good_size:
-        return {"error": ("patched_so failed the good-md5 guard: got md5=%s size=%s, expected md5=%s "
-                          "size=%s - refusing to deploy" % (src_md5, src_size, good_md5, good_size))}
+        return {
+            "error": (
+                "patched_so failed the good-md5 guard: got md5=%s size=%s, expected md5=%s "
+                "size=%s - refusing to deploy"
+                % (src_md5, src_size, good_md5, good_size)
+            )
+        }
 
     result = {"os": os.name, "schrodinger": SCHRODINGER, "good_md5": good_md5}
 
@@ -2381,7 +3272,9 @@ def install_cure(patched_so: str, license_file: str = "", timeout_s: int = 120) 
 
     # 2) overwrite libmmfileshared.so under $SCHRODINGER (canonical target internal/lib/; glob-all
     #    catches any other bundled copy - safe because the md5 guard only ever writes the one build)
-    targets = glob.glob(os.path.join(SCHRODINGER, "**", "libmmfileshared.so"), recursive=True)
+    targets = glob.glob(
+        os.path.join(SCHRODINGER, "**", "libmmfileshared.so"), recursive=True
+    )
     patched, already, failed = [], [], []
     for t in targets:
         try:
@@ -2391,12 +3284,21 @@ def install_cure(patched_so: str, license_file: str = "", timeout_s: int = 120) 
                 os.chmod(t, 0o755)
                 already.append(t)
                 continue
-            shutil.copyfile(patched_so, t)  # copyfile writes full content in place; never truncate-create
+            shutil.copyfile(
+                patched_so, t
+            )  # copyfile writes full content in place; never truncate-create
             os.chmod(t, 0o755)
             patched.append(t)
         except OSError as e:
             failed.append({"path": t, "error": str(e)})
-    result.update({"found": len(targets), "patched": patched, "already_cured": already, "failed": failed})
+    result.update(
+        {
+            "found": len(targets),
+            "patched": patched,
+            "already_cured": already,
+            "failed": failed,
+        }
+    )
 
     # 3) enable the SLM license path via the SCHRODINGER_FEATURE_FLAGS env var (PROVEN mechanism, not
     #    a CLI utility). Merge +SCHRODINGER_LICENSE_MANAGER into any existing value (dropping a
@@ -2404,7 +3306,9 @@ def install_cure(patched_so: str, license_file: str = "", timeout_s: int = 120) 
     #    subsequent Schrodinger _exec child inherits it. The key is in _ENV_OVERLAY_ALLOW.
     flag = "SCHRODINGER_LICENSE_MANAGER"
     prev = os.environ.get("SCHRODINGER_FEATURE_FLAGS", "")
-    toks = [tok for tok in re.split(r"[\s,]+", prev) if tok and tok.lstrip("+-") != flag]
+    toks = [
+        tok for tok in re.split(r"[\s,]+", prev) if tok and tok.lstrip("+-") != flag
+    ]
     toks.append("+" + flag)
     new_val = " ".join(toks)
     os.environ["SCHRODINGER_FEATURE_FLAGS"] = new_val
@@ -2419,13 +3323,17 @@ def install_cure(patched_so: str, license_file: str = "", timeout_s: int = 120) 
         result["licadmin_rc"] = lc.returncode
         result["license_check_tail"] = ((lc.stdout or "") + (lc.stderr or ""))[-800:]
     except subprocess.TimeoutExpired:
-        result["license_check_error"] = "licadmin debug-sources timeout after %ss" % timeout_s
+        result["license_check_error"] = (
+            "licadmin debug-sources timeout after %ss" % timeout_s
+        )
     except OSError as e:
         result["license_check_error"] = "licadmin not runnable: %s" % e
 
     if not targets:
-        result["note"] = ("no libmmfileshared.so under $SCHRODINGER - the .so cure is Linux-only "
-                          "(Windows uses libmmfileshared.dll); .lic + feature flag still applied")
+        result["note"] = (
+            "no libmmfileshared.so under $SCHRODINGER - the .so cure is Linux-only "
+            "(Windows uses libmmfileshared.dll); .lic + feature flag still applied"
+        )
     return result
 
 
@@ -2468,9 +3376,16 @@ def install_cure(patched_so: str, license_file: str = "", timeout_s: int = 120) 
 
 # ---------- Binding Pose Metadynamics (pose stability: Glide < BPMD < FEP+; GPU/Desmond) ----------
 
+
 @mcp.tool()
-def bpmd(pose_viewer_maegz: str, out_dir: str, ligand_asl: str, num_trials: int = 8,
-         gpu: int = -1, timeout_s: int = 300) -> dict:
+def bpmd(
+    pose_viewer_maegz: str,
+    out_dir: str,
+    ligand_asl: str,
+    num_trials: int = 8,
+    gpu: int = -1,
+    timeout_s: int = 300,
+) -> dict:
     """Binding Pose Metadynamics (BPMD): score docked-pose STABILITY by pushing the ligand along
     an RMSD collective variable with metadynamics - the tier BETWEEN Glide (fast static score) and
     FEP+ (rigorous, expensive). Input is a receptor+ligand complex / Glide pose-viewer (`*_pv.maegz`
@@ -2488,7 +3403,9 @@ def bpmd(pose_viewer_maegz: str, out_dir: str, ligand_asl: str, num_trials: int 
     except (ValueError, FileNotFoundError) as e:
         return {"error": str(e)}
     if not isinstance(ligand_asl, str) or not ligand_asl.strip():
-        return {"error": "ligand_asl is required (driver -ligand_asl), e.g. 'res.ptype UNK'"}
+        return {
+            "error": "ligand_asl is required (driver -ligand_asl), e.g. 'res.ptype UNK'"
+        }
     if any(c in ligand_asl for c in "\r\n\x00"):
         return {"error": "unsafe ligand_asl (control char)"}
     if ligand_asl.strip().startswith("-"):
@@ -2499,11 +3416,27 @@ def bpmd(pose_viewer_maegz: str, out_dir: str, ligand_asl: str, num_trials: int 
     if not (1 <= nt <= 100):
         return {"error": "num_trials must be between 1 and 100"}
     os.makedirs(out_dir, exist_ok=True)
-    job = _jobname(pose_viewer_maegz, "_bpmd")  # regex-sanitized, <=60 chars (no raw client string)
+    job = _jobname(
+        pose_viewer_maegz, "_bpmd"
+    )  # regex-sanitized, <=60 chars (no raw client string)
     # positional complex FIRST (nargs="+"), then flags; -HOST = CPU launcher, -SUBHOST = GPU Desmond.
-    argv = [_run(), "-FROM", "psp", "binding_pose_metadynamics.py", pose_viewer_maegz,
-            "-ligand_asl", ligand_asl, "-ntrial", str(nt), "-JOBNAME", job,
-            "-HOST", "localhost", "-SUBHOST", "localhost"]
+    argv = [
+        _run(),
+        "-FROM",
+        "psp",
+        "binding_pose_metadynamics.py",
+        pose_viewer_maegz,
+        "-ligand_asl",
+        ligand_asl,
+        "-ntrial",
+        str(nt),
+        "-JOBNAME",
+        job,
+        "-HOST",
+        "localhost",
+        "-SUBHOST",
+        "localhost",
+    ]
     # env is SERVER-built (never a client string): the key is a constant and the value is an
     # int-cast device index. _exec allowlist-filters it via _ENV_OVERLAY_ALLOW (CUDA_VISIBLE_DEVICES).
     env = {"CUDA_VISIBLE_DEVICES": str(int(gpu))} if int(gpu) >= 0 else None
@@ -2511,16 +3444,25 @@ def bpmd(pose_viewer_maegz: str, out_dir: str, ligand_asl: str, num_trials: int 
     res["jobname"] = job
     res["expected_out_maegz"] = os.path.join(out_dir, job + "-out.maegz")
     res["expected_out_csv"] = os.path.join(out_dir, job + "-out.csv")
-    res["score_properties"] = ["r_psp_MetadynamicsBinding_PoseScore",
-                               "r_psp_MetadynamicsBinding_Persistence",
-                               "r_psp_MetadynamicsBinding_CompScore"]
-    res["compscore_formula"] = "CompScore = PoseScore - 5 * Persistence (lower = more stable)"
+    res["score_properties"] = [
+        "r_psp_MetadynamicsBinding_PoseScore",
+        "r_psp_MetadynamicsBinding_Persistence",
+        "r_psp_MetadynamicsBinding_CompScore",
+    ]
+    res["compscore_formula"] = (
+        "CompScore = PoseScore - 5 * Persistence (lower = more stable)"
+    )
     return res
 
 
 @mcp.tool()
-def bpmd_ladder(complexes: list, out_dir: str, ligand_asl: str, num_trials: int = 8,
-                gpus: list = None) -> dict:
+def bpmd_ladder(
+    complexes: list,
+    out_dir: str,
+    ligand_asl: str,
+    num_trials: int = 8,
+    gpus: list = None,
+) -> dict:
     """BPMD pose-stability ladder: fan a LIST of complexes across the GPU pool at 1 GPU per ligand.
     BPMD's `num_trials` run SERIALLY inside each job, so parallelism is at the LIGAND level - this
     submits one bpmd() job per complex and returns the per-ligand jobids; poll each with job_status
@@ -2532,13 +3474,22 @@ def bpmd_ladder(complexes: list, out_dir: str, ligand_asl: str, num_trials: int 
     tokens per ligand. NOTE: needs psp/Prime + a runnable Desmond engine on the GPU box (a
     compatibility stub here) -> argv/submit-verified only."""
     if not isinstance(complexes, list) or not complexes:
-        return {"error": "complexes must be a non-empty list of complex/pose-viewer paths"}
-    if gpus is not None and (not isinstance(gpus, list)
-                             or not all(isinstance(g, int) and not isinstance(g, bool) and g >= 0
-                                        for g in gpus)):
-        return {"error": "gpus must be a list of non-negative integer device indices, or omitted"}
+        return {
+            "error": "complexes must be a non-empty list of complex/pose-viewer paths"
+        }
+    if gpus is not None and (
+        not isinstance(gpus, list)
+        or not all(
+            isinstance(g, int) and not isinstance(g, bool) and g >= 0 for g in gpus
+        )
+    ):
+        return {
+            "error": "gpus must be a list of non-negative integer device indices, or omitted"
+        }
     results = []
-    seen_jobnames = set()  # bpmd derives its jobname (and ALL output files) from the input basename;
+    seen_jobnames = (
+        set()
+    )  # bpmd derives its jobname (and ALL output files) from the input basename;
     #                        two complexes sharing a basename would clobber each other's -out.maegz /
     #                        metadir when run concurrently. Refuse the duplicate instead of silently
     #                        overwriting (predictable, distinct-basename batches are unaffected).
@@ -2546,20 +3497,36 @@ def bpmd_ladder(complexes: list, out_dir: str, ligand_asl: str, num_trials: int 
         gpu = gpus[i % len(gpus)] if gpus else -1
         jn = _jobname(cx, "_bpmd") if isinstance(cx, str) and cx.strip() else None
         if jn is not None and jn in seen_jobnames:
-            results.append({"complex": cx, "gpu": (gpu if gpus else None), "jobid": None,
-                            "jobname": jn,
-                            "error": "duplicate jobname in this batch (same input basename) - would "
-                                     "clobber another ligand's -out files; give it a distinct name"})
+            results.append(
+                {
+                    "complex": cx,
+                    "gpu": (gpu if gpus else None),
+                    "jobid": None,
+                    "jobname": jn,
+                    "error": "duplicate jobname in this batch (same input basename) - would "
+                    "clobber another ligand's -out files; give it a distinct name",
+                }
+            )
             continue
         r = bpmd(cx, out_dir, ligand_asl, num_trials=num_trials, gpu=gpu)
         if r.get("jobid") and r.get("jobname"):
             seen_jobnames.add(r["jobname"])
-        results.append({"complex": cx, "gpu": (gpu if gpus else None),
-                        "jobid": r.get("jobid"), "jobname": r.get("jobname"),
-                        "error": r.get("error")})
+        results.append(
+            {
+                "complex": cx,
+                "gpu": (gpu if gpus else None),
+                "jobid": r.get("jobid"),
+                "jobname": r.get("jobname"),
+                "error": r.get("error"),
+            }
+        )
     submitted = [r for r in results if r.get("jobid")]
-    return {"n_complexes": len(complexes), "n_submitted": len(submitted),
-            "jobids": [r["jobid"] for r in submitted], "ligands": results}
+    return {
+        "n_complexes": len(complexes),
+        "n_submitted": len(submitted),
+        "jobids": [r["jobid"] for r in submitted],
+        "ligands": results,
+    }
 
 
 # ============================================================================
@@ -2584,8 +3551,9 @@ def bpmd_ladder(complexes: list, out_dir: str, ligand_asl: str, num_trials: int 
 
 
 @mcp.tool()
-def fep_absolute_binding(complex_mae: str, out_dir: str = "", subhost_gpus: int = 1,
-                         timeout_s: int = 300) -> dict:
+def fep_absolute_binding(
+    complex_mae: str, out_dir: str = "", subhost_gpus: int = 1, timeout_s: int = 300
+) -> dict:
     """FEP+ ABSOLUTE binding free energy (ABFE) for a prepared receptor-ligand complex - the fallback
     when ligands cannot be joined into a relative-FEP (LOMAP) map (no shared scaffold, net-charge
     change, scaffold hop). ASYNC (GPU, long) via the P0 job-control layer -> {jobid}; poll job_status.
@@ -2606,12 +3574,24 @@ def fep_absolute_binding(complex_mae: str, out_dir: str = "", subhost_gpus: int 
     os.makedirs(wd, exist_ok=True)
     job = _jobname(complex_mae, "_abfe")
     nj = max(1, int(subhost_gpus))
-    argv = [_driver("fep_absolute_binding"), complex_mae, "-JOBNAME", job, "-HOST", "localhost",
-            "-SUBHOST", "localhost", "-ppj", str(nj)]
+    argv = [
+        _driver("fep_absolute_binding"),
+        complex_mae,
+        "-JOBNAME",
+        job,
+        "-HOST",
+        "localhost",
+        "-SUBHOST",
+        "localhost",
+        "-ppj",
+        str(nj),
+    ]
     res = _submit_async(argv, cwd=wd, timeout=timeout_s)
     res["expected_out_fmp"] = os.path.join(wd, job + "_out.fmp")
-    res["warning"] = ("ABFE is convergence-fragile: needs a restrained, equilibrated complex + long "
-                      "protocol; QC equilibration/overlap before trusting any dG")
+    res["warning"] = (
+        "ABFE is convergence-fragile: needs a restrained, equilibrated complex + long "
+        "protocol; QC equilibration/overlap before trusting any dG"
+    )
     return res
 
 
@@ -2629,6 +3609,7 @@ def fep_absolute_binding(complex_mae: str, out_dir: str = "", subhost_gpus: int 
 
 
 # ---------- composite decision helpers (pure-Python; shared by the g10 composite tools) ----------
+
 
 def _desir_one(x, low, high, goal="max"):
     """Derringer one-sided desirability in [0,1]. goal='max' -> higher better (0 at <=low,
@@ -2670,6 +3651,7 @@ def _pareto_ranks(rows, objectives):
     """Pareto front rank per row over `objectives` = [(key, goal), ...] (goal in {'max','min'}).
     A dominates B iff A is no worse on every objective and strictly better on >=1. Rows missing any
     objective get rank None. Returns a list of ranks aligned with `rows` (1 = non-dominated)."""
+
     def _vec(r):
         v = []
         for key, goal in objectives:
@@ -2685,11 +3667,17 @@ def _pareto_ranks(rows, objectives):
     remaining = {i for i, v in enumerate(vecs) if v is not None}
 
     def _dom(a, b):
-        return all(a[k] >= b[k] for k in range(len(a))) and any(a[k] > b[k] for k in range(len(a)))
+        return all(a[k] >= b[k] for k in range(len(a))) and any(
+            a[k] > b[k] for k in range(len(a))
+        )
 
     front = 1
     while remaining:
-        cur = [i for i in remaining if not any(_dom(vecs[j], vecs[i]) for j in remaining if j != i)]
+        cur = [
+            i
+            for i in remaining
+            if not any(_dom(vecs[j], vecs[i]) for j in remaining if j != i)
+        ]
         if not cur:  # numeric-tie cycle guard
             cur = list(remaining)
         for i in cur:
@@ -2706,6 +3694,7 @@ def _present(rows, key):
 
 # ---------- result-CSV parsing (pure stdlib; no license token) ----------
 
+
 def _read_csv_rows(path):
     """Read a Schrodinger result CSV into dict rows (stdlib csv). [] if missing/empty."""
     if not path or not os.path.exists(path):
@@ -2720,7 +3709,13 @@ def _read_csv_rows(path):
 def _row_id(row):
     """The molecule identifier from a result-CSV row (title/molecule/name/s_m_title), stripped."""
     for k in row:
-        if k and k.strip().lower() in ("title", "molecule", "name", "s_m_title", "entry name"):
+        if k and k.strip().lower() in (
+            "title",
+            "molecule",
+            "name",
+            "s_m_title",
+            "entry name",
+        ):
             v = (row.get(k) or "").strip()
             if v:
                 return v
@@ -2768,6 +3763,7 @@ def _mmgbsa_dg(row):
 
 # ---------- run_schrodinger_python JSON bridge (SiteMap parse / ASL centroid) ----------
 
+
 def _rsp_json(code):
     """Run a snippet via run_schrodinger_python and return the last JSON object it printed."""
     res = run_schrodinger_python(code, timeout_s=300)
@@ -2780,8 +3776,11 @@ def _rsp_json(code):
                 return json.loads(line)
             except ValueError:
                 continue
-    return {"error": "no JSON from snippet", "stdout_tail": (res.get("stdout") or "")[-800:],
-            "stderr_tail": (res.get("stderr") or "")[-800:]}
+    return {
+        "error": "no JSON from snippet",
+        "stdout_tail": (res.get("stdout") or "")[-800:],
+        "stderr_tail": (res.get("stderr") or "")[-800:],
+    }
 
 
 def _centroid_from_asl(structure_file, asl):
@@ -2828,9 +3827,17 @@ def _sitemap_pockets(site_out_maegz):
 
 # ---------- g10 composite tools ----------
 
+
 @mcp.tool()
-def dock_triage(grid_file: str, ligands_mae: str, out_dir: str = "", funnel: list = None,
-                keep_frac: list = None, admet: bool = True, timeout_s: int = 3600) -> dict:
+def dock_triage(
+    grid_file: str,
+    ligands_mae: str,
+    out_dir: str = "",
+    funnel: list = None,
+    keep_frac: list = None,
+    admet: bool = True,
+    timeout_s: int = 3600,
+) -> dict:
     """COMPOSE funnel-docking + multi-objective triage. Docks a PREPARED ligand set (.mae, unique
     titles) through HTVS->SP->XP, keeping the top `keep_frac` by Glide gscore between tiers (writing
     the reduced set forward), then Prime MM-GBSA (dG_Bind) + QikProp ADMET on the survivors, and
@@ -2862,32 +3869,64 @@ def dock_triage(grid_file: str, ligands_mae: str, out_dir: str = "", funnel: lis
         dk = glide_dock(grid_file, current, precision=precision, timeout_s=timeout_s)
         poses = dk.get("poses")
         if not poses:
-            tiers.append({"precision": precision, "input": current, "error": "no poses from glide_dock",
-                          "returncode": dk.get("returncode"), "docking_status": dk.get("docking_status"),
-                          "stderr_tail": dk.get("stderr_tail")})
-            return {"error": "glide_dock produced no poses at tier %s" % precision, "tiers": tiers}
+            tiers.append(
+                {
+                    "precision": precision,
+                    "input": current,
+                    "error": "no poses from glide_dock",
+                    "returncode": dk.get("returncode"),
+                    "docking_status": dk.get("docking_status"),
+                    "stderr_tail": dk.get("stderr_tail"),
+                }
+            )
+            return {
+                "error": "glide_dock produced no poses at tier %s" % precision,
+                "tiers": tiers,
+            }
         sc = _helper("pv_scores", {"pose_file": poses})
         scores = sc.get("scores", {})
         last_poses = poses
         if n_input is None:
             n_input = len(scores)
-        tier = {"precision": precision, "input": current, "poses": poses, "n_docked": len(scores)}
+        tier = {
+            "precision": precision,
+            "input": current,
+            "poses": poses,
+            "n_docked": len(scores),
+        }
         if ti == len(funnel) - 1:  # final tier - no reduction
             tier["survivors"], tier["n_survivors"] = list(scores.keys()), len(scores)
             tiers.append(tier)
             break
-        frac = min(1.0, max(0.0, keep_frac[ti] if ti < len(keep_frac) else keep_frac[-1]))
-        ordered = sorted(scores.items(), key=lambda kv: kv[1])  # ascending gscore = better first
+        frac = min(
+            1.0, max(0.0, keep_frac[ti] if ti < len(keep_frac) else keep_frac[-1])
+        )
+        ordered = sorted(
+            scores.items(), key=lambda kv: kv[1]
+        )  # ascending gscore = better first
         k = max(1, int(round(len(ordered) * frac))) if ordered else 0
         keep_titles = [t for t, _ in ordered[:k]]
-        reduced = os.path.join(wd, "triage_tier%d_%s_survivors.mae" % (ti + 1, precision))
-        ws = _helper("write_subset", {"src": ligands_mae, "titles": keep_titles, "dst": reduced})
-        tier.update({"keep_frac": frac, "n_survivors": len(keep_titles),
-                     "survivors": keep_titles[:50], "survivor_file": ws.get("dst")})
+        reduced = os.path.join(
+            wd, "triage_tier%d_%s_survivors.mae" % (ti + 1, precision)
+        )
+        ws = _helper(
+            "write_subset", {"src": ligands_mae, "titles": keep_titles, "dst": reduced}
+        )
+        tier.update(
+            {
+                "keep_frac": frac,
+                "n_survivors": len(keep_titles),
+                "survivors": keep_titles[:50],
+                "survivor_file": ws.get("dst"),
+            }
+        )
         tiers.append(tier)
         if not ws.get("n_written"):
-            return {"error": "failed to write survivor set after tier %s" % precision,
-                    "tiers": tiers, "write_subset": ws}
+            return {
+                "error": "failed to write survivor set after tier %s" % precision,
+                "tiers": tiers,
+                "write_subset": ws,
+            }
         current = reduced
 
     survivor_titles = tiers[-1].get("survivors") or []
@@ -2922,26 +3961,43 @@ def dock_triage(grid_file: str, ligands_mae: str, out_dir: str = "", funnel: lis
     for t in survivor_titles:
         m, ar = mpo_by.get(t, {}), admet_by.get(t, {})
         cmax = m.get("cns_mpo_max") or 5.0
-        row = {"title": t, "dG_Bind": dG.get(t), "cns_mpo": m.get("cns_mpo"),
-               "cns_mpo_norm": round(m["cns_mpo"] / cmax, 3) if m.get("cns_mpo") is not None else None,
-               "qed": m.get("qed"), "smiles": m.get("smiles"),
-               "QPlogHERG": _get_num(ar, "QPlogHERG") if ar else None,
-               "QPPMDCK": _get_num(ar, "QPPMDCK") if ar else None,
-               "QPlogBB": _get_num(ar, "QPlogBB") if ar else None}
-        row["permeability"] = row["QPPMDCK"] if row["QPPMDCK"] is not None else row["QPlogBB"]
+        row = {
+            "title": t,
+            "dG_Bind": dG.get(t),
+            "cns_mpo": m.get("cns_mpo"),
+            "cns_mpo_norm": round(m["cns_mpo"] / cmax, 3)
+            if m.get("cns_mpo") is not None
+            else None,
+            "qed": m.get("qed"),
+            "smiles": m.get("smiles"),
+            "QPlogHERG": _get_num(ar, "QPlogHERG") if ar else None,
+            "QPPMDCK": _get_num(ar, "QPPMDCK") if ar else None,
+            "QPlogBB": _get_num(ar, "QPlogBB") if ar else None,
+        }
+        row["permeability"] = (
+            row["QPPMDCK"] if row["QPPMDCK"] is not None else row["QPlogBB"]
+        )
         rows.append(row)
 
     dvals = [r["dG_Bind"] for r in rows if r["dG_Bind"] is not None]
     if len(dvals) >= 2:
         dlo, dhi = min(dvals), max(dvals)
-        dhi = dhi + 0.05 * max(1e-6, dhi - dlo)  # keep the worst row off an exact hard-zero
+        dhi = dhi + 0.05 * max(
+            1e-6, dhi - dlo
+        )  # keep the worst row off an exact hard-zero
     else:
         dlo, dhi = -60.0, -10.0
     perm_mdck = any(r["QPPMDCK"] is not None for r in rows)
-    perm_spec = ("permeability", 25.0, 500.0, "max", 1.0) if perm_mdck else \
-                ("permeability", -3.0, 1.0, "max", 1.0)
-    specs = [("dG_Bind", dlo, dhi, "min", 2.0), ("cns_mpo_norm", 0.4, 1.0, "max", 1.0),
-             ("qed", 0.3, 0.9, "max", 1.0)]
+    perm_spec = (
+        ("permeability", 25.0, 500.0, "max", 1.0)
+        if perm_mdck
+        else ("permeability", -3.0, 1.0, "max", 1.0)
+    )
+    specs = [
+        ("dG_Bind", dlo, dhi, "min", 2.0),
+        ("cns_mpo_norm", 0.4, 1.0, "max", 1.0),
+        ("qed", 0.3, 0.9, "max", 1.0),
+    ]
     pobjs = [("dG_Bind", "min"), ("cns_mpo_norm", "max"), ("qed", "max")]
     if admet:
         specs += [("QPlogHERG", -7.0, -5.0, "max", 1.0), perm_spec]
@@ -2955,21 +4011,39 @@ def dock_triage(grid_file: str, ligands_mae: str, out_dir: str = "", funnel: lis
     if pobjs:
         for r, pr in zip(rows, _pareto_ranks(rows, pobjs)):
             r["pareto_rank"] = pr
-    rows.sort(key=lambda r: (r.get("desirability") is None, -(r.get("desirability") or 0.0)))
+    rows.sort(
+        key=lambda r: (r.get("desirability") is None, -(r.get("desirability") or 0.0))
+    )
 
-    return {"funnel": funnel, "keep_frac": keep_frac, "n_input": n_input,
-            "tiers": [{k: v for k, v in t.items() if k != "survivors"} for t in tiers],
-            "final_poses": last_poses, "mmgbsa_csv": mm.get("csv"), "qikprop_csv": admet_csv,
-            "survivor_file": survivor_file, "n_ranked": len(rows),
-            "pareto_objectives": [o[0] for o in pobjs],
-            "pareto_front": [r["title"] for r in rows if r.get("pareto_rank") == 1],
-            "cns_mpo_note": mpo.get("note"), "warnings": warnings, "ranked_hits": rows}
+    return {
+        "funnel": funnel,
+        "keep_frac": keep_frac,
+        "n_input": n_input,
+        "tiers": [{k: v for k, v in t.items() if k != "survivors"} for t in tiers],
+        "final_poses": last_poses,
+        "mmgbsa_csv": mm.get("csv"),
+        "qikprop_csv": admet_csv,
+        "survivor_file": survivor_file,
+        "n_ranked": len(rows),
+        "pareto_objectives": [o[0] for o in pobjs],
+        "pareto_front": [r["title"] for r in rows if r.get("pareto_rank") == 1],
+        "cns_mpo_note": mpo.get("note"),
+        "warnings": warnings,
+        "ranked_hits": rows,
+    }
 
 
 @mcp.tool()
-def prep_target(pdb_or_file: str, out_dir: str, ref_ligand: str = "", ph: float = 7.0,
-                pocket: int = 0, inner_box: int = 10, outer_box: int = 30,
-                timeout_s: int = 1800) -> dict:
+def prep_target(
+    pdb_or_file: str,
+    out_dir: str,
+    ref_ligand: str = "",
+    ph: float = 7.0,
+    pocket: int = 0,
+    inner_box: int = 10,
+    outer_box: int = 30,
+    timeout_s: int = 1800,
+) -> dict:
     """COMPOSE receptor prep -> ready-to-dock Glide grid. pdb_fetch (if `pdb_or_file` is a 4-char
     PDB id, else a local .pdb/.mae) -> prepwizard (@ pH, QC from returncode/log) -> pocket centring:
     if `ref_ligand` (an ASL, e.g. 'res.num 501' or 'chain.name A and res.num 145') is given the grid
@@ -2989,7 +4063,10 @@ def prep_target(pdb_or_file: str, out_dir: str, ref_ligand: str = "", ph: float 
     if len(pid) == 4 and pid.isalnum():
         fetched = pdb_fetch(pid, out_dir, fmt="pdb")
         if fetched.get("error"):
-            return {"error": "pdb_fetch failed: %s" % fetched["error"], "url": fetched.get("url")}
+            return {
+                "error": "pdb_fetch failed: %s" % fetched["error"],
+                "url": fetched.get("url"),
+            }
         raw = fetched.get("pdb_path")
     else:
         try:
@@ -3000,8 +4077,15 @@ def prep_target(pdb_or_file: str, out_dir: str, ref_ligand: str = "", ph: float 
     prepared = os.path.join(out_dir, "prepared_receptor.mae")
     pw = prepwizard(raw, prepared, ph=ph, timeout_s=timeout_s)
     if not pw.get("output"):
-        return {"error": "prepwizard produced no output", "prepwizard": pw, "raw_structure": raw}
-    prep_qc = {"returncode": pw.get("returncode"), "stdout_tail": (pw.get("stdout_tail") or "")[-800:]}
+        return {
+            "error": "prepwizard produced no output",
+            "prepwizard": pw,
+            "raw_structure": raw,
+        }
+    prep_qc = {
+        "returncode": pw.get("returncode"),
+        "stdout_tail": (pw.get("stdout_tail") or "")[-800:],
+    }
 
     chosen_center, pocket_ranking, site_out = None, [], None
     if ref_ligand:
@@ -3009,44 +4093,84 @@ def prep_target(pdb_or_file: str, out_dir: str, ref_ligand: str = "", ph: float 
             return {"error": "unsafe ref_ligand ASL (control char)"}
         cen = _centroid_from_asl(prepared, ref_ligand)
         if cen.get("error"):
-            return {"error": "ref_ligand centroid failed: %s" % cen["error"], "prepared_mae": prepared}
+            return {
+                "error": "ref_ligand centroid failed: %s" % cen["error"],
+                "prepared_mae": prepared,
+            }
         chosen_center = cen.get("center")
     else:
         sm = sitemap(prepared, out_dir, timeout_s=timeout_s)
         site_out = sm.get("out_maegz")
         if not site_out:
-            return {"error": "sitemap produced no output", "sitemap": sm, "prepared_mae": prepared}
+            return {
+                "error": "sitemap produced no output",
+                "sitemap": sm,
+                "prepared_mae": prepared,
+            }
         ranked = _sitemap_pockets(site_out)
         if ranked.get("error"):
-            return {"error": "sitemap parse failed: %s" % ranked["error"],
-                    "prepared_mae": prepared, "sitemap_out": site_out}
+            return {
+                "error": "sitemap parse failed: %s" % ranked["error"],
+                "prepared_mae": prepared,
+                "sitemap_out": site_out,
+            }
         pocket_ranking = ranked.get("pockets", [])
         if not pocket_ranking:
-            return {"error": "no pockets detected by sitemap", "prepared_mae": prepared,
-                    "sitemap_out": site_out}
+            return {
+                "error": "no pockets detected by sitemap",
+                "prepared_mae": prepared,
+                "sitemap_out": site_out,
+            }
         pick = max(0, min((int(pocket) - 1) if pocket else 0, len(pocket_ranking) - 1))
         chosen_center = pocket_ranking[pick].get("center")
 
     if not chosen_center:
-        return {"error": "could not determine a grid center", "prepared_mae": prepared,
-                "pocket_ranking": pocket_ranking}
+        return {
+            "error": "could not determine a grid center",
+            "prepared_mae": prepared,
+            "pocket_ranking": pocket_ranking,
+        }
 
     center_str = ",".join("%.4f" % c for c in chosen_center)
     grid_zip = os.path.join(out_dir, "receptor_grid.zip")
-    gg = glide_grid(prepared, grid_zip, center=center_str, inner_box=inner_box,
-                    outer_box=outer_box, timeout_s=timeout_s)
+    gg = glide_grid(
+        prepared,
+        grid_zip,
+        center=center_str,
+        inner_box=inner_box,
+        outer_box=outer_box,
+        timeout_s=timeout_s,
+    )
     if not gg.get("grid"):
-        return {"error": "glide_grid failed", "glide_grid": gg, "prepared_mae": prepared,
-                "chosen_center": chosen_center}
-    return {"prepared_mae": prepared, "grid_zip": gg.get("grid"), "chosen_center": chosen_center,
-            "chosen_center_str": center_str, "pocket_ranking": pocket_ranking,
-            "sitemap_out": site_out, "prep_qc": prep_qc, "raw_structure": raw}
+        return {
+            "error": "glide_grid failed",
+            "glide_grid": gg,
+            "prepared_mae": prepared,
+            "chosen_center": chosen_center,
+        }
+    return {
+        "prepared_mae": prepared,
+        "grid_zip": gg.get("grid"),
+        "chosen_center": chosen_center,
+        "chosen_center_str": center_str,
+        "pocket_ranking": pocket_ranking,
+        "sitemap_out": site_out,
+        "prep_qc": prep_qc,
+        "raw_structure": raw,
+    }
 
 
 @mcp.tool()
-def analog_scan(hit_mae_or_smiles: str, grid_file: str, rgroups: dict, out_dir: str,
-                mpo_norm_min: float = 0.7, precision: str = "SP", pkas: dict = None,
-                timeout_s: int = 3600) -> dict:
+def analog_scan(
+    hit_mae_or_smiles: str,
+    grid_file: str,
+    rgroups: dict,
+    out_dir: str,
+    mpo_norm_min: float = 0.7,
+    precision: str = "SP",
+    pkas: dict = None,
+    timeout_s: int = 3600,
+) -> dict:
     """COMPOSE R-group SAR scan. `hit_mae_or_smiles` must be a CORE SMILES carrying attachment
     dummies [*:1],[*:2],... (a bare hit has no defined R-group positions). Enumerates analogs across
     `rgroups` (map-number str -> [substituent SMILES]) via RDKit, applies a CNS-MPO filter
@@ -3059,11 +4183,15 @@ def analog_scan(hit_mae_or_smiles: str, grid_file: str, rgroups: dict, out_dir: 
     if precision not in ("HTVS", "SP", "XP"):
         return {"error": "precision must be HTVS, SP, or XP"}
     if not isinstance(rgroups, dict) or not rgroups:
-        return {"error": "rgroups must be a non-empty dict {mapnum: [substituent SMILES]}"}
+        return {
+            "error": "rgroups must be a non-empty dict {mapnum: [substituent SMILES]}"
+        }
     core = (hit_mae_or_smiles or "").strip()
     if "[*:" not in core:
-        return {"error": "provide a CORE SMILES with attachment dummies [*:1],[*:2],... "
-                         "(a bare hit structure has no defined R-group positions)"}
+        return {
+            "error": "provide a CORE SMILES with attachment dummies [*:1],[*:2],... "
+            "(a bare hit structure has no defined R-group positions)"
+        }
     try:
         grid_file = _safe_path(grid_file, must_exist=True)
         out_dir = _safe_path(out_dir)
@@ -3078,9 +4206,15 @@ def analog_scan(hit_mae_or_smiles: str, grid_file: str, rgroups: dict, out_dir: 
     if not mols:
         return {"error": "enumeration produced no molecules"}
 
-    mpo = _helper("cns_mpo", {"smiles_list": [m["smiles"] for m in mols],
-                              "titles": [m["title"] for m in mols],
-                              "pkas": pkas or {}, "mpo_norm_min": float(mpo_norm_min)})
+    mpo = _helper(
+        "cns_mpo",
+        {
+            "smiles_list": [m["smiles"] for m in mols],
+            "titles": [m["title"] for m in mols],
+            "pkas": pkas or {},
+            "mpo_norm_min": float(mpo_norm_min),
+        },
+    )
     mpo_by = {m.get("title"): m for m in mpo.get("molecules", []) if m.get("title")}
     passed = []
     for m in mols:
@@ -3093,11 +4227,16 @@ def analog_scan(hit_mae_or_smiles: str, grid_file: str, rgroups: dict, out_dir: 
         if m.get("is_parent") or (norm is not None and norm >= float(mpo_norm_min)):
             passed.append(m)
     if not any(p.get("is_parent") for p in passed):
-        return {"error": "parent molecule was not enumerated - cannot compute ddG reference",
-                "n_enumerated": len(mols)}
+        return {
+            "error": "parent molecule was not enumerated - cannot compute ddG reference",
+            "n_enumerated": len(mols),
+        }
     if len(passed) < 2:
-        return {"error": "no analogs passed the CNS-MPO filter (only the parent survived)",
-                "n_enumerated": len(mols), "cns_mpo_note": mpo.get("note")}
+        return {
+            "error": "no analogs passed the CNS-MPO filter (only the parent survived)",
+            "n_enumerated": len(mols),
+            "cns_mpo_note": mpo.get("note"),
+        }
 
     smi_path = os.path.join(out_dir, "analogs.smi")
     with open(smi_path, "w") as fh:
@@ -3111,7 +4250,11 @@ def analog_scan(hit_mae_or_smiles: str, grid_file: str, rgroups: dict, out_dir: 
     dk = glide_dock(grid_file, lp["output"], precision=precision, timeout_s=timeout_s)
     poses = dk.get("poses")
     if not poses:
-        return {"error": "glide_dock produced no poses", "glide_dock": dk, "prepared": lp["output"]}
+        return {
+            "error": "glide_dock produced no poses",
+            "glide_dock": dk,
+            "prepared": lp["output"],
+        }
 
     mm = prime_mmgbsa(poses, timeout_s=timeout_s)
     dG = {}
@@ -3125,19 +4268,35 @@ def analog_scan(hit_mae_or_smiles: str, grid_file: str, rgroups: dict, out_dir: 
     for m in passed:
         d = dG.get(m["title"])
         ddg = (d - parent_dG) if (d is not None and parent_dG is not None) else None
-        analogs.append({"title": m["title"], "smiles": m["smiles"], "rgroups": m.get("rgroups", {}),
-                        "is_parent": m.get("is_parent", False), "dG_Bind": d, "ddG_Bind": ddg,
-                        "cns_mpo_norm": m.get("cns_mpo_norm")})
+        analogs.append(
+            {
+                "title": m["title"],
+                "smiles": m["smiles"],
+                "rgroups": m.get("rgroups", {}),
+                "is_parent": m.get("is_parent", False),
+                "dG_Bind": d,
+                "ddG_Bind": ddg,
+                "cns_mpo_norm": m.get("cns_mpo_norm"),
+            }
+        )
 
     ddgs = [r["ddG_Bind"] for r in analogs if r["ddG_Bind"] is not None]
     if len(ddgs) >= 2:
         lo, hi = min(ddgs), max(ddgs)
         hi = hi + 0.05 * max(1e-6, hi - lo)
-        aspecs = [("ddG_Bind", lo, hi, "min", 2.0), ("cns_mpo_norm", 0.4, 1.0, "max", 1.0)]
+        aspecs = [
+            ("ddG_Bind", lo, hi, "min", 2.0),
+            ("cns_mpo_norm", 0.4, 1.0, "max", 1.0),
+        ]
         aspecs = [s for s in aspecs if _present(analogs, s[0])]
         for r in analogs:
             r["desirability"], _ = _desirability(r, aspecs)
-    analogs.sort(key=lambda r: (r["ddG_Bind"] is None, r["ddG_Bind"] if r["ddG_Bind"] is not None else 0.0))
+    analogs.sort(
+        key=lambda r: (
+            r["ddG_Bind"] is None,
+            r["ddG_Bind"] if r["ddG_Bind"] is not None else 0.0,
+        )
+    )
 
     sar = {}
     for r in analogs:
@@ -3147,22 +4306,48 @@ def analog_scan(hit_mae_or_smiles: str, grid_file: str, rgroups: dict, out_dir: 
             sar.setdefault(pos, {}).setdefault(sub, []).append(r["ddG_Bind"])
     rgroup_sar = {}
     for pos, subs in sar.items():
-        rs = [{"substituent": sub, "n": len(v), "mean_ddG": round(sum(v) / len(v), 3),
-               "best_ddG": round(min(v), 3)} for sub, v in subs.items()]
+        rs = [
+            {
+                "substituent": sub,
+                "n": len(v),
+                "mean_ddG": round(sum(v) / len(v), 3),
+                "best_ddG": round(min(v), 3),
+            }
+            for sub, v in subs.items()
+        ]
         rs.sort(key=lambda d: d["mean_ddG"])
         rgroup_sar[pos] = rs
 
-    return {"n_enumerated": len(mols), "n_passed_mpo": len(passed), "parent_dG": parent_dG,
-            "attachment_points": enum.get("attachment_points"), "enum_truncated": enum.get("truncated"),
-            "artifacts": {"smi": smi_path, "prepared_mae": lp.get("output"), "poses": poses,
-                          "mmgbsa_csv": mm.get("csv")},
-            "cns_mpo_note": mpo.get("note"), "ranked_analogs": analogs, "rgroup_sar": rgroup_sar}
+    return {
+        "n_enumerated": len(mols),
+        "n_passed_mpo": len(passed),
+        "parent_dG": parent_dG,
+        "attachment_points": enum.get("attachment_points"),
+        "enum_truncated": enum.get("truncated"),
+        "artifacts": {
+            "smi": smi_path,
+            "prepared_mae": lp.get("output"),
+            "poses": poses,
+            "mmgbsa_csv": mm.get("csv"),
+        },
+        "cns_mpo_note": mpo.get("note"),
+        "ranked_analogs": analogs,
+        "rgroup_sar": rgroup_sar,
+    }
 
 
 @mcp.tool()
-def ensemble_dock(md_cms_or_states: str, ligands_mae: str, out_dir: str, n_snapshots: int = 5,
-                  site_asl: str = "", precision: str = "SP", inner_box: int = 10,
-                  outer_box: int = 30, timeout_s: int = 3600) -> dict:
+def ensemble_dock(
+    md_cms_or_states: str,
+    ligands_mae: str,
+    out_dir: str,
+    n_snapshots: int = 5,
+    site_asl: str = "",
+    precision: str = "SP",
+    inner_box: int = 10,
+    outer_box: int = 30,
+    timeout_s: int = 3600,
+) -> dict:
     """COMPOSE ensemble docking. Clusters a Desmond MD trajectory (its -out.cms; its _trj is
     auto-found) by protein Ca-RMSD into `n_snapshots` representative receptor conformations, builds
     a Glide grid on each (centred on `site_asl`, default the bound non-protein ligand), docks the
@@ -3184,7 +4369,11 @@ def ensemble_dock(md_cms_or_states: str, ligands_mae: str, out_dir: str, n_snaps
         return {"error": "unsafe site_asl (control char)"}
     os.makedirs(out_dir, exist_ok=True)
 
-    cargs = {"cms_file": md_cms, "n_snapshots": max(1, int(n_snapshots)), "out_dir": out_dir}
+    cargs = {
+        "cms_file": md_cms,
+        "n_snapshots": max(1, int(n_snapshots)),
+        "out_dir": out_dir,
+    }
     if site_asl:
         cargs["site_asl"] = site_asl
     cl = _helper("cluster_frames", cargs, timeout=timeout_s)
@@ -3197,22 +4386,33 @@ def ensemble_dock(md_cms_or_states: str, ligands_mae: str, out_dir: str, n_snaps
     all_scores, per_snapshot = {}, []
     for k, sn in enumerate(snaps):
         rec, center = sn.get("snapshot_mae"), sn.get("grid_center")
-        entry = {"snapshot": rec, "frame_index": sn.get("frame_index"),
-                 "cluster_size": sn.get("cluster_size")}
+        entry = {
+            "snapshot": rec,
+            "frame_index": sn.get("frame_index"),
+            "cluster_size": sn.get("cluster_size"),
+        }
         if not rec or not center:
             entry["error"] = "missing snapshot receptor or grid center"
             per_snapshot.append(entry)
             continue
         grid_zip = os.path.join(out_dir, "ensemble_grid_%d.zip" % (k + 1))
-        gg = glide_grid(rec, grid_zip, center=",".join("%.4f" % c for c in center),
-                        inner_box=inner_box, outer_box=outer_box, timeout_s=timeout_s)
+        gg = glide_grid(
+            rec,
+            grid_zip,
+            center=",".join("%.4f" % c for c in center),
+            inner_box=inner_box,
+            outer_box=outer_box,
+            timeout_s=timeout_s,
+        )
         if not gg.get("grid"):
             entry["error"] = "glide_grid failed"
             entry["stderr_tail"] = gg.get("stderr_tail")
             per_snapshot.append(entry)
             continue
         entry["grid"] = gg["grid"]
-        dk = glide_dock(gg["grid"], ligands_mae, precision=precision, timeout_s=timeout_s)
+        dk = glide_dock(
+            gg["grid"], ligands_mae, precision=precision, timeout_s=timeout_s
+        )
         poses = dk.get("poses")
         entry["poses"] = poses
         if not poses:
@@ -3229,18 +4429,29 @@ def ensemble_dock(md_cms_or_states: str, ligands_mae: str, out_dir: str, n_snaps
     if not all_scores:
         return {"error": "no ligand scored in any snapshot", "snapshots": per_snapshot}
 
-    rows = [{"title": t, "best_gscore": round(min(v), 4), "mean_gscore": round(sum(v) / len(v), 4),
-             "n_snapshots_hit": len(v), "hit_rate": round(len(v) / max(1, n_valid), 3)}
-            for t, v in all_scores.items()]
+    rows = [
+        {
+            "title": t,
+            "best_gscore": round(min(v), 4),
+            "mean_gscore": round(sum(v) / len(v), 4),
+            "n_snapshots_hit": len(v),
+            "hit_rate": round(len(v) / max(1, n_valid), 3),
+        }
+        for t, v in all_scores.items()
+    ]
     objs = [("best_gscore", "min"), ("mean_gscore", "min"), ("hit_rate", "max")]
     for r, pr in zip(rows, _pareto_ranks(rows, objs)):
         r["pareto_rank"] = pr
     rows.sort(key=lambda r: (r["mean_gscore"], -r["hit_rate"]))
 
-    return {"n_snapshots": len(snaps), "n_valid_snapshots": n_valid, "centers": cl.get("centers"),
-            "snapshots": per_snapshot,
-            "pareto_front": [r["title"] for r in rows if r.get("pareto_rank") == 1],
-            "consensus_ranking": rows}
+    return {
+        "n_snapshots": len(snaps),
+        "n_valid_snapshots": n_valid,
+        "centers": cl.get("centers"),
+        "snapshots": per_snapshot,
+        "pareto_front": [r["title"] for r in rows if r.get("pareto_rank") == 1],
+        "consensus_ranking": rows,
+    }
 
 
 # ============================================================================
@@ -3263,8 +4474,12 @@ def ensemble_dock(md_cms_or_states: str, ligands_mae: str, out_dir: str, n_snaps
 # taskwatch (it runs under its own uv venv) and never rebuild a dashboard — everything here is
 # fail-open: a monitor hiccup must never break a real Schrodinger job submission.
 
-_TASKWATCH_PROGRESS_SCHEMA = "taskwatch.progress/1"  # taskwatch core.planes.PROGRESS_SCHEMA
-_TASKWATCH_STALL_S = 900  # a GPU MD/FEP leg can be quiet a while; don't cry "stalled" early
+_TASKWATCH_PROGRESS_SCHEMA = (
+    "taskwatch.progress/1"  # taskwatch core.planes.PROGRESS_SCHEMA
+)
+_TASKWATCH_STALL_S = (
+    900  # a GPU MD/FEP leg can be quiet a while; don't cry "stalled" early
+)
 # Drivers whose Job Control log is the multisim harness log `<job>_multisim.log` (rich per-leg
 # / per-window / per-trial parsing by taskwatch's fep/bpmd probes). Others log to `<job>.log`.
 _MULTISIM_DRIVERS = frozenset({"fep_plus", "multisim", "watermap"})
@@ -3296,8 +4511,18 @@ def _toml_str(s) -> str:
     """A TOML basic string with backslashes/quotes/control-chars escaped (Windows paths safe).
     TOML basic strings forbid a literal newline/CR/tab, so escape those too: a stray control
     char in a derived path would otherwise emit invalid TOML and corrupt the whole registry."""
-    return '"' + (str(s).replace("\\", "\\\\").replace('"', '\\"')
-                  .replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")) + '"'
+    return (
+        '"'
+        + (
+            str(s)
+            .replace("\\", "\\\\")
+            .replace('"', '\\"')
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+            .replace("\t", "\\t")
+        )
+        + '"'
+    )
 
 
 def _predict_log(driver: str, argv, cwd) -> str:
@@ -3335,7 +4560,9 @@ def _derive_total(driver: str, argv, cwd):
             fmp = next((a for a in argv[1:] if str(a).lower().endswith(".fmp")), "")
             if not fmp:
                 return None  # e.g. a -RESTART resubmission carries no .fmp positional
-            r = _helper("fep_edges", {"fmp": _safe_path(fmp, must_exist=True)}, timeout=90)
+            r = _helper(
+                "fep_edges", {"fmp": _safe_path(fmp, must_exist=True)}, timeout=90
+            )
             e = r.get("edges")
             return float(e) if isinstance(e, int) and e > 0 else None
         if "-m" in argv:  # multisim / watermap: production time (ps) -> ns
@@ -3345,9 +4572,13 @@ def _derive_total(driver: str, argv, cwd):
                 if os.path.exists(msj):
                     with open(msj, encoding="utf-8", errors="replace") as fh:
                         txt = fh.read()
-                    times = [float(x) for x in re.findall(r"\btime\s*=\s*([0-9.]+)", txt)]
+                    times = [
+                        float(x) for x in re.findall(r"\btime\s*=\s*([0-9.]+)", txt)
+                    ]
                     if times:
-                        return round(max(times) / 1000.0, 4)  # longest stage = production
+                        return round(
+                            max(times) / 1000.0, 4
+                        )  # longest stage = production
         return None
     except Exception:
         return None
@@ -3367,22 +4598,38 @@ def _taskwatch_register(job_dir: str, driver: str, log_path: str) -> bool:
     # predicted `<job>_multisim.log` on a fresh submit (appears within seconds), or the real
     # existing one on a -RESTART (where the predicted name is derived from the checkpoint).
     chosen_log = log_path if (log_path and driver in _MULTISIM_DRIVERS) else ""
-    if driver in _MULTISIM_DRIVERS and (not chosen_log or not os.path.exists(chosen_log)):
-        existing = sorted(glob.glob(os.path.join(job_dir, "*multisim.log")), key=os.path.getmtime)
+    if driver in _MULTISIM_DRIVERS and (
+        not chosen_log or not os.path.exists(chosen_log)
+    ):
+        existing = sorted(
+            glob.glob(os.path.join(job_dir, "*multisim.log")), key=os.path.getmtime
+        )
         if existing:
             chosen_log = existing[-1]
     if driver in _MULTISIM_DRIVERS and chosen_log:
         adapter = "local-file-tail"
-        cfg = "{ path = %s, stall_after_s = %d }" % (_toml_str(chosen_log), _TASKWATCH_STALL_S)
+        cfg = "{ path = %s, stall_after_s = %d }" % (
+            _toml_str(chosen_log),
+            _TASKWATCH_STALL_S,
+        )
     else:
         adapter = "file-exists-glob"
         pat = "*multisim.log" if driver in _MULTISIM_DRIVERS else "*.log"
         cfg = "{ pattern = %s, stall_after_s = %d }" % (
-            _toml_str(os.path.join(job_dir, pat)), _TASKWATCH_STALL_S)
+            _toml_str(os.path.join(job_dir, pat)),
+            _TASKWATCH_STALL_S,
+        )
     # A stable id keyed on the clean job name so a re-run / -RESTART is a dedup no-op.
     src = chosen_log or log_path
-    stem = re.sub(r"[_-]multisim(_checkpoint.*)?$", "",
-                  os.path.splitext(os.path.basename(src))[0]) if src else ""
+    stem = (
+        re.sub(
+            r"[_-]multisim(_checkpoint.*)?$",
+            "",
+            os.path.splitext(os.path.basename(src))[0],
+        )
+        if src
+        else ""
+    )
     if not stem:
         stem = os.path.basename(os.path.abspath(job_dir)) or "job"
     task_id = re.sub(r"[^A-Za-z0-9_.-]", "_", "sch-%s-%s" % (driver, stem))[:80]
@@ -3398,15 +4645,17 @@ def _taskwatch_register(job_dir: str, driver: str, log_path: str) -> bool:
         os.makedirs(parent, exist_ok=True)
     block = (
         "\n[[task]]\n"
-        "id = %s\n" % _toml_str(task_id) +
-        "adapter = %s\n" % _toml_str(adapter) +
-        "parser = %s\n" % _toml_str(parser) +
-        "eta_model = %s\n" % _toml_str(eta) +
-        'notify = ["terminal", "first-progress", "stall"]\n'
-        "task_type = %s\n" % _toml_str(ttype) +
-        "config = %s\n" % cfg
+        "id = %s\n"
+        % _toml_str(task_id)
+        + "adapter = %s\n" % _toml_str(adapter)
+        + "parser = %s\n" % _toml_str(parser)
+        + "eta_model = %s\n" % _toml_str(eta)
+        + 'notify = ["terminal", "first-progress", "stall"]\n'
+        "task_type = %s\n" % _toml_str(ttype) + "config = %s\n" % cfg
     )
-    with open(reg, "a", encoding="utf-8") as fh:  # single write ~ atomic for a small block
+    with open(
+        reg, "a", encoding="utf-8"
+    ) as fh:  # single write ~ atomic for a small block
         fh.write(block)
     return True
 
@@ -3428,10 +4677,21 @@ def _emit_progress(job_dir: str, driver: str, total, log_path: str = "") -> dict
                 seq = int(json.load(fh).get("seq", -1)) + 1
         except Exception:
             seq = 0
-        tot = (float(total) if isinstance(total, (int, float))
-               and not isinstance(total, bool) and total > 0 else None)
-        rec = {"schema": _TASKWATCH_PROGRESS_SCHEMA, "done": 0.0, "total": tot,
-               "phase": "submitted", "ts": time.time(), "seq": seq}
+        tot = (
+            float(total)
+            if isinstance(total, (int, float))
+            and not isinstance(total, bool)
+            and total > 0
+            else None
+        )
+        rec = {
+            "schema": _TASKWATCH_PROGRESS_SCHEMA,
+            "done": 0.0,
+            "total": tot,
+            "phase": "submitted",
+            "ts": time.time(),
+            "seq": seq,
+        }
         with open(pj, "w", encoding="utf-8") as fh:
             json.dump(rec, fh)
         result["progress_json"] = pj
@@ -3446,9 +4706,11 @@ def _emit_progress(job_dir: str, driver: str, total, log_path: str = "") -> dict
 
 # ---------- job restart (taskwatch tier-2 remediation primitive) ----------
 
+
 @mcp.tool()
-def job_restart(jobid_or_dir: str, driver: str = "", subhost_gpus: int = 1,
-                timeout_s: int = 300) -> dict:
+def job_restart(
+    jobid_or_dir: str, driver: str = "", subhost_gpus: int = 1, timeout_s: int = 300
+) -> dict:
     """Resume a died/preempted multisim-based job (fep_plus / Desmond multisim) from its
     checkpoint with -RESTART, which re-runs ONLY the incomplete stages (at most the single
     in-flight edge/leg is repeated). Pass a JobId (its run dir is resolved via job_status) OR
@@ -3476,20 +4738,28 @@ def job_restart(jobid_or_dir: str, driver: str = "", subhost_gpus: int = 1,
         st = _helper("job_status", {"jobid": raw}, timeout=120)
         d = st.get("dir")
         if not d or not os.path.isdir(d):
-            return {"error": f"could not resolve a run directory for {raw!r}",
-                    "job_status": st}
+            return {
+                "error": f"could not resolve a run directory for {raw!r}",
+                "job_status": st,
+            }
         job_dir = os.path.abspath(d)
         resolved_from = "jobid"
         if not driver and "fep" in str(st.get("program") or "").lower():
             driver = "fep_plus"
     # Find the newest multisim checkpoint (rotated `_N` copies sort by mtime).
-    ckpts = sorted(glob.glob(os.path.join(job_dir, "*multisim_checkpoint*")),
-                   key=os.path.getmtime)
+    ckpts = sorted(
+        glob.glob(os.path.join(job_dir, "*multisim_checkpoint*")), key=os.path.getmtime
+    )
     if not ckpts:
-        return {"error": "no *multisim_checkpoint* in run dir - nothing to restart",
-                "dir": job_dir}
+        return {
+            "error": "no *multisim_checkpoint* in run dir - nothing to restart",
+            "dir": job_dir,
+        }
     ckpt = ckpts[-1]
-    if driver not in ("fep_plus", "multisim"):  # last-resort autodetect from the dir contents
+    if driver not in (
+        "fep_plus",
+        "multisim",
+    ):  # last-resort autodetect from the dir contents
         driver = "fep_plus" if glob.glob(os.path.join(job_dir, "*.fmp")) else "multisim"
     # Recover the original jobname from the checkpoint stem (<jobname>-multisim_checkpoint) and
     # route it through _jobname() -> sanitized -JOBNAME. Mirrors the proven schrodinger_modal.py
@@ -3501,7 +4771,9 @@ def job_restart(jobid_or_dir: str, driver: str = "", subhost_gpus: int = 1,
     if driver == "fep_plus":
         argv += ["-SUBHOST", f"localhost:{max(1, int(subhost_gpus))}"]
     argv += ["-JOBNAME", job]
-    res = _submit_async(argv, cwd=job_dir, timeout=timeout_s)  # re-arms progress.json + watch
+    res = _submit_async(
+        argv, cwd=job_dir, timeout=timeout_s
+    )  # re-arms progress.json + watch
     res["restarted"] = True
     res["driver"] = driver
     res["jobname"] = job
@@ -3536,10 +4808,18 @@ def job_restart(jobid_or_dir: str, driver: str = "", subhost_gpus: int = 1,
 
 # ---------- ligand/structure filtering (local, CPU; bundled utilities) ----------
 
+
 @mcp.tool()
-def ligfilter(input_file: str, output_file: str, criteria: list, definitions: list = None,
-              match_any: bool = False, invert: bool = False, nomatch_file: str = "",
-              timeout_s: int = 900) -> dict:
+def ligfilter(
+    input_file: str,
+    output_file: str,
+    criteria: list,
+    definitions: list = None,
+    match_any: bool = False,
+    invert: bool = False,
+    nomatch_file: str = "",
+    timeout_s: int = 900,
+) -> dict:
     """Ligfilter: filter a ligand file by property / predefined / SMARTS criteria authored into a
     server-written .lff (fits no-shell — the criteria are file content, never argv). `criteria` =
     ligfilter condition lines, e.g. 'Molecular_weight 150-500', 'Num_rotatable_bonds <= 7',
@@ -3558,7 +4838,9 @@ def ligfilter(input_file: str, output_file: str, criteria: list, definitions: li
     except (ValueError, FileNotFoundError) as e:
         return {"error": str(e)}
     if not isinstance(criteria, list) or not criteria:
-        return {"error": "criteria must be a non-empty list of ligfilter condition lines"}
+        return {
+            "error": "criteria must be a non-empty list of ligfilter condition lines"
+        }
     lff_lines = list(definitions or []) + list(criteria)
     for ln in lff_lines:
         # These become .lff FILE content (passed via -f), so only control chars are a hazard;
@@ -3569,14 +4851,23 @@ def ligfilter(input_file: str, output_file: str, criteria: list, definitions: li
             return {"error": f"unsafe newline/null in .lff line: {ln!r}"}
     wd = os.path.dirname(output_file) or "."
     os.makedirs(wd, exist_ok=True)
-    lff = os.path.join(wd, os.path.splitext(os.path.basename(output_file))[0] + "_ligfilter.lff")
+    lff = os.path.join(
+        wd, os.path.splitext(os.path.basename(output_file))[0] + "_ligfilter.lff"
+    )
     with open(lff, "w") as fh:
         fh.write("\n".join(lff_lines) + "\n")
     # Output resolves UNDER cwd (mirror ligprep's 8.3/short-name gotcha): run in wd, pass basenames.
     # Verified argv (2026-2 utilities/ligfilter usage): positional input_file, -f CRITERIA_FILE,
     # -o OUTPUT_FILE, -NOJOBID (run without Job Control), -any, -remove (invert), -n NOMATCH_FILE.
-    argv = [_driver("ligfilter"), input_file, "-f", os.path.basename(lff),
-            "-o", os.path.basename(output_file), "-NOJOBID"]
+    argv = [
+        _driver("ligfilter"),
+        input_file,
+        "-f",
+        os.path.basename(lff),
+        "-o",
+        os.path.basename(output_file),
+        "-NOJOBID",
+    ]
     if match_any:
         argv.append("-any")
     if invert:
@@ -3589,10 +4880,14 @@ def ligfilter(input_file: str, output_file: str, criteria: list, definitions: li
         p = _exec(argv, timeout=timeout_s, cwd=wd)
     except subprocess.TimeoutExpired:
         return {"error": f"timeout after {timeout_s}s"}
-    res = {"returncode": p.returncode, "lff": lff,
-           "output_file": output_file if os.path.exists(output_file) else None,
-           "nomatch_file": nm_out if (nm_out and os.path.exists(nm_out)) else None,
-           "stdout_tail": p.stdout[-1500:], "stderr_tail": p.stderr[-1500:]}
+    res = {
+        "returncode": p.returncode,
+        "lff": lff,
+        "output_file": output_file if os.path.exists(output_file) else None,
+        "nomatch_file": nm_out if (nm_out and os.path.exists(nm_out)) else None,
+        "stdout_tail": p.stdout[-1500:],
+        "stderr_tail": p.stderr[-1500:],
+    }
     # Real pass/total counts via the suite interpreter (StructureReader) — best-effort.
     paths = [q for q in (input_file, output_file) if os.path.exists(q)]
     if paths:
@@ -3605,7 +4900,9 @@ def ligfilter(input_file: str, output_file: str, criteria: list, definitions: li
 
 
 @mcp.tool()
-def propfilter(input_file: str, output_file: str, expressions: list, timeout_s: int = 600) -> dict:
+def propfilter(
+    input_file: str, output_file: str, expressions: list, timeout_s: int = 600
+) -> dict:
     """Propfilter: filter a structure file by numeric/string PROPERTY expressions (pure
     schrodinger.structutils.filter — local, CPU, NO license token). `expressions` = one or more
     filter conditions, each handed to its own -e (its own argv element, so operators/spaces are
@@ -3619,7 +4916,9 @@ def propfilter(input_file: str, output_file: str, expressions: list, timeout_s: 
     except (ValueError, FileNotFoundError) as e:
         return {"error": str(e)}
     if not isinstance(expressions, list) or not expressions:
-        return {"error": "expressions must be a non-empty list of propfilter conditions"}
+        return {
+            "error": "expressions must be a non-empty list of propfilter conditions"
+        }
     for ex in expressions:
         # -e VALUES are argv elements: reject control chars AND a flag-like leading '-'
         # (a valid expression starts with the property name, never '-').
@@ -3640,9 +4939,12 @@ def propfilter(input_file: str, output_file: str, expressions: list, timeout_s: 
         p = _exec(argv, timeout=timeout_s, cwd=wd)
     except subprocess.TimeoutExpired:
         return {"error": f"timeout after {timeout_s}s"}
-    res = {"returncode": p.returncode,
-           "output_file": output_file if os.path.exists(output_file) else None,
-           "stdout_tail": p.stdout[-1500:], "stderr_tail": p.stderr[-1500:]}
+    res = {
+        "returncode": p.returncode,
+        "output_file": output_file if os.path.exists(output_file) else None,
+        "stdout_tail": p.stdout[-1500:],
+        "stderr_tail": p.stderr[-1500:],
+    }
     paths = [q for q in (input_file, output_file) if os.path.exists(q)]
     if paths:
         counts = _helper("count_structures", {"paths": paths}).get("counts", {})
@@ -3659,15 +4961,32 @@ _RESSCAN_MUT_RE = re.compile(r"^[A-Za-z_]?:-?\d+[A-Za-z]?->[+-]?[A-Za-z0-9]+$")
 # Extra per-structure props valid for -calc, verified against the shipped 2026-2 source
 # schrodinger/application/bioluminate/protein/protein.py (calculations list, ~L678/L710) plus the
 # usage-doc example '-calc pka,rotatable'.
-_RESSCAN_CALCS = {"e_pot", "e_internal", "e_interaction", "prime_energy", "pka",
-                  "sasa_polar", "sasa_nonpolar", "sasa_total", "hydropathy",
-                  "rotatable", "vdw_surf_comp"}
+_RESSCAN_CALCS = {
+    "e_pot",
+    "e_internal",
+    "e_interaction",
+    "prime_energy",
+    "pka",
+    "sasa_polar",
+    "sasa_nonpolar",
+    "sasa_total",
+    "hydropathy",
+    "rotatable",
+    "vdw_surf_comp",
+}
 
 
 @mcp.tool()
-def residue_scanning(complex_file: str, mutations: list, out_dir: str, calc: str = "",
-                     ligand_asl: str = "", job_name: str = "resscan_job", njobs: int = 1,
-                     timeout_s: int = 300) -> dict:
+def residue_scanning(
+    complex_file: str,
+    mutations: list,
+    out_dir: str,
+    calc: str = "",
+    ligand_asl: str = "",
+    job_name: str = "resscan_job",
+    njobs: int = 1,
+    timeout_s: int = 300,
+) -> dict:
     """BioLuminate Residue Scanning: mutate protein residues and score the effect on STABILITY
     (delta_Stability) and, when a binding partner is defined, AFFINITY (delta_Affinity). Runs
     `$SCHRODINGER/run residue_scanning_backend.py <complex> -muts_file <server-authored list>
@@ -3691,7 +5010,9 @@ def residue_scanning(complex_file: str, mutations: list, out_dir: str, calc: str
     if not job_name.replace("_", "").replace("-", "").isalnum():
         return {"error": f"invalid job_name: {job_name!r}"}
     if not isinstance(mutations, list) or not mutations:
-        return {"error": "mutations must be a non-empty list of 'CHAIN:RESNUM->RES' lines"}
+        return {
+            "error": "mutations must be a non-empty list of 'CHAIN:RESNUM->RES' lines"
+        }
     mut_lines = []
     for entry in mutations:
         if not isinstance(entry, str) or not entry.strip():
@@ -3701,13 +5022,17 @@ def residue_scanning(complex_file: str, mutations: list, out_dir: str, calc: str
         toks = entry.split()
         for t in toks:
             if not _RESSCAN_MUT_RE.match(t):
-                return {"error": f"bad mutation token {t!r} (expect 'CHAIN:RESNUM->RES', e.g. 'A:24->SER')"}
+                return {
+                    "error": f"bad mutation token {t!r} (expect 'CHAIN:RESNUM->RES', e.g. 'A:24->SER')"
+                }
         mut_lines.append(" ".join(toks))
     calc = (calc or "").strip()
     if calc:
         bad = [c for c in calc.split(",") if c.strip() not in _RESSCAN_CALCS]
         if bad:
-            return {"error": f"invalid -calc token(s) {bad}; allowed: {sorted(_RESSCAN_CALCS)}"}
+            return {
+                "error": f"invalid -calc token(s) {bad}; allowed: {sorted(_RESSCAN_CALCS)}"
+            }
     if ligand_asl and any(c in ligand_asl for c in "\r\n\x00"):
         return {"error": "unsafe newline/null in ligand_asl"}
     if ligand_asl and ligand_asl.strip().startswith("-"):
@@ -3718,8 +5043,17 @@ def residue_scanning(complex_file: str, mutations: list, out_dir: str, calc: str
     with open(muts, "w") as fh:
         fh.write("\n".join(mut_lines) + "\n")
     nj = max(1, int(njobs))
-    argv = [_run(), "residue_scanning_backend.py", complex_file, "-muts_file", muts,
-            "-jobname", job, "-HOST", f"localhost:{nj}"]
+    argv = [
+        _run(),
+        "residue_scanning_backend.py",
+        complex_file,
+        "-muts_file",
+        muts,
+        "-jobname",
+        job,
+        "-HOST",
+        f"localhost:{nj}",
+    ]
     if calc:
         argv += ["-calc", calc]
     if ligand_asl:
@@ -3731,7 +5065,9 @@ def residue_scanning(complex_file: str, mutations: list, out_dir: str, calc: str
     res["job_server"] = srv
     res["muts_file"] = muts
     res["expected_out_maegz"] = os.path.join(out_dir, job + "-out.maegz")
-    res["note"] = "output name may be <job>.maegz or <job>-out.maegz — verify on first run"
+    res["note"] = (
+        "output name may be <job>.maegz or <job>-out.maegz — verify on first run"
+    )
     return res
 
 
@@ -3742,9 +5078,18 @@ _QSITE_CUT_RE = re.compile(r"^\d+:[A-Za-z_]?:-?\d+:[A-Za-z0-9']+:[A-Za-z0-9']+$"
 
 
 @mcp.tool()
-def qsite_qmmm(structure_file: str, out_dir: str, qm_molids: list = None, cut_bonds: list = None,
-               dft_functional: str = "b3lyp", basis: str = "lacvp*", optimize: bool = False,
-               mm_ff: str = "opls2005", job_name: str = "qsite_job", timeout_s: int = 7200) -> dict:
+def qsite_qmmm(
+    structure_file: str,
+    out_dir: str,
+    qm_molids: list = None,
+    cut_bonds: list = None,
+    dft_functional: str = "b3lyp",
+    basis: str = "lacvp*",
+    optimize: bool = False,
+    mm_ff: str = "opls2005",
+    job_name: str = "qsite_job",
+    timeout_s: int = 7200,
+) -> dict:
     """QSite QM/MM single-point (or optimization) on a PREPARED complex (.mae). Writes an IMPACT
     QSite .in (MAEFILE + &gen basis/dftname/igeopt/mmqm + &mmkey qsite_ff + &qmregion) and runs
     `_exec [_driver('qsite'), <job>.in -WAIT]`. Define the QM region EITHER by whole molecules
@@ -3772,10 +5117,18 @@ def qsite_qmmm(structure_file: str, out_dir: str, qm_molids: list = None, cut_bo
     if not job_name.replace("_", "").replace("-", "").isalnum():
         return {"error": f"invalid job_name: {job_name!r}"}
     if bool(qm_molids) == bool(cut_bonds):
-        return {"error": "define the QM region with EITHER qm_molids OR cut_bonds (exactly one)"}
+        return {
+            "error": "define the QM region with EITHER qm_molids OR cut_bonds (exactly one)"
+        }
     for tok in (dft_functional, basis, mm_ff):
-        if not isinstance(tok, str) or not tok.strip() or any(c in tok for c in "\r\n\x00 \t"):
-            return {"error": f"invalid QM/MM keyword (no spaces/control chars): {tok!r}"}
+        if (
+            not isinstance(tok, str)
+            or not tok.strip()
+            or any(c in tok for c in "\r\n\x00 \t")
+        ):
+            return {
+                "error": f"invalid QM/MM keyword (no spaces/control chars): {tok!r}"
+            }
     # Build the &qmregion block from exactly one schema.
     if qm_molids:
         try:
@@ -3789,16 +5142,38 @@ def qsite_qmmm(structure_file: str, out_dir: str, qm_molids: list = None, cut_bo
         rows = [" molid chain  resnum   qmatom   mmatom"]
         for cb in cut_bonds:
             if not isinstance(cb, str) or not _QSITE_CUT_RE.match(cb.strip()):
-                return {"error": f"bad cut_bond {cb!r} (expect 'MOLID:CHAIN:RESNUM:QMATOM:MMATOM', e.g. '1:A:3:CB:CA')"}
+                return {
+                    "error": f"bad cut_bond {cb!r} (expect 'MOLID:CHAIN:RESNUM:QMATOM:MMATOM', e.g. '1:A:3:CB:CA')"
+                }
             molid, chain, resnum, qmatom, mmatom = cb.strip().split(":")
-            rows.append(f"     {molid}     {chain}       {resnum}       {qmatom}       {mmatom}")
+            rows.append(
+                f"     {molid}     {chain}       {resnum}       {qmatom}       {mmatom}"
+            )
         region = rows
     os.makedirs(out_dir, exist_ok=True)
     igeopt = 1 if optimize else 0
-    lines = [f"MAEFILE: {structure_file}", "&gen", "vshift=1.0", f"basis={basis}", "maxit=100",
-             f"igeopt={igeopt}", f"dftname={dft_functional}", "mmqm=1", "iacc=1", "&",
-             "&mmkey", f"qsite_ff={mm_ff}", "maxcycles=1000", "use_nb_cutoff=0", "&",
-             "&qmregion"] + region + ["&"]
+    lines = (
+        [
+            f"MAEFILE: {structure_file}",
+            "&gen",
+            "vshift=1.0",
+            f"basis={basis}",
+            "maxit=100",
+            f"igeopt={igeopt}",
+            f"dftname={dft_functional}",
+            "mmqm=1",
+            "iacc=1",
+            "&",
+            "&mmkey",
+            f"qsite_ff={mm_ff}",
+            "maxcycles=1000",
+            "use_nb_cutoff=0",
+            "&",
+            "&qmregion",
+        ]
+        + region
+        + ["&"]
+    )
     job = _jobname(job_name)
     inp = os.path.join(out_dir, job + ".in")
     with open(inp, "w") as fh:
@@ -3809,9 +5184,13 @@ def qsite_qmmm(structure_file: str, out_dir: str, qm_molids: list = None, cut_bo
     except subprocess.TimeoutExpired:
         return {"error": f"timeout after {timeout_s}s"}
     out = os.path.join(out_dir, job + ".out")
-    return {"returncode": p.returncode, "in_file": inp,
-            "qsite_out": out if os.path.exists(out) else None,
-            "stdout_tail": p.stdout[-1800:], "stderr_tail": p.stderr[-1800:]}
+    return {
+        "returncode": p.returncode,
+        "in_file": inp,
+        "qsite_out": out if os.path.exists(out) else None,
+        "stdout_tail": p.stdout[-1800:],
+        "stderr_tail": p.stderr[-1800:],
+    }
 
 
 # ============================================================================
@@ -3842,10 +5221,19 @@ def qsite_qmmm(structure_file: str, out_dir: str, qm_molids: list = None, cut_bo
 #   * build/test run under Job Control (JobDJ subjobs); report/rebuild are synchronous foreground
 #     (job_utils.is_synchronous_job) -> -WAIT + _ensure_job_server for build/test, neither for report.
 
+
 @mcp.tool()
-def autoqsar_build(train: str, y_prop: str, model_qzip: str, mode: str = "num",
-                   log_transform: bool = False, n_try: int = 0, n_keep: int = 0,
-                   report: bool = True, timeout_s: int = 3600) -> dict:
+def autoqsar_build(
+    train: str,
+    y_prop: str,
+    model_qzip: str,
+    mode: str = "num",
+    log_transform: bool = False,
+    n_try: int = 0,
+    n_keep: int = 0,
+    report: bool = True,
+    timeout_s: int = 3600,
+) -> dict:
     """AutoQSAR model building: train an automated QSAR ensemble (MLR/PLS/KPLS/... auto-selected)
     on a labeled learning set (.mae/.sdf/.smi-csv where every structure carries the `y_prop`
     activity) -> a `<model>.qzip` archive. Runs
@@ -3865,16 +5253,31 @@ def autoqsar_build(train: str, y_prop: str, model_qzip: str, mode: str = "num",
     if not model_qzip.lower().endswith(".qzip"):
         # The arg parser identifies the model POSITIONAL by its .qzip suffix; without it the
         # command line is silently misparsed (model treated as a stray post-task arg).
-        return {"error": f"model_qzip must end in .qzip, got {os.path.basename(model_qzip)!r}"}
+        return {
+            "error": f"model_qzip must end in .qzip, got {os.path.basename(model_qzip)!r}"
+        }
     # y_prop reaches argv as `-y <y_prop>`. It is not a path (so not _safe_path'd) but is still a
     # client string: reject empty, control chars, and a leading '-' (would be read as a flag).
-    if not y_prop.strip() or y_prop.strip().startswith("-") or any(c in y_prop for c in "\r\n\x00"):
+    if (
+        not y_prop.strip()
+        or y_prop.strip().startswith("-")
+        or any(c in y_prop for c in "\r\n\x00")
+    ):
         return {"error": f"invalid y_prop: {y_prop!r}"}
     # AutoQSAR ignores any leading path in <model> when building -> run in the out dir, pass basename.
     wd = os.path.dirname(model_qzip) or "."
     model_base = os.path.basename(model_qzip)
     os.makedirs(wd, exist_ok=True)
-    argv = [_driver("autoqsar"), model_base, "build", "-i", train, "-y", y_prop, "-" + mode]
+    argv = [
+        _driver("autoqsar"),
+        model_base,
+        "build",
+        "-i",
+        train,
+        "-y",
+        y_prop,
+        "-" + mode,
+    ]
     if log_transform and mode == "num":
         argv.append("-log")
     if int(n_try) > 0:
@@ -3889,10 +5292,14 @@ def autoqsar_build(train: str, y_prop: str, model_qzip: str, mode: str = "num",
         return {"error": f"timeout after {timeout_s}s", "job_server": srv}
     out_model = os.path.join(wd, model_base)
     okay = os.path.join(wd, os.path.splitext(model_base)[0] + "_build.okay")
-    res = {"returncode": p.returncode, "job_server": srv,
-           "model_qzip": out_model if os.path.exists(out_model) else None,
-           "build_okay": os.path.exists(okay),
-           "stdout_tail": p.stdout[-2000:], "stderr_tail": p.stderr[-1500:]}
+    res = {
+        "returncode": p.returncode,
+        "job_server": srv,
+        "model_qzip": out_model if os.path.exists(out_model) else None,
+        "build_okay": os.path.exists(okay),
+        "stdout_tail": p.stdout[-2000:],
+        "stderr_tail": p.stderr[-1500:],
+    }
     if report and os.path.exists(out_model):
         # `report` is a synchronous, token-free summary of the built models (one line per model).
         try:
@@ -3900,18 +5307,29 @@ def autoqsar_build(train: str, y_prop: str, model_qzip: str, mode: str = "num",
             res["report"] = rp.stdout[-3000:]
             lines = [ln for ln in rp.stdout.splitlines() if ln.strip()]
             hi = next((i for i, ln in enumerate(lines) if "Code" in ln.split()), None)
-            if hi is not None:  # best-effort structured parse of the aligned stats table
+            if (
+                hi is not None
+            ):  # best-effort structured parse of the aligned stats table
                 hdr = lines[hi].split()
-                res["models"] = [dict(zip(hdr, ln.split())) for ln in lines[hi + 1:]
-                                 if len(ln.split()) == len(hdr)]
+                res["models"] = [
+                    dict(zip(hdr, ln.split()))
+                    for ln in lines[hi + 1 :]
+                    if len(ln.split()) == len(hdr)
+                ]
         except Exception as e:
             res["report_error"] = repr(e)
     return res
 
 
 @mcp.tool()
-def autoqsar_predict(model_qzip: str, new_mae: str, pred_csv: str = "", consensus: str = "all",
-                     activities_known: bool = False, timeout_s: int = 1800) -> dict:
+def autoqsar_predict(
+    model_qzip: str,
+    new_mae: str,
+    pred_csv: str = "",
+    consensus: str = "all",
+    activities_known: bool = False,
+    timeout_s: int = 1800,
+) -> dict:
     """AutoQSAR prediction: apply a built `.qzip` model to new structures (.mae/.sdf/.smi-csv).
     Runs the `test` task
     (`autoqsar <model>.qzip test -i <new> -pred <out.csv> -all|-best [-unknown] -WAIT`) and parses
@@ -3929,7 +5347,9 @@ def autoqsar_predict(model_qzip: str, new_mae: str, pred_csv: str = "", consensu
     except (ValueError, FileNotFoundError) as e:
         return {"error": str(e)}
     if not model_qzip.lower().endswith(".qzip"):
-        return {"error": f"model_qzip must end in .qzip, got {os.path.basename(model_qzip)!r}"}
+        return {
+            "error": f"model_qzip must end in .qzip, got {os.path.basename(model_qzip)!r}"
+        }
     if consensus not in ("all", "best"):
         return {"error": "consensus must be 'all' or 'best'"}
     wd = os.path.dirname(new_mae) or "."
@@ -3939,11 +5359,21 @@ def autoqsar_predict(model_qzip: str, new_mae: str, pred_csv: str = "", consensu
         except ValueError as e:
             return {"error": str(e)}
     else:
-        pred_csv = os.path.join(wd, os.path.splitext(os.path.basename(new_mae))[0] + "_autoqsar_pred.csv")
+        pred_csv = os.path.join(
+            wd, os.path.splitext(os.path.basename(new_mae))[0] + "_autoqsar_pred.csv"
+        )
     # A test job ignores any leading path in -pred (written to the job dir) -> run in wd, pass basename.
     out_csv = os.path.join(wd, os.path.basename(pred_csv))
-    argv = [_driver("autoqsar"), model_qzip, "test", "-i", new_mae,
-            "-pred", os.path.basename(pred_csv), "-" + consensus]
+    argv = [
+        _driver("autoqsar"),
+        model_qzip,
+        "test",
+        "-i",
+        new_mae,
+        "-pred",
+        os.path.basename(pred_csv),
+        "-" + consensus,
+    ]
     if not activities_known:
         # Required whenever any input structure lacks the y activity (normal prediction case);
         # without it the test job errors ("... lacks an activity value").
@@ -3954,9 +5384,13 @@ def autoqsar_predict(model_qzip: str, new_mae: str, pred_csv: str = "", consensu
         p = _exec(argv, timeout=timeout_s, cwd=wd)
     except subprocess.TimeoutExpired:
         return {"error": f"timeout after {timeout_s}s", "job_server": srv}
-    res = {"returncode": p.returncode, "job_server": srv,
-           "predictions_csv": out_csv if os.path.exists(out_csv) else None,
-           "stdout_tail": p.stdout[-1500:], "stderr_tail": p.stderr[-1500:]}
+    res = {
+        "returncode": p.returncode,
+        "job_server": srv,
+        "predictions_csv": out_csv if os.path.exists(out_csv) else None,
+        "stdout_tail": p.stdout[-1500:],
+        "stderr_tail": p.stderr[-1500:],
+    }
     if os.path.exists(out_csv):
         with open(out_csv, newline="") as fh:
             rows = list(_csv.DictReader(fh))
@@ -3969,11 +5403,25 @@ def autoqsar_predict(model_qzip: str, new_mae: str, pred_csv: str = "", consensu
 
 # ---------- Active-learning docking (COMPOSE + local-lib: rdkit+sklearn surrogate) ----------
 
+
 @mcp.tool()
-def al_dock(smiles_library: str, grid_file: str, seed: int = 0, iters: int = 3, batch: int = 48,
-            precision: str = "HTVS", top_k: int = 20, refine_precision: str = "SP",
-            surrogate: str = "ridge", kappa: float = 1.0, fp_radius: int = 2, fp_bits: int = 2048,
-            out_dir: str = "", dock_timeout_s: int = 3600, ligprep_timeout_s: int = 1200) -> dict:
+def al_dock(
+    smiles_library: str,
+    grid_file: str,
+    seed: int = 0,
+    iters: int = 3,
+    batch: int = 48,
+    precision: str = "HTVS",
+    top_k: int = 20,
+    refine_precision: str = "SP",
+    surrogate: str = "ridge",
+    kappa: float = 1.0,
+    fp_radius: int = 2,
+    fp_bits: int = 2048,
+    out_dir: str = "",
+    dock_timeout_s: int = 3600,
+    ligprep_timeout_s: int = 1200,
+) -> dict:
     """Active-learning docking: enrich a large SMILES library against a Glide grid WITHOUT docking
     all of it. Seeds a random `batch`, docks it (ligprep -> glide_dock at `precision`), Morgan-FP
     featurizes the docked survivors, trains a cheap sklearn surrogate (surrogate='ridge'|'rf') on
@@ -3991,74 +5439,169 @@ def al_dock(smiles_library: str, grid_file: str, seed: int = 0, iters: int = 3, 
     try:
         smiles_library = _safe_path(smiles_library, must_exist=True)
         grid_file = _safe_path(grid_file, must_exist=True)
-        wd = _safe_path(out_dir) if out_dir else (os.path.dirname(smiles_library) or ".")
+        wd = (
+            _safe_path(out_dir) if out_dir else (os.path.dirname(smiles_library) or ".")
+        )
     except (ValueError, FileNotFoundError) as e:
         return {"error": str(e)}
-    if precision not in ("HTVS", "SP", "XP") or refine_precision not in ("HTVS", "SP", "XP"):
+    if precision not in ("HTVS", "SP", "XP") or refine_precision not in (
+        "HTVS",
+        "SP",
+        "XP",
+    ):
         return {"error": "precision/refine_precision must be HTVS, SP, or XP"}
     if surrogate not in ("ridge", "rf"):
         return {"error": "surrogate must be 'ridge' or 'rf'"}
     iters, batch, top_k = max(1, int(iters)), max(1, int(batch)), max(1, int(top_k))
     os.makedirs(wd, exist_ok=True)
     srv = _ensure_job_server()
-    prep = _helper("al_prep", {"library": smiles_library, "out_dir": wd, "seed": int(seed),
-                               "batch": batch, "fp_radius": int(fp_radius), "fp_bits": int(fp_bits)},
-                   timeout=600)
+    prep = _helper(
+        "al_prep",
+        {
+            "library": smiles_library,
+            "out_dir": wd,
+            "seed": int(seed),
+            "batch": batch,
+            "fp_radius": int(fp_radius),
+            "fp_bits": int(fp_bits),
+        },
+        timeout=600,
+    )
     if prep.get("error"):
         return {"stage": "al_prep", "job_server": srv, **prep}
     if not prep.get("sklearn"):
-        return {"error": "scikit-learn not importable in the Schrodinger interpreter - al_dock needs it",
-                "stage": "al_prep", "detail": prep, "job_server": srv}
-    labeled, history, acq_info = {}, [], None      # labeled: title -> best docking score
+        return {
+            "error": "scikit-learn not importable in the Schrodinger interpreter - al_dock needs it",
+            "stage": "al_prep",
+            "detail": prep,
+            "job_server": srv,
+        }
+    labeled, history, acq_info = {}, [], None  # labeled: title -> best docking score
     batch_smi = prep["seed_smi"]
     for it in range(iters):
-        lp = ligprep(batch_smi, os.path.join(wd, f"_al_lig_{it}.mae"), timeout_s=ligprep_timeout_s)
+        lp = ligprep(
+            batch_smi,
+            os.path.join(wd, f"_al_lig_{it}.mae"),
+            timeout_s=ligprep_timeout_s,
+        )
         if not lp.get("output"):
-            return {"error": "ligprep failed", "stage": f"round{it}:ligprep", "detail": lp,
-                    "labeled": labeled, "history": history, "job_server": srv}
-        dk = glide_dock(grid_file, lp["output"], precision=precision, timeout_s=dock_timeout_s)
+            return {
+                "error": "ligprep failed",
+                "stage": f"round{it}:ligprep",
+                "detail": lp,
+                "labeled": labeled,
+                "history": history,
+                "job_server": srv,
+            }
+        dk = glide_dock(
+            grid_file, lp["output"], precision=precision, timeout_s=dock_timeout_s
+        )
         poses = dk.get("poses")
-        sc = _helper("al_scores", {"pose_file": poses}, timeout=300) if poses else {"scores": {}}
+        sc = (
+            _helper("al_scores", {"pose_file": poses}, timeout=300)
+            if poses
+            else {"scores": {}}
+        )
         new = sc.get("scores", {})
         labeled.update(new)
-        history.append({"round": it, "precision": precision, "batch_smi": batch_smi, "poses": poses,
-                        "docked_this_round": len(new), "cumulative_labeled": len(labeled),
-                        "best_score": (min(labeled.values()) if labeled else None),
-                        "selected_by": (acq_info or {}).get("model")})
+        history.append(
+            {
+                "round": it,
+                "precision": precision,
+                "batch_smi": batch_smi,
+                "poses": poses,
+                "docked_this_round": len(new),
+                "cumulative_labeled": len(labeled),
+                "best_score": (min(labeled.values()) if labeled else None),
+                "selected_by": (acq_info or {}).get("model"),
+            }
+        )
         if it < iters - 1:
-            acq = _helper("al_acquire", {"out_dir": wd, "labeled": labeled, "acquire_n": batch,
-                                         "surrogate": surrogate, "kappa": float(kappa),
-                                         "iter_idx": it + 1, "seed": int(seed)}, timeout=900)
+            acq = _helper(
+                "al_acquire",
+                {
+                    "out_dir": wd,
+                    "labeled": labeled,
+                    "acquire_n": batch,
+                    "surrogate": surrogate,
+                    "kappa": float(kappa),
+                    "iter_idx": it + 1,
+                    "seed": int(seed),
+                },
+                timeout=900,
+            )
             if acq.get("error") or not acq.get("batch_smi"):
-                return {"error": "acquisition failed / library exhausted", "stage": f"round{it}:acquire",
-                        "detail": acq, "labeled": labeled, "history": history, "job_server": srv}
+                return {
+                    "error": "acquisition failed / library exhausted",
+                    "stage": f"round{it}:acquire",
+                    "detail": acq,
+                    "labeled": labeled,
+                    "history": history,
+                    "job_server": srv,
+                }
             acq_info, batch_smi = acq, acq["batch_smi"]
     # rank + re-dock the enriched top_k at the (usually higher) refine precision
     ranked = sorted(labeled.items(), key=lambda kv: kv[1])[:top_k]
     refine = {"skipped": "no labeled poses to refine"}
     if ranked:
-        pick = _helper("al_write_smiles", {"out_dir": wd, "titles": [t for t, _ in ranked],
-                                           "out_smi": os.path.join(wd, "_al_topk.smi")}, timeout=120)
+        pick = _helper(
+            "al_write_smiles",
+            {
+                "out_dir": wd,
+                "titles": [t for t, _ in ranked],
+                "out_smi": os.path.join(wd, "_al_topk.smi"),
+            },
+            timeout=120,
+        )
         if pick.get("out_smi"):
-            rl = ligprep(pick["out_smi"], os.path.join(wd, "_al_topk.mae"), timeout_s=ligprep_timeout_s)
+            rl = ligprep(
+                pick["out_smi"],
+                os.path.join(wd, "_al_topk.mae"),
+                timeout_s=ligprep_timeout_s,
+            )
             if rl.get("output"):
-                rd = glide_dock(grid_file, rl["output"], precision=refine_precision,
-                                timeout_s=dock_timeout_s)
+                rd = glide_dock(
+                    grid_file,
+                    rl["output"],
+                    precision=refine_precision,
+                    timeout_s=dock_timeout_s,
+                )
                 rp = rd.get("poses")
-                rs = _helper("al_scores", {"pose_file": rp}, timeout=300) if rp else {"scores": {}}
-                refine = {"precision": refine_precision, "poses": rp, "refined_scores": rs.get("scores", {})}
+                rs = (
+                    _helper("al_scores", {"pose_file": rp}, timeout=300)
+                    if rp
+                    else {"scores": {}}
+                )
+                refine = {
+                    "precision": refine_precision,
+                    "poses": rp,
+                    "refined_scores": rs.get("scores", {}),
+                }
             else:
                 refine = {"error": "top_k ligprep failed", "detail": rl}
         else:
-            refine = {"error": "could not resolve top_k SMILES from cache", "detail": pick}
-    return {"library_size": prep.get("n_library"), "iters": iters, "batch": batch,
-            "precision": precision, "surrogate": surrogate, "n_labeled": len(labeled),
-            "best_score": (min(labeled.values()) if labeled else None),
-            "top_k": [{"title": t, "score": v} for t, v in ranked], "refined": refine,
-            "history": history, "out_dir": wd, "job_server": srv}
+            refine = {
+                "error": "could not resolve top_k SMILES from cache",
+                "detail": pick,
+            }
+    return {
+        "library_size": prep.get("n_library"),
+        "iters": iters,
+        "batch": batch,
+        "precision": precision,
+        "surrogate": surrogate,
+        "n_labeled": len(labeled),
+        "best_score": (min(labeled.values()) if labeled else None),
+        "top_k": [{"title": t, "score": v} for t, v in ranked],
+        "refined": refine,
+        "history": history,
+        "out_dir": wd,
+        "job_server": srv,
+    }
 
 
 # ---------- OpenMM bridge (COMPOSE; license-free local MD via the openmm-md MCP) ----------
+
 
 @mcp.tool()
 def openmm_from_prepared(prepared_mae: str, out_pdb: str) -> dict:
@@ -4077,22 +5620,27 @@ def openmm_from_prepared(prepared_mae: str, out_pdb: str) -> dict:
     if not out_pdb.lower().endswith(".pdb"):
         return {"error": "out_pdb must end in .pdb (the openmm-md tools consume a PDB)"}
     os.makedirs(os.path.dirname(out_pdb) or ".", exist_ok=True)
-    res = convert_structure(prepared_mae, out_pdb)   # existing tool -> schrodinger.structure writer
+    res = convert_structure(
+        prepared_mae, out_pdb
+    )  # existing tool -> schrodinger.structure writer
     if res.get("error"):
         return {"error": res["error"], "stage": "convert_structure"}
-    return {"pdb": res.get("dst"), "structures": res.get("structures"),
-            "size_bytes": res.get("size_bytes"),
-            "next_steps": [
-                "mcp__openmm-md__openmm_prepare: input the returned pdb (assign force field; "
-                "split receptor/ligand if the tool expects separate inputs)",
-                "mcp__openmm-md__openmm_solvate: add explicit water + neutralizing ions (box padding)",
-                "mcp__openmm-md__openmm_minimize: energy-minimize the solvated system",
-                "mcp__openmm-md__openmm_equilibrate: NVT/NPT equilibration with restraints",
-                "mcp__openmm-md__openmm_production: production MD (GPU) - poll mcp__openmm-md__openmm_status",
-                "mcp__openmm-md__openmm_mmgbsa or openmm_analyze: end-state dG / trajectory metrics",
-            ],
-            "note": "License-free local MD + an orthogonal cross-check to Desmond/Prime. For a "
-                    "ligand-only or receptor-only leg, convert that selection to its own PDB first."}
+    return {
+        "pdb": res.get("dst"),
+        "structures": res.get("structures"),
+        "size_bytes": res.get("size_bytes"),
+        "next_steps": [
+            "mcp__openmm-md__openmm_prepare: input the returned pdb (assign force field; "
+            "split receptor/ligand if the tool expects separate inputs)",
+            "mcp__openmm-md__openmm_solvate: add explicit water + neutralizing ions (box padding)",
+            "mcp__openmm-md__openmm_minimize: energy-minimize the solvated system",
+            "mcp__openmm-md__openmm_equilibrate: NVT/NPT equilibration with restraints",
+            "mcp__openmm-md__openmm_production: production MD (GPU) - poll mcp__openmm-md__openmm_status",
+            "mcp__openmm-md__openmm_mmgbsa or openmm_analyze: end-state dG / trajectory metrics",
+        ],
+        "note": "License-free local MD + an orthogonal cross-check to Desmond/Prime. For a "
+        "ligand-only or receptor-only leg, convert that selection to its own PDB first.",
+    }
 
 
 if __name__ == "__main__":
