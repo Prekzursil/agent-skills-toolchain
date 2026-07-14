@@ -1,31 +1,34 @@
 # Schrodinger MCP Server
 
 A thin, security-conscious [Model Context Protocol](https://modelcontextprotocol.io) (MCP)
-server that wraps a **local Schrodinger / Maestro Suite install** and exposes
-structure-prep, cheminformatics, and product-driver workflows (LigPrep, QikProp,
-Glide) as MCP tools to Claude Code / Claude Desktop.
+server that wraps a **local Schrodinger / Maestro Suite install** and exposes 67
+tools for structure prep, docking, screening, MD/free energy, QM, ADMET, pose
+analysis, and job orchestration to Claude Code / Claude Desktop.
 
-- **Location:** `C:\Users\Prekzursil\source\repos\schrodinger-mcp`
+- **Location:** `C:\Users\Prekzursil\source\agent-skills-toolchain\tools\mcp\schrodinger-mcp`
 - **Entry point:** `server.py` (FastMCP, stdio transport)
 - **Backend helper:** `_sch_helper.py` (runs *inside* the Schrodinger interpreter)
-- **Suite tested against:** Schrodinger 2022-4, build 79134 (bundled RDKit; in this
-  build the MCP backends were exercised with RDKit features such as `Descriptors.qed`)
-- **Status:** verified `✓ Connected` via `claude mcp get schrodinger`
+- **Suite status:** the core pipeline was live-tested against Schrodinger 2022-4,
+  build 79134. The expanded 67-tool surface targets 2026-2 and is statically
+  verified, with live-box smoke testing still pending.
+- **Status:** register the canonical launch path below, then verify `✓ Connected`
+  with `claude mcp get schrodinger`.
 
 ---
 
 ## Overview
 
 This is a **custom-built** MCP connector (not an upstream package). It gives an LLM
-agent a small, safe surface onto an installed Schrodinger Suite for early-stage
+agent a typed, security-conscious surface onto an installed Schrodinger Suite for
 drug-discovery work:
 
 1. **Structure prep / cheminformatics** (no license token): version/build info,
    SMILES to 3D, drug-likeness descriptors, format conversion, and a raw
    Schrodinger-Python escape hatch.
-2. **Product drivers** (consume Schrodinger license tokens): LigPrep ligand
-   preparation, QikProp ADMET/physchem prediction, and Glide docking. These run
-   synchronously with `-WAIT`.
+2. **Product drivers** (consume Schrodinger license tokens): preparation,
+   docking, pose analysis, MD/free-energy, QM, and property workflows.
+3. **Operations:** job lifecycle, GPU-pool, diagnostics, and recovery tools for
+   long-running licensed workflows.
 
 The architectural keystone is that the server process **never imports
 `schrodinger` in-process**. The `schrodinger` Python package and its bundled
@@ -100,9 +103,37 @@ single-user use only** — do not expose it to an untrusted client.
 
 ---
 
-## The 12 Tools
+## The 67 Tools
 
-License-token-free tools are listed first, then the six product drivers.
+The complete surface, grouped by capability, is:
+
+- **Diagnostics and structure I/O (10):** `schrodinger_version`, `backend_info`,
+  `backend_doctor`, `smiles_to_3d`, `molecule_properties`, `convert_structure`,
+  `structure_properties_extract`, `pdb_fetch`, `run_schrodinger_python`,
+  `install_cure`.
+- **Prep, docking, and pose workflows (15):** `prepwizard`, `prep_target`,
+  `glide_grid`, `ligprep`, `glide_dock`, `ensemble_dock`, `al_dock`,
+  `dock_triage`, `prime_mmgbsa`, `induced_fit_docking`, `covalent_docking`,
+  `pose_validity`, `pose_interaction_fingerprint`, `pose_viewer_split`,
+  `pymol_render`.
+- **Screening, properties, and analogs (13):** `qikprop_admet`,
+  `qikprop_parse_results`, `sitemap`, `confgen`, `shape_screen`,
+  `canvas_fingerprints`, `canvas_descriptors`, `phase_pharmacophore`,
+  `phase_screen`, `ligfilter`, `propfilter`, `analog_scan`,
+  `reaction_enumerate`.
+- **MD and free energy (14):** `desmond_setup`, `desmond_md`,
+  `desmond_trajectory_analysis`, `desmond_interactions`,
+  `desmond_membrane_setup`, `thermal_mmgbsa`, `fep_plus`, `fep_map_build`,
+  `fep_parse_results`, `fep_absolute_binding`, `watermap`, `bpmd`,
+  `bpmd_ladder`, `openmm_from_prepared`.
+- **QM, advanced modeling, and ML (10):** `jaguar_pka`, `jaguar_qm`,
+  `epik_enumerate`, `epik_pka`, `qm_cluster_extract`,
+  `macromodel_confsearch`, `residue_scanning`, `qsite_qmmm`,
+  `autoqsar_build`, `autoqsar_predict`.
+- **Job and GPU operations (5):** `job_server_control`, `job_status`, `job_wait`,
+  `job_restart`, `schrodinger_gpu_pool`.
+
+The core structure and docking tools are documented in depth below.
 
 ### Structure / cheminformatics (no license token)
 
@@ -216,23 +247,23 @@ license token.**
 ## Setup
 
 ### Prerequisites
-- A working Schrodinger Suite install (this build: 2022-4 at
-  `D:\Program Files\Schrodinger 2022-4`).
+- A working Schrodinger Suite install (current target: 2026-2 at
+  `D:\Program Files\Schrodinger 2026-2`).
 - Python with `venv` (the server venv is independent of the Schrodinger interpreter).
 
 ### 1. `$SCHRODINGER` environment variable
 The server reads the install root from the `SCHRODINGER` env var; it defaults to
-the Windows path `D:\Program Files\Schrodinger 2022-4` if unset. Set it at User
+the Windows path `D:\Program Files\Schrodinger 2026-2` if unset. Set it at User
 scope (Windows) so it is visible to all sessions:
 
 ```powershell
 # Windows (PowerShell) — User scope, persists across sessions
-[Environment]::SetEnvironmentVariable("SCHRODINGER", "D:\Program Files\Schrodinger 2022-4", "User")
+[Environment]::SetEnvironmentVariable("SCHRODINGER", "D:\Program Files\Schrodinger 2026-2", "User")
 ```
 
 ```bash
 # POSIX (Linux/macOS)
-export SCHRODINGER="/opt/schrodinger/suite2022-4"
+export SCHRODINGER="/opt/schrodinger/suite2026-2"
 ```
 
 > The MCP registration **also** passes `SCHRODINGER` in the server's `env` block
@@ -243,7 +274,7 @@ The server itself only needs the MCP SDK (`mcp` / FastMCP) — **not** RDKit or
 Schrodinger (those live in the Suite interpreter).
 
 ```powershell
-# from C:\Users\Prekzursil\source\repos\schrodinger-mcp
+# from C:\Users\Prekzursil\source\agent-skills-toolchain\tools\mcp\schrodinger-mcp
 py -m venv .venv
 .venv\Scripts\python.exe -m pip install --upgrade pip
 .venv\Scripts\python.exe -m pip install mcp
@@ -267,25 +298,25 @@ package import). Run it **inside the Schrodinger interpreter**, not the server v
 ```powershell
 claude mcp add schrodinger `
   -s user `
-  -e SCHRODINGER="D:\Program Files\Schrodinger 2022-4" `
-  -- "C:\Users\Prekzursil\source\repos\schrodinger-mcp\.venv\Scripts\python.exe" `
-     "C:\Users\Prekzursil\source\repos\schrodinger-mcp\server.py"
+  -e SCHRODINGER="D:\Program Files\Schrodinger 2026-2" `
+  -- "C:\Users\Prekzursil\source\agent-skills-toolchain\tools\mcp\schrodinger-mcp\.venv\Scripts\python.exe" `
+     "C:\Users\Prekzursil\source\agent-skills-toolchain\tools\mcp\schrodinger-mcp\server.py"
 ```
 
 ### 5. Verify
 ```powershell
 claude mcp get schrodinger
 ```
-Expected (as registered and verified this session):
+Expected after registration:
 ```
 schrodinger:
   Scope: User config (available in all your projects)
   Status: ✓ Connected
   Type: stdio
-  Command: C:\Users\Prekzursil\source\repos\schrodinger-mcp\.venv\Scripts\python.exe
-  Args: C:\Users\Prekzursil\source\repos\schrodinger-mcp\server.py
+  Command: C:\Users\Prekzursil\source\agent-skills-toolchain\tools\mcp\schrodinger-mcp\.venv\Scripts\python.exe
+  Args: C:\Users\Prekzursil\source\agent-skills-toolchain\tools\mcp\schrodinger-mcp\server.py
   Environment:
-    SCHRODINGER=D:\Program Files\Schrodinger 2022-4
+    SCHRODINGER=D:\Program Files\Schrodinger 2026-2
 ```
 
 ---
@@ -305,7 +336,7 @@ The server is path-aware and works on Windows and POSIX:
   `ligprep` / `qikprop` / `glide`.
 - **Paths:** all paths are joined with `os.path.join` and normalized with
   `os.path.abspath`; the default `SCHRODINGER` is a Windows `D:\` path but is
-  overridable for POSIX (e.g. `/opt/schrodinger/suite2022-4`).
+  overridable for POSIX (e.g. `/opt/schrodinger/suite2026-2`).
 - **venv interpreter path** differs by OS: `.venv\Scripts\python.exe` (Windows) vs
   `.venv/bin/python` (POSIX) — adjust the `claude mcp add` command accordingly.
 
@@ -345,8 +376,8 @@ py -m venv .venv
 ### Step 3 — Decide the launch command + args
 For a stdio server, the **Command** is the interpreter and the **Args** are the
 script (plus any flags). Use absolute paths so it works from any project:
-- Command: `C:\Users\Prekzursil\source\repos\schrodinger-mcp\.venv\Scripts\python.exe`
-- Args: `C:\Users\Prekzursil\source\repos\schrodinger-mcp\server.py`
+- Command: `C:\Users\Prekzursil\source\agent-skills-toolchain\tools\mcp\schrodinger-mcp\.venv\Scripts\python.exe`
+- Args: `C:\Users\Prekzursil\source\agent-skills-toolchain\tools\mcp\schrodinger-mcp\server.py`
 
 > Tip: many third-party servers default to an HTTP/SSE transport on a port — if so,
 > pass the flag that forces stdio (e.g. the sibling `rdkit` server needs
@@ -360,9 +391,9 @@ stdio entry:
   "mcpServers": {
     "schrodinger": {
       "type": "stdio",
-      "command": "C:\\Users\\Prekzursil\\source\\repos\\schrodinger-mcp\\.venv\\Scripts\\python.exe",
-      "args": ["C:\\Users\\Prekzursil\\source\\repos\\schrodinger-mcp\\server.py"],
-      "env": { "SCHRODINGER": "D:\\Program Files\\Schrodinger 2022-4" }
+      "command": "C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\mcp\\schrodinger-mcp\\.venv\\Scripts\\python.exe",
+      "args": ["C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\mcp\\schrodinger-mcp\\server.py"],
+      "env": { "SCHRODINGER": "D:\\Program Files\\Schrodinger 2026-2" }
     }
   }
 }
@@ -378,9 +409,9 @@ to all your projects (vs the default `local`, or `project` for a checked-in
 ```powershell
 claude mcp add schrodinger `
   -s user `
-  -e SCHRODINGER="D:\Program Files\Schrodinger 2022-4" `
-  -- "C:\Users\Prekzursil\source\repos\schrodinger-mcp\.venv\Scripts\python.exe" `
-     "C:\Users\Prekzursil\source\repos\schrodinger-mcp\server.py"
+  -e SCHRODINGER="D:\Program Files\Schrodinger 2026-2" `
+  -- "C:\Users\Prekzursil\source\agent-skills-toolchain\tools\mcp\schrodinger-mcp\.venv\Scripts\python.exe" `
+     "C:\Users\Prekzursil\source\agent-skills-toolchain\tools\mcp\schrodinger-mcp\server.py"
 ```
 Anatomy of the command:
 - `schrodinger` — the server name (how it appears in `claude mcp get/list`).

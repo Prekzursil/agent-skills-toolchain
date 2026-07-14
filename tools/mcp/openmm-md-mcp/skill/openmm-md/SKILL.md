@@ -24,7 +24,7 @@ the preferred engine whenever a legitimate license is available.
 
 **Golden rule:** if the science needs a validated commercial method, use Schrodinger. Use
 openmm-md when free + Windows-native + "good enough" is the right trade. openmm-md does NOT
-replace the 35 `mcp__schrodinger__*` tools; they stay intact and preferred.
+replace the 67 `mcp__schrodinger__*` tools; they stay intact and preferred.
 
 ## Honest OpenMM vs Desmond trade-offs
 
