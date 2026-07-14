@@ -6,8 +6,9 @@ asserting the load-bearing promises: ``tools/list`` (provider tools + account
 tools + search_usage) is served with ZERO children spawned; a ``tools/call`` is
 routed to the active key's lazily-spawned child; a hard-exhaustion reply rotates
 to the backup key and retries once; a manual switch changes the active key and
-clears its cooldown; and search_usage reports per-key usage via the injected
-getter -- all with NO live keys and NO network.
+clears its cooldown; keyless SearXNG still serves search after every keyed
+account cools; and search_usage reports per-key usage via the injected getter --
+all with NO live keys and NO network.
 """
 
 from __future__ import annotations
@@ -69,6 +70,25 @@ def _fake_spec() -> providers.ProviderSpec:
     ).compiled()
 
 
+def _fake_searxng_spec() -> providers.ProviderSpec:
+    return providers.ProviderSpec(
+        platform="searxng",
+        label="SearXNG",
+        prefix="sx",
+        key_env="",
+        cmd=(
+            PY,
+            FAKE,
+            "searxng",
+            "searxng_web_search",
+            "SEARCH_HUB_TEST_KEYLESS_SENTINEL",
+        ),
+        cache="searxng.json",
+        keyless=True,
+        max_backup_keys=0,
+    ).compiled()
+
+
 def _getter(_url, _key, _timeout):
     return 200, {"data": {"remainingCredits": 123}}, ""
 
@@ -77,18 +97,20 @@ def _getter(_url, _key, _timeout):
 def hub_env(tmp_path):
     # default key value contains "exhaust" -> the fake returns 402; key2 is good.
     environ = {"EXA_API_KEY": "exhaust-me", "EXA_API_KEY_2": "good-one"}
-    specs = [_fake_spec()]
+    specs = [_fake_spec(), _fake_searxng_spec()]
+    keyed = [s for s in specs if not s.keyless]
     old = hub.CACHE_DIR
     hub.CACHE_DIR = str(tmp_path)
-    ok, _n, msg = hub.refresh_provider(specs[0])
-    assert ok, msg
+    for spec in specs:
+        ok, _n, msg = hub.refresh_provider(spec)
+        assert ok, msg
     store = accounts.AccountStore(
         str(tmp_path / "acc.json"),
-        [hub._account_policy(s) for s in specs],
+        [hub._account_policy(s) for s in keyed],
         environ=environ,
     )
-    rotation.seed_backup_keys(store, specs, environ)
-    rot = rotation.Rotator.from_specs(specs, store, environ=environ, getter=_getter)
+    rotation.seed_backup_keys(store, keyed, environ)
+    rot = rotation.Rotator.from_specs(keyed, store, environ=environ, getter=_getter)
     cap = Capture()
     server = hub.SearchHub(specs, emit=cap, store=store, rotator=rot, environ=environ)
     try:
@@ -151,6 +173,31 @@ def test_call_exhausts_active_and_rotates_to_backup(hub_env):
     assert rot.is_cooled("exa", "default")
     assert ("exa", "default") in server._children
     assert ("exa", "key2") in server._children
+
+
+def test_keyless_searxng_serves_when_all_keyed_keys_cool(hub_env, monkeypatch):
+    server, cap, rot = hub_env
+    for name in rot.key_names("exa"):
+        rot.mark_exhausted("exa", name, 100.0)
+    assert rot.pick_active("exa") is None
+
+    def reject_rotator(*_args, **_kwargs):
+        raise AssertionError("keyless provider entered rotator")
+
+    monkeypatch.setattr(rot, "route_call", reject_rotator)
+    server.dispatch(_call(50, "searxng_web_search", {"query": "fallback"}))
+    reply = cap.wait(1)[0]
+    payload = json.loads(reply["result"]["content"][0]["text"])
+    assert reply["id"] == 50
+    assert payload == {
+        "backend": "searxng",
+        "received_name": "searxng_web_search",
+        "key_value": "",
+        "arguments": {"query": "fallback"},
+    }
+    names = {tool["name"] for tool in server.all_tools}
+    assert "searxng_web_search" in names
+    assert not any(name.startswith("sx_account_") for name in names)
 
 
 def test_account_switch_changes_active_and_clears_cooldown(hub_env):

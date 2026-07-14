@@ -36,6 +36,7 @@ def test_default_providers_env_and_cmds():
     assert specs["exa"].key_env == "EXA_API_KEY"
     assert specs["tavily"].key_env == "TAVILY_API_KEY"
     assert specs["firecrawl"].key_env == "FIRECRAWL_API_KEY"
+    assert specs["searxng"].key_env == ""
     # Exa's npm stdio server hardcodes only 2 tools, so we bridge the FULL-surface
     # HTTP endpoint via mcp-remote, injecting the per-rotation EXA_API_KEY into the
     # x-api-key header (mcp-remote does the ${VAR} substitution).
@@ -46,9 +47,24 @@ def test_default_providers_env_and_cmds():
     assert exa_cmd[6:] == ("--header", "x-api-key:${EXA_API_KEY}")
     assert specs["tavily"].cmd == ("cmd", "/c", "npx", "-y", "tavily-mcp@latest")
     assert specs["firecrawl"].cmd == ("cmd", "/c", "npx", "-y", "firecrawl-mcp@latest")
-    assert {s.prefix for s in specs.values()} == {"ex", "tv", "fc"}
-    # Only Exa lacks a usage endpoint (error-driven only).
+    assert specs["searxng"].cmd == (
+        "cmd",
+        "/c",
+        "npx",
+        "-y",
+        "mcp-searxng@1.8.0",
+    )
+    assert {s.prefix for s in specs.values()} == {"ex", "tv", "fc", "sx"}
+    assert specs["searxng"].keyless
+    assert dict(specs["searxng"].env_defaults) == {
+        "SEARXNG_URL": "http://127.0.0.1:8890"
+    }
+    assert specs["searxng"].exhaust_patterns == ()
+    assert specs["searxng"].rate_patterns == ()
+    assert not any(specs[p].keyless for p in ("exa", "tavily", "firecrawl"))
+    # Exa is error-driven; keyless SearXNG has no usage endpoint or balance.
     assert specs["exa"].usage_url == "" and specs["exa"].usage_kind == ""
+    assert specs["searxng"].usage_url == "" and specs["searxng"].usage_kind == ""
     assert specs["tavily"].usage_url.endswith("/usage")
     assert specs["firecrawl"].usage_url.endswith("/credit-usage")
 
@@ -102,7 +118,7 @@ def test_tavily_429_is_ambiguous_but_explicit_quota_is_exhausted():
 
 
 def test_clean_result_passes():
-    for platform in ("exa", "tavily", "firecrawl"):
+    for platform in ("exa", "tavily", "firecrawl", "searxng"):
         sig, retry = providers.classify(
             _spec(platform), {"result": {"content": [{"type": "text", "text": "hi"}]}}
         )
