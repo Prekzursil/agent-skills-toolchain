@@ -160,7 +160,8 @@ def main() -> int:
     # hub-native, neither spawns a backend). The modal lazy-spawn/response is
     # reported as an informational live check (it depends on the modal CLI).
     ok = (
-        result.get("tools_listed") == 409  # 349 backend (caches/) + 60 account; keep in sync with README.md header
+        result.get("tools_listed")
+        == 409  # 349 backend (caches/) + 60 account; keep in sync with README.md header
         and result.get("lazy_spawn_on_list") == 0
         and result.get("account_tool_ok") is True
         and result.get("lazy_spawn_on_account_call") == 0
