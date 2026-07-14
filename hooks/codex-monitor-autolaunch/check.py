@@ -54,8 +54,28 @@ def _is_codex_launch(payload: dict) -> bool:
 def _launch() -> bool:
     """Open codex-monitor in a reusable named Windows-Terminal window; fall back to a console."""
     for cmd in (
-        ["wt", "-w", "codexmon", "new-tab", "--title", "codexmon", "powershell", "-NoProfile", "-File", str(LAUNCH)],
-        ["cmd", "/c", "start", "codexmon", "powershell", "-NoProfile", "-File", str(LAUNCH)],
+        [
+            "wt",
+            "-w",
+            "codexmon",
+            "new-tab",
+            "--title",
+            "codexmon",
+            "powershell",
+            "-NoProfile",
+            "-File",
+            str(LAUNCH),
+        ],
+        [
+            "cmd",
+            "/c",
+            "start",
+            "codexmon",
+            "powershell",
+            "-NoProfile",
+            "-File",
+            str(LAUNCH),
+        ],
     ):
         try:
             subprocess.Popen(cmd, creationflags=_DETACHED, close_fds=True)
@@ -80,7 +100,10 @@ def _emit(msg: str) -> None:
 
 def main() -> None:
     try:
-        if DISABLED.exists() or os.environ.get("CODEX_MONITOR_AUTOLAUNCH", "").lower() == "off":
+        if (
+            DISABLED.exists()
+            or os.environ.get("CODEX_MONITOR_AUTOLAUNCH", "").lower() == "off"
+        ):
             return
         payload = json.loads(sys.stdin.read() or "{}")
         if not _is_codex_launch(payload):
