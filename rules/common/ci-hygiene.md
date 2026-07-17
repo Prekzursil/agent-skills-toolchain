@@ -29,13 +29,16 @@ prints nothing, and **exits 0** — a permanently green gate that checks nothing
 - **Fix:** every module used as a `python -m` gate MUST end with
   ```python
   def main(argv: list[str] | None = None) -> int:
-      bad = [c for c in walk_public_data() if not c.is_valid()]  # REAL inputs, never a stub
-      for c in bad:
-          print(f"FAILED:mygate {c}")
-      if bad:
+      root = Path(argv[0]) if argv else Path("data/public")
+      files = sorted(root.rglob("*.json"))          # enumerate the ACTUAL inputs
+      if not files:                                 # empty walk => FAIL CLOSED
+          print("FAILED:mygate no inputs found")
           return 1
-      print("SUCCESS:mygate")
-      return 0
+      bad = [f for f in files if b"CNP" in f.read_bytes()]   # the per-input check
+      for f in bad:
+          print(f"FAILED:mygate {f}")
+      print("SUCCESS:mygate" if not bad else f"FAILED:mygate violations={len(bad)}")
+      return 1 if bad else 0
   if __name__ == "__main__":
       raise SystemExit(main())
   ```
