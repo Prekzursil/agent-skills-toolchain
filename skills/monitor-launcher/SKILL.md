@@ -28,6 +28,7 @@ the sibling `workflow-monitor` skill). The `.cmd` files here and the `monitor-au
 ```bat
 mon wfmon           :: whole-fleet workflow cockpit (skills/workflow-monitor/workflow_monitor.py)
 mon agentmon        :: one live tail terminal per active subagent
+mon codexmon        :: live board of OpenAI Codex threads (relay streams + ~/.codex rollouts)
 ```
 
 ## PATH / deploy
