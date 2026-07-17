@@ -29,7 +29,13 @@ prints nothing, and **exits 0** — a permanently green gate that checks nothing
 - **Fix:** every module used as a `python -m` gate MUST end with
   ```python
   def main(argv: list[str] | None = None) -> int:
-      ...  # walk the real data, return 1 on any violation
+      bad = [c for c in walk_public_data() if not c.is_valid()]  # REAL inputs, never a stub
+      for c in bad:
+          print(f"FAILED:mygate {c}")
+      if bad:
+          return 1
+      print("SUCCESS:mygate")
+      return 0
   if __name__ == "__main__":
       raise SystemExit(main())
   ```
