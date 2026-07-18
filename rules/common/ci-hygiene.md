@@ -42,7 +42,8 @@ prints nothing, and **exits 0** — a permanently green gate that checks nothing
   if __name__ == "__main__":
       raise SystemExit(main())
   ```
-  `main()` must (a) enumerate the actual inputs (files/config/rows), not a stub;
+  `main()` must (a) enumerate the actual inputs (files/config/rows), never a
+  do-nothing placeholder;
   (b) **fail closed** — any parse error, missing input, or empty walk returns
   non-zero, never "nothing found → pass"; (c) emit a terminal `SUCCESS:`/`FAILED:`
   marker so the log is diffable.
