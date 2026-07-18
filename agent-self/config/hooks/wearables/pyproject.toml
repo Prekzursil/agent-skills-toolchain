@@ -1,0 +1,44 @@
+# ToolUniverse Wearables — Python coverage gate (WU-0e), CREATED FROM SCRATCH.
+#
+# There is no root coverage gate / CI / pyproject at the build-target repo root.
+# This gate is scoped to the wearables/ package only and mirrors the metaswarm
+# .coverage-thresholds.json value-source (100/100/100/100,
+# blockPRCreation + blockTaskCompletion) — that JS gate is NOT the enforcer here.
+#
+# Enforcement command (run on the TU [all] venv so rdkit imports resolve):
+#   python -m pytest --cov=wearables --cov-branch --cov-report=term-missing --cov-fail-under=100
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tooluniverse-wearables"
+version = "0.1.0"
+description = "Snap-on/off ToolUniverse wearables over a pure-function Datum pipeline."
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["."]
+python_files = ["test_*.py"]
+addopts = "--cov=wearables --cov-branch --cov-report=term-missing --cov-fail-under=100"
+
+[tool.coverage.run]
+source = ["wearables"]
+branch = true
+omit = [
+    "*/test_*.py",
+    "*/conftest.py",
+]
+
+[tool.coverage.report]
+# Mirror of .coverage-thresholds.json: 100 lines + 100 branches (statements are
+# lines in coverage.py; function coverage is asserted by per-function tests).
+fail_under = 100
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    # Protocol method stubs are type-only contracts, never executed.
+    "\\.\\.\\.",
+]
