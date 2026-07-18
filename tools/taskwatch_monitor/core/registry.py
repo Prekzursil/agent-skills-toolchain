@@ -31,7 +31,7 @@ import tomlkit
 from .models import TaskSpec
 
 _VALID_ADAPTERS = frozenset(
-    {"local-file-tail", "file-exists-glob", "http-json", "process-pid"}
+    {"local-file-tail", "file-exists-glob", "http-json", "process-pid", "ssh-exec"}
 )
 
 

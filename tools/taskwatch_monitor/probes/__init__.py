@@ -30,6 +30,7 @@ from .base import (
 from .bpmd import BpmdModalProbe
 from .fep import FepDatabricksProbe
 from .generic import GenericLogfileProbe
+from .qm import JaguarQmProbe, QmJob, QmReading
 from .registry import PROBES, get_probe, probe_for
 from .templates import (
     TEMPLATES,
@@ -45,9 +46,12 @@ __all__ = [
     "BpmdModalProbe",
     "FepDatabricksProbe",
     "GenericLogfileProbe",
+    "JaguarQmProbe",
     "Probe",
     "ProbeError",
     "ProbeReading",
+    "QmJob",
+    "QmReading",
     "TaskTemplate",
     "TemplateError",
     "build_from_template",

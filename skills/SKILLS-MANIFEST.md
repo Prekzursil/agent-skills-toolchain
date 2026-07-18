@@ -1,7 +1,7 @@
 # Skills Manifest
 
 > Auto-generated skill inventory for the agent-skills-toolchain repository.
-> Last updated: 2026-07-04
+> Last updated: 2026-07-14
 
 | Skill Name | Origin | Description |
 |---|---|---|
@@ -69,6 +69,7 @@
 | ghidra-bridge | custom | Use when automating Ghidra from Python, driving analyses from an external REPL or script |
 | ghidra-mcp | custom | Use when installing or configuring GhidraMCP for a local Ghidra workflow |
 | grill-me-extensive | custom | Program-scale extensive grilling addon to the vendored grill-me skill: scout, brainstorm-fanout to surface directions beyond the ask, a categorized decision list walked one question at a time with a recommendation each, durable capture, then converge to a locked decision log; grill modes for expansion, modification, scope-change, modernization, better-ideas, red-team, simplification, prioritization |
+| harness-module-authoring | custom | Use when authoring, registering, testing, or reviewing provider-neutral harness modules, legacy dispatcher checks, calibrated advisories, or contraindication rows with correct fail-open, redaction, dedupe, side-effect, and block-versus-inject behavior |
 | hexstrike-ai-authorized-engagement | custom | Use when an authorized security assessment, bug bounty, red-team, or CTF task should be routed through HexStrike AI |
 | hexstrike-ai-mcp | custom | Use when installing, repairing, or registering HexStrike AI as an MCP server for Codex, Claude Code, or Gemini CLI |
 | hexstrike-ai-setup | custom | Use when installing, wiring, validating, or troubleshooting a local HexStrike AI runtime |

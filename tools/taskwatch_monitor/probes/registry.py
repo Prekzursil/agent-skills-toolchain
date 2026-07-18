@@ -11,10 +11,12 @@ from .base import Probe, ProbeError
 from .bpmd import BpmdModalProbe
 from .fep import FepDatabricksProbe
 from .generic import GenericLogfileProbe
+from .qm import JaguarQmProbe
 
 _INSTANCES: tuple[Probe, ...] = (
     FepDatabricksProbe(),
     BpmdModalProbe(),
+    JaguarQmProbe(),
     GenericLogfileProbe(),
 )
 

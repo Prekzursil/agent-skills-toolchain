@@ -77,6 +77,7 @@ notify set) from a preset, so you never hand-write TOML:
 |---|---|---|---|
 | `fep-databricks` | Schrödinger FEP+ multisim driver log | per-phase-weighted | `path` |
 | `bpmd-modal` | Binding-pose metadynamics driver log | ewma-throughput | `path` |
+| `jaguar-qm` | Jaguar QM interaction-energy jobs (cluster/ligand/pocket) | ewma-throughput | `path` |
 | `modal` | Generic Modal app-log tail | ewma-throughput | `path` |
 | `gh-actions-ci` | GitHub Actions run (REST JSON) | per-phase-weighted | `url` |
 | `rclone-download` | rclone `--stats` transfer log | ewma-throughput | `path` |
@@ -90,10 +91,10 @@ notify set) from a preset, so you never hand-write TOML:
 ## Architecture
 
 ```
-core/     declarative TOML registry · 4 source-adapters behind one poll() ·
+core/     declarative TOML registry · 5 source-adapters behind one poll() ·
           4 ETA models (p50/p90 range + measured|prior provenance) ·
           liveness + progress planes · BLIND state · sqlite history/priors
-probes/   per-source line parsers (fep, bpmd, generic) + templates
+probes/   per-source line parsers (fep, bpmd, qm, generic) + templates
 cli/      argparse surface · snapshot engine · TaskView assembly · store
 mcp_server/  FastMCP stdio server — 5 tools mirroring the CLI (never `mcp`,
           to avoid shadowing the mcp SDK import)
@@ -104,8 +105,10 @@ ui/       render.py (pure string builders, 100% covered) · tui.py (rich Live
 
 ### Source adapters
 
-One `poll() -> {lines, mtime, exists, liveness}` contract, four backends:
-local-file-tail (regex), file-exists / glob-count, http-json, process/pid.
+One `poll() -> {lines, mtime, exists, liveness}` contract, five backends:
+local-file-tail (regex), file-exists / glob-count, http-json, process/pid, and
+ssh-exec (the one non-local backend — runs a command on a remote host over ssh,
+its stdout becoming the poll lines; the ssh transport is dependency-injected).
 
 ### ETA models
 

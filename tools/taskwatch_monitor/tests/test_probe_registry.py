@@ -11,8 +11,13 @@ from probes.registry import PROBES, get_probe, probe_for  # noqa: E402
 
 
 class TestRegistry:
-    def test_all_three_registered(self):
-        assert set(PROBES) == {"fep-databricks", "bpmd-modal", "generic-logfile"}
+    def test_registered_probe_set(self):
+        assert set(PROBES) == {
+            "fep-databricks",
+            "bpmd-modal",
+            "jaguar-qm",
+            "generic-logfile",
+        }
 
     def test_probe_for_hit(self):
         probe = probe_for("fep-databricks")
