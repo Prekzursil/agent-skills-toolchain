@@ -101,7 +101,11 @@ def find_stubs(text: str) -> list[tuple[str, int, str]]:
         # The weak word "stub"/"placeholder" in an explicit `# pragma: no cover`
         # comment (e.g. "...  # pragma: no cover - Protocol stub") is describing a
         # deliberate interface marker, not incomplete work -> do not flag it.
-        if _COMMENT_INTRO.search(line) and _WEAK.search(line) and not _PRAGMA_NOCOVER.search(line):
+        if (
+            _COMMENT_INTRO.search(line)
+            and _WEAK.search(line)
+            and not _PRAGMA_NOCOVER.search(line)
+        ):
             add(_WEAK.search(line).group(1), i, line)
 
     for m in _PASS_BODY.finditer(text):

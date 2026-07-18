@@ -108,14 +108,26 @@ def find_stubs_precision_cases():
         "        ...  # pragma: no cover - Protocol stub\n"
     )
     out = [
-        ("Protocol ...-body w/ pragma -> not flagged",
-         flagged(proto, "analyze") or flagged(proto, "release"), False),
-        ("complete multi-line fn not reach-flagged",
-         flagged(reach, "def merge("), False),
-        ("real pass-only body still flagged",
-         flagged("def todo_impl(x):\n    pass\n", "todo_impl"), True),
-        ("real ...-only body (no pragma) still flagged",
-         flagged("def not_done(x):\n    ...\n", "not_done"), True),
+        (
+            "Protocol ...-body w/ pragma -> not flagged",
+            flagged(proto, "analyze") or flagged(proto, "release"),
+            False,
+        ),
+        (
+            "complete multi-line fn not reach-flagged",
+            flagged(reach, "def merge("),
+            False,
+        ),
+        (
+            "real pass-only body still flagged",
+            flagged("def todo_impl(x):\n    pass\n", "todo_impl"),
+            True,
+        ),
+        (
+            "real ...-only body (no pragma) still flagged",
+            flagged("def not_done(x):\n    ...\n", "not_done"),
+            True,
+        ),
         ("bare TODO still flags", flagged("x = 1  # TODO: fix\n", "TODO"), True),
     ]
     return [(n, got, want, "") for (n, got, want) in out]
