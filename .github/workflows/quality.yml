@@ -215,6 +215,13 @@ jobs:
       # New real secrets outside those explicit paths still fail the gate.
       - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
         env:
+          # Pin gitleaks to a version that HONORS the committed .gitleaks.toml plural
+          # [[allowlists]] path waivers. The action's default (8.24.3) does NOT apply
+          # plural allowlist path waivers (see the .gitleaks.toml history note), so the
+          # synthetic FAKE secret fixtures under the allowlisted test paths (incl.
+          # agent-self/harness/tests/) false-flag the gate. 8.30.1 is verified to report
+          # 0 leaks over this tree with the same committed config.
+          GITLEAKS_VERSION: "8.30.1"
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
           # gitleaks-action needs GITHUB_TOKEN to enumerate PR commits on pull_request
           # events (push works without it); without it the gate hard-fails on every PR.
