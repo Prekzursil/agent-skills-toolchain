@@ -8,7 +8,7 @@ QDX exposes its GPU-accelerated quantum chemistry and drug-discovery stack throu
 
 No-setup visual UIs: EXESS at `https://exess.qdx.co/exess-flow`, the rest of Rush at `https://qdx.co/rush`.
 
-> **Scope note — this reference vs the `qdx-rush` MCP.** This document describes the **full** rush-py / EXESS surface. The `qdx-rush` MCP exposes only the parameters present in each tool's schema (see `~/.claude/skills/qdx-rush/SKILL.md`). Features documented here that the MCP does **not** accept — use `rush-py` directly for these: `ExportKeywords` and descriptor grids (**CHELPG / Mulliken / ESP / density**; CHELPG also needs MBE off, `frag_keywords=None`), `SCFKeywords` (RI Fock build, convergence), KSDFT grid control, `OptimizationKeywords` (coordinate system / constraints), Hessian / frequencies, the `get_fragments_near_fragment` pocket selector, `external_charges`, QM/MM collective variables / restraints / PBC, batched topologies, and the built-in deep-research API. EXESS hard limits (apply everywhere): elements **H–Xe** only, no excited-states / relativistic, no unrestricted-KSDFT / unrestricted-RI-MP2, MBE ≤ 4th order, `aux_basis` mandatory for RI methods.
+> **Scope note — this reference vs the `qdx-rush` MCP.** This document describes the **full** rush-py / EXESS surface. The `qdx-rush` MCP exposes only the parameters present in each tool's schema (see `~/.claude/skills/qdx-rush/SKILL.md`). Features documented here that the MCP does **not** accept — use `rush-py` directly for these: `ExportKeywords` beyond the CHELPG/Mulliken atom-charge export in `exess_esp_charges`, descriptor grids (**ESP grid descriptors / density**), `SCFKeywords` (RI Fock build, convergence), KSDFT grid control, `OptimizationKeywords` (coordinate system / constraints), Hessian / frequencies, the `get_fragments_near_fragment` pocket selector, `external_charges`, QM/MM collective variables / restraints / PBC, batched topologies, and the built-in deep-research API. EXESS hard limits (apply everywhere): elements **H–Xe** only, no excited-states / relativistic, no unrestricted-KSDFT / unrestricted-RI-MP2, MBE ≤ 4th order, `aux_basis` mandatory for RI methods.
 
 ---
 
@@ -151,6 +151,21 @@ Primary entry points (all return a `Run`):
 Notes: `exess.optimization()` does **not** support fragment-based QM (fragments can still define QM/MM regions). rush-py accepts **JSON topology only** (symbols+geometry), not xyz paths (the CLI accepts `{"xyz": "molecule.xyz"}`).
 
 Helper dataclasses: `exess.SCFKeywords`, `exess.FragKeywords`, `exess.KSDFTKeywords`, `exess.XCGridParameters`, `exess.DefaultGridResolution`, `exess.ExportKeywords`, `exess.OptimizationKeywords`, `exess.LBFGSKeywords`, `exess.Trajectory`, `exess.Restraints`, `exess.System`, `exess.RegularDescriptorGrid`, `exess.CustomDescriptorGrid`, `exess.StandardDescriptorGrid`, `exess.DescriptorGrid`. Plus `Topology`, `Residues`, `Residue`, `Fragment`, `Element` from `rush`.
+
+#### `qdx-rush` MCP: ligand partial charges
+
+`exess_esp_charges(structure_path, ...)` submits a full-system EXESS single-point calculation and immediately returns a Rush `run_id`; retrieve the QM-derived atom arrays with `run_collect(run_id, kind="charges")`. It deliberately sets `frag_keywords=None` and requests JSON exports. `structure_path` must contain a ligand-only topology whose protonation and formal charge are already correct; there is no separate charge argument.
+
+- Default level: Restricted KS-DFT / cc-pVDZ (the EXESS KSDFT default functional applies unless `functional` is set).
+- Primary `charges`: CHELPG, an atom-centered fit to the QM electrostatic potential (ESP).
+- Diagnostic comparison: `mulliken_charges` from orbital population analysis.
+- Units: elementary charge (`e`); arrays preserve the input topology's atom order.
+- The submission response includes method, basis, resolved functional, auxiliary basis, charge models, and Rush `run_id`.
+- The completed `run_collect` result includes `n_atoms`, `chelpg_charge_sum`, `mulliken_charge_sum`, and the EXESS method.
+
+EXESS has no separate `export_esp_charges` atom-charge product. `export_esp_descriptors` samples the potential on a spatial grid and must not be used as ligand partial charges.
+
+CHELPG is QM-derived, but force fields such as OpenFF Sage are calibrated around their documented charge models (commonly AM1-BCC-family charges). Treat Mulliken as diagnostic-only, preserve the ligand's integer net charge, and validate CHELPG compatibility with the selected force field before production MD; “more expensive” does not by itself mean “better matched.”
 
 ### Prepare (`from rush import prepare`)
 - `prepare.protein_ligand(pdb_path, ligand_names=[...], run_opts=)` → `Run`; `.fetch()[0]` returns a TRC. Under the hood: **PDBFixer** (missing atoms/residues), **PDB2PQR** (protonation), **RDKit** (ligand). Output is an annotated TRC with connectivity + formal charges.
@@ -326,6 +341,8 @@ rush-py grid: `exess.XCGridParameters(resolution=exess.DefaultGridResolution("SU
 Boolean flags (all default false): `export_density`, `export_relaxed_mp2_density_correction`, `export_fock`, `export_overlap`, `export_h_core`, `export_expanded_density`, `export_expanded_gradient` (needs Gradient), `export_molecular_orbital_coeffs`, `export_gradient` (needs Gradient), `export_external_charge_gradient`, `export_mulliken_charges`, `export_chelpg_charges`, `export_bond_orders`, `export_h_caps`, `export_density_descriptors`, `export_esp_descriptors`, `export_expanded_esp_descriptors` (**⚠ upstream OOM — do not enable**), `export_basis_labels`, `export_hessian` (needs Hessian), `export_mass_weighted_hessian`, `export_hessian_frequencies`.
 Other: `flatten_symmetric` (true), `light_json` (false), `concatenate_hdf5_files` (false; may be expensive), `training_db` (false), `descriptor_grid` (object).
 
+The MCP's `exess_esp_charges` is the focused wrapper for `export_chelpg_charges` plus `export_mulliken_charges`; it disables fragmentation and sets `convert_hdf5_to_json=True` so callers receive complete atom arrays instead of HDF5 bytes.
+
 Descriptor grids (`export_density_descriptors`/`export_esp_descriptors` require one; **disable fragmentation** so values aren't split per n-mer):
 - `exess.RegularDescriptorGrid(min=[x,y,z], max=[x,y,z], spacing=[x,y,z])` (Å).
 - `exess.CustomDescriptorGrid([x1,y1,z1, x2,y2,z2, ...])` (keep < hundreds of points).
@@ -432,7 +449,7 @@ Top: `schema_version`, `calculation_time` (s), `qmmbe` (not present for Dynamics
 
 ### Common accessors
 - Total/interaction energy: `result.calc.qmmbe.expanded_hf_energy` (Hartrees). 1 Eh = 627.509 kcal/mol = 2625.500 kJ/mol = 27.211 eV.
-- CHELPG charges: `result.exports["chelpg_charges"]`.
+- Atom charges: `result.exports["chelpg_charges"]` (ESP fit) and `result.exports["mulliken_charges"]` (population analysis).
 - Optimization: `result.trajectory` (list[Topology], one per step; `.geometry` flat floats), `result.steps` (`.total_energy` Eh, `.max_gradient_component` Å).
 - QM/MM: `result.geometries` (list of flat-float arrays, one per frame).
 
@@ -452,6 +469,13 @@ result = exess.energy(topology_path, frag_keywords=None,
                       export_keywords=exess.ExportKeywords(export_chelpg_charges=True)).fetch()
 charges = result.exports["chelpg_charges"]   # default: RestrictedKSDFT / cc-pVDZ
 ```
+
+Equivalent MCP sequence (collection returns both arrays, with CHELPG also exposed as `charges`):
+```text
+submit = exess_esp_charges(structure_path="aspirin_topology.json")
+run_collect(run_id=submit.run_id, kind="charges")
+```
+The collected `result` arrays contain one value per atom in `aspirin_topology.json`, in the same order. Check `n_atoms` and the charge sums before assigning the primary `charges` array to an OpenMM ligand. Do not map by length alone: reuse the exact ligand topology or verify every ordered atom identity before transferring charges to an SDF/OpenFF molecule.
 
 **Single-point energy:**
 ```python
