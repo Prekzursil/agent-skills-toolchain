@@ -9,21 +9,27 @@ description: Use when driving the local schrodinger MCP server for structure-bas
 
 The `schrodinger` MCP server is a thin, security-conscious wrapper over a local Schrodinger Suite install. It NEVER imports the `schrodinger` package in-process; every tool builds an argv list and hands it to a single internal `_exec()` chokepoint that runs WITHOUT a shell. Client-supplied paths are validated by `_safe_path()` (rejects empty/flag-like values, normalizes to absolute) before reaching any argv, so there is no shell or argument injection. The `run_schrodinger_python` tool is an intentional arbitrary-code escape hatch - this server is for local, single-user use only.
 
-- Source: `C:\Users\Prekzursil\source\repos\schrodinger-mcp\server.py` (+ `_sch_helper.py`, which runs INSIDE the Schrodinger interpreter where both `schrodinger` and a bundled `rdkit` are importable).
-- Verified install: Schrodinger 2022-4, build 79134, at `D:\Program Files\Schrodinger 2022-4`.
+- Source: `C:\Users\Prekzursil\source\agent-skills-toolchain\tools\mcp\schrodinger-mcp\server.py` (+ `_sch_helper.py`, which runs INSIDE the Schrodinger interpreter where both `schrodinger` and a bundled `rdkit` are importable).
+- Validation boundary: the core pipeline was live-tested on Schrodinger 2022-4, build 79134. The expanded 67-tool surface targets 2026-2 and is statically verified, with live-box smoke testing still pending.
 
 ## Environment Setup
 
-The server reads `SCHRODINGER` from the environment; it defaults to the Windows path `D:\Program Files\Schrodinger 2022-4` and on POSIX you must set it.
+The server reads `SCHRODINGER` from the environment; it defaults to the Windows path `D:\Program Files\Schrodinger 2026-2` and on POSIX you must set it.
 
-- MCP registration (verified, stdio):
-  - command: `C:\Users\Prekzursil\source\repos\schrodinger-mcp\.venv\Scripts\python.exe`
-  - args: `C:\Users\Prekzursil\source\repos\schrodinger-mcp\server.py`
-  - env: `SCHRODINGER` = `D:\Program Files\Schrodinger 2022-4`
-- Cross-platform note: the server resolves `run.exe`/driver `.exe` on Windows and falls back to the extension-less `run`/driver names on POSIX. On POSIX, export `SCHRODINGER` to your suite root (e.g. `/opt/schrodinger/suites/2022-4`).
+- MCP registration (canonical stdio target):
+  - command: `C:\Users\Prekzursil\source\agent-skills-toolchain\tools\mcp\schrodinger-mcp\.venv\Scripts\python.exe`
+  - args: `C:\Users\Prekzursil\source\agent-skills-toolchain\tools\mcp\schrodinger-mcp\server.py`
+  - env: `SCHRODINGER` = `D:\Program Files\Schrodinger 2026-2`
+- Cross-platform note: the server resolves `run.exe`/driver `.exe` on Windows and falls back to the extension-less `run`/driver names on POSIX. On POSIX, export `SCHRODINGER` to your suite root (e.g. `/opt/schrodinger/suites/2026-2`).
 - Sanity check first: call `schrodinger_version` (wraps `run -v`) and `backend_info` (suite build + bundled RDKit version visible to the backend). If these fail, fix `SCHRODINGER` before anything else.
 
-## The 12 Tools (grouped by license cost)
+## The 67 Tools
+
+The core structure and docking pipeline is documented in detail first. The
+expanded workflows are grouped afterward so you can route directly to the typed
+tool instead of falling back to arbitrary Python.
+
+### Core structure and docking pipeline
 
 License-token-FREE (fast, no `-WAIT` driver):
 
@@ -32,7 +38,7 @@ License-token-FREE (fast, no `-WAIT` driver):
 - `smiles_to_3d(smiles, out_path, title="")` - SMILES to a 3D `.sdf` or `.mae` file. 3D via RDKit ETKDGv3 + MMFF; the output extension picks the format (`.mae` for Glide/Prime downstream, `.sdf` for portability).
 - `molecule_properties(smiles)` - drug-likeness panel: formula, MW, logP, HBD/HBA, TPSA, rotatable bonds, rings, QED, Lipinski pass/fail (RDKit).
 - `convert_structure(src, dst)` - convert a structure file between formats (`.sdf`, `.mae`, `.pdb`) via `schrodinger.structure`.
-- `run_schrodinger_python(code, timeout_s=300)` - escape hatch: run a Python snippet inside the Schrodinger interpreter (has both `schrodinger` and `rdkit`). Returns returncode + truncated stdout/stderr. Use this for anything the 12 tools do not cover (custom analysis, batch scripting, computing a binding-site centroid).
+- `run_schrodinger_python(code, timeout_s=300)` - escape hatch: run a Python snippet inside the Schrodinger interpreter (has both `schrodinger` and `rdkit`). Returns returncode + truncated stdout/stderr. Use this only when the typed tools do not cover the task (custom analysis, batch scripting, computing a binding-site centroid).
 
 Token-CONSUMING product drivers (synchronous `-WAIT`; each call holds a license token until it finishes). Listed in pipeline order:
 
@@ -42,6 +48,30 @@ Token-CONSUMING product drivers (synchronous `-WAIT`; each call holds a license 
 - `glide_dock(grid_file, ligands_mae, precision="SP", timeout_s=3600)` - Glide docking of prepared ligands into a grid `.zip` (from `glide_grid`). `precision` must be `HTVS`, `SP`, or `XP`. Writes a `glide_dock_job.in` and returns the `*_pv.maegz` pose-viewer path.
 - `prime_mmgbsa(pose_viewer, timeout_s=3600)` - Prime MM-GBSA binding free-energy (dG bind) rescoring of docked poses; input is the `*_pv.maegz` from `glide_dock`. Returns the `-out.csv` (with `r_psp_MMGBSA_dG_Bind`) + `-out.maegz`. Far more reliable than the raw Glide score.
 - `qikprop_admet(structure_file, timeout_s=900)` - QikProp ADMET/physchem prediction on a 3D structure (`.mae`/`.sdf`). Returns the result `.CSV` path + first 3 lines.
+
+### Expanded workflow surface
+
+- **Diagnostics and structure I/O (4):** `backend_doctor`,
+  `structure_properties_extract`, `pdb_fetch`, `install_cure`.
+- **Prep, docking, and pose workflows (10):** `prep_target`, `ensemble_dock`,
+  `al_dock`, `dock_triage`, `induced_fit_docking`, `covalent_docking`,
+  `pose_validity`, `pose_interaction_fingerprint`, `pose_viewer_split`,
+  `pymol_render`.
+- **Screening, properties, and analogs (12):** `qikprop_parse_results`,
+  `sitemap`, `confgen`, `shape_screen`, `canvas_fingerprints`,
+  `canvas_descriptors`, `phase_pharmacophore`, `phase_screen`, `ligfilter`,
+  `propfilter`, `analog_scan`, `reaction_enumerate`.
+- **MD and free energy (14):** `desmond_setup`, `desmond_md`,
+  `desmond_trajectory_analysis`, `desmond_interactions`,
+  `desmond_membrane_setup`, `thermal_mmgbsa`, `fep_plus`, `fep_map_build`,
+  `fep_parse_results`, `fep_absolute_binding`, `watermap`, `bpmd`,
+  `bpmd_ladder`, `openmm_from_prepared`.
+- **QM, advanced modeling, and ML (10):** `jaguar_pka`, `jaguar_qm`,
+  `epik_enumerate`, `epik_pka`, `qm_cluster_extract`,
+  `macromodel_confsearch`, `residue_scanning`, `qsite_qmmm`,
+  `autoqsar_build`, `autoqsar_predict`.
+- **Job and GPU operations (5):** `job_server_control`, `job_status`, `job_wait`,
+  `job_restart`, `schrodinger_gpu_pool`.
 
 ## Typical Workflow (end-to-end structure-based screening)
 
@@ -70,7 +100,7 @@ As of the `prepwizard` / `glide_grid` / `prime_mmgbsa` addition, the whole struc
 - Treating `smiles_to_3d` as a required step before `ligprep` - LigPrep accepts SMILES (`.smi`) directly.
 - Calling `glide_dock` without first running `glide_grid` (it needs the grid `.zip`); or calling `glide_grid` with no box center (pass `center="x,y,z"` or `ligand_molnum`).
 - Running `prepwizard` and expecting the top-level driver - it lives in `$SCHRODINGER/utilities` (the server resolves it; a hand-rolled call to `$SCHRODINGER/prepwizard` will miss).
-- Forgetting that the three drivers consume license tokens and run synchronously with long default timeouts (LigPrep 1200s, QikProp 900s, Glide 3600s). Concurrent driver calls compete for tokens.
+- Forgetting that product drivers consume license tokens, often with long default timeouts. Concurrent driver calls compete for tokens.
 - Passing flag-like or relative paths and assuming they pass `_safe_path` - they are normalized to absolute and rejected if they start with `-`.
 - Expecting `convert_structure`/`smiles_to_3d` (.mae path) to work if the suite cannot import `schrodinger.adapter`/`schrodinger.structure` - those run inside the suite interpreter via `_sch_helper.py`.
 
