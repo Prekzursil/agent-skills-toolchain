@@ -29,11 +29,13 @@ prints nothing, and **exits 0** — a permanently green gate that checks nothing
 - **Fix:** every module used as a `python -m` gate MUST end with
   ```python
   def main(argv: list[str] | None = None) -> int:
-      ...  # walk the real data, return 1 on any violation
+      violations = walk_inputs()  # enumerate the real files/config/rows
+      return 1 if violations else 0  # fail closed on any violation
   if __name__ == "__main__":
       raise SystemExit(main())
   ```
-  `main()` must (a) enumerate the actual inputs (files/config/rows), not a stub;
+  `main()` must (a) enumerate the actual inputs (files/config/rows), never a
+  do-nothing placeholder;
   (b) **fail closed** — any parse error, missing input, or empty walk returns
   non-zero, never "nothing found → pass"; (c) emit a terminal `SUCCESS:`/`FAILED:`
   marker so the log is diffable.
