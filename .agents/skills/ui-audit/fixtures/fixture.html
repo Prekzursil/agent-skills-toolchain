@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UI Audit Test Fixture</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #ffffff;
+      padding: 20px;
+    }
+
+    /* DEFECT 1: off-scale margin — 13px is not on the 4px grid */
+    .bad-margin {
+      margin: 13px;
+      padding: 8px;
+      background-color: #eeeeee;
+    }
+
+    /* DEFECT 2: low contrast — #cccccc on #ffffff gives ~1.6:1 (< 4.5:1 WCAG AA) */
+    .low-contrast {
+      color: #cccccc;
+      background-color: #ffffff;
+      font-size: 14px;
+      display: block;
+      padding: 4px;
+    }
+
+    /* DEFECT 3+4: 30×30px tap target (< 44×44) AND no click handler (dead button) */
+    .small-tap {
+      width: 30px;
+      height: 30px;
+      font-size: 10px;
+      padding: 0;
+      border: 1px solid #aaa;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Healthy button — correct size, has a DOM-mutating handler */
+    .live-btn {
+      width: 120px;
+      height: 48px;
+      background-color: #0070f3;
+      color: #ffffff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 16px;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Defect 1: off-scale margin (13px) -->
+  <div class="bad-margin" id="bad-margin">
+    <p>This div has a 13px margin — not on the 4px grid.</p>
+  </div>
+
+  <!-- Defect 2: low contrast text -->
+  <span class="low-contrast" id="low-contrast">
+    Low contrast text — barely visible on white (#ccc on #fff, ~1.6:1 ratio)
+  </span>
+
+  <!-- Defect 3+4: dead button AND 30×30 tap target -->
+  <!-- NO onclick / addEventListener — zero effect when clicked -->
+  <button id="dead-btn" class="small-tap" type="button">X</button>
+
+  <!-- Healthy: DOM-mutating live button (sets data-clicked on #indicator) -->
+  <button
+    id="live-btn"
+    class="live-btn"
+    type="button"
+    onclick="document.getElementById('indicator').setAttribute('data-clicked','true')"
+  >Go</button>
+
+  <div id="indicator"></div>
+
+</body>
+</html>

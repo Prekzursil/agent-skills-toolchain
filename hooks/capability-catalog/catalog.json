@@ -1,0 +1,38 @@
+{
+  "_doc": "Capability catalog injected at SessionStart by inject.py as additionalContext. Goal: auto-tool-selection — keep the right MCP/skill in front of the model so it reaches for a real tool instead of a makeshift script. DATA-driven: edit `groups` to maintain. Keep terse + high-signal; the WHEN clause is the load-bearing part. Mirrors but is broader than skill-router/capabilities.py (which only fires on prompt keyword match).",
+  "header": "[capabilities] Auto-pick the right tool (don't hand-roll a script when a registered MCP/skill exists). Reach for these WHEN the trigger matches — many are under-used:",
+  "footer": "If a backend MCP isn't connected (cve/searxng/perplexity/sonar/codacy/ghidra/ida/frida), name the daemon to start rather than saying 'no access'. Full routing: guides/tool-routing-and-quality.md.",
+  "groups": [
+    {"g": "memory", "items": [
+      "basic-memory (build_context/search_notes/recent_activity) — WHEN resuming, after compaction, or user cites prior work: RECALL before asking. write_note WHEN you learn a durable decision/fact/preference."
+    ]},
+    {"g": "code-intelligence", "items": [
+      "serena (find_symbol / find_referencing_symbols / get_symbols_overview / replace_symbol_body) — WHEN navigating/editing code by SYMBOL across a repo: prefer over grep/manual walks (true LSP).",
+      "repomix (pack_codebase / grep_repomix_output) — WHEN you need whole-repo context or a code review over many files.",
+      "context7 (resolve-library-id / query-docs) — WHEN using any library/framework/SDK/API: fetch CURRENT docs (training data may be stale)."
+    ]},
+    {"g": "RE / binary", "items": [
+      "ida-pro-mcp / ghidra-mcp / binary-ninja-mcp — WHEN disassembling/decompiling, xrefs, offsets, prototypes on a native binary (use the one whose DB is loaded).",
+      "radare2 (skill) — WHEN a fast headless triage of a binary; frida-mcp — WHEN hooking/instrumenting a LIVE process at runtime; cheatengine — WHEN scanning/pointer-chaining live process memory.",
+      "apktool-mcp / jadx-mcp — WHEN decoding/repacking an APK or reading Java/smali."
+    ]},
+    {"g": "research / literature / bio-chem", "items": [
+      "tooluniverse (find_tools then execute_tool) — 2500+ pharmacology/biomed tools: WHEN drug-target/DDI/ADMET/CYP/FDA-label/gene-disease questions — call find_tools FIRST to discover the exact tool.",
+      "scholarly-access / paper-search — WHEN papers/DOIs/citations/OA-PDFs; firecrawl/tavily/exa — WHEN deep web research or scrape/crawl (don't hand-roll requests+BeautifulSoup).",
+      "rdkit — WHEN cheminformatics (SMILES/descriptors/fingerprints/similarity), license-free; schrodinger — WHEN docking/Glide/FEP/MMGBSA/ADMET/structure-prep (Maestro license).",
+      "qdx-rush (exess_interaction_energy / exess_energy / exess_optimization / nnxtb_energy / boltz_fold / fried_fragmented_exess / prepare_protein_ligand / run_collect) — WHEN QM-accurate quantum chemistry on the QDX/Rush cloud beats MM/docking: EXESS RI-MP2/DFT single-point + INTERACTION energies (negative=binding), geometry-opt, QM/MM, fast NN-xTB screens, Boltz co-fold+affinity. Async: submit -> run_status -> run_collect; auth ~/.rush/.env; reference D:/Research/_infra/qdx_mcp/QDX_REFERENCE.md + skill qdx-rush. NOTE: QDX/EXESS/rush-py are NOT in training data — they exist locally; reach for this MCP, do NOT claim 'no QM tool available'."
+    ]},
+    {"g": "web / browser / perf", "items": [
+      "chrome-devtools (performance_start_trace / lighthouse_audit / list_network_requests / list_console_messages) — WHEN web perf, Lighthouse, network/console debugging.",
+      "playwright / claude-in-chrome — WHEN driving a real browser (forms, screenshots, e2e)."
+    ]},
+    {"g": "security", "items": [
+      "secsearch (skill) — WHEN searching exploits/advisories/security corpora; lolbin-lookup (skill) — WHEN a Windows living-off-the-land binary's abuse technique; cve-mcp — WHEN CVE detail/lookup (start backend if absent).",
+      "searxng — WHEN a self-hosted meta web search; perplexity — WHEN a cited deep-answer; semgrep/bandit/trivy/gitleaks — WHEN SAST/secret/dep scanning before finishing code."
+    ]},
+    {"g": "data / docs / devops", "items": [
+      "excel (read/write/pivot) over pandas+openpyxl; pdf-reader / ocr-suite over pdfplumber; markitdown for doc->md.",
+      "docker / github_cli (gh) / codecov / sonarqube / codacy — WHEN containers, PRs/issues/releases, coverage, or quality gates."
+    ]}
+  ]
+}
