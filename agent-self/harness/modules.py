@@ -2701,9 +2701,11 @@ class EnforcementScaffoldModule:
         r"(?i)[-_ ]?(?:v?\d+(?:\.\d+)*|final|draft|copy|new|old|complete|wip|"
         r"\d{4}-\d{2}-\d{2}|\d{8})$"
     )
-    _CLONE_THRESHOLD = 3  # a lone .clone is normal churn; >=3 is accumulation worth surfacing
+    _CLONE_THRESHOLD = (
+        3  # a lone .clone is normal churn; >=3 is accumulation worth surfacing
+    )
     _MAX_CANDIDATES = 50  # bound the cleanup scan output (anti-flood)
-    _DOC_LOG_CAP = 20     # bound the per-session logged doc families (anti-flood)
+    _DOC_LOG_CAP = 20  # bound the per-session logged doc families (anti-flood)
 
     def __init__(self, state_root: Path | str | None = None):
         self.root = Path(state_root or default_state_root()) / "enforce-scaffold"
@@ -2715,10 +2717,12 @@ class EnforcementScaffoldModule:
             if etype == "SessionStart":
                 return self._guarded(self._cleanup_after_work, event)
             if etype == "PreToolUse":
-                return _merge_results([
-                    self._guarded(self._doc_reconciliation, event),
-                    self._guarded(self._harness_change_doc_pr, event),
-                ])
+                return _merge_results(
+                    [
+                        self._guarded(self._doc_reconciliation, event),
+                        self._guarded(self._harness_change_doc_pr, event),
+                    ]
+                )
             # Every other event -- crucially Stop / StopFailure / SubagentStop -- is inert.
             return HookResult.success()
         except Exception:
@@ -2774,7 +2778,9 @@ class EnforcementScaffoldModule:
     def _scan_cleanup_candidates(self, event: Any) -> list[tuple[str, str]]:
         # Bounded, non-recursive scan for RFC §1.2/§1.6 dead-artifact patterns. Env
         # HARNESS_CLEANUP_SCAN_DIR overrides the scan root (defaults to event.cwd).
-        root = Path(os.environ.get(self._SCAN_DIR_ENV) or str(getattr(event, "cwd", "") or "."))
+        root = Path(
+            os.environ.get(self._SCAN_DIR_ENV) or str(getattr(event, "cwd", "") or ".")
+        )
         found: list[tuple[str, str]] = []
         try:
             clones = sorted(root.glob("plugins/cache/temp_subdir_*.clone"))
