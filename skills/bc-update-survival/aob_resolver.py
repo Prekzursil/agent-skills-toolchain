@@ -31,6 +31,7 @@ No hard third-party deps. `pyelftools` (optional) sharpens `--elf-sections`;
 `capstone` (optional) sharpens single-version authoring; `frida` (optional) is
 needed only for the live backend. CLI: `python aob_resolver.py --help`.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -39,7 +40,7 @@ import json
 import os
 import re
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Callable, Iterable, Optional
 
 # --------------------------------------------------------------------------- #
@@ -70,7 +71,12 @@ class Signature:
         toks: list[Optional[int]] = []
         for raw in text.replace(",", " ").split():
             # a contiguous even-length hex run with no wildcards -> split
-            if len(raw) > 2 and _HEX2.match(raw[:2]) and len(raw) % 2 == 0 and "?" not in raw:
+            if (
+                len(raw) > 2
+                and _HEX2.match(raw[:2])
+                and len(raw) % 2 == 0
+                and "?" not in raw
+            ):
                 for j in range(0, len(raw), 2):
                     toks.append(int(raw[j : j + 2], 16))
                 continue
@@ -85,7 +91,9 @@ class Signature:
         return cls(toks, name)
 
     @classmethod
-    def from_bytes_mask(cls, data: bytes, mask: Iterable[bool], name: str = "") -> "Signature":
+    def from_bytes_mask(
+        cls, data: bytes, mask: Iterable[bool], name: str = ""
+    ) -> "Signature":
         """Build from raw bytes + a keep-mask (True = fixed byte, False = wildcard)."""
         toks: list[Optional[int]] = [
             (b if keep else None) for b, keep in zip(data, mask)
@@ -139,6 +147,7 @@ class Signature:
 # --------------------------------------------------------------------------- #
 # ELF offset <-> virtual-address mapping
 # --------------------------------------------------------------------------- #
+
 
 @dataclass
 class Section:
@@ -245,6 +254,7 @@ def _rva_to_off(rva: int, imagebase: int, elf: Optional[ElfMap]) -> int:
 # Offline scan / resolve
 # --------------------------------------------------------------------------- #
 
+
 def sha256_file(path: str) -> str:
     h = hashlib.sha256()
     with open(path, "rb") as fh:
@@ -348,7 +358,10 @@ def _capstone_mask(code: bytes) -> Optional[list[bool]]:
     for insn in md.disasm(code, 0):
         # RIP-relative memory operand -> wildcard its disp bytes
         for op in insn.operands:
-            if op.type == capstone.x86.X86_OP_MEM and op.mem.base == capstone.x86.X86_REG_RIP:
+            if (
+                op.type == capstone.x86.X86_OP_MEM
+                and op.mem.base == capstone.x86.X86_REG_RIP
+            ):
                 # disp is the last 4 bytes of the instruction encoding
                 for k in range(insn.size - 4, insn.size):
                     if 0 <= insn.address + k < len(keep):
@@ -356,8 +369,7 @@ def _capstone_mask(code: bytes) -> Optional[list[bool]]:
         # relative branch immediate (call/jmp/jcc) -> wildcard rel32
         grp = set(insn.groups)
         if (
-            capstone.CS_GRP_JUMP in grp
-            or capstone.CS_GRP_CALL in grp
+            capstone.CS_GRP_JUMP in grp or capstone.CS_GRP_CALL in grp
         ) and insn.size >= 5:
             for k in range(insn.address + insn.size - 4, insn.address + insn.size):
                 if 0 <= k < len(keep):
@@ -476,6 +488,7 @@ def author_diff(
 # Frida live backend
 # --------------------------------------------------------------------------- #
 
+
 def gen_frida_agent(module_name: str, sigs: dict[str, str]) -> str:
     """Emit a Frida JS agent that Memory.scan's `module_name` for each signature
     and posts back name -> [ {rva} ]. Deterministic (testable) text.
@@ -537,7 +550,9 @@ def resolve_live(
         elif msg.get("type") == "error":
             errbox["error"] = msg.get("description")
 
-    device = frida.get_usb_device(timeout=timeout) if False else frida.get_local_device()
+    device = (
+        frida.get_usb_device(timeout=timeout) if False else frida.get_local_device()
+    )
     try:
         pid = int(target)
         session = device.attach(pid)
@@ -555,6 +570,7 @@ def resolve_live(
 # --------------------------------------------------------------------------- #
 # Offset-table helpers + SHADOW drift gate
 # --------------------------------------------------------------------------- #
+
 
 def load_table(path: str) -> dict:
     with open(path, "r", encoding="utf-8") as fh:
@@ -677,14 +693,19 @@ def verify_drift(
 # CLI
 # --------------------------------------------------------------------------- #
 
+
 def _elf_for(path: str, use_sections: bool) -> Optional[ElfMap]:
     return ElfMap(path) if use_sections else None
 
 
 def _cli(argv: Optional[list[str]] = None) -> int:
     p = argparse.ArgumentParser(description="AOB wildcard-signature resolver (BC)")
-    p.add_argument("--imagebase", default="0x0", help="module imagebase (default 0x0 = BC)")
-    p.add_argument("--elf-sections", action="store_true", help="use ELF section mapping")
+    p.add_argument(
+        "--imagebase", default="0x0", help="module imagebase (default 0x0 = BC)"
+    )
+    p.add_argument(
+        "--elf-sections", action="store_true", help="use ELF section mapping"
+    )
     sub = p.add_subparsers(dest="cmd", required=True)
 
     s = sub.add_parser("scan", help="list every match of a signature in a .so")
@@ -702,7 +723,9 @@ def _cli(argv: Optional[list[str]] = None) -> int:
     a.add_argument("--length", type=int, default=32)
     a.add_argument("--name", default="")
 
-    ad = sub.add_parser("author-diff", help="author a cross-version signature by byte-diff")
+    ad = sub.add_parser(
+        "author-diff", help="author a cross-version signature by byte-diff"
+    )
     ad.add_argument("old_so")
     ad.add_argument("new_so")
     ad.add_argument("old_rva")
@@ -719,7 +742,9 @@ def _cli(argv: Optional[list[str]] = None) -> int:
     lv.add_argument("table")
     lv.add_argument("--module", default="libnative-lib.so")
 
-    v = sub.add_parser("verify", help="SHADOW drift gate vs a pinned table (never blocks)")
+    v = sub.add_parser(
+        "verify", help="SHADOW drift gate vs a pinned table (never blocks)"
+    )
     v.add_argument("table")
     v.add_argument("so")
     v.add_argument("--sink", default=None)
@@ -727,7 +752,11 @@ def _cli(argv: Optional[list[str]] = None) -> int:
     sub.add_parser("selftest", help="run the built-in offline self-test")
 
     args = p.parse_args(argv)
-    imagebase = int(str(args.imagebase), 16) if str(args.imagebase).lower().startswith("0x") else int(args.imagebase)
+    imagebase = (
+        int(str(args.imagebase), 16)
+        if str(args.imagebase).lower().startswith("0x")
+        else int(args.imagebase)
+    )
 
     if args.cmd == "selftest":
         return 0 if selftest() else 1
@@ -735,7 +764,12 @@ def _cli(argv: Optional[list[str]] = None) -> int:
     if args.cmd == "scan":
         elf = _elf_for(args.so, args.elf_sections)
         hits = scan_file(args.so, Signature.parse(args.sig), imagebase, elf)
-        print(json.dumps({"count": len(hits), "hits": [f"0x{h['rva']:x}" for h in hits]}, indent=2))
+        print(
+            json.dumps(
+                {"count": len(hits), "hits": [f"0x{h['rva']:x}" for h in hits]},
+                indent=2,
+            )
+        )
         return 0
 
     if args.cmd == "resolve":
@@ -745,8 +779,15 @@ def _cli(argv: Optional[list[str]] = None) -> int:
             out = {}
             for name, entry in table.get("offsets", {}).items():
                 if entry.get("sig"):
-                    res = resolve_offline(args.so, Signature.parse(entry["sig"], name), imagebase, elf)
-                    out[name] = {**res, "rva": (f"0x{res['rva']:x}" if res["rva"] is not None else None)}
+                    res = resolve_offline(
+                        args.so, Signature.parse(entry["sig"], name), imagebase, elf
+                    )
+                    out[name] = {
+                        **res,
+                        "rva": (
+                            f"0x{res['rva']:x}" if res["rva"] is not None else None
+                        ),
+                    }
             print(json.dumps(out, indent=2))
         else:
             res = resolve_offline(args.so, Signature.parse(args.sig), imagebase, elf)
@@ -758,26 +799,65 @@ def _cli(argv: Optional[list[str]] = None) -> int:
     if args.cmd == "author":
         elf = _elf_for(args.so, args.elf_sections)
         rva = int(args.rva, 16) if args.rva.lower().startswith("0x") else int(args.rva)
-        print(json.dumps(author_signature(args.so, rva, args.length, imagebase=imagebase, elf=elf, name=args.name), indent=2))
+        print(
+            json.dumps(
+                author_signature(
+                    args.so,
+                    rva,
+                    args.length,
+                    imagebase=imagebase,
+                    elf=elf,
+                    name=args.name,
+                ),
+                indent=2,
+            )
+        )
         return 0
 
     if args.cmd == "author-diff":
         oe = _elf_for(args.old_so, args.elf_sections)
         ne = _elf_for(args.new_so, args.elf_sections)
-        orva = int(args.old_rva, 16) if args.old_rva.lower().startswith("0x") else int(args.old_rva)
-        nrva = int(args.new_rva, 16) if args.new_rva.lower().startswith("0x") else int(args.new_rva)
-        print(json.dumps(author_diff(args.old_so, args.new_so, orva, nrva, args.length, imagebase, oe, ne, args.name), indent=2))
+        orva = (
+            int(args.old_rva, 16)
+            if args.old_rva.lower().startswith("0x")
+            else int(args.old_rva)
+        )
+        nrva = (
+            int(args.new_rva, 16)
+            if args.new_rva.lower().startswith("0x")
+            else int(args.new_rva)
+        )
+        print(
+            json.dumps(
+                author_diff(
+                    args.old_so,
+                    args.new_so,
+                    orva,
+                    nrva,
+                    args.length,
+                    imagebase,
+                    oe,
+                    ne,
+                    args.name,
+                ),
+                indent=2,
+            )
+        )
         return 0
 
     if args.cmd == "gen-agent":
         table = load_table(args.table)
-        sigs = {n: e["sig"] for n, e in table.get("offsets", {}).items() if e.get("sig")}
+        sigs = {
+            n: e["sig"] for n, e in table.get("offsets", {}).items() if e.get("sig")
+        }
         print(gen_frida_agent(args.module, sigs))
         return 0
 
     if args.cmd == "live":
         table = load_table(args.table)
-        sigs = {n: e["sig"] for n, e in table.get("offsets", {}).items() if e.get("sig")}
+        sigs = {
+            n: e["sig"] for n, e in table.get("offsets", {}).items() if e.get("sig")
+        }
         print(json.dumps(resolve_live(args.target, args.module, sigs), indent=2))
         return 0
 
@@ -794,6 +874,7 @@ def _cli(argv: Optional[list[str]] = None) -> int:
 # --------------------------------------------------------------------------- #
 # Built-in offline self-test (proves the load-bearing paths without a device)
 # --------------------------------------------------------------------------- #
+
 
 def selftest() -> bool:  # noqa: C901 - a linear proof, kept in one place
     import tempfile
@@ -821,23 +902,26 @@ def selftest() -> bool:  # noqa: C901 - a linear proof, kept in one place
     check("to_ida round-trips", Signature.parse(sig.to_ida()).tokens == sig.tokens)
 
     # 2) contiguous-hex parse
-    check("contiguous hex parse", Signature.parse("488D05").tokens == [0x48, 0x8D, 0x05])
+    check(
+        "contiguous hex parse", Signature.parse("488D05").tokens == [0x48, 0x8D, 0x05]
+    )
 
     # 3) Build two synthetic ".so" blobs (imagebase 0 -> file offset == RVA).
     #    A "function" = prologue + a rel32 call (disp changes across versions) +
     #    a stable tail. In v2 the whole function is shifted by inserting padding.
     def make_func(call_disp: bytes) -> bytes:
         return (
-            b"\x55\x48\x89\xe5"          # push rbp; mov rbp,rsp
-            + b"\xe8" + call_disp        # call rel32 (disp is reloc-sensitive)
+            b"\x55\x48\x89\xe5"  # push rbp; mov rbp,rsp
+            + b"\xe8"
+            + call_disp  # call rel32 (disp is reloc-sensitive)
             + b"\x48\x83\xc4\x20\x5d\xc3"  # add rsp,0x20; pop rbp; ret
         )
 
     junk = b"\x90" * 64
     v1_func = make_func(b"\x11\x22\x33\x44")
     v2_func = make_func(b"\xaa\xbb\xcc\xdd")  # same opcodes, different call target
-    v1 = junk + v1_func + junk               # func at offset 64
-    v2 = (b"\xcc" * 96) + v2_func + junk      # func shifted to offset 96 (relink)
+    v1 = junk + v1_func + junk  # func at offset 64
+    v2 = (b"\xcc" * 96) + v2_func + junk  # func shifted to offset 96 (relink)
 
     with tempfile.TemporaryDirectory() as td:
         v1p = os.path.join(td, "v1.so")
@@ -854,21 +938,34 @@ def selftest() -> bool:  # noqa: C901 - a linear proof, kept in one place
         check("author-diff unique in new", ad["unique_new"])
         # the 4 differing disp bytes must be wildcards, opcodes must be fixed
         diff_sig = Signature.parse(ad["sig"])
-        check("author-diff wildcarded 4 disp bytes", diff_sig.fixed_count == len(v1_func) - 4)
+        check(
+            "author-diff wildcarded 4 disp bytes",
+            diff_sig.fixed_count == len(v1_func) - 4,
+        )
 
         # 3b) THE KEY PROOF: a signature authored on v1 re-locates the function
         #     at its NEW address in the relinked v2 (survives the update).
         res_v1 = resolve_offline(v1p, diff_sig)
         res_v2 = resolve_offline(v2p, diff_sig)
         check("resolve v1 -> 0x40", res_v1["status"] == "ok" and res_v1["rva"] == 64)
-        check("resolve v2 -> 0x60 (relink survived)", res_v2["status"] == "ok" and res_v2["rva"] == 96)
+        check(
+            "resolve v2 -> 0x60 (relink survived)",
+            res_v2["status"] == "ok" and res_v2["rva"] == 96,
+        )
 
         # 3c) single-version heuristic authoring also wildcards the rel32
-        auth = author_signature(v1p, 64, length=len(v1_func), min_fixed=6, name="myfunc")
+        auth = author_signature(
+            v1p, 64, length=len(v1_func), min_fixed=6, name="myfunc"
+        )
         heur_sig = Signature.parse(auth["sig"])
         check("heuristic sig unique in v1", auth["unique"])
-        check("heuristic sig wildcards call disp", heur_sig.tokens[5:9] == [None, None, None, None])
-        check("heuristic sig survives relink", resolve_offline(v2p, heur_sig)["rva"] == 96)
+        check(
+            "heuristic sig wildcards call disp",
+            heur_sig.tokens[5:9] == [None, None, None, None],
+        )
+        check(
+            "heuristic sig survives relink", resolve_offline(v2p, heur_sig)["rva"] == 96
+        )
 
         # 3d) missing / ambiguous statuses
         missing = resolve_offline(v1p, Signature.parse("DE AD BE EF CA FE BA BE"))
@@ -889,16 +986,24 @@ def selftest() -> bool:  # noqa: C901 - a linear proof, kept in one place
         }
         sink = os.path.join(td, "drift.log")
         rep_same = verify_drift(table, v1p, sink=sink, _now=lambda: "T0")
-        check("drift: v1 consistent (ok)", rep_same["moved"] == [] and not rep_same["drift_detected"])
+        check(
+            "drift: v1 consistent (ok)",
+            rep_same["moved"] == [] and not rep_same["drift_detected"],
+        )
         check("drift: unchecked entry reported", rep_same["unchecked"] == ["nosig"])
         rep_moved = verify_drift(table, v2p, sink=sink, _now=lambda: "T1")
         check("drift: v2 moved detected", len(rep_moved["moved"]) == 1)
         check("drift: so_changed flagged", rep_moved["so_changed"])
-        check("drift: shadow report never blocks (returns dict)", isinstance(rep_moved, dict))
+        check(
+            "drift: shadow report never blocks (returns dict)",
+            isinstance(rep_moved, dict),
+        )
         check("drift: sink written", os.path.exists(sink) and os.path.getsize(sink) > 0)
 
         # 5) Frida agent generation is deterministic and references the module
-        agent = gen_frida_agent("libnative-lib.so", {"getGlobal": "48 8D 05 ?? ?? ?? ?? C3"})
+        agent = gen_frida_agent(
+            "libnative-lib.so", {"getGlobal": "48 8D 05 ?? ?? ?? ?? C3"}
+        )
         check("agent has Memory.scanSync", "Memory.scanSync" in agent)
         check("agent embeds signature", "48 8D 05 ?? ?? ?? ?? C3" in agent)
         check("agent embeds module name", "libnative-lib.so" in agent)
@@ -933,14 +1038,14 @@ def _build_min_elf64() -> bytes:
     buf = bytearray(shoff + 3 * 64)
     # ELF header
     buf[0:16] = b"\x7fELF\x02\x01\x01\x00" + b"\x00" * 8
-    struct.pack_into("<H", buf, 0x10, 3)         # e_type = ET_DYN
-    struct.pack_into("<H", buf, 0x12, 0x3E)      # e_machine = x86-64
-    struct.pack_into("<I", buf, 0x14, 1)         # e_version
-    struct.pack_into("<Q", buf, 0x28, shoff)     # e_shoff
-    struct.pack_into("<H", buf, 0x34, 64)        # e_ehsize
-    struct.pack_into("<H", buf, 0x3A, 64)        # e_shentsize
-    struct.pack_into("<H", buf, 0x3C, 3)         # e_shnum
-    struct.pack_into("<H", buf, 0x3E, 2)         # e_shstrndx
+    struct.pack_into("<H", buf, 0x10, 3)  # e_type = ET_DYN
+    struct.pack_into("<H", buf, 0x12, 0x3E)  # e_machine = x86-64
+    struct.pack_into("<I", buf, 0x14, 1)  # e_version
+    struct.pack_into("<Q", buf, 0x28, shoff)  # e_shoff
+    struct.pack_into("<H", buf, 0x34, 64)  # e_ehsize
+    struct.pack_into("<H", buf, 0x3A, 64)  # e_shentsize
+    struct.pack_into("<H", buf, 0x3C, 3)  # e_shnum
+    struct.pack_into("<H", buf, 0x3E, 2)  # e_shstrndx
 
     buf[text_off : text_off + text_size] = text_data
     buf[shstr_off : shstr_off + len(shstr)] = shstr
@@ -950,9 +1055,9 @@ def _build_min_elf64() -> bytes:
         struct.pack_into("<II", buf, base, name, stype)
         struct.pack_into("<QQQQ", buf, base + 8, flags, addr, off, size)
 
-    sh(0, 0, 0, 0, 0, 0, 0)                                   # SHT_NULL
+    sh(0, 0, 0, 0, 0, 0, 0)  # SHT_NULL
     sh(1, name_text, 1, 0x6, text_addr, text_off, text_size)  # .text (PROGBITS)
-    sh(2, name_shstr, 3, 0, 0, shstr_off, len(shstr))         # .shstrtab (STRTAB)
+    sh(2, name_shstr, 3, 0, 0, shstr_off, len(shstr))  # .shstrtab (STRTAB)
     return bytes(buf)
 
 

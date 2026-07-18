@@ -70,15 +70,46 @@ SECTION_PACKED_ENTROPY = 7.4
 DEFAULT_TIMEOUT = 90
 DEFAULT_MINLEN = 5
 SHADOW_MAX_BYTES = 256 * 1024  # rotate the shadow sink at 256 KiB
-STRING_SAMPLE = 8              # how many decoded strings to surface
+STRING_SAMPLE = 8  # how many decoded strings to surface
 
 # Section names that packers/protectors are known to create.
 PACKER_SECTION_NAMES = {
-    "upx0", "upx1", "upx2", "upx!", ".aspack", ".adata", ".nsp0", ".nsp1",
-    ".nsp2", "nsp0", "nsp1", ".packed", ".themida", ".vmp0", ".vmp1", ".vmp2",
-    ".enigma1", ".enigma2", ".pklstb", ".mpress1", ".mpress2", ".petite",
-    ".pec2", ".rlpack", ".fsg", ".mew", ".yp", ".boom", ".ccg", "pebundle",
-    ".winlice", ".seau", ".taz", ".svkp", ".gentee", ".ndata",
+    "upx0",
+    "upx1",
+    "upx2",
+    "upx!",
+    ".aspack",
+    ".adata",
+    ".nsp0",
+    ".nsp1",
+    ".nsp2",
+    "nsp0",
+    "nsp1",
+    ".packed",
+    ".themida",
+    ".vmp0",
+    ".vmp1",
+    ".vmp2",
+    ".enigma1",
+    ".enigma2",
+    ".pklstb",
+    ".mpress1",
+    ".mpress2",
+    ".petite",
+    ".pec2",
+    ".rlpack",
+    ".fsg",
+    ".mew",
+    ".yp",
+    ".boom",
+    ".ccg",
+    "pebundle",
+    ".winlice",
+    ".seau",
+    ".taz",
+    ".svkp",
+    ".gentee",
+    ".ndata",
 }
 
 # ---------------------------------------------------------------------------
@@ -182,17 +213,23 @@ def packer_verdict(ent: dict, pe_sections: list[dict] | None) -> dict:
     small = ent.get("n_full_windows", 0) < 2
 
     if pe_sections:
-        named = [s for s in pe_sections
-                 if (s.get("name") or "").lower() in PACKER_SECTION_NAMES]
+        named = [
+            s
+            for s in pe_sections
+            if (s.get("name") or "").lower() in PACKER_SECTION_NAMES
+        ]
         if named:
             reasons.append(
                 "packer-style section name(s): "
                 + ",".join(sorted({s["name"] for s in named}))
             )
             verdict = "likely_packed"
-        big_hot = [s for s in pe_sections
-                   if s.get("entropy", 0) >= SECTION_PACKED_ENTROPY
-                   and s.get("raw_size", 0) > 0]
+        big_hot = [
+            s
+            for s in pe_sections
+            if s.get("entropy", 0) >= SECTION_PACKED_ENTROPY
+            and s.get("raw_size", 0) > 0
+        ]
         if big_hot:
             reasons.append(
                 "high-entropy section(s): "
@@ -204,13 +241,13 @@ def packer_verdict(ent: dict, pe_sections: list[dict] | None) -> dict:
     if whole >= STRONG_WHOLE and frac >= STRONG_FRACTION:
         reasons.append(
             f"whole entropy {whole:.2f} >= {STRONG_WHOLE} and "
-            f"{frac*100:.0f}% of windows >= {PACKED_WINDOW_THRESHOLD}"
+            f"{frac * 100:.0f}% of windows >= {PACKED_WINDOW_THRESHOLD}"
         )
         verdict = "likely_packed"
     elif whole >= WEAK_WHOLE and frac >= WEAK_FRACTION:
         reasons.append(
             f"whole entropy {whole:.2f} >= {WEAK_WHOLE} and "
-            f"{frac*100:.0f}% of windows elevated"
+            f"{frac * 100:.0f}% of windows elevated"
         )
         if verdict == "unlikely_packed":
             verdict = "possibly_packed"
@@ -229,13 +266,26 @@ def packer_verdict(ent: dict, pe_sections: list[dict] | None) -> dict:
 # ---------------------------------------------------------------------------
 
 _PE_MACHINES = {
-    0x014C: "x86", 0x8664: "x86-64", 0x01C0: "ARM", 0xAA64: "ARM64",
-    0x01C4: "ARMv7-Thumb", 0x0200: "IA64", 0x5032: "RISC-V32",
-    0x5064: "RISC-V64", 0x6232: "LoongArch32", 0x6264: "LoongArch64",
+    0x014C: "x86",
+    0x8664: "x86-64",
+    0x01C0: "ARM",
+    0xAA64: "ARM64",
+    0x01C4: "ARMv7-Thumb",
+    0x0200: "IA64",
+    0x5032: "RISC-V32",
+    0x5064: "RISC-V64",
+    0x6232: "LoongArch32",
+    0x6264: "LoongArch64",
 }
 _ELF_MACHINES = {
-    0x03: "x86", 0x3E: "x86-64", 0x28: "ARM", 0xB7: "ARM64",
-    0x08: "MIPS", 0x14: "PowerPC", 0x15: "PPC64", 0xF3: "RISC-V",
+    0x03: "x86",
+    0x3E: "x86-64",
+    0x28: "ARM",
+    0xB7: "ARM64",
+    0x08: "MIPS",
+    0x14: "PowerPC",
+    0x15: "PPC64",
+    0xF3: "RISC-V",
 }
 _MACHO_MAGIC = {
     b"\xfe\xed\xfa\xce": "Mach-O 32 (BE)",
@@ -265,8 +315,12 @@ def detect_format(path: str) -> dict:
                     fh.seek(e_lfanew + 4)
                     machine = struct.unpack("<H", fh.read(2))[0]
                 arch = _PE_MACHINES.get(machine, f"machine=0x{machine:04x}")
-                return {"kind": "PE", "detail": arch, "arch": arch,
-                        "pe_offset": e_lfanew}
+                return {
+                    "kind": "PE",
+                    "detail": arch,
+                    "arch": arch,
+                    "pe_offset": e_lfanew,
+                }
         except (struct.error, OSError):
             pass
         return {"kind": "MZ", "detail": "DOS/16-bit or malformed PE"}
@@ -277,13 +331,15 @@ def detect_format(path: str) -> dict:
         mach = ""
         try:
             off = 18  # e_machine offset
-            emach = struct.unpack_from("<H" if endian != "BE" else ">H",
-                                       head, off)[0]
+            emach = struct.unpack_from("<H" if endian != "BE" else ">H", head, off)[0]
             mach = _ELF_MACHINES.get(emach, f"machine=0x{emach:04x}")
         except struct.error:
             mach = "?"
-        return {"kind": "ELF", "detail": f"ELF{cls} {endian} {mach}".strip(),
-                "arch": mach}
+        return {
+            "kind": "ELF",
+            "detail": f"ELF{cls} {endian} {mach}".strip(),
+            "arch": mach,
+        }
 
     if head[:4] in _MACHO_MAGIC:
         return {"kind": "Mach-O", "detail": _MACHO_MAGIC[head[:4]]}
@@ -296,8 +352,10 @@ def detect_format(path: str) -> dict:
             second = 0
         if second and second < 0x20:
             return {"kind": "Mach-O", "detail": f"universal/FAT ({second} arch)"}
-        return {"kind": "class-or-macho",
-                "detail": "Java .class or Mach-O FAT (0xCAFEBABE)"}
+        return {
+            "kind": "class-or-macho",
+            "detail": "Java .class or Mach-O FAT (0xCAFEBABE)",
+        }
 
     if head[:4] == b"dex\n":
         ver = head[4:7].decode("ascii", "replace")
@@ -335,15 +393,14 @@ def parse_pe_sections(path: str, pe_offset: int) -> list[dict]:
             base = sect_off + i * 40
             if base + 40 > len(data):
                 break
-            name = data[base:base + 8].split(b"\x00", 1)[0]
+            name = data[base : base + 8].split(b"\x00", 1)[0]
             name = name.decode("ascii", "replace")
             raw_size = struct.unpack_from("<I", data, base + 16)[0]
             raw_ptr = struct.unpack_from("<I", data, base + 20)[0]
             ent = 0.0
             if raw_size and raw_ptr and raw_ptr + raw_size <= len(data):
-                ent = shannon_entropy(data[raw_ptr:raw_ptr + raw_size])
-            out.append({"name": name, "raw_size": raw_size,
-                        "entropy": round(ent, 4)})
+                ent = shannon_entropy(data[raw_ptr : raw_ptr + raw_size])
+            out.append({"name": name, "raw_size": raw_size, "entropy": round(ent, 4)})
     except (struct.error, OSError, ValueError):
         return out
     return out
@@ -358,7 +415,10 @@ def _run(cmd: list[str], timeout: int) -> tuple[int, str, str]:
     """Run a subprocess; return (rc, stdout, stderr). rc=-9 timeout, -1 error."""
     try:
         proc = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=timeout,
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
             errors="replace",
         )
         return proc.returncode, proc.stdout or "", proc.stderr or ""
@@ -382,9 +442,11 @@ def _find_die() -> str | None:
 def run_die(path: str, timeout: int) -> dict:
     exe = _find_die()
     if not exe:
-        return {"status": "unavailable",
-                "note": "Detect-It-Easy CLI not found (set DIE_PATH or install "
-                        "'diec'); entropy heuristic used instead"}
+        return {
+            "status": "unavailable",
+            "note": "Detect-It-Easy CLI not found (set DIE_PATH or install "
+            "'diec'); entropy heuristic used instead",
+        }
     rc, out, err = _run([exe, "-j", path], timeout)
     if rc == -9:
         return {"status": "timeout", "note": err}
@@ -405,8 +467,11 @@ def run_die(path: str, timeout: int) -> dict:
         rc2, out2, _ = _run([exe, path], timeout)
         text = (out2 or out).strip().splitlines()
         detects = [ln.strip() for ln in text if ln.strip()][:8]
-    return {"status": "ok", "detects": detects[:12],
-            "summary": "; ".join(detects[:6]) or "no detections"}
+    return {
+        "status": "ok",
+        "detects": detects[:12],
+        "summary": "; ".join(detects[:6]) or "no detections",
+    }
 
 
 def _floss_cmd() -> list[str] | None:
@@ -423,23 +488,23 @@ def _floss_cmd() -> list[str] | None:
 def run_floss(path: str, timeout: int, full: bool, minlen: int) -> dict:
     base = _floss_cmd()
     if base is None:
-        return {"status": "unavailable",
-                "note": "FLOSS not importable/installed"}
+        return {"status": "unavailable", "note": "FLOSS not importable/installed"}
     cmd = base + ["-q", "-j", "-n", str(minlen)]
     if not full:
         cmd += ["--only", "static"]
     cmd += ["--", path]
     rc, out, err = _run(cmd, timeout)
     if rc == -9:
-        return {"status": "timeout",
-                "note": f"{err}; retry with a longer --timeout or drop --full"}
+        return {
+            "status": "timeout",
+            "note": f"{err}; retry with a longer --timeout or drop --full",
+        }
     if rc == -1:
         return {"status": "error", "note": err}
     try:
         j = json.loads(out)
     except json.JSONDecodeError:
-        return {"status": "error",
-                "note": (err or out or "no JSON").strip()[:200]}
+        return {"status": "error", "note": (err or out or "no JSON").strip()[:200]}
     strings = j.get("strings", {}) if isinstance(j, dict) else {}
 
     def _count(key: str) -> int:
@@ -457,8 +522,9 @@ def run_floss(path: str, timeout: int, full: bool, minlen: int) -> dict:
                         out_s.append(str(s)[:80])
         return out_s
 
-    decoded = _sample("decoded_strings") + _sample("stack_strings") \
-        + _sample("tight_strings")
+    decoded = (
+        _sample("decoded_strings") + _sample("stack_strings") + _sample("tight_strings")
+    )
     res = {
         "status": "ok",
         "static": _count("static_strings"),
@@ -469,9 +535,11 @@ def run_floss(path: str, timeout: int, full: bool, minlen: int) -> dict:
         "mode": "full" if full else "static-only",
     }
     total_deobf = res["stack"] + res["tight"] + res["decoded"]
-    res["summary"] = (f"static={res['static']} stack={res['stack']} "
-                      f"tight={res['tight']} decoded={res['decoded']}"
-                      + (" (run --full for deobfuscation)" if not full else ""))
+    res["summary"] = (
+        f"static={res['static']} stack={res['stack']} "
+        f"tight={res['tight']} decoded={res['decoded']}"
+        + (" (run --full for deobfuscation)" if not full else "")
+    )
     res["has_deobfuscated"] = total_deobf > 0
     return res
 
@@ -479,10 +547,12 @@ def run_floss(path: str, timeout: int, full: bool, minlen: int) -> dict:
 def run_capa(path: str, timeout: int) -> dict:
     exe = shutil.which("capa") or shutil.which("capa.exe")
     if not exe:
-        return {"status": "unavailable",
-                "note": "capa console CLI not on PATH (the lib may be present as "
-                        "a FLOSS dependency; install the capa entrypoint + rules "
-                        "to enable capability triage)"}
+        return {
+            "status": "unavailable",
+            "note": "capa console CLI not on PATH (the lib may be present as "
+            "a FLOSS dependency; install the capa entrypoint + rules "
+            "to enable capability triage)",
+        }
     rc, out, err = _run([exe, "-j", path], timeout)
     if rc == -9:
         return {"status": "timeout", "note": err}
@@ -503,23 +573,36 @@ def run_capa(path: str, timeout: int) -> dict:
                         attack.add(str(tid))
     except (json.JSONDecodeError, AttributeError):
         return {"status": "error", "note": (err or "unparseable capa JSON")[:200]}
-    return {"status": "ok", "n_capabilities": len(caps),
-            "capabilities": caps[:12], "attack": sorted(attack)[:12],
-            "summary": f"{len(caps)} capabilities; ATT&CK "
-                       f"{','.join(sorted(attack)[:6]) or 'n/a'}"}
+    return {
+        "status": "ok",
+        "n_capabilities": len(caps),
+        "capabilities": caps[:12],
+        "attack": sorted(attack)[:12],
+        "summary": f"{len(caps)} capabilities; ATT&CK "
+        f"{','.join(sorted(attack)[:6]) or 'n/a'}",
+    }
 
 
 def probe_triton() -> dict:
     rc, out, _ = _run(
-        [sys.executable, "-c",
-         "import triton,sys;sys.stdout.write(getattr(triton,'VERSION','?')"
-         " if hasattr(triton,'VERSION') else 'ok')"], 15)
+        [
+            sys.executable,
+            "-c",
+            "import triton,sys;sys.stdout.write(getattr(triton,'VERSION','?')"
+            " if hasattr(triton,'VERSION') else 'ok')",
+        ],
+        15,
+    )
     if rc == 0:
-        return {"status": "available",
-                "note": "dynamic taint is OPT-IN — build a taint harness per "
-                        "target; not auto-run in preflight (see SKILL.md)"}
-    return {"status": "unavailable",
-            "note": "Triton not importable; dynamic taint disabled"}
+        return {
+            "status": "available",
+            "note": "dynamic taint is OPT-IN — build a taint harness per "
+            "target; not auto-run in preflight (see SKILL.md)",
+        }
+    return {
+        "status": "unavailable",
+        "note": "Triton not importable; dynamic taint disabled",
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -587,8 +670,9 @@ DEFAULT_TOOLS = ["format", "entropy", "die"]
 FULL_TOOLS = ["format", "entropy", "die", "floss", "capa", "triton"]
 
 
-def build_triage(path: str, tools: list[str], timeout: int,
-                 floss_full: bool, minlen: int) -> dict:
+def build_triage(
+    path: str, tools: list[str], timeout: int, floss_full: bool, minlen: int
+) -> dict:
     t0 = time.time()
     fmt = detect_format(path)
     pe_sections = None
@@ -640,9 +724,11 @@ def format_triage_block(result: dict, sha: str, cache_state: str) -> str:
     packer = result.get("packer", {})
     whole = ent.get("whole", 0.0)
     verdict = packer.get("verdict", "n/a")
-    header = (f"TRIAGE:{sha[:8]} {result['path']} "
-              f"fmt={fmt.get('kind')} size={result['size']} "
-              f"entropy={whole:.2f} packer={verdict} cache={cache_state}")
+    header = (
+        f"TRIAGE:{sha[:8]} {result['path']} "
+        f"fmt={fmt.get('kind')} size={result['size']} "
+        f"entropy={whole:.2f} packer={verdict} cache={cache_state}"
+    )
     lines.append(header)
     lines.append(f"  format    : {fmt.get('kind')} — {fmt.get('detail')}")
     if ent:
@@ -650,15 +736,22 @@ def format_triage_block(result: dict, sha: str, cache_state: str) -> str:
             f"  entropy   : whole={ent.get('whole')} "
             f"max_window={ent.get('max_window')} "
             f"packed_fraction={ent.get('packed_fraction')} "
-            f"windows={ent.get('n_full_windows')}")
-        lines.append(f"  packer    : {verdict} "
-                     f"({'; '.join(packer.get('reasons', []))[:220]})")
+            f"windows={ent.get('n_full_windows')}"
+        )
+        lines.append(
+            f"  packer    : {verdict} ({'; '.join(packer.get('reasons', []))[:220]})"
+        )
     if result.get("pe_sections"):
-        hot = [s for s in result["pe_sections"]
-               if s.get("entropy", 0) >= SECTION_PACKED_ENTROPY]
+        hot = [
+            s
+            for s in result["pe_sections"]
+            if s.get("entropy", 0) >= SECTION_PACKED_ENTROPY
+        ]
         if hot:
-            lines.append("  sections  : hot=" + ",".join(
-                f"{s['name']}({s['entropy']:.2f})" for s in hot[:6]))
+            lines.append(
+                "  sections  : hot="
+                + ",".join(f"{s['name']}({s['entropy']:.2f})" for s in hot[:6])
+            )
     for tool in ("die", "floss", "capa", "triton"):
         info = result.get(tool)
         if not info:
@@ -673,8 +766,10 @@ def format_triage_block(result: dict, sha: str, cache_state: str) -> str:
         else:
             lines.append(f"  {tool:<9} : {st} ({info.get('note', '')})")
     ran = _ran_ok(result)
-    lines.append(f"SUCCESS:re-triage {sha[:8]} tools={','.join(ran)} "
-                 f"elapsed={result.get('elapsed_sec')}s")
+    lines.append(
+        f"SUCCESS:re-triage {sha[:8]} tools={','.join(ran)} "
+        f"elapsed={result.get('elapsed_sec')}s"
+    )
     return "\n".join(lines)
 
 
@@ -693,8 +788,7 @@ def selftest() -> int:
     # Entropy bounds.
     check("entropy-empty", shannon_entropy(b"") == 0.0)
     check("entropy-uniform-zero", shannon_entropy(b"\x00" * 1000) == 0.0)
-    check("entropy-two-symbol",
-          abs(shannon_entropy(b"\x00\xff" * 500) - 1.0) < 1e-9)
+    check("entropy-two-symbol", abs(shannon_entropy(b"\x00\xff" * 500) - 1.0) < 1e-9)
     full = shannon_entropy(bytes(range(256)) * 4)
     check("entropy-uniform-8bit", abs(full - 8.0) < 1e-9)
 
@@ -703,8 +797,12 @@ def selftest() -> int:
         tdp = Path(td)
 
         elf = tdp / "x.elf"
-        elf.write_bytes(b"\x7fELF\x02\x01\x01" + b"\x00" * 11
-                        + struct.pack("<H", 0x3E) + b"\x00" * 4000)
+        elf.write_bytes(
+            b"\x7fELF\x02\x01\x01"
+            + b"\x00" * 11
+            + struct.pack("<H", 0x3E)
+            + b"\x00" * 4000
+        )
         check("fmt-elf", detect_format(str(elf))["kind"] == "ELF")
 
         dex = tdp / "x.dex"
@@ -725,7 +823,7 @@ def selftest() -> int:
         buf[0:2] = b"MZ"
         pe_off = 0x80
         struct.pack_into("<I", buf, 0x3C, pe_off)
-        buf[pe_off:pe_off + 4] = b"PE\x00\x00"
+        buf[pe_off : pe_off + 4] = b"PE\x00\x00"
         struct.pack_into("<H", buf, pe_off + 4, 0x8664)  # machine x86-64
         pe.write_bytes(bytes(buf))
         fmt = detect_format(str(pe))
@@ -733,14 +831,16 @@ def selftest() -> int:
 
         # High-entropy synthetic -> packer heuristic should flag it.
         import random
+
         rnd = tdp / "packed.bin"
         random.seed(1)
         rnd.write_bytes(bytes(random.randrange(256) for _ in range(WINDOW * 6)))
         ent = windowed_entropy(str(rnd))
         pv = packer_verdict(ent, None)
         check("entropy-packed-high", ent["whole"] > 7.5)
-        check("packer-flags-random",
-              pv["verdict"] in ("likely_packed", "possibly_packed"))
+        check(
+            "packer-flags-random", pv["verdict"] in ("likely_packed", "possibly_packed")
+        )
 
         # Low-entropy -> unlikely packed.
         low = tdp / "low.bin"
@@ -750,11 +850,13 @@ def selftest() -> int:
         check("packer-unlikely-lowent", pvl["verdict"] == "unlikely_packed")
 
         # PE section packer-name detection.
-        pv_sec = packer_verdict({"whole": 4.0, "packed_fraction": 0.0,
-                                 "n_full_windows": 5},
-                                [{"name": "UPX0", "entropy": 0.0, "raw_size": 0},
-                                 {"name": "UPX1", "entropy": 7.9,
-                                  "raw_size": 4096}])
+        pv_sec = packer_verdict(
+            {"whole": 4.0, "packed_fraction": 0.0, "n_full_windows": 5},
+            [
+                {"name": "UPX0", "entropy": 0.0, "raw_size": 0},
+                {"name": "UPX1", "entropy": 7.9, "raw_size": 4096},
+            ],
+        )
         check("packer-section-name", pv_sec["verdict"] == "likely_packed")
 
         # Cache round-trip (isolated temp cache).
@@ -765,8 +867,9 @@ def selftest() -> int:
         res = build_triage(str(sample), ["format", "entropy"], 5, False, 5)
         save_cache(sha, res)
         loaded = load_cache(sha)
-        check("cache-roundtrip", loaded is not None
-              and loaded["schema"] == SCHEMA_VERSION)
+        check(
+            "cache-roundtrip", loaded is not None and loaded["schema"] == SCHEMA_VERSION
+        )
         # Schema-bump invalidation.
         bad = dict(res)
         bad["schema"] = 999
@@ -780,8 +883,9 @@ def selftest() -> int:
 
         # Missing external tool -> graceful status, never raises.
         die = run_die(str(sample), 5)
-        check("die-graceful", die["status"] in
-              ("unavailable", "ok", "timeout", "error"))
+        check(
+            "die-graceful", die["status"] in ("unavailable", "ok", "timeout", "error")
+        )
 
         # Shadow sink rotation.
         os.environ["RE_TRIAGE_CACHE"] = str(tdp / "cache2")
@@ -794,8 +898,10 @@ def selftest() -> int:
     if failures:
         print("FAILED:re-triage selftest failures=" + ",".join(failures))
         return 1
-    print("SUCCESS:re-triage selftest all-checks-passed "
-          "(entropy,format,pe,packer,cache,block,tool-graceful,shadow)")
+    print(
+        "SUCCESS:re-triage selftest all-checks-passed "
+        "(entropy,format,pe,packer,cache,block,tool-graceful,shadow)"
+    )
     return 0
 
 
@@ -824,32 +930,54 @@ def probe_tools() -> int:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         prog="triage.py",
-        description="Hash-cached RE triage preflight (advisory / never blocks).")
+        description="Hash-cached RE triage preflight (advisory / never blocks).",
+    )
     ap.add_argument("target", nargs="?", help="path to the binary to triage")
-    ap.add_argument("--full", action="store_true",
-                    help="also run floss (all string types) + capa")
-    ap.add_argument("--tools", help="explicit comma tool set "
-                    "(format,entropy,die,floss,capa,triton)")
-    ap.add_argument("--floss-full", action="store_true",
-                    help="FLOSS: extract stack/tight/decoded (deobfuscation)")
-    ap.add_argument("--minlen", type=int, default=DEFAULT_MINLEN,
-                    help="FLOSS minimum string length")
-    ap.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT,
-                    help="per-external-tool timeout seconds")
-    ap.add_argument("--refresh", action="store_true",
-                    help="ignore any cached result and recompute")
-    ap.add_argument("--no-cache", action="store_true",
-                    help="do not read or write the cache")
-    ap.add_argument("--json", action="store_true",
-                    help="emit the full result as JSON")
-    ap.add_argument("--shadow", action="store_true",
-                    help="append to the rotating shadow sink and stay quiet")
-    ap.add_argument("--quiet", action="store_true",
-                    help="suppress the human TRIAGE block (JSON/shadow only)")
-    ap.add_argument("--selftest", action="store_true",
-                    help="run internal unit checks and exit")
-    ap.add_argument("--probe-tools", action="store_true",
-                    help="report external-tool availability and exit")
+    ap.add_argument(
+        "--full", action="store_true", help="also run floss (all string types) + capa"
+    )
+    ap.add_argument(
+        "--tools", help="explicit comma tool set (format,entropy,die,floss,capa,triton)"
+    )
+    ap.add_argument(
+        "--floss-full",
+        action="store_true",
+        help="FLOSS: extract stack/tight/decoded (deobfuscation)",
+    )
+    ap.add_argument(
+        "--minlen", type=int, default=DEFAULT_MINLEN, help="FLOSS minimum string length"
+    )
+    ap.add_argument(
+        "--timeout",
+        type=int,
+        default=DEFAULT_TIMEOUT,
+        help="per-external-tool timeout seconds",
+    )
+    ap.add_argument(
+        "--refresh", action="store_true", help="ignore any cached result and recompute"
+    )
+    ap.add_argument(
+        "--no-cache", action="store_true", help="do not read or write the cache"
+    )
+    ap.add_argument("--json", action="store_true", help="emit the full result as JSON")
+    ap.add_argument(
+        "--shadow",
+        action="store_true",
+        help="append to the rotating shadow sink and stay quiet",
+    )
+    ap.add_argument(
+        "--quiet",
+        action="store_true",
+        help="suppress the human TRIAGE block (JSON/shadow only)",
+    )
+    ap.add_argument(
+        "--selftest", action="store_true", help="run internal unit checks and exit"
+    )
+    ap.add_argument(
+        "--probe-tools",
+        action="store_true",
+        help="report external-tool availability and exit",
+    )
     args = ap.parse_args(argv)
 
     if args.selftest:
@@ -859,8 +987,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if not args.target:
         ap.print_usage()
-        print("FAILED:re-triage no-target (pass a file path, --selftest, or "
-              "--probe-tools)")
+        print(
+            "FAILED:re-triage no-target (pass a file path, --selftest, or "
+            "--probe-tools)"
+        )
         return 2
     path = args.target
     if not os.path.isfile(path):
@@ -891,16 +1021,15 @@ def main(argv: list[str] | None = None) -> int:
             # Only reuse the cache if it covers every requested tool.
             covered = all(
                 (t in ("format", "entropy") and t in cached)
-                or cached.get(t, {}).get("status") in
-                ("ok", "unavailable", "available")
-                for t in tools)
+                or cached.get(t, {}).get("status") in ("ok", "unavailable", "available")
+                for t in tools
+            )
             if covered:
                 result = cached
                 cache_state = "hit"
 
     if result is None:
-        result = build_triage(path, tools, args.timeout, floss_full,
-                              args.minlen)
+        result = build_triage(path, tools, args.timeout, floss_full, args.minlen)
         if not args.no_cache:
             try:
                 saved = save_cache(sha, result)
@@ -911,11 +1040,17 @@ def main(argv: list[str] | None = None) -> int:
     block = format_triage_block(result, sha, cache_state)
 
     if args.shadow:
-        append_shadow(json.dumps({"sha": sha, "path": result["path"],
-                                  "verdict": result.get("packer", {})
-                                  .get("verdict"),
-                                  "fmt": result["format"].get("kind"),
-                                  "at": int(time.time())}))
+        append_shadow(
+            json.dumps(
+                {
+                    "sha": sha,
+                    "path": result["path"],
+                    "verdict": result.get("packer", {}).get("verdict"),
+                    "fmt": result["format"].get("kind"),
+                    "at": int(time.time()),
+                }
+            )
+        )
         if not args.json and not args.quiet:
             # Shadow mode stays quiet on stdout by contract.
             return 0
