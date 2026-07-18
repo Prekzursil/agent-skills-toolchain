@@ -25,6 +25,7 @@ working. The redaction / quarantine layer, not this heuristic, is the guardrail
 LLM-Prompt-Injection corpus (a representative subset; extend HERE and both
 consumers inherit it).
 """
+
 from __future__ import annotations
 
 import re
@@ -148,7 +149,9 @@ INJECTION_PATTERNS: tuple[tuple[str, str, Pattern[str]], ...] = (
 )
 
 
-def _select(categories: Iterable[str] | None) -> tuple[tuple[str, str, Pattern[str]], ...]:
+def _select(
+    categories: Iterable[str] | None,
+) -> tuple[tuple[str, str, Pattern[str]], ...]:
     if categories is None:
         return INJECTION_PATTERNS
     wanted = {str(c) for c in categories}

@@ -38,6 +38,7 @@ codex}, settings:{hooks, mcpServers, disabledMcpServers}}) is a load-bearing
 contract: modules.py (D5, ConfigChange) compares the live settings against the
 ``settings`` snapshot to detect config drift, so it is preserved exactly.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -79,10 +80,17 @@ LIVE_HARNESS_DIR = HOME / ".agents" / "harness"
 # installed.json is the deploy RECEIPT (written per-deploy, never copied FROM
 # source); backups/, __pycache__/, .venv/ are generated trees; .deploy.lock is
 # the single-writer lock; .deploy-stage-* are the atomic staging temp dirs.
-DEPLOY_EXCLUDE_NAMES = frozenset({
-    "installed.json", "backups", "__pycache__", ".pytest_cache", ".ruff_cache",
-    ".venv", ".deploy.lock",
-})
+DEPLOY_EXCLUDE_NAMES = frozenset(
+    {
+        "installed.json",
+        "backups",
+        "__pycache__",
+        ".pytest_cache",
+        ".ruff_cache",
+        ".venv",
+        ".deploy.lock",
+    }
+)
 DEPLOY_EXCLUDE_SUFFIXES = (".bak",)
 # The CAS-lite deploy machinery (ONE target per call).
 DEPLOY_TARGETS = ("harness", "skills", "hooks")
@@ -102,11 +110,11 @@ RECONCILE_BASELINE = HERE / "reconcile-baseline.json"
 # mkdirs its own leaf lazily, but --bootstrap materializes them up front so a
 # brand-new checkout (or a wiped state root) is immediately consistent.
 STATE_SUBDIRS = (
-    "shadow",           # SI-2 shadow-ladder sampled rotating sink
+    "shadow",  # SI-2 shadow-ladder sampled rotating sink
     "recall-injected",  # SI-5 per-session recall suppression markers
-    "session-goals",    # per-session goal isolation (ledger _session_goal_path)
-    "anti-degen",       # anti-degeneration sliding windows
-    "goal-counters",    # goal re-injection cadence counters
+    "session-goals",  # per-session goal isolation (ledger _session_goal_path)
+    "anti-degen",  # anti-degeneration sliding windows
+    "goal-counters",  # goal re-injection cadence counters
 )
 MODULE_MODES_NAME = "module-modes.json"
 
@@ -299,9 +307,7 @@ def _observe_symlink(link: Path) -> dict[str, Any]:
     return {"is_symlink": False, "target": None, "exists": False}
 
 
-def _reconcile_skills_symlink(
-    link: Path, baseline: dict[str, Any] | None
-) -> DriftItem:
+def _reconcile_skills_symlink(link: Path, baseline: dict[str, Any] | None) -> DriftItem:
     """The ~/.claude/skills symlink target -- managed only when pinned."""
     managed = bool(baseline) and "skills_symlink" in baseline
     try:
@@ -609,7 +615,9 @@ def _default_live(target: str) -> Path:
     if target == "skills":
         agents = os.environ.get("HARNESS_LIVE_AGENTS_DIR") or str(HOME / ".agents")
         return Path(agents) / "skills"
-    return Path(os.environ.get("HARNESS_LIVE_HOOKS_DIR") or (HOME / ".claude" / "hooks"))
+    return Path(
+        os.environ.get("HARNESS_LIVE_HOOKS_DIR") or (HOME / ".claude" / "hooks")
+    )
 
 
 def _acquire_deploy_lock(live_dir: Path, stale_seconds: float) -> Path:
@@ -727,8 +735,14 @@ def deploy(
         try:
             lock_path = _acquire_deploy_lock(dst, lock_stale_seconds)
         except DeployLockError as exc:
-            _emit({"status": "failed", "target": target,
-                   "reason": "lock_contention", "held_by": exc.held})
+            _emit(
+                {
+                    "status": "failed",
+                    "target": target,
+                    "reason": "lock_contention",
+                    "held_by": exc.held,
+                }
+            )
             return 1
 
         # PLAN: content hashes for the current live tree AND the candidate tree.
@@ -788,22 +802,43 @@ def deploy(
         if mismatches:
             if backup is not None:
                 _restore_tree(backup, dst)
-            _emit({"status": "failed", "target": target,
-                   "reason": "parity_mismatch", "mismatches": sorted(mismatches),
-                   "restored_from": str(backup) if backup is not None else None})
+            _emit(
+                {
+                    "status": "failed",
+                    "target": target,
+                    "reason": "parity_mismatch",
+                    "mismatches": sorted(mismatches),
+                    "restored_from": str(backup) if backup is not None else None,
+                }
+            )
             return 1
 
         # RECEIPT: write/extend <target>/installed.json.
         receipt = _write_receipt(dst, src, target, candidate_hashes, backup)
-        _emit({"status": "deployed", "target": target, "deployed_to": str(dst),
-               "source": str(src), "count": len(copied), "copied": copied,
-               "backup": str(backup) if backup is not None else None,
-               "receipt": receipt})
+        _emit(
+            {
+                "status": "deployed",
+                "target": target,
+                "deployed_to": str(dst),
+                "source": str(src),
+                "count": len(copied),
+                "copied": copied,
+                "backup": str(backup) if backup is not None else None,
+                "receipt": receipt,
+            }
+        )
         return 0
     except DeployCASConflict as exc:
-        _emit({"status": "failed", "target": target, "reason": "cas_conflict",
-               "file": exc.rel, "expected_hash": exc.expected,
-               "actual_hash": exc.actual})
+        _emit(
+            {
+                "status": "failed",
+                "target": target,
+                "reason": "cas_conflict",
+                "file": exc.rel,
+                "expected_hash": exc.expected,
+                "actual_hash": exc.actual,
+            }
+        )
         return 1
     finally:
         if lock_path is not None:

@@ -14,7 +14,6 @@ from __future__ import annotations
 import json
 
 import harness.modules as harness_modules
-from harness import dispatcher as disp
 from harness.dispatcher import (
     HarnessDispatcher,
     PRIORITY_ADVISORY,
@@ -51,7 +50,9 @@ class _Exploding:
 
 
 def _inject(reason_code, text, action="inject"):
-    return HookResult.success(action=action, reason_code=reason_code, additional_context=[text])
+    return HookResult.success(
+        action=action, reason_code=reason_code, additional_context=[text]
+    )
 
 
 def _pre(tmp_path, command="echo safe"):
@@ -169,7 +170,11 @@ def test_mix_empty_input():
 # --------------------------------------------------------------------------- #
 def _event(command, event_name="PreToolUse"):
     return normalize_event(
-        {"tool_name": "Bash", "tool_input": {"command": command}, "hook_event_name": event_name},
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": command},
+            "hook_event_name": event_name,
+        },
         provider="claude",
         event_name=event_name,
     )
@@ -185,7 +190,9 @@ def test_sterile_cockpit_detects_commit_push_release_deploy():
 def test_sterile_cockpit_ignores_ordinary_commands():
     assert not _sterile_cockpit(_event("pytest -q"))
     assert not _sterile_cockpit(_event("git status"))
-    assert not _sterile_cockpit(_event("echo deployment note"))  # 'deployment' != 'deploy'
+    assert not _sterile_cockpit(
+        _event("echo deployment note")
+    )  # 'deployment' != 'deploy'
 
 
 def test_sterile_cockpit_only_pretooluse():
@@ -201,12 +208,16 @@ def test_shadow_default_preserves_context_under_block(tmp_path):
         _Module(
             "secret_guard",
             HookResult.success(
-                action="block", reason_code="secret_literal", additional_context=["Blocked."]
+                action="block",
+                reason_code="secret_literal",
+                additional_context=["Blocked."],
             ),
         ),
     ]
     dispatcher = HarnessDispatcher(modules=modules, state_root=tmp_path / "state")
-    result = dispatcher.dispatch(_pre(tmp_path), provider="claude", event_name="PreToolUse")
+    result = dispatcher.dispatch(
+        _pre(tmp_path), provider="claude", event_name="PreToolUse"
+    )
     # SHADOW default: nothing dropped, module order preserved.
     assert result.action == "block"
     assert result.additional_context == ["advisory chatter", "Blocked."]
@@ -222,12 +233,16 @@ def test_shadow_logs_delta_without_altering_output(tmp_path, monkeypatch):
         _Module(
             "secret_guard",
             HookResult.success(
-                action="block", reason_code="secret_literal", additional_context=["Blocked."]
+                action="block",
+                reason_code="secret_literal",
+                additional_context=["Blocked."],
             ),
         ),
     ]
     dispatcher = HarnessDispatcher(modules=modules, state_root=tmp_path / "state")
-    result = dispatcher.dispatch(_pre(tmp_path), provider="claude", event_name="PreToolUse")
+    result = dispatcher.dispatch(
+        _pre(tmp_path), provider="claude", event_name="PreToolUse"
+    )
     assert result.additional_context == ["advisory chatter", "Blocked."]
     # The mixer would have ducked the advisory, so a delta is logged in shadow.
     assert any(a and a[0] == "injection_mixer" for a in calls)
@@ -243,12 +258,16 @@ def test_enforce_mode_ducks_advisory_under_block(tmp_path, monkeypatch):
         _Module(
             "secret_guard",
             HookResult.success(
-                action="block", reason_code="secret_literal", additional_context=["Blocked."]
+                action="block",
+                reason_code="secret_literal",
+                additional_context=["Blocked."],
             ),
         ),
     ]
     dispatcher = HarnessDispatcher(modules=modules, state_root=tmp_path / "state")
-    result = dispatcher.dispatch(_pre(tmp_path), provider="claude", event_name="PreToolUse")
+    result = dispatcher.dispatch(
+        _pre(tmp_path), provider="claude", event_name="PreToolUse"
+    )
     assert result.action == "block"
     assert result.additional_context == ["Blocked."]
 
@@ -295,6 +314,7 @@ def test_breaker_records_streak_and_quarantines_after_threshold(tmp_path, monkey
 def test_breaker_success_resets_streak(tmp_path, monkeypatch):
     monkeypatch.setenv("HARNESS_BREAKER_STREAK", "3")
     state_root = tmp_path / "state"
+
     # A module that fails once then succeeds: streak must not accumulate to quarantine.
     class _Flaky:
         name = "flaky"
@@ -368,7 +388,9 @@ def test_breaker_emits_telemetry_via_shadow_log(tmp_path, monkeypatch):
     monkeypatch.setattr(
         harness_modules, "shadow_log", lambda *a, **k: calls.append(a), raising=False
     )
-    dispatcher = HarnessDispatcher(modules=[_Exploding("boom")], state_root=tmp_path / "state")
+    dispatcher = HarnessDispatcher(
+        modules=[_Exploding("boom")], state_root=tmp_path / "state"
+    )
     dispatcher.dispatch(_pre(tmp_path), provider="codex", event_name="PreToolUse")
     assert any(a and a[0] == "guard_breaker" for a in calls)
 
@@ -398,8 +420,12 @@ def test_terminal_jsonl_record_shape_is_unperturbed(tmp_path):
 
 
 def test_fail_open_preserved_with_breaker(tmp_path):
-    dispatcher = HarnessDispatcher(modules=[_Exploding("boom")], state_root=tmp_path / "state")
-    result = dispatcher.dispatch(_pre(tmp_path), provider="codex", event_name="PreToolUse")
+    dispatcher = HarnessDispatcher(
+        modules=[_Exploding("boom")], state_root=tmp_path / "state"
+    )
+    result = dispatcher.dispatch(
+        _pre(tmp_path), provider="codex", event_name="PreToolUse"
+    )
     assert result.action == "allow"
     assert result.status.startswith("FAILED:")
     assert result.reason_code == "internal_error"
@@ -412,7 +438,9 @@ def test_raised_branch_does_not_suppress_later_module(tmp_path):
         _Module("goal", _inject("goal_reinjection", "still injected")),
     ]
     dispatcher = HarnessDispatcher(modules=modules, state_root=tmp_path / "state")
-    result = dispatcher.dispatch(_pre(tmp_path), provider="codex", event_name="PreToolUse")
+    result = dispatcher.dispatch(
+        _pre(tmp_path), provider="codex", event_name="PreToolUse"
+    )
     # The exploder failed but the later inject survived (per-branch isolation).
     assert "still injected" in result.additional_context
     assert result.action == "inject"
@@ -428,10 +456,14 @@ def test_shadow_default_no_shadow_log_is_safe(tmp_path, monkeypatch):
         _Module(
             "secret_guard",
             HookResult.success(
-                action="block", reason_code="secret_literal", additional_context=["Blocked."]
+                action="block",
+                reason_code="secret_literal",
+                additional_context=["Blocked."],
             ),
         ),
     ]
     dispatcher = HarnessDispatcher(modules=modules, state_root=tmp_path / "state")
-    result = dispatcher.dispatch(_pre(tmp_path), provider="claude", event_name="PreToolUse")
+    result = dispatcher.dispatch(
+        _pre(tmp_path), provider="claude", event_name="PreToolUse"
+    )
     assert result.additional_context == ["advisory chatter", "Blocked."]

@@ -58,11 +58,7 @@ def test_unterminated_private_key_redacts_everything_after_header():
     ],
 )
 def test_all_private_key_envelopes_are_detected_and_fully_redacted(label):
-    secret = (
-        f"-----BEGIN {label}-----\n"
-        "PRIVATE_BODY_SENTINEL\n"
-        f"-----END {label}-----"
-    )
+    secret = f"-----BEGIN {label}-----\nPRIVATE_BODY_SENTINEL\n-----END {label}-----"
 
     redacted = redact_text(f"before\n{secret}\nafter")
 
@@ -154,7 +150,9 @@ def test_secret_block_stops_goal_and_checkpoint_persistence(tmp_path, monkeypatc
         "prompt": f"Persist this task and credential:\n{PRIVATE_KEY}",
     }
 
-    result = dispatcher.dispatch(payload, provider="codex", event_name="UserPromptSubmit")
+    result = dispatcher.dispatch(
+        payload, provider="codex", event_name="UserPromptSubmit"
+    )
 
     ledger = EventLedger(state_root)
     # Owner directive 2026-07-11: the user's prompt is no longer hard-blocked; the
@@ -180,7 +178,9 @@ def test_labeled_secret_block_never_becomes_a_goal(tmp_path):
         "prompt": f"Please remember this credential: {assignment}",
     }
 
-    result = dispatcher.dispatch(payload, provider="codex", event_name="UserPromptSubmit")
+    result = dispatcher.dispatch(
+        payload, provider="codex", event_name="UserPromptSubmit"
+    )
 
     # Owner directive 2026-07-11: redact-not-block — the prompt is processed, but the
     # labeled secret is redacted before it can become a persisted goal or ledger state.

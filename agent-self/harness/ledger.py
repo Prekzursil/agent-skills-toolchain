@@ -157,13 +157,95 @@ class Receipt:
 # build. Multi-char tokens (containing a space/symbol) match literally; bare
 # alnum tokens are word-bounded to avoid "latest"->test / "runtime"->run hits.
 _RECEIPT_SIGNATURES: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("coverage", ("--cov", "cov-report", "--coverage", "coverage.py", "nyc", "c8", "codecov")),
-    ("e2e", ("playwright", "cypress", "e2e", "nightwatch", "puppeteer", "selenium", "webdriverio")),
-    ("typecheck", ("tsc", "mypy", "pyright", "basedpyright", "type-check", "typecheck")),
-    ("lint", ("eslint", "ruff", "flake8", "pylint", "prettier", "biome", "clippy", "golangci", "opengrep", "semgrep", "--check", "lint")),
-    ("test", ("pytest", "jest", "vitest", "mocha", "unittest", "rspec", "phpunit", "go test", "cargo test", "npm test", "test")),
-    ("build", ("cargo build", "go build", "webpack", "vite build", "electron-builder", "cmake", "gradle", "mvn", "msbuild", "meson", "ninja", "compile", "make", "build")),
-    ("run", ("python", "node", "npm start", "cargo run", "go run", "uv run", "pnpm start", "bun run", "deno run", "dotnet run", "./", "run")),
+    (
+        "coverage",
+        ("--cov", "cov-report", "--coverage", "coverage.py", "nyc", "c8", "codecov"),
+    ),
+    (
+        "e2e",
+        (
+            "playwright",
+            "cypress",
+            "e2e",
+            "nightwatch",
+            "puppeteer",
+            "selenium",
+            "webdriverio",
+        ),
+    ),
+    (
+        "typecheck",
+        ("tsc", "mypy", "pyright", "basedpyright", "type-check", "typecheck"),
+    ),
+    (
+        "lint",
+        (
+            "eslint",
+            "ruff",
+            "flake8",
+            "pylint",
+            "prettier",
+            "biome",
+            "clippy",
+            "golangci",
+            "opengrep",
+            "semgrep",
+            "--check",
+            "lint",
+        ),
+    ),
+    (
+        "test",
+        (
+            "pytest",
+            "jest",
+            "vitest",
+            "mocha",
+            "unittest",
+            "rspec",
+            "phpunit",
+            "go test",
+            "cargo test",
+            "npm test",
+            "test",
+        ),
+    ),
+    (
+        "build",
+        (
+            "cargo build",
+            "go build",
+            "webpack",
+            "vite build",
+            "electron-builder",
+            "cmake",
+            "gradle",
+            "mvn",
+            "msbuild",
+            "meson",
+            "ninja",
+            "compile",
+            "make",
+            "build",
+        ),
+    ),
+    (
+        "run",
+        (
+            "python",
+            "node",
+            "npm start",
+            "cargo run",
+            "go run",
+            "uv run",
+            "pnpm start",
+            "bun run",
+            "deno run",
+            "dotnet run",
+            "./",
+            "run",
+        ),
+    ),
 )
 
 
@@ -171,7 +253,10 @@ def _token_in(command: str, token: str) -> bool:
     """Word-bounded match for bare alnum tokens; literal substring otherwise."""
     if not token.isalnum():
         return token in command
-    return re.search(r"(?<![a-z0-9])" + re.escape(token) + r"(?![a-z0-9])", command) is not None
+    return (
+        re.search(r"(?<![a-z0-9])" + re.escape(token) + r"(?![a-z0-9])", command)
+        is not None
+    )
 
 
 def _receipt_command(tool_name: str, tool_input: Any) -> str:
@@ -198,7 +283,14 @@ def _receipt_command(tool_name: str, tool_input: Any) -> str:
 def _is_health_command(lower: str) -> bool:
     if any(
         token in lower
-        for token in ("healthz", "readyz", "livez", "/health", "healthcheck", "health-check")
+        for token in (
+            "healthz",
+            "readyz",
+            "livez",
+            "/health",
+            "healthcheck",
+            "health-check",
+        )
     ):
         return True
     if _token_in(lower, "ping"):
@@ -268,8 +360,12 @@ def _receipt_status(result: Any, passed: int, failed: int) -> str:
     if passed > 0:
         return "pass"
     text = _result_text(result)
-    positive = re.search(r"\b(?:success|succeeded|healthy|ready|ok|pass(?:ed)?)\b", text, re.I)
-    negative = re.search(r"\b(?:fail(?:ed|ure)?|error|traceback|exception)\b", text, re.I)
+    positive = re.search(
+        r"\b(?:success|succeeded|healthy|ready|ok|pass(?:ed)?)\b", text, re.I
+    )
+    negative = re.search(
+        r"\b(?:fail(?:ed|ure)?|error|traceback|exception)\b", text, re.I
+    )
     if positive and not negative:
         return "pass"
     return "unknown"
@@ -284,7 +380,9 @@ def argv_fingerprint(command: str) -> str:
     return hashlib.sha256(normalized.encode("utf-8", "replace")).hexdigest()
 
 
-def classify_receipt(tool_name: str, tool_input: Any, tool_result: Any) -> Receipt | None:
+def classify_receipt(
+    tool_name: str, tool_input: Any, tool_result: Any
+) -> Receipt | None:
     """Pure argv+exit+parsed-count heuristic -> a typed Receipt, or None when the
     tool carries no runnable command or the command is unclassifiable (SI-1)."""
     command = _receipt_command(tool_name, tool_input)
@@ -396,9 +494,7 @@ class EventLedger:
         digest = project_key(cwd).removeprefix("project-")
         try:
             compatible = list(self.root.glob(f"*-{digest}/events.jsonl"))
-            compatible.extend(
-                self.root.glob(f"project-{digest}-legacy-*/events.jsonl")
-            )
+            compatible.extend(self.root.glob(f"project-{digest}-legacy-*/events.jsonl"))
         except OSError:
             compatible = []
         paths = list(dict.fromkeys(path for path in compatible if path != target))
@@ -564,7 +660,9 @@ class EventLedger:
         for path in paths:
             events.extend(cls._tail_events_from_path(path, max_bytes=budget))
         events = [item for item in events if int(item.get("seq") or 0) > after_seq]
-        events.sort(key=lambda item: (int(item.get("seq") or 0), str(item.get("ts") or "")))
+        events.sort(
+            key=lambda item: (int(item.get("seq") or 0), str(item.get("ts") or ""))
+        )
         if not events:
             return [], False
         covered = {int(item.get("seq") or 0) for item in events}
@@ -572,12 +670,16 @@ class EventLedger:
         return events, complete
 
     @classmethod
-    def _bounded_shared_events(cls, paths: list[Path], limit: int) -> list[dict[str, Any]]:
+    def _bounded_shared_events(
+        cls, paths: list[Path], limit: int
+    ) -> list[dict[str, Any]]:
         budget = max(256 * 1024, min(8 * 1024 * 1024, max(1, limit) * 16 * 1024))
         events: list[dict[str, Any]] = []
         for path in paths:
             events.extend(cls._tail_events_from_path(path, max_bytes=budget)[-limit:])
-        events.sort(key=lambda item: (str(item.get("ts") or ""), int(item.get("seq") or 0)))
+        events.sort(
+            key=lambda item: (str(item.get("ts") or ""), int(item.get("seq") or 0))
+        )
         return events[-limit:]
 
     @staticmethod
@@ -626,9 +728,7 @@ class EventLedger:
                 state["goal"] = event["text"]
                 state["goal_ts"] = event.get("ts")
             elif kind == "decision":
-                state["decisions"].append(
-                    {"seq": seq, "text": event.get("text", "")}
-                )
+                state["decisions"].append({"seq": seq, "text": event.get("text", "")})
             elif kind == "failure":
                 state["open_failures"].append(
                     {
@@ -701,7 +801,9 @@ class EventLedger:
             elif kind == "milestone":
                 supersedes = set(event.get("supersedes_failures") or [])
                 if supersedes:
-                    failures = [item for item in failures if item.get("seq") not in supersedes]
+                    failures = [
+                        item for item in failures if item.get("seq") not in supersedes
+                    ]
             elif kind == "mutation":
                 state["last_mutation_seq"] = max(
                     int(state.get("last_mutation_seq") or 0), seq
@@ -766,7 +868,9 @@ class EventLedger:
             target = self._events(cwd)
             self._ensure_append_boundary(target)
             with target.open("a", encoding="utf-8") as handle:
-                handle.write(json.dumps(event, ensure_ascii=False, separators=(",", ":")) + "\n")
+                handle.write(
+                    json.dumps(event, ensure_ascii=False, separators=(",", ":")) + "\n"
+                )
                 handle.flush()
                 os.fsync(handle.fileno())
 
@@ -781,7 +885,9 @@ class EventLedger:
         combined = self._legacy_events(cwd) + result
         deduped: dict[str, dict[str, Any]] = {}
         for item in combined:
-            identity = str(item.get("event_id") or json.dumps(
+            identity = str(
+                item.get("event_id")
+                or json.dumps(
                     {
                         "ts": item.get("ts"),
                         "kind": item.get("kind"),
@@ -792,10 +898,12 @@ class EventLedger:
                     },
                     sort_keys=True,
                     ensure_ascii=False,
-                ))
+                )
+            )
             deduped[identity] = item
         return sorted(
-            deduped.values(), key=lambda item: (str(item.get("ts") or ""), int(item.get("seq") or 0))
+            deduped.values(),
+            key=lambda item: (str(item.get("ts") or ""), int(item.get("seq") or 0)),
         )[-requested:]
 
     def state(self, cwd: str) -> dict[str, Any]:
@@ -827,7 +935,8 @@ class EventLedger:
         )
         shared["decisions"] = (decisions + list(shared.get("decisions") or []))[-20:]
         shared["open_failures"] = (
-            list(legacy.get("open_failures") or []) + list(shared.get("open_failures") or [])
+            list(legacy.get("open_failures") or [])
+            + list(shared.get("open_failures") or [])
         )[-20:]
         shared["legacy_seq"] = int(legacy.get("seq") or 0)
         return shared
@@ -859,8 +968,7 @@ class EventLedger:
                     (self._timestamp(event.get("ts")), order, str(event["text"]))
                 )
         if legacy_state.get("goal") and not any(
-            event.get("kind") == "goal" and event.get("text")
-            for event in legacy_events
+            event.get("kind") == "goal" and event.get("text") for event in legacy_events
         ):
             candidates.append(
                 (
@@ -870,8 +978,7 @@ class EventLedger:
                 )
             )
         if shared_state.get("goal") and not any(
-            event.get("kind") == "goal" and event.get("text")
-            for event in shared_events
+            event.get("kind") == "goal" and event.get("text") for event in shared_events
         ):
             candidates.append(
                 (
@@ -949,7 +1056,9 @@ class EventLedger:
     # by the external falsification trigger. Bounded, chronological scans.
     # ------------------------------------------------------------------
 
-    def _scan_events(self, cwd: str, *, limit: int = _RECEIPT_SCAN_LIMIT) -> list[dict[str, Any]]:
+    def _scan_events(
+        self, cwd: str, *, limit: int = _RECEIPT_SCAN_LIMIT
+    ) -> list[dict[str, Any]]:
         """Bounded, ts+seq-sorted recent events for the receipt/taint queries."""
         return self.replay(cwd, limit=limit)
 
@@ -1126,7 +1235,11 @@ class EventLedger:
                 continue
             paths = [raw_state.get("project"), *(raw_state.get("aliases") or [])]
             for candidate in paths:
-                if candidate and os.path.normcase(canonical_project_path(str(candidate))) == target:
+                if (
+                    candidate
+                    and os.path.normcase(canonical_project_path(str(candidate)))
+                    == target
+                ):
                     safe_state = _sanitize_value(raw_state)
                     result = (
                         safe_state if isinstance(safe_state, dict) else {},

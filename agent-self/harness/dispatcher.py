@@ -212,7 +212,9 @@ def _shadow_tier(name: str, fallback: str) -> str:
     return str(getattr(_modules, name, fallback) or fallback)
 
 
-def _emit_shadow(gate: str, tier: str, event: Any, reason_code: str, detail: str = "") -> None:
+def _emit_shadow(
+    gate: str, tier: str, event: Any, reason_code: str, detail: str = ""
+) -> None:
     """Route F6/G3 telemetry through modules.shadow_log (SI-2). Resolved lazily so
     it composes once the modules lane lands the primitive, and is an inert no-op
     until then (keeps the dispatcher fail-open and standalone). shadow_log writes
@@ -231,9 +233,13 @@ def _emit_shadow(gate: str, tier: str, event: Any, reason_code: str, detail: str
 
 
 class HarnessDispatcher:
-    def __init__(self, *, modules: list[Any] | None = None, state_root: Path | str | None = None):
+    def __init__(
+        self, *, modules: list[Any] | None = None, state_root: Path | str | None = None
+    ):
         self.state_root = Path(state_root or default_state_root())
-        self.modules = list(modules if modules is not None else build_default_modules(self.state_root))
+        self.modules = list(
+            modules if modules is not None else build_default_modules(self.state_root)
+        )
 
     def dispatch(
         self,
@@ -260,7 +266,9 @@ class HarnessDispatcher:
 
         for module in self.modules:
             module_name = str(getattr(module, "name", module.__class__.__name__))
-            if breaker_mode == "enforce" and self._is_quarantined(breaker, module_name, now):
+            if breaker_mode == "enforce" and self._is_quarantined(
+                breaker, module_name, now
+            ):
                 # Cooldown quarantine: a reliably-crashing module already provides
                 # no protection under fail-open, so skip it (and stop paying its
                 # cost) until the window elapses; it auto-resumes afterwards.
@@ -441,9 +449,9 @@ class HarnessDispatcher:
             for name, slot in list(state["modules"].items()):
                 if not isinstance(slot, dict):
                     continue
-                if int(slot.get("streak") or 0) >= streak_n and not self._is_quarantined(
-                    state, name, now
-                ):
+                if int(
+                    slot.get("streak") or 0
+                ) >= streak_n and not self._is_quarantined(state, name, now):
                     slot["quarantined_until"] = now + cooldown
                     slot["streak"] = 0
                     slot["last_alert_ts"] = _iso_now()
@@ -456,7 +464,9 @@ class HarnessDispatcher:
                         f"module={redact_text(str(name), max_chars=80)} cooldown={cooldown}s",
                     )
             if len(failed_modules) >= spike_n:
-                self._append_alert(state, "*", "failed_modules_spike", len(failed_modules))
+                self._append_alert(
+                    state, "*", "failed_modules_spike", len(failed_modules)
+                )
                 _emit_shadow(
                     "guard_breaker",
                     tier,
@@ -491,10 +501,16 @@ class HarnessDispatcher:
                 "action": result.action,
                 "reason_code": result.reason_code,
                 "elapsed_ms": round(elapsed_ms, 3),
-                "failed_modules": [redact_text(name, max_chars=80) for name in failed_modules],
+                "failed_modules": [
+                    redact_text(name, max_chars=80) for name in failed_modules
+                ],
             }
-            with (self.state_root / "terminal.jsonl").open("a", encoding="utf-8") as handle:
-                handle.write(json.dumps(record, ensure_ascii=True, separators=(",", ":")) + "\n")
+            with (self.state_root / "terminal.jsonl").open(
+                "a", encoding="utf-8"
+            ) as handle:
+                handle.write(
+                    json.dumps(record, ensure_ascii=True, separators=(",", ":")) + "\n"
+                )
         except Exception:
             pass
 
@@ -502,7 +518,9 @@ class HarnessDispatcher:
 def _parse_args(argv: list[str] | None = None) -> Any:
     import argparse  # lazy (import-diet): only the CLI entrypoint needs argparse.
 
-    parser = argparse.ArgumentParser(description="Shared Claude/Codex lifecycle dispatcher")
+    parser = argparse.ArgumentParser(
+        description="Shared Claude/Codex lifecycle dispatcher"
+    )
     parser.add_argument("--provider", required=True, choices=("claude", "codex"))
     parser.add_argument("--event", required=True)
     parser.add_argument("--state-root")
@@ -528,7 +546,9 @@ def main(argv: list[str] | None = None) -> int:
         )
         native = render_output(result, provider=args.provider, event_name=args.event)
         if native or args.event in {"Stop", "SubagentStop"}:
-            sys.stdout.write(json.dumps(native, ensure_ascii=False, separators=(",", ":")) + "\n")
+            sys.stdout.write(
+                json.dumps(native, ensure_ascii=False, separators=(",", ":")) + "\n"
+            )
     except Exception:
         # Command hooks are fail-open by contract. A malformed input or internal
         # failure must never crash or block the host lifecycle.

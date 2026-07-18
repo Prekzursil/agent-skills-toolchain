@@ -25,16 +25,16 @@ _SECRET_PATTERNS = (
     re.compile(
         r"(?i)\b[A-Za-z0-9_-]*(?:API[_-]?KEY|ACCESS[_-]?KEY|SECRET|TOKEN|PASSWORD|PASSWD|PRIVATE[_-]?KEY)[A-Za-z0-9_-]*\s*[:=]\s*['\"]?[A-Za-z0-9._~+/-]{18,}={0,2}"
     ),
-    re.compile(r"(?i)(?:api[_-]?key|token|secret|password)\s*[:=]\s*['\"]?[A-Za-z0-9._~+/-]{18,}={0,2}"),
+    re.compile(
+        r"(?i)(?:api[_-]?key|token|secret|password)\s*[:=]\s*['\"]?[A-Za-z0-9._~+/-]{18,}={0,2}"
+    ),
 )
 # Checkpoint privacy is stricter than display fidelity. Once an absolute path is
 # encountered, redact the rest of that line so spaces cannot expose a path tail.
 _ABSOLUTE_PATH_TO_EOL = re.compile(
     r"(?im)(?<![A-Za-z0-9_])(?:[A-Z]:[\\/]|\\\\[^\\/\r\n]+[\\/]|//[^/\r\n]+/)[^\r\n]*"
 )
-_UNIX_ABSOLUTE_PATH_TO_EOL = re.compile(
-    r"(?m)(?<![A-Za-z0-9_/.\\])/(?!/)[^\r\n]*"
-)
+_UNIX_ABSOLUTE_PATH_TO_EOL = re.compile(r"(?m)(?<![A-Za-z0-9_/.\\])/(?!/)[^\r\n]*")
 
 
 def contains_secret(value: Any) -> bool:
@@ -42,7 +42,9 @@ def contains_secret(value: Any) -> bool:
     return any(pattern.search(text) for pattern in _SECRET_PATTERNS)
 
 
-def redact_text(text: str, *, redact_paths: bool = False, max_chars: int | None = None) -> str:
+def redact_text(
+    text: str, *, redact_paths: bool = False, max_chars: int | None = None
+) -> str:
     value = str(text or "")
     for pattern in _SECRET_PATTERNS:
         value = pattern.sub("[REDACTED]", value)

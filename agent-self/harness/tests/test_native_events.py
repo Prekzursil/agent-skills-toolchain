@@ -16,7 +16,9 @@ from harness import registration as _registration
 # test_dispatcher_and_registration.py): matches BOTH the live ".agents/harness"
 # install and this enshrined "ci/harness" copy, since build_hooks derives it from
 # registration.py's own location.
-_DISPATCHER = (Path(_registration.__file__).resolve().parent / "dispatcher.py").as_posix()
+_DISPATCHER = (
+    Path(_registration.__file__).resolve().parent / "dispatcher.py"
+).as_posix()
 
 
 # The native events this lane wires (SI-3). PostCompact was already hook-
@@ -78,8 +80,10 @@ def test_build_hooks_generates_matching_block_per_new_event():
             assert len(group["hooks"]) == 1
             hook = group["hooks"][0]
             assert hook["type"] == "command"
-            assert hook["command"].replace("\\", "/").endswith(
-                f'/dispatcher.py" --provider {provider} --event {name}'
+            assert (
+                hook["command"]
+                .replace("\\", "/")
+                .endswith(f'/dispatcher.py" --provider {provider} --event {name}')
             )
             assert _DISPATCHER in hook["command"].replace("\\", "/")
             assert hook["timeout"] == _TIMEOUTS[name]

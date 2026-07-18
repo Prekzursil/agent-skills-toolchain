@@ -9,6 +9,7 @@ Covers the five load-bearing behaviors the owner specified: happy-path deploy,
 CAS-abort-on-live-change, parity-mismatch-restore, lock-contention, and
 receipt-emission -- plus stale-lock steal and target validation.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -68,7 +69,11 @@ def test_deploy_happy_path_writes_tree_and_receipt(tmp_path, monkeypatch):
     # RECEIPT: content-based per-file sha256 + datetime metadata
     receipt = json.loads((live / "installed.json").read_text(encoding="utf-8"))
     assert set(receipt) >= {
-        "deployed_at", "source_commit", "target", "files", "backup_path"
+        "deployed_at",
+        "source_commit",
+        "target",
+        "files",
+        "backup_path",
     }
     assert receipt["target"] == "harness"
     assert receipt["backup_path"] is None  # nothing pre-existed -> no backup
@@ -189,7 +194,9 @@ def test_deploy_steals_stale_lock(tmp_path, monkeypatch):
     live.mkdir()
     # a STALE lock (timestamp far in the past) left by a crashed writer
     stale = {"pid": 4242, "timestamp": time.time() - 10_000}
-    (live / install_mod.DEPLOY_LOCK_NAME).write_text(json.dumps(stale), encoding="utf-8")
+    (live / install_mod.DEPLOY_LOCK_NAME).write_text(
+        json.dumps(stale), encoding="utf-8"
+    )
 
     buf = io.StringIO()
     with redirect_stdout(buf):

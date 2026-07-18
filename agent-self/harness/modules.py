@@ -109,7 +109,10 @@ def _is_subagent(event: Any) -> bool:
     unrelated / stale parent goal injected into disjoint Workflow builders every few tool
     calls) is the defect this guards against (owner directive 2026-07-11)."""
     agent = getattr(event, "agent", None)
-    return bool(agent is not None and (getattr(agent, "id", "") or getattr(agent, "transcript_path", "")))
+    return bool(
+        agent is not None
+        and (getattr(agent, "id", "") or getattr(agent, "transcript_path", ""))
+    )
 
 
 # =============================================================================
@@ -144,31 +147,156 @@ DEFAULT_MODE_BY_TIER: dict[str, str] = {
 # gate that never fires or never helps. Attaching the constant is in-scope here;
 # the forcing-function that reads it is out of scope for this lane.
 GATE_CONTRACTS: dict[str, dict[str, str]] = {
-    "injection_quarantine": {"metric": "injection_precision", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires only on tool-result content carrying injection grammar; <1/500 tool calls"},
-    "config_drift": {"metric": "drift_true_positive", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires only when settings/MCP config hash changes vs installed.json"},
-    "metered_mcp": {"metric": "quota_saved", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires only on metered MCP tool preflight; advisory"},
-    "postcompact_reanchor": {"metric": "post_compact_focus", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires once per PostCompact when a goal exists"},
-    "budget_pacing": {"metric": "even_pacing", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires only when the pacing verdict CHANGES"},
-    "stigmergic_prior": {"metric": "prior_hit_rate", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires when ledger pheromone overlaps the prompt; <1/prompt"},
-    "tool_memo": {"metric": "redundant_read_saved", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires on the 1st exact repeat of a deterministic read-only tool"},
-    "stuck_signature": {"metric": "stuck_recall", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires on stripped-digest repeat or A-B-A-B alternation"},
-    "low_info_gain": {"metric": "churn_recall", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires when a window shows diverse-but-uninformative churn"},
-    "post_error_haste": {"metric": "post_error_slow", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires when a mutating write follows a FAILED with no intervening read"},
-    "tool_contraindication": {"metric": "footgun_blocked", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires only on a registered contraindicated tool sequence"},
-    "degradation_score": {"metric": "early_warning", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires when the composite MEWS score crosses the escalation band"},
-    "sibling_overlap": {"metric": "diversity", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires when a spawn prompt overlaps a sibling by Jaccard>0.8"},
-    "zero_diff": {"metric": "zero_diff_catch", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires on a fixed-claim with 0 mutation events in the turn"},
-    "repro_fingerprint": {"metric": "repro_catch", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires on a fixed-claim with no green rerun of the failing argv-hash"},
-    "receipt_gate": {"metric": "stale_green_catch", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires when the required receipt class is missing/stale"},
-    "compchem_claim": {"metric": "physical_validity", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires on a docking/dG/MD-converged claim lacking a validity artifact"},
-    "wep_hedge": {"metric": "hedge_lint", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires on a bare likely/should-work with no band+evidence"},
-    "ipass_readback": {"metric": "handoff_confirm", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires once per SubagentStart"},
-    "stalled_subagent": {"metric": "stall_recovery", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires when a subagent transcript mtime is frozen >25min"},
-    "code_first_drift": {"metric": "design_first", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires once when >=5 style-file edits and no design tool was used"},
-    "session_hazard": {"metric": "concurrency_safety", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires on a fresh session that has live siblings"},
-    "bc_offset": {"metric": "stale_offset_catch", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires only in BC context when the live .so sha != pinned"},
-    "canonical_config_edit": {"metric": "deployed_edit_caught", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires only on a write tool targeting a deployed ~/.agents/harness|skills or ~/.claude/hooks path; never on repo or settings.json"},
-    "basic_memory_nudge": {"metric": "capture_discipline", "owner": "prekzursil", "deadline": "2026-09-01", "fire_rate": "fires at most once per session, only when a canonical edit occurred and no basic-memory write did"},
+    "injection_quarantine": {
+        "metric": "injection_precision",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires only on tool-result content carrying injection grammar; <1/500 tool calls",
+    },
+    "config_drift": {
+        "metric": "drift_true_positive",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires only when settings/MCP config hash changes vs installed.json",
+    },
+    "metered_mcp": {
+        "metric": "quota_saved",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires only on metered MCP tool preflight; advisory",
+    },
+    "postcompact_reanchor": {
+        "metric": "post_compact_focus",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires once per PostCompact when a goal exists",
+    },
+    "budget_pacing": {
+        "metric": "even_pacing",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires only when the pacing verdict CHANGES",
+    },
+    "stigmergic_prior": {
+        "metric": "prior_hit_rate",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires when ledger pheromone overlaps the prompt; <1/prompt",
+    },
+    "tool_memo": {
+        "metric": "redundant_read_saved",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires on the 1st exact repeat of a deterministic read-only tool",
+    },
+    "stuck_signature": {
+        "metric": "stuck_recall",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires on stripped-digest repeat or A-B-A-B alternation",
+    },
+    "low_info_gain": {
+        "metric": "churn_recall",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires when a window shows diverse-but-uninformative churn",
+    },
+    "post_error_haste": {
+        "metric": "post_error_slow",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires when a mutating write follows a FAILED with no intervening read",
+    },
+    "tool_contraindication": {
+        "metric": "footgun_blocked",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires only on a registered contraindicated tool sequence",
+    },
+    "degradation_score": {
+        "metric": "early_warning",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires when the composite MEWS score crosses the escalation band",
+    },
+    "sibling_overlap": {
+        "metric": "diversity",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires when a spawn prompt overlaps a sibling by Jaccard>0.8",
+    },
+    "zero_diff": {
+        "metric": "zero_diff_catch",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires on a fixed-claim with 0 mutation events in the turn",
+    },
+    "repro_fingerprint": {
+        "metric": "repro_catch",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires on a fixed-claim with no green rerun of the failing argv-hash",
+    },
+    "receipt_gate": {
+        "metric": "stale_green_catch",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires when the required receipt class is missing/stale",
+    },
+    "compchem_claim": {
+        "metric": "physical_validity",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires on a docking/dG/MD-converged claim lacking a validity artifact",
+    },
+    "wep_hedge": {
+        "metric": "hedge_lint",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires on a bare likely/should-work with no band+evidence",
+    },
+    "ipass_readback": {
+        "metric": "handoff_confirm",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires once per SubagentStart",
+    },
+    "stalled_subagent": {
+        "metric": "stall_recovery",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires when a subagent transcript mtime is frozen >25min",
+    },
+    "code_first_drift": {
+        "metric": "design_first",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires once when >=5 style-file edits and no design tool was used",
+    },
+    "session_hazard": {
+        "metric": "concurrency_safety",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires on a fresh session that has live siblings",
+    },
+    "bc_offset": {
+        "metric": "stale_offset_catch",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires only in BC context when the live .so sha != pinned",
+    },
+    "canonical_config_edit": {
+        "metric": "deployed_edit_caught",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires only on a write tool targeting a deployed ~/.agents/harness|skills or ~/.claude/hooks path; never on repo or settings.json",
+    },
+    "basic_memory_nudge": {
+        "metric": "capture_discipline",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires at most once per session, only when a canonical edit occurred and no basic-memory write did",
+    },
 }
 
 
@@ -193,7 +321,11 @@ def resolve_mode(gate_name: str, *, tier: str) -> str:
         return env_val
     try:
         data = read_json(_module_modes_path(), {})
-        file_val = str(data.get(gate_name, "")).strip().lower() if isinstance(data, dict) else ""
+        file_val = (
+            str(data.get(gate_name, "")).strip().lower()
+            if isinstance(data, dict)
+            else ""
+        )
         if file_val in _VALID_MODES:
             return file_val
     except Exception:
@@ -247,7 +379,9 @@ def shadow_log(gate_name: str, tier: str, event: Any, raw: HookResult) -> None:
             "session_hash": _session_hash(event),
         }
         with path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(record, ensure_ascii=True, separators=(",", ":")) + "\n")
+            handle.write(
+                json.dumps(record, ensure_ascii=True, separators=(",", ":")) + "\n"
+            )
     except Exception:
         return
 
@@ -324,7 +458,11 @@ def _merge_results(results: list[HookResult]) -> HookResult:
 def _stable_json(value: Any) -> str:
     try:
         return json.dumps(
-            value, sort_keys=True, ensure_ascii=False, separators=(",", ":"), default=repr
+            value,
+            sort_keys=True,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            default=repr,
         )
     except Exception:
         return repr(value)
@@ -342,7 +480,9 @@ def _string_values(value: Any) -> Iterable[str]:
 
 
 def _digest(value: Any, length: int = 64) -> str:
-    return hashlib.sha256(_stable_json(value).encode("utf-8", "replace")).hexdigest()[:length]
+    return hashlib.sha256(_stable_json(value).encode("utf-8", "replace")).hexdigest()[
+        :length
+    ]
 
 
 # Strip volatile tokens (digits / hex blobs / absolute paths) so two "different"
@@ -366,7 +506,9 @@ def _verified_result(result: Any) -> bool:
     if isinstance(result, dict):
         exit_code = result.get("exit_code")
         text = _stable_json(result)
-        if exit_code == 0 and re.search(r"\b(?:passed|success|succeeded|healthy|ready)\b", text, re.I):
+        if exit_code == 0 and re.search(
+            r"\b(?:passed|success|succeeded|healthy|ready)\b", text, re.I
+        ):
             return True
         status = str(result.get("status") or "")
         if status.lower() in {"success", "succeeded", "healthy", "ready", "ok"}:
@@ -385,14 +527,18 @@ def _result_is_failure(result: Any) -> bool:
         status = str(result.get("status") or "").lower()
         if status in {"error", "failed", "failure", "down"}:
             return True
-        if any(str(result.get(key)) for key in ("error", "tool_error", "error_message")):
+        if any(
+            str(result.get(key)) for key in ("error", "tool_error", "error_message")
+        ):
             return True
         text = _stable_json(result)
     elif isinstance(result, str):
         text = result
     else:
         return False
-    return bool(re.search(r"\b(?:error|failed|failure|traceback|exception)\b", text, re.I))
+    return bool(
+        re.search(r"\b(?:error|failed|failure|traceback|exception)\b", text, re.I)
+    )
 
 
 # --- Canonical-tree classifier (shared by the edit-guard gate, the basic-memory
@@ -402,13 +548,20 @@ def _result_is_failure(result: Any) -> bool:
 def _live_trees() -> dict[str, Path]:
     """The 3 DEPLOYED-from-repo trees, keyed by their canonical name.
     Env overrides make them redirectable in tests (defaults = production layout)."""
-    agents = Path(os.environ.get("HARNESS_LIVE_AGENTS_DIR") or (Path.home() / ".agents"))
-    hooks = Path(os.environ.get("HARNESS_LIVE_HOOKS_DIR") or (Path.home() / ".claude" / "hooks"))
+    agents = Path(
+        os.environ.get("HARNESS_LIVE_AGENTS_DIR") or (Path.home() / ".agents")
+    )
+    hooks = Path(
+        os.environ.get("HARNESS_LIVE_HOOKS_DIR") or (Path.home() / ".claude" / "hooks")
+    )
     return {"harness": agents / "harness", "skills": agents / "skills", "hooks": hooks}
 
 
 def _repo_root() -> Path:
-    return Path(os.environ.get("HARNESS_REPO_DIR") or (Path.home() / "source" / "agent-skills-toolchain"))
+    return Path(
+        os.environ.get("HARNESS_REPO_DIR")
+        or (Path.home() / "source" / "agent-skills-toolchain")
+    )
 
 
 def _under(target: str, root: Path) -> bool:
@@ -442,7 +595,12 @@ def _edit_target(tool_input: Any) -> str:
     """Extract the edited file path from a write-tool input envelope."""
     if not isinstance(tool_input, dict):
         return ""
-    return str(tool_input.get("file_path") or tool_input.get("path") or tool_input.get("notebook_path") or "")
+    return str(
+        tool_input.get("file_path")
+        or tool_input.get("path")
+        or tool_input.get("notebook_path")
+        or ""
+    )
 
 
 class SecretGuardModule:
@@ -453,7 +611,9 @@ class SecretGuardModule:
     # 2026-07-11) — it is a routine, reflog-recoverable local op, not a disk/
     # history-destroying one.
     _IRREVERSIBLE = (
-        re.compile(r"(?i)\b(?:format-volume|clear-disk|remove-partition|format\s+[a-z]:)\b"),
+        re.compile(
+            r"(?i)\b(?:format-volume|clear-disk|remove-partition|format\s+[a-z]:)\b"
+        ),
         re.compile(r"(?i)\breg(?:\.exe)?\s+(?:delete|import)\b"),
     )
     _SHELL_TOKEN = r'(?:"[^"\r\n]*"|\'[^\'\r\n]*\'|[^\s;&|]+)'
@@ -477,9 +637,7 @@ class SecretGuardModule:
         _GIT_PREFIX + r"checkout\b[^\r\n;&|]*\s--(?:\s|$)", re.I
     )
     _GIT_BRANCH = re.compile(_GIT_PREFIX + r"branch\b([^\r\n;&|]*)", re.I)
-    _GIT_STASH_DESTROY = re.compile(
-        _GIT_PREFIX + r"stash\s+(?:clear|drop)\b", re.I
-    )
+    _GIT_STASH_DESTROY = re.compile(_GIT_PREFIX + r"stash\s+(?:clear|drop)\b", re.I)
     _CREDENTIAL_READ = re.compile(
         r"(?i)(?<![A-Za-z0-9_.-])(?:\.env(?:\.[^\\/\s'\"}\],;:]+)?|auth\.json|credentials(?:\.json)?|id_(?:rsa|ed25519|ecdsa|dsa)|\.aws[\\/]credentials)(?=$|[\\/\s'\"}\],;:])"
     )
@@ -618,7 +776,11 @@ class SecretGuardModule:
         command = candidate if isinstance(candidate, str) else None
         if isinstance(candidate, dict) and isinstance(candidate.get("command"), str):
             command = candidate["command"]
-        if command is not None and _lifecycle_guard_enabled() and self._is_irreversible(command):
+        if (
+            command is not None
+            and _lifecycle_guard_enabled()
+            and self._is_irreversible(command)
+        ):
             return HookResult.success(
                 action="block",
                 reason_code="irreversible_operation",
@@ -657,7 +819,9 @@ class SecretGuardModule:
             return HookResult.success()
         tool = str(event.tool.name or "")
         short = tool.split("__")[-1] if "__" in tool else tool
-        if not any(short.startswith(name) or name in tool for name in self._METERED_TOOLS):
+        if not any(
+            short.startswith(name) or name in tool for name in self._METERED_TOOLS
+        ):
             return HookResult.success()
         raw = HookResult.success(
             action="inject",
@@ -770,7 +934,9 @@ class LedgerModule:
     name = "event_ledger"
 
     _WRITE_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit", "apply_patch"}
-    _REDIRECT = re.compile(r"(?:(?<!\d)>>?|\btee\b|\|\s*Out-File\b|\bSet-Content\b|\bAdd-Content\b)")
+    _REDIRECT = re.compile(
+        r"(?:(?<!\d)>>?|\btee\b|\|\s*Out-File\b|\bSet-Content\b|\bAdd-Content\b)"
+    )
 
     def __init__(self, ledger: EventLedger):
         self.ledger = ledger
@@ -846,7 +1012,9 @@ class LedgerModule:
         goals_dir = self.ledger.root.parent / "session-goals"
         try:
             now = datetime.now(timezone.utc).timestamp()
-            token = hashlib.sha256(str(event.session_id or "").encode("utf-8", "replace")).hexdigest()[:20]
+            token = hashlib.sha256(
+                str(event.session_id or "").encode("utf-8", "replace")
+            ).hexdigest()[:20]
             siblings = [
                 path
                 for path in goals_dir.glob("*.json")
@@ -883,7 +1051,8 @@ class LedgerModule:
                 event.provider,
                 event.session_id,
                 event.turn_id,
-                event.tool.id or _digest([event.tool.name, event.tool.input, event.tool.result]),
+                event.tool.id
+                or _digest([event.tool.name, event.tool.input, event.tool.result]),
             ]
         )
         fields: dict[str, Any] = dict(
@@ -912,7 +1081,9 @@ class LedgerModule:
         if classify_receipt is None:
             return None
         try:
-            return classify_receipt(event.tool.name, event.tool.input, event.tool.result)
+            return classify_receipt(
+                event.tool.name, event.tool.input, event.tool.result
+            )
         except Exception:
             return None
 
@@ -921,7 +1092,11 @@ class LedgerModule:
         if name in self._WRITE_TOOLS:
             return True
         if name in {"Bash", "PowerShell"}:
-            command = event.tool.input.get("command") if isinstance(event.tool.input, dict) else None
+            command = (
+                event.tool.input.get("command")
+                if isinstance(event.tool.input, dict)
+                else None
+            )
             return bool(isinstance(command, str) and self._REDIRECT.search(command))
         return False
 
@@ -940,7 +1115,15 @@ class LedgerModule:
                 or event.tool.input.get("notebook_path")
                 or ""
             )
-        unique = ":".join([event.provider, event.session_id, event.turn_id, "mutation", event.tool.id or _digest([event.tool.name, path, event.tool.input])])
+        unique = ":".join(
+            [
+                event.provider,
+                event.session_id,
+                event.turn_id,
+                "mutation",
+                event.tool.id or _digest([event.tool.name, path, event.tool.input]),
+            ]
+        )
         # Stamp the canonical-tree enum at APPEND time: the raw `path` is redacted to
         # [PATH] by the ledger's _sanitize_value, so it is useless for canonical-tree
         # detection after the fact. A short alnum token ('harness'|'skills'|'hooks'|
@@ -965,7 +1148,9 @@ class LedgerModule:
         if _injection_scan is None:
             return HookResult.success()
         name = str(event.tool.name or "")
-        if not any(name.startswith(prefix) or prefix in name for prefix in _INGEST_TOOLS):
+        if not any(
+            name.startswith(prefix) or prefix in name for prefix in _INGEST_TOOLS
+        ):
             return HookResult.success()
         content = "\n".join(_string_values(event.tool.result))
         if not content:
@@ -987,7 +1172,15 @@ class LedgerModule:
         # G4 · register PostToolUseFailure / PermissionDenied as a NEGATIVE
         # tool_result so the anti-degeneration and claim gates observe failures,
         # not just identical successes. verified=False keeps has_verification honest.
-        unique = ":".join([event.provider, event.session_id, event.turn_id, event.event, event.tool.id or _digest([event.tool.name, event.tool.result])])
+        unique = ":".join(
+            [
+                event.provider,
+                event.session_id,
+                event.turn_id,
+                event.event,
+                event.tool.id or _digest([event.tool.name, event.tool.result]),
+            ]
+        )
         self.ledger.append(
             event.cwd,
             "tool_result",
@@ -1003,7 +1196,15 @@ class LedgerModule:
     def _append_instructions(self, event: HookEvent) -> None:
         # G5 · InstructionsLoaded audit -> ledger the instruction layer that loaded
         # (the activation telemetry the fitness scorer needs for RULES).
-        unique = ":".join([event.provider, event.session_id, event.turn_id, "instructions", _digest([event.source, event.prompt])])
+        unique = ":".join(
+            [
+                event.provider,
+                event.session_id,
+                event.turn_id,
+                "instructions",
+                _digest([event.source, event.prompt]),
+            ]
+        )
         self.ledger.append(
             event.cwd,
             "instructions",
@@ -1017,7 +1218,15 @@ class LedgerModule:
     def _append_task(self, event: HookEvent) -> None:
         # native-taskcompleted (module half): record the task close so the claim
         # gate can enforce verification per-task; the gate itself is in ClaimWarning.
-        unique = ":".join([event.provider, event.session_id, event.turn_id, "task", event.agent.id or _digest(event.last_assistant_message)])
+        unique = ":".join(
+            [
+                event.provider,
+                event.session_id,
+                event.turn_id,
+                "task",
+                event.agent.id or _digest(event.last_assistant_message),
+            ]
+        )
         self.ledger.append(
             event.cwd,
             "task",
@@ -1030,7 +1239,11 @@ class LedgerModule:
 
     def _append_turn(self, event: HookEvent) -> None:
         unique = ":".join(
-            [event.provider, event.session_id, event.turn_id or _digest(event.last_assistant_message)]
+            [
+                event.provider,
+                event.session_id,
+                event.turn_id or _digest(event.last_assistant_message),
+            ]
         )
         self.ledger.append(
             event.cwd,
@@ -1078,7 +1291,9 @@ class GoalModule:
 
     def __init__(self, ledger: EventLedger, interval: int | None = None):
         self.ledger = ledger
-        self.interval = max(1, int(interval or os.environ.get("GOAL_REINJECT_INTERVAL", "8")))
+        self.interval = max(
+            1, int(interval or os.environ.get("GOAL_REINJECT_INTERVAL", "8"))
+        )
         self.counter_root = ledger.root.parent / "goal-counters"
 
     def _counter_path(self, session_id: str) -> Path:
@@ -1174,11 +1389,19 @@ class GoalModule:
         verdict = self._pacing_verdict(feed)
         if not verdict:
             return HookResult.success()
-        seen_path = default_state_root() / "budget-pacing" / f"{_session_hash(event)}.json"
+        seen_path = (
+            default_state_root() / "budget-pacing" / f"{_session_hash(event)}.json"
+        )
         last = read_json(seen_path, {})
         if isinstance(last, dict) and last.get("verdict") == verdict:
             return HookResult.success()
-        atomic_write_json(seen_path, {"verdict": verdict, "ts": datetime.now(timezone.utc).isoformat(timespec="seconds")})
+        atomic_write_json(
+            seen_path,
+            {
+                "verdict": verdict,
+                "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            },
+        )
         raw = HookResult.success(
             action="inject",
             reason_code="budget_pacing",
@@ -1193,7 +1416,10 @@ class GoalModule:
         try:
             weekly = feed.get("weekly") or feed.get("seven_day") or {}
             util = float(weekly.get("utilization", weekly.get("util", 0)) or 0)
-            reset_s = float(weekly.get("reset_after_seconds", weekly.get("resets_in_seconds", 0)) or 0)
+            reset_s = float(
+                weekly.get("reset_after_seconds", weekly.get("resets_in_seconds", 0))
+                or 0
+            )
         except (TypeError, ValueError):
             return ""
         if reset_s <= 0:
@@ -1237,7 +1463,9 @@ class SanitizedCheckpointModule:
         goal = self.ledger.goal(event.cwd, event.session_id)
         remember_path = Path(event.cwd) / ".remember" / "now.md"
         try:
-            now_text = remember_path.read_text(encoding="utf-8", errors="replace")[:32768]
+            now_text = remember_path.read_text(encoding="utf-8", errors="replace")[
+                :32768
+            ]
         except OSError:
             now_text = ""
         now_text = redact_text(now_text, redact_paths=True, max_chars=4096)
@@ -1272,7 +1500,7 @@ session_hash: {session_hash}
 - timestamp: {timestamp}
 - session hash: {session_hash}
 - ledger pointer: {json.dumps(self.ledger.pointer(event.cwd), sort_keys=True)}
-- goal: {redact_text(goal, redact_paths=True, max_chars=500) or 'none'}
+- goal: {redact_text(goal, redact_paths=True, max_chars=500) or "none"}
 
 ## Decisions
 {bullets(decisions)}
@@ -1281,7 +1509,7 @@ session_hash: {session_hash}
 {bullets(failures)}
 
 ## .remember/now.md (UNTRUSTED, secret-redacted)
-{now_text or 'none'}
+{now_text or "none"}
 """
         content = redact_text(content, redact_paths=True, max_chars=self.max_chars)
         stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S-%f")
@@ -1301,9 +1529,28 @@ session_hash: {session_hash}
 
 
 _STOPWORDS = {
-    "about", "after", "again", "also", "and", "are", "before", "for", "from",
-    "have", "into", "look", "please", "that", "the", "this", "when", "with", "you",
-    "your", "fix", "make",
+    "about",
+    "after",
+    "again",
+    "also",
+    "and",
+    "are",
+    "before",
+    "for",
+    "from",
+    "have",
+    "into",
+    "look",
+    "please",
+    "that",
+    "the",
+    "this",
+    "when",
+    "with",
+    "you",
+    "your",
+    "fix",
+    "make",
 }
 
 
@@ -1334,9 +1581,18 @@ class RecallModule:
         state_root: Path | str | None = None,
     ):
         shared = default_state_root() / "recall-index.json"
-        legacy = Path.home() / ".claude" / "hooks" / "recall-inject" / "index" / "recall_index.json"
+        legacy = (
+            Path.home()
+            / ".claude"
+            / "hooks"
+            / "recall-inject"
+            / "index"
+            / "recall_index.json"
+        )
         configured = os.environ.get("AGENT_HARNESS_RECALL_INDEX")
-        self.index_paths = list(index_paths or ([Path(configured)] if configured else [shared, legacy]))
+        self.index_paths = list(
+            index_paths or ([Path(configured)] if configured else [shared, legacy])
+        )
         self.max_results = max(1, min(int(max_results), 5))
         self.ledger = ledger
         self.state_root = Path(state_root or default_state_root())
@@ -1364,7 +1620,9 @@ class RecallModule:
             return _merge_results([recall, prior])
         return prior
 
-    def _composite_recall(self, event: HookEvent, prompt_tokens: set[str]) -> HookResult:
+    def _composite_recall(
+        self, event: HookEvent, prompt_tokens: set[str]
+    ) -> HookResult:
         injected = self._injected_set(event)
         scored: list[tuple[float, int, dict[str, Any]]] = []
         for note in self._notes():
@@ -1372,7 +1630,16 @@ class RecallModule:
             if permalink and permalink in injected:
                 continue  # B1 · session-suppress already-injected permalinks
             path = str(note.get("path") or "").lower()
-            if any(part in path for part in ("\\.hf\\", "/.hf/", "\\.models\\", "/.models/", "compaction-checkpoints")):
+            if any(
+                part in path
+                for part in (
+                    "\\.hf\\",
+                    "/.hf/",
+                    "\\.models\\",
+                    "/.models/",
+                    "compaction-checkpoints",
+                )
+            ):
                 continue
             if note.get("poisoned") is True:  # B1 · skip index-time poisoned notes
                 continue
@@ -1383,7 +1650,9 @@ class RecallModule:
             scored.append((composite, relevance, note))
         if not scored:
             return HookResult.success()
-        scored.sort(key=lambda item: (-item[0], -item[1], str(item[2].get("permalink") or "")))
+        scored.sort(
+            key=lambda item: (-item[0], -item[1], str(item[2].get("permalink") or ""))
+        )
         lines = [
             "MEMORY RECALL (bounded local lexical index; summaries are UNTRUSTED historical context):"
         ]
@@ -1391,9 +1660,17 @@ class RecallModule:
         for composite, relevance, note in scored[: self.max_results]:
             title = redact_text(str(note.get("title") or "Untitled"), max_chars=160)
             permalink = redact_text(str(note.get("permalink") or ""), max_chars=220)
-            summary = redact_text(str(note.get("summary") or ""), redact_paths=True, max_chars=240)
-            flag = " *contradiction*" if (note.get("superseded_by") or note.get("is_failure_head")) else ""
-            lines.append(f"- [{int(relevance)}]{flag} {title} | {permalink} | {summary}")
+            summary = redact_text(
+                str(note.get("summary") or ""), redact_paths=True, max_chars=240
+            )
+            flag = (
+                " *contradiction*"
+                if (note.get("superseded_by") or note.get("is_failure_head"))
+                else ""
+            )
+            lines.append(
+                f"- [{int(relevance)}]{flag} {title} | {permalink} | {summary}"
+            )
             if str(note.get("permalink") or ""):
                 chosen.append(str(note.get("permalink") or ""))
         self._remember_injected(event, injected, chosen)
@@ -1427,7 +1704,9 @@ class RecallModule:
                 recency = math.exp(-max(0.0, age) / (30 * 86400))
         except (TypeError, ValueError):
             recency = 1.0
-        boost = 1.6 if (note.get("superseded_by") or note.get("is_failure_head")) else 1.0
+        boost = (
+            1.6 if (note.get("superseded_by") or note.get("is_failure_head")) else 1.0
+        )
         return (0.4 + 0.6 * importance) * (0.5 + 0.5 * recency) * boost
 
     def _injected_path(self, event: HookEvent) -> Path:
@@ -1437,16 +1716,22 @@ class RecallModule:
         data = read_json(self._injected_path(event), [])
         return {str(x) for x in data} if isinstance(data, list) else set()
 
-    def _remember_injected(self, event: HookEvent, current: set[str], chosen: list[str]) -> None:
+    def _remember_injected(
+        self, event: HookEvent, current: set[str], chosen: list[str]
+    ) -> None:
         added = {p for p in chosen if p}
         if not added:
             return
         try:
-            atomic_write_json(self._injected_path(event), sorted(current | added)[-200:])
+            atomic_write_json(
+                self._injected_path(event), sorted(current | added)[-200:]
+            )
         except OSError:
             pass
 
-    def _stigmergic_prior(self, event: HookEvent, prompt_tokens: set[str]) -> HookResult:
+    def _stigmergic_prior(
+        self, event: HookEvent, prompt_tokens: set[str]
+    ) -> HookResult:
         # B3 · mine the event-ledger as a recency-decayed lexical pheromone map
         # (NO KG, NO vector): tokens from recent tool/mutation events, weighted by
         # recency, matched against the prompt. Inject a compact prior. Shadow-first.
@@ -1482,15 +1767,32 @@ class RecallModule:
 # (prior-tool predicate, current-tool predicate, warning) seeded from the owner's
 # own footgun memories. Kept tiny + data-driven so the miner can extend it.
 _CONTRAINDICATIONS = (
-    (re.compile(r"(?i)subagent|task|worktree|agent"), re.compile(r"(?i)\bgit\b.*\badd\s+(?:-A|--all|\.)"), "broad `git add -A` right after parallel/worktree agents scopes a sibling's edits into your commit — use scoped adds + `git diff --cached`"),
-    (re.compile(r"(?i)fan.?out|parallel|spawn"), re.compile(r"(?i)\brm\s+-rf|remove-item.*-recurse|reap"), "a broad delete / reap right after a fan-out can hit siblings' live state — scope it or use worktree isolation"),
+    (
+        re.compile(r"(?i)subagent|task|worktree|agent"),
+        re.compile(r"(?i)\bgit\b.*\badd\s+(?:-A|--all|\.)"),
+        "broad `git add -A` right after parallel/worktree agents scopes a sibling's edits into your commit — use scoped adds + `git diff --cached`",
+    ),
+    (
+        re.compile(r"(?i)fan.?out|parallel|spawn"),
+        re.compile(r"(?i)\brm\s+-rf|remove-item.*-recurse|reap"),
+        "a broad delete / reap right after a fan-out can hit siblings' live state — scope it or use worktree isolation",
+    ),
 )
 
 
 class AntiDegenerationModule:
     name = "anti_degeneration"
 
-    _READ_ONLY_TOOLS = {"Read", "Grep", "Glob", "LS", "WebFetch", "NotebookRead", "list_strings", "decompile_function"}
+    _READ_ONLY_TOOLS = {
+        "Read",
+        "Grep",
+        "Glob",
+        "LS",
+        "WebFetch",
+        "NotebookRead",
+        "list_strings",
+        "decompile_function",
+    }
 
     def __init__(
         self,
@@ -1520,7 +1822,7 @@ class AntiDegenerationModule:
             "sig": _stripped_signature(event.tool.result),
             "failed": _result_is_failure(event.tool.result),
         }
-        window = (window + [item])[-self.window_size:]
+        window = (window + [item])[-self.window_size :]
         atomic_write_json(path, window)
 
         base = self._repeated_no_progress(event, window, item)
@@ -1543,7 +1845,9 @@ class AntiDegenerationModule:
                 results.append(HookResult.success())
         return _merge_results(results)
 
-    def _repeated_no_progress(self, event: HookEvent, window: list[dict], item: dict) -> HookResult:
+    def _repeated_no_progress(
+        self, event: HookEvent, window: list[dict], item: dict
+    ) -> HookResult:
         matches = [
             entry
             for entry in window
@@ -1560,11 +1864,17 @@ class AntiDegenerationModule:
             )
         return HookResult.success()
 
-    def _stuck_signature(self, event: HookEvent, window: list[dict], item: dict) -> HookResult:
+    def _stuck_signature(
+        self, event: HookEvent, window: list[dict], item: dict
+    ) -> HookResult:
         # Multi-signature stuck: same tool + same STRIPPED signature (digits/hex/
         # paths removed) N times — catches error-class repeats that differ only by
         # an address or a temp path, which the exact-match guard above misses.
-        matches = [e for e in window if e.get("tool") == item["tool"] and e.get("sig") == item["sig"]]
+        matches = [
+            e
+            for e in window
+            if e.get("tool") == item["tool"] and e.get("sig") == item["sig"]
+        ]
         if len(matches) < self.threshold:
             return HookResult.success()
         if len({e.get("args") for e in matches}) == 1:
@@ -1578,11 +1888,15 @@ class AntiDegenerationModule:
         )
         return stage("stuck_signature", TIER_HEURISTIC, event, raw)
 
-    def _abab_alternation(self, event: HookEvent, window: list[dict], item: dict) -> HookResult:
+    def _abab_alternation(
+        self, event: HookEvent, window: list[dict], item: dict
+    ) -> HookResult:
         # A-B-A-B ping-pong: the last four calls alternate between two signatures.
         if len(window) < 4:
             return HookResult.success()
-        sigs = [str(e.get("tool", "")) + "|" + str(e.get("sig", "")) for e in window[-4:]]
+        sigs = [
+            str(e.get("tool", "")) + "|" + str(e.get("sig", "")) for e in window[-4:]
+        ]
         if sigs[0] == sigs[2] and sigs[1] == sigs[3] and sigs[0] != sigs[1]:
             raw = HookResult.success(
                 action="inject",
@@ -1594,7 +1908,9 @@ class AntiDegenerationModule:
             return stage("stuck_signature", TIER_HEURISTIC, event, raw)
         return HookResult.success()
 
-    def _post_error_haste(self, event: HookEvent, window: list[dict], item: dict) -> HookResult:
+    def _post_error_haste(
+        self, event: HookEvent, window: list[dict], item: dict
+    ) -> HookResult:
         # Post-error slowing: a mutating write immediately after a FAILED with no
         # intervening read is act-before-understand behavior.
         if item["failed"] or len(window) < 2:
@@ -1613,7 +1929,9 @@ class AntiDegenerationModule:
         )
         return stage("post_error_haste", TIER_HEURISTIC, event, raw)
 
-    def _low_info_gain(self, event: HookEvent, window: list[dict], item: dict) -> HookResult:
+    def _low_info_gain(
+        self, event: HookEvent, window: list[dict], item: dict
+    ) -> HookResult:
         # Information-gain governor: a full window of diverse calls yielding very few
         # DISTINCT result signatures = churn without learning.
         if len(window) < self.window_size:
@@ -1630,13 +1948,19 @@ class AntiDegenerationModule:
         )
         return stage("low_info_gain", TIER_HEURISTIC, event, raw)
 
-    def _contraindication(self, event: HookEvent, window: list[dict], item: dict) -> HookResult:
+    def _contraindication(
+        self, event: HookEvent, window: list[dict], item: dict
+    ) -> HookResult:
         # Tool-sequence contraindication registry (DDI-for-tools).
         if len(window) < 2:
             return HookResult.success()
         prev_tool = str(window[-2].get("tool") or "")
         current = str(event.tool.name or "")
-        command = event.tool.input.get("command") if isinstance(event.tool.input, dict) else ""
+        command = (
+            event.tool.input.get("command")
+            if isinstance(event.tool.input, dict)
+            else ""
+        )
         current_text = f"{current} {command or ''}"
         for prior_pat, current_pat, warning in _CONTRAINDICATIONS:
             if prior_pat.search(prev_tool) and current_pat.search(current_text):
@@ -1648,7 +1972,9 @@ class AntiDegenerationModule:
                 return stage("tool_contraindication", TIER_HEURISTIC, event, raw)
         return HookResult.success()
 
-    def _tool_memo(self, event: HookEvent, window: list[dict], item: dict) -> HookResult:
+    def _tool_memo(
+        self, event: HookEvent, window: list[dict], item: dict
+    ) -> HookResult:
         # B2 · tool-result memoization: on the 1st exact repeat of a deterministic
         # read-only tool (same tool+args), nudge "already ran — reuse". Fires where
         # anti-degen's 3x guard would only fire on the 3rd, saving redundant reads.
@@ -1680,18 +2006,47 @@ class ClaimWarningModule:
         r"(?i)\b(?:all tests pass(?:ed)?|everything (?:is )?(?:fixed|working)|fully working|complete[d]?|fixed|resolved|done)\b"
     )
     _FAMILIES = (
-        ("tests_pass", re.compile(r"(?i)\b(?:all )?tests?\b[^.\n]{0,40}\b(?:pass|passed|passing|green)\b|\ball tests pass")),
+        (
+            "tests_pass",
+            re.compile(
+                r"(?i)\b(?:all )?tests?\b[^.\n]{0,40}\b(?:pass|passed|passing|green)\b|\ball tests pass"
+            ),
+        ),
         ("fixed", re.compile(r"(?i)\b(?:fixed|resolved|patched|bug ?fix(?:ed)?)\b")),
-        ("builds", re.compile(r"(?i)\b(?:builds?\b[^.\n]{0,20}\b(?:clean|success|fine|ok)|compiles?\b|build (?:passes|succeeded|is green))")),
-        ("type_clean", re.compile(r"(?i)\b(?:type[- ]?clean|no type errors|typecheck(?:s)?\b[^.\n]{0,20}\bpass|mypy\b[^.\n]{0,20}\bclean|basedpyright\b[^.\n]{0,20}\bclean)\b")),
-        ("coverage", re.compile(r"(?i)\bcoverage\b[^.\n]{0,30}\b(?:100|met|passes|threshold)\b|\bfully covered\b")),
-        ("healthy", re.compile(r"(?i)\b(?:healthy|health check passed|service (?:is )?up|all green)\b")),
+        (
+            "builds",
+            re.compile(
+                r"(?i)\b(?:builds?\b[^.\n]{0,20}\b(?:clean|success|fine|ok)|compiles?\b|build (?:passes|succeeded|is green))"
+            ),
+        ),
+        (
+            "type_clean",
+            re.compile(
+                r"(?i)\b(?:type[- ]?clean|no type errors|typecheck(?:s)?\b[^.\n]{0,20}\bpass|mypy\b[^.\n]{0,20}\bclean|basedpyright\b[^.\n]{0,20}\bclean)\b"
+            ),
+        ),
+        (
+            "coverage",
+            re.compile(
+                r"(?i)\bcoverage\b[^.\n]{0,30}\b(?:100|met|passes|threshold)\b|\bfully covered\b"
+            ),
+        ),
+        (
+            "healthy",
+            re.compile(
+                r"(?i)\b(?:healthy|health check passed|service (?:is )?up|all green)\b"
+            ),
+        ),
     )
     _COMPCHEM = re.compile(
         r"(?i)\b(?:docking\b[^.\n]{0,20}\b(?:done|complete|finished)|Δg\b|delta[- ]?g\b|binding free energy|md\b[^.\n]{0,20}\bconverged|pose(?:s)?\b[^.\n]{0,20}\b(?:good|valid|passe?d?))\b"
     )
-    _HEDGE = re.compile(r"(?i)\b(?:likely|should (?:work|be fine|pass)|probably (?:works|fine)|i think (?:it|this) (?:works|is done)|seems? to work|might work)\b")
-    _BAND = re.compile(r"(?i)(\d{1,3}\s*%|\bconfidence\b|\[verified\]|\[plausible\]|receipt|ledger #?\d|proven|cited)")
+    _HEDGE = re.compile(
+        r"(?i)\b(?:likely|should (?:work|be fine|pass)|probably (?:works|fine)|i think (?:it|this) (?:works|is done)|seems? to work|might work)\b"
+    )
+    _BAND = re.compile(
+        r"(?i)(\d{1,3}\s*%|\bconfidence\b|\[verified\]|\[plausible\]|receipt|ledger #?\d|proven|cited)"
+    )
 
     def __init__(self, ledger: EventLedger):
         self.ledger = ledger
@@ -1716,7 +2071,13 @@ class ClaimWarningModule:
         base = self._base_gate(event, message, families)
         if base is not None:
             results.append(base)
-        for detector in (self._zero_diff, self._repro_fingerprint, self._receipt_gate, self._compchem, self._wep_hedge):
+        for detector in (
+            self._zero_diff,
+            self._repro_fingerprint,
+            self._receipt_gate,
+            self._compchem,
+            self._wep_hedge,
+        ):
             try:
                 results.append(detector(event, message, families))
             except Exception:
@@ -1734,7 +2095,9 @@ class ClaimWarningModule:
         # lane has landed; else fall back to the legacy any-green has_verification.
         fresh = getattr(self.ledger, "has_fresh_receipt", None)
         if callable(fresh) and CLAIM_RECEIPT_MAP and families:
-            classes = tuple(sorted({c for fam in families for c in CLAIM_RECEIPT_MAP.get(fam, ())}))
+            classes = tuple(
+                sorted({c for fam in families for c in CLAIM_RECEIPT_MAP.get(fam, ())})
+            )
             if classes:
                 try:
                     return bool(fresh(event.cwd, event.turn_id, classes))
@@ -1745,7 +2108,9 @@ class ClaimWarningModule:
         except Exception:
             return False
 
-    def _base_gate(self, event: HookEvent, message: str, families: list[str]) -> Optional[HookResult]:
+    def _base_gate(
+        self, event: HookEvent, message: str, families: list[str]
+    ) -> Optional[HookResult]:
         if not self._CLAIM.search(message) or self._has_evidence(event, families):
             return None
         text = (
@@ -1757,13 +2122,18 @@ class ClaimWarningModule:
         if (
             os.environ.get("HARNESS_CLAIM_GATE", "").strip().lower() == "block"
             and event.event == "Stop"
-            and str(getattr(event, "trigger", "")).lower() not in {"stop_hook_active", "true", "1"}
+            and str(getattr(event, "trigger", "")).lower()
+            not in {"stop_hook_active", "true", "1"}
         ):
             return HookResult.success(
-                action="block", reason_code="unverified_completion_claim", additional_context=[text]
+                action="block",
+                reason_code="unverified_completion_claim",
+                additional_context=[text],
             )
         return HookResult.success(
-            action="inject", reason_code="unverified_completion_claim", additional_context=[text]
+            action="inject",
+            reason_code="unverified_completion_claim",
+            additional_context=[text],
         )
 
     def _mutations_this_turn(self, event: HookEvent) -> Optional[int]:
@@ -1775,7 +2145,9 @@ class ClaimWarningModule:
         except Exception:
             return None
 
-    def _zero_diff(self, event: HookEvent, message: str, families: list[str]) -> HookResult:
+    def _zero_diff(
+        self, event: HookEvent, message: str, families: list[str]
+    ) -> HookResult:
         # Zero-diff tripwire: a "fixed"/"resolved" claim with 0 mutation events this
         # turn — the model claims a fix it never wrote. Shadow-first.
         if "fixed" not in families:
@@ -1792,7 +2164,9 @@ class ClaimWarningModule:
         )
         return stage("zero_diff", TIER_HEURISTIC, event, raw)
 
-    def _repro_fingerprint(self, event: HookEvent, message: str, families: list[str]) -> HookResult:
+    def _repro_fingerprint(
+        self, event: HookEvent, message: str, families: list[str]
+    ) -> HookResult:
         # Repro-fingerprint fix-gate: a "fixed" claim is satisfied only by a GREEN
         # rerun (receipt_for_fingerprint) of the SAME failing argv-hash. When the
         # ledger lane is present and no such green receipt exists, nudge. Shadow-first.
@@ -1820,14 +2194,18 @@ class ClaimWarningModule:
         )
         return stage("repro_fingerprint", TIER_HEURISTIC, event, raw)
 
-    def _receipt_gate(self, event: HookEvent, message: str, families: list[str]) -> HookResult:
+    def _receipt_gate(
+        self, event: HookEvent, message: str, families: list[str]
+    ) -> HookResult:
         # Typed-receipt / stake-tier gate: the claimed family needs a FRESH receipt
         # of its required class. Distinct from the base gate so a stake-tier text can
         # be surfaced. Only meaningful when the ledger lane is present. Shadow-first.
         fresh = getattr(self.ledger, "has_fresh_receipt", None)
         if not callable(fresh) or not CLAIM_RECEIPT_MAP or not families:
             return HookResult.success()
-        classes = tuple(sorted({c for fam in families for c in CLAIM_RECEIPT_MAP.get(fam, ())}))
+        classes = tuple(
+            sorted({c for fam in families for c in CLAIM_RECEIPT_MAP.get(fam, ())})
+        )
         if not classes:
             return HookResult.success()
         try:
@@ -1835,7 +2213,11 @@ class ClaimWarningModule:
                 return HookResult.success()
         except Exception:
             return HookResult.success()
-        stake = STAKE_TIERS.get("multifile", "clear_and_convincing") if STAKE_TIERS else "clear_and_convincing"
+        stake = (
+            STAKE_TIERS.get("multifile", "clear_and_convincing")
+            if STAKE_TIERS
+            else "clear_and_convincing"
+        )
         raw = HookResult.success(
             action="inject",
             reason_code="receipt_gate",
@@ -1845,12 +2227,17 @@ class ClaimWarningModule:
         )
         return stage("receipt_gate", TIER_HEURISTIC, event, raw)
 
-    def _compchem(self, event: HookEvent, message: str, families: list[str]) -> HookResult:
+    def _compchem(
+        self, event: HookEvent, message: str, families: list[str]
+    ) -> HookResult:
         # Compchem physical-validity claim-gate: a docking/dG/MD-converged claim
         # needs a validity artifact (PoseBusters pass / redock-RMSD / convergence).
         if not self._COMPCHEM.search(message):
             return HookResult.success()
-        if re.search(r"(?i)\b(?:posebusters|rmsd|redock|convergence|pb[- ]valid|physically valid)\b", message):
+        if re.search(
+            r"(?i)\b(?:posebusters|rmsd|redock|convergence|pb[- ]valid|physically valid)\b",
+            message,
+        ):
             return HookResult.success()
         raw = HookResult.success(
             action="inject",
@@ -1861,7 +2248,9 @@ class ClaimWarningModule:
         )
         return stage("compchem_claim", TIER_HEURISTIC, event, raw)
 
-    def _wep_hedge(self, event: HookEvent, message: str, families: list[str]) -> HookResult:
+    def _wep_hedge(
+        self, event: HookEvent, message: str, families: list[str]
+    ) -> HookResult:
         # WEP hedge lint: a bare "likely / should work" in a completion with no
         # confidence band and no evidence tag. Shadow-first.
         if not self._HEDGE.search(message) or self._BAND.search(message):
@@ -1877,8 +2266,12 @@ class ClaimWarningModule:
 
     # Basic-memory write tools whose presence in the ledger means the change
     # rationale WAS captured this session. Substring match over the tool name.
-    _BM_WRITE_TOOLS = ("basic-memory__write_note", "basic-memory__edit_note",
-                       "basic-memory__canvas", "basic-memory__create_memory_project")
+    _BM_WRITE_TOOLS = (
+        "basic-memory__write_note",
+        "basic-memory__edit_note",
+        "basic-memory__canvas",
+        "basic-memory__create_memory_project",
+    )
 
     def _basic_memory_nudge(self, event: HookEvent) -> HookResult:
         # Fires once per session when a canonical config file was edited but no
@@ -1891,8 +2284,7 @@ class ClaimWarningModule:
         except Exception:
             return HookResult.success()
         edited_canonical = any(
-            e.get("kind") == "mutation" and e.get("canonical_tree")
-            for e in events
+            e.get("kind") == "mutation" and e.get("canonical_tree") for e in events
         )
         if not edited_canonical:
             return HookResult.success()
@@ -1905,8 +2297,12 @@ class ClaimWarningModule:
             return HookResult.success()
         # Once-per-session cooldown (gentle): nag at most once. Reuses the module-level
         # _session_hash + default_state_root + read_json/atomic_write_json.
-        marker = default_state_root() / "basic-memory-nudge" / f"{_session_hash(event)}.json"
-        if isinstance(read_json(marker, {}), dict) and read_json(marker, {}).get("nudged"):
+        marker = (
+            default_state_root() / "basic-memory-nudge" / f"{_session_hash(event)}.json"
+        )
+        if isinstance(read_json(marker, {}), dict) and read_json(marker, {}).get(
+            "nudged"
+        ):
             return HookResult.success()
         raw = HookResult.success(
             action="inject",
@@ -1923,7 +2319,9 @@ class ClaimWarningModule:
         # in shadow it returns allow, so we don't burn the one-shot before it's promoted.
         if staged.action != "allow":
             try:
-                (default_state_root() / "basic-memory-nudge").mkdir(parents=True, exist_ok=True)
+                (default_state_root() / "basic-memory-nudge").mkdir(
+                    parents=True, exist_ok=True
+                )
                 atomic_write_json(marker, {"nudged": True})
             except OSError:
                 pass
@@ -1998,11 +2396,16 @@ class SubagentLifecycleModule:
         return HookResult.success()
 
     def _stalled_sentinel(self, event: HookEvent) -> HookResult:
-        transcript = str(getattr(getattr(event, "agent", None), "transcript_path", "") or "")
+        transcript = str(
+            getattr(getattr(event, "agent", None), "transcript_path", "") or ""
+        )
         if not transcript:
             return HookResult.success()
         try:
-            age = datetime.now(timezone.utc).timestamp() - Path(transcript).stat().st_mtime
+            age = (
+                datetime.now(timezone.utc).timestamp()
+                - Path(transcript).stat().st_mtime
+            )
         except OSError:
             return HookResult.success()
         if age < 25 * 60:
@@ -2038,8 +2441,12 @@ class DesignToolReminderModule:
     # Metaswarm's Design-Review GATE (a workflow step, not a UI-design request) must
     # NOT trip the reminder. "design review" no longer appears in the intent group.
     _DESIGN_REVIEW_DOC = re.compile(r"(?i)\bdesign[- ]review\b|/review-design\b")
-    _STYLE_FILE = re.compile(r"(?i)\.(?:css|scss|sass|less|styl|tsx|jsx|vue|svelte)$|/(?:styles?|theme|design|components?)/")
-    _DESIGN_TOOL = re.compile(r"(?i)figma|design-review|ui-audit|transpose|ui-ux-pro|design-studio|ui-drive")
+    _STYLE_FILE = re.compile(
+        r"(?i)\.(?:css|scss|sass|less|styl|tsx|jsx|vue|svelte)$|/(?:styles?|theme|design|components?)/"
+    )
+    _DESIGN_TOOL = re.compile(
+        r"(?i)figma|design-review|ui-audit|transpose|ui-ux-pro|design-studio|ui-drive"
+    )
     _REMINDER = (
         "UI/UX DESIGN REMINDER: for UI/UX auditing + interactive design, DEFAULT to the "
         "Figma/Claude-Design pipeline -- do NOT go code-first. Use the Figma MCP "
@@ -2060,7 +2467,9 @@ class DesignToolReminderModule:
 
     def _write_state(self, event: Any, data: dict[str, Any]) -> None:
         try:
-            atomic_write_json(self._counter_path(getattr(event, "session_id", "")), data)
+            atomic_write_json(
+                self._counter_path(getattr(event, "session_id", "")), data
+            )
         except OSError:
             pass
 
@@ -2085,7 +2494,9 @@ class DesignToolReminderModule:
             state["design_seen"] = True
             self._write_state(event, state)
         # A metaswarm "design review" gate mention is not a UI-design request.
-        if self._DESIGN_REVIEW_DOC.search(prompt) and not self._DESIGN_INTENT.search(prompt):
+        if self._DESIGN_REVIEW_DOC.search(prompt) and not self._DESIGN_INTENT.search(
+            prompt
+        ):
             return HookResult.success()
         if not self._DESIGN_INTENT.search(prompt):
             return HookResult.success()
@@ -2096,7 +2507,9 @@ class DesignToolReminderModule:
         state["reminded"] = True
         self._write_state(event, state)
         return HookResult.success(
-            action="inject", reason_code="design_tool_reminder", additional_context=[self._REMINDER]
+            action="inject",
+            reason_code="design_tool_reminder",
+            additional_context=[self._REMINDER],
         )
 
     def _drift_detector(self, event: Any) -> HookResult:
@@ -2108,7 +2521,11 @@ class DesignToolReminderModule:
         if tool not in {"Write", "Edit", "MultiEdit", "NotebookEdit"}:
             return HookResult.success()
         tool_input = getattr(getattr(event, "tool", None), "input", {}) or {}
-        path = str(tool_input.get("file_path") or tool_input.get("path") or "") if isinstance(tool_input, dict) else ""
+        path = (
+            str(tool_input.get("file_path") or tool_input.get("path") or "")
+            if isinstance(tool_input, dict)
+            else ""
+        )
         if not self._STYLE_FILE.search(path):
             return HookResult.success()
         state = self._state(event)

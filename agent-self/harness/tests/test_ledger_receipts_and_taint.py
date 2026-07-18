@@ -98,7 +98,9 @@ def test_classify_receipt_class_detection(command, expected):
 
 def test_classify_receipt_parses_pass_counts_and_status():
     receipt = classify_receipt(
-        "Bash", {"command": "pytest -q"}, {"exit_code": 0, "output": "42 passed in 1.2s"}
+        "Bash",
+        {"command": "pytest -q"},
+        {"exit_code": 0, "output": "42 passed in 1.2s"},
     )
     assert receipt is not None
     assert receipt.status == "pass"
@@ -137,7 +139,9 @@ def test_classify_receipt_health_pass_from_text_without_exit_code():
 
 
 def test_classify_receipt_status_unknown_when_no_signal():
-    receipt = classify_receipt("Bash", {"command": "python app.py"}, {"output": "started"})
+    receipt = classify_receipt(
+        "Bash", {"command": "python app.py"}, {"output": "started"}
+    )
     assert receipt is not None
     assert receipt.status == "unknown"
 
@@ -153,12 +157,16 @@ def test_classify_receipt_status_unknown_when_no_signal():
         ("Read", {"file_path": "a.py"}),
     ],
 )
-def test_classify_receipt_returns_none_for_noncommand_or_unclassifiable(tool_name, tool_input):
+def test_classify_receipt_returns_none_for_noncommand_or_unclassifiable(
+    tool_name, tool_input
+):
     assert classify_receipt(tool_name, tool_input, {"exit_code": 0}) is None
 
 
 def test_classify_receipt_accepts_bare_string_command():
-    receipt = classify_receipt("Bash", "pytest -q", {"exit_code": 0, "output": "3 passed"})
+    receipt = classify_receipt(
+        "Bash", "pytest -q", {"exit_code": 0, "output": "3 passed"}
+    )
     assert receipt is not None
     assert receipt.receipt_class == "test"
 
@@ -171,7 +179,9 @@ def test_classify_receipt_is_pure_seq_and_ts_are_placeholders():
 
 
 def test_argv_fingerprint_is_stable_under_whitespace_and_distinguishes():
-    assert argv_fingerprint("pytest  -q   tests/") == argv_fingerprint("pytest -q tests/")
+    assert argv_fingerprint("pytest  -q   tests/") == argv_fingerprint(
+        "pytest -q tests/"
+    )
     assert argv_fingerprint("pytest -q") != argv_fingerprint("pytest -x")
     # sha256 hex — 64 chars, redaction-safe.
     fp = argv_fingerprint("pytest -q")
@@ -201,8 +211,19 @@ def test_last_mutation_seq_tracks_mutation_events(tmp_path):
     assert ledger.last_mutation_seq(cwd, "turn-1") == m1["seq"]
 
 
-def _append_receipt(ledger, cwd, *, turn_id, receipt_class="test", status="pass",
-                    passed=1, failed=0, fingerprint="", verified=None, key=None):
+def _append_receipt(
+    ledger,
+    cwd,
+    *,
+    turn_id,
+    receipt_class="test",
+    status="pass",
+    passed=1,
+    failed=0,
+    fingerprint="",
+    verified=None,
+    key=None,
+):
     fields = {
         "turn_id": turn_id,
         "tool": "Bash",
@@ -260,7 +281,9 @@ def test_receipt_for_fingerprint_roundtrip_survives_sanitizer(tmp_path):
     ledger = _ledger(tmp_path)
     cwd = str(tmp_path)
     fp = argv_fingerprint("pytest -q tests/failing.py")
-    _append_receipt(ledger, cwd, turn_id="turn-1", status="fail", fingerprint=fp, key="fp1")
+    _append_receipt(
+        ledger, cwd, turn_id="turn-1", status="fail", fingerprint=fp, key="fp1"
+    )
     found = ledger.receipt_for_fingerprint(cwd, fp)
     assert found is not None
     assert found.fingerprint == fp
@@ -303,8 +326,12 @@ def test_last_failed_fingerprint_ignores_pass_and_empty_fp(tmp_path):
     cwd = str(tmp_path)
     # A pass receipt and a fail receipt with no fingerprint are both ignored.
     _append_receipt(
-        ledger, cwd, turn_id="t", status="pass",
-        fingerprint=argv_fingerprint("pytest -q"), key="p",
+        ledger,
+        cwd,
+        turn_id="t",
+        status="pass",
+        fingerprint=argv_fingerprint("pytest -q"),
+        key="p",
     )
     _append_receipt(ledger, cwd, turn_id="t", status="fail", fingerprint="", key="nofp")
     assert ledger.last_failed_fingerprint(cwd) is None
@@ -331,7 +358,9 @@ def test_last_failed_fingerprint_pairs_with_receipt_for_fingerprint(tmp_path):
     cwd = str(tmp_path)
     fp = argv_fingerprint("pytest -q tests/fixed.py")
     _append_receipt(ledger, cwd, turn_id="t", status="fail", fingerprint=fp, key="fail")
-    _append_receipt(ledger, cwd, turn_id="t", status="pass", fingerprint=fp, key="green")
+    _append_receipt(
+        ledger, cwd, turn_id="t", status="pass", fingerprint=fp, key="green"
+    )
     assert ledger.last_failed_fingerprint(cwd) == fp
     receipt = ledger.receipt_for_fingerprint(cwd, fp)
     assert receipt is not None and receipt.status == "pass"
@@ -388,9 +417,13 @@ def test_mutation_tracked_in_state_without_breaking_reducers(tmp_path):
     ledger = _ledger(tmp_path)
     cwd = str(tmp_path)
     ledger.append(cwd, "decision", text="Adopt the receipt gate")
-    fail_event = ledger.append(cwd, "failure", text="offset drift", preconditions="post-update")
+    fail_event = ledger.append(
+        cwd, "failure", text="offset drift", preconditions="post-update"
+    )
     mut = ledger.append(cwd, "mutation", turn_id="turn-1", path="lib/x.so")
-    ledger.append(cwd, "milestone", text="drift resolved", supersedes_failures=[fail_event["seq"]])
+    ledger.append(
+        cwd, "milestone", text="drift resolved", supersedes_failures=[fail_event["seq"]]
+    )
 
     state = ledger.state(cwd)
     # Existing reducers unaffected: decision present, failure superseded away.
@@ -424,7 +457,9 @@ def test_taint_dependents_returns_seqs_and_writes_marker(tmp_path):
     ledger = _ledger(tmp_path)
     cwd = str(tmp_path)
     ref = "offset:0x668C70"
-    dep1 = ledger.append(cwd, "decision", text="hook via offset", derived_from=[ref, "other"])
+    dep1 = ledger.append(
+        cwd, "decision", text="hook via offset", derived_from=[ref, "other"]
+    )
     dep2 = ledger.append(cwd, "failure", text="trainer crashed", derived_from=[ref])
     ledger.append(cwd, "decision", text="unrelated", derived_from=["something-else"])
 
@@ -477,12 +512,18 @@ def test_receipt_fields_do_not_leak_raw_argv_or_secrets(tmp_path):
     secret = "sk-proj-abcdefghijklmnopqrstuvwxyz1234567890"
     # classify only stores class/status/counts/fingerprint — never the raw argv.
     receipt = classify_receipt(
-        "Bash", {"command": f"pytest -q # {secret}"}, {"exit_code": 0, "output": "1 passed"}
+        "Bash",
+        {"command": f"pytest -q # {secret}"},
+        {"exit_code": 0, "output": "1 passed"},
     )
     assert receipt is not None
     _append_receipt(
-        ledger, cwd, turn_id="t", status=receipt.status,
-        fingerprint=receipt.fingerprint, key="s1",
+        ledger,
+        cwd,
+        turn_id="t",
+        status=receipt.status,
+        fingerprint=receipt.fingerprint,
+        key="s1",
     )
     serialized = ledger._events(cwd).read_text(encoding="utf-8")
     assert secret not in serialized

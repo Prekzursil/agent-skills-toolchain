@@ -88,7 +88,13 @@ def test_note_carries_all_si5_fields(tmp_path):
         "---\ntitle: A note\npermalink: notes/a\n---\nplain body text\n",
     )
     note = data["notes"][0]
-    for field in ("mtime", "importance", "superseded_by", "is_failure_head", "poisoned"):
+    for field in (
+        "mtime",
+        "importance",
+        "superseded_by",
+        "is_failure_head",
+        "poisoned",
+    ):
         assert field in note, f"missing SI-5 field {field}"
     assert isinstance(note["mtime"], float) and note["mtime"] > 0
     assert isinstance(note["importance"], float) and 0.0 <= note["importance"] <= 1.0
@@ -105,14 +111,24 @@ def test_existing_v1_fields_are_unchanged(tmp_path):
     )
     note = data["notes"][0]
     assert set(note) == {
-        "path", "title", "summary", "permalink", "keywords",
-        "mtime", "importance", "superseded_by", "is_failure_head", "poisoned",
+        "path",
+        "title",
+        "summary",
+        "permalink",
+        "keywords",
+        "mtime",
+        "importance",
+        "superseded_by",
+        "is_failure_head",
+        "poisoned",
     }
     assert "built_at" in data and "vault_hash" in data
 
 
 def test_explicit_frontmatter_importance_wins_and_is_clamped(tmp_path):
-    data = _build_one(tmp_path, "imp.md", "---\ntitle: Imp\nimportance: 0.9\n---\nbody\n")
+    data = _build_one(
+        tmp_path, "imp.md", "---\ntitle: Imp\nimportance: 0.9\n---\nbody\n"
+    )
     assert data["notes"][0]["importance"] == 0.9
 
     high = _build_one(tmp_path, "hi.md", "---\ntitle: Hi\nimportance: 5\n---\nbody\n")
@@ -123,7 +139,9 @@ def test_explicit_frontmatter_importance_wins_and_is_clamped(tmp_path):
 
 
 def test_word_importance_and_default_bounds(tmp_path):
-    worded = _build_one(tmp_path, "w.md", "---\ntitle: W\nimportance: high\n---\nbody\n")
+    worded = _build_one(
+        tmp_path, "w.md", "---\ntitle: W\nimportance: high\n---\nbody\n"
+    )
     assert worded["notes"][0]["importance"] == 0.9
 
     default = _build_one(tmp_path, "d.md", "---\ntitle: D\n---\nbody\n")

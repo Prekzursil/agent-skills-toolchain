@@ -17,7 +17,9 @@ from harness import registration as _registration
 # dispatcher.py" in this enshrined layout. Compute the expected path the same way
 # so the assertions target the harness's OWN dispatcher wherever it lives, rather
 # than hard-coding the live install path (which fails in the enshrined tree).
-_DISPATCHER = (Path(_registration.__file__).resolve().parent / "dispatcher.py").as_posix()
+_DISPATCHER = (
+    Path(_registration.__file__).resolve().parent / "dispatcher.py"
+).as_posix()
 
 
 class ExplodingModule:
@@ -57,7 +59,9 @@ def test_dispatcher_aggregates_context_and_block_wins(tmp_path):
         name = "context"
 
         def run(self, _event):
-            return HookResult.success(action="inject", additional_context=["context one"])
+            return HookResult.success(
+                action="inject", additional_context=["context one"]
+            )
 
     class BlockModule:
         name = "block"
@@ -165,7 +169,9 @@ def test_claude_build_hooks_folds_in_live_settings_hand_edits():
 
     # (a) PreToolUse dispatcher matcher is hand-narrowed for claude, broad for codex.
     pre = claude["PreToolUse"]
-    dispatcher_group = next(g for g in pre if "dispatcher.py" in g["hooks"][0]["command"])
+    dispatcher_group = next(
+        g for g in pre if "dispatcher.py" in g["hooks"][0]["command"]
+    )
     assert dispatcher_group["matcher"] == (
         "Bash|PowerShell|Edit|Write|MultiEdit|NotebookEdit|apply_patch|Task|WebFetch|mcp__.*"
     )
@@ -228,9 +234,18 @@ def test_every_registered_provider_event_has_valid_native_wire_output(tmp_path):
     script = Path(__file__).resolve().parents[1] / "dispatcher.py"
     payloads = {
         "SessionStart": {"source": "startup"},
-        "UserPromptSubmit": {"prompt": "Inspect the shared harness behavior without changing files."},
-        "PreToolUse": {"tool_name": "Bash", "tool_use_id": "pre", "tool_input": {"command": "pytest -q"}},
-        "PermissionRequest": {"tool_name": "Bash", "tool_input": {"command": "pytest -q"}},
+        "UserPromptSubmit": {
+            "prompt": "Inspect the shared harness behavior without changing files."
+        },
+        "PreToolUse": {
+            "tool_name": "Bash",
+            "tool_use_id": "pre",
+            "tool_input": {"command": "pytest -q"},
+        },
+        "PermissionRequest": {
+            "tool_name": "Bash",
+            "tool_input": {"command": "pytest -q"},
+        },
         "PostToolUse": {
             "tool_name": "Bash",
             "tool_use_id": "post",
@@ -289,11 +304,7 @@ def test_every_registered_provider_event_has_valid_native_wire_output(tmp_path):
 
 def test_legacy_basic_memory_capture_is_a_safe_shared_dispatcher_wrapper():
     legacy = (
-        Path.home()
-        / ".claude"
-        / "hooks"
-        / "precompact-basicmemory"
-        / "capture.ps1"
+        Path.home() / ".claude" / "hooks" / "precompact-basicmemory" / "capture.ps1"
     ).read_text(encoding="utf-8")
 
     assert ".agents/harness/dispatcher.py" in legacy.replace("\\", "/")

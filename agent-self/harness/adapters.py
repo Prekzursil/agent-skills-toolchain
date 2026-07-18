@@ -70,7 +70,9 @@ def _first_present(data: dict[str, Any], keys: tuple[str, ...]) -> Any:
     return None
 
 
-def normalize_event(raw: dict[str, Any], *, provider: str, event_name: str) -> HookEvent:
+def normalize_event(
+    raw: dict[str, Any], *, provider: str, event_name: str
+) -> HookEvent:
     provider_name = str(provider or "").lower()
     if provider_name not in SUPPORTED_PROVIDERS:
         raise ValueError(f"unsupported provider: {provider_name}")
@@ -89,9 +91,19 @@ def normalize_event(raw: dict[str, Any], *, provider: str, event_name: str) -> H
     # Agent/teammate/task identity: an Agent-Teams task or teammate event names
     # its actor under task_* / teammate_* keys; map those onto the existing
     # agent envelope so the subagent/lifecycle modules recognize them.
-    agent_id = _first_present(data, ("agent_id", "task_id", "taskId", "teammate_id", "teammateId"))
+    agent_id = _first_present(
+        data, ("agent_id", "task_id", "taskId", "teammate_id", "teammateId")
+    )
     agent_type = _first_present(
-        data, ("agent_type", "task_type", "task_name", "taskName", "teammate", "teammate_name")
+        data,
+        (
+            "agent_type",
+            "task_type",
+            "task_name",
+            "taskName",
+            "teammate",
+            "teammate_name",
+        ),
     )
 
     # A task summary is the closest existing analogue to an assistant message,
@@ -139,7 +151,9 @@ def _message(result: HookResult) -> str:
         return "\n\n".join(x for x in result.additional_context if x)
     if result.continuation:
         return result.continuation
-    return result.reason_code.replace("_", " ").strip() or "Blocked by lifecycle policy."
+    return (
+        result.reason_code.replace("_", " ").strip() or "Blocked by lifecycle policy."
+    )
 
 
 def render_output(

@@ -93,4 +93,3 @@ class HookResult:
         if self.continuation is not None:
             result["continuation"] = self.continuation
         return result
-

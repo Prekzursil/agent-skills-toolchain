@@ -93,11 +93,15 @@ def test_permission_request_denial_uses_decision_object():
 
 
 def test_noop_stop_renders_empty_json_because_plain_text_is_invalid():
-    assert render_output(HookResult.success(), provider="codex", event_name="Stop") == {}
+    assert (
+        render_output(HookResult.success(), provider="codex", event_name="Stop") == {}
+    )
 
 
 def test_core_result_schema_is_closed_and_contains_no_provider_wire_fields():
-    schema_path = Path(__file__).resolve().parents[1] / "schemas" / "hook-result.schema.json"
+    schema_path = (
+        Path(__file__).resolve().parents[1] / "schemas" / "hook-result.schema.json"
+    )
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
 
     assert schema["additionalProperties"] is False

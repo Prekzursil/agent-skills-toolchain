@@ -69,9 +69,7 @@ _NO_MATCHER = {"UserPromptSubmit", "Stop"}
 # Paths resolve from Path.home() so the generated block matches the live literal
 # (C:/Users/<user>/...) without hard-coding a username.
 # --------------------------------------------------------------------------- #
-_CLAUDE_PRETOOLUSE_MATCHER = (
-    "Bash|PowerShell|Edit|Write|MultiEdit|NotebookEdit|apply_patch|Task|WebFetch|mcp__.*"
-)
+_CLAUDE_PRETOOLUSE_MATCHER = "Bash|PowerShell|Edit|Write|MultiEdit|NotebookEdit|apply_patch|Task|WebFetch|mcp__.*"
 
 
 def _command_group(

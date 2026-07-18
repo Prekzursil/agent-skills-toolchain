@@ -15,6 +15,7 @@ if __package__ in {None, ""}:
     from harness.ledger import default_state_root
     from harness.redaction import redact_text
     from harness.storage import atomic_write_json
+
     try:
         from harness.injection_grammar import DIRECTIVE_CATEGORIES, looks_poisoned
     except ImportError:  # foundation module absent (old tree) -> degrade fail-open
@@ -26,6 +27,7 @@ else:
     from .ledger import default_state_root
     from .redaction import redact_text
     from .storage import atomic_write_json
+
     try:
         from .injection_grammar import DIRECTIVE_CATEGORIES, looks_poisoned
     except ImportError:  # foundation module absent (old tree) -> degrade fail-open
@@ -44,8 +46,23 @@ SCHEMA_VERSION = 2
 _EXCLUDED_DIRS = {".git", ".hf", ".models", "compaction-checkpoints", "node_modules"}
 _WORD = re.compile(r"[a-z0-9][a-z0-9._-]{2,}", re.I)
 _STOPWORDS = {
-    "about", "after", "also", "and", "are", "before", "from", "have", "into",
-    "that", "the", "this", "with", "your", "http", "https", "www",
+    "about",
+    "after",
+    "also",
+    "and",
+    "are",
+    "before",
+    "from",
+    "have",
+    "into",
+    "that",
+    "the",
+    "this",
+    "with",
+    "your",
+    "http",
+    "https",
+    "www",
 }
 
 # Tags / types that mark a note as a FAILURE / contradiction head (boosted first
@@ -54,16 +71,38 @@ _FAILURE_TAGS = {"failure", "compaction-checkpoint", "compaction_checkpoint"}
 # Frontmatter signals that push the default `importance` up or down when a note
 # has no explicit `importance:` value.
 _HIGH_IMPORTANCE_TAGS = {
-    "current", "keystone", "important", "critical", "decision", "milestone",
-    "star", "starred", "pinned", "canonical", "high",
+    "current",
+    "keystone",
+    "important",
+    "critical",
+    "decision",
+    "milestone",
+    "star",
+    "starred",
+    "pinned",
+    "canonical",
+    "high",
 }
 _LOW_IMPORTANCE_TAGS = {
-    "deprecated", "superseded", "obsolete", "archive", "archived", "stale",
-    "retired", "low",
+    "deprecated",
+    "superseded",
+    "obsolete",
+    "archive",
+    "archived",
+    "stale",
+    "retired",
+    "low",
 }
 _IMPORTANCE_WORDS = {
-    "critical": 1.0, "high": 0.9, "important": 0.8, "medium": 0.5, "med": 0.5,
-    "normal": 0.5, "low": 0.2, "minor": 0.2, "trivial": 0.1,
+    "critical": 1.0,
+    "high": 0.9,
+    "important": 0.8,
+    "medium": 0.5,
+    "med": 0.5,
+    "normal": 0.5,
+    "low": 0.2,
+    "minor": 0.2,
+    "trivial": 0.1,
 }
 
 
@@ -171,14 +210,18 @@ def _default_importance(tags: set[str], mtime: float, now: float) -> float:
     return _clamp01(score)
 
 
-def _importance(metadata: dict[str, Any], tags: set[str], mtime: float, now: float) -> float:
+def _importance(
+    metadata: dict[str, Any], tags: set[str], mtime: float, now: float
+) -> float:
     explicit = _explicit_importance(metadata.get("importance"))
     if explicit is not None:
         return round(explicit, 4)
     return round(_default_importance(tags, mtime, now), 4)
 
 
-def _is_failure_head(metadata: dict[str, Any], tags: set[str], superseded_by: str) -> bool:
+def _is_failure_head(
+    metadata: dict[str, Any], tags: set[str], superseded_by: str
+) -> bool:
     """True for a failure/checkpoint note OR the current head of a --supersedes chain.
 
     A note is a chain head when it supersedes an older note (frontmatter
@@ -187,10 +230,18 @@ def _is_failure_head(metadata: dict[str, Any], tags: set[str], superseded_by: st
     if tags & _FAILURE_TAGS:
         return True
     note_type = str(metadata.get("type") or "").lower()
-    if "failure" in note_type or "compaction-checkpoint" in note_type or "compaction_checkpoint" in note_type:
+    if (
+        "failure" in note_type
+        or "compaction-checkpoint" in note_type
+        or "compaction_checkpoint" in note_type
+    ):
         return True
     supersedes = metadata.get("supersedes")
-    has_supersedes = bool(supersedes) if not isinstance(supersedes, (str, bytes)) else bool(str(supersedes).strip())
+    has_supersedes = (
+        bool(supersedes)
+        if not isinstance(supersedes, (str, bytes))
+        else bool(str(supersedes).strip())
+    )
     valid_as_of = bool(str(metadata.get("valid_as_of") or "").strip())
     if (has_supersedes or valid_as_of) and not superseded_by:
         return True
@@ -221,7 +272,9 @@ def build_index(vault: Path | str, target: Path | str) -> int:
         metadata, body = _frontmatter(raw)
         safe_body = redact_text(body, redact_paths=True, max_chars=16384)
         title = str(metadata.get("title") or path.stem).strip()
-        permalink = str(metadata.get("permalink") or relative.with_suffix("").as_posix()).strip()
+        permalink = str(
+            metadata.get("permalink") or relative.with_suffix("").as_posix()
+        ).strip()
         safe_path = redact_text(relative.as_posix(), redact_paths=True, max_chars=300)
         safe_title = redact_text(title, redact_paths=True, max_chars=180)
         safe_permalink = redact_text(permalink, redact_paths=True, max_chars=240)
@@ -274,9 +327,13 @@ def build_index(vault: Path | str, target: Path | str) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Build the bounded lexical Basic Memory index")
+    parser = argparse.ArgumentParser(
+        description="Build the bounded lexical Basic Memory index"
+    )
     parser.add_argument("--vault", default="D:/basic-memory")
-    parser.add_argument("--target", default=str(default_state_root() / "recall-index.json"))
+    parser.add_argument(
+        "--target", default=str(default_state_root() / "recall-index.json")
+    )
     args = parser.parse_args(argv)
     try:
         count = build_index(args.vault, args.target)

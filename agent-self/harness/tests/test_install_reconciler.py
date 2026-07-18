@@ -44,7 +44,9 @@ def _write_codex(path):
 
 def test_desired_documents_injects_freshly_built_hooks(tmp_path):
     settings = tmp_path / "settings.json"
-    settings.write_text(json.dumps({"model": "opus", "hooks": {"stale": []}}), encoding="utf-8")
+    settings.write_text(
+        json.dumps({"model": "opus", "hooks": {"stale": []}}), encoding="utf-8"
+    )
 
     claude, codex = desired_documents(settings)
 
@@ -210,7 +212,9 @@ def test_settings_sections_unmanaged_without_baseline(tmp_path):
     _write_codex(codex)
 
     report = build_reconcile_report(
-        claude_settings=settings, codex_hooks=codex, baseline_path=tmp_path / "none.json"
+        claude_settings=settings,
+        codex_hooks=codex,
+        baseline_path=tmp_path / "none.json",
     )
 
     assert report["drift"] is False
@@ -458,7 +462,9 @@ def test_install_write_path_preserves_manifest_shape(tmp_path, monkeypatch):
     backups = tmp_path / "backups"
     manifest = tmp_path / "installed.json"
     claude.parent.mkdir(parents=True, exist_ok=True)
-    claude.write_text(json.dumps({"model": "opus", "hooks": {"stale": []}}), encoding="utf-8")
+    claude.write_text(
+        json.dumps({"model": "opus", "hooks": {"stale": []}}), encoding="utf-8"
+    )
 
     monkeypatch.setattr(install_mod, "CLAUDE_SETTINGS", claude)
     monkeypatch.setattr(install_mod, "CODEX_HOOKS", codex)
@@ -471,7 +477,9 @@ def test_install_write_path_preserves_manifest_shape(tmp_path, monkeypatch):
     written_claude = json.loads(claude.read_text(encoding="utf-8"))
     assert written_claude["hooks"] == build_hooks("claude")
     assert written_claude["model"] == "opus"
-    assert json.loads(codex.read_text(encoding="utf-8")) == {"hooks": build_hooks("codex")}
+    assert json.loads(codex.read_text(encoding="utf-8")) == {
+        "hooks": build_hooks("codex")
+    }
 
     recorded = json.loads(manifest.read_text(encoding="utf-8"))
     # D5 contract: modules.py._config_drift compares the live settings against
