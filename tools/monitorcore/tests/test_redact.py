@@ -1,7 +1,7 @@
 """Redaction filter tests (strict-by-default, fail-closed, pure).
 
 Covers every LOCKED pattern + the two reasoned additions (gh[oure]_ token,
-tightened standalone JWT), the 5 home-path forms (incl the 8.3 ``PREKZU~1``
+tightened standalone JWT), the 6 home-path forms (incl the 8.3 ``PREKZU~1``
 short name), n_masked counts, ``enabled=False`` passthrough, fail-closed
 behaviour, ``Redactor.count`` accumulation, and the benign-JWT / dotted-text
 NON-match.
@@ -99,7 +99,7 @@ def test_ghp_and_gho_are_distinct_tokens():
 
 
 # --------------------------------------------------------------------------
-# Home-path collapse (all 5 forms -> '~', remainder preserved)
+# Home-path collapse (all 6 forms -> '~', remainder preserved)
 # --------------------------------------------------------------------------
 
 HOME_CASES = [
@@ -107,6 +107,7 @@ HOME_CASES = [
     ("C:/Users/Prekzursil/Documents/notes.txt", "~/Documents/notes.txt"),
     ("/c/Users/Prekzursil/work/file", "~/work/file"),
     ("/mnt/c/Users/Prekzursil/work/file", "~/work/file"),
+    ("/home/Prekzursil/work/file", "~/work/file"),
     ("C:\\Users\\PREKZU~1\\Local\\cache", "~\\Local\\cache"),
 ]
 
@@ -134,6 +135,7 @@ def test_home_collapse_keeps_username_boundary():
 JSON_HOME_CASES = [
     (json.dumps({"p": r"C:\Users\Prekzursil\proj"}), '{"p": "~\\\\proj"}'),
     (json.dumps({"p": "C:/Users/Prekzursil/proj"}), '{"p": "~/proj"}'),
+    (json.dumps({"p": "/home/Prekzursil/proj"}), '{"p": "~/proj"}'),
     (
         json.dumps({"cmd": r"Read C:\Users\Prekzursil\Reframe\main.py"}),
         '{"cmd": "Read ~\\\\Reframe\\\\main.py"}',
