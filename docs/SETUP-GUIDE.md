@@ -92,7 +92,7 @@ resolve **LOCAL vs CLOUD** (proxy or not). The three recurring concerns —
 | **Python 3.11+** | per-repo `.venv` | per-repo `.venv` | fb-messenger, tiktok, rdkit, schrodinger |
 | **uv / uvx** | `~\.local\bin\uvx.exe` on PATH | `~/.local/bin/uvx` | tooluniverse |
 | **gog.exe v0.21.0** | `~\tools\gogcli\gog.exe` | platform `gog` binary | gogcli-classroom |
-| **Schrodinger 2022-4** | `D:\Program Files\Schrodinger 2022-4` | e.g. `/opt/schrodinger2022-4` | schrodinger |
+| **Schrodinger 2026-2** | `D:\Program Files\Schrodinger 2026-2` | e.g. `/opt/schrodinger2026-2` | schrodinger |
 | **ADB + BlueStacks** (to read IG app version) | `adb` on PATH | same | insta-mcp (one-time) |
 | **A browser with logged-in facebook.com** + C3C cookie-export extension | — | — | fb-messenger-mcp |
 
@@ -342,10 +342,11 @@ enabled for this project?"*. `gogcli-classroom` adds a student/teacher axis.
     install uses `rdkit 2026.3.3` + `pip install --no-deps .`. If you recreate
     the venv: install rdkit + `mcp` first, then `pip install --no-deps .`.
 
-### 7.3 `schrodinger` — custom 12-tool wrapper over local Schrodinger 2022-4
-- **Repo:** `~\source\repos\schrodinger-mcp` (`server.py` FastMCP +
+### 7.3 `schrodinger` — custom 67-tool wrapper over local Schrodinger 2026-2
+- **Repo:** `~\source\agent-skills-toolchain\tools\mcp\schrodinger-mcp`
+  (`server.py` FastMCP +
   `_sch_helper.py` runs inside `run.exe python3`). Install at
-  `D:\Program Files\Schrodinger 2022-4` (build 79134).
+  `D:\Program Files\Schrodinger 2026-2`.
 - **Auth/scopes:** no network auth. **Decision branch within the branch:** the
   **driver tools** (`prepwizard`, `glide_grid`, `ligprep`, `qikprop_admet`,
   `glide_dock`, `prime_mmgbsa`) consume **Schrodinger license tokens** and run
@@ -353,16 +354,16 @@ enabled for this project?"*. `gogcli-classroom` adds a student/teacher axis.
   must be **reachable** for those. The structure/cheminformatics tools
   (`schrodinger_version`, `backend_info`, `smiles_to_3d`, `molecule_properties`,
   `convert_structure`, `run_schrodinger_python`) need **no** license.
-  ✅ **Validated live E2E** on 2026-06-06 — full `prepwizard` → `glide_grid` →
-  `ligprep` → `glide_dock` → `prime_mmgbsa` pipeline on PDB 3PTB plus
-  `qikprop_admet` on warfarin; `glide_grid` now generates the docking grid
-  in-server (no precomputed Maestro grid needed). See
+  The core `prepwizard` → `glide_grid` → `ligprep` → `glide_dock` →
+  `prime_mmgbsa` pipeline was **validated live E2E** on 2026-06-06 against the
+  prior 2022-4 install (PDB 3PTB plus warfarin QikProp). The expanded 67-tool
+  surface targets 2026-2 and still needs its live-box smoke gate. See
   `schrodinger-mcp/VALIDATION.md`.
 - **Decision branch:** §6 enable-per-project + restart.
 - **Register:**
   ```bash
-  claude mcp add schrodinger -e "SCHRODINGER=D:\Program Files\Schrodinger 2022-4" -- C:/Users/Prekzursil/source/repos/schrodinger-mcp/.venv/Scripts/python.exe C:/Users/Prekzursil/source/repos/schrodinger-mcp/server.py
-  # POSIX: -e SCHRODINGER=/opt/schrodinger2022-4 -- ...\.venv/bin/python server.py
+  claude mcp add schrodinger -e "SCHRODINGER=D:\Program Files\Schrodinger 2026-2" -- C:/Users/Prekzursil/source/agent-skills-toolchain/tools/mcp/schrodinger-mcp/.venv/Scripts/python.exe C:/Users/Prekzursil/source/agent-skills-toolchain/tools/mcp/schrodinger-mcp/server.py
+  # POSIX: -e SCHRODINGER=/opt/schrodinger2026-2 -- ~/source/agent-skills-toolchain/tools/mcp/schrodinger-mcp/.venv/bin/python ~/source/agent-skills-toolchain/tools/mcp/schrodinger-mcp/server.py
   ```
 - **Verify:** call `schrodinger_version` / `backend_info` (no license needed).
 - **Troubleshoot:** version tool fails → `$SCHRODINGER` wrong (note the space in
@@ -463,10 +464,11 @@ applies.
 - **WhatsApp:** POC only — keep **unregistered**.
 - **gogcli-classroom:** re-add if absent from `claude mcp list`; student account
   → writes 403.
-- **schrodinger:** 12 tools; the driver tools (prepwizard/glide_grid/ligprep/
-  qikprop/glide_dock/prime_mmgbsa) consume license tokens but are **validated
-  live E2E** (2026-06-06, 3PTB + warfarin; see `schrodinger-mcp/VALIDATION.md`).
-  `glide_grid` generates the docking grid in-server (no precomputed grid needed).
+- **schrodinger:** 67 tools; product drivers consume license tokens. The core
+  prep → grid → dock → MM-GBSA chain was **validated live E2E** on 2022-4
+  (2026-06-06, 3PTB + warfarin; see `schrodinger-mcp/VALIDATION.md`); the
+  expanded 2026-2 surface still needs live-box smoke testing. `glide_grid`
+  generates the docking grid in-server (no precomputed grid needed).
 - **Research MCPs:** disabled-by-default — enable per-project (§6), don't wipe
   the disable list.
 - **All social MCPs:** private-API ToS/ban risk; read before write; secrets
@@ -489,7 +491,7 @@ claude mcp add fb-messenger -- C:/Users/Prekzursil/source/repos/fb-messenger-mcp
 # Research (disabled-by-default; enable per-project via §6)
 claude mcp add tooluniverse -e PYTHONIOENCODING=utf-8 -- uvx tooluniverse==1.2.4
 claude mcp add rdkit -- C:/Users/Prekzursil/source/repos/rdkit-mcp-server/.venv/Scripts/python.exe C:/Users/Prekzursil/source/repos/rdkit-mcp-server/run_server.py --transport stdio
-claude mcp add schrodinger -e "SCHRODINGER=D:\Program Files\Schrodinger 2022-4" -- C:/Users/Prekzursil/source/repos/schrodinger-mcp/.venv/Scripts/python.exe C:/Users/Prekzursil/source/repos/schrodinger-mcp/server.py
+claude mcp add schrodinger -e "SCHRODINGER=D:\Program Files\Schrodinger 2026-2" -- C:/Users/Prekzursil/source/agent-skills-toolchain/tools/mcp/schrodinger-mcp/.venv/Scripts/python.exe C:/Users/Prekzursil/source/agent-skills-toolchain/tools/mcp/schrodinger-mcp/server.py
 claude mcp add gogcli-classroom -e GOG_ACCOUNT=prekzursil1993@gmail.com -e GOG_PATH=C:\Users\Prekzursil\tools\gogcli\gog.exe -- gogcli-mcp-classroom
 
 # TikTok (BUILT — read-only public scraper, 9 tools; see §8)

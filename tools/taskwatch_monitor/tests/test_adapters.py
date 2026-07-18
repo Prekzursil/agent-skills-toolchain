@@ -2,6 +2,7 @@
 
 import json
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -9,17 +10,22 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from core.adapters import (  # noqa: E402
+    _DEFAULT_SSH_TIMEOUT,
     AdapterError,
     FileExistsGlobAdapter,
     HttpJsonAdapter,
     LocalFileTailAdapter,
     ProcessPidAdapter,
     RealFileSystem,
+    SshExecAdapter,
+    SshExecError,
+    _optional_timeout,
     _require_int,
     _require_str,
     adapter_from_spec,
     default_http_get,
     default_pid_alive,
+    default_ssh_exec,
 )
 from core.models import TaskSpec  # noqa: E402
 
@@ -252,3 +258,189 @@ class TestAdapterFromSpec:
         spec = TaskSpec(id="a", adapter="mystery")
         with pytest.raises(AdapterError, match="unknown adapter"):
             adapter_from_spec(spec)
+
+
+class FakeRunner:
+    """Stub for :func:`subprocess.run` used to cover ``default_ssh_exec``."""
+
+    def __init__(
+        self,
+        *,
+        returncode: int = 0,
+        stdout: str = "",
+        stderr: str = "",
+        raises: Exception | None = None,
+    ) -> None:
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = stderr
+        self.raises = raises
+        self.calls: list[list[str]] = []
+
+    def __call__(
+        self,
+        args: list[str],
+        *,
+        capture_output: bool,
+        text: bool,
+        timeout: float,
+        check: bool,
+    ) -> "subprocess.CompletedProcess[str]":
+        self.calls.append(args)
+        if self.raises is not None:
+            raise self.raises
+        return subprocess.CompletedProcess(
+            args=args,
+            returncode=self.returncode,
+            stdout=self.stdout,
+            stderr=self.stderr,
+        )
+
+
+class TestSshExecAdapter:
+    def test_success_splits_stdout_into_lines(self):
+        pr = SshExecAdapter(
+            "host",
+            "tail -n5 /log",
+            ssh_exec=lambda _h, _c, _t: "a\nb\nc",
+            clock=lambda: 9.0,
+        ).poll()
+        assert pr.exists is True
+        assert pr.liveness is True
+        assert pr.mtime == 9.0
+        assert pr.lines == ["a", "b", "c"]
+        assert pr.blind is False
+
+    def test_passes_host_command_timeout_through(self):
+        seen: list[tuple[str, str, float]] = []
+
+        def spy(host: str, command: str, timeout: float) -> str:
+            seen.append((host, command, timeout))
+            return "ok"
+
+        _ = SshExecAdapter("h", "cmd", timeout=12.0, ssh_exec=spy).poll()
+        assert seen == [("h", "cmd", 12.0)]
+
+    def test_empty_output_is_honest_no_signal(self):
+        pr = SshExecAdapter("h", "c", ssh_exec=lambda _h, _c, _t: "").poll()
+        assert pr.exists is True
+        assert pr.liveness is False  # reachable but not progressing — never DONE
+        assert pr.mtime is None
+        assert pr.lines == []
+        assert pr.blind is False
+
+    def test_whitespace_only_output_is_no_signal(self):
+        pr = SshExecAdapter("h", "c", ssh_exec=lambda _h, _c, _t: "  \n  ").poll()
+        assert pr.liveness is False
+        assert pr.lines == []
+
+    def test_transport_error_is_blind(self):
+        def boom(_h: str, _c: str, _t: float) -> str:
+            raise RuntimeError("ssh: connect to host h port 22: refused")
+
+        pr = SshExecAdapter("h", "c", ssh_exec=boom).poll()
+        assert pr.blind is True
+        assert pr.exists is False
+        assert pr.liveness is False
+        assert pr.error is not None and "refused" in pr.error
+
+    def test_timeout_failure_is_blind(self):
+        def slow(_h: str, _c: str, _t: float) -> str:
+            raise subprocess.TimeoutExpired(cmd="ssh", timeout=1.0)
+
+        pr = SshExecAdapter("h", "c", ssh_exec=slow).poll()
+        assert pr.blind is True
+        assert pr.liveness is False
+
+    def test_default_ssh_exec_when_not_injected(self):
+        a = SshExecAdapter("h", "c")
+        assert a.ssh_exec is default_ssh_exec
+        assert a.timeout == _DEFAULT_SSH_TIMEOUT
+
+    def test_injected_ssh_exec_is_used(self):
+        fake = lambda _h, _c, _t: "x"  # noqa: E731
+        assert SshExecAdapter("h", "c", ssh_exec=fake).ssh_exec is fake
+
+
+class TestDefaultSshExec:
+    def test_success_returns_stdout_and_builds_argv(self):
+        runner = FakeRunner(stdout="line1\nline2\n")
+        out = default_ssh_exec("myhost", "tail -n5 /log", 20.0, runner=runner)
+        assert out == "line1\nline2\n"
+        assert runner.calls == [
+            [
+                "ssh",
+                "-o",
+                "BatchMode=yes",
+                "-o",
+                "ConnectTimeout=20",
+                "myhost",
+                "tail -n5 /log",
+            ]
+        ]
+
+    def test_nonzero_exit_raises_ssh_exec_error(self):
+        runner = FakeRunner(returncode=3, stderr="SCF did not converge")
+        with pytest.raises(SshExecError, match="exited 3"):
+            _ = default_ssh_exec("h", "c", 5.0, runner=runner)
+
+    def test_error_message_carries_stderr(self):
+        runner = FakeRunner(returncode=255, stderr="Permission denied")
+        with pytest.raises(SshExecError, match="Permission denied"):
+            _ = default_ssh_exec("h", "c", 5.0, runner=runner)
+
+    def test_runner_timeout_propagates(self):
+        runner = FakeRunner(raises=subprocess.TimeoutExpired(cmd="ssh", timeout=1.0))
+        with pytest.raises(subprocess.TimeoutExpired):
+            _ = default_ssh_exec("h", "c", 1.0, runner=runner)
+
+
+class TestOptionalTimeout:
+    def test_valid_int(self):
+        assert _optional_timeout({"timeout": 10}, 30.0) == 10.0
+
+    def test_valid_float(self):
+        assert _optional_timeout({"timeout": 2.5}, 30.0) == 2.5
+
+    def test_missing_uses_default(self):
+        assert _optional_timeout({}, 30.0) == 30.0
+
+    def test_bool_uses_default(self):
+        assert _optional_timeout({"timeout": True}, 30.0) == 30.0
+
+    def test_non_numeric_uses_default(self):
+        assert _optional_timeout({"timeout": "fast"}, 30.0) == 30.0
+
+
+class TestAdapterFromSpecSsh:
+    def test_builds_ssh_exec_adapter(self):
+        spec = TaskSpec(
+            id="a",
+            adapter="ssh-exec",
+            config={"host": "gpu-01", "command": "tail /log", "timeout": 15},
+        )
+        fake = lambda _h, _c, _t: "out"  # noqa: E731
+        a = adapter_from_spec(spec, ssh_exec=fake)
+        assert isinstance(a, SshExecAdapter)
+        assert a.host == "gpu-01"
+        assert a.command == "tail /log"
+        assert a.timeout == 15.0
+        assert a.ssh_exec is fake
+
+    def test_default_timeout_when_omitted(self):
+        spec = TaskSpec(
+            id="a", adapter="ssh-exec", config={"host": "h", "command": "c"}
+        )
+        a = adapter_from_spec(spec)
+        assert isinstance(a, SshExecAdapter)
+        assert a.timeout == _DEFAULT_SSH_TIMEOUT
+
+    def test_missing_host_raises(self):
+        spec = TaskSpec(id="a", adapter="ssh-exec", config={"command": "c"})
+        with pytest.raises(AdapterError, match="config.host"):
+            _ = adapter_from_spec(spec)
+
+    def test_missing_command_raises(self):
+        spec = TaskSpec(id="a", adapter="ssh-exec", config={"host": "h"})
+        with pytest.raises(AdapterError, match="config.command"):
+            _ = adapter_from_spec(spec)

@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""search-hub -- a LAZY, ROTATING MCP multiplexer over Exa + Tavily + Firecrawl.
+"""search-hub -- a LAZY search multiplexer with rotation + keyless fallback.
 
-Fronts the three official STDIO search MCP servers behind ONE registration while
-keeping every tool under its ORIGINAL name, and adds transparent API-key
-rotation on top. ``initialize``/``tools/list`` are answered from committed
-per-provider caches WITHOUT spawning anything (the RAM + idle-cheap win). A
-``tools/call`` is routed to the ACTIVE key's lazily-spawned child; if that child
-returns a hard-exhaustion error, the hub cools that key, rotates to the next
-non-cooled key (lazily spawning ITS child) and retries the SAME call once --
-usually ~1 child per provider, low RAM.
+Fronts Exa, Tavily, Firecrawl, and SearXNG STDIO search MCP servers behind ONE
+registration while keeping every tool under its ORIGINAL name. The three keyed
+providers get transparent API-key rotation; keyless SearXNG is the last-resort
+search surface and never enters cooldown. ``initialize``/``tools/list`` are
+answered from committed per-provider caches WITHOUT spawning anything (the
+low-RAM, idle-cheap win). A keyed ``tools/call`` is routed to the ACTIVE key's
+lazily-spawned child; if that child returns a hard-exhaustion error, the hub
+cools that key, rotates to the next non-cooled key (lazily spawning ITS child)
+and retries the SAME call once -- usually ~1 child per provider, low RAM.
 
 Unlike cloud-hub (one child per backend, forwarded asynchronously), the search
 rotator forwards a ``tools/call`` SYNCHRONOUSLY: it must inspect the child's
@@ -166,7 +167,7 @@ def build_routes(
 # per-(provider, key) lazily-spawned child
 # --------------------------------------------------------------------------- #
 class ProviderKeyChild:
-    """One official search server bound to ONE API key, lazily spawned."""
+    """One search server bound to a key (or keyless sentinel), lazily spawned."""
 
     def __init__(
         self, spec: providers.ProviderSpec, key_name: str, env_resolver
@@ -182,6 +183,8 @@ class ProviderKeyChild:
 
     def _spawn_env(self) -> dict[str, str]:
         env = dict(os.environ)
+        for name, value in self.spec.env_defaults:
+            env.setdefault(name, value)
         try:
             env.update(self._env_resolver() or {})
         except (KeyError, ValueError, TypeError):
@@ -248,7 +251,8 @@ class ProviderKeyChild:
             return False
 
     def _error_response(self, request: dict, detail: str) -> dict:
-        text = f"[search-hub] {self.spec.label} key '{self.key_name}' {detail}"
+        binding = "keyless backend" if self.spec.keyless else f"key '{self.key_name}'"
+        text = f"[search-hub] {self.spec.label} {binding} {detail}"
         return {
             "jsonrpc": "2.0",
             "id": request.get("id"),
@@ -279,15 +283,18 @@ class SearchHub:
     ) -> None:
         self.specs = specs
         self.by_platform = {s.platform: s for s in specs}
+        self.keyed_specs = [s for s in specs if not s.keyless]
         self.environ = environ if environ is not None else os.environ
         self._out_lock = threading.Lock()
         self._emit = emit or self._emit_stdout
         self.store = store or accounts.AccountStore(
-            ACCOUNTS_PATH, [_account_policy(s) for s in specs], environ=self.environ
+            ACCOUNTS_PATH,
+            [_account_policy(s) for s in self.keyed_specs],
+            environ=self.environ,
         )
-        rotation.seed_backup_keys(self.store, specs, self.environ)
+        rotation.seed_backup_keys(self.store, self.keyed_specs, self.environ)
         self.rotator = rotator or rotation.Rotator.from_specs(
-            specs, self.store, environ=self.environ
+            self.keyed_specs, self.store, environ=self.environ
         )
         self.tools, self.routes, self.degraded = build_routes(specs, CACHE_DIR)
         self.account_tools, self.account_routes = self._account_surface(specs)
@@ -299,6 +306,8 @@ class SearchHub:
         tools: list[dict] = []
         routes: dict[str, tuple[str, str]] = {}
         for spec in specs:
+            if spec.keyless:
+                continue
             for tool in accounts.account_tool_defs(
                 spec.prefix, spec.platform, "env", spec.label
             ):
@@ -313,9 +322,16 @@ class SearchHub:
         child = self._children.get(key)
         if child is None:
             spec = self.by_platform[platform]
-            child = ProviderKeyChild(
-                spec, key_name, lambda: self.store.env_for(platform, key_name)
-            )
+
+            def env_resolver() -> dict[str, str]:
+                if spec.keyless:
+                    return {
+                        name: self.environ.get(name, default)
+                        for name, default in spec.env_defaults
+                    }
+                return self.store.env_for(platform, key_name)
+
+            child = ProviderKeyChild(spec, key_name, env_resolver)
             self._children[key] = child
         return child
 
@@ -405,7 +421,13 @@ class SearchHub:
             req["params"] = params
             return self._child(route.platform, key_name).call(req)
 
-        response = self.rotator.route_call(route.platform, msg, forward)
+        spec = self.by_platform[route.platform]
+        if spec.keyless:
+            # No account lookup or classifier: this child is always eligible and
+            # can never be cooled by keyed-provider exhaustion state.
+            response = forward("keyless", msg)
+        else:
+            response = self.rotator.route_call(route.platform, msg, forward)
         response.setdefault("jsonrpc", "2.0")
         response["id"] = mid
         self._emit(json.dumps(response, ensure_ascii=False))
@@ -439,6 +461,13 @@ class SearchHub:
         self._tool_result(mid, report)
 
     def _usage_for_provider(self, spec: providers.ProviderSpec) -> dict:
+        if spec.keyless:
+            return {
+                "provider": spec.platform,
+                "label": spec.label,
+                "usage_api": "none (keyless; never cooled)",
+                "keys": [],
+            }
         keys = []
         health = {h["name"]: h for h in self.rotator.health_snapshot(spec.platform)}
         for name in self.rotator.key_names(spec.platform):
@@ -469,7 +498,7 @@ class SearchHub:
 
 
 def _account_policy(spec: providers.ProviderSpec) -> accounts.AccountPolicy:
-    """The env-mode multi-key policy for a provider (primary key seeds a default)."""
+    """The env-mode multi-key policy for a keyed provider."""
     return accounts.AccountPolicy(
         platform=spec.platform, mode="env", seed_env=(spec.key_env,), label=spec.label
     )
@@ -480,18 +509,19 @@ def _usage_tool_def() -> dict:
         "name": "search_usage",
         "description": (
             "On-demand per-key usage + rotation health for the search providers "
-            "(Exa/Tavily/Firecrawl). Reports each stored key's label, remaining "
+            "(Exa/Tavily/Firecrawl/SearXNG). Reports each stored key's label, remaining "
             "credits/allowance (Firecrawl remainingCredits; Tavily plan+paygo "
             "headroom), and cooldown state. Exa reports 'error-driven (no balance "
-            "API)'. Pass provider='exa'|'tavily'|'firecrawl' to narrow, or omit "
-            "for all. Read-only; does not spawn a search child."
+            "API)'; SearXNG reports keyless and never cooled. Pass "
+            "provider='exa'|'tavily'|'firecrawl'|'searxng' to narrow, or omit for "
+            "all. Read-only; does not spawn a search child."
         ),
         "inputSchema": {
             "type": "object",
             "properties": {
                 "provider": {
                     "type": "string",
-                    "description": "exa | tavily | firecrawl; empty = all",
+                    "description": "exa | tavily | firecrawl | searxng; empty = all",
                 }
             },
         },
@@ -510,9 +540,12 @@ def _empty_listing(method: str) -> dict:
 # cache refresh / plan CLI (not part of the runtime stdio path)
 # --------------------------------------------------------------------------- #
 def refresh_provider(spec: providers.ProviderSpec, timeout: float = ENUM_TIMEOUT):
-    """Spawn a provider once with a DUMMY key, capture tools/list, write cache."""
+    """Spawn a provider once, capture tools/list, and write its committed cache."""
     env = dict(os.environ)
-    env.setdefault(spec.key_env, os.environ.get(spec.key_env, "REFRESH_DUMMY"))
+    for name, value in spec.env_defaults:
+        env.setdefault(name, value)
+    if spec.key_env:
+        env.setdefault(spec.key_env, os.environ.get(spec.key_env, "REFRESH_DUMMY"))
     try:
         proc = _spawn(spec.cmd, env)
     except OSError as exc:
@@ -583,14 +616,15 @@ def _cmd_refresh(which: list[str]) -> int:
 def _cmd_print_plan() -> int:
     specs = providers.default_providers()
     tools, routes, degraded = build_routes(specs, CACHE_DIR)
+    account_tool_count = sum(not s.keyless for s in specs) * len(accounts.ACCOUNT_OPS)
     per_provider: dict[str, int] = {s.platform: 0 for s in specs}
     for route in routes.values():
         per_provider[route.platform] += 1
     summary = {
         "provider_tools": len(tools),
-        "account_tools": len(specs) * len(accounts.ACCOUNT_OPS),
+        "account_tools": account_tool_count,
         "usage_tools": 1,
-        "total_exposed": len(tools) + len(specs) * len(accounts.ACCOUNT_OPS) + 1,
+        "total_exposed": len(tools) + account_tool_count + 1,
         "per_provider": per_provider,
         "degraded": degraded,
     }

@@ -41,6 +41,38 @@ class HarnessDispatcher:
     ) -> HookResult:
         started = time.perf_counter()
         event = normalize_event(raw, provider=provider, event_name=event_name)
+
+        # Re-entrant Stop short-circuit (defense-in-depth). When the host
+        # re-invokes a Stop/SubagentStop hook because a prior hook kept the agent
+        # going (stop_hook_active is true), running the modules again risks a
+        # re-block or re-inject that just forces another continue and loops up to
+        # the host's stop-hook cap. Stay silent (allow) BEFORE any module runs so
+        # the agent can actually stop. Fail-open: any error falls through to the
+        # normal fan-out below.
+        try:
+            reentrant_stop = (
+                event_name in {"Stop", "SubagentStop"}
+                and isinstance(raw, dict)
+                and str(raw.get("stop_hook_active", "")).lower() in {"true", "1"}
+            )
+        except Exception:
+            reentrant_stop = False
+        if reentrant_stop:
+            silent = HookResult(
+                status=f"SUCCESS:hook-{event_name.lower()}",
+                action="allow",
+                reason_code="reentrant_stop",
+                additional_context=[],
+            )
+            self._record_terminal(
+                silent,
+                provider=provider,
+                event_name=event_name,
+                elapsed_ms=(time.perf_counter() - started) * 1000,
+                failed_modules=[],
+            )
+            return silent
+
         action = "allow"
         reason_code = "ok"
         contexts: list[str] = []

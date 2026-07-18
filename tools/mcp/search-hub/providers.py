@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Provider specs + the exhaustion-signal classifier for the search-hub rotator.
 
-Each ``ProviderSpec`` describes ONE fronted search MCP (Exa, Tavily, Firecrawl):
-its short id/prefix, the exact STDIO launch argv of the official server, the
-single API-key env-var name that server reads, the per-provider tool-cache
-filename, the on-demand usage endpoint (or ``None`` for Exa, which has no balance
-API), and the data-driven classifier that turns a child's error RESPONSE into a
-rotation ``Signal``.
+Each ``ProviderSpec`` describes ONE fronted search MCP (Exa, Tavily, Firecrawl,
+SearXNG): its short id/prefix, the exact STDIO launch argv of the official
+server, the API-key env-var name (empty for a keyless provider), the
+per-provider tool-cache filename, the on-demand usage endpoint, and the
+data-driven classifier that turns a child's error RESPONSE into a rotation
+``Signal``.
 
 The classifier is a PURE function of the child's JSON-RPC response text, so the
 "402-exhaust vs 429-rate" decision per provider is unit-testable without a live
@@ -47,12 +47,14 @@ _RETRY_AFTER = re.compile(r"retry[\s_-]*after[\"'\s:=]*([0-9]+)", re.IGNORECASE)
 class ProviderSpec:
     """Immutable description of one fronted search provider + its rotation rules."""
 
-    platform: str  # "exa" | "tavily" | "firecrawl"
+    platform: str  # "exa" | "tavily" | "firecrawl" | "searxng"
     label: str
-    prefix: str  # unique account-tool prefix: ex | tv | fc
-    key_env: str  # the single API-key env var the official server reads
+    prefix: str  # unique collision/account-tool prefix: ex | tv | fc | sx
+    key_env: str  # API-key env var; empty for a keyless provider
     cmd: tuple[str, ...]  # stdio launch argv of the official MCP server
     cache: str  # committed tools/list cache filename
+    keyless: bool = False  # direct route; no key store, cooldown, or account tools
+    env_defaults: tuple[tuple[str, str], ...] = ()  # non-secret launch defaults
     usage_url: str = ""  # on-demand usage endpoint (empty => no balance API)
     usage_kind: str = ""  # "firecrawl" | "tavily" | "" (Exa: error-driven only)
     exhaust_patterns: tuple[str, ...] = ()  # hard-exhaustion signatures
@@ -170,11 +172,12 @@ def _exa_remote() -> tuple[str, ...]:
 
 
 def default_providers() -> list[ProviderSpec]:
-    """The three fronted search providers (order = tool-merge order).
+    """The four fronted search providers (order = tool-merge order).
 
     Package names + env vars verified live 2026-07 against the npm registry and
-    each project's README: ``exa-mcp-server`` (EXA_API_KEY), ``tavily-mcp``
-    (TAVILY_API_KEY), ``firecrawl-mcp`` (FIRECRAWL_API_KEY).
+    each project's README: Exa's HTTP MCP via ``mcp-remote`` (EXA_API_KEY),
+    ``tavily-mcp`` (TAVILY_API_KEY), ``firecrawl-mcp`` (FIRECRAWL_API_KEY), and
+    ``mcp-searxng`` (keyless; SEARXNG_URL is inherited runtime configuration).
     """
     return [
         ProviderSpec(
@@ -242,5 +245,22 @@ def default_providers() -> list[ProviderSpec]:
             ),
             rate_patterns=("429", "rate limit", "rate-limit", "too many requests"),
             ambiguous_on_rate=False,  # Firecrawl 429 carries Retry-After; no rotate
+        ).compiled(),
+        ProviderSpec(
+            platform="searxng",
+            label="SearXNG",
+            prefix="sx",
+            key_env="",
+            cmd=_npx("mcp-searxng@1.8.0"),
+            cache="searxng.json",
+            keyless=True,
+            env_defaults=(("SEARXNG_URL", "http://127.0.0.1:8890"),),
+            usage_url="",
+            usage_kind="",
+            # A self-hosted, keyless fallback has no billing exhaustion signal.
+            # With no classifier patterns it always PASSes and is never cooled.
+            exhaust_patterns=(),
+            rate_patterns=(),
+            max_backup_keys=0,
         ).compiled(),
     ]

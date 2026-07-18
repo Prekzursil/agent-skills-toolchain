@@ -35,3 +35,60 @@ paths = [
   '''tools/editor/metaswarm/skills/start/rubrics/security-review-rubric\.md''',
   '''tools/editor/ralph-orchestrator/vendor/.*tests/.*\.rs''',
 ]
+
+# --- Allowlist 3: export redaction fixture + monitorcore golden -----------------
+# The export redactor is proven against synthetic FAKE example secrets (one of
+# each locked pattern: sk-, ghp_, github_pat_, AKIA, xoxb-, gho_, a dummy JWT, a
+# placeholder PEM) frozen into this fixture transcript. None are live credentials;
+# they exist so the redactor can prove it masks every form. The redactor's own
+# unit test assembles its PEM marker at run time (no committed literal). Two paths
+# need a waiver: the fixture itself, and the monitorcore golden `*.noredact.*`
+# regression files -- whose whole point is to freeze the UN-redacted render
+# (redaction OFF), so they echo the fixture's fake PEM verbatim.
+#
+# HISTORY: this waiver was previously written as the singular top-level [allowlist]
+# table because the then-pinned gitleaks 8.24.3 did not apply plural [[allowlists]]
+# path waivers to the multi-line `private-key` rule. But gitleaks REFUSES to load a
+# config that mixes the singular [allowlist] table with [[allowlists]] blocks (the
+# two forms are mutually exclusive) — the whole config then failed to parse and the
+# gate silently fell back to gitleaks defaults (no waivers), false-flagging every
+# synthetic fixture. It is merged here into the [[allowlists]] array form; modern
+# gitleaks (>=8.30, what gitleaks-action@ff98106 now resolves) DOES apply plural
+# path waivers to the private-key rule (verified: 0 findings over these paths).
+[[allowlists]]
+description = "export redaction fixture + monitorcore golden (synthetic FAKE example secrets, not live)"
+paths = [
+  '''skills/workflow-monitor/fixtures/export/.*''',
+  '''tools/monitorcore/tests/golden/.*''',
+]
+
+# --- Allowlist 4: synthetic secret fixtures in TEST files ------------------------
+# Test suites intentionally embed FAKE, synthetic secrets (an AKIA-shaped AWS key,
+# fake ghp_/github_pat_ tokens, a dummy JWT, a placeholder PEM, xoxb-/sk- tokens)
+# as INPUTS so redaction / egress-guard code can prove it detects and masks every
+# form. These literals live ONLY inside test modules. This waiver is scoped to
+# test-file paths (a tests?/ directory, or a `test_*.py` / `*_test.py` module) so a
+# real secret committed to NON-test source is still caught. Do NOT broaden these to
+# non-test source paths.
+[[allowlists]]
+description = "Synthetic FAKE secret fixtures in test files (test-path-scoped, not live)"
+paths = [
+  '''.*/tests?/.*''',
+  '''(^|.*/)test_[^/]*\.py$''',
+  '''(^|.*/)[^/]*_test\.py$''',
+]
+
+# --- Allowlist 5: agent-self/harness enshrined test fixtures ---------------------
+# The enshrined shared lifecycle harness (agent-self/harness/ — a byte-exact projection of
+# the live ~/.agents/harness) ships tests that embed synthetic FAKE secrets as INPUTS so its
+# secret-guard / redaction modules can prove they detect and mask every form (AKIA-shaped AWS
+# key, ghp_/github_pat_ tokens, xoxb-/sk- tokens, a dummy JWT, a placeholder PEM). They live
+# ONLY under the tests/ tree. Already covered transitively by Allowlist 4's test-path globs
+# (verified: gitleaks 8.30.1 reports no leaks over the tree); pinned explicitly here so the
+# waiver survives any future narrowing of those globs. Non-test harness SOURCE is NOT waived —
+# a real secret committed outside tests/ still fails the gate.
+[[allowlists]]
+description = "agent-self/harness enshrined synthetic FAKE test fixtures (not live)"
+paths = [
+  '''agent-self/harness/tests/.*''',
+]

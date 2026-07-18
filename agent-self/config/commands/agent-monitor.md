@@ -1,24 +1,46 @@
-Launch the agent-monitor — a friendly desktop UI showing every Claude Code subagent (Task agents AND agents running inside Workflows), so you can pick one and watch its full, verbose, timestamped log live.
+Launch a live view of Claude Code subagents. The former standalone Tkinter app has been
+consolidated into the shared **`monitorcore`** package (stdlib-only, vendored inside the
+`workflow-monitor` skill), split across two surviving surfaces:
 
 Usage: /agent-monitor
 
-Opens a native Tkinter window (zero extra dependencies — Python stdlib only):
-  - **Left:** a selectable list of agents for the active session, each tagged with its `[wf_id]`, with a live status — running / working / done / stalled — derived from the TRANSCRIPT (not a fragile mtime cutoff). Defaults to active + recently-finished agents; tick **All history** for the whole session. A **Session** dropdown switches sessions.
-  - **Right:** the selected agent's ENTIRE log from creation, RETAINED after it finishes, verbose (full assistant text, full tool calls, full results — oversized results capped inline with the complete text in the saved `.log`), with `HH:MM:SS` timestamps. A formatted copy is persisted under `agent-monitor/logs/<session>/` so logs survive restarts and transcript retries. **Open .log** opens it; **Auto-scroll** toggles follow.
+## Whole-fleet Workflow cockpit (Task agents AND agents inside Workflows)
 
-Launch (new window):
-```bash
-powershell -NoProfile -File "D:/agent-monitor/launch.ps1"
-```
-Or just **double-click `monitor.cmd`** in the install folder — no CLI needed.
+The **`workflow-monitor`** skill's live, read-only Textual cockpit — the whole-fleet board,
+tagged by `[wf_id]`, with per-agent transcript-derived status and a live Feed pane:
 
-Power-user terminal modes (legacy, optional):
 ```bash
-powershell -NoProfile -File "D:/agent-monitor/launch.ps1" -Watch    # terminal overview dashboard
-powershell -NoProfile -File "D:/agent-monitor/launch.ps1" -Spawn    # one tail terminal per agent
+python "$HOME/.agents/skills/workflow-monitor/workflow_monitor.py"
 ```
 
-Prerequisites: Python 3 on PATH (stdlib Tkinter — no venv, no pip).
-Source is vendored in this repo at `tools/agent-monitor/`.
+## Per-agent tail + flat Task-agent discovery
 
-Note: this opens a desktop window — it cannot render inside the Claude chat interface.
+The **`run-agent-monitor`** skill drives `monitorcore.discovery` (discover every
+`subagents/agent-*.jsonl`, flat or under a workflow) and `monitorcore.agent_tail` (a live,
+colored per-agent tail):
+
+```bash
+# One-shot discovery table of the active session's subagents:
+export PYTHONPATH="$HOME/.agents/skills/workflow-monitor"
+python -c "import monitorcore.discovery as d; \
+  [print(r['name'], r['running'], r['wf'] or '-', r['type']) \
+   for r in d.scan(d.pick_active_dir(), 150, 120)]"
+
+# Live-tail one agent (Ctrl-C to quit; -u when piping):
+python -u -m monitorcore.agent_tail <path-to-agent-*.jsonl> --backfill 8
+```
+
+Both surfaces are **100% read-only** — they only read each subagent's own JSONL transcript, so
+they never disturb the monitored session.
+
+- Per-agent status: the discovery table's `running` flag is a recent-activity (mtime) signal,
+  and the cockpit shows a coarse `running` / `done` / `error` / `idle` state. A finer
+  transcript-derived deriver (`monitorcore.agent_state.agent_status` →
+  `running` / `working` / `done` / `stalled`) is ported and unit-tested but not yet wired to a
+  launchable surface — it feeds a live status display once the `AgentSource` monitor adapter
+  lands (a later PR, which also adds `working` to the `Snapshot.state` enum).
+- Freeze detection for long autonomous loops: `python -m monitorcore.watchdog` (alert-first;
+  `--kill` optional).
+
+Note: the cockpit opens a terminal UI — it cannot render inside the Claude chat interface.
+Source: `tools/monitorcore/` (CI-gated), vendored into `skills/workflow-monitor/monitorcore/`.

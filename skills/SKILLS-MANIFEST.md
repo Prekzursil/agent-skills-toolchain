@@ -1,7 +1,7 @@
 # Skills Manifest
 
 > Auto-generated skill inventory for the agent-skills-toolchain repository.
-> Last updated: 2026-07-04
+> Last updated: 2026-07-14
 
 | Skill Name | Origin | Description |
 |---|---|---|
@@ -45,7 +45,8 @@
 | critique-panel | custom | Use to run the G3 CRITIQUE gate of the TCR design-review loop — a four named-persona panel (user-advocate / systems-consistency / a11y / brand-aesthetic) that each reason over ui-audit's Track-A numbers plus the screenshot, run the NN/g I-Like / I-Wish / What-If ritual, score the nine DESIGN-EVAL v1 dimensions 0-4 with critical-error overrides, then synthesize one deduped, severity-ranked findings list with a weighted composite and enumerated directions (the human decides at G4). A TRIAGE accelerator, not an oracle. Pairs with ui-audit and design-review-loop |
 | ddi-admet-research | custom | Use as the front-end for biomedical research via the ToolUniverse MCP - drug-drug interactions, ADMET/CYP, target research, FDA labels, repurposing, pharmacovigilance |
 | deepsource | built-in | Retrieve code review results from DeepSource - issues, vulnerabilities, and quality metrics |
-| design-review-loop | custom | Use to run the full named TCR design-review workflow as 8 sequenced gates (G0 PRIME, G1 AUDIT, G2 TRANSPOSE, G3 CRITIQUE, G4 DIRECT, G5 ITERATE, G6 RECONCILE, G7 VERIFY, then loop back to G1) over a running app. The orchestrator of the transpose-then-discuss-then-revert motion — invokes ui-audit at G1, transpose-to-figma at G2, critique-panel at G3, and figma-implement-design plus the revert-gate at G6, holding the per-gate question banks and the rule that every apply-back is a reversible commit reverted if it regresses any tracked axis |
+| design-studio | custom | ONE mode-routed entry to the whole design pipeline over a running app — the successor to design-review-loop; runs the full TCR design-review loop (8 gates G0 PRIME→G7 VERIFY + revert-gate) plus a mode router (direct/audit/mirror/critique/iterate/implement/verify/loop/drive/session) that absorbs the folded design skills' triggers |
+| design-review-loop | custom | MOVED — renamed to design-studio (tombstone redirect kept so cached invocations resolve). Original: run the full named TCR design-review workflow as 8 sequenced gates (G0 PRIME, G1 AUDIT, G2 TRANSPOSE, G3 CRITIQUE, G4 DIRECT, G5 ITERATE, G6 RECONCILE, G7 VERIFY, then loop back to G1) over a running app. The orchestrator of the transpose-then-discuss-then-revert motion — invokes ui-audit at G1, transpose-to-figma at G2, critique-panel at G3, and figma-implement-design plus the revert-gate at G6, holding the per-gate question banks and the rule that every apply-back is a reversible commit reverted if it regresses any tracked axis |
 | design-tokens-pipeline | custom | Use for the W3C DTCG design-token round-trip the TCR design-review loop relies on at G5/G6 — extract tokens out of code (CSS custom properties + Tailwind theme dumps) into a DTCG JSON tree, validate the five DTCG v1.0 rules that break the Tokens-Studio to Style-Dictionary round-trip (missing-type, bad-alias, alias-cycle, raw-hex-in-code, reserved-misuse), and diff two token trees to emit BOTH the forward change set AND the inverse revert patch. Transforms via Style Dictionary + sd-transforms. Pairs with design-review-loop and figma |
 | develop-web-game | built-in | Use when Codex is building or iterating on a web game (HTML/JS) and needs a reliable development + testing loop |
 | devtu | custom | ToolUniverse (mims-harvard/ToolUniverse) development toolkit — one skill, eight sub-command modes: create a new scientific/API tool, fix an erroring tool, optimize tool JSON descriptions, optimize research skills, auto-discover life-science APIs and generate integration PRs, run the full self-improve/debug-test loop, apply tool-code quality patterns, or safely push and fix CI on GitHub. Mode picked from intent; each mode playbook lives under modes/ |
@@ -68,6 +69,7 @@
 | ghidra-bridge | custom | Use when automating Ghidra from Python, driving analyses from an external REPL or script |
 | ghidra-mcp | custom | Use when installing or configuring GhidraMCP for a local Ghidra workflow |
 | grill-me-extensive | custom | Program-scale extensive grilling addon to the vendored grill-me skill: scout, brainstorm-fanout to surface directions beyond the ask, a categorized decision list walked one question at a time with a recommendation each, durable capture, then converge to a locked decision log; grill modes for expansion, modification, scope-change, modernization, better-ideas, red-team, simplification, prioritization |
+| harness-module-authoring | custom | Use when authoring, registering, testing, or reviewing provider-neutral harness modules, legacy dispatcher checks, calibrated advisories, or contraindication rows with correct fail-open, redaction, dedupe, side-effect, and block-versus-inject behavior |
 | hexstrike-ai-authorized-engagement | custom | Use when an authorized security assessment, bug bounty, red-team, or CTF task should be routed through HexStrike AI |
 | hexstrike-ai-mcp | custom | Use when installing, repairing, or registering HexStrike AI as an MCP server for Codex, Claude Code, or Gemini CLI |
 | hexstrike-ai-setup | custom | Use when installing, wiring, validating, or troubleshooting a local HexStrike AI runtime |
@@ -88,6 +90,7 @@
 | mechanistic-ddi-pipeline | custom | Use to produce a mechanistic drug-drug-interaction verdict by combining ToolUniverse CYP/DDI knowledge with Schrodinger structure and docking evidence |
 | mise | custom | Use when managing dev tool or language runtime versions with mise (mise-en-place) — global vs per-project pins, per-directory env vars, the task runner, non-language CLI installs, or Windows PowerShell setup |
 | multi-agent-quickstart | custom | Use when learning how to choose between the Codex multi-agent orchestration tools |
+| multi-ai-mingle | custom | Use when the user wants seamless LOCAL collaboration between Claude Code and OpenAI Codex on one machine — fan out parallel Codex threads from Claude via the official codex mcp-server, plus a live symmetric chat + file-lease channel via mcp_agent_mail (replaces AgentBridge). Covers mount, the shared agent-mail http channel, verify-then-commit, and the real API sequence (ensure_project + codenames + tokens + contacts) |
 | netlify-deploy | built-in | Deploy web projects to Netlify using the Netlify CLI |
 | notion-knowledge-capture | built-in | Capture conversations and decisions into structured Notion pages |
 | notion-meeting-intelligence | built-in | Prepare meeting materials with Notion context and Codex research |

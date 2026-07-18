@@ -30,7 +30,7 @@ The 4 research-relevant servers (`tooluniverse`, `rdkit`, `schrodinger`, plus
 |------|--------------|--------|-----------|------------------------|
 | `tooluniverse` | 2206 biomedical tools (DDI / ADMET / CYP / targets / FDA labels / repurposing / pharmacovigilance). Harvard Zitnik lab, Apache-2.0. | active | stdio | `uvx tooluniverse==1.2.4` · env `PYTHONIOENCODING=utf-8` |
 | `rdkit` | 74 cheminformatics tools (tandemai-inc/rdkit-mcp-server, MIT). | active | stdio | `C:\Users\Prekzursil\source\repos\rdkit-mcp-server\.venv\Scripts\python.exe run_server.py --transport stdio` |
-| `schrodinger` | Custom 12-tool wrapper over a local Schrodinger 2022-4 suite (structure prep, descriptors, protein prep, grid generation, LigPrep, Glide docking, MM-GBSA, QikProp ADMET). | active | stdio | `C:\Users\Prekzursil\source\repos\schrodinger-mcp\.venv\Scripts\python.exe server.py` · env `SCHRODINGER=D:\Program Files\Schrodinger 2022-4` |
+| `schrodinger` | Custom 67-tool wrapper over a local Schrodinger 2026-2 suite (prep, docking, MD/FEP, QM, ADMET, pose analysis, and job control). | active | stdio | `C:\Users\Prekzursil\source\agent-skills-toolchain\tools\mcp\schrodinger-mcp\.venv\Scripts\python.exe C:\Users\Prekzursil\source\agent-skills-toolchain\tools\mcp\schrodinger-mcp\server.py` · env `SCHRODINGER=D:\Program Files\Schrodinger 2026-2` |
 | `insta-mcp` | Instagram private-API tools (node). | active | stdio | `node C:/Users/Prekzursil/source/repos/insta-mcp/dist/index.js` |
 | `mcp-funnel` | MCP aggregator/proxy that funnels other MCP servers (`.mcp-funnel.json`). | active | stdio | `cmd /c npx -y mcp-funnel C:/Users/Prekzursil/.mcp-funnel.json` |
 | `ralph-orchestrator` | Ralph autonomous-loop orchestrator MCP. | disabled (project) | stdio | `C:\Users\Prekzursil\.cargo\bin\ralph.exe mcp serve` |
@@ -141,24 +141,27 @@ The 4 research-relevant servers (`tooluniverse`, `rdkit`, `schrodinger`, plus
 
 ### 3. `schrodinger` (custom-built)
 
-- **What:** a thin, security-conscious wrapper over a local Schrodinger 2022-4
-  suite (build 79134) at `C:\Users\Prekzursil\source\repos\schrodinger-mcp`.
+- **What:** a thin, security-conscious wrapper over a local Schrodinger suite.
+  The canonical server source is
+  `C:\Users\Prekzursil\source\agent-skills-toolchain\tools\mcp\schrodinger-mcp`,
+  and current launch examples target Schrodinger 2026-2.
   It NEVER imports `schrodinger` in-process; every tool builds an argv list and
   hands it to a single non-tool `_exec()` chokepoint, run WITHOUT a shell.
 - **Config (`~/.claude.json` -> `mcpServers.schrodinger`):**
   ```json
   { "type": "stdio",
-    "command": "C:\\Users\\Prekzursil\\source\\repos\\schrodinger-mcp\\.venv\\Scripts\\python.exe",
-    "args": ["C:\\Users\\Prekzursil\\source\\repos\\schrodinger-mcp\\server.py"],
-    "env": { "SCHRODINGER": "D:\\Program Files\\Schrodinger 2022-4" } }
+    "command": "C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\mcp\\schrodinger-mcp\\.venv\\Scripts\\python.exe",
+    "args": ["C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\mcp\\schrodinger-mcp\\server.py"],
+    "env": { "SCHRODINGER": "D:\\Program Files\\Schrodinger 2026-2" } }
   ```
-- **Auth / scopes:** no network auth. The product-driver tools (`prepwizard`,
-  `glide_grid`, `ligprep`, `qikprop_admet`, `glide_dock`, `prime_mmgbsa`) consume
-  **Schrodinger license tokens** and run synchronously with `-WAIT`. A
+- **Auth / scopes:** no network auth. Core product-driver tools such as
+  `prepwizard`, `glide_grid`, `ligprep`, `qikprop_admet`, `glide_dock`, and
+  `prime_mmgbsa` consume **Schrodinger license tokens** and run synchronously
+  with `-WAIT`. A
   FlexLM/license server (or local license file) must be reachable for those.
 - **Security model:**
   - `$SCHRODINGER` (the install root) is the only required config. It defaults to
-    `D:\Program Files\Schrodinger 2022-4` if the env var is unset; the config sets
+    `D:\Program Files\Schrodinger 2026-2` if the env var is unset; the config sets
     it explicitly.
   - All subprocess execution is centralized in `_exec()` (the single chokepoint,
     `shell=False`, not exposed as a tool), so untrusted tool params never reach
@@ -168,9 +171,13 @@ The 4 research-relevant servers (`tooluniverse`, `rdkit`, `schrodinger`, plus
     optionally enforces existence.
   - `run_schrodinger_python` is an explicit escape hatch that runs arbitrary
     Python inside the Schrodinger interpreter — **local single-user use only.**
-- **The 12 tools (exact names + signatures from `server.py`):**
+- **The 67-tool surface:** diagnostics and structure I/O; protein/ligand prep,
+  docking, pose analysis, and triage; screening and property filters; Desmond,
+  FEP+, WaterMap, and MM-GBSA; Jaguar/QM, Epik, QSite, and AutoQSAR; plus job and
+  GPU orchestration. See [SCHRODINGER-MCP.md](SCHRODINGER-MCP.md) for the complete
+  grouped inventory. Core pipeline signatures are documented below.
 
-  License-token-free (structure / cheminformatics):
+  Core license-token-free structure / cheminformatics tools:
   | Tool | Signature | Purpose |
   |------|-----------|---------|
   | `schrodinger_version` | `() -> str` | Suite version + resolved env (`run -v`). |
@@ -180,7 +187,7 @@ The 4 research-relevant servers (`tooluniverse`, `rdkit`, `schrodinger`, plus
   | `convert_structure` | `(src, dst) -> dict` | Convert `.sdf <-> .mae <-> .pdb` via `schrodinger.structure`. |
   | `run_schrodinger_python` | `(code, timeout_s=300) -> dict` | Escape hatch: arbitrary Python inside the Schrodinger interpreter. |
 
-  Product drivers (consume license tokens; synchronous `-WAIT`):
+  Core product drivers (consume license tokens; synchronous `-WAIT`):
   | Tool | Signature | Purpose |
   |------|-----------|---------|
   | `prepwizard` | `(input_file, output_mae, ph=7.0, fill_sidechains=True, timeout_s=1800) -> dict` | Protein Preparation Wizard: clean/protonate a raw receptor `.pdb`/`.mae` (add H, bond orders, fill side chains, PROPKA at `ph`) -> prepared `.mae` ready for `glide_grid`. |
@@ -190,15 +197,16 @@ The 4 research-relevant servers (`tooluniverse`, `rdkit`, `schrodinger`, plus
   | `glide_dock` | `(grid_file, ligands_mae, precision="SP", timeout_s=3600) -> dict` | Glide docking into a grid (`.zip`) built by `glide_grid`; `precision = HTVS \| SP \| XP`; returns `*_pv.maegz` pose-viewer path. |
   | `prime_mmgbsa` | `(pose_viewer, timeout_s=3600) -> dict` | Prime MM-GBSA binding free-energy (`dG_Bind`) rescoring of docked poses (the `*_pv.maegz` from `glide_dock`); returns result CSV. Consumes a Prime token. |
 
-  Verified working: validated live end-to-end on 2026-06-06 (full `prepwizard` ->
-  `glide_grid` -> `ligprep` -> `glide_dock` -> `prime_mmgbsa` pipeline on PDB 3PTB,
-  plus `qikprop_admet`); the Python API runs via `run.exe python3` (build 79134).
-  See `schrodinger-mcp/VALIDATION.md`.
+  The core pipeline was validated live end-to-end on 2026-06-06 against 2022-4
+  (full `prepwizard` -> `glide_grid` -> `ligprep` -> `glide_dock` ->
+  `prime_mmgbsa` on PDB 3PTB, plus `qikprop_admet`). The expanded 2026-2 surface
+  is statically verified and still needs live-box smoke testing. See
+  `schrodinger-mcp/VALIDATION.md`.
 - **Cross-platform:** the server self-detects `run.exe`/`run` and `<driver>.exe`/
   `<driver>` (`_run()` / `_driver()`), so it works on POSIX once `$SCHRODINGER`
-  points at the install root. On Windows the install is on `D:\` (note the space
-  in `Schrodinger 2022-4`); on POSIX set `SCHRODINGER` to e.g.
-  `/opt/schrodinger2022-4`. Update `command` to `.venv/bin/python` on POSIX.
+  points at the install root. On Windows the current install is on `D:\` (note
+  the space in `Schrodinger 2026-2`); on POSIX set `SCHRODINGER` to e.g.
+  `/opt/schrodinger2026-2`. Update `command` to `.venv/bin/python` on POSIX.
 
 ### 4. `gogcli-classroom`
 

@@ -109,6 +109,116 @@ def test_destructive_tool_is_guarded(monkeypatch):
     assert calls["delete"] == 1
 
 
+def test_dbfs_delete_is_guarded(monkeypatch):
+    calls = {"delete": 0}
+
+    class FakeDbfs:
+        def delete(self, path, recursive=False):
+            calls["delete"] += 1
+
+    class FakeW:
+        dbfs = FakeDbfs()
+
+    monkeypatch.setattr(dbx_server, "_client", lambda: (FakeW(), None))
+    dry = json.loads(dbx_server.dbx_dbfs_delete("dbfs:/tmp/data", recursive=True))
+    assert dry["ok"] is False and dry["dry_run"] is True
+    assert calls["delete"] == 0
+
+    ok = json.loads(
+        dbx_server.dbx_dbfs_delete("dbfs:/tmp/data", recursive=True, confirm=True)
+    )
+    assert ok["ok"] is True and ok["data"] == {
+        "deleted": "dbfs:/tmp/data",
+        "recursive": True,
+    }
+    assert calls["delete"] == 1
+
+
+def test_volume_rm_is_guarded(monkeypatch):
+    calls = {"delete": 0}
+
+    class FakeFiles:
+        def delete(self, path):
+            calls["delete"] += 1
+
+    class FakeW:
+        files = FakeFiles()
+
+    monkeypatch.setattr(dbx_server, "_client", lambda: (FakeW(), None))
+    dry = json.loads(dbx_server.dbx_volume_rm("/Volumes/catalog/schema/volume/file"))
+    assert dry["ok"] is False and dry["dry_run"] is True
+    assert calls["delete"] == 0
+
+    ok = json.loads(
+        dbx_server.dbx_volume_rm("/Volumes/catalog/schema/volume/file", confirm=True)
+    )
+    assert ok["ok"] is True and ok["data"] == {
+        "deleted": "/Volumes/catalog/schema/volume/file",
+        "is_directory": False,
+    }
+    assert calls["delete"] == 1
+
+
+def test_serving_delete_is_guarded(monkeypatch):
+    calls = {"delete": 0}
+
+    class FakeServingEndpoints:
+        def delete(self, name):
+            calls["delete"] += 1
+
+    class FakeW:
+        serving_endpoints = FakeServingEndpoints()
+
+    monkeypatch.setattr(dbx_server, "_client", lambda: (FakeW(), None))
+    dry = json.loads(dbx_server.dbx_serving_delete("endpoint-1"))
+    assert dry["ok"] is False and dry["dry_run"] is True
+    assert calls["delete"] == 0
+
+    ok = json.loads(dbx_server.dbx_serving_delete("endpoint-1", confirm=True))
+    assert ok["ok"] is True and ok["data"]["deleted_endpoint"] == "endpoint-1"
+    assert calls["delete"] == 1
+
+
+def test_secret_scope_delete_is_guarded(monkeypatch):
+    calls = {"delete_scope": 0}
+
+    class FakeSecrets:
+        def delete_scope(self, scope):
+            calls["delete_scope"] += 1
+
+    class FakeW:
+        secrets = FakeSecrets()
+
+    monkeypatch.setattr(dbx_server, "_client", lambda: (FakeW(), None))
+    dry = json.loads(dbx_server.dbx_secret_scope_delete("scope-1"))
+    assert dry["ok"] is False and dry["dry_run"] is True
+    assert calls["delete_scope"] == 0
+
+    ok = json.loads(dbx_server.dbx_secret_scope_delete("scope-1", confirm=True))
+    assert ok["ok"] is True and ok["data"]["deleted_scope"] == "scope-1"
+    assert calls["delete_scope"] == 1
+
+
+def test_repo_delete_is_guarded(monkeypatch):
+    calls = {"delete": 0}
+
+    class FakeRepos:
+        def delete(self, repo_id):
+            calls["delete"] += 1
+
+    class FakeW:
+        repos = FakeRepos()
+
+    monkeypatch.setattr(dbx_server, "_client", lambda: (FakeW(), None))
+    dry = json.loads(dbx_server.dbx_repo_delete(123))
+    assert dry["ok"] is False and dry["dry_run"] is True
+    assert calls["delete"] == 0
+
+    ok = json.loads(dbx_server.dbx_repo_delete(123, confirm=True))
+    assert ok["ok"] is True and ok["data"]["deleted_repo"] == 123
+    assert calls["delete"] == 1
+
+
 def test_exec_guard_blocks_code_execution(monkeypatch):
     class FakeW:
         pass  # exec must never reach the SDK without confirm

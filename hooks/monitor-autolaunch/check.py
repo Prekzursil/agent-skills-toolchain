@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-r"""monitor-autolaunch/check.py — generalized PreToolUse monitor auto-launcher (matcher: Task|Workflow).
+r"""monitor-autolaunch/check.py — generalized PreToolUse monitor auto-launcher (matcher: Task|Workflow|mcp__codex__codex).
 
 The generalized successor to the wfmon-only workflow-monitor-autolaunch hook. Reads the
 ``monitors.toml`` registry through the shared, 100%-gated ``monitorcore.monitors`` core; for every
 registered monitor whose ``trigger_tool`` matches the tool Claude is about to run
-(``Workflow`` → wfmon, ``Task`` → agentmon, …) it acts per the monitor's ``autolaunch`` mode:
+(``Workflow`` → wfmon, ``Task`` → agentmon, ``mcp__codex__codex`` → codexmon, …) it acts per the
+monitor's ``autolaunch`` mode:
 ``"open"`` opens that monitor ONCE per session in a reusable named Windows-Terminal window (via
 the shared launch-argv builder) — correct for a persistent poller like wfmon; ``"remind"`` skips
 the launch and emits a one-time ``mon <name>`` nudge instead — correct for a one-shot spawner like
@@ -18,8 +19,9 @@ READ-ONLY monitor (never touches the run). FAIL-OPEN (any error → exit 0, no o
 the tool). Opt-out: global ``MONITOR_AUTOLAUNCH=off`` (env) or a ``.disabled`` file beside this
 script; per-monitor ``MONITOR_AUTOLAUNCH_<NAME>=off``.
 
-Wired via the _dispatch manifest (PreToolUse, matcher ``Task|Workflow``); the outer settings
-matcher already passes both Task and Workflow, so the dispatcher fires for either trigger.
+Wired via the _dispatch manifest (PreToolUse, matcher ``Task|Workflow|mcp__codex__codex``); the
+outer settings matcher passes Task, Workflow and mcp__codex__codex, so the dispatcher fires for
+any of the three triggers.
 """
 
 from __future__ import annotations
