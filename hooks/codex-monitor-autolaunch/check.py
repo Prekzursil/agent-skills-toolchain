@@ -1,19 +1,23 @@
 #!/usr/bin/env python3
-r"""codex-monitor-autolaunch/check.py — PreToolUse hook.
+r"""codex-monitor-autolaunch/check.py — PreToolUse hook (CLI-launch complement).
 
-The Codex-side counterpart to workflow-monitor-autolaunch (which opens wfmon on a Workflow).
-When Claude launches Codex work — the native `mcp__codex__codex` MCP tool, or a `codex exec`
-command via Bash/PowerShell — auto-open the **codex-monitor** thread dashboard ONCE per session
-(a per-session lockfile, so it never spams windows), so the user watches their Codex threads
-(prompt / tool-calls / tokens / status) live instead of forgetting the monitor exists. Either
-way it injects a one-line reminder that codex-monitor is available.
+Opens the out-of-repo **mingle codex-monitor** dashboard when Claude starts Codex work from the
+COMMAND LINE — a `codex exec` / `codex mcp` command run through Bash or PowerShell. The native
+`mcp__codex__codex` MCP tool is owned by the registry-driven `monitor-autolaunch` hook (→ `mon
+codexmon`), so this hook deliberately does NOT fire on it: keeping the two paths disjoint avoids a
+double launch (the codexmon board AND this dashboard) on a single Codex call. A `monitors.toml`
+`trigger_tool` is a single tool name and cannot express "a codex CLI command inside a
+Bash/PowerShell call", so this hook stays as the CLI-launch complement. It opens ONCE per session
+(a per-session lockfile, so it never spams windows) in its own `codexmon-cli` window — distinct
+from codexmon's window so the two boards never dock into each other — and injects a one-line
+reminder.
 
 READ-ONLY monitor (it never launches/steers/kills Codex). FAIL-OPEN (any error -> exit 0, no
 output, never blocks the tool). Opt-out: `CODEX_MONITOR_AUTOLAUNCH=off` in env, or a `.disabled`
 file beside this script.
 
-Wire via the _dispatch manifest (PreToolUse; the live PreToolUse matcher is `.*`, so the
-dispatcher fires on every tool and this hook self-filters to Codex launches).
+Wire via the _dispatch manifest (PreToolUse, matcher `Bash|PowerShell`); the dispatcher fires on
+Bash/PowerShell tools and this hook self-filters to `codex exec` / `codex mcp` command text.
 """
 
 from __future__ import annotations
@@ -39,11 +43,12 @@ _DETACHED = 0x00000008  # DETACHED_PROCESS — don't tie the launched window to 
 
 
 def _is_codex_launch(payload: dict) -> bool:
-    """True iff this tool call is starting Codex work (native tool or codex exec)."""
+    """True iff this is a CLI Codex launch — ``codex exec`` / ``codex mcp`` via Bash/PowerShell.
+
+    The native ``mcp__codex__codex`` tool is intentionally NOT matched here (the registry-driven
+    ``monitor-autolaunch`` hook owns that path → ``mon codexmon``), so the two never double-fire.
+    """
     tn = str((payload or {}).get("tool_name") or "")
-    low = tn.lower()
-    if "codex" in low and "monitor" not in low:  # mcp__codex__codex (not this monitor)
-        return True
     if tn in ("Bash", "PowerShell"):
         cmd = str(((payload or {}).get("tool_input") or {}).get("command") or "")
         if "codex exec" in cmd or "codex mcp" in cmd:
@@ -57,10 +62,10 @@ def _launch() -> bool:
         [
             "wt",
             "-w",
-            "codexmon",
+            "codexmon-cli",
             "new-tab",
             "--title",
-            "codexmon",
+            "codexmon-cli",
             "powershell",
             "-NoProfile",
             "-File",
@@ -70,7 +75,7 @@ def _launch() -> bool:
             "cmd",
             "/c",
             "start",
-            "codexmon",
+            "codexmon-cli",
             "powershell",
             "-NoProfile",
             "-File",
@@ -126,7 +131,7 @@ def main() -> None:
             pass
         if launched:
             _emit(
-                "🛰 Opened **codex-monitor** (read-only Codex thread dashboard) in a 'codexmon' window — watch your Codex threads' prompt/tools/tokens/status live. `/codex-monitor` reopens it; `CODEX_MONITOR_AUTOLAUNCH=off` disables."
+                "🛰 Opened **codex-monitor** (read-only Codex thread dashboard) in a 'codexmon-cli' window — watch your Codex threads' prompt/tools/tokens/status live. `/codex-monitor` reopens it; `CODEX_MONITOR_AUTOLAUNCH=off` disables."
             )
         else:
             _emit(

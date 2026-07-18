@@ -18,6 +18,10 @@ status / notify / export "for free" by implementing one contract.
   `poll → Snapshot` that never throws, plus native render / export / headline / alert.
 - **agent primitives** (`agent_tail`, watchdog, discovery, spawn) — vendored from the
   retired `agent-monitor` tool.
+- **codex primitives** (`codex_tail`, `codex_source`) — the OpenAI Codex thread domain
+  layer (relay-stream + `~/.codex` rollout tailers with MANDATORY redaction at ingest,
+  the `mon codexmon` live board) plus `CodexSource`, the first in-package
+  `MonitorSource` adapter (`codexmon`).
 
 ## Two hard rules
 

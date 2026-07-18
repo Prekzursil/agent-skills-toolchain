@@ -44,6 +44,16 @@ try:
 except Exception:  # pragma: no cover - fallback when the vendored package is absent
     agent_tail = None
 
+# ── the Codex fleet panel (PR-B3) rides the vendored codexmon adapter ───────
+# Guarded like agent_tail: if the vendored package (or the adapter) is absent the
+# cockpit still runs, just without the Codex panel.
+try:
+    from monitorcore.codex_source import CodexSource  # noqa: E402
+    from monitorcore.codex_tail import frame_rows as codex_frame_rows  # noqa: E402
+except Exception:  # pragma: no cover - fallback when the vendored package is absent
+    CodexSource = None  # type: ignore[assignment]
+    codex_frame_rows = None  # type: ignore[assignment]
+
 # The coarse agent-state bucket is the SHARED monitorcore primitive (single source of
 # truth for the former ``_bucket`` / ``wfmon_export.model._state_bucket`` duplication).
 from monitorcore.agent_state import bucket_agent  # noqa: E402
@@ -87,6 +97,14 @@ _STYLE = {
     "done": "green",
     "error": "bold red",
     "idle": "grey58",
+}
+# Codex thread statuses → Rich styles for the Codex panel (PR-B3).
+_CODEX_STYLE = {
+    "running": "bold yellow",
+    "idle": "grey58",
+    "done": "green",
+    "aborted": "bold red",
+    "dim": "grey50",
 }
 
 
@@ -322,6 +340,7 @@ class WorkflowMonitor(App):
     .chip { width: 1fr; margin: 0 1; min-width: 6; }
     .chip.on { background: $success-darken-1; }
     #tree { height: 1fr; }
+    #c-codex { height: auto; }
     #ahdr { height: auto; padding: 0 1; background: $panel; }
     #c-task { height: auto; }
     #c-result { height: auto; }
@@ -351,6 +370,9 @@ class WorkflowMonitor(App):
                             f"{_GLYPH[s]} {s}", id=f"chip-{s}", classes="chip on"
                         )
                 yield Tree("fleet", id="tree")
+                with Collapsible(title="Codex threads", collapsed=True, id="c-codex"):
+                    with VerticalScroll(classes="detail-scroll"):
+                        yield Static("", id="codex")
             with Vertical(id="right"):
                 yield Static("Select an agent in the tree ←", id="ahdr")
                 with Collapsible(
@@ -378,6 +400,9 @@ class WorkflowMonitor(App):
     # ── lifecycle ──
     def on_mount(self) -> None:
         self.poller = wr.FleetPoller()
+        # The Codex fleet source (PR-B3): polled inside the same worker tick, so one
+        # thread owns both pollers. None when the vendored adapter is unavailable.
+        self._codex = CodexSource() if CodexSource is not None else None
         self._runs_all: list = []
         self._query = ""
         self._status_on: set[str] = set(STATUSES)
@@ -429,11 +454,36 @@ class WorkflowMonitor(App):
                 pos = self._feed_pos
                 new_pos, lines = self._read_feed_increment(path, pos)
                 feed = (key, path, new_pos, lines)
+            codex = self._poll_codex()
             self.call_from_thread(
-                self._apply, picked, total, sig, rollup, elapsed_ms, feed
+                self._apply, picked, total, sig, rollup, elapsed_ms, feed, codex
             )
         finally:
             self._polling = False
+
+    def _poll_codex(self) -> tuple[str, Text] | None:
+        """Snapshot the local Codex fleet for the panel (worker thread; never raises).
+
+        Returns ``(collapsible_title, body_text)`` or ``None`` when the adapter is
+        unavailable / failing — the panel then simply keeps its last content. The
+        headline + board lines are already redaction-safe (scrubbed at ingest).
+        """
+        if self._codex is None or codex_frame_rows is None:
+            return None
+        try:
+            snap = self._codex.poll()
+            title = f"Codex threads — {snap.headline}"
+            body = Text()
+            rows = codex_frame_rows(snap.payload.threads, snap.ts, FEED_WIDTH)
+            for i, (row, status) in enumerate(rows):
+                if i:
+                    body.append("\n")
+                body.append(row, _CODEX_STYLE.get(status, "grey58"))
+            if not rows:
+                body.append("(no codex threads in the window)", "grey50")
+            return title, body
+        except Exception:
+            return None
 
     def _read_feed_increment(self, path: str, pos: int) -> tuple[int, list[Text]]:
         """Return (new_pos, rendered_lines) for bytes appended past the last COMPLETE line.
@@ -480,10 +530,18 @@ class WorkflowMonitor(App):
         rollup: dict,
         elapsed_ms: float,
         feed: tuple | None,
+        codex: tuple | None = None,
     ) -> None:
         self._last_shown = total
         self._last_rollup = rollup
         self._last_elapsed_ms = elapsed_ms
+        if codex is not None:
+            codex_title, codex_body = codex
+            try:
+                self.query_one("#c-codex", Collapsible).title = codex_title
+                self.query_one("#codex", Static).update(codex_body)
+            except Exception:
+                pass  # panel absent (compose raced) — next poll repaints
         if sig != self._last_sig:
             self._rebuild_tree(picked)
             self._last_sig = sig
