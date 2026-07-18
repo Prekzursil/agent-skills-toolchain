@@ -18,7 +18,7 @@ if __package__ in {None, ""}:
 
     try:
         from harness.injection_grammar import DIRECTIVE_CATEGORIES, looks_poisoned
-    except ImportError:  # foundation module absent (old tree) -> degrade fail-open
+    except ImportError:  # pragma: no cover - foundation module absent (fail-open)
         DIRECTIVE_CATEGORIES = ()  # type: ignore[assignment]
 
         def looks_poisoned(text: object, *, categories: Any = None) -> bool:  # type: ignore[misc]
@@ -30,7 +30,7 @@ else:
 
     try:
         from .injection_grammar import DIRECTIVE_CATEGORIES, looks_poisoned
-    except ImportError:  # foundation module absent (old tree) -> degrade fail-open
+    except ImportError:  # pragma: no cover - foundation module absent (fail-open)
         DIRECTIVE_CATEGORIES = ()  # type: ignore[assignment]
 
         def looks_poisoned(text: object, *, categories: Any = None) -> bool:  # type: ignore[misc]

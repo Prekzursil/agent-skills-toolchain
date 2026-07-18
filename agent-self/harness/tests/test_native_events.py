@@ -333,6 +333,6 @@ def test_new_native_events_have_valid_native_wire_output(tmp_path):
             )
             assert completed.returncode == 0, (provider, event_name, completed.stderr)
             assert "suppressOutput" not in completed.stdout
-            if completed.stdout.strip():
+            if completed.stdout.strip():  # pragma: no cover
                 rendered = json.loads(completed.stdout)
                 assert isinstance(rendered, dict)

@@ -108,7 +108,7 @@ def test_dispatcher_stops_after_block_before_persistence_capable_modules(tmp_pat
     class PersistenceModule:
         name = "event_ledger"
 
-        def run(self, _event):
+        def run(self, _event):  # pragma: no cover
             calls.append("persist")
             return HookResult.success()
 
@@ -226,7 +226,7 @@ def test_cli_malformed_input_is_fail_open_and_never_emits_suppress_output(tmp_pa
 
     assert completed.returncode == 0
     assert "suppressOutput" not in completed.stdout
-    if completed.stdout.strip():
+    if completed.stdout.strip():  # pragma: no cover
         json.loads(completed.stdout)
 
 

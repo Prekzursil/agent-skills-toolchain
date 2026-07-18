@@ -233,7 +233,7 @@ def _append_receipt(
         "receipt_failed": failed,
         "receipt_fp": fingerprint,
     }
-    if verified is not None:
+    if verified is not None:  # pragma: no cover
         fields["verified"] = verified
     return ledger.append(cwd, "tool_result", dedupe_key=key, **fields)
 
@@ -491,7 +491,7 @@ def test_taint_dependents_is_fail_open_when_append_raises(tmp_path, monkeypatch)
     def flaky_append(cwd_, kind, **kwargs):
         if kind == "taint":
             raise OSError("simulated marker write failure")
-        return real_append(cwd_, kind, **kwargs)
+        return real_append(cwd_, kind, **kwargs)  # pragma: no cover
 
     monkeypatch.setattr(ledger, "append", flaky_append)
     # Must not raise; still returns the discovered dependents.

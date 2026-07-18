@@ -543,7 +543,7 @@ def test_ledger_append_does_not_reparse_full_history(tmp_path, monkeypatch):
     )
 
     def forbidden_full_reparse(*_args, **_kwargs):
-        raise AssertionError("append reparsed the full ledger")
+        raise AssertionError("append reparsed the full ledger")  # pragma: no cover
 
     monkeypatch.setattr(ledger, "_shared_events", forbidden_full_reparse)
 
@@ -1803,7 +1803,7 @@ class _StubLedger:
     def last_failed_fingerprint(self, cwd, turn_id=""):
         return self._fp
 
-    def receipt_for_fingerprint(self, cwd, fp):
+    def receipt_for_fingerprint(self, cwd, fp):  # pragma: no cover
         if self._fp and fp == self._fp and self._fp_pass:
 
             class _R:

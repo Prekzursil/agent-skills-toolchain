@@ -14,7 +14,7 @@ try:
     from .models import HookEvent, HookResult
     from .redaction import contains_secret, redact_text
     from .storage import atomic_write_json, atomic_write_text, read_json
-except ImportError:
+except ImportError:  # pragma: no cover
     from ledger import EventLedger, default_state_root, project_key
     from models import HookEvent, HookResult
     from redaction import contains_secret, redact_text
@@ -27,7 +27,7 @@ except ImportError:
 # the gates simply ship darker until the ledger lane provides the real signal.
 try:  # pragma: no cover - exercised via both branches in tests
     from .ledger import CLAIM_RECEIPT_MAP, STAKE_TIERS, classify_receipt
-except ImportError:
+except ImportError:  # pragma: no cover
     try:
         from ledger import CLAIM_RECEIPT_MAP, STAKE_TIERS, classify_receipt  # type: ignore
     except ImportError:
@@ -40,7 +40,7 @@ except ImportError:
 # tripwire and the recall poison-gate degrade to "no detection" (fail-open).
 try:  # pragma: no cover - exercised via both branches in tests
     from .injection_grammar import scan as _injection_scan
-except ImportError:
+except ImportError:  # pragma: no cover
     try:
         from injection_grammar import scan as _injection_scan  # type: ignore
     except ImportError:

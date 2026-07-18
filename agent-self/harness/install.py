@@ -55,7 +55,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
-if __package__ in {None, ""}:
+if __package__ in {None, ""}:  # pragma: no cover
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from harness.ledger import default_state_root
     from harness.registration import build_hooks
@@ -883,5 +883,5 @@ def main(argv: list[str] | None = None) -> int:
     return install(check=args.check)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     raise SystemExit(main())

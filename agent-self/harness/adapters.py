@@ -4,7 +4,7 @@ from typing import Any
 
 try:
     from .models import AgentEnvelope, HookEvent, HookResult, ToolEnvelope
-except ImportError:  # Direct-script execution from dispatcher.py.
+except ImportError:  # pragma: no cover - direct-script import
     from models import AgentEnvelope, HookEvent, HookResult, ToolEnvelope
 
 

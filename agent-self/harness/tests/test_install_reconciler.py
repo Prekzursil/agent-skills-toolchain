@@ -309,7 +309,7 @@ def _make_symlink(link: "object", target: "object") -> bool:
     try:
         os.symlink(target, link, target_is_directory=True)
         return link.is_symlink()
-    except OSError:
+    except OSError:  # pragma: no cover
         return False
 
 
@@ -340,7 +340,7 @@ def test_skills_symlink_ok_and_drift_with_baseline(tmp_path):
     _write_codex(codex)
     link = tmp_path / "skills"
     target = tmp_path / "skills.daily"
-    if not _make_symlink(link, target):
+    if not _make_symlink(link, target):  # pragma: no cover
         pytest.skip("symlink creation not permitted in this environment")
 
     ok_baseline = tmp_path / "ok.json"

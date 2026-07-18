@@ -13,7 +13,7 @@ from typing import Any, cast
 try:
     from .redaction import redact_text
     from .storage import atomic_write_json, atomic_write_text, read_json
-except ImportError:
+except ImportError:  # pragma: no cover
     from redaction import redact_text
     from storage import atomic_write_json, atomic_write_text, read_json
 
