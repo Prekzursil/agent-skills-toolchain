@@ -22,7 +22,7 @@ All three are MCP `stdio` servers, all verified `✓ Connected` via
 |-----|------------|-------|----------|--------|
 | **tooluniverse** | Biomedical knowledge: DDI, ADMET, CYP, targets, FDA labels, repurposing, pharmacovigilance | 2206 | None (public DBs) | `uvx tooluniverse==1.2.4` · Apache-2.0 · Harvard Zitnik lab |
 | **rdkit** | Cheminformatics: descriptors, fingerprints, similarity, format I/O | 74 | None | tandemai-inc/rdkit-mcp-server · MIT |
-| **schrodinger** | Structure prep, 3D generation, receptor prep + grid, docking, MM-GBSA, QikProp ADMET | 12 | **Some** (see below) | custom-built local wrapper |
+| **schrodinger** | Structure prep + docking, MD/FEP, QM, ADMET, pose analysis, and job control | 67 | **Some** (see below) | custom-built local wrapper |
 
 ### Server config (cross-platform)
 
@@ -47,7 +47,7 @@ schrodinger  : <venv-python> server.py   env SCHRODINGER="D:\Program Files\Schro
 
 ---
 
-## 2. Schrodinger MCP — the 12 tools (exact surface)
+## 2. Schrodinger MCP — the 67-tool surface (core pipeline below)
 
 The wrapper **never imports `schrodinger` in-process** (that only works under
 `$SCHRODINGER/run`). Every tool builds an argv list and hands it to one
@@ -58,7 +58,14 @@ params never reach a shell. License-token-free tools shell out to a helper
 (`_sch_helper.py`) running inside the Schrodinger interpreter; the driver tools
 run the product binaries with `-WAIT` (synchronous).
 
-**License-token-FREE (safe, fast, no checkout):**
+The full surface spans diagnostics and structure I/O; protein/ligand prep,
+docking, pose analysis, and triage; screening and property filters; Desmond,
+FEP+, WaterMap, and MM-GBSA; Jaguar/QM, Epik, QSite, and AutoQSAR; plus job and
+GPU orchestration — see [SCHRODINGER-MCP.md](SCHRODINGER-MCP.md) for the complete
+grouped 67-tool inventory. The core structure-and-docking pipeline used in this
+workflow is documented below.
+
+**Core license-token-FREE (safe, fast, no checkout):**
 
 | Tool | Signature | Returns |
 |------|-----------|---------|
@@ -69,7 +76,7 @@ run the product binaries with `-WAIT` (synchronous).
 | `convert_structure` | `(src, dst)` | format convert `.sdf`↔`.mae`↔`.pdb` |
 | `run_schrodinger_python` | `(code, timeout_s=300)` | escape hatch — arbitrary code in the Schrodinger interpreter (local single-user only) |
 
-**License-token-CONSUMING (synchronous `-WAIT` product drivers):**
+**Core license-token-CONSUMING (synchronous `-WAIT` product drivers):**
 
 | Tool | Signature | Returns |
 |------|-----------|---------|
