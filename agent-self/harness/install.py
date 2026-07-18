@@ -326,7 +326,7 @@ def _reconcile_skills_symlink(link: Path, baseline: dict[str, Any] | None) -> Dr
             managed=False,
             detail={"observed": observed},
         )
-    expected = baseline.get("skills_symlink") or {}
+    expected = (baseline or {}).get("skills_symlink") or {}
     expected_target = expected.get("target") if isinstance(expected, dict) else None
     if expected_target is None:
         # Pinned without a target -> only require that it BE a symlink.

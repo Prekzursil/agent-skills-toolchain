@@ -8,7 +8,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 try:
     from .redaction import redact_text
@@ -1025,7 +1025,7 @@ class EventLedger:
         # sessions in one cwd from stomping each other's goal.
         self.append(cwd, "goal", text=clean)
         if _session_isolatable(session_id):
-            self._write_session_goal(session_id, clean)
+            self._write_session_goal(cast(str, session_id), clean)
 
     def goal(self, cwd: str, session_id: str | None = None) -> str:
         # A provided session_id requests STRICT per-session isolation: return

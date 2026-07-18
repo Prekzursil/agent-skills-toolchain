@@ -7,7 +7,7 @@ import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable, Optional
+from typing import Any, Iterable, Optional, cast
 
 try:
     from .ledger import EventLedger, default_state_root, project_key
@@ -2141,7 +2141,7 @@ class ClaimWarningModule:
         if not callable(last):
             return None
         try:
-            return int(last(event.cwd, event.turn_id))
+            return int(cast(int, last(event.cwd, event.turn_id)))
         except Exception:
             return None
 
