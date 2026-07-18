@@ -109,7 +109,10 @@ def test_mulliken_only_is_selected_as_primary() -> None:
     [
         ({"chelpg_charges": 42}, "non-empty charge array"),  # non-list charges
         ({"chelpg_charges": []}, "non-empty charge array"),  # empty charges
-        ({"mulliken_charges": [0.1, "x", 0.2]}, "non-numeric charge"),  # non-numeric elem
+        (
+            {"mulliken_charges": [0.1, "x", 0.2]},
+            "non-numeric charge",
+        ),  # non-numeric elem
         (
             {"chelpg_charges": [0.1, 0.2], "mulliken_charges": [0.1]},
             "different atom counts",

@@ -36,7 +36,9 @@ class _StubResultRef:
     """Placeholder result ref; tests monkeypatch ``from_raw_output`` per case."""
 
     @staticmethod
-    def from_raw_output(raw: object) -> object:  # pragma: no cover - overridden in tests
+    def from_raw_output(
+        raw: object,
+    ) -> object:  # pragma: no cover - overridden in tests
         raise NotImplementedError(
             "qdx_mcp_server.<module>.ResultRef.from_raw_output must be monkeypatched in tests"
         )
