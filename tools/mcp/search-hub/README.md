@@ -79,6 +79,30 @@ a single message mentions both.
 
 ---
 
+## Deploying SearXNG (the keyless fallback)
+
+The three keyed providers are hosted APIs; **SearXNG is a service you run
+yourself.** The hub's `mcp-searxng@1.8.0` child talks to a running SearXNG
+instance at the URL in the **`SEARXNG_URL`** env var (default
+**`http://127.0.0.1:8890`**) — nothing is bundled or started for you. Stand one
+up before relying on the fallback:
+
+```bash
+# Local Docker on the default port (SearXNG serves on container port 8080):
+docker run -d --name searxng -p 8890:8080 searxng/searxng
+```
+
+The `mcp-searxng` server needs SearXNG's **JSON API**, so add `json` to
+`search.formats` in the instance's `settings.yml` (the stock config enables only
+`html`). To use an instance hosted elsewhere, point `SEARXNG_URL` at any trusted
+endpoint you control (e.g. `SEARXNG_URL=https://searxng.example.internal`).
+
+Until a reachable instance answers at `SEARXNG_URL`, the keyed providers are
+unaffected and `searxng_*` calls simply return the child's connection error — the
+fallback is **safe-inert**, never a hard dependency.
+
+---
+
 ## Tools
 
 - **Provider tools (passthrough, original names):** whatever each server
