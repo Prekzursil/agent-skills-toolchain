@@ -58,6 +58,7 @@ def test_fixed_module_order_is_security_then_continuity_then_quality():
         "design_tool_reminder",
         "subagent_lifecycle",
         "bc_offset_guard",
+        "enforcement_scaffold",
     )
 
 

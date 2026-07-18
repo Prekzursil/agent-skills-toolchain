@@ -297,6 +297,24 @@ GATE_CONTRACTS: dict[str, dict[str, str]] = {
         "deadline": "2026-09-01",
         "fire_rate": "fires at most once per session, only when a canonical edit occurred and no basic-memory write did",
     },
+    "cleanup_after_work": {
+        "metric": "cleanup_backlog_surfaced",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires at most once per session, only when the bounded scan finds clone-cache accumulation or stale worktree residue",
+    },
+    "doc_reconciliation": {
+        "metric": "fold_not_fork",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires only on a FRESH *.md Write whose normalized title near-duplicates a sibling doc; once per doc family per session",
+    },
+    "harness_change_doc_pr": {
+        "metric": "harness_doc_pr_discipline",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires at most once per session, only on a canonical harness/skill/MCP/hook edit with no doc write seen this session",
+    },
 }
 
 
@@ -428,6 +446,7 @@ MODULE_ORDER = (
     "design_tool_reminder",
     "subagent_lifecycle",
     "bc_offset_guard",
+    "enforcement_scaffold",
 )
 
 
@@ -2596,6 +2615,294 @@ class BcOffsetGuardModule:
         return stage("bc_offset", TIER_HEURISTIC, event, raw)
 
 
+# =============================================================================
+# WU-4 · WAVE-0 SHADOW ENFORCEMENT SCAFFOLD (RFC B2 §1.1-1.4)
+# =============================================================================
+# Three observe-only L2 gates folded into the ONE dispatcher's existing module
+# framework (no new hook file, no 2nd dispatcher): cleanup-after-work (SessionStart),
+# doc-reconciliation (PreToolUse fresh *.md Write), and harness-change->doc+PR
+# (PreToolUse canonical-artifact edit). Each DETECTS its condition and shadow_logs a
+# telemetry record, then takes NO action: every verdict routes through stage(...) at
+# TIER_HEURISTIC, whose default is SHADOW (log + return allow -> zero teeth). The
+# gates emit at most an `inject` verdict (NEVER `block`/`deny`), so even a manual
+# promotion to enforce can never fail-CLOSED or wedge the host. They NEVER run on
+# Stop/StopFailure/SubagentStop -- the A1 loop origin (a Stop-time inject re-triggers
+# the host re-entrancy counter). Promotion to ADVISE/ENFORCE is a LATER burn-in wave.
+_OFF_VALUES = frozenset({"off", "0", "false", "no"})
+
+# Per-gate kill-switch env names. The GLOBAL switch HARNESS_ENFORCE=off silences all
+# three at once; each per-gate HARNESS_<GATE>=off silences exactly one. Default (no
+# env set) = SHADOW (detect + log). Mirrors the existing HARNESS_<GUARD> env-override
+# pattern (here the sense is inverted: these ship ON, in shadow).
+SCAFFOLD_GATE_ENV: dict[str, str] = {
+    "cleanup_after_work": "HARNESS_CLEANUP",
+    "doc_reconciliation": "HARNESS_DOC_RECONCILE",
+    "harness_change_doc_pr": "HARNESS_CHANGE_DOC_PR",
+}
+
+
+def _enforcement_enabled() -> bool:
+    """Global kill-switch for the WU-4 SCAFFOLD gates ONLY. HARNESS_ENFORCE=off (or
+    0/false/no) silences the three Wave-0 enforcement-scaffold gates below
+    (cleanup_after_work / doc_reconciliation / harness_change_doc_pr) at once. It does
+    NOT touch the OTHER harness gates (secret / config_drift / claim_warning / ... each
+    keep their own HARNESS_* controls and shadow ladder). Default (unset) = enabled
+    (SHADOW). Name is kept per the WU-4 spec; its scope is exactly these three gates."""
+    return os.environ.get("HARNESS_ENFORCE", "").strip().lower() not in _OFF_VALUES
+
+
+def _scaffold_gate_enabled(gate_name: str) -> bool:
+    """A scaffold gate is live only when the global HARNESS_ENFORCE is not off AND its
+    own per-gate HARNESS_<GATE> kill-switch is not off. The global switch wins over any
+    per-gate or mode setting, so the whole scaffold is always silenceable."""
+    if not _enforcement_enabled():
+        return False
+    env = SCAFFOLD_GATE_ENV.get(gate_name, "")
+    return not (env and os.environ.get(env, "").strip().lower() in _OFF_VALUES)
+
+
+def _scaffold_artifact_label(target: str) -> Optional[str]:
+    """Classify a write target as a canonical harness/skill/MCP/hook artifact (RFC
+    §1.4.1) or None. Deployed trees (harness/skills/hooks/codex_profiles) via
+    _canonical_tree; a 'repo' edit is narrowed to ci/harness, skills, the canonical MCP
+    manifest, or a hooks dir. Fail-closed to None on any error (never over-fires)."""
+    if not target:
+        return None
+    try:
+        tree = _canonical_tree(target)
+        if tree in {"harness", "skills", "hooks", "codex_profiles"}:
+            return tree
+        if tree == "repo":
+            norm = os.path.normpath(str(target)).replace("\\", "/").lower()
+            if "/ci/harness/" in norm:
+                return "harness"
+            if "/skills/" in norm:
+                return "skills"
+            if norm.endswith("canonical-mcp-servers.json") or "/tools/mcp/" in norm:
+                return "mcp"
+            if "/hooks/" in norm:
+                return "hooks"
+    except Exception:
+        return None
+    return None
+
+
+class EnforcementScaffoldModule:
+    """Wave-0 WU-4 SHADOW enforcement scaffold (RFC B2 §1.1-1.4). See the block comment
+    above for the SHADOW / zero-teeth / never-on-Stop contract."""
+
+    name = "enforcement_scaffold"
+    _SCAN_DIR_ENV = "HARNESS_CLEANUP_SCAN_DIR"
+    _EDIT_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit", "apply_patch"}
+    _DOC_RE = re.compile(r"(?i)(?:\.md|\.mdx|\.rst)$|[\\/]docs?[\\/]")
+    # Fork/version/date suffixes stripped to a family key so PLAN.md, PLAN-v2.md,
+    # PLAN-final.md, and PLAN-2026-07-13.md all normalize to the same "plan".
+    _DOC_FORK_SUFFIX = re.compile(
+        r"(?i)[-_ ]?(?:v?\d+(?:\.\d+)*|final|draft|copy|new|old|complete|wip|"
+        r"\d{4}-\d{2}-\d{2}|\d{8})$"
+    )
+    _CLONE_THRESHOLD = 3  # a lone .clone is normal churn; >=3 is accumulation worth surfacing
+    _MAX_CANDIDATES = 50  # bound the cleanup scan output (anti-flood)
+    _DOC_LOG_CAP = 20     # bound the per-session logged doc families (anti-flood)
+
+    def __init__(self, state_root: Path | str | None = None):
+        self.root = Path(state_root or default_state_root()) / "enforce-scaffold"
+
+    # -- event routing (NEVER on Stop / StopFailure / SubagentStop) ---------- #
+    def run(self, event: Any) -> HookResult:
+        try:
+            etype = str(getattr(event, "event", "") or "")
+            if etype == "SessionStart":
+                return self._guarded(self._cleanup_after_work, event)
+            if etype == "PreToolUse":
+                return _merge_results([
+                    self._guarded(self._doc_reconciliation, event),
+                    self._guarded(self._harness_change_doc_pr, event),
+                ])
+            # Every other event -- crucially Stop / StopFailure / SubagentStop -- is inert.
+            return HookResult.success()
+        except Exception:
+            # Module-boundary fail-open: symmetric with _guarded so the _merge_results
+            # fan-in (and any routing slip) can never break dispatch (defense-in-depth
+            # with the dispatcher's own per-module try/except).
+            return HookResult.success()
+
+    @staticmethod
+    def _guarded(detector, event: Any) -> HookResult:
+        try:
+            return detector(event)
+        except Exception:
+            return HookResult.success()  # fail-open: a gate error never breaks dispatch
+
+    # -- per-session state (mirrors DesignToolReminderModule) ---------------- #
+    def _state_path(self, event: Any) -> Path:
+        return self.root / f"{_digest(getattr(event, 'session_id', ''), 20)}.json"
+
+    def _state(self, event: Any) -> dict[str, Any]:
+        data = read_json(self._state_path(event), {})
+        return data if isinstance(data, dict) else {}
+
+    def _write_state(self, event: Any, data: dict[str, Any]) -> None:
+        try:
+            atomic_write_json(self._state_path(event), data)
+        except OSError:
+            pass
+
+    # -- Gate 1 · cleanup-after-work (SessionStart) -------------------------- #
+    def _cleanup_after_work(self, event: Any) -> HookResult:
+        if not _scaffold_gate_enabled("cleanup_after_work"):
+            return HookResult.success()
+        state = self._state(event)
+        if state.get("cleanup_logged"):
+            return HookResult.success()  # once per session (anti-flood)
+        candidates = self._scan_cleanup_candidates(event)
+        if not candidates:
+            return HookResult.success()
+        state["cleanup_logged"] = True
+        self._write_state(event, state)
+        detail = "; ".join(f"cleanup candidate: {p} ({why})" for p, why in candidates)
+        raw = HookResult.success(
+            action="inject",
+            reason_code="cleanup_after_work",
+            additional_context=[
+                f"CLEANUP BACKLOG ({len(candidates)}): {detail}. Leftover work-artifacts a "
+                "later cleanup would remove -- surfaced for the owner to apply; NOTHING was deleted."
+            ],
+        )
+        return stage("cleanup_after_work", TIER_HEURISTIC, event, raw)
+
+    def _scan_cleanup_candidates(self, event: Any) -> list[tuple[str, str]]:
+        # Bounded, non-recursive scan for RFC §1.2/§1.6 dead-artifact patterns. Env
+        # HARNESS_CLEANUP_SCAN_DIR overrides the scan root (defaults to event.cwd).
+        root = Path(os.environ.get(self._SCAN_DIR_ENV) or str(getattr(event, "cwd", "") or "."))
+        found: list[tuple[str, str]] = []
+        try:
+            clones = sorted(root.glob("plugins/cache/temp_subdir_*.clone"))
+            if len(clones) >= self._CLONE_THRESHOLD:
+                found.extend((str(p), "clone-cache accumulation") for p in clones)
+            found.extend(
+                (str(p), "stale worktree backup")
+                for p in sorted(root.glob("create-worktree.ps1.bak-*"))
+            )
+            for name in ("worktree-target.txt", "worktree-debug.json"):
+                if (root / name).exists():
+                    found.append((str(root / name), "orphaned worktree marker"))
+        except OSError:
+            return []
+        return found[: self._MAX_CANDIDATES]
+
+    # -- Gate 2 · doc-reconciliation (PreToolUse, fresh *.md Write) ---------- #
+    def _doc_reconciliation(self, event: Any) -> HookResult:
+        if not _scaffold_gate_enabled("doc_reconciliation"):
+            return HookResult.success()
+        tool = str(getattr(getattr(event, "tool", None), "name", "") or "")
+        target = _edit_target(getattr(getattr(event, "tool", None), "input", {}))
+        # Fire ONLY on a FRESH doc Write. Editing/overwriting an existing doc is the
+        # CORRECT fold-not-fork action (never nag it).
+        if tool != "Write" or not target or not self._is_doc_path(target):
+            return HookResult.success()
+        tpath = Path(target)
+        try:
+            if tpath.exists():
+                return HookResult.success()
+        except OSError:
+            return HookResult.success()
+        # Cooldown check BEFORE the parent-dir glob: the family key derives from the new
+        # file's OWN name, so a family already surfaced this session short-circuits here
+        # and the (shallow, non-recursive) sibling glob is skipped -- no redundant FS work.
+        key = self._doc_stem_key(tpath.name)
+        if not key:
+            return HookResult.success()
+        state = self._state(event)
+        logged = state.get("doc_reconcile_logged") or []
+        if key in logged or len(logged) >= self._DOC_LOG_CAP:
+            return HookResult.success()  # already surfaced this family this session
+        dup = self._near_duplicate_sibling(tpath)
+        if dup is None:
+            return HookResult.success()
+        state["doc_reconcile_logged"] = logged + [key]
+        self._write_state(event, state)
+        raw = HookResult.success(
+            action="inject",
+            reason_code="doc_reconciliation",
+            additional_context=[
+                f"DOC RECONCILIATION: new doc {tpath.name} looks like a near-duplicate of "
+                f"{dup.name} (same normalized title). FOLD-NOT-FORK -- update {dup.name} (add a "
+                "SUPERSEDED-BY link) instead of writing a fresh file. Surfaced only; nothing edited."
+            ],
+        )
+        return stage("doc_reconciliation", TIER_HEURISTIC, event, raw)
+
+    def _is_doc_path(self, target: str) -> bool:
+        return bool(target and self._DOC_RE.search(str(target)))
+
+    @classmethod
+    def _doc_stem_key(cls, name: str) -> str:
+        stem = str(name).rsplit(".", 1)[0].lower()
+        prev = None
+        while stem and stem != prev:  # strip stacked fork suffixes (foo-v2-final)
+            prev = stem
+            stem = cls._DOC_FORK_SUFFIX.sub("", stem).strip("-_ ")
+        return stem
+
+    def _near_duplicate_sibling(self, tpath: Path) -> Optional[Path]:
+        key = self._doc_stem_key(tpath.name)
+        if not key:
+            return None
+        try:
+            siblings = [
+                p
+                for pattern in ("*.md", "*.mdx", "*.rst")
+                for p in tpath.parent.glob(pattern)
+                if p.name != tpath.name
+            ]
+        except OSError:
+            return None
+        for sib in siblings:
+            if self._doc_stem_key(sib.name) == key:
+                return sib
+        return None
+
+    # -- Gate 3 · harness-change -> doc+PR (PreToolUse canonical edit) -------- #
+    def _harness_change_doc_pr(self, event: Any) -> HookResult:
+        if not _scaffold_gate_enabled("harness_change_doc_pr"):
+            return HookResult.success()
+        tool = str(getattr(getattr(event, "tool", None), "name", "") or "")
+        target = _edit_target(getattr(getattr(event, "tool", None), "input", {}))
+        if tool not in self._EDIT_TOOLS or not target:
+            return HookResult.success()
+        # A doc edit (incl. a harness README.md) IS the accompanying doc -- record it so
+        # a later harness code edit this session is not nagged, and never fire on it.
+        if self._is_doc_path(target):
+            self._mark_doc_seen(event)
+            return HookResult.success()
+        label = _scaffold_artifact_label(target)
+        if label is None:
+            return HookResult.success()
+        state = self._state(event)
+        if state.get("doc_seen") or state.get("harness_change_logged"):
+            return HookResult.success()  # doc provided, or already surfaced once
+        state["harness_change_logged"] = True
+        self._write_state(event, state)
+        raw = HookResult.success(
+            action="inject",
+            reason_code="harness_change_doc_pr",
+            additional_context=[
+                f"HARNESS CHANGE WITHOUT DOC: {target} (the '{label}' canonical artifact) is being "
+                "changed but no accompanying doc write was seen this session. Capture the change "
+                "rationale in a doc (RFC B2 §1.4); PR/manifest linkage is enforced by the separate "
+                "L1 pre-commit gate, not this L2 advisory. Surfaced only; nothing blocked."
+            ],
+        )
+        return stage("harness_change_doc_pr", TIER_HEURISTIC, event, raw)
+
+    def _mark_doc_seen(self, event: Any) -> None:
+        state = self._state(event)
+        if not state.get("doc_seen"):
+            state["doc_seen"] = True
+            self._write_state(event, state)
+
+
 def build_default_modules(state_root: Path | str | None = None) -> list[Any]:
     root = Path(state_root or default_state_root())
     ledger = EventLedger(root)
@@ -2610,4 +2917,5 @@ def build_default_modules(state_root: Path | str | None = None) -> list[Any]:
         DesignToolReminderModule(state_root=root),
         SubagentLifecycleModule(ledger),
         BcOffsetGuardModule(),
+        EnforcementScaffoldModule(state_root=root),
     ]
