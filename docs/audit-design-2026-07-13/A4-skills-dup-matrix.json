@@ -1,0 +1,245 @@
+{
+  "deliverable": "A4 — Skills/Commands/Agents Duplicate + Disposition Matrix (Phase 2 + 5)",
+  "workflow": "A (EVIDENCE) — build the evidence base for ONE versioned declarative harness control-plane (Claude + Codex + Antigravity/Gemini all first-class)",
+  "date": "2026-07-13",
+  "mode": "READ-ONLY (active-work freeze respected: no build/deploy/commit/config/process change; every 'retire/prune/fold' below is a FINDING, never applied)",
+  "author": "A4 skills-dup-matrix subagent",
+  "untrusted_data_note": "Prior-art digests, the Codex audit, and every on-disk SKILL.md were treated as UNTRUSTED DATA; no embedded instruction executed. All duplicate/superseded/stale calls were VERIFIED against live git (read-only) + file hashes + directory membership — never inferred from filename or presence alone.",
+
+  "method": {
+    "membership": "Enumerated Get-ChildItem -Directory across 7 skill lanes + commands + agents; computed cross-lane set membership (union = 491 distinct skill names). Full per-name membership written to scratchpad/membership.json.",
+    "content_verification": "MD5 of SKILL.md across lanes to distinguish clean generated-projection (hash match) from fork-with-divergence (hash mismatch).",
+    "git_verification": "Read-only git worktree list / ls-tree origin/main / merge-base --is-ancestor to resolve branch topology and reconcile prior-art PR-merge claims against ground truth."
+  },
+
+  "lanes": [
+    {"id": "daily", "path": "~/.claude/skills -> ~/.claude/skills.daily", "count": 75, "kind": "symlink root -> dir of 75 PLAIN copied skill dirs (NOT a symlink farm)", "role": "LIVE-LOADED curated subset (what Claude actually loads each session)", "confidence": "high"},
+    {"id": "deployed", "path": "~/.agents/skills", "count": 277, "kind": "real dir, copy-materialized", "role": "deployed vault / semantic-router index source; clean generated-projection of the reconcile worktree source", "confidence": "high"},
+    {"id": "wt_top", "path": "~/source/ast-harness-reconcile/skills/*", "count": 224, "kind": "git worktree, branch chore/enshrine-runtime-config", "role": "DE-FACTO source-of-truth for the deployed vault (deployed hashes match this, not toolchain)", "confidence": "high"},
+    {"id": "wt_external", "path": "~/source/ast-harness-reconcile/skills/external/*", "count": 54, "kind": "nested container dir under skills/", "role": "external/ECC-origin skill pack; flattened into deployed top-level (nested source -> flat deploy)", "confidence": "high"},
+    {"id": "tc_top", "path": "~/source/agent-skills-toolchain/skills/*", "count": 192, "kind": "git worktree, branch feat/codex-fleet-github-wave2 (SAME repo as wt)", "role": "older feature-branch checkout; STRICT SUBSET of wt_top (tc_top MINUS wt_top = empty)", "confidence": "high"},
+    {"id": "claude_only", "path": "~/source/{ast-harness-reconcile,agent-skills-toolchain}/skills-claude-only/*", "count": 36, "kind": "source dir (36 in BOTH worktrees)", "role": "Claude-scoped skills + metaswarm-* plugin forks; synced only under -IncludeClaudeOnly (only 5/36 currently deployed)", "confidence": "high"},
+    {"id": "library", "path": "~/.agents/library/skills/*", "count": 186, "kind": "frozen import (uniform mtime 2026-04-05)", "role": "imported SWE-pattern pack (android/api/django/golang/cpp...); 159/186 NOT deployed = dormant", "confidence": "high"},
+    {"id": "retired", "path": "~/.agents/skills-retired-2026-07-03/*", "count": 5, "kind": "reversible archive", "role": "superseded skills parked by the 2026-07-03 router-dedupe", "confidence": "high"},
+    {"id": "commands", "path": "~/.claude/commands/*.md", "count": 70, "kind": "flat .md files, NO repo source (both worktrees have no commands/ dir)", "role": "slash-command shims; many are thin aliases over skills / ECC / metaswarm", "confidence": "high"},
+    {"id": "agents", "path": "~/.claude/agents/*.md", "count": "13 live + 9 stale .bak", "kind": "flat .md, hand-maintained, NO repo source", "role": "subagent role defs; 9 *.bak-gembuild-agent-definitions-batch = stale dupes", "confidence": "high"},
+    {"id": "main_ahead", "path": "origin/main (NOT checked out in any live worktree)", "count": "n/a", "kind": "git ref", "role": "HOLDS the merged monitoring stack (monitorcore pkg, monitor-launcher skill) that NO live lane has yet", "confidence": "high"}
+  ],
+
+  "topology_headline": "The two 'repos' are ONE repo in TWO git worktrees on different feature branches (git worktree list: agent-skills-toolchain@feat/codex-fleet-github-wave2 80a5863 ; ast-harness-reconcile@chore/enshrine-runtime-config dd5366b ; + a mm-pristine temp worktree). origin/main HEAD = 0d7112d (#77). So 'toolchain skills/' vs 'worktree skills/' is a BRANCH divergence, not two independent sources. DEPLOYED is a faithful copy-projection of the RECONCILE worktree (wt_top + external/ flattened). DAILY is a separately-curated, drifted lane. origin/main is AHEAD of every live lane for the monitoring backbone.",
+
+  "disposition_clusters": [
+    {
+      "cluster": "deployed <- (wt_top + external flattened)",
+      "class": "generated-projection",
+      "sub_flavor": "clean copy-projection via scripts/sync-skills.ps1 (imperative bulk copy; -Prune removes orphans)",
+      "members_approx": 277,
+      "evidence": "sync-skills.ps1 copies every skills/*/SKILL.md dir into ~/.agents/skills; MD5(SKILL.md) matched deployed==wt_source for workflow-monitor(06C004CC), recall-workflow-agent(0ACFC6AF), codex-consult(884866BD), design-studio(334BE602), claude-api-via-external(21A61E4C) = 5/5",
+      "disposition_finding": "Deployed vault is a trustworthy projection of the reconcile worktree. The declarative alternative (plugin marketplace .claude-plugin/) already exists per sync-skills docstring — candidate for the versioned control-plane's canonical deploy path.",
+      "confidence": "high"
+    },
+    {
+      "cluster": "skills/external/* -> deployed flat (54)",
+      "class": "generated-projection",
+      "sub_flavor": "flatten transform (nested source dir -> flat deployed top-level)",
+      "members_approx": 54,
+      "evidence": "deployed-MINUS-wt_top(top-level) = 55; 54 of 55 are exactly the names under skills/external/ (agentic-os, blueprint, claude-api, autonomous-loops, agent-* ...). The container name 'external' itself is NOT deployed (its contents are, flattened).",
+      "disposition_finding": "The 53-strong 'mystery deployed-only' set is NOT orphans — it is the ECC/external pack sourced from skills/external/. Control-plane must model the nested->flat transform explicitly (a projection rule, not a 1:1 copy).",
+      "confidence": "high"
+    },
+    {
+      "cluster": "tc_top (192) vs wt_top (224) — same repo, two branches",
+      "class": "fork-with-divergence",
+      "sub_flavor": "branch divergence (NOT independent repos); tc_top is a strict subset (tc MINUS wt = empty; wt MINUS tc = 32 held/ahead skills)",
+      "members_approx": 32,
+      "examples": ["codex-invoke", "workflow-monitor", "recall-workflow-agent", "design-studio", "design-sync", "qdx-rush", "caption-burn", "silence-trim", "video-convert", "tooluniverse", "external", "clarify-requirements", "capa-triage", "malware-analysis-triage"],
+      "evidence": "git worktree list; both are worktrees of one repo. The 32 are the reconcile-branch additions absent from feat/codex-fleet-github-wave2.",
+      "disposition_finding": "No true fork conflict — a clean fast-forward relationship. Folds cleanly once branches reconcile (task #8 'Fold PR #78 -> toolchain mainline'). Not a duplicate to resolve; a branch to merge.",
+      "confidence": "high"
+    },
+    {
+      "cluster": "daily (75) vs deployed (277)",
+      "class": "fork-with-divergence",
+      "sub_flavor": "DESIGN intent = intentional-scope-override (curated subset); REALITY = drifted fork (membership AND content)",
+      "members_approx": 75,
+      "evidence": "daily is NOT a subset of deployed (22 daily-only) NOR of any repo source. Content drift: codex-consult daily!=deployed; of 9 shared samples 4 differ (reframe, tdd-workflow, deep-research, ui-audit) and 5 match (design-studio, frida, radare2, council, security-review) ~= 44% drift. wfmon/workflow-monitor is NOT in daily at all.",
+      "disposition_finding": "DAILY IS THE MOST-DRIFTED, HIGHEST-RISK LANE and it is the one Claude actually loads. It diverges up (22 gems only-here, newer than repo) AND down (missing wfmon; behind main). If daily were ever regenerated from the vault, 22 live skills + local edits would be lost. The control-plane must make daily a DERIVED, regenerable view of a single source, or promote-then-project.",
+      "confidence": "high"
+    },
+    {
+      "cluster": "22 daily-only gems (no repo/vault source)",
+      "class": "unresolved",
+      "secondary_class": "experimental",
+      "members": ["agent-as-judge", "bc-drive-plus", "bc-update-survival", "compchem-validators", "design-studio-session", "diff-blind-test-synth", "execution-grounded-bon", "ida-multi-mcp", "llm-decompile-verify", "media-dub", "multi-ai-mingle", "orchestration-patterns", "packaged-artifact-smoke", "pdf-reader", "qiling-emulation", "re-triage-preflight", "refactor-equivalence", "smallest-check-ladder", "trail-of-bits-re", "ui-drive", "ui-invariant-walk", "workflow-authoring"],
+      "evidence": "Present in ~/.claude/skills.daily; absent from deployed, wt_top, wt_external, skills-claude-only. These are the 2026-07-12 gem-hunt adoptions + recent additions. Source-of-truth unknown (hand-placed or plugin-derived).",
+      "disposition_finding": "These live ONLY in the daily lane with NO backing repo. Highest source-of-truth risk in the whole skills surface. Each needs owner triage: back-port to skills/ (canonical) or confirm as plugin-provided.",
+      "confidence": "high"
+    },
+    {
+      "cluster": "monitorcore (DIAGNOSE backbone)",
+      "class": "duplicate",
+      "secondary_class": "generated-projection",
+      "members_approx": 2,
+      "evidence": "On origin/main monitorcore exists at BOTH skills/workflow-monitor/monitorcore/*.py (12 modules: contract, discovery, export, monitors, pdf, redact, render_html, render_md, report_doc, agent_state, agent_tail, __init__) AND tools/monitorcore/ (tests/fixtures/monitors.toml). It is a Python PACKAGE, not a top-level skill dir (appears in NO skills lane). Byte-identity of the two homes NOT hashed (READ-ONLY, unmerged branch).",
+      "disposition_finding": "monitorcore is infrastructure vendored inside the workflow-monitor skill AND duplicated under tools/. Which is canonical is UNRESOLVED. Not a skill for the skills matrix per se, but a duplication the control-plane must collapse to one home.",
+      "confidence": "high"
+    },
+    {
+      "cluster": "workflow-monitor (=wfmon) + recall-workflow-agent (DIAGNOSE)",
+      "class": "generated-projection",
+      "sub_flavor": "clean deployed projection, but origin/main is AHEAD for the monitorcore subpackage",
+      "members_approx": 2,
+      "evidence": "origin/main:skills contains BOTH (PR #71 CONFIRMED merged). Deployed SKILL.md hashes match the reconcile worktree. BUT deployed/worktree workflow-monitor LACKS monitorcore/ (main-ahead: is-ancestor(4b531cd #76, reconcile-HEAD dd5366b)=1). monitor-launcher skill (skills/monitor-launcher/mon.cmd+monitors.toml, PR-B2 #76) is NOT deployed, NOT in daily, NOT in the reconcile worktree.",
+      "disposition_finding": "The merged monitoring stack (monitorcore pkg #75 + monitor-launcher + vendoring #76) exists ONLY on origin/main. Every LIVE lane runs the pre-#75/#76 workflow-monitor. Prior-art 'ride wfmon, already merged' is true for main but the LIVE box is behind. Re-deploy from main (or fold reconcile onto post-#76 main) before Axis-C rides wfmon.",
+      "confidence": "high"
+    },
+    {
+      "cluster": "codex-invoke (task-9, HELD)",
+      "class": "experimental",
+      "secondary_class": "intentional-scope-override",
+      "members": ["codex-invoke"],
+      "evidence": "Present in wt_top ONLY; absent from deployed AND daily AND tc_top (one of only 2 skills in wt_top-MINUS-deployed, the other being the 'external' container). Matches ingest-task9-codex-invoke: the scoped `codex exec` primitive deliberately not deployed pending fold.",
+      "disposition_finding": "HELD BY DESIGN — the scoped-Codex-exec primitive (5 profiles, M0-M3 scoping, SUCCESS/FAILED contract, codex-doctor). Keystone cross-vendor lane for the control-plane (codexAgent() sibling of native agent()). Deploy only after the deploy/pin prerequisite (install.py --deploy-codex + codex_doctor -Pin -Live). Task #7.",
+      "confidence": "high"
+    },
+    {
+      "cluster": "codex-* family (Codex provider lane)",
+      "class": "valid-provider-adapter",
+      "members": ["codex-consult", "codex-orchestrate", "codex-runtime-recovery", "codex-session-reunion", "codex-vscode-host-routing", "codex-fleet-github", "format-codex-sessions", "codex-invoke(held)"],
+      "evidence": "Present in tc_top + deployed + wt_top (codex-invoke wt-only). Only codex-consult is surfaced in the daily lane. These are Codex-provider primitives, NOT duplicates of Claude skills.",
+      "disposition_finding": "Legitimate provider adapters for the Codex first-class lane. In a 3-provider control-plane these are the Codex-lane peers of the Claude-lane skills; keep as a provider-scoped namespace, do NOT dedup against Claude skills.",
+      "confidence": "high"
+    },
+    {
+      "cluster": ".agents/generated/ per-editor config projections",
+      "class": "valid-provider-adapter",
+      "secondary_class": "generated-projection",
+      "members": ["antigravity.mcp.json", "gemini.settings.json", "codex.config.toml", "claude.mcp.json", "cursor.mcp.json", "copilot.vscode.mcp.json", "junie.mcp.json", "opencode.json"],
+      "evidence": ".agents/generated/ holds per-provider CONFIG projections (Antigravity, Gemini, Codex, Cursor, Copilot, Junie, OpenCode) + import-report provenance (skill-import-report-2026-04-01.tsv, mcp-import-report-2026-04-01.json). .agents/archive-manifests/ carries generation provenance (codex-agent-markdown.json, skill-description-normalization.json).",
+      "disposition_finding": "This is the EXISTING seed of the cross-provider projection the program wants (all three first-class). Config not skills, but the direct precedent for a declarative source -> per-provider generated view. The control-plane should generalize .agents/generated into the versioned projection layer.",
+      "confidence": "high"
+    },
+    {
+      "cluster": "skills-claude-only/metaswarm-* (13) vs metaswarm PLUGIN",
+      "class": "fork-with-divergence",
+      "secondary_class": "compatibility-shim",
+      "members": ["metaswarm-brainstorming-extension", "metaswarm-create-issue", "metaswarm-design-review-gate", "metaswarm-external-tools", "metaswarm-handling-pr-comments", "metaswarm-migrate", "metaswarm-orchestrated-execution", "metaswarm-plan-review-gate", "metaswarm-pr-shepherd", "metaswarm-setup", "metaswarm-start", "metaswarm-status", "metaswarm-visual-review"],
+      "evidence": "13 metaswarm-* in skills-claude-only/ mirror the installed plugin at ~/.claude/plugins/metaswarm (+ cache/metaswarm-marketplace + data/metaswarm-inline, surfaced as metaswarm:X in the available-skills list). Mostly NOT deployed (5/36 claude-only deployed).",
+      "disposition_finding": "Toolchain-local forks/shims of marketplace plugin skills, kept so the toolchain deploy can ship them independent of the marketplace. 3-way surface per skill: plugin (metaswarm:X) + claude-only fork (metaswarm-X) + sometimes a command (X.md). Dormant (mostly undeployed). Resolve to a single provider (plugin) OR keep as an intentional vendored copy — owner call.",
+      "confidence": "medium"
+    },
+    {
+      "cluster": "commands (70) overlapping skills",
+      "class": "compatibility-shim",
+      "sub_flavor": "slash-command aliases over skills / ECC / metaswarm",
+      "members_examples": ["prime", "self-reflect", "create-issue", "review-design", "pr-shepherd", "start-task", "start(alias of start-task)", "grill-me-extensive", "brainstorm", "multi-ai-mingle", "agent-monitor", "codex-monitor"],
+      "evidence": "70 command .md files, NO repo source (neither worktree has commands/). Many names appear ALSO as skills (metaswarm:prime, metaswarm:self-reflect, grill-me-extensive skill) and/or plugin commands. Internal command dupes: start+start-task, setup+setup-pm, grill-me+grill-me-extensive+grill-with-docs, multi-{backend,execute,frontend,plan,workflow}, instinct-{export,import,status}, loop-{start,status}.",
+      "disposition_finding": "Commands are a thin shim lane with no versioned source. The control-plane must decide command SSOT (currently hand-maintained live-only) and de-alias command<->skill<->plugin triplets.",
+      "confidence": "high"
+    },
+    {
+      "cluster": "agents *.bak-gembuild-agent-definitions-batch (9)",
+      "class": "stale",
+      "members": ["build-error-resolver.md.bak", "code-reviewer.md.bak", "doc-updater.md.bak", "e2e-runner.md.bak", "harness-optimizer.md.bak", "python-reviewer.md.bak", "refactor-cleaner.md.bak", "security-reviewer.md.bak", "typescript-reviewer.md.bak"],
+      "evidence": "~/.claude/agents holds 13 live agent .md + 9 *.bak-gembuild-agent-definitions-batch siblings (backups from a batch edit). agent-as-judge.md is BOTH an agent and a skill.",
+      "disposition_finding": "9 stale .bak agent defs pollute the agents lane. No repo source for agents at all (hand-maintained live-only). Clean the .bak set; give agents a versioned source in the control-plane.",
+      "confidence": "high"
+    },
+    {
+      "cluster": "skills-retired-2026-07-03 (5)",
+      "class": "superseded",
+      "members": ["brainstorming", "handoff", "ralph-orchestrator-setup", "test-driven-development", "verification-before-completion"],
+      "evidence": "Reversible archive (README.txt present). Clean supersede chains: test-driven-development -> tdd-workflow (live); verification-before-completion -> verification-loop/smallest-check-ladder (live); brainstorming -> brainstorm cmd + metaswarm:brainstorming-extension; handoff -> metaswarm:handoff; ralph-orchestrator-setup -> orchestration-patterns.",
+      "disposition_finding": "Correctly retired with live successors. Keep archived (reversible). Confirms the router-dedupe worked.",
+      "confidence": "high"
+    },
+    {
+      "cluster": "learned (deployed, no source)",
+      "class": "stale",
+      "members": ["learned"],
+      "evidence": "The ONLY deployed skill unexplained by any source lane (deployed-MINUS-wt_top-MINUS-external = {learned}). mtime 2026-05-27, has SKILL.md. Likely an un-pruned orphan from a since-removed/renamed source (sync-skills -Prune not run).",
+      "disposition_finding": "Genuine orphan in the deployed vault. Run sync-skills -Prune (or confirm intentional) — a FINDING, not applied under freeze.",
+      "confidence": "high"
+    },
+    {
+      "cluster": "~/.agents/library/skills (186)",
+      "class": "stale",
+      "secondary_class": "experimental",
+      "members_approx": 159,
+      "examples": ["android-clean-architecture", "api-design", "backend-patterns", "django-patterns", "django-security", "golang-testing", "cpp-coding-standards", "compose-multiplatform-patterns", "jpa-patterns", "kotlin-coroutines-flows"],
+      "evidence": "186 dirs, UNIFORM mtime 2026-04-05 01:12:40 (frozen import). Only 27/186 overlap the deployed vault; 159 dormant/not-deployed. Generic SWE-pattern pack (distinct collection from agent-skills-toolchain).",
+      "disposition_finding": "A separate, frozen, mostly-dormant imported library. Not wired into the live router (deployed is the router source). Decide: promote selectively, archive, or drop from the control-plane's scope. Low priority but a real extra lane.",
+      "confidence": "high"
+    },
+    {
+      "cluster": "off-box repo clones (out of skills-matrix scope; A0-covered)",
+      "class": "stale",
+      "secondary_class": "duplicate",
+      "members": ["D:\\gem-wave-b\\.agents\\skills (50)", "D:\\pr-b-clone\\.agents\\skills (50)", "C:\\tmp\\ds-agent-skills-toolchain\\skills (101)", "AppData\\Local\\Temp\\mm-pristine (git worktree, detached)"],
+      "evidence": "git worktree list shows mm-pristine; A0-wholedrive-census.md Cat-3 lists the D: + C:\\tmp clones. These are stale duplicate CHECKOUTS, not lanes of the live control-plane.",
+      "disposition_finding": "Additional skills-SSOT divergence surfaces but out of THIS matrix's live-lane scope; already enumerated by A0. Retire per A0/D0.5.",
+      "confidence": "medium"
+    }
+  ],
+
+  "prior_art_reconciliations": [
+    {"claim": "PR #71 merged workflow-monitor + recall-workflow-agent to toolchain mainline", "verdict": "CONFIRMED", "evidence": "git ls-tree origin/main:skills contains both.", "confidence": "high"},
+    {"claim": "PR-B2 #76 is 'CI-GREEN, unmerged (draft)' (ingest-diagnose-and-optimize.md)", "verdict": "STALE — #76 IS MERGED to origin/main", "evidence": "merge-base --is-ancestor 4b531cd origin/main exit=0; also #75 9fd4245 is-ancestor exit=0. Live git supersedes the ingest snapshot.", "confidence": "high"},
+    {"claim": "'ride wfmon, it's already built + merged' (Axis-C anti-overfit anchor)", "verdict": "TRUE ON MAIN, but the LIVE box lags", "evidence": "deployed/worktree/daily all lack the merged monitorcore pkg + monitor-launcher; reconcile worktree HEAD dd5366b predates #76 (is-ancestor=1). Re-deploy from main first.", "confidence": "high"},
+    {"claim": "the 53 'deployed-only' skills are orphans", "verdict": "FALSE — 54/55 are the flattened projection of skills/external/", "evidence": "deployed-MINUS-wt_top = 55; 54 map to skills/external/* names; only 'learned' is a true orphan.", "confidence": "high"},
+    {"claim": "~/.claude/skills is a symlink FARM into the vault (per MEMORY 'symlink->skills.daily')", "verdict": "PARTIAL — the ROOT is a symlink to skills.daily, but skills.daily holds 75 PLAIN copied dirs (not per-skill symlinks into the vault)", "evidence": "Get-Item reparse check: 0/75 daily entries are reparse points.", "confidence": "high"}
+  ],
+
+  "taxonomy_coverage": {
+    "exact-duplicate": "monitorcore two homes on main (skills/workflow-monitor/monitorcore vs tools/monitorcore) — byte-identity unverified under freeze; candidate. Also every clean daily-vs-deployed content MATCH is effectively an exact content copy.",
+    "generated-projection": "deployed<-source (sync-skills copy); external/ flatten; .agents/generated per-editor configs; daily-where-matching.",
+    "valid-provider-adapter": "codex-* family (Codex lane); .agents/generated antigravity/gemini/codex/cursor projections.",
+    "intentional-scope-override": "skills-claude-only/ (Claude-scoped, deliberately separated); daily = curated subset BY DESIGN (though drifted in reality).",
+    "fork-with-divergence": "tc branch vs wt branch; daily-vs-deployed content drift (~44% of samples); skills-claude-only/metaswarm-* vs plugin.",
+    "compatibility-shim": "commands as aliases over skills; sync-skills.ps1 imperative-copy bridge vs declarative .claude-plugin marketplace.",
+    "experimental": "codex-invoke (held/task-9); the 22 daily-only gems; library import.",
+    "superseded": "retired-2026-07-03 (5); PR76 status vs prior-art; test-driven-development->tdd-workflow.",
+    "stale": "learned orphan; agents *.bak (9); library 159 dormant; off-box D:/C:tmp clones.",
+    "unresolved": "22 daily-only no-source skills (SSOT unknown); which monitorcore home is canonical; command/agents SSOT (no versioned source)."
+  },
+
+  "counts": {
+    "union_distinct_skill_names": 491,
+    "daily": 75,
+    "daily_only_no_source": 22,
+    "deployed": 277,
+    "deployed_only_true_orphans": 1,
+    "wt_top": 224,
+    "wt_external_nested": 54,
+    "tc_top": 192,
+    "tc_minus_wt": 0,
+    "wt_minus_tc_held_ahead": 32,
+    "skills_claude_only": 36,
+    "claude_only_deployed": 5,
+    "library": 186,
+    "library_not_deployed": 159,
+    "retired": 5,
+    "commands": 70,
+    "agents_live": 13,
+    "agents_stale_bak": 9,
+    "daily_vs_deployed_content_drift_sampled": "4 of 9 shared differ (~44%)"
+  },
+
+  "open_questions": [
+    "Which is the canonical monitorcore home on main — skills/workflow-monitor/monitorcore/ (vendored) or tools/monitorcore/ (tests-bearing)? Byte-diff needed (unverified under freeze).",
+    "Source-of-truth for the 22 daily-only skills: back-port to skills/ canonical, or are they plugin-provided and should be REMOVED from skills.daily?",
+    "Should daily become a DERIVED regenerable projection (curated selector over the single source) rather than a hand-edited lane? It currently drifts up AND down.",
+    "metaswarm-* : keep the toolchain claude-only forks OR consolidate to the installed plugin as the single provider?",
+    "Does the control-plane adopt the declarative .claude-plugin marketplace (already shipped) as the canonical deploy, retiring the imperative sync-skills.ps1?",
+    "~/.agents/library/skills (186, frozen 2026-04): in-scope for the control-plane or archive/drop?"
+  ],
+
+  "receipts": {
+    "git_worktree_list": "agent-skills-toolchain 80a5863 [feat/codex-fleet-github-wave2]; ast-harness-reconcile dd5366b [chore/enshrine-runtime-config]; mm-pristine 0bc54e9 (detached)",
+    "origin_main_head": "0d7112d gem-hunt Wave B (source): design-studio rename (C1) + hub hardening (#77)",
+    "pr_merge_history_workflow_monitor": "4b531cd(#76 PR-B2) 9fd4245(#75 PR-B1) f78bba5(#74 PR-A) — all is-ancestor(origin/main)=0",
+    "projection_hashes_match": "workflow-monitor/recall-workflow-agent/codex-consult/design-studio/claude-api deployed==wt_source (5/5)",
+    "daily_drift": "codex-consult daily!=deployed; reframe/tdd-workflow/deep-research/ui-audit daily!=deployed; design-studio/frida/radare2/council/security-review match",
+    "membership_json": "scratchpad/membership.json (491 names x 8 lanes)"
+  }
+}
