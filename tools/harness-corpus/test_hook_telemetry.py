@@ -276,8 +276,34 @@ def test_legacy_toplevel_hookname_still_works(tmp_path):
 # --------------------------------------------------------------------------------------
 LIVE_CORPUS = Path(os.path.expanduser("~/.claude/projects"))
 
+# The skip below is PORTABILITY ONLY (CI has no ~/.claude/projects). It is deliberately NOT
+# the only thing guarding detector validity, because a skip that silently disappears is the
+# very failure mode this control exists to catch: if the corpus were renamed, a bare skipif
+# would quietly stop checking and nobody would notice.
+#
+# Two independent mitigations:
+#   1. `test_mixed_stream_counts_only_hooks` proves the detector finds planted hooks among
+#      realistic non-hook noise. It uses a fixture, so it can NEVER skip.
+#   2. Set PR3_REQUIRE_LIVE_CORPUS=1 to turn the skip into a hard failure on any box that is
+#      supposed to have the corpus (i.e. the owner's machine, or a harness-regression job).
+_REQUIRE_LIVE = os.environ.get("PR3_REQUIRE_LIVE_CORPUS") == "1"
 
-@pytest.mark.skipif(not LIVE_CORPUS.is_dir(), reason="live corpus not present on this box")
+
+def test_live_corpus_is_present_when_required():
+    """Fails loudly if the live corpus is required but missing, so the control below cannot
+    silently stop running."""
+    if not _REQUIRE_LIVE:
+        pytest.skip("PR3_REQUIRE_LIVE_CORPUS not set; live-corpus control is optional here")
+    assert LIVE_CORPUS.is_dir(), (
+        f"PR3_REQUIRE_LIVE_CORPUS=1 but {LIVE_CORPUS} is absent -- the known-positive control "
+        f"would have silently skipped, leaving the detector unguarded."
+    )
+
+
+@pytest.mark.skipif(
+    not LIVE_CORPUS.is_dir() and not _REQUIRE_LIVE,
+    reason="live corpus not present (portability skip; set PR3_REQUIRE_LIVE_CORPUS=1 to enforce)",
+)
 def test_control_detector_finds_known_present_hooks_in_live_corpus():
     """Prove the detector finds a KNOWN-PRESENT item before any absence is ever reported.
 
