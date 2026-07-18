@@ -7,7 +7,7 @@ drug-discovery) from Claude — built for the phenibut / α2δ work.
 `exess_interaction_energy` gives a **QM-accurate binding energy** (negative = binding) — a
 first-principles complement to the MM-level Schrödinger BPMD pose scores.
 
-## Tools (20)
+## Tools (21)
 **Quantum chemistry (EXESS)**
 | Tool | Purpose |
 |------|---------|
@@ -16,6 +16,7 @@ first-principles complement to the MM-level Schrödinger BPMD pose scores.
 | `exess_optimization` | geometry optimization (RHF / RI-MP2 — not KSDFT) |
 | `exess_calculate` | generic driver (Energy/Gradient/Optimization/Dynamics) |
 | `exess_qmmm` | QM/MM MD (NVT/NPT) |
+| `exess_esp_charges` | QM partial charges (CHELPG ESP-fit + Mulliken) for a ligand topology → `run_collect(kind='charges')` |
 | `fried_fragmented_exess` | auto-fragmented big-pocket QM → list of run_ids |
 | `nnxtb_energy` | fast semi-empirical energy/forces (screening) |
 
