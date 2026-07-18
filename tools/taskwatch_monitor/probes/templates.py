@@ -84,6 +84,15 @@ _TEMPLATE_LIST: tuple[TaskTemplate, ...] = (
         description="Binding-pose metadynamics driver log (serial trials).",
     ),
     TaskTemplate(
+        name="jaguar-qm",
+        adapter="local-file-tail",
+        parser="jaguar-qm",
+        eta_model="ewma-throughput",
+        notify=("terminal", "first-progress", "stall"),
+        required_config=("path",),
+        description="Jaguar QM interaction-energy job set (cluster/ligand/pocket).",
+    ),
+    TaskTemplate(
         name="modal",
         adapter="local-file-tail",
         parser="generic-logfile",
