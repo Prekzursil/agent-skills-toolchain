@@ -108,6 +108,19 @@ jobs:
         run: |
           pip install -e ".[dev]"
           basedpyright monitorcore
+      # agent-self/harness — the enshrined shared lifecycle harness (SSOT for the live
+      # ~/.agents/harness deploy loop; see agent-self/harness/README.md). It ships NO
+      # pyproject (byte-exact projection of the live tree the installer deploys), so standard
+      # mode + the source include/exclude come from an EPHEMERAL pyrightconfig.json written
+      # here at runtime and never committed (committing it would drift the byte-exact tree).
+      # Run from agent-self/ so the package's dual `from harness.X` / `from .X` imports
+      # resolve; SOURCE only (tests excluded, like every other package). Stdlib-only + an
+      # optional PyYAML import (bundled typeshed stub resolves it for the type pass).
+      - name: gate-types harness (source)
+        working-directory: agent-self
+        run: |
+          printf '%s\n' '{"typeCheckingMode":"standard","pythonVersion":"3.11","include":["harness"],"exclude":["harness/tests","**/__pycache__","**/backups"]}' > pyrightconfig.json
+          basedpyright
 
   test-node:
     name: gate-tests-coverage (node workspaces)
@@ -153,6 +166,19 @@ jobs:
         run: |
           pip install -e ".[dev]"
           pytest --cov=monitorcore --cov-branch --cov-report=term-missing --cov-fail-under=100
+      # agent-self/harness — the enshrined shared lifecycle harness (SSOT for the live
+      # ~/.agents/harness deploy loop). Runs its full pytest suite on the CI interpreter as a
+      # REGRESSION gate for the projected tree, and measures branch coverage (term-missing).
+      # Deliberately NOT a --cov-fail-under=100 lane: unlike the four TDD-built packages above,
+      # this is a byte-exact projection of a pre-existing runtime (~85% source coverage today),
+      # so a hard 100% bar would misrepresent it and pin main red — closing to parity is tracked
+      # follow-up. No working-directory / editable install: tests/conftest.py puts agent-self/ on
+      # sys.path so `import harness` resolves the projected package from the repo root. PyYAML is
+      # a real runtime dep of recall_index's frontmatter parser (its tests assert parsed values).
+      - name: gate-tests-coverage harness (enshrined runtime; measured, not 100%-gated)
+        run: |
+          pip install pytest pytest-cov pyyaml
+          python -m pytest agent-self/harness/tests -q --cov=agent-self/harness --cov-branch --cov-report=term-missing
 
   sast:
     name: gate-sast (opengrep)

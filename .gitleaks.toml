@@ -77,3 +77,18 @@ paths = [
   '''(^|.*/)test_[^/]*\.py$''',
   '''(^|.*/)[^/]*_test\.py$''',
 ]
+
+# --- Allowlist 5: agent-self/harness enshrined test fixtures ---------------------
+# The enshrined shared lifecycle harness (agent-self/harness/ — a byte-exact projection of
+# the live ~/.agents/harness) ships tests that embed synthetic FAKE secrets as INPUTS so its
+# secret-guard / redaction modules can prove they detect and mask every form (AKIA-shaped AWS
+# key, ghp_/github_pat_ tokens, xoxb-/sk- tokens, a dummy JWT, a placeholder PEM). They live
+# ONLY under the tests/ tree. Already covered transitively by Allowlist 4's test-path globs
+# (verified: gitleaks 8.30.1 reports no leaks over the tree); pinned explicitly here so the
+# waiver survives any future narrowing of those globs. Non-test harness SOURCE is NOT waived —
+# a real secret committed outside tests/ still fails the gate.
+[[allowlists]]
+description = "agent-self/harness enshrined synthetic FAKE test fixtures (not live)"
+paths = [
+  '''agent-self/harness/tests/.*''',
+]
