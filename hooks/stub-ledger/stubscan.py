@@ -35,13 +35,26 @@ _COMMENT_INTRO = re.compile(r"(?:#|//|/\*|<!--|^\s*\*)")
 # "stub-ledger", "stub_file", "stubscan", "placeholder_path" -> ignored; bare "stub"/"placeholder" -> flagged.
 _WEAK = re.compile(r"\b(placeholder|stub|unimplemented)\b(?![-\w])", re.IGNORECASE)
 
-# def name(...):  [-> type]:  then (optional docstring) then pass / ...  (single-line signature)
+# def name(...):  [-> type]:  then (optional docstring) then pass / ...
+# The param span is `(?:[^)\n]|\n(?!...def|class))*` — NOT a bare `[^)]*`: a bare
+# `[^)]*` matches across newlines and BACKTRACKS FORWARD to a distant `)`, so a
+# COMPLETE multi-line-signature function would false-match on some LATER function's
+# `pass`/`...` body (a 26k-char reach). Disallowing a newline that begins a new
+# `def`/`class` keeps the param span inside THIS signature.
 _PASS_BODY = re.compile(
-    r"^[ \t]*(?:async[ \t]+)?def[ \t]+(\w+)[ \t]*\([^)]*\)[ \t]*(?:->[^\n:]+)?:[ \t]*(?:#[^\n]*)?\n"
+    r"^[ \t]*(?:async[ \t]+)?def[ \t]+(\w+)[ \t]*"
+    r"\((?:[^)\n]|\n(?![ \t]*(?:async[ \t]+)?(?:def|class)\b))*\)"
+    r"[ \t]*(?:->[^\n:]+)?:[ \t]*(?:#[^\n]*)?\n"
     r"(?:[ \t]*(?:\"\"\"[\s\S]*?\"\"\"|'''[\s\S]*?''')[ \t]*\n)?"
     r"[ \t]*(?:pass|\.\.\.)[ \t]*(?:#[^\n]*)?(?:\n|$)",
     re.MULTILINE,
 )
+
+# An explicit `# pragma: no cover` marks a body/line as INTENTIONALLY not covered —
+# a typing.Protocol/ABC interface method (`...`), a defensive `raise`, a heavy
+# import seam. That is a deliberate design marker, NOT incomplete work an agent
+# forgot to finish, so it must never be surfaced as an open stub.
+_PRAGMA_NOCOVER = re.compile(r"#\s*pragma:\s*no\s+cover", re.IGNORECASE)
 
 
 _TEST_FILE = re.compile(
@@ -85,12 +98,25 @@ def find_stubs(text: str) -> list[tuple[str, int, str]]:
             add("NotImplemented", i, line)
         if _PHRASE.search(line):
             add("placeholder-phrase", i, line)
-        if _COMMENT_INTRO.search(line) and _WEAK.search(line):
+        # The weak word "stub"/"placeholder" in an explicit `# pragma: no cover`
+        # comment (e.g. "...  # pragma: no cover - Protocol stub") is describing a
+        # deliberate interface marker, not incomplete work -> do not flag it.
+        if (
+            _COMMENT_INTRO.search(line)
+            and _WEAK.search(line)
+            and not _PRAGMA_NOCOVER.search(line)
+        ):
             add(_WEAK.search(line).group(1), i, line)
 
     for m in _PASS_BODY.finditer(text):
+        seg = text[m.start() : m.end()]
+        # A pass/... body explicitly marked `# pragma: no cover` (Protocol/ABC method,
+        # defensive branch) is intentional, never an unfinished stub.
+        tail = seg.rstrip().splitlines()[-1] if seg.strip() else ""
+        if _PRAGMA_NOCOVER.search(tail):
+            continue
         line_no = text.count("\n", 0, m.start()) + 1
-        header = text[m.start() : m.end()].splitlines()[0]
+        header = seg.splitlines()[0]
         add("pass-only-body", line_no, header)
 
     out.sort(key=lambda t: t[1])
