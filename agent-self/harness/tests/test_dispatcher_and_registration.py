@@ -6,6 +6,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 from harness.dispatcher import HarnessDispatcher
 from harness.models import HookResult
 from harness.registration import EVENTS, build_hooks
@@ -303,9 +305,12 @@ def test_every_registered_provider_event_has_valid_native_wire_output(tmp_path):
 
 
 def test_legacy_basic_memory_capture_is_a_safe_shared_dispatcher_wrapper():
-    legacy = (
+    legacy_hook = (
         Path.home() / ".claude" / "hooks" / "precompact-basicmemory" / "capture.ps1"
-    ).read_text(encoding="utf-8")
+    )
+    if not legacy_hook.exists():  # pragma: no cover - hook only present once deployed
+        pytest.skip("legacy basic-memory capture hook is not deployed in this env")
+    legacy = legacy_hook.read_text(encoding="utf-8")
 
     assert ".agents/harness/dispatcher.py" in legacy.replace("\\", "/")
     assert "--provider claude --event PreCompact" in legacy
