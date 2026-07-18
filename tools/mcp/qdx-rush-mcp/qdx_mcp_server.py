@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import os
 import json
+import logging
 import time
 import random
 import dataclasses
@@ -39,6 +40,8 @@ from rush import exess, auto3d, prepare, boltz, mmseqs2, pbsa, fried, nnxtb
 mcp = FastMCP("qdx-rush")
 
 HARTREE_TO_KCAL = 627.5094740631
+
+logger = logging.getLogger(__name__)
 
 
 # ----------------------------------------------------------------- helpers: errors, retry, envelopes
@@ -152,11 +155,32 @@ def _exkw(aux_basis=None, functional=None, gpus=None, walltime_min=None, target=
     return kw
 
 
-def _parse_charge_exports(exports) -> dict:
-    """Return complete atom-charge arrays without the truncation applied by _fields()."""
+def _parse_charge_exports(exports, strict: bool = False) -> dict:
+    """Return complete atom-charge arrays without the truncation applied by _fields().
+
+    ``strict=False`` (the shared / auto energy path, the default): a malformed-but-present
+    charge export must NOT flip an otherwise-complete energy result to non-done, so the
+    malformation is logged and swallowed — the caller keeps its energy fields and just gets
+    no charge fields. ``strict=True`` (the explicit ``charges`` path): re-raise so the caller
+    surfaces the precise malformation.
+    """
     if not isinstance(exports, dict):
         return {}
+    try:
+        return _charge_exports_or_raise(exports)
+    except ValueError:
+        if strict:
+            raise
+        logger.warning(
+            "EXESS charge exports are malformed; omitting charge fields from the energy result",
+            exc_info=True,
+        )
+        return {}
 
+
+def _charge_exports_or_raise(exports: dict) -> dict:
+    """Strict parse of the CHELPG/Mulliken atom-charge arrays; raises ValueError on any
+    malformed-but-present array. Absent arrays are skipped (returns {} when none present)."""
     out = {}
     for key in ("chelpg_charges", "mulliken_charges"):
         values = exports.get(key)
@@ -226,13 +250,13 @@ def _parse_exess(raw) -> dict:
         round(total * HARTREE_TO_KCAL, 4) if total is not None else None
     )
     d["is_interaction_energy"] = d.get("reference_fragment") is not None
-    d.update(_parse_charge_exports(res.exports))
+    d.update(_parse_charge_exports(getattr(res, "exports", None)))
     return d
 
 
 def _parse_charges(raw) -> dict:
     res = exess.ResultRef.from_raw_output(raw).fetch()
-    out = _parse_charge_exports(res.exports)
+    out = _parse_charge_exports(getattr(res, "exports", None), strict=True)
     missing = [key for key in ("chelpg_charges", "mulliken_charges") if key not in out]
     if missing:
         raise ValueError(
