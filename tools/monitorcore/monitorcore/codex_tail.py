@@ -178,6 +178,10 @@ class CodexThread:
     start_ts: float | None = None
     last_ts: float = 0.0
     tokens_total: int = 0
+    # context-occupancy numerator: the LAST turn's usage (rollout ``last_token_usage``)
+    # or the per-turn stream total — never the cumulative session total, which would
+    # pin ctx% near 100%. Kept separate from ``tokens_total`` (the cumulative display).
+    ctx_tokens: int = 0
     ctx_window: int = 0
     turns: int = 0
     tool_count: int = 0
@@ -347,8 +351,11 @@ def parse_stream_line(
         usage = obj.get("usage")
         u = usage if isinstance(usage, dict) else {}
         inc = (u.get("input_tokens", 0) or 0) + (u.get("output_tokens", 0) or 0)
-        # usage is per-turn totals; keep the max seen as the running total
+        # usage is per-turn totals; keep the max seen as the running total. The stream
+        # schema carries no separate cumulative, so the per-turn total also serves as the
+        # context-occupancy numerator (ctx_tokens) — already NOT a cumulative sum.
         th.tokens_total = max(th.tokens_total, int(inc))
+        th.ctx_tokens = max(th.ctx_tokens, int(inc))
         th.completed = True
         return
     if t in ("turn.failed", "turn.aborted"):
@@ -411,6 +418,13 @@ def parse_rollout_line(th: CodexThread, obj: dict, *, scrub: Scrub = _scrub) -> 
             tot = usage.get("total_tokens")
             if isinstance(tot, int):
                 th.tokens_total = tot
+            # context occupancy is the LAST turn's usage, never the cumulative
+            # ``total_token_usage`` (which inflates ctx% toward 100% over a session).
+            last_raw = info.get("last_token_usage")
+            last = last_raw if isinstance(last_raw, dict) else {}
+            ctx_tok = last.get("total_tokens")
+            if isinstance(ctx_tok, int):
+                th.ctx_tokens = ctx_tok
             cw = info.get("model_context_window")
             if isinstance(cw, int):
                 th.ctx_window = cw
@@ -613,8 +627,8 @@ def board_line(th: CodexThread, now: float) -> str:
     idle = (now - th.last_ts) if th.last_ts else None
     bits = " · ".join(b for b in (th.model, th.tool_kind, th.source) if b)
     ctx = ""
-    if th.ctx_window and th.tokens_total:
-        pct = min(100, int(th.tokens_total * 100 / th.ctx_window))
+    if th.ctx_window and th.ctx_tokens:
+        pct = min(100, int(th.ctx_tokens * 100 / th.ctx_window))
         ctx = f" ctx {pct}%"
     return (
         f"{glyph} [{th.status.upper()}] {th.name()}  {bits}  "

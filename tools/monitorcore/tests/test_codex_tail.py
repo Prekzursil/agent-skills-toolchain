@@ -522,23 +522,33 @@ def test_rollout_agent_message_uses_line_ts_or_last():
 
 def test_rollout_token_count_variants():
     th = _thread(source="rollout")
-    info = {"total_token_usage": {"total_tokens": 500}, "model_context_window": 100}
+    info = {
+        "total_token_usage": {"total_tokens": 500},
+        "last_token_usage": {"total_tokens": 80},
+        "model_context_window": 100,
+    }
     ct.parse_rollout_line(th, _roll("event_msg", {"type": "token_count", "info": info}))
-    assert (th.tokens_total, th.ctx_window) == (500, 100)
+    # cumulative total feeds the token DISPLAY; the LAST turn feeds context occupancy —
+    # ctx_tokens is never the cumulative ``total_token_usage`` (that would pin ctx% ~100%).
+    assert (th.tokens_total, th.ctx_tokens, th.ctx_window) == (500, 80, 100)
     ct.parse_rollout_line(
         th, _roll("event_msg", {"type": "token_count"})
-    )  # info absent
+    )  # info absent → last_token_usage absent too
     ct.parse_rollout_line(
         th,
         _roll(
             "event_msg",
             {
                 "type": "token_count",
-                "info": {"total_token_usage": {"total_tokens": "x"}},
+                "info": {
+                    "total_token_usage": {"total_tokens": "x"},
+                    "last_token_usage": {"total_tokens": "y"},
+                },
             },
         ),
     )
-    assert (th.tokens_total, th.ctx_window) == (500, 100)  # non-int values ignored
+    # non-int values (cumulative AND last) ignored; prior good values retained
+    assert (th.tokens_total, th.ctx_tokens, th.ctx_window) == (500, 80, 100)
 
 
 def test_rollout_mcp_tool_call_end_variants():
@@ -786,7 +796,8 @@ def test_ingest_rollout_fixture_end_to_end(tmp_path):
     assert th.prompt == "Refactor the tail module and keep the tests green"
     assert th.turns == 1
     assert th.ctx_window == 272000
-    assert th.tokens_total == 15250
+    assert th.tokens_total == 15250  # cumulative session usage (token display)
+    assert th.ctx_tokens == 8100  # last-turn usage (context occupancy), NOT cumulative
     assert th.completed is True
     assert th.tool_kind == "shell"
     assert th.tool_count == 5
@@ -898,6 +909,7 @@ def test_board_line_full_and_minimal():
         start_ts=NOW - 65,
         last_ts=NOW - 5,
         tokens_total=150_000,
+        ctx_tokens=150_000,
         ctx_window=300_000,
         turns=2,
         tool_count=7,
@@ -914,7 +926,7 @@ def test_board_line_full_and_minimal():
 
 
 def test_board_line_ctx_capped_at_100():
-    th = _thread(tokens_total=500, ctx_window=100)
+    th = _thread(ctx_tokens=500, ctx_window=100)
     assert "ctx 100%" in ct.board_line(th, NOW)
 
 
