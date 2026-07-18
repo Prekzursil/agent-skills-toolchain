@@ -168,9 +168,11 @@ URL and credentials (the OVH per-region pattern, per-workspace). See the
 
 **Guardrails:** the destructive / code-executing tools
 (`dbx_cluster_terminate`, `dbx_cluster_permanent_delete`, `dbx_warehouse_delete`,
-`dbx_exec`, `dbx_run_on_cluster`) are gated behind `confirm=True` (else a dry-run
-preview). Cluster/warehouse lifecycle tools expose an opt-in `wait` flag (the SDK
-`*_and_wait` variants). Docstrings carry `$$$` cost cautions — clusters/
+`dbx_exec`, `dbx_run_on_cluster`, `dbx_dbfs_delete`, `dbx_volume_rm`,
+`dbx_serving_delete`, `dbx_secret_scope_delete`, `dbx_repo_delete`) are gated
+behind `confirm=True` (else a dry-run preview). Cluster/warehouse lifecycle tools
+expose an opt-in `wait` flag (the SDK `*_and_wait` variants). Docstrings carry
+`$$$` cost cautions — clusters/
 warehouses bill while running, so set `autotermination_minutes` / `auto_stop_mins`
 and terminate/stop when done. `databricks-sdk` must be installed in the hub's
 interpreter for live calls (`pip install databricks-sdk`).

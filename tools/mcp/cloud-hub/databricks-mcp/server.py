@@ -701,8 +701,15 @@ def dbx_dbfs_mkdirs(path: str) -> str:
 
 
 @mcp.tool()
-def dbx_dbfs_delete(path: str, recursive: bool = False) -> str:
-    """Delete a DBFS file or directory (``w.dbfs.delete``; ``recursive`` for dirs)."""
+def dbx_dbfs_delete(path: str, recursive: bool = False, confirm: bool = False) -> str:
+    """Delete a DBFS file or directory (``w.dbfs.delete``; ``recursive`` for dirs).
+
+    Guardrail: pass ``confirm=True`` to actually delete. Irreversible -- with
+    ``recursive=True`` this wipes an entire DBFS subtree.
+    """
+    dry = _guard("delete DBFS path", path, confirm)
+    if dry:
+        return dry
     return _run(
         lambda w: _ack(
             w.dbfs.delete(path, recursive=recursive),
@@ -766,8 +773,14 @@ def dbx_volume_mkdir(directory_path: str) -> str:
 
 
 @mcp.tool()
-def dbx_volume_rm(path: str, is_directory: bool = False) -> str:
-    """Delete a Volume file, or a directory when ``is_directory`` (``w.files.delete*``)."""
+def dbx_volume_rm(path: str, is_directory: bool = False, confirm: bool = False) -> str:
+    """Delete a Volume file, or a directory when ``is_directory`` (``w.files.delete*``).
+
+    Guardrail: pass ``confirm=True`` to actually delete. Irreversible.
+    """
+    dry = _guard("delete Volume path", path, confirm)
+    if dry:
+        return dry
 
     def op(w):
         if is_directory:
@@ -974,8 +987,14 @@ def dbx_serving_list() -> str:
 
 
 @mcp.tool()
-def dbx_serving_delete(name: str) -> str:
-    """Delete a serving endpoint (``w.serving_endpoints.delete``)."""
+def dbx_serving_delete(name: str, confirm: bool = False) -> str:
+    """Delete a serving endpoint (``w.serving_endpoints.delete``).
+
+    Guardrail: pass ``confirm=True`` to actually delete.
+    """
+    dry = _guard("delete serving endpoint", name, confirm)
+    if dry:
+        return dry
     return _run(
         lambda w: _ack(w.serving_endpoints.delete(name), {"deleted_endpoint": name})
     )
@@ -1020,8 +1039,15 @@ def dbx_secret_scope_list() -> str:
 
 
 @mcp.tool()
-def dbx_secret_scope_delete(scope: str) -> str:
-    """Delete a secret scope and all its secrets (``w.secrets.delete_scope``)."""
+def dbx_secret_scope_delete(scope: str, confirm: bool = False) -> str:
+    """Delete a secret scope and all its secrets (``w.secrets.delete_scope``).
+
+    Guardrail: pass ``confirm=True`` to actually delete. Irreversible -- removes
+    the scope and every secret in it.
+    """
+    dry = _guard("delete secret scope", scope, confirm)
+    if dry:
+        return dry
     return _run(lambda w: _ack(w.secrets.delete_scope(scope), {"deleted_scope": scope}))
 
 
@@ -1108,8 +1134,14 @@ def dbx_repo_update(repo_id: int, branch: str = "", tag: str = "") -> str:
 
 
 @mcp.tool()
-def dbx_repo_delete(repo_id: int) -> str:
-    """Delete a workspace Repo (``w.repos.delete``)."""
+def dbx_repo_delete(repo_id: int, confirm: bool = False) -> str:
+    """Delete a workspace Repo (``w.repos.delete``).
+
+    Guardrail: pass ``confirm=True`` to actually delete.
+    """
+    dry = _guard("delete workspace repo", str(repo_id), confirm)
+    if dry:
+        return dry
     return _run(lambda w: _ack(w.repos.delete(repo_id), {"deleted_repo": repo_id}))
 
 
