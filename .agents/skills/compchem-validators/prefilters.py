@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field, asdict
-from typing import Any, Callable, Iterable, Literal, Sequence
+from typing import Any, Iterable, Literal, Sequence
 
 try:  # numpy is present; used only for percentile math, with a stdlib fallback.
     import numpy as _np
