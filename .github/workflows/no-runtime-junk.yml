@@ -1,0 +1,75 @@
+name: no-runtime-junk
+
+# Fails when git TRACKS runtime state that must never be committed: the harness manifest
+# (installed.json), virtualenvs / node_modules / bytecode / tool caches, or a nested .git
+# gitlink (mode 160000). Complements the gitleaks secrets gate in quality.yml.
+# Detection is a `shell: python` step to avoid CRLF-in-bash issues on this Windows repo.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: no-runtime-junk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  no-runtime-junk:
+    name: gate-no-runtime-junk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.11"
+      - name: fail if runtime junk is tracked
+        shell: python
+        run: |
+          import subprocess, sys
+
+          # Directory segments that must never be tracked (matched as a full path segment,
+          # so "prevent/venv-notes.md" does NOT trip on "venv").
+          BAD_DIR_SEGMENTS = {
+              ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache", ".ruff_cache",
+          }
+          # Basenames that must never be tracked.
+          BAD_BASENAMES = {"installed.json"}
+
+          def tracked_files():
+              out = subprocess.check_output(["git", "ls-files", "-z"])
+              return [p for p in out.decode("utf-8", "replace").split("\0") if p]
+
+          def gitlinks():
+              # `git ls-files -s`: mode objecthash stage\tpath ; gitlink mode == 160000.
+              out = subprocess.check_output(["git", "ls-files", "-s", "-z"])
+              found = []
+              for rec in out.decode("utf-8", "replace").split("\0"):
+                  if not rec:
+                      continue
+                  meta, _, path = rec.partition("\t")
+                  if meta.split(" ", 1)[0] == "160000":
+                      found.append(path)
+              return found
+
+          violations = []
+          for path in tracked_files():
+              segments = path.split("/")
+              if BAD_DIR_SEGMENTS.intersection(segments):
+                  violations.append(("runtime-dir", path))
+              elif segments[-1] in BAD_BASENAMES:
+                  violations.append(("runtime-file", path))
+          for path in gitlinks():
+              violations.append(("nested-git-gitlink", path))
+
+          if violations:
+              print("Tracked runtime junk detected (must be gitignored / removed):")
+              for kind, path in sorted(violations):
+                  print(f"  [{kind}] {path}")
+              sys.exit(1)
+          print("OK: no tracked runtime junk.")
