@@ -31,14 +31,12 @@ from pathlib import Path
 
 THIS = Path(__file__).resolve().parent
 DISABLED = THIS / ".disabled"
-LAUNCH = (
-    Path(os.path.expanduser("~"))
-    / ".local"
-    / "opt"
-    / "mingle"
-    / "monitor"
-    / "launch.ps1"
-)
+# Repointed 2026-07-18: was ~/.local/opt/mingle/monitor/launch.ps1 (the RETIRED legacy
+# monitor — it accumulated one orphan per session across ~27 sessions AND cleared the main
+# terminal buffer, destroying scrollback). Now the guarded monitorcore wrapper: its
+# machine-wide single-instance guard caps the fleet at ONE board total, and it launches
+# monitorcore (the merged PR-B3 board), not the legacy fork. MASTER-QUEUE T0-2.
+LAUNCH = Path(os.path.expanduser("~")) / ".local" / "bin" / "codexmon.ps1"
 _DETACHED = 0x00000008  # DETACHED_PROCESS — don't tie the launched window to the hook
 
 

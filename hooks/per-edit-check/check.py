@@ -196,6 +196,13 @@ def main() -> int:
         if not os.path.isfile(fp):
             return 0
 
+        # ── skip throwaway scratch trees (not deliverables) ──────────────────
+        _norm = fp.replace("\\", "/").lower()
+        if any(
+            seg in _norm for seg in ("/scratchpad/", "/temp/claude/", "/.write-probe")
+        ):
+            return 0
+
         # ── skip huge files (generated / data / compiled assets) ─────────────
         try:
             if os.path.getsize(fp) > MAX_FILE_BYTES:

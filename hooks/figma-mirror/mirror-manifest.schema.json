@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://prekzursil.local/schemas/figma-mirror-manifest.schema.json",
+  "title": "Figma Mirror Manifest",
+  "description": "Contract for `mirror-manifest.json`, the shared ledger written by the figma-mirror hook (check.py, staleness bookkeeping at Stop) and read/updated by the mirror consumer (mirror_consumer.mjs, the agent-facing use_figma / DesignSync plan builder). HONESTY LAW (gem-hunt N.3, MASTER Theme C): a code->Figma mirror is LOSSY (structure + design tokens survive; React state, routing, data, and logic do NOT). This manifest therefore NEVER represents a sync as authoritative parity. The authoritative staleness signal is a hash comparison, not the cached `status` label: an entry is STALE whenever `content_hash != last_mirrored_hash` (including the never-mirrored case where `last_mirrored_hash` is null). An entry may be labelled `mirrored` ONLY after a real use_figma / DesignSync write was actually performed and recorded (target + a node/path + a timestamp + the exact hash that was mirrored). Nothing in this file may claim a mirror that did not happen.",
+  "type": "object",
+  "required": ["version", "hash_algo", "entries"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "description": "Manifest schema version.",
+      "type": "integer",
+      "const": 1
+    },
+    "hash_algo": {
+      "description": "Content-hash algorithm. Fixed to sha256 of the raw file bytes so the Python hook and the Node consumer compute byte-identical hashes.",
+      "type": "string",
+      "const": "sha256"
+    },
+    "updated_at": {
+      "description": "ISO-8601 UTC timestamp of the last manifest write. Advisory only.",
+      "type": ["string", "null"]
+    },
+    "target_default": {
+      "description": "Default mirror target for entries that do not name their own. `figma` = the official Figma MCP `use_figma` in-place write (quota-exempt on the Education Full seat). `designsync` = the Figma-free 2nd target: a claude.ai Design System project via the DesignSync tool.",
+      "enum": ["figma", "designsync"]
+    },
+    "entries": {
+      "description": "Map of normalized source-file path -> mirror entry. Key equals `source`.",
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/entry" }
+    }
+  },
+  "$defs": {
+    "sha256hex": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "entry": {
+      "type": "object",
+      "required": ["source", "content_hash", "status", "lossy"],
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "description": "Normalized (absolute, forward-slash) path of the source design/style file this entry mirrors.",
+          "type": "string",
+          "minLength": 1
+        },
+        "content_hash": {
+          "description": "sha256 hex of the current on-disk file bytes, as last observed.",
+          "$ref": "#/$defs/sha256hex"
+        },
+        "size": {
+          "description": "Size of the source file in bytes, as last observed.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "status": {
+          "description": "Cached label. NOT authoritative for staleness (recompute content_hash vs last_mirrored_hash). `stale` = changed since the last real mirror (or never mirrored). `planned` = a mirror plan was emitted but not yet executed. `mirrored` = a real use_figma/DesignSync write was performed and recorded. `unsupported` = the file type cannot be meaningfully mirrored (recorded honestly rather than skipped silently).",
+          "enum": ["stale", "planned", "mirrored", "unsupported"]
+        },
+        "target": {
+          "description": "Where this entry is (or will be) mirrored.",
+          "enum": ["figma", "designsync", null]
+        },
+        "figma_node_id": {
+          "description": "The Figma node id updated in place by use_figma, when target=figma and a real write happened.",
+          "type": ["string", "null"]
+        },
+        "designsync_path": {
+          "description": "The claude.ai Design System project path written by DesignSync, when target=designsync and a real write happened.",
+          "type": ["string", "null"]
+        },
+        "last_mirrored_hash": {
+          "description": "The content_hash that was ACTUALLY mirrored on the last real write. Staleness is defined as content_hash != last_mirrored_hash. Null until a real mirror is recorded.",
+          "oneOf": [
+            { "$ref": "#/$defs/sha256hex" },
+            { "type": "null" }
+          ]
+        },
+        "last_mirrored_at": {
+          "description": "ISO-8601 UTC timestamp of the last real mirror write. Null until a real mirror is recorded.",
+          "type": ["string", "null"]
+        },
+        "last_seen_at": {
+          "description": "ISO-8601 UTC timestamp when the hook last observed this file dirty.",
+          "type": ["string", "null"]
+        },
+        "lossy": {
+          "description": "Honesty flag. Always true for a code->Figma mirror: structure + tokens survive the round-trip; state, routing, data, and logic do not. The manifest never pretends a lossy mirror is a faithful sync.",
+          "type": "boolean"
+        },
+        "note": {
+          "description": "Free-form honesty caveat: what was intentionally not carried across, or why an entry is unsupported.",
+          "type": "string"
+        }
+      },
+      "allOf": [
+        {
+          "description": "A `mirrored` status is only valid once a real write was recorded: a target, a node or path, a timestamp, and the exact mirrored hash must all be present.",
+          "if": {
+            "properties": { "status": { "const": "mirrored" } }
+          },
+          "then": {
+            "required": ["target", "last_mirrored_at", "last_mirrored_hash"],
+            "properties": {
+              "target": { "enum": ["figma", "designsync"] },
+              "last_mirrored_at": { "type": "string" },
+              "last_mirrored_hash": { "$ref": "#/$defs/sha256hex" }
+            },
+            "anyOf": [
+              { "required": ["figma_node_id"], "properties": { "figma_node_id": { "type": "string" } } },
+              { "required": ["designsync_path"], "properties": { "designsync_path": { "type": "string" } } }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

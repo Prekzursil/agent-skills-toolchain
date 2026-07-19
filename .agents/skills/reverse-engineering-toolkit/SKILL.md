@@ -9,6 +9,30 @@ description: Use when selecting or sequencing reverse-engineering tools for Wind
 
 Use this skill to choose the smallest toolchain that fits the task, then hand off to the most specific tool skill or MCP skill instead of improvising. Prefer evidence-preserving workflows: dump or debugger first, then disassembler cleanup, then diffing or signature generation.
 
+## Autonomous Tool Launch (no manual GUI)
+
+When RE work needs IDA, Ghidra, or HexStrike and the MCP server / tool is not already up, bring it up yourself headlessly. Do NOT ask the user to hand-launch or navigate a GUI, and do NOT stall waiting for a backend — drive the launcher directly:
+
+```
+python C:\Users\Prekzursil\.local\opt\re-harness\re_launch.py <tool> [binary] [--status] [--teardown]
+```
+
+`<tool>` is `ida`, `ghidra`, or `hexstrike`. `[binary]` is optional (omitting it uses the configured default binary). The launcher is idempotent (probes first; reports `SUCCESS:<tool> already-up` if the server is already listening), cold-starts the server detached on a dedicated port, and health-polls it to ready before returning a terminal `SUCCESS:<tool>` / `FAILED:<tool>` marker.
+
+Workflow:
+1. Launch (or just probe): `re_launch.py <tool> [binary]` — use `--status` to only check the port + harness-owned registry row.
+2. Drive the live server through its MCP surface: `mcp__ida-pro-mcp__*`, `mcp__ghidra-mcp__*`, or the HexStrike tools (route via ToolSearch if the schemas are not loaded). Use the per-tool MCP skills (`$ida-pro-mcp`, `$ghidra-mcp`, `$hexstrike-ai-mcp`, `$binary-ninja-mcp`) only when the MCP server itself needs install, repair, or registration — not to launch one for analysis.
+3. When finished: `re_launch.py <tool> --teardown`. Teardown is registry-gated — it kills ONLY a server the harness itself spawned whose registered PID still owns its registered port.
+
+Safety and gotchas (load-bearing):
+- NEVER hand-launch a GUI for analysis, and NEVER kill the live GUI IDA on port 13337 (the only working 61-tool interactive surface). Headless IDA runs on a different port (8745); teardown can never target the GUI because it is not in the harness registry.
+- IDA headless needs `IDADIR=C:\Program Files\IDA Professional 9.3` (the launcher exports it). Fresh-binary analysis blocks for minutes, so the harness runs it detached behind a hang-timeout poll; opening an existing `.i64` or loose IDB is instant (copy a GUI-locked IDB to a scratch dir before opening headless).
+- Ghidra headless serves on 8089 and its MCP route is `/list_methods`, NOT `/methods` (`/methods` returns 404).
+- HexStrike serves its Flask server on 8888.
+- Binary Ninja is DEFERRED: the Personal license forbids headless, so there is no `bn` launch path — use the BN GUI/MCP only.
+
+Full reference and safety design: `C:\Users\Prekzursil\.local\opt\re-harness\README.md`; see also `references/tool-selection.md`.
+
 ## Routing Matrix
 
 - Crash dump, exception context, thread state, or module load questions: use `$windbg-preview` first; use `$windbg-command-cookbook` when you need concrete WinDbg commands.
