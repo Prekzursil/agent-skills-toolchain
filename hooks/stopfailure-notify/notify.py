@@ -161,7 +161,7 @@ def _escape_ps_dq(s: str) -> str:
         .replace("`", "``")  # escape the escape character first
         .replace("$", "`$")  # prevent variable expansion
         .replace('"', '`"')[
-              # escape embedded double-quotes
+            # escape embedded double-quotes
             :200
         ]  # cap length so the balloon is readable
     )

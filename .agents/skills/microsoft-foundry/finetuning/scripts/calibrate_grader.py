@@ -51,9 +51,11 @@ def load_grader(grader_path):
     with open(grader_path, encoding="utf-8") as f:
         source = f.read()
     namespace = {}
-    # nosemgrep: quality.opengrep.python-exec-use -- this IS the tool's purpose: it loads
-    # the operator's OWN local grader script (path given on argv, existence-checked above)
-    # to validate its grade() signature. The input is the operator's file, not untrusted data.
+    # This IS the tool's purpose: it loads the operator's OWN local grader script (path
+    # from argv, existence-checked above) to validate its grade() signature -- the input
+    # is the operator's own file, not untrusted data. semgrep only honours a suppression
+    # that is inline or on the line DIRECTLY above the match, so it must stay adjacent.
+    # nosemgrep: quality.opengrep.python-exec-use
     exec(compile(source, grader_path, "exec"), namespace)  # noqa: S102
     if "grade" not in namespace:
         print("❌ Grader file must define a grade(sample, item) function")
