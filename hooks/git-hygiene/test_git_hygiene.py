@@ -441,10 +441,19 @@ class TestSyncDrift:
 # --------------------------------------------------------------------------------------
 class TestHookContract:
     def _run(self, payload: dict, env_extra: dict | None = None):
+        # SYNC/DOCS/COVERAGE off by default: these contract tests exercise the REPOS survey
+        # dimension, and all three of those halves reach for the real default toolchain repo
+        # (present on a dev box, absent on CI) -- leaving them on makes the test's output
+        # depend on the machine it runs on. THROTTLE_SEC=0 defuses a pre-existing isolation
+        # trap: main() stamps THIS/.last-run after every run, so without it the FIRST _run in
+        # the file throttles every later one to empty output (reproduced on origin/main).
         env = {
             **os.environ,
             "GIT_HYGIENE_ROOTS": "",
             "GIT_HYGIENE_SYNC": "off",
+            "GIT_HYGIENE_DOCS": "off",
+            "GIT_HYGIENE_COVERAGE": "off",
+            "GIT_HYGIENE_THROTTLE_SEC": "0",
             **(env_extra or {}),
         }
         return subprocess.run(

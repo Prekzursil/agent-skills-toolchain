@@ -18,7 +18,7 @@ guards not yet written) is correct by construction.
                   source="tool_input")
     hits = find_real(content, MY_PATTERN, ctx, kind="marker")
 
-TWO RULES, matching the D1 fix direction:
+THREE RULES, matching the D1 fix direction:
   (a) `kind="command"` — a match counts only when the tool_use VERB is a shell
       that could execute it, and the match sits in command position rather than
       inside a quoted literal or here-string. Never the payload body.
@@ -26,6 +26,16 @@ TWO RULES, matching the D1 fix direction:
       counts only inside a fenced code block; a paragraph, table cell,
       blockquote or inline `code span` is a MENTION. In a real source file a
       match counts unless the enclosing sentence negates it.
+  (c) `kind="doclink"` — a markdown link `[label](target)`. THE POLARITY IS
+      INVERTED relative to `marker`, and that inversion is the entire point: a
+      link sitting in a PARAGRAPH is a real USE (the author asserts the target
+      exists, so a missing target is genuine rot), while the SAME link inside a
+      fenced block or an inline `code span` is syntax being DEMONSTRATED and must
+      stay silent. Reusing `marker` here would invert every verdict — flagging
+      every documentation example while ignoring every real broken link.
+      No negation test: a link is structural rather than assertional, so the mood
+      of the surrounding sentence carries no signal, and a cue-based test would
+      misread the common "see [the old plan](x) — now removed" phrasing.
 
 FAIL-OPEN BY DESIGN: any malformed input or internal error returns True
 ("treat as real"). A crashing or over-eager discriminator would silently disarm
@@ -147,6 +157,19 @@ def _line_bounds(text: str, start: int) -> tuple[int, int]:
     return lo, (len(text) if hi < 0 else hi)
 
 
+def _inline_code_spans(text: str, start: int) -> list[tuple[int, int]]:
+    """Absolute ranges of `code spans` on the ONE line holding `start`.
+
+    Scoped to a single line because an unbalanced backtick elsewhere in a long
+    document would otherwise swallow half the file and silence real matches.
+    """
+    line_lo, line_hi = _line_bounds(text, start)
+    line = text[line_lo:line_hi]
+    return [
+        (line_lo + m.start(), line_lo + m.end()) for m in _INLINE_CODE.finditer(line)
+    ]
+
+
 def _is_negated(text: str, start: int) -> bool:
     """True when the sentence up to the match carries a negation cue."""
     lo = 0
@@ -173,22 +196,21 @@ def is_real_occurrence(text: str, span, context: Context, kind: str = "marker") 
                 return True  # unknown verb -> fail-open
             return not _within(_quoted_spans(text), start, end)
 
+        if kind == "doclink":
+            # Inverted polarity (see the module docstring): a link is real UNLESS it
+            # is being shown as an example. Applies in prose and in source files
+            # alike -- a link inside a fence in a .py docstring is still an example.
+            if _within(_fenced_spans(text), start, end):
+                return False
+            return not _within(_inline_code_spans(text, start), start, end)
+
         # kind == "marker"
         if _is_prose(context):
             if not _within(_fenced_spans(text), start, end):
                 return False  # paragraph / table cell / blockquote / inline span
             return not _is_negated(text, start)
 
-        line_lo, line_hi = _line_bounds(text, start)
-        line = text[line_lo:line_hi]
-        if _within(
-            [
-                (line_lo + m.start(), line_lo + m.end())
-                for m in _INLINE_CODE.finditer(line)
-            ],
-            start,
-            end,
-        ):
+        if _within(_inline_code_spans(text, start), start, end):
             return False  # named in backticks even inside a source file
         return not _is_negated(text, start)
     except Exception:
