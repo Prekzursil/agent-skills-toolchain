@@ -58,7 +58,9 @@ log = logging.getLogger("bc.snapshot_ring")
 
 def md5_hex(data: bytes) -> str:
     """md5 of a byte blob (matches on-device ``md5sum`` for integrity checks)."""
-    return hashlib.md5(data).hexdigest()  # noqa: S324 (integrity check, not crypto)
+    # usedforsecurity=False: this is an INTEGRITY check that must match on-device
+    # `md5sum` output, not a security primitive. The flag does not change the digest.
+    return hashlib.md5(data, usedforsecurity=False).hexdigest()
 
 
 @dataclass(frozen=True)
