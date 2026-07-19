@@ -10,7 +10,9 @@ import re
 import subprocess
 import sys
 
-BASE = r"C:\Users\Prekzursil\.claude\hooks\skill-router"
+# The skill-router dir is this file's own directory - derive it so the eval
+# harness runs on any machine/checkout (was a hardcoded absolute user path).
+BASE = os.path.dirname(os.path.abspath(__file__))
 TUNED = os.path.join(BASE, "route.py")
 BASELINE = os.path.join(BASE, "_fixtures", "route_v1.py")
 
