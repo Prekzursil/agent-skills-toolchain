@@ -98,3 +98,20 @@ description = "agent-self/harness enshrined synthetic FAKE test fixtures (not li
 paths = [
   '''agent-self/harness/tests/.*''',
 ]
+
+# harness-sota-2026-07-18 Codex analysis corpus — a FROZEN, historical DATA corpus (608 markdown
+# analysis artifacts), not source code. gitleaks' noisy generic-api-key rule false-positives on its
+# content: cited Codex rollout session UUIDs (e.g. 019f7470-0ddf-7c63-b09a-d4c35b6f7111), ALL-CAPS
+# token-budget metrics (MIN_LINE_COST_TOKENS, SOURCE_DESC_CHARS, TRUNCATED_COUNT ...), and
+# percent-encoded citation URLs that the CI action's bundled gitleaks decodes and re-scans (local
+# gitleaks 8.30.1 does not, hence the local-vs-CI split). Confirmed FP: the single flag is
+# P1C06.md:108, a token-budget claim string. The corpus was independently secret-scanned CLEAN before
+# commit — gitleaks 8.30.1 default rules AND a targeted credential-shape sweep
+# (OpenAI/GitHub/AWS/Databricks/JWT/private-key/access_token fields) = 0 real credentials over all
+# 608 files. Path-scoped so real-secret detection stays ON for every other tree; this folder is
+# append-frozen (the synthesis reads it, does not add to it).
+[[allowlists]]
+description = "harness-sota-2026-07-18 corpus: verified-clean frozen DATA, generic-api-key FP on cited UUIDs/URLs/metrics"
+paths = [
+  '''harness-sota-2026-07-18-corpus/.*\.md$''',
+]
