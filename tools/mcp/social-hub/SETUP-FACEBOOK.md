@@ -61,6 +61,16 @@ if you prefer it; this tool is the self-contained repo equivalent.)*
 Only if you want new posts without re-exporting. Not the completeness rail — Meta may return a
 partial set.
 
+> **Heads-up (observed 2026-07-19):** Meta Developer enrollment for this account is currently
+> blocked by an account-safety cooldown. The registration page returns *"You can't make this
+> change at the moment... we noticed you are using a device you don't usually use..."* (reproduced
+> live in the page DOM on one device; the owner reports it on all devices, which is not
+> independently verified here). This gates `FB_USER_TOKEN` generation, so the Graph rail is
+> unavailable until Meta's cooldown clears (time + normal logged-in use). There is **no**
+> legitimate bypass, and you should not attempt one. It does **not** affect the DYI rail in
+> step 2, which needs no developer account. Likely cause: a device-trust reset after the
+> ~6-week-stale session was re-established.
+
 1. Create (or reuse) your own app at developers.facebook.com and keep it in **Development** mode —
    as its admin you can grant yourself `user_posts` with **no App Review**.
 2. In **Graph API Explorer**, generate a **User** token with the `user_posts` scope; copy it.
