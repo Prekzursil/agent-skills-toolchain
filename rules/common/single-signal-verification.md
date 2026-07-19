@@ -16,6 +16,9 @@ This is the most expensive recurring failure mode. SIX live instances in ONE ses
 | "the board always dies" | a `-match` regex with `\c` (a .NET control-char escape → never matched) | fix the regex → four surviving boards were there all along |
 | "codex agents are fire-and-forget" | turn-count alone (3 turns ⇒ didn't wait) | **wall-clock delta** (a 3-turn peer blocked 20m35s) **AND** the literal `--background` token in the command string — both one grep away |
 | "the Remove-Item guard was a true positive" | the blocked command's **payload** (a doc body quoting `Remove-Item`) | the `tool_use` **input verb** — both fires were `Set-Content` writing markdown, 2/2 false positives |
+| "the FB/WhatsApp MCP has no auth" (2026-07-19) | `fb_account_list` / `wa_account_list` → `accounts: []` (the *alternate-profile store*) | `whoami` → live `{uid, name}` **AND** `wa_search_messages` → real messages with `is_from_me` — the session WAS authenticated; `[]` meant "no alternate profiles", a different field |
+| "the PR is BLOCKED = its checks are missing" (2026-07-19) | `mergeStateStatus: BLOCKED` read as "not yet run" | the `quality` run's `conclusion=failure` — the checks had **run and failed**; BLOCKED ≠ pending. Fixing one gate then revealed the next (jobs stop at the FIRST failing step) |
+| "the MCP disable took effect" (2026-07-19) | `disabledMcpServers` present at **root** of `~/.claude.json` | the **process table** (320 live MCP procs, disabled servers spawning 10 min post-restore) **AND** the pre-restore backup (key lived per-*project*, not root) — root-scope was inert |
 
 ## The rule
 

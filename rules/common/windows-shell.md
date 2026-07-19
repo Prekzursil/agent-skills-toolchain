@@ -82,6 +82,25 @@ truncated the destination. The damage is irreversible without a backup.
 **Fix:** use `python -c` for arithmetic. Verify a tool exists before scripting around it — and
 check with `Get-Command` in PowerShell, not `which` in Git Bash (which misses `.cmd` shims).
 
+## 8b. A Windows-local formatter/linter green does NOT imply CI-green (CRLF-vs-LF)
+
+A working-tree file is **CRLF**; git normalises it to **LF** in the stored blob; CI on Linux checks
+out the LF form. **Formatters can make different decisions on the two forms.** Ledger-proven
+2026-07-19: `uvx ruff@0.15.17 format --check` reported *"1 file already formatted"* on Windows while
+CI reported *"Would reformat"* for the SAME commit — on the LF form ruff wanted different comment
+indentation inside a subscript (`hooks/stopfailure-notify/notify.py`). The local green was measured
+against the wrong bytes, so it verified nothing.
+
+- **Fix — verify against the BLOB, not the working tree:** `git archive <rev> | tar -x -C <tmp>`
+  emits blob content (LF) = exactly what CI checks out. Run the gate there. Equivalent:
+  `git cat-file -p <rev>:<path>` for a single file.
+- **Same trap bites your own edit scripts:** reading with `newline=""` preserves `\r\n`, so a
+  pattern written with `\n` silently matches 0 times. Split on the file's detected EOL, or read
+  with universal newlines. (This produced a false `anchor 0` in the very commit that fixed it.)
+- **Pin parity matters too:** CI pinned ruff `0.15.17`, local had `0.15.22` — different versions
+  format differently. Use `uvx <tool>@<pinned-version>`, never the ambient one.
+- Generalises to any formatter/linter with line-ending-sensitive output (ruff, black, prettier).
+
 ## 9. A here-string PAYLOAD is scanned as if it were a command
 
 `Set-Content -LiteralPath '…\MASTER-QUEUE.md' -Value @'…'@` was **blocked** with

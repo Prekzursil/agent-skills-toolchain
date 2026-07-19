@@ -643,6 +643,25 @@ def main() -> int:
         except Exception:  # noqa: BLE001 - malformed payload must never break Stop
             return 0
 
+        # Frequency throttle. The full survey costs ~5 s and a Stop hook fires at every
+        # turn-end, so run it at most once per GIT_HYGIENE_THROTTLE_SEC (default 900 s /
+        # 15 min). Ignored drift re-surfaces on the next tick rather than taxing every turn;
+        # set the env to 0 to disable. mtime of a stamp file is the clock.
+        stamp = THIS / ".last-run"
+        try:
+            throttle = float(os.environ.get("GIT_HYGIENE_THROTTLE_SEC") or 900)
+        except ValueError:
+            throttle = 900.0
+        try:
+            if (
+                throttle > 0
+                and stamp.exists()
+                and (time.time() - stamp.stat().st_mtime) < throttle
+            ):
+                return 0
+        except OSError:
+            pass
+
         home = Path(os.environ.get("USERPROFILE") or os.path.expanduser("~"))
         cfg = replace(
             Config(), owner=os.environ.get("GIT_HYGIENE_OWNER") or Config().owner
@@ -674,6 +693,12 @@ def main() -> int:
                 drifts += scan_loose_files(default_loose_files(home, repo_root), cfg)
 
         msg = build_message(verdicts, drifts)
+        # Stamp AFTER a completed scan (drift or clean) so the throttle counts from the
+        # last real survey — a clean pass still suppresses re-scans for the throttle window.
+        try:
+            stamp.write_text(str(time.time()), encoding="utf-8")
+        except OSError:
+            pass
         if msg:
             print(
                 json.dumps(
