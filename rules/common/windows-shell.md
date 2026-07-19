@@ -120,6 +120,29 @@ scanned as a command line. Reserve here-strings for appends and for piping into 
 document that contains literal `@'` / `'@` sequences CANNOT be written by a here-string at all —
 they terminate it and corrupt the file.
 
+## 10. An apostrophe in a Bash-tool command body breaks the tool's OWN quoting
+
+The Bash tool wraps the command you pass in single quotes before handing it to `sh -c`. So any
+**literal `'` inside a heredoc body, a grep pattern, or an inline `python -c '…'`** closes that
+outer quote early and the call dies with `unexpected EOF while looking for matching '`' — before a
+single byte runs. Ledger-proven across ONE session (2026-07-19), it killed **6+** calls in a row:
+a `git commit -F - <<'EOF'` whose message said *"the repo's own CI"* and *"don't"*; a
+`diff … | grep -c 'Only in'`; a `python -c "assert x, 'msg'"`; a `sed 's/…/…/'` with `?`/`[]`.
+Doubling down (escaping, swapping quote styles) wasted ~9 minutes before the pattern was named.
+
+- **Fix — never inline apostrophe-bearing content into a Bash-tool command.** Write it to a file
+  with the `Write` tool, then pass the PATH:
+  - commit messages → `git commit -F <path>` (NOT `-m "…"` with prose, NOT a `<<'EOF'` heredoc);
+  - PR/issue bodies → `gh pr create --body-file <path>`;
+  - multi-line scripts → `python <script.py>` / `bash <script.sh>`, never `python -c '…'`.
+- **PowerShell is the escape hatch for git ops** when a file is overkill — its own quoting survives
+  apostrophes that Git-Bash mangles (this session's `git commit -F <file>` and `git push` both
+  worked first-try in PowerShell after the Bash heredoc route failed repeatedly).
+- Generalises to `awk '…'`, `jq '…'`, `perl -e '…'` — anything whose idiom is single-quoted. Prefer
+  the dedicated tool (Grep, Write, a script file) over an inline single-quoted shell string.
+- Two-strikes (AGENTS.md §4b): after the SECOND `unexpected EOF … matching '` on the same call
+  shape, STOP escaping and switch transport (file + `-F`, or PowerShell) — do not attempt a third.
+
 ---
 *A one-line pointer to this file belongs in AGENTS.md §11 (owned by the D3 item — not
 edited here).*
