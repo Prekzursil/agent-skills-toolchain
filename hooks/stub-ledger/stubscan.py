@@ -26,11 +26,24 @@ _PHRASE = re.compile(
     r"implement(?:ed|ation)?\s+(?:this\s+|it\s+)?later"
     r"|wire\s+(?:this\s+|it\s+|them\s+)?(?:up\s+)?later"
     r"|not\s+(?:yet\s+)?implemented|coming\s+soon"
-    r"|to\s+be\s+(?:implemented|done|added|written|filled\s+in)"
+    r"|to\s+be\s+(?:implemented|done|added|written(?!\s+down)|filled\s+in)"
     r"|\bTBD\b|fill\s+(?:this\s+)?in\s+later|for\s+now,?\s+(?:just\s+)?(?:return|pass)",
     re.IGNORECASE,
 )
-_COMMENT_INTRO = re.compile(r"(?:#|//|/\*|<!--|^\s*\*)")
+# `#(?!\d)` so a GitHub ISSUE REFERENCE does not masquerade as a comment intro. Measured
+# 2026-07-19: a markdown table row `| a native lazy-spawn flag exists | FALSE | 7 requests
+# (#7336, #13805) all CLOSED NOT_PLANNED ... unimplemented ...` fired the weak-word rule FOUR
+# times, because the `#` in `#7336` matched here and then "unimplemented" matched _WEAK later on
+# the same line. The row is a FALSIFIED-HYPOTHESIS record about an upstream project's state -- a
+# mention, not a placeholder. `# TODO` (hash + space) still matches; `#7336` no longer does.
+_COMMENT_INTRO = re.compile(r"(?:#(?!\d)|//|/\*|<!--|^[ \t]*\*(?!\*))")
+# Negation guard for _PHRASE. A negated completeness phrase asserts the OPPOSITE of an
+# incomplete marker (an assertion that nothing remains), so it is not real pending work.
+# Measured 2026-07-19: _PHRASE fired on the sentence "Fortunately x means nothing needs to be
+# added" and on a doc quoting it -- the regex was negation-blind (the use-vs-mention class). When
+# a negation word sits just before the phrase on the same line, the phrase is not pending work.
+# (This comment deliberately avoids the bare trigger words so the scanner does not flag itself.)
+_NEG = re.compile(r"\b(?:no|nothing|never|not|n't|zero|without|already)\b", re.IGNORECASE)
 # (?![-\w]) so a COMPOUND identifier that merely contains the word is NOT a stub:
 # "stub-ledger", "stub_file", "stubscan", "placeholder_path" -> ignored; bare "stub"/"placeholder" -> flagged.
 _WEAK = re.compile(r"\b(placeholder|stub|unimplemented)\b(?![-\w])", re.IGNORECASE)
@@ -46,7 +59,7 @@ _PASS_BODY = re.compile(
 
 _TEST_FILE = re.compile(
     r"(?:^|[\\/])(?:test_[^\\/]+|conftest)\.py$|_test\.py$|\.test\.[jt]sx?$"
-    r"|[\\/](?:tests?|__tests__|scratchpad)[\\/]",
+    r"|[\\/](?:tests?|__tests__|scratchpad|FAILURE-REPLAY-CORPUS|fixtures?|stub-ledger)[\\/]",
     re.IGNORECASE,
 )
 
@@ -83,7 +96,8 @@ def find_stubs(text: str) -> list[tuple[str, int, str]]:
             add(m.group(1), i, line)
         if _NOTIMPL.search(line):
             add("NotImplemented", i, line)
-        if _PHRASE.search(line):
+        pm = _PHRASE.search(line)
+        if pm and not _NEG.search(line[max(0, pm.start() - 45):pm.start()]):
             add("placeholder-phrase", i, line)
         if _COMMENT_INTRO.search(line) and _WEAK.search(line):
             add(_WEAK.search(line).group(1), i, line)
