@@ -116,6 +116,13 @@ def default_backends() -> list[BackendSpec]:
             prefix="fb",
             cmd=(FB_PY, f"{REPOS}/fb-messenger-mcp/server.py"),
             cache="fb-messenger.json",
+            # Explicit default cookies path so the backend reads a KNOWN file
+            # even when ~/.mcp.json omits FB_COOKIES_PATH (Instagram's dir
+            # override is present but this one was not). A per-account 'cookies'
+            # file override still wins at respawn via the account layer's
+            # active_env, exactly like INSTA_DATA_DIR. Refresh the file with
+            # `python fb_session.py` when whoami starts failing.
+            env={"FB_COOKIES_PATH": _FB_COOKIES.dest},
             note="needs data/cookies.json; enumerates offline (no startup auth)",
             # Multi-account: each account points FB_COOKIES_PATH at its own
             # cookies.json; FB_PAGE_ACCESS_TOKEN etc. ride in the env bundle.

@@ -48,6 +48,62 @@ Facebook coverage (the `fb` backend, 33 tools) now matches Instagram's breadth
 **no personal-profile post API**, so personal-profile posting stays on the Playwright
 `fbreels` path.
 
+## Facebook ↔ Instagram parity matrix
+
+Instagram's rail stays alive because its **session file is refreshed on demand**; Facebook
+rotted because nothing refreshed `cookies.json` (it went ~6 weeks stale, so `whoami` failed
+with `ValidationError: 'async_get_token' not found`). Two additions close the gap:
+**`fb_session.py`** (self-healing cookie refresh — the FB analogue of IG's login-once
+`session.json`) and **`fb_timeline.py`** (read the owner's OWN posts). The matrix is
+deliberately honest — Facebook restricts personal-profile access far more than Instagram, and
+an accurate `IMPOSSIBLE` row is worth more than a tool that 403s. It is not padded.
+
+Legend: **WORKING** = live today · **BUILT-NOW** = added here · **IMPOSSIBLE** = Meta exposes
+no rail (reason given). Availability claims carry a Sherman-Kent band + a citation; rows not
+exercised live are tagged `UNVERIFIED`.
+
+| Capability | Instagram | Facebook status | Notes / evidence |
+|---|---|---|---|
+| Session/cookie refresh | login-once `session.json` | **BUILT-NOW** `fb_session.py` | Playwright login-once (owner types the password; no script ever does), writes `cookies.json`, then verifies `whoami`. Re-runnable → self-healing. |
+| Identity (`whoami`) | working | **WORKING** after refresh | Verified end-to-end: the verify path spawns the backend, calls `whoami`, and against the current expired jar correctly reports `authenticated:false` with the exact `async_get_token` error. almost certain (90-99%). |
+| Read OWN posts (the corpus) | `get_recent_posts` | **BUILT-NOW** `fb_timeline.py` | Two rails — see the dedicated table below. |
+| Read DMs / messages | `get_direct_messages` | **WORKING** after refresh | Messenger groups/rooms/pages (`list_threads`/`read_thread`/`fb_search_messages`) + E2EE 1:1 (`fb_dm_*`); auth-gated only on the refreshed cookies. |
+| Per-account switch/cycle | `ig_account_*` + `INSTA_DATA_DIR` | **WORKING** `fb_account_*` + `FB_COOKIES_PATH` | `FB_COOKIES_PATH` is now wired explicitly in `backends.py` (`env=`), so FB is per-account switchable exactly like `INSTA_DATA_DIR`. |
+| Publish to a **Page** | `upload_*` | **WORKING** `fb_page_*` | Official Graph API; needs `FB_PAGE_ACCESS_TOKEN`. |
+| Publish to the **personal profile** | `upload_reel`/`upload_photo` | **IMPOSSIBLE** via API → Playwright | Meta removed `publish_actions` on 2018-04-24; no personal-profile publish API. Reels go through the `fbreels` Playwright path. Corroborated in-repo at `fb-reels-uploader/README.md:16-17`. almost certain (90-99%). [E3] |
+| Insights | `get_post_insights` | **WORKING** (Page/IG-Graph) · **IMPOSSIBLE** (personal) | Graph insights exist for Pages / IG-Business only; personal-profile post insights have no API. likely (55-80%). |
+| Followers / following list | `get_followers`/`get_following` | **IMPOSSIBLE** (personal) | Meta exposes no friends-list read for a personal profile to an app. likely (55-80%). `UNVERIFIED` (no live probe). |
+| Comment moderation | `like_comment`/`reply_to_comment` | **WORKING** (Page) · **IMPOSSIBLE** (personal) | `fb_page_moderate`/`fb_page_read_comments` for Pages; none for personal-profile posts. |
+| Stories / highlights / saved / liked | `get_stories` etc. | **IMPOSSIBLE** (personal) | No personal-profile API; deliberately not shipped as 403s. `UNVERIFIED` per item. |
+
+### The one that matters: reading the owner's OWN timeline posts
+
+`get_recent_posts` (IG) has **no single FB equivalent** — Meta fragmented it. `fb_timeline.py`
+implements the two rails that actually exist and is explicit about what each sees:
+
+| Rail | `fb_timeline.py` mode | Sees | Does NOT see | Verdict |
+|---|---|---|---|---|
+| **Meta DYI export (JSON)** — CHOSEN primary | `dyi <zip\|dir>` | **Every post you authored** that Meta still retains — full text, structured, no scraping, no ToS risk. The rail the writing-corpus isolators already target. | Posts you deleted; possibly some very early history (Meta survivorship gap, not a bug). | **WORKING** — verified end-to-end against a DYI-shaped fixture (dir + zip, mojibake repair, title-only bodies). almost certain (90-99%) for retained posts. Owner-gated only on requesting + downloading the export. [E7][E8] |
+| **Graph API `/me/posts` + `user_posts`** — live secondary | `graph` (needs `FB_USER_TOKEN`) | Posts the user created on their timeline (+ tagged), per the documented read edge. `user_posts` is a **current** permission (Graph v25.0, no deprecation). A self-owned app in Development mode can grant it to its own admin/tester with **no App Review**. | May **not return all** posts — Meta warns an unauthorised feed "will return an empty array." Not the completeness rail. | **BUILT-NOW**. That the edge returns the owner's posts *at all*: likely (55-80%). That it returns the FULL historical set: **roughly even (40-60%)**, `UNVERIFIED` — not exercised live (no `user_posts` token was generated; that is an owner step; a local Graph token failed OAuth code 190). [E2][E3][E4] |
+| **Cookie/session scrape** (mbasic, `facebook-scraper`) | not built | — | — | **IMPOSSIBLE-reliable**. `mbasic.facebook.com` retired 2024-12-03 and now 302-redirects to `/unsupportedbrowser` (a live probe with valid cookies returns the logged-out wall, not a timeline); `kevinzg/facebook-scraper` is abandoned and broken by FB's JS rendering; both are ToS-risky. Deliberately NOT built. almost certain (90-99%). [E5][E6] |
+
+**Chosen rail: the DYI export** — the only *complete*, official, scrape-free path, and the one
+the corpus isolators already target. The Graph rail is a live/incremental complement, not a
+replacement. `fbchat_muqit` (the cookie backend) is **Messenger-only and does NOT read timeline
+posts**, so refreshing cookies fixes `whoami`/Messenger but does not by itself populate the
+post corpus — that is what the DYI rail is for.
+
+**EVIDENCE**
+- [E1] Graph API v25.0 (released 2026-02-18); changelog does not deprecate `user_posts` — https://developers.facebook.com/docs/graph-api/changelog/version25.0/
+- [E2] `user_posts` still listed, "access the posts that a user has made on their timeline" — https://developers.facebook.com/docs/permissions/ (ref: /docs/permissions/reference/user_posts)
+- [E3] `GET /{user-id}/posts` read edge requires `user_posts`; "will only return Posts created on the app user's Timeline and Posts in which the app user has been tagged" — https://developers.facebook.com/docs/graph-api/reference/user/posts/
+- [E4] Dev-mode self-grant with no App Review (Admin/Developer/Tester "can grant the app any permission while it is in development") — https://developers.facebook.com/docs/development/build-and-test/app-roles/
+- [E5] Meta retiring mbasic on 2024-12-03 — https://news.ycombinator.com/item?id=42212460
+- [E6] mbasic.facebook.com now redirects to `www.facebook.com/unsupportedbrowser?_rdr` — https://isdown.co.za/status/mbasic.facebook.com
+- [E7] DYI export categories incl. "Your Facebook activity" (posts you've created); © 2026 Meta — https://www.facebook.com/help/930396167085762
+- [E8] DYI format HTML **or JSON** ("machine-readable"), four-day download window, mandatory password re-entry — https://www.facebook.com/help/212802592074644
+- Observed: `whoami` on the current jar → `AuthenticationError: … ValidationError: 'async_get_token' not found` (expired session; the refresh tool fixes it). The jar carries the `c_user`/`xs`/`datr` auth triad across 9 `facebook.com` elements.
+
 ### Collision policy
 
 Unique names are kept **exactly**. Cross-backend collisions get a minimal
