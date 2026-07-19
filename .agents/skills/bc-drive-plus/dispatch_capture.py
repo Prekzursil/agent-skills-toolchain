@@ -43,6 +43,7 @@ CLI:
   python dispatch_capture.py capture <ms> <x> <y> # arm + drive ONE safe menu tap
 Env: BC_ADB, BC_SERIAL, BC_DC_SINK (bounded log sink; default <skill>/.dc-shadow.log).
 """
+
 from __future__ import annotations
 
 import json
@@ -57,14 +58,14 @@ from typing import Callable, Optional
 
 MODULE = "libnative-lib.so"
 PKG = "jp.co.ponos.battlecatsen"
-RVA_TOUCH_DISPATCH = 0x668C70            # getGlobal()->vtable[+0x40] (resolved, read-only)
-VTABLE_NEWBUTTON = 0xBED598             # NewButton vtable RVA (from RTTI in .rodata)
+RVA_TOUCH_DISPATCH = 0x668C70  # getGlobal()->vtable[+0x40] (resolved, read-only)
+VTABLE_NEWBUTTON = 0xBED598  # NewButton vtable RVA (from RTTI in .rodata)
 # Out-of-battle macro-state cluster (getScene == app+0x2F24). ~100 across all menus;
 # static analysis of the setter @0x65DD0F gives the enum cluster 0x61..0x65 = 97..101.
 MENU_SCENE_MIN, MENU_SCENE_MAX = 97, 101
 DEFAULT_TIMEOUT_MS = 6000
 DEFAULT_BACKTRACE_DEPTH = 8
-SHADOW_SINK_MAX_BYTES = 256 * 1024      # bounded, rotating shadow log
+SHADOW_SINK_MAX_BYTES = 256 * 1024  # bounded, rotating shadow log
 
 log = logging.getLogger("bc.dispatch_capture")
 
@@ -84,9 +85,14 @@ def rva_hex(ptr: int, base: int) -> str:
     return f"0x{off:x}"
 
 
-def build_agent_js(rva: int = RVA_TOUCH_DISPATCH, *, max_hits: int = 1,
-                   backtrace_depth: int = DEFAULT_BACKTRACE_DEPTH,
-                   node_field_off: Optional[int] = None, module: str = MODULE) -> str:
+def build_agent_js(
+    rva: int = RVA_TOUCH_DISPATCH,
+    *,
+    max_hits: int = 1,
+    backtrace_depth: int = DEFAULT_BACKTRACE_DEPTH,
+    node_field_off: Optional[int] = None,
+    module: str = MODULE,
+) -> str:
     """Generate the Frida agent for a BOUNDED single-shot capture.
 
     The agent is deliberately tiny and does NO synchronous host RPC inside onEnter
@@ -164,8 +170,14 @@ class CaptureResult:
     shadow: bool = True
 
     def to_json(self) -> dict:
-        return {"result": self.result, "armed": self.armed, "scene": self.scene,
-                "shadow": self.shadow, "rows": self.rows, "error": self.error}
+        return {
+            "result": self.result,
+            "armed": self.armed,
+            "scene": self.scene,
+            "shadow": self.shadow,
+            "rows": self.rows,
+            "error": self.error,
+        }
 
 
 def parse_rows(messages: list) -> list:
@@ -179,7 +191,9 @@ def parse_rows(messages: list) -> list:
     return rows
 
 
-def resolve_ctor_candidates(rows: list, known_vtable_rva: int = VTABLE_NEWBUTTON) -> dict:
+def resolve_ctor_candidates(
+    rows: list, known_vtable_rva: int = VTABLE_NEWBUTTON
+) -> dict:
     """From captured rows, aggregate the runtime evidence that localizes the stripped
     NewButton ctor. Returns caller/backtrace RVAs ranked by frequency, any hit-node
     vtable RVA and whether it matches the known NewButton vtable, plus the exact
@@ -224,16 +238,31 @@ class _AdbTap:
         self.serial = serial or os.environ.get("BC_SERIAL", "127.0.0.1:5555")
 
     def __call__(self, x: int, y: int) -> None:
-        subprocess.run([self.adb, "-s", self.serial, "shell", "input", "tap",
-                        str(int(x)), str(int(y))], stdout=subprocess.PIPE,
-                       stderr=subprocess.STDOUT, check=True)
+        subprocess.run(
+            [
+                self.adb,
+                "-s",
+                self.serial,
+                "shell",
+                "input",
+                "tap",
+                str(int(x)),
+                str(int(y)),
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=True,
+        )
 
 
 def _shadow_log(sink_path: str, record: dict) -> None:
     """Append to a bounded, rotating shadow sink (council C5 (iii): shadow logs go to
     a separate, size-capped sink -- never the main ledger)."""
     try:
-        if os.path.exists(sink_path) and os.path.getsize(sink_path) > SHADOW_SINK_MAX_BYTES:
+        if (
+            os.path.exists(sink_path)
+            and os.path.getsize(sink_path) > SHADOW_SINK_MAX_BYTES
+        ):
             os.replace(sink_path, sink_path + ".1")
         with open(sink_path, "a", encoding="utf-8") as f:
             f.write(json.dumps({"ts": time.time(), **record}) + "\n")
@@ -249,12 +278,17 @@ class BoundedDispatchCapture:
     machine is unit-testable without a live device or frida socket.
     """
 
-    def __init__(self, device=None, *, shadow: bool = True,
-                 tapper: Optional[Callable[[int, int], None]] = None,
-                 sleep: Callable[[float], None] = time.sleep,
-                 now: Callable[[], float] = time.monotonic,
-                 sink_path: Optional[str] = None,
-                 logger: Optional[logging.Logger] = None) -> None:
+    def __init__(
+        self,
+        device=None,
+        *,
+        shadow: bool = True,
+        tapper: Optional[Callable[[int, int], None]] = None,
+        sleep: Callable[[float], None] = time.sleep,
+        now: Callable[[], float] = time.monotonic,
+        sink_path: Optional[str] = None,
+        logger: Optional[logging.Logger] = None,
+    ) -> None:
         self._device = device
         self.shadow = shadow
         self.tapper = tapper
@@ -270,6 +304,7 @@ class BoundedDispatchCapture:
         if self._device is not None:
             return self._device
         import frida  # lazy: only needed for a real attach
+
         try:
             return frida.get_usb_device(timeout=8)
         except Exception:
@@ -278,17 +313,27 @@ class BoundedDispatchCapture:
     def _get_pid(self) -> int:
         adb = os.environ.get("BC_ADB", "adb")
         serial = os.environ.get("BC_SERIAL", "127.0.0.1:5555")
-        out = subprocess.run([adb, "-s", serial, "shell", "pidof", PKG],
-                             stdout=subprocess.PIPE, text=True, check=True).stdout.strip()
+        out = subprocess.run(
+            [adb, "-s", serial, "shell", "pidof", PKG],
+            stdout=subprocess.PIPE,
+            text=True,
+            check=True,
+        ).stdout.strip()
         if not out:
             raise RuntimeError(f"{PKG} not running (pidof empty)")
         return int(out.split()[0])
 
-    def arm_and_capture(self, scene: Optional[int], *, pid: Optional[int] = None,
-                        timeout_ms: int = DEFAULT_TIMEOUT_MS, max_hits: int = 1,
-                        backtrace_depth: int = DEFAULT_BACKTRACE_DEPTH,
-                        node_field_off: Optional[int] = None,
-                        auto_tap: Optional[tuple] = None) -> CaptureResult:
+    def arm_and_capture(
+        self,
+        scene: Optional[int],
+        *,
+        pid: Optional[int] = None,
+        timeout_ms: int = DEFAULT_TIMEOUT_MS,
+        max_hits: int = 1,
+        backtrace_depth: int = DEFAULT_BACKTRACE_DEPTH,
+        node_field_off: Optional[int] = None,
+        auto_tap: Optional[tuple] = None,
+    ) -> CaptureResult:
         """Arm the one-shot hook, wait (bounded) for ``max_hits`` touches, detach.
 
         Refuses to arm outside the menu cluster (thread-selection safety). In shadow
@@ -298,12 +343,17 @@ class BoundedDispatchCapture:
         if not is_menu_scene(scene):
             return CaptureResult(
                 result="FAILED:dispatch-capture refused: scene not in menu cluster "
-                       f"({scene}); will not hook the input path outside a menu",
-                scene=scene, shadow=self.shadow)
+                f"({scene}); will not hook the input path outside a menu",
+                scene=scene,
+                shadow=self.shadow,
+            )
         device = self._get_device()
         pid = pid if pid is not None else self._get_pid()
-        js = build_agent_js(max_hits=max_hits, backtrace_depth=backtrace_depth,
-                            node_field_off=node_field_off)
+        js = build_agent_js(
+            max_hits=max_hits,
+            backtrace_depth=backtrace_depth,
+            node_field_off=node_field_off,
+        )
         session = device.attach(pid)
         messages: list = []
         script = session.create_script(js)
@@ -313,9 +363,13 @@ class BoundedDispatchCapture:
         # Trigger: shadow = operator taps manually; explicit auto_tap only when armed.
         if auto_tap is not None:
             if self.shadow:
-                _shadow_log(self.sink_path,
-                            {"event": "would_auto_tap", "xy": list(auto_tap), "scene": scene})
-                self.log.info("SHADOW: would auto-tap %s (operator taps manually)", auto_tap)
+                _shadow_log(
+                    self.sink_path,
+                    {"event": "would_auto_tap", "xy": list(auto_tap), "scene": scene},
+                )
+                self.log.info(
+                    "SHADOW: would auto-tap %s (operator taps manually)", auto_tap
+                )
             else:
                 tap = self.tapper or _AdbTap()
                 tap(int(auto_tap[0]), int(auto_tap[1]))
@@ -325,7 +379,10 @@ class BoundedDispatchCapture:
         armed = False
         while self.now() < deadline:
             rows = parse_rows(messages)
-            if any(isinstance(m, dict) and m.get("payload", {}).get("armed") for m in messages):
+            if any(
+                isinstance(m, dict) and m.get("payload", {}).get("armed")
+                for m in messages
+            ):
                 armed = True
             if len(rows) >= max_hits:
                 break
@@ -342,9 +399,13 @@ class BoundedDispatchCapture:
             pass
 
         rows = parse_rows(messages)
-        errs = [m.get("payload", {}).get("error") for m in messages
-                if isinstance(m, dict) and isinstance(m.get("payload"), dict)
-                and m["payload"].get("error")]
+        errs = [
+            m.get("payload", {}).get("error")
+            for m in messages
+            if isinstance(m, dict)
+            and isinstance(m.get("payload"), dict)
+            and m["payload"].get("error")
+        ]
         if rows:
             result = f"SUCCESS:dispatch-capture {len(rows)} hit(s)"
         elif errs:
@@ -352,11 +413,23 @@ class BoundedDispatchCapture:
         else:
             result = "FAILED:dispatch-capture no touch captured within timeout"
         if self.shadow:
-            _shadow_log(self.sink_path, {"event": "capture", "result": result,
-                                         "hits": len(rows), "scene": scene})
-        return CaptureResult(result=result, armed=armed, rows=rows,
-                             error=(errs[0] if errs else None), scene=scene,
-                             shadow=self.shadow)
+            _shadow_log(
+                self.sink_path,
+                {
+                    "event": "capture",
+                    "result": result,
+                    "hits": len(rows),
+                    "scene": scene,
+                },
+            )
+        return CaptureResult(
+            result=result,
+            armed=armed,
+            rows=rows,
+            error=(errs[0] if errs else None),
+            scene=scene,
+            shadow=self.shadow,
+        )
 
 
 # -- CLI -------------------------------------------------------------------
@@ -365,7 +438,9 @@ def _emit(obj: object) -> None:
 
 
 def main(argv: Optional[list[str]] = None) -> int:
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, format="%(levelname)s %(name)s: %(message)s"
+    )
     args = list(sys.argv[1:] if argv is None else argv)
     if not args:
         sys.stdout.write(__doc__ or "")
@@ -393,13 +468,23 @@ def main(argv: Optional[list[str]] = None) -> int:
 def _read_scene_via_bc_drive() -> Optional[int]:
     """Best-effort: reuse bc-drive's on-demand ``scene`` read for the menu guard."""
     try:
-        bc_drive = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                                "bc-drive", "bc_drive.py")
-        out = subprocess.run([sys.executable, bc_drive, "scene"], stdout=subprocess.PIPE,
-                             text=True, timeout=30, check=True).stdout
+        bc_drive = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "bc-drive",
+            "bc_drive.py",
+        )
+        out = subprocess.run(
+            [sys.executable, bc_drive, "scene"],
+            stdout=subprocess.PIPE,
+            text=True,
+            timeout=30,
+            check=True,
+        ).stdout
         return int(json.loads(out).get("scene"))
     except Exception as e:  # noqa: BLE001 -- guard degrades to "unknown" (refuses to arm)
-        log.warning("could not read scene via bc-drive (%s); guard will refuse to arm", e)
+        log.warning(
+            "could not read scene via bc-drive (%s); guard will refuse to arm", e
+        )
         return None
 
 

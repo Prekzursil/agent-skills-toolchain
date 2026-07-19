@@ -104,15 +104,15 @@ def _norm(candidates: Iterable[Candidate | dict[str, Any]]) -> list[Candidate]:
         if isinstance(c, Candidate):
             out.append(c)
         elif isinstance(c, dict):
-            out.append(Candidate(**{k: c[k] for k in c if k in Candidate.__annotations__}))
+            out.append(
+                Candidate(**{k: c[k] for k in c if k in Candidate.__annotations__})
+            )
         else:
             raise TypeError(f"candidate must be Candidate or dict, got {type(c)!r}")
     return out
 
 
-def _sorted_scored(
-    scored: list[Candidate], direction: Direction
-) -> list[Candidate]:
+def _sorted_scored(scored: list[Candidate], direction: Direction) -> list[Candidate]:
     reverse = direction == "higher_is_better"
     return sorted(scored, key=lambda c: c.score, reverse=reverse)  # type: ignore[arg-type]
 
@@ -201,12 +201,20 @@ def prefilter_by_percentile(
     cands = _norm(candidates)
     scores = [c.score for c in cands if c.score is not None and not _isnan(c.score)]
     if not scores:
-        return prefilter_rank(candidates, top_frac=percentile / 100.0, direction=direction, stage=stage, **kwargs)
+        return prefilter_rank(
+            candidates,
+            top_frac=percentile / 100.0,
+            direction=direction,
+            stage=stage,
+            **kwargs,
+        )
     if direction == "lower_is_better":
         cut = _percentile(scores, percentile)
     else:
         cut = _percentile(scores, 100.0 - percentile)
-    return prefilter_rank(candidates, threshold=cut, direction=direction, stage=stage, **kwargs)
+    return prefilter_rank(
+        candidates, threshold=cut, direction=direction, stage=stage, **kwargs
+    )
 
 
 def estimate_savings(
@@ -320,7 +328,10 @@ def _percentile(values: Sequence[float], q: float) -> float:
 
 
 if __name__ == "__main__":  # tiny smoke when run directly
-    demo = [Candidate(f"m{i}", score=s) for i, s in enumerate([-9.1, -6.2, -8.4, -5.0, -7.7])]
+    demo = [
+        Candidate(f"m{i}", score=s)
+        for i, s in enumerate([-9.1, -6.2, -8.4, -5.0, -7.7])
+    ]
     res = prefilter_rank(demo, top_k=2, cost_expensive=1.0)
     print(res.marker())
     print("promoted:", [(c.cid, c.score) for c in res.promoted])

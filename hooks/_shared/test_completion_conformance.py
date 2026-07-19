@@ -19,6 +19,7 @@ Reuses build_cases() from test_completion.py so the two suites can never fall ou
 
 Run:  python test_completion_conformance.py
 """
+
 from __future__ import annotations
 
 import json
@@ -60,14 +61,27 @@ def run_powershell(cases, tmp: Path) -> list[str] | None:
     exe = _pwsh()
     if not exe:
         return None
-    payload = [{PARAM_MAP[k]: v for k, v in kwargs.items() if k in PARAM_MAP}
-               for _, _, kwargs in cases]
+    payload = [
+        {PARAM_MAP[k]: v for k, v in kwargs.items() if k in PARAM_MAP}
+        for _, _, kwargs in cases
+    ]
     cases_file = tmp / "cases.json"
     cases_file.write_text(json.dumps(payload), encoding="utf-8")
     proc = subprocess.run(
-        [exe, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
-         "-File", str(HERE / "completion.ps1"), "-CasesFile", str(cases_file)],
-        capture_output=True, text=True, timeout=120,
+        [
+            exe,
+            "-NoProfile",
+            "-NonInteractive",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(HERE / "completion.ps1"),
+            "-CasesFile",
+            str(cases_file),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=120,
     )
     if proc.returncode != 0:
         print(f"  !! pwsh exited {proc.returncode}\n{proc.stderr.strip()[:1500]}")
@@ -99,7 +113,9 @@ def main() -> int:
                 fails += 1
             print(f"  {'OK ' if ok else 'XX '} {label}: pwsh={ps_state} want={want}")
 
-    print(f"\nRESULT: {'ALL PASS' if not fails else str(fails) + ' FAIL'}  ({len(cases)} cases)")
+    print(
+        f"\nRESULT: {'ALL PASS' if not fails else str(fails) + ' FAIL'}  ({len(cases)} cases)"
+    )
     return 0 if not fails else 1
 
 

@@ -273,7 +273,9 @@ def _geometry_from_any(
     return _geometry_sanity(text, pose_id)
 
 
-def _parse_sdf_v2000(text: str) -> tuple[list[tuple[float, float, float, str]], list[tuple[int, int]]]:
+def _parse_sdf_v2000(
+    text: str,
+) -> tuple[list[tuple[float, float, float, str]], list[tuple[int, int]]]:
     """Tolerant SDF/MOL V2000 parse → (atoms[(x,y,z,elem)], bonds[(i,j)] 0-indexed).
 
     Whitespace-tolerant: standard SDF is fixed-width but space-padded, so a token
@@ -312,7 +314,9 @@ def _parse_sdf_v2000(text: str) -> tuple[list[tuple[float, float, float, str]], 
     return atoms, bonds
 
 
-def _dist(a: tuple[float, float, float, str], b: tuple[float, float, float, str]) -> float:
+def _dist(
+    a: tuple[float, float, float, str], b: tuple[float, float, float, str]
+) -> float:
     return math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2)
 
 

@@ -33,6 +33,7 @@ THE GOVERNING RULES (each one is paid for in a real incident)
 
 Stdlib-only, no I/O beyond stat/read of the artifact, safe to import from hooks.
 """
+
 from __future__ import annotations
 
 import os
@@ -51,6 +52,7 @@ DEFAULT_SENTINEL_TAIL = 600  # bytes of the tail searched for the sentinel
 @dataclass
 class Verdict:
     """A typed terminal-state result (AGENTS.md 4: prefer terminal-state outputs)."""
+
     state: str
     reason: str
     signals: dict = field(default_factory=dict)
@@ -63,9 +65,12 @@ class Verdict:
         return f"{self.state}: {self.reason}"
 
 
-def artifact_ok(path: Optional[str], sentinel: Optional[str] = None,
-                min_bytes: int = DEFAULT_MIN_BYTES,
-                sentinel_tail: int = DEFAULT_SENTINEL_TAIL) -> tuple[bool, str]:
+def artifact_ok(
+    path: Optional[str],
+    sentinel: Optional[str] = None,
+    min_bytes: int = DEFAULT_MIN_BYTES,
+    sentinel_tail: int = DEFAULT_SENTINEL_TAIL,
+) -> tuple[bool, str]:
     """The artifact half of the AND-gate: exists AND >= min_bytes AND (optionally) ends with the
     sentinel. This is the single definition every producer and consumer must share."""
     if not path:
@@ -95,7 +100,9 @@ def classify(
     exit_code: Optional[int] = None,
     pid_alive: Optional[bool] = None,
     cpu_delta_s: Optional[float] = None,
-    cpu_total_s: Optional[float] = None,   # accepted but NEVER used for liveness (rule 4)
+    cpu_total_s: Optional[
+        float
+    ] = None,  # accepted but NEVER used for liveness (rule 4)
     idle_s: Optional[float] = None,
     stale_after_s: Optional[float] = None,
     detector_ok: bool = True,
@@ -115,8 +122,11 @@ def classify(
 
     # ---- rule 3: the detector's own health outranks everything it reports --------------------
     if not detector_ok:
-        return Verdict(UNKNOWN, "detector reported failure; absence is not evidence",
-                       {"detector_ok": False})
+        return Verdict(
+            UNKNOWN,
+            "detector reported failure; absence is not evidence",
+            {"detector_ok": False},
+        )
 
     # ---- rule 1+2: the artifact is the strongest single signal -------------------------------
     ok, why = artifact_ok(artifact, sentinel, min_bytes)
@@ -133,7 +143,9 @@ def classify(
     # ---- rule 2: exit 0 with no artifact is a severed stream, not a success -------------------
     if exit_code == 0 and artifact:
         sig["exit_code"] = 0
-        return Verdict(FAILED, "severed-stream: exit 0 but artifact did not pass the gate", sig)
+        return Verdict(
+            FAILED, "severed-stream: exit 0 but artifact did not pass the gate", sig
+        )
 
     # ---- rules 4+5: liveness by DELTA, bounded by staleness -----------------------------------
     if pid_alive is True:
@@ -144,11 +156,16 @@ def classify(
         if moving:
             return Verdict(RUNNING, f"process alive, cpu delta {cpu_delta_s}s", sig)
         if stale_after_s is not None and idle_s is not None and idle_s >= stale_after_s:
-            return Verdict(FAILED,
-                           f"husk: alive but cpu-flat for {idle_s}s (>= {stale_after_s}s)", sig)
+            return Verdict(
+                FAILED,
+                f"husk: alive but cpu-flat for {idle_s}s (>= {stale_after_s}s)",
+                sig,
+            )
         if cpu_delta_s is None:
             return Verdict(UNKNOWN, "process alive but no cpu-delta measured", sig)
-        return Verdict(RUNNING, "process alive, cpu-flat but inside the staleness window", sig)
+        return Verdict(
+            RUNNING, "process alive, cpu-flat but inside the staleness window", sig
+        )
 
     if pid_alive is False:
         sig["pid_alive"] = False

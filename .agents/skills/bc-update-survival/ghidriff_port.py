@@ -32,6 +32,7 @@ CLI: `python ghidriff_port.py --help`. Long ghidriff runs should be wrapped with
 `longrun` (>60s). No hard third-party deps for the AOB path; `ghidriff` +
 `GHIDRA_INSTALL_DIR` are needed only for `port-ghidriff` / `diff`.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -53,6 +54,7 @@ import aob_resolver as aob  # noqa: E402
 # --------------------------------------------------------------------------- #
 # Table IO
 # --------------------------------------------------------------------------- #
+
 
 def load_table(path: str) -> dict:
     with open(path, "r", encoding="utf-8") as fh:
@@ -81,6 +83,7 @@ def _hx(v: Optional[int]) -> Optional[str]:
 # --------------------------------------------------------------------------- #
 # Strategy 1: AOB re-scan (primary, no Ghidra)
 # --------------------------------------------------------------------------- #
+
 
 def port_via_aob(
     old_table: dict,
@@ -172,6 +175,7 @@ def port_via_aob(
 # Strategy 2: ghidriff function-matching
 # --------------------------------------------------------------------------- #
 
+
 def parse_ghidriff_matches(obj: dict) -> list[dict]:
     """Extract matched (old->new) function pairs from a ghidriff JSON result.
 
@@ -262,7 +266,9 @@ def port_via_ghidriff(
             entry["old_rva"] = _hx(old_rva)
             entry["rva"] = _hx(new_rva)
             entry["status"] = "moved"
-            report["moved"].append({"name": name, "old": _hx(old_rva), "new": _hx(new_rva)})
+            report["moved"].append(
+                {"name": name, "old": _hx(old_rva), "new": _hx(new_rva)}
+            )
 
     report["summary"] = {k: len(report[k]) for k in ("moved", "unchanged", "unmatched")}
     return new_table, report
@@ -293,9 +299,7 @@ def run_ghidriff(
         engine,
     ]
     try:
-        proc = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=60 * 30
-        )
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60 * 30)
     except FileNotFoundError:
         return {"ok": False, "error": "ghidriff not installed"}
     except subprocess.TimeoutExpired:
@@ -324,6 +328,7 @@ def run_ghidriff(
 # --------------------------------------------------------------------------- #
 # APK helper + triage orchestration
 # --------------------------------------------------------------------------- #
+
 
 def extract_so_from_apk(
     apk_path: str, dest_dir: str, abi_pref=("x86_64", "arm64-v8a", "armeabi-v7a")
@@ -409,12 +414,15 @@ def triage(
 # CLI
 # --------------------------------------------------------------------------- #
 
+
 def _elf_for(path: str, use_sections: bool) -> Optional[aob.ElfMap]:
     return aob.ElfMap(path) if use_sections else None
 
 
 def _cli(argv: Optional[list[str]] = None) -> int:
-    p = argparse.ArgumentParser(description="ghidriff cross-version .so diff + offset porter (BC)")
+    p = argparse.ArgumentParser(
+        description="ghidriff cross-version .so diff + offset porter (BC)"
+    )
     p.add_argument("--imagebase", default="0x0")
     p.add_argument("--elf-sections", action="store_true")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -422,16 +430,22 @@ def _cli(argv: Optional[list[str]] = None) -> int:
     pa = sub.add_parser("port-aob", help="port a table by AOB re-scan of the new .so")
     pa.add_argument("table")
     pa.add_argument("new_so")
-    pa.add_argument("--old-so", default=None, help="author missing sigs from this old .so")
+    pa.add_argument(
+        "--old-so", default=None, help="author missing sigs from this old .so"
+    )
     pa.add_argument("--out", default=None, help="write ported table json here")
 
-    pg = sub.add_parser("port-ghidriff", help="port a table from a ghidriff JSON result")
+    pg = sub.add_parser(
+        "port-ghidriff", help="port a table from a ghidriff JSON result"
+    )
     pg.add_argument("table")
     pg.add_argument("ghidriff_json")
     pg.add_argument("--ghidra-base", default="0x0")
     pg.add_argument("--out", default=None)
 
-    di = sub.add_parser("diff", help="run ghidriff on two .so files (needs Ghidra; long)")
+    di = sub.add_parser(
+        "diff", help="run ghidriff on two .so files (needs Ghidra; long)"
+    )
     di.add_argument("old_so")
     di.add_argument("new_so")
     di.add_argument("--out", default="ghidriff-out")
@@ -468,7 +482,9 @@ def _cli(argv: Optional[list[str]] = None) -> int:
         table = load_table(args.table)
         with open(args.ghidriff_json, "r", encoding="utf-8") as fh:
             gobj = json.load(fh)
-        new_table, report = port_via_ghidriff(table, gobj, _as_int(args.ghidra_base) or 0)
+        new_table, report = port_via_ghidriff(
+            table, gobj, _as_int(args.ghidra_base) or 0
+        )
         if args.out:
             save_table(new_table, args.out)
             report["written"] = args.out
@@ -482,7 +498,13 @@ def _cli(argv: Optional[list[str]] = None) -> int:
 
     if args.cmd == "triage":
         table = load_table(args.table) if args.table else None
-        rep = triage(args.old_input, args.new_input, table, use_ghidriff=args.ghidriff, imagebase=imagebase)
+        rep = triage(
+            args.old_input,
+            args.new_input,
+            table,
+            use_ghidriff=args.ghidriff,
+            imagebase=imagebase,
+        )
         if args.out and rep.get("new_table"):
             save_table(rep["new_table"], args.out)
             rep["written"] = args.out
@@ -497,6 +519,7 @@ def _cli(argv: Optional[list[str]] = None) -> int:
 # --------------------------------------------------------------------------- #
 # Built-in offline self-test
 # --------------------------------------------------------------------------- #
+
 
 def selftest() -> bool:
     import tempfile
@@ -529,8 +552,8 @@ def selftest() -> bool:
     gap = stable_off_v1 - (len(lead) + len(body_v2))
     assert gap >= 0, "adjust selftest layout"
     v2 = lead + body_v2 + (b"\x90" * gap) + f_stable + pad
-    moved_off_v1 = len(pad)          # 0x30
-    moved_off_v2 = len(lead)         # 0x40
+    moved_off_v1 = len(pad)  # 0x30
+    moved_off_v2 = len(lead)  # 0x40
 
     with tempfile.TemporaryDirectory() as td:
         v1p = os.path.join(td, "v1.so")
@@ -554,8 +577,14 @@ def selftest() -> bool:
             "version": "v1",
             "sha256": aob.sha256_file(v1p),
             "offsets": {
-                "moved": {"rva": aob._off_to_rva(moved_off_v1, 0, None), "sig": moved_sig},
-                "stable": {"rva": aob._off_to_rva(stable_off_v1, 0, None), "sig": stable_sig},
+                "moved": {
+                    "rva": aob._off_to_rva(moved_off_v1, 0, None),
+                    "sig": moved_sig,
+                },
+                "stable": {
+                    "rva": aob._off_to_rva(stable_off_v1, 0, None),
+                    "sig": stable_sig,
+                },
                 "nosig": {"rva": "0x10"},  # no sig, no old_so -> skipped
             },
         }
@@ -572,8 +601,14 @@ def selftest() -> bool:
         )
         check("aob: stable function unchanged", "stable" in report["unchanged"])
         check("aob: entry without sig skipped", "nosig" in report["skipped"])
-        check("aob: new table carries new sha256", new_table["sha256"] == aob.sha256_file(v2p))
-        check("aob: ported_from records old version", new_table["ported_from"]["version"] == "v1")
+        check(
+            "aob: new table carries new sha256",
+            new_table["sha256"] == aob.sha256_file(v2p),
+        )
+        check(
+            "aob: ported_from records old version",
+            new_table["ported_from"]["version"] == "v1",
+        )
 
         # a pinned RVA in v1 that no longer resolves -> 'missing'
         bad_table = {
@@ -625,7 +660,10 @@ def selftest() -> bool:
             ]
         }
         pairs = parse_ghidriff_matches(gobj_flat)
-        check("ghidriff: flat layout parsed", len(pairs) == 1 and pairs[0]["new_addr"] == moved_off_v2)
+        check(
+            "ghidriff: flat layout parsed",
+            len(pairs) == 1 and pairs[0]["new_addr"] == moved_off_v2,
+        )
 
         # ghidra base subtraction
         gobj_based = {
@@ -651,24 +689,36 @@ def selftest() -> bool:
             zf.writestr("lib/arm64-v8a/libnative-lib.so", b"\x00\x01\x02")
             zf.writestr("AndroidManifest.xml", b"stub")
         extracted = extract_so_from_apk(apk_new, os.path.join(td, "ex"))
-        check("apk: x86_64 .so extracted", extracted is not None and os.path.exists(extracted))
+        check(
+            "apk: x86_64 .so extracted",
+            extracted is not None and os.path.exists(extracted),
+        )
         check("apk: extracted bytes match v2", open(extracted, "rb").read() == v2)
 
         # triage: old .so vs new .apk, native changed -> ports the table
         tri = triage(v1p, apk_new, table=table, workdir=os.path.join(td, "tri"))
         check("triage: native change detected", tri["native_changed"])
         check("triage: verdict says re-port", "CHANGED" in tri["verdict"])
-        check("triage: aob port ran", tri.get("aob_port", {}).get("summary", {}).get("moved") == 1)
+        check(
+            "triage: aob port ran",
+            tri.get("aob_port", {}).get("summary", {}).get("moved") == 1,
+        )
 
         # triage: identical inputs -> no change, no porting
         tri_same = triage(v1p, v1p, table=table, workdir=os.path.join(td, "tri2"))
-        check("triage: identical -> UNCHANGED", not tri_same["native_changed"] and "UNCHANGED" in tri_same["verdict"])
+        check(
+            "triage: identical -> UNCHANGED",
+            not tri_same["native_changed"] and "UNCHANGED" in tri_same["verdict"],
+        )
 
         # run_ghidriff degrades gracefully without GHIDRA_INSTALL_DIR
         saved = os.environ.pop("GHIDRA_INSTALL_DIR", None)
         try:
             gr = run_ghidriff(v1p, v2p, os.path.join(td, "gr"))
-            check("run_ghidriff: no-ghidra reports gap (never raises)", gr["ok"] is False and "GHIDRA" in gr["error"])
+            check(
+                "run_ghidriff: no-ghidra reports gap (never raises)",
+                gr["ok"] is False and "GHIDRA" in gr["error"],
+            )
         finally:
             if saved is not None:
                 os.environ["GHIDRA_INSTALL_DIR"] = saved

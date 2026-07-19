@@ -16,6 +16,7 @@ special-case it here.
 
 Run:  python test_completion_vendored.py
 """
+
 from __future__ import annotations
 
 import os
@@ -31,7 +32,8 @@ HARNESS = Path(os.path.expanduser("~")) / ".claude" / "harness-sota-2026-07-18"
 
 # file -> why it cannot import C1
 VENDORED = {
-    HARNESS / "dbx_batch_runner.py": "runs on a Databricks job node; no repo on the executor",
+    HARNESS
+    / "dbx_batch_runner.py": "runs on a Databricks job node; no repo on the executor",
     HARNESS / "_batch_runner_nb.py": "generated notebook; executes remotely",
 }
 
@@ -41,8 +43,10 @@ SENTINEL = "UNIT-COMPLETE"
 def main() -> int:
     fails = 0
     checked = 0
-    print(f"C1 constants: min_bytes={completion.DEFAULT_MIN_BYTES} "
-          f"sentinel_tail={completion.DEFAULT_SENTINEL_TAIL} sentinel={SENTINEL!r}\n")
+    print(
+        f"C1 constants: min_bytes={completion.DEFAULT_MIN_BYTES} "
+        f"sentinel_tail={completion.DEFAULT_SENTINEL_TAIL} sentinel={SENTINEL!r}\n"
+    )
 
     for path, why in VENDORED.items():
         if not path.exists():
@@ -74,20 +78,28 @@ def main() -> int:
         # artifact; the unit was scored FAILED and the work discarded).
         gating = re.findall(r"if\s+rc\s*==\s*0\s+and\s+ok\b", src)
         if gating:
-            print(f"  XX {path.name}: exit code GATES a valid artifact ('rc == 0 and ok') "
-                  f"-- the F036 bug; a complete artifact must win over a non-zero exit")
+            print(
+                f"  XX {path.name}: exit code GATES a valid artifact ('rc == 0 and ok') "
+                f"-- the F036 bug; a complete artifact must win over a non-zero exit"
+            )
             fails += 1
         else:
             print(f"  OK {path.name}: artifact outranks exit code")
 
-        for label, found, want in (("min_bytes", sizes, completion.DEFAULT_MIN_BYTES),
-                                   ("tail_bytes", tails, completion.DEFAULT_SENTINEL_TAIL)):
+        for label, found, want in (
+            ("min_bytes", sizes, completion.DEFAULT_MIN_BYTES),
+            ("tail_bytes", tails, completion.DEFAULT_SENTINEL_TAIL),
+        ):
             if not found:
-                print(f"  XX {path.name}: no {label} constant found -- gate may have been "
-                      f"restructured; re-check it by hand")
+                print(
+                    f"  XX {path.name}: no {label} constant found -- gate may have been "
+                    f"restructured; re-check it by hand"
+                )
                 fails += 1
             elif found != {want}:
-                print(f"  XX {path.name}: {label}={sorted(found)} DRIFTED from C1 ({want})")
+                print(
+                    f"  XX {path.name}: {label}={sorted(found)} DRIFTED from C1 ({want})"
+                )
                 fails += 1
             else:
                 print(f"  OK {path.name}: {label}={want}")
@@ -101,8 +113,10 @@ def main() -> int:
     if not checked:
         print("\nRESULT: NOTHING CHECKED -- no vendored file present. Not a pass.")
         return 2
-    print(f"\nRESULT: {'ALL PASS' if not fails else str(fails) + ' FAIL'}  "
-          f"({checked} vendored file(s))")
+    print(
+        f"\nRESULT: {'ALL PASS' if not fails else str(fails) + ' FAIL'}  "
+        f"({checked} vendored file(s))"
+    )
     return 0 if not fails else 1
 
 

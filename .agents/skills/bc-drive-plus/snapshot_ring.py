@@ -32,6 +32,7 @@ CLI:
 Env: BC_ADB (default adb), BC_SERIAL (default 127.0.0.1:5555),
      BC_RING_DIR (default <skill>/.save-ring), BC_RING_CAP (default 10).
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -116,19 +117,27 @@ class AdbSaveIO:
     """Real adb-backed save I/O. Encodes the bcsfe-save-roundtrip discipline:
     HOME-flush pull, force-stop-first + in-place ``cat >`` restore, md5 verify."""
 
-    def __init__(self, adb: Optional[str] = None, serial: Optional[str] = None,
-                 flush_wait_s: float = 3.0) -> None:
+    def __init__(
+        self,
+        adb: Optional[str] = None,
+        serial: Optional[str] = None,
+        flush_wait_s: float = 3.0,
+    ) -> None:
         self.adb = adb or os.environ.get("BC_ADB", "adb")
         self.serial = serial or os.environ.get("BC_SERIAL", "127.0.0.1:5555")
         self.flush_wait_s = flush_wait_s
 
-    def _run(self, *args: str, binary: bool = False, want_input: Optional[bytes] = None):
+    def _run(
+        self, *args: str, binary: bool = False, want_input: Optional[bytes] = None
+    ):
         cmd = [self.adb, "-s", self.serial, *args]
         if binary:
-            return subprocess.run(cmd, stdout=subprocess.PIPE, input=want_input,
-                                  check=True).stdout
-        return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                              text=True, check=True).stdout.strip()
+            return subprocess.run(
+                cmd, stdout=subprocess.PIPE, input=want_input, check=True
+            ).stdout
+        return subprocess.run(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=True
+        ).stdout.strip()
 
     def flush(self) -> None:
         self._run("shell", "input", "keyevent", "KEYCODE_HOME")
@@ -162,9 +171,14 @@ class SnapshotRing:
     logic is pure and unit-testable with a fake IO.
     """
 
-    def __init__(self, io: SaveIO, ring_dir: str, capacity: int = DEFAULT_CAPACITY,
-                 min_bytes: int = MIN_SAVE_BYTES,
-                 logger: Optional[logging.Logger] = None) -> None:
+    def __init__(
+        self,
+        io: SaveIO,
+        ring_dir: str,
+        capacity: int = DEFAULT_CAPACITY,
+        min_bytes: int = MIN_SAVE_BYTES,
+        logger: Optional[logging.Logger] = None,
+    ) -> None:
         if capacity < 1:
             raise ValueError("capacity must be >= 1")
         self.io = io
@@ -219,12 +233,15 @@ class SnapshotRing:
         fpath = os.path.join(self.ring_dir, fname)
         with open(fpath, "wb") as f:
             f.write(data)
-        snap = Snapshot(ts=ts, path=fpath, md5=digest, size=len(data),
-                        label=label, verified=True)
+        snap = Snapshot(
+            ts=ts, path=fpath, md5=digest, size=len(data), label=label, verified=True
+        )
         self._snaps.append(snap)
         self._rotate()
         self._save_manifest()
-        self.log.info("snapshot stored: %s (%d bytes, md5 %s)", fname, snap.size, digest)
+        self.log.info(
+            "snapshot stored: %s (%d bytes, md5 %s)", fname, snap.size, digest
+        )
         return snap
 
     def _rotate(self) -> None:
@@ -246,7 +263,11 @@ class SnapshotRing:
     def latest_good(self) -> Optional[Snapshot]:
         """Newest snapshot that is verified and still on disk at the recorded size."""
         for s in self.list():
-            if s.ok and os.path.exists(s.path) and os.path.getsize(s.path) >= self.min_bytes:
+            if (
+                s.ok
+                and os.path.exists(s.path)
+                and os.path.getsize(s.path) >= self.min_bytes
+            ):
                 return s
         return None
 
@@ -278,28 +299,47 @@ class SnapshotRing:
         if snap is None:
             return {"result": "FAILED:snapshot-ring-rollback no known-good snapshot"}
         if not (snap.ok and os.path.exists(snap.path)):
-            return {"result": f"FAILED:snapshot-ring-rollback snapshot unusable ({snap.path})"}
+            return {
+                "result": f"FAILED:snapshot-ring-rollback snapshot unusable ({snap.path})"
+            }
         data = self._read_snapshot_bytes(snap)
         if len(data) < self.min_bytes or md5_hex(data) != snap.md5:
-            return {"result": "FAILED:snapshot-ring-rollback backup integrity check failed",
-                    "expected_md5": snap.md5, "actual_md5": md5_hex(data), "size": len(data)}
+            return {
+                "result": "FAILED:snapshot-ring-rollback backup integrity check failed",
+                "expected_md5": snap.md5,
+                "actual_md5": md5_hex(data),
+                "size": len(data),
+            }
         if not enforce:
             msg = f"SHADOW would restore {os.path.basename(snap.path)} (md5 {snap.md5})"
             self.log.info(msg)
-            return {"result": "SHADOW:snapshot-ring-rollback", "would_restore": snap.to_json(),
-                    "pushed": False}
+            return {
+                "result": "SHADOW:snapshot-ring-rollback",
+                "would_restore": snap.to_json(),
+                "pushed": False,
+            }
         # ENFORCE: force-stop first (block autosave), in-place restore, md5 verify.
         self.io.force_stop()
         self.io.push(data)
         dev_md5 = self.io.device_md5()
         verified = dev_md5 == snap.md5
-        result = ("SUCCESS:snapshot-ring-rollback" if verified
-                  else "FAILED:snapshot-ring-rollback md5 mismatch after restore")
+        result = (
+            "SUCCESS:snapshot-ring-rollback"
+            if verified
+            else "FAILED:snapshot-ring-rollback md5 mismatch after restore"
+        )
         self.log.info("%s dev_md5=%s snap_md5=%s", result, dev_md5, snap.md5)
-        return {"result": result, "restored": snap.to_json(), "pushed": True,
-                "device_md5": dev_md5, "verified": verified}
+        return {
+            "result": result,
+            "restored": snap.to_json(),
+            "pushed": True,
+            "device_md5": dev_md5,
+            "verified": verified,
+        }
 
-    def auto_rollback(self, is_broken: Callable[[], bool], *, enforce: bool = False) -> dict:
+    def auto_rollback(
+        self, is_broken: Callable[[], bool], *, enforce: bool = False
+    ) -> dict:
         """HGT-safe auto-rollback. SHADOW by default (enforce=False): if ``is_broken()``
         returns True, LOG which snapshot WOULD be restored and mutate nothing. Only
         with ``enforce=True`` does it actually restore. Never blocks/nags."""
@@ -312,14 +352,28 @@ class SnapshotRing:
             return {"result": "ok", "broken": False, "action": "none"}
         target = self.latest_good()
         if target is None:
-            return {"result": "FAILED:snapshot-ring-auto-rollback broken but no known-good snapshot",
-                    "broken": True, "action": "none"}
+            return {
+                "result": "FAILED:snapshot-ring-auto-rollback broken but no known-good snapshot",
+                "broken": True,
+                "action": "none",
+            }
         if not enforce:
-            self.log.warning("SHADOW auto-rollback: state broken; would restore %s",
-                             os.path.basename(target.path))
-            return {"result": "SHADOW:snapshot-ring-auto-rollback", "broken": True,
-                    "would_restore": target.to_json(), "action": "shadow-log", "pushed": False}
-        return {**self.rollback(target, enforce=True), "broken": True, "action": "restore"}
+            self.log.warning(
+                "SHADOW auto-rollback: state broken; would restore %s",
+                os.path.basename(target.path),
+            )
+            return {
+                "result": "SHADOW:snapshot-ring-auto-rollback",
+                "broken": True,
+                "would_restore": target.to_json(),
+                "action": "shadow-log",
+                "pushed": False,
+            }
+        return {
+            **self.rollback(target, enforce=True),
+            "broken": True,
+            "action": "restore",
+        }
 
     def prune(self) -> dict:
         """Enforce capacity and drop manifest entries whose files vanished."""
@@ -333,8 +387,11 @@ class SnapshotRing:
             if name.endswith(".bin") and name not in keep:
                 self._unlink(os.path.join(self.ring_dir, name))
                 removed += 1
-        return {"result": "SUCCESS:snapshot-ring-prune", "kept": len(self._snaps),
-                "orphans_removed": removed}
+        return {
+            "result": "SUCCESS:snapshot-ring-prune",
+            "kept": len(self._snaps),
+            "orphans_removed": removed,
+        }
 
 
 # -- CLI -------------------------------------------------------------------
@@ -355,7 +412,9 @@ def _emit(obj: object) -> None:
 
 
 def main(argv: Optional[list[str]] = None) -> int:
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, format="%(levelname)s %(name)s: %(message)s"
+    )
     args = list(sys.argv[1:] if argv is None else argv)
     if not args:
         sys.stdout.write(__doc__ or "")
@@ -365,8 +424,13 @@ def main(argv: Optional[list[str]] = None) -> int:
     if cmd == "snap":
         _emit(ring.snapshot(rest[0] if rest else "").to_json())
     elif cmd == "list":
-        _emit({"ring_dir": ring.ring_dir, "capacity": ring.capacity,
-               "snapshots": [s.to_json() for s in ring.list()]})
+        _emit(
+            {
+                "ring_dir": ring.ring_dir,
+                "capacity": ring.capacity,
+                "snapshots": [s.to_json() for s in ring.list()],
+            }
+        )
     elif cmd == "rollback":
         idx = int(rest[0]) if rest else None
         _emit(ring.rollback(idx, enforce=True))
@@ -376,8 +440,14 @@ def main(argv: Optional[list[str]] = None) -> int:
             _emit({"result": "FAILED:verify no known-good snapshot"})
             return 1
         dev = ring.io.device_md5()
-        _emit({"result": "match" if dev == good.md5 else "differ",
-               "device_md5": dev, "snapshot_md5": good.md5, "snapshot": good.to_json()})
+        _emit(
+            {
+                "result": "match" if dev == good.md5 else "differ",
+                "device_md5": dev,
+                "snapshot_md5": good.md5,
+                "snapshot": good.to_json(),
+            }
+        )
     elif cmd == "prune":
         _emit(ring.prune())
     else:
