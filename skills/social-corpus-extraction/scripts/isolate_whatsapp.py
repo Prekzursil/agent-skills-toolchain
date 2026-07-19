@@ -1386,7 +1386,11 @@ def main(argv: list[str] | None = None) -> int:
         # lookup that e2e/assert_b2_independent.py already relies on. A true cross-device
         # duplicate (iOS+Android of ONE message) is NOT collapsed here anyway, because the
         # two dialects write ts_raw at different precision (seconds vs minute).
-        key = (m.chat, m.ts_raw, hashlib.sha1(m.body.encode("utf-8"), usedforsecurity=False).hexdigest())
+        key = (
+            m.chat,
+            m.ts_raw,
+            hashlib.sha1(m.body.encode("utf-8"), usedforsecurity=False).hexdigest(),
+        )
         if key not in seen:
             seen.add(key)
             deduped.append(m)
