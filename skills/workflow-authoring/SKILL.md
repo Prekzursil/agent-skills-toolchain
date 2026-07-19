@@ -137,6 +137,29 @@ homogeneous (similar expected runtimes) so the barrier's tail is short.
   `required`). You then aggregate typed objects, never re-parse prose. The
   aggregator agent also takes a schema. This is what makes the gates
   "schema-typed": `{ verdict, blocking, ... }` on each reviewer.
+- **`required` is the FLOOR, not the wishlist — over-broad `required[]` rejects
+  good work.** List in `required` ONLY the fields an agent can ALWAYS produce
+  (typically `digest`/`answer` + `evidence`). Anything conditional — a `verdict`
+  a null-result unit has no basis for, an `artifact` path a read-only lens never
+  writes, an `owner_actions` array that is legitimately empty — must be OPTIONAL.
+  A required field the agent cannot fill makes StructuredOutput reject an
+  otherwise-correct return and burn all its retries. Ledger-proven 2026-07-19
+  (`wf_00a25df9-2cd`): a `DIGEST` requiring `verdict/corrections/evidence/artifact`
+  failed 2 agents 5× each — their real analysis (one wrote a 16 KB artifact to
+  disk) was thrown away purely on the digest shape. Belt-and-braces: have each
+  agent WRITE its full deliverable to disk (rule 11 output contract) so a rejected
+  digest never loses the work — the synthesis fan-in reads the artifact, not the
+  digest.
+- **Editing a shared schema const busts the RESUME cache — plan the schema before
+  the first launch.** Resume is prefix-cached: a completed `agent()` replays only
+  if its `(prompt, opts)` is byte-identical, and `opts.schema` is part of that.
+  A schema referenced by the FIRST phase's agents is therefore the worst thing to
+  edit on a resume — it changes every agent's `opts`, so the longest-unchanged
+  prefix is empty and ALL agents re-run live (a full "from beginning" run you may
+  have been explicitly told to avoid). Corollary: get the schema right up front;
+  if you must fix an over-strict schema mid-run, the cache-preserving move is a
+  ONE-OFF standalone `Task()` for the single failed lens (writing the same
+  artifact path), NOT an edit-and-resume of the shared const.
 
 ## 8. Cache-cliff-aware fan-out
 
@@ -159,6 +182,12 @@ run the schema-typed Codex lane with MCP tools disabled for that call, or
 validate/repair Codex's output on the Claude side before aggregating. Do not
 assume the schema was honored just because you passed it.
 
+**Windows arg-limit corollary (measured 2026-07-18).** The same active-MCP inventory that voids
+`--output-schema` also blows the Windows 32,767-char `CreateProcess` limit: two Codex runs died
+with `payload_len=34472` / `os error 206` before executing anything. Pass `--ignore-user-config`
+on every non-interactive Codex invocation, and pass the prompt BY FILE (`--prompt-file`, or stdin
+via `-`), never inline. See `rules/common/cross-vendor-dispatch.md`.
+
 ## 10. SDK notes (context-editing, task-budgets, canUseTool)
 
 When a workflow is driven through the Agent SDK rather than the in-app runtime:
@@ -171,6 +200,84 @@ When a workflow is driven through the Agent SDK rather than the in-app runtime:
 - **`canUseTool`** is the SDK's per-agent tool gate — the file-scope / capability
   enforcement point for fan-out subagents (the parity for in-app subagent
   scoping). Use it to hold a mutating agent to its declared file scope (rule 4/7).
+
+## 11. Fan-out spawn-prompt template
+
+Measured over 50 agents / 6 workflows (2026-07-18): element presence in the prompt predicts
+compliance almost perfectly, and **nothing is inherited** from the global contract. Blocks marked
+REQUIRED are the ones with measured evidence behind them. Full rationale + the fan-in gates:
+`rules/common/fan-out-contract.md`.
+
+```
+[REQUIRED] VERIFIED GROUND TRUTH — established by direct inspection immediately before this
+workflow. Treat as high-confidence. Each claim is tagged [probe: <how it was measured>].
+To confirm OR refute you MUST use a mechanically DIFFERENT probe — a different shell, a
+different data field, a different measurement. Re-running the tagged probe does NOT count as
+verification and must not be reported as CONFIRMED. Report every reconciliation in a
+dedicated section, whatever the outcome.
+  1. <claim>  [probe: Get-Command mon, PowerShell 7]
+  2. <claim>  [probe: directory listing at 00:25 — may be stale]
+  ...
+[REQUIRED] ACCESS METHODS — for every path above that is NOT readable by Read at that literal
+path, state how to read it:
+  - tools/monitorcore/** exists ONLY on origin/main: read via `git show origin/main:<path>`.
+    The working tree is on branch <X> and does not contain it.
+
+[REQUIRED] ANTI-OVERFIT ANCHOR — a proposal counts only if it (a) rides the EXISTING bus
+(<name the buses>), and (b) does not reintroduce a rejected component (<name them>).
+Prefer "enable a native feature" and "fold into the existing adapter" over "new daemon".
+[If a deliverable deliberately waives this, say so explicitly and say why.]
+
+ENVIRONMENT: <OS, shells, language constraints, RAM ceiling>.
+
+=== YOUR TASK (<lens-slug>) ===
+<2-5 sentences. Name the concrete artefacts to read. State the deliverable as numbered
+outputs. End with "Be concrete about <the specific axis>, not generic <domain> advice.">
+
+[REQUIRED] PER-FINDING RUBRIC — apply to every RECOMMENDATION (skip for pure audit findings):
+  name / what it is / why THIS user specifically / how to build-or-adopt (file, function,
+  command) / source: file:line or URL / value (H|M|L) x effort (H|M|L) /
+  disposition: NATIVE (already exists, just enable) | ADOPT (external, vendor it) |
+    BUILD (write it) | PRUNE (delete something) /
+  confidence: almost-certain 90-99% | likely 55-80% | roughly-even 45-55% | unlikely 20-45%,
+    followed by the evidence that justifies that band.
+
+[REQUIRED] HONESTY CONTRACT — the global contract does NOT carry into this fan-out; these
+apply here or not at all:
+  - Attach UNVERIFIED INLINE to the sentence it qualifies. A limitations section at the end
+    does NOT satisfy this. If a recommendation's premise is UNVERIFIED, its heading inherits
+    the tag.
+  - Every UNVERIFIED names the experiment that would settle it.
+  - "Absent / not found / broken" is a claim, not an observation. Verify your detector can
+    find a known-present item before reporting absence.
+  - Do not report CONFIRMED on a probe that is the same mechanism as the one being checked.
+  - If a tool is denied, you are in a subagent — no user will answer. Do not stop. Record the
+    gap, use an alternative, report it in your digest.
+
+[REQUIRED] OUTPUT CONTRACT
+  1. Write the full deliverable to <abs path>. Write it with the **Write** tool. If a single
+     call is too large, chunk with `Add-Content` — never build a multi-KB literal inside a
+     shell command string (Windows 32,767-char limit -> os error 206).
+  2. Then return a <= 400 word structured digest as your final text (NOT the whole doc).
+     LEAD the digest with any ground-truth correction, then the top findings.
+  3. Append an EVIDENCE: block of 3-5 file:line / URL anchors. It is EXEMPT from the word
+     cap — 87% of file:line refs and 100% of URLs otherwise die at the digest boundary.
+  4. Your final line must be: DELIVERED: <abs path> (<n> bytes)
+```
+
+For a cross-vendor (Codex) unit, do NOT paste a here-string output contract and do NOT route
+through a `*-rescue` forwarder — see §12 and `rules/common/cross-vendor-dispatch.md`.
+
+## 12. agentType caveat — a fan-out is only as synchronous as its slowest lie
+
+`agent({ agentType: 'codex:codex-rescue' })` is NOT an interchangeable work-unit executor. Its
+definition instructs it to **prefer background execution** for tasks that are "complicated,
+open-ended, multi-step" — i.e. every work unit — and it ships `model: sonnet` with `tools: Bash`
+only, so it cannot write a report or verify its own artifacts. Measured: 3 such agents, 34 turns,
+**0 production files**; one returned only a job id, and that job then completed on disk with a
+real finding the harness could not collect. Use `agentType: 'codex'` (the synchronous adapter).
+Any barrier that accepts a result containing `started in the background` or `Check /codex:status`
+is accepting a receipt, not an answer — reject it at fan-in.
 
 ---
 
@@ -206,3 +313,9 @@ that blocks on a blocking FAIL is a separate, deferred step.
 - [ ] byte-stable shared prompt prefix; volatile data only in per-agent tails
 - [ ] one level of nesting; wide barriers kept small + homogeneous
 - [ ] agents auto-discover their input (args arrive as one string)
+- [ ] no spawn prompt asserts a tool is blocked without a live probe backing it
+- [ ] every contracted output path is `Test-Path`-checked at fan-in before its digest is read
+- [ ] cross-vendor units use `agentType: 'codex'`, never a `*-rescue` forwarder
+- [ ] briefed facts carry `[probe: …]` + a timestamp + a different-mechanism re-verify rule
+- [ ] adversarial reviewers receive siblings' FULL text and their own on-disk artifact contract
+- [ ] agents flush a partial artifact on a cadence (a cohort interrupt must degrade, not zero)
