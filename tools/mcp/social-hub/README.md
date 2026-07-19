@@ -87,6 +87,15 @@ implements the two rails that actually exist and is explicit about what each see
 | **Graph API `/me/posts` + `user_posts`** — live secondary | `graph` (needs `FB_USER_TOKEN`) | Posts the user created on their timeline (+ tagged), per the documented read edge. `user_posts` is a **current** permission (Graph v25.0, no deprecation). A self-owned app in Development mode can grant it to its own admin/tester with **no App Review**. | May **not return all** posts — Meta warns an unauthorised feed "will return an empty array." Not the completeness rail. | **BUILT-NOW**. That the edge returns the owner's posts *at all*: likely (55-80%). That it returns the FULL historical set: **roughly even (40-60%)**, `UNVERIFIED` — not exercised live (no `user_posts` token was generated; that is an owner step; a local Graph token failed OAuth code 190). [E2][E3][E4] |
 | **Cookie/session scrape** (mbasic, `facebook-scraper`) | not built | — | — | **IMPOSSIBLE-reliable**. `mbasic.facebook.com` retired 2024-12-03 and now 302-redirects to `/unsupportedbrowser` (a live probe with valid cookies returns the logged-out wall, not a timeline); `kevinzg/facebook-scraper` is abandoned and broken by FB's JS rendering; both are ToS-risky. Deliberately NOT built. almost certain (90-99%). [E5][E6] |
 
+**Live-observed gating (2026-07-19).** The Graph rail's prerequisite -- a Meta Developer
+account -- is currently **blocked for this owner** by an account-safety cooldown: the
+enrollment page returns a *"using a device you don't usually use"* safety block, reproduced
+live in the page DOM (the owner reports it on all devices; the account-wide scope is not
+independently verified here). `FB_USER_TOKEN` therefore cannot be generated until Meta's
+time-based cooldown clears -- a concrete reason the DYI rail is primary, and there is no
+legitimate bypass. almost certain (90-99%) the block is active on the tested device today;
+the account-wide scope + trust-reset mechanism are likely (55-80%).
+
 **Chosen rail: the DYI export** — the only *complete*, official, scrape-free path, and the one
 the corpus isolators already target. The Graph rail is a live/incremental complement, not a
 replacement. `fbchat_muqit` (the cookie backend) is **Messenger-only and does NOT read timeline
