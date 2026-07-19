@@ -3,6 +3,7 @@
 
 Run: python test_emitter.py
 """
+
 from __future__ import annotations
 
 import json
@@ -105,8 +106,13 @@ class EmitterTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temp.cleanup()
 
-    def run_hook(self, payload: dict | None = None, *, raw: str | None = None,
-                 env: dict | None = None) -> subprocess.CompletedProcess[str]:
+    def run_hook(
+        self,
+        payload: dict | None = None,
+        *,
+        raw: str | None = None,
+        env: dict | None = None,
+    ) -> subprocess.CompletedProcess[str]:
         body = raw if raw is not None else json.dumps(payload or {})
         return subprocess.run(
             [sys.executable, str(HOOK)],
@@ -119,7 +125,9 @@ class EmitterTests(unittest.TestCase):
         )
 
     def transcript(self, *events: dict) -> Path:
-        path = self.root / f"transcript-{len(list(self.root.glob('transcript-*')))}.jsonl"
+        path = (
+            self.root / f"transcript-{len(list(self.root.glob('transcript-*')))}.jsonl"
+        )
         path.write_text(
             "".join(json.dumps(event) + "\n" for event in events),
             encoding="utf-8",
@@ -137,9 +145,15 @@ class EmitterTests(unittest.TestCase):
             if line.strip()
         ]
 
-    def post_payload(self, transcript: Path | str, tool_use_id: str,
-                     *, event: str = "PostToolUse", session: str = "session-A",
-                     tool: str = "mcp__exa__web_search_exa") -> dict:
+    def post_payload(
+        self,
+        transcript: Path | str,
+        tool_use_id: str,
+        *,
+        event: str = "PostToolUse",
+        session: str = "session-A",
+        tool: str = "mcp__exa__web_search_exa",
+    ) -> dict:
         payload = {
             "session_id": session,
             "transcript_path": str(transcript),
@@ -175,7 +189,9 @@ class EmitterTests(unittest.TestCase):
         self.assertIs(event["success"], True)
         self.assertEqual(1, event["seq"])
         event_file = next(self.ledger_root.glob("*/events.jsonl"))
-        state = json.loads((event_file.parent / "state.json").read_text(encoding="utf-8"))
+        state = json.loads(
+            (event_file.parent / "state.json").read_text(encoding="utf-8")
+        )
         self.assertEqual(1, state["seq"])
         serialized = json.dumps(event)
         self.assertNotIn("must not be persisted", serialized)
@@ -212,7 +228,9 @@ class EmitterTests(unittest.TestCase):
         self.assertEqual(0, result.returncode)
         self.assertEqual([], self.events())
 
-    def test_internal_task_notification_is_not_a_query_or_fallback_boundary(self) -> None:
+    def test_internal_task_notification_is_not_a_query_or_fallback_boundary(
+        self,
+    ) -> None:
         prompt = {
             "session_id": "session-A",
             "cwd": str(self.cwd),
@@ -221,7 +239,9 @@ class EmitterTests(unittest.TestCase):
         }
         self.assertEqual(0, self.run_hook(prompt).returncode)
         transcript = self.transcript(
-            user_event("Earlier genuine prompt must not leak across an internal boundary."),
+            user_event(
+                "Earlier genuine prompt must not leak across an internal boundary."
+            ),
             internal_notification_event(
                 "<task-notification>Background agent completed.</task-notification>"
             ),
@@ -384,7 +404,9 @@ class EmitterTests(unittest.TestCase):
         self.assertTrue(done.is_file())
         self.assertFalse(pending.exists())
 
-    def test_parallel_duplicate_dispatch_is_single_append_with_valid_state(self) -> None:
+    def test_parallel_duplicate_dispatch_is_single_append_with_valid_state(
+        self,
+    ) -> None:
         transcript = self.transcript(
             user_event("Read one file in parallel-safe fashion."),
             tool_use_event("toolu-parallel", "Read"),
@@ -412,10 +434,14 @@ class EmitterTests(unittest.TestCase):
         self.assertEqual(1, len(events))
         self.assertEqual(1, events[0]["seq"])
         event_file = next(self.ledger_root.glob("*/events.jsonl"))
-        state = json.loads((event_file.parent / "state.json").read_text(encoding="utf-8"))
+        state = json.loads(
+            (event_file.parent / "state.json").read_text(encoding="utf-8")
+        )
         self.assertEqual(1, state["seq"])
 
-    def test_parallel_distinct_tools_preserve_every_event_and_monotonic_seq(self) -> None:
+    def test_parallel_distinct_tools_preserve_every_event_and_monotonic_seq(
+        self,
+    ) -> None:
         count = 32
         transcript = self.transcript(
             user_event("Run a parallel batch of independent reads."),
@@ -448,9 +474,7 @@ class EmitterTests(unittest.TestCase):
             for _ in range(count)
         ]
         for index, process in enumerate(processes):
-            payload = self.post_payload(
-                transcript, f"toolu-batch-{index}", tool="Read"
-            )
+            payload = self.post_payload(transcript, f"toolu-batch-{index}", tool="Read")
             assert process.stdin is not None
             process.stdin.write(json.dumps(payload))
             process.stdin.close()
@@ -460,7 +484,9 @@ class EmitterTests(unittest.TestCase):
         self.assertEqual(count, len(events))
         self.assertEqual(list(range(1, count + 1)), sorted(e["seq"] for e in events))
         event_file = next(self.ledger_root.glob("*/events.jsonl"))
-        state = json.loads((event_file.parent / "state.json").read_text(encoding="utf-8"))
+        state = json.loads(
+            (event_file.parent / "state.json").read_text(encoding="utf-8")
+        )
         self.assertEqual(count, state["seq"])
 
     def test_existing_oats_consumer_sees_selection_record(self) -> None:
@@ -468,9 +494,7 @@ class EmitterTests(unittest.TestCase):
             user_event("Choose the appropriate verifier."),
             tool_use_event("toolu-oats", "verification-tool"),
         )
-        payload = self.post_payload(
-            transcript, "toolu-oats", tool="verification-tool"
-        )
+        payload = self.post_payload(transcript, "toolu-oats", tool="verification-tool")
         self.assertEqual(0, self.run_hook(payload).returncode)
         oats = HERE.parent / "event-ledger" / "oats.py"
         status = subprocess.run(

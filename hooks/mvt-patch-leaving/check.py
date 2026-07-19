@@ -193,9 +193,11 @@ _COMMIT_MESSAGE_LEAD = re.compile(
 
 def _disabled() -> bool:
     try:
-        return DISABLED.exists() or os.environ.get(
-            "MVT_PATCH_LEAVING", ""
-        ).lower() in {"off", "0", "false"}
+        return DISABLED.exists() or os.environ.get("MVT_PATCH_LEAVING", "").lower() in {
+            "off",
+            "0",
+            "false",
+        }
     except Exception:
         return False
 
@@ -482,7 +484,9 @@ def _verify_direct_landed(
                 for edit in edits[:MAX_TARGETS]
                 if isinstance(edit, dict) and isinstance(edit.get("new_string"), str)
             ]
-            return body is not None and bool(expected) and all(x in body for x in expected)
+            return (
+                body is not None and bool(expected) and all(x in body for x in expected)
+            )
     return False
 
 
@@ -649,7 +653,9 @@ def _resolved(records: list[dict[str, Any]], failed_index: int) -> bool:
         if targets and targets.intersection(later_targets):
             return True
         if not targets:
-            return True  # targetless failure: any later landed attempt may be the recovery
+            return (
+                True  # targetless failure: any later landed attempt may be the recovery
+            )
     return False
 
 
@@ -665,9 +671,7 @@ def _artifact_resolved(records: list[dict[str, Any]], artifact_index: int) -> bo
             "edit",
         }:
             continue
-        later_targets = {
-            str(target) for target in later.get("targets") or [] if target
-        }
+        later_targets = {str(target) for target in later.get("targets") or [] if target}
         if artifact_targets.intersection(later_targets):
             return True
     return False
@@ -801,7 +805,9 @@ def _stop_message(
     )
 
 
-def _handle_stop(data: dict[str, Any], turn: str, user_text: str, final_text: str) -> None:
+def _handle_stop(
+    data: dict[str, Any], turn: str, user_text: str, final_text: str
+) -> None:
     session_id = str(data.get("session_id") or "default")
     records = [
         record

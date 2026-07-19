@@ -87,16 +87,16 @@ def monitor_job(client, job_id, poll_interval=15):
             print(f"\n{'='*50}")
             if status == "succeeded":
                 model = job.fine_tuned_model or "unknown"
-                print(f"  ✅ Job succeeded!")
+                print("  ✅ Job succeeded!")
                 print(f"  Fine-tuned model: {model}")
                 if job.trained_tokens:
                     print(f"  Trained tokens: {job.trained_tokens:,}")
             elif status == "failed":
-                print(f"  ❌ Job failed.")
+                print("  ❌ Job failed.")
                 if hasattr(job, "error") and job.error:
                     print(f"  Error: {job.error}")
             elif status == "cancelled":
-                print(f"  ⚠️ Job was cancelled.")
+                print("  ⚠️ Job was cancelled.")
             print(f"{'='*50}")
             return status
 

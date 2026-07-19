@@ -127,13 +127,13 @@ def get_clients(base_url=None, azure_endpoint=None, project_endpoint=None, api_k
                     api_key="aad",  # required by SDK but overridden by auth
                     http_client=httpx.Client(auth=_AzureADAuth(token_provider)),
                 )
-                print(f"✅ Connected via /v1/ project endpoint (DefaultAzureCredential, auto-refresh)")
+                print("✅ Connected via /v1/ project endpoint (DefaultAzureCredential, auto-refresh)")
                 return client, "project-v1-aad"
             except Exception as e:
                 print(f"⚠️ No API key and DefaultAzureCredential failed: {e}")
         else:
             client = openai.OpenAI(base_url=base_url, api_key=api_key)
-            print(f"✅ Connected via /v1/ project endpoint")
+            print("✅ Connected via /v1/ project endpoint")
             return client, "project-v1"
 
     # Method 2: Foundry SDK
@@ -146,7 +146,7 @@ def get_clients(base_url=None, azure_endpoint=None, project_endpoint=None, api_k
             credential = DefaultAzureCredential()
             project_client = AIProjectClient(endpoint=project_endpoint, credential=credential)
             openai_client = project_client.get_openai_client()
-            print(f"✅ Connected via Foundry SDK")
+            print("✅ Connected via Foundry SDK")
             return openai_client, "foundry-sdk"
         except Exception as e:
             print(f"⚠️ Foundry SDK failed: {e}")
@@ -161,7 +161,7 @@ def get_clients(base_url=None, azure_endpoint=None, project_endpoint=None, api_k
                 api_key=api_key,
                 api_version="2025-04-01-preview",
             )
-            print(f"✅ Connected via Azure OpenAI endpoint")
+            print("✅ Connected via Azure OpenAI endpoint")
             return client, "azure-openai"
         else:
             # No API key — use DefaultAzureCredential with auto-refresh
@@ -173,7 +173,7 @@ def get_clients(base_url=None, azure_endpoint=None, project_endpoint=None, api_k
                     azure_ad_token_provider=token_provider,
                     api_version="2025-04-01-preview",
                 )
-                print(f"✅ Connected via Azure OpenAI endpoint (DefaultAzureCredential, auto-refresh)")
+                print("✅ Connected via Azure OpenAI endpoint (DefaultAzureCredential, auto-refresh)")
                 return client, "azure-openai-aad"
             except Exception as e:
                 print(f"⚠️ DefaultAzureCredential failed for Azure endpoint: {e}")
@@ -191,7 +191,7 @@ def upload_file(openai_client, filepath: str, purpose: str = "fine-tune") -> str
     with open(filepath, "rb") as f:
         file_obj = openai_client.files.create(file=f, purpose=purpose)
     print(f"   File ID: {file_obj.id}")
-    print(f"   Waiting for processing...")
+    print("   Waiting for processing...")
     openai_client.files.wait_for_processing(file_obj.id)
-    print(f"   ✅ File ready")
+    print("   ✅ File ready")
     return file_obj.id

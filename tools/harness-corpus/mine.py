@@ -35,6 +35,7 @@ USAGE
   python mine.py --out ... --max-mb 500     # skip pathological files while smoke-testing
   python mine.py --out ... --limit 50       # first 50 transcripts only (fast dry run)
 """
+
 from __future__ import annotations
 
 import argparse
@@ -70,15 +71,17 @@ RETRY_RUN_THRESHOLD = 3
 # Match on the semantic role (the payload carries hookName/hookEvent), never on the
 # `type: "attachment"` envelope alone -- skill_listing, task_reminder, deferred_tools_delta
 # and file records share that envelope and are not hooks.
-HOOK_ATTACHMENT_TYPES = frozenset({
-    "hook_success",             # completed; carries exitCode + durationMs + stdout
-    "async_hook_response",      # completed out of band
-    "hook_additional_context",  # the injected context itself
-    "hook_cancelled",           # abandoned (timeout / interrupt); carries durationMs
-    "hook_non_blocking_error",  # ran and failed, session continued
-    "hook_blocking_error",      # ran and failed, and BLOCKED the action
-    "hook_system_message",      # hook-authored system message
-})
+HOOK_ATTACHMENT_TYPES = frozenset(
+    {
+        "hook_success",  # completed; carries exitCode + durationMs + stdout
+        "async_hook_response",  # completed out of band
+        "hook_additional_context",  # the injected context itself
+        "hook_cancelled",  # abandoned (timeout / interrupt); carries durationMs
+        "hook_non_blocking_error",  # ran and failed, session continued
+        "hook_blocking_error",  # ran and failed, and BLOCKED the action
+        "hook_system_message",  # hook-authored system message
+    }
+)
 # Types meaning the hook did not complete normally. `hook_cancelled` is deliberately NOT
 # here: cancellation is usually an interrupt, not a hook defect. It is still counted in
 # hook_types, so it stays visible without inflating the error rate.
@@ -161,7 +164,9 @@ class Stats:
 
         self.errors = collections.Counter()
         self.error_samples: dict[str, list[str]] = collections.defaultdict(list)
-        self.error_by_tool: dict[str, collections.Counter] = collections.defaultdict(collections.Counter)
+        self.error_by_tool: dict[str, collections.Counter] = collections.defaultdict(
+            collections.Counter
+        )
 
         self.retry_loops = collections.Counter()
         self.retry_samples: dict[str, list[str]] = collections.defaultdict(list)
@@ -207,7 +212,7 @@ def record_tool(st: Stats, name: str, inp, is_error: bool, dur: int | None) -> s
         st.tool_errors[name] += 1
     if isinstance(dur, int) and 0 <= dur < 86_400_000:
         d = st.tool_durations[name]
-        if len(d) < 5000:          # p95 is stable well before this; bound the memory
+        if len(d) < 5000:  # p95 is stable well before this; bound the memory
             d.append(dur)
 
     # Capability attribution -- what was ACTUALLY used, not what is installed.
@@ -229,7 +234,13 @@ def record_tool(st: Stats, name: str, inp, is_error: bool, dur: int | None) -> s
         blob = json.dumps(inp, sort_keys=True, default=str)[:4000]
     except Exception:
         blob = repr(inp)[:4000]
-    return name + ":" + hashlib.sha1(blob.encode("utf-8", "replace")).hexdigest()[:12]
+    return (
+        name
+        + ":"
+        + hashlib.sha1(
+            blob.encode("utf-8", "replace"), usedforsecurity=False
+        ).hexdigest()[:12]
+    )
 
 
 def record_hook(st: Stats, att: dict) -> bool:
@@ -288,7 +299,7 @@ def record_hook(st: Stats, att: dict) -> bool:
     dur = att.get("durationMs")
     if isinstance(dur, int) and not isinstance(dur, bool) and 0 <= dur < 86_400_000:
         d = st.hook_durations[key]
-        if len(d) < 5000:          # p95 is stable well before this; bound the memory
+        if len(d) < 5000:  # p95 is stable well before this; bound the memory
             d.append(dur)
     return True
 
@@ -363,14 +374,22 @@ def scan(path: str, st: Stats, kind: str, max_bytes: int) -> None:
                                     while len(pending) > 4000:
                                         pending.popitem(last=False)
                                 key = record_tool(
-                                    st, tname, blk.get("input"), False, None,
+                                    st,
+                                    tname,
+                                    blk.get("input"),
+                                    False,
+                                    None,
                                 )
                                 if key == run_key:
                                     run_len += 1
                                     if run_len == RETRY_RUN_THRESHOLD:
                                         tool = key.split(":", 1)[0]
                                         st.retry_loops[tool] += 1
-                                        st.sample(st.retry_samples, tool, os.path.basename(path))
+                                        st.sample(
+                                            st.retry_samples,
+                                            tool,
+                                            os.path.basename(path),
+                                        )
                                 else:
                                     run_key, run_len = key, 1
                     last_assistant_had_tool = saw_tool
@@ -380,15 +399,22 @@ def scan(path: str, st: Stats, kind: str, max_bytes: int) -> None:
                     content = msg.get("content")
                     if isinstance(content, list):
                         for blk in content:
-                            if isinstance(blk, dict) and blk.get("type") == "tool_result":
+                            if (
+                                isinstance(blk, dict)
+                                and blk.get("type") == "tool_result"
+                            ):
                                 if blk.get("is_error"):
-                                    owner = pending.get(blk.get("tool_use_id") or "", "?")
+                                    owner = pending.get(
+                                        blk.get("tool_use_id") or "", "?"
+                                    )
                                     st.tool_errors[owner] += 1
                                     txt = as_text(blk.get("content"))
                                     fp = normalise(txt)
                                     if fp:
                                         st.errors[fp] += 1
-                                        st.sample(st.error_samples, fp, os.path.basename(path))
+                                        st.sample(
+                                            st.error_samples, fp, os.path.basename(path)
+                                        )
                                         # Which tool produces which failure -- the join that
                                         # turns "1,631 quoting errors somewhere" into
                                         # "Bash has a quoting problem".
@@ -397,21 +423,27 @@ def scan(path: str, st: Stats, kind: str, max_bytes: int) -> None:
                     # envelope), not a subagent sidechain, and a top-level session transcript.
                     # Any one alone is insufficient -- the smoke sample proved it (41/41 false
                     # positives came from agent-authored prompts that pass the string test).
-                    elif (isinstance(content, str) and content.strip()
-                            and not sidechain and kind == "session"
-                            and not SYNTHETIC_TURN.match(content.lstrip())):
+                    elif (
+                        isinstance(content, str)
+                        and content.strip()
+                        and not sidechain
+                        and kind == "session"
+                        and not SYNTHETIC_TURN.match(content.lstrip())
+                    ):
                         st.user_msgs += 1
                         body = content.strip()
                         if CORRECTION_PAT.search(body) and len(body) < 4000:
                             fp = normalise(body, cap=160)
                             st.corrections[fp] += 1
                             if len(st.correction_samples) < 400:
-                                st.correction_samples.append({
-                                    "text": body[:600],
-                                    "file": os.path.basename(path),
-                                    "ts": ts,
-                                    "after_tool_use": last_assistant_had_tool,
-                                })
+                                st.correction_samples.append(
+                                    {
+                                        "text": body[:600],
+                                        "file": os.path.basename(path),
+                                        "ts": ts,
+                                        "after_tool_use": last_assistant_had_tool,
+                                    }
+                                )
 
                 # ---- hooks --------------------------------------------------
                 # Primary path: `type: "attachment"` records carrying a nested hook
@@ -445,14 +477,16 @@ def scan(path: str, st: Stats, kind: str, max_bytes: int) -> None:
         return
 
     if len(st.sessions) < 4000:
-        st.sessions.append({
-            "file": os.path.basename(path),
-            "kind": kind,
-            "lines": n_lines,
-            "mb": round(size / 1048576, 2),
-            "first_ts": first_ts,
-            "last_ts": last_ts,
-        })
+        st.sessions.append(
+            {
+                "file": os.path.basename(path),
+                "kind": kind,
+                "lines": n_lines,
+                "mb": round(size / 1048576, 2),
+                "first_ts": first_ts,
+                "last_ts": last_ts,
+            }
+        )
 
 
 def pct(vals: list[int], q: float) -> int:
@@ -466,9 +500,15 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", default=os.path.expanduser("~/.claude/projects"))
     ap.add_argument("--out", required=True)
-    ap.add_argument("--max-mb", type=int, default=0, help="skip files larger than this (0 = no cap)")
-    ap.add_argument("--limit", type=int, default=0, help="stop after N transcripts (dry run)")
-    ap.add_argument("--stamp", default="", help="timestamp to embed; omitted keeps output diffable")
+    ap.add_argument(
+        "--max-mb", type=int, default=0, help="skip files larger than this (0 = no cap)"
+    )
+    ap.add_argument(
+        "--limit", type=int, default=0, help="stop after N transcripts (dry run)"
+    )
+    ap.add_argument(
+        "--stamp", default="", help="timestamp to embed; omitted keeps output diffable"
+    )
     args = ap.parse_args()
 
     os.makedirs(args.out, exist_ok=True)
@@ -477,7 +517,11 @@ def main() -> int:
 
     targets: list[tuple[str, str]] = []
     for dirpath, _dirs, files in os.walk(args.root):
-        kind = "subagent" if os.sep + "subagents" + os.sep in dirpath + os.sep else "session"
+        kind = (
+            "subagent"
+            if os.sep + "subagents" + os.sep in dirpath + os.sep
+            else "session"
+        )
         for f in files:
             if f.endswith(".jsonl"):
                 targets.append((os.path.join(dirpath, f), kind))
@@ -490,28 +534,40 @@ def main() -> int:
     for i, (p, kind) in enumerate(targets, 1):
         scan(p, st, kind, max_bytes)
         if i % 200 == 0 or i == total:
-            print(f"  {i}/{total}  {st.bytes/1073741824:.2f} GB  "
-                  f"{st.lines:,} lines  {st.lines_bad:,} bad", flush=True)
+            print(
+                f"  {i}/{total}  {st.bytes / 1073741824:.2f} GB  "
+                f"{st.lines:,} lines  {st.lines_bad:,} bad",
+                flush=True,
+            )
 
     tools = []
     for name, calls in st.tool_calls.most_common():
         errs = st.tool_errors.get(name, 0)
         durs = st.tool_durations.get(name, [])
-        tools.append({
-            "tool": name, "calls": calls, "errors": errs,
-            "error_rate": round(errs / calls, 4) if calls else 0.0,
-            "p50_ms": pct(durs, 0.50), "p95_ms": pct(durs, 0.95),
-        })
+        tools.append(
+            {
+                "tool": name,
+                "calls": calls,
+                "errors": errs,
+                "error_rate": round(errs / calls, 4) if calls else 0.0,
+                "p50_ms": pct(durs, 0.50),
+                "p95_ms": pct(durs, 0.95),
+            }
+        )
 
     corpus = {
         "_meta": {
-            "root": args.root, "stamp": args.stamp,
-            "files_seen": st.files_seen, "files_failed": st.files_failed,
-            "gb": round(st.bytes / 1073741824, 2), "lines": st.lines,
-            "lines_bad": st.lines_bad, "lines_oversized": st.lines_oversized,
+            "root": args.root,
+            "stamp": args.stamp,
+            "files_seen": st.files_seen,
+            "files_failed": st.files_failed,
+            "gb": round(st.bytes / 1073741824, 2),
+            "lines": st.lines,
+            "lines_bad": st.lines_bad,
+            "lines_oversized": st.lines_oversized,
             "note": "Distilled from raw transcripts. Counts are exact; samples are capped "
-                    f"at {SAMPLE_CAP}. Absence here means absence in the corpus ONLY IF "
-                    "files_failed and lines_bad are near zero -- check them before concluding.",
+            f"at {SAMPLE_CAP}. Absence here means absence in the corpus ONLY IF "
+            "files_failed and lines_bad are near zero -- check them before concluding.",
         },
         "tool_usage": tools,
         "error_fingerprints": [
@@ -525,12 +581,18 @@ def main() -> int:
             tool: {
                 "errors": st.tool_errors.get(tool, 0),
                 "calls": st.tool_calls.get(tool, 0),
-                "error_rate": round(st.tool_errors.get(tool, 0) / st.tool_calls[tool], 4)
-                               if st.tool_calls.get(tool) else None,
-                "top_failures": [{"fingerprint": f, "count": n} for f, n in fps.most_common(6)],
+                "error_rate": round(
+                    st.tool_errors.get(tool, 0) / st.tool_calls[tool], 4
+                )
+                if st.tool_calls.get(tool)
+                else None,
+                "top_failures": [
+                    {"fingerprint": f, "count": n} for f, n in fps.most_common(6)
+                ],
             }
-            for tool, fps in sorted(st.error_by_tool.items(),
-                                    key=lambda kv: -sum(kv[1].values()))
+            for tool, fps in sorted(
+                st.error_by_tool.items(), key=lambda kv: -sum(kv[1].values())
+            )
             if sum(fps.values()) >= 5
         },
         "retry_loops": [
@@ -545,9 +607,11 @@ def main() -> int:
             "total_owner_messages": st.user_msgs,
             "candidate_count": sum(st.corrections.values()),
             "precision_warning": "RECALL-BIASED. Verify each sample before treating it as a "
-                                 "correction; on an unfiltered smoke sample 41/41 were false "
-                                 "positives (agent-authored prompts).",
-            "top_patterns": [{"pattern": k, "count": v} for k, v in st.corrections.most_common(120)],
+            "correction; on an unfiltered smoke sample 41/41 were false "
+            "positives (agent-authored prompts).",
+            "top_patterns": [
+                {"pattern": k, "count": v} for k, v in st.corrections.most_common(120)
+            ],
             "samples": st.correction_samples,
         },
         # FIXED 2026-07-18 (was DETECTOR_STATUS: BROKEN). Root cause was a NESTING error,
@@ -567,7 +631,8 @@ def main() -> int:
             "blocks": dict(st.hook_blocks.most_common()),
             # Triage input: a block is only actionable once you can read why it fired.
             "block_reasons": {
-                k: v for k, v in sorted(
+                k: v
+                for k, v in sorted(
                     st.hook_block_reasons.items(),
                     key=lambda kv: -st.hook_blocks.get(kv[0], 0),
                 )[:40]
@@ -577,7 +642,8 @@ def main() -> int:
             "errors": dict(st.hook_errors.most_common(100)),
             "exit_codes": {str(k): v for k, v in st.hook_exit_codes.most_common()},
             "failing_commands": {
-                k: v for k, v in sorted(
+                k: v
+                for k, v in sorted(
                     st.hook_failure_commands.items(),
                     key=lambda kv: -st.hook_errors.get(kv[0], 0),
                 )[:60]
@@ -609,12 +675,18 @@ def main() -> int:
     with open(out, "w", encoding="utf-8") as fh:
         json.dump(corpus, fh, indent=1, ensure_ascii=False)
 
-    print(f"\nwrote {out}  ({os.path.getsize(out)/1048576:.1f} MB)")
-    print(f"  {st.files_seen} files / {st.bytes/1073741824:.2f} GB / {st.lines:,} lines")
-    print(f"  {st.lines_bad:,} unparseable lines, {st.lines_oversized:,} oversized, "
-          f"{st.files_failed} unreadable files")
-    print(f"  {len(tools)} distinct tools, {len(st.errors)} error fingerprints, "
-          f"{sum(st.corrections.values())} owner corrections")
+    print(f"\nwrote {out}  ({os.path.getsize(out) / 1048576:.1f} MB)")
+    print(
+        f"  {st.files_seen} files / {st.bytes / 1073741824:.2f} GB / {st.lines:,} lines"
+    )
+    print(
+        f"  {st.lines_bad:,} unparseable lines, {st.lines_oversized:,} oversized, "
+        f"{st.files_failed} unreadable files"
+    )
+    print(
+        f"  {len(tools)} distinct tools, {len(st.errors)} error fingerprints, "
+        f"{sum(st.corrections.values())} owner corrections"
+    )
     return 0
 
 

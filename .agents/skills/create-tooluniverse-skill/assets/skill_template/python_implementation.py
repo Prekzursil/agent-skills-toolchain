@@ -17,12 +17,13 @@ from datetime import datetime
 
 from tooluniverse import ToolUniverse
 
+
 def domain_analysis_pipeline(
     input_param_1=None,
     input_param_2=None,
     input_param_3=None,
     organism="Homo sapiens",
-    output_file=None
+    output_file=None,
 ):
     """
     [DOMAIN] analysis pipeline.
@@ -73,16 +74,16 @@ def domain_analysis_pipeline(
             result = tu.tools.DATABASE1_TOOL(param=input_param_1)
 
             # Handle different response formats
-            if isinstance(result, dict) and result.get('status') == 'success':
-                data = result.get('data', [])
+            if isinstance(result, dict) and result.get("status") == "success":
+                data = result.get("data", [])
                 if data:
                     report.append(f"\n### Database 1 Results ({len(data)} entries)\n")
                     report.append("\n| Column 1 | Column 2 | Column 3 |\n")
                     report.append("|----------|----------|----------|\n")
                     for item in data[:10]:  # Limit to top 10
-                        col1 = item.get('field1', 'N/A')
-                        col2 = item.get('field2', 'N/A')
-                        col3 = item.get('field3', 'N/A')
+                        col1 = item.get("field1", "N/A")
+                        col2 = item.get("field2", "N/A")
+                        col3 = item.get("field3", "N/A")
                         report.append(f"| {col1} | {col2} | {col3} |\n")
                 else:
                     report.append("\n*No results found from Database 1.*\n")
@@ -137,8 +138,8 @@ def domain_analysis_pipeline(
         report.append(f"\n*Error generating summary: {str(e)}*\n")
 
     # Write report to file
-    report_content = ''.join(report)
-    with open(output_file, 'w') as f:
+    report_content = "".join(report)
+    with open(output_file, "w") as f:
         f.write(report_content)
 
     print(f"\n✅ Report generated: {output_file}")
@@ -148,13 +149,12 @@ def domain_analysis_pipeline(
 if __name__ == "__main__":
     # Example usage
     print("[DOMAIN] Analysis - Python SDK Implementation")
-    print("="*80)
+    print("=" * 80)
 
     # Example 1: Basic usage
     print("\n[Example 1] Basic analysis...")
     domain_analysis_pipeline(
-        input_param_1="example_value",
-        output_file="example1_basic.md"
+        input_param_1="example_value", output_file="example1_basic.md"
     )
 
     # Example 2: Multiple inputs
@@ -164,7 +164,7 @@ if __name__ == "__main__":
         input_param_2="value2",
         input_param_3="value3",
         organism="Homo sapiens",
-        output_file="example2_complex.md"
+        output_file="example2_complex.md",
     )
 
     print("\n✅ All examples completed!")

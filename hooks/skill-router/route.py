@@ -11,6 +11,7 @@ cached 24h, rebuilt on version bump. Opt-out: SKILL_ROUTER=off, or a .disabled f
 Embeddings are intentionally DEFERRED (eval-gated): lexical first; add a semantic lane only if eval.py
 shows lexical misses. Force reindex: delete _index.json.
 """
+
 import glob
 import hashlib
 import json
@@ -34,34 +35,63 @@ try:
 except Exception:
     _caps = None
 
-STOP = set((
-    "the a an and or to of in on for with is are be this that it as at by from your you i we us our "
-    "use using used when whether not no into over under via per any all only just like such than then "
-    "skill skills user agent claude code task tasks run runs running do does doing help need needs want "
-    "wants make makes get gets set sets new add adds also more most less few many other another each "
-    "before after during while if else can could should would may might will shall must its their them "
-    "what which who how why where here there about across against between within without around through"
-).split())
+STOP = set(
+    (
+        "the a an and or to of in on for with is are be this that it as at by from your you i we us our "
+        "use using used when whether not no into over under via per any all only just like such than then "
+        "skill skills user agent claude code task tasks run runs running do does doing help need needs want "
+        "wants make makes get gets set sets new add adds also more most less few many other another each "
+        "before after during while if else can could should would may might will shall must its their them "
+        "what which who how why where here there about across against between within without around through"
+    ).split()
+)
 
 
 def _tok(s):
-    return {w for w in re.findall(r"[a-z0-9][a-z0-9+-]{2,}", s.lower()) if w not in STOP}
+    return {
+        w for w in re.findall(r"[a-z0-9][a-z0-9+-]{2,}", s.lower()) if w not in STOP
+    }
 
 
 # Decision-Point Sentinel (prompt-time): route a decision-SHAPE prompt to the right deliberation skill.
 # These skills have generic descriptions ("decision/plan/idea") that score below the IDF floor and are
 # chronically missed, so this deterministic table surfaces them regardless of score.
 _DECISION_SHAPES = [
-    (re.compile(r"\b(go[ -]?no[ -]?go|should (we|i) (use|pick|choose|go with|adopt)|which (approach|option|one|way|design)|worth (it|doing|the)|trade[ -]?offs?|decide between|pros and cons|either .{1,40}\bor\b)", re.I),
-     "/council (structured go/no-go + tradeoffs)"),
-    (re.compile(r"\b(stress[ -]?test|grill me|poke holes|what could go wrong|red[ -]?team|am i missing|suggest more|what else (should|could)|find (the )?flaws)\b", re.I),
-     "/grill-me-extensive (adversarial stress-test + expansion)"),
-    (re.compile(r"\b(multi[ -]?(pr|session|step|phase)|roadmap|break (this|it) (down|into)|construction plan|implementation plan for|step[ -]?by[ -]?step plan)\b", re.I),
-     "/blueprint (multi-session construction plan)"),
-    (re.compile(r"\b(brainstorm|ideate|generate (ideas|options|approaches)|explore (options|directions|approaches)|what are (the|some) ways)\b", re.I),
-     "/brainstorm (divergent ideation)"),
-    (re.compile(r"\b(ambiguous|unclear (what|which|how|whether)|not sure what you (mean|want)|clarify (the|my) (requirement|goal|scope))\b", re.I),
-     "/clarify-requirements (pre-exec disambiguation)"),
+    (
+        re.compile(
+            r"\b(go[ -]?no[ -]?go|should (we|i) (use|pick|choose|go with|adopt)|which (approach|option|one|way|design)|worth (it|doing|the)|trade[ -]?offs?|decide between|pros and cons|either .{1,40}\bor\b)",
+            re.I,
+        ),
+        "/council (structured go/no-go + tradeoffs)",
+    ),
+    (
+        re.compile(
+            r"\b(stress[ -]?test|grill me|poke holes|what could go wrong|red[ -]?team|am i missing|suggest more|what else (should|could)|find (the )?flaws)\b",
+            re.I,
+        ),
+        "/grill-me-extensive (adversarial stress-test + expansion)",
+    ),
+    (
+        re.compile(
+            r"\b(multi[ -]?(pr|session|step|phase)|roadmap|break (this|it) (down|into)|construction plan|implementation plan for|step[ -]?by[ -]?step plan)\b",
+            re.I,
+        ),
+        "/blueprint (multi-session construction plan)",
+    ),
+    (
+        re.compile(
+            r"\b(brainstorm|ideate|generate (ideas|options|approaches)|explore (options|directions|approaches)|what are (the|some) ways)\b",
+            re.I,
+        ),
+        "/brainstorm (divergent ideation)",
+    ),
+    (
+        re.compile(
+            r"\b(ambiguous|unclear (what|which|how|whether)|not sure what you (mean|want)|clarify (the|my) (requirement|goal|scope))\b",
+            re.I,
+        ),
+        "/clarify-requirements (pre-exec disambiguation)",
+    ),
 ]
 
 
@@ -112,11 +142,29 @@ def _harvest(pattern, unit_type, units, df, seen, first_line=False):
 
 def _build_index():
     units, df, seen = [], {}, set()
-    _harvest(str(HOME / ".claude" / "skills" / "**" / "SKILL.md"), "skill", units, df, seen)
-    _harvest(str(HOME / ".claude" / "plugins" / "**" / "SKILL.md"), "skill", units, df, seen)
+    _harvest(
+        str(HOME / ".claude" / "skills" / "**" / "SKILL.md"), "skill", units, df, seen
+    )
+    _harvest(
+        str(HOME / ".claude" / "plugins" / "**" / "SKILL.md"), "skill", units, df, seen
+    )
     _harvest(str(HOME / ".claude" / "agents" / "*.md"), "agent", units, df, seen)
-    _harvest(str(HOME / ".claude" / "commands" / "**" / "*.md"), "command", units, df, seen, first_line=True)
-    _harvest(str(Path("D:/basic-memory") / "**" / "*.md"), "memory", units, df, seen, first_line=True)
+    _harvest(
+        str(HOME / ".claude" / "commands" / "**" / "*.md"),
+        "command",
+        units,
+        df,
+        seen,
+        first_line=True,
+    )
+    _harvest(
+        str(Path("D:/basic-memory") / "**" / "*.md"),
+        "memory",
+        units,
+        df,
+        seen,
+        first_line=True,
+    )
     return {"ver": INDEX_VER, "units": units, "df": df, "n": max(1, len(units))}
 
 
@@ -156,7 +204,9 @@ def _first_seen(sid, sig):
 
 def main():
     try:
-        if (THIS / ".disabled").exists() or os.environ.get("SKILL_ROUTER", "").lower() in ("off", "0", "false"):
+        if (THIS / ".disabled").exists() or os.environ.get(
+            "SKILL_ROUTER", ""
+        ).lower() in ("off", "0", "false"):
             return 0
         data = json.loads(sys.stdin.read() or "{}")
         prompt = str(data.get("prompt") or "")
@@ -195,9 +245,13 @@ def main():
         if buckets.get("agent"):
             parts.append("agents: " + ", ".join(buckets["agent"][:2]))
         if buckets.get("command"):
-            parts.append("commands: " + ", ".join("/" + c for c in buckets["command"][:2]))
+            parts.append(
+                "commands: " + ", ".join("/" + c for c in buckets["command"][:2])
+            )
         if buckets.get("memory"):
-            parts.append("memory (recall via basic-memory): " + " | ".join(buckets["memory"][:2]))
+            parts.append(
+                "memory (recall via basic-memory): " + " | ".join(buckets["memory"][:2])
+            )
         if mcps:
             parts.append("MCP: " + " ; ".join(mcps[:3]))
         if not parts:
@@ -205,14 +259,35 @@ def main():
         # Per-session dedup: suppress an identical suggestion set already injected this session, so the
         # router doesn't emit the same '[skill-router]' line every qualifying turn. Signature = the sorted
         # set of suggested units (skills + agents + commands + memory + deliberation labels + MCP families).
-        sig_items = sorted(delib + buckets.get("skill", []) + buckets.get("agent", [])
-                           + buckets.get("command", []) + buckets.get("memory", []) + mcps)
-        sid = str(data.get("session_id") or "default").replace("/", "_").replace("\\", "_")
-        sig = hashlib.md5("".join(sig_items).encode("utf-8", "replace")).hexdigest()[:12]
+        sig_items = sorted(
+            delib
+            + buckets.get("skill", [])
+            + buckets.get("agent", [])
+            + buckets.get("command", [])
+            + buckets.get("memory", [])
+            + mcps
+        )
+        sid = (
+            str(data.get("session_id") or "default")
+            .replace("/", "_")
+            .replace("\\", "_")
+        )
+        sig = hashlib.md5(
+            "".join(sig_items).encode("utf-8", "replace"), usedforsecurity=False
+        ).hexdigest()[:12]
         if not _first_seen(sid, sig):
             return 0
         msg = "[skill-router] (invoke if apt, else ignore) " + " | ".join(parts)
-        print(json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": msg}}))
+        print(
+            json.dumps(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "UserPromptSubmit",
+                        "additionalContext": msg,
+                    }
+                }
+            )
+        )
     except Exception:
         pass  # fail-open
     return 0

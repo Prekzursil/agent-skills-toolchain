@@ -36,12 +36,7 @@ DISABLED = THIS / ".disabled"
 # terminal buffer, destroying scrollback). Now the guarded monitorcore wrapper: its
 # machine-wide single-instance guard caps the fleet at ONE board total, and it launches
 # monitorcore (the merged PR-B3 board), not the legacy fork. MASTER-QUEUE T0-2.
-LAUNCH = (
-    Path(os.path.expanduser("~"))
-    / ".local"
-    / "bin"
-    / "codexmon.ps1"
-)
+LAUNCH = Path(os.path.expanduser("~")) / ".local" / "bin" / "codexmon.ps1"
 _DETACHED = 0x00000008  # DETACHED_PROCESS — don't tie the launched window to the hook
 
 

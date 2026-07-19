@@ -176,9 +176,13 @@ def _hook_entries(document: dict, event: str | None = None):
     for event_name, groups in event_items:
         assert isinstance(groups, list), f"hooks.{event_name} must be a list"
         for group in groups:
-            assert isinstance(group, dict), f"hooks.{event_name} group must be an object"
+            assert isinstance(group, dict), (
+                f"hooks.{event_name} group must be an object"
+            )
             commands = group.get("hooks") or []
-            assert isinstance(commands, list), f"hooks.{event_name}[].hooks must be a list"
+            assert isinstance(commands, list), (
+                f"hooks.{event_name}[].hooks must be a list"
+            )
             for hook in commands:
                 if isinstance(hook, dict) and hook.get("type") == "command":
                     yield event_name, group, hook
@@ -243,7 +247,9 @@ def test_no_force_push_is_a_standalone_bash_gate():
     )
     _event, group, hook = matches[0]
     assert group.get("matcher") == "Bash"
-    assert len(group.get("hooks") or []) == 1, "no-force-push must remain its own hook group"
+    assert len(group.get("hooks") or []) == 1, (
+        "no-force-push must remain its own hook group"
+    )
     assert hook.get("timeout") == 8
 
     manifest = _load(MANIFEST)
@@ -288,16 +294,16 @@ def test_prepost_manifest_contains_every_dispatch_compatible_handler(event: str)
     expected = EXPECTED_DISPATCH_CHECKS[event]
 
     missing = {
-        name: script
-        for name, script in expected.items()
-        if actual.get(name) != script
+        name: script for name, script in expected.items() if actual.get(name) != script
     }
     assert not missing, (
         f"events.{event} is missing dispatcher-compatible Tier-1.1 handlers: {missing}"
     )
 
     route_failures: list[str] = []
-    for name, (args, matcher, timeout, emits) in EXPECTED_DISPATCH_ROUTES[event].items():
+    for name, (args, matcher, timeout, emits) in EXPECTED_DISPATCH_ROUTES[
+        event
+    ].items():
         check = next((item for item in checks if item.get("name") == name), None)
         if check is None:
             continue
@@ -332,7 +338,11 @@ def test_incompatible_gates_and_transformers_remain_standalone(event: str):
     }
 
     failures: list[str] = []
-    for relative_script, (matcher, timeout, argv_suffix) in REQUIRED_STANDALONE_HANDLERS[event].items():
+    for relative_script, (
+        matcher,
+        timeout,
+        argv_suffix,
+    ) in REQUIRED_STANDALONE_HANDLERS[event].items():
         script = HOOKS_ROOT / relative_script
         if _norm(relative_script) in manifest_scripts:
             failures.append(
@@ -381,9 +391,13 @@ def test_prepost_manifest_scripts_have_no_standalone_duplicates():
             command = _norm(str(hook.get("command") or ""))
             for (script_norm, manifest_event), script in scripts.items():
                 if event == manifest_event and script_norm in command:
-                    failures.append(f"{label}:{event} duplicates {script}: {hook['command']}")
+                    failures.append(
+                        f"{label}:{event} duplicates {script}: {hook['command']}"
+                    )
 
-    assert not failures, "manifest scripts must not also run standalone:\n" + "\n".join(failures)
+    assert not failures, "manifest scripts must not also run standalone:\n" + "\n".join(
+        failures
+    )
 
 
 if __name__ == "__main__":

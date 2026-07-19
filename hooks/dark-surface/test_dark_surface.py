@@ -58,7 +58,9 @@ def _write_edits(tmp: Path, sid: str, files: list[str]) -> None:
     (d / f"{sid}.edits").write_text("\n".join(files) + "\n", encoding="utf-8")
 
 
-def _run(payload: dict, tmp: Path, env_extra: dict | None = None) -> tuple[int, str, str]:
+def _run(
+    payload: dict, tmp: Path, env_extra: dict | None = None
+) -> tuple[int, str, str]:
     env = dict(os.environ)
     # Make tempfile.gettempdir() resolve to our tmp dir (hermetic edits + sink).
     env["TEMP"] = env["TMP"] = env["TMPDIR"] = str(tmp)
@@ -100,7 +102,9 @@ class TestShadowMode:
         rc, out, err = _run(
             {"session_id": sid, "transcript_path": str(tr), "cwd": str(tmp_path)},
             tmp_path,
-            {"HARNESS_SHADOW_DIR": str(sink)},  # DARK_SURFACE_MODE unset → default shadow
+            {
+                "HARNESS_SHADOW_DIR": str(sink)
+            },  # DARK_SURFACE_MODE unset → default shadow
         )
         assert rc == 0
         assert err == ""

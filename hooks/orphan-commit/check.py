@@ -9,6 +9,7 @@ untracked SOURCE files remain, warn. Deterministic (git status); inject only; ne
 Hook LAW: external signal (git status --short) the model can't fake; inject additionalContext; exit 0.
 Opt-out:  ORPHAN_COMMIT=off  in env, or  hooks/orphan-commit/.disabled
 """
+
 from __future__ import annotations
 
 import json
@@ -18,14 +19,40 @@ import sys
 from pathlib import Path
 
 THIS = Path(__file__).resolve().parent
-SRC_EXT = (".py", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".go", ".rs", ".java", ".rb",
-           ".c", ".cc", ".cpp", ".h", ".hpp", ".cs", ".kt", ".swift", ".scala",
-           ".toml", ".cfg", ".ini", ".json", ".yaml", ".yml")
+SRC_EXT = (
+    ".py",
+    ".ts",
+    ".tsx",
+    ".js",
+    ".jsx",
+    ".mjs",
+    ".go",
+    ".rs",
+    ".java",
+    ".rb",
+    ".c",
+    ".cc",
+    ".cpp",
+    ".h",
+    ".hpp",
+    ".cs",
+    ".kt",
+    ".swift",
+    ".scala",
+    ".toml",
+    ".cfg",
+    ".ini",
+    ".json",
+    ".yaml",
+    ".yml",
+)
 
 
 def main() -> int:
     try:
-        if (THIS / ".disabled").exists() or os.environ.get("ORPHAN_COMMIT", "").lower() in ("off", "0", "false"):
+        if (THIS / ".disabled").exists() or os.environ.get(
+            "ORPHAN_COMMIT", ""
+        ).lower() in ("off", "0", "false"):
             return 0
         data = json.loads(sys.stdin.read() or "{}")
         ti = data.get("tool_input") or {}
@@ -33,8 +60,12 @@ def main() -> int:
         if "git commit" not in cmd:
             return 0  # only act after an actual commit
         cwd = str(data.get("cwd") or os.getcwd())
-        r = subprocess.run(["git", "-C", cwd, "status", "--short"],
-                           capture_output=True, text=True, timeout=15)
+        r = subprocess.run(
+            ["git", "-C", cwd, "status", "--short"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
         untracked = []
         for line in (r.stdout or "").splitlines():
             if line.startswith("??"):  # untracked
@@ -50,7 +81,16 @@ def main() -> int:
                 f"`git add` the missing file(s) and amend, or confirm they are intentionally excluded and not "
                 f"imported by committed code."
             )
-            print(json.dumps({"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": msg}}))
+            print(
+                json.dumps(
+                    {
+                        "hookSpecificOutput": {
+                            "hookEventName": "PostToolUse",
+                            "additionalContext": msg,
+                        }
+                    }
+                )
+            )
     except Exception:
         pass  # fail-open: never crash a session
     return 0

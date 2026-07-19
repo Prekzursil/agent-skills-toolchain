@@ -50,6 +50,7 @@ Stdout (on rewrite):
 
 Stdout (no change): nothing — exit 0.
 """
+
 from __future__ import annotations
 
 import json
@@ -60,22 +61,24 @@ import sys
 
 # Subcommands that can invoke a pager.  Only rewrite these.
 # `git log` — yes.  `git commit` — no.
-PAGER_PRONE: frozenset[str] = frozenset({
-    "log",
-    "diff",
-    "show",
-    "branch",
-    "tag",
-    "stash",       # `git stash list` pages; we rewrite the whole `git stash ...` family
-    "shortlog",
-    "blame",
-    "reflog",
-    "diff-tree",
-    "diff-index",
-    "diff-files",
-    "format-patch",
-    "whatchanged",
-})
+PAGER_PRONE: frozenset[str] = frozenset(
+    {
+        "log",
+        "diff",
+        "show",
+        "branch",
+        "tag",
+        "stash",  # `git stash list` pages; we rewrite the whole `git stash ...` family
+        "shortlog",
+        "blame",
+        "reflog",
+        "diff-tree",
+        "diff-index",
+        "diff-files",
+        "format-patch",
+        "whatchanged",
+    }
+)
 
 # Tokens that split a shell command into logical segments we analyse independently.
 # We treat && and ; as segment boundaries.  Pipe (|) is NOT a boundary because
@@ -110,7 +113,6 @@ def _needs_nopager(segment: str) -> bool:
     tokens = rest.split()
     if not tokens:
         return False
-    first = tokens[0]
     # Skip global flags like --git-dir=, --work-tree=, -C, --no-pager, etc.
     subcommand = None
     for tok in tokens:
@@ -126,7 +128,7 @@ def _inject_nopager(segment: str) -> str:
     """Insert --no-pager into `segment`, preserving leading env-var prefixes."""
     stripped = segment.strip()
     leading_space = segment[: len(segment) - len(segment.lstrip())]
-    trailing_space = segment[len(segment.rstrip()):]
+    trailing_space = segment[len(segment.rstrip()) :]
     # Find `git` keyword position; insert --no-pager right after it
     m = re.match(
         r"^((?:[A-Z_][A-Z_0-9]*=[^\s]*\s+)*git)(\s+.*|$)",
@@ -135,8 +137,8 @@ def _inject_nopager(segment: str) -> str:
     )
     if not m:
         return segment  # should not happen; fail-open
-    prefix = m.group(1)   # e.g. "git" or "GIT_DIR=.git git"
-    suffix = m.group(2)   # e.g. " log --oneline -5"
+    prefix = m.group(1)  # e.g. "git" or "GIT_DIR=.git git"
+    suffix = m.group(2)  # e.g. " log --oneline -5"
     return leading_space + prefix + " --no-pager" + suffix + trailing_space
 
 
@@ -179,6 +181,7 @@ def _rewrite_command(command: str) -> str | None:
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
+
 
 def main() -> int:
     try:

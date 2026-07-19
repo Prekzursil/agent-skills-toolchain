@@ -10,6 +10,7 @@ The read-only guarantee is the one that must never regress: this script surveys 
 owner has ALREADY lost track of. A survey tool that mutates them would be the worst possible
 failure mode, so it is asserted behaviourally (state snapshot before/after) AND statically.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -26,17 +27,25 @@ PWSH = shutil.which("pwsh") or shutil.which("powershell")
 
 GIT_ENV = {
     **os.environ,
-    "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
-    "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t",
-    "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_SYSTEM": os.devnull,
+    "GIT_AUTHOR_NAME": "t",
+    "GIT_AUTHOR_EMAIL": "t@t",
+    "GIT_COMMITTER_NAME": "t",
+    "GIT_COMMITTER_EMAIL": "t@t",
+    "GIT_CONFIG_GLOBAL": os.devnull,
+    "GIT_CONFIG_SYSTEM": os.devnull,
 }
 
 pytestmark = pytest.mark.skipif(PWSH is None, reason="pwsh/powershell not on PATH")
 
 
 def git(repo: Path, *args: str) -> subprocess.CompletedProcess:
-    return subprocess.run(["git", "-C", str(repo), *args], capture_output=True,
-                          text=True, env=GIT_ENV, timeout=30)
+    return subprocess.run(
+        ["git", "-C", str(repo), *args],
+        capture_output=True,
+        text=True,
+        env=GIT_ENV,
+        timeout=30,
+    )
 
 
 def make_repo(path: Path, *, origin=None, commit=True, dirty=0, detached=False) -> Path:
@@ -59,9 +68,25 @@ def make_repo(path: Path, *, origin=None, commit=True, dirty=0, detached=False) 
 
 def sweep(root: Path, *extra: str) -> list[dict]:
     r = subprocess.run(
-        [PWSH, "-NoProfile", "-NonInteractive", "-File", str(SCRIPT),
-         "-Roots", str(root), "-Owner", "Prekzursil", "-MaxDepth", "4", "-Json", *extra],
-        capture_output=True, text=True, timeout=180)
+        [
+            PWSH,
+            "-NoProfile",
+            "-NonInteractive",
+            "-File",
+            str(SCRIPT),
+            "-Roots",
+            str(root),
+            "-Owner",
+            "Prekzursil",
+            "-MaxDepth",
+            "4",
+            "-Json",
+            *extra,
+        ],
+        capture_output=True,
+        text=True,
+        timeout=180,
+    )
     assert r.returncode == 0, f"repo-sweep exited {r.returncode}\nSTDERR:\n{r.stderr}"
     out = (r.stdout or "").strip()
     if not out:
@@ -81,18 +106,34 @@ def by_name(rows, name):
 def landscape(tmp_path):
     """One planted instance of every population measured on this box."""
     root = tmp_path / "land"
-    make_repo(root / "quality-zero-platform",
-              origin="https://github.com/Prekzursil/quality-zero-platform.git", dirty=9)
-    make_repo(root / "insta-mcp",
-              origin="https://github.com/arjun1194/insta-mcp.git", dirty=12)
+    make_repo(
+        root / "quality-zero-platform",
+        origin="https://github.com/Prekzursil/quality-zero-platform.git",
+        dirty=9,
+    )
+    make_repo(
+        root / "insta-mcp",
+        origin="https://github.com/arjun1194/insta-mcp.git",
+        dirty=12,
+    )
     make_repo(root / "tiktok-mcp", origin=None)
-    make_repo(root / "event-link", origin="https://github.com/Prekzursil/event-link.git")
-    outer = make_repo(root / "skills",
-                      origin="https://github.com/Prekzursil/agent-skills-toolchain.git")
-    make_repo(outer / "crypto-ctf" / "RsaCtfTool",
-              origin="https://github.com/RsaCtfTool/RsaCtfTool.git", dirty=4)
-    make_repo(root / ".claude" / "agent-worktrees" / "agent-999",
-              origin="https://github.com/Prekzursil/Reframe.git", detached=True)
+    make_repo(
+        root / "event-link", origin="https://github.com/Prekzursil/event-link.git"
+    )
+    outer = make_repo(
+        root / "skills",
+        origin="https://github.com/Prekzursil/agent-skills-toolchain.git",
+    )
+    make_repo(
+        outer / "crypto-ctf" / "RsaCtfTool",
+        origin="https://github.com/RsaCtfTool/RsaCtfTool.git",
+        dirty=4,
+    )
+    make_repo(
+        root / ".claude" / "agent-worktrees" / "agent-999",
+        origin="https://github.com/Prekzursil/Reframe.git",
+        detached=True,
+    )
     return root
 
 
@@ -101,8 +142,11 @@ def landscape(tmp_path):
 # --------------------------------------------------------------------------------------
 def test_control_planted_repo_is_found(tmp_path):
     """Prove the sweep can see a repo we planted BEFORE trusting any 'nothing found'."""
-    make_repo(tmp_path / "land" / "planted-control",
-              origin="https://github.com/Prekzursil/planted-control.git", dirty=3)
+    make_repo(
+        tmp_path / "land" / "planted-control",
+        origin="https://github.com/Prekzursil/planted-control.git",
+        dirty=3,
+    )
     rows = sweep(tmp_path / "land")
     assert by_name(rows, "planted-control") is not None, (
         "DETECTOR IS BROKEN: repo-sweep did not find a repo planted at "
@@ -152,8 +196,20 @@ def test_clean_repo_is_listed_with_no_action(landscape):
 
 
 def test_every_row_carries_the_full_schema(landscape):
-    required = {"Name", "Path", "Class", "Branch", "Upstream", "Ahead", "Behind",
-                "Dirty", "HasRemote", "Origin", "NestedIn", "Action"}
+    required = {
+        "Name",
+        "Path",
+        "Class",
+        "Branch",
+        "Upstream",
+        "Ahead",
+        "Behind",
+        "Dirty",
+        "HasRemote",
+        "Origin",
+        "NestedIn",
+        "Action",
+    }
     rows = sweep(landscape)
     assert rows, "landscape produced no rows at all"
     for row in rows:
@@ -170,7 +226,9 @@ def _snapshot(root: Path) -> dict:
     for p in sorted(root.rglob("*")):
         if p.is_file():
             try:
-                snap[str(p.relative_to(root))] = hashlib.sha256(p.read_bytes()).hexdigest()
+                snap[str(p.relative_to(root))] = hashlib.sha256(
+                    p.read_bytes()
+                ).hexdigest()
             except OSError:
                 pass
     for d in sorted(root.rglob("*")):
@@ -195,11 +253,17 @@ def test_sweep_mutates_absolutely_nothing(landscape):
 
 
 def test_sweep_creates_no_commits(landscape):
-    counts_before = {p.name: git(p, "rev-list", "--count", "HEAD").stdout.strip()
-                     for p in landscape.iterdir() if (p / ".git").exists()}
+    counts_before = {
+        p.name: git(p, "rev-list", "--count", "HEAD").stdout.strip()
+        for p in landscape.iterdir()
+        if (p / ".git").exists()
+    }
     sweep(landscape)
-    counts_after = {p.name: git(p, "rev-list", "--count", "HEAD").stdout.strip()
-                    for p in landscape.iterdir() if (p / ".git").exists()}
+    counts_after = {
+        p.name: git(p, "rev-list", "--count", "HEAD").stdout.strip()
+        for p in landscape.iterdir()
+        if (p / ".git").exists()
+    }
     assert counts_before == counts_after
 
 
@@ -215,11 +279,21 @@ def test_no_mutating_git_verb_is_ever_INVOKED(landscape):
     verb only counts when it is in COMMAND POSITION -- not inside a quoted literal and not
     after a comment marker.
     """
-    mutating = ("git push", "git commit", "git add", "git reset", "git checkout",
-                "git clean", "Remove-Item", "Set-Content", "Out-File", "New-Item")
+    mutating = (
+        "git push",
+        "git commit",
+        "git add",
+        "git reset",
+        "git checkout",
+        "git clean",
+        "Remove-Item",
+        "Set-Content",
+        "Out-File",
+        "New-Item",
+    )
     offenders = []
     for lineno, raw in enumerate(SCRIPT.read_text(encoding="utf-8").splitlines(), 1):
-        line = raw.split("#", 1)[0]                       # drop comments
+        line = raw.split("#", 1)[0]  # drop comments
         # drop quoted literals -- '...' and "..." are data, never a command invocation
         stripped, in_s, in_d = [], False, False
         for ch in line:
@@ -235,8 +309,9 @@ def test_no_mutating_git_verb_is_ever_INVOKED(landscape):
         for verb in mutating:
             if verb.lower() in code.lower():
                 offenders.append(f"{lineno}: {raw.strip()[:90]}")
-    assert not offenders, ("repo-sweep.ps1 INVOKES a mutating command:\n  "
-                           + "\n  ".join(offenders))
+    assert not offenders, (
+        "repo-sweep.ps1 INVOKES a mutating command:\n  " + "\n  ".join(offenders)
+    )
 
 
 def test_control_the_mention_aware_scanner_can_actually_catch_an_offender(tmp_path):
@@ -244,7 +319,9 @@ def test_control_the_mention_aware_scanner_can_actually_catch_an_offender(tmp_pa
     and a genuinely read-only script are indistinguishable -- the exact failure this
     program was created to stop."""
     bad = tmp_path / "bad.ps1"
-    bad.write_text("Write-Host 'run: git push'\ngit push origin main\n", encoding="utf-8")
+    bad.write_text(
+        "Write-Host 'run: git push'\ngit push origin main\n", encoding="utf-8"
+    )
     offenders = []
     for lineno, raw in enumerate(bad.read_text(encoding="utf-8").splitlines(), 1):
         line = raw.split("#", 1)[0]
@@ -270,9 +347,24 @@ def test_control_the_mention_aware_scanner_can_actually_catch_an_offender(tmp_pa
 # SUMMARY / UX
 # --------------------------------------------------------------------------------------
 def test_human_output_summarises_by_class(landscape):
-    r = subprocess.run([PWSH, "-NoProfile", "-NonInteractive", "-File", str(SCRIPT),
-                        "-Roots", str(landscape), "-Owner", "Prekzursil", "-MaxDepth", "4"],
-                       capture_output=True, text=True, timeout=180)
+    r = subprocess.run(
+        [
+            PWSH,
+            "-NoProfile",
+            "-NonInteractive",
+            "-File",
+            str(SCRIPT),
+            "-Roots",
+            str(landscape),
+            "-Owner",
+            "Prekzursil",
+            "-MaxDepth",
+            "4",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=180,
+    )
     assert r.returncode == 0, r.stderr
     out = r.stdout
     assert "YOURS" in out and "VENDORED" in out and "NO-REMOTE" in out
@@ -281,15 +373,47 @@ def test_human_output_summarises_by_class(landscape):
 
 def test_vendored_hidden_by_default_shown_with_All(landscape):
     default_names = {row["Name"] for row in sweep(landscape)}
-    assert "insta-mcp" in default_names, "-Json is the full survey; filtering is the view's job"
-    r = subprocess.run([PWSH, "-NoProfile", "-NonInteractive", "-File", str(SCRIPT),
-                        "-Roots", str(landscape), "-Owner", "Prekzursil", "-MaxDepth", "4"],
-                       capture_output=True, text=True, timeout=180)
+    assert "insta-mcp" in default_names, (
+        "-Json is the full survey; filtering is the view's job"
+    )
+    r = subprocess.run(
+        [
+            PWSH,
+            "-NoProfile",
+            "-NonInteractive",
+            "-File",
+            str(SCRIPT),
+            "-Roots",
+            str(landscape),
+            "-Owner",
+            "Prekzursil",
+            "-MaxDepth",
+            "4",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=180,
+    )
     assert "insta-mcp" not in r.stdout, "vendored noise must be summarised, not listed"
-    r_all = subprocess.run([PWSH, "-NoProfile", "-NonInteractive", "-File", str(SCRIPT),
-                            "-Roots", str(landscape), "-Owner", "Prekzursil",
-                            "-MaxDepth", "4", "-All"],
-                           capture_output=True, text=True, timeout=180)
+    r_all = subprocess.run(
+        [
+            PWSH,
+            "-NoProfile",
+            "-NonInteractive",
+            "-File",
+            str(SCRIPT),
+            "-Roots",
+            str(landscape),
+            "-Owner",
+            "Prekzursil",
+            "-MaxDepth",
+            "4",
+            "-All",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=180,
+    )
     assert "insta-mcp" in r_all.stdout, "-All must show everything"
 
 

@@ -13,6 +13,7 @@ loops, so interactive / non-RE sessions are never touched. Fail-open (exit 0).
 
 Opt-out:  FRESH_VERIFY=off  in env, or  hooks/fresh-verify/.disabled
 """
+
 from __future__ import annotations
 
 import json
@@ -21,16 +22,23 @@ import re
 import sys
 from pathlib import Path
 
-ROOT = Path(os.environ.get("FRESH_VERIFY_ROOT", str(Path.home() / ".claude" / "fresh-verify")))
+ROOT = Path(
+    os.environ.get("FRESH_VERIFY_ROOT", str(Path.home() / ".claude" / "fresh-verify"))
+)
 THIS = Path(__file__).resolve().parent
-REUSE_THRESHOLD = 8  # a value load-bearing in >= this many tool-arg occurrences triggers a re-derive
+REUSE_THRESHOLD = (
+    8  # a value load-bearing in >= this many tool-arg occurrences triggers a re-derive
+)
 # load-bearing value = a hex address/offset (the dominant reused anchor in RE loops)
 VALUE_RE = re.compile(r"0x[0-9a-fA-F]{4,}")
 
 
 def _file(session_id: str) -> Path:
     ROOT.mkdir(parents=True, exist_ok=True)
-    safe = "".join(c if c.isalnum() or c in "-_." else "-" for c in str(session_id))[:80] or "unknown"
+    safe = (
+        "".join(c if c.isalnum() or c in "-_." else "-" for c in str(session_id))[:80]
+        or "unknown"
+    )
     return ROOT / f"{safe}.json"
 
 
@@ -46,19 +54,25 @@ def _load(session_id: str) -> dict:
 
 def _save(session_id: str, state: dict) -> None:
     try:
-        _file(session_id).write_text(json.dumps(state, ensure_ascii=False), encoding="utf-8")
+        _file(session_id).write_text(
+            json.dumps(state, ensure_ascii=False), encoding="utf-8"
+        )
     except Exception:
         pass
 
 
 def main() -> int:
     try:
-        if (THIS / ".disabled").exists() or os.environ.get("FRESH_VERIFY", "").lower() in ("off", "0", "false"):
+        if (THIS / ".disabled").exists() or os.environ.get(
+            "FRESH_VERIFY", ""
+        ).lower() in ("off", "0", "false"):
             return 0
         data = json.loads(sys.stdin.read() or "{}")
         sid = str(data.get("session_id") or "unknown")
         try:
-            blob = json.dumps(data.get("tool_input") or {}, ensure_ascii=False, default=repr)
+            blob = json.dumps(
+                data.get("tool_input") or {}, ensure_ascii=False, default=repr
+            )
         except Exception:
             blob = repr(data.get("tool_input"))
         values = set(VALUE_RE.findall(blob.lower()))
@@ -84,7 +98,16 @@ def main() -> int:
                 f"in a CLEAN context that cannot inherit this reasoning; HALT and reconcile if it "
                 f"disagrees. Do not simply re-assert it."
             )
-            print(json.dumps({"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": msg}}))
+            print(
+                json.dumps(
+                    {
+                        "hookSpecificOutput": {
+                            "hookEventName": "PostToolUse",
+                            "additionalContext": msg,
+                        }
+                    }
+                )
+            )
     except Exception:
         pass  # fail-open: never crash a session
     return 0

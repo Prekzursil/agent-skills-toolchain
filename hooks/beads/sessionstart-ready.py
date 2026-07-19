@@ -5,6 +5,7 @@ Fail-open by contract (AGENTS.md s6): ANY error exits 0 and emits nothing, so a
 broken bd/Dolt never blocks session start. Project-scoped: silent unless the cwd
 has a `.beads/` dir, so non-beads repos see no noise. Additive context only.
 """
+
 import os
 import shutil
 import subprocess
@@ -43,7 +44,7 @@ try:
 
     print("## Beads — ready work (unblocked open issues in this repo)")
     print("\n".join(lines))
-    print("\n_Manage with `bd ready` / `bd show <id>` / `bd q \"...\"`._")
+    print('\n_Manage with `bd ready` / `bd show <id>` / `bd q "..."`._')
 except Exception:
     # Fail-open: never let beads break session start.
     pass

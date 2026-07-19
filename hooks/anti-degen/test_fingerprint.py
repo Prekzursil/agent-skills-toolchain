@@ -13,6 +13,7 @@ Tests:
   5. Missing/malformed stdin → exit 0, no output (fail-open)
   6. Non-dict tool_input is hashed consistently (no crash)
 """
+
 from __future__ import annotations
 
 import importlib
@@ -36,13 +37,15 @@ def check(name: str, cond: bool) -> None:
 
 
 def _make_stdin(session_id: str, tool_name: str, tool_input, tool_response: str) -> str:
-    return json.dumps({
-        "session_id": session_id,
-        "tool_name": tool_name,
-        "tool_input": tool_input,
-        "tool_response": tool_response,
-        "cwd": "C:/fake/project",
-    })
+    return json.dumps(
+        {
+            "session_id": session_id,
+            "tool_name": tool_name,
+            "tool_input": tool_input,
+            "tool_response": tool_response,
+            "cwd": "C:/fake/project",
+        }
+    )
 
 
 def _run_hook(mod, stdin_str: str) -> tuple[int, str]:
@@ -62,8 +65,9 @@ def _run_hook(mod, stdin_str: str) -> tuple[int, str]:
 def _load_fresh(tmp_dir: str):
     """Load a fresh (re-imported) copy of fingerprint.py against tmp_dir."""
     os.environ["ANTI_DEGEN_ROOT"] = tmp_dir
-    spec = importlib.util.spec_from_file_location("fingerprint_under_test",
-                                                   HERE / "fingerprint.py")
+    spec = importlib.util.spec_from_file_location(
+        "fingerprint_under_test", HERE / "fingerprint.py"
+    )
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     # patch the module-level ROOT to the temp dir (it reads the env at import time)
@@ -96,9 +100,9 @@ def main() -> int:
     warned = False
     for i in range(3):
         rc, out = _run_hook(mod, _make_stdin(session, "Bash", args, output))
-        check(f"  exit 0 on call {i+1}", rc == 0)
+        check(f"  exit 0 on call {i + 1}", rc == 0)
         if i < 2:
-            check(f"  no warning before 3rd call (call {i+1})", not _has_warning(out))
+            check(f"  no warning before 3rd call (call {i + 1})", not _has_warning(out))
         else:
             warned = _has_warning(out)
     check("  3rd identical call fires warning", warned)
@@ -111,8 +115,8 @@ def main() -> int:
     outputs = ["status: starting", "status: starting", "status: ready"]
     for i, resp in enumerate(outputs):
         rc, out = _run_hook(mod2, _make_stdin(session2, "Bash", args2, resp))
-        check(f"  exit 0 on call {i+1}", rc == 0)
-        check(f"  no warning when output changed (call {i+1})", not _has_warning(out))
+        check(f"  exit 0 on call {i + 1}", rc == 0)
+        check(f"  no warning when output changed (call {i + 1})", not _has_warning(out))
 
     # ── Test 3: 4th identical call (after already warned at 3rd) still warns ──
     print("== Test 3: 4th identical call also warns ==")
@@ -150,12 +154,17 @@ def main() -> int:
     session6 = "sess-T6"
     # tool_input is a string, not a dict — some tools send a plain string
     for _ in range(3):
-        rc_s, _ = _run_hook(mod5, json.dumps({
-            "session_id": session6,
-            "tool_name": "Bash",
-            "tool_input": "git diff --stat",   # string, not dict
-            "tool_response": "same output",
-        }))
+        rc_s, _ = _run_hook(
+            mod5,
+            json.dumps(
+                {
+                    "session_id": session6,
+                    "tool_name": "Bash",
+                    "tool_input": "git diff --stat",  # string, not dict
+                    "tool_response": "same output",
+                }
+            ),
+        )
         check("  exit 0 with string tool_input", rc_s == 0)
 
     # ── Summary ───────────────────────────────────────────────────────────────

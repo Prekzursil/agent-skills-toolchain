@@ -11,6 +11,7 @@ retired, not re-walked.
   python note.py --kind decision "Recovery = replay ledger (user-decided)"
   python note.py --kind milestone "ledger shipped" --supersedes 3,5
 """
+
 from __future__ import annotations
 
 import argparse
@@ -28,14 +29,20 @@ def main() -> int:
     ap.add_argument("--kind", default="note", choices=list(ledger.KINDS))
     ap.add_argument("--cwd", default=os.getcwd())
     ap.add_argument("--preconditions", default=None)
-    ap.add_argument("--supersedes", default=None, help="comma-separated failure seq numbers to tombstone")
+    ap.add_argument(
+        "--supersedes",
+        default=None,
+        help="comma-separated failure seq numbers to tombstone",
+    )
     a = ap.parse_args()
     fields = {"text": a.text}
     if a.preconditions:
         fields["preconditions"] = a.preconditions
     if a.supersedes:
         try:
-            fields["supersedes_failures"] = [int(x) for x in a.supersedes.split(",") if x.strip()]
+            fields["supersedes_failures"] = [
+                int(x) for x in a.supersedes.split(",") if x.strip()
+            ]
         except ValueError:
             pass
     ev = ledger.append(a.cwd, a.kind, **fields)

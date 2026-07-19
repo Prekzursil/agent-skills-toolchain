@@ -5,6 +5,7 @@ Fake credential strings are built at RUNTIME by concatenation so this test file
 itself contains no literal credential shape — otherwise the per-edit-check hook
 would block writing it (the gate scanning its own test data).
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -27,15 +28,15 @@ def load_check():
 
 
 # Runtime-built fakes (no literal secret shape lives in this file).
-FAKE_AWS = "AKIA" + "1234567890ABCDEF"       # AKIA + 16 upper-alnum
+FAKE_AWS = "AKIA" + "1234567890ABCDEF"  # AKIA + 16 upper-alnum
 FAKE_PEM = "-----BEGIN " + "PRIVATE KEY-----"
-FAKE_PGP = "-----BEGIN " + "PGP PRIVATE KEY BLOCK-----"   # real OpenPGP armor
-FAKE_SK = "sk-" + "A" * 45                   # >=40 chars after 'sk-' (real keys are longer)
+FAKE_PGP = "-----BEGIN " + "PGP PRIVATE KEY BLOCK-----"  # real OpenPGP armor
+FAKE_SK = "sk-" + "A" * 45  # >=40 chars after 'sk-' (real keys are longer)
 FAKE_GH = "ghp_" + "b" * 36
 FAKE_SLACK = "xoxb-" + "1234567890-abcdefghij"
 FAKE_GOOGLE = "AIza" + "C" * 35
 FAKE_STRIPE = "sk_live_" + "D" * 24
-AWS_EXAMPLE = "AKIAIOSFODNN7" + "EXAMPLE"     # AWS docs sample → must be EXEMPT
+AWS_EXAMPLE = "AKIAIOSFODNN7" + "EXAMPLE"  # AWS docs sample → must be EXEMPT
 
 
 def _scan_text(mod, tmp_path, text, name="f.py"):
@@ -45,6 +46,7 @@ def _scan_text(mod, tmp_path, text, name="f.py"):
 
 
 # ── high-confidence shapes block ─────────────────────────────────────────────
+
 
 def test_aws_key_blocks(tmp_path):
     mod = load_check()
@@ -98,6 +100,7 @@ def test_far_marker_still_blocks(tmp_path):
 
 # ── exemptions / clean ───────────────────────────────────────────────────────
 
+
 def test_aws_example_exempt(tmp_path):
     """The AWS docs sample (line contains EXAMPLE) must NOT block."""
     mod = load_check()
@@ -117,9 +120,12 @@ def test_clean_file_no_secret(tmp_path):
 
 # ── main() integration ───────────────────────────────────────────────────────
 
+
 def _run_main(mod, fp, env=None):
     old = (sys.stdin, sys.stdout, sys.stderr)
-    sys.stdin = io.StringIO(json.dumps({"tool_name": "Write", "tool_input": {"file_path": fp}}))
+    sys.stdin = io.StringIO(
+        json.dumps({"tool_name": "Write", "tool_input": {"file_path": fp}})
+    )
     out, err = io.StringIO(), io.StringIO()
     sys.stdout, sys.stderr = out, err
     rc = 0

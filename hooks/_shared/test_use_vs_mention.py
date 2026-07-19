@@ -62,7 +62,8 @@ class TestRecordedFalsePositives:
         """Fire 2/2: same defect, second occurrence, different document."""
         body = "Never run `rm -rf /` from a hook. Use the Write tool instead.\n"
         ctx = Context(
-            tool_name="Write", file_path="rules/common/windows-shell.md",
+            tool_name="Write",
+            file_path="rules/common/windows-shell.md",
             source="tool_input",
         )
         assert not _judge(body, "rm -rf /", ctx, "command")
@@ -70,15 +71,17 @@ class TestRecordedFalsePositives:
     def test_fire3_word_stub_in_a_markdown_paragraph(self):
         """stub-ledger fire 1/6: prose describing a fixture, not pending work."""
         body = "The fixture is a stub that returns a canned response.\n"
-        ctx = Context(tool_name="Write", file_path="docs/design.md",
-                      source="tool_input")
+        ctx = Context(
+            tool_name="Write", file_path="docs/design.md", source="tool_input"
+        )
         assert not _judge(body, "stub", ctx, "marker")
 
     def test_fire4_reworded_to_test_double_still_flagged(self):
         """stub-ledger fire 2/6: rewording chased the matcher instead of fixing it."""
         body = "The fixture is a test double, i.e. a placeholder object.\n"
-        ctx = Context(tool_name="Write", file_path="docs/design.md",
-                      source="tool_input")
+        ctx = Context(
+            tool_name="Write", file_path="docs/design.md", source="tool_input"
+        )
         assert not _judge(body, "placeholder", ctx, "marker")
 
     def test_fire5_negation_nothing_needs_to_be_added(self):
@@ -123,8 +126,7 @@ class TestRecordedFalsePositives:
     def test_fire8_inline_code_span_naming_the_marker(self):
         """stub-ledger fire 6/6: `TODO` in backticks is a NAME, not an instance."""
         body = "A genuine `TODO` in a `.py` file still fires; prose must not.\n"
-        ctx = Context(tool_name="Write", file_path="docs/fix.md",
-                      source="tool_input")
+        ctx = Context(tool_name="Write", file_path="docs/fix.md", source="tool_input")
         assert not _judge(body, "TODO", ctx, "marker")
 
     def test_fire9_marker_scanner_on_assistant_prose(self):
@@ -151,20 +153,17 @@ class TestKnownPresentControls:
 
     def test_real_todo_in_a_python_file_still_fires(self):
         body = "def f(x):\n    # TODO: handle the negative branch\n    return x\n"
-        ctx = Context(tool_name="Write", file_path="src/calc.py",
-                      source="tool_input")
+        ctx = Context(tool_name="Write", file_path="src/calc.py", source="tool_input")
         assert _judge(body, "TODO", ctx, "marker")
 
     def test_real_notimplemented_in_a_python_file_still_fires(self):
         body = "def g():\n    raise NotImplementedError('later')\n"
-        ctx = Context(tool_name="Write", file_path="src/api.py",
-                      source="tool_input")
+        ctx = Context(tool_name="Write", file_path="src/api.py", source="tool_input")
         assert _judge(body, "NotImplementedError", ctx, "marker")
 
     def test_todo_inside_a_fenced_code_block_still_fires(self):
         body = "Example:\n\n```python\n# TODO: wire this up\n```\n"
-        ctx = Context(tool_name="Write", file_path="docs/guide.md",
-                      source="tool_input")
+        ctx = Context(tool_name="Write", file_path="docs/guide.md", source="tool_input")
         assert _judge(body, "TODO", ctx, "marker")
 
     def test_actual_destructive_shell_command_still_fires(self):
@@ -215,11 +214,10 @@ class TestShellQuoting:
 class TestFindReal:
     def test_filters_mentions_and_keeps_uses_in_one_document(self):
         body = (
-            "We must not leave a stub behind.\n"      # prose  -> mention
-            "\n```python\n# TODO: real one\n```\n"     # fenced -> use
+            "We must not leave a stub behind.\n"  # prose  -> mention
+            "\n```python\n# TODO: real one\n```\n"  # fenced -> use
         )
-        ctx = Context(tool_name="Write", file_path="docs/plan.md",
-                      source="tool_input")
+        ctx = Context(tool_name="Write", file_path="docs/plan.md", source="tool_input")
         pattern = re.compile(r"\b(TODO|stub)\b", re.IGNORECASE)
         kept = find_real(body, pattern, ctx, kind="marker")
         assert [m.group(0) for m in kept] == ["TODO"]

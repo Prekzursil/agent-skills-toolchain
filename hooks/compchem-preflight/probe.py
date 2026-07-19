@@ -13,6 +13,7 @@ Once per session (sentinel file) so it reminds, never nags repeated docks.
 
 Opt-out:  COMPCHEM_PREFLIGHT=off  in env, or  hooks/compchem-preflight/.disabled
 """
+
 from __future__ import annotations
 
 import json
@@ -20,7 +21,11 @@ import os
 import sys
 from pathlib import Path
 
-ROOT = Path(os.environ.get("COMPCHEM_PREFLIGHT_ROOT", str(Path.home() / ".claude" / "compchem-preflight")))
+ROOT = Path(
+    os.environ.get(
+        "COMPCHEM_PREFLIGHT_ROOT", str(Path.home() / ".claude" / "compchem-preflight")
+    )
+)
 THIS = Path(__file__).resolve().parent
 
 
@@ -28,7 +33,12 @@ def _already_reminded(session_id: str) -> bool:
     """True if we already reminded this session (and mark it). Fail-open -> False (re-remind, harmless)."""
     try:
         ROOT.mkdir(parents=True, exist_ok=True)
-        safe = "".join(c if c.isalnum() or c in "-_." else "-" for c in str(session_id))[:80] or "unknown"
+        safe = (
+            "".join(c if c.isalnum() or c in "-_." else "-" for c in str(session_id))[
+                :80
+            ]
+            or "unknown"
+        )
         flag = ROOT / f"{safe}.flag"
         if flag.exists():
             return True
@@ -40,7 +50,9 @@ def _already_reminded(session_id: str) -> bool:
 
 def main() -> int:
     try:
-        if (THIS / ".disabled").exists() or os.environ.get("COMPCHEM_PREFLIGHT", "").lower() in ("off", "0", "false"):
+        if (THIS / ".disabled").exists() or os.environ.get(
+            "COMPCHEM_PREFLIGHT", ""
+        ).lower() in ("off", "0", "false"):
             return 0
         data = json.loads(sys.stdin.read() or "{}")
         tool = str(data.get("tool_name") or "")
@@ -58,7 +70,16 @@ def main() -> int:
             "3. For docking: the grid/receptor passed its redock-RMSD validation gate.\n"
             "Garbage-in wastes GPU-hours. (This reminder fires once per session.)"
         )
-        print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": msg}}))
+        print(
+            json.dumps(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "PreToolUse",
+                        "additionalContext": msg,
+                    }
+                }
+            )
+        )
     except Exception:
         pass  # fail-open: never crash a tool call
     return 0

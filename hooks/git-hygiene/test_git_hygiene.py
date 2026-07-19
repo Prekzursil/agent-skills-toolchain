@@ -21,6 +21,7 @@ Measured populations each fixture stands for:
 The KNOWN-POSITIVE CONTROL tests are mandatory and must never be skipped or weakened: this
 program exists because an absence was trusted without one, seven times in a single session.
 """
+
 from __future__ import annotations
 
 import dataclasses
@@ -42,19 +43,33 @@ import check  # noqa: E402
 # --------------------------------------------------------------------------------------
 GIT_ENV = {
     **os.environ,
-    "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
-    "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t",
-    "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_SYSTEM": os.devnull,
+    "GIT_AUTHOR_NAME": "t",
+    "GIT_AUTHOR_EMAIL": "t@t",
+    "GIT_COMMITTER_NAME": "t",
+    "GIT_COMMITTER_EMAIL": "t@t",
+    "GIT_CONFIG_GLOBAL": os.devnull,
+    "GIT_CONFIG_SYSTEM": os.devnull,
 }
 
 
 def git(repo: Path, *args: str) -> subprocess.CompletedProcess:
-    return subprocess.run(["git", "-C", str(repo), *args],
-                          capture_output=True, text=True, env=GIT_ENV, timeout=30)
+    return subprocess.run(
+        ["git", "-C", str(repo), *args],
+        capture_output=True,
+        text=True,
+        env=GIT_ENV,
+        timeout=30,
+    )
 
 
-def make_repo(path: Path, *, origin: str | None = None, commit: bool = True,
-              dirty: int = 0, detached: bool = False) -> Path:
+def make_repo(
+    path: Path,
+    *,
+    origin: str | None = None,
+    commit: bool = True,
+    dirty: int = 0,
+    detached: bool = False,
+) -> Path:
     path.mkdir(parents=True, exist_ok=True)
     git(path, "init", "-b", "main")
     if origin:
@@ -87,8 +102,11 @@ CFG = check.Config(owner="Prekzursil")
 # --------------------------------------------------------------------------------------
 class TestClassification:
     def test_yours_and_dirty_is_reported(self, tmp_path):
-        r = make_repo(tmp_path / "quality-zero-platform",
-                      origin="https://github.com/Prekzursil/quality-zero-platform.git", dirty=9)
+        r = make_repo(
+            tmp_path / "quality-zero-platform",
+            origin="https://github.com/Prekzursil/quality-zero-platform.git",
+            dirty=9,
+        )
         v = check.classify(state_of(r), CFG)
         assert v.ownership == check.YOURS
         assert v.report is True
@@ -97,8 +115,11 @@ class TestClassification:
     def test_vendored_and_dirty_is_never_reported(self, tmp_path):
         """insta-mcp: 12 dirty files, origin arjun1194/insta-mcp. Dirt in someone else's
         clone is the EXPECTED steady state -- reporting it is pure noise."""
-        r = make_repo(tmp_path / "insta-mcp",
-                      origin="https://github.com/arjun1194/insta-mcp.git", dirty=12)
+        r = make_repo(
+            tmp_path / "insta-mcp",
+            origin="https://github.com/arjun1194/insta-mcp.git",
+            dirty=12,
+        )
         v = check.classify(state_of(r), CFG)
         assert v.ownership == check.VENDORED
         assert v.report is False
@@ -112,8 +133,10 @@ class TestClassification:
         assert v.severity == check.SEV_NO_REMOTE
 
     def test_clean_and_pushed_is_silent(self, tmp_path):
-        r = make_repo(tmp_path / "event-link",
-                      origin="https://github.com/Prekzursil/event-link.git")
+        r = make_repo(
+            tmp_path / "event-link",
+            origin="https://github.com/Prekzursil/event-link.git",
+        )
         v = check.classify(state_of(r, upstream="origin/main", ahead=0), CFG)
         assert v.ownership == check.YOURS
         assert v.report is False
@@ -123,10 +146,15 @@ class TestClassification:
         ~/.agents/skills. sync-from-live.ps1 already refuses to copy it (Test-InNestedRepo).
         The hook must reach the same verdict -- and MUST do so even when the nested clone
         carries a Prekzursil-looking origin, because position beats provenance here."""
-        outer = make_repo(tmp_path / "skills",
-                          origin="https://github.com/Prekzursil/agent-skills-toolchain.git")
-        inner = make_repo(outer / "crypto-ctf" / "RsaCtfTool",
-                          origin="https://github.com/Prekzursil/RsaCtfTool.git", dirty=4)
+        outer = make_repo(
+            tmp_path / "skills",
+            origin="https://github.com/Prekzursil/agent-skills-toolchain.git",
+        )
+        inner = make_repo(
+            outer / "crypto-ctf" / "RsaCtfTool",
+            origin="https://github.com/Prekzursil/RsaCtfTool.git",
+            dirty=4,
+        )
         v = check.classify(state_of(inner, nested_in=str(outer)), CFG)
         assert v.ownership == check.VENDORED
         assert v.report is False
@@ -140,8 +168,11 @@ class TestMeasuredNoisePopulations:
         """20 measured under ~/.claude/agent-worktrees: ALL detached HEAD (=> no upstream),
         ALL zero dirty. A naive 'no upstream' rule emits 20 lines of pure noise."""
         root = tmp_path / ".claude" / "agent-worktrees"
-        r = make_repo(root / "agent-2041398331",
-                      origin="https://github.com/Prekzursil/Reframe.git", detached=True)
+        r = make_repo(
+            root / "agent-2041398331",
+            origin="https://github.com/Prekzursil/Reframe.git",
+            detached=True,
+        )
         cfg = check.Config(owner="Prekzursil", ephemeral_markers=("/agent-worktrees/",))
         v = check.classify(state_of(r), cfg)
         assert v.ownership == check.EPHEMERAL
@@ -150,15 +181,23 @@ class TestMeasuredNoisePopulations:
     def test_detached_and_clean_is_silent_even_without_the_path_rule(self, tmp_path):
         """Defence in depth: a detached HEAD with nothing uncommitted has nothing at risk,
         so it stays silent on its own merits, not only because of where it lives."""
-        r = make_repo(tmp_path / "somewhere" / "wt",
-                      origin="https://github.com/Prekzursil/Reframe.git", detached=True)
-        v = check.classify(state_of(r), check.Config(owner="Prekzursil", ephemeral_markers=()))
+        r = make_repo(
+            tmp_path / "somewhere" / "wt",
+            origin="https://github.com/Prekzursil/Reframe.git",
+            detached=True,
+        )
+        v = check.classify(
+            state_of(r), check.Config(owner="Prekzursil", ephemeral_markers=())
+        )
         assert v.report is False
 
     def test_plugin_cache_clone_is_vendored(self, tmp_path):
         """258 measured repos under ~/.claude/plugins. Vendor-owned, churned by the CLI."""
-        r = make_repo(tmp_path / ".claude" / "plugins" / "cache" / "some-plugin",
-                      origin="https://github.com/somevendor/plugin.git", dirty=3)
+        r = make_repo(
+            tmp_path / ".claude" / "plugins" / "cache" / "some-plugin",
+            origin="https://github.com/somevendor/plugin.git",
+            dirty=3,
+        )
         cfg = check.Config(owner="Prekzursil", vendor_markers=("/.claude/plugins/",))
         v = check.classify(state_of(r), cfg)
         assert v.ownership == check.VENDORED
@@ -168,8 +207,14 @@ class TestMeasuredNoisePopulations:
         """8 measured `temp_subdir_*.clone` husks in the plugin cache have NO remote at all.
         Ownership rules must be POSITION-FIRST, or these land in the highest-severity
         no-remote bucket and dominate the report. (Same husk population PR2 measured.)"""
-        r = make_repo(tmp_path / ".claude" / "plugins" / "cache"
-                      / "temp_subdir_1783398195533_5qa899.clone", origin=None)
+        r = make_repo(
+            tmp_path
+            / ".claude"
+            / "plugins"
+            / "cache"
+            / "temp_subdir_1783398195533_5qa899.clone",
+            origin=None,
+        )
         cfg = check.Config(owner="Prekzursil", vendor_markers=("/.claude/plugins/",))
         v = check.classify(state_of(r), cfg)
         assert v.ownership == check.VENDORED
@@ -183,7 +228,9 @@ class TestMeasuredNoisePopulations:
         r.mkdir(parents=True)
         git(r, "init", "-b", "main")
         st = check.read_repo_state(r)
-        assert st is not None, "read_repo_state must survive an unborn HEAD, not return None"
+        assert st is not None, (
+            "read_repo_state must survive an unborn HEAD, not return None"
+        )
         assert st.unborn is True
         assert check.classify(st, CFG).report is False
 
@@ -205,8 +252,10 @@ class TestGenuineFindsMustSurvive:
     def test_unpushed_commits_are_reported(self, tmp_path):
         """agent-skills-toolchain measured 4 commits ahead of origin. That is this very
         program's own work sitting unpushed."""
-        r = make_repo(tmp_path / "agent-skills-toolchain",
-                      origin="https://github.com/Prekzursil/agent-skills-toolchain.git")
+        r = make_repo(
+            tmp_path / "agent-skills-toolchain",
+            origin="https://github.com/Prekzursil/agent-skills-toolchain.git",
+        )
         v = check.classify(state_of(r, upstream="origin/harness/upgrade", ahead=4), CFG)
         assert v.report is True
         assert v.severity == check.SEV_UNPUSHED
@@ -215,9 +264,11 @@ class TestGenuineFindsMustSurvive:
         """ast-harness-reconcile: a WORKTREE of agent-skills-toolchain with 295 dirty files.
         Blanket-excluding worktrees to silence the 20 agent scratch dirs would discard the
         single largest pile of uncommitted harness work on the box."""
-        r = make_repo(tmp_path / "ast-harness-reconcile",
-                      origin="https://github.com/Prekzursil/agent-skills-toolchain.git",
-                      dirty=5)
+        r = make_repo(
+            tmp_path / "ast-harness-reconcile",
+            origin="https://github.com/Prekzursil/agent-skills-toolchain.git",
+            dirty=5,
+        )
         v = check.classify(state_of(r, is_worktree=True, dirty=295), CFG)
         assert v.report is True
         assert "295" in v.detail
@@ -225,10 +276,16 @@ class TestGenuineFindsMustSurvive:
     def test_dirty_with_no_upstream_outranks_dirty_alone(self, tmp_path):
         """pbinfo-fix-wave1 (11 dirty, no upstream) is more at risk than a dirty repo whose
         branch is already pushed, and must sort above it."""
-        risky = make_repo(tmp_path / "pbinfo-fix-wave1",
-                          origin="https://github.com/Prekzursil/pbinfo-fix-wave1.git", dirty=11)
-        safe = make_repo(tmp_path / "Reframe",
-                         origin="https://github.com/Prekzursil/Reframe.git", dirty=13)
+        risky = make_repo(
+            tmp_path / "pbinfo-fix-wave1",
+            origin="https://github.com/Prekzursil/pbinfo-fix-wave1.git",
+            dirty=11,
+        )
+        safe = make_repo(
+            tmp_path / "Reframe",
+            origin="https://github.com/Prekzursil/Reframe.git",
+            dirty=13,
+        )
         vr = check.classify(state_of(risky), CFG)
         vs = check.classify(state_of(safe, upstream="origin/main"), CFG)
         assert vr.report and vs.report
@@ -242,8 +299,11 @@ class TestKnownPositiveControls:
     def test_control_scanner_finds_a_planted_repo(self, tmp_path):
         """Before ANY 'all clean' result may be trusted, prove the scanner finds a repo we
         planted ourselves. Without this, a broken walker and a clean box are identical."""
-        planted = make_repo(tmp_path / "roots" / "planted-known-positive",
-                            origin="https://github.com/Prekzursil/planted.git", dirty=3)
+        planted = make_repo(
+            tmp_path / "roots" / "planted-known-positive",
+            origin="https://github.com/Prekzursil/planted.git",
+            dirty=3,
+        )
         found = check.discover_repos([tmp_path / "roots"], CFG, max_depth=3)
         assert any(Path(p).resolve() == planted.resolve() for p, _ in found), (
             "DETECTOR IS BROKEN: the scanner did not find a repo planted at "
@@ -254,21 +314,31 @@ class TestKnownPositiveControls:
         """End-to-end control: plant -> discover -> read -> classify -> message. Proves no
         stage silently drops it. A control that only exercises discovery would not catch a
         classifier that reports nothing."""
-        make_repo(tmp_path / "roots" / "planted-e2e",
-                  origin="https://github.com/Prekzursil/planted-e2e.git", dirty=2)
+        make_repo(
+            tmp_path / "roots" / "planted-e2e",
+            origin="https://github.com/Prekzursil/planted-e2e.git",
+            dirty=2,
+        )
         verdicts = check.survey([tmp_path / "roots"], CFG, max_depth=3)
         reported = [v for v in verdicts if v.report]
-        assert reported, "END-TO-END CONTROL FAILED: planted dirty repo produced no verdict"
+        assert reported, (
+            "END-TO-END CONTROL FAILED: planted dirty repo produced no verdict"
+        )
         msg = check.build_message(reported, [])
         assert msg and "planted-e2e" in msg
 
     def test_control_nested_detection_actually_fires(self, tmp_path):
         """Prove the nested-repo detector can SEE a nested repo. If it silently never fires,
         every vendored clone would be graded on its origin alone."""
-        outer = make_repo(tmp_path / "roots" / "outer",
-                          origin="https://github.com/Prekzursil/outer.git")
-        make_repo(outer / "vendor" / "inner",
-                  origin="https://github.com/thirdparty/inner.git", dirty=1)
+        outer = make_repo(
+            tmp_path / "roots" / "outer",
+            origin="https://github.com/Prekzursil/outer.git",
+        )
+        make_repo(
+            outer / "vendor" / "inner",
+            origin="https://github.com/thirdparty/inner.git",
+            dirty=1,
+        )
         found = check.discover_repos([tmp_path / "roots"], CFG, max_depth=4)
         nested = [(p, n) for p, n in found if n]
         assert nested, (
@@ -288,11 +358,19 @@ class TestKnownPositiveControls:
         enclosing-path into classify() would pass both and still misfile every nested clone
         as its own top-level repo. This drives the full survey() with NO manual nested_in
         override, and asserts the seam holds."""
-        outer = make_repo(tmp_path / "roots" / "myrepo",
-                          origin="https://github.com/Prekzursil/myrepo.git", dirty=1)
-        make_repo(outer / "vendor" / "thirdparty",
-                  origin="https://github.com/someoneelse/thirdparty.git", dirty=1)
-        by_name = {v.name: v for v in check.survey([tmp_path / "roots"], CFG, max_depth=4)}
+        outer = make_repo(
+            tmp_path / "roots" / "myrepo",
+            origin="https://github.com/Prekzursil/myrepo.git",
+            dirty=1,
+        )
+        make_repo(
+            outer / "vendor" / "thirdparty",
+            origin="https://github.com/someoneelse/thirdparty.git",
+            dirty=1,
+        )
+        by_name = {
+            v.name: v for v in check.survey([tmp_path / "roots"], CFG, max_depth=4)
+        }
         assert "thirdparty" in by_name, "the nested repo was not discovered at all"
         assert by_name["thirdparty"].ownership == check.VENDORED
         assert by_name["thirdparty"].report is False
@@ -352,7 +430,9 @@ class TestSyncDrift:
         repo.mkdir()
         for i in range(40):
             (live / f"f{i}.md").write_text("x\n", encoding="utf-8")
-        d = check.scan_sync_drift([(live, repo, "rules")], check.Config(owner="x"), cap=10)
+        d = check.scan_sync_drift(
+            [(live, repo, "rules")], check.Config(owner="x"), cap=10
+        )
         assert d and d[0].truncated is True
 
 
@@ -361,22 +441,42 @@ class TestSyncDrift:
 # --------------------------------------------------------------------------------------
 class TestHookContract:
     def _run(self, payload: dict, env_extra: dict | None = None):
-        env = {**os.environ, "GIT_HYGIENE_ROOTS": "", "GIT_HYGIENE_SYNC": "off",
-               **(env_extra or {})}
-        return subprocess.run([sys.executable, str(Path(check.__file__))],
-                              input=json.dumps(payload), capture_output=True,
-                              text=True, env=env, timeout=90)
+        env = {
+            **os.environ,
+            "GIT_HYGIENE_ROOTS": "",
+            "GIT_HYGIENE_SYNC": "off",
+            **(env_extra or {}),
+        }
+        return subprocess.run(
+            [sys.executable, str(Path(check.__file__))],
+            input=json.dumps(payload),
+            capture_output=True,
+            text=True,
+            env=env,
+            timeout=90,
+        )
 
     def test_exits_zero_and_never_blocks(self, tmp_path):
-        r = self._run({"hook_event_name": "Stop", "cwd": str(tmp_path),
-                       "session_id": "s", "stop_hook_active": False})
+        r = self._run(
+            {
+                "hook_event_name": "Stop",
+                "cwd": str(tmp_path),
+                "session_id": "s",
+                "stop_hook_active": False,
+            }
+        )
         assert r.returncode == 0, f"a Stop hook must never block; got {r.returncode}"
 
     def test_emits_the_dispatcher_envelope_when_it_has_something_to_say(self, tmp_path):
-        make_repo(tmp_path / "roots" / "planted-envelope",
-                  origin="https://github.com/Prekzursil/planted-envelope.git", dirty=2)
-        r = self._run({"hook_event_name": "Stop", "cwd": str(tmp_path)},
-                      {"GIT_HYGIENE_ROOTS": str(tmp_path / "roots")})
+        make_repo(
+            tmp_path / "roots" / "planted-envelope",
+            origin="https://github.com/Prekzursil/planted-envelope.git",
+            dirty=2,
+        )
+        r = self._run(
+            {"hook_event_name": "Stop", "cwd": str(tmp_path)},
+            {"GIT_HYGIENE_ROOTS": str(tmp_path / "roots")},
+        )
         assert r.returncode == 0
         obj = json.loads(r.stdout)
         ctx = obj["hookSpecificOutput"]["additionalContext"]
@@ -385,22 +485,33 @@ class TestHookContract:
 
     def test_silent_when_nothing_to_report(self, tmp_path):
         (tmp_path / "roots").mkdir()
-        r = self._run({"hook_event_name": "Stop", "cwd": str(tmp_path)},
-                      {"GIT_HYGIENE_ROOTS": str(tmp_path / "roots")})
+        r = self._run(
+            {"hook_event_name": "Stop", "cwd": str(tmp_path)},
+            {"GIT_HYGIENE_ROOTS": str(tmp_path / "roots")},
+        )
         assert r.returncode == 0 and r.stdout.strip() == ""
 
     def test_fail_open_on_garbage_stdin(self):
-        r = subprocess.run([sys.executable, str(Path(check.__file__))],
-                           input="not json at all", capture_output=True, text=True,
-                           env={**os.environ, "GIT_HYGIENE_ROOTS": "",
-                                "GIT_HYGIENE_SYNC": "off"}, timeout=60)
+        r = subprocess.run(
+            [sys.executable, str(Path(check.__file__))],
+            input="not json at all",
+            capture_output=True,
+            text=True,
+            env={**os.environ, "GIT_HYGIENE_ROOTS": "", "GIT_HYGIENE_SYNC": "off"},
+            timeout=60,
+        )
         assert r.returncode == 0
 
     def test_respects_the_disable_switch(self, tmp_path):
-        make_repo(tmp_path / "roots" / "planted-disabled",
-                  origin="https://github.com/Prekzursil/planted-disabled.git", dirty=2)
-        r = self._run({"hook_event_name": "Stop", "cwd": str(tmp_path)},
-                      {"GIT_HYGIENE_ROOTS": str(tmp_path / "roots"), "GIT_HYGIENE": "off"})
+        make_repo(
+            tmp_path / "roots" / "planted-disabled",
+            origin="https://github.com/Prekzursil/planted-disabled.git",
+            dirty=2,
+        )
+        r = self._run(
+            {"hook_event_name": "Stop", "cwd": str(tmp_path)},
+            {"GIT_HYGIENE_ROOTS": str(tmp_path / "roots"), "GIT_HYGIENE": "off"},
+        )
         assert r.returncode == 0 and r.stdout.strip() == ""
 
 
@@ -411,8 +522,11 @@ class TestMessage:
     def test_message_is_bounded_and_names_the_fix(self, tmp_path):
         vs = []
         for i in range(50):
-            r = make_repo(tmp_path / f"r{i}",
-                          origin=f"https://github.com/Prekzursil/r{i}.git", dirty=i + 1)
+            r = make_repo(
+                tmp_path / f"r{i}",
+                origin=f"https://github.com/Prekzursil/r{i}.git",
+                dirty=i + 1,
+            )
             vs.append(check.classify(state_of(r), CFG))
         msg = check.build_message([v for v in vs if v.report], [])
         assert len(msg.splitlines()) <= check.MAX_LINES

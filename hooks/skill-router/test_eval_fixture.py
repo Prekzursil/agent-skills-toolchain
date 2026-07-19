@@ -37,4 +37,3 @@ def test_eval_preserves_router_cache_in_finally():
     )
     guarded = next(node for node in run_all.body if isinstance(node, ast.Try))
     assert guarded.finalbody, "run_all must restore/remove its temporary router cache"
-

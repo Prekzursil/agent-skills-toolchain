@@ -12,6 +12,7 @@ Events are one JSON object per line. Append-only; recovery = replay the tail.
 
 This module is dependency-free (stdlib only) and safe to import from hooks.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -21,7 +22,9 @@ import sys
 import time
 from pathlib import Path
 
-ROOT = Path(os.environ.get("EVENT_LEDGER_ROOT", str(Path.home() / ".claude" / "event-ledger")))
+ROOT = Path(
+    os.environ.get("EVENT_LEDGER_ROOT", str(Path.home() / ".claude" / "event-ledger"))
+)
 
 
 def _env_float(name: str, default: float, lo: float, hi: float) -> float:
@@ -53,10 +56,12 @@ def _get_projid():
             if shared not in sys.path:
                 sys.path.insert(0, shared)
             import projid as _p  # noqa: PLC0415 - lazy, fail-open
+
             _projid_mod = _p
         except Exception:
             _projid_mod = None
     return _projid_mod
+
 
 # Event kinds. "turn" = objective per-turn harvest (hook-written); decision/failure/goal/
 # milestone = annotations (agent- or hook-written); selection = a correlated tool-choice
@@ -69,7 +74,9 @@ def _legacy_slug(p: str) -> str:
     """The original cwd-hash slug. Retained as the FAIL-OPEN fallback and so migrations can
     still recognise pre-unification shard names."""
     base = Path(p).name or "root"
-    h = hashlib.sha256(p.encode("utf-8", "replace")).hexdigest()[:8]  # non-crypto slug; sha256 per CWE-327
+    h = hashlib.sha256(p.encode("utf-8", "replace")).hexdigest()[
+        :8
+    ]  # non-crypto slug; sha256 per CWE-327
     safe = "".join(c if c.isalnum() or c in "-_." else "-" for c in base)[:40]
     return f"{safe}-{h}"
 
@@ -122,8 +129,14 @@ def _load_state_path(f: Path, project_path: str) -> dict:
             return json.loads(f.read_text(encoding="utf-8"))
         except Exception:
             pass
-    return {"seq": 0, "project": str(project_path), "goal": None, "head": None,
-            "open_failures": [], "last_event_ts": None}
+    return {
+        "seq": 0,
+        "project": str(project_path),
+        "goal": None,
+        "head": None,
+        "open_failures": [],
+        "last_event_ts": None,
+    }
 
 
 def _load_state(project_path: str) -> dict:
@@ -218,7 +231,9 @@ def _write_state_atomic(path: Path, state: dict) -> None:
     """Replace the projection atomically so readers see old-or-new, never truncation."""
     temp = path.with_name(f".{path.name}.{os.getpid()}.{time.time_ns()}.tmp")
     try:
-        temp.write_text(json.dumps(state, indent=2, ensure_ascii=False), encoding="utf-8")
+        temp.write_text(
+            json.dumps(state, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
         os.replace(temp, path)
     finally:
         try:
@@ -275,11 +290,21 @@ def append(project_path: str, kind: str, **fields) -> dict:
             state["head"] = fields.get("head")
         if kind == "failure":
             ofs = state.get("open_failures", [])
-            ofs.append({"seq": seq, "text": fields.get("text"), "preconditions": fields.get("preconditions")})
+            ofs.append(
+                {
+                    "seq": seq,
+                    "text": fields.get("text"),
+                    "preconditions": fields.get("preconditions"),
+                }
+            )
             state["open_failures"] = ofs[-25:]
         if kind == "milestone" and fields.get("supersedes_failures"):
             # a contradicting success auto-tombstones the named open failures
-            keep = [f for f in state.get("open_failures", []) if f.get("seq") not in set(fields["supersedes_failures"])]
+            keep = [
+                f
+                for f in state.get("open_failures", [])
+                if f.get("seq") not in set(fields["supersedes_failures"])
+            ]
             state["open_failures"] = keep
         _write_state_atomic(state_path, state)
         return ev

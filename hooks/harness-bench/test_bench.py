@@ -7,6 +7,7 @@ suite is fully deterministic. Digest + baseline paths are redirected to tmp file
 BG_DIGEST_FILE / BENCH_BASELINE env overrides, so the tests NEVER touch the real
 ~/.claude/BACKGROUND-DIGEST.md or the committed baseline.
 """
+
 import json
 import re
 import sys
@@ -25,16 +26,25 @@ DIGEST_HEADER = "<!-- test digest header (must survive) -->\n"
 
 def _mk(skill_hit, mcp_hit, skill_total=14, mcp_total=5, neg_fire=0, neg_total=2):
     """A single variant object in the eval --json shape."""
-    return {"skill_hit": skill_hit, "skill_total": skill_total,
-            "mcp_hit": mcp_hit, "mcp_total": mcp_total,
-            "neg_fire": neg_fire, "neg_total": neg_total}
+    return {
+        "skill_hit": skill_hit,
+        "skill_total": skill_total,
+        "mcp_hit": mcp_hit,
+        "mcp_total": mcp_total,
+        "neg_fire": neg_fire,
+        "neg_total": neg_total,
+    }
 
 
 def _raw(hybrid, lexical=None, semantic=None):
     """Full eval --json stdout string with the three variants."""
-    return json.dumps({"lexical": lexical or _mk(11, 3),
-                       "semantic": semantic or _mk(12, 3),
-                       "hybrid": hybrid})
+    return json.dumps(
+        {
+            "lexical": lexical or _mk(11, 3),
+            "semantic": semantic or _mk(12, 3),
+            "hybrid": hybrid,
+        }
+    )
 
 
 def _entries(digest_path):
@@ -74,9 +84,13 @@ def test_regression_appends_one_entry_baseline_unchanged(env):
     # Format EXACTLY: [YYYY-MM-DD HH:MM:SS] [harness-bench] <what> | PROPOSE: <cmd>
     assert re.match(
         r"^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\] \[harness-bench\] .+ \| PROPOSE: .+$",
-        line)
+        line,
+    )
     assert "skill recall 12/14 -> 9/14" in line
-    assert "PROPOSE: python C:/Users/Prekzursil/.claude/hooks/semantic-router/eval.py" in line
+    assert (
+        "PROPOSE: python C:/Users/Prekzursil/.claude/hooks/semantic-router/eval.py"
+        in line
+    )
     # baseline NOT updated on regression (keep the higher bar)
     assert json.loads(env["baseline"].read_text(encoding="utf-8")) == base
 
@@ -156,6 +170,7 @@ def test_non_int_recall_fails_open(env):
 def test_eval_runner_that_raises_fails_open(env):
     def boom():
         raise RuntimeError("eval blew up")
+
     rc = bench.main(eval_runner=boom)
     assert rc == 0
     assert _entries(env["digest"]) == []
@@ -164,8 +179,10 @@ def test_eval_runner_that_raises_fails_open(env):
 def test_digest_header_and_prior_entries_preserved(env):
     # Seed a prior entry + header; a regression must APPEND (not clobber) exactly one line.
     env["digest"].write_text(
-        DIGEST_HEADER + "[2026-01-01 00:00:00] [world-watch] old note | PROPOSE: noop\n",
-        encoding="utf-8")
+        DIGEST_HEADER
+        + "[2026-01-01 00:00:00] [world-watch] old note | PROPOSE: noop\n",
+        encoding="utf-8",
+    )
     env["baseline"].write_text(json.dumps(_mk(12, 3)), encoding="utf-8")
     bench.main(eval_runner=lambda: _raw(_mk(9, 3)))
     text = env["digest"].read_text(encoding="utf-8")
@@ -194,13 +211,14 @@ def test_default_runner_used_when_none_passed(env, monkeypatch):
 
 # ── bench-review gap-fills ───────────────────────────────────────────────────
 
+
 def test_ollama_down_suppresses_regression(env, monkeypatch):
     # A recall DROP while the semantic backend is down is infra, not a router regression.
     monkeypatch.setattr(bench, "_semantic_backend_down", lambda: True)
     env["baseline"].write_text(json.dumps(_mk(12, 3)), encoding="utf-8")
-    rc = bench.main(eval_runner=lambda: _raw(_mk(7, 2)))   # big drop
+    rc = bench.main(eval_runner=lambda: _raw(_mk(7, 2)))  # big drop
     assert rc == 0
-    assert _entries(env["digest"]) == []                    # no false regression logged
+    assert _entries(env["digest"]) == []  # no false regression logged
     assert json.loads(env["baseline"].read_text(encoding="utf-8")) == _mk(12, 3)
 
 
@@ -215,9 +233,9 @@ def test_corrupt_baseline_skips_no_reseed(env):
 
 def test_regression_then_recovery_no_refire(env):
     env["baseline"].write_text(json.dumps(_mk(12, 3)), encoding="utf-8")
-    bench.main(eval_runner=lambda: _raw(_mk(9, 3)))     # regress -> 1 entry
+    bench.main(eval_runner=lambda: _raw(_mk(9, 3)))  # regress -> 1 entry
     assert len(_entries(env["digest"])) == 1
-    bench.main(eval_runner=lambda: _raw(_mk(12, 3)))    # recover to bar -> no new entry
+    bench.main(eval_runner=lambda: _raw(_mk(12, 3)))  # recover to bar -> no new entry
     assert len(_entries(env["digest"])) == 1
     assert json.loads(env["baseline"].read_text(encoding="utf-8")) == _mk(12, 3)
 
@@ -228,23 +246,30 @@ def test_both_axes_drop_reported(env):
     line = _entries(env["digest"])[0]
     assert "skill recall 12/14 -> 9/14" in line
     assert "mcp recall 3/5 -> 1/5" in line
-    assert "; " in line   # both parts joined
+    assert "; " in line  # both parts joined
 
 
 def test_default_eval_runner_nonzero_returncode(monkeypatch):
-    monkeypatch.setattr(bench.subprocess, "run",
-                        lambda *a, **k: type("R", (), {"returncode": 1, "stdout": "x"})())
+    monkeypatch.setattr(
+        bench.subprocess,
+        "run",
+        lambda *a, **k: type("R", (), {"returncode": 1, "stdout": "x"})(),
+    )
     assert bench._default_eval_runner() is None
 
 
 def test_default_eval_runner_exception(monkeypatch):
     def boom(*a, **k):
         raise RuntimeError("subprocess failed")
+
     monkeypatch.setattr(bench.subprocess, "run", boom)
     assert bench._default_eval_runner() is None
 
 
 def test_default_eval_runner_success(monkeypatch):
-    monkeypatch.setattr(bench.subprocess, "run",
-                        lambda *a, **k: type("R", (), {"returncode": 0, "stdout": '{"hybrid":1}'})())
+    monkeypatch.setattr(
+        bench.subprocess,
+        "run",
+        lambda *a, **k: type("R", (), {"returncode": 0, "stdout": '{"hybrid":1}'})(),
+    )
     assert bench._default_eval_runner() == '{"hybrid":1}'

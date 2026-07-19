@@ -8,7 +8,6 @@ This prevents bugs like those found in Metabolomics skill (3 critical bugs from 
 """
 
 from tooluniverse import ToolUniverse
-import json
 
 def test_string_tools():
     """Test STRING (Search Tool for Retrieval of Interacting Genes/Proteins) tools"""

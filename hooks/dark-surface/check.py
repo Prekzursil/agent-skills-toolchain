@@ -17,6 +17,7 @@ A6 SHADOW GATE (DARK_SURFACE_MODE env var): "shadow" (default) | anything else.
 Reuses edit-validate's per-session {sid}.edits list + claim-check's transcript-parse pattern.
 Opt-out:  DARK_SURFACE=off  in env, or  hooks/dark-surface/.disabled
 """
+
 from __future__ import annotations
 
 import json
@@ -56,9 +57,30 @@ STUB_RE = re.compile(
     r"pass\s*#.*\bstub\b|\bplaceholder\b|wire[sd]?\s+this\s+later|deferred\s+to\s+a\s+later",
     re.IGNORECASE,
 )
-SRC_EXT = (".py", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".go", ".rs", ".java", ".rb",
-           ".c", ".cc", ".cpp", ".h", ".hpp", ".cs", ".kt", ".swift", ".scala")
-TEST_HINT = re.compile(r"(^|[/\\])(test_|tests?[/\\]|.*\.test\.|.*\.spec\.|conftest)", re.IGNORECASE)
+SRC_EXT = (
+    ".py",
+    ".ts",
+    ".tsx",
+    ".js",
+    ".jsx",
+    ".mjs",
+    ".go",
+    ".rs",
+    ".java",
+    ".rb",
+    ".c",
+    ".cc",
+    ".cpp",
+    ".h",
+    ".hpp",
+    ".cs",
+    ".kt",
+    ".swift",
+    ".scala",
+)
+TEST_HINT = re.compile(
+    r"(^|[/\\])(test_|tests?[/\\]|.*\.test\.|.*\.spec\.|conftest)", re.IGNORECASE
+)
 
 
 def _shadow_log(
@@ -141,11 +163,19 @@ def _final_text(transcript_path: str) -> str:
                     ev = json.loads(line)
                 except Exception:
                     continue
-                msg = ev.get("message") if ev.get("type") == "assistant" else (ev if ev.get("role") == "assistant" else None)
+                msg = (
+                    ev.get("message")
+                    if ev.get("type") == "assistant"
+                    else (ev if ev.get("role") == "assistant" else None)
+                )
                 if isinstance(msg, dict) and msg.get("role") == "assistant":
                     c = msg.get("content") or []
                     if isinstance(c, list):
-                        parts = [str(b.get("text") or "") for b in c if isinstance(b, dict) and b.get("type") == "text"]
+                        parts = [
+                            str(b.get("text") or "")
+                            for b in c
+                            if isinstance(b, dict) and b.get("type") == "text"
+                        ]
                     elif isinstance(c, str):
                         parts = [c]
                     else:
@@ -174,7 +204,9 @@ def _edited_files(session_id: str) -> list[str]:
 
 def main() -> int:
     try:
-        if (THIS / ".disabled").exists() or os.environ.get("DARK_SURFACE", "").lower() in ("off", "0", "false"):
+        if (THIS / ".disabled").exists() or os.environ.get(
+            "DARK_SURFACE", ""
+        ).lower() in ("off", "0", "false"):
             return 0
         data = json.loads(sys.stdin.read() or "{}")
         if data.get("stop_hook_active"):
@@ -218,7 +250,16 @@ def main() -> int:
                     "placeholder) and that a production (non-test) path actually calls it — green tests "
                     "can pass over a dark surface. (SHADOW mode — set DARK_SURFACE_MODE=live to enforce.)"
                 )
-                print(json.dumps({"hookSpecificOutput": {"hookEventName": "Stop", "additionalContext": msg}}))
+                print(
+                    json.dumps(
+                        {
+                            "hookSpecificOutput": {
+                                "hookEventName": "Stop",
+                                "additionalContext": msg,
+                            }
+                        }
+                    )
+                )
                 return 0
 
             msg = (
@@ -228,7 +269,16 @@ def main() -> int:
                 "placeholder) and that a production (non-test) path actually calls it — green tests can pass "
                 "over a dark surface. If it is genuinely a deferred stub, say so explicitly rather than 'done'."
             )
-            print(json.dumps({"hookSpecificOutput": {"hookEventName": "Stop", "additionalContext": msg}}))
+            print(
+                json.dumps(
+                    {
+                        "hookSpecificOutput": {
+                            "hookEventName": "Stop",
+                            "additionalContext": msg,
+                        }
+                    }
+                )
+            )
     except Exception:
         pass  # fail-open: never crash a session
     return 0

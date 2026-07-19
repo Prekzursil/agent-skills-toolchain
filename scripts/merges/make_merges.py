@@ -13,6 +13,7 @@ Held file 2 -- audit_quality_zero_platform.py
     GENUINELY bidirectional. Repo holds find_python_with_yaml(); live holds a
     `pwsh ConvertFrom-Yaml` fallback. Both are preserved, ordered by measured reliability.
 """
+
 from __future__ import annotations
 
 import shutil
@@ -34,7 +35,9 @@ dst = OUT / SKILL_REL
 dst.parent.mkdir(parents=True, exist_ok=True)
 shutil.copyfile(src, dst)
 assert dst.read_bytes() == src.read_bytes()
-print(f"SKILL.md      : copied verbatim from repo ({len(src.read_bytes())} bytes) -> {dst}")
+print(
+    f"SKILL.md      : copied verbatim from repo ({len(src.read_bytes())} bytes) -> {dst}"
+)
 
 # --------------------------------------------------------------- held file 2: real merge
 src = REPO / AUDIT_REL
@@ -46,11 +49,13 @@ raw = src.read_bytes()
 crlf = raw.count(b"\r\n")
 lf = raw.count(b"\n")
 if crlf and crlf != lf:
-    sys.exit(f"FAILED: mixed line endings in {src} (crlf={crlf} lf={lf}); refusing to guess")
+    sys.exit(
+        f"FAILED: mixed line endings in {src} (crlf={crlf} lf={lf}); refusing to guess"
+    )
 nl = "\r\n" if crlf else "\n"
 text = raw.decode("utf-8").replace("\r\n", "\n")
 
-OLD = '''def yaml_load(text: str) -> Any:
+OLD = """def yaml_load(text: str) -> Any:
     try:
         import yaml  # type: ignore
     except ModuleNotFoundError:
@@ -73,7 +78,7 @@ OLD = '''def yaml_load(text: str) -> Any:
             "Install PyYAML or set CODEX_PYTHON_WITH_YAML to an interpreter that has it."
         )
     return yaml.safe_load(text)
-'''
+"""
 
 NEW = '''def yaml_load(text: str) -> Any:
     """Parse YAML, degrading through every fallback either copy of this file ever had.
@@ -145,17 +150,19 @@ NEW = '''def yaml_load(text: str) -> Any:
 '''
 
 if OLD not in text:
-    sys.exit("FAILED: repo-side yaml_load() block not found verbatim; refusing to guess")
+    sys.exit(
+        "FAILED: repo-side yaml_load() block not found verbatim; refusing to guess"
+    )
 
 merged = text.replace(OLD, NEW, 1).replace("\n", nl)
 
 # Both sides' unique content must survive.
 must_keep = [
-    "def find_python_with_yaml",          # repo-only
-    "CODEX_PYTHON_WITH_YAML",             # repo-only
-    "ConvertFrom-Yaml",                   # live-only
-    "import os",                          # repo-only (live deleted it)
-    "import sys",                         # repo-only (live deleted it)
+    "def find_python_with_yaml",  # repo-only
+    "CODEX_PYTHON_WITH_YAML",  # repo-only
+    "ConvertFrom-Yaml",  # live-only
+    "import os",  # repo-only (live deleted it)
+    "import sys",  # repo-only (live deleted it)
 ]
 for token in must_keep:
     if token not in merged:
@@ -164,5 +171,7 @@ for token in must_keep:
 dst = OUT / AUDIT_REL
 dst.parent.mkdir(parents=True, exist_ok=True)
 dst.write_bytes(merged.encode("utf-8"))
-print(f"audit_*.py    : merged ({len(raw)} -> {len(merged.encode('utf-8'))} bytes) -> {dst}")
+print(
+    f"audit_*.py    : merged ({len(raw)} -> {len(merged.encode('utf-8'))} bytes) -> {dst}"
+)
 print("both sides' unique content verified present:", ", ".join(must_keep))

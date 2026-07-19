@@ -89,8 +89,8 @@ def data_stats(filepath: str) -> None:
     print(f"Format:           {format_type}")
     print(f"Total records:    {len(records)}")
     print(f"Parse errors:     {parse_errors}")
-    print(f"")
-    print(f"Token Estimates (approx):")
+    print("")
+    print("Token Estimates (approx):")
     print(f"  Total:          {total_tokens:,}")
     print(f"  Average/record: {avg_tokens:,.0f}")
     print(f"  Min:            {min_tokens:,}")
@@ -101,7 +101,7 @@ def data_stats(filepath: str) -> None:
         for r in records:
             for msg in r.get("messages", []):
                 role_counts[msg.get("role", "unknown")] += 1
-        print(f"\nRole Distribution:")
+        print("\nRole Distribution:")
         for role, count in role_counts.most_common():
             print(f"  {role}: {count}")
 
@@ -129,22 +129,22 @@ def data_stats(filepath: str) -> None:
                 grader_values.append(str(r[field]))
         unique = len(set(grader_values))
         avg_val_len = sum(len(v) for v in grader_values) / len(grader_values) if grader_values else 0
-        print(f"\nGrader fields found:")
+        print("\nGrader fields found:")
         for field, count in grader_field_counts.most_common():
             print(f"  • '{field}' — in {count}/{len(records)} records")
         print(f"Unique grader values: {unique}/{len(grader_values)}")
         print(f"Avg grader value length: {avg_val_len:.0f} chars")
 
     # Dataset size guidance
-    print(f"\n📊 Dataset size guidance:")
+    print("\n📊 Dataset size guidance:")
     if len(records) < 50:
         print(f"  ⚠️ Very small dataset ({len(records)} records). May only learn format, not domain knowledge.")
     elif len(records) < 200:
-        print(f"  ⚠️ Small dataset. Good for initial experiments — evaluate results and add more data if needed.")
+        print("  ⚠️ Small dataset. Good for initial experiments — evaluate results and add more data if needed.")
     elif len(records) <= 500:
-        print(f"  ✅ Sweet spot for getting started (200-500). Evaluate results to decide if you need more.")
+        print("  ✅ Sweet spot for getting started (200-500). Evaluate results to decide if you need more.")
     elif len(records) <= 2000:
-        print(f"  ✅ Good dataset size. Watch for diminishing returns — check if quality beats quantity.")
+        print("  ✅ Good dataset size. Watch for diminishing returns — check if quality beats quantity.")
     else:
         print(f"  ⚠️ Large dataset ({len(records):,}). Larger isn't always better — especially for OSS models where 335-500 examples outperformed 4K.")
 

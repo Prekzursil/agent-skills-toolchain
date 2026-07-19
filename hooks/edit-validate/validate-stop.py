@@ -22,6 +22,7 @@ Otherwise exit 0 (silent). FAIL-OPEN: any internal error -> exit 0.
 
 Opt-outs: env STOP_VALIDATE=off, or a `.disabled` sentinel file in this dir.
 """
+
 import hashlib
 import json
 import os
@@ -49,56 +50,97 @@ def _validate(fp):
     ext = os.path.splitext(fp)[1].lower()
     try:
         if ext == ".py":
-            r = subprocess.run([sys.executable, "-m", "py_compile", fp],
-                               capture_output=True, text=True, encoding="utf-8",
-                               errors="replace", timeout=30)
+            r = subprocess.run(
+                [sys.executable, "-m", "py_compile", fp],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=30,
+            )
             if r.returncode != 0:
                 tail = [ln for ln in (r.stderr or "").splitlines() if ln.strip()]
                 return ("py_compile", tail[-1] if tail else "syntax error")
             ruff = shutil.which("ruff")
             if ruff:
-                r2 = subprocess.run([ruff, "check", "--quiet", fp],
-                                    capture_output=True, text=True, encoding="utf-8",
-                                    errors="replace", timeout=30)
+                r2 = subprocess.run(
+                    [ruff, "check", "--quiet", fp],
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    timeout=30,
+                )
                 if r2.returncode != 0:
-                    out = [ln for ln in ((r2.stdout or "") + (r2.stderr or "")).splitlines() if ln.strip()]
+                    out = [
+                        ln
+                        for ln in ((r2.stdout or "") + (r2.stderr or "")).splitlines()
+                        if ln.strip()
+                    ]
                     return ("ruff", out[0] if out else "lint error")
         elif ext in (".js", ".mjs", ".cjs"):
             node = shutil.which("node")
             if node:
-                r = subprocess.run([node, "--check", fp],
-                                   capture_output=True, text=True, encoding="utf-8",
-                                   errors="replace", timeout=30)
+                r = subprocess.run(
+                    [node, "--check", fp],
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    timeout=30,
+                )
                 if r.returncode != 0:
                     err = r.stderr or ""
                     low = err.lower()
                     # Workflow scripts / ESM with top-level await run inside an async
                     # wrapper where top-level return/await/export are legal; a bare
                     # `node --check` false-flags them. Re-check wrapped before flagging.
-                    if ("illegal return" in low or "await is only valid" in low
-                            or "'import' and 'export'" in low or "may only be used" in low):
+                    if (
+                        "illegal return" in low
+                        or "await is only valid" in low
+                        or "'import' and 'export'" in low
+                        or "may only be used" in low
+                    ):
                         try:
                             src = open(fp, encoding="utf-8", errors="replace").read()
                             out_lines = []
                             for ln in src.splitlines():
                                 s = ln.lstrip()
                                 if s.startswith("export "):
-                                    out_lines.append(ln[:len(ln) - len(s)] + s[len("export "):])
+                                    out_lines.append(
+                                        ln[: len(ln) - len(s)] + s[len("export ") :]
+                                    )
                                 else:
                                     out_lines.append(ln)
-                            tmp = os.path.join(tempfile.gettempdir(),
-                                               "ev_wrap_%s.js" % hashlib.sha1(fp.encode("utf-8", "replace")).hexdigest()[:8])
-                            with open(tmp, "w", encoding="utf-8", errors="replace") as wf:
-                                wf.write("(async()=>{\n" + "\n".join(out_lines) + "\n})();")
-                            r2 = subprocess.run([node, "--check", tmp],
-                                                capture_output=True, text=True, encoding="utf-8",
-                                                errors="replace", timeout=30)
+                            tmp = os.path.join(
+                                tempfile.gettempdir(),
+                                "ev_wrap_%s.js"
+                                % hashlib.sha1(
+                                    fp.encode("utf-8", "replace"), usedforsecurity=False
+                                ).hexdigest()[:8],
+                            )
+                            with open(
+                                tmp, "w", encoding="utf-8", errors="replace"
+                            ) as wf:
+                                wf.write(
+                                    "(async()=>{\n" + "\n".join(out_lines) + "\n})();"
+                                )
+                            r2 = subprocess.run(
+                                [node, "--check", tmp],
+                                capture_output=True,
+                                text=True,
+                                encoding="utf-8",
+                                errors="replace",
+                                timeout=30,
+                            )
                             try:
                                 os.remove(tmp)
                             except OSError:
                                 pass
                             if r2.returncode == 0:
-                                return None  # valid in async/module context — not broken
+                                return (
+                                    None  # valid in async/module context — not broken
+                                )
                             err = r2.stderr or err
                         except Exception:
                             return None  # fail-open: never false-flag on our own re-check error
@@ -129,7 +171,11 @@ def main() -> int:
         if data.get("stop_hook_active"):
             return 0
 
-        sid = str(data.get("session_id") or "default").replace("/", "_").replace("\\", "_")
+        sid = (
+            str(data.get("session_id") or "default")
+            .replace("/", "_")
+            .replace("\\", "_")
+        )
         d = os.path.join(tempfile.gettempdir(), "edit-validate")
         edits_path = os.path.join(d, f"{sid}.edits")
         warned_path = os.path.join(d, f"{sid}.warned")
@@ -155,7 +201,9 @@ def main() -> int:
             if not res:
                 continue
             kind, msg = res
-            sig = hashlib.sha1(f"{fp}|{kind}|{msg}".encode("utf-8", "replace")).hexdigest()[:16]
+            sig = hashlib.sha1(
+                f"{fp}|{kind}|{msg}".encode("utf-8", "replace"), usedforsecurity=False
+            ).hexdigest()[:16]
             if sig in warned:
                 continue  # guard 2: already nudged this exact breakage
             warned.add(sig)
@@ -171,11 +219,16 @@ def main() -> int:
         except OSError:
             pass
 
-        lines = [f"- {os.path.basename(fp)} [{kind}]: {msg}" for fp, kind, msg in fresh_failures]
-        reason = ("[edit-validate] You left file(s) edited this turn in a broken state:\n"
-                  + "\n".join(lines)
-                  + "\n\nFix the source (do not weaken the check). This nudge fires at most once "
-                    "per distinct error; if intentional/WIP, end again and it will not re-block.")
+        lines = [
+            f"- {os.path.basename(fp)} [{kind}]: {msg}"
+            for fp, kind, msg in fresh_failures
+        ]
+        reason = (
+            "[edit-validate] You left file(s) edited this turn in a broken state:\n"
+            + "\n".join(lines)
+            + "\n\nFix the source (do not weaken the check). This nudge fires at most once "
+            "per distinct error; if intentional/WIP, end again and it will not re-block."
+        )
         print(json.dumps({"decision": "block", "reason": reason}))
     except Exception:
         return 0

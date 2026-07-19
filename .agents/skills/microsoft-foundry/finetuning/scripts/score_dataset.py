@@ -174,7 +174,7 @@ def main():
             all_avgs.append(avg)
 
     if all_avgs:
-        print(f"\nQuality Distribution:")
+        print("\nQuality Distribution:")
         print(f"  Mean:   {sum(all_avgs)/len(all_avgs):.1f}")
         print(f"  Min:    {min(all_avgs):.1f}")
         print(f"  Max:    {max(all_avgs):.1f}")

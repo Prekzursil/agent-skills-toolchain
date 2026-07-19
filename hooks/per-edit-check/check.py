@@ -198,7 +198,9 @@ def main() -> int:
 
         # ── skip throwaway scratch trees (not deliverables) ──────────────────
         _norm = fp.replace("\\", "/").lower()
-        if any(seg in _norm for seg in ("/scratchpad/", "/temp/claude/", "/.write-probe")):
+        if any(
+            seg in _norm for seg in ("/scratchpad/", "/temp/claude/", "/.write-probe")
+        ):
             return 0
 
         # ── skip huge files (generated / data / compiled assets) ─────────────

@@ -249,7 +249,7 @@ def main():
             else:
                 raise
 
-    print(f"\nJob submitted successfully:")
+    print("\nJob submitted successfully:")
     print(json.dumps(result, indent=2))
 
     # Save job info

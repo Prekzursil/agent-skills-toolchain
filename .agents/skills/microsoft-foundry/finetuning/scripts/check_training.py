@@ -93,7 +93,7 @@ def analyze_job(client, job_id, download_csv=None):
     best_step, best_val, best_train = min(val_points, key=lambda x: x[1])
     final_step, final_val, final_train = val_points[-1]
 
-    print(f"\n  Training Curve Analysis:")
+    print("\n  Training Curve Analysis:")
     print(f"  {'Step':>6} {'Val Loss':>10} {'Train Loss':>12} {'Ratio':>8}")
     print(f"  {'─'*6} {'─'*10} {'─'*12} {'─'*8}")
     for step, val, train in val_points:
@@ -115,10 +115,10 @@ def analyze_job(client, job_id, download_csv=None):
         ratio = final_val / final_train
         print(f"\n  ⚠️  MODERATE OVERFITTING: val/train ratio = {ratio:.2f}")
     else:
-        print(f"\n  ✅ Training looks healthy. No significant overfitting detected.")
+        print("\n  ✅ Training looks healthy. No significant overfitting detected.")
 
     # List checkpoints and recommend best deployable one
-    print(f"\n  Checkpoints:")
+    print("\n  Checkpoints:")
     available_checkpoints = []
     try:
         cps = client.fine_tuning.jobs.checkpoints.list(job_id)
@@ -157,7 +157,7 @@ def analyze_job(client, job_id, download_csv=None):
             print(f"\n  🎯 Recommended checkpoint: step {cp_step}{vl_info}")
             print(f"     Model ID: {cp_model}")
             print(f"     (Best val_loss was at step {best_step}, nearest deployable checkpoint is step {cp_step})")
-            print(f"     Alternatively, retrain with fewer epochs to avoid overfitting.")
+            print("     Alternatively, retrain with fewer epochs to avoid overfitting.")
         else:
             print(f"\n  Recommendation: Retrain with fewer epochs (best val_loss was at step {best_step}).")
 

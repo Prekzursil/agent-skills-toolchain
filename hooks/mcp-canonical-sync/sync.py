@@ -10,6 +10,7 @@ Interim measure until the user-scope promote removes per-project files entirely.
 Only writes on drift, backs up once per drift, and is fail-open (any error -> exit 0).
 Rule: edit the CANONICAL (~/.mcp.json) only; this hook overwrites project copies.
 """
+
 from __future__ import annotations
 
 import glob
@@ -27,8 +28,15 @@ GLOBS = [
     HOME + "/Documents/GitHub/*/.mcp.json",
 ]
 # battlecats-toolkit = ralph's intentional project scope (--setting-sources project,local); never touch.
-EXCLUDE = ("node_modules", "/.git/", "_config-backups", ".retired", ".bak",
-           ".tmp", "battlecats-toolkit")
+EXCLUDE = (
+    "node_modules",
+    "/.git/",
+    "_config-backups",
+    ".retired",
+    ".bak",
+    ".tmp",
+    "battlecats-toolkit",
+)
 
 
 def _load(path):
@@ -59,6 +67,7 @@ def main() -> int:
                 bak = f + ".bak-canonsync-" + time.strftime("%Y%m%d-%H%M%S")
                 if not os.path.exists(bak):
                     import shutil
+
                     shutil.copy2(f, bak)
                 d["mcpServers"] = canon_servers
                 tmp = f + ".tmp"
@@ -69,8 +78,10 @@ def main() -> int:
             except Exception:
                 continue
     if synced:
-        print("[mcp-canonical-sync] synced %d project .mcp.json to canonical: %s"
-              % (len(synced), ", ".join(synced)))
+        print(
+            "[mcp-canonical-sync] synced %d project .mcp.json to canonical: %s"
+            % (len(synced), ", ".join(synced))
+        )
     return 0
 
 

@@ -172,14 +172,14 @@ def main():
     if not verify_deployment(client, args.teacher):
         print(f"  ERROR: Deployment '{args.teacher}' not found. Available deployments can be listed in Azure Portal.")
         sys.exit(1)
-    print(f"  ✅ Teacher deployment verified.")
+    print("  ✅ Teacher deployment verified.")
 
     if judge != args.teacher:
         print(f"Verifying judge deployment '{judge}'...")
         if not verify_deployment(client, judge):
             print(f"  ERROR: Judge deployment '{judge}' not found.")
             sys.exit(1)
-        print(f"  ✅ Judge deployment verified.")
+        print("  ✅ Judge deployment verified.")
 
     # Step 1: Generate or load prompts
     if args.prompts_file:

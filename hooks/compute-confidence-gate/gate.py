@@ -122,7 +122,10 @@ THIS = Path(__file__).resolve().parent
 DISABLED = THIS / ".disabled"
 
 STATE_DIR = Path(
-    os.environ.get("COMPUTE_CONFIDENCE_GATE_DIR", str(Path.home() / ".claude" / "compute-confidence-gate"))
+    os.environ.get(
+        "COMPUTE_CONFIDENCE_GATE_DIR",
+        str(Path.home() / ".claude" / "compute-confidence-gate"),
+    )
 )
 TTL_HOURS = float(os.environ.get("COMPUTE_CONFIDENCE_GATE_TTL_HOURS", "12"))
 
@@ -175,7 +178,9 @@ _BLOCK_REASON = (
 
 
 def _disabled() -> bool:
-    return DISABLED.exists() or os.environ.get("COMPUTE_CONFIDENCE_GATE", "").strip().lower() in (
+    return DISABLED.exists() or os.environ.get(
+        "COMPUTE_CONFIDENCE_GATE", ""
+    ).strip().lower() in (
         "off",
         "0",
         "false",
@@ -233,7 +238,7 @@ def _checklist(tool_name: str, matched: str) -> str:
         "4. COST OF WRONG: best-guess wall-clock/GPU-hours for this launch, and what a wrong "
         "configuration costs before you would notice.\n"
         "5. SUCCESS CRITERION: the literal log line / exit code you will check to confirm THIS "
-        "specific launch (e.g. `DONE_<job>_exit_0`) — not \"the monitor will say done\".\n"
+        'specific launch (e.g. `DONE_<job>_exit_0`) — not "the monitor will say done".\n'
         "6. CONFIDENCE: high / medium / low, honestly. Anything below high — clarify, dry-run, "
         "or re-derive the risky parameter in a fresh check first; do not launch on a guess.\n"
         "(Fires once per distinct launch signature per session — a retry of the exact same "
@@ -244,12 +249,16 @@ def _checklist(tool_name: str, matched: str) -> str:
 def _sig(tool_name: str, cmd: str) -> str:
     raw = f"{tool_name}\x00{cmd}"
     # nosemgrep: python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1 -- non-cryptographic launch-signature fingerprint for session dedup, not a security control
-    return hashlib.sha1(raw.encode("utf-8", "replace"), usedforsecurity=False).hexdigest()[:20]
+    return hashlib.sha1(
+        raw.encode("utf-8", "replace"), usedforsecurity=False
+    ).hexdigest()[:20]
 
 
 def _state_path(session_id: str) -> Path:
     # nosemgrep: python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1 -- non-cryptographic session-id slug for a state-file name, not a security control
-    h = hashlib.sha1(str(session_id).encode("utf-8", "replace"), usedforsecurity=False).hexdigest()[:24]
+    h = hashlib.sha1(
+        str(session_id).encode("utf-8", "replace"), usedforsecurity=False
+    ).hexdigest()[:24]
     return STATE_DIR / f"{h}.json"
 
 

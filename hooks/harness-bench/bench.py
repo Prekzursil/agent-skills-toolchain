@@ -19,6 +19,7 @@ the scheduler.
 Anti-overfit rationale: a green regression net is what LICENSES aggressive skill pruning -
 if HYBRID recall does not drop, removing a skill did not hurt routing.
 """
+
 from __future__ import annotations
 
 import json
@@ -44,8 +45,9 @@ _EVAL_TIMEOUT_S = 1200
 
 def _digest_path() -> Path:
     """Match the background-digest reader's default + BG_DIGEST_FILE override."""
-    return Path(os.environ.get(
-        "BG_DIGEST_FILE", str(HOME / ".claude" / "BACKGROUND-DIGEST.md")))
+    return Path(
+        os.environ.get("BG_DIGEST_FILE", str(HOME / ".claude" / "BACKGROUND-DIGEST.md"))
+    )
 
 
 def _baseline_path() -> Path:
@@ -57,7 +59,11 @@ def _default_eval_runner() -> str | None:
     try:
         res = subprocess.run(
             [sys.executable, str(EVAL_PY), "--json"],
-            capture_output=True, text=True, encoding="utf-8", timeout=_EVAL_TIMEOUT_S)
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=_EVAL_TIMEOUT_S,
+        )
         if res.returncode != 0:
             return None
         return res.stdout
@@ -75,6 +81,7 @@ def _semantic_backend_down() -> bool:
         if sr_dir not in sys.path:
             sys.path.insert(0, sr_dir)
         import embed  # noqa: PLC0415  (sibling hook module, path added above)
+
         ok, _ = embed.health()
         return ok is False
     except Exception:
@@ -121,11 +128,15 @@ def _regression_desc(base: dict, cur: dict) -> str:
     """Human-readable 'baseline -> current' for whichever recall(s) dropped."""
     parts = []
     if cur["skill_hit"] < base["skill_hit"]:
-        parts.append(f"skill recall {base['skill_hit']}/{base['skill_total']} "
-                     f"-> {cur['skill_hit']}/{cur['skill_total']}")
+        parts.append(
+            f"skill recall {base['skill_hit']}/{base['skill_total']} "
+            f"-> {cur['skill_hit']}/{cur['skill_total']}"
+        )
     if cur["mcp_hit"] < base["mcp_hit"]:
-        parts.append(f"mcp recall {base['mcp_hit']}/{base['mcp_total']} "
-                     f"-> {cur['mcp_hit']}/{cur['mcp_total']}")
+        parts.append(
+            f"mcp recall {base['mcp_hit']}/{base['mcp_total']} "
+            f"-> {cur['mcp_hit']}/{cur['mcp_total']}"
+        )
     return "HYBRID router " + "; ".join(parts)
 
 

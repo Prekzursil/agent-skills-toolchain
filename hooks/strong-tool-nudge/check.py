@@ -9,6 +9,7 @@ fail-open; loop-marker-gated so it fires ONCE per signature per session (no nagg
 
 Opt-out: STRONG_TOOL_NUDGE=off, or hooks/strong-tool-nudge/.disabled
 """
+
 import hashlib
 import json
 import os
@@ -42,7 +43,9 @@ def _first_seen(sid, sig):
 
 def main():
     try:
-        if (THIS / ".disabled").exists() or os.environ.get("STRONG_TOOL_NUDGE", "").lower() in ("off", "0", "false"):
+        if (THIS / ".disabled").exists() or os.environ.get(
+            "STRONG_TOOL_NUDGE", ""
+        ).lower() in ("off", "0", "false"):
             return 0
         if _caps is None:
             return 0
@@ -54,13 +57,34 @@ def main():
         hits = _caps.match(text, hand_roll_only=True)
         if not hits:
             return 0
-        sid = str(data.get("session_id") or "default").replace("/", "_").replace("\\", "_")
-        fresh = [lbl for lbl, _h in hits if _first_seen(sid, hashlib.md5(lbl.encode()).hexdigest()[:10])]
+        sid = (
+            str(data.get("session_id") or "default")
+            .replace("/", "_")
+            .replace("\\", "_")
+        )
+        fresh = [
+            lbl
+            for lbl, _h in hits
+            if _first_seen(
+                sid, hashlib.md5(lbl.encode(), usedforsecurity=False).hexdigest()[:10]
+            )
+        ]
         if not fresh:
             return 0
-        msg = ("[strong-tool] You're about to hand-roll a capability a registered MCP already provides — "
-               "prefer: " + " ; ".join(fresh[:2]))
-        print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": msg}}))
+        msg = (
+            "[strong-tool] You're about to hand-roll a capability a registered MCP already provides — "
+            "prefer: " + " ; ".join(fresh[:2])
+        )
+        print(
+            json.dumps(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "PreToolUse",
+                        "additionalContext": msg,
+                    }
+                }
+            )
+        )
     except Exception:
         pass  # fail-open
     return 0

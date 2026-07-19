@@ -17,7 +17,9 @@ from unittest import mock
 
 
 THIS = Path(__file__).resolve().parent
-SPEC = importlib.util.spec_from_file_location("mvt_patch_leaving_check", THIS / "check.py")
+SPEC = importlib.util.spec_from_file_location(
+    "mvt_patch_leaving_check", THIS / "check.py"
+)
 assert SPEC and SPEC.loader
 hook = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(hook)
@@ -105,7 +107,9 @@ class PatchLeavingTests(unittest.TestCase):
         self.assertEqual(0, code)
         message = json.loads(output)
         self.assertEqual("Stop", message["hookSpecificOutput"]["hookEventName"])
-        self.assertIn("unapplied patch", message["hookSpecificOutput"]["additionalContext"])
+        self.assertIn(
+            "unapplied patch", message["hookSpecificOutput"]["additionalContext"]
+        )
         self.assertIn("app.py", message["hookSpecificOutput"]["additionalContext"])
         self.assertNotIn("decision", message)
 
@@ -149,7 +153,9 @@ class PatchLeavingTests(unittest.TestCase):
         )
         failed_edit2 = {**failed_edit, **self.base(transcript2, "session-2")}
         self.run_hook("posttool", failed_edit2)
-        self.assertEqual((0, ""), self.run_hook("stop", self.base(transcript2, "session-2")))
+        self.assertEqual(
+            (0, ""), self.run_hook("stop", self.base(transcript2, "session-2"))
+        )
 
     def test_successful_non_git_write_is_landed(self) -> None:
         target = self.work / "notes.txt"
@@ -473,7 +479,9 @@ class PatchLeavingTests(unittest.TestCase):
         self.run_hook("posttool", post)
         self.assertEqual((0, ""), self.run_hook("stop", self.base(transcript)))
 
-    def test_implementation_claim_with_unapplied_patch_artifact_is_flagged(self) -> None:
+    def test_implementation_claim_with_unapplied_patch_artifact_is_flagged(
+        self,
+    ) -> None:
         artifact = self.work / "change.patch"
         content = "--- a/app.py\n+++ b/app.py\n@@ -1 +1 @@\n-old\n+new\n"
         artifact.write_text(content, encoding="utf-8")
@@ -570,7 +578,9 @@ class PatchLeavingTests(unittest.TestCase):
     def test_unrelated_existing_changes_are_ignored(self) -> None:
         # Deliberately resembles a dirty worktree, but this hook must never scan it.
         (self.work / ".git").mkdir()
-        (self.work / "unrelated-user-change.py").write_text("dirty = True\n", encoding="utf-8")
+        (self.work / "unrelated-user-change.py").write_text(
+            "dirty = True\n", encoding="utf-8"
+        )
         transcript = self.transcript(
             request="Explain how this module works.",
             final="Here is the explanation; I made no changes.",
@@ -616,11 +626,17 @@ class PatchLeavingTests(unittest.TestCase):
             "tool_input": {"file_path": str(self.work / "app.py")},
             "tool_result": {"is_error": True, "content": "failed"},
         }
-        with mock.patch.object(hook, "_append_record", side_effect=OSError("disk full")):
+        with mock.patch.object(
+            hook, "_append_record", side_effect=OSError("disk full")
+        ):
             self.assertEqual((0, ""), self.run_hook("posttool", post))
-        with mock.patch.object(hook, "_load_records", side_effect=OSError("unreadable")):
+        with mock.patch.object(
+            hook, "_load_records", side_effect=OSError("unreadable")
+        ):
             self.assertEqual((0, ""), self.run_hook("stop", self.base(transcript)))
-        with mock.patch.object(hook, "_turn_context", side_effect=ValueError("bad transcript")):
+        with mock.patch.object(
+            hook, "_turn_context", side_effect=ValueError("bad transcript")
+        ):
             self.assertEqual((0, ""), self.run_hook("stop", self.base(transcript)))
 
     def test_cli_malformed_input_exits_zero(self) -> None:

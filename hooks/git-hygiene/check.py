@@ -38,6 +38,7 @@ Tuning:   GIT_HYGIENE_OWNER   github owner treated as YOURS        (default: Pre
           GIT_HYGIENE_REPO    toolchain repo root for the drift comparison
           GIT_HYGIENE_BUDGET  seconds of wall clock the whole check may spend (default 5)
 """
+
 from __future__ import annotations
 
 import concurrent.futures as _fut
@@ -53,19 +54,19 @@ from pathlib import Path
 THIS = Path(__file__).resolve().parent
 
 # ---- ownership classes -----------------------------------------------------------------
-YOURS = "YOURS"          # you own it: report real risk
-VENDORED = "VENDORED"    # someone else's code sitting on your disk: never report
+YOURS = "YOURS"  # you own it: report real risk
+VENDORED = "VENDORED"  # someone else's code sitting on your disk: never report
 NO_REMOTE = "NO-REMOTE"  # yours, but it exists nowhere else in the world
 EPHEMERAL = "EPHEMERAL"  # agent scratch worktree, auto-reclaimed: never report
 
 # ---- severity: LOWER SORTS FIRST, ordered by how much work a disk failure would destroy --
-SEV_NO_REMOTE = 0          # exists only on this disk
+SEV_NO_REMOTE = 0  # exists only on this disk
 SEV_DIRTY_NO_UPSTREAM = 1  # uncommitted AND the branch was never pushed
-SEV_UNPUSHED = 2           # committed locally, absent from the remote
-SEV_DIRTY = 3              # uncommitted, but the branch is already on the remote
-SEV_NO_UPSTREAM = 4        # clean, but this branch has never been pushed
+SEV_UNPUSHED = 2  # committed locally, absent from the remote
+SEV_DIRTY = 3  # uncommitted, but the branch is already on the remote
+SEV_NO_UPSTREAM = 4  # clean, but this branch has never been pushed
 
-MAX_LINES = 16   # a hook nobody reads is a hook nobody keeps
+MAX_LINES = 16  # a hook nobody reads is a hook nobody keeps
 MAX_ROWS = 8
 WORKERS = 8
 
@@ -74,26 +75,66 @@ WORKERS = 8
 class Config:
     owner: str = "Prekzursil"
     # CLASSIFICATION markers -- matched against the lowercased, forward-slashed path.
-    vendor_markers: tuple = ("/.claude/plugins/", "/.local/opt/", "/node_modules/",
-                             "/site-packages/", "/vendor/", "/third_party/")
+    vendor_markers: tuple = (
+        "/.claude/plugins/",
+        "/.local/opt/",
+        "/node_modules/",
+        "/site-packages/",
+        "/vendor/",
+        "/third_party/",
+    )
     ephemeral_markers: tuple = ("/.claude/agent-worktrees/", "/.claude/worktrees/")
     # WALK pruning -- purely a cost control. Kept SEPARATE from vendor_markers on purpose:
     # pruning a path also makes its nested repos undiscoverable, so anything we still want
     # to *classify* must remain walkable. Only the 258-repo plugin cache earns a prune.
     prune_markers: tuple = ("/.claude/plugins/",)
-    exclude_dirs: frozenset = field(default_factory=lambda: frozenset({
-        ".git", "node_modules", "__pycache__", ".venv", "venv", "site-packages",
-        ".pytest_cache", ".mypy_cache", ".ruff_cache", ".tox", "dist", "build",
-        ".next", "target", ".gradle",
-    }))
+    exclude_dirs: frozenset = field(
+        default_factory=lambda: frozenset(
+            {
+                ".git",
+                "node_modules",
+                "__pycache__",
+                ".venv",
+                "venv",
+                "site-packages",
+                ".pytest_cache",
+                ".mypy_cache",
+                ".ruff_cache",
+                ".tox",
+                "dist",
+                "build",
+                ".next",
+                "target",
+                ".gradle",
+            }
+        )
+    )
     # Mirrors sync-from-live.ps1's $ExcludeFilePatterns. '*.bak' alone is NOT enough: the
     # live tree carries suffixed forms like '.bak-fleet-20260713'; the narrow pattern once
     # let 32 files of agent backup cruft into a commit.
-    exclude_patterns: tuple = ("*.pyc", "*.pyo", "*.so", "*.dll", "*.exe", "*.egg-info",
-                               "*.log", "*.tmp", ".DS_Store", "Thumbs.db",
-                               "*.sqlite", "*.sqlite3", "*.db",
-                               "*.bak", "*.bak-*", "*.bak.*", "*.orig", "*.rej", "*~",
-                               "*.old", "*.save")
+    exclude_patterns: tuple = (
+        "*.pyc",
+        "*.pyo",
+        "*.so",
+        "*.dll",
+        "*.exe",
+        "*.egg-info",
+        "*.log",
+        "*.tmp",
+        ".DS_Store",
+        "Thumbs.db",
+        "*.sqlite",
+        "*.sqlite3",
+        "*.db",
+        "*.bak",
+        "*.bak-*",
+        "*.bak.*",
+        "*.orig",
+        "*.rej",
+        "*~",
+        "*.old",
+        "*.save",
+    )
     max_depth: int = 2
     # Measured end-to-end on this box: 3.7 s warm, 5.6 s cold. 8 s leaves headroom so a cold
     # cache does not truncate the report; the hook declares truncation when it does happen.
@@ -106,13 +147,13 @@ class RepoState:
     path: str
     origin: str = ""
     has_remote: bool = False
-    branch: str = ""        # "" means DETACHED HEAD
+    branch: str = ""  # "" means DETACHED HEAD
     upstream: str = ""
     dirty: int = 0
     ahead: int = 0
-    unborn: bool = False    # `git init` with no commit yet -- rev-parse HEAD fails here
+    unborn: bool = False  # `git init` with no commit yet -- rev-parse HEAD fails here
     is_worktree: bool = False
-    nested_in: str = ""     # path of the enclosing repo, if this one sits inside another
+    nested_in: str = ""  # path of the enclosing repo, if this one sits inside another
 
 
 @dataclass(frozen=True)
@@ -129,11 +170,11 @@ class Verdict:
 @dataclass(frozen=True)
 class DriftReport:
     area: str
-    live_only: int      # exists live, absent from the repo -> sync would ADD it
-    differing: int      # exists in both, sizes differ    -> sync would UPDATE it
-    actionable: int     # live_only + differing
+    live_only: int  # exists live, absent from the repo -> sync would ADD it
+    differing: int  # exists in both, sizes differ    -> sync would UPDATE it
+    actionable: int  # live_only + differing
     scanned: int
-    truncated: bool     # the budget expired: this count is a FLOOR, not a total
+    truncated: bool  # the budget expired: this count is a FLOOR, not a total
 
 
 # ------------------------------------------------------------------------------------------
@@ -141,8 +182,9 @@ class DriftReport:
 # ------------------------------------------------------------------------------------------
 def _git(repo: Path, *args: str) -> str:
     try:
-        r = subprocess.run(["git", "-C", str(repo), *args], capture_output=True,
-                           text=True, timeout=20)
+        r = subprocess.run(
+            ["git", "-C", str(repo), *args], capture_output=True, text=True, timeout=20
+        )
         return (r.stdout or "").strip() if r.returncode == 0 else ""
     except Exception:  # noqa: BLE001 - a git that hangs or is missing must not break Stop
         return ""
@@ -161,7 +203,7 @@ def _owner_of(origin: str) -> str:
         s = s[:-4]
     if "://" in s:
         s = s.split("://", 1)[1]
-    if "@" in s.split("/", 1)[0]:            # git@github.com:owner/repo  or  ssh://git@host/
+    if "@" in s.split("/", 1)[0]:  # git@github.com:owner/repo  or  ssh://git@host/
         s = s.split("@", 1)[1]
     s = s.replace(":", "/")
     parts = [p for p in s.split("/") if p]
@@ -206,7 +248,8 @@ def read_repo_state(path) -> RepoState | None:
     if not dot.exists():
         return None
     branch, upstream, ahead, dirty, unborn = _parse_status_v2(
-        _git(p, "status", "--porcelain=v2", "--branch"))
+        _git(p, "status", "--porcelain=v2", "--branch")
+    )
     # One call for every remote URL: gives has_remote AND origin without a second spawn.
     remotes = _git(p, "config", "--get-regexp", r"^remote\..*\.url")
     origin = ""
@@ -215,8 +258,14 @@ def read_repo_state(path) -> RepoState | None:
         if len(bits) == 2 and bits[0] == "remote.origin.url":
             origin = bits[1].strip()
     return RepoState(
-        path=str(p), origin=origin, has_remote=bool(remotes.strip()), branch=branch,
-        upstream=upstream, dirty=dirty, ahead=ahead, unborn=unborn,
+        path=str(p),
+        origin=origin,
+        has_remote=bool(remotes.strip()),
+        branch=branch,
+        upstream=upstream,
+        dirty=dirty,
+        ahead=ahead,
+        unborn=unborn,
         is_worktree=dot.is_file(),
     )
 
@@ -237,8 +286,15 @@ def classify(state: RepoState, cfg: Config) -> Verdict:
     name = Path(state.path).name
 
     def v(ownership, report, severity=SEV_DIRTY, detail="", action=""):
-        return Verdict(path=state.path, name=name, ownership=ownership, report=report,
-                       severity=severity, detail=detail, action=action)
+        return Verdict(
+            path=state.path,
+            name=name,
+            ownership=ownership,
+            report=report,
+            severity=severity,
+            detail=detail,
+            action=action,
+        )
 
     # 1. Agent scratch worktrees. 20 measured, all detached, all clean -- and they are
     #    reclaimed automatically, so nothing here is ever "abandoned".
@@ -250,13 +306,17 @@ def classify(state: RepoState, cfg: Config) -> Verdict:
     #      have no remote at all, and grading them on provenance would drop them into the
     #      highest-severity bucket and dominate the report.
     if state.nested_in:
-        return v(VENDORED, False, detail=f"clone nested inside {Path(state.nested_in).name}")
+        return v(
+            VENDORED, False, detail=f"clone nested inside {Path(state.nested_in).name}"
+        )
     if _matches(state.path, cfg.vendor_markers):
         return v(VENDORED, False, detail="third-party tree")
 
     # 4. Provenance.
     if state.has_remote and _owner_of(state.origin).lower() != cfg.owner.lower():
-        return v(VENDORED, False, detail=f"origin owned by {_owner_of(state.origin) or '?'}")
+        return v(
+            VENDORED, False, detail=f"origin owned by {_owner_of(state.origin) or '?'}"
+        )
 
     ownership = YOURS if state.has_remote else NO_REMOTE
     detached = state.branch == ""
@@ -268,26 +328,52 @@ def classify(state: RepoState, cfg: Config) -> Verdict:
         return v(ownership, False, detail="nothing at risk")
 
     if ownership == NO_REMOTE:
-        what = (f"{state.dirty} uncommitted file(s)" if state.dirty
-                else "commits exist only here")
-        return v(NO_REMOTE, True, SEV_NO_REMOTE,
-                 f"NO REMOTE AT ALL -- {what}; this work exists nowhere else",
-                 "create a remote and push: gh repo create --source . --private --push")
+        what = (
+            f"{state.dirty} uncommitted file(s)"
+            if state.dirty
+            else "commits exist only here"
+        )
+        return v(
+            NO_REMOTE,
+            True,
+            SEV_NO_REMOTE,
+            f"NO REMOTE AT ALL -- {what}; this work exists nowhere else",
+            "create a remote and push: gh repo create --source . --private --push",
+        )
 
     if state.dirty and not state.upstream:
-        return v(YOURS, True, SEV_DIRTY_NO_UPSTREAM,
-                 f"{state.dirty} uncommitted file(s) {where}, and the branch has no upstream",
-                 "commit, then: git push -u origin HEAD")
+        return v(
+            YOURS,
+            True,
+            SEV_DIRTY_NO_UPSTREAM,
+            f"{state.dirty} uncommitted file(s) {where}, and the branch has no upstream",
+            "commit, then: git push -u origin HEAD",
+        )
     if state.ahead > 0:
         extra = f" (+{state.dirty} uncommitted)" if state.dirty else ""
-        return v(YOURS, True, SEV_UNPUSHED,
-                 f"{state.ahead} unpushed commit(s) {where}{extra}", "git push")
+        return v(
+            YOURS,
+            True,
+            SEV_UNPUSHED,
+            f"{state.ahead} unpushed commit(s) {where}{extra}",
+            "git push",
+        )
     if state.dirty:
-        return v(YOURS, True, SEV_DIRTY, f"{state.dirty} uncommitted file(s) {where}",
-                 "commit or stash")
+        return v(
+            YOURS,
+            True,
+            SEV_DIRTY,
+            f"{state.dirty} uncommitted file(s) {where}",
+            "commit or stash",
+        )
     if not state.upstream and not state.unborn:
-        return v(YOURS, True, SEV_NO_UPSTREAM, f"branch {state.branch} was never pushed",
-                 "git push -u origin HEAD")
+        return v(
+            YOURS,
+            True,
+            SEV_NO_UPSTREAM,
+            f"branch {state.branch} was never pushed",
+            "git push -u origin HEAD",
+        )
     return v(ownership, False, detail="clean and pushed")
 
 
@@ -343,7 +429,9 @@ def discover_repos(roots, cfg: Config, max_depth: int | None = None, deadline=No
     return uniq
 
 
-def survey(roots, cfg: Config, max_depth: int | None = None, deadline=None) -> list[Verdict]:
+def survey(
+    roots, cfg: Config, max_depth: int | None = None, deadline=None
+) -> list[Verdict]:
     """Read every discovered repo CONCURRENTLY. git spends its time in subprocess wait,
     which releases the GIL, so threads are the right tool and the 8-wide pool turns a
     ~60 s serial scan into a few seconds."""
@@ -362,8 +450,11 @@ def survey(roots, cfg: Config, max_depth: int | None = None, deadline=None) -> l
                 except Exception:  # noqa: BLE001 - one bad repo must not sink the scan
                     continue
                 if st is not None:
-                    verdicts.append(classify(
-                        replace(st, nested_in=nested_by_path.get(path, "")), cfg))
+                    verdicts.append(
+                        classify(
+                            replace(st, nested_in=nested_by_path.get(path, "")), cfg
+                        )
+                    )
     except Exception:  # noqa: BLE001 - fall back to serial if the pool cannot start
         for path, nested in found:
             st = read_repo_state(path)
@@ -375,8 +466,9 @@ def survey(roots, cfg: Config, max_depth: int | None = None, deadline=None) -> l
 # ------------------------------------------------------------------------------------------
 # live-tree drift: what sync-from-live.ps1 would carry that the repo does not have yet
 # ------------------------------------------------------------------------------------------
-def scan_sync_drift(pairs, cfg: Config, cap: int | None = None,
-                    deadline=None) -> list[DriftReport]:
+def scan_sync_drift(
+    pairs, cfg: Config, cap: int | None = None, deadline=None
+) -> list[DriftReport]:
     """Compare live trees against their repo counterparts. SIZE, never hash: hashing 18,628
     files costs seconds a Stop hook does not have. Size-differs is sufficient evidence to
     say "go look"; `sync-from-live.ps1 -Drift` is the authoritative comparison and is what
@@ -407,9 +499,12 @@ def scan_sync_drift(pairs, cfg: Config, cap: int | None = None,
             if dirpath != live_s and os.path.exists(os.path.join(dirpath, ".git")):
                 dirnames[:] = []
                 continue
-            dirnames[:] = [d for d in dirnames
-                           if d not in cfg.exclude_dirs
-                           and not _matches(os.path.join(dirpath, d), cfg.prune_markers)]
+            dirnames[:] = [
+                d
+                for d in dirnames
+                if d not in cfg.exclude_dirs
+                and not _matches(os.path.join(dirpath, d), cfg.prune_markers)
+            ]
             for fn in filenames:
                 if scanned >= limit:
                     truncated = True
@@ -426,9 +521,16 @@ def scan_sync_drift(pairs, cfg: Config, cap: int | None = None,
                         differing += 1
                 except OSError:
                     continue
-        reports.append(DriftReport(area=area, live_only=live_only, differing=differing,
-                                   actionable=live_only + differing, scanned=scanned,
-                                   truncated=truncated))
+        reports.append(
+            DriftReport(
+                area=area,
+                live_only=live_only,
+                differing=differing,
+                actionable=live_only + differing,
+                scanned=scanned,
+                truncated=truncated,
+            )
+        )
     return reports
 
 
@@ -468,8 +570,11 @@ def default_sync_pairs(home: Path, repo_root: Path):
 def default_loose_files(home: Path, repo_root: Path):
     """The exact $LooseFiles list sync-from-live.ps1 carries."""
     return [
-        (home / ".local" / "bin" / "codexmon.ps1",
-         repo_root / "tools" / "monitor" / "codexmon.ps1", "local/bin"),
+        (
+            home / ".local" / "bin" / "codexmon.ps1",
+            repo_root / "tools" / "monitor" / "codexmon.ps1",
+            "local/bin",
+        ),
     ]
 
 
@@ -477,8 +582,9 @@ def default_loose_files(home: Path, repo_root: Path):
 # message
 # ------------------------------------------------------------------------------------------
 def build_message(verdicts, drifts) -> str | None:
-    reportable = sorted([v for v in verdicts if v.report],
-                        key=lambda v: (v.severity, -len(v.detail)))
+    reportable = sorted(
+        [v for v in verdicts if v.report], key=lambda v: (v.severity, -len(v.detail))
+    )
     drifts = [d for d in (drifts or []) if d.actionable > 0]
     if not reportable and not drifts:
         return None
@@ -486,15 +592,20 @@ def build_message(verdicts, drifts) -> str | None:
     lines = []
     if drifts:
         total = sum(d.actionable for d in drifts)
-        partial = (" (a FLOOR: the scan budget expired)"
-                   if any(d.truncated for d in drifts) else "")
+        partial = (
+            " (a FLOOR: the scan budget expired)"
+            if any(d.truncated for d in drifts)
+            else ""
+        )
         areas = ", ".join(f"{d.area} {d.actionable}" for d in drifts[:5])
         lines.append(
             f"GIT-HYGIENE / harness: {total} live file(s){partial} under the synced trees "
             f"are absent from or differ from the toolchain repo [{areas}]."
         )
-        lines.append("  -> pwsh -File scripts/sync-from-live.ps1 -Drift   "
-                     "(then -WhatIf, then commit)")
+        lines.append(
+            "  -> pwsh -File scripts/sync-from-live.ps1 -Drift   "
+            "(then -WhatIf, then commit)"
+        )
 
     if reportable:
         lines.append(
@@ -504,9 +615,13 @@ def build_message(verdicts, drifts) -> str | None:
         for v in reportable[:MAX_ROWS]:
             lines.append(f"  [{v.ownership}] {v.name}: {v.detail}  ->  {v.action}")
         if len(reportable) > MAX_ROWS:
-            lines.append(f"  ... and {len(reportable) - MAX_ROWS} more "
-                         f"(pwsh -File scripts/repo-sweep.ps1 for the full survey)")
-    lines.append("  Advisory only -- nothing is blocked. Ignore freely if this is deliberate.")
+            lines.append(
+                f"  ... and {len(reportable) - MAX_ROWS} more "
+                f"(pwsh -File scripts/repo-sweep.ps1 for the full survey)"
+            )
+    lines.append(
+        "  Advisory only -- nothing is blocked. Ignore freely if this is deliberate."
+    )
     return "\n".join(lines[:MAX_LINES])
 
 
@@ -519,8 +634,9 @@ def _default_roots(home: Path):
 
 def main() -> int:
     try:
-        if (THIS / ".disabled").exists() or \
-                os.environ.get("GIT_HYGIENE", "").lower() in ("off", "0", "false"):
+        if (THIS / ".disabled").exists() or os.environ.get(
+            "GIT_HYGIENE", ""
+        ).lower() in ("off", "0", "false"):
             return 0
         try:
             json.loads(sys.stdin.read() or "{}")
@@ -528,7 +644,9 @@ def main() -> int:
             return 0
 
         home = Path(os.environ.get("USERPROFILE") or os.path.expanduser("~"))
-        cfg = replace(Config(), owner=os.environ.get("GIT_HYGIENE_OWNER") or Config().owner)
+        cfg = replace(
+            Config(), owner=os.environ.get("GIT_HYGIENE_OWNER") or Config().owner
+        )
         try:
             budget = float(os.environ.get("GIT_HYGIENE_BUDGET") or cfg.budget_s)
         except ValueError:
@@ -545,17 +663,28 @@ def main() -> int:
 
         drifts = []
         if os.environ.get("GIT_HYGIENE_SYNC", "").lower() not in ("off", "0", "false"):
-            repo_root = Path(os.environ.get("GIT_HYGIENE_REPO")
-                             or home / "source" / "agent-skills-toolchain")
+            repo_root = Path(
+                os.environ.get("GIT_HYGIENE_REPO")
+                or home / "source" / "agent-skills-toolchain"
+            )
             if repo_root.exists():
-                drifts = scan_sync_drift(default_sync_pairs(home, repo_root), cfg,
-                                         deadline=deadline)
+                drifts = scan_sync_drift(
+                    default_sync_pairs(home, repo_root), cfg, deadline=deadline
+                )
                 drifts += scan_loose_files(default_loose_files(home, repo_root), cfg)
 
         msg = build_message(verdicts, drifts)
         if msg:
-            print(json.dumps({"hookSpecificOutput": {
-                "hookEventName": "Stop", "additionalContext": msg}}))
+            print(
+                json.dumps(
+                    {
+                        "hookSpecificOutput": {
+                            "hookEventName": "Stop",
+                            "additionalContext": msg,
+                        }
+                    }
+                )
+            )
         return 0
     except Exception:  # noqa: BLE001 - fail-open: a crashing gate is worse than none
         return 0

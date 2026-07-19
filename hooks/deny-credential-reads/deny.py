@@ -10,6 +10,7 @@ on .env/*.pem/*credentials*; this ALSO closes the Bash/Grep gap (e.g. `cat .env`
 Fail-open (AGENTS.md 6): any internal error exits 0 so the harness never wedges.
 Emits the docs' preferred JSON deny (hookSpecificOutput.permissionDecision).
 """
+
 import json
 import sys
 import re
@@ -17,18 +18,45 @@ import fnmatch
 import os
 
 SENSITIVE_GLOBS = [
-    ".env", ".env.*", "*.env",
-    "*.key", "*.pem", "*.p12", "*.pfx", "*.pkcs12",
-    "credentials", "credentials.*", "*credentials*", ".credentials.json",
-    "id_rsa", "id_rsa.*", "id_ed25519", "id_ed25519.*",
-    "secrets.*", "*.secret", ".netrc", ".pgpass",
+    ".env",
+    ".env.*",
+    "*.env",
+    "*.key",
+    "*.pem",
+    "*.p12",
+    "*.pfx",
+    "*.pkcs12",
+    "credentials",
+    "credentials.*",
+    "*credentials*",
+    ".credentials.json",
+    "id_rsa",
+    "id_rsa.*",
+    "id_ed25519",
+    "id_ed25519.*",
+    "secrets.*",
+    "*.secret",
+    ".netrc",
+    ".pgpass",
 ]
 # read-ish verbs that would surface file contents into a tool result
-READ_VERBS = (r"(?:cat|type|bat|less|more|head|tail|nl|strings|xxd|od|base64|"
-              r"grep|rg|sls|select-string|get-content|\bgc\b|printf)")
+READ_VERBS = (
+    r"(?:cat|type|bat|less|more|head|tail|nl|strings|xxd|od|base64|"
+    r"grep|rg|sls|select-string|get-content|\bgc\b|printf)"
+)
 # bare secret-name fragments to look for near a read verb
-SECRET_FRAGMENTS = [".env", "credential", "id_rsa", "id_ed25519",
-                    ".pem", ".key", ".netrc", ".pgpass", ".p12", ".pfx"]
+SECRET_FRAGMENTS = [
+    ".env",
+    "credential",
+    "id_rsa",
+    "id_ed25519",
+    ".pem",
+    ".key",
+    ".netrc",
+    ".pgpass",
+    ".p12",
+    ".pfx",
+]
 
 
 def is_sensitive(path):
@@ -56,18 +84,27 @@ def bash_touches_secret(cmd):
 
 
 def deny(reason):
-    print(json.dumps({"hookSpecificOutput": {
-        "hookEventName": "PreToolUse",
-        "permissionDecision": "deny",
-        "permissionDecisionReason": reason}}))
+    print(
+        json.dumps(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": reason,
+                }
+            }
+        )
+    )
     sys.exit(0)
 
 
-REASON = ("Blocked by the no-raw-credentials guardrail: credential files must not be "
-          "read into the model context. Wire the secret via ${ENV} indirection in "
-          ".mcp.json (headers: \"Authorization\": \"Bearer ${PHYLO_TOKEN}\"), a "
-          "headersHelper script, or the local token broker — the literal must be "
-          "resolved by a non-model process, never surfaced to the agent.")
+REASON = (
+    "Blocked by the no-raw-credentials guardrail: credential files must not be "
+    "read into the model context. Wire the secret via ${ENV} indirection in "
+    '.mcp.json (headers: "Authorization": "Bearer ${PHYLO_TOKEN}"), a '
+    "headersHelper script, or the local token broker — the literal must be "
+    "resolved by a non-model process, never surfaced to the agent."
+)
 
 
 def _guard_enabled():
@@ -79,14 +116,19 @@ def _guard_enabled():
     mechanisms share ONE toggle. The secret-LITERAL input block and the
     irreversible-op (disk-wipe / history-rewrite) gate are separate and unaffected."""
     return os.environ.get("HARNESS_CREDENTIAL_GUARD", "").strip().lower() in {
-        "1", "true", "yes", "on",
+        "1",
+        "true",
+        "yes",
+        "on",
     }
 
 
 def main():
     data = json.load(sys.stdin)
     if not _guard_enabled():
-        sys.exit(0)  # credential-file block DISABLED BY DEFAULT (owner directive 2026-07-11)
+        sys.exit(
+            0
+        )  # credential-file block DISABLED BY DEFAULT (owner directive 2026-07-11)
     tool = data.get("tool_name", "")
     ti = data.get("tool_input", {}) or {}
     if tool in ("Read", "Edit", "NotebookEdit", "MultiEdit"):

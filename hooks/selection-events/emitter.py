@@ -28,6 +28,7 @@ Privacy and bounds:
 FAIL-OPEN: every input, correlation, cache, and append error is swallowed and
 main always returns zero.  This hook never blocks or injects context.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -184,9 +185,11 @@ def _is_nonhuman_user_boundary(event: dict[str, Any]) -> bool:
         for flag in ("isMeta", "isSidechain", "isCompactSummary")
     ):
         return True
-    prompt_source = str(
-        event.get("promptSource") or message.get("promptSource") or ""
-    ).strip().lower()
+    prompt_source = (
+        str(event.get("promptSource") or message.get("promptSource") or "")
+        .strip()
+        .lower()
+    )
     if prompt_source in {"system", "hook", "agent", "tool", "task-notification"}:
         return True
     origin = event.get("origin") or message.get("origin") or {}
@@ -216,7 +219,9 @@ def _tool_use_ids(event: dict[str, Any]) -> list[str]:
     message = event.get("message") if isinstance(event, dict) else None
     if not isinstance(message, dict):
         message = {}
-    content = message.get("content", event.get("content") if isinstance(event, dict) else None)
+    content = message.get(
+        "content", event.get("content") if isinstance(event, dict) else None
+    )
     if not isinstance(content, list):
         return []
     return [
@@ -375,7 +380,10 @@ def _query_from_prompt_cache(data: dict[str, Any]) -> dict[str, str] | None:
         record = json.loads(_prompt_file(session_id).read_text(encoding="utf-8"))
     except Exception:
         return None
-    if not isinstance(record, dict) or record.get("schema") != "selection-prompt-cache.v1":
+    if (
+        not isinstance(record, dict)
+        or record.get("schema") != "selection-prompt-cache.v1"
+    ):
         return None
     if record.get("session_hash") != _hash(session_id, 24):
         return None
@@ -390,7 +398,9 @@ def _query_from_prompt_cache(data: dict[str, Any]) -> dict[str, str] | None:
     query = record.get("query")
     query_hash = record.get("query_hash")
     evidence = record.get("query_evidence")
-    if not all(isinstance(value, str) and value for value in (query, query_hash, evidence)):
+    if not all(
+        isinstance(value, str) and value for value in (query, query_hash, evidence)
+    ):
         return None
     if len(query) > MAX_QUERY_CHARS:
         return None

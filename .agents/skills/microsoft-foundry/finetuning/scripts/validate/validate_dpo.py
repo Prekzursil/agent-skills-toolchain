@@ -73,22 +73,22 @@ def validate_dpo(filepath: str) -> None:
     if total < 500 and total > 0:
         print(f"\n⚠️  DPO tip: With {total} pairs, use n_epochs=1-2 max (Azure defaults to 3, which causes overtraining on small datasets).")
     if total > 0:
-        print(f"\n💡 DPO tip: If your base model already scores >9/10 on this task, DPO may hurt more than help.")
+        print("\n💡 DPO tip: If your base model already scores >9/10 on this task, DPO may hurt more than help.")
 
     if errors:
-        print(f"\n❌ ERRORS (must fix):")
+        print("\n❌ ERRORS (must fix):")
         for e in errors[:20]:
             print(f"  • {e}")
         if len(errors) > 20:
             print(f"  ... and {len(errors) - 20} more errors")
 
     if warnings:
-        print(f"\n⚠️  WARNINGS:")
+        print("\n⚠️  WARNINGS:")
         for w in warnings[:10]:
             print(f"  • {w}")
 
     if not errors:
-        print(f"\n✅ Data is valid for DPO fine-tuning!")
+        print("\n✅ Data is valid for DPO fine-tuning!")
     else:
         print(f"\n❌ Fix {len(errors)} error(s) before submitting.")
         sys.exit(1)

@@ -44,10 +44,24 @@ __all__ = ["Context", "is_real_occurrence", "find_real"]
 
 # Tools whose input is EXECUTED (a destructive token here can really run).
 _SHELL_TOOLS = {
-    "bash", "powershell", "shell", "sh", "zsh", "cmd", "terminal", "run_command",
+    "bash",
+    "powershell",
+    "shell",
+    "sh",
+    "zsh",
+    "cmd",
+    "terminal",
+    "run_command",
 }
 # Tools whose input is DATA being written to disk (a destructive token is inert).
-_DATA_TOOLS = {"write", "edit", "multiedit", "notebookedit", "apply_patch", "str_replace"}
+_DATA_TOOLS = {
+    "write",
+    "edit",
+    "multiedit",
+    "notebookedit",
+    "apply_patch",
+    "str_replace",
+}
 
 # Targets whose content is PROSE: only a fenced block counts as code.
 _PROSE_EXT = {".md", ".markdown", ".txt", ".rst", ".adoc", ".org", ".mdx"}
@@ -168,8 +182,12 @@ def is_real_occurrence(text: str, span, context: Context, kind: str = "marker") 
         line_lo, line_hi = _line_bounds(text, start)
         line = text[line_lo:line_hi]
         if _within(
-            [(line_lo + m.start(), line_lo + m.end()) for m in _INLINE_CODE.finditer(line)],
-            start, end,
+            [
+                (line_lo + m.start(), line_lo + m.end())
+                for m in _INLINE_CODE.finditer(line)
+            ],
+            start,
+            end,
         ):
             return False  # named in backticks even inside a source file
         return not _is_negated(text, start)
@@ -183,7 +201,8 @@ def find_real(text: str, pattern, context: Context, kind: str = "marker") -> lis
         if not text:
             return []
         return [
-            m for m in pattern.finditer(text)
+            m
+            for m in pattern.finditer(text)
             if is_real_occurrence(text, m.span(), context, kind=kind)
         ]
     except Exception:

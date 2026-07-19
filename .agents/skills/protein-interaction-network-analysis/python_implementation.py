@@ -85,7 +85,6 @@ def analyze_protein_network(
     ProteinNetworkResult
         Comprehensive analysis results with all phases
     """
-    import sys
     import os
 
     warnings = []
@@ -136,7 +135,7 @@ def analyze_protein_network(
     # ============================================================================
     # PHASE 2: Network Retrieval (STRING primary, BioGRID fallback)
     # ============================================================================
-    print(f"\n🕸️  Phase 2: Retrieving interaction network...")
+    print("\n🕸️  Phase 2: Retrieving interaction network...")
 
     network_edges = []
     primary_source = "STRING"
@@ -187,7 +186,7 @@ def analyze_protein_network(
     # ============================================================================
     # PHASE 3: Enrichment Analysis (Functional + PPI)
     # ============================================================================
-    print(f"\n🧬 Phase 3: Performing enrichment analysis...")
+    print("\n🧬 Phase 3: Performing enrichment analysis...")
 
     enriched_terms = []
     ppi_enrichment = {}
@@ -249,7 +248,7 @@ def analyze_protein_network(
     structural_data = None
 
     if include_structure:
-        print(f"\n🔬 Phase 4: Searching structural data...")
+        print("\n🔬 Phase 4: Searching structural data...")
         structural_data = []
 
         for protein in proteins[:3]:  # Limit to first 3 proteins
@@ -282,7 +281,7 @@ def analyze_protein_network(
         os.dup2(stderr_backup_fd, 2)
         os.close(stderr_backup_fd)
 
-    print(f"\n✅ Analysis complete!")
+    print("\n✅ Analysis complete!")
     print(f"   - Mapped: {len(mapped_proteins)} proteins")
     print(f"   - Interactions: {total_interactions}")
     print(f"   - Enriched terms: {len(enriched_terms)}")
@@ -330,7 +329,6 @@ def example_tp53_analysis():
     This demonstrates the typical workflow for analyzing a protein network
     centered around TP53 and its key interaction partners.
     """
-    import sys
     import os
     from tooluniverse import ToolUniverse
 
@@ -382,14 +380,14 @@ def example_tp53_analysis():
     print(f"\n🕸️  Network: {result.total_interactions} interactions")
     print(f"   Source: {result.primary_source}")
     if result.network_edges:
-        print(f"   Top interactions:")
+        print("   Top interactions:")
         for edge in result.network_edges[:5]:
             score = edge.get("score", 0)
             print(f"      {edge.get('preferredName_A')} ↔ {edge.get('preferredName_B')} (score: {score})")
 
     print(f"\n🧬 Enrichment: {len(result.enriched_terms)} significant GO terms")
     if result.enriched_terms:
-        print(f"   Top enriched processes:")
+        print("   Top enriched processes:")
         for term in result.enriched_terms[:5]:
             print(f"      {term.get('term')} (FDR: {term.get('fdr', 1):.2e})")
 

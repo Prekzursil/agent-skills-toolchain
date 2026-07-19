@@ -27,6 +27,7 @@ THE KNOWN-POSITIVE CONTROL IS MECHANICAL HERE, NOT REMEMBERED
 RUN
   python -m pytest tools/harness-corpus/test_hook_telemetry.py -v
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -68,71 +69,85 @@ def _attach(payload: dict) -> dict:
     }
 
 
-HOOK_SUCCESS = _attach({
-    "type": "hook_success",
-    "hookName": "PreToolUse:Bash",
-    "hookEvent": "PreToolUse",
-    "toolUseID": "79d37b45-19b2-4372-9fe3-03ed7e1891c7",
-    "content": "",
-    "stdout": '{"hookSpecificOutput":{"hookEventName":"PreToolUse",'
-              '"additionalContext":"goal re-injection"}}\r\n',
-    "stderr": "",
-    "exitCode": 0,
-    "command": "Shared harness: PreToolUse",
-    "durationMs": 469,
-})
+HOOK_SUCCESS = _attach(
+    {
+        "type": "hook_success",
+        "hookName": "PreToolUse:Bash",
+        "hookEvent": "PreToolUse",
+        "toolUseID": "79d37b45-19b2-4372-9fe3-03ed7e1891c7",
+        "content": "",
+        "stdout": '{"hookSpecificOutput":{"hookEventName":"PreToolUse",'
+        '"additionalContext":"goal re-injection"}}\r\n',
+        "stderr": "",
+        "exitCode": 0,
+        "command": "Shared harness: PreToolUse",
+        "durationMs": 469,
+    }
+)
 
-ASYNC_HOOK_RESPONSE = _attach({
-    "type": "async_hook_response",
-    "hookName": "Stop",
-    "hookEvent": "Stop",
-    "stdout": '{"hookSpecificOutput":{"hookEventName":"Stop"}}',
-    "exitCode": 0,
-})
+ASYNC_HOOK_RESPONSE = _attach(
+    {
+        "type": "async_hook_response",
+        "hookName": "Stop",
+        "hookEvent": "Stop",
+        "stdout": '{"hookSpecificOutput":{"hookEventName":"Stop"}}',
+        "exitCode": 0,
+    }
+)
 
-HOOK_ADDITIONAL_CONTEXT = _attach({
-    "type": "hook_additional_context",
-    "hookName": "SessionStart",
-    "hookEvent": "SessionStart",
-})
+HOOK_ADDITIONAL_CONTEXT = _attach(
+    {
+        "type": "hook_additional_context",
+        "hookName": "SessionStart",
+        "hookEvent": "SessionStart",
+    }
+)
 
-HOOK_CANCELLED = _attach({
-    "type": "hook_cancelled",
-    "hookName": "PreToolUse:mcp__hublive__hub_backend_add",
-    "hookEvent": "PreToolUse",
-    "command": "Shared harness: PreToolUse",
-    "durationMs": 5559,
-})
+HOOK_CANCELLED = _attach(
+    {
+        "type": "hook_cancelled",
+        "hookName": "PreToolUse:mcp__hublive__hub_backend_add",
+        "hookEvent": "PreToolUse",
+        "command": "Shared harness: PreToolUse",
+        "durationMs": 5559,
+    }
+)
 
 # exitCode 127 = "command not found". This one never executed at all: the
 # ${CLAUDE_PLUGIN_ROOT} placeholder was never expanded. A silently dead guard.
-HOOK_NON_BLOCKING_ERROR = _attach({
-    "type": "hook_non_blocking_error",
-    "hookName": "PostToolUse:Write",
-    "hookEvent": "PostToolUse",
-    "command": "${CLAUDE_PLUGIN_ROOT}/scripts/validate-template.sh",
-    "stderr": "Failed with non-blocking status code: No stderr output",
-    "exitCode": 127,
-    "durationMs": 31,
-})
+HOOK_NON_BLOCKING_ERROR = _attach(
+    {
+        "type": "hook_non_blocking_error",
+        "hookName": "PostToolUse:Write",
+        "hookEvent": "PostToolUse",
+        "command": "${CLAUDE_PLUGIN_ROOT}/scripts/validate-template.sh",
+        "stderr": "Failed with non-blocking status code: No stderr output",
+        "exitCode": 127,
+        "durationMs": 31,
+    }
+)
 
 # The reason a block happened. Real shape: a dict whose "blockingError" key holds the
 # check's own message. Without it a block is a bare count you cannot triage.
-HOOK_BLOCKING_ERROR = _attach({
-    "type": "hook_blocking_error",
-    "hookName": "PostToolUse:Write",
-    "hookEvent": "PostToolUse",
-    "blockingError": {
-        "blockingError": "[{'line': 30, 'message': \"Detected a dynamic value being used "
-                         "with urllib.\", 'severity': 'WARNING'}]"
-    },
-})
+HOOK_BLOCKING_ERROR = _attach(
+    {
+        "type": "hook_blocking_error",
+        "hookName": "PostToolUse:Write",
+        "hookEvent": "PostToolUse",
+        "blockingError": {
+            "blockingError": "[{'line': 30, 'message': \"Detected a dynamic value being used "
+            "with urllib.\", 'severity': 'WARNING'}]"
+        },
+    }
+)
 
-HOOK_SYSTEM_MESSAGE = _attach({
-    "type": "hook_system_message",
-    "hookName": "Stop",
-    "hookEvent": "Stop",
-})
+HOOK_SYSTEM_MESSAGE = _attach(
+    {
+        "type": "hook_system_message",
+        "hookName": "Stop",
+        "hookEvent": "Stop",
+    }
+)
 
 ALL_HOOK_RECORDS = [
     HOOK_SUCCESS,
@@ -245,7 +260,9 @@ def test_non_hook_attachments_are_not_counted(tmp_path):
 
 
 def test_mixed_stream_counts_only_hooks(tmp_path):
-    st = _scan(_write_jsonl(tmp_path / "t.jsonl", ALL_HOOK_RECORDS + NON_HOOK_ATTACHMENTS))
+    st = _scan(
+        _write_jsonl(tmp_path / "t.jsonl", ALL_HOOK_RECORDS + NON_HOOK_ATTACHMENTS)
+    )
     assert sum(st.hooks.values()) == 7
 
 
@@ -265,9 +282,18 @@ def test_malformed_attachment_does_not_crash(tmp_path):
 def test_legacy_toplevel_hookname_still_works(tmp_path):
     """The original top-level probe stays wired so a future/other record shape that really
     does carry hookName at the root is not newly dropped."""
-    st = _scan(_write_jsonl(tmp_path / "t.jsonl", [
-        {"type": "system", "hookName": "LegacyShape", "timestamp": "2026-07-18T00:00:00Z"},
-    ]))
+    st = _scan(
+        _write_jsonl(
+            tmp_path / "t.jsonl",
+            [
+                {
+                    "type": "system",
+                    "hookName": "LegacyShape",
+                    "timestamp": "2026-07-18T00:00:00Z",
+                },
+            ],
+        )
+    )
     assert st.hooks["LegacyShape"] == 1
 
 
@@ -293,7 +319,9 @@ def test_live_corpus_is_present_when_required():
     """Fails loudly if the live corpus is required but missing, so the control below cannot
     silently stop running."""
     if not _REQUIRE_LIVE:
-        pytest.skip("PR3_REQUIRE_LIVE_CORPUS not set; live-corpus control is optional here")
+        pytest.skip(
+            "PR3_REQUIRE_LIVE_CORPUS not set; live-corpus control is optional here"
+        )
     assert LIVE_CORPUS.is_dir(), (
         f"PR3_REQUIRE_LIVE_CORPUS=1 but {LIVE_CORPUS} is absent -- the known-positive control "
         f"would have silently skipped, leaving the detector unguarded."
@@ -335,4 +363,6 @@ def test_control_detector_finds_known_present_hooks_in_live_corpus():
         f"{sum(st.hooks.values())} hook fires. Hooks are known to fire on this box, so a "
         f"zero/low count means the DETECTOR is broken, not that hooks are idle."
     )
-    assert st.hook_events, "hook fires found but no hookEvent rollup -- partial extraction"
+    assert st.hook_events, (
+        "hook fires found but no hookEvent rollup -- partial extraction"
+    )

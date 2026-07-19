@@ -15,7 +15,6 @@ Run: python test_skill_comprehensive.py
 import sys
 import os
 import traceback
-from typing import Dict, List, Any
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -92,7 +91,7 @@ def verify_result_structure(result: ProteinNetworkResult, test_name: str, result
         assert isinstance(result.warnings, list), "warnings not list"
 
         results.add_pass(f"{test_name}: Structure validation",
-                        f"All fields present and correct types")
+                        "All fields present and correct types")
         return True
 
     except AssertionError as e:
@@ -293,7 +292,7 @@ def test_4_multi_protein_network(tu: ToolUniverse, results: TestResults):
                                "Export to Cytoscape example works correctly")
             else:
                 results.add_fail("Test 4: Example code",
-                               f"Missing required columns in network edges")
+                               "Missing required columns in network edges")
 
         except ImportError:
             results.add_warning("Test 4: pandas not available, skipping export test")

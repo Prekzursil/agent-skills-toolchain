@@ -36,6 +36,7 @@ Registration (the 1-line deploy follow-on) is a manifest/settings entry that run
 BOTH PostToolUse (matcher Write|Edit|MultiEdit|NotebookEdit) and Stop. The event is taken from an
 explicit arg (`post`/`stop`) when given, else inferred from the payload's hook_event_name.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -52,17 +53,49 @@ THIS = Path(__file__).resolve().parent
 # Markup / styling / token files are mirrored anywhere. Ambiguous component code (.tsx/.jsx/.mjs
 # etc.) is mirrored ONLY when it lives under a design-ish directory, so this stays a DESIGN
 # mirror and not a whole-codebase mirror.
-STYLE_EXT = (".css", ".scss", ".sass", ".less", ".styl", ".pcss",
-             ".html", ".htm", ".vue", ".svelte", ".astro")
+STYLE_EXT = (
+    ".css",
+    ".scss",
+    ".sass",
+    ".less",
+    ".styl",
+    ".pcss",
+    ".html",
+    ".htm",
+    ".vue",
+    ".svelte",
+    ".astro",
+)
 COMPONENT_EXT = (".tsx", ".jsx", ".ts", ".js", ".mjs", ".cjs")
-DESIGN_DIR_HINT = ("component", "components", "ui", "design", "styles", "style",
-                   "theme", "themes", "widgets", "views", "screens", "layouts")
-TOKEN_NAME_HINT = ("tailwind.config", "theme.", "tokens.", "design-tokens",
-                   ".tokens.", "designsystem", "design-system")
+DESIGN_DIR_HINT = (
+    "component",
+    "components",
+    "ui",
+    "design",
+    "styles",
+    "style",
+    "theme",
+    "themes",
+    "widgets",
+    "views",
+    "screens",
+    "layouts",
+)
+TOKEN_NAME_HINT = (
+    "tailwind.config",
+    "theme.",
+    "tokens.",
+    "design-tokens",
+    ".tokens.",
+    "designsystem",
+    "design-system",
+)
 
 POST_TOOLS = ("Write", "Edit", "MultiEdit", "NotebookEdit")
 
-SHADOW_LOG_MAX = int(os.environ.get("FIGMA_MIRROR_SHADOW_MAX", str(256 * 1024)))  # bytes
+SHADOW_LOG_MAX = int(
+    os.environ.get("FIGMA_MIRROR_SHADOW_MAX", str(256 * 1024))
+)  # bytes
 
 
 # --- small helpers -----------------------------------------------------------
@@ -137,8 +170,13 @@ def _manifest_path(cwd: str) -> Path:
 
 
 def _blank_manifest() -> dict:
-    return {"version": 1, "hash_algo": "sha256", "updated_at": None,
-            "target_default": "figma", "entries": {}}
+    return {
+        "version": 1,
+        "hash_algo": "sha256",
+        "updated_at": None,
+        "target_default": "figma",
+        "entries": {},
+    }
 
 
 def _load_manifest(p: Path) -> dict:
@@ -186,7 +224,11 @@ def _shadow_log(record: dict) -> None:
 
 
 def _emit(event: str, msg: str) -> None:
-    print(json.dumps({"hookSpecificOutput": {"hookEventName": event, "additionalContext": msg}}))
+    print(
+        json.dumps(
+            {"hookSpecificOutput": {"hookEventName": event, "additionalContext": msg}}
+        )
+    )
 
 
 # --- PostToolUse: capture edited design files into the dirty-queue -----------
@@ -203,7 +245,9 @@ def handle_post(data: dict) -> int:
     try:
         d = _queue_dir()
         d.mkdir(parents=True, exist_ok=True)
-        with _dirty_file(_sid(data)).open("a", encoding="utf-8", errors="replace") as fh:
+        with _dirty_file(_sid(data)).open(
+            "a", encoding="utf-8", errors="replace"
+        ) as fh:
             fh.write(_norm_path(os.path.abspath(ap)) + "\n")
     except Exception:
         pass
@@ -262,14 +306,16 @@ def compute_stale(candidates: list[str], manifest: dict):
             size = 0
         e = entries.get(key) or {}
         prior = e.get("last_mirrored_hash")
-        is_stale = (h != prior)
-        e.update({
-            "source": key,
-            "content_hash": h,
-            "size": size,
-            "last_seen_at": _now_iso(),
-            "lossy": True,
-        })
+        is_stale = h != prior
+        e.update(
+            {
+                "source": key,
+                "content_hash": h,
+                "size": size,
+                "last_seen_at": _now_iso(),
+                "lossy": True,
+            }
+        )
         e.setdefault("target", None)
         e.setdefault("figma_node_id", None)
         e.setdefault("designsync_path", None)
@@ -278,8 +324,9 @@ def compute_stale(candidates: list[str], manifest: dict):
         e["status"] = "stale" if is_stale else "mirrored"
         entries[key] = e
         if is_stale:
-            stale.append({"source": key, "content_hash": h,
-                          "never_mirrored": prior is None})
+            stale.append(
+                {"source": key, "content_hash": h, "never_mirrored": prior is None}
+            )
     return stale, manifest
 
 
@@ -299,13 +346,19 @@ def handle_stop(data: dict) -> int:
     stale, manifest = compute_stale(candidates, manifest)
     if stale:
         _save_manifest(mpath, manifest)
-    _shadow_log({
-        "ts": _now_iso(), "sid": sid, "mode": mode, "cwd": _norm_path(cwd),
-        "manifest": _norm_path(str(mpath)),
-        "candidates": len(set(candidates)), "stale": len(stale),
-        "would_inject": bool(stale) and mode == "advise",
-        "stale_files": [os.path.basename(s["source"]) for s in stale[:12]],
-    })
+    _shadow_log(
+        {
+            "ts": _now_iso(),
+            "sid": sid,
+            "mode": mode,
+            "cwd": _norm_path(cwd),
+            "manifest": _norm_path(str(mpath)),
+            "candidates": len(set(candidates)),
+            "stale": len(stale),
+            "would_inject": bool(stale) and mode == "advise",
+            "stale_files": [os.path.basename(s["source"]) for s in stale[:12]],
+        }
+    )
     if not stale or mode != "advise":
         return 0  # shadow: observe + log, inject nothing
     shown = ", ".join(sorted({os.path.basename(s["source"]) for s in stale})[:8])
@@ -316,7 +369,7 @@ def handle_stop(data: dict) -> int:
         f"STALE vs their last Figma mirror: {shown}{more}. Nothing was auto-synced -- a "
         f"code->Figma mirror is LOSSY (structure + tokens carry across; state/routing/logic do "
         f"not), so these are only MARKED stale in `{_norm_path(str(mpath))}`. To re-mirror, run "
-        f"`node \"{consumer}\" plan` for the exact `use_figma` (or DesignSync) plan, perform the "
+        f'`node "{consumer}" plan` for the exact `use_figma` (or DesignSync) plan, perform the '
         f"writes, then record each one with `mirror_consumer.mjs mark-mirrored`. If you are not "
         f"maintaining a Figma mirror for this project, ignore this -- it never blocks."
     )

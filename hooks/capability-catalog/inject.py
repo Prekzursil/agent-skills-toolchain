@@ -12,6 +12,7 @@ Inject-only; never blocks; FAIL-OPEN (any error -> exit 0, emit nothing). Skips 
 re-dump the catalog there) and dedups to once per session. Opt-out: CAPABILITY_CATALOG=off
 or a .disabled file.
 """
+
 from __future__ import annotations
 
 import json
@@ -54,7 +55,11 @@ def build_message() -> str:
 
 def main() -> int:
     try:
-        if DISABLED.exists() or os.environ.get("CAPABILITY_CATALOG", "").lower() in ("off", "0", "false"):
+        if DISABLED.exists() or os.environ.get("CAPABILITY_CATALOG", "").lower() in (
+            "off",
+            "0",
+            "false",
+        ):
             return 0
         try:
             data = json.loads(sys.stdin.read() or "{}")
@@ -63,7 +68,11 @@ def main() -> int:
         # Skip compaction restores (context is re-primed elsewhere; avoid re-dumping).
         if str(data.get("source") or "").lower() == "compact":
             return 0
-        sid = str(data.get("session_id") or "default").replace("/", "_").replace("\\", "_")
+        sid = (
+            str(data.get("session_id") or "default")
+            .replace("/", "_")
+            .replace("\\", "_")
+        )
         if not _first_session(sid):
             return 0
         msg = build_message()
@@ -74,13 +83,22 @@ def main() -> int:
             if str(THIS) not in sys.path:
                 sys.path.insert(0, str(THIS))
             import project_card  # sibling module
+
             block = project_card.build_block(data.get("cwd") or os.getcwd())
             if block:
                 msg = msg + "\n\n" + block
         except Exception:
             pass
-        print(json.dumps({"hookSpecificOutput": {
-            "hookEventName": "SessionStart", "additionalContext": msg}}))
+        print(
+            json.dumps(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "SessionStart",
+                        "additionalContext": msg,
+                    }
+                }
+            )
+        )
     except Exception:
         pass  # fail-open
     return 0

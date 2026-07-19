@@ -44,8 +44,16 @@ AREAS = {
 def run_sync(root: Path, home: Path, *args: str, timeout: int = 300):
     """Invoke the real script. Returns the CompletedProcess."""
     cmd = [
-        "pwsh", "-NoProfile", "-NonInteractive", "-File", str(SCRIPT),
-        "-Root", str(root), "-LiveHome", str(home), *args,
+        "pwsh",
+        "-NoProfile",
+        "-NonInteractive",
+        "-File",
+        str(SCRIPT),
+        "-Root",
+        str(root),
+        "-LiveHome",
+        str(home),
+        *args,
     ]
     return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
 
@@ -122,8 +130,12 @@ def env(tmp_path: Path):
 def test_pwsh_and_script_are_present():
     """Known-positive control for the harness itself: if this fails every other result is noise."""
     assert SCRIPT.is_file(), f"script not found at {SCRIPT}"
-    p = subprocess.run(["pwsh", "-NoProfile", "-Command", "$PSVersionTable.PSVersion.Major"],
-                       capture_output=True, text=True, timeout=120)
+    p = subprocess.run(
+        ["pwsh", "-NoProfile", "-Command", "$PSVersionTable.PSVersion.Major"],
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
     assert p.returncode == 0, f"pwsh unavailable: {p.stderr}"
     assert int(p.stdout.strip()) >= 7, f"expected PowerShell 7+, got {p.stdout!r}"
 
@@ -149,12 +161,37 @@ def test_json_report_carries_the_documented_schema(env):
     write(env.live("rules", "a.md"), "x\n")
     doc = report(env.root, env.home, "-Drift")
     assert doc["schema"] == "harness-drift/v1"
-    for key in ("generatedUtc", "mode", "repoRoot", "liveHome", "ok", "verdict",
-                "exitCode", "totals", "areas", "findings", "detectorControl"):
+    for key in (
+        "generatedUtc",
+        "mode",
+        "repoRoot",
+        "liveHome",
+        "ok",
+        "verdict",
+        "exitCode",
+        "totals",
+        "areas",
+        "findings",
+        "detectorControl",
+    ):
         assert key in doc, f"missing top-level key {key!r}; got {sorted(doc)}"
-    for key in ("filesSeen", "new", "changed", "same", "excluded", "held", "pruned",
-                "unreadable", "reparse", "caseMismatch", "eolOnly", "divergent"):
-        assert key in doc["totals"], f"missing totals.{key}; got {sorted(doc['totals'])}"
+    for key in (
+        "filesSeen",
+        "new",
+        "changed",
+        "same",
+        "excluded",
+        "held",
+        "pruned",
+        "unreadable",
+        "reparse",
+        "caseMismatch",
+        "eolOnly",
+        "divergent",
+    ):
+        assert key in doc["totals"], (
+            f"missing totals.{key}; got {sorted(doc['totals'])}"
+        )
     assert doc["verdict"] in ("CLEAN", "DRIFT", "FAILED")
     assert isinstance(doc["ok"], bool)
     assert doc["ok"] == (doc["verdict"] == "CLEAN")
@@ -165,7 +202,9 @@ def test_json_mode_emits_only_json_on_stdout(env):
     write(env.live("rules", "a.md"), "x\n")
     p = run_sync(env.root, env.home, "-Drift", "-Report", "json")
     out = p.stdout.strip()
-    assert out.startswith("{") and out.endswith("}"), f"stdout is not bare JSON:\n{out[:800]}"
+    assert out.startswith("{") and out.endswith("}"), (
+        f"stdout is not bare JSON:\n{out[:800]}"
+    )
     assert "===" not in out, "human banner leaked into JSON stdout"
     json.loads(out)
 
@@ -191,24 +230,32 @@ def test_held_file_is_reported_as_drift_not_as_clean(env):
     then printed 'NO DRIFT: every shared file is byte-identical' seven lines later. The drift
     detector hides exactly the divergence it most needs to surface."""
     write(env.live("skills", "multi-agent-quickstart/SKILL.md"), "LIVE side\n")
-    write(env.repo("skills", "multi-agent-quickstart/SKILL.md"), "REPO side, different\n")
+    write(
+        env.repo("skills", "multi-agent-quickstart/SKILL.md"), "REPO side, different\n"
+    )
     p = run_sync(env.root, env.home, "-Drift")
     assert "NO DRIFT" not in p.stdout, (
         "script claimed 'NO DRIFT' while holding a file whose two sides differ.\n"
         f"STDOUT:\n{p.stdout}"
     )
     doc = report(env.root, env.home, "-Drift")
-    assert "HELD" in statuses(doc), f"held file missing from findings: {doc.get('findings')}"
+    assert "HELD" in statuses(doc), (
+        f"held file missing from findings: {doc.get('findings')}"
+    )
     assert doc["verdict"] == "DRIFT"
     assert doc["totals"]["held"] == 1
 
 
 def test_held_file_is_never_overwritten_by_sync(env):
     """Regression guard on the existing hold list -- it must keep working after hardening."""
-    repo_f = write(env.repo("skills", "multi-agent-quickstart/SKILL.md"), "REPO AUTHORITATIVE\n")
+    repo_f = write(
+        env.repo("skills", "multi-agent-quickstart/SKILL.md"), "REPO AUTHORITATIVE\n"
+    )
     write(env.live("skills", "multi-agent-quickstart/SKILL.md"), "live junk\n")
     run_sync(env.root, env.home)
-    assert repo_f.read_bytes() == b"REPO AUTHORITATIVE\n", "hold list failed to protect the repo copy"
+    assert repo_f.read_bytes() == b"REPO AUTHORITATIVE\n", (
+        "hold list failed to protect the repo copy"
+    )
 
 
 # --------------------------------------------------------------------------- D-2 loose files
@@ -240,7 +287,9 @@ def test_loose_file_divergence_is_reported_as_drift(env):
     )
     doc = report(env.root, env.home, "-Drift")
     assert doc["verdict"] == "DRIFT"
-    assert finding_for(doc, "tools/monitor/codexmon.ps1") is not None, doc.get("findings")
+    assert finding_for(doc, "tools/monitor/codexmon.ps1") is not None, doc.get(
+        "findings"
+    )
 
 
 # --------------------------------------------------------------------------- D-3 hash failure
@@ -257,6 +306,7 @@ def test_unreadable_file_is_never_reported_as_identical(env):
     handle = os.open(str(live_f), os.O_RDONLY)
     try:
         import msvcrt
+
         msvcrt.locking(handle, msvcrt.LK_NBLCK, 1)
         doc = report(env.root, env.home, "-Drift")
     finally:
@@ -286,6 +336,7 @@ def test_missing_live_area_fails_loudly(env):
     The script prints a grey note and carries on, so the run reports 'NO DRIFT' having
     compared nothing -- the exact single-unvalidated-probe failure this program exists to kill."""
     import shutil
+
     shutil.rmtree(env.home / ".claude/rules")
     p = run_sync(env.root, env.home, "-Drift")
     assert p.returncode != 0, (
@@ -319,9 +370,24 @@ def test_clean_verdict_is_refused_when_the_self_control_fails(env):
     write(env.repo("rules", "a.md"), "same\n")
     e = dict(os.environ, SYNC_FROM_LIVE_BREAK_CONTROL="1")
     p = subprocess.run(
-        ["pwsh", "-NoProfile", "-NonInteractive", "-File", str(SCRIPT),
-         "-Root", str(env.root), "-LiveHome", str(env.home), "-Drift", "-Report", "json"],
-        capture_output=True, text=True, timeout=300, env=e,
+        [
+            "pwsh",
+            "-NoProfile",
+            "-NonInteractive",
+            "-File",
+            str(SCRIPT),
+            "-Root",
+            str(env.root),
+            "-LiveHome",
+            str(env.home),
+            "-Drift",
+            "-Report",
+            "json",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=300,
+        env=e,
     )
     doc = json.loads(p.stdout.strip())
     assert doc["detectorControl"]["passed"] is False
@@ -354,7 +420,9 @@ def test_bracketed_held_file_is_not_silently_overwritten(env):
     write(env.repo("rules", "held[x].md"), "REPO AUTHORITATIVE\n")
     doc = report(env.root, env.home, "-Drift")
     f = finding_for(doc, "held[x].md")
-    assert f is not None, f"bracketed divergence invisible to the detector: {doc.get('findings')}"
+    assert f is not None, (
+        f"bracketed divergence invisible to the detector: {doc.get('findings')}"
+    )
     assert f["status"] in ("CHANGED", "HELD"), f
     assert doc["totals"]["new"] == 0, "existing bracketed repo file misreported as NEW"
 
@@ -369,7 +437,9 @@ def test_nested_repo_is_detected_through_a_bracketed_directory(env):
     write(nested / "LICENSE.txt", "someone else's licence\n")
     run_sync(env.root, env.home)
     leaked = env.repo("skills", "vendor[old]/RsaCtfTool/LICENSE.txt")
-    assert not leaked.exists(), "third-party nested repo was vendored in through a bracketed dir"
+    assert not leaked.exists(), (
+        "third-party nested repo was vendored in through a bracketed dir"
+    )
 
 
 def test_nested_repo_is_still_excluded_normally(env):
@@ -400,7 +470,9 @@ def test_junk_exclusions_are_still_applied(env):
 def test_prune_respects_the_repo_owned_hold_list(env):
     """The hold list exists because those repo copies are authoritative. -Prune never
     consults it, so a live deletion destroys the very file the guard protects."""
-    repo_f = write(env.repo("hooks", "README.md"), "REPO tree documentation -- authoritative\n")
+    repo_f = write(
+        env.repo("hooks", "README.md"), "REPO tree documentation -- authoritative\n"
+    )
     # live hooks/README.md deliberately absent
     run_sync(env.root, env.home, "-Prune")
     assert repo_f.exists(), "-Prune deleted a repo-owned held file"
@@ -421,12 +493,15 @@ def test_reparse_point_is_reported_rather_than_silently_handled(env):
     try:
         os.symlink(str(target), str(link))
     except OSError as exc:  # 1314 = SeCreateSymbolicLinkPrivilege not held
-        pytest.skip(f"cannot create symlinks on this box (winerror={getattr(exc,'winerror',None)})")
+        pytest.skip(
+            f"cannot create symlinks on this box (winerror={getattr(exc, 'winerror', None)})"
+        )
     doc = report(env.root, env.home, "-Drift")
     assert doc["totals"]["reparse"] >= 1, f"reparse point not surfaced: {doc['totals']}"
-    assert not env.repo("skills", "s/linked.txt").exists() or \
-        env.repo("skills", "s/linked.txt").read_bytes() != target.read_bytes(), \
-        "symlink target content was silently copied into the repo"
+    assert (
+        not env.repo("skills", "s/linked.txt").exists()
+        or env.repo("skills", "s/linked.txt").read_bytes() != target.read_bytes()
+    ), "symlink target content was silently copied into the repo"
 
 
 # --------------------------------------------------------------------------- D-10 case
@@ -474,9 +549,15 @@ def test_eol_only_difference_is_not_reported_as_content_drift(env):
     write(env.live("rules", "eol.md"), b"line one\nline two\n")
     write(env.repo("rules", "eol.md"), b"line one\r\nline two\r\n")
     doc = report(env.root, env.home, "-Drift")
-    assert doc["totals"]["eolOnly"] == 1, f"EOL-only difference not classified: {doc['totals']}"
-    assert doc["totals"]["changed"] == 0, "EOL-only difference miscounted as content drift"
-    assert doc["verdict"] == "CLEAN", "line-ending normalisation must not raise a drift alarm"
+    assert doc["totals"]["eolOnly"] == 1, (
+        f"EOL-only difference not classified: {doc['totals']}"
+    )
+    assert doc["totals"]["changed"] == 0, (
+        "EOL-only difference miscounted as content drift"
+    )
+    assert doc["verdict"] == "CLEAN", (
+        "line-ending normalisation must not raise a drift alarm"
+    )
 
 
 def test_real_content_difference_is_still_drift_despite_eol_handling(env):
@@ -495,7 +576,9 @@ def test_binary_files_are_never_newline_normalised(env):
     write(env.live("skills", "s/blob.bin"), b"\x00\x01\n\x02")
     write(env.repo("skills", "s/blob.bin"), b"\x00\x01\r\n\x02")
     doc = report(env.root, env.home, "-Drift")
-    assert doc["totals"]["changed"] == 1, f"binary difference was normalised away: {doc['totals']}"
+    assert doc["totals"]["changed"] == 1, (
+        f"binary difference was normalised away: {doc['totals']}"
+    )
 
 
 # --------------------------------------------------------------------------- D-8 copy integrity
@@ -509,7 +592,10 @@ def test_every_copied_file_is_verified_after_writing(env):
     write(env.live("skills", "s/b.md"), "beta\n")
     doc = report(env.root, env.home)
     assert "verifiedCopies" in doc["totals"], doc["totals"]
-    assert doc["totals"]["verifiedCopies"] == doc["totals"]["new"] + doc["totals"]["changed"]
+    assert (
+        doc["totals"]["verifiedCopies"]
+        == doc["totals"]["new"] + doc["totals"]["changed"]
+    )
     assert env.repo("rules", "a.md").read_bytes() == b"alpha\n"
     assert env.repo("skills", "s/b.md").read_bytes() == b"beta\n"
 
