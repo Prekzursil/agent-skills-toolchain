@@ -11,5 +11,6 @@ Current bounded projects:
 - [`cheatengine-mcp-bridge/`](cheatengine-mcp-bridge/README.md) - thin Windows-first wrapper around the upstream Cheat Engine MCP Bridge with install and validation helpers.
 - [`hexstrike-ai/`](hexstrike-ai/README.md) - Windows-first wrapper around the upstream HexStrike AI runtime with localhost bootstrap and Codex / Claude / Gemini registration helpers.
 - [`codex-fleet-github/`](codex-fleet-github/README.md) - local FastMCP connector that drives the private Codex-on-GitHub runner (`codex-runner.yml`); propose-only draft PRs, fail-closed auth (`CODEX_DISPATCH_PAT`), four tools (dispatch / sweep / status / orchestrate).
+- [`linkedin-mcp/`](linkedin-mcp/README.md) - self-serve LinkedIn (personal developer app) FastMCP server: OpenID-Connect identity + Share-on-LinkedIn member posting. Env-only credentials (no committed secret), 11 tools, partner-gated surface documented not shipped. See its `SETUP.md` for the developer-portal click-path.
 
 Current incubation notes for this surface live under `docs/incubating/tools/`.
