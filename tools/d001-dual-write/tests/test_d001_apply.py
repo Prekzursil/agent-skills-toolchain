@@ -26,7 +26,14 @@ import subprocess
 import sys
 from pathlib import Path
 
-from d001_fixtures import MAGIC, MAGIC_HEX, PROTECTED, Fixture, signature
+from d001_fixtures import (
+    MAGIC,
+    MAGIC_HEX,
+    PROTECTED,
+    Fixture,
+    signature,
+    stat_dirty,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 APPLIER = REPO_ROOT / "tools" / "d001-dual-write" / "d001_apply.py"
@@ -75,6 +82,47 @@ def tree_hash(root: Path) -> str:
         digest.update(b"\0")
         digest.update(hashlib.sha256(path.read_bytes()).digest())
     return digest.hexdigest()
+
+
+def run_traced(
+    fx: Fixture, trace: Path, *args: str
+) -> subprocess.CompletedProcess[str]:
+    """Drive the applier with GIT_TRACE pointed at ``trace``.
+
+    ``GIT_TRACE=<absolute file>`` makes every git process append its real argv
+    to that file.  That is an observation of BEHAVIOUR -- what the tool actually
+    executed -- rather than of the source text, and it survives a mutant that
+    creates a worktree and then tidies it away.
+    """
+    return subprocess.run(
+        [
+            sys.executable,
+            str(APPLIER),
+            "--repo",
+            str(fx.root),
+            "--json",
+            "--magic-hex",
+            MAGIC_HEX,
+            *args,
+        ],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        env={**os.environ, "GIT_TRACE": str(trace)},
+    )
+
+
+def traced_subcommands(trace: Path) -> list[str]:
+    """Every git SUBCOMMAND that actually ran, read off the traced argv."""
+    marker = "trace: built-in: git "
+    subs: list[str] = []
+    for line in trace.read_text(encoding="utf-8", errors="replace").splitlines():
+        if marker in line:
+            rest = line.split(marker, 1)[1].split()
+            if rest:
+                subs.append(rest[0].strip("'\""))
+    return subs
 
 
 # --------------------------------------------------------------------------
@@ -353,6 +401,144 @@ def test_d1_prevention_filtered_path_materialization_is_refused(
     assert signature(filtered.protected) == before
 
 
+PATHSPECS = (":/", "*", ":(glob)**", "secrets", "secrets/")
+
+
+def test_d1_known_broken_a_pathspec_argument_materializes_the_whole_index(
+    filtered: Fixture,
+) -> None:
+    """The hazard the pathspec gate exists to stop, anchored on real git.
+
+    ``git checkout -- :/`` is what the previous revision handed to git once its
+    three checks passed: ``:/`` is git's pathspec for the repository ROOT, and
+    none of ``:/``, ``*`` or a bare directory name IS a protected file name, so
+    an exact-membership test against the argument never engaged.
+
+    The filter here is an identity passthrough spelled outside the applier's
+    known-identity set, so the config audit cannot see it either.  The protected
+    file is left in place holding plaintext and merely made stat-dirty, because
+    git skips paths whose stat data still matches the index.
+    """
+    filtered.neutralize_unnamed()
+    stat_dirty(filtered.protected)
+    before = signature(filtered.protected)
+
+    filtered.git("checkout", "--", ":/")
+
+    landed = filtered.protected.read_bytes()
+    assert landed.startswith(MAGIC), "expected the stored form to land"
+    assert (
+        hashlib.sha256(landed).hexdigest()
+        == hashlib.sha256(filtered.stored_bytes()).hexdigest()
+    )
+    assert signature(filtered.protected) != before
+
+
+def test_d1_prevention_pathspec_gate_is_the_load_bearing_one(
+    filtered: Fixture,
+) -> None:
+    """Decompose WHICH gate refuses -- "it was refused" is not an answer.
+
+    Both other gates report this repository healthy, so a refusal below can only
+    come from the pathspec gate.  Without this arm a green could be an accident
+    of the config audit firing for an unrelated reason.
+    """
+    filtered.neutralize_unnamed()
+    stat_dirty(filtered.protected)
+    proc = run(filtered, "preflight")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    data = payload(proc)
+    assert data["ok"] is True
+    assert data["findings"] == []
+
+
+def test_d1_prevention_pathspec_materialization_is_refused_before_any_write(
+    filtered: Fixture,
+) -> None:
+    """Every broad pathspec is REFUSED, and nothing is written.
+
+    Byte AND mtime identity, which is the standard the known-good mirror run is
+    held to -- a restore that merely rewrites identical content still churns the
+    mtime of every protected file it touches.
+    """
+    filtered.neutralize_unnamed()
+    stat_dirty(filtered.protected)
+    before = signature(filtered.protected)
+
+    for spec in PATHSPECS:
+        proc = run(filtered, "materialize", "--path", spec, "--apply")
+        assert proc.returncode == 7, f"{spec}: {proc.stdout}{proc.stderr}"
+        data = payload(proc)
+        assert data["reason"] == "pathspec-refused", spec
+        assert "literal tracked file path" in str(data["message"])
+        assert signature(filtered.protected) == before, (
+            f"{spec} wrote to a protected path"
+        )
+        assert not filtered.protected.read_bytes().startswith(MAGIC)
+
+
+def test_d1_prevention_pathspec_refusal_names_the_protected_paths_it_covers(
+    filtered: Fixture,
+) -> None:
+    """The refusal must be actionable, not merely non-zero."""
+    proc = run(filtered, "materialize", "--path", ":/", "--apply")
+    assert proc.returncode == 7, proc.stdout + proc.stderr
+    data = payload(proc)
+    assert data["not_a_literal_tracked_file"] == [":/"]
+    assert data["protected_in_expansion"] == [PROTECTED]
+    assert int(str(data["would_have_covered_count"])) > 1
+
+
+def test_d1_prevention_untracked_path_is_refused_not_passed_to_git(
+    filtered: Fixture,
+) -> None:
+    proc = run(filtered, "materialize", "--path", "no/such/file.md", "--apply")
+    assert proc.returncode == 7, proc.stdout + proc.stderr
+    data = payload(proc)
+    assert data["reason"] == "pathspec-refused"
+    assert data["not_tracked"] == ["no/such/file.md"]
+
+
+def test_d1_negative_control_narrow_restore_survives_the_pathspec_gate(
+    filtered: Fixture,
+) -> None:
+    """The gate must not fire on the legitimate operation it exists to permit."""
+    filtered.neutralize_unnamed()
+    protected_before = signature(filtered.protected)
+    target = filtered.root / "skills" / "alpha" / "SKILL.md"
+    original = target.read_bytes()
+    target.unlink()
+
+    proc = run(filtered, "materialize", "--path", "skills/alpha/SKILL.md", "--apply")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert target.read_bytes() == original
+    assert signature(filtered.protected) == protected_before
+
+
+def test_d1_prevention_materialize_refused_when_the_worktree_holds_stored_bytes(
+    filtered: Fixture,
+) -> None:
+    """The CONTENT detector now guards the one command that writes.
+
+    ``audit_filters`` is a config-level check; it cannot see an identity filter
+    spelled as a script.  The two-signal content detector can, once the stored
+    form is on disk -- and it used to be consulted only by ``preflight``.
+    """
+    filtered.neutralize_unnamed()
+    filtered.protected.write_bytes(filtered.stored_bytes())
+    before = signature(filtered.protected)
+
+    proc = run(filtered, "materialize", "--path", "skills/alpha/SKILL.md", "--apply")
+    assert proc.returncode == 7, proc.stdout + proc.stderr
+    data = payload(proc)
+    assert data["reason"] == "worktree-content-unsafe"
+    assert "stored-form-in-worktree" in {
+        str(f["problem"])  # type: ignore[index]
+        for f in data["findings"]  # type: ignore[union-attr]
+    }
+    assert signature(filtered.protected) == before
+
+
 def test_d1_prevention_materialize_refused_while_filters_are_neutralized(
     filtered: Fixture,
 ) -> None:
@@ -449,12 +635,84 @@ def test_materialize_rejects_an_absolute_path(filtered: Fixture) -> None:
 # --------------------------------------------------------------------------
 
 
-def test_d1_shipped_instructions_never_materialize_the_whole_index() -> None:
+def test_d1_shipped_instructions_do_not_NAME_the_broad_commands() -> None:
+    """A DOCUMENTATION check, and named as one.
+
+    This asserts only that the shipped prose does not tell a reader to run the
+    hazardous commands.  It is a substring scan over source text, so it proves
+    nothing about behaviour: the applier calls git with an ARGUMENT LIST, in
+    which the substring "worktree add" never appears.  The behavioural property
+    is pinned by ``test_d1_known_good_mirror_runs_no_materializing_git_command``.
+    """
     banned = ("checkout-index", "worktree add", "checkout -f -a")
     for path in (README, APPLIER, WORKFLOW, GUARD):
         text = path.read_text(encoding="utf-8")
         for token in banned:
             assert token not in text, f"{path.name} still names {token!r}"
+
+
+# Subcommands that materialise files through the smudge filter.  `mirror` is
+# pure plumbing against a temporary index and must invoke NONE of them.
+MATERIALIZING = frozenset(
+    {
+        "worktree",
+        "checkout",
+        "checkout-index",
+        "restore",
+        "reset",
+        "stash",
+        "clone",
+        "switch",
+    }
+)
+
+
+def test_d1_known_good_mirror_runs_no_materializing_git_command(
+    filtered: Fixture, tmp_path: Path
+) -> None:
+    """Observe BEHAVIOUR: no materialising git command is executed at all.
+
+    The previous revision pinned this property with a substring grep over the
+    source, which any different spelling defeats -- a mutant that creates a
+    second worktree through ``run_git(repo, ["worktree", "add", ...])`` and then
+    removes it left the suite fully green while reintroducing the original D1
+    defect verbatim.  ``git worktree remove`` deletes ``.git/worktrees``
+    entirely (measured), so an artefact check cannot see it either.
+
+    GIT_TRACE records the real argv of every git process the applier spawns.
+    The observer is calibrated INSIDE the assertion: it must SEE the plumbing
+    the mirror really does use, otherwise its silence about ``worktree`` would
+    measure nothing at all.
+    """
+    trace = tmp_path / "git-trace.log"
+    before = signature(filtered.protected)
+
+    proc = run_traced(
+        filtered,
+        trace,
+        "mirror",
+        "--source-ref",
+        "HEAD",
+        "--skill",
+        "beta",
+        "--branch",
+        "fix/d001-mirror",
+        "--apply",
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+
+    subs = traced_subcommands(trace)
+    # Detector calibration: the observer speaks.
+    assert {"read-tree", "write-tree", "commit-tree", "update-ref"} <= set(subs), (
+        f"GIT_TRACE saw nothing recognisable; observer is blind: {subs}"
+    )
+    # The property itself.
+    assert not (MATERIALIZING & set(subs)), (
+        f"mirror executed a materialising git command: {sorted(MATERIALIZING & set(subs))}"
+    )
+    # Two further independent signals on the same property.
+    assert not (filtered.root / ".git" / "worktrees").exists()
+    assert signature(filtered.protected) == before
 
 
 def test_readme_documents_the_repaired_ordered_procedure() -> None:

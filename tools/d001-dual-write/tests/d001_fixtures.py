@@ -15,6 +15,7 @@ also collects ``ci/tests`` cannot import the wrong sibling off ``sys.path``.
 from __future__ import annotations
 
 import hashlib
+import os
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -57,6 +58,19 @@ if __name__ == "__main__":
     raise SystemExit(main())
 '''
 
+# An identity passthrough that is NOT one of the five strings in the applier's
+# IDENTITY_FILTERS set.  A repository in this state is indistinguishable from a
+# healthy one to the config audit, and -- while the plaintext is still on disk --
+# to the two-signal content audit as well.  It is the state that isolates the
+# pathspec gate as the only thing that can refuse a broad restore.
+PASSTHRU = '''\
+"""Identity content filter spelled outside the applier's known-identity set."""
+
+import sys
+
+sys.stdout.buffer.write(sys.stdin.buffer.read())
+'''
+
 
 def git(root: Path, *args: str) -> str:
     proc = subprocess.run(
@@ -86,11 +100,24 @@ def signature(path: Path) -> tuple[str, int, int]:
     return hashlib.sha256(data).hexdigest(), stat.st_size, stat.st_mtime_ns
 
 
+def stat_dirty(path: Path) -> None:
+    """Backdate mtime WITHOUT touching a byte.
+
+    git skips re-writing a file whose stat data still matches its index entry,
+    so a materialising command only damages paths that are absent or
+    stat-dirty.  Backdating reproduces that state deterministically while
+    leaving the content -- and therefore the byte-identity assertion -- intact.
+    """
+    st = path.stat()
+    os.utime(path, ns=(st.st_atime_ns, st.st_mtime_ns - 300_000_000_000))
+
+
 @dataclass
 class Fixture:
     root: Path
     script: Path
     protected: Path
+    passthru: Path
 
     def git(self, *args: str) -> str:
         return git(self.root, *args)
@@ -100,6 +127,20 @@ class Fixture:
         self.git("config", "filter.fakecrypt.smudge", "cat")
         self.git("config", "filter.fakecrypt.clean", "cat")
         self.git("config", "filter.fakecrypt.required", "false")
+
+    def neutralize_unnamed(self) -> None:
+        """Neutralise the filter in a way NO config-level audit can recognise.
+
+        ``IDENTITY_FILTERS`` is a hardcoded five-string set, and ``required``
+        stays ``true``, so ``audit_filters`` reports a clean bill of health.
+        The content audit is silent too as long as the plaintext is still on
+        disk.  Everything downstream of those two gates is therefore unguarded
+        in this state -- which is what makes it the right fixture for testing a
+        gate that must not depend on either.
+        """
+        quoted = f'"{sys.executable}" "{self.passthru.as_posix()}"'
+        self.git("config", "filter.fakecrypt.smudge", quoted)
+        self.git("config", "filter.fakecrypt.clean", quoted)
 
     def restore(self) -> None:
         quoted = f'"{sys.executable}" "{self.script.as_posix()}"'
@@ -121,6 +162,8 @@ def build(tmp_path: Path) -> Fixture:
     root.mkdir(parents=True)
     script = tmp_path / "fakecrypt.py"
     script.write_text(FAKECRYPT, encoding="utf-8", newline="\n")
+    passthru = tmp_path / "passthru.py"
+    passthru.write_text(PASSTHRU, encoding="utf-8", newline="\n")
 
     git(root, "init", "-q", "-b", "main")
     git(root, "config", "user.name", "fixture")
@@ -128,7 +171,9 @@ def build(tmp_path: Path) -> Fixture:
     git(root, "config", "core.autocrlf", "false")
     git(root, "config", "commit.gpgsign", "false")
 
-    fixture = Fixture(root=root, script=script, protected=root / PROTECTED)
+    fixture = Fixture(
+        root=root, script=script, protected=root / PROTECTED, passthru=passthru
+    )
     fixture.restore()
 
     write(root, ".gitattributes", f"{PROTECTED} filter=fakecrypt diff=fakecrypt\n")

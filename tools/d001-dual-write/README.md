@@ -89,9 +89,23 @@ python tools/d001-dual-write/d001_apply.py materialize \
     --repo . --path skills/<NAME>/SKILL.md --apply
 ```
 
-Every path must be named. There is deliberately no "all" mode: an unscoped
-restore is refused with exit `7`, as is any path that carries a content filter,
-and so is any run at all while the filter configuration is unsafe.
+Every path must be named, and each name must be a **literal tracked file path**.
+There is deliberately no "all" mode, and four independent gates enforce that, in
+this order — each refuses with exit `7` **before** anything is written:
+
+| gate | refuses | reason code |
+|---|---|---|
+| no `--path` at all | an unscoped restore | `broad-materialization-refused` |
+| an argument that is a git PATHSPEC rather than a file name | `:/`, `*`, `:(glob)**`, `secrets`, `secrets/`, or any untracked name | `pathspec-refused` |
+| a path carrying a content filter (tested against the EXPANSION) | `tools/mcp/*/accounts.json` | `filtered-path-refused` |
+| an unsafe filter configuration, or stored-form bytes already on disk | a neutralised or absent filter driver | `filter-config-unsafe` / `worktree-content-unsafe` |
+
+The second gate matters more than it looks. `git checkout -- <arg>` takes a
+**pathspec**: `:/` means "the repository root", a bare directory name means its
+whole subtree, and `*` means everything. A gate that compares the ARGUMENT
+against a list of protected file names never engages on any of them, because
+none of those strings *is* a protected path — so the argument is expanded
+through `git ls-files --error-unmatch` and must resolve to exactly itself.
 
 ## Exit codes
 

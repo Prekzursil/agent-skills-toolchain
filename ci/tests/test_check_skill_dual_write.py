@@ -269,6 +269,141 @@ def test_path_containing_a_space_is_parsed(repo: Repo) -> None:
     assert reasons(proc) == {"has space": "canonical-missing"}
 
 
+def test_newline_in_a_path_does_not_desynchronise_the_post_image_map(
+    repo: Repo,
+) -> None:
+    """A path containing a NEWLINE must not shift another skill's post-image.
+
+    The earlier revision resolved post-images by writing one ``<rev>:<path>``
+    per LINE into ``git cat-file --batch-check`` and zipping the output back BY
+    INDEX.  A name containing a newline produces TWO input lines, so every later
+    path reads another file's record -- and a 0-byte ``.keep`` borrows a
+    non-empty size, resurrecting the exact false negative D3 exists to close.
+
+    The trigger is not free: the text after the newline must itself be a VALID
+    rev expression for a NON-EMPTY blob, or the attack does not fire and a
+    line-zip parser passes it honestly.  The fixture asserts its own trigger
+    below -- the round-1 lesson from a C-quoting test whose path contained a
+    space git never quotes.
+
+    ``bbb`` is byte-for-byte identical in both branches; only an UNRELATED file
+    is added.  On the ubuntu-latest runner this gate executes on, such a name is
+    ordinary and needs no special flag.
+    """
+    real = repo.hash_blob(b"# aaa\n\nreal canonical content\n")
+    proj = repo.hash_blob(b"# proj\n\nprojection content\n")
+    empty = repo.hash_blob(b"")
+    decoy = repo.hash_blob(b"decoy\n")
+
+    baseline = {
+        ".agents/skills/aaa/SKILL.md": ("100644", real),
+        "skills/aaa/SKILL.md": ("100644", proj),
+        ".agents/skills/bbb/.keep": ("100644", empty),
+        "skills/bbb/SKILL.md": ("100644", proj),
+    }
+    repo.plumb_branch(baseline, "nl-control")
+    control = run_guard(repo, "--base", "main", "--head", "nl-control", "--json")
+    assert control.returncode == 1, control.stdout + control.stderr
+    assert reasons(control) == {"bbb": "canonical-empty"}
+
+    poison = ".agents/skills/aaa/z\nnl-attack:.agents/skills/aaa/SKILL.md"
+    attack = {**baseline, poison: ("100644", decoy)}
+    repo.plumb_branch(attack, "nl-attack")
+
+    # The fixture must actually contain the two-line name it claims to.
+    listing = repo.git(
+        "diff", "--name-status", "-z", "--no-renames", "main...nl-attack"
+    )
+    assert any("\n" in field for field in listing.split("\0") if field), (
+        f"fixture did not create a newline-bearing path: {listing!r}"
+    )
+
+    proc = run_guard(repo, "--base", "main", "--head", "nl-attack", "--json")
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert reasons(proc) == {"bbb": "canonical-empty"}
+
+
+def test_control_a_newline_path_in_a_correct_change_stays_silent(
+    repo: Repo,
+) -> None:
+    """The other state: the fix must not block an author for a legal filename."""
+    real = repo.hash_blob(b"# eee\n\nreal canonical content\n")
+    proj = repo.hash_blob(b"# proj\n\nprojection content\n")
+    decoy = repo.hash_blob(b"decoy\n")
+    entries = {
+        ".agents/skills/eee/SKILL.md": ("100644", real),
+        "skills/eee/SKILL.md": ("100644", proj),
+        ".agents/skills/eee/z\nmain:README.md": ("100644", decoy),
+    }
+    repo.plumb_branch(entries, "nl-legit")
+    proc = run_guard(repo, "--base", "main", "--head", "nl-legit", "--json")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+
+
+def test_symlink_canonical_side_does_not_discharge_the_obligation(
+    repo: Repo,
+) -> None:
+    """A symlink's blob is its non-empty TARGET STRING, not skill content."""
+    proj = repo.hash_blob(b"# proj\n\nprojection content\n")
+    target = repo.hash_blob(b"../../../skills/ccc/SKILL.md")
+    repo.plumb_branch(
+        {
+            ".agents/skills/ccc/SKILL.md": ("120000", target),
+            "skills/ccc/SKILL.md": ("100644", proj),
+        },
+        "sym",
+    )
+    proc = run_guard(repo, "--base", "main", "--head", "sym", "--json")
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert reasons(proc) == {"ccc": "canonical-not-a-file"}
+    assert (
+        "not a regular file"
+        in run_guard(repo, "--base", "main", "--head", "sym").stdout
+    )
+
+
+def test_gitlink_canonical_side_does_not_discharge_the_obligation(
+    repo: Repo,
+) -> None:
+    proj = repo.hash_blob(b"# proj\n\nprojection content\n")
+    head = repo.git("rev-parse", "main").strip()
+    repo.plumb_branch(
+        {
+            ".agents/skills/ddd/vendored": ("160000", head),
+            "skills/ddd/SKILL.md": ("100644", proj),
+        },
+        "sub",
+    )
+    proc = run_guard(repo, "--base", "main", "--head", "sub", "--json")
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert reasons(proc) == {"ddd": "canonical-not-a-file"}
+
+
+def test_post_image_sizes_refuse_to_guess_on_a_record_count_mismatch(
+    repo: Repo,
+) -> None:
+    """Fail CLOSED: a mis-aligned batch is an error, never a silent zip.
+
+    This is the guard against the defect class itself rather than one spelling
+    of it -- if a future git changes the batch protocol, the gate errors (exit
+    2, CI red) instead of quietly reading the wrong file's size.
+    """
+    sys.path.insert(0, str(GUARD.parent))
+    import check_skill_dual_write as guard  # noqa: PLC0415
+
+    original = guard._run_git
+    try:
+        guard._run_git = lambda *a, **k: "one line only\n"  # type: ignore[assignment]
+        try:
+            guard.blob_sizes(str(repo.root), ["a" * 40, "b" * 40])
+        except guard.GitError as exc:
+            assert "refusing to guess" in str(exc)
+        else:
+            raise AssertionError("expected a GitError on a record-count mismatch")
+    finally:
+        guard._run_git = original  # type: ignore[assignment]
+
+
 def test_allowlist_suppresses_a_named_skill(repo: Repo, tmp_path: Path) -> None:
     repo.write("skills/probe-skill/SKILL.md", NEW_SKILL)
     repo.add("skills/probe-skill/SKILL.md")

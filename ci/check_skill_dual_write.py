@@ -20,8 +20,8 @@ would fire on the pre-existing backlog (skills that already live in only one
 tree) and would therefore be un-adoptable without a mass migration first.  This
 guard only asks that a change not make the divergence worse.
 
-Two false negatives that an earlier revision of this guard carried are closed
-here, and both are pinned by tests in ``ci/tests``:
+False negatives that earlier revisions of this guard carried are closed here,
+and each is pinned by a test in ``ci/tests``:
 
   * ``canonical-deleted`` -- a commit that DELETES ``.agents/skills/foo/SKILL.md``
     while EDITING ``skills/foo/SKILL.md`` used to pass, because the status
@@ -31,14 +31,31 @@ here, and both are pinned by tests in ``ci/tests``:
     path under ``.agents/skills/<NAME>/``, including a zero-byte ``.keep``
     placeholder.  The obligation is now content-level: at least one added or
     edited canonical path must have a non-empty post-image blob.
+  * C-QUOTED PATHS -- ``git diff --name-status`` C-quotes any path holding a
+    non-ASCII byte, and a line parser then failed the ``skills/`` prefix test
+    and dropped the skill entirely.  All diff parsing is NUL-delimited (``-z``).
+  * POST-IMAGE DESYNCHRONISATION -- resolving post-images by writing one
+    ``<rev>:<path>`` per LINE into ``git cat-file --batch-check`` and zipping the
+    output back BY INDEX breaks on a path containing a NEWLINE (legal on the
+    Linux runner this gate executes on): every later path then reads another
+    file's size, and a 0-byte placeholder can borrow a non-empty one.  Post-image
+    MODE and OID now come from ``git diff --raw -z`` -- same NUL-delimited record
+    as the path -- and only OBJECT IDS are ever fed to ``cat-file``.  No path
+    text enters a protocol that echoes its input, which is the structural end of
+    this defect class rather than a fix for one spelling of it.
+  * ``canonical-not-a-file`` -- a symlink under ``.agents/skills/<NAME>/`` used
+    to discharge the obligation, because its blob (the target string) is
+    non-empty.  A canonical row now discharges only if its post-image is a
+    REGULAR file (mode 100644/100755).
 
-KNOWN RESIDUAL, stated rather than hidden: the default rule is
-non-empty-content-level, NOT equivalence-level.  A one-byte canonical
-placeholder still discharges the obligation, and two copies that are both
-touched but written with DIFFERENT text still pass.  ``--strict-parity`` closes
-both by requiring a per-relative-path counterpart with an identical blob OID; it
-is opt-in because it is a strictly larger policy change (see the adoption cost
-measured in the lane report).
+KNOWN RESIDUAL, stated rather than hidden, and NOT claimed to be exhaustive:
+the default rule is non-empty-content-level, NOT equivalence-level.  A one-byte
+canonical placeholder still discharges the obligation, and two copies that are
+both touched but written with DIFFERENT text still pass.  ``--strict-parity``
+closes both by requiring a per-relative-path counterpart with an identical blob
+OID; it is opt-in because it is a strictly larger policy change (see the
+adoption cost measured in the lane report).  Status ``T`` (typechange) is still
+not treated as mutating, and ``--allowlist`` is still an unguarded escape hatch.
 
 Exit codes:
     0  no violation
@@ -72,6 +89,11 @@ CANONICAL_ROOT = ".agents/skills"
 # deletion must not discharge a dual-write obligation.
 MUTATING = frozenset("AM")
 
+# Post-image modes that can carry skill CONTENT.  120000 (symlink) and 160000
+# (gitlink) are blobs/commits, not files, and must not discharge an obligation.
+REGULAR_MODES = frozenset({"100644", "100755"})
+NULL_OID = "0" * 40
+
 EXIT_OK = 0
 EXIT_VIOLATION = 1
 EXIT_USAGE = 2
@@ -79,6 +101,7 @@ EXIT_USAGE = 2
 REASON_MISSING = "canonical-missing"
 REASON_DELETED = "canonical-deleted"
 REASON_EMPTY = "canonical-empty"
+REASON_NONFILE = "canonical-not-a-file"
 REASON_DIVERGENT = "canonical-divergent"
 
 _FIX = {
@@ -90,6 +113,10 @@ _FIX = {
     REASON_EMPTY: (
         "the canonical side of this change is empty (0 bytes); land the real "
         "content under {canon}/{name}/, not a placeholder."
+    ),
+    REASON_NONFILE: (
+        "the canonical side of this change is not a regular file (a symlink or "
+        "a submodule entry); land the real content under {canon}/{name}/."
     ),
     REASON_DIVERGENT: (
         "the canonical copy is missing or differs byte-for-byte from the "
@@ -180,32 +207,105 @@ def _load_allowlist(path: str | None) -> set[str]:
     }
 
 
-def post_images(
-    repo: str, rev: str | None, paths: list[str]
-) -> dict[str, tuple[str, int] | None]:
-    """Resolve each path's POST-image blob (oid, size).
+def raw_entries(
+    repo: str, base: str | None, head: str, staged: bool
+) -> dict[str, tuple[str, str]]:
+    """``{path: (post_image_mode, post_image_oid)}`` for the change.
 
-    ``rev`` is the head revision for a base...head run, or ``None`` for
-    ``--staged`` (post-image is the index entry, spelled ``:<path>``).
-    Absent paths map to ``None``.  One ``git cat-file --batch-check`` process
-    for the whole set; output is one line per input line, in order, so a path
-    containing a space cannot desynchronise the parse.
+    ``git diff --raw`` carries the post-image MODE and OID in the SAME
+    NUL-delimited record as the path, so the correspondence never has to be
+    re-established by position in a second, path-fed protocol -- which is how a
+    newline in a filename used to shift every later post-image onto the wrong
+    file.  ``--no-abbrev`` is REQUIRED: ``git diff --raw`` abbreviates OIDs to
+    seven characters by default (measured, git 2.52).
     """
-    if not paths:
+    args = ["diff", "--raw", "-z", "--no-renames", "--no-abbrev"]
+    if staged:
+        args.insert(1, "--cached")
+    else:
+        args.append(f"{base}...{head}")
+    fields = [f for f in _run_git(repo, args).split("\0") if f != ""]
+    entries: dict[str, tuple[str, str]] = {}
+    i = 0
+    while i + 1 < len(fields):
+        # :<srcmode> <dstmode> <srcoid> <dstoid> <status>
+        meta = fields[i].lstrip(":").split()
+        if len(meta) < 5:
+            i += 1
+            continue
+        status = meta[4][:1]
+        # Defensive: --no-renames means R/C cannot appear, but such a record
+        # carries TWO paths and the DESTINATION is the second one.
+        span = 2 if status in {"R", "C"} else 1
+        if i + span >= len(fields):
+            break
+        if meta[3] != NULL_OID and len(meta[3]) < 40:
+            raise GitError(
+                f"git returned an ABBREVIATED object id ({meta[3]!r}); "
+                "--no-abbrev is required or an ambiguous prefix can be resolved "
+                "to the wrong object"
+            )
+        entries[fields[i + span]] = (meta[1], meta[3])
+        i += span + 1
+    return entries
+
+
+def blob_sizes(repo: str, oids: list[str]) -> dict[str, int]:
+    """``{oid: size}`` from ONE ``git cat-file --batch-check``.
+
+    stdin is OBJECT IDS ONLY -- forty hex characters, which cannot contain a
+    newline, a space or a quote -- so nothing an author can name a file can
+    desynchronise this parse.  A record-count mismatch is raised rather than
+    zipped over: a detector that silently mis-aligns is worse than none.
+    """
+    if not oids:
         return {}
-    prefix = f"{rev}:" if rev is not None else ":"
-    stdin = "".join(f"{prefix}{p}\n" for p in paths)
-    out = _run_git(repo, ["cat-file", "--batch-check"], stdin=stdin)
+    out = _run_git(
+        repo, ["cat-file", "--batch-check"], stdin="".join(f"{o}\n" for o in oids)
+    )
     lines = out.splitlines()
-    result: dict[str, tuple[str, int] | None] = {}
-    for idx, path in enumerate(paths):
-        line = lines[idx] if idx < len(lines) else ""
+    if len(lines) != len(oids):
+        raise GitError(
+            f"cat-file --batch-check returned {len(lines)} records for "
+            f"{len(oids)} object ids; refusing to guess the correspondence"
+        )
+    sizes: dict[str, int] = {}
+    for oid, line in zip(oids, lines):
         parts = line.split()
         if len(parts) == 3 and parts[1] == "blob" and parts[2].isdigit():
-            result[path] = (parts[0], int(parts[2]))
-        else:  # "<input> missing" / "<input> ambiguous" / a non-blob entry
+            sizes[oid] = int(parts[2])
+    return sizes
+
+
+def post_images(
+    repo: str, entries: dict[str, tuple[str, str]], paths: list[str]
+) -> tuple[dict[str, tuple[str, int] | None], set[str]]:
+    """``({path: (oid, size) | None}, {paths whose post-image is not a file})``.
+
+    ``None`` means "nothing here can discharge an obligation": absent from the
+    diff, a null OID, a non-regular mode, or an object git will not size.
+    """
+    result: dict[str, tuple[str, int] | None] = {}
+    nonfile: set[str] = set()
+    pending: dict[str, str] = {}
+    for path in paths:
+        entry = entries.get(path)
+        if entry is None:
             result[path] = None
-    return result
+            continue
+        mode, oid = entry
+        if not oid or oid == NULL_OID:
+            result[path] = None
+        elif mode not in REGULAR_MODES:
+            result[path] = None
+            nonfile.add(path)
+        else:
+            pending[path] = oid
+    sizes = blob_sizes(repo, sorted(set(pending.values())))
+    for path, oid in pending.items():
+        size = sizes.get(oid)
+        result[path] = None if size is None else (oid, size)
+    return result, nonfile
 
 
 def evaluate(
@@ -213,8 +313,10 @@ def evaluate(
     allow: set[str],
     post: dict[str, tuple[str, int] | None],
     strict_parity: bool = False,
+    nonfile: set[str] | None = None,
 ) -> dict[str, dict[str, object]]:
     """Return {skill_name: {reason, paths, detail}} for violations."""
+    nonfile = nonfile or set()
     projection: dict[str, list[str]] = {}
     canonical: dict[str, list[tuple[str, str, str]]] = {}
     for status, path in rows:
@@ -245,8 +347,13 @@ def evaluate(
                 "detail": sorted(r[2] for r in rows_c),
             }
         elif not substantive:
+            reason = (
+                REASON_NONFILE
+                if all(r[2] in nonfile for r in mutating)
+                else REASON_EMPTY
+            )
             violations[name] = {
-                "reason": REASON_EMPTY,
+                "reason": reason,
                 "paths": paths,
                 "detail": sorted(r[2] for r in mutating),
             }
@@ -318,13 +425,18 @@ def main(argv: list[str] | None = None) -> int:
                 or _skill_name(p, CANONICAL_ROOT) is not None
             )
         ]
-        post = post_images(ns.repo, None if ns.staged else head, wanted)
+        entries = raw_entries(ns.repo, base, head, ns.staged)
+        post, nonfile = post_images(ns.repo, entries, wanted)
     except GitError as exc:
         sys.stderr.write(f"{exc}\n")
         return EXIT_USAGE
 
     violations = evaluate(
-        rows, _load_allowlist(ns.allowlist), post, strict_parity=ns.strict_parity
+        rows,
+        _load_allowlist(ns.allowlist),
+        post,
+        strict_parity=ns.strict_parity,
+        nonfile=nonfile,
     )
 
     if ns.json:

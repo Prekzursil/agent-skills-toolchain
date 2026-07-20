@@ -28,6 +28,13 @@ Two consequences drive this tool's design:
    blob, so ``git status --porcelain`` reports a CLEAN tree over a working tree
    that holds ciphertext.  ``preflight`` therefore inspects CONTENT, with two
    mechanically independent signals (see ``cmd_preflight``).
+3. ``git checkout -- <arg>`` takes a PATHSPEC, not a file name.  ``:/`` is
+   git's pathspec for the repository ROOT, ``*`` and ``:(glob)**`` select every
+   tracked file, and a bare directory name selects everything under it -- so a
+   gate that only compares the ARGUMENT against a set of protected file names
+   never engages on any of them.  ``materialize`` therefore expands every
+   argument through git's own machinery (``git ls-files --error-unmatch``) and
+   refuses unless it resolves to EXACTLY ITSELF (see ``cmd_materialize``).
 
 Exit codes:
     0  OK
@@ -145,6 +152,22 @@ def skip_worktree_paths(repo: str) -> set[str]:
         if len(field) > 2 and field[0] == "S" and field[1] == " ":
             skipped.add(field[2:])
     return skipped
+
+
+def expand_pathspec(repo: str, spec: str) -> list[str] | None:
+    """Tracked paths that ``spec`` selects, or ``None`` if git rejects it.
+
+    ``git checkout -- <arg>`` interprets its argument as a PATHSPEC.  Asking git
+    itself what an argument covers is the only reliable way to know: ``:/``
+    expands to every tracked file, so does ``*`` and ``:(glob)**``, a bare
+    directory expands to its whole subtree, and a literal file path expands to
+    exactly itself.  A caller that compares the raw ARGUMENT against a set of
+    protected file names learns nothing about any of those.
+    """
+    proc = run_git(repo, ["ls-files", "-z", "--error-unmatch", "--", spec], check=False)
+    if proc.returncode != 0:
+        return None
+    return [p for p in proc.stdout.split("\0") if p]
 
 
 def _magics(extra_hex: list[str] | None) -> list[bytes]:
@@ -500,7 +523,50 @@ def cmd_materialize(ns: argparse.Namespace) -> int:
             sys.stderr.write(f"--path must be a repo-relative file path: {path!r}\n")
             return EXIT_USAGE
     protected = filtered_paths(ns.repo)
-    hits = [p for p in ns.path if p in protected]
+
+    # GATE: every argument must be a LITERAL, TRACKED, SINGLE file path.
+    # git resolves `--path` as a pathspec, so an argument that expands to
+    # anything other than exactly itself is a broad materialisation wearing a
+    # file name -- `:/`, `*`, `:(glob)**`, `secrets`, `secrets/` all expand to
+    # other people's files.  Comparing the ARGUMENT against `protected` (below)
+    # cannot see any of that, because none of those strings IS a protected path.
+    covered: set[str] = set()
+    not_literal: list[str] = []
+    not_tracked: list[str] = []
+    for path in ns.path:
+        expanded = expand_pathspec(ns.repo, path)
+        if expanded is None:
+            not_tracked.append(path)
+        elif expanded != [path]:
+            not_literal.append(path)
+            covered.update(expanded)
+        else:
+            covered.add(path)
+    if not_literal or not_tracked:
+        emit(
+            ns,
+            {
+                "decision": "refuse",
+                "reason": "pathspec-refused",
+                "message": "REFUSED before any write: --path takes a literal "
+                "tracked file path, not a git pathspec. These arguments select "
+                "something other than exactly themselves (or nothing tracked at "
+                "all), and a restore through them writes files this tool was "
+                "never asked to touch -- through the smudge filter: "
+                + ", ".join(sorted(not_literal + not_tracked)),
+                "not_a_literal_tracked_file": sorted(not_literal),
+                "not_tracked": sorted(not_tracked),
+                "would_have_covered_count": len(covered),
+                "protected_in_expansion": sorted(covered & set(protected)),
+            },
+        )
+        return EXIT_REFUSED
+
+    # GATE: no filtered path may be restored -- tested against the EXPANSION,
+    # not against the literal argument.  The gate above makes the two identical
+    # today; keeping this one expansion-shaped means a future loosening of that
+    # gate cannot silently re-open the hole.
+    hits = sorted(covered & set(protected))
     if hits:
         emit(
             ns,
@@ -508,8 +574,8 @@ def cmd_materialize(ns: argparse.Namespace) -> int:
                 "decision": "refuse",
                 "reason": "filtered-path-refused",
                 "message": "REFUSED: these paths carry a content filter and must "
-                "not be restored by this tool: " + ", ".join(sorted(hits)),
-                "paths": sorted(hits),
+                "not be restored by this tool: " + ", ".join(hits),
+                "paths": hits,
             },
         )
         return EXIT_REFUSED
@@ -524,6 +590,30 @@ def cmd_materialize(ns: argparse.Namespace) -> int:
                 "safe state; restoring anything now risks writing stored bytes "
                 "into protected paths.",
                 "findings": config_findings,
+            },
+        )
+        return EXIT_REFUSED
+
+    # GATE: the two-signal CONTENT detector -- the one that catches an identity
+    # passthrough spelled outside IDENTITY_FILTERS -- now guards the one command
+    # in this tool that writes, not just `preflight`.
+    content_findings = audit_content(
+        ns.repo,
+        protected,
+        _magics(ns.magic_hex),
+        skip_worktree_paths(ns.repo) & set(protected),
+    )
+    if content_findings:
+        emit(
+            ns,
+            {
+                "decision": "refuse",
+                "reason": "worktree-content-unsafe",
+                "message": "REFUSED: the working tree already holds stored-form "
+                "bytes for at least one protected path; restoring anything now "
+                "compounds the damage. Fix the filter and re-materialize from a "
+                "trusted checkout first.",
+                "findings": content_findings,
             },
         )
         return EXIT_REFUSED
