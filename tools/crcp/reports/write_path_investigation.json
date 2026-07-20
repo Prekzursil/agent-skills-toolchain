@@ -1,0 +1,102 @@
+{
+  "at": "2026-07-20T00:52:54.749278+00:00",
+  "access_scp": [
+    "openid",
+    "profile",
+    "email",
+    "offline_access",
+    "api.connectors.read",
+    "api.connectors.invoke"
+  ],
+  "oauth_scopes_requested_by_codex_login": "openid profile email offline_access api.connectors.read api.connectors.invoke",
+  "source": "codex-rs/login/src/server.rs scope param",
+  "probes": [
+    {
+      "probe": "POST /backend-api/conversation",
+      "status": 422,
+      "body_prefix": "{\"detail\":\"Invalid conversation body\"}"
+    },
+    {
+      "probe": "POST /backend-api/conversation/init",
+      "status": 200,
+      "body_prefix": "{\"type\":\"conversation_detail_metadata\",\"banner_info\":null,\"blocked_features\":[],\"model_limits\":[],\"limits_progress\":null,\"default_model_slug\":\"gpt-5-5\",\"atlas_mode_enabled\":null}"
+    },
+    {
+      "probe": "POST /backend-api/f/conversation",
+      "status": 422,
+      "body_prefix": "{\"detail\":\"Invalid conversation body\"}"
+    },
+    {
+      "probe": "GET /backend-api/aip/connectors",
+      "status": 404,
+      "body_prefix": "{\"detail\":\"Not Found\"}"
+    }
+  ],
+  "conclusions": [
+    "IMPORTANT: POST /backend-api/conversation returned 422 Invalid body (NOT 401/403) \u2014 auth may allow write with a correct payload; /conversation/init returned 200.",
+    "Write is NOT scope-blocked in the simple sense; body/schema is the next RE target. Do not claim 403 scope denial based on empty body probes alone.",
+    "Codex OAuth explicitly requests only: openid profile email offline_access api.connectors.read api.connectors.invoke (server.rs).",
+    "No conversation write scope appears in the Codex login scope string.",
+    "Read path backend-api works with these tokens; write probes document HTTP status below.",
+    "api.connectors.invoke is for connector plugins, not proven as ChatGPT chat send.",
+    "ChatGPT Desktop is MSIX/Electron; no Listen ports found earlier \u2014 not a command API.",
+    "Practical write path for CRCP: Claude/Codex/Grok on local rails; ChatGPT remains read/research ingest unless a future OAuth scope is granted by OpenAI."
+  ],
+  "chatgpt_processes": [
+    {
+      "ProcessId": 124756,
+      "Name": "ChatGPT.exe",
+      "Cmd": "\"C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.715.4045.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe\" "
+    },
+    {
+      "ProcessId": 55740,
+      "Name": "ChatGPT.exe",
+      "Cmd": "\"C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.715.4045.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe\" --type=crashpad-handler --u"
+    },
+    {
+      "ProcessId": 81352,
+      "Name": "ChatGPT.exe",
+      "Cmd": "\"C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.715.4045.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe\" --type=crashpad-handler --u"
+    },
+    {
+      "ProcessId": 69104,
+      "Name": "ChatGPT.exe",
+      "Cmd": "\"C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.715.4045.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe\" --type=gpu-process --no-pre"
+    },
+    {
+      "ProcessId": 39284,
+      "Name": "ChatGPT.exe",
+      "Cmd": "\"C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.715.4045.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe\" --type=utility --utility-su"
+    },
+    {
+      "ProcessId": 92100,
+      "Name": "ChatGPT.exe",
+      "Cmd": "\"C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.715.4045.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe\" --type=utility --utility-su"
+    },
+    {
+      "ProcessId": 65632,
+      "Name": "ChatGPT.exe",
+      "Cmd": "\"C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.715.4045.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe\" --type=renderer --standard-"
+    },
+    {
+      "ProcessId": 124164,
+      "Name": "ChatGPT.exe",
+      "Cmd": "\"C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.715.4045.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe\" --type=renderer --standard-"
+    },
+    {
+      "ProcessId": 76452,
+      "Name": "ChatGPT.exe",
+      "Cmd": "\"C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.715.4045.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe\" --type=utility --utility-su"
+    },
+    {
+      "ProcessId": 21508,
+      "Name": "ChatGPT.exe",
+      "Cmd": "\"C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.715.4045.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe\" --type=utility --utility-su"
+    },
+    {
+      "ProcessId": 30736,
+      "Name": "ChatGPT.exe",
+      "Cmd": "\"C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.715.4045.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe\" --type=renderer --standard-"
+    }
+  ]
+}
