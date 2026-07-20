@@ -34,10 +34,23 @@ Exit codes (see README.md for the full contract)::
     5  INCONSISTENT >=1 worktree's declared intent contradicts its config
     6  MISMATCH     observed differs from expected, but is not unsafe
     7  REFUSED      a mutation was requested and denied by a safety gate
+    8  IO           an output artifact (journal / --json-out) is unwritable
 
 The process exit code is the highest-severity code across all findings, in
-the precedence order USAGE > UNREADABLE > AMBIGUOUS > INCONSISTENT > UNSAFE
-> REFUSED > MISMATCH > OK.
+the precedence order USAGE > IO > UNREADABLE > AMBIGUOUS > INCONSISTENT >
+UNSAFE > REFUSED > MISMATCH > OK.
+
+``backfill --apply`` is protected by a WRITE-AHEAD journal: the complete
+pre-image of every configuration key it is about to write -- including the
+shared ``extensions.worktreeConfig`` flag -- is fsync'd to the ``--journal``
+path BEFORE the first mutation. ``rollback`` validates the whole journal
+before restoring anything, restores in reverse order, and verifies each
+restore by re-reading the key, so a partial rollback cannot report success.
+
+Scope of the ciphertext guarantee: it holds for DECLARED intent. A worktree
+that holds ciphertext but declares nothing (no ``gitcrypt.worktreeMode``, no
+worktree-scoped identity filter) resolves to ``expected_state=plaintext`` and
+is a legitimate backfill target. See README "Scope of the guarantees".
 """
 
 from __future__ import annotations
@@ -58,6 +71,7 @@ EXIT_UNREADABLE = 4
 EXIT_INCONSISTENT = 5
 EXIT_MISMATCH = 6
 EXIT_REFUSED = 7
+EXIT_IO = 8
 
 EXIT_NAMES = {
     EXIT_OK: "OK",
@@ -68,12 +82,14 @@ EXIT_NAMES = {
     EXIT_INCONSISTENT: "INCONSISTENT",
     EXIT_MISMATCH: "MISMATCH",
     EXIT_REFUSED: "REFUSED",
+    EXIT_IO: "IO",
 }
 
 # Highest severity first. The process exit code is the first code in this
 # list that appears among the findings.
 SEVERITY_ORDER = (
     EXIT_USAGE,
+    EXIT_IO,
     EXIT_UNREADABLE,
     EXIT_AMBIGUOUS,
     EXIT_INCONSISTENT,
@@ -98,11 +114,25 @@ CFG_REQUIRED = "filter.git-crypt.required"
 CFG_TEXTCONV = "diff.git-crypt.textconv"
 CFG_WORKTREE_EXT = "extensions.worktreeConfig"
 
-JOURNAL_VERSION = 1
+JOURNAL_VERSION = 2
+# v1 journals carried no ``scope`` and no ``status``; their entries are
+# worktree-scoped by construction, so they remain readable by ``rollback``.
+SUPPORTED_JOURNAL_VERSIONS = (1, 2)
 
 
 class ToolError(Exception):
     """A usage-level failure: reported and mapped to EXIT_USAGE."""
+
+
+class ArtifactError(Exception):
+    """An output artifact could not be written: mapped to EXIT_IO.
+
+    Raised only for the rollback journal and ``--json-out``. It exists so an
+    ``OSError`` on those paths cannot escape as an unhandled traceback, whose
+    process exit code 1 is this contract's UNSAFE. A caller doing exit-code
+    dispatch would otherwise read "the journal directory does not exist" as
+    "a worktree holds plaintext against its declared intent".
+    """
 
 
 # --------------------------------------------------------------------------
@@ -853,12 +883,60 @@ def plan_backfill(findings, targets, explicit, common, key_path):
     return plan
 
 
-def apply_plan(plan, journal_path):
-    journal = {
+def new_journal():
+    """An empty write-ahead journal."""
+    return {
         "journal_version": JOURNAL_VERSION,
         "tool": "gitcrypt-worktree",
+        "status": "pending",
         "entries": [],
     }
+
+
+def write_journal(journal_path, journal):
+    """Persist the journal atomically, or raise ArtifactError.
+
+    Atomic because a half-written journal is worse than no journal: it may
+    still parse, and a caller that trusts it performs a partial rollback.
+    Written to a sibling temp file, flushed, fsync'd, then renamed --
+    ``os.replace`` is atomic on Windows and POSIX alike.
+    """
+    if not journal_path:
+        raise ToolError("a rollback journal path is required for --apply")
+    tmp = f"{journal_path}.tmp"
+    try:
+        with open(tmp, "w", encoding="utf-8") as handle:
+            json.dump(journal, handle, indent=2)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp, journal_path)
+    except OSError as exc:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise ArtifactError(
+            f"cannot write rollback journal {journal_path}: {exc}"
+        ) from exc
+    return journal
+
+
+def apply_plan(plan, journal_path, journal=None):
+    """Perform the planned writes behind a WRITE-AHEAD journal.
+
+    Ordering is the whole point. The round-1 implementation performed every
+    ``git config --worktree`` write first and opened the journal afterwards,
+    so an unwritable journal path left the configuration mutated with no
+    record of its prior values: reversibility was documented and absent. Here
+    the complete pre-image is durable on disk BEFORE the first write, so every
+    applied change is reversible from the journal even if the process dies
+    part-way through.
+    """
+    if journal is None:
+        journal = new_journal()
+
+    # Phase 1 -- read the complete pre-image. Reads only, no mutation yet.
+    pending = []
     for entry in plan:
         if entry["decision"] != "configure":
             entry["action_performed"] = (
@@ -866,11 +944,23 @@ def apply_plan(plan, journal_path):
             )
             continue
         wt = entry["worktree_path"]
-        restore = []
+        restore = [
+            {"key": key, "prior": cfg_get(wt, key, scope="--worktree")}
+            for key, _value in entry["writes"]
+        ]
+        journal["entries"].append(
+            {"worktree_path": wt, "scope": "--worktree", "restore": restore}
+        )
+        pending.append(entry)
+
+    # Phase 2 -- make the pre-image durable BEFORE any mutation.
+    write_journal(journal_path, journal)
+
+    # Phase 3 -- mutate. Everything from here is already recorded.
+    for entry in pending:
+        wt = entry["worktree_path"]
         for key, value in entry["writes"]:
-            prior = cfg_get(wt, key, scope="--worktree")
-            restore.append({"key": key, "prior": prior})
-            rc, _, err = run_git(["config", "--worktree", key, value], cwd=wt)
+            rc, _out, err = run_git(["config", "--worktree", key, value], cwd=wt)
             if rc != 0:
                 entry["action_performed"] = "failed"
                 entry["error"] = err.strip()
@@ -878,13 +968,104 @@ def apply_plan(plan, journal_path):
                 break
         else:
             entry["action_performed"] = "configured"
-            journal["entries"].append({"worktree_path": wt, "restore": restore})
-            continue
-        journal["entries"].append({"worktree_path": wt, "restore": restore})
-    if journal_path:
-        with open(journal_path, "w", encoding="utf-8") as handle:
-            json.dump(journal, handle, indent=2)
+
+    # Phase 4 -- record completion. The journal was already sufficient to roll
+    # back before this write, so losing it costs the marker and nothing else.
+    journal["status"] = "complete"
+    write_journal(journal_path, journal)
     return journal
+
+
+def validate_journal(journal, journal_path):
+    """Validate the WHOLE journal before performing any restore.
+
+    The round-1 implementation walked the entries and restored as it went, so
+    a malformed entry N crashed with a ``KeyError`` *after* entries 0..N-1 had
+    already been restored: a partial rollback whose only report was an
+    unhandled traceback (process exit 1, which the contract defines as
+    UNSAFE). Validation is therefore a separate, total pass -- either every
+    entry is usable and the restore proceeds, or nothing is touched at all.
+    """
+    where = f"rollback journal {journal_path}"
+    if not isinstance(journal, dict):
+        raise ToolError(f"{where} is not a JSON object")
+    version = journal.get("journal_version")
+    if version not in SUPPORTED_JOURNAL_VERSIONS:
+        raise ToolError(f"{where}: unsupported journal_version {version!r}")
+    entries = journal.get("entries")
+    if not isinstance(entries, list):
+        raise ToolError(f"{where}: 'entries' is not a list; refusing to restore")
+
+    steps = []
+    for index, item in enumerate(entries):
+        at = f"{where} entries[{index}]"
+        if not isinstance(item, dict):
+            raise ToolError(f"{at} is not an object; refusing a partial rollback")
+        wt = item.get("worktree_path")
+        if not isinstance(wt, str) or not wt.strip():
+            raise ToolError(
+                f"{at} has no usable worktree_path; refusing a partial rollback"
+            )
+        scope = item.get("scope", "--worktree")
+        if scope not in ("--worktree", "--local"):
+            raise ToolError(
+                f"{at} has unsupported scope {scope!r}; refusing a partial rollback"
+            )
+        restore = item.get("restore")
+        if not isinstance(restore, list) or not restore:
+            raise ToolError(
+                f"{at} carries no restore records; refusing a partial rollback"
+            )
+        if not os.path.isdir(wt):
+            raise ToolError(
+                f"{at} names {wt}, which is not a directory; "
+                "refusing a partial rollback"
+            )
+        for r_index, record in enumerate(restore):
+            rat = f"{at}.restore[{r_index}]"
+            if not isinstance(record, dict):
+                raise ToolError(f"{rat} is not an object; refusing a partial rollback")
+            key = record.get("key")
+            if not isinstance(key, str) or not key.strip():
+                raise ToolError(f"{rat} has no usable key; refusing a partial rollback")
+            if "prior" not in record:
+                raise ToolError(
+                    f"{rat} has no 'prior' value; refusing a partial rollback"
+                )
+            prior = record["prior"]
+            if prior is not None and not isinstance(prior, str):
+                raise ToolError(
+                    f"{rat} has a non-string 'prior'; refusing a partial rollback"
+                )
+            steps.append(
+                {
+                    "worktree_path": wt,
+                    "scope": scope,
+                    "key": key,
+                    "restore_to": prior,
+                }
+            )
+    return steps
+
+
+def restore_one(step):
+    """Apply one restore and VERIFY its postcondition by re-reading the key."""
+    wt = step["worktree_path"]
+    scope = step["scope"]
+    key = step["key"]
+    prior = step["restore_to"]
+    error = None
+    if prior is None:
+        rc, _out, err = run_git(["config", scope, "--unset-all", key], cwd=wt)
+        # git exits 5 when the key is already absent: the postcondition holds.
+        if rc not in (0, 5):
+            error = err.strip()
+    else:
+        rc, _out, err = run_git(["config", scope, key, prior], cwd=wt)
+        if rc != 0:
+            error = err.strip()
+    observed = cfg_get(wt, key, scope=scope)
+    return observed, observed == prior, error
 
 
 def run_rollback(journal_path, apply):
@@ -893,36 +1074,42 @@ def run_rollback(journal_path, apply):
             journal = json.load(handle)
     except (OSError, json.JSONDecodeError) as exc:
         raise ToolError(f"cannot read rollback journal {journal_path}: {exc}") from exc
-    if journal.get("journal_version") != JOURNAL_VERSION:
-        raise ToolError(
-            f"unsupported journal_version {journal.get('journal_version')!r}"
-        )
+
+    # TOTAL validation first. Nothing below this line runs on a bad journal.
+    steps = validate_journal(journal, norm(journal_path))
+
     actions = []
-    for item in journal.get("entries", []):
-        wt = item["worktree_path"]
-        for restore in item["restore"]:
-            key, prior = restore["key"], restore["prior"]
-            action = {
-                "worktree_path": wt,
-                "key": key,
-                "restore_to": prior,
-                "performed": False,
-            }
-            if apply:
-                if prior is None:
-                    run_git(["config", "--worktree", "--unset-all", key], cwd=wt)
-                else:
-                    run_git(["config", "--worktree", key, prior], cwd=wt)
-                action["performed"] = True
-            actions.append(action)
+    unrestored = 0
+    # Undo in REVERSE order. The shared extensions.worktreeConfig entry is
+    # recorded first because it is written first, and unsetting it before the
+    # worktree-scoped keys are restored would make those restores impossible.
+    for step in reversed(steps):
+        action = dict(step)
+        action["performed"] = False
+        action["observed_after"] = None
+        action["verified"] = None
+        action["error"] = None
+        if apply:
+            observed, verified, error = restore_one(step)
+            action["performed"] = True
+            action["observed_after"] = observed
+            action["verified"] = verified
+            action["error"] = error
+            if not verified:
+                unrestored += 1
+        actions.append(action)
+
+    exit_code = EXIT_INCONSISTENT if unrestored else EXIT_OK
     return {
         "tool": "gitcrypt-worktree",
         "command": "rollback",
         "journal": norm(journal_path),
+        "journal_status": journal.get("status", "unknown"),
         "dry_run": not apply,
         "actions": actions,
-        "exit_code": EXIT_OK,
-        "exit_name": EXIT_NAMES[EXIT_OK],
+        "unrestored": unrestored,
+        "exit_code": exit_code,
+        "exit_name": EXIT_NAMES[exit_code],
     }
 
 
@@ -955,6 +1142,13 @@ def run_backfill(repo_root, worktree_args, select_all, apply, journal_path, allo
         "worktree_config_extension": worktree_config_enabled(repo_root),
     }
 
+    # Establish the rollback journal BEFORE anything below can mutate state.
+    # An unusable --journal path must fail HERE, with nothing changed, rather
+    # than after the writes have already landed.
+    journal = new_journal() if apply else None
+    if apply:
+        write_journal(journal_path, journal)
+
     if not report["worktree_config_extension"]:
         if not allow_ext:
             report["plan"] = []
@@ -969,6 +1163,23 @@ def run_backfill(repo_root, worktree_args, select_all, apply, journal_path, allo
             report["exit_name"] = EXIT_NAMES[EXIT_REFUSED]
             return report
         if apply:
+            # A SHARED-config write. It is an applied change, so it must be
+            # journalled -- and journalled BEFORE it happens.
+            journal["entries"].append(
+                {
+                    "worktree_path": repo_root,
+                    "scope": "--local",
+                    "restore": [
+                        {
+                            "key": CFG_WORKTREE_EXT,
+                            "prior": cfg_get(
+                                repo_root, CFG_WORKTREE_EXT, scope="--local"
+                            ),
+                        }
+                    ],
+                }
+            )
+            write_journal(journal_path, journal)
             run_git(["config", "--local", CFG_WORKTREE_EXT, "true"], cwd=repo_root)
             report["enabled_worktree_config"] = True
 
@@ -978,9 +1189,10 @@ def run_backfill(repo_root, worktree_args, select_all, apply, journal_path, allo
     report["plan"] = plan
 
     if apply:
-        journal = apply_plan(plan, journal_path)
-        report["journal_path"] = norm(journal_path) if journal_path else None
+        journal = apply_plan(plan, journal_path, journal)
+        report["journal_path"] = norm(journal_path)
         report["journal_entries"] = len(journal["entries"])
+        report["journal_status"] = journal["status"]
     report["exit_code"] = worst([e.get("exit_code", EXIT_OK) for e in plan])
     report["exit_name"] = EXIT_NAMES[report["exit_code"]]
     return report
@@ -1145,6 +1357,18 @@ def build_parser():
     return parser
 
 
+def fail_io(message):
+    """Report an output-artifact failure under a DEFINED exit code.
+
+    Never let this path exit 1: that is UNSAFE in this contract, and a caller
+    doing exit-code dispatch would act on a secret-exposure verdict that was
+    really an unwritable file.
+    """
+    print(f"ARTIFACT ERROR: {message}", file=sys.stderr)
+    print(f"exit: {EXIT_IO} ({EXIT_NAMES[EXIT_IO]})", file=sys.stderr)
+    return EXIT_IO
+
+
 def main(argv=None):
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -1178,10 +1402,19 @@ def main(argv=None):
         print(f"USAGE ERROR: {exc}", file=sys.stderr)
         print(f"exit: {EXIT_USAGE} ({EXIT_NAMES[EXIT_USAGE]})", file=sys.stderr)
         return EXIT_USAGE
+    except ArtifactError as exc:
+        return fail_io(str(exc))
+    except OSError as exc:
+        # Backstop. An OSError escaping as an unhandled traceback exits 1,
+        # which this contract defines as UNSAFE. Never let I/O impersonate it.
+        return fail_io(f"unexpected I/O failure: {exc}")
 
     if getattr(args, "json_out", None):
-        with open(args.json_out, "w", encoding="utf-8") as handle:
-            json.dump(report, handle, indent=2)
+        try:
+            with open(args.json_out, "w", encoding="utf-8") as handle:
+                json.dump(report, handle, indent=2)
+        except OSError as exc:
+            return fail_io(f"cannot write --json-out {args.json_out}: {exc}")
     if args.json:
         print(json.dumps(report, indent=2))
     else:

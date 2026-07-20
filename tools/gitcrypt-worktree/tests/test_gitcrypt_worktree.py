@@ -782,5 +782,589 @@ def test_mutation_read_only_guarantee_is_actually_checked(tmp_path):
     assert ".git/config" in _changed_paths(before, after)
 
 
+# ---------------------------------------------------------------------------
+# AC7 -- every applied change is reversible via the journal
+#
+# Round 1 was REFUTED here. Four defects in one family, each reproduced
+# independently before it was fixed (see 04r2-evidence/01-probe-f1-round1.json):
+#
+#   1. apply_plan() performed every `git config --worktree` write and opened
+#      the journal afterwards, so an unwritable --journal path left the
+#      configuration mutated with NO record of its prior values;
+#   2. the resulting OSError escaped as an unhandled traceback, i.e. process
+#      exit 1 -- which this contract defines as UNSAFE;
+#   3. `--enable-worktree-config` wrote SHARED repo config and journalled
+#      nothing, so a full `rollback --apply` returned 0 while leaving that
+#      write in place -- a false green on the happy path;
+#   4. a malformed journal entry was hit mid-walk, AFTER its predecessors had
+#      already been restored: a partial rollback whose only signal was a
+#      KeyError traceback.
+#
+# Scope, stated rather than implied: this is reversibility of CONFIGURATION.
+# The ciphertext-preservation guarantee it protects is scoped to DECLARED
+# intent -- a worktree holding ciphertext that declares nothing resolves to
+# expected_state=plaintext and is a legitimate backfill target (README,
+# "Scope of the guarantees").
+# ---------------------------------------------------------------------------
+
+
+EXIT_IO = 8
+
+
+def _wt_cfg(cwd, key, scope="--worktree"):
+    proc = git(["config", scope, "--get", key], cwd=cwd, check=False)
+    if proc.returncode != 0:
+        return None
+    return proc.stdout.strip() or None
+
+
+def _meta_snapshot(root):
+    """sha256 + size + mtime_ns for every file under root.
+
+    Stronger than the read-only helper above: that one compares content only,
+    this one also compares mtime, because AC7 asks for byte-identity in hash
+    AND mtime.
+    """
+    snap = {}
+    for dirpath, _dirnames, filenames in os.walk(root):
+        for name in filenames:
+            full = os.path.join(dirpath, name)
+            rel = os.path.relpath(full, root).replace("\\", "/")
+            try:
+                st = os.stat(full)
+                snap[rel] = (sha256(full), st.st_size, st.st_mtime_ns)
+            except OSError as exc:
+                snap[rel] = ("<unreadable>", -1, str(exc))
+    return snap
+
+
+def _snapshot_delta(before, after):
+    """Classify the delta. git's index stat-cache refresh is the ONE exemption.
+
+    `git rev-parse :<path>` and `git hash-object` legitimately rewrite the
+    index stat cache; that is metadata about the checkout, not repository
+    state this tool changed.
+    """
+    delta = {"added": [], "removed": [], "content_changed": [], "mtime_changed": []}
+    for rel in sorted(set(before) | set(after)):
+        if os.path.basename(rel) == "index":
+            continue
+        b, a = before.get(rel), after.get(rel)
+        if b is None:
+            delta["added"].append(rel)
+        elif a is None:
+            delta["removed"].append(rel)
+        elif b[0] != a[0] or b[1] != a[1]:
+            delta["content_changed"].append(rel)
+        elif b[2] != a[2]:
+            delta["mtime_changed"].append(rel)
+    return delta
+
+
+def test_ac7_journal_is_durable_before_any_config_write(tmp_path):
+    """Defect 1+2: no config write may land without a durable journal.
+
+    Both legs in one test: an unusable journal path must change nothing and
+    exit under a DEFINED code, and a usable one must still work.
+    """
+    repo, _key = init_repo(tmp_path / "repo")
+    needy = add_worktree(repo, tmp_path / "wt", "b")
+    before = _wt_cfg(needy, "filter.git-crypt.smudge")
+    assert before is None, "fixture precondition: no worktree-scoped filter yet"
+
+    # --- broken leg: the journal path cannot be written ---
+    bad_journal = tmp_path / "no-such-dir" / "j.json"
+    rc, _report, proc = run_tool(
+        "backfill",
+        "--repo",
+        str(repo),
+        "--worktree",
+        str(needy),
+        "--apply",
+        "--journal",
+        str(bad_journal),
+    )
+    assert rc == EXIT_IO, f"expected the defined IO code, got {rc}: {proc.stderr}"
+    assert rc != EXIT_UNSAFE, "an unwritable path must not impersonate UNSAFE"
+    assert not bad_journal.exists()
+    assert _wt_cfg(needy, "filter.git-crypt.smudge") is None, (
+        "config was mutated with no journal -- the change is unrollbackable"
+    )
+    assert "ARTIFACT ERROR" in proc.stderr
+
+    # --- good leg: a usable journal path still performs the work ---
+    good_journal = tmp_path / "j.json"
+    rc, report, proc = run_tool(
+        "backfill",
+        "--repo",
+        str(repo),
+        "--worktree",
+        str(needy),
+        "--apply",
+        "--journal",
+        str(good_journal),
+    )
+    assert rc == EXIT_OK, report
+    assert good_journal.exists()
+    assert report["journal_status"] == "complete"
+    assert _wt_cfg(needy, "filter.git-crypt.smudge") is not None
+    assert not (tmp_path / "j.json.tmp").exists(), "atomic write left a temp file"
+
+    # and the journal actually reverses it
+    rc, rreport, _p = run_tool("rollback", "--journal", str(good_journal), "--apply")
+    assert rc == EXIT_OK, rreport
+    assert rreport["unrestored"] == 0
+    assert _wt_cfg(needy, "filter.git-crypt.smudge") is None
+
+
+def test_ac7_enable_worktree_config_write_is_journalled_and_reversible(tmp_path):
+    """Defect 3: the SHARED extensions.worktreeConfig write is an applied change."""
+    repo, _key = init_repo(tmp_path / "repo")
+    add_worktree(repo, tmp_path / "wt", "b")
+    git(["config", "--local", "--unset", "extensions.worktreeConfig"], cwd=repo)
+    before = _wt_cfg(repo, "extensions.worktreeConfig", scope="--local")
+    assert before is None, "fixture precondition: the extension is off"
+
+    journal = tmp_path / "j.json"
+    rc, report, _p = run_tool(
+        "backfill",
+        "--repo",
+        str(repo),
+        "--all",
+        "--apply",
+        "--enable-worktree-config",
+        "--journal",
+        str(journal),
+    )
+    assert rc == EXIT_OK, report
+    assert report["enabled_worktree_config"] is True
+    assert _wt_cfg(repo, "extensions.worktreeConfig", scope="--local") == "true"
+    # the shared write is IN the journal, at --local scope
+    entries = json.loads(journal.read_text(encoding="utf-8"))["entries"]
+    shared = [e for e in entries if e.get("scope") == "--local"]
+    assert len(shared) == 1, entries
+    assert shared[0]["restore"][0]["key"] == "extensions.worktreeConfig"
+    assert shared[0]["restore"][0]["prior"] is None
+
+    rc, rreport, _p = run_tool("rollback", "--journal", str(journal), "--apply")
+    assert rc == EXIT_OK, rreport
+    assert rreport["unrestored"] == 0
+    assert _wt_cfg(repo, "extensions.worktreeConfig", scope="--local") is None, (
+        "the shared config write survived a full rollback"
+    )
+
+
+def _two_needy_worktrees(tmp_path):
+    repo, _key = init_repo(tmp_path / "repo")
+    wt1 = add_worktree(repo, tmp_path / "wt1", "b1")
+    wt2 = add_worktree(repo, tmp_path / "wt2", "b2")
+    journal = tmp_path / "j.json"
+    rc, report, _p = run_tool(
+        "backfill",
+        "--repo",
+        str(repo),
+        "--worktree",
+        str(wt1),
+        "--worktree",
+        str(wt2),
+        "--apply",
+        "--journal",
+        str(journal),
+    )
+    assert rc == EXIT_OK, report
+    assert _wt_cfg(wt1, "filter.git-crypt.smudge") is not None
+    assert _wt_cfg(wt2, "filter.git-crypt.smudge") is not None
+    return repo, wt1, wt2, journal
+
+
+def test_ac7_corrupt_journal_refuses_instead_of_partial_rollback(tmp_path):
+    """Defect 4: a bad entry must abort the WHOLE rollback, not half of it."""
+    _repo, wt1, wt2, journal = _two_needy_worktrees(tmp_path)
+    applied1 = _wt_cfg(wt1, "filter.git-crypt.smudge")
+    applied2 = _wt_cfg(wt2, "filter.git-crypt.smudge")
+    # captured BEFORE any corruption: reading it back afterwards would capture
+    # the corrupt file and make the good leg assert the wrong thing.
+    pristine = journal.read_text(encoding="utf-8")
+
+    # --- corruption shape A: a structurally malformed entry ---
+    data = json.loads(journal.read_text(encoding="utf-8"))
+    assert len(data["entries"]) == 2, data
+    data["entries"][-1].pop("restore")
+    journal.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+    rc, _report, proc = run_tool("rollback", "--journal", str(journal), "--apply")
+    assert rc == EXIT_USAGE, proc.stderr
+    assert "partial rollback" in proc.stderr
+    assert _wt_cfg(wt1, "filter.git-crypt.smudge") == applied1, (
+        "entry 0 was restored before the malformed entry aborted the run"
+    )
+    assert _wt_cfg(wt2, "filter.git-crypt.smudge") == applied2
+
+    # --- corruption shape B: the file itself is truncated ---
+    journal.write_text(pristine[: len(pristine) // 2], encoding="utf-8")
+    rc, _report, proc = run_tool("rollback", "--journal", str(journal), "--apply")
+    assert rc == EXIT_USAGE, proc.stderr
+    assert _wt_cfg(wt1, "filter.git-crypt.smudge") == applied1
+    assert _wt_cfg(wt2, "filter.git-crypt.smudge") == applied2
+
+    # --- good leg: the intact journal still rolls both back ---
+    journal.write_text(pristine, encoding="utf-8")
+    rc, rreport, _p = run_tool("rollback", "--journal", str(journal), "--apply")
+    assert rc == EXIT_OK, rreport
+    assert _wt_cfg(wt1, "filter.git-crypt.smudge") is None
+    assert _wt_cfg(wt2, "filter.git-crypt.smudge") is None
+
+
+# ---------------------------------------------------------------------------
+# AC7 across ALL TEN fixture states, not just one
+# ---------------------------------------------------------------------------
+
+
+def _state01_expected_plaintext(tmp_path):
+    repo, _key = init_repo(tmp_path / "repo")
+    add_worktree(repo, tmp_path / "wt-plain", "plain")
+    return repo
+
+
+def _state02_expected_ciphertext(tmp_path):
+    repo, _key = init_repo(tmp_path / "repo")
+    make_ciphertext_worktree(repo, tmp_path / "wt-cipher", "cipher")
+    return repo
+
+
+def _state03_unexpectedly_plaintext(tmp_path):
+    repo, _key = init_repo(tmp_path / "repo")
+    wt = make_ciphertext_worktree(repo, tmp_path / "wt-cipher", "cipher")
+    (wt / "secret.json").write_bytes(SYNTHETIC)
+    return repo
+
+
+def _state04_unexpectedly_ciphertext(tmp_path):
+    repo, _key = init_repo(tmp_path / "repo")
+    wt = make_ciphertext_worktree(repo, tmp_path / "wt", "b", declare=False)
+    for key in (
+        "filter.git-crypt.smudge",
+        "filter.git-crypt.clean",
+        "filter.git-crypt.required",
+    ):
+        git(["config", "--worktree", "--unset-all", key], cwd=wt, check=False)
+    git(["config", "--worktree", "gitcrypt.worktreeMode", "plaintext"], cwd=wt)
+    return repo
+
+
+def _state05_missing_key(tmp_path):
+    repo, _key = init_repo(tmp_path / "repo")
+    clone = tmp_path / "clone"
+    git(["clone", "--no-hardlinks", "-q", str(repo), str(clone)], cwd=tmp_path)
+    git(["config", "extensions.worktreeConfig", "true"], cwd=clone)
+    git(["config", "--worktree", "gitcrypt.worktreeMode", "plaintext"], cwd=clone)
+    return clone
+
+
+def _state06_unreadable(tmp_path):
+    repo, _key = init_repo(tmp_path / "repo")
+    wt = add_worktree(repo, tmp_path / "wt", "b")
+    secret = wt / "secret.json"
+    os.remove(secret)
+    secret.mkdir()
+    return repo
+
+
+def _state07_same_basename(tmp_path):
+    repo, _key = init_repo(tmp_path / "repo")
+    (tmp_path / "parentA").mkdir()
+    (tmp_path / "parentB").mkdir()
+    make_ciphertext_worktree(repo, tmp_path / "parentA" / "lane", "a")
+    bad = make_ciphertext_worktree(repo, tmp_path / "parentB" / "lane", "b")
+    (bad / "secret.json").write_bytes(SYNTHETIC)
+    return repo
+
+
+def _state08_partially_materialised(tmp_path):
+    repo, _key = init_repo(tmp_path / "repo", secrets=("secret.json", "secret2.json"))
+    wt = add_worktree(repo, tmp_path / "wt", "b")
+    oid = git(["rev-parse", ":secret2.json"], cwd=wt).stdout.strip()
+    blob = subprocess.run(
+        ["git", "cat-file", "blob", oid], cwd=str(wt), capture_output=True, check=True
+    ).stdout
+    (wt / "secret2.json").write_bytes(blob)
+    return repo
+
+
+def _state09_eol_churn(tmp_path):
+    repo, _key = init_repo(tmp_path / "repo")
+    wt = add_worktree(repo, tmp_path / "wt", "b")
+    secret = wt / "secret.json"
+    secret.write_bytes(secret.read_bytes().replace(b"\n", b"\r\n"))
+    os.utime(secret, (0, 0))
+    return repo
+
+
+def _state10_needy_and_protected(tmp_path):
+    repo, _key, _protected, _needy = _needy_repo(tmp_path)
+    return repo
+
+
+TEN_STATES = [
+    ("01-expected-plaintext", _state01_expected_plaintext),
+    ("02-expected-ciphertext", _state02_expected_ciphertext),
+    ("03-unexpectedly-plaintext", _state03_unexpectedly_plaintext),
+    ("04-unexpectedly-ciphertext", _state04_unexpectedly_ciphertext),
+    ("05-missing-key", _state05_missing_key),
+    ("06-unreadable", _state06_unreadable),
+    ("07-same-basename", _state07_same_basename),
+    ("08-partially-materialised", _state08_partially_materialised),
+    ("09-eol-churn", _state09_eol_churn),
+    ("10-needy-and-protected", _state10_needy_and_protected),
+]
+
+
+@pytest.mark.parametrize("name,builder", TEN_STATES, ids=[s[0] for s in TEN_STATES])
+def test_ac7_rollback_restores_every_fixture_state(tmp_path, name, builder):
+    """apply -> rollback must restore the tree, and the claim is scoped.
+
+    What holds, measured on all ten states rather than assumed:
+
+    * NOTHING outside `.git/` changes at all -- not content, not size, not
+      mtime. That is the repository content, including every ciphertext
+      secret. This is the assertion that matters.
+    * Inside `.git/`, no file changes CONTENT and none is removed.
+    * mtime is NOT preserved for the git config files the tool legitimately
+      wrote to and then restored. It cannot be: they were rewritten twice.
+      Their bytes are identical, which is the property reversibility needs.
+      Measured on states 04 and 10, whose worktrees already carried a
+      `config.worktree`; the earlier draft of this test claimed mtime
+      identity for them and was wrong.
+    * The only new files permitted are the journal the caller asked for and
+      EMPTY `config.worktree` files, which git materialises on the first
+      worktree-scoped write and does not remove when the last key is unset.
+      Their size is asserted zero -- configuration left in them would be an
+      unreversed change.
+    """
+    repo = builder(tmp_path)
+    journal = tmp_path / "journal.json"
+
+    before = _meta_snapshot(tmp_path)
+    rc_apply, areport, aproc = run_tool(
+        "backfill", "--repo", str(repo), "--all", "--apply", "--journal", str(journal)
+    )
+    assert_no_secret_leak(aproc)
+    assert rc_apply != EXIT_IO, aproc.stderr
+    assert journal.exists(), "the write-ahead journal must exist after --apply"
+    assert areport["journal_status"] == "complete"
+
+    rc_rb, rreport, rproc = run_tool("rollback", "--journal", str(journal), "--apply")
+    assert_no_secret_leak(rproc)
+    assert rc_rb == EXIT_OK, rreport
+    assert rreport["unrestored"] == 0, rreport
+    for action in rreport["actions"]:
+        assert action["verified"] is True, action
+
+    after = _meta_snapshot(tmp_path)
+    delta = _snapshot_delta(before, after)
+
+    # 1. The repository CONTENT is untouched in every respect.
+    for bucket in ("added", "removed", "content_changed", "mtime_changed"):
+        outside_git = [
+            rel
+            for rel in delta[bucket]
+            if "/.git/" not in f"/{rel}" and rel != "journal.json"
+        ]
+        assert outside_git == [], (bucket, outside_git, delta)
+
+    # 2. Inside .git/, nothing loses or changes content.
+    assert delta["removed"] == [], delta
+    assert delta["content_changed"] == [], delta
+
+    # 3. The only permitted mtime churn is a git config file this tool wrote
+    #    to and restored. Its BYTES are identical (asserted above); only its
+    #    mtime is fresh, which is unavoidable once a file is written at all.
+    for rel in delta["mtime_changed"]:
+        assert os.path.basename(rel) in ("config", "config.worktree"), (
+            f"unexpected mtime churn: {rel}"
+        )
+
+    # 4. New files: the journal, and EMPTY config.worktree files only.
+    for rel in delta["added"]:
+        if rel == "journal.json":
+            continue
+        assert os.path.basename(rel) == "config.worktree", f"residue: {rel}"
+        assert (tmp_path / rel).stat().st_size == 0, (
+            f"{rel} was left carrying configuration after rollback"
+        )
+
+
+# ---------------------------------------------------------------------------
+# AC7 MUTATION TESTS -- reintroduce each defect, prove the new tests go red
+# ---------------------------------------------------------------------------
+
+
+def test_mutation_ac7_journal_write_failure_is_swallowed(tmp_path):
+    """Defect 1 reintroduced: writes land, journal does not, nobody is told."""
+    repo, _key = init_repo(tmp_path / "repo")
+    needy = add_worktree(repo, tmp_path / "wt", "b")
+    bad_journal = tmp_path / "no-such-dir" / "j.json"
+
+    # control leg: the real tool changes nothing and says so under a real code
+    rc, _r, _p = run_tool(
+        "backfill",
+        "--repo",
+        str(repo),
+        "--worktree",
+        str(needy),
+        "--apply",
+        "--journal",
+        str(bad_journal),
+    )
+    assert rc == EXIT_IO
+    assert _wt_cfg(needy, "filter.git-crypt.smudge") is None
+
+    mutant = _mutant(
+        tmp_path,
+        '    tmp = f"{journal_path}.tmp"\n',
+        '    tmp = f"{journal_path}.tmp"\n'
+        "    return journal  # MUTANT: journal writes silently do nothing\n",
+        "mut_j.py",
+    )
+    rc_mut, _r, _p = run_tool(
+        "backfill",
+        "--repo",
+        str(repo),
+        "--worktree",
+        str(needy),
+        "--apply",
+        "--journal",
+        str(bad_journal),
+        script=mutant,
+    )
+    assert not bad_journal.exists(), "mutant did not reintroduce the defect"
+    assert _wt_cfg(needy, "filter.git-crypt.smudge") is not None, (
+        "mutant failed to demonstrate an unrollbackable config write"
+    )
+    assert rc_mut != EXIT_IO, "the mutant must NOT report the defined IO code"
+
+
+def test_mutation_ac7_rollback_skips_malformed_entry_instead_of_refusing(tmp_path):
+    """Defect 4 reintroduced as its worst form: a SILENT partial rollback."""
+    _repo, wt1, wt2, journal = _two_needy_worktrees(tmp_path)
+    applied1 = _wt_cfg(wt1, "filter.git-crypt.smudge")
+
+    data = json.loads(journal.read_text(encoding="utf-8"))
+    data["entries"][-1].pop("restore")
+    journal.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+    # control leg: the real tool refuses and restores nothing
+    rc, _r, _p = run_tool("rollback", "--journal", str(journal), "--apply")
+    assert rc == EXIT_USAGE
+    assert _wt_cfg(wt1, "filter.git-crypt.smudge") == applied1
+
+    mutant = _mutant(
+        tmp_path,
+        "    steps = validate_journal(journal, norm(journal_path))\n",
+        "    steps = [\n"
+        "        {\n"
+        '            "worktree_path": e.get("worktree_path", ""),\n'
+        '            "scope": e.get("scope", "--worktree"),\n'
+        '            "key": r["key"],\n'
+        '            "restore_to": r["prior"],\n'
+        "        }\n"
+        '        for e in journal.get("entries", [])\n'
+        '        for r in e.get("restore", [])\n'
+        "    ]\n",
+        "mut_val.py",
+    )
+    rc_mut, rreport, _p = run_tool(
+        "rollback", "--journal", str(journal), "--apply", script=mutant
+    )
+    assert rc_mut == EXIT_OK, "mutant did not reintroduce the false green"
+    assert _wt_cfg(wt1, "filter.git-crypt.smudge") is None, (
+        "mutant failed to demonstrate a partial rollback"
+    )
+    assert rc_mut != rc, "the test would not have caught the partial-rollback defect"
+
+
+def test_mutation_ac7_rollback_verification_is_a_real_detector(tmp_path):
+    """A rollback that restores nothing must NOT be able to report success."""
+    _repo, wt1, _wt2, journal = _two_needy_worktrees(tmp_path)
+    applied1 = _wt_cfg(wt1, "filter.git-crypt.smudge")
+    assert applied1 is not None
+
+    mutant = _mutant(
+        tmp_path,
+        "    error = None\n    if prior is None:\n",
+        "    error = None\n"
+        "    if True:  # MUTANT: perform no restore at all\n"
+        "        pass\n"
+        "    elif prior is None:\n",
+        "mut_verify.py",
+    )
+    rc_mut, rreport_mut, _p = run_tool(
+        "rollback", "--journal", str(journal), "--apply", script=mutant
+    )
+    assert _wt_cfg(wt1, "filter.git-crypt.smudge") == applied1, (
+        "mutant did not reintroduce the no-op restore"
+    )
+    assert rc_mut == EXIT_INCONSISTENT, "verification stayed silent on a no-op restore"
+    assert rreport_mut["unrestored"] > 0
+    assert any(a["verified"] is False for a in rreport_mut["actions"])
+
+    # control leg: the real tool restores and verifies
+    rc, rreport, _p = run_tool("rollback", "--journal", str(journal), "--apply")
+    assert rc == EXIT_OK, rreport
+    assert rreport["unrestored"] == 0
+    assert _wt_cfg(wt1, "filter.git-crypt.smudge") is None
+
+
+def test_mutation_ac7_shared_ext_write_is_recorded_at_the_wrong_scope(tmp_path):
+    """Defect 3 reintroduced: journal the shared write, but not reversibly."""
+    repo, _key = init_repo(tmp_path / "repo")
+    add_worktree(repo, tmp_path / "wt", "b")
+    git(["config", "--local", "--unset", "extensions.worktreeConfig"], cwd=repo)
+
+    mutant = _mutant(
+        tmp_path,
+        '                    "worktree_path": repo_root,\n'
+        '                    "scope": "--local",\n',
+        '                    "worktree_path": repo_root,\n'
+        '                    "scope": "--worktree",\n',
+        "mut_ext.py",
+    )
+    journal = tmp_path / "jm.json"
+    rc, _r, _p = run_tool(
+        "backfill",
+        "--repo",
+        str(repo),
+        "--all",
+        "--apply",
+        "--enable-worktree-config",
+        "--journal",
+        str(journal),
+        script=mutant,
+    )
+    assert _wt_cfg(repo, "extensions.worktreeConfig", scope="--local") == "true"
+    run_tool("rollback", "--journal", str(journal), "--apply", script=mutant)
+    assert _wt_cfg(repo, "extensions.worktreeConfig", scope="--local") == "true", (
+        "mutant did not reintroduce the unreversed shared write"
+    )
+
+    # control leg: the real tool records it at --local and reverses it
+    git(["config", "--local", "--unset", "extensions.worktreeConfig"], cwd=repo)
+    journal2 = tmp_path / "jr.json"
+    rc, _r, _p = run_tool(
+        "backfill",
+        "--repo",
+        str(repo),
+        "--all",
+        "--apply",
+        "--enable-worktree-config",
+        "--journal",
+        str(journal2),
+    )
+    assert _wt_cfg(repo, "extensions.worktreeConfig", scope="--local") == "true"
+    rc, rreport, _p = run_tool("rollback", "--journal", str(journal2), "--apply")
+    assert rc == EXIT_OK, rreport
+    assert _wt_cfg(repo, "extensions.worktreeConfig", scope="--local") is None
+
+
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-v"]))

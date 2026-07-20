@@ -24,7 +24,8 @@ python gitcrypt_worktree.py rollback --journal FILE [--apply]
   by a whole-tree sha256 snapshot before/after, and that assertion is itself
   validated against a deliberately-writing mutant.
 * `backfill` **defaults to dry-run**. `--apply` additionally requires
-  `--journal PATH` so that every change is reversible.
+  `--journal PATH`, and the complete pre-image is written and fsync'd to that
+  path **before the first mutation** — see *Reversibility* below.
 * `backfill` requires an **explicit** target selection. `--apply` with neither
   `--worktree` nor `--all` is a usage error, not an implicit "all".
 * `rollback` also defaults to dry-run; `--apply` performs the restore.
@@ -43,9 +44,19 @@ The process exit code is the **highest-severity** code across all findings.
 | 5 | `INCONSISTENT` | ≥1 worktree's declared `gitcrypt.worktreeMode` contradicts its effective filter configuration |
 | 6 | `MISMATCH` | observed state differs from expected but is not itself unsafe (e.g. ciphertext where plaintext was expected because no key is reachable) |
 | 7 | `REFUSED` | a mutation was requested and denied by a safety gate; nothing was changed |
+| 8 | `IO` | an output artifact (the rollback journal, or `--json-out`) could not be written |
 
 Severity precedence, highest first:
-`USAGE` > `UNREADABLE` > `AMBIGUOUS` > `INCONSISTENT` > `UNSAFE` > `REFUSED` > `MISMATCH` > `OK`.
+`USAGE` > `IO` > `UNREADABLE` > `AMBIGUOUS` > `INCONSISTENT` > `UNSAFE` > `REFUSED` > `MISMATCH` > `OK`.
+
+`IO` exists so that a filesystem failure can never exit `1`. An unhandled
+`OSError` would, and `1` is `UNSAFE` — a caller doing exit-code dispatch would
+read "the journal directory does not exist" as "a worktree holds plaintext
+against its declared intent". When `IO` is returned, either **nothing was
+mutated** (the journal could not be established, which is checked before the
+first write) or the pre-image journal is already durable and the run is
+reversible; `rollback` also returns `INCONSISTENT` (5) if any recorded key
+could not be restored to its prior value.
 
 ## How a worktree is classified
 
@@ -100,13 +111,85 @@ secret never appears in stdout or stderr of any invocation.
 * **refuses** when `extensions.worktreeConfig` is not enabled, because
   enabling it modifies *shared* repository config — `--enable-worktree-config`
   is the explicit authorisation for that;
-* writes only via `git config --worktree` (never `--global`, never `--local`
-  for filter keys), recording the prior value of every key it sets in the
-  rollback journal.
+* writes filter keys only via `git config --worktree` (never `--global`),
+  recording the prior value of every key it sets in the rollback journal.
+
+## Reversibility
+
+`backfill --apply` is protected by a **write-ahead journal**:
+
+1. the `--journal` path is established (written, flushed, `fsync`'d) **before
+   anything can mutate state** — an unusable path fails here, with nothing
+   changed, under exit code `IO`;
+2. the shared `extensions.worktreeConfig` write authorised by
+   `--enable-worktree-config` is recorded at `--local` scope **before** it
+   happens, so it too is reversible;
+3. the complete pre-image of every worktree-scoped key the plan will write is
+   appended and made durable **before** the first `git config` write;
+4. the journal is rewritten with `status: "complete"` afterwards. It was
+   already sufficient to roll back before that write, so losing it costs the
+   marker and nothing else.
+
+Each write goes to a sibling temp file and is then `os.replace`d into place,
+so a half-written journal — which parses only by luck and would drive a
+partial rollback — cannot exist.
+
+`rollback` correspondingly:
+
+* **validates the whole journal before restoring anything.** A malformed entry
+  aborts the entire run under `USAGE` with nothing touched. Restoring entries
+  0..N-1 and then failing on entry N is a partial rollback, and a partial
+  rollback that reports success is worse than no rollback at all;
+* restores in **reverse** order, because the shared `extensions.worktreeConfig`
+  entry is written first and unsetting it before the worktree-scoped keys are
+  restored would make those restores impossible;
+* **verifies each restore by re-reading the key** and returns `INCONSISTENT`
+  with an `unrestored` count if any key did not reach its recorded prior value.
+  A restore that silently did nothing cannot report `performed: true` and exit
+  `0`.
+
+Measured guarantee, and its limits, across all ten fixture states:
+
+* **Nothing outside `.git/` changes at all** — not content, not size, not
+  mtime. That is the repository content, including every ciphertext secret.
+* Inside `.git/`, no file loses or changes content.
+* **mtime is not preserved for the git config files the tool writes and then
+  restores.** It cannot be: they are rewritten twice. Their bytes come back
+  identical, which is the property reversibility needs. Stated rather than
+  glossed — an earlier draft of this section claimed mtime identity for them
+  and was wrong; states 04 and 10 are the ones that disproved it.
+* The only new files are the journal the caller asked for and **empty**
+  `config.worktree` files, which git materialises on the first worktree-scoped
+  write and does not remove when the last key is unset. The test asserts they
+  are zero bytes — configuration left in them would be an unreversed change.
+
+Journal `v1` (round 1) is still readable by `rollback`; `v2` adds `scope` and
+`status`.
 
 > R1's backfill line 1 was `git config --global --replace-all
 > extensions.worktreeConfig true`, which mutates the operator's user-level
 > gitconfig outside any repository. This tool never writes global config.
+
+## Scope of the guarantees
+
+Stated explicitly, because a guarantee whose scope is implied will be read
+wider than it holds:
+
+* **Ciphertext preservation is scoped to _declared_ intent.** A worktree is
+  protected when its owner declared ciphertext — `gitcrypt.worktreeMode
+  = ciphertext` at worktree scope, or a worktree-scoped identity (`cat`)
+  filter. A worktree that merely *holds* ciphertext and declares nothing
+  resolves to `expected_state = plaintext` via the shared filter, is a
+  legitimate backfill target, and will materialise plaintext at the next
+  checkout. That is the tool's repair goal, not a gate failure — but it means
+  "backfill will not decrypt a ciphertext worktree" is **false** as stated and
+  true only as "…a worktree that *declares* ciphertext".
+* **Reversibility is reversibility of configuration.** The journal restores
+  git config keys. It does not restore file content, and it cannot un-do a
+  `git checkout` that a decrypting filter subsequently acted on. Roll back
+  before the checkout, not after.
+* **`doctor` is read-only; `backfill --apply` is not.** Only `--apply` writes,
+  and only after an explicit target selection.
 
 ## Tests
 
@@ -126,9 +209,18 @@ EOL/metadata-only churn, and dry-run vs explicit-apply separation. An
 eleventh covers the declared-ciphertext-with-decrypting-filter state that
 R1's backfill left behind.
 
-Five `test_mutation_*` tests reintroduce an original defect into an isolated
+The ten states are additionally exercised as a **rollback matrix**:
+`test_ac7_rollback_restores_every_fixture_state` builds each one, applies,
+rolls back purely from the journal, and asserts the whole-tree hash/size/mtime
+snapshot is unchanged.
+
+Nine `test_mutation_*` tests reintroduce an original defect into an isolated
 copy of the script and assert the suite goes **red** — a suite that stays
 green under mutation is not protecting the behaviour it claims to protect.
+Four of them cover the reversibility family: a journal write that silently
+does nothing, a rollback that skips a malformed entry instead of refusing, a
+restore that is a no-op, and a shared-config write recorded at the wrong
+scope.
 
 `git-crypt` must be on `PATH`; the fixtures raise rather than skip if it is
 missing, so an absent dependency cannot masquerade as a pass.
