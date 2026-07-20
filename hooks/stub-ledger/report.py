@@ -98,6 +98,39 @@ def _norm(s: str) -> str:
     return re.sub(r"\s+", " ", s).strip().lower()
 
 
+def _deferred() -> list[tuple[str, str]]:
+    """Explicitly-deferred false positives from LEDGER_ROOT/.deferred.
+
+    One rule per line, `#` comments ignored:  ``[file-substr::]needle``
+    Returns (file_substr, needle) pairs, both normalized; an empty file_substr
+    matches any file. Missing/unreadable file -> no rules (fail-open).
+    """
+    try:
+        raw = (LEDGER_ROOT / ".deferred").read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        return []
+    rules: list[tuple[str, str]] = []
+    for line in raw.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        fsub, sep, needle = line.partition("::")
+        if not sep:
+            fsub, needle = "", line
+        needle = _norm(needle)
+        if needle:
+            rules.append((_norm(fsub).replace("\\", "/"), needle))
+    return rules
+
+
+def _is_deferred(fp: str, snippet: str, rules: list[tuple[str, str]]) -> bool:
+    """Case-insensitive substring match on the already-normalized snippet."""
+    f = _norm(fp).replace("\\", "/")
+    return any(
+        (not fsub or fsub in f) and needle in snippet for fsub, needle in rules
+    )
+
+
 def _load_ledger(session_id: str) -> list[dict]:
     f = _ledger_file(session_id)
     if not f.exists():
@@ -133,6 +166,7 @@ def still_open(session_id: str) -> list[tuple[str, str, str]]:
     recs = _load_ledger(session_id)
     if not recs:
         return []
+    deferred_rules = _deferred()
     cur: dict[str, object] = {}  # file -> set(current snippets) | DELETED | UNREADABLE
     out: list[tuple[str, str, str]] = []
     seen: set[tuple[str, str]] = set()
@@ -144,6 +178,8 @@ def still_open(session_id: str) -> list[tuple[str, str, str]]:
         marker = str(r.get("marker") or "stub")
         if not snippet:
             continue
+        if _is_deferred(fp, snippet, deferred_rules):
+            continue  # verified false positive, recorded in .deferred
         if fp and fp not in cur:
             try:
                 if Path(fp).exists():
