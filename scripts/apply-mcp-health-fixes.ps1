@@ -6,15 +6,18 @@
    Apply the 2026-07-20 mcp-health findings to USER scope
    (~/.claude.json -> top-level "mcpServers"):
 
-     1. agent-mail  : url http://127.0.0.1:8812/mcp  ->  .../mcp/
-                      MEASURED: GET /mcp returns 404, GET /mcp/ returns 200.
-                      The slash-less URL is why agent-mail showed [unavailable]
-                      while /api/health was returning {"status":"ok"}.
-
-     2. fb-messenger: REGISTER (was absent from Claude entirely; it existed only
+     1. fb-messenger: REGISTER (was absent from Claude entirely; it existed only
                       in ~/.grok/config.toml). MEASURED: stdio handshake OK,
                       serverInfo {"name":"fb-messenger","version":"1.27.2"},
                       33 tools.
+
+   NOT a fix here, deliberately -- agent-mail's URL.
+   An earlier probe reported GET /mcp -> 404 and GET /mcp/ -> 200 and concluded
+   a trailing slash was required. That was a MEASUREMENT ARTIFACT: curl defaults
+   to GET, but the MCP streamable-HTTP transport is POST, and POST returns a
+   valid handshake on BOTH paths. The registered URL is correct as-is; this
+   script leaves it alone. agent-mail's unavailability is a client-side
+   connection problem, not a bad pointer.
 
  WHY A SCRIPT AND NOT A LIVE EDIT
    A running Claude Code session holds ~/.claude.json in memory and rewrites it
@@ -25,9 +28,9 @@
  SAFETY
    * Timestamped backup of ~/.claude.json BEFORE writing; aborts if the backup
      is missing or zero-length.
-   * Edits ONLY the two entries above inside the top-level "mcpServers" object.
+   * Edits ONLY the fb-messenger entry inside the top-level "mcpServers" object.
      "projects", oauth, caches and "disabledMcpServers" are left untouched.
-   * Re-parses the result and asserts both entries are correct and the projects
+   * Re-parses the result and asserts the entry is correct and the projects
      map still has the same entry count; ABORTS without replacing on failure.
    * Refuses to run while a claude process is alive (override with -Force).
    * Idempotent: re-running is a no-op once applied.
@@ -63,7 +66,6 @@ if ($live.Count -gt 0 -and -not $Force) {
 }
 
 # --- Desired state ---------------------------------------------------------------
-$AGENT_MAIL_URL = 'http://127.0.0.1:8812/mcp/'
 $FB_BASE        = 'C:\Users\Prekzursil\source\repos\fb-messenger-mcp'
 $FB_PYTHON      = Join-Path $FB_BASE '.venv\Scripts\python.exe'
 $FB_SERVER      = Join-Path $FB_BASE 'server.py'
@@ -86,19 +88,14 @@ $servers = $root['mcpServers'].AsObject()
 $projCountBefore = 0
 if ($null -ne $root['projects']) { $projCountBefore = @($root['projects'].AsObject()).Count }
 
-$curAgentMail = $null
-if ($null -ne $servers['agent-mail'] -and $null -ne $servers['agent-mail']['url']) {
-    $curAgentMail = $servers['agent-mail']['url'].ToString()
-}
 $hasFb = ($null -ne $servers['fb-messenger'])
 
 Say "PLAN" Cyan
-Say ("  agent-mail   : {0}  ->  {1}" -f ($curAgentMail ?? '<absent>'), $AGENT_MAIL_URL)
 Say ("  fb-messenger : {0}  ->  register (stdio)" -f $(if ($hasFb) { 'present' } else { '<absent>' }))
 Say ("  projects entries to preserve: {0}" -f $projCountBefore)
 
-if ($curAgentMail -eq $AGENT_MAIL_URL -and $hasFb) {
-    Say "NO-OP: both fixes already applied." Green
+if ($hasFb) {
+    Say "NO-OP: fb-messenger already registered." Green
     exit 0
 }
 
@@ -114,9 +111,6 @@ if (-not (Test-Path $backup) -or (Get-Item $backup).Length -eq 0) {
 Say ("BACKUP: {0} ({1} bytes)" -f $backup, (Get-Item $backup).Length) Green
 
 # --- Mutate (DOM edit; everything else preserved) -------------------------------------
-$amJson = [pscustomobject]@{ type = 'http'; url = $AGENT_MAIL_URL } | ConvertTo-Json -Depth 5
-$servers['agent-mail'] = [System.Text.Json.Nodes.JsonNode]::Parse($amJson)
-
 $fbJson = [pscustomobject]@{ command = $FB_PYTHON; args = @($FB_SERVER) } | ConvertTo-Json -Depth 5
 $servers['fb-messenger'] = [System.Text.Json.Nodes.JsonNode]::Parse($fbJson)
 
@@ -132,16 +126,15 @@ $check = [System.Text.Json.Nodes.JsonNode]::Parse((Get-Content -LiteralPath $tmp
 $projCountAfter = 0
 if ($null -ne $check['projects']) { $projCountAfter = @($check['projects'].AsObject()).Count }
 
-$okAm = $check['mcpServers']['agent-mail']['url'].ToString() -eq $AGENT_MAIL_URL
 $okFb = $check['mcpServers']['fb-messenger']['command'].ToString() -eq $FB_PYTHON
 $okPr = $projCountAfter -eq $projCountBefore
 
-if (-not ($okAm -and $okFb -and $okPr)) {
-    Say "ABORT (verify failed): agent-mail=$okAm fb-messenger=$okFb projects=$okPr ($projCountBefore -> $projCountAfter)" Red
+if (-not ($okFb -and $okPr)) {
+    Say "ABORT (verify failed): fb-messenger=$okFb projects=$okPr ($projCountBefore -> $projCountAfter)" Red
     Say "      Original untouched. Candidate left at $tmp for inspection." Yellow
     exit 1
 }
 
 Move-Item -LiteralPath $tmp -Destination $claudeJson -Force
-Say "VERIFY OK: agent-mail url fixed, fb-messenger registered, projects intact ($projCountAfter)." Green
-Say "DONE. Restart Claude Code, then confirm both servers report connected." Green
+Say "VERIFY OK: fb-messenger registered, projects intact ($projCountAfter)." Green
+Say "DONE. Restart Claude Code, then confirm fb-messenger reports connected." Green
