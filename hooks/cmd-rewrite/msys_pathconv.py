@@ -69,10 +69,32 @@ misses every indirection.  We resolve, conservatively and statically:
 Anything we cannot resolve to a literal is reported UNRESOLVABLE and left
 alone — we never guess.  See COVERAGE_GAPS below.
 
+EMISSION SAFETY (the round-2 hard contract)
+===========================================
+This module is used by a PreToolUse `updatedInput` rewriter, so WHATEVER IT
+EMITS IS WHAT EXECUTES.  A rewrite that does not parse turns a working command
+into a hard failure — strictly worse than the miss it was trying to fix.  The
+rule is therefore: when a construct cannot be transformed with a proof that the
+result is still valid, PASS IT THROUGH UNCHANGED (`action="unsafe-shape"`,
+advisory only).  A no-op is always safe; a syntax error never is.
+
+Enforced by three cheap, in-process checks — no subprocess, so the ~0.05 ms
+`plan()` budget is preserved:
+  1. `_segment_is_simple` / `_has_bare_paren` — a prefix is only spliced onto a
+     simple command (rejects function definitions, `case` items, subshells,
+     groups, process substitution, leading redirects, reserved words);
+  2. `UNSAFE_HEAD_WORDS` — reserved words that an assignment prefix demotes
+     (`time` parses fine and then exits 127);
+  3. a byte-alignment invariant between the scanned and original strings before
+     any splice.
+The authoritative parser-level proof lives in the test suite, where every
+emitted rewrite over a shell-construct corpus is run through a real `bash -n`.
+
 CONTRACT
 ========
 Pure stdlib.  No import-time side effects.  Never blocks, never raises out of
-`plan()`.  Non-Windows is a hard no-op.  Explicit opt-out honoured.
+`plan()`, never emits shell that does not parse.  Non-Windows is a hard no-op.
+Explicit opt-out honoured.
 """
 
 from __future__ import annotations
@@ -101,70 +123,292 @@ COVERAGE_GAPS: tuple[str, ...] = (
     "The colon-path-list predicate is inferred from 14 measured forms, not from "
     "MSYS's determine_type() source. A form outside that sample could be "
     "mis-predicted in either direction.",
+    "A LOOP/CONDITIONAL BODY is handed to us as a segment whose head is a shell "
+    'keyword (` do wsl ls "$p"`), so the real callee sits past the keyword and '
+    "is never classified. Splicing an env prefix before `do` would be a syntax "
+    "error, so the body is not rewritten. Measured: "
+    '`for p in /mnt/h07; do wsl ls "$p"; done` DOES convert. Since round 2 the '
+    "fragment's unresolved tokens are reported in Decision.unresolvable so the "
+    "caller gets a disclosed non-coverage instead of a false all-clear.",
+    "DATAFLOW ACROSS A PIPE is invisible: in `echo /mnt/h13 | xargs wsl ls` the "
+    "path is an argument to an msys-immune callee (correctly noop) and reaches "
+    "the native callee as stdout->argv AT RUNTIME. Measured to convert for real; "
+    "no static reading of the command string can see it, and it produces NO "
+    "unresolvable token, so it remains a SILENT miss.",
+    "An `unsafe-shape` verdict is advisory only: conversion was predicted but no "
+    "segment could be rewritten without emitting invalid shell, so the command "
+    "runs WITH the mangled argv and only a warning is attached.",
 )
 
 # ───────────────────────────────────────────────────────────────── callee tiers
 
 # Linked against msys-2.0.dll -> conversion provably never reaches them.
-MSYS_IMMUNE: frozenset[str] = frozenset({
-    "ls", "cat", "grep", "egrep", "fgrep", "rm", "cp", "mv", "mkdir", "rmdir",
-    "find", "sed", "awk", "gawk", "tar", "head", "tail", "sort", "uniq", "wc",
-    "cut", "tr", "chmod", "chown", "ln", "touch", "stat", "du", "df", "diff",
-    "patch", "xargs", "basename", "dirname", "readlink", "realpath", "tee",
-    "bash", "sh", "dash", "env", "which", "file", "md5sum", "sha1sum",
-    "sha256sum", "base64", "gzip", "gunzip", "zcat", "less", "more", "vi",
-    "vim", "nano", "ssh", "scp", "sftp", "ssh-keygen", "ssh-add", "gpg",
-    "gpg2", "rsync", "wget", "unzip", "zip", "printf", "echo", "test", "expr",
-    "seq", "date", "sleep", "true", "false", "yes", "nl", "split", "comm",
-    "join", "paste", "tsort", "od", "strings", "nohup", "timeout", "getopt",
-    "id", "whoami", "uname", "hostname", "ps", "kill",
-})
+MSYS_IMMUNE: frozenset[str] = frozenset(
+    {
+        "ls",
+        "cat",
+        "grep",
+        "egrep",
+        "fgrep",
+        "rm",
+        "cp",
+        "mv",
+        "mkdir",
+        "rmdir",
+        "find",
+        "sed",
+        "awk",
+        "gawk",
+        "tar",
+        "head",
+        "tail",
+        "sort",
+        "uniq",
+        "wc",
+        "cut",
+        "tr",
+        "chmod",
+        "chown",
+        "ln",
+        "touch",
+        "stat",
+        "du",
+        "df",
+        "diff",
+        "patch",
+        "xargs",
+        "basename",
+        "dirname",
+        "readlink",
+        "realpath",
+        "tee",
+        "bash",
+        "sh",
+        "dash",
+        "env",
+        "which",
+        "file",
+        "md5sum",
+        "sha1sum",
+        "sha256sum",
+        "base64",
+        "gzip",
+        "gunzip",
+        "zcat",
+        "less",
+        "more",
+        "vi",
+        "vim",
+        "nano",
+        "ssh",
+        "scp",
+        "sftp",
+        "ssh-keygen",
+        "ssh-add",
+        "gpg",
+        "gpg2",
+        "rsync",
+        "wget",
+        "unzip",
+        "zip",
+        "printf",
+        "echo",
+        "test",
+        "expr",
+        "seq",
+        "date",
+        "sleep",
+        "true",
+        "false",
+        "yes",
+        "nl",
+        "split",
+        "comm",
+        "join",
+        "paste",
+        "tsort",
+        "od",
+        "strings",
+        "nohup",
+        "timeout",
+        "getopt",
+        "id",
+        "whoami",
+        "uname",
+        "hostname",
+        "ps",
+        "kill",
+    }
+)
 
 # Native, and conversion is DOING THE RIGHT THING: these want a Windows path.
-WINDOWS_WANTS: frozenset[str] = frozenset({
-    "notepad", "notepad++", "explorer", "start", "cmd", "code", "devenv",
-    "msbuild", "reg", "regedit", "powershell", "pwsh", "wscript", "cscript",
-    "rundll32", "mspaint", "write",
-})
+WINDOWS_WANTS: frozenset[str] = frozenset(
+    {
+        "notepad",
+        "notepad++",
+        "explorer",
+        "start",
+        "cmd",
+        "code",
+        "devenv",
+        "msbuild",
+        "reg",
+        "regedit",
+        "powershell",
+        "pwsh",
+        "wscript",
+        "cscript",
+        "rundll32",
+        "mspaint",
+        "write",
+    }
+)
 
 # Native AND a bridge into a POSIX world -> the far side needs the LITERAL
 # path, so EVERY leading-slash argument is wrong, even a locally-mounted one.
-POSIX_BRIDGE: frozenset[str] = frozenset({
-    "wsl", "bash.exe", "docker", "docker-compose", "podman", "kubectl", "helm",
-    "adb", "fastboot", "scrcpy", "vagrant", "multipass", "qemu-img", "busybox",
-})
+POSIX_BRIDGE: frozenset[str] = frozenset(
+    {
+        "wsl",
+        "bash.exe",
+        "docker",
+        "docker-compose",
+        "podman",
+        "kubectl",
+        "helm",
+        "adb",
+        "fastboot",
+        "scrcpy",
+        "vagrant",
+        "multipass",
+        "qemu-img",
+        "busybox",
+    }
+)
 
 # Native, unix-looking, and the measured killer is the `rev:path` colon form.
 GIT_LIKE: frozenset[str] = frozenset({"git", "git-lfs", "scalar"})
 
-SHELL_BUILTINS: frozenset[str] = frozenset({
-    "cd", "export", "local", "readonly", "declare", "typeset", "set", "unset",
-    "source", ".", "read", "shift", "return", "exit", "trap", "wait", "alias",
-    "unalias", "let", "getopts", "hash", "type", "ulimit", "umask", "pushd",
-    "popd", "dirs", "jobs", "bg", "fg", "disown", "history", "mapfile",
-    "readarray", "complete", "compgen", "shopt", "caller", "[", "[[", "help",
-    "logout", "suspend", "times", "builtin", "enable",
-})
-SHELL_KEYWORDS: frozenset[str] = frozenset({
-    "if", "then", "elif", "else", "fi", "while", "until", "for", "do", "done",
-    "case", "esac", "in", "function", "select", "{", "}", "!", "coproc",
-})
+SHELL_BUILTINS: frozenset[str] = frozenset(
+    {
+        "cd",
+        "export",
+        "local",
+        "readonly",
+        "declare",
+        "typeset",
+        "set",
+        "unset",
+        "source",
+        ".",
+        "read",
+        "shift",
+        "return",
+        "exit",
+        "trap",
+        "wait",
+        "alias",
+        "unalias",
+        "let",
+        "getopts",
+        "hash",
+        "type",
+        "ulimit",
+        "umask",
+        "pushd",
+        "popd",
+        "dirs",
+        "jobs",
+        "bg",
+        "fg",
+        "disown",
+        "history",
+        "mapfile",
+        "readarray",
+        "complete",
+        "compgen",
+        "shopt",
+        "caller",
+        "[",
+        "[[",
+        "help",
+        "logout",
+        "suspend",
+        "times",
+        "builtin",
+        "enable",
+    }
+)
+SHELL_KEYWORDS: frozenset[str] = frozenset(
+    {
+        "if",
+        "then",
+        "elif",
+        "else",
+        "fi",
+        "while",
+        "until",
+        "for",
+        "do",
+        "done",
+        "case",
+        "esac",
+        "in",
+        "function",
+        "select",
+        "{",
+        "}",
+        "!",
+        "coproc",
+    }
+)
 # The real callee is the NEXT token; advance past these.
-PREFIX_WRAPPERS: frozenset[str] = frozenset({
-    "sudo", "env", "time", "nohup", "command", "exec", "xargs", "timeout",
-    "stdbuf", "nice", "ionice", "setsid", "doas", "watch", "strace", "ltrace",
-})
+PREFIX_WRAPPERS: frozenset[str] = frozenset(
+    {
+        "sudo",
+        "env",
+        "time",
+        "nohup",
+        "command",
+        "exec",
+        "xargs",
+        "timeout",
+        "stdbuf",
+        "nice",
+        "ionice",
+        "setsid",
+        "doas",
+        "watch",
+        "strace",
+        "ltrace",
+    }
+)
 # Word-list keywords: bash expands them itself, no process is ever spawned.
 WORDLIST_KEYWORDS: frozenset[str] = frozenset({"for", "select", "case"})
+# Bash reserved words that are NOT in SHELL_KEYWORDS and that an assignment
+# prefix would silently DEMOTE to an ordinary command lookup.  `time` is the
+# measured one: `time echo hi` exits 0, `FOO=bar time echo hi` exits **127**
+# (`time: command not found`) under Git-Bash, because the assignment stops
+# `time` being the first word of the pipeline.  That is a working command
+# turned into a hard failure — the V1 class — and `bash -n` does NOT catch it,
+# so it is excluded by name rather than by parse.
+UNSAFE_HEAD_WORDS: frozenset[str] = frozenset({"time", "[[", "]]", "((", "))"})
 
 # First path component that denotes a REAL local mount on this box, so the
 # rewrite resolves back to the same object.  Derived from the measured mount
 # table (`/` -> C:/Program Files/Git, /bin, /tmp, /c, /d) intersected with the
 # directories that exist under the MSYS root.  Deliberately excludes /var,
 # /home, /opt, /lib, /sbin, /proc, /mnt, /srv, /sdcard, /data, /api, /mcp.
-HARMLESS_ROOTS: frozenset[str] = frozenset({
-    "tmp", "bin", "usr", "etc", "dev", "cmd", "mingw64",
-})
+HARMLESS_ROOTS: frozenset[str] = frozenset(
+    {
+        "tmp",
+        "bin",
+        "usr",
+        "etc",
+        "dev",
+        "cmd",
+        "mingw64",
+    }
+)
 
 # ────────────────────────────────────────────────────────────────── shape rules
 
@@ -347,7 +591,25 @@ def split_segments(cmd: str) -> list[Segment]:
 def strip_heredocs(cmd: str) -> str:
     """Blank out heredoc BODIES.  They become stdin, never argv, so they are
     structurally immune — and scanning them is pure false-positive surface
-    (the markdown/prose class).  Line count is preserved so spans stay valid."""
+    (the markdown/prose class).
+
+    BYTE LENGTH IS PRESERVED, not merely line count.  A body line is replaced
+    by an equal-length run of spaces, never by "".  This is load-bearing:
+    `plan()` computes splice offsets from `split_segments(strip_heredocs(cmd))`
+    and applies them to the ORIGINAL `cmd`, so any length change silently
+    shifts every offset after the heredoc.  Measured round-2 defect with the
+    old ""-collapse:
+
+        cat <<'EOF' > /tmp/r2.txt
+        some body line that is long
+        EOF
+        wsl ls /mnt/x
+
+    emitted `some MSYS2_ARG_CONV_EXCL='/mnt/x' body line that is long` — the
+    prefix spliced 27 bytes early, INTO the heredoc body: the payload written
+    to /tmp/r2.txt was corrupted and `wsl ls /mnt/x` got no protection at all.
+    It still parses, so `bash -n` cannot see it.  `_plan_inner` additionally
+    re-checks the alignment before emitting (belt and braces)."""
     lines = cmd.split("\n")
     out = list(lines)
     i = 0
@@ -357,7 +619,7 @@ def strip_heredocs(cmd: str) -> str:
         if m:
             delim = m.group(2)
             while i < len(lines) and lines[i].strip() != delim:
-                out[i] = ""
+                out[i] = " " * len(lines[i])
                 i += 1
             if i < len(lines):
                 i += 1
@@ -405,18 +667,18 @@ class Finding:
     segment_index: int
     callee: str
     tier: str
-    token: str            # token as written in the command
-    effective: str        # post-static-expansion value MSYS will actually see
-    predicted: str        # what argv would become without enforcement
+    token: str  # token as written in the command
+    effective: str  # post-static-expansion value MSYS will actually see
+    predicted: str  # what argv would become without enforcement
     kind: str
     severity: str
     reason: str
-    resolution: str       # "literal" | "expanded"
+    resolution: str  # "literal" | "expanded"
 
 
 @dataclass(frozen=True)
 class Decision:
-    action: str                       # see ACTIONS
+    action: str  # see ACTIONS
     rewritten: str | None = None
     findings: tuple[Finding, ...] = ()
     unresolvable: tuple[str, ...] = ()
@@ -457,31 +719,101 @@ def classify_callee(tok: str):
     if base in WINDOWS_WANTS:
         return None
     if base in POSIX_BRIDGE:
-        return ("posix-bridge", "high",
-                f"`{base}` bridges to a POSIX filesystem; the far side needs "
-                f"the literal path", True)
+        return (
+            "posix-bridge",
+            "high",
+            f"`{base}` bridges to a POSIX filesystem; the far side needs "
+            f"the literal path",
+            True,
+        )
     if base in GIT_LIKE:
-        return ("git-like", "high",
-                f"`{base}` links msvcrt, not msys — fully exposed despite "
-                f"living in /mingw64/bin", False)
-    return ("native-unknown", "medium",
-            f"`{base}` is not a known msys-linked callee", False)
+        return (
+            "git-like",
+            "high",
+            f"`{base}` links msvcrt, not msys — fully exposed despite "
+            f"living in /mingw64/bin",
+            False,
+        )
+    return (
+        "native-unknown",
+        "medium",
+        f"`{base}` is not a known msys-linked callee",
+        False,
+    )
 
 
 def _shell_quote(value: str) -> str:
     return "'" + value.replace("'", "'\\''") + "'"
 
 
+def _has_bare_paren(raw: str) -> bool:
+    """True if *raw* carries an unquoted `(` or `)` that is NOT part of a `$( … )`
+    command substitution.
+
+    This is the round-2 V1 fix, and it is deliberately a WHITELIST-shaped test:
+    an env-assignment prefix is only legal in front of a *simple command*, and
+    every shape that made round 1 emit invalid shell announced itself with a
+    bare paren.  Measured against a real `bash -n`, both classes:
+
+        f(){ wsl ls /mnt/a; }; f       -> `syntax error near unexpected token '('`
+        f () { wsl ls /mnt/a; }; f     -> same  (token-level checks miss this one:
+                                          the paren is not in the first token)
+        case $x in
+          a) wsl ls /mnt/a ;;          -> `syntax error near unexpected token 'a'`
+          /mnt/*) wsl ls /mnt/b ;;     -> `syntax error near unexpected token '/mnt/*'`
+        esac
+
+    The case-item class was NOT in the filed V1 report; the corpus oracle found
+    it.  Process substitution (`<( … )`, `>( … )`) is swept up too: rejecting it
+    costs a rewrite we never proved safe and returns the always-safe no-op.
+    `$( … )` is excluded from the rule because it is an ordinary word and the
+    E2 fixture depends on it surviving."""
+    i, n = 0, len(raw)
+    in_s = in_d = False
+    while i < n:
+        c = raw[i]
+        if c == "\\" and not in_s and i + 1 < n:
+            i += 2
+            continue
+        if c == "'" and not in_d:
+            in_s = not in_s
+        elif c == '"' and not in_s:
+            in_d = not in_d
+        elif not in_s and not in_d:
+            if raw.startswith("$(", i):
+                depth = 1
+                i += 2
+                while i < n and depth:  # consume to the matching `)`
+                    if raw[i] == "(":
+                        depth += 1
+                    elif raw[i] == ")":
+                        depth -= 1
+                    i += 1
+                continue
+            if c in "()":
+                return True
+        i += 1
+    return False
+
+
 def _segment_is_simple(toks: list[str], raw: str) -> bool:
     """Only splice an env prefix onto a SIMPLE command.  A compound (`if …`,
-    `( … )`, `{ … }`, a bare redirect) would become a syntax error."""
+    `( … )`, `{ … }`, a function definition, a `case` item, a bare redirect)
+    would become a syntax error — and whatever this module emits IS what runs,
+    so an unsafe shape must PASS THROUGH UNCHANGED (see `unsafe-shape`).
+    A no-op is always safe; a syntax error never is."""
     if not toks:
         return False
     stripped = raw.lstrip()
     if stripped[:1] in ("(", "{", "&", ">", "<"):
         return False
+    if _has_bare_paren(raw):
+        return False
     first = _basename(toks[0])
     if first in SHELL_KEYWORDS or first in WORDLIST_KEYWORDS:
+        return False
+    # Reserved words an assignment prefix would demote (`time` -> exit 127).
+    if toks[0] in UNSAFE_HEAD_WORDS or first in UNSAFE_HEAD_WORDS:
         return False
     return True
 
@@ -496,9 +828,12 @@ def plan(command: str, env: dict[str, str] | None = None) -> Decision:
     env = dict(os.environ) if env is None else dict(env)
     try:
         return _plan_inner(command, env, t0)
-    except Exception as exc:                       # pragma: no cover - fail-open
-        return Decision(action="error", reason=f"{type(exc).__name__}: {exc}",
-                        elapsed_us=int((time.perf_counter() - t0) * 1e6))
+    except Exception as exc:  # pragma: no cover - fail-open
+        return Decision(
+            action="error",
+            reason=f"{type(exc).__name__}: {exc}",
+            elapsed_us=int((time.perf_counter() - t0) * 1e6),
+        )
 
 
 def _plan_inner(command: str, env: dict[str, str], t0: float) -> Decision:
@@ -507,14 +842,14 @@ def _plan_inner(command: str, env: dict[str, str], t0: float) -> Decision:
         return Decision(**kw)
 
     if not _is_windows(env):
-        return done(action="not-windows",
-                    reason="os.name != 'nt' — MSYS conversion cannot occur")
+        return done(
+            action="not-windows",
+            reason="os.name != 'nt' — MSYS conversion cannot occur",
+        )
     if env.get(_OPTOUT_ENV, "").strip() in ("0", "off", "false", "no"):
-        return done(action="optout",
-                    reason=f"{_OPTOUT_ENV} disables enforcement")
+        return done(action="optout", reason=f"{_OPTOUT_ENV} disables enforcement")
     if _OPTOUT_MARKER.search(command):
-        return done(action="optout",
-                    reason="in-command `# msys:off` marker")
+        return done(action="optout", reason="in-command `# msys:off` marker")
     if not command.strip():
         return done(action="noop", reason="empty command")
 
@@ -561,7 +896,7 @@ def _plan_inner(command: str, env: dict[str, str], t0: float) -> Decision:
                 suppressed_globally = True
             continue
         if _basename(toks[idx]) == "export":
-            for t in toks[idx + 1:]:
+            for t in toks[idx + 1 :]:
                 m = _ENV_ASSIGN.match(t)
                 if not m:
                     continue
@@ -574,9 +909,9 @@ def _plan_inner(command: str, env: dict[str, str], t0: float) -> Decision:
             continue
 
         if local_suppressed:
-            continue          # explicit per-command opt-out already present
+            continue  # explicit per-command opt-out already present
         if suppressed_globally:
-            continue          # an earlier `export MSYS_NO_PATHCONV=…` covers us
+            continue  # an earlier `export MSYS_NO_PATHCONV=…` covers us
 
         # ── resolve the real callee past wrappers ──
         while idx < len(toks) and _basename(toks[idx]) in PREFIX_WRAPPERS:
@@ -586,22 +921,42 @@ def _plan_inner(command: str, env: dict[str, str], t0: float) -> Decision:
         callee_tok = toks[idx]
         callee = _basename(callee_tok)
 
-        if callee in WORDLIST_KEYWORDS:
+        if callee in WORDLIST_KEYWORDS or callee in SHELL_KEYWORDS:
+            # A loop / conditional BODY fragment: `split_segments` cuts at `;`
+            # and newline, so bash hands us ` do wsl ls "$p"` with the keyword
+            # at position 0 and the real callee at 1+.  We deliberately do NOT
+            # analyse past the keyword — an env prefix before `do` is a syntax
+            # error, so nothing here could be rewritten anyway.  But silence
+            # here was a FALSE ALL-CLEAR: `for p in /mnt/h07; do wsl ls "$p";
+            # done` converts for real and reported action=noop with zero
+            # unresolvable tokens.  Disclose the fragment's unresolved tokens
+            # so the caller is told what was NOT covered.
+            for tok in toks[idx + 1 :]:
+                if _UNRESOLVED.search(tok):
+                    unresolvable.append(tok)
             continue
 
         # ── E5: `eval '<literal>'` — recurse into the literal body ──
         if callee == "eval":
-            body_parts = [t for t in toks[idx + 1:]]
+            body_parts = [t for t in toks[idx + 1 :]]
             if len(body_parts) == 1 and not _UNRESOLVED.search(body_parts[0]):
                 sub = _plan_inner(body_parts[0], dict(env), t0)
                 if sub.findings:
                     for f in sub.findings:
-                        findings.append(Finding(
-                            segment_index=si, callee=f.callee, tier=f.tier,
-                            token=f.token, effective=f.effective,
-                            predicted=f.predicted, kind=f.kind,
-                            severity=f.severity, reason=f.reason,
-                            resolution="expanded"))
+                        findings.append(
+                            Finding(
+                                segment_index=si,
+                                callee=f.callee,
+                                tier=f.tier,
+                                token=f.token,
+                                effective=f.effective,
+                                predicted=f.predicted,
+                                kind=f.kind,
+                                severity=f.severity,
+                                reason=f.reason,
+                                resolution="expanded",
+                            )
+                        )
                     if _segment_is_simple(toks, raw):
                         bucket = per_segment.setdefault(si, [])
                         for p in sub.protected:
@@ -617,12 +972,12 @@ def _plan_inner(command: str, env: dict[str, str], t0: float) -> Decision:
         tier, severity, reason, is_bridge = verdict
 
         skip_next = False
-        for tok in toks[idx + 1:]:
+        for tok in toks[idx + 1 :]:
             if skip_next:
                 skip_next = False
                 continue
             if _REDIR.match(tok):
-                skip_next = True     # redirect TARGET — bash resolves it, not argv
+                skip_next = True  # redirect TARGET — bash resolves it, not argv
                 continue
 
             effective = resolve_token(tok, shell_env)
@@ -642,14 +997,27 @@ def _plan_inner(command: str, env: dict[str, str], t0: float) -> Decision:
             predicted, kind = hit
             # A locally-mounted root rewrites back to the SAME object, so the
             # command still works — unless the callee bridges to a POSIX world.
-            if kind == "leading-slash" and not is_bridge and _root_is_harmless(effective):
+            if (
+                kind == "leading-slash"
+                and not is_bridge
+                and _root_is_harmless(effective)
+            ):
                 continue
 
-            findings.append(Finding(
-                segment_index=si, callee=callee, tier=tier, token=tok,
-                effective=effective, predicted=predicted, kind=kind,
-                severity=severity, reason=reason,
-                resolution="literal" if effective == tok else "expanded"))
+            findings.append(
+                Finding(
+                    segment_index=si,
+                    callee=callee,
+                    tier=tier,
+                    token=tok,
+                    effective=effective,
+                    predicted=predicted,
+                    kind=kind,
+                    severity=severity,
+                    reason=reason,
+                    resolution="literal" if effective == tok else "expanded",
+                )
+            )
 
             if _segment_is_simple(toks, raw):
                 bucket = per_segment.setdefault(si, [])
@@ -659,13 +1027,46 @@ def _plan_inner(command: str, env: dict[str, str], t0: float) -> Decision:
                 notes.append(f"segment {si}: not a simple command — not rewritten")
 
     if not findings:
-        return done(action="noop", unresolvable=tuple(unresolvable),
-                    reason="no harmful conversion predicted",
-                    notes=tuple(notes))
+        reason = "no harmful conversion predicted"
+        if unresolvable:
+            # NOT the same statement as "nothing was wrong".
+            reason += (
+                f"; {len(unresolvable)} token(s) NOT CHECKED (unresolvable statically)"
+            )
+        return done(
+            action="noop",
+            unresolvable=tuple(unresolvable),
+            reason=reason,
+            notes=tuple(notes),
+        )
     if not per_segment:
-        return done(action="unsafe-shape", findings=tuple(findings),
-                    unresolvable=tuple(unresolvable), notes=tuple(notes),
-                    reason="conversion predicted but no segment was safe to rewrite")
+        return done(
+            action="unsafe-shape",
+            findings=tuple(findings),
+            unresolvable=tuple(unresolvable),
+            notes=tuple(notes),
+            reason="conversion predicted but no segment was safe to "
+            "rewrite — the command runs WITH the mangled argv "
+            "and only this warning is attached",
+        )
+
+    # ── INVARIANT: the splice offsets came from `scanned`, apply to `command` ──
+    # They are valid only while the two strings are byte-aligned.  Verify it
+    # rather than trust it (an earlier `strip_heredocs` collapsed heredoc bodies
+    # to "" and every offset past a heredoc was short by the body length — the
+    # prefix landed INSIDE the body, corrupting the payload and protecting
+    # nothing, while still parsing).  Misalignment degrades to advisory.
+    for si in per_segment:
+        seg = segments[si]
+        if command[seg.start : seg.end] != seg.text:
+            return done(
+                action="unsafe-shape",
+                findings=tuple(findings),
+                unresolvable=tuple(unresolvable),
+                notes=tuple(notes),
+                reason="scanned/original byte misalignment — refusing "
+                "to splice at an unverified offset",
+            )
 
     # ── splice `MSYS2_ARG_CONV_EXCL='…' ` at each affected segment's head ──
     protected: list[str] = []
@@ -674,25 +1075,32 @@ def _plan_inner(command: str, env: dict[str, str], t0: float) -> Decision:
         seg = segments[si]
         offset = len(seg.text) - len(seg.text.lstrip())
         value = ";".join(prefixes)
-        edits.append((seg.start + offset,
-                      f"MSYS2_ARG_CONV_EXCL={_shell_quote(value)} "))
+        edits.append(
+            (seg.start + offset, f"MSYS2_ARG_CONV_EXCL={_shell_quote(value)} ")
+        )
         protected.extend(prefixes)
 
     out = command
     for pos, ins in sorted(edits, reverse=True):
         out = out[:pos] + ins + out[pos:]
 
-    return done(action="protect", rewritten=out, findings=tuple(findings),
-                unresolvable=tuple(unresolvable), protected=tuple(protected),
-                notes=tuple(notes),
-                reason=f"protected {len(protected)} argument(s) from MSYS "
-                       f"path conversion via per-argument MSYS2_ARG_CONV_EXCL")
+    return done(
+        action="protect",
+        rewritten=out,
+        findings=tuple(findings),
+        unresolvable=tuple(unresolvable),
+        protected=tuple(protected),
+        notes=tuple(notes),
+        reason=f"protected {len(protected)} argument(s) from MSYS "
+        f"path conversion via per-argument MSYS2_ARG_CONV_EXCL",
+    )
 
 
 # ─────────────────────────────────────────────────────────────────── telemetry
 
 _SECRETISH = re.compile(
-    r"(?i)(?:ghp_|gho_|github_pat_|sk-|xox[baprs]-|AKIA)[A-Za-z0-9_\-]{6,}")
+    r"(?i)(?:ghp_|gho_|github_pat_|sk-|xox[baprs]-|AKIA)[A-Za-z0-9_\-]{6,}"
+)
 _MAX_BYTES = 512 * 1024
 
 
@@ -718,8 +1126,9 @@ def telemetry_path(env: dict[str, str] | None = None) -> str | None:
     return override
 
 
-def record(decision: Decision, command: str,
-           env: dict[str, str] | None = None) -> str | None:
+def record(
+    decision: Decision, command: str, env: dict[str, str] | None = None
+) -> str | None:
     """Append one bounded JSONL decision record. Returns the path, or None."""
     try:
         path = telemetry_path(env)
@@ -733,10 +1142,16 @@ def record(decision: Decision, command: str,
             "protected": [_redact(p) for p in decision.protected],
             "unresolvable": len(decision.unresolvable),
             "findings": [
-                {"callee": f.callee, "tier": f.tier, "kind": f.kind,
-                 "severity": f.severity, "resolution": f.resolution,
-                 "token": _redact(f.token), "effective": _redact(f.effective),
-                 "predicted": _redact(f.predicted)}
+                {
+                    "callee": f.callee,
+                    "tier": f.tier,
+                    "kind": f.kind,
+                    "severity": f.severity,
+                    "resolution": f.resolution,
+                    "token": _redact(f.token),
+                    "effective": _redact(f.effective),
+                    "predicted": _redact(f.predicted),
+                }
                 for f in decision.findings
             ],
             "command_len": len(command),
@@ -758,16 +1173,22 @@ def explain(decision: Decision) -> str:
     """Actionable, human-readable reason string (goes into additionalContext)."""
     if decision.action != "protect":
         return decision.reason
-    lines = ["[msys-pathconv] ENFORCED — MSYS would have rewritten these "
-             "arguments before the program saw them:"]
+    lines = [
+        "[msys-pathconv] ENFORCED — MSYS would have rewritten these "
+        "arguments before the program saw them:"
+    ]
     for f in decision.findings:
         via = "" if f.resolution == "literal" else f"  (via expansion of `{f.token}`)"
         lines.append(f"  `{f.effective}`{via}")
         lines.append(f"    would become  `{f.predicted}`   [{f.kind}, {f.severity}]")
         lines.append(f"    why: {f.reason}")
-    lines.append("  FIX APPLIED: per-argument MSYS2_ARG_CONV_EXCL prefix "
-                 "(siblings still convert normally).")
+    lines.append(
+        "  FIX APPLIED: per-argument MSYS2_ARG_CONV_EXCL prefix "
+        "(siblings still convert normally)."
+    )
     if decision.unresolvable:
-        lines.append(f"  NOT CHECKED (unresolvable statically): "
-                     f"{len(decision.unresolvable)} token(s).")
+        lines.append(
+            f"  NOT CHECKED (unresolvable statically): "
+            f"{len(decision.unresolvable)} token(s)."
+        )
     return "\n".join(lines)

@@ -72,10 +72,10 @@ import sys
 # Rule 2 lives in a sibling module.  Import defensively: if it is missing or
 # broken, this hook degrades to its original rule-1-only behaviour rather than
 # failing the tool call.
-try:                                                    # pragma: no cover
+try:  # pragma: no cover
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import msys_pathconv
-except Exception:                                       # pragma: no cover
+except Exception:  # pragma: no cover
     msys_pathconv = None  # type: ignore[assignment]
 
 # ── Configuration ─────────────────────────────────────────────────────────────
