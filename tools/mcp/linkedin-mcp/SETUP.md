@@ -104,32 +104,102 @@ for your app**, click **Add redirect URL** and add one:
 Export these in the environment the MCP server launches from (PowerShell shown;
 adapt for your shell). **Do not** paste them into any file in this repo.
 
+Two of the four are **secrets** — `LINKEDIN_ACCESS_TOKEN` and
+`LINKEDIN_CLIENT_SECRET`. Never type either as a literal at an interactive
+prompt (see the warning below); set them with the non-echoing method instead.
+The other two are not secrets and can be assigned directly:
+
 ```powershell
-# PowerShell — current session
-$env:LINKEDIN_ACCESS_TOKEN = "<paste the token from step 6>"
-# Optional (only if you use linkedin_exchange_code / linkedin_token_status):
-$env:LINKEDIN_CLIENT_ID     = "<Client ID from step 2>"
-$env:LINKEDIN_CLIENT_SECRET = "<Client Secret from step 2>"
-$env:LINKEDIN_REDIRECT_URI  = "<the redirect URL you added in step 3>"
+# Not secret — only needed for linkedin_exchange_code / linkedin_token_status
+$env:LINKEDIN_CLIENT_ID    = "<Client ID from step 2>"
+$env:LINKEDIN_REDIRECT_URI = "<the redirect URL you added in step 3>"
 ```
 
-To persist across sessions, set them as **User environment variables** (Windows
-Settings → *Edit environment variables for your account*) or via
-`setx LINKEDIN_ACCESS_TOKEN "<token>"` (note: `setx` truncates at 1024 chars — a
-LinkedIn token fits, but if a future token is longer, use the Settings UI).
+### ⚠ Do NOT use `setx` for the token
+
+`setx LINKEDIN_ACCESS_TOKEN "<token>"` puts the secret in **two** durable places
+at once: your shell's command history (`PSReadLine`'s `ConsoleHost_history.txt`,
+plaintext, on disk) **and** the registry under `HKCU\Environment`, plaintext,
+readable by every process running as you, inherited by every future process.
+Deleting the variable later does not scrub the history file. Treat any token
+that has been through `setx` as compromised — regenerate it (step 6).
+
+The same applies to plain `$env:X = "<token>"` typed at an interactive prompt:
+the literal lands in your history file.
+
+### The safe way — non-echoing, session-scoped
+
+Paste the token into a prompt that does not echo it and does not record it:
+
+```powershell
+$sec = Read-Host -AsSecureString 'Paste the LinkedIn access token'
+$env:LINKEDIN_ACCESS_TOKEN = [System.Net.NetworkCredential]::new('', $sec).Password
+
+# Only if you use linkedin_exchange_code / linkedin_token_status:
+$sec = Read-Host -AsSecureString 'Paste the LinkedIn client secret'
+$env:LINKEDIN_CLIENT_SECRET = [System.Net.NetworkCredential]::new('', $sec).Password
+
+Remove-Variable sec
+```
+
+The value now lives only in this shell's process memory. Nothing is written to
+disk, the registry, or your history file, and it disappears when the shell exits.
+
+**Important:** an MCP server inherits the environment of the process that
+launched it, so you must **start Claude Code from this same shell** (`claude`)
+for the variable to reach the server. Launching Claude from the Start Menu or a
+different terminal will NOT see it, and `linkedin_auth_status` will report the
+token as missing.
+
+If you genuinely need it to survive reboots, use Windows Settings →
+*Edit environment variables for your account* (a GUI field — no shell history),
+and accept that it is then stored in the registry in plaintext. Prefer
+re-pasting it per session; the token only lasts 60 days anyway.
 
 ## 8. Enable and verify the MCP
 
-1. The server is registered in `tools/mcp/canonical-mcp-servers.json` (the roster
-   — exposed/visible). To keep the standing "exposed but disabled" default when
-   you **promote** the canonical set to user scope (`hooks/mcp-userscope-sync/
-   promote-mcp-userscope.ps1`, run with Claude closed), add `"linkedin"` to
-   `~/.claude/.mcp-disabled-defaults.json` so the enforce-mcp-defaults hook keeps
-   it off in every project (same treatment as the research MCPs). Then **enable
-   it only where you want it** by removing `"linkedin"` from that project's
-   `disabledMcpServers` array in `~/.claude.json` and restarting Claude Code
-   (repo `docs/SETUP-GUIDE.md` §6 has the exact steps).
-2. Build the venv once: `cd tools/mcp/linkedin-mcp && uv sync`.
+1. **Register it on the surface Claude actually reads.** Claude Code resolves
+   user-scope MCP servers from the root `mcpServers` object of
+   `~/.claude.json` — **not** from `~/.mcp.json` (that file is *project* scope
+   and additionally needs per-project approval via `enabledMcpjsonServers`,
+   which is empty here, so servers declared only there stay dark). Because a
+   running Claude session rewrites `~/.claude.json` every ~30 s, a hand-edit made
+   while Claude is open is silently clobbered.
+
+   Use the bundled script, which enforces that for you:
+
+   ```powershell
+   # Read-only preflight -- safe to run any time, even with Claude open:
+   C:\Python314\python.exe .\tools\mcp\linkedin-mcp\apply_linkedin_userscope.py --check
+
+   # For real -- CLOSE EVERY CLAUDE WINDOW FIRST:
+   C:\Python314\python.exe .\tools\mcp\linkedin-mcp\apply_linkedin_userscope.py --apply
+   ```
+
+   It refuses to write while any Claude process is alive, backs up
+   `~/.claude.json` first (and verifies the backup is non-empty), drives the
+   supported `claude mcp add --scope user` CLI rather than hand-patching JSON,
+   and re-reads the file afterwards to prove the entry landed.
+
+   Add `--enable` to leave it switched on; the default registers it and adds
+   `"linkedin"` to the root `disabledMcpServers` array.
+
+   > **Caveat, measured 2026-07-20:** root `disabledMcpServers` is not a reliable
+   > off-switch on this box — `apify` and `biomni-hub` are both listed in it yet
+   > their tools are live in a session. The only *guaranteed* off state is not
+   > being registered at all:
+   > `apply_linkedin_userscope.py --apply --remove`.
+   > There is no active `enforce-mcp-defaults` hook here — `~/.claude/settings.json`
+   > registers 18 hook events and none of them reference it, and
+   > `enforce-mcp-defaults.py` exists only inside scratch agent-worktrees. Do not
+   > rely on `~/.claude/.mcp-disabled-defaults.json` to keep this server off.
+
+2. No venv needed: the roster launches the server with the system
+   interpreter `C:\Python314\python.exe`, which already has `mcp` and
+   `fastmcp` importable (verified by a live stdio handshake against
+   `server.py`). This matches its sibling hubs (social-hub, search-hub,
+   cloud-hub). `uv sync` remains optional if you want an isolated venv —
+   point the roster `command` at `.venv/Scripts/python.exe` if you do.
 3. In a session, call `linkedin_auth_status` — it should now report
    `"can_post": true` and your token's expiry. Then try `linkedin_whoami`.
 4. First real post: `linkedin_post_text(text="Hello from my MCP", visibility="CONNECTIONS")`.
