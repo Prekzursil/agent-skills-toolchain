@@ -1,0 +1,68 @@
+name: skill-dual-write
+
+# D-001 dual-write gate. `.agents/skills/` is the authoritative skill root and
+# `skills/` a compatibility projection (AGENTS.md); this fails a PR that adds or
+# edits a skill under `skills/<NAME>/` without landing matching NON-EMPTY content
+# under `.agents/skills/<NAME>/`.
+#
+# WHY ITS OWN WORKFLOW AND NOT A 7th JOB IN quality.yml:
+# quality.yml is a CLOSED gate set policed by `.quality/charter_check.sh`, which
+# scans quality.yml BIDIRECTIONALLY: every `gate-<slug>` marker there must map
+# back to a `- slug:` entry in .quality/charter.yml. Adding a `gate-skill-dual-write`
+# job to quality.yml without adding its charter slug in the same change makes that
+# script exit 1 and turns the EXISTING lint job red (measured). charter_check.sh
+# reads ONLY quality.yml, so a separate workflow carries no charter obligation --
+# the same shape `no-runtime-junk.yml` already uses for a bespoke repo-structure
+# gate. Registering this as a 7th charter gate instead is a legitimate alternative;
+# it requires THREE coordinated edits (quality.yml + .quality/charter.yml +
+# QUALITY-CHARTER.md), not one.
+#
+# There is no repo-wide test autodiscovery in this repository: a check runs only
+# because a step below invokes it by an explicit path. The self-test step runs
+# FIRST so the gate can never fail a PR while its own detector is broken.
+#
+# UNVERIFIED (inline): on a `pull_request` event `actions/checkout` checks out the
+# MERGE commit by default, so `--base origin/main --head HEAD` may measure the
+# merged result rather than the branch tip. For an additive-only rule the two
+# should agree, but "should" is not a receipt and this has NOT been settled here.
+# Settling probe (needs owner approval -- it pushes and then deletes a ref): push a
+# scratch branch carrying a `skills/__probe/SKILL.md`-only commit, confirm this run
+# is RED, then delete the branch. Until that is run, treat the merge-commit
+# semantics as untested and the gate as advisory on that one axis.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: skill-dual-write-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  skill-dual-write:
+    name: gate-skill-dual-write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.11"
+      - run: pip install pytest==8.4.2
+      # Self-test FIRST: a guard whose own acceptance tests are red must not be
+      # trusted to judge a pull request.
+      - name: gate-skill-dual-write self-test
+        run: python -m pytest ci/tests tools/d001-dual-write/tests -q
+      # `actions/checkout` does not create refs/remotes/origin/main; the three-dot
+      # merge-base range needs it to exist.
+      - name: gate-skill-dual-write fetch base
+        run: git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+      - name: gate-skill-dual-write D-001 gate
+        run: python ci/check_skill_dual_write.py --base origin/main --head HEAD
