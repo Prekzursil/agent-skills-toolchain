@@ -101,6 +101,28 @@ against the wrong bytes, so it verified nothing.
   format differently. Use `uvx <tool>@<pinned-version>`, never the ambient one.
 - Generalises to any formatter/linter with line-ending-sensitive output (ruff, black, prettier).
 
+## 8c. A bash HEREDOC mangles backslashes — use the `Write` tool for scripts
+
+`python - <<'PY' … PY` with Windows paths or regex escapes inside fails: `'\\Users\\'` arrives as
+`'\Users\'` → `SyntaxError: unterminated string literal`, and `c.replace('\\\\','\\')` becomes
+`c.replace('\','\')`. Bit twice in one session (2026-07-19b) despite `<<'PY'` quoting.
+
+- **Fix:** write the script with the **`Write` tool** to the scratchpad, then `python <path>`.
+  Content travels as a JSON parameter and is never re-parsed by the shell. Same reasoning as §9.
+  Reserve heredocs for backslash-free payloads (e.g. `git commit -F -`).
+
+## 8d. `git diff origin/main --stat` before EVERY PR — a stale branch proposes mass deletion
+
+A branch far behind `main` produces a PR that **deletes everything main has gained**. Measured
+2026-07-19b: a leftover feature branch showed **1,188 files / 316,222 deletions** against main.
+Cherry-picking the one wanted commit onto a fresh `origin/main` branch reduced it to 7 files / 4
+deletions.
+
+- **Fix:** always check the **commit-to-commit** surface `git diff origin/main...HEAD --stat`
+  (three dots) — plain `git diff origin/main` also folds in working-tree noise, which is how
+  untracked credential files appear to be "in the PR" when they are not.
+- Pairs with the worktree empty-index trap (scoped `git add` staging 6,013 deletions).
+
 ## 9. A here-string PAYLOAD is scanned as if it were a command
 
 `Set-Content -LiteralPath '…\MASTER-QUEUE.md' -Value @'…'@` was **blocked** with
