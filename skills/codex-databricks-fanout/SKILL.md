@@ -1,14 +1,17 @@
 ---
 name: codex-databricks-fanout
-description: Use when fanning out Codex CLI agents onto Databricks — running many parallel Codex/LLM work units on job clusters, scaling past a local RAM ceiling, or deciding between Databricks / local / Modal / RunPod for a large agent fan-out. Carries the measured constraints from a 608-unit production run + a 48-unit auth-research re-prove so a session does not re-derive them wrong.
+description: Use when fanning out Codex CLI agents onto Databricks — running many parallel Codex/LLM work units on job clusters, scaling past a local RAM ceiling, or deciding between Databricks / local / Modal / RunPod for a large agent fan-out. Carries the measured constraints from a 608-unit production run + a 48-unit auth-research re-prove + 2026-07-20 CRCP e2e/merge/web-endgame ops so a session does not re-derive them wrong.
 ---
 
 # Codex fan-out on Databricks
 
-Everything below was **measured on 2026-07-19** on workspace `bolt-datascience`
+Everything below was **measured** on workspace `bolt-datascience`
 (`costin.ionescu@bolt.eu` / profile DEFAULT). Facts marked MEASURED are not to be
 re-litigated from first principles — a session reasoning from scratch about this
 gets the binding constraint wrong (see §1).
+
+**Ops expansions (2026-07-20):** implementer batches, harvest footguns, apply/merge
+ownership, and “sloppy session” anti-patterns → §10–§14.
 
 ## 1. The constraint everyone guesses wrong
 
@@ -40,39 +43,34 @@ with cf.ThreadPoolExecutor(max_workers=conc) as ex:
         ex.submit(run_unit, u, i * stagger)   # rolling arrival, not a burst
 ```
 
-**Re-prove (auth research, same day):** conc=48, stagger=3.0s, **48 SUCCESS / 0 FAILED /
-0 rate_limited**, elapsed **528s** on `r5d.2xlarge` (66.7 GB host, 26.2 GB free at end).
+**Re-prove (auth research):** conc=48, stagger=3.0s, **48 SUCCESS / 0 FAILED /
+0 rate_limited**, elapsed **528s** on `r5d.2xlarge`.
 Secret scope `codex-harness-prekzursil` / key `auth_json`.
+
+**2026-07-20 re-prove (CRCP):** 15-unit P1+W1+W2 implement batch **15/15 SUCCESS** in
+~560s agent time; 5-unit merge **5/5 SUCCESS**; 89-unit web-endgame research submitted at
+conc=48 (run `1023601984546724`).
 
 ### What is NOT proven (do not overclaim)
 
-The 180-way and 48-way tests shared one auth.json among **readers** on **one node** over a
-**short** window. Two cases remain **UNVERIFIED** and are where a genuine dual-writer race would live:
-
-- a run long enough that a **token refresh fires mid-run** and two processes write back concurrently
-  (the Claude-side analogue is real: sporadic 401s from a refresh-race between instances sharing
-  `.credentials.json`);
-- the same auth.json used across **multiple nodes** at once.
-
-If you need either, give each process its **own `CODEX_HOME`** seeded from the secret, so no two
-processes ever write the same file. That is the correct mitigation — not avoiding fan-out.
-Settling experiment: run >2h at concurrency ≥50 and watch for a 401 cluster after the refresh window.
+- Token refresh dual-write on long multi-hour runs or multi-node shared auth.json — use
+  **per-process `CODEX_HOME`** seeded from the secret if either is required.
+- Serverless as a Codex host — task-fails (no node install surface).
 
 ## 2. Account-level facts (MEASURED)
 
 | Fact | Consequence |
 |---|---|
-| **Interactive / bare cluster create is DENIED** | `dbx_cluster_create` and `jobs submit` with bare `new_cluster` (no policy) → `PERMISSION_DENIED: You are not authorized to create clusters` (MEASURED run 744811610636848). |
-| **Job runs WITH the default job-cluster policy ARE permitted** | `jobs submit` + `new_cluster.policy_id = "0002189219BF8EF3"` ("default job cluster policy") works. Do **not** stop at "cannot create clusters". |
-| **Policy caps `dbus_per_hour` at 18** | Huge nodes (`r6id.8xlarge` / 256 GB class) fail policy even when submit is otherwise valid. Prefer **`r5d.2xlarge`** (~64 GB, x86_64, local NVMe) for ~40–80 concurrent Codex. |
-| **Serverless notebook path is NOT a Codex host** | `environments` / serverless submit may accept the run then **task-fail** (no install surface for node/codex). Do not plan on serverless for this fan-out. |
-| Egress to `api.openai.com` is **OPEN** (401 = reached-and-rejected) | Codex on a worker can reach the API. |
-| Runtime ships **no node**; `apt-get` fails fast | Install node tarball by arch + `npm i -g @openai/codex` (batch_runner does this). |
-| **Arch matters**: `m7gd` = **ARM64**; `r5d`/`m5d`/`r6i` = x86_64 | Branch on `uname -m`. |
-| `notebook_output` captures **only** `dbutils.notebook.exit(...)` | A `print()`ing notebook returns EMPTY on success — looks like failure. |
+| **Interactive / bare cluster create is DENIED** | `jobs submit` with bare `new_cluster` (no policy) → `PERMISSION_DENIED`. |
+| **Job runs WITH the default job-cluster policy ARE permitted** | `policy_id = "0002189219BF8EF3"`. |
+| **Policy caps `dbus_per_hour` at 18** | Prefer **`r5d.2xlarge`** (~64 GB, x86_64). |
+| **Serverless notebook path is NOT a Codex host** | Do not plan on serverless for this fan-out. |
+| Egress to `api.openai.com` is **OPEN** | 401 = reached-and-rejected. |
+| Runtime ships **no node**; `apt-get` fails fast | Install node tarball by arch + `npm i -g @openai/codex`. |
+| **Arch matters**: `m7gd` = **ARM64**; `r5d` = x86_64 | Branch on `uname -m`. |
+| `notebook_output` captures **only** `dbutils.notebook.exit(...)` | print() looks like empty success. |
 | Auth from secret scope, never job payload | Scope **`codex-harness-prekzursil`**, key **`auth_json`**. |
 | Cluster spin-up ≈ **3–5 min** | Batch many units per node. |
-| `clusters list` is **workspace-wide** | This user can **see** ~30+ clusters (including others' JOB clusters). **List ≠ attach/control.** |
 
 ### Required submit shape (copy this)
 
@@ -129,86 +127,209 @@ Settling experiment: run >2h at concurrency ≥50 and watch for a 401 cluster af
 }
 ```
 
-CLI: `databricks jobs submit --json @payload.json --no-wait` (not a permanent job create).
+CLI: `databricks jobs submit --json @payload.json --no-wait`.
 
 ## 3. Batching is mandatory
 
-At multi-minute spin-up, one unit per job run wastes wall clock. Batch many units onto one node
-and stagger starts.
-
-Sizing (MEASURED this machine + workspace):
-
 | Venue | Concurrent Codex | Notes |
 |---|---:|---|
-| Local Windows (31.6 GB) | ~4–24 adaptive | RAM thrash; use `adaptive_slots.py` |
-| Job node `r5d.2xlarge` (~64 GB) | **~48 @ stagger 3s, 0×429** | auth-research re-prove |
-| Larger node (when policy allows) | 100–200+ | ceiling is **API rate limit**, not RAM |
+| Local Windows (~32 GB) | ~4–24 adaptive | RAM thrash above ~24 |
+| Job node `r5d.2xlarge` (~64 GB) | **~48 @ stagger 3s, 0×429** | measured |
+| Larger node (if policy allows) | 100–200+ | ceiling is **API rate limit** |
 
-Set `BATCH_CONCURRENCY` via `spark_env_vars` (batch_runner reads it; `0` = auto from free RAM).
+`BATCH_CONCURRENCY` via `spark_env_vars`; cap at unit count.
 
 ## 4. Classify units before dispatch
 
-- **Portable** (safe remote): public source research, threat-intel, supply-chain, playbooks, any unit
-  that can use GitHub/`raw.githubusercontent.com` + web.
-- **Local-only**: live Windows paths, local MCP fleet, live process state, CODEX_HOME pin on this box
-  (examples: `B09-windows-path-sandbox`, `E08-integration-claude-grok`).
+- **Portable (remote OK):** public research, threat-intel, supply-chain, pure coding against a
+  **tarball bundle** uploaded to DBFS.
+- **Local-only:** live Windows paths, local MCP fleet, browser profile cookies, live process
+  state, pin to this box’s CODEX_HOME for write-back.
 
-Classify in the catalog. Remote units must **STOP rather than fabricate** if a Windows path is required.
+Remote units must **STOP rather than fabricate** if a Windows path is required. Say so in the
+prompt (MEASURED: agents will invent Windows paths otherwise).
 
 ## 5. Getting results back
 
 **`databricks fs cp` (DBFS→local) is a SILENT NO-OP in this CLI build.** MEASURED: prints
 `SRC -> DEST`, exits 0, writes nothing. Use **`databricks fs cat`** per file.
 
-Harness: `scratch/codex-auth-research-fanout/databricks/harvest.py` (and siblings `build_batch.py`,
-`submit_fanout.py`, `poll_run.py`).
+Upload **to** DBFS with `fs cp --overwrite` still works (host→DBFS). The silent no-op is
+**DBFS→local**.
+
+### Harvest footguns (2026-07-20 MEASURED)
+
+1. **Never filter out names starting with `_`** — that drops `__main__.py` and similar.
+2. **Directories are not files:** `fs cat` on `fixtures/` / `rails/` / `tests/` fails. List then
+   cat leaves; walk recursively.
+3. **`fs ls -r` is not a flag** on this CLI — walk with repeated `fs ls`.
+4. Prefer a dedicated `harvest_*.py` that uses `fs cat` + local AND-gate.
 
 ## 6. Completion is an AND-gate, never an exit code
-
-Score with the shared predicate (`completion_predicate.py` / `hooks/_shared/completion.py`):
 
 > **DONE** = artifact exists **AND** ≥1 KB **AND** last 600 **bytes** contain `UNIT-COMPLETE`.
 
 Non-zero exit + valid artifact ⇒ still **DONE**. Exit 0 + no artifact ⇒ **severed stream**.
-Failed detector ⇒ **UNKNOWN**, never FAILED.
 
-Windows liveness note: `os.kill(pid, 0)` raises **WinError 87** — use `OpenProcess` (fixed in
-`completion_predicate.process_alive`).
+Windows liveness: `os.kill(pid, 0)` raises **WinError 87** — use `OpenProcess`.
 
 ## 7. Choosing the execution model
 
 | Option | When it is right | Watch out |
 |---|---|---|
-| **Codex CLI on Databricks job runs** (proven) | Real Codex agents; scale past local RAM | Use **policy_id**; stagger; ChatGPT quota |
+| **Codex CLI on Databricks job runs** | Real Codex agents; scale past local RAM | policy_id; stagger; ChatGPT quota |
 | LLM API fan-out (API key) | Raw model calls only | Separate bill; loses agent loop |
-| Local adaptive orch | Small residual / local-only units | RAM thrash above ~24 |
-| Modal / RunPod containers | True isolation per agent | Confirm spend first |
+| Local adaptive orch | Small residual / local-only | RAM thrash above ~24 |
+| Modal / RunPod | True isolation | Confirm spend |
 
-**Default to the policy job-cluster path** unless a requirement rules it out.
+**Default to the policy job-cluster path.**
 
 ## 8. Pre-flight checklist
 
-1. `databricks jobs submit` with **`policy_id=0002189219BF8EF3`** — never bare `new_cluster`, never
-   interactive `clusters create`.
-2. Node ≤ policy DBU cap — start with **`r5d.2xlarge`** (x86_64).
+1. `policy_id=0002189219BF8EF3` — never bare `new_cluster`.
+2. Node ≤ policy DBU — start with **`r5d.2xlarge`**.
 3. Branch install on `uname -m`.
-4. Auth via secret scope `codex-harness-prekzursil` / `auth_json` (not batch JSON).
-5. Batch units; `BATCH_STAGGER_S` default **3.0** (raise on 429s).
-6. `BATCH_CONCURRENCY` ≤ unit count (more workers than units is waste).
-7. Return summary via `dbutils.notebook.exit(json.dumps(...))`.
-8. Harvest with **`databricks fs cat`**, never `cp`.
-9. Score with C1 AND-gate; Windows `process_alive` must use OpenProcess.
-10. Treat a 429 cluster as "stagger too tight", not "capacity exceeded".
-11. Leave **local-only** units on the Windows box.
+4. Auth via secret scope `codex-harness-prekzursil` / `auth_json`.
+5. Batch units; `BATCH_STAGGER_S` **3.0** (raise on 429s).
+6. `BATCH_CONCURRENCY` ≤ unit count.
+7. Summary via `dbutils.notebook.exit(json.dumps(...))`.
+8. Harvest with **`databricks fs cat`**, never `cp` (local direction).
+9. Score with C1 AND-gate.
+10. 429 cluster ⇒ stagger too tight, not “capacity exceeded”.
+11. Leave **local-only** units on Windows.
+12. Upload subject source as **tarball** when units must code against a tree (§10).
 
-## 9. Harness paths (this workspace)
+## 9. Harness paths
 
 | Path | Role |
 |---|---|
 | `/Users/costin.ionescu@bolt.eu/codex-batch/batch_runner` | Proven notebook |
-| `~/scratch/codex-auth-research-fanout/databricks/` | build / submit / poll / harvest |
-| `~/scratch/codex-auth-research-fanout/adaptive_slots.py` | Local RAM-aware concurrency |
-| `~/scratch/codex-auth-research-fanout/completion_predicate.py` | C1 AND-gate + Windows liveness |
+| `~/scratch/codex-auth-research-fanout/databricks/` | auth-research build/submit/poll/harvest |
+| `~/scratch/crcp-e2e-p0-fanout/` | CRCP implement/merge batches (2026-07-20) |
+| `~/scratch/crcp-web-account-fanout/` | web-account endgame research (89 units) |
 | Secret scope `codex-harness-prekzursil` | `auth_json` |
 
-Related: `workflow-authoring`, `cloud-infra-toolchain`, `rules/common/cross-vendor-dispatch.md`.
+Related: `workflow-authoring`, `orchestration-patterns`, `cloud-infra-toolchain`,
+`rules/common/cross-vendor-dispatch.md`, `rules/common/fan-out-contract.md`.
+
+---
+
+## 10. Research units vs implementer units (do not mix carelessly)
+
+### Research / audit (portable)
+
+- Prompt writes **one** markdown artifact to `/dbfs/.../results/<id>.md`.
+- AND-gate on that file only.
+- No subject tree required (or optional tiny README bundle).
+
+### Implementer / merge (needs source)
+
+1. Pack a **tarball** of the subject (e.g. `crcp/*.py` + synthesis report) — no secrets, no outbox dumps.
+2. Upload to **both**:
+   - your run’s `…/crcp-source.tar.gz`
+   - **`dbfs:/tmp/codex-batch/harness-bundle.tar.gz`** — batch_runner often hardcodes this path
+3. Prompt: read-only unpack under `/local_disk0/codexwork/bundle`.
+4. Deliverables: full module files under `result_dir` **plus** report ending `UNIT-COMPLETE: <id>`.
+5. Prefer **full file replacements**, not fragile diffs (apply is copy-by-name).
+
+### Parallel implementers MUST have exclusive file ownership
+
+If two agents both rewrite `live_bridge.py`, last writer wins and wiring is lost (MEASURED:
+P0 spool-wire overwritten by P1 HTTP-auth rewrite).
+
+| Good | Bad |
+|------|-----|
+| Unit A owns `live_bridge.py` only | Three units each “patch live_bridge” |
+| Unit B owns `write_path.py` only | Shared free-for-all |
+| Unit C owns `tests/test_*.py` only | Same test file from two units |
+
+For integration after parallel modules exist, run a **merge wave** with disjoint ownership
+(e.g. A=spool wire, B=SSE wire, C=health, D=`__main__`, E=tests).
+
+## 11. Apply harvested code without breaking Windows
+
+1. **Apply order:** older wave first, newer wave overwrites on name collision when intentional.
+2. **Never hardcode** `/local_disk0/codexwork/bundle` as the only import root in runners that
+   must work on Windows — detect `tools/crcp` relative to the script, fall back to env
+   `CRCP_SOURCE_ROOT`, then remote path (MEASURED: `run_merge_tests.py` failed until fixed).
+3. **SQLite on Windows:** prefer `journal_mode=DELETE` (or checkpoint + ignore cleanup errors).
+   WAL leaves handles that break `TemporaryDirectory` cleanup.
+4. **Smoke after apply:** import every new module; run contract tests; one live probe if local.
+
+## 12. Codex / ChatGPT auth planes (do not confuse them)
+
+| Plane | Store | Role | Endgame? |
+|-------|--------|------|----------|
+| Codex OAuth | `~/.codex/auth.json` access_token | API consumer for Codex + CRCP backend-api | **No** — expires |
+| ChatGPT **web** account | Browser / Desktop session cookies + device ids | Same human account on chatgpt.com | **Yes** — durable owner plane |
+
+CRCP list/fetch/send via Codex tokens is a **temporary rail**. Design research and long-lived
+control planes toward **web session primary**, Codex AT secondary. Fan-outs that explore
+“web endgame + plugins + Bolt/Databricks surfaces” belong in
+`scratch/crcp-web-account-fanout/` (89-unit catalog pattern).
+
+Never upload browser cookies or full JWTs to DBFS/results.
+
+## 13. Local loopback + proxy (CRCP / agent-mail)
+
+MEASURED: system proxy (Fiddler) returns **502** for `http://127.0.0.1:8812` and can mask
+health. Always:
+
+- `NO_PROXY=127.0.0.1,localhost` (and clear `HTTP_PROXY`/`HTTPS_PROXY` for probes)
+- Python: `urllib.request.build_opener(urllib.request.ProxyHandler({}))` for loopback health
+- Prefer `curl.exe --noproxy "*"` over PowerShell `Invoke-WebRequest` when Fiddler is on
+
+Agent-mail supervisor logon task must actually **run**; “Ready” scheduled task with never-run
+LastRunTime is not a live bus.
+
+## 14. Sloppy-session anti-patterns (ban these)
+
+Sessions that “look busy” but produce nothing usually do one of:
+
+1. **Assume bare `new_cluster` works** → PERMISSION_DENIED. Always policy_id.
+2. **Harvest with `fs cp`** → empty local tree, claim success. Use `fs cat`.
+3. **Trust exit code alone** → severed streams. AND-gate on `UNIT-COMPLETE`.
+4. **Fire 180 units at t=0** → synchronized 429. Stagger ≥3s.
+5. **Inline 30KB prompts on Windows CreateProcess** → os error 206. Prompt-by-file / batch JSON.
+6. **Parallel implementers without ownership** → silent last-writer-wins.
+7. **Hardcode job-node paths into repo runners** → green on DBX, red on Windows.
+8. **Filter harvest `name.startswith('_')`** → drop `__main__.py`.
+9. **Treat Codex token as durable web login** → wrong endgame; design for web plane.
+10. **Skip post-apply smoke** → import/API skew (e.g. `_auth_mtime` after CredentialSnapshot).
+11. **Poll with default 10m timeout on multi-hour jobs** → false failure; longrun / background poll.
+12. **Put secrets in batch.json or DBFS results** → rotate, never just delete.
+
+## 15. Minimal operator recipe (copy)
+
+```powershell
+# 1) Build batch.json (units with id, prompt, artifact path under /dbfs/.../results)
+# 2) Upload
+databricks fs mkdirs dbfs:/tmp/my-fanout/results
+databricks fs cp batch.json dbfs:/tmp/my-fanout/batch.json --overwrite
+# optional source bundle:
+databricks fs cp crcp-source.tar.gz dbfs:/tmp/codex-batch/harness-bundle.tar.gz --overwrite
+
+# 3) jobs submit --json @submit_payload.json --no-wait   (policy + r5d.2xlarge + stagger)
+
+# 4) Poll
+databricks jobs get-run <run_id> -o json
+
+# 5) Harvest (NEVER fs cp for download)
+databricks fs ls dbfs:/tmp/my-fanout/results
+databricks fs cat dbfs:/tmp/my-fanout/results/<unit>.md > results/<unit>.md
+
+# 6) AND-gate + apply + smoke imports/tests
+```
+
+Model default for batch_runner units: **`gpt-5.6-sol`** (as configured in notebook).
+
+## 16. Evidence anchors (this workspace)
+
+| Run / date | What |
+|------------|------|
+| 608-unit mega-audit | Scale + stagger necessity |
+| 343617464274709 | 48/48 @ stagger 3s |
+| 982136530224451 | CRCP P0 implement 3 units |
+| 690432742789715 | CRCP P1+W1+W2 15/15 SUCCESS ~560s |
+| 961988947593804 | CRCP merge wiring 5/5 |
+| 1023601984546724 | Web-account endgame research 89 units @ c48 |
