@@ -63,3 +63,29 @@ context) and the two-strikes pivot (AGENTS.md §4b).
 was documenting — reading a blocked command's *content* instead of its *verb* — and shipped the
 opposite of a sibling audit's correct verdict. Two same-level reports that disagree are a
 resolve-from-raw-source trigger, never a pick-one trigger.
+
+
+## Four more detector shapes, measured PROMPT-1.5 (2026-07-21)
+
+Twelve self-inflicted detector failures occurred in one program. The rule above already covers the
+principle; these are the SHAPES, because each looked like a finding until a second probe disagreed.
+
+| shape | wrong reading | why |
+|---|---|---|
+| `grep -c pat \|\| echo 0` | reported **all 7 PRs hit** AND an **empty intersection**, in one run | `grep -c` prints `0` **and** exits 1, so `\|\| echo 0` also fires -> `"0\n0"`, which `!= "0"` |
+| a process probe whose pattern is in its OWN command line | a dead session reported **ACTIVE**, twice | `Win32_Process` matched the probe itself. Tell: the reported `CreationDate` equals the probe's own run time |
+| comparing two DIFFERENT files | `record.py` vs `stubscan.py` -> "DRIFTED" | of course they differ; compare like with like |
+| `pytest <dir>` on a standalone script | `INTERNALERROR> SystemExit: 0` read as a failing suite | the file calls `sys.exit()` at module level; run it through its own entry point -> 174 passed |
+
+**A self-contradicting output is a detector failure, not a finding.** If one run reports two things
+that cannot both be true, stop and fix the instrument before reading either number.
+
+**Corollary — equality to a pinned SHA is a self-falsifying safety check.** Asserting "peer tree @
+`<sha>`, N modified" as an invariant raised **three** false alarms while a human committed to that
+tree legitimately. Use invariants that survive concurrent work instead:
+  (a) the baseline commit remains an ANCESTOR of HEAD (no history rewrite), AND
+  (b) every intervening commit is OWNER-authored, not agent-authored, AND
+  (c) no changed/untracked path carries a unit name from your program, AND
+  (d) no agent performed a write against that tree.
+Detector weakness to disclose when using it: author identity is forgeable -- corroborate with the
+changed-path surface.
