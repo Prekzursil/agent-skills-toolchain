@@ -986,6 +986,151 @@ def test_unresolvable_is_disclosed() -> None:
     )
 
 
+def test_keyword_body_disclosure_reaches_the_boundary() -> None:
+    """N1 / M2c(a): the disclosure must reach a SHIPPED CALLER, not just Decision.
+
+    Round 2 recorded a keyword body's unresolved tokens in `Decision.unresolvable`
+    and called that "a disclosed non-coverage instead of a false all-clear". Both
+    halves were measured false: `inject-nopager.py` surfaced `additionalContext`
+    for `protect` and `unsafe-shape` ONLY, so a `noop` decision reached nobody;
+    and the LITERAL case (`if true; then wsl ls /mnt/h20; fi`) produced no
+    unresolvable token at all, so the mitigation could not fire by construction.
+
+    This test asserts at the REAL BOUNDARY (the hook subprocess), because
+    `additionalContext` is what an agent can actually perceive.
+    """
+    print("\n== keyword-body disclosure reaches the production boundary ==")
+    env = dict(os.environ)
+    env["CLAUDE_MSYS_FORCE_PLATFORM"] = "nt"
+    env["CLAUDE_MSYS_TELEMETRY"] = "0"
+
+    def agent_sees(command: str) -> str:
+        payload = {
+            "session_id": "t",
+            "tool_name": "Bash",
+            "tool_input": {"command": command},
+            "cwd": str(HERE),
+        }
+        r = subprocess.run(
+            [sys.executable, str(INJECT)],
+            input=json.dumps(payload),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=env,
+        )
+        assert r.returncode == 0, f"hook exited {r.returncode}: {r.stderr[:200]}"
+        if not r.stdout.strip():
+            return ""
+        return (
+            json.loads(r.stdout)
+            .get("hookSpecificOutput", {})
+            .get("additionalContext")
+            or ""
+        )
+
+    # --- DISCLOSED: a literal path after a command-introducing keyword ---------
+    for cid, cmd in [
+        ("if-then", "if true; then wsl ls /mnt/h20; fi"),
+        ("for-do", "for i in 1; do wsl ls /mnt/h21; done"),
+        ("while-do", 'echo x | while read i; do wsl ls /mnt/h22; done'),
+        ("else", "if false; then true; else wsl ls /mnt/h23; fi"),
+    ]:
+        d = M.plan(cmd, ENV)
+        _check(
+            f"{cid}: a keyword-body conversion is FOUND",
+            any(f.resolution == M._KEYWORD_BODY_RESOLUTION for f in d.findings),
+            f"action={d.action} findings={[f.resolution for f in d.findings]}",
+        )
+        _check(
+            f"{cid}: it is DISCLOSED, never rewritten",
+            d.action == "unsafe-shape" and d.rewritten is None,
+            f"action={d.action} rewritten={d.rewritten!r}",
+        )
+        ctx = agent_sees(cmd)
+        _check(
+            f"{cid}: the AGENT actually receives it at the boundary",
+            "NOT ENFORCED" in ctx and "NO FIX APPLIED" in ctx,
+            f"additionalContext={ctx[:160]!r}",
+        )
+
+    # --- PRECISION: firing where nothing converts is a false alarm ------------
+    # An msys-immune body callee never sees a converted argv, and a harmless
+    # root rewrites back to the same object. Both must stay silent, or the
+    # channel becomes caveat noise and gets ignored.
+    # NOTE the callee tier matters: `_root_is_harmless` is deliberately NOT
+    # applied to a posix-BRIDGE callee, because WSL's /tmp is not MSYS's /tmp.
+    # So the harmless-root control must use a NON-bridge callee (`git`), exactly
+    # as the established simple-command path does. Using `wsl` here produced a
+    # failing assertion that was MY fixture's error, not the module's: bare
+    # `wsl ls /tmp/x` is `protect` on the simple-command path too.
+    for cid, cmd in [
+        ("immune-ls", "if true; then ls /mnt/x; fi"),
+        ("immune-grep", "if true; then grep q /mnt/x; fi"),
+        ("harmless-root-nonbridge", "if true; then git show /tmp/x; fi"),
+        ("no-path", "if true; then wsl --version; fi"),
+        ("wordlist-immune-body", 'for p in /mnt/x; do echo "$p"; done'),
+    ]:
+        d = M.plan(cmd, ENV)
+        _check(
+            f"{cid}: does NOT manufacture a keyword-body finding",
+            not any(f.resolution == M._KEYWORD_BODY_RESOLUTION for f in d.findings),
+            f"action={d.action} findings={[(f.effective) for f in d.findings]}",
+        )
+        _check(
+            f"{cid}: the agent is not spammed",
+            agent_sees(cmd) == "",
+            f"additionalContext={agent_sees(cmd)[:120]!r}",
+        )
+
+    # Tier consistency: the keyword-body scan must reach the SAME verdict as the
+    # established simple-command path for the same callee+path, or it is a
+    # second, divergent policy rather than a disclosure of the first.
+    for cid, bare, wrapped in [
+        ("bridge-tmp", "wsl ls /tmp/x", "if true; then wsl ls /tmp/x; fi"),
+        ("nonbridge-tmp", "git show /tmp/x", "if true; then git show /tmp/x; fi"),
+        ("immune-mnt", "ls /mnt/x", "if true; then ls /mnt/x; fi"),
+    ]:
+        bare_hits = [f.effective for f in M.plan(bare, ENV).findings]
+        wrapped_hits = [f.effective for f in M.plan(wrapped, ENV).findings]
+        _check(
+            f"{cid}: keyword body agrees with the simple-command path",
+            bare_hits == wrapped_hits,
+            f"bare={bare_hits} wrapped={wrapped_hits}",
+        )
+
+    # --- explain() must NOT claim a fix it did not apply ----------------------
+    mixed = M.plan("wsl ls /mnt/a; if true; then wsl ls /mnt/b; fi", ENV)
+    if mixed.action == "protect":
+        text = M.explain(mixed)
+        _check(
+            "a mixed decision separates FIXED from DISCLOSED-BUT-NOT-FIXED",
+            "DISCLOSED BUT NOT FIXED" in text,
+            text[:200],
+        )
+        _check(
+            "the disclosed-only path is NOT inside the enforced prefix",
+            "/mnt/b" not in (mixed.rewritten or "").split("MSYS2_ARG_CONV_EXCL=")[1]
+            .split("'")[1],
+            f"rewritten={mixed.rewritten!r}",
+        )
+
+    # --- the still-silent classes are documented, not quietly dropped --------
+    for marker in ("STILL SILENT (1/3)", "STILL SILENT (2/3)", "STILL SILENT (3/3)"):
+        _check(
+            f"residual class documented: {marker}",
+            any(marker in g for g in M.COVERAGE_GAPS),
+        )
+    _check(
+        "the round-2 wording is recorded as REFUTED, not silently deleted",
+        any("ROUND-2 WORDING REFUTED AND REPLACED" in g for g in M.COVERAGE_GAPS),
+    )
+    _check(
+        "the gap list does not claim to be complete",
+        any("NOT CLAIMED COMPLETE" in g for g in M.COVERAGE_GAPS),
+    )
+
+
 def main() -> int:
     # MSYS_TEST_REPO lets a copied tree (mutation testing) point back at a real
     # checkout instead of skipping the git end-to-end proof.
@@ -1000,6 +1145,7 @@ def main() -> int:
     test_unsafe_shapes_pass_through()
     test_heredoc_offsets_are_byte_aligned()
     test_unresolvable_is_disclosed()
+    test_keyword_body_disclosure_reaches_the_boundary()
     test_platform_and_optout()
     test_telemetry()
     test_production_adapter()

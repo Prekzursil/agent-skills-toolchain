@@ -69,6 +69,26 @@ misses every indirection.  We resolve, conservatively and statically:
 Anything we cannot resolve to a literal is reported UNRESOLVABLE and left
 alone — we never guess.  See COVERAGE_GAPS below.
 
+WHAT THIS MODULE DOES **NOT** COVER — read before trusting a silent result
+=========================================================================
+A silent `noop` is NOT a guarantee that nothing converts.  Two measured
+classes, both of which reached a false all-clear in earlier rounds:
+
+  N1  A path sitting past a SHELL KEYWORD (`if true; then wsl ls /mnt/x; fi`)
+      converts for real.  Splicing a prefix before `then`/`do` is a syntax
+      error, so this is DISCLOSED (action="unsafe-shape") and NEVER fixed —
+      the command still runs with the mangled argv.  Round 3 added that
+      disclosure; rounds 1-2 reported these as a clean `noop`.
+      It is PARTIAL.  Disclosed: a LITERAL path after
+      if/then/elif/else/do/while/until.  STILL SILENT: a `case` pattern body,
+      a `for … in <wordlist>` feeding a loop variable, and any body whose path
+      arrives only through an unresolvable variable.  Details and the settling
+      probe for each are in COVERAGE_GAPS.
+  C13 Dataflow across a PIPE (`echo /mnt/x | xargs wsl ls`) converts at
+      runtime and produces no static signal whatsoever.  Still SILENT.
+
+`COVERAGE_GAPS` is the full list, and it is explicitly NOT claimed complete.
+
 EMISSION SAFETY (the round-2 hard contract)
 ===========================================
 This module is used by a PreToolUse `updatedInput` rewriter, so WHATEVER IT
@@ -124,12 +144,49 @@ COVERAGE_GAPS: tuple[str, ...] = (
     "MSYS's determine_type() source. A form outside that sample could be "
     "mis-predicted in either direction.",
     "A LOOP/CONDITIONAL BODY is handed to us as a segment whose head is a shell "
-    'keyword (` do wsl ls "$p"`), so the real callee sits past the keyword and '
-    "is never classified. Splicing an env prefix before `do` would be a syntax "
-    "error, so the body is not rewritten. Measured: "
-    '`for p in /mnt/h07; do wsl ls "$p"; done` DOES convert. Since round 2 the '
-    "fragment's unresolved tokens are reported in Decision.unresolvable so the "
-    "caller gets a disclosed non-coverage instead of a false all-clear.",
+    'keyword (` do wsl ls "$p"`). Splicing an env prefix before `do` is a syntax '
+    "error, so a keyword body is NEVER rewritten — only disclosed. Measured: "
+    '`for p in /mnt/h07; do wsl ls "$p"; done` DOES convert. '
+    "ROUND-2 WORDING REFUTED AND REPLACED: round 2 claimed the fragment's "
+    "unresolved tokens landing in Decision.unresolvable gave 'the caller a "
+    "disclosed non-coverage instead of a false all-clear'. Both halves were "
+    "measured false. (1) DEAD CHANNEL: inject-nopager.py surfaced "
+    "additionalContext for action=='protect' and 'unsafe-shape' only, so a "
+    "noop decision's reason and unresolvable list reached NO shipped caller. "
+    "(2) LITERAL CASE UNCOVERED: `if true; then wsl ls /mnt/h20; fi` has no "
+    "unresolvable token at all, so the mitigation could not fire by "
+    "construction. Round 3 closes both PARTIALLY by classifying the callee past "
+    "a COMMAND-INTRODUCING keyword and emitting findings tagged "
+    "'keyword-body-disclosed', which route to action='unsafe-shape' (advisory, "
+    "no rewrite) — a branch the hook already surfaces. "
+    "EXACT MEASURED SCOPE, and it is narrow: the shapes that reach the agent "
+    "are a LITERAL path after if/then/elif/else/do/while/until. Measured "
+    "against an argv oracle: 0 false positives in 12 shapes, and STILL SILENT "
+    "in three cases listed in the next three entries. This is NOT a claim that "
+    "keyword bodies are now covered.",
+    "STILL SILENT (1/3): a `case` PATTERN body — `case a in a) adb push x "
+    "/sdcard/y;; esac` converts for real and is reported noop. `case` is a "
+    "WORDLIST keyword, so the tokens after it are patterns, not a command; "
+    "locating the body would mean parsing past the pattern-terminating `)`. "
+    "Deliberately not attempted: the unrestricted version of this scan produced "
+    "3/3 measured false positives. Settling probe: extend the body scan to find "
+    "the first token ending in `)` and classify the next token, then re-run the "
+    "12-shape precision battery and require FP=0.",
+    "STILL SILENT (2/3): a `for`/`select` WORDLIST feeding a loop variable — "
+    '`for p in /mnt/h07; do wsl ls "$p"; done` converts for real and is '
+    "reported noop. The path is in the wordlist, the conversion happens at the "
+    "body callee, and connecting them needs wordlist->loop-variable DATAFLOW "
+    "which this module does not model. Scanning the wordlist directly was tried "
+    "and REVERTED: it flags `for p in /mnt/x; do echo \"$p\"; done`, where the "
+    "body callee is msys-immune and nothing converts. Settling probe: bind the "
+    "loop variable to each literal wordlist item and re-run the body scan; "
+    "require FP=0 on the same battery.",
+    "STILL SILENT (3/3): a keyword body whose path arrives ONLY via an "
+    'unresolvable variable — `echo /mnt/h18 | while read p; do wsl ls "$p"; '
+    "done`. The token resolves to nothing statically, so no finding can be "
+    "emitted; it is counted in Decision.unresolvable, which for a noop decision "
+    "still reaches no caller. Settling probe: the differential-execution sweep "
+    "named in the last entry.",
     "DATAFLOW ACROSS A PIPE is invisible: in `echo /mnt/h13 | xargs wsl ls` the "
     "path is an argument to an msys-immune callee (correctly noop) and reaches "
     "the native callee as stdout->argv AT RUNTIME. Measured to convert for real; "
@@ -138,6 +195,18 @@ COVERAGE_GAPS: tuple[str, ...] = (
     "An `unsafe-shape` verdict is advisory only: conversion was predicted but no "
     "segment could be rewritten without emitting invalid shell, so the command "
     "runs WITH the mangled argv and only a warning is attached.",
+    "DISCLOSURE IS NOT PROTECTION. A keyword-body finding tells the caller the "
+    "argv will be mangled; it does NOT fix it. The command still runs with the "
+    "converted path. Anything relying on this hook to make such a command "
+    "CORRECT is relying on something that was never built.",
+    "THE GAP LIST ITSELF IS NOT CLAIMED COMPLETE. Every entry here was found by "
+    "someone constructing a shape they already suspected; three of them (the "
+    "heredoc byte-misalignment, the `time` demotion, and the keyword-body "
+    "literal N1) were each missed by two prior rounds of review. The settling "
+    "probe for the residual is differential execution — run original vs emitted "
+    "over a large corpus of side-effect-free commands and compare exit code, "
+    "stdout and files touched — which is the only instrument that has so far "
+    "caught a parse-clean-but-wrong class. It has NOT been run.",
 )
 
 # ───────────────────────────────────────────────────────────────── callee tiers
@@ -384,6 +453,14 @@ PREFIX_WRAPPERS: frozenset[str] = frozenset(
 )
 # Word-list keywords: bash expands them itself, no process is ever spawned.
 WORDLIST_KEYWORDS: frozenset[str] = frozenset({"for", "select", "case"})
+
+# Keywords after which the NEXT token is a command, so a callee may be
+# classified there for DISCLOSURE (never for rewriting).  Deliberately excludes
+# WORDLIST_KEYWORDS and `in`: after those the tokens are data (a wordlist or a
+# case pattern), and scanning them produced measured false positives.
+_COMMAND_INTRODUCING_KEYWORDS: frozenset[str] = frozenset(
+    {"if", "then", "elif", "else", "do", "while", "until", "!", "{"}
+)
 # Bash reserved words that are NOT in SHELL_KEYWORDS and that an assignment
 # prefix would silently DEMOTE to an ordinary command lookup.  `time` is the
 # measured one: `time echo hi` exits 0, `FOO=bar time echo hi` exits **127**
@@ -673,7 +750,11 @@ class Finding:
     kind: str
     severity: str
     reason: str
-    resolution: str  # "literal" | "expanded"
+    # "literal" | "expanded"  -> rewritable simple command, prefix spliced
+    # _KEYWORD_BODY_RESOLUTION -> DISCLOSURE ONLY.  Found past a shell keyword,
+    #   never rewritten (splicing there is a syntax error), never contributes to
+    #   `per_segment`.  `explain()` MUST NOT claim a fix was applied for these.
+    resolution: str
 
 
 @dataclass(frozen=True)
@@ -689,6 +770,11 @@ class Decision:
 
 
 ACTIONS = ("noop", "protect", "optout", "not-windows", "unsafe-shape", "error")
+
+# Marks a Finding that was detected past a shell keyword and is therefore
+# DISCLOSED but NEVER rewritten.  Kept as a module constant so the test suite
+# and `explain()` agree on one spelling.
+_KEYWORD_BODY_RESOLUTION = "keyword-body-disclosed"
 
 _OPTOUT_ENV = "CLAUDE_MSYS_ENFORCE"
 _TELEMETRY_ENV = "CLAUDE_MSYS_TELEMETRY"
@@ -924,16 +1010,87 @@ def _plan_inner(command: str, env: dict[str, str], t0: float) -> Decision:
         if callee in WORDLIST_KEYWORDS or callee in SHELL_KEYWORDS:
             # A loop / conditional BODY fragment: `split_segments` cuts at `;`
             # and newline, so bash hands us ` do wsl ls "$p"` with the keyword
-            # at position 0 and the real callee at 1+.  We deliberately do NOT
-            # analyse past the keyword — an env prefix before `do` is a syntax
-            # error, so nothing here could be rewritten anyway.  But silence
-            # here was a FALSE ALL-CLEAR: `for p in /mnt/h07; do wsl ls "$p";
-            # done` converts for real and reported action=noop with zero
-            # unresolvable tokens.  Disclose the fragment's unresolved tokens
-            # so the caller is told what was NOT covered.
+            # at position 0 and the real callee at 1+.  We NEVER rewrite here —
+            # an env prefix before `do` is a syntax error (that is V1, the worst
+            # defect this lane has produced), so this branch is DISCLOSURE-ONLY
+            # and deliberately never contributes to `per_segment`.
+            #
+            # Round 3: disclosing only the UNRESOLVED tokens was measured to be
+            # insufficient.  `if true; then wsl ls /mnt/h20; fi` converts for
+            # real, has NO unresolvable token, and was reported action=noop with
+            # an empty reason — a positive false all-clear at both the module
+            # and the hook boundary (finding N1).  So we now classify the callee
+            # past the keyword and PREDICT conversions on its arguments exactly
+            # as the simple-command path does, emitting findings tagged
+            # `_KEYWORD_BODY_RESOLUTION`.  Those findings route the decision to
+            # `unsafe-shape` (advisory, no rewrite) through the existing
+            # `not per_segment` branch, which the hook already surfaces.
             for tok in toks[idx + 1 :]:
                 if _UNRESOLVED.search(tok):
                     unresolvable.append(tok)
+
+            # ONLY scan past a keyword that actually introduces a COMMAND.
+            # Measured false positives when this was not restricted: after a
+            # WORDLIST keyword (`for p in /mnt/x`) the following tokens are
+            # DATA, not a command, so the scan treated the loop VARIABLE `p` as
+            # the callee and flagged `/mnt/x` even when the body called an
+            # msys-immune binary (`do echo "$p"`) and nothing converted at all —
+            # 3/3 false positives against an argv oracle.  See COVERAGE_GAPS.
+            if callee not in _COMMAND_INTRODUCING_KEYWORDS:
+                continue
+            body_idx = idx + 1
+            while (
+                body_idx < len(toks)
+                and _basename(toks[body_idx])
+                in (_COMMAND_INTRODUCING_KEYWORDS | PREFIX_WRAPPERS)
+            ):
+                body_idx += 1
+            if body_idx >= len(toks):
+                continue
+            body_verdict = classify_callee(toks[body_idx])
+            if body_verdict is None:
+                continue  # msys-immune or unknown callee — conversion never lands
+            b_tier, b_severity, b_reason, b_is_bridge = body_verdict
+            b_callee = _basename(toks[body_idx])
+            skip_next = False
+            for tok in toks[body_idx + 1 :]:
+                if skip_next:
+                    skip_next = False
+                    continue
+                if _REDIR.match(tok):
+                    skip_next = True  # redirect TARGET — bash resolves it
+                    continue
+                effective = resolve_token(tok, shell_env)
+                if effective is None:
+                    continue  # already disclosed as unresolvable above
+                hit = predict_conversion(effective)
+                if hit is None:
+                    continue
+                predicted, kind = hit
+                # SAME harmless-root discriminator as the simple-command path:
+                # a locally-mounted root rewrites back to the same object.
+                # Omitting it here would manufacture false positives on
+                # /tmp, /c, /usr — the lane's primary FP discriminator.
+                if (
+                    kind == "leading-slash"
+                    and not b_is_bridge
+                    and _root_is_harmless(effective)
+                ):
+                    continue
+                findings.append(
+                    Finding(
+                        segment_index=si,
+                        callee=b_callee,
+                        tier=b_tier,
+                        token=tok,
+                        effective=effective,
+                        predicted=predicted,
+                        kind=kind,
+                        severity=b_severity,
+                        reason=b_reason,
+                        resolution=_KEYWORD_BODY_RESOLUTION,
+                    )
+                )
             continue
 
         # ── E5: `eval '<literal>'` — recurse into the literal body ──
@@ -1169,23 +1326,72 @@ def record(
         return None
 
 
+def _render_findings(findings: tuple[Finding, ...]) -> list[str]:
+    lines: list[str] = []
+    for f in findings:
+        if f.resolution == "literal":
+            via = ""
+        elif f.resolution == _KEYWORD_BODY_RESOLUTION:
+            via = "  (inside a shell-keyword body)"
+        else:
+            via = f"  (via expansion of `{f.token}`)"
+        lines.append(f"  `{f.effective}`{via}")
+        lines.append(f"    would become  `{f.predicted}`   [{f.kind}, {f.severity}]")
+        lines.append(f"    why: {f.reason}")
+    return lines
+
+
 def explain(decision: Decision) -> str:
-    """Actionable, human-readable reason string (goes into additionalContext)."""
+    """Actionable, human-readable reason string (goes into additionalContext).
+
+    Findings tagged `_KEYWORD_BODY_RESOLUTION` are DISCLOSED but were never
+    rewritten, so they are rendered in their own section and are explicitly
+    excluded from the "FIX APPLIED" claim.  Reporting them as fixed would be
+    exactly the overclaim this module has twice been refuted for.
+    """
+    disclosed = tuple(
+        f for f in decision.findings if f.resolution == _KEYWORD_BODY_RESOLUTION
+    )
+    rewritten_f = tuple(
+        f for f in decision.findings if f.resolution != _KEYWORD_BODY_RESOLUTION
+    )
+
     if decision.action != "protect":
+        if decision.action == "unsafe-shape" and disclosed:
+            lines = [
+                "[msys-pathconv] NOT ENFORCED — MSYS will rewrite these "
+                "arguments and this hook cannot safely fix it:"
+            ]
+            lines.extend(_render_findings(disclosed))
+            lines.append(f"  {decision.reason}")
+            lines.append(
+                "  NO FIX APPLIED — the command runs WITH the mangled argv. "
+                "To protect it, set MSYS2_ARG_CONV_EXCL yourself or move the "
+                "call out of the keyword body."
+            )
+            if decision.unresolvable:
+                lines.append(
+                    f"  NOT CHECKED (unresolvable statically): "
+                    f"{len(decision.unresolvable)} token(s)."
+                )
+            return "\n".join(lines)
         return decision.reason
+
     lines = [
         "[msys-pathconv] ENFORCED — MSYS would have rewritten these "
         "arguments before the program saw them:"
     ]
-    for f in decision.findings:
-        via = "" if f.resolution == "literal" else f"  (via expansion of `{f.token}`)"
-        lines.append(f"  `{f.effective}`{via}")
-        lines.append(f"    would become  `{f.predicted}`   [{f.kind}, {f.severity}]")
-        lines.append(f"    why: {f.reason}")
+    lines.extend(_render_findings(rewritten_f))
     lines.append(
         "  FIX APPLIED: per-argument MSYS2_ARG_CONV_EXCL prefix "
         "(siblings still convert normally)."
     )
+    if disclosed:
+        lines.append(
+            "  DISCLOSED BUT NOT FIXED — these sit inside a shell-keyword body, "
+            "where splicing a prefix would be a syntax error:"
+        )
+        lines.extend(_render_findings(disclosed))
     if decision.unresolvable:
         lines.append(
             f"  NOT CHECKED (unresolvable statically): "
