@@ -42,21 +42,68 @@ MAX_QUEUE = 500        # bounded sink; never grows without limit
 MIN_LEN, MAX_LEN = 25, 600
 
 # --- what counts as the owner saying something about himself -------------------------------
-# Anchored to a first-person subject. Bare "my X" is NOT enough - that is exactly what
-# produced 4/4 false positives ("my units", "my agents", "my repo").
+# v2, REWRITTEN after the v1 detector shipped and scored ~0/20 precision in production.
+#
+# WHY v1 FAILED: it matched `i (am|'m) (a|an|the|now|currently|still|not)`, and in these
+# transcripts "I am now ..." / "I am not ..." is overwhelmingly ASSISTANT PROGRESS NARRATION.
+# The owner routinely pastes assistant output, reports and templates into his own turns, so
+# all of that arrives tagged role="user". v1's both-states test passed only because the
+# fixtures were hand-written to match v1's own assumptions - fixture-green proved internal
+# consistency, not fit to the real distribution (the trap named in my_writing/RUNBOOK.md 6).
+#
+# v2 requires a BIOGRAPHICAL OBJECT, not merely a first-person verb.
+BIO_NOUN = (r"student|teaching assistant|ta\b|assistant|developer|engineer|researcher|"
+            r"programmer|freelancer|intern|phd|msc|bsc|master'?s|bachelor'?s|undergrad|"
+            r"graduate|romanian|english|based in|from\b")
 PATTERNS = [
-    r"\bi(?:'m| am)\s+(?:a|an|the|now|currently|still|not)\b",
-    r"\bi\s+(?:live|work|study|studied|teach|graduated|moved|started|joined|left|applied)\b",
-    r"\bi\s+(?:speak|know|learned|am learning)\s+\w+",
-    r"\bmy\s+(?:name|birthday|age|phone|email|address|university|faculty|degree|thesis|"
-    r"supervisor|professor|employer|company|job|role|title|salary|team|orcid|linkedin|"
-    r"github|website|girlfriend|partner|family|parents|brother|sister)\b",
-    r"\bi\s+(?:plan|intend|want|hope|decided|chose)\s+to\b",
-    r"\bmy\s+phd\b|\bphd\s+(?:direction|topic|proposal|application)\b",
-    # Romanian - he switches mid-sentence
-    r"\bsunt\s+(?:un|o|student|inginer|profesor|din|la)\b",
-    r"\blocuiesc\b|\bma numesc\b|\bmă numesc\b|\bam terminat\b|\bam absolvit\b",
+    # "I am a student", "I'm a teaching assistant" - a first-person COPULA plus a role noun
+    rf"\bi(?:'m| am)\s+(?:an?\s+|the\s+)?(?:{BIO_NOUN})",
+    # life verbs that are almost never narration
+    r"\bi\s+(?:live|was born|grew up|graduated|enrolled|study at|studied at|"
+    r"teach at|work at|moved to|come from)\b",
+    r"\bi\s+(?:speak|am fluent in)\s+\w+",
+    # possessive + a biographical noun (never "my agents"/"my repo")
+    r"\bmy\s+(?:name|birthday|birth date|age|phone|e-?mail|address|university|faculty|"
+    r"degree|thesis|dissertation|supervisor|professor|employer|company|job title|orcid|"
+    r"linkedin|scholar|girlfriend|partner|parents|father|mother|brother|sister)\b",
+    r"\bmy\s+phd\b|\bphd\s+(?:direction|topic|proposal|application|supervisor)\b",
+    # Romanian
+    r"\bsunt\s+(?:un\s+|o\s+)?(?:student|inginer|profesor|asistent)\b",
+    r"\blocuiesc\b|\bm[aă] numesc\b|\bam terminat\b|\bam absolvit\b|\bm-am n[aă]scut\b",
+
+    # v3: LABEL:VALUE. Measured on real transcripts - v2 caught ZERO across 72 MB, including
+    # a session where he stated his name, birth date, phones, role and ORCID, because he
+    # answers direct questions in terse labelled form and never in first person:
+    #     "birth day: 8 june 2002"   "phone number: +40740935228"
+    #     "3: Student and teaching assistent at University Of Bucharest"
+    # A first-person detector structurally cannot see that shape. Closed label set only -
+    # an open one would fire on every config file and API response he pastes.
+    # NOT bare "name:" - measured false positive on `name: 'my-workflow',` in a JS config.
+    # "name" is among the commonest keys in YAML/JSON/JS, so it must be qualified.
+    r"^\s*(?:full|legal|my)\s+name\s*[:=]\s*\S",
+    r"^\s*(?:birth\s*day|birthday|birth\s*date|date of birth|dob)\s*[:=]\s*\S",
+    r"^\s*(?:phone|phone\s*number|mobile|tel)\s*[:=]\s*\+?\d",
+    r"^\s*orcid\s*[:=]\s*\d{4}-\d{4}-\d{4}-\d{3}[\dX]",
+    r"^\s*(?:university|faculty|affiliation|institution|employer|job\s*title|role)\s*[:=]\s*\S",
+    r"^\s*(?:linkedin|scholar|orcid|website|homepage)\s*[:=]\s*\S*\w",
 ]
+
+# Narration shapes that v1 swallowed. Checked BEFORE the biographical patterns.
+NARRATION = re.compile(
+    r"\bi(?:'m| am)\s+(?:now|not|also|still|going to|about to|already|currently)\s+\w+ing\b"
+    r"|\bi(?:'m| am)\s+not\s+(?:choosing|applying|theori|relaunch|going)"
+    r"|\bi\s+(?:will|would|can|could|should|shall)\b"
+    r"|\blet me\b|\bi'?ll\b", re.I)
+
+# Pasted structured content - a bullet, heading, table row, quote, code or template slot is
+# not somebody talking about themselves.
+PASTED = re.compile(r"^\s*(?:[-*+•>#|]|\d+\.\s|```|\[|\{)|\[(?:role|action|benefit|name)\]"
+                    r"|^\s*(?:As a|Example:|STATUS|VENUE)\b", re.I)
+
+# Code/config shapes. A label:value line that carries quotes, a trailing comma, a comment
+# marker or braces is a config key, not a person answering a question. Measured: the v3
+# label set fired on `name: 'my-workflow',   // the /slash name` in a workflow script.
+CODEISH = re.compile(r"""['"`]|,\s*$|//|/\*|=>|[{}\[\]]|\bself\.|\bdef\s|\bconst\s|\bvar\s""")
 
 # Never capture these unprompted. G-2 keeps a full-fidelity PRIVATE tier, but it is the
 # owner's to populate - a hook harvesting health or relationship detail is not acceptable.
@@ -129,6 +176,15 @@ def main() -> int:
                 continue
             # a slash-command or a pasted block is not self-disclosure
             if s.startswith(("/", "```", "http")):
+                continue
+            if PASTED.search(s):          # v2: bullets, headings, templates, quoted blocks
+                continue
+            # v3: config keys are not self-disclosure. Scope this to the FIRST LINE only -
+            # scanning the whole segment killed a genuine "birth day: ... / phone number: ..."
+            # capture because the segment ran on into pasted hook output containing a quote.
+            if CODEISH.search(s.split("\n", 1)[0]):
+                continue
+            if NARRATION.search(s):       # v2: "I am now ...ing" is progress, not biography
                 continue
             if FALSE_FRIENDS.search(s):
                 continue
