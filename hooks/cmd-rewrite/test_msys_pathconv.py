@@ -1023,9 +1023,7 @@ def test_keyword_body_disclosure_reaches_the_boundary() -> None:
         if not r.stdout.strip():
             return ""
         return (
-            json.loads(r.stdout)
-            .get("hookSpecificOutput", {})
-            .get("additionalContext")
+            json.loads(r.stdout).get("hookSpecificOutput", {}).get("additionalContext")
             or ""
         )
 
@@ -1033,7 +1031,7 @@ def test_keyword_body_disclosure_reaches_the_boundary() -> None:
     for cid, cmd in [
         ("if-then", "if true; then wsl ls /mnt/h20; fi"),
         ("for-do", "for i in 1; do wsl ls /mnt/h21; done"),
-        ("while-do", 'echo x | while read i; do wsl ls /mnt/h22; done'),
+        ("while-do", "echo x | while read i; do wsl ls /mnt/h22; done"),
         ("else", "if false; then true; else wsl ls /mnt/h23; fi"),
     ]:
         d = M.plan(cmd, ENV)
@@ -1110,7 +1108,9 @@ def test_keyword_body_disclosure_reaches_the_boundary() -> None:
         )
         _check(
             "the disclosed-only path is NOT inside the enforced prefix",
-            "/mnt/b" not in (mixed.rewritten or "").split("MSYS2_ARG_CONV_EXCL=")[1]
+            "/mnt/b"
+            not in (mixed.rewritten or "")
+            .split("MSYS2_ARG_CONV_EXCL=")[1]
             .split("'")[1],
             f"rewritten={mixed.rewritten!r}",
         )

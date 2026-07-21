@@ -177,7 +177,7 @@ COVERAGE_GAPS: tuple[str, ...] = (
     "reported noop. The path is in the wordlist, the conversion happens at the "
     "body callee, and connecting them needs wordlist->loop-variable DATAFLOW "
     "which this module does not model. Scanning the wordlist directly was tried "
-    "and REVERTED: it flags `for p in /mnt/x; do echo \"$p\"; done`, where the "
+    'and REVERTED: it flags `for p in /mnt/x; do echo "$p"; done`, where the '
     "body callee is msys-immune and nothing converts. Settling probe: bind the "
     "loop variable to each literal wordlist item and re-run the body scan; "
     "require FP=0 on the same battery.",
@@ -1039,10 +1039,8 @@ def _plan_inner(command: str, env: dict[str, str], t0: float) -> Decision:
             if callee not in _COMMAND_INTRODUCING_KEYWORDS:
                 continue
             body_idx = idx + 1
-            while (
-                body_idx < len(toks)
-                and _basename(toks[body_idx])
-                in (_COMMAND_INTRODUCING_KEYWORDS | PREFIX_WRAPPERS)
+            while body_idx < len(toks) and _basename(toks[body_idx]) in (
+                _COMMAND_INTRODUCING_KEYWORDS | PREFIX_WRAPPERS
             ):
                 body_idx += 1
             if body_idx >= len(toks):
