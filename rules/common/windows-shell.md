@@ -123,6 +123,62 @@ deletions.
   untracked credential files appear to be "in the PR" when they are not.
 - Pairs with the worktree empty-index trap (scoped `git add` staging 6,013 deletions).
 
+## 8e. Windows `sshd_config` — appending is WRONG; global directives are illegal after `Match`
+
+The stock Windows OpenSSH `C:\ProgramData\ssh\sshd_config` **ends** with:
+
+```
+Match Group administrators
+       AuthorizedKeysFile __PROGRAMDATA__/ssh/administrators_authorized_keys
+```
+
+So the natural move — append your directives to the end — silently puts them **inside that Match
+block**, and sshd refuses to start:
+`Directive 'ListenAddress' is not allowed within a Match block` (measured 2026-07-20).
+
+- **Fix:** splice the managed block **before the first `^\s*Match\s` line**, never at EOF.
+- **Always validate with the daemon's own parser before restarting:** `sshd.exe -T` prints the
+  effective config and exits non-zero on a syntax error. It is the only authoritative check —
+  a config that "looks fine" is not evidence.
+- **Admins do NOT use `~/.ssh/authorized_keys`.** Because of that Match block, a user in the
+  Administrators group authenticates against
+  `C:\ProgramData\ssh\administrators_authorized_keys`, and sshd **rejects the file unless its ACLs
+  are SYSTEM + Administrators only**: `icacls <file> /inheritance:r /grant "Administrators:F"
+  /grant "SYSTEM:F"`. Wrong ACLs fail as a silent auth rejection, not an error.
+- Loopback-only hardening that works: `ListenAddress 127.0.0.1` + `ListenAddress ::1` +
+  `PubkeyAuthentication yes` + `PasswordAuthentication no`.
+- Git Bash ships a **newer** ssh client than Windows' bundled sshd, so a PQ-key-exchange warning on
+  a loopback connection is expected and cosmetic — not a misconfiguration.
+
+## 8f. Codex/ChatGPT-desktop over SSH to a Windows host needs THREE fixes, and they mask each other
+
+Measured 2026-07-20. The app shows ONE error string — `SSH connection failed` — for three unrelated
+causes. Each becomes visible only after the previous is fixed, so diagnosing from the UI string
+alone produces a wrong root cause every time. Fix in this order:
+
+1. **Post-quantum KEX.** Windows ships OpenSSH **9.5p2**, which cannot offer `mlkem768x25519-sha256`;
+   the app's client requires it and drops at `[preauth]`. Repro: force
+   `-o KexAlgorithms=mlkem768x25519-sha256` at 9.5p2 → *"no matching key exchange method found"*.
+   Fix: run the standalone **OpenSSH 10.0p2** (`C:\OpenSSH-Win64`) instead; it offers `mlkem768*`
+   and `sntrup761*`.
+2. **`known_hosts`.** With KEX working the client still aborts right after key exchange, logging
+   `user: (null) ... Connection reset [preauth]` and the srclimit penalty
+   *"connections without attempting authentication"*. That is NOT an auth failure — no credential is
+   ever offered, because host-key verification failed first. Fix: populate
+   `~/.ssh/known_hosts` (`ssh-keyscan -p <port> -t ed25519,rsa 127.0.0.1`). Confirm with
+   `-o StrictHostKeyChecking=yes` — it must go from exit 255 to exit 0.
+3. **DefaultShell.** Now authenticated, the session fails with
+   `'sh' is not recognized...` / `'[' is not recognized...` because Windows sshd hands the session to
+   **cmd.exe** while Codex sends a POSIX script. Fix (machine-wide):
+   `HKLM:\SOFTWARE\OpenSSH` → `DefaultShell` = `C:\Program Files\Git\bin\bash.exe`,
+   `DefaultShellCommandOption` = `-c`. Restart sshd. Verify with
+   `ssh ... "sh -c 'if [ -d /c ]; then echo OK; fi; uname -s'"` → `OK` + `MINGW64_NT-...`.
+
+**Diagnostic rule this cost:** `user: (null)` in an sshd log means host-key verification, not a bad
+key — the username is never sent. Distinguish it from `Failed publickey for <user>`, which is a real
+credential rejection. And `DefaultShell` is global: every SSH client on the box then gets Git Bash,
+inheriting MSYS path conversion (§1).
+
 ## 9. A here-string PAYLOAD is scanned as if it were a command
 
 `Set-Content -LiteralPath '…\MASTER-QUEUE.md' -Value @'…'@` was **blocked** with
@@ -141,6 +197,8 @@ Measured cost of the here-string route vs the tool it was replacing:
 scanned as a command line. Reserve here-strings for appends and for piping into a native exe. A
 document that contains literal `@'` / `'@` sequences CANNOT be written by a here-string at all —
 they terminate it and corrupt the file.
+
+
 
 ## 10. An apostrophe in a Bash-tool command body breaks the tool's OWN quoting
 
@@ -164,6 +222,28 @@ Doubling down (escaping, swapping quote styles) wasted ~9 minutes before the pat
   the dedicated tool (Grep, Write, a script file) over an inline single-quoted shell string.
 - Two-strikes (AGENTS.md §4b): after the SECOND `unexpected EOF … matching '` on the same call
   shape, STOP escaping and switch transport (file + `-F`, or PowerShell) — do not attempt a third.
+
+---
+*A one-line pointer to this file belongs in AGENTS.md §11 (owned by the D3 item — not
+edited here).*
+
+
+## 11. `MSYS_NO_PATHCONV=1` must be SCOPED, never global — measured PROMPT-1.5 (2026-07-21)
+
+§1 says to use `MSYS_NO_PATHCONV=1` when a git revision contains `:` or a leading `/`. Setting it
+**globally** inverts the problem: it also suppresses the conversion that legitimate `/c/Users/...`
+PATH arguments depend on.
+
+Measured: `export MSYS_NO_PATHCONV=1` followed by
+`git clone --no-hardlinks /c/Users/Prekzursil/source/<repo> repo` -> the clone **silently did not
+happen**; every downstream probe then reported `NO` and the whole verification read as a failure.
+
+- **Fix:** Windows-style paths (`C:/Users/...`) for PATH arguments; apply the env var only around
+  REVISION arguments (`origin/main:path/to/file`, `HEAD^`, ref syntax, pathspecs).
+- This is the same defect class an in-repo guard exists to catch — *"a global suppression is not
+  acceptable; enforcement must be command-aware AND argument-aware"* — reproduced on the
+  orchestrator while it was verifying that very guard. The rule being written down did not prevent
+  it; only the scoping did.
 
 ---
 *A one-line pointer to this file belongs in AGENTS.md §11 (owned by the D3 item — not
