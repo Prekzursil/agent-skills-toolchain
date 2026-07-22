@@ -217,6 +217,53 @@ def is_real_occurrence(text: str, span, context: Context, kind: str = "marker") 
         return True  # fail-open: never silently disarm a guard
 
 
+def json_value_text(text: str, _depth: int = 0):
+    """The RESULT-SCANNER half of the rule: a JSON payload's string VALUES only.
+
+    A JSON *field name* MENTIONS a condition; it never reports one. Scanning a
+    serialized payload as flat text conflates the two.
+
+    Measured 2026-07-20: a Databricks run payload carrying
+    ``"user_cancelled_or_timedout": false`` -- a field whose value is False, on a job
+    that was RUNNING and later TERMINATED SUCCESS -- was classified FAILED because the
+    KEY matched /tim(ed|e)-?out/. Seven false fires in one session, including one on the
+    memory note documenting this very defect (the guard suppresses its own bug report).
+
+    Returns None when `text` is not JSON, so the caller falls back to raw text and a
+    non-JSON payload keeps its previous behaviour. Nested JSON-in-string values are
+    parsed recursively: MCP results routinely wrap a JSON document inside a string field,
+    which is exactly how the key leaked into the scan surface.
+    """
+    import json as _json
+
+    stripped = (text or "").strip()
+    if not stripped or stripped[0] not in "{[":
+        return None
+    try:
+        doc = _json.loads(stripped)
+    except (ValueError, TypeError):
+        return None
+
+    out: list[str] = []
+
+    def _walk(node, depth: int = 0) -> None:
+        if depth > 8 or len(out) > 400:
+            return
+        if isinstance(node, str):
+            nested = json_value_text(node, _depth + 1) if _depth < 3 else None
+            out.append(node if nested is None else nested)
+        elif isinstance(node, dict):
+            for value in node.values():  # VALUES only -- keys are mentions
+                _walk(value, depth + 1)
+        elif isinstance(node, list):
+            for value in node:
+                _walk(value, depth + 1)
+        # numbers / booleans / null carry no scannable text at all
+
+    _walk(doc)
+    return "\n".join(out)
+
+
 def find_real(text: str, pattern, context: Context, kind: str = "marker") -> list:
     """Every match of `pattern` in `text` that is a real occurrence, in order."""
     try:
