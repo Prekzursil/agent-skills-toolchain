@@ -179,6 +179,26 @@ jobs:
         run: |
           pip install pytest pytest-cov pyyaml
           python -m pytest agent-self/harness/tests -q --cov=agent-self/harness --cov-branch --cov-report=term-missing
+      # hooks/cmd-rewrite — the SOLE PreToolUse rewriter for the Bash tool. There is no
+      # repo-wide test autodiscovery here, so these suites run only because this step names
+      # them; without it they are dead weight that cannot catch a regression. Both are
+      # stdlib-only custom runners (no pytest, no install) that exit non-zero on failure, so
+      # they gate directly. Reuses the existing `gate-tests-coverage` charter slug on purpose
+      # — it is not a new gate, so .quality/charter_check.sh stays consistent with no
+      # charter.yml edit. NOT a --cov-fail-under lane: like the harness step above this is a
+      # projection of a live runtime, and its own runner reports pass/fail, not coverage.
+      # The MSYS argv fixtures SKIP on Linux BY CONSTRUCTION (MSYS path conversion cannot
+      # occur off Windows); what runs here is the pure-policy layer plus the emission-safety
+      # invariant that `bash -n` accepts every rewrite the hook would emit — the property
+      # whose absence let a round-1 revision ship shell that did not parse.
+      # Measured on an ubuntu-equivalent (python 3.12.3, bash 5.2.21):
+      #   test_msys_pathconv.py -> 116 passed, 0 failed, 7 skipped, exit 0
+      #   test_hooks.py         -> 37/37 passed, exit 0
+      - name: gate-tests-coverage cmd-rewrite hooks (msys-pathconv + no-pager)
+        working-directory: hooks/cmd-rewrite
+        run: |
+          python test_msys_pathconv.py
+          python test_hooks.py
 
   sast:
     name: gate-sast (opengrep)

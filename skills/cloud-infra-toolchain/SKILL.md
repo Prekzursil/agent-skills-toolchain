@@ -124,6 +124,23 @@ Datasets: `dataset_download` (inputs), `dataset_create`/`dataset_create_version`
   CUDA floor is pinned by the runtime image, so for a custom **root** Suite install
   (Schrödinger) prefer Modal/RunPod/OVH and route per-job.
 
+> **Fanning out Codex AGENTS (not Spark jobs) onto Databricks? → read the
+> [`codex-databricks-fanout`](../codex-databricks-fanout/SKILL.md) skill FIRST.**
+> A session that plans this from first principles reliably gets the binding constraint wrong.
+> Measured on this account, 2026-07-19 (608-unit mega-audit + 48-unit auth-research re-prove
+> run `343617464274709`):
+> * **Bare `clusters create` / bare `new_cluster` is DENIED** (`PERMISSION_DENIED`).
+>   **Job runs WITH `policy_id=0002189219BF8EF3` ("default job cluster policy") ARE permitted.**
+>   Do not stop at "cannot create clusters" — submit via `databricks jobs submit` + policy.
+> * Policy **`dbus_per_hour` max ≈ 18** — use `r5d.2xlarge` (~64 GB), not 256 GB class.
+> * **Serverless notebook is not a Codex host** (accepts then task-fails).
+> * **one shared `auth.json` served 48–180 concurrent Codex processes on one node with zero auth
+>   corruption** in short windows. Ceiling is **API 429 rate limit**, not RAM. Fix = stagger
+>   (`BATCH_STAGGER_S=3`). Re-prove: 48/48 SUCCESS, 0×429 in 528s.
+> * Secret scope: `codex-harness-prekzursil` / `auth_json`.
+> * `databricks fs cp` (DBFS→local) is a **silent no-op** — use `fs cat`.
+> * `clusters list` is **workspace-wide** (you can *see* other people's JOB clusters; list ≠ control).
+
 ### Deploy an app
 - **Cloud Run (GCP):** `run_gcloud_command` with `run deploy <svc> --source . --region
   <r>` (or `--image`). Inspect with `run services list`.

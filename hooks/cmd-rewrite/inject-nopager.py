@@ -1,7 +1,18 @@
 #!/usr/bin/env python
-"""cmd-rewrite/inject-nopager.py — PreToolUse hook: inject `git --no-pager` into pager-prone git subcommands.
+"""cmd-rewrite/inject-nopager.py — PreToolUse hook: the sole Bash command rewriter.
 
-WHY
+Two rules run here, in order, sharing ONE `updatedInput` emission:
+
+  1. `--no-pager` injection for pager-prone git subcommands   (original rule)
+  2. MSYS/Git-Bash argv path-conversion enforcement           (msys_pathconv.py)
+
+Rule 2 lives here rather than in a new hook because Claude Code runs matching
+PreToolUse hooks in parallel and the LAST `updatedInput` writer wins
+non-deterministically — see ONLY-ONE-REWRITER CAVEAT below.  Extending this
+hook is therefore the only way to add a second argv transformation without
+racing the first.
+
+WHY (rule 1)
 ===
 On Windows / Git-Bash, several git subcommands (log, diff, show, branch, tag,
 stash list, shortlog, blame, reflog) open a pager (less / more) by default.
@@ -54,8 +65,18 @@ Stdout (no change): nothing — exit 0.
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
+
+# Rule 2 lives in a sibling module.  Import defensively: if it is missing or
+# broken, this hook degrades to its original rule-1-only behaviour rather than
+# failing the tool call.
+try:  # pragma: no cover
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import msys_pathconv
+except Exception:  # pragma: no cover
+    msys_pathconv = None  # type: ignore[assignment]
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
@@ -180,6 +201,45 @@ def _rewrite_command(command: str) -> str | None:
     return "".join(result_parts)
 
 
+# ── Rule chain ────────────────────────────────────────────────────────────────
+
+
+def transform(command: str, env: dict[str, str] | None = None):
+    """Apply rule 1 then rule 2.  Returns (final_command | None, context | None).
+
+    `final_command` is None when nothing changed.  `context` carries the
+    actionable MSYS explanation, or None.  Never raises.
+    """
+    current = command
+    changed = False
+
+    try:
+        nopager = _rewrite_command(current)
+    except Exception:
+        nopager = None
+    if nopager is not None:
+        current = nopager
+        changed = True
+
+    context = None
+    if msys_pathconv is not None:
+        try:
+            decision = msys_pathconv.plan(current, env)
+            msys_pathconv.record(decision, current, env)
+            if decision.action == "protect" and decision.rewritten:
+                current = decision.rewritten
+                changed = True
+                context = msys_pathconv.explain(decision)
+            elif decision.action == "unsafe-shape":
+                # Predicted mangling we cannot safely rewrite: say so instead
+                # of silently passing a broken command through.
+                context = msys_pathconv.explain(decision)
+        except Exception:
+            pass  # fail-open: rule 2 never breaks rule 1
+
+    return (current if changed else None), context
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 
@@ -200,19 +260,17 @@ def main() -> int:
         if not isinstance(command, str) or not command.strip():
             return 0
 
-        rewritten = _rewrite_command(command)
-        if rewritten is None:
+        rewritten, context = transform(command)
+        if rewritten is None and context is None:
             return 0  # no change needed — silent exit
 
-        out = {
-            "hookSpecificOutput": {
-                "hookEventName": "PreToolUse",
-                "permissionDecision": "allow",
-                "updatedInput": {
-                    "command": rewritten,
-                },
-            }
-        }
+        payload = {"hookEventName": "PreToolUse"}
+        if rewritten is not None:
+            payload["permissionDecision"] = "allow"
+            payload["updatedInput"] = {"command": rewritten}
+        if context:
+            payload["additionalContext"] = context
+        out = {"hookSpecificOutput": payload}
         sys.stdout.write(json.dumps(out, ensure_ascii=False))
         sys.stdout.flush()
 
