@@ -133,7 +133,9 @@ class EventSpool:
             return cursor.rowcount == 1
 
     def mark_spooled(self, key: str) -> bool:
-        return self._set_state(key, "spooled", allowed=("observed", "spooled", "failed"))
+        return self._set_state(
+            key, "spooled", allowed=("observed", "spooled", "failed")
+        )
 
     def mark_publishing(self, key: str) -> bool:
         now = time.time()
@@ -207,14 +209,24 @@ class EventSpool:
             return True
 
     def mark_failed(self, key: str, error: str | BaseException | None = None) -> bool:
-        message = None if error is None else f"{type(error).__name__}: {error}" if isinstance(error, BaseException) else str(error)
+        message = (
+            None
+            if error is None
+            else f"{type(error).__name__}: {error}"
+            if isinstance(error, BaseException)
+            else str(error)
+        )
         if message is not None:
             message = message[:1000]
-        return self._set_state(key, "failed", error=message, allowed=_PUBLISHABLE_STATES)
+        return self._set_state(
+            key, "failed", error=message, allowed=_PUBLISHABLE_STATES
+        )
 
     def get(self, key: str) -> dict[str, Any] | None:
         with self._lock, self._connect() as connection:
-            row = connection.execute("SELECT * FROM events WHERE event_key = ?", (key,)).fetchone()
+            row = connection.execute(
+                "SELECT * FROM events WHERE event_key = ?", (key,)
+            ).fetchone()
             return dict(row) if row is not None else None
 
     def is_acked(self, key: str) -> bool:
@@ -234,7 +246,9 @@ class EventSpool:
         oldest = row["oldest"]
         return {
             "count": count,
-            "oldest_age_seconds": max(0.0, time.time() - float(oldest)) if oldest is not None else None,
+            "oldest_age_seconds": max(0.0, time.time() - float(oldest))
+            if oldest is not None
+            else None,
         }
 
 

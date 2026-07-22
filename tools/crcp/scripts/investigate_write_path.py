@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import subprocess
 import urllib.error
 import urllib.request
@@ -14,7 +13,9 @@ from crcp.auth import decode_jwt_claims
 
 
 def main() -> dict:
-    auth = json.loads((Path.home() / ".codex" / "auth.json").read_text(encoding="utf-8"))
+    auth = json.loads(
+        (Path.home() / ".codex" / "auth.json").read_text(encoding="utf-8")
+    )
     access = auth["tokens"]["access_token"]
     claims = decode_jwt_claims(access) or {}
     oa = claims.get("https://api.openai.com/auth") or {}
@@ -132,7 +133,24 @@ if __name__ == "__main__":
 
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     rep = main()
-    out = Path(__file__).resolve().parents[1] / "reports" / "write_path_investigation.json"
+    out = (
+        Path(__file__).resolve().parents[1]
+        / "reports"
+        / "write_path_investigation.json"
+    )
     out.write_text(json.dumps(rep, indent=2), encoding="utf-8")
-    print(json.dumps({k: rep[k] for k in ("access_scp", "oauth_scopes_requested_by_codex_login", "probes", "conclusions")}, indent=2))
+    print(
+        json.dumps(
+            {
+                k: rep[k]
+                for k in (
+                    "access_scp",
+                    "oauth_scopes_requested_by_codex_login",
+                    "probes",
+                    "conclusions",
+                )
+            },
+            indent=2,
+        )
+    )
     print("WROTE", out)

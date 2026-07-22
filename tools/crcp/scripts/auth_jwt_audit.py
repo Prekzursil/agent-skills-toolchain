@@ -1,13 +1,17 @@
-import json, base64, sys
+import json
+import base64
+import sys
 from pathlib import Path
 from datetime import datetime, timezone
 
 auth_path = Path.home() / ".codex" / "auth.json"
 out_path = Path(sys.argv[1])
 
+
 def b64url_decode(s: str) -> bytes:
     pad = "=" * (-len(s) % 4)
     return base64.urlsafe_b64decode(s + pad)
+
 
 def decode_jwt(token: str):
     parts = token.split(".")
@@ -40,10 +44,17 @@ def decode_jwt(token: str):
         "nbf": payload.get("nbf"),
         "iss": payload.get("iss"),
         "aud_type": type(payload.get("aud")).__name__ if "aud" in payload else None,
-        "token_use": payload.get("token_use") or payload.get("typ") or payload.get("type"),
+        "token_use": payload.get("token_use")
+        or payload.get("typ")
+        or payload.get("type"),
         "scp_or_scope": payload.get("scp") or payload.get("scope"),
-        "https_api_openai_com_auth": {k: payload.get(k) for k in payload if "openai" in k.lower() or k.startswith("https://")},
+        "https_api_openai_com_auth": {
+            k: payload.get(k)
+            for k in payload
+            if "openai" in k.lower() or k.startswith("https://")
+        },
     }
+
 
 data = json.loads(auth_path.read_text(encoding="utf-8"))
 now = datetime.now(timezone.utc)
@@ -90,34 +101,47 @@ report["agent_identity"] = {
     "account_id_present": bool(ai.get("account_id")),
     "agent_runtime_id_present": bool(ai.get("agent_runtime_id")),
     "agent_private_key_present": bool(ai.get("agent_private_key")),
-    "agent_private_key_len": len(ai["agent_private_key"]) if ai.get("agent_private_key") else None,
+    "agent_private_key_len": len(ai["agent_private_key"])
+    if ai.get("agent_private_key")
+    else None,
 }
+
 
 def secs_to_human(s):
     if s is None:
         return None
     s = int(s)
-    return f"{s}s ({s/3600:.2f}h)"
+    return f"{s}s ({s / 3600:.2f}h)"
+
 
 def exp_info(decoded):
     if not decoded or not decoded.get("exp"):
         return None
     exp = datetime.fromtimestamp(decoded["exp"], timezone.utc)
-    iat = datetime.fromtimestamp(decoded["iat"], timezone.utc) if decoded.get("iat") else None
+    iat = (
+        datetime.fromtimestamp(decoded["iat"], timezone.utc)
+        if decoded.get("iat")
+        else None
+    )
     return {
         "exp_utc": exp.isoformat(),
         "iat_utc": iat.isoformat() if iat else None,
-        "ttl_from_iat": secs_to_human((decoded["exp"] - decoded["iat"]) if decoded.get("iat") else None),
+        "ttl_from_iat": secs_to_human(
+            (decoded["exp"] - decoded["iat"]) if decoded.get("iat") else None
+        ),
         "seconds_until_exp": int((exp - now).total_seconds()),
         "expired": exp <= now,
     }
+
 
 report["lifecycle"]["id_token"] = exp_info(report["id_token"])
 report["lifecycle"]["access_token"] = exp_info(report["access_token"])
 if report.get("last_refresh"):
     try:
         lr = datetime.fromisoformat(report["last_refresh"].replace("Z", "+00:00"))
-        report["lifecycle"]["seconds_since_last_refresh"] = int((now - lr).total_seconds())
+        report["lifecycle"]["seconds_since_last_refresh"] = int(
+            (now - lr).total_seconds()
+        )
     except Exception as e:
         report["lifecycle"]["last_refresh_parse_error"] = str(e)
 
@@ -134,13 +158,18 @@ report["lifecycle"]["assessment"] = {
 }
 
 out_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
-print(json.dumps({
-    "auth_mode": report["auth_mode"],
-    "last_refresh": report["last_refresh"],
-    "id_exp": report["lifecycle"].get("id_token"),
-    "access_exp": report["lifecycle"].get("access_token"),
-    "refresh": report["refresh_token"],
-    "plan_type": report["agent_identity"].get("plan_type"),
-    "wrote": str(out_path),
-}, indent=2))
+print(
+    json.dumps(
+        {
+            "auth_mode": report["auth_mode"],
+            "last_refresh": report["last_refresh"],
+            "id_exp": report["lifecycle"].get("id_token"),
+            "access_exp": report["lifecycle"].get("access_token"),
+            "refresh": report["refresh_token"],
+            "plan_type": report["agent_identity"].get("plan_type"),
+            "wrote": str(out_path),
+        },
+        indent=2,
+    )
+)
 print("SUCCESS:auth_audit")

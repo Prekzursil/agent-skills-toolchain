@@ -490,9 +490,7 @@ class DeliveryWorker:
             row["status"]: {"items": row["item_count"], "bytes": row["bytes"]}
             for row in rows
         }
-        active = [
-            row for row in rows if row["status"] in ("pending", "leased")
-        ]
+        active = [row for row in rows if row["status"] in ("pending", "leased")]
         oldest = min(
             (row["oldest"] for row in active if row["oldest"] is not None),
             default=None,

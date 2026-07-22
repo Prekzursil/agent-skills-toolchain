@@ -15,7 +15,9 @@ _SECRET_KEY = re.compile(
     re.IGNORECASE,
 )
 _BEARER = re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]+")
-_JWT = re.compile(r"(?<![A-Za-z0-9_-])eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+")
+_JWT = re.compile(
+    r"(?<![A-Za-z0-9_-])eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+"
+)
 
 
 def _redact_url(value: str) -> str:
@@ -29,7 +31,9 @@ def _redact_url(value: str) -> str:
         (key, REDACTED if _SECRET_KEY.search(key) else item)
         for key, item in parse_qsl(parts.query, keep_blank_values=True)
     ]
-    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
+    return urlunsplit(
+        (parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment)
+    )
 
 
 def redact(value: Any) -> Any:

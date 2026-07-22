@@ -83,7 +83,9 @@ def status() -> dict[str, Any]:
         "last_apply": None,
     }
     try:
-        ts = datetime.fromisoformat(str(data.get("extracted_at")).replace("Z", "+00:00"))
+        ts = datetime.fromisoformat(
+            str(data.get("extracted_at")).replace("Z", "+00:00")
+        )
         report["age_hours"] = round(
             (datetime.now(timezone.utc) - ts).total_seconds() / 3600, 2
         )
@@ -145,7 +147,9 @@ def wait_cdp(port: int, timeout_s: float = 40.0) -> dict[str, Any]:
         except Exception as exc:  # noqa: BLE001
             last = exc
             time.sleep(0.4)
-    raise SystemExit(f"CDP not ready on :{port}: {type(last).__name__ if last else 'timeout'}")
+    raise SystemExit(
+        f"CDP not ready on :{port}: {type(last).__name__ if last else 'timeout'}"
+    )
 
 
 def launch_browser(kind: str, port: int, profile: Path) -> dict[str, Any]:
@@ -219,7 +223,9 @@ class Cdp:
         except Exception:
             pass
 
-    def call(self, method: str, params: dict | None = None, *, session: bool = False) -> Any:
+    def call(
+        self, method: str, params: dict | None = None, *, session: bool = False
+    ) -> Any:
         self._id += 1
         msg: dict[str, Any] = {"id": self._id, "method": method}
         if params:
@@ -244,7 +250,9 @@ class Cdp:
             tid = created.get("targetId")
         else:
             tid = pages[0]["targetId"]
-        att = self.call("Target.attachToTarget", {"targetId": tid, "flatten": True}) or {}
+        att = (
+            self.call("Target.attachToTarget", {"targetId": tid, "flatten": True}) or {}
+        )
         self.session_id = att.get("sessionId")
         if not self.session_id:
             raise RuntimeError("no sessionId")
@@ -312,10 +320,11 @@ def apply_cookies(port: int, cookies: list[dict[str, Any]]) -> dict[str, Any]:
         cdp.call("Page.navigate", {"url": "https://chatgpt.com/"}, session=True)
         time.sleep(4)
         # Probe session
-        probe = cdp.call(
-            "Runtime.evaluate",
-            {
-                "expression": """
+        probe = (
+            cdp.call(
+                "Runtime.evaluate",
+                {
+                    "expression": """
 (async () => {
   const out = {};
   async function hit(k, u) {
@@ -340,12 +349,14 @@ def apply_cookies(port: int, cookies: list[dict[str, Any]]) -> dict[str, Any]:
   return out;
 })()
 """,
-                "awaitPromise": True,
-                "returnByValue": True,
-                "userGesture": True,
-            },
-            session=True,
-        ) or {}
+                    "awaitPromise": True,
+                    "returnByValue": True,
+                    "userGesture": True,
+                },
+                session=True,
+            )
+            or {}
+        )
         value = (probe.get("result") or {}).get("value") or {}
         meta = cdp.call("Network.getAllCookies", session=True) or {}
         all_c = meta.get("cookies") or []
@@ -360,7 +371,9 @@ def apply_cookies(port: int, cookies: list[dict[str, Any]]) -> dict[str, Any]:
                 (c.get("name") or "").startswith("__Secure-next-auth.session-token")
                 for c in all_c
             ),
-            "browser_has_oai_is": any(c.get("name") == "__Secure-oai-is" for c in all_c),
+            "browser_has_oai_is": any(
+                c.get("name") == "__Secure-oai-is" for c in all_c
+            ),
         }
     finally:
         cdp.close()
@@ -388,11 +401,7 @@ def apply(
     report = {
         "ok": web_logged_in or api_ok,
         "status": (
-            "WEB_SESSION_OK"
-            if web_logged_in
-            else "API_ONLY"
-            if api_ok
-            else "FAILED"
+            "WEB_SESSION_OK" if web_logged_in else "API_ONLY" if api_ok else "FAILED"
         ),
         "applied_at": datetime.now(timezone.utc).isoformat(),
         "source_extracted_at": data.get("extracted_at"),
@@ -406,7 +415,8 @@ def apply(
             "set_fail": result["set_fail"],
             "names_set_count": len(result["names_set"]),
             "has_nextauth_in_set": any(
-                n.startswith("__Secure-next-auth.session-token") for n in result["names_set"]
+                n.startswith("__Secure-next-auth.session-token")
+                for n in result["names_set"]
             ),
             "has_oai_is_in_set": "__Secure-oai-is" in result["names_set"],
             "fail_sample": result["fail_sample"],
@@ -443,7 +453,9 @@ def main(argv: list[str]) -> int:
     if cmd == "verify":
         st = status()
         last = st.get("last_apply") or {}
-        print(json.dumps({"store": st, "last_apply_status": last.get("status")}, indent=2))
+        print(
+            json.dumps({"store": st, "last_apply_status": last.get("status")}, indent=2)
+        )
         return 0 if st.get("ok") else 1
     if cmd == "apply":
         browser = "chrome"

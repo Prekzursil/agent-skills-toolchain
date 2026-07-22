@@ -12,7 +12,6 @@ import ctypes
 import hashlib
 import json
 import os
-import shutil
 import sqlite3
 import subprocess
 import tempfile
@@ -69,8 +68,12 @@ def _is_lock_error(exc: BaseException) -> bool:
     return winerror in (32, 33) or any(
         marker in text
         for marker in (
-            "sharing violation", "used by another process", "database is locked",
-            "unable to open database file", "disk i/o error", "permission denied",
+            "sharing violation",
+            "used by another process",
+            "database is locked",
+            "unable to open database file",
+            "disk i/o error",
+            "permission denied",
         )
     )
 
@@ -129,27 +132,32 @@ def _inventory_open(db_path: Path) -> list[dict[str, Any]]:
     last_error: BaseException | None = None
     for immutable in (False, True):
         try:
-            connection = sqlite3.connect(_sqlite_uri(path, immutable=immutable), uri=True)
+            connection = sqlite3.connect(
+                _sqlite_uri(path, immutable=immutable), uri=True
+            )
             try:
                 connection.execute("PRAGMA query_only=ON")
                 columns = {
-                    str(row[1]) for row in connection.execute("PRAGMA table_info(cookies)")
+                    str(row[1])
+                    for row in connection.execute("PRAGMA table_info(cookies)")
                 }
                 required = {"host_key", "name", "path", "encrypted_value"}
                 missing = sorted(required - columns)
                 if missing:
-                    raise ValueError(f"cookies table missing columns: {', '.join(missing)}")
+                    raise ValueError(
+                        f"cookies table missing columns: {', '.join(missing)}"
+                    )
 
                 def column(name: str, fallback: str = "0") -> str:
                     return name if name in columns else fallback
 
                 query = f"""
                     SELECT host_key, name, path,
-                           {column('is_secure')} AS is_secure,
-                           {column('is_httponly')} AS is_httponly,
-                           {column('samesite', '-1')} AS samesite,
-                           {column('is_persistent')} AS is_persistent,
-                           {column('expires_utc')} AS expires_utc,
+                           {column("is_secure")} AS is_secure,
+                           {column("is_httponly")} AS is_httponly,
+                           {column("samesite", "-1")} AS samesite,
+                           {column("is_persistent")} AS is_persistent,
+                           {column("expires_utc")} AS expires_utc,
                            length(encrypted_value) AS encrypted_value_len
                       FROM cookies
                      ORDER BY host_key, name, path
@@ -290,13 +298,20 @@ def _dpapi_unprotect(payload: bytes) -> bytes | None:
     if os.name != "nt" or not payload:
         return None
     buffer = ctypes.create_string_buffer(payload)
-    incoming = _DataBlob(len(payload), ctypes.cast(buffer, ctypes.POINTER(ctypes.c_ubyte)))
+    incoming = _DataBlob(
+        len(payload), ctypes.cast(buffer, ctypes.POINTER(ctypes.c_ubyte))
+    )
     outgoing = _DataBlob()
     crypt32 = ctypes.WinDLL("crypt32", use_last_error=True)
     kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
     crypt32.CryptUnprotectData.argtypes = [
-        ctypes.POINTER(_DataBlob), ctypes.c_void_p, ctypes.POINTER(_DataBlob),
-        ctypes.c_void_p, ctypes.c_void_p, wintypes.DWORD, ctypes.POINTER(_DataBlob),
+        ctypes.POINTER(_DataBlob),
+        ctypes.c_void_p,
+        ctypes.POINTER(_DataBlob),
+        ctypes.c_void_p,
+        ctypes.c_void_p,
+        wintypes.DWORD,
+        ctypes.POINTER(_DataBlob),
     ]
     crypt32.CryptUnprotectData.restype = wintypes.BOOL
     kernel32.LocalFree.argtypes = [ctypes.c_void_p]
@@ -323,34 +338,59 @@ def _read_oscrypt_key(local_state: Path) -> bytes | None:
     return _dpapi_unprotect(wrapped)
 
 
-def _aes_gcm_decrypt(key: bytes, nonce: bytes, ciphertext: bytes, tag: bytes) -> bytes | None:
+def _aes_gcm_decrypt(
+    key: bytes, nonce: bytes, ciphertext: bytes, tag: bytes
+) -> bytes | None:
     """Decrypt AES-GCM with the Windows CNG API, without third-party packages."""
     if os.name != "nt":
         return None
     bcrypt = ctypes.WinDLL("bcrypt", use_last_error=True)
     byte_pointer = ctypes.POINTER(ctypes.c_ubyte)
     bcrypt.BCryptOpenAlgorithmProvider.argtypes = [
-        ctypes.POINTER(ctypes.c_void_p), wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.ULONG,
+        ctypes.POINTER(ctypes.c_void_p),
+        wintypes.LPCWSTR,
+        wintypes.LPCWSTR,
+        wintypes.ULONG,
     ]
     bcrypt.BCryptOpenAlgorithmProvider.restype = ctypes.c_long
     bcrypt.BCryptSetProperty.argtypes = [
-        ctypes.c_void_p, wintypes.LPCWSTR, byte_pointer, wintypes.ULONG, wintypes.ULONG,
+        ctypes.c_void_p,
+        wintypes.LPCWSTR,
+        byte_pointer,
+        wintypes.ULONG,
+        wintypes.ULONG,
     ]
     bcrypt.BCryptSetProperty.restype = ctypes.c_long
     bcrypt.BCryptGetProperty.argtypes = [
-        ctypes.c_void_p, wintypes.LPCWSTR, byte_pointer, wintypes.ULONG,
-        ctypes.POINTER(wintypes.ULONG), wintypes.ULONG,
+        ctypes.c_void_p,
+        wintypes.LPCWSTR,
+        byte_pointer,
+        wintypes.ULONG,
+        ctypes.POINTER(wintypes.ULONG),
+        wintypes.ULONG,
     ]
     bcrypt.BCryptGetProperty.restype = ctypes.c_long
     bcrypt.BCryptGenerateSymmetricKey.argtypes = [
-        ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p), byte_pointer, wintypes.ULONG,
-        byte_pointer, wintypes.ULONG, wintypes.ULONG,
+        ctypes.c_void_p,
+        ctypes.POINTER(ctypes.c_void_p),
+        byte_pointer,
+        wintypes.ULONG,
+        byte_pointer,
+        wintypes.ULONG,
+        wintypes.ULONG,
     ]
     bcrypt.BCryptGenerateSymmetricKey.restype = ctypes.c_long
     bcrypt.BCryptDecrypt.argtypes = [
-        ctypes.c_void_p, byte_pointer, wintypes.ULONG, ctypes.c_void_p,
-        byte_pointer, wintypes.ULONG, byte_pointer, wintypes.ULONG,
-        ctypes.POINTER(wintypes.ULONG), wintypes.ULONG,
+        ctypes.c_void_p,
+        byte_pointer,
+        wintypes.ULONG,
+        ctypes.c_void_p,
+        byte_pointer,
+        wintypes.ULONG,
+        byte_pointer,
+        wintypes.ULONG,
+        ctypes.POINTER(wintypes.ULONG),
+        wintypes.ULONG,
     ]
     bcrypt.BCryptDecrypt.restype = ctypes.c_long
     bcrypt.BCryptDestroyKey.argtypes = [ctypes.c_void_p]
@@ -364,34 +404,61 @@ def _aes_gcm_decrypt(key: bytes, nonce: bytes, ciphertext: bytes, tag: bytes) ->
     key_object = None
     try:
         mode = ctypes.create_unicode_buffer("ChainingModeGCM")
-        if bcrypt.BCryptSetProperty(
-            handle, "ChainingMode", ctypes.cast(mode, byte_pointer),
-            ctypes.sizeof(mode), 0
-        ) != 0:
+        if (
+            bcrypt.BCryptSetProperty(
+                handle,
+                "ChainingMode",
+                ctypes.cast(mode, byte_pointer),
+                ctypes.sizeof(mode),
+                0,
+            )
+            != 0
+        ):
             return None
         size = wintypes.DWORD()
         used = wintypes.DWORD()
-        if bcrypt.BCryptGetProperty(
-            handle, "ObjectLength", ctypes.cast(ctypes.byref(size), byte_pointer), ctypes.sizeof(size),
-            ctypes.byref(used), 0
-        ) != 0:
+        if (
+            bcrypt.BCryptGetProperty(
+                handle,
+                "ObjectLength",
+                ctypes.cast(ctypes.byref(size), byte_pointer),
+                ctypes.sizeof(size),
+                ctypes.byref(used),
+                0,
+            )
+            != 0
+        ):
             return None
         key_object = ctypes.create_string_buffer(size.value)
         key_buffer = ctypes.create_string_buffer(key)
-        if bcrypt.BCryptGenerateSymmetricKey(
-            handle, ctypes.byref(key_handle), ctypes.cast(key_object, byte_pointer), size.value,
-            ctypes.cast(key_buffer, byte_pointer), len(key), 0
-        ) != 0:
+        if (
+            bcrypt.BCryptGenerateSymmetricKey(
+                handle,
+                ctypes.byref(key_handle),
+                ctypes.cast(key_object, byte_pointer),
+                size.value,
+                ctypes.cast(key_buffer, byte_pointer),
+                len(key),
+                0,
+            )
+            != 0
+        ):
             return None
 
         class AuthInfo(ctypes.Structure):
             _fields_ = [
-                ("cbSize", wintypes.ULONG), ("dwInfoVersion", wintypes.ULONG),
-                ("pbNonce", ctypes.POINTER(ctypes.c_ubyte)), ("cbNonce", wintypes.ULONG),
-                ("pbAuthData", ctypes.POINTER(ctypes.c_ubyte)), ("cbAuthData", wintypes.ULONG),
-                ("pbTag", ctypes.POINTER(ctypes.c_ubyte)), ("cbTag", wintypes.ULONG),
-                ("pbMacContext", ctypes.POINTER(ctypes.c_ubyte)), ("cbMacContext", wintypes.ULONG),
-                ("cbAAD", wintypes.ULONG), ("cbData", ctypes.c_ulonglong),
+                ("cbSize", wintypes.ULONG),
+                ("dwInfoVersion", wintypes.ULONG),
+                ("pbNonce", ctypes.POINTER(ctypes.c_ubyte)),
+                ("cbNonce", wintypes.ULONG),
+                ("pbAuthData", ctypes.POINTER(ctypes.c_ubyte)),
+                ("cbAuthData", wintypes.ULONG),
+                ("pbTag", ctypes.POINTER(ctypes.c_ubyte)),
+                ("cbTag", wintypes.ULONG),
+                ("pbMacContext", ctypes.POINTER(ctypes.c_ubyte)),
+                ("cbMacContext", wintypes.ULONG),
+                ("cbAAD", wintypes.ULONG),
+                ("cbData", ctypes.c_ulonglong),
                 ("dwFlags", wintypes.ULONG),
             ]
 
@@ -408,8 +475,16 @@ def _aes_gcm_decrypt(key: bytes, nonce: bytes, ciphertext: bytes, tag: bytes) ->
         output = ctypes.create_string_buffer(len(ciphertext))
         output_size = wintypes.ULONG()
         status = bcrypt.BCryptDecrypt(
-            key_handle, ctypes.cast(encrypted, byte_pointer), len(ciphertext), ctypes.byref(auth),
-            None, 0, ctypes.cast(output, byte_pointer), len(output), ctypes.byref(output_size), 0
+            key_handle,
+            ctypes.cast(encrypted, byte_pointer),
+            len(ciphertext),
+            ctypes.byref(auth),
+            None,
+            0,
+            ctypes.cast(output, byte_pointer),
+            len(output),
+            ctypes.byref(output_size),
+            0,
         )
         return output.raw[: output_size.value] if status == 0 else None
     except (OSError, ValueError, TypeError):
@@ -444,13 +519,17 @@ def _secret_output_allowed(out_path: Path) -> Path:
     destination = Path(out_path).resolve()
     result_root = RESULT_DIR.resolve()
     if destination == result_root or result_root in destination.parents:
-        raise PermissionError("secret material may not be written under CRCP result directory")
+        raise PermissionError(
+            "secret material may not be written under CRCP result directory"
+        )
     destination.parent.mkdir(parents=True, exist_ok=True)
     return destination
 
 
 def export_cookies_json(
-    cookies_decrypted: Iterable[Mapping[str, Any]], out_path: Path, *,
+    cookies_decrypted: Iterable[Mapping[str, Any]],
+    out_path: Path,
+    *,
     allow_decrypt: bool = False,
 ) -> Path:
     """Write decrypted cookies for import, only with explicit authorization."""
@@ -463,14 +542,19 @@ def export_cookies_json(
 
 
 def export_cookies_netscape(
-    cookies_decrypted: Iterable[Mapping[str, Any]], out_path: Path, *,
+    cookies_decrypted: Iterable[Mapping[str, Any]],
+    out_path: Path,
+    *,
     allow_decrypt: bool = False,
 ) -> Path:
     """Write a Netscape cookie file, only with explicit authorization."""
     if not allow_decrypt:
         raise PermissionError("allow_decrypt=True is required")
     destination = _secret_output_allowed(Path(out_path))
-    lines = ["# Netscape HTTP Cookie File", "# Generated locally by CRCP; contains secrets."]
+    lines = [
+        "# Netscape HTTP Cookie File",
+        "# Generated locally by CRCP; contains secrets.",
+    ]
     for cookie in cookies_decrypted:
         host = str(cookie["host_key"])
         include_subdomains = "TRUE" if host.startswith(".") else "FALSE"
@@ -479,8 +563,15 @@ def export_cookies_netscape(
         value = cookie.get("value", "")
         if isinstance(value, bytes):
             value = value.decode("utf-8", "surrogateescape")
-        fields = [host, include_subdomains, str(cookie.get("path", "/")), secure,
-                  str(expires), str(cookie["name"]), str(value)]
+        fields = [
+            host,
+            include_subdomains,
+            str(cookie.get("path", "/")),
+            secure,
+            str(expires),
+            str(cookie["name"]),
+            str(value),
+        ]
         if any("\t" in field or "\n" in field or "\r" in field for field in fields):
             raise ValueError("cookie fields cannot contain tabs or newlines")
         lines.append("\t".join(fields))
@@ -502,7 +593,9 @@ def format_cdp_cookie(cookie_dict: Mapping[str, Any]) -> dict[str, Any]:
         "value": str(value),
         "path": str(cookie_dict.get("path") or "/"),
         "secure": secure,
-        "httpOnly": bool(cookie_dict.get("httpOnly", cookie_dict.get("is_httponly", False))),
+        "httpOnly": bool(
+            cookie_dict.get("httpOnly", cookie_dict.get("is_httponly", False))
+        ),
     }
     # Prefer url; domain is optional when url is set (works better for CDP).
     host = domain.lstrip(".") if domain else "chatgpt.com"
@@ -511,7 +604,11 @@ def format_cdp_cookie(cookie_dict: Mapping[str, Any]) -> dict[str, Any]:
         result["domain"] = domain
     same_site = cookie_dict.get("sameSite", cookie_dict.get("samesite"))
     same_site_map = {-1: None, 0: "None", 1: "Lax", 2: "Strict"}
-    mapped = same_site_map.get(same_site, same_site) if isinstance(same_site, int) else same_site
+    mapped = (
+        same_site_map.get(same_site, same_site)
+        if isinstance(same_site, int)
+        else same_site
+    )
     if mapped in ("Strict", "Lax", "None"):
         result["sameSite"] = mapped
     expires = cookie_dict.get("expires", cookie_dict.get("expires_unix"))
@@ -579,7 +676,9 @@ def run_mirror_inventory() -> dict[str, Any]:
     return report
 
 
-def _decrypted_records(db_path: Path, local_state: Path) -> tuple[list[dict[str, Any]], int]:
+def _decrypted_records(
+    db_path: Path, local_state: Path
+) -> tuple[list[dict[str, Any]], int]:
     metadata = inventory_cookies(db_path)
 
     def read_encrypted(path: Path) -> list[tuple[Any, ...]]:
@@ -588,10 +687,12 @@ def _decrypted_records(db_path: Path, local_state: Path) -> tuple[list[dict[str,
                 str(row[1]) for row in connection.execute("PRAGMA table_info(cookies)")
             }
             plaintext = "value" if "value" in columns else "''"
-            return list(connection.execute(
-                f"SELECT host_key, name, path, encrypted_value, {plaintext} FROM cookies "
-                "ORDER BY host_key, name, path"
-            ))
+            return list(
+                connection.execute(
+                    f"SELECT host_key, name, path, encrypted_value, {plaintext} FROM cookies "
+                    "ORDER BY host_key, name, path"
+                )
+            )
 
     try:
         encrypted = read_encrypted(db_path)
@@ -616,7 +717,7 @@ def _decrypted_records(db_path: Path, local_state: Path) -> tuple[list[dict[str,
             continue
         host_digest = hashlib.sha256(str(host).encode("utf-8")).digest()
         if value.startswith(host_digest):
-            value = value[len(host_digest):]
+            value = value[len(host_digest) :]
         record = dict(lookup[(str(host), str(name), str(path))])
         record["value"] = value.decode("utf-8", "surrogateescape")
         records.append(record)
@@ -640,7 +741,11 @@ def run_mirror_export(out_dir: Path, *, decrypt: bool = False) -> dict[str, Any]
         payload = {
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "summary": summary,
-            "cookies": [dict(cookie, source=str(path)) for path, rows in inventories for cookie in rows],
+            "cookies": [
+                dict(cookie, source=str(path))
+                for path, rows in inventories
+                for cookie in rows
+            ],
         }
         metadata_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
         summary["export_path"] = str(metadata_path)
@@ -656,10 +761,12 @@ def run_mirror_export(out_dir: Path, *, decrypt: bool = False) -> dict[str, Any]
         records.extend(decrypted)
         failures += failed
     export_cookies_json(records, secret_path, allow_decrypt=True)
-    summary.update({
-        "export_path": str(secret_path),
-        "export_kind": "decrypted_json",
-        "decrypted_count": len(records),
-        "decrypt_failed_count": failures,
-    })
+    summary.update(
+        {
+            "export_path": str(secret_path),
+            "export_kind": "decrypted_json",
+            "decrypted_count": len(records),
+            "decrypt_failed_count": failures,
+        }
+    )
     return summary

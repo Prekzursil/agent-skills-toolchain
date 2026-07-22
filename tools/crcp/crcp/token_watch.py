@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import time
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
@@ -54,14 +53,22 @@ def watch_auth_json(
             "last_refresh_age_days": st.get("last_refresh_age_days"),
             "would_proactive_refresh_by_age": st.get("would_proactive_refresh_by_age"),
             "access_seconds_until_exp": access.get("seconds_until_exp"),
-            "access_ttl_hours_remaining": round((access.get("seconds_until_exp") or 0) / 3600, 2)
+            "access_ttl_hours_remaining": round(
+                (access.get("seconds_until_exp") or 0) / 3600, 2
+            )
             if access.get("seconds_until_exp") is not None
             else None,
             "within_5min_of_exp": access.get("within_5min_of_exp"),
             "stale_warning_8d": bool(st.get("would_proactive_refresh_by_age")),
         }
 
-    emit({"event": "watch_start", "auth_path": str(auth_path), **{k: v for k, v in snapshot().items() if k != "event"}})
+    emit(
+        {
+            "event": "watch_start",
+            "auth_path": str(auth_path),
+            **{k: v for k, v in snapshot().items() if k != "event"},
+        }
+    )
 
     if once:
         return {"events": events, "log_path": str(log_path)}

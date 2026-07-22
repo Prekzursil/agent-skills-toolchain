@@ -18,7 +18,11 @@ def _load_candidate():
 
     # Prefer package __main__; fall back to a sibling copy if present.
     package_main = Path(__file__).resolve().parents[1] / "crcp" / "__main__.py"
-    path = package_main if package_main.is_file() else Path(__file__).with_name("__main__.py")
+    path = (
+        package_main
+        if package_main.is_file()
+        else Path(__file__).with_name("__main__.py")
+    )
     spec = importlib.util.spec_from_file_location("crcp._auth_cli_wire", path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"cannot load CLI candidate: {path}")
@@ -36,20 +40,37 @@ class ParserRegistrationTests(unittest.TestCase):
         self.parser = cli.build_parser()
 
     def test_mirror_options_are_registered(self) -> None:
-        args = self.parser.parse_args([
-            "auth", "mirror", "--user-data", "profile", "--json",
-            "--export", "cookies", "--decrypt",
-        ])
+        args = self.parser.parse_args(
+            [
+                "auth",
+                "mirror",
+                "--user-data",
+                "profile",
+                "--json",
+                "--export",
+                "cookies",
+                "--decrypt",
+            ]
+        )
         self.assertIs(args.func, cli.cmd_auth_mirror)
         self.assertEqual(args.user_data, "profile")
         self.assertEqual(args.export, "cookies")
         self.assertTrue(args.decrypt)
 
     def test_deeplink_commands_are_registered(self) -> None:
-        built = self.parser.parse_args([
-            "auth", "deeplink", "build", "--path", "chat",
-            "--query", "conversation_id=abc", "--query", "mode=desktop",
-        ])
+        built = self.parser.parse_args(
+            [
+                "auth",
+                "deeplink",
+                "build",
+                "--path",
+                "chat",
+                "--query",
+                "conversation_id=abc",
+                "--query",
+                "mode=desktop",
+            ]
+        )
         opened = self.parser.parse_args(["auth", "deeplink", "open", "codex://open"])
         status = self.parser.parse_args(["auth", "deeplink", "status"])
         self.assertIs(built.func, cli.cmd_auth_deeplink_build)
@@ -58,13 +79,29 @@ class ParserRegistrationTests(unittest.TestCase):
         self.assertIs(status.func, cli.cmd_auth_deeplink_status)
 
     def test_sso_commands_and_options_are_registered(self) -> None:
-        login = self.parser.parse_args([
-            "auth", "sso", "login", "--redirect-uri", "http://127.0.0.1:8765/callback",
-            "--print-url", "--code", "opaque-code", "--timeout", "12",
-        ])
-        preview = self.parser.parse_args([
-            "auth", "sso", "authorize-url", "--redirect-uri", "http://localhost:8765/callback",
-        ])
+        login = self.parser.parse_args(
+            [
+                "auth",
+                "sso",
+                "login",
+                "--redirect-uri",
+                "http://127.0.0.1:8765/callback",
+                "--print-url",
+                "--code",
+                "opaque-code",
+                "--timeout",
+                "12",
+            ]
+        )
+        preview = self.parser.parse_args(
+            [
+                "auth",
+                "sso",
+                "authorize-url",
+                "--redirect-uri",
+                "http://localhost:8765/callback",
+            ]
+        )
         self.assertIs(login.func, cli.cmd_auth_sso_login)
         self.assertEqual(login.timeout, 12)
         self.assertTrue(login.print_url)
@@ -86,7 +123,10 @@ class ParserRegistrationTests(unittest.TestCase):
 
     def test_auth_help_lists_new_and_existing_commands(self) -> None:
         output = io.StringIO()
-        with self.assertRaises(SystemExit) as raised, contextlib.redirect_stdout(output):
+        with (
+            self.assertRaises(SystemExit) as raised,
+            contextlib.redirect_stdout(output),
+        ):
             self.parser.parse_args(["auth", "--help"])
         self.assertEqual(raised.exception.code, 0)
         for name in ("status", "watch", "mirror", "deeplink", "sso"):
@@ -96,7 +136,9 @@ class ParserRegistrationTests(unittest.TestCase):
 class DispatchSafetyTests(unittest.TestCase):
     def test_missing_sibling_is_json_config_error(self) -> None:
         output = io.StringIO()
-        with mock.patch.object(cli, "_auth_import", side_effect=cli.AuthCliConfigError("missing sibling")):
+        with mock.patch.object(
+            cli, "_auth_import", side_effect=cli.AuthCliConfigError("missing sibling")
+        ):
             with contextlib.redirect_stdout(output):
                 exit_code = cli.main(["auth", "deeplink", "status"])
         self.assertEqual(exit_code, 2)
@@ -121,7 +163,9 @@ class DispatchSafetyTests(unittest.TestCase):
     def test_invalid_query_is_hard_config_error(self) -> None:
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
-            exit_code = cli.main(["auth", "deeplink", "build", "--query", "missing-separator"])
+            exit_code = cli.main(
+                ["auth", "deeplink", "build", "--query", "missing-separator"]
+            )
         self.assertEqual(exit_code, 2)
         self.assertEqual(json.loads(output.getvalue())["error"]["kind"], "config")
 

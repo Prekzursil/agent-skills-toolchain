@@ -1,4 +1,5 @@
 """Probe sentinel prepare + write-path variants. Local owner-authorized only."""
+
 from __future__ import annotations
 
 import json
@@ -30,7 +31,9 @@ def shape(o, depth=0):
     return type(o).__name__
 
 
-def prepare(bridge: ChatGPTBridge, device_id: str, session_id: str, p: str = "") -> dict:
+def prepare(
+    bridge: ChatGPTBridge, device_id: str, session_id: str, p: str = ""
+) -> dict:
     url = f"{bridge.base}/backend-api/sentinel/chat-requirements/prepare"
     body = json.dumps({"p": p}).encode()
     req = urllib.request.Request(
@@ -109,7 +112,13 @@ def main() -> None:
     pow_info = prep.get("proofofwork") or prep.get("proof_of_work")
     if isinstance(pow_info, dict):
         print("pow_info_keys", sorted(pow_info.keys()))
-        print("pow_info_sample", {k: (str(v)[:80] if not isinstance(v, (int, float, bool)) else v) for k, v in pow_info.items()})
+        print(
+            "pow_info_sample",
+            {
+                k: (str(v)[:80] if not isinstance(v, (int, float, bool)) else v)
+                for k, v in pow_info.items()
+            },
+        )
 
     report = {
         "at": time.time(),

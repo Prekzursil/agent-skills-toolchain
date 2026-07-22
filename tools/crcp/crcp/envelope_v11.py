@@ -58,7 +58,9 @@ def validate_envelope(envelope: Any) -> list[str]:
     if payload_ref is not None and (
         not isinstance(payload_ref, str) or not _SHA_REF.fullmatch(payload_ref)
     ):
-        errors.append("payload_ref must be a content address: sha256:<64 lowercase hex>")
+        errors.append(
+            "payload_ref must be a content address: sha256:<64 lowercase hex>"
+        )
     if "payload" in envelope and payload_ref is not None:
         errors.append("payload and payload_ref are mutually exclusive")
     capabilities = envelope.get("capabilities_required", [])

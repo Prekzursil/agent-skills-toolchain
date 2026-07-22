@@ -57,7 +57,9 @@ def _read_owner(path: Path) -> int | None:
 
 def _atomic_write_json(path: Path, data: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    fd, temp_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=str(path.parent))
+    fd, temp_name = tempfile.mkstemp(
+        prefix=f".{path.name}.", suffix=".tmp", dir=str(path.parent)
+    )
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as stream:
             json.dump(data, stream, sort_keys=True)
@@ -106,7 +108,9 @@ class SingletonLease:
         self.release()
 
 
-def acquire_singleton_lock(path: Path | str, stale_seconds: float = 3600) -> SingletonLease:
+def acquire_singleton_lock(
+    path: Path | str, stale_seconds: float = 3600
+) -> SingletonLease:
     """Acquire a singleton lease or raise with the current owner PID.
 
     ``stale_seconds`` is recorded for diagnostics. An unlocked OS lock is always

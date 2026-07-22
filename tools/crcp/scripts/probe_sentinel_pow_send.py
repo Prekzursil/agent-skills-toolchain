@@ -1,4 +1,5 @@
 """Solve PoW then attempt authenticated conversation POST with sentinel headers."""
+
 from __future__ import annotations
 
 import json
@@ -101,7 +102,9 @@ def main() -> None:
         "attempts": attempts,
         "success": any(a.get("ok") for a in attempts),
     }
-    path = Path(__file__).resolve().parents[1] / "reports" / "sentinel_pow_send_probe.json"
+    path = (
+        Path(__file__).resolve().parents[1] / "reports" / "sentinel_pow_send_probe.json"
+    )
     path.write_text(json.dumps(report, indent=2), encoding="utf-8")
     print("wrote", path, "success=", report["success"])
 

@@ -72,7 +72,9 @@ def codex_auth_status(codex_home: Path | None = None) -> dict[str, Any]:
         return out
 
     st = auth_path.stat()
-    out["file_mtime_utc"] = datetime.fromtimestamp(st.st_mtime, timezone.utc).isoformat()
+    out["file_mtime_utc"] = datetime.fromtimestamp(
+        st.st_mtime, timezone.utc
+    ).isoformat()
     out["file_bytes"] = st.st_size
     out["auth_mode"] = data.get("auth_mode")
     out["last_refresh"] = data.get("last_refresh")
@@ -85,12 +87,22 @@ def codex_auth_status(codex_home: Path | None = None) -> dict[str, Any]:
         "refresh_token": bool(tokens.get("refresh_token")),
         "account_id": bool(tokens.get("account_id")),
         "id_token_len": len(tokens["id_token"]) if tokens.get("id_token") else 0,
-        "access_token_len": len(tokens["access_token"]) if tokens.get("access_token") else 0,
-        "refresh_token_len": len(tokens["refresh_token"]) if tokens.get("refresh_token") else 0,
+        "access_token_len": len(tokens["access_token"])
+        if tokens.get("access_token")
+        else 0,
+        "refresh_token_len": len(tokens["refresh_token"])
+        if tokens.get("refresh_token")
+        else 0,
     }
 
-    access_claims = decode_jwt_claims(tokens["access_token"]) if tokens.get("access_token") else None
-    id_claims = decode_jwt_claims(tokens["id_token"]) if tokens.get("id_token") else None
+    access_claims = (
+        decode_jwt_claims(tokens["access_token"])
+        if tokens.get("access_token")
+        else None
+    )
+    id_claims = (
+        decode_jwt_claims(tokens["id_token"]) if tokens.get("id_token") else None
+    )
     out["access_token"] = _exp_info(access_claims, now)
     out["id_token"] = _exp_info(id_claims, now)
 
@@ -204,7 +216,9 @@ def databricks_auth_status(timeout_sec: int = 20) -> dict[str, Any]:
     return out
 
 
-def agent_mail_status(base: str = "http://127.0.0.1:8812", timeout_sec: int = 5) -> dict[str, Any]:
+def agent_mail_status(
+    base: str = "http://127.0.0.1:8812", timeout_sec: int = 5
+) -> dict[str, Any]:
     out: dict[str, Any] = {
         "rail": "agent_mail",
         "health_url": f"{base}/api/health",
@@ -245,7 +259,9 @@ def chatgpt_bridge_status(codex_home: Path | None = None) -> dict[str, Any]:
         "codex_status": base.get("status"),
     }
     if base.get("status") not in ("LOGGED_IN", "EXPIRING_SOON"):
-        out["status"] = "EXPIRED" if base.get("status", "").startswith("EXPIRED") else "MISSING"
+        out["status"] = (
+            "EXPIRED" if base.get("status", "").startswith("EXPIRED") else "MISSING"
+        )
         return out
 
     home = codex_home or Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))
@@ -300,7 +316,9 @@ def full_auth_status() -> dict[str, Any]:
     }
     # overall: green if codex + agent_mail + (dbx optional for local)
     critical = ["codex", "agent_mail", "chatgpt_live_bridge"]
-    green = all(rails[r].get("status") in ("LOGGED_IN", "EXPIRING_SOON") for r in critical)
+    green = all(
+        rails[r].get("status") in ("LOGGED_IN", "EXPIRING_SOON") for r in critical
+    )
     return {
         "probed_at": now,
         "overall": "GREEN" if green else "DEGRADED",

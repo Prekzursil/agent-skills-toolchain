@@ -108,9 +108,15 @@ def main() -> int:
 
     con = sqlite3.connect(f"file:{tmp.as_posix()}?mode=ro", uri=True)
     con.row_factory = sqlite3.Row
-    tables = [r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")]
+    tables = [
+        r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    ]
     if "cookies" not in tables:
-        print(json.dumps({"error": "no cookies table", "tables": tables, "bytes": len(raw)}))
+        print(
+            json.dumps(
+                {"error": "no cookies table", "tables": tables, "bytes": len(raw)}
+            )
+        )
         return 2
 
     rows = con.execute(

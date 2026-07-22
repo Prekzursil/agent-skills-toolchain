@@ -70,7 +70,9 @@ def publish_outbox(
             continue
         eid = env.get("id") or path.name
         if eid in published and not force:
-            results.append({"path": str(path), "ok": True, "skipped": True, "envelope_id": eid})
+            results.append(
+                {"path": str(path), "ok": True, "skipped": True, "envelope_id": eid}
+            )
             continue
         try:
             send = publish_envelope(env, project=project, worker=worker)

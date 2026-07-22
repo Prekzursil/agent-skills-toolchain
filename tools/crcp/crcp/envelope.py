@@ -34,7 +34,9 @@ def _is_sha256(value: Any) -> bool:
     )
 
 
-def _content_address(payload_ref: str | None) -> tuple[str | None, str | None, int | None]:
+def _content_address(
+    payload_ref: str | None,
+) -> tuple[str | None, str | None, int | None]:
     """Return a preferred ref plus any digest and size known locally."""
     if payload_ref is None:
         return None, None, None
@@ -75,7 +77,9 @@ def _event_key(
         "thread_id": thread_id,
         "to_rail": to_rail,
     }
-    encoded = json.dumps(identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    encoded = json.dumps(identity, sort_keys=True, separators=(",", ":")).encode(
+        "utf-8"
+    )
     return f"sha256:{content_hash(encoded)}"
 
 
@@ -165,7 +169,14 @@ def validate_envelope(env: Any) -> tuple[bool, list[str]]:
     if env.get("v") != 1:
         errors.append("v must be 1")
 
-    required_strings = ("id", "created_at", "from_rail", "to_rail", "intent", "completion")
+    required_strings = (
+        "id",
+        "created_at",
+        "from_rail",
+        "to_rail",
+        "intent",
+        "completion",
+    )
     if schema == SCHEMA_V1_1:
         required_strings += ("event_key", "trace_id", "kind")
     for field in required_strings:
@@ -188,11 +199,15 @@ def validate_envelope(env: Any) -> tuple[bool, list[str]]:
     if "payload_ref" not in env:
         errors.append("payload_ref is required")
     payload_ref = env.get("payload_ref")
-    if payload_ref is not None and (not isinstance(payload_ref, str) or not payload_ref.strip()):
+    if payload_ref is not None and (
+        not isinstance(payload_ref, str) or not payload_ref.strip()
+    ):
         errors.append("payload_ref must be null or a non-empty string")
     if isinstance(payload_ref, str) and payload_ref.startswith("sha256:"):
         if not _is_sha256(payload_ref[7:]):
-            errors.append("payload_ref sha256 digest must contain exactly 64 hexadecimal characters")
+            errors.append(
+                "payload_ref sha256 digest must contain exactly 64 hexadecimal characters"
+            )
 
     if "payload" in env and payload_ref is not None:
         errors.append("payload and payload_ref are mutually exclusive")
@@ -209,7 +224,9 @@ def validate_envelope(env: Any) -> tuple[bool, list[str]]:
     ):
         errors.append("payload_ref and payload_sha256 must identify the same content")
     size = env.get("payload_bytes")
-    if size is not None and (not isinstance(size, int) or isinstance(size, bool) or size < 0):
+    if size is not None and (
+        not isinstance(size, int) or isinstance(size, bool) or size < 0
+    ):
         errors.append("payload_bytes must be a non-negative integer")
 
     created_at = env.get("created_at")

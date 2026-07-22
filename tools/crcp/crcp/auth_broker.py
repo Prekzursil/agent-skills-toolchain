@@ -30,7 +30,7 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Any, Callable, Mapping
+from typing import Any, Mapping
 
 from .auth_mirror import (
     cookie_db_paths,
@@ -43,9 +43,20 @@ from .auth_sso import prepare_profile_dir
 
 DEFAULT_DEBUG_PORT = 9222
 DEFAULT_START_URL = "https://chatgpt.com/"
-CHAT_HOSTS = ("chatgpt.com", ".chatgpt.com", "chat.openai.com", ".chat.openai.com",
-              "openai.com", ".openai.com", "oaistatic.com", ".oaistatic.com",
-              "ws.chatgpt.com", ".ws.chatgpt.com", "auth.openai.com", ".auth.openai.com")
+CHAT_HOSTS = (
+    "chatgpt.com",
+    ".chatgpt.com",
+    "chat.openai.com",
+    ".chat.openai.com",
+    "openai.com",
+    ".openai.com",
+    "oaistatic.com",
+    ".oaistatic.com",
+    "ws.chatgpt.com",
+    ".ws.chatgpt.com",
+    "auth.openai.com",
+    ".auth.openai.com",
+)
 
 
 class BrokerError(RuntimeError):
@@ -124,7 +135,9 @@ def wait_for_cdp(port: int, timeout_s: float = 30.0) -> dict[str, Any]:
         except Exception as exc:  # noqa: BLE001 — probe loop
             last = exc
             time.sleep(0.4)
-    raise BrokerError(f"CDP not ready on :{port}: {type(last).__name__ if last else 'timeout'}")
+    raise BrokerError(
+        f"CDP not ready on :{port}: {type(last).__name__ if last else 'timeout'}"
+    )
 
 
 def launch_browser(
@@ -148,7 +161,7 @@ def launch_browser(
         "--no-first-run",
         "--no-default-browser-check",
         "--disable-sync",
-        f"--new-window",
+        "--new-window",
         start_url,
     ]
     proc = subprocess.Popen(
@@ -177,7 +190,9 @@ class CdpSession:
         try:
             import websocket  # type: ignore
         except ImportError as exc:  # pragma: no cover
-            raise BrokerError("websocket-client required: pip install websocket-client") from exc
+            raise BrokerError(
+                "websocket-client required: pip install websocket-client"
+            ) from exc
         self._websocket = websocket
         self.port = port
         self._id = 0
@@ -195,7 +210,13 @@ class CdpSession:
         except Exception:
             pass
 
-    def call(self, method: str, params: dict[str, Any] | None = None, *, session: bool = False) -> Any:
+    def call(
+        self,
+        method: str,
+        params: dict[str, Any] | None = None,
+        *,
+        session: bool = False,
+    ) -> Any:
         self._id += 1
         msg: dict[str, Any] = {"id": self._id, "method": method}
         if params:
@@ -227,7 +248,9 @@ class CdpSession:
                 raise BrokerError("no page target")
         else:
             tid = pages[0]["targetId"]
-        att = self.call("Target.attachToTarget", {"targetId": tid, "flatten": True}) or {}
+        att = (
+            self.call("Target.attachToTarget", {"targetId": tid, "flatten": True}) or {}
+        )
         self.session_id = att.get("sessionId")
         if not self.session_id:
             raise BrokerError("attachToTarget returned no sessionId")
@@ -247,14 +270,17 @@ class CdpSession:
         while time.time() < deadline and not loaded:
             try:
                 # Cheap readiness probe
-                ready = self.call(
-                    "Runtime.evaluate",
-                    {
-                        "expression": "document.readyState",
-                        "returnByValue": True,
-                    },
-                    session=True,
-                ) or {}
+                ready = (
+                    self.call(
+                        "Runtime.evaluate",
+                        {
+                            "expression": "document.readyState",
+                            "returnByValue": True,
+                        },
+                        session=True,
+                    )
+                    or {}
+                )
                 state = (ready.get("result") or {}).get("value")
                 if state in {"interactive", "complete"}:
                     loaded = True
@@ -266,16 +292,19 @@ class CdpSession:
         return result
 
     def evaluate(self, expression: str) -> Any:
-        result = self.call(
-            "Runtime.evaluate",
-            {
-                "expression": expression,
-                "returnByValue": True,
-                "awaitPromise": True,
-                "userGesture": True,
-            },
-            session=True,
-        ) or {}
+        result = (
+            self.call(
+                "Runtime.evaluate",
+                {
+                    "expression": expression,
+                    "returnByValue": True,
+                    "awaitPromise": True,
+                    "userGesture": True,
+                },
+                session=True,
+            )
+            or {}
+        )
         if result.get("exceptionDetails"):
             detail = result["exceptionDetails"]
             text = (
@@ -333,15 +362,21 @@ def _decrypt_desktop_cookies(user_data: Path | None = None) -> list[dict[str, An
         for host, name, path, blob, plaintext in rows:
             host_s, name_s, path_s = str(host), str(name), str(path or "/")
             domain = host_s
-            if not any(domain.endswith(h.lstrip(".")) or domain == h for h in CHAT_HOSTS):
+            if not any(
+                domain.endswith(h.lstrip(".")) or domain == h for h in CHAT_HOSTS
+            ):
                 # keep openai/chatgpt only
                 dlow = domain.lower()
-                if not any(x in dlow for x in ("chatgpt", "openai", "oaistatic", "auth.openai")):
+                if not any(
+                    x in dlow for x in ("chatgpt", "openai", "oaistatic", "auth.openai")
+                ):
                     continue
             value: bytes | None = None
             if blob:
                 try:
-                    value = decrypt_cookie_value(bytes(blob), local_state, allow_decrypt=True)
+                    value = decrypt_cookie_value(
+                        bytes(blob), local_state, allow_decrypt=True
+                    )
                 except Exception:
                     value = None
             if value is None and isinstance(plaintext, str) and plaintext:
@@ -375,7 +410,7 @@ def _decrypt_desktop_cookies(user_data: Path | None = None) -> list[dict[str, An
 
 def _read_encrypted_rows(db_path: Path) -> list[tuple[Any, ...]]:
     """Return (host_key, name, path, encrypted_value, plaintext) rows."""
-    from .auth_mirror import _inventory_open, _is_lock_error, _shared_read_bytes, copy_via_vss
+    from .auth_mirror import _is_lock_error, _shared_read_bytes, copy_via_vss
 
     def open_rows(path: Path) -> list[tuple[Any, ...]]:
         uri = f"file:{path.resolve().as_posix()}?mode=ro"
@@ -416,7 +451,9 @@ def _cookie_url(domain: str, secure: bool = True) -> str:
     return f"{scheme}://{host}/"
 
 
-def inject_cookies(session: CdpSession, cookies: list[dict[str, Any]]) -> dict[str, Any]:
+def inject_cookies(
+    session: CdpSession, cookies: list[dict[str, Any]]
+) -> dict[str, Any]:
     session.call("Network.enable", session=True)
     set_ok = 0
     set_fail = 0
@@ -426,7 +463,9 @@ def inject_cookies(session: CdpSession, cookies: list[dict[str, Any]]) -> dict[s
         try:
             cdp_cookie = format_cdp_cookie(cookie)
             domain = str(cdp_cookie.get("domain") or "")
-            cdp_cookie["url"] = _cookie_url(domain, bool(cdp_cookie.get("secure", True)))
+            cdp_cookie["url"] = _cookie_url(
+                domain, bool(cdp_cookie.get("secure", True))
+            )
             # Host-only cookies (__Host-*) must not send Domain attribute
             if str(cdp_cookie.get("name", "")).startswith("__Host-"):
                 cdp_cookie.pop("domain", None)
@@ -451,7 +490,9 @@ def inject_cookies(session: CdpSession, cookies: list[dict[str, Any]]) -> dict[s
     }
 
 
-def inject_bearer_headers(session: CdpSession, access_token: str, account_id: str) -> None:
+def inject_bearer_headers(
+    session: CdpSession, access_token: str, account_id: str
+) -> None:
     headers = {
         "Authorization": f"Bearer {access_token}",
     }
@@ -520,7 +561,11 @@ def run_broker(
             "UI may still show login for NextAuth-gated routes; API-backed surfaces can work.",
         ],
     }
-    profile = Path(profile_dir) if profile_dir else Path.home() / ".crcp" / "browser-broker-profile"
+    profile = (
+        Path(profile_dir)
+        if profile_dir
+        else Path.home() / ".crcp" / "browser-broker-profile"
+    )
     launch_info: dict[str, Any] | None = None
     if not attach_only:
         launch_info = launch_browser(
@@ -565,7 +610,10 @@ def run_broker(
             report["steps"].append("injected_bearer_headers")
 
         nav = session.navigate(start_url, wait_s=4.0)
-        report["navigate"] = {"url": start_url, "frameId": nav.get("frameId") is not None}
+        report["navigate"] = {
+            "url": start_url,
+            "frameId": nav.get("frameId") is not None,
+        }
         report["steps"].append("navigated")
 
         probes = page_probe(session)
@@ -573,7 +621,12 @@ def run_broker(
         report["steps"].append("probed")
 
         meta = session.get_all_cookies_meta()
-        chat = [c for c in meta if "chatgpt" in (c.get("domain") or "") or "openai" in (c.get("domain") or "")]
+        chat = [
+            c
+            for c in meta
+            if "chatgpt" in (c.get("domain") or "")
+            or "openai" in (c.get("domain") or "")
+        ]
         report["browser_cookies"] = {
             "total": len(meta),
             "chatgpt_related": len(chat),
@@ -584,8 +637,13 @@ def run_broker(
         }
 
         me_ok = isinstance(probes.get("me"), dict) and probes["me"].get("status") == 200
-        models_ok = isinstance(probes.get("models"), dict) and probes["models"].get("status") == 200
-        session_warning = isinstance(probes.get("session"), dict) and probes["session"].get("warningOnly")
+        models_ok = (
+            isinstance(probes.get("models"), dict)
+            and probes["models"].get("status") == 200
+        )
+        session_warning = isinstance(probes.get("session"), dict) and probes[
+            "session"
+        ].get("warningOnly")
         report["ok"] = bool(me_ok or models_ok)
         report["status"] = (
             "API_AUTH_OK_NO_NEXTAUTH"
@@ -678,7 +736,7 @@ def phone_store_status() -> dict[str, Any]:
         report["mode"] = "phone_store"
         report["apply_script"] = str(PHONE_APPLY_SCRIPT)
         report["reapply_cmd"] = (
-            f'python -m crcp auth broker --from-phone-store --phone-browser chrome --port {PHONE_DEFAULT_PORT}'
+            f"python -m crcp auth broker --from-phone-store --phone-browser chrome --port {PHONE_DEFAULT_PORT}"
         )
         return report
     except BrokerError as exc:

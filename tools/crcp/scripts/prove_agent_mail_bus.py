@@ -1,4 +1,8 @@
-import asyncio, json, uuid, sqlite3, re
+import asyncio
+import json
+import uuid
+import sqlite3
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -6,6 +10,7 @@ URL = "http://127.0.0.1:8812/mcp"
 PROJECT = str(Path.home() / "source" / "agent-skills-toolchain")
 REPORT = Path(__file__).resolve().parents[1] / "reports" / "bus_proof.json"
 DB = Path.home() / ".local/opt/mcp_agent_mail/storage.sqlite3"
+
 
 def text_of(result) -> str:
     parts = []
@@ -18,6 +23,7 @@ def text_of(result) -> str:
         parts.append(json.dumps(sc))
     return "\n".join(parts)
 
+
 def parse(result):
     raw = text_of(result)
     try:
@@ -25,9 +31,14 @@ def parse(result):
     except Exception:
         return raw, raw
 
+
 def extract_agent(reg):
     if isinstance(reg, dict):
-        for name_k, tok_k in [("name", "registration_token"), ("agent_name", "registration_token"), ("codename", "token")]:
+        for name_k, tok_k in [
+            ("name", "registration_token"),
+            ("agent_name", "registration_token"),
+            ("codename", "token"),
+        ]:
             if reg.get(name_k) and reg.get(tok_k):
                 return reg[name_k], reg[tok_k]
         for v in reg.values():
@@ -43,7 +54,9 @@ def extract_agent(reg):
                             return n, t
     if isinstance(reg, str):
         m = re.search(r"([A-Z][a-z]+[A-Z][a-z]+)", reg)
-        t = re.search(r"(?:registration_token|token)[\"'=\s:]+([A-Za-z0-9_\-]{8,})", reg)
+        t = re.search(
+            r"(?:registration_token|token)[\"'=\s:]+([A-Za-z0-9_\-]{8,})", reg
+        )
         if m and t:
             return m.group(1), t.group(1)
         try:
@@ -52,11 +65,13 @@ def extract_agent(reg):
             pass
     return None, None
 
+
 async def call(session, name, args):
     r = await session.call_tool(name, args)
     if getattr(r, "isError", False):
         raise RuntimeError(f"tool_error {name}: {text_of(r)[:500]}")
     return parse(r)
+
 
 async def main():
     from mcp.client.streamable_http import streamablehttp_client
@@ -71,7 +86,9 @@ async def main():
     }
     marker = f"CRCP-P0-BUS-PROOF {uuid.uuid4().hex[:12]}"
 
-    async with streamablehttp_client(URL, timeout=60.0, sse_read_timeout=120.0) as streams:
+    async with streamablehttp_client(
+        URL, timeout=60.0, sse_read_timeout=120.0
+    ) as streams:
         read, write = streams[0], streams[1]
         async with ClientSession(read, write) as session:
             await session.initialize()
@@ -83,7 +100,9 @@ async def main():
             report["steps"].append({"step": "list_tools", "count": len(tool_names)})
 
             data, _ = await call(session, "ensure_project", {"human_key": PROJECT})
-            report["steps"].append({"step": "ensure_project", "preview": str(data)[:300]})
+            report["steps"].append(
+                {"step": "ensure_project", "preview": str(data)[:300]}
+            )
 
             con = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
             rows = con.execute(
@@ -104,24 +123,42 @@ async def main():
             if "claude-orchestrator" in by_prog and "codex-executor" in by_prog:
                 c_name, c_tok = by_prog["claude-orchestrator"]
                 x_name, x_tok = by_prog["codex-executor"]
-                report["steps"].append({"step": "reuse_agents", "claude": c_name, "codex": x_name})
+                report["steps"].append(
+                    {"step": "reuse_agents", "claude": c_name, "codex": x_name}
+                )
             else:
                 claude_reg, _ = await call(
                     session,
                     "register_agent",
-                    {"project_key": PROJECT, "program": "claude-orchestrator", "model": "claude-phase0-probe"},
+                    {
+                        "project_key": PROJECT,
+                        "program": "claude-orchestrator",
+                        "model": "claude-phase0-probe",
+                    },
                 )
                 codex_reg, _ = await call(
                     session,
                     "register_agent",
-                    {"project_key": PROJECT, "program": "codex-executor", "model": "codex-phase0-probe"},
+                    {
+                        "project_key": PROJECT,
+                        "program": "codex-executor",
+                        "model": "codex-phase0-probe",
+                    },
                 )
-                report["steps"].append({"step": "register_claude", "preview": str(claude_reg)[:400]})
-                report["steps"].append({"step": "register_codex", "preview": str(codex_reg)[:400]})
+                report["steps"].append(
+                    {"step": "register_claude", "preview": str(claude_reg)[:400]}
+                )
+                report["steps"].append(
+                    {"step": "register_codex", "preview": str(codex_reg)[:400]}
+                )
                 c_name, c_tok = extract_agent(claude_reg)
                 x_name, x_tok = extract_agent(codex_reg)
 
-            report["agents"] = {"claude": c_name, "codex": x_name, "tokens": bool(c_tok and x_tok)}
+            report["agents"] = {
+                "claude": c_name,
+                "codex": x_name,
+                "tokens": bool(c_tok and x_tok),
+            }
             if not (c_name and c_tok and x_name and x_tok):
                 report["error"] = "agent extract failed"
                 REPORT.write_text(json.dumps(report, indent=2), encoding="utf-8")
@@ -130,16 +167,54 @@ async def main():
                 return 2
 
             for tool, args in [
-                ("request_contact", {"project_key": PROJECT, "from_agent": c_name, "to_agent": x_name, "registration_token": c_tok}),
-                ("request_contact", {"project_key": PROJECT, "from_agent": x_name, "to_agent": c_name, "registration_token": x_tok}),
-                ("respond_contact", {"project_key": PROJECT, "to_agent": x_name, "from_agent": c_name, "accept": True, "registration_token": x_tok}),
-                ("respond_contact", {"project_key": PROJECT, "to_agent": c_name, "from_agent": x_name, "accept": True, "registration_token": c_tok}),
+                (
+                    "request_contact",
+                    {
+                        "project_key": PROJECT,
+                        "from_agent": c_name,
+                        "to_agent": x_name,
+                        "registration_token": c_tok,
+                    },
+                ),
+                (
+                    "request_contact",
+                    {
+                        "project_key": PROJECT,
+                        "from_agent": x_name,
+                        "to_agent": c_name,
+                        "registration_token": x_tok,
+                    },
+                ),
+                (
+                    "respond_contact",
+                    {
+                        "project_key": PROJECT,
+                        "to_agent": x_name,
+                        "from_agent": c_name,
+                        "accept": True,
+                        "registration_token": x_tok,
+                    },
+                ),
+                (
+                    "respond_contact",
+                    {
+                        "project_key": PROJECT,
+                        "to_agent": c_name,
+                        "from_agent": x_name,
+                        "accept": True,
+                        "registration_token": c_tok,
+                    },
+                ),
             ]:
                 try:
                     d, _ = await call(session, tool, args)
-                    report["steps"].append({"step": tool, "ok": True, "preview": str(d)[:160]})
+                    report["steps"].append(
+                        {"step": tool, "ok": True, "preview": str(d)[:160]}
+                    )
                 except Exception as e:
-                    report["steps"].append({"step": tool, "ok": False, "error": str(e)[:200]})
+                    report["steps"].append(
+                        {"step": tool, "ok": False, "error": str(e)[:200]}
+                    )
 
             send1, _ = await call(
                 session,
@@ -196,10 +271,19 @@ async def main():
             )
             report["steps"].append({"step": "inbox_c", "preview": str(inbox_c)[:400]})
 
-            blob = json.dumps(inbox_x, default=str) + json.dumps(inbox_c, default=str) + str(inbox_x) + str(inbox_c)
+            blob = (
+                json.dumps(inbox_x, default=str)
+                + json.dumps(inbox_c, default=str)
+                + str(inbox_x)
+                + str(inbox_c)
+            )
             con = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
-            n = con.execute("select count(*) from messages where body_md like ?", (f"%{marker}%",)).fetchone()[0]
-            n2 = con.execute("select count(*) from messages where body_md like ?", ("%REPLY_OK%",)).fetchone()[0]
+            n = con.execute(
+                "select count(*) from messages where body_md like ?", (f"%{marker}%",)
+            ).fetchone()[0]
+            n2 = con.execute(
+                "select count(*) from messages where body_md like ?", ("%REPLY_OK%",)
+            ).fetchone()[0]
             con.close()
             report["sqlite_marker_msgs"] = n
             report["sqlite_reply_msgs"] = n2

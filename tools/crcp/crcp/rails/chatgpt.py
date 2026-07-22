@@ -11,14 +11,13 @@ from ..bridge import ChatGPTBridge
 class _BridgeClient(Protocol):
     """Narrow bridge surface used by the adapter and its fixture tests."""
 
-    def list_conversations(self, offset: int = 0, limit: int = 20) -> dict[str, Any]:
-        ...
+    def list_conversations(
+        self, offset: int = 0, limit: int = 20
+    ) -> dict[str, Any]: ...
 
-    def get_conversation(self, conversation_id: str) -> dict[str, Any]:
-        ...
+    def get_conversation(self, conversation_id: str) -> dict[str, Any]: ...
 
-    def me(self) -> dict[str, Any]:
-        ...
+    def me(self) -> dict[str, Any]: ...
 
 
 Sender = Callable[..., dict[str, Any]]

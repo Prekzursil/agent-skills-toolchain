@@ -131,7 +131,9 @@ class _StateLock:
             except FileExistsError:
                 self._remove_if_stale()
                 if time.monotonic() >= deadline:
-                    raise TimeoutError(f"timed out acquiring capability state lock: {self.path}")
+                    raise TimeoutError(
+                        f"timed out acquiring capability state lock: {self.path}"
+                    )
                 time.sleep(0.01)
 
     def _remove_if_stale(self) -> None:
@@ -195,7 +197,11 @@ class CapabilityRegistry:
         with self._state_lock():
             state = self._read_state()
             existing = state["capabilities"].get(capability.name)
-            if existing is not None and existing["rail"] != capability.rail and not replace:
+            if (
+                existing is not None
+                and existing["rail"] != capability.rail
+                and not replace
+            ):
                 raise ValueError(
                     f"capability {capability.name!r} is already assigned to "
                     f"rail {existing['rail']!r}"
@@ -240,7 +246,11 @@ class CapabilityRegistry:
             state = self._read_state()
             self._require_supported_in_state(capability, state)
             lease = state["leases"].get(capability)
-            if lease is not None and lease["owner"] != owner and lease["expires_at"] > now:
+            if (
+                lease is not None
+                and lease["owner"] != owner
+                and lease["expires_at"] > now
+            ):
                 return False
             state["leases"][capability] = {
                 "owner": owner,

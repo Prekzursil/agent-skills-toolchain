@@ -368,7 +368,9 @@ def post_conversation(
                 "body_len": len(data),
                 "body_text": text[:8000],
                 "parsed_events": list(_parse_sse(text))
-                if "event-stream" in content_type or text.startswith("data:") or "event:" in text[:200]
+                if "event-stream" in content_type
+                or text.startswith("data:")
+                or "event:" in text[:200]
                 else None,
             }
     except urllib.error.HTTPError as e:
@@ -466,7 +468,11 @@ def send_message(
         # Auth Desktop first turn: omit conversation_id + parent (server assigns).
         conv_id = None
         parent_id = None if style == "desktop_auth" else "client-created-root"
-        report["mode"] = "desktop_auth_first_turn" if style == "desktop_auth" else "client-created-root"
+        report["mode"] = (
+            "desktop_auth_first_turn"
+            if style == "desktop_auth"
+            else "client-created-root"
+        )
         report["parent_message_id"] = parent_id
 
     body = build_next_body(

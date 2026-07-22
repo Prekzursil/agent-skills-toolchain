@@ -42,12 +42,17 @@ class EnvelopeV11ContractTests(unittest.TestCase):
     def test_local_payload_path_is_rejected(self) -> None:
         envelope = valid_envelope()
         envelope["payload_ref"] = "/tmp/private/conversation.json"
-        self.assertTrue(any("content address" in error for error in validate_envelope(envelope)))
+        self.assertTrue(
+            any("content address" in error for error in validate_envelope(envelope))
+        )
 
     def test_inline_payload_cannot_accompany_reference(self) -> None:
         envelope = valid_envelope()
         envelope["payload"] = {"text": "duplicate body"}
-        self.assertIn("payload and payload_ref are mutually exclusive", validate_envelope(envelope))
+        self.assertIn(
+            "payload and payload_ref are mutually exclusive",
+            validate_envelope(envelope),
+        )
 
     def test_invalid_kind_and_unzoned_timestamp_are_rejected(self) -> None:
         envelope = valid_envelope()

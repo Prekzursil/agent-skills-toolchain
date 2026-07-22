@@ -98,11 +98,16 @@ def run() -> dict[str, Any]:
                 logical_effects.add(replay["event_key"])
 
             _check(spool.count() == 1, "duplicate created more than one spool record")
-            _check(len(logical_effects) == 1, "duplicate caused more than one logical effect")
+            _check(
+                len(logical_effects) == 1,
+                "duplicate caused more than one logical effect",
+            )
             spool.transition(first["event_key"], "spooled")
             spool.transition(first["event_key"], "publishing")
             spool.transition(first["event_key"], "acked")
-            _check(spool.state(first["event_key"]) == "acked", "spool did not reach acked")
+            _check(
+                spool.state(first["event_key"]) == "acked", "spool did not reach acked"
+            )
 
     return {
         "status": "PASS",

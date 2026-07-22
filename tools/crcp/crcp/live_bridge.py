@@ -101,7 +101,10 @@ class ClientTokenBucket:
         current = time.monotonic() if now is None else now
         with self._lock:
             tokens, updated = self._clients.get(client, (self.capacity, current))
-            tokens = min(self.capacity, tokens + max(0.0, current - updated) * self._refill_per_second)
+            tokens = min(
+                self.capacity,
+                tokens + max(0.0, current - updated) * self._refill_per_second,
+            )
             if tokens >= 1.0:
                 self._clients[client] = (tokens - 1.0, current)
                 allowed = True
@@ -109,14 +112,18 @@ class ClientTokenBucket:
             else:
                 self._clients[client] = (tokens, current)
                 allowed = False
-                retry_after = max(1, math.ceil((1.0 - tokens) / self._refill_per_second))
+                retry_after = max(
+                    1, math.ceil((1.0 - tokens) / self._refill_per_second)
+                )
 
             # Bound memory when clients churn. Entries idle long enough to be
             # full have no state worth retaining.
             if len(self._clients) > 4096:
                 stale_before = current - (self.capacity / self._refill_per_second)
                 self._clients = {
-                    key: state for key, state in self._clients.items() if state[1] >= stale_before
+                    key: state
+                    for key, state in self._clients.items()
+                    if state[1] >= stale_before
                 }
                 while len(self._clients) > 4096:
                     self._clients.pop(next(iter(self._clients)))
@@ -140,7 +147,9 @@ class HttpMutationPolicy:
         self.rate_limiter = ClientTokenBucket(rate_per_minute)
 
     @classmethod
-    def from_environment(cls, env: Mapping[str, str] | None = None) -> "HttpMutationPolicy":
+    def from_environment(
+        cls, env: Mapping[str, str] | None = None
+    ) -> "HttpMutationPolicy":
         values = os.environ if env is None else env
         token, error = _load_http_token(values)
         return cls(
@@ -171,7 +180,9 @@ class HttpMutationPolicy:
         if self._token is None:
             return 503, 0
         candidate = supplied_token or ""
-        if not hmac.compare_digest(candidate.encode("utf-8"), self._token.encode("utf-8")):
+        if not hmac.compare_digest(
+            candidate.encode("utf-8"), self._token.encode("utf-8")
+        ):
             return 401, 0
         return 204, 0
 
@@ -248,14 +259,18 @@ class LiveBridgeService:
         root = _crcp_root()
         self.poll_interval = poll_interval
         self.outbox = outbox or (root / "outbox")
-        self.state = LiveBridgeState(state_path or (root / "reports" / "live_bridge_state.json"))
+        self.state = LiveBridgeState(
+            state_path or (root / "reports" / "live_bridge_state.json")
+        )
         self.project = project
         self.auto_publish = auto_publish
         self.list_limit = list_limit
         self.http_host = http_host
         self.http_port = http_port
         self.enable_http = enable_http
-        self.http_mutation_policy = http_mutation_policy or HttpMutationPolicy.from_environment()
+        self.http_mutation_policy = (
+            http_mutation_policy or HttpMutationPolicy.from_environment()
+        )
         self.spool = EventSpool(spool_path or (root / "reports" / "spool.db"))
         self.singleton_path = singleton_path or (root / "reports" / "live_bridge.lock")
         self.bridge = ChatGPTBridge()
@@ -277,7 +292,9 @@ class LiveBridgeService:
             "status": snap.get("status"),
             "last_refresh": snap.get("last_refresh"),
             "last_refresh_age_days": snap.get("last_refresh_age_days"),
-            "would_proactive_refresh_by_age": snap.get("would_proactive_refresh_by_age"),
+            "would_proactive_refresh_by_age": snap.get(
+                "would_proactive_refresh_by_age"
+            ),
             "access_seconds_until_exp": access.get("seconds_until_exp"),
             "access_expired": access.get("expired"),
             "within_5min_of_exp": access.get("within_5min_of_exp"),
@@ -298,7 +315,9 @@ class LiveBridgeService:
         )
         if is_stale_mtime(auth_path, known):
             self.bridge.reload()
-            self.state.data["auth_reloads"] = int(self.state.data.get("auth_reloads") or 0) + 1
+            self.state.data["auth_reloads"] = (
+                int(self.state.data.get("auth_reloads") or 0) + 1
+            )
             self.state.data["last_auth_reload_at"] = utc_now()
             self.state.save()
 
@@ -353,7 +372,9 @@ class LiveBridgeService:
                 "rotated": [],
             }
             try:
-                listing = self.bridge.list_conversations(offset=0, limit=self.list_limit)
+                listing = self.bridge.list_conversations(
+                    offset=0, limit=self.list_limit
+                )
                 items = listing.get("items") or []
                 summary["listed"] = len(items)
                 summary["total"] = listing.get("total")
@@ -370,13 +391,21 @@ class LiveBridgeService:
                     # Also skip when both sides parse to 0 (missing timestamps) and
                     # we already have a checkpoint for this id.
                     if cid in known and update_time <= previous_time:
-                        summary["skipped_unchanged"] = int(summary["skipped_unchanged"]) + 1
+                        summary["skipped_unchanged"] = (
+                            int(summary["skipped_unchanged"]) + 1
+                        )
                         continue
                     if cid in known and update_time == 0.0 and previous_time == 0.0:
-                        summary["skipped_unchanged"] = int(summary["skipped_unchanged"]) + 1
+                        summary["skipped_unchanged"] = (
+                            int(summary["skipped_unchanged"]) + 1
+                        )
                         continue
                     summary["new_or_updated"].append(
-                        {"id": cid, "title": item.get("title"), "update_time": raw_update}
+                        {
+                            "id": cid,
+                            "title": item.get("title"),
+                            "update_time": raw_update,
+                        }
                     )
                     try:
                         conversation = self.bridge.get_conversation(cid)
@@ -389,11 +418,15 @@ class LiveBridgeService:
                             # only so we do not thrash-fetch on list jitter.
                             known[cid] = {
                                 **previous,
-                                "update_time": raw_update if update_time >= previous_time else previous.get("update_time"),
+                                "update_time": raw_update
+                                if update_time >= previous_time
+                                else previous.get("update_time"),
                                 "last_list_seen_at": utc_now(),
                                 "skipped_body_not_newer": True,
                             }
-                            summary["skipped_unchanged"] = int(summary["skipped_unchanged"]) + 1
+                            summary["skipped_unchanged"] = (
+                                int(summary["skipped_unchanged"]) + 1
+                            )
                             continue
 
                         key = event_key(cid, body_update, conversation)
@@ -425,15 +458,22 @@ class LiveBridgeService:
                         }
                         envelope["event_key"] = key
                         envelope_path.write_text(
-                            json.dumps(envelope, indent=2, default=str), encoding="utf-8"
+                            json.dumps(envelope, indent=2, default=str),
+                            encoding="utf-8",
                         )
                         rotation = self.rotate_outbox(cid)
                         summary["rotated"].append({"id": cid, **rotation})
-                        self.state.data["fetches"] = int(self.state.data.get("fetches") or 0) + 1
+                        self.state.data["fetches"] = (
+                            int(self.state.data.get("fetches") or 0) + 1
+                        )
                         summary["fetched"].append(pack)
-                        observed_key = self.spool.put_observed(cid, body_update, conversation)
+                        observed_key = self.spool.put_observed(
+                            cid, body_update, conversation
+                        )
                         if observed_key != key:
-                            raise RuntimeError("spool returned an inconsistent event key")
+                            raise RuntimeError(
+                                "spool returned an inconsistent event key"
+                            )
 
                         checkpoint = {
                             "update_time": body_update,
@@ -454,17 +494,23 @@ class LiveBridgeService:
                         )
                         if self.auto_publish:
                             if not self.spool.mark_publishing(key):
-                                raise RuntimeError(f"could not claim event {key} for publishing")
+                                raise RuntimeError(
+                                    f"could not claim event {key} for publishing"
+                                )
                             try:
-                                published = publish_envelope(envelope, project=self.project)
+                                published = publish_envelope(
+                                    envelope, project=self.project
+                                )
                                 if not self.spool.mark_acked(key):
-                                    raise RuntimeError(f"could not acknowledge event {key}")
+                                    raise RuntimeError(
+                                        f"could not acknowledge event {key}"
+                                    )
                             except Exception as exc:
                                 self.spool.mark_failed(key, exc)
                                 raise
-                            self.state.data["publishes"] = int(
-                                self.state.data.get("publishes") or 0
-                            ) + 1
+                            self.state.data["publishes"] = (
+                                int(self.state.data.get("publishes") or 0) + 1
+                            )
                             summary["published"].append(
                                 {
                                     "envelope_id": envelope.get("id"),
@@ -482,7 +528,9 @@ class LiveBridgeService:
                 self.state.data["last_error"] = None
                 self.state.save()
             except Exception as exc:
-                summary["errors"].append({"error": f"{type(exc).__name__}: {exc}"[:300]})
+                summary["errors"].append(
+                    {"error": f"{type(exc).__name__}: {exc}"[:300]}
+                )
                 self.state.data["last_error"] = summary["errors"][-1]["error"]
                 self.state.save()
             self.status["last_cycle"] = summary
@@ -592,7 +640,9 @@ class LiveBridgeService:
                     self._json(
                         200,
                         {
-                            "status": "ok" if service.status.get("running") else "stopped",
+                            "status": "ok"
+                            if service.status.get("running")
+                            else "stopped",
                             "auth": service.auth_snapshot(),
                             **metrics,
                         },
@@ -603,7 +653,9 @@ class LiveBridgeService:
                     self._json(200 if live else 503, {"live": live})
                     return
                 if path == "/readyz":
-                    ready = bool(service.status.get("running")) and not service.state.data.get("last_error")
+                    ready = bool(
+                        service.status.get("running")
+                    ) and not service.state.data.get("last_error")
                     self._json(200 if ready else 503, {"ready": ready})
                     return
                 if path == "/metrics":

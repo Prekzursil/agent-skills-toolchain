@@ -25,7 +25,9 @@ def _default_source_root() -> Path:
 
 
 def configure_import_path() -> Path:
-    source_root = Path(os.environ.get("CRCP_SOURCE_ROOT", _default_source_root())).resolve()
+    source_root = Path(
+        os.environ.get("CRCP_SOURCE_ROOT", _default_source_root())
+    ).resolve()
     package_dir = source_root / "crcp"
     if not package_dir.is_dir():
         raise FileNotFoundError(

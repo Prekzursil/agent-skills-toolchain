@@ -227,7 +227,10 @@ def exchange_code_for_tokens(
     request = urllib.request.Request(
         TOKEN_URL,
         data=payload,
-        headers={"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded"},
+        headers={
+            "Accept": "application/json",
+            "Content-Type": "application/x-www-form-urlencoded",
+        },
         method="POST",
     )
     try:
@@ -282,7 +285,10 @@ def export_auth_summary(tokens: Mapping[str, Any]) -> dict[str, Any]:
     for name in ("access_token", "id_token", "refresh_token"):
         value = tokens.get(name)
         present = isinstance(value, str) and bool(value)
-        field: dict[str, Any] = {"present": present, "length": len(value) if present else 0}
+        field: dict[str, Any] = {
+            "present": present,
+            "length": len(value) if present else 0,
+        }
         if name != "refresh_token" and present:
             exp = _decode_jwt_exp(value)
             field["exp"] = exp
@@ -315,7 +321,9 @@ def save_token_bundle(path: Path | str, tokens: Mapping[str, Any]) -> Path:
     else:
         raise ValueError("refusing to save credentials in the CRCP results directory")
     destination.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    fd, temporary = tempfile.mkstemp(prefix=f".{destination.name}.", dir=destination.parent)
+    fd, temporary = tempfile.mkstemp(
+        prefix=f".{destination.name}.", dir=destination.parent
+    )
     try:
         os.fchmod(fd, 0o600)
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
@@ -362,7 +370,9 @@ def run_sso_login(
     effective_redirect = redirect_uri or os.environ.get(
         "CRCP_OAUTH_REDIRECT_URI", DEFAULT_REDIRECT_URI
     )
-    effective_client = client_id or os.environ.get("CRCP_OAUTH_CLIENT_ID", DEFAULT_CLIENT_ID)
+    effective_client = client_id or os.environ.get(
+        "CRCP_OAUTH_CLIENT_ID", DEFAULT_CLIENT_ID
+    )
 
     if code is not None:
         if not code_verifier:
@@ -396,7 +406,9 @@ def run_sso_login(
 
     def launch() -> None:
         if not webbrowser.open(authorize_url, new=1, autoraise=True):
-            raise RuntimeError("no browser accepted the authorization URL; use print_url mode")
+            raise RuntimeError(
+                "no browser accepted the authorization URL; use print_url mode"
+            )
 
     received_code = _wait_for_callback(
         effective_redirect,

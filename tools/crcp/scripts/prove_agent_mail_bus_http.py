@@ -1,4 +1,5 @@
 """Prove agent-mail bus via raw JSON-RPC HTTP (no streamablehttp_client hang)."""
+
 from __future__ import annotations
 
 import json
@@ -21,7 +22,9 @@ class Rpc:
         self.session_id: str | None = None
         self._id = 0
 
-    def call(self, method: str, params: dict | None = None, is_notification: bool = False):
+    def call(
+        self, method: str, params: dict | None = None, is_notification: bool = False
+    ):
         self._id += 1
         payload: dict = {"jsonrpc": "2.0", "method": method}
         if not is_notification:
@@ -35,14 +38,22 @@ class Rpc:
         }
         if self.session_id:
             headers["Mcp-Session-Id"] = self.session_id
-        req = urllib.request.Request(self.url, data=data, headers=headers, method="POST")
+        req = urllib.request.Request(
+            self.url, data=data, headers=headers, method="POST"
+        )
         with urllib.request.urlopen(req, timeout=30) as resp:
-            sid = resp.headers.get("Mcp-Session-Id") or resp.headers.get("mcp-session-id")
+            sid = resp.headers.get("Mcp-Session-Id") or resp.headers.get(
+                "mcp-session-id"
+            )
             if sid:
                 self.session_id = sid
             body = resp.read().decode("utf-8", "replace")
             # handle SSE-ish responses: lines starting with data:
-            if body.lstrip().startswith("event:") or "\ndata:" in body or body.startswith("data:"):
+            if (
+                body.lstrip().startswith("event:")
+                or "\ndata:" in body
+                or body.startswith("data:")
+            ):
                 chunks = []
                 for line in body.splitlines():
                     if line.startswith("data:"):
@@ -87,7 +98,10 @@ def parse_tool(rpc_result: dict):
 
 def extract_agent(reg):
     if isinstance(reg, dict):
-        for nk, tk in [("name", "registration_token"), ("agent_name", "registration_token")]:
+        for nk, tk in [
+            ("name", "registration_token"),
+            ("agent_name", "registration_token"),
+        ]:
             if reg.get(nk) and reg.get(tk):
                 return reg[nk], reg[tk]
         for v in reg.values():
@@ -99,7 +113,9 @@ def extract_agent(reg):
         import re
 
         m = re.search(r"([A-Z][a-z]+[A-Z][a-z]+)", reg)
-        t = re.search(r"(?:registration_token|token)[\"'=\s:]+([A-Za-z0-9_\-]{8,})", reg)
+        t = re.search(
+            r"(?:registration_token|token)[\"'=\s:]+([A-Za-z0-9_\-]{8,})", reg
+        )
         if m and t:
             return m.group(1), t.group(1)
     return None, None
@@ -125,11 +141,20 @@ def main() -> int:
             "clientInfo": {"name": "crcp-bus-proof", "version": "0.1"},
         },
     )
-    report["steps"].append({"step": "initialize", "ok": True, "session": rpc.session_id, "server": (init or {}).get("result", {}).get("serverInfo")})
+    report["steps"].append(
+        {
+            "step": "initialize",
+            "ok": True,
+            "session": rpc.session_id,
+            "server": (init or {}).get("result", {}).get("serverInfo"),
+        }
+    )
     rpc.call("notifications/initialized", {}, is_notification=True)
 
     tools = rpc.call("tools/list", {})
-    tool_names = [t.get("name") for t in ((tools or {}).get("result") or {}).get("tools") or []]
+    tool_names = [
+        t.get("name") for t in ((tools or {}).get("result") or {}).get("tools") or []
+    ]
     report["tools"] = tool_names
     report["steps"].append({"step": "tools/list", "count": len(tool_names)})
 
@@ -160,22 +185,40 @@ def main() -> int:
     if "claude-orchestrator" in by and "codex-executor" in by:
         c_name, c_tok = by["claude-orchestrator"]
         x_name, x_tok = by["codex-executor"]
-        report["steps"].append({"step": "reuse_agents", "claude": c_name, "codex": x_name})
+        report["steps"].append(
+            {"step": "reuse_agents", "claude": c_name, "codex": x_name}
+        )
     else:
         claude_reg, _ = tool(
             "register_agent",
-            {"project_key": PROJECT, "program": "claude-orchestrator", "model": "claude-phase0-probe"},
+            {
+                "project_key": PROJECT,
+                "program": "claude-orchestrator",
+                "model": "claude-phase0-probe",
+            },
         )
         codex_reg, _ = tool(
             "register_agent",
-            {"project_key": PROJECT, "program": "codex-executor", "model": "codex-phase0-probe"},
+            {
+                "project_key": PROJECT,
+                "program": "codex-executor",
+                "model": "codex-phase0-probe",
+            },
         )
-        report["steps"].append({"step": "register_claude", "preview": str(claude_reg)[:400]})
-        report["steps"].append({"step": "register_codex", "preview": str(codex_reg)[:400]})
+        report["steps"].append(
+            {"step": "register_claude", "preview": str(claude_reg)[:400]}
+        )
+        report["steps"].append(
+            {"step": "register_codex", "preview": str(codex_reg)[:400]}
+        )
         c_name, c_tok = extract_agent(claude_reg)
         x_name, x_tok = extract_agent(codex_reg)
 
-    report["agents"] = {"claude": c_name, "codex": x_name, "tokens": bool(c_tok and x_tok)}
+    report["agents"] = {
+        "claude": c_name,
+        "codex": x_name,
+        "tokens": bool(c_tok and x_tok),
+    }
     if not (c_name and c_tok and x_name and x_tok):
         report["error"] = "agent extract failed"
         REPORT.write_text(json.dumps(report, indent=2), encoding="utf-8")
@@ -184,10 +227,44 @@ def main() -> int:
         return 2
 
     for name, args in [
-        ("request_contact", {"project_key": PROJECT, "from_agent": c_name, "to_agent": x_name, "registration_token": c_tok}),
-        ("request_contact", {"project_key": PROJECT, "from_agent": x_name, "to_agent": c_name, "registration_token": x_tok}),
-        ("respond_contact", {"project_key": PROJECT, "to_agent": x_name, "from_agent": c_name, "accept": True, "registration_token": x_tok}),
-        ("respond_contact", {"project_key": PROJECT, "to_agent": c_name, "from_agent": x_name, "accept": True, "registration_token": c_tok}),
+        (
+            "request_contact",
+            {
+                "project_key": PROJECT,
+                "from_agent": c_name,
+                "to_agent": x_name,
+                "registration_token": c_tok,
+            },
+        ),
+        (
+            "request_contact",
+            {
+                "project_key": PROJECT,
+                "from_agent": x_name,
+                "to_agent": c_name,
+                "registration_token": x_tok,
+            },
+        ),
+        (
+            "respond_contact",
+            {
+                "project_key": PROJECT,
+                "to_agent": x_name,
+                "from_agent": c_name,
+                "accept": True,
+                "registration_token": x_tok,
+            },
+        ),
+        (
+            "respond_contact",
+            {
+                "project_key": PROJECT,
+                "to_agent": c_name,
+                "from_agent": x_name,
+                "accept": True,
+                "registration_token": c_tok,
+            },
+        ),
     ]:
         try:
             d, _ = tool(name, args)
@@ -246,17 +323,28 @@ def main() -> int:
     )
     report["steps"].append({"step": "inbox_c", "preview": str(inbox_c)[:400]})
 
-    blob = json.dumps(inbox_x, default=str) + json.dumps(inbox_c, default=str) + str(inbox_x) + str(inbox_c)
+    blob = (
+        json.dumps(inbox_x, default=str)
+        + json.dumps(inbox_c, default=str)
+        + str(inbox_x)
+        + str(inbox_c)
+    )
     con = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
-    n = con.execute("select count(*) from messages where body_md like ?", (f"%{marker}%",)).fetchone()[0]
-    n2 = con.execute("select count(*) from messages where body_md like ?", ("%REPLY_OK%",)).fetchone()[0]
+    n = con.execute(
+        "select count(*) from messages where body_md like ?", (f"%{marker}%",)
+    ).fetchone()[0]
+    n2 = con.execute(
+        "select count(*) from messages where body_md like ?", ("%REPLY_OK%",)
+    ).fetchone()[0]
     recent = con.execute(
         "select id, subject, substr(body_md,1,80) from messages order by id desc limit 5"
     ).fetchall()
     con.close()
     report["sqlite_marker_msgs"] = n
     report["sqlite_reply_msgs"] = n2
-    report["recent_messages"] = [{"id": r[0], "subject": r[1], "body": r[2]} for r in recent]
+    report["recent_messages"] = [
+        {"id": r[0], "subject": r[1], "body": r[2]} for r in recent
+    ]
     report["got_forward"] = marker in blob or n >= 1
     report["got_reply"] = ("REPLY_OK" in blob) or n2 >= 1
     report["success"] = bool(report["got_forward"] and report["got_reply"])

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import shutil
 import time
@@ -10,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .bridge import export_conversation_pack, summarize_conversation
+from .bridge import export_conversation_pack
 from .envelope import content_hash, make_envelope, write_envelope, utc_now
 
 
@@ -21,10 +20,16 @@ def _is_conversation_export(data: Any) -> bool:
     if "mapping" in data and isinstance(data["mapping"], dict) and data["mapping"]:
         return True
     # Linear export: conversation_id + messages[]
-    if data.get("conversation_id") and isinstance(data.get("messages"), list) and data["messages"]:
+    if (
+        data.get("conversation_id")
+        and isinstance(data.get("messages"), list)
+        and data["messages"]
+    ):
         return True
     # backend-api conversation object
-    if (data.get("id") or data.get("conversation_id")) and isinstance(data.get("mapping"), dict):
+    if (data.get("id") or data.get("conversation_id")) and isinstance(
+        data.get("mapping"), dict
+    ):
         return True
     return False
 
@@ -62,7 +67,9 @@ def _normalize_to_backend_shape(data: dict[str, Any]) -> dict[str, Any]:
                 mapping[node_id] = {"id": node_id, "message": msg, "children": []}
             else:
                 # already a node?
-                mapping[node_id] = msg if "message" in msg else {"id": node_id, "message": msg}
+                mapping[node_id] = (
+                    msg if "message" in msg else {"id": node_id, "message": msg}
+                )
         out = {
             "id": data.get("conversation_id") or data.get("id") or "unknown",
             "conversation_id": data.get("conversation_id") or data.get("id"),
@@ -135,7 +142,8 @@ def process_export_file(
             to_rail="broadcast",
             intent="protocol_fixture",
             payload_ref=str(dest),
-            project_id=project_id or str(Path.home() / "source" / "agent-skills-toolchain"),
+            project_id=project_id
+            or str(Path.home() / "source" / "agent-skills-toolchain"),
             completion="SUCCESS",
             meta={
                 "kind": "stream_trace",
@@ -204,7 +212,14 @@ def scan_inbox(
             continue
         sha = content_hash(path.read_bytes())
         if sha in seen:
-            results.append({"source": str(path), "skipped": True, "reason": "duplicate_sha", "sha256": sha})
+            results.append(
+                {
+                    "source": str(path),
+                    "skipped": True,
+                    "reason": "duplicate_sha",
+                    "sha256": sha,
+                }
+            )
             # still move aside
             _archive(path, processed_dir, sha)
             continue
@@ -242,7 +257,12 @@ def watch_inbox(
         while True:
             last = scan_inbox(inbox_dir, outbox=outbox)
             if last.get("processed") or last.get("failed"):
-                print(json.dumps({k: last[k] for k in ("processed", "skipped", "failed")}, indent=2))
+                print(
+                    json.dumps(
+                        {k: last[k] for k in ("processed", "skipped", "failed")},
+                        indent=2,
+                    )
+                )
             time.sleep(interval_sec)
     except KeyboardInterrupt:
         last["stopped"] = True

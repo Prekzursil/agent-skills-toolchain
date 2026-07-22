@@ -12,8 +12,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .auth import agent_mail_status, chatgpt_bridge_status, codex_auth_status, databricks_auth_status
-from .wfmon_export import redact, write_wfmon_snippet as _write_operational_wfmon_snippet
+from .auth import (
+    agent_mail_status,
+    chatgpt_bridge_status,
+    codex_auth_status,
+    databricks_auth_status,
+)
+from .wfmon_export import (
+    redact,
+    write_wfmon_snippet as _write_operational_wfmon_snippet,
+)
 
 
 DEFAULT_POLL_INTERVAL_SECONDS = 60.0
@@ -110,7 +118,9 @@ def readyz(
     path = state_path or (_crcp_root() / "reports" / "live_bridge_state.json")
     state, state_error = _read_live_state(Path(path))
     auth = auth_report if auth_report is not None else codex_auth_status()
-    auth_status = str(auth.get("status", "UNKNOWN")) if isinstance(auth, dict) else "UNKNOWN"
+    auth_status = (
+        str(auth.get("status", "UNKNOWN")) if isinstance(auth, dict) else "UNKNOWN"
+    )
     auth_ok = auth_status in HEALTHY_STATUSES
     metrics = _metrics_snapshot(state, now_timestamp=current.timestamp())
     stale_after = 2.0 * poll_interval_seconds + poll_grace_seconds
@@ -196,7 +206,11 @@ def codex_cli_status() -> dict[str, Any]:
     for path in paths:
         out["cli_path"] = path
         try:
-            command = ["cmd", "/c", path, "--version"] if path.lower().endswith(".cmd") else [path, "--version"]
+            command = (
+                ["cmd", "/c", path, "--version"]
+                if path.lower().endswith(".cmd")
+                else [path, "--version"]
+            )
             proc = subprocess.run(
                 command,
                 capture_output=True,
@@ -288,10 +302,18 @@ def health_table(report: dict[str, Any]) -> str:
         detail = ",".join(str(item) for item in (row.get("signals") or []))[:36]
         if row["rail"] == "codex_auth":
             codex_detail = rails.get("codex_auth") or {}
-            auth_value = codex_detail.get("access_token") if isinstance(codex_detail, dict) else None
+            auth_value = (
+                codex_detail.get("access_token")
+                if isinstance(codex_detail, dict)
+                else None
+            )
             auth = auth_value if isinstance(auth_value, dict) else {}
             seconds = auth.get("seconds_until_exp")
-            age = codex_detail.get("last_refresh_age_days") if isinstance(codex_detail, dict) else None
+            age = (
+                codex_detail.get("last_refresh_age_days")
+                if isinstance(codex_detail, dict)
+                else None
+            )
             stale = (
                 codex_detail.get("would_proactive_refresh_by_age")
                 if isinstance(codex_detail, dict)

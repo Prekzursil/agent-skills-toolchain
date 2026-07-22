@@ -101,7 +101,13 @@ def _has_error(value: Any) -> bool:
     if isinstance(value, Mapping):
         for key, child in value.items():
             key_lower = str(key).lower()
-            if key_lower in {"error", "errors"} and child not in (None, False, "", [], {}):
+            if key_lower in {"error", "errors"} and child not in (
+                None,
+                False,
+                "",
+                [],
+                {},
+            ):
                 return True
             if key_lower in {"event", "type", "status"}:
                 marker = str(child).lower()

@@ -120,7 +120,9 @@ class LifecycleSpoolStub:
 
     def acked_keys(self) -> set[str]:
         with self._connect() as con:
-            rows = con.execute("select event_key from spool where state='acked'").fetchall()
+            rows = con.execute(
+                "select event_key from spool where state='acked'"
+            ).fetchall()
         return {str(row[0]) for row in rows}
 
 

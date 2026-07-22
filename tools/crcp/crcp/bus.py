@@ -42,9 +42,13 @@ class AgentMailRpc:
         }
         if self.session_id:
             headers["Mcp-Session-Id"] = self.session_id
-        req = urllib.request.Request(self.url, data=data, headers=headers, method="POST")
+        req = urllib.request.Request(
+            self.url, data=data, headers=headers, method="POST"
+        )
         with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-            sid = resp.headers.get("Mcp-Session-Id") or resp.headers.get("mcp-session-id")
+            sid = resp.headers.get("Mcp-Session-Id") or resp.headers.get(
+                "mcp-session-id"
+            )
             if sid:
                 self.session_id = sid
             body = resp.read().decode("utf-8", "replace")
@@ -119,7 +123,9 @@ def extract_agent(reg: Any) -> tuple[str | None, str | None]:
                     return n, t
     if isinstance(reg, str):
         m = re.search(r"([A-Z][a-z]+[A-Z][a-z]+)", reg)
-        t = re.search(r"(?:registration_token|token)[\"'=\s:]+([A-Za-z0-9_\-]{8,})", reg)
+        t = re.search(
+            r"(?:registration_token|token)[\"'=\s:]+([A-Za-z0-9_\-]{8,})", reg
+        )
         if m and t:
             return m.group(1), t.group(1)
     return None, None
@@ -267,9 +273,7 @@ def publish_envelope(
         f"{envelope.get('from_rail', '?')}→{envelope.get('to_rail', '?')}"
     )
     body_md = (
-        "```json\n"
-        + json.dumps(envelope, indent=2, default=str)[:12000]
-        + "\n```\n"
+        "```json\n" + json.dumps(envelope, indent=2, default=str)[:12000] + "\n```\n"
     )
     if envelope.get("payload_ref"):
         body_md = f"payload_ref: `{envelope['payload_ref']}`\n\n" + body_md

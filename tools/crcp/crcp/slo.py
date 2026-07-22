@@ -39,7 +39,9 @@ class SloCounters:
 
     def __init__(
         self,
-        publish_latency_buckets_ms: Iterable[float | int] = DEFAULT_PUBLISH_LATENCY_BUCKETS_MS,
+        publish_latency_buckets_ms: Iterable[
+            float | int
+        ] = DEFAULT_PUBLISH_LATENCY_BUCKETS_MS,
     ):
         self.publish_latency_buckets_ms = _normalize_buckets(publish_latency_buckets_ms)
         self._lock = threading.Lock()

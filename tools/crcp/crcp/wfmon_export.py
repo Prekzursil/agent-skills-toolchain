@@ -62,7 +62,9 @@ def redact(value: Any) -> Any:
     if isinstance(value, str):
         cleaned = _BEARER.sub(f"Bearer {REDACTED}", value)
         cleaned = _JWT.sub(REDACTED, cleaned)
-        return _INLINE_SECRET.sub(lambda match: f"{match.group(1)}{match.group(2)}{REDACTED}", cleaned)
+        return _INLINE_SECRET.sub(
+            lambda match: f"{match.group(1)}{match.group(2)}{REDACTED}", cleaned
+        )
     return value
 
 
@@ -197,7 +199,12 @@ def _walk_uncertain(value: Any) -> int:
         direct = value.get("uncertain_sse_count")
         if isinstance(direct, int) and not isinstance(direct, bool) and direct >= 0:
             return direct
-        for key in ("classification", "terminal_classification", "sse_status", "outcome"):
+        for key in (
+            "classification",
+            "terminal_classification",
+            "sse_status",
+            "outcome",
+        ):
             if value.get(key) in _UNCERTAIN:
                 return 1
         return sum(_walk_uncertain(item) for item in value.values())
@@ -326,7 +333,9 @@ def build_readyz(
     if max_backlog_age_seconds is not None:
         age = backlog.get("oldest_age_seconds") if backlog.get("known") else None
         checks["backlog_age"] = {
-            "ok": age <= max_backlog_age_seconds if isinstance(age, (int, float)) else None,
+            "ok": age <= max_backlog_age_seconds
+            if isinstance(age, (int, float))
+            else None,
             "age_seconds": age,
             "max_age_seconds": max_backlog_age_seconds,
         }
@@ -373,7 +382,9 @@ def build_wfmon_report(
             base / "outbox" / "delivery.sqlite3",
             base / "reports" / "delivery.sqlite3",
         )
-        delivery_path = next((path for path in candidates if path.is_file()), candidates[0])
+        delivery_path = next(
+            (path for path in candidates if path.is_file()), candidates[0]
+        )
 
     live_state = _read_json(live_path)
     publish_state = _read_json(publish_path)
@@ -415,7 +426,9 @@ def write_wfmon_report(report: dict[str, Any], path: Path) -> Path:
     destination = Path(path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     payload = json.dumps(redact(report), indent=2, sort_keys=True) + "\n"
-    fd, temporary = tempfile.mkstemp(prefix=f".{destination.name}.", dir=str(destination.parent))
+    fd, temporary = tempfile.mkstemp(
+        prefix=f".{destination.name}.", dir=str(destination.parent)
+    )
     temporary_path = Path(temporary)
     try:
         with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as stream:
@@ -437,15 +450,23 @@ def write_wfmon_snippet(report: dict[str, Any], path: Path, **kwargs: Any) -> Pa
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Export CRCP health metadata for wfmon")
-    parser.add_argument("--health", type=Path, required=True, help="health_live.json input")
-    parser.add_argument("--output", type=Path, required=True, help="wfmon JSON destination")
+    parser = argparse.ArgumentParser(
+        description="Export CRCP health metadata for wfmon"
+    )
+    parser.add_argument(
+        "--health", type=Path, required=True, help="health_live.json input"
+    )
+    parser.add_argument(
+        "--output", type=Path, required=True, help="wfmon JSON destination"
+    )
     parser.add_argument("--root", type=Path, help="CRCP root containing reports/outbox")
     parser.add_argument("--live-state", type=Path)
     parser.add_argument("--delivery-db", type=Path)
     parser.add_argument("--publish-state", type=Path)
     parser.add_argument("--sse-metrics", type=Path, action="append", default=[])
-    parser.add_argument("--poll-interval", type=float, default=DEFAULT_POLL_INTERVAL_SECONDS)
+    parser.add_argument(
+        "--poll-interval", type=float, default=DEFAULT_POLL_INTERVAL_SECONDS
+    )
     parser.add_argument("--poll-grace", type=float, default=DEFAULT_POLL_GRACE_SECONDS)
     parser.add_argument("--max-backlog-age", type=float)
     return parser

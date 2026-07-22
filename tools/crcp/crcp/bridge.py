@@ -24,8 +24,12 @@ class BridgeDegradedError(RuntimeError):
 class ChatGPTBridge:
     """Read-only ChatGPT backend-api client. Does not refresh tokens."""
 
-    def __init__(self, codex_home: Path | None = None, base: str = "https://chatgpt.com"):
-        self.codex_home = codex_home or Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))
+    def __init__(
+        self, codex_home: Path | None = None, base: str = "https://chatgpt.com"
+    ):
+        self.codex_home = codex_home or Path(
+            os.environ.get("CODEX_HOME", Path.home() / ".codex")
+        )
         self.base = base.rstrip("/")
         self._snapshot: CredentialSnapshot | None = None
         self.reload()
@@ -34,7 +38,9 @@ class ChatGPTBridge:
         auth_path = self.codex_home / "auth.json"
         snapshot = load_from_auth_json(auth_path)
         if snapshot.expired:
-            raise RuntimeError("access_token expired — primary Codex owner must refresh auth.json")
+            raise RuntimeError(
+                "access_token expired — primary Codex owner must refresh auth.json"
+            )
         self._snapshot = snapshot
 
     def _maybe_reload(self) -> None:
@@ -51,7 +57,9 @@ class ChatGPTBridge:
         )
         return urllib.request.Request(url, method=method, headers=headers)
 
-    def _request(self, method: str, path: str, query: dict[str, Any] | None = None) -> Any:
+    def _request(
+        self, method: str, path: str, query: dict[str, Any] | None = None
+    ) -> Any:
         self._maybe_reload()
         q = f"?{urllib.parse.urlencode(query)}" if query else ""
         url = f"{self.base}{path}{q}"
@@ -65,7 +73,9 @@ class ChatGPTBridge:
                     error.code == 401
                     and attempt == 0
                     and self._snapshot is not None
-                    and is_stale_mtime(self.codex_home / "auth.json", self._snapshot.mtime_ns)
+                    and is_stale_mtime(
+                        self.codex_home / "auth.json", self._snapshot.mtime_ns
+                    )
                 )
                 if changed:
                     self.reload()

@@ -28,7 +28,9 @@ def payload_sha256(payload: bytes | str | Any) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
-def make_event_key(conversation_id: str, update_time: str | int | float, payload: Any) -> str:
+def make_event_key(
+    conversation_id: str, update_time: str | int | float, payload: Any
+) -> str:
     """Build the specified conversation/update/payload idempotency identity."""
     if not isinstance(conversation_id, str) or not conversation_id.strip():
         raise ValueError("conversation_id must be a non-empty string")

@@ -18,10 +18,14 @@ DEFAULT_ROOT = Path(
 
 def _parse_ref(ref: str) -> str:
     if not isinstance(ref, str) or not ref.startswith(_PREFIX):
-        raise ValueError("artifact reference must have the form sha256:<64 hex characters>")
+        raise ValueError(
+            "artifact reference must have the form sha256:<64 hex characters>"
+        )
     digest = ref[len(_PREFIX) :]
     if len(digest) != 64 or any(character not in _HEX_DIGITS for character in digest):
-        raise ValueError("artifact reference must have the form sha256:<64 hex characters>")
+        raise ValueError(
+            "artifact reference must have the form sha256:<64 hex characters>"
+        )
     return digest.lower()
 
 

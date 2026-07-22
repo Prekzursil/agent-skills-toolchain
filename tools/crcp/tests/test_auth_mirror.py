@@ -31,10 +31,18 @@ class AuthMirrorTests(unittest.TestCase):
             connection.executemany(
                 "INSERT INTO cookies VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 [
-                    (".chatgpt.com", "_puid", "/", 1, 0, 1, 1,
-                     _chrome_timestamp(1_800_000_000), b"encrypted-one"),
-                    ("chatgpt.com", "_uasid", "/x", 1, 1, 2, 0, 0,
-                     b"encrypted-two"),
+                    (
+                        ".chatgpt.com",
+                        "_puid",
+                        "/",
+                        1,
+                        0,
+                        1,
+                        1,
+                        _chrome_timestamp(1_800_000_000),
+                        b"encrypted-one",
+                    ),
+                    ("chatgpt.com", "_uasid", "/x", 1, 1, 2, 0, 0, b"encrypted-two"),
                 ],
             )
 
@@ -49,7 +57,12 @@ class AuthMirrorTests(unittest.TestCase):
             auth_mirror.cookie_db_paths(user_data),
             [
                 user_data / "Default" / "Network" / "Cookies",
-                user_data / "Default" / "Partitions" / "codex-browser-app" / "Network" / "Cookies",
+                user_data
+                / "Default"
+                / "Partitions"
+                / "codex-browser-app"
+                / "Network"
+                / "Cookies",
             ],
         )
 
@@ -64,7 +77,9 @@ class AuthMirrorTests(unittest.TestCase):
         self.assertNotIn('"value"', serialized)
 
     def test_summary_honestly_reports_missing_nextauth(self) -> None:
-        summary = auth_mirror._summarize([(self.db, auth_mirror.inventory_cookies(self.db))])
+        summary = auth_mirror._summarize(
+            [(self.db, auth_mirror.inventory_cookies(self.db))]
+        )
         self.assertEqual(summary["status"], "partial_without_nextauth")
         self.assertEqual(summary["cookie_count"], 2)
 
@@ -72,12 +87,16 @@ class AuthMirrorTests(unittest.TestCase):
         with self.assertRaises(PermissionError):
             auth_mirror.decrypt_cookie_value(b"anything", self.root / "Local State")
         if os.name != "nt":
-            self.assertIsNone(auth_mirror.decrypt_cookie_value(
-                b"anything", self.root / "Local State", allow_decrypt=True
-            ))
+            self.assertIsNone(
+                auth_mirror.decrypt_cookie_value(
+                    b"anything", self.root / "Local State", allow_decrypt=True
+                )
+            )
 
     def test_secret_export_guard_and_json(self) -> None:
-        cookies = [{"host_key": ".chatgpt.com", "name": "x", "path": "/", "value": "secret"}]
+        cookies = [
+            {"host_key": ".chatgpt.com", "name": "x", "path": "/", "value": "secret"}
+        ]
         with self.assertRaises(PermissionError):
             auth_mirror.export_cookies_json(cookies, self.root / "blocked.json")
         with mock.patch.object(auth_mirror, "RESULT_DIR", self.root / "results"):
@@ -87,14 +106,23 @@ class AuthMirrorTests(unittest.TestCase):
                 )
         out = self.root / "private" / "cookies.json"
         auth_mirror.export_cookies_json(cookies, out, allow_decrypt=True)
-        self.assertEqual(json.loads(out.read_text(encoding="utf-8"))[0]["value"], "secret")
+        self.assertEqual(
+            json.loads(out.read_text(encoding="utf-8"))[0]["value"], "secret"
+        )
 
     def test_cdp_format(self) -> None:
-        formatted = auth_mirror.format_cdp_cookie({
-            "host_key": ".chatgpt.com", "name": "x", "value": b"y",
-            "path": "/", "secure": True, "httpOnly": True,
-            "samesite": 1, "expires_unix": 1_800_000_000,
-        })
+        formatted = auth_mirror.format_cdp_cookie(
+            {
+                "host_key": ".chatgpt.com",
+                "name": "x",
+                "value": b"y",
+                "path": "/",
+                "secure": True,
+                "httpOnly": True,
+                "samesite": 1,
+                "expires_unix": 1_800_000_000,
+            }
+        )
         self.assertEqual(formatted["domain"], ".chatgpt.com")
         self.assertEqual(formatted["sameSite"], "Lax")
         self.assertEqual(formatted["value"], "y")
@@ -105,7 +133,9 @@ class AuthMirrorTests(unittest.TestCase):
         target.parent.mkdir(parents=True)
         target.write_bytes(self.db.read_bytes())
         output = self.root / "inventory-output"
-        with mock.patch.object(auth_mirror, "default_user_data_dir", return_value=user_data):
+        with mock.patch.object(
+            auth_mirror, "default_user_data_dir", return_value=user_data
+        ):
             report = auth_mirror.run_mirror_export(output, decrypt=False)
         text = (output / "cookie_inventory.json").read_text(encoding="utf-8")
         self.assertEqual(report["status"], "partial_without_nextauth")

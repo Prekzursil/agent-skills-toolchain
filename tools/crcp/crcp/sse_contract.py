@@ -72,8 +72,13 @@ def classify_sse(status: int, text: str) -> str:
         if record.get("event") == "error":
             return ERROR
         data = record.get("data")
-        if isinstance(data, dict) and (data.get("error") or data.get("type") == "error"):
+        if isinstance(data, dict) and (
+            data.get("error") or data.get("type") == "error"
+        ):
             return ERROR
-    if any(record.get("done") or _contains_terminal(record.get("data")) for record in records):
+    if any(
+        record.get("done") or _contains_terminal(record.get("data"))
+        for record in records
+    ):
         return COMPLETE
     return UNCERTAIN_ACCEPTED

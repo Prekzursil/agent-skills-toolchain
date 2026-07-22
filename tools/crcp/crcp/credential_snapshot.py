@@ -127,7 +127,9 @@ def load_from_auth_json(path: Path | str) -> CredentialSnapshot:
     oauth_claims = claims.get("https://api.openai.com/auth") or {}
     if not isinstance(oauth_claims, dict):
         oauth_claims = {}
-    account_id = oauth_claims.get("chatgpt_account_id") or tokens.get("account_id") or ""
+    account_id = (
+        oauth_claims.get("chatgpt_account_id") or tokens.get("account_id") or ""
+    )
     if not isinstance(account_id, str):
         account_id = str(account_id)
 
@@ -139,7 +141,9 @@ def load_from_auth_json(path: Path | str) -> CredentialSnapshot:
         exp = None
     now = datetime.now(timezone.utc)
     try:
-        exp_time = datetime.fromtimestamp(exp, timezone.utc) if exp is not None else None
+        exp_time = (
+            datetime.fromtimestamp(exp, timezone.utc) if exp is not None else None
+        )
     except (OverflowError, OSError, ValueError):
         exp = None
         exp_time = None
@@ -157,7 +161,9 @@ def load_from_auth_json(path: Path | str) -> CredentialSnapshot:
         exp_utc=exp_time.isoformat() if exp_time else None,
         expires_at_epoch=exp,
         expired=exp_time <= now if exp_time else None,
-        within_5min_of_exp=(exp_time - now).total_seconds() <= 300 if exp_time else None,
+        within_5min_of_exp=(exp_time - now).total_seconds() <= 300
+        if exp_time
+        else None,
         _handle=CredentialHandle(access, account_id),
     )
 

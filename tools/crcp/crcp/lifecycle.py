@@ -113,7 +113,11 @@ class EventRecord:
         if not isinstance(self.event_key, str) or not self.event_key.strip():
             raise LifecycleError("event_key must be a non-empty string")
         self.state = _state_value(self.state)
-        if isinstance(self.attempts, bool) or not isinstance(self.attempts, int) or self.attempts < 0:
+        if (
+            isinstance(self.attempts, bool)
+            or not isinstance(self.attempts, int)
+            or self.attempts < 0
+        ):
             raise LifecycleError("attempts must be a non-negative integer")
         if not isinstance(self.timestamps, dict):
             raise LifecycleError("timestamps must be a mapping")
@@ -279,7 +283,9 @@ class InMemoryLifecycleStore:
         try:
             value = json.loads(source.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
-            raise LifecycleError(f"cannot load lifecycle snapshot {source}: {exc}") from exc
+            raise LifecycleError(
+                f"cannot load lifecycle snapshot {source}: {exc}"
+            ) from exc
         if not isinstance(value, dict) or value.get("format") != cls.FORMAT:
             raise LifecycleError("unsupported lifecycle snapshot format")
         records = value.get("records")

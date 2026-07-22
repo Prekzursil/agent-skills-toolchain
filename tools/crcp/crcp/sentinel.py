@@ -11,7 +11,6 @@ callers can pass a captured turnstile token or obtain one via CDP.
 from __future__ import annotations
 
 import base64
-import copy
 import hashlib
 import json
 import math
@@ -53,7 +52,9 @@ _POW_SOLVE_SEMAPHORE = threading.BoundedSemaphore(POW_MAX_CONCURRENT_SOLVES)
 def _parse_time_utc() -> str:
     now = datetime.now(timezone.utc)
     # Browser-style string (server is loose; keep readable)
-    return now.strftime("%a %b %d %Y %H:%M:%S") + " GMT+0000 (Coordinated Universal Time)"
+    return (
+        now.strftime("%a %b %d %Y %H:%M:%S") + " GMT+0000 (Coordinated Universal Time)"
+    )
 
 
 def build_pow_config(
@@ -136,14 +137,20 @@ def solve_proof_token(
     n_workers = workers or max(1, min(8, (os.cpu_count() or 4)))
     if n_workers <= 0:
         raise ValueError("workers must be positive")
-    limit = DEFAULT_POW_DEADLINE_SECONDS if deadline_seconds is None else float(deadline_seconds)
+    limit = (
+        DEFAULT_POW_DEADLINE_SECONDS
+        if deadline_seconds is None
+        else float(deadline_seconds)
+    )
     if not math.isfinite(limit) or limit <= 0:
         raise ValueError("deadline_seconds must be positive")
 
     started = time.monotonic()
     deadline = started + limit
     if not _POW_SOLVE_SEMAPHORE.acquire(timeout=max(0.0, deadline - time.monotonic())):
-        raise TimeoutError(f"PoW deadline exceeded after {limit:g}s waiting for solve slot")
+        raise TimeoutError(
+            f"PoW deadline exceeded after {limit:g}s waiting for solve slot"
+        )
 
     stop_event = threading.Event()
     timed_out = False
@@ -151,7 +158,9 @@ def solve_proof_token(
         # seed+s first (common); fall back to bare s if needed.
         modes_order = (("seed+s",), ("s",))
         chunk = max(200_000, max_iter // (n_workers * 16))
-        with ThreadPoolExecutor(max_workers=n_workers, thread_name_prefix="crcp-pow") as pool:
+        with ThreadPoolExecutor(
+            max_workers=n_workers, thread_name_prefix="crcp-pow"
+        ) as pool:
             for modes in modes_order:
                 start = 0
                 while start < max_iter and not stop_event.is_set():
@@ -180,7 +189,9 @@ def solve_proof_token(
                             timed_out = True
                             stop_event.set()
                             break
-                        done, pending = wait(pending, timeout=remaining, return_when=FIRST_COMPLETED)
+                        done, pending = wait(
+                            pending, timeout=remaining, return_when=FIRST_COMPLETED
+                        )
                         if not done:
                             timed_out = True
                             stop_event.set()
@@ -315,7 +326,9 @@ def acquire_sentinel_tokens(
         except Exception as e:
             last_err = e
             continue
-    raise RuntimeError(f"sentinel acquire failed after {prepare_retries} tries: {last_err}")
+    raise RuntimeError(
+        f"sentinel acquire failed after {prepare_retries} tries: {last_err}"
+    )
 
 
 def try_finalize(

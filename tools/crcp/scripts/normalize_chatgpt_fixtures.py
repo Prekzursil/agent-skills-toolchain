@@ -1,4 +1,8 @@
-import json, hashlib, os, re, sys
+import json
+import hashlib
+import os
+import re
+import sys
 from pathlib import Path
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
@@ -9,8 +13,10 @@ OUT.mkdir(parents=True, exist_ok=True)
 (OUT / "raw_stream").mkdir(exist_ok=True)
 (OUT / "raw_conversation").mkdir(exist_ok=True)
 
+
 def sha256_bytes(b: bytes) -> str:
     return hashlib.sha256(b).hexdigest()
+
 
 def sha256_file(p: Path) -> str:
     h = hashlib.sha256()
@@ -19,6 +25,7 @@ def sha256_file(p: Path) -> str:
             h.update(chunk)
     return h.hexdigest()
 
+
 def load_json(p: Path):
     raw = p.read_bytes()
     try:
@@ -26,6 +33,7 @@ def load_json(p: Path):
     except Exception as e:
         return None, raw, f"json_error:{e}"
     return data, raw, None
+
 
 def collect_keys(obj, prefix="", out=None, depth=0):
     if out is None:
@@ -36,13 +44,14 @@ def collect_keys(obj, prefix="", out=None, depth=0):
         for k, v in obj.items():
             path = f"{prefix}.{k}" if prefix else k
             out[path] += 1
-            collect_keys(v, path, out, depth+1)
+            collect_keys(v, path, out, depth + 1)
     elif isinstance(obj, list) and obj:
         # sample first non-null element type pattern
         for i, item in enumerate(obj[:3]):
-            collect_keys(item, f"{prefix}[]", out, depth+1)
+            collect_keys(item, f"{prefix}[]", out, depth + 1)
             break
     return out
+
 
 def summarize_stream(data):
     """Extract structural summary; do not assume text content exists."""
@@ -54,7 +63,15 @@ def summarize_stream(data):
     # progressive snapshot heuristics
     if isinstance(data, dict):
         # common shapes
-        for k in ("events", "story_events", "messages", "items", "stream", "data", "turns"):
+        for k in (
+            "events",
+            "story_events",
+            "messages",
+            "items",
+            "stream",
+            "data",
+            "turns",
+        ):
             if k in data:
                 v = data[k]
                 summary[f"field_{k}_type"] = type(v).__name__
@@ -62,22 +79,34 @@ def summarize_stream(data):
                     summary[f"field_{k}_len"] = len(v)
         # nested search for event-like lists
         event_lists = []
+
         def walk(o, path=""):
             if isinstance(o, dict):
-                for k,v in o.items():
+                for k, v in o.items():
                     walk(v, f"{path}.{k}" if path else k)
             elif isinstance(o, list):
                 if o and isinstance(o[0], dict):
                     keys = set(o[0].keys())
-                    if any(x in keys for x in ("type","event","opcode","message_type","channel")):
-                        event_lists.append({"path": path or "root", "len": len(o), "sample_keys": sorted(keys)[:30]})
+                    if any(
+                        x in keys
+                        for x in ("type", "event", "opcode", "message_type", "channel")
+                    ):
+                        event_lists.append(
+                            {
+                                "path": path or "root",
+                                "len": len(o),
+                                "sample_keys": sorted(keys)[:30],
+                            }
+                        )
                 for item in o[:2]:
                     walk(item, path + "[]")
+
         walk(data)
         summary["event_lists"] = event_lists[:20]
         # hash/length heavy fields
         hash_like = 0
         text_like = 0
+
         def count_leaf(o):
             nonlocal hash_like, text_like
             if isinstance(o, dict):
@@ -87,27 +116,44 @@ def summarize_stream(data):
                 for v in o[:50]:
                     count_leaf(v)
             elif isinstance(o, str):
-                if re.fullmatch(r"[a-fA-F0-9]{32,128}", o) or re.fullmatch(r"sha256:[a-f0-9]+", o):
+                if re.fullmatch(r"[a-fA-F0-9]{32,128}", o) or re.fullmatch(
+                    r"sha256:[a-f0-9]+", o
+                ):
                     hash_like += 1
                 elif len(o) > 40 and " " in o:
                     text_like += 1
+
         count_leaf(data)
         summary["hash_like_strings"] = hash_like
         summary["text_like_strings"] = text_like
     return summary
 
+
 def summarize_conversation(data):
     summary = {
-        "top_level_keys": list(data.keys()) if isinstance(data, dict) else type(data).__name__,
+        "top_level_keys": list(data.keys())
+        if isinstance(data, dict)
+        else type(data).__name__,
     }
     if not isinstance(data, dict):
         return summary
     # ChatGPT export shapes vary: mapping, linear_conversation, etc.
-    for k in ("title", "create_time", "update_time", "conversation_id", "id", "current_node"):
+    for k in (
+        "title",
+        "create_time",
+        "update_time",
+        "conversation_id",
+        "id",
+        "current_node",
+    ):
         if k in data:
             v = data[k]
             if isinstance(v, str) and len(v) > 80:
-                summary[k] = {"type": "str", "len": len(v), "sha256": sha256_bytes(v.encode())}
+                summary[k] = {
+                    "type": "str",
+                    "len": len(v),
+                    "sha256": sha256_bytes(v.encode()),
+                }
             else:
                 summary[k] = v
     mapping = data.get("mapping") or data.get("messages")
@@ -140,7 +186,11 @@ def summarize_conversation(data):
         summary["message_list_len"] = len(mapping)
     return summary
 
-stream_files = sorted(DOWNLOADS.glob("chatgpt-conversation-stream-trace*.json"), key=lambda p: p.stat().st_size)
+
+stream_files = sorted(
+    DOWNLOADS.glob("chatgpt-conversation-stream-trace*.json"),
+    key=lambda p: p.stat().st_size,
+)
 conv_files = sorted(DOWNLOADS.glob("chatgpt-conversation-6a5d2b66*.json"))
 
 manifest = {
@@ -151,7 +201,7 @@ manifest = {
     "conversations": [],
     "dedup": {},
     "unified_schema": {},
-    "notes": []
+    "notes": [],
 }
 
 # Process streams
@@ -186,7 +236,9 @@ for size, h, name, summ in sorted(stream_summaries, key=lambda x: x[0]):
     if h in seen_h:
         continue
     seen_h.add(h)
-    unique_streams.append({"bytes": size, "sha256": h, "example_name": name, "summary": summ})
+    unique_streams.append(
+        {"bytes": size, "sha256": h, "example_name": name, "summary": summ}
+    )
 
 # copy unique stream files as snap_NNN.json
 for i, u in enumerate(unique_streams):
@@ -202,10 +254,17 @@ for i, u in enumerate(unique_streams):
 
 manifest["unique_stream_snapshots"] = unique_streams
 manifest["stream_progressive"] = {
-    "is_progressive_by_size": all(unique_streams[i]["bytes"] <= unique_streams[i+1]["bytes"] for i in range(len(unique_streams)-1)) if len(unique_streams)>1 else True,
+    "is_progressive_by_size": all(
+        unique_streams[i]["bytes"] <= unique_streams[i + 1]["bytes"]
+        for i in range(len(unique_streams) - 1)
+    )
+    if len(unique_streams) > 1
+    else True,
     "snapshot_count_unique": len(unique_streams),
     "snapshot_count_files": len(stream_files),
-    "duplicate_groups": {h[:12]: names for h, names in content_hashes.items() if len(names) > 1},
+    "duplicate_groups": {
+        h[:12]: names for h, names in content_hashes.items() if len(names) > 1
+    },
 }
 
 # conversations
@@ -236,7 +295,14 @@ for p in conv_files:
     seen.add(h)
     dest = OUT / "raw_conversation" / f"conversation_{h[:12]}.json"
     dest.write_bytes(p.read_bytes())
-    unique_convs.append({"sha256": h, "bytes": p.stat().st_size, "fixture_path": str(dest.relative_to(OUT)), "sources": conv_hashes[h]})
+    unique_convs.append(
+        {
+            "sha256": h,
+            "bytes": p.stat().st_size,
+            "fixture_path": str(dest.relative_to(OUT)),
+            "sources": conv_hashes[h],
+        }
+    )
 
 manifest["unique_conversations"] = unique_convs
 manifest["dedup"] = {
@@ -255,18 +321,26 @@ schema = {
         "StreamSnapshot": {
             "purpose": "Progressive UI streaming snapshot; typically NO message text, only hashes/lengths/directives/metadata.",
             "identity": ["sha256", "bytes"],
-            "observed_top_level": unique_streams[0]["summary"].get("top_level_keys") if unique_streams else None,
-            "observed_event_lists": unique_streams[-1]["summary"].get("event_lists") if unique_streams else None,
+            "observed_top_level": unique_streams[0]["summary"].get("top_level_keys")
+            if unique_streams
+            else None,
+            "observed_event_lists": unique_streams[-1]["summary"].get("event_lists")
+            if unique_streams
+            else None,
             "content_profile": {
                 "expects_message_text": False,
-                "hash_like_dominant": True if unique_streams and unique_streams[-1]["summary"].get("hash_like_strings",0) >= unique_streams[-1]["summary"].get("text_like_strings",0) else False,
-            }
+                "hash_like_dominant": True
+                if unique_streams
+                and unique_streams[-1]["summary"].get("hash_like_strings", 0)
+                >= unique_streams[-1]["summary"].get("text_like_strings", 0)
+                else False,
+            },
         },
         "ConversationExport": {
             "purpose": "Full conversation export with real message text and mapping tree.",
             "identity": ["sha256", "conversation_id_or_id"],
             "observed": unique_convs[0] if unique_convs else None,
-            "content_profile": {"expects_message_text": True}
+            "content_profile": {"expects_message_text": True},
         },
         "FixtureBundle": {
             "fields": {
@@ -276,7 +350,7 @@ schema = {
                 "unique_conversations": "ConversationExport[]",
                 "dedup": "object",
             }
-        }
+        },
     },
     "key_paths_top_50": all_key_paths.most_common(50),
 }
@@ -285,7 +359,7 @@ manifest["unified_schema"] = schema
 # human schema markdown
 schema_md = f"""# ChatGPT Desktop Fixture Schema v1
 
-Generated: {manifest['generated_at']}
+Generated: {manifest["generated_at"]}
 
 ## Bundle layout
 
@@ -303,13 +377,13 @@ fixtures/chatgpt_desktop/v1/
 - **No reliable message text** — hashes, lengths, directives, metadata only.
 - Identity: content `sha256` + `bytes`.
 - Unique snapshots: **{len(unique_streams)}** from **{len(stream_files)}** files.
-- Progressive by size: **{manifest['stream_progressive']['is_progressive_by_size']}**
+- Progressive by size: **{manifest["stream_progressive"]["is_progressive_by_size"]}**
 
 ### Unique snapshot ladder
 """
-for i,u in enumerate(unique_streams):
-    hl = u['summary'].get('hash_like_strings')
-    tl = u['summary'].get('text_like_strings')
+for i, u in enumerate(unique_streams):
+    hl = u["summary"].get("hash_like_strings")
+    tl = u["summary"].get("text_like_strings")
     schema_md += f"- snap_{i:03d}: bytes={u['bytes']} sha256={u['sha256'][:16]}… hash_like={hl} text_like={tl} file={u['example_name']}\n"
 
 schema_md += f"""
@@ -317,18 +391,25 @@ schema_md += f"""
 
 - Full export for conversation family `6a5d2b66-a160-8327-9b06-baca0caf1584`.
 - Files on disk: **{len(conv_files)}**; unique content: **{len(conv_hashes)}**.
-- All identical: **{manifest['dedup']['conversation_all_identical']}**
+- All identical: **{manifest["dedup"]["conversation_all_identical"]}**
 """
 if unique_convs:
     # load summary from first conv entry
-    csum = next((c['summary'] for c in manifest['conversations'] if c['sha256']==unique_convs[0]['sha256']), {})
+    csum = next(
+        (
+            c["summary"]
+            for c in manifest["conversations"]
+            if c["sha256"] == unique_convs[0]["sha256"]
+        ),
+        {},
+    )
     schema_md += f"""
 ### Content stats (deduped export)
-- mapping_nodes: {csum.get('mapping_nodes')}
-- roles: {csum.get('roles')}
-- content_types: {csum.get('content_types')}
-- total_text_chars: {csum.get('total_text_chars')}
-- has_real_text: {csum.get('has_real_text')}
+- mapping_nodes: {csum.get("mapping_nodes")}
+- roles: {csum.get("roles")}
+- content_types: {csum.get("content_types")}
+- total_text_chars: {csum.get("total_text_chars")}
+- has_real_text: {csum.get("has_real_text")}
 """
 
 schema_md += """

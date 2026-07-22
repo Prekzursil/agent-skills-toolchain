@@ -90,9 +90,9 @@ class JsonlTraceWriter:
             "duration_ms": _duration(duration_ms),
             "outcome": _required_text("outcome", outcome),
         }
-        encoded = (json.dumps(record, separators=(",", ":"), ensure_ascii=False) + "\n").encode(
-            "utf-8"
-        )
+        encoded = (
+            json.dumps(record, separators=(",", ":"), ensure_ascii=False) + "\n"
+        ).encode("utf-8")
 
         with self._lock:
             self.path.parent.mkdir(parents=True, exist_ok=True)

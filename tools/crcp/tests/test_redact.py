@@ -33,7 +33,9 @@ class RedactionContractTests(unittest.TestCase):
         self.assertIn(REDACTED, result)
 
     def test_secret_url_query_values_are_redacted(self) -> None:
-        result = redact("https://example.invalid/stream?resume_token=resume-value&limit=2")
+        result = redact(
+            "https://example.invalid/stream?resume_token=resume-value&limit=2"
+        )
         self.assertNotIn("resume-value", result)
         self.assertIn("limit=2", result)
 

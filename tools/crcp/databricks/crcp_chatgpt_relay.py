@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 import json
-import os
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -54,7 +53,9 @@ def load_auth_from_secret(
         return json.loads(p.read_text(encoding="utf-8"))
 
 
-def chatgpt_get(access: str, account_id: str, path: str, query: dict | None = None) -> Any:
+def chatgpt_get(
+    access: str, account_id: str, path: str, query: dict | None = None
+) -> Any:
     q = f"?{urllib.parse.urlencode(query)}" if query else ""
     url = f"https://chatgpt.com{path}{q}"
     req = urllib.request.Request(
@@ -94,12 +95,19 @@ def main(
     }
 
     listing = chatgpt_get(
-        access, account_id, "/backend-api/conversations", {"offset": 0, "limit": max(fetch_latest, 5)}
+        access,
+        account_id,
+        "/backend-api/conversations",
+        {"offset": 0, "limit": max(fetch_latest, 5)},
     )
     items = listing.get("items") or []
     report["total"] = listing.get("total")
     report["items"] = [
-        {"id": it.get("id"), "title": it.get("title"), "update_time": it.get("update_time")}
+        {
+            "id": it.get("id"),
+            "title": it.get("title"),
+            "update_time": it.get("update_time"),
+        }
         for it in items[:10]
     ]
 
@@ -125,7 +133,9 @@ def main(
                 out.mkdir(parents=True, exist_ok=True)
                 stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
                 path = out / f"conv_{cid}_{stamp}.json"
-                path.write_text(json.dumps(conv, indent=2, default=str), encoding="utf-8")
+                path.write_text(
+                    json.dumps(conv, indent=2, default=str), encoding="utf-8"
+                )
                 pack["dbfs_path"] = str(path)
             except Exception as e:
                 pack["dbfs_error"] = type(e).__name__
