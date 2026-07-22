@@ -19,6 +19,12 @@ This is the most expensive recurring failure mode. SIX live instances in ONE ses
 | "the FB/WhatsApp MCP has no auth" (2026-07-19) | `fb_account_list` / `wa_account_list` → `accounts: []` (the *alternate-profile store*) | `whoami` → live `{uid, name}` **AND** `wa_search_messages` → real messages with `is_from_me` — the session WAS authenticated; `[]` meant "no alternate profiles", a different field |
 | "the PR is BLOCKED = its checks are missing" (2026-07-19) | `mergeStateStatus: BLOCKED` read as "not yet run" | the `quality` run's `conclusion=failure` — the checks had **run and failed**; BLOCKED ≠ pending. Fixing one gate then revealed the next (jobs stop at the FIRST failing step) |
 | "the MCP disable took effect" (2026-07-19) | `disabledMcpServers` present at **root** of `~/.claude.json` | the **process table** (320 live MCP procs, disabled servers spawning 10 min post-restore) **AND** the pre-restore backup (key lived per-*project*, not root) — root-scope was inert |
+| "the hooks.json fix is verified" (2026-07-19b) | `codex exec` stderr showed no parse error | the **desktop Hooks panel** — the probe printed nothing in the **broken state too**, so its silence was meaningless (see the both-states rule below) |
+| "`bash` will run this hook" (2026-07-19b) | `command -v bash` in Git Bash → `/usr/bin/bash` | `Get-Command bash` in PowerShell → `C:\WINDOWS\system32\bash.exe` = **WSL**, which mangles Windows paths and rejects CRLF. The MSYS view is not what a Windows process spawns. |
+| "hyperframes is unused / nothing is enabled" (2026-07-19b) | `enabledPlugins` empty at root of `~/.claude.json` | `~/.claude/settings.json` holds the **real** map — `hyperframes=false`, `metaswarm=true`. Right key, wrong file. |
+| "the vendored constant drifted to 0" (2026-07-19b) | regex `[<>=]{1,2}` "comparison" match | it also matches a bare `=`, so the `size = 0` **initialiser** read as a threshold. Use `(?:<=\|>=\|<\|>\|==\|!=)`. |
+| "CI has no checks / can't tell" (2026-07-19b) | `gh pr checks` errored on PAT scope | `gh run list --branch` → `quality` + `no-runtime-junk` both **success**. A tool's auth failure is a DETECTOR failure, never a verdict. |
+| "the test suite protects this constant" (2026-07-19b) | 15/15 green | **mutation test**: reverting `DEFAULT_MIN_BYTES` 1024→512 still passed, because every case passed `min_bytes` explicitly and the default was never exercised |
 
 ## The rule
 
@@ -31,6 +37,13 @@ This is the most expensive recurring failure mode. SIX live instances in ONE ses
 3. **Verify the detector before trusting the absence.** A "0 results / not found / 0 alive"
    reading is often a broken matcher, wrong shell, wrong path, or stale cache — check that the
    detector *can* find a known-present item before concluding nothing is present.
+3b. **The both-states test (the sharpest form of rule 3).** Before a probe's silence counts as
+   "fixed", run it against the **known-BROKEN** state and confirm it FIRES there. A probe that is
+   silent in both states measures nothing. Measured 2026-07-19b: a `codex exec` probe printed no
+   parse error either before or after the fix, and was one step from being reported as
+   verification. The same discipline applied to a TEST SUITE is **mutation testing** — revert each
+   real bug in turn and require the suite to go red; a suite that stays green is not protecting
+   that behaviour. One of six C1 mutations survived and exposed a genuine hole in the tests.
 4. **Terminal-state discipline (AGENTS.md §4):** `DONE` only on receipt **AND** postcondition;
    `FAILED`/`STALLED` only on an AND-gate of ≥2 signals — never single-signal, never CPU-alone,
    never mtime-alone.
@@ -50,3 +63,29 @@ context) and the two-strikes pivot (AGENTS.md §4b).
 was documenting — reading a blocked command's *content* instead of its *verb* — and shipped the
 opposite of a sibling audit's correct verdict. Two same-level reports that disagree are a
 resolve-from-raw-source trigger, never a pick-one trigger.
+
+
+## Four more detector shapes, measured PROMPT-1.5 (2026-07-21)
+
+Twelve self-inflicted detector failures occurred in one program. The rule above already covers the
+principle; these are the SHAPES, because each looked like a finding until a second probe disagreed.
+
+| shape | wrong reading | why |
+|---|---|---|
+| `grep -c pat \|\| echo 0` | reported **all 7 PRs hit** AND an **empty intersection**, in one run | `grep -c` prints `0` **and** exits 1, so `\|\| echo 0` also fires -> `"0\n0"`, which `!= "0"` |
+| a process probe whose pattern is in its OWN command line | a dead session reported **ACTIVE**, twice | `Win32_Process` matched the probe itself. Tell: the reported `CreationDate` equals the probe's own run time |
+| comparing two DIFFERENT files | `record.py` vs `stubscan.py` -> "DRIFTED" | of course they differ; compare like with like |
+| `pytest <dir>` on a standalone script | `INTERNALERROR> SystemExit: 0` read as a failing suite | the file calls `sys.exit()` at module level; run it through its own entry point -> 174 passed |
+
+**A self-contradicting output is a detector failure, not a finding.** If one run reports two things
+that cannot both be true, stop and fix the instrument before reading either number.
+
+**Corollary — equality to a pinned SHA is a self-falsifying safety check.** Asserting "peer tree @
+`<sha>`, N modified" as an invariant raised **three** false alarms while a human committed to that
+tree legitimately. Use invariants that survive concurrent work instead:
+  (a) the baseline commit remains an ANCESTOR of HEAD (no history rewrite), AND
+  (b) every intervening commit is OWNER-authored, not agent-authored, AND
+  (c) no changed/untracked path carries a unit name from your program, AND
+  (d) no agent performed a write against that tree.
+Detector weakness to disclose when using it: author identity is forgeable -- corroborate with the
+changed-path surface.
