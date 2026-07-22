@@ -65,6 +65,39 @@ class Verdict:
         return f"{self.state}: {self.reason}"
 
 
+def artifact_text_ok(
+    text: Optional[str],
+    sentinel: Optional[str] = None,
+    min_bytes: int = DEFAULT_MIN_BYTES,
+    sentinel_tail: int = DEFAULT_SENTINEL_TAIL,
+) -> tuple[bool, str]:
+    """The AND-gate over artifact CONTENT that is already in hand.
+
+    Exists in addition to `artifact_ok` because that function is PATH-based, and a large class of
+    real consumers never has a path: a fan-out harvest reads its artifacts out of remote object
+    storage as text, a stream reader has bytes, a test has a literal. Faced with a path-only
+    predicate those consumers each reimplemented the same three checks, which is precisely how a
+    "single shared definition" ends up with private forks and no production callers.
+
+    `artifact_ok` is now a thin path-adapter over this, so the two can never drift apart.
+
+    Size is measured in BYTES of the encoded text, not len() of the string, so a multi-byte artifact
+    is not judged smaller than it is. The sentinel window is likewise bytes — agents append trailing
+    prose of unpredictable length and a line-based window silently widens on long lines.
+    """
+    if text is None:
+        return False, "no artifact content given"
+    raw = text.encode("utf-8", errors="replace")
+    size = len(raw)
+    if size < min_bytes:
+        return False, f"artifact too small ({size}B < {min_bytes}B)"
+    if sentinel:
+        tail = raw[-sentinel_tail:].decode("utf-8", errors="replace")
+        if sentinel not in tail:
+            return False, f"sentinel {sentinel!r} absent from last {sentinel_tail}B"
+    return True, f"artifact ok ({size}B)"
+
+
 def artifact_ok(
     path: Optional[str],
     sentinel: Optional[str] = None,
@@ -72,25 +105,22 @@ def artifact_ok(
     sentinel_tail: int = DEFAULT_SENTINEL_TAIL,
 ) -> tuple[bool, str]:
     """The artifact half of the AND-gate: exists AND >= min_bytes AND (optionally) ends with the
-    sentinel. This is the single definition every producer and consumer must share."""
+    sentinel. This is the single definition every producer and consumer must share.
+
+    Path adapter: resolves the path, then defers the CONTENT judgement to `artifact_text_ok` so
+    there is exactly one implementation of the size/sentinel rule."""
     if not path:
         return False, "no artifact path given"
     try:
         if not os.path.exists(path):
             return False, "artifact missing"
-        size = os.path.getsize(path)
-        if size < min_bytes:
-            return False, f"artifact too small ({size}B < {min_bytes}B)"
-        if sentinel:
-            with open(path, "r", encoding="utf-8", errors="replace") as fh:
-                tail = fh.read()[-sentinel_tail:]
-            if sentinel not in tail:
-                return False, f"sentinel {sentinel!r} absent from last {sentinel_tail}B"
-        return True, f"artifact ok ({size}B)"
+        with open(path, "r", encoding="utf-8", errors="replace") as fh:
+            text = fh.read()
     except OSError as e:
         # A stat/read error is a DETECTOR failure, not evidence of absence (rule 3). The caller
         # turns this into UNKNOWN rather than FAILED.
         return False, f"DETECTOR-ERROR: {e}"
+    return artifact_text_ok(text, sentinel, min_bytes, sentinel_tail)
 
 
 def classify(
