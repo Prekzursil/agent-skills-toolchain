@@ -38,6 +38,33 @@ valid artifacts** in the terse lane and **0 of 42** in the verbose lane.
 So the default is structural, not dimensional. `min_bytes` remains available for a lane whose
 contract genuinely fixes a size, but it is opt-in and must be justified per lane — never global.
 
+## A sentinel proves the WRITER finished, not the WORK
+
+Measured on a 19-unit implementation wave. Every unit was told to write its artifact first as a
+truthful skeleton and rewrite it at each milestone — the write-as-you-go rule, which exists because
+one earlier unit ran 70 minutes, produced 691 KB of transcript, and wrote nothing at all.
+
+It worked. Ten minutes in, all 19 artifacts existed, parsed, carried every required field, and
+ended with `UNIT-COMPLETE`. **The gate passed all 19** — and every one contained zero work:
+`verdict: PARTIAL`, `files_added: 0`, `both_states_verified: NO — still in progress`.
+
+Nothing was wrong. The artifacts were *honest*; they said so in their own fields. What was wrong
+was reading a gate PASS as "this unit is done".
+
+> Completeness is a property of the ARTIFACT. Doneness is a property of the RUN. A harvest is final
+> only when the run reaches a terminal life-cycle state; before that, an artifact can only tell you
+> what was true when it was last written.
+
+So a consumer of this gate needs two checks, not one:
+
+1. `gate()` — is the artifact well-formed? (this module)
+2. a lane-specific **content** check — does a non-blocked verdict actually carry work? For an
+   implementation lane: `verdict` terminal AND `files_added + files_changed > 0`.
+
+`harvest_impl.py` in the selection-gate scratch implements (2) as skeleton detection, so a
+premature harvest reports "these are skeletons, re-harvest after TERMINAL" instead of being
+mistaken for a wave that produced nothing.
+
 ## Parse the FIELD, never the document
 
 `parse_block()` extracts the fenced block and reads keys from it. Searching the whole artifact for
