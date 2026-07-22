@@ -196,10 +196,18 @@ def is_real_occurrence(text: str, span, context: Context, kind: str = "marker") 
                 return True  # unknown verb -> fail-open
             return not _within(_quoted_spans(text), start, end)
 
-        if kind == "doclink":
+        if kind in ("doclink", "claim"):
             # Inverted polarity (see the module docstring): a link is real UNLESS it
             # is being shown as an example. Applies in prose and in source files
             # alike -- a link inside a fence in a .py docstring is still an example.
+            #
+            # "claim" shares this polarity and is NOT a marker. A completion claim
+            # ("the feature is now complete") is REAL precisely when it appears in
+            # ordinary prose -- that is what an assistant asserting completion looks
+            # like. It is a MENTION when quoted or fenced, i.e. when the text is
+            # discussing the phrase rather than asserting it. Routing a claim through
+            # kind="marker" inverts this and suppresses every genuine claim, because
+            # marker polarity treats prose as mention.
             if _within(_fenced_spans(text), start, end):
                 return False
             return not _within(_inline_code_spans(text, start), start, end)
