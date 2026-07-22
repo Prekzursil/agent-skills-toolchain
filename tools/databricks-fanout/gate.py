@@ -22,8 +22,29 @@ but it is opt-in and must be justified per lane, never applied globally.
 
 from __future__ import annotations
 
+import pathlib
 import re
+import sys
 from dataclasses import dataclass, field
+
+# The size/sentinel rule belongs to the C1 shared completion predicate, which states it is "the
+# single definition every producer and consumer must share". This module therefore DELEGATES that
+# half rather than reimplementing it, and adds only what C1 does not cover: unit identity and the
+# fenced-field contract.
+#
+# This import is also the point of the exercise. C1 was measured INERT — present, tested by itself,
+# with ZERO production callers — and the reason turned out to be an API mismatch, not neglect:
+# `artifact_ok` is path-based, while every real consumer here has TEXT harvested from object
+# storage. A path-only predicate silently pushes each consumer into writing its own copy, which is
+# exactly how a shared definition acquires no adopters. `artifact_text_ok` closes that gap and this
+# is its first production caller.
+_SHARED = pathlib.Path(__file__).resolve().parents[2] / "hooks" / "_shared"
+if str(_SHARED) not in sys.path:
+    sys.path.insert(0, str(_SHARED))
+try:
+    from completion import artifact_text_ok
+except Exception:  # pragma: no cover - exercised by the fallback test
+    artifact_text_ok = None  # type: ignore[assignment]
 
 SENTINEL_TAIL_BYTES = 600
 """How far from the end the completion sentinel must appear.
@@ -78,13 +99,31 @@ def gate(
     `unit_id` must appear in the sentinel so a unit cannot be credited with a sibling's artifact —
     a harvest that globs a results directory will otherwise happily accept a duplicate.
     """
-    raw = text.encode("utf-8", errors="replace")
-    if min_bytes and len(raw) < min_bytes:
-        return GateResult(False, f"below explicit min_bytes ({len(raw)} < {min_bytes})")
+    # Size + sentinel are C1's rule, not ours. min_bytes=0 by default — see the byte-floor note.
+    if artifact_text_ok is not None:
+        ok, why = artifact_text_ok(
+            text,
+            sentinel="UNIT-COMPLETE",
+            min_bytes=min_bytes,
+            sentinel_tail=SENTINEL_TAIL_BYTES,
+        )
+        if not ok:
+            return GateResult(False, why)
+    else:  # C1 unavailable — degrade to a local equivalent rather than passing everything
+        raw = text.encode("utf-8", errors="replace")
+        if min_bytes and len(raw) < min_bytes:
+            return GateResult(
+                False, f"below explicit min_bytes ({len(raw)} < {min_bytes})"
+            )
+        if "UNIT-COMPLETE" not in raw[-SENTINEL_TAIL_BYTES:].decode(
+            "utf-8", errors="replace"
+        ):
+            return GateResult(False, "no completion sentinel in tail")
 
+    # Unit IDENTITY is this module's own concern: C1 answers "is an artifact complete", not
+    # "is it THIS unit's artifact". A directory harvest without it credits a unit with a sibling's.
+    raw = text.encode("utf-8", errors="replace")
     tail = raw[-SENTINEL_TAIL_BYTES:].decode("utf-8", errors="replace")
-    if "UNIT-COMPLETE" not in tail:
-        return GateResult(False, "no completion sentinel in tail")
     if unit_id and unit_id not in tail:
         return GateResult(False, f"sentinel does not name this unit ({unit_id})")
 
