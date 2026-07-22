@@ -84,3 +84,84 @@ compliance almost perfectly; nothing is inherited from the global contract.
 7. **Never score agents on output volume.** The best verification agent in the corpus is near the
    bottom on KB/token. Any productivity gate must exempt falsification work or it selects against
    exactly the behaviour the harness most needs.
+
+
+## C. SUBAGENT DURABILITY — measured PROMPT-1.5 (2026-07-21)
+
+### C1. WRITE AS YOU GO. A unit that holds results in memory is a total-loss risk.
+
+Measured: one review unit ran **70 minutes**, produced **691 KB** of transcript, completed a full
+mutation harness — then froze and wrote **nothing**. Unrecoverable. A relaunched unit under a
+write-as-you-go mandate produced a truthful artifact within 3 minutes and survived every later check.
+
+Mandate for any unit expected to run >10 minutes:
+  1. Write the artifact IMMEDIATELY as a skeleton with every claim enumerated and marked
+     `UNKNOWN - not yet measured`, plus a COVERAGE line naming which sections are unmeasured.
+  2. REWRITE it at each milestone (per lane / per phase).
+  3. Whatever is on disk must ALWAYS be truthful. A partial file with honest UNKNOWNs is a SUCCESS;
+     a perfect file that never gets written is a total loss.
+Include the sentence: *"If it still reads this way, the unit died before measuring anything and no
+verdict here may be cited."*
+
+Note: the freeze cause was NOT an unbounded external probe (measured: 0 hung git/git-crypt
+processes). Bounding probes is good hygiene but did not address it. **Write-as-you-go is the fix
+that makes the cause irrelevant.**
+
+### C2. Most refutations are OVERCLAIMS, not broken fixes — 5 of 8 measured.
+
+Across three lanes and four adversarial reviews, the refuted claims were:
+  `recall = 1.0` . `FP=0 / FN=0` . "three holes closed" . "asserted by a test" .
+  `COVERAGE_GAPS #6 states X as fact`
+In every one, **the code was correct and the sentence was wider than the evidence**. Only 3 of 8
+were genuine defects, and each closed in a single round.
+
+Consequences:
+  * A "round N until fully green" stopping rule is **tractable, not unbounded** — convergence comes
+    from scoping claims to their evidence, not from closing every conceivable gap.
+  * On a REFUTED overclaim, fix the SENTENCE: state the scope measured, disclose the residual
+    INLINE, name the settling experiment. A correctly-scoped claim is CONFIRMED.
+  * A residual gap that is honestly scoped and disclosed is NOT a refuted item and must NOT block.
+  * Record that the earlier wording was REFUTED — do not silently delete it to make the problem
+    disappear.
+  * Reviewers: an overclaim is a REFUTED verdict **even when the underlying code is fine**. Say so,
+    and give the correctly-scoped version.
+
+### C3. `mergeStateStatus: CLEAN` is evaluated in ISOLATION and hides PR-to-PR overlap.
+
+It answers "does this merge into main *right now*", not "do these N PRs stack". Check pairwise file
+overlap yourself. But overlap is not automatically conflict: if the overlapping content is
+**byte-identical** (one PR contains the other's work), whichever merges second is a no-op. Measured:
+7 "CLEAN" PRs looked mutually conflicting and were fully stackable.
+
+### C4. Do NOT fan out a MECHANICAL comparison to LLM judgement — measured 2026-07-21.
+
+Task: classify 338 files as repo-ahead / live-ahead / diverged / noise, to decide which were safe to
+overwrite. Six Opus agents were given the work-list, an enumerated verdict vocabulary, a worked
+counter-example proving the mtime heuristic wrong, and an explicit instruction to classify by CONTENT.
+
+Scored against a 40-line deterministic differ:
+
+| | |
+|---|---|
+| agent accuracy | **86%** (291/338) |
+| disagreements | 47 |
+| errors in the DANGEROUS direction (said safe, was DIVERGED) | **31** |
+| errors in the safe/over-cautious direction | **0** |
+
+**Every disagreement was the DIVERGED case** - both sides holding unique content - misread as
+DEPLOY-SAFE or NOISE-ONLY. The blind spot is systematic: the agents checked whether the REPO had
+extra content and stopped, never checking whether LIVE also had unique lines. A one-directional read
+cannot see two-directional divergence.
+
+Deploying on those verdicts would have destroyed content in 31 files, including
+`hooks/_shared/completion.py` and `hooks/_shared/test_completion.py`.
+
+**86% accuracy is the wrong metric. Error DIRECTION is the metric.** 100% of the errors pointed at
+data loss. A differ has no such bias, ran in seconds, and was exact.
+
+RULE: if a question is answerable by an exact algorithm - byte/line comparison, set membership,
+counting, hashing - WRITE THE ALGORITHM. Reserve agents for what code cannot do: judging whether the
+divergent content MATTERS, summarising what a change means, weighing a trade-off. In this task the
+right split was: differ classifies all 338, agents describe the 10 behaviour-bearing DIVERGED files.
+Handing the classification to agents cost six Opus runs and produced a result that could not be used.
+
