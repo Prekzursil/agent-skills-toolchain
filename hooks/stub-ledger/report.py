@@ -126,9 +126,7 @@ def _deferred() -> list[tuple[str, str]]:
 def _is_deferred(fp: str, snippet: str, rules: list[tuple[str, str]]) -> bool:
     """Case-insensitive substring match on the already-normalized snippet."""
     f = _norm(fp).replace("\\", "/")
-    return any(
-        (not fsub or fsub in f) and needle in snippet for fsub, needle in rules
-    )
+    return any((not fsub or fsub in f) and needle in snippet for fsub, needle in rules)
 
 
 def _load_ledger(session_id: str) -> list[dict]:
