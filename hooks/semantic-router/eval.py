@@ -27,7 +27,7 @@ RUNID = f"{os.getpid()}-{int(time.time())}"
 
 SR = Path(__file__).resolve().parent
 NEW = str(SR / "route.py")
-OLD = str(Path.home() / ".claude" / "hooks" / "skill-router" / "route.py")
+OLD = str(SR.parent / "skill-router" / "route.py")
 
 # (prompt, acceptable_skills, acceptable_mcp_servers, is_keyword_mismatch)
 CASES = [
@@ -71,7 +71,7 @@ CASES = [
     (
         "generate an AOB signature for this function in binary ninja so my trainer survives an update",
         ["binja-sigmaker", "binary-ninja-diff-signatures", "binary-ninja"],
-        ["binary-ninja"],
+        ["binary-ninja-mcp"],
         False,
     ),
     (
@@ -166,7 +166,10 @@ def parse(out):
 
 def run(route, tag, env_extra):
     env = os.environ.copy()
+    env.pop("SEMROUTER_PURE", None)
     env.update(env_extra)
+    env["SEMROUTER_ALPHA"] = "0"
+    env["SEMROUTER_BENCH"] = "1"
     env["SEMROUTER_NO_RECORD"] = "1"
     res = []
     for i, (p, *_rest) in enumerate(CASES):
@@ -186,30 +189,72 @@ def run(route, tag, env_extra):
     return res
 
 
-def score(res, only=None):
+def score_counts(res, only=None):
     sr = st = mr = mt = nf = nt = 0
-    for (p, es, em, mis), (sk, mc) in zip(CASES, res):
+    case_outcomes = []
+    for case_id, ((p, es, em, mis), (sk, mc)) in enumerate(zip(CASES, res)):
         if only is True and not mis:
             continue
         if only is False and (mis or (not es and not em)):
             continue
         es, em = set(es), set(em)
+        skill_hit = bool(es & sk) if es else None
+        mcp_hit = bool(em & mc) if em else None
+        negative_fire = bool(sk or mc) if not es and not em else None
         if es:
             st += 1
-            sr += 1 if (es & sk) else 0
+            sr += int(skill_hit)
         if em:
             mt += 1
-            mr += 1 if (em & mc) else 0
+            mr += int(mcp_hit)
         if not es and not em:
             nt += 1
-            nf += 1 if (sk or mc) else 0
-    return dict(skill=f"{sr}/{st}", mcp=f"{mr}/{mt}", neg_fire=f"{nf}/{nt}")
+            nf += int(negative_fire)
+        case_outcomes.append(
+            {
+                "case": case_id,
+                "skill_hit": skill_hit,
+                "mcp_hit": mcp_hit,
+                "negative_fire": negative_fire,
+            }
+        )
+    return {
+        "skill_hit": sr,
+        "skill_total": st,
+        "mcp_hit": mr,
+        "mcp_total": mt,
+        "neg_fire": nf,
+        "neg_total": nt,
+        "case_outcomes": case_outcomes,
+    }
 
 
-def main():
+def score(res, only=None):
+    counts = score_counts(res, only=only)
+    return dict(
+        skill=f"{counts['skill_hit']}/{counts['skill_total']}",
+        mcp=f"{counts['mcp_hit']}/{counts['mcp_total']}",
+        neg_fire=f"{counts['neg_fire']}/{counts['neg_total']}",
+    )
+
+
+def main(argv=None):
+    argv = argv or []
     lex = run(OLD, "lex", {})
     sem = run(NEW, "sem", {"SEMROUTER_PURE": "1"})
     hyb = run(NEW, "hyb", {})
+    if "--json" in argv:
+        print(
+            json.dumps(
+                {
+                    "lexical": score_counts(lex),
+                    "semantic": score_counts(sem),
+                    "hybrid": score_counts(hyb),
+                },
+                sort_keys=True,
+            )
+        )
+        return 0
     print(
         "=== per-case skill recall (L=lexical S=pure-semantic H=hybrid; * = keyword-mismatch) ==="
     )
@@ -236,7 +281,8 @@ def main():
             f"  {name:10s} skill={a['skill']:>6} mcp={a['mcp']:>5} neg={a['neg_fire']:>5}   "
             f"skill={mm['skill']:>6} mcp={mm['mcp']:>5}    skill={ms['skill']:>6} mcp={ms['mcp']:>5}"
         )
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main(sys.argv[1:]))
