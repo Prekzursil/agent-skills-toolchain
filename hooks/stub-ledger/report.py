@@ -48,6 +48,35 @@ _COMPLETION = re.compile(
 )
 
 
+def _real_completion_claim(text: str) -> bool:
+    """True if the final message ASSERTS completion, False if it merely quotes the phrase.
+
+    `_COMPLETION.search()` alone reads any occurrence as an assertion, so a message *explaining*
+    the guard -- quoting `is now complete` while describing what suppresses the ledger -- silences
+    the ledger it is describing. That is the use-vs-mention defect, and this surface is the one
+    open loop b788a392 names: a matcher fix confined to stubscan.py never reaches the final-MESSAGE
+    path, because report.py compiles its own pattern and only late-imports stubscan.
+
+    Routed through the shared discriminator with kind="claim" (NOT "marker"): a completion claim is
+    real in ordinary prose and a mention when fenced or backticked -- the opposite polarity to a
+    TODO marker. Fail-open: if the discriminator cannot be imported, behaviour is exactly the
+    previous regex, so a broken import can never silently disarm the guard.
+    """
+    m = _COMPLETION.search(text)
+    if not m:
+        return False
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "_shared"))
+        from use_vs_mention import Context, is_real_occurrence
+    except Exception:
+        return True  # fail-open: preserve the pre-existing regex behaviour
+    ctx = Context(source="assistant_message")
+    return any(
+        is_real_occurrence(text, (mm.start(), mm.end()), ctx, kind="claim")
+        for mm in _COMPLETION.finditer(text)
+    )
+
+
 def _ledger_file(session_id: str) -> Path:
     safe = "".join(c if c.isalnum() or c in "-_." else "-" for c in str(session_id))[
         :80
@@ -222,7 +251,7 @@ def main() -> int:
         always = os.environ.get("STUB_LEDGER_ALWAYS", "").lower() in ("1", "true", "on")
         if not always:
             text = _final_text(str(data.get("transcript_path") or ""))
-            if text and _COMPLETION.search(text):
+            if text and _real_completion_claim(text):
                 return 0  # completion claim present -> defer to dark-surface
 
         open_stubs = still_open(session_id)
