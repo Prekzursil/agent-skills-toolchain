@@ -211,8 +211,11 @@ def still_open(session_id: str) -> list[tuple[str, str, str]]:
             try:
                 if Path(fp).exists():
                     body = Path(fp).read_text(encoding="utf-8", errors="replace")
+                    # Pass the path: it lets stubscan route candidates through the shared
+                    # use-vs-mention discriminator, so prose ABOUT stubs in a design doc is
+                    # not re-scored as unfinished work (loop 6f8a224e, 9/9 measured fires).
                     cur[fp] = {
-                        _norm(sn) for (_mk, _ln, sn) in stubscan.find_stubs(body)
+                        _norm(sn) for (_mk, _ln, sn) in stubscan.find_stubs(body, fp)
                     }
                 else:
                     cur[fp] = DELETED

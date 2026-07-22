@@ -14,6 +14,8 @@ mentions the word "stub".
 from __future__ import annotations
 
 import re
+import sys
+from pathlib import Path
 
 _COMMENT_TAG = re.compile(
     r"(?:#|//|/\*|<!--|;|^\s*\*)\s*(TODO|FIXME|HACK|XXX|STUB)\b(?![-\w])",
@@ -90,12 +92,42 @@ def _norm(s: str) -> str:
     return re.sub(r"\s+", " ", s).strip()
 
 
-def find_stubs(text: str) -> list[tuple[str, int, str]]:
-    """Return deduped (marker, line_no, snippet) tuples. Stdlib-only, bounded."""
+def _discriminator(path: str):
+    """Return a `(span_start, span_end) -> bool` real-occurrence test, or None.
+
+    None means "no filtering" — the caller passed no path, or the shared module is unavailable.
+    Fail-open by construction: a broken or missing discriminator must never silently DISARM the
+    scanner, it must only ever fall back to the pre-existing regex behaviour.
+    """
+    if not path:
+        return None
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "_shared"))
+        from use_vs_mention import Context, is_real_occurrence
+    except Exception:
+        return None
+    ctx = Context(file_path=path, source="file")
+    return lambda text, start, end: is_real_occurrence(
+        text, (start, end), ctx, kind="marker"
+    )
+
+
+def find_stubs(text: str, path: str = "") -> list[tuple[str, int, str]]:
+    """Return deduped (marker, line_no, snippet) tuples. Stdlib-only, bounded.
+
+    `path` is OPTIONAL and backward-compatible: omitted, behaviour is exactly as before. Supplied,
+    every candidate is routed through the shared use-vs-mention discriminator, which is what stops
+    a design document from being scored as unfinished work. Loop 6f8a224e measured the cost of not
+    doing this: 9 of 9 fires on `platform-redesign-2026-07-19` were prose ABOUT stubs, not stubs.
+
+    Spans are absolute offsets into `text`, not line-relative — the discriminator needs to see
+    fenced and inline-code regions, which a per-line offset cannot express.
+    """
     if not text:
         return []
     out: list[tuple[str, int, str]] = []
     seen: set[tuple[str, str]] = set()
+    is_real = _discriminator(path)
 
     def add(marker: str, line_no: int, snippet: str):
         snip = _norm(snippet)[:120]
@@ -106,23 +138,39 @@ def find_stubs(text: str) -> list[tuple[str, int, str]]:
         out.append((marker.upper(), line_no, snip))
 
     lines = text.splitlines()
+    offset = 0  # absolute offset of the current line within `text`
     for i, line in enumerate(lines, 1):
         for m in _COMMENT_TAG.finditer(line):
-            add(m.group(1), i, line)
-        if _NOTIMPL.search(line):
+            if is_real is None or is_real(text, offset + m.start(), offset + m.end()):
+                add(m.group(1), i, line)
+        nm = _NOTIMPL.search(line)
+        if nm and (
+            is_real is None or is_real(text, offset + nm.start(), offset + nm.end())
+        ):
             add("NotImplemented", i, line)
         pm = _PHRASE.search(line)
-        if pm and not _NEG.search(line[max(0, pm.start() - 45) : pm.start()]):
+        if (
+            pm
+            and not _NEG.search(line[max(0, pm.start() - 45) : pm.start()])
+            and (
+                is_real is None or is_real(text, offset + pm.start(), offset + pm.end())
+            )
+        ):
             add("placeholder-phrase", i, line)
         # The weak word "stub"/"placeholder" in an explicit `# pragma: no cover`
         # comment (e.g. "...  # pragma: no cover - Protocol stub") is describing a
         # deliberate interface marker, not incomplete work -> do not flag it.
+        wm = _WEAK.search(line)
         if (
             _COMMENT_INTRO.search(line)
-            and _WEAK.search(line)
+            and wm
             and not _PRAGMA_NOCOVER.search(line)
+            and (
+                is_real is None or is_real(text, offset + wm.start(), offset + wm.end())
+            )
         ):
-            add(_WEAK.search(line).group(1), i, line)
+            add(wm.group(1), i, line)
+        offset += len(line) + 1  # +1 for the newline consumed by splitlines()
 
     for m in _PASS_BODY.finditer(text):
         seg = text[m.start() : m.end()]
