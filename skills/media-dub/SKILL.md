@@ -1,25 +1,7 @@
 ---
 name: media-dub
-description: >-
-  Use when producing a local DUB of a video — re-voicing the speech into another
-  language (or restyling it in the same language) while KEEPING the original
-  speaker's voice, fully offline. The safe-ship engine is Chatterbox-Multilingual
-  (Resemble AI, MIT, 23-language zero-shot voice clone); the pipeline rides the
-  existing media_studio substrate (Parakeet/whisper ASR -> CTC word-alignment ->
-  ffmpeg `atempo` duration-fit -> `sidechaincompress` ducking -> mux). Covers the
-  `dub.start` RPC, the ASR->translate->synth->fit->assemble->duck+mux stages, the
-  per-segment `atempo` time-stretch that lands each clip in its source slot, the
-  full-length VO track assembled with `adelay`+`amix`, and the LICENSE gate: an
-  optional IndexTTS2 native-duration-control engine and an optional LatentSync
-  lip-sync are COMMERCIAL-embed-gated on the `dub-license` needsDecision — the
-  gate runs in SHADOW mode (observe + log, never blocks), and a commercial build
-  defaults to Chatterbox-only unless the owner explicitly opts in (`allowGated`).
-  Do NOT use for: pure TTS narration with no source voice to clone (use the
-  `speech` skill); muxing an ALREADY-finished dub track (use audio-extract-mix);
-  transcription/subtitle generation only (use transcribe/caption); or lip-sync
-  without a dub. Source of truth: media_studio/features/dub.py.
+description: "Use when producing a local DUB of a video - re-voicing speech into another language (or restyling it in the same language) while KEEPING the original speaker's voice, fully offline. Safe-ship engine is Chatterbox-Multilingual (Resemble AI, MIT, 23-language zero-shot voice clone); rides the media_studio substrate (Parakeet/whisper ASR -> CTC word-alignment -> ffmpeg `atempo` duration-fit -> `sidechaincompress` ducking -> mux). Covers the `dub.start` RPC, the ASR->translate->synth->fit->assemble->duck+mux stages, per-segment `atempo` time-stretch, the full-length VO track via `adelay`+`amix`, and the LICENSE gate: optional IndexTTS2 and LatentSync lip-sync are COMMERCIAL-embed-gated on `dub-license` in SHADOW mode (observe + log, never blocks). Do NOT use for: pure TTS narration with no source voice (use `speech`); muxing an ALREADY-finished dub (use audio-extract-mix); transcription/subtitles only (use transcribe/caption); or lip-sync without a dub."
 ---
-
 # media-dub — local voice-clone dubbing (Chatterbox safe ship)
 
 Distilled from the REAL implementation. Cite these when in doubt:

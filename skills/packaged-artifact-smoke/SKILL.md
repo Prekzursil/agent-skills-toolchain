@@ -1,24 +1,7 @@
 ---
 name: packaged-artifact-smoke
-description: >-
-  Use when you need to prove a BUILT deliverable actually works end-to-end, not
-  just that its source tree is CI-green. Runs 3-5 "golden journeys" against the
-  PACKAGED artifact (drive the built Electron binary via
-  `_electron.launch({executablePath})`, or `pip install dist/*.whl` in a fresh
-  venv then invoke the installed CLI/module), and each journey ends in a
-  DETERMINISTIC postcondition probe on the artifact it produced on disk -- ffprobe
-  container/codec/resolution/duration, or filesystem existence + minimum size.
-  Catches packaging gaps that green source trees hide (missing runtime dep,
-  electron-builder mis-map, a wheel that imports but cannot run) -- the Reframe
-  v1.4 precedent. Reusable helper consumed by A2-golden-journey-oracle and any
-  pain app. Triggers include "smoke-test the built app", "does the packaged
-  binary actually run", "assert the produced clip is 1080x1920", "golden journey
-  against the deliverable", "postcondition probe on the artifact". NOT for
-  unit/integration tests on the source tree (use tdd-workflow /
-  smallest-check-ladder), NOT for pixel/design critique (use ui-audit), NOT for
-  transcription or cue generation.
+description: Use when you need to prove a BUILT deliverable actually works end-to-end, not just that its source tree is CI-green. Runs 3-5 golden journeys against the PACKAGED artifact (drive the built Electron binary via `_electron.launch({executablePath})`, or `pip install dist/*.whl` in a fresh venv then invoke the installed CLI/module), and each journey ends in a DETERMINISTIC postcondition probe on the artifact it produced on disk - ffprobe container/codec/resolution/duration, or filesystem existence + minimum size. Catches packaging gaps that green source trees hide (missing runtime dep, electron-builder mis-map, a wheel that imports but cannot run). Triggers include smoke-test the built app, does the packaged binary actually run, assert the produced clip is 1080x1920, golden journey against the deliverable. NOT for unit/integration tests on the source tree (use tdd-workflow), NOT for pixel/design critique (use ui-audit).
 ---
-
 # Packaged-Artifact / Effect-Assertion Smoke Runner
 
 Prove the **built deliverable** does its job — by driving it and then asserting a
