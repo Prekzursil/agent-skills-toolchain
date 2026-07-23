@@ -197,13 +197,30 @@ See the `orchestrated-execution` skill for the full pattern. Key principles:
 
 For complex tasks requiring multiple phases, consider spawning sub-agents:
 
-**Model specialization guidance:**
+**Model route for file-backed IMPLEMENT work units (required):**
+
+1. After the plan establishes the work unit's file scope, run `/model-route` with
+   those files before spawning its generic implementation subagent.
+2. Pass the returned `recommended_tier` as the subagent's explicit `model`
+   selector. Record the returned `model_id`, signal source, score, and rationale in
+   the work-unit handoff.
+3. If VALIDATE or ADVERSARIAL REVIEW fails, rerun the route with the same files and
+   `--escalate <current-tier>` before the next IMPLEMENT attempt.
+4. If routing cannot produce a complete verdict, use Opus. Never infer a cheaper
+   tier from this document or silently keep the failed tier.
+
+The static agent roster remains the floor for specialized planning, orchestration,
+architecture, and security roles. Dynamic routing applies only to generic,
+file-backed implementation work units; it does not downgrade those specialist
+pins.
+
+**Specialist model floors:**
 
 | Model  | Best For                                                  |
 | ------ | --------------------------------------------------------- |
 | Opus   | Orchestration, architecture, security analysis, synthesis |
-| Sonnet | Code analysis, implementation, code review, feature work  |
-| Haiku  | Metrics collection, simple analysis, data processing      |
+| Sonnet | Specialist code analysis and code review                   |
+| Haiku  | Metrics collection and simple data processing              |
 
 **Pattern**: Spawn parallel sub-agents for independent work (e.g., code review + security audit), sequential agents for dependent phases (research -> planning -> implementation).
 

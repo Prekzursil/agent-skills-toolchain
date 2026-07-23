@@ -179,6 +179,12 @@ jobs:
         run: |
           pip install pytest pytest-cov pyyaml
           python -m pytest agent-self/harness/tests -q --cov=agent-self/harness --cov-branch --cov-report=term-missing
+      # tools/triage-router uses a stdlib-only custom runner, not pytest discovery.
+      # Naming the script here turns its existing tests and production-wiring checks
+      # into an executed regression lane instead of an inert test file.
+      - name: triage-router standalone regression
+        working-directory: tools/triage-router
+        run: python test_triage_router.py
       # hooks/cmd-rewrite — the SOLE PreToolUse rewriter for the Bash tool. There is no
       # repo-wide test autodiscovery here, so these suites run only because this step names
       # them; without it they are dead weight that cannot catch a regression. Both are
