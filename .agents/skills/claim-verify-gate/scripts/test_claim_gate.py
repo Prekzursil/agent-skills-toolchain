@@ -1,0 +1,406 @@
+#!/usr/bin/env python3
+"""Regression suite for claim_gate.py — the mechanical half of claim-verify-gate.
+
+Stdlib-only standalone runner with its own ``__main__`` (the repo has no pytest
+autodiscovery: a suite runs only because a CI step names it by path).
+
+Run: ``python .agents/skills/claim-verify-gate/scripts/test_claim_gate.py``
+"""
+
+from __future__ import annotations
+
+import json
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import claim_gate  # noqa: E402
+
+HERE = Path(__file__).resolve().parent
+GATE = HERE / "claim_gate.py"
+
+FAILURES: list[str] = []
+
+
+def check(name: str, condition: bool, detail: str = "") -> None:
+    if condition:
+        print(f"  ok   {name}")
+        return
+    FAILURES.append(f"{name}: {detail}")
+    print(f"  FAIL {name} {detail}")
+
+
+def rules_of(report: dict, claim_id: str) -> set[str]:
+    for claim in report["claims"]:
+        if claim["id"] == claim_id:
+            return {violation["rule"] for violation in claim["violations"]}
+    return set()
+
+
+def payload(**claim: object) -> dict:
+    base = {
+        "id": "C1",
+        "text": "The CDP endpoint answered on port 9222.",
+        "verdict": "CONFIRMED",
+        "source_probe": {
+            "tool": "playwright",
+            "shell": "powershell",
+            "field": "wall_clock",
+        },
+        "verify_probe": {"tool": "curl", "shell": "bash", "field": "http_status"},
+        "evidence": ["tools/mcp/host.py:12"],
+    }
+    base.update(claim)
+    return {"subject": "unit", "claims": [base]}
+
+
+# --- R1 probe independence -------------------------------------------------
+
+
+def test_independent_probe_confirms() -> None:
+    report = claim_gate.evaluate(payload())
+    check("independent probe passes", report["ok"] is True, str(report))
+    check("no violations", report["violation_count"] == 0)
+
+
+def test_same_probe_rerun_fires() -> None:
+    same = {"tool": "which", "shell": "bash", "field": "path"}
+    report = claim_gate.evaluate(payload(source_probe=same, verify_probe=dict(same)))
+    check("same-probe-rerun fires", "same-probe-rerun" in rules_of(report, "C1"))
+    check("same-probe-rerun blocks", report["ok"] is False)
+
+
+def test_command_difference_alone_is_not_independence() -> None:
+    report = claim_gate.evaluate(
+        payload(
+            source_probe={
+                "tool": "grep",
+                "shell": "bash",
+                "field": "count",
+                "command": "grep -c a",
+            },
+            verify_probe={
+                "tool": "grep",
+                "shell": "bash",
+                "field": "count",
+                "command": "grep -c b",
+            },
+        )
+    )
+    check(
+        "command-only difference still fires",
+        "same-probe-rerun" in rules_of(report, "C1"),
+        "command must be documentation, not a discriminating axis",
+    )
+
+
+def test_missing_verify_probe_fires() -> None:
+    report = claim_gate.evaluate(payload(verify_probe=None))
+    check("no-verify-probe fires", "no-verify-probe" in rules_of(report, "C1"))
+
+
+def test_refuted_also_needs_independent_probe() -> None:
+    same = {"tool": "pytest", "shell": "bash", "field": "exit_code"}
+    report = claim_gate.evaluate(
+        payload(
+            verdict="REFUTED",
+            source_probe=same,
+            verify_probe=dict(same),
+            revised_text="Measured on one host only.",
+        )
+    )
+    check(
+        "REFUTED needs independence too", "same-probe-rerun" in rules_of(report, "C1")
+    )
+
+
+# --- R2/R3 settling experiment + evidence ----------------------------------
+
+
+def test_unverified_requires_settling_experiment() -> None:
+    report = claim_gate.evaluate(payload(verdict="UNVERIFIED", verify_probe=None))
+    check(
+        "no-settling-experiment fires",
+        "no-settling-experiment" in rules_of(report, "C1"),
+    )
+
+
+def test_unverified_with_settling_is_residual_not_violation() -> None:
+    report = claim_gate.evaluate(
+        payload(
+            verdict="UNVERIFIED",
+            verify_probe=None,
+            evidence=[],
+            scope="one host, one run",
+            settling_experiment="Re-run on a second host and compare the http_status field.",
+        )
+    )
+    check("scoped residual does not block", report["ok"] is True, str(report))
+    check("residual counted", report["residual_count"] == 1)
+
+
+def test_confirmed_requires_evidence_anchor() -> None:
+    report = claim_gate.evaluate(payload(evidence=["I remember seeing it"]))
+    check("no-evidence-anchor fires", "no-evidence-anchor" in rules_of(report, "C1"))
+
+
+def test_url_counts_as_evidence_anchor() -> None:
+    report = claim_gate.evaluate(payload(evidence=["https://arxiv.org/abs/2309.11495"]))
+    check("URL is an anchor", "no-evidence-anchor" not in rules_of(report, "C1"))
+
+
+# --- R4 unscoped absolutes -------------------------------------------------
+
+
+def test_absolute_without_scope_fires() -> None:
+    report = claim_gate.evaluate(payload(text="All 7 PRs are clean.", scope=""))
+    check("unscoped-absolute fires", "unscoped-absolute" in rules_of(report, "C1"))
+
+
+def test_absolute_with_scope_passes() -> None:
+    report = claim_gate.evaluate(
+        payload(text="All 7 PRs are clean.", scope="the 7 PRs open on 2026-07-24")
+    )
+    check("scoped absolute passes", "unscoped-absolute" not in rules_of(report, "C1"))
+
+
+def test_numeric_absolute_fires() -> None:
+    report = claim_gate.evaluate(payload(text="recall = 1.0 on the corpus.", scope=""))
+    check("numeric absolute fires", "unscoped-absolute" in rules_of(report, "C1"))
+
+
+def test_hyphenated_identifier_is_not_an_absolute() -> None:
+    report = claim_gate.evaluate(
+        payload(text="The gate emitted no-verify-probe for that row.", scope="")
+    )
+    check(
+        "hyphenated identifier not flagged",
+        "unscoped-absolute" not in rules_of(report, "C1"),
+        "rule ids like no-verify-probe / zero-issue-coding must not read as absolutes",
+    )
+
+
+def test_plain_claim_is_not_an_absolute() -> None:
+    report = claim_gate.evaluate(
+        payload(text="The host answered in 1.94 seconds.", scope="")
+    )
+    check("plain claim not flagged", "unscoped-absolute" not in rules_of(report, "C1"))
+
+
+# --- R5 hedge bands --------------------------------------------------------
+
+
+def test_hedge_without_band_fires() -> None:
+    report = claim_gate.evaluate(payload(text="This should work on the next host."))
+    check("unbanded-hedge fires", "unbanded-hedge" in rules_of(report, "C1"))
+
+
+def test_hedge_with_band_passes() -> None:
+    report = claim_gate.evaluate(
+        payload(text="This should work on the next host.", band="likely")
+    )
+    check("banded hedge passes", "unbanded-hedge" not in rules_of(report, "C1"))
+
+
+def test_unknown_band_fires() -> None:
+    report = claim_gate.evaluate(payload(text="This should work.", band="pretty sure"))
+    check("unknown-band fires", "unknown-band" in rules_of(report, "C1"))
+    check("bands are enumerated", "almost certain" in claim_gate.SHERMAN_KENT_BANDS)
+
+
+# --- R6 refuted overclaims must be rewritten -------------------------------
+
+
+def test_refuted_requires_revised_text() -> None:
+    report = claim_gate.evaluate(payload(verdict="REFUTED"))
+    check(
+        "refuted-without-rewrite fires",
+        "refuted-without-rewrite" in rules_of(report, "C1"),
+    )
+
+
+def test_refuted_rewrite_must_differ() -> None:
+    text = "Every hook fires."
+    report = claim_gate.evaluate(
+        payload(verdict="REFUTED", text=text, revised_text=text, scope="4 hooks")
+    )
+    check(
+        "identical rewrite fires", "refuted-without-rewrite" in rules_of(report, "C1")
+    )
+
+
+# --- R7 inline UNVERIFIED placement ---------------------------------------
+
+
+def test_trailing_unverified_doc_fires() -> None:
+    doc = ("filler sentence. " * 60) + "\n## Limitations\nUNVERIFIED: not measured."
+    report = claim_gate.evaluate(
+        payload(
+            verdict="UNVERIFIED",
+            verify_probe=None,
+            evidence=[],
+            settling_experiment="re-probe with curl",
+        ),
+        doc=doc,
+    )
+    check("trailing-unverified fires", "trailing-unverified" in rules_of(report, "C1"))
+
+
+def test_inline_unverified_doc_passes() -> None:
+    doc = "UNVERIFIED: the port was not re-probed. " + ("filler sentence. " * 60)
+    report = claim_gate.evaluate(
+        payload(
+            verdict="UNVERIFIED",
+            verify_probe=None,
+            evidence=[],
+            settling_experiment="re-probe with curl",
+        ),
+        doc=doc,
+    )
+    check(
+        "inline unverified passes", "trailing-unverified" not in rules_of(report, "C1")
+    )
+
+
+def test_missing_unverified_tag_in_doc_fires() -> None:
+    report = claim_gate.evaluate(
+        payload(
+            verdict="UNVERIFIED",
+            verify_probe=None,
+            evidence=[],
+            settling_experiment="re-probe with curl",
+        ),
+        doc="a document with no tag at all",
+    )
+    check("untagged doc fires", "untagged-unverified" in rules_of(report, "C1"))
+
+
+# --- input validation ------------------------------------------------------
+
+
+def test_unknown_verdict_is_input_error() -> None:
+    try:
+        claim_gate.evaluate(payload(verdict="PROBABLY"))
+    except ValueError as exc:
+        check("unknown verdict rejected", "PROBABLY" in str(exc), str(exc))
+        return
+    check("unknown verdict rejected", False, "no ValueError raised")
+
+
+def test_duplicate_ids_rejected() -> None:
+    doc = payload()
+    doc["claims"].append(dict(doc["claims"][0]))
+    try:
+        claim_gate.evaluate(doc)
+    except ValueError as exc:
+        check("duplicate ids rejected", "C1" in str(exc), str(exc))
+        return
+    check("duplicate ids rejected", False, "no ValueError raised")
+
+
+def test_empty_claims_rejected() -> None:
+    try:
+        claim_gate.evaluate({"subject": "x", "claims": []})
+    except ValueError:
+        check("empty claim set rejected", True)
+        return
+    check("empty claim set rejected", False, "no ValueError raised")
+
+
+# --- rendering + CLI -------------------------------------------------------
+
+
+def test_markdown_table_has_every_claim_and_verdict() -> None:
+    report = claim_gate.evaluate(payload())
+    text = claim_gate.render_markdown(report)
+    check("md has id", "C1" in text)
+    check("md has verdict", "CONFIRMED" in text)
+    check("md has header", "| claim |" in text)
+
+
+def test_cli_exit_codes() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        good = Path(tmp) / "good.json"
+        good.write_text(json.dumps(payload()), encoding="utf-8")
+        bad = Path(tmp) / "bad.json"
+        same = {"tool": "which", "shell": "bash", "field": "path"}
+        bad.write_text(
+            json.dumps(payload(source_probe=same, verify_probe=dict(same))),
+            encoding="utf-8",
+        )
+        broken = Path(tmp) / "broken.json"
+        broken.write_text("{not json", encoding="utf-8")
+
+        ok = subprocess.run(
+            [sys.executable, str(GATE), "--claims", str(good)],
+            capture_output=True,
+            text=True,
+        )
+        check("clean gate exits 0", ok.returncode == 0, ok.stdout + ok.stderr)
+
+        fail = subprocess.run(
+            [sys.executable, str(GATE), "--claims", str(bad)],
+            capture_output=True,
+            text=True,
+        )
+        check("violating gate exits 1", fail.returncode == 1, fail.stdout + fail.stderr)
+        check("violating gate names the rule", "same-probe-rerun" in fail.stdout)
+
+        err = subprocess.run(
+            [sys.executable, str(GATE), "--claims", str(broken)],
+            capture_output=True,
+            text=True,
+        )
+        check("bad input exits 2", err.returncode == 2, err.stdout + err.stderr)
+
+        as_json = subprocess.run(
+            [sys.executable, str(GATE), "--claims", str(good), "--format", "json"],
+            capture_output=True,
+            text=True,
+        )
+        parsed = json.loads(as_json.stdout)
+        check("json output parses", parsed["ok"] is True)
+
+
+def test_cli_self_test_is_a_both_states_probe() -> None:
+    result = subprocess.run(
+        [sys.executable, str(GATE), "--self-test"],
+        capture_output=True,
+        text=True,
+    )
+    check("self-test exits 0", result.returncode == 0, result.stdout + result.stderr)
+    for rule in claim_gate.RULES:
+        check(f"self-test fires {rule}", rule in result.stdout, result.stdout)
+
+
+def test_self_test_covers_every_declared_rule() -> None:
+    fired = {rule for rule, ok in claim_gate.self_test() if ok}
+    missing = set(claim_gate.RULES) - fired
+    check(
+        "every rule has a known-broken fixture",
+        not missing,
+        f"missing={sorted(missing)}",
+    )
+
+
+def main() -> int:
+    tests = [
+        value for name, value in sorted(globals().items()) if name.startswith("test_")
+    ]
+    print(f"claim_gate regression suite — {len(tests)} tests")
+    for test in tests:
+        test()
+    if FAILURES:
+        print(f"\nFAILED: {len(FAILURES)} check(s)")
+        for failure in FAILURES:
+            print(f"  - {failure}")
+        return 1
+    print(f"\nAll {len(tests)} test functions passed.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
