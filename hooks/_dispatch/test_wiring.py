@@ -22,8 +22,24 @@ CLAUDE_ROOT = HOOKS_ROOT.parent
 MANIFEST = HERE / "manifest.json"
 SETTINGS = CLAUDE_ROOT / "settings.json"
 HOOKS_JSON = HOOKS_ROOT / "hooks.json"
+AGENT_SELF_HOOKS_JSON = CLAUDE_ROOT / "agent-self" / "config" / "hooks" / "hooks.json"
+KNOWN_BROKEN_HOOKS_JSON = (
+    HOOKS_ROOT / "_fleet-backups" / "20260713-WU-A" / "hooks.json.before"
+)
+QUALITY_WORKFLOW = CLAUDE_ROOT / ".github" / "workflows" / "quality.yml"
 DISPATCH = HERE / "dispatch.py"
 NO_FORCE_PUSH = HOOKS_ROOT / "no-force-push" / "hook.py"
+
+HOOK_MANIFEST_CONSUMERS = (
+    ("repo plugin surface", HOOKS_JSON),
+    ("agent-self deploy surface", AGENT_SELF_HOOKS_JSON),
+)
+CROSS_CONSUMER_TOP_LEVEL_KEYS = frozenset({"description", "hooks"})
+MINIMUM_CONFORMING_COMMAND_HOOKS = 7
+CONFORMANCE_CI_MARKER = (
+    "run: python -m pytest hooks/_dispatch/test_wiring.py -q "
+    "-k hook_manifest_conformance"
+)
 
 DISPATCH_EVENTS = {
     "SessionStart": "sessionstart",
@@ -186,6 +202,14 @@ def _hook_entries(document: dict, event: str | None = None):
             for hook in commands:
                 if isinstance(hook, dict) and hook.get("type") == "command":
                     yield event_name, group, hook
+
+
+def _conforming_command_hook_count(document: dict) -> int:
+    """Return command hooks visible to every supported manifest consumer."""
+
+    if set(document).difference(CROSS_CONSUMER_TOP_LEVEL_KEYS):
+        return 0
+    return sum(1 for _ in _hook_entries(document))
 
 
 def _norm(value: str | Path) -> str:
@@ -404,3 +428,34 @@ if __name__ == "__main__":
     import sys
 
     sys.exit(pytest.main([__file__, "-q"]))
+
+
+def test_hook_manifest_conformance_gate_is_adopted():
+    """Known-broken: pre-B03 quality.yml never invokes this conformance gate."""
+
+    consumer_paths = {path for _surface, path in HOOK_MANIFEST_CONSUMERS}
+    assert len(consumer_paths) >= 2, (
+        "cross-consumer gate must exercise at least two manifest surfaces"
+    )
+    for surface, path in HOOK_MANIFEST_CONSUMERS:
+        count = _conforming_command_hook_count(_load(path))
+        assert count >= MINIMUM_CONFORMING_COMMAND_HOOKS, (
+            f"{surface} must load at least {MINIMUM_CONFORMING_COMMAND_HOOKS} "
+            f"command hooks; loaded {count}"
+        )
+
+    known_broken = _load(KNOWN_BROKEN_HOOKS_JSON)
+    assert "$schema" in known_broken, (
+        "known-broken control lost its discriminating field"
+    )
+    assert _conforming_command_hook_count(known_broken) == 0, (
+        "detector must reproduce the historical unknown-key zero-hook failure"
+    )
+
+    workflow_lines = {
+        line.strip()
+        for line in QUALITY_WORKFLOW.read_text(encoding="utf-8").splitlines()
+    }
+    assert CONFORMANCE_CI_MARKER in workflow_lines, (
+        "quality CI must invoke the manifest conformance tests explicitly"
+    )
