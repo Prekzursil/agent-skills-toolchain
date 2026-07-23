@@ -13,7 +13,8 @@ _SECRET_PATTERNS = (
     # A missing footer is still sensitive: redact from the header to end-of-input.
     re.compile(_PRIVATE_KEY_HEADER + r".*\Z", re.I | re.S),
     re.compile(r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b"),
-    re.compile(r"\b(?:ghp|gho|ghu|ghs|github_pat)_[A-Za-z0-9_]{20,}\b"),
+    re.compile(r"\b(?:ghp|gho|ghu|ghs|ghr|github_pat)_[A-Za-z0-9_]{20,}\b"),
+    re.compile(r"\bhtk_[A-Za-z0-9]{20,}\b", re.I),
     re.compile(r"\bhf_[A-Za-z0-9]{20,}\b"),
     re.compile(r"\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}\b"),
     re.compile(r"\bxox[a-z]-[A-Za-z0-9-]{20,}\b", re.I),
@@ -27,6 +28,12 @@ _SECRET_PATTERNS = (
     ),
     re.compile(
         r"(?i)(?:api[_-]?key|token|secret|password)\s*[:=]\s*['\"]?[A-Za-z0-9._~+/-]{18,}={0,2}"
+    ),
+    # Preserve the existing sync-self.ps1 JSON heuristic when routing it through
+    # this shared, value-redacting classifier. It intentionally accepts shorter
+    # values only when a quoted credential-like key supplies strong context.
+    re.compile(
+        r'(?i)"[^"]*(?:api[_-]?key|token|secret|password)[^"]*"\s*:\s*"[^"{][^"]{8,}"'
     ),
 )
 # Checkpoint privacy is stricter than display fidelity. Once an absolute path is
