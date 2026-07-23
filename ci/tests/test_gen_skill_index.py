@@ -14,9 +14,18 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
-from gen_skill_index import census, enumerate_skills, generate_declarations  # noqa: E402
+from gen_skill_index import (  # noqa: E402
+    census,
+    declared_from_marketplace,
+    enumerate_skills,
+    generate_declarations,
+)
 
 GENERATOR = pathlib.Path(__file__).resolve().parent.parent / "gen_skill_index.py"
+
+
+KNOWN_PRESENT_CANONICAL = "010-editor"
+KNOWN_PRESENT_PROJECTION_ONLY = "azure-observability"
 
 
 def _mk(tmp: pathlib.Path, root: str, name: str, body: str = "# skill\n") -> None:
@@ -166,3 +175,34 @@ def test_committed_marketplace_matches_generated_declarations():
         (repo / ".claude-plugin/marketplace.json").read_text(encoding="utf-8")
     )
     assert doc["plugins"][0]["skills"] == generate_declarations(repo)
+
+
+def test_committed_marketplace_is_the_generated_union():
+    """Known-broken pre-F14: the committed 110-entry hand-list is not the generated union."""
+    repo = pathlib.Path(__file__).resolve().parent.parent.parent
+    if not (repo / ".claude-plugin" / "marketplace.json").is_file():
+        return  # not a full checkout; nothing to calibrate against
+    canonical = enumerate_skills(repo, ".agents/skills")
+    projection_only = enumerate_skills(repo, "skills-claude-only") - canonical
+    declared, doc = declared_from_marketplace(repo)
+
+    assert KNOWN_PRESENT_CANONICAL in canonical
+    assert KNOWN_PRESENT_CANONICAL in declared
+    assert KNOWN_PRESENT_PROJECTION_ONLY in projection_only
+    assert KNOWN_PRESENT_PROJECTION_ONLY in declared
+    assert doc["plugins"][0]["skills"] == generate_declarations(repo)
+
+
+def test_plugin_release_version_advances_with_the_surface():
+    """Known-broken pre-F14: version 0.2.0 keeps installed users on the old cache."""
+    repo = pathlib.Path(__file__).resolve().parent.parent.parent
+    marketplace_path = repo / ".claude-plugin" / "marketplace.json"
+    plugin_path = repo / ".claude-plugin" / "plugin.json"
+    if not marketplace_path.is_file() or not plugin_path.is_file():
+        return  # not a full checkout; nothing to calibrate against
+
+    marketplace_doc = json.loads(marketplace_path.read_text(encoding="utf-8"))
+    plugin_doc = json.loads(plugin_path.read_text(encoding="utf-8"))
+    marketplace_version = marketplace_doc["plugins"][0]["version"]
+    assert marketplace_version == plugin_doc["version"]
+    assert plugin_doc["version"] != "0.2.0"

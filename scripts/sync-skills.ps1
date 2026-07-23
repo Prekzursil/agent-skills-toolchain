@@ -11,7 +11,7 @@
 
   This is the imperative-copy bridge for the current ~/.agents/skills setup. The
   declarative alternative is the plugin marketplace shipped in .claude-plugin/ —
-  see README "Bulk install" for `claude plugin marketplace add .`.
+  see README "Quick Start" for the sparse Git-hosted install flow.
 
 .PARAMETER IncludeClaudeOnly
   Also sync skills-claude-only/ (the Claude-specific skills).
