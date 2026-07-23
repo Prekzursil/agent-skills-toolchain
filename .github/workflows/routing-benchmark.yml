@@ -1,0 +1,66 @@
+name: routing-benchmark
+
+# I5 is intentionally separate from quality.yml: that workflow has a charter-policed,
+# closed set of six deterministic gates. This router is model-shaped and begins in shadow;
+# only the benchmark step is continue-on-error, while its deterministic self-tests still gate.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 3 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: routing-benchmark-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  routing-benchmark:
+    name: routing-benchmark (shadow)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      ollama:
+        image: ollama/ollama@sha256:a5409cb903d30f9cd67e9f430dd336ddc9274e16fd78f75b675c42065991b4fd # 0.11.10
+        ports:
+          - 11434:11434
+        options: >-
+          --health-cmd "ollama list"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      SEMROUTER_OLLAMA_URL: http://127.0.0.1:11434
+      SEMROUTER_EMBED_MODEL: nomic-embed-text:latest
+      SEMROUTER_TIMEOUT: "10"
+      # Intended pin; verification against the resolved digest is a stated residual.
+      OLLAMA_MODEL_DIGEST: sha256:0a109f422b47e3a30ba2b10eca18548e944e8a23073ee3f3e947efcf3c45e59f
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.11"
+      - run: pip install pytest==8.4.2
+      - name: routing benchmark self-test
+        run: >-
+          python -m pytest
+          hooks/harness-bench/test_bench.py
+          hooks/harness-bench/test_gate.py
+          hooks/semantic-router/test_eval.py
+          ci/tests/test_routing_benchmark_wiring.py
+          -q
+      - name: pull pinned embedding model and verify health
+        run: |
+          # ollama pulls by TAG. The `name@sha256:` form is rejected with
+          # `400 Bad Request: invalid model name` (measured in CI on this workflow's first run).
+          docker exec "${{ job.services.ollama.id }}" ollama pull "$SEMROUTER_EMBED_MODEL"
+          python hooks/semantic-router/embed.py
+      - name: routing regression probe (5-run; shadow)
+        continue-on-error: true
+        run: python hooks/harness-bench/gate.py --runs 5
