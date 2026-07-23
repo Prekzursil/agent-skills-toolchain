@@ -36,7 +36,7 @@ HOME = Path.home()
 INDEX_DIR = THIS / "index"
 VECS_F32 = INDEX_DIR / "vecs.f32"  # raw float32 vectors (numpy-free hot path)
 META_JSON = INDEX_DIR / "meta.json"  # aligned row metadata
-LEXICAL_DIR = HOME / ".claude" / "hooks" / "skill-router"
+LEXICAL_DIR = THIS.parent / "skill-router"
 
 sys.path.insert(0, str(THIS))
 
@@ -104,9 +104,11 @@ ALPHA = float(
 )  # success-boost weight (z-units)
 KIND_CAP = {"skill": 4, "mcp": 3, "agent": 1, "command": 2, "memory": 1}
 # Eval/diagnostic toggles: PURE = embeddings only (no intent table, no lexical lanes);
-# NO_RECORD = do not touch success.json (so eval runs don't inflate suggested counts).
+# NO_RECORD = do not touch success.json (so eval runs don't inflate suggested counts);
+# BENCH = isolate benchmark results from learned feedback and calibrated silence.
 PURE = os.environ.get("SEMROUTER_PURE", "").lower() in ("1", "true", "on")
 NO_RECORD = os.environ.get("SEMROUTER_NO_RECORD", "").lower() in ("1", "true", "on")
+BENCH = os.environ.get("SEMROUTER_BENCH", "").lower() in ("1", "true", "on")
 
 _STOP = set(
     (
@@ -249,7 +251,7 @@ def assemble(prompt, sid="default", record=True):
     """Build the merged suggestion buckets for `prompt`. Returns (buckets, parts, debug)."""
     import success as _succ
 
-    succ = _succ.load_success()
+    succ = {} if BENCH else _succ.load_success()
     caps = None if PURE else _load_capabilities()
 
     # lexical precision lanes (pure regex, always fresh, fast) — skipped in PURE (eval) mode
@@ -383,7 +385,7 @@ def main():
             return 0
         # CALIBRATED SILENCE: gate the bundle AFTER dedup (record_suggested already ran inside
         # assemble(), so success.py ranking is untouched); fail-open allows on any gate error.
-        if not _cs_allow("route", {"prompt": prompt, "session_id": sid}):
+        if not BENCH and not _cs_allow("route", {"prompt": prompt, "session_id": sid}):
             return 0
         msg = (
             "[auto-router] (semantic body-match + lexical; invoke if apt, else ignore) "
@@ -399,7 +401,8 @@ def main():
                 }
             )
         )
-        _cs_record("route", _top_suggestion_key(buckets), sid)
+        if not BENCH:
+            _cs_record("route", _top_suggestion_key(buckets), sid)
     except Exception:
         pass  # fail-open
     return 0

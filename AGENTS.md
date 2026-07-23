@@ -27,6 +27,7 @@ This repo does not have a single build step. Validate the parts you touch:
 - `SKILL.md` frontmatter must contain only `name` and `description`.
 - `agents/openai.yaml` should keep quoted string values and short UI-facing text.
 - Helper scripts should default to read-only discovery where possible and must document stop rules before any risky workflow.
+- Treat consumer-owned manifests as closed schemas. Never add a manifest key merely to carry provenance; store provenance in `.provenance/<repo-relative-manifest-path>.md` instead.
 
 ## Testing Guidelines
 
