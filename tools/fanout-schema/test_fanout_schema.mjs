@@ -32,6 +32,15 @@ const PRODUCTION_WORKFLOWS = join(REPO_ROOT, 'workflows')
 const QUALITY_WORKFLOW = join(REPO_ROOT, '.github', 'workflows', 'quality.yml')
 const TOOL_PACKAGE = join(HERE, 'package.json')
 
+const AUTHORITATIVE_SKILLS = join(REPO_ROOT, '.agents', 'skills')
+
+function matchingLines(source, pattern) {
+  return [...source.matchAll(pattern)].map((match) => {
+    const line = source.slice(0, match.index).split('\n').length
+    return `${line}:${match[0]}`
+  })
+}
+
 function runLint(...paths) {
   return spawnSync(process.execPath, [LINTER, ...paths], { encoding: 'utf8' })
 }
@@ -359,4 +368,68 @@ test('quality CI invokes the production fanout lint', () => {
     workflow,
     /working-directory: tools\/fanout-schema\r?\n\s+run: \|\r?\n\s+npm test\r?\n\s+npm run lint -- \.\.\/\.\.\/workflows/,
   )
+})
+
+// ---------------------------------------------------------------------------
+// T0 STRUCTURE - authoritative workflow-facing skills
+// ---------------------------------------------------------------------------
+
+test('T0: saved-workflow references use the live Claude workflow directory', () => {
+  const wrongWorkflowHome = /~\/\.Codex\/workflows\/[^`\s)]+\.mjs/g
+  const knownBroken = [
+    '`~/.Codex/workflows/plan-gate.mjs`',
+    '`~/.Codex/workflows/design-gate.mjs`',
+  ].join('\n')
+  const correctedReferences = [
+    '~/.claude/workflows/plan-gate.mjs',
+    '~/.claude/workflows/design-gate.mjs',
+  ]
+
+  // Positive and negative controls: prove the detector sees both historical typos and
+  // distinguishes the correct provider-specific home before trusting a zero.
+  assert.deepEqual(matchingLines(knownBroken, wrongWorkflowHome), [
+    '1:~/.Codex/workflows/plan-gate.mjs',
+    '2:~/.Codex/workflows/design-gate.mjs',
+  ])
+  assert.deepEqual(
+    matchingLines('`~/.claude/workflows/plan-gate.mjs`', wrongWorkflowHome),
+    [],
+  )
+
+  // Known broken before C12: this authoritative file contained both controlled typos.
+  const source = readFileSync(join(AUTHORITATIVE_SKILLS, 'workflow-authoring', 'SKILL.md'), 'utf8')
+  const wrongReferences = matchingLines(source, wrongWorkflowHome)
+  assert.deepEqual(
+    wrongReferences,
+    [],
+    `wrong saved-workflow references: ${wrongReferences.join(', ')}`,
+  )
+  assert.deepEqual(correctedReferences.filter((reference) => !source.includes(reference)), [])
+})
+
+test('T0: agent-as-judge has no hardcoded path to another provider home', () => {
+  const wrongProviderHome = /\.Codex(?=[/"'])/g
+  const knownBroken = ['`~/.Codex/event-ledger/x`', 'HOME / ".Codex" / "hooks"'].join('\n')
+  const correctedPaths = [
+    '~/.claude/event-ledger/<slug>/events.jsonl',
+    '~/.claude/learnings-queue.json',
+    '~/.claude/shadow-sinks/agent-as-judge.jsonl',
+    'HOME / ".claude" / "hooks" / "event-ledger"',
+    'HOME / ".claude" / "learnings-queue.json"',
+    'HOME / ".claude" / "shadow-sinks" / "agent-as-judge.jsonl"',
+    'HOME / ".claude" / "skills" / "passk-stats" / "SKILL.md"',
+    'HOME / ".claude" / "skills" / "pass-k-stats" / "SKILL.md"',
+    'HOME / ".claude" / "hooks" / "passk_stats.py"',
+  ]
+
+  // A case-sensitive detector catches the wrong Claude-home spelling without banning the
+  // legitimate lowercase ~/.codex home used by OpenAI Codex.
+  assert.deepEqual(matchingLines(knownBroken, wrongProviderHome), ['1:.Codex', '2:.Codex'])
+  assert.deepEqual(matchingLines('`~/.codex/auth.json`', wrongProviderHome), [])
+
+  // Known broken before C12: this authoritative file contained nine wrong-provider paths.
+  const source = readFileSync(join(AUTHORITATIVE_SKILLS, 'agent-as-judge', 'SKILL.md'), 'utf8')
+  const wrongPaths = matchingLines(source, wrongProviderHome)
+  assert.deepEqual(wrongPaths, [], `wrong-provider paths: ${wrongPaths.join(', ')}`)
+  assert.deepEqual(correctedPaths.filter((path) => !source.includes(path)), [])
 })
