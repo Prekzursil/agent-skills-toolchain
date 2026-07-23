@@ -217,6 +217,12 @@ jobs:
       # DISCOVERY is not evidence that they ran — call this one explicitly.
       - name: gate-tests-coverage hook-manifest provenance
         run: python hooks/_shared/test_manifest_provenance.py
+      # A04: hookrun is a standalone suite with its own __main__ runner, so pytest
+      # DISCOVERY would not execute it either. Named explicitly, like the provenance gate above.
+      # Measured when A04 landed: hooks/_shared holds 7 test suites and CI invoked exactly ONE of
+      # them, so a suite that is not named here is dead weight that cannot catch a regression.
+      - name: gate-tests-coverage bounded hook launcher
+        run: python hooks/_shared/test_hookrun.py
       # G-06: the schema module is tested AND its linter is run over the checked-in
       # workflows, so a schema defect in a production workflow fails the gate.
       - name: gate-tests-coverage fanout-schema (module + production lint)
