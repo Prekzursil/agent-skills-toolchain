@@ -3,8 +3,8 @@
 
 The agent calls this to record the *why* the objective hooks can't see: decisions,
 failures (with falsifiable preconditions + TTL semantics), goals, milestones. A milestone
-that contradicts an earlier failure auto-tombstones it (--supersedes), so dead-ends are
-retired, not re-walked.
+that contradicts an earlier failure auto-tombstones it and records a typed claim edge
+(--supersedes), so dead-ends are retired, not re-walked.
 
   python note.py --kind goal "Build the N2 ledger keystone"
   python note.py --kind failure "1mcp eager-spawns" --preconditions "1mcp<=0.32.2"
@@ -26,7 +26,7 @@ import ledger  # noqa: E402
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("text")
-    ap.add_argument("--kind", default="note", choices=list(ledger.KINDS))
+    ap.add_argument("--kind", default="note", choices=list(ledger.NOTE_KINDS))
     ap.add_argument("--cwd", default=os.getcwd())
     ap.add_argument("--preconditions", default=None)
     ap.add_argument(
@@ -36,16 +36,24 @@ def main() -> int:
     )
     a = ap.parse_args()
     fields = {"text": a.text}
+    supersedes = []
     if a.preconditions:
         fields["preconditions"] = a.preconditions
     if a.supersedes:
         try:
-            fields["supersedes_failures"] = [
-                int(x) for x in a.supersedes.split(",") if x.strip()
-            ]
+            supersedes = [int(x) for x in a.supersedes.split(",") if x.strip()]
+            fields["supersedes_failures"] = supersedes
         except ValueError:
             pass
     ev = ledger.append(a.cwd, a.kind, **fields)
+    if a.kind == "milestone":
+        for target in supersedes:
+            ledger.append_claim_edge(
+                a.cwd,
+                "supersedes",
+                source=f"seq:{ev['seq']}",
+                target=f"seq:{target}",
+            )
     print(f"ledger += #{ev['seq']} [{ev['kind']}] {a.text}")
     return 0
 

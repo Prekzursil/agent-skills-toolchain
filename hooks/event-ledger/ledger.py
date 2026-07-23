@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-"""event-ledger — the N2 keystone: an append-only typed event ledger per project.
+"""event-ledger â€” the N2 keystone: an append-only typed event ledger per project.
 
 Why it exists (research-backed): post-compaction agents re-act on the lossy auto-summary
 as ground truth and loop ("echo chamber"). The fix is to recover by REPLAYING an
-append-only, failure-aware ground-truth log — not a self-narrative summary. Compaction
+append-only, failure-aware ground-truth log â€” not a self-narrative summary. Compaction
 keeps *what happened* but destroys *why* (decisions / failures / rationale); this stores
 exactly that, written continuously by hooks (the agent is an annotator, not the writer).
 
@@ -41,7 +41,7 @@ APPEND_LOCK_TIMEOUT = _env_float("EVENT_LEDGER_LOCK_TIMEOUT", 3.0, 0.1, 15.0)
 APPEND_LOCK_POLL = 0.01
 
 # Shared repo-identity resolver (hooks/_shared/projid.py). Imported best-effort and lazily
-# so the ledger keeps working even if it is missing/broken — identity resolution must never
+# so the ledger keeps working even if it is missing/broken â€” identity resolution must never
 # crash a session (FAIL-OPEN).
 _projid_mod = None
 _projid_tried = False
@@ -67,7 +67,43 @@ def _get_projid():
 # milestone = annotations (agent- or hook-written); selection = a correlated tool-choice
 # outcome consumed by oats.py. Failure entries are first-class because they carry the
 # corrective signal a summary discards.
-KINDS = ("turn", "decision", "failure", "goal", "milestone", "selection", "note")
+# Event kinds. "turn" = objective per-turn harvest (hook-written); decision/failure/goal/
+# milestone = annotations (agent- or hook-written); selection = a correlated tool-choice
+# outcome consumed by oats.py; claim_edge = a typed relation between two claim references.
+# Failure entries are first-class because they carry the corrective signal a summary discards.
+KINDS = (
+    "turn",
+    "decision",
+    "failure",
+    "goal",
+    "milestone",
+    "selection",
+    "claim_edge",
+    "note",
+)
+CLAIM_RELATIONS = (
+    "supports",
+    "contradicts",
+    "duplicate_of",
+    "supersedes",
+    "derived_from",
+)
+NOTE_KINDS = tuple(kind for kind in KINDS if kind != "claim_edge")
+
+
+def _claim_ref(value: str, field: str) -> str:
+    """Validate a non-empty claim reference such as ``seq:12``."""
+    if isinstance(value, str):
+        clean = value.strip()
+        if clean:
+            return clean
+    raise ValueError(f"{field} must be a non-empty string claim reference")
+
+
+def _relation(value: str) -> str:
+    if value not in CLAIM_RELATIONS:
+        raise ValueError(f"relation must be one of: {', '.join(CLAIM_RELATIONS)}")
+    return value
 
 
 def _legacy_slug(p: str) -> str:
@@ -88,7 +124,7 @@ def _slug(project_path: str) -> str:
     path of one repo collapses to ONE shard (fixes the cwd-hash fragmentation that split e.g.
     Reframe across many shards). For a non-git directory projid reproduces the exact legacy
     formula, so those shards are unchanged (zero churn). Falls back to the legacy slug if
-    projid is unavailable — never breaks a session.
+    projid is unavailable â€” never breaks a session.
     """
     p = str(project_path or os.getcwd())
     mod = _get_projid()
@@ -100,7 +136,7 @@ def _slug(project_path: str) -> str:
             # for THIS exact cwd still lives directly under ROOT, keep writing to it so no prior
             # history is silently abandoned. Once `projid migrate --apply` folds that shard into
             # the canonical one (moving it under ROOT/.migrated/), this check fails and the
-            # canonical slug takes over automatically — and from then on all worktrees unify.
+            # canonical slug takes over automatically â€” and from then on all worktrees unify.
             if candidate != legacy and (ROOT / legacy).is_dir():
                 return legacy
             return candidate
@@ -245,9 +281,13 @@ def _write_state_atomic(path: Path, state: dict) -> None:
 def append(project_path: str, kind: str, **fields) -> dict:
     """Append a typed event; bump the monotonic seq; update the state projection.
 
-    Returns the written event dict. Never raises on a malformed field (hooks must not crash
-    a session) — best-effort serialization.
+    Returns the written event dict. Claim edges reject an invalid schema before touching
+    disk; other malformed fields use best-effort serialization so hooks do not crash.
     """
+    if kind == "claim_edge":
+        fields["source"] = _claim_ref(fields.get("source"), "source")
+        fields["relation"] = _relation(fields.get("relation"))
+        fields["target"] = _claim_ref(fields.get("target"), "target")
     directory = _dir(project_path)  # resolve canonical identity exactly once per append
     events_path = directory / "events.jsonl"
     state_path = directory / "state.json"
@@ -313,7 +353,7 @@ def append(project_path: str, kind: str, **fields) -> dict:
 
 
 def replay(project_path: str, n: int = 40) -> list[dict]:
-    """Return the last n events (ground truth), oldest→newest."""
+    """Return the last n events (ground truth), oldestâ†’newest."""
     f = _events_file(project_path)
     if not f.exists():
         return []
@@ -332,3 +372,41 @@ def replay(project_path: str, n: int = 40) -> list[dict]:
 
 def state(project_path: str) -> dict:
     return _load_state(project_path)
+
+
+def append_claim_edge(
+    project_path: str,
+    relation: str,
+    source: str,
+    target: str,
+) -> dict:
+    """Append one typed claim relation to the same authoritative JSONL stream."""
+    return append(
+        project_path,
+        "claim_edge",
+        source=source,
+        relation=relation,
+        target=target,
+    )
+
+
+def claim_edges(
+    project_path: str,
+    *,
+    source: str | None = None,
+    relation: str | None = None,
+    target: str | None = None,
+    n: int = 200,
+) -> list[dict]:
+    """Return matching claim edges from the last n events, oldest to newest."""
+    source_ref = _claim_ref(source, "source") if source is not None else None
+    target_ref = _claim_ref(target, "target") if target is not None else None
+    relation_name = _relation(relation) if relation is not None else None
+    return [
+        event
+        for event in replay(project_path, n)
+        if event.get("kind") == "claim_edge"
+        and (source_ref is None or event.get("source") == source_ref)
+        and (relation_name is None or event.get("relation") == relation_name)
+        and (target_ref is None or event.get("target") == target_ref)
+    ]
