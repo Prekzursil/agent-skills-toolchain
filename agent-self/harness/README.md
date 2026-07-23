@@ -18,8 +18,9 @@ normalize -> ordered modules -> core HookResult -> native adapter -> provider st
 
 - Core results contain only `status`, `action`, `reason_code`, `additional_context`,
   and optional `continuation`. See `schemas/hook-result.schema.json`.
-- Module order is fixed: secret guard, event ledger, goal reinjection, sanitized
-  checkpoint, bounded recall, anti-degeneration, claim warning, subagent lifecycle.
+- Module order is fixed: secret guard, sensitive-artifact report, event ledger, goal
+  reinjection, sanitized checkpoint, bounded recall, anti-degeneration, claim warning,
+  subagent lifecycle.
 - Unexpected module errors fail open and are recorded as `FAILED:hook-<event>` without
   exposing exception text to either model.
 - Only irreversible operations and literal-secret or credential access paths are blocked.

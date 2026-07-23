@@ -28,6 +28,7 @@ from harness.modules import (
     RecallModule,
     SanitizedCheckpointModule,
     SecretGuardModule,
+    SensitiveArtifactModule,
     SubagentLifecycleModule,
     _canonical_tree,
     resolve_mode,
@@ -50,6 +51,7 @@ def event(tmp_path: Path, name: str, **overrides):
 def test_fixed_module_order_is_security_then_continuity_then_quality():
     assert MODULE_ORDER == (
         "secret_guard",
+        "sensitive_artifact",
         "event_ledger",
         "goal_reinjection",
         "sanitized_checkpoint",
@@ -2415,3 +2417,83 @@ def test_basic_memory_nudge_failopen_on_ledger_error(iso, tmp_path, monkeypatch)
     monkeypatch.setattr(ledger, "replay", _boom)
     out = ClaimWarningModule(ledger).run(event(tmp_path, "Stop"))
     assert out.action == "allow"
+
+
+# ── J10: sensitive-artifact report ──────────────────────────────────────────────────────────────
+# A synthetic, non-live key assembled at runtime so the gitleaks gate has no literal to match.
+FAKE_KEY = "AKIA" + "X" * 16
+
+
+def _transcript(tmp_path: Path, body: str) -> Path:
+    target = tmp_path / "transcript.jsonl"
+    target.write_text(body, encoding="utf-8")
+    return target
+
+
+def test_sensitive_artifact_reports_a_credential_bearing_transcript(tmp_path):
+    target = _transcript(tmp_path, f'{{"role":"user","text":"my key is {FAKE_KEY}"}}\n')
+    result = SensitiveArtifactModule().run(
+        event(tmp_path, "Stop", transcript_path=str(target))
+    )
+    assert result.action == "inject"
+    assert result.reason_code == "sensitive_artifact"
+    joined = " ".join(result.additional_context)
+    assert "POTENTIAL-CREDENTIAL" in joined
+    # The whole point of a report-only sweep: it must not echo what it found.
+    assert FAKE_KEY not in joined
+    assert str(target) not in joined
+
+
+def test_sensitive_artifact_is_silent_on_a_clean_transcript(tmp_path):
+    # The both-states pair for the test above. Without this, "it fires" proves nothing.
+    target = _transcript(
+        tmp_path, '{"role":"user","text":"nothing of interest here"}\n'
+    )
+    result = SensitiveArtifactModule().run(
+        event(tmp_path, "Stop", transcript_path=str(target))
+    )
+    assert result.action == "allow"
+    assert not result.additional_context
+
+
+def test_sensitive_artifact_ignores_a_reentrant_stop(tmp_path):
+    # Same sensitive file as the firing case; only the re-entrancy flag differs, so a failure
+    # here is specifically a re-entrancy failure and not a detection failure.
+    target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+    result = SensitiveArtifactModule().run(
+        event(tmp_path, "Stop", transcript_path=str(target), stop_hook_active="true")
+    )
+    assert result.action == "allow"
+
+
+def test_sensitive_artifact_reports_unknown_when_the_target_cannot_be_read(tmp_path):
+    # An unreadable target is UNKNOWN, never "clean" — absence of evidence is not evidence.
+    missing = tmp_path / "does-not-exist.jsonl"
+    result = SensitiveArtifactModule().run(
+        event(tmp_path, "Stop", transcript_path=str(missing))
+    )
+    assert result.action == "inject"
+    assert "UNKNOWN" in " ".join(result.additional_context)
+
+
+def test_sensitive_artifact_reports_an_explicit_write_target(tmp_path):
+    target = tmp_path / "creds.env"
+    target.write_text(f"AWS_ACCESS_KEY_ID={FAKE_KEY}\n", encoding="utf-8")
+    result = SensitiveArtifactModule().run(
+        event(
+            tmp_path,
+            "PostToolUse",
+            tool_name="Write",
+            tool_input={"file_path": str(target)},
+        )
+    )
+    assert result.action == "inject"
+    assert "kind=artifact" in " ".join(result.additional_context)
+
+
+def test_sensitive_artifact_never_raises_on_a_malformed_event(tmp_path):
+    # Fails open by contract: a reporting module must never be able to break the hook pipeline.
+    result = SensitiveArtifactModule().run(
+        event(tmp_path, "Stop", transcript_path="\x00bad")
+    )
+    assert result.action in {"allow", "inject"}
