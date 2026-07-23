@@ -192,79 +192,35 @@ run on a sample of your own historical tasks.**
 
 ---
 
-## Integration point: metaswarm orchestrator + Ralph loop
+## Production integration: `/model-route` and `/start-task`
 
-Triage is a **work-unit dispatch** decision, not a per-prompt decision. Wire
-it into the orchestrator's IMPLEMENT phase, before any model call is made.
+Triage is a **work-unit dispatch** decision, not a per-prompt decision. The
+production `/model-route` command invokes this CLI for a resolved file set, and
+the `/start-task` dispatcher calls `/model-route` after work-unit file scope is
+known and before it starts a generic IMPLEMENT subagent.
 
-### Metaswarm: work-unit dispatch
+The dispatcher passes `recommended_tier` as the Claude subagent's `model`
+selector and records `model_id`, score, signal source, and rationale in the
+handoff. Specialized planning, orchestration, architecture, and security agents
+keep their static model floors; dynamic routing does not downgrade them.
 
-In `skills/orchestrated-execution` (or your metaswarm dispatcher), replace the
-hardcoded `model: opus` with a triage call:
+From the toolchain checkout root, the production call is:
 
-```python
-# pseudo-code — adapt to your actual orchestrator structure
-import json, subprocess
+~~~bash
+python tools/triage-router/triage_router.py --files <file> [<file> ...] --pretty
+~~~
 
-def pick_model(work_unit_files: list[str]) -> str:
-    """
-    Call triage_router for the given file set; return the model_id.
-    Falls through to Opus on any error (fail-safe).
-    """
-    try:
-        result = subprocess.run(
-            [
-                "python",
-                "/path/to/tools/triage-router/triage_router.py",
-                "--files", *work_unit_files,
-            ],
-            capture_output=True, text=True, timeout=30, check=True,
-        )
-        verdict = json.loads(result.stdout)
-        return verdict["model_id"]          # e.g. "claude-haiku-4-5"
-    except Exception:
-        return "claude-opus-4-8"            # fail-safe
+If VALIDATE or ADVERSARIAL REVIEW fails, `/start-task` retries IMPLEMENT only
+after requesting the next tier:
 
+~~~bash
+python tools/triage-router/triage_router.py --files <file> [<file> ...] --escalate <current-tier> --pretty
+~~~
 
-# At work-unit dispatch:
-model = pick_model(work_unit["files"])
-dispatch_work_unit(work_unit, model=model)
-```
-
-### Escalation inside the 4-phase loop
-
-The metaswarm VALIDATE phase already checks coverage and adversarial review.
-Add one step: if VALIDATE fails, escalate the tier and retry IMPLEMENT before
-counting the failure as a loop exit:
-
-```python
-current_tier = "haiku"   # from triage router
-
-def validate_with_escalation(work_unit, files, max_retries=2):
-    for attempt in range(max_retries):
-        model = pick_model(files)  if attempt == 0 else escalate(files, current_tier)
-        result = implement(work_unit, model=model)
-        if validate(result):
-            return result, model
-        current_tier = result["tier"]   # feed back for next escalation
-    return None, current_tier           # out of retries → human review
-```
-
-```python
-def escalate(files: list[str], current_tier: str) -> str:
-    result = subprocess.run(
-        ["python", "triage_router.py", "--files", *files, "--escalate", current_tier],
-        capture_output=True, text=True, check=True,
-    )
-    return json.loads(result.stdout)["model_id"]
-```
-
-### Ralph loop integration
-
-In your Ralph loop config (`.ralph/config.yaml` or equivalent), set
-`model: dynamic` and resolve it via triage_router.py before each iteration,
-using the work-unit's files as input. The router's JSON output is
-machine-readable and side-effect-free.
+Missing files, an unavailable router, a nonzero exit, malformed JSON, or a
+verdict missing `recommended_tier` or `model_id` all fail up to Opus. See
+`commands/model-route.md` for path resolution and the complete command contract,
+and `commands/start-task.md` for dispatch and retry policy.
 
 ---
 
