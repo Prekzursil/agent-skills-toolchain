@@ -58,7 +58,13 @@ def test_workflow_pins_actions_engine_and_model() -> None:
         "image: ollama/ollama@sha256:"
         "a5409cb903d30f9cd67e9f430dd336ddc9274e16fd78f75b675c42065991b4fd" in text
     )
+    # The model digest is recorded as OLLAMA_MODEL_DIGEST, not as a `name@sha256:` pull ref:
+    # `ollama pull` rejects that form with `400 Bad Request: invalid model name` (measured in CI
+    # on this workflow's first run). The pin is still asserted here so it cannot drift silently;
+    # what changed is where it lives, not whether it exists.
     assert (
-        "OLLAMA_MODEL_REF: nomic-embed-text@sha256:"
+        "OLLAMA_MODEL_DIGEST: sha256:"
         "0a109f422b47e3a30ba2b10eca18548e944e8a23073ee3f3e947efcf3c45e59f" in text
     )
+    # ...and the pull must use the tag, or the job dies before it measures anything.
+    assert 'ollama pull "$SEMROUTER_EMBED_MODEL"' in text
