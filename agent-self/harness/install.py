@@ -25,6 +25,10 @@ This module owns three CLI surfaces:
   (abort if live changed since PLAN), and a fail-closed post-write parity check
   that restores the pre-deploy backup on any mismatch, then writes a receipt.
   See the "Deploy" section banner for the full phase composition.
+* ``install.py --reconcile-skills`` performs the read-only D-001 prerequisite:
+  inventory canonical, projection, provider-only, and both live skill surfaces;
+  preserve their union; and route one-sided or conflicting copies without
+  choosing a winner. A skills deploy runs this same check before its first write.
 
 The reconciler is an install-time CLI drift check, NOT a runtime dispatcher
 gate: it produces no ``HookResult`` and never injects or blocks a live session,
@@ -60,10 +64,32 @@ if __package__ in {None, ""}:  # pragma: no cover
     from harness.ledger import default_state_root
     from harness.registration import build_hooks
     from harness.storage import atomic_write_json, read_json
+    from harness.surface_reconciler import (
+        DEPLOY_STAGE_PREFIX,
+        LIVE_DAILY,
+        LIVE_VAULT,
+        REPO_CANONICAL,
+        REPO_CLAUDE_ONLY,
+        REPO_PROJECTION,
+        comparison_hash,
+        is_deploy_excluded,
+        reconcile_paths,
+    )
 else:
     from .ledger import default_state_root
     from .registration import build_hooks
     from .storage import atomic_write_json, read_json
+    from .surface_reconciler import (
+        DEPLOY_STAGE_PREFIX,
+        LIVE_DAILY,
+        LIVE_VAULT,
+        REPO_CANONICAL,
+        REPO_CLAUDE_ONLY,
+        REPO_PROJECTION,
+        comparison_hash,
+        is_deploy_excluded,
+        reconcile_paths,
+    )
 
 
 HOME = Path.home()
@@ -80,22 +106,9 @@ LIVE_HARNESS_DIR = HOME / ".agents" / "harness"
 # installed.json is the deploy RECEIPT (written per-deploy, never copied FROM
 # source); backups/, __pycache__/, .venv/ are generated trees; .deploy.lock is
 # the single-writer lock; .deploy-stage-* are the atomic staging temp dirs.
-DEPLOY_EXCLUDE_NAMES = frozenset(
-    {
-        "installed.json",
-        "backups",
-        "__pycache__",
-        ".pytest_cache",
-        ".ruff_cache",
-        ".venv",
-        ".deploy.lock",
-    }
-)
-DEPLOY_EXCLUDE_SUFFIXES = (".bak",)
 # The CAS-lite deploy machinery (ONE target per call).
 DEPLOY_TARGETS = ("harness", "skills", "hooks")
 DEPLOY_LOCK_NAME = ".deploy.lock"
-DEPLOY_STAGE_PREFIX = ".deploy-stage-"
 # A lock older than this (seconds) is treated as stale (crashed writer) and stolen.
 DEPLOY_LOCK_STALE_SECONDS = 600.0
 # Optional owner-authored file pinning the EXPECTED value of each observed
@@ -555,12 +568,7 @@ class DeployCASConflict(RuntimeError):
 
 def _is_excluded_name(name: str) -> bool:
     """True when a file/dir basename is runtime state that never deploys/backs up."""
-    return (
-        name in DEPLOY_EXCLUDE_NAMES
-        or name.endswith(DEPLOY_EXCLUDE_SUFFIXES)
-        or ".bak-" in name  # timestamped in-place backups (foo.py.bak-<stamp>)
-        or name.startswith(DEPLOY_STAGE_PREFIX)  # a crashed staging dir
-    )
+    return is_deploy_excluded(name)
 
 
 def _deploy_ignore(dir_path: str, names: list[str]) -> set[str]:
@@ -582,7 +590,11 @@ def _managed_files(root: Path) -> dict[str, Path]:
     result: dict[str, Path] = {}
     if not root.exists():
         return result
-    for dirpath, dirs, files in os.walk(root):
+
+    def raise_walk_error(exc: OSError) -> None:
+        raise exc
+
+    for dirpath, dirs, files in os.walk(root, onerror=raise_walk_error):
         dirs[:] = sorted(d for d in dirs if not _is_excluded_name(d))
         rel_root = os.path.relpath(dirpath, root)
         for name in sorted(files):
@@ -618,6 +630,30 @@ def _default_live(target: str) -> Path:
     return Path(
         os.environ.get("HARNESS_LIVE_HOOKS_DIR") or (HOME / ".claude" / "hooks")
     )
+
+
+def _default_skill_surface_roots(
+    projection: Path | None = None, live_vault: Path | None = None
+) -> dict[str, Path]:
+    """Every D-001 skill surface, with source/target seams overridable by deploy."""
+    repo_root = HERE.resolve().parents[1]
+    return {
+        REPO_CANONICAL: repo_root / ".agents" / "skills",
+        REPO_PROJECTION: projection or repo_root / "skills",
+        REPO_CLAUDE_ONLY: repo_root / "skills-claude-only",
+        LIVE_VAULT: live_vault or _default_live("skills"),
+        LIVE_DAILY: SKILLS_LINK,
+    }
+
+
+def reconcile_skills(
+    roots: dict[str, Path] | None = None, *, emit: bool = True
+) -> tuple[int, dict[str, Any]]:
+    """Run the read-only surface pass; ROUTE/FAILED is non-zero for callers."""
+    report = reconcile_paths(roots or _default_skill_surface_roots())
+    if emit:
+        _emit(report)
+    return (0 if report["verdict"] == "CLEAN" else 1), report
 
 
 def _acquire_deploy_lock(live_dir: Path, stale_seconds: float) -> Path:
@@ -711,6 +747,8 @@ def deploy(
     live_dir: Path | None = None,
     target: str = "harness",
     lock_stale_seconds: float = DEPLOY_LOCK_STALE_SECONDS,
+    skill_surface_roots: dict[str, Path] | None = None,
+    _after_reconcile: Callable[[], None] | None = None,
     _after_stage: Callable[[], None] | None = None,
     _after_write: Callable[[], None] | None = None,
 ) -> int:
@@ -719,13 +757,46 @@ def deploy(
     Returns 0 on success; 1 on any integrity/contention failure (lock held, CAS
     conflict, or a post-write parity mismatch -- fail-CLOSED, restoring the backup).
     ``target`` selects the tree (harness | skills | hooks); deploy ONE per call.
-    ``_after_stage`` / ``_after_write`` are internal lifecycle probes (default
-    None) used by tests to inject a concurrent live change at the CAS / parity
-    seam; production callers leave them unset."""
+    ``_after_reconcile`` / ``_after_stage`` / ``_after_write`` are internal
+    lifecycle probes (default None) used by tests to inject a concurrent live
+    change at the reconciliation / CAS / parity seams; production callers leave
+    them unset."""
     if target not in DEPLOY_TARGETS:
         raise ValueError(f"unsupported deploy target: {target!r}")
-    src = (source_dir or _default_source(target)).resolve()
+    src = (source_dir or _default_source(target)).absolute()
     dst = live_dir or _default_live(target)
+
+    # Pre-bound for definite assignment. Each is read only on the
+    # ``target == "skills"`` path, where it is reassigned before use, but the
+    # reads live under SEPARATE ``if target == "skills"`` guards the type checker
+    # cannot correlate with the assignment guard -- so bind harmless defaults the
+    # non-skills path never reads.
+    roots: dict[str, Path] = {}
+    reconciliation: dict[str, Any] = {}
+    revalidation: dict[str, Any] = {}
+
+    # D-001 read-only reconciliation FIRST. This precedes even lock acquisition:
+    # _acquire_deploy_lock mkdirs the live root and writes .deploy.lock. Overlay
+    # the actual candidate/target so a caller cannot reconcile different paths
+    # from the ones it asks this function to mutate.
+    if target == "skills":
+        roots = dict(skill_surface_roots or _default_skill_surface_roots(src, dst))
+        roots[REPO_PROJECTION] = src
+        roots[LIVE_VAULT] = dst
+        reconcile_code, reconciliation = reconcile_skills(roots, emit=False)
+        if reconcile_code != 0:
+            _emit(
+                {
+                    "status": "failed",
+                    "target": target,
+                    "reason": "surface_reconciliation_required",
+                    "reconciliation": reconciliation,
+                }
+            )
+            return 1
+        if _after_reconcile is not None:
+            _after_reconcile()
+
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     # Capture pre-existence BEFORE the lock mkdirs the target (governs backup).
     live_pre_existed = dst.exists()
@@ -746,9 +817,94 @@ def deploy(
             return 1
 
         # PLAN: content hashes for the current live tree AND the candidate tree.
-        candidate = _managed_files(src)
-        candidate_hashes = {rel: _hash_file(path) for rel, path in candidate.items()}
-        live_plan_hashes = _managed_hashes(dst)
+        # Enumeration errors are fatal; an incomplete plan cannot authorize a
+        # zero-file or partial deployment.
+        try:
+            candidate = _managed_files(src)
+            candidate_hashes = {
+                rel: _hash_file(path) for rel, path in candidate.items()
+            }
+            live_plan_hashes = _managed_hashes(dst)
+            receipt_paths = sorted(candidate)
+        except OSError as exc:
+            _emit(
+                {
+                    "status": "failed",
+                    "target": target,
+                    "reason": "managed_file_scan_failed",
+                    "problem": type(exc).__name__,
+                }
+            )
+            return 1
+
+        # Bind the write plan to the read-only result. PLAN comes first so the
+        # existing pre-write CAS catches changes after this revalidation; the
+        # snapshot comparison catches changes between the first pass and PLAN.
+        if target == "skills":
+            revalidate_code, revalidation = reconcile_skills(roots, emit=False)
+            snapshots_changed = (
+                revalidation["snapshots"] != reconciliation["snapshots"]
+                or revalidation["root_aliases"] != reconciliation["root_aliases"]
+                or revalidation["root_resolutions"]
+                != reconciliation["root_resolutions"]
+            )
+            if revalidate_code != 0 or snapshots_changed:
+                _emit(
+                    {
+                        "status": "failed",
+                        "target": target,
+                        "reason": "surface_changed_after_reconciliation",
+                        "snapshots_changed": snapshots_changed,
+                        "reconciliation": reconciliation,
+                        "revalidation": revalidation,
+                    }
+                )
+                return 1
+
+        # The comparison contract treats text LF/CRLF as equal and explicitly
+        # never copies an EOL-only file. Reconciliation has already proved these
+        # are the only possible content-equivalent raw differences, so omit them
+        # from the write set while preserving them in the eventual live receipt.
+        eol_skipped: list[str] = []
+        if target == "skills":
+            raw_differences = sorted(
+                rel
+                for rel, digest in candidate_hashes.items()
+                if live_plan_hashes.get(rel) not in {None, digest}
+            )
+            try:
+                eol_skipped = [
+                    rel
+                    for rel in raw_differences
+                    if comparison_hash(candidate[rel]) == comparison_hash(dst / rel)
+                ]
+            except OSError as exc:
+                _emit(
+                    {
+                        "status": "failed",
+                        "target": target,
+                        "reason": "managed_file_scan_failed",
+                        "problem": type(exc).__name__,
+                    }
+                )
+                return 1
+            if eol_skipped != raw_differences:
+                _emit(
+                    {
+                        "status": "failed",
+                        "target": target,
+                        "reason": "raw_plan_not_reconciled",
+                    }
+                )
+                return 1
+            candidate = {
+                rel: path for rel, path in candidate.items() if rel not in eol_skipped
+            }
+            candidate_hashes = {
+                rel: digest
+                for rel, digest in candidate_hashes.items()
+                if rel not in eol_skipped
+            }
 
         # BACKUP the pre-deploy live tree (last-known-good), runtime-clean. Only
         # when the target pre-existed -- a brand-new target has nothing to save.
@@ -772,16 +928,60 @@ def deploy(
             if _after_stage is not None:
                 _after_stage()  # test seam: simulate a concurrent live change
 
+            # The source can change after PLAN. Verify the completed stage against
+            # the approved raw-byte plan before the first live write.
+            staged_hashes = _managed_hashes(stage)
+            if staged_hashes != candidate_hashes:
+                _emit(
+                    {
+                        "status": "failed",
+                        "target": target,
+                        "reason": "staged_candidate_changed",
+                    }
+                )
+                return 1
+
+            # Reconcile all five surfaces once more at the last safe point before
+            # live writes. This binds provider/canonical roots and symlinked parent
+            # resolution too; the raw live-tree CAS below covers the write target.
+            if target == "skills":
+                final_code, final_reconciliation = reconcile_skills(roots, emit=False)
+                final_changed = (
+                    final_reconciliation["snapshots"] != revalidation["snapshots"]
+                    or final_reconciliation["root_aliases"]
+                    != revalidation["root_aliases"]
+                    or final_reconciliation["root_resolutions"]
+                    != revalidation["root_resolutions"]
+                )
+                if final_code != 0 or final_changed:
+                    _emit(
+                        {
+                            "status": "failed",
+                            "target": target,
+                            "reason": "surface_changed_before_write",
+                            "snapshots_changed": final_changed,
+                            "revalidation": revalidation,
+                            "final_reconciliation": final_reconciliation,
+                        }
+                    )
+                    return 1
+
             # PRE-WRITE CAS: re-hash each managed live file immediately before the
             # write phase; a divergence from the plan-time hash means live changed
             # since PLAN -> abort the WHOLE deploy with NO writes (optimistic
-            # concurrency). Running the full check before any os.replace is what
-            # makes "without writing that file" hold for every file, not just one.
-            for rel in sorted(candidate):
-                live_target = dst / rel
-                current = _hash_file(live_target) if live_target.exists() else None
-                if current != live_plan_hashes.get(rel):
-                    raise DeployCASConflict(rel, live_plan_hashes.get(rel), current)
+            # concurrency). The full-map check catches new live-only paths too;
+            # per-file replacement is not a tree-atomic transaction.
+            current_live_hashes = _managed_hashes(dst)
+            if current_live_hashes != live_plan_hashes:
+                changed = sorted(set(current_live_hashes) | set(live_plan_hashes))
+                rel = next(
+                    path
+                    for path in changed
+                    if current_live_hashes.get(path) != live_plan_hashes.get(path)
+                )
+                raise DeployCASConflict(
+                    rel, live_plan_hashes.get(rel), current_live_hashes.get(rel)
+                )
 
             # WRITE: per-file atomic replace out of the stage into live.
             copied: list[str] = []
@@ -814,7 +1014,8 @@ def deploy(
             return 1
 
         # RECEIPT: write/extend <target>/installed.json.
-        receipt = _write_receipt(dst, src, target, candidate_hashes, backup)
+        receipt_hashes = {rel: _hash_file(dst / rel) for rel in receipt_paths}
+        receipt = _write_receipt(dst, src, target, receipt_hashes, backup)
         _emit(
             {
                 "status": "deployed",
@@ -823,6 +1024,8 @@ def deploy(
                 "source": str(src),
                 "count": len(copied),
                 "copied": copied,
+                "surface_reconciled": target == "skills",
+                "eol_skipped": eol_skipped,
                 "backup": str(backup) if backup is not None else None,
                 "receipt": receipt,
             }
@@ -869,6 +1072,12 @@ def main(argv: list[str] | None = None) -> int:
         "single-writer lock, pre-write CAS, post-write parity, receipt); "
         "backs the live tree up first; idempotent",
     )
+    group.add_argument(
+        "--reconcile-skills",
+        action="store_true",
+        help="read-only D-001 inventory of repo + live skill surfaces; "
+        "route one-sided/conflicting copies without selecting a winner",
+    )
     parser.add_argument(
         "--target",
         choices=DEPLOY_TARGETS,
@@ -876,6 +1085,9 @@ def main(argv: list[str] | None = None) -> int:
         help="which tree to deploy (ONE per call); only used with --deploy",
     )
     args = parser.parse_args(argv)
+    if args.reconcile_skills:
+        code, _report = reconcile_skills()
+        return code
     if args.bootstrap:
         return bootstrap()
     if args.deploy:
