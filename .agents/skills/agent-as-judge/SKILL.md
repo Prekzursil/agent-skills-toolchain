@@ -1,6 +1,6 @@
 ---
 name: agent-as-judge
-description: Advisory, evidence-citing Agent-as-a-Judge. Use when you want a second opinion on whether a completion meets its Definition of Done AFTER the deterministic verification cluster (typed receipts, fail-first red-proof, execution-consensus, golden-journey oracle) has run — it decomposes the DoD into falsifiable YES/NO items, cites a ledger-event or evidence-hash per item (chain-of-custody), execute-to-confirms every would-be-blocking finding, and scores against the ICD-203 nine analytic standards. Its opinion NEVER gates or grants "done" (COUNCIL C3): only a re-run executable receipt could ever block and that path is deferred indefinitely, so it is 100% ADVISORY and ships in SHADOW mode (observe + log, never blocks, never nags). Imports passk-stats (F5) for kappa/e-value calibration vs the owner's Codex-reflect corrections; stays advisory while kappa < 0.6 and auto-demotes on decay. NOT a done-gate, NOT terminal authority; a same-vendor judge shares the fixer's blind spots so prefer a cross-vendor Codex second judge on contested calls. Do NOT use to BLOCK a merge/completion, and do NOT use it in place of the deterministic gates.
+description: Advisory, evidence-citing Agent-as-a-Judge. Use when you want a second opinion on whether a completion meets its Definition of Done AFTER the deterministic verification cluster (typed receipts, fail-first red-proof, execution-consensus, golden-journey oracle) has run — it decomposes the DoD into falsifiable YES/NO items, cites a ledger-event or evidence-hash per item (chain-of-custody), execute-to-confirms every would-be-blocking finding, and scores against the ICD-203 nine analytic standards. Its opinion NEVER gates or grants "done" (COUNCIL C3): only a re-run executable receipt could ever block and that path is deferred indefinitely, so it is 100% ADVISORY and ships in SHADOW mode (observe + log, never blocks, never nags). Imports passk-stats (F5) for kappa/e-value calibration vs the owner's claude-reflect corrections; stays advisory while kappa < 0.6 and auto-demotes on decay. NOT a done-gate, NOT terminal authority; a same-vendor judge shares the fixer's blind spots so prefer a cross-vendor Codex second judge on contested calls. Do NOT use to BLOCK a merge/completion, and do NOT use it in place of the deterministic gates.
 ---
 
 # Agent-as-a-Judge (advisory, evidence-citing)
@@ -61,7 +61,7 @@ it does not substitute its opinion for the missing deterministic signal.
 | Runs AFTER the deterministic cluster | It owns only the subjective residue |
 | Veto layer, never grant layer | May add scrutiny; may never clear |
 | Same-vendor = correlated failure | Prefer a cross-vendor Codex second judge |
-| Calibrate kappa >= 0.6 vs Codex-reflect corpus, per-category, lower CI bound | Even then: license to SPEAK, not BLOCK |
+| Calibrate kappa >= 0.6 vs claude-reflect corpus, per-category, lower CI bound | Even then: license to SPEAK, not BLOCK |
 | Honest prior kappa < 0.6 | Stays advisory; program loses nothing |
 | Auto-demote on kappa decay; never self-promote | A good judge can rot |
 | Read-only on source; writes only the shadow sink | Never edits project code |
@@ -72,7 +72,7 @@ it does not substitute its opinion for the missing deterministic signal.
    split compound criteria; tag each `deterministic` (a gate covered it) or `subjective` (judge
    owns it). Opine only on `subjective` items.
 2. **Cite evidence per item** — `ledger#seq<N>` (a real event in
-   `~/.Codex/event-ledger/<slug>/events.jsonl`) OR `sha256:<hex12>` of the exact artifact bytes /
+   `~/.claude/event-ledger/<slug>/events.jsonl`) OR `sha256:<hex12>` of the exact artifact bytes /
    command output (chain-of-custody). Un-citable item -> `UNBACKED` -> advisory-forever.
 3. **Execute-to-confirm** every would-be-blocking finding: re-run the cited receipt; record
    `reproduced` / `not-reproduced` (-> downgrade to note) / `unrunnable` (-> UNBACKED).
@@ -84,7 +84,7 @@ line. **Zero findings block — that is by design.**
 
 ## Calibration harness (passk-stats / F5)
 
-- **Label source:** owner's Codex-reflect corrections `~/.Codex/learnings-queue.json` +
+- **Label source:** owner's claude-reflect corrections `~/.claude/learnings-queue.json` +
   `--supersedes` chains in the ledger. This is a *caught-error* corpus — blind to *escaped*
   defects — so it can license the judge to SPEAK, never to BLOCK on opinion (C3 hard constraint).
 - **Statistic:** Cohen's kappa (>= 0.6 substantial) + anytime-valid e-values / paired CI via
@@ -96,7 +96,7 @@ line. **Zero findings block — that is by design.**
 
 One JSON line per run to a **separate, bounded, auto-rotating** sink — never the main ledger:
 
-- Default sink: `~/.Codex/shadow-sinks/agent-as-judge.jsonl` (override `$AGENT_AS_JUDGE_SHADOW_SINK`).
+- Default sink: `~/.claude/shadow-sinks/agent-as-judge.jsonl` (override `$AGENT_AS_JUDGE_SHADOW_SINK`).
 - Rotates at ~2 MB to `<sink>.1`. Records verdict + would-have-fired findings + citations +
   calibration status so F1 (gem-fitness scorer) can measure precision against external truth.
 - SHADOW = observe/log only. It NEVER blocks and NEVER nags. There is no ENFORCE promotion this
@@ -120,9 +120,9 @@ import hashlib, json, os, sys, time
 from pathlib import Path
 
 HOME = Path(os.path.expanduser("~"))
-LEDGER_MOD_DIR = HOME / ".Codex" / "hooks" / "event-ledger"
-LABEL_CORPUS = HOME / ".Codex" / "learnings-queue.json"          # Codex-reflect corrections
-DEFAULT_SINK = HOME / ".Codex" / "shadow-sinks" / "agent-as-judge.jsonl"
+LEDGER_MOD_DIR = HOME / ".claude" / "hooks" / "event-ledger"
+LABEL_CORPUS = HOME / ".claude" / "learnings-queue.json"          # claude-reflect corrections
+DEFAULT_SINK = HOME / ".claude" / "shadow-sinks" / "agent-as-judge.jsonl"
 SINK = Path(os.environ.get("AGENT_AS_JUDGE_SHADOW_SINK", str(DEFAULT_SINK)))
 SINK_ROTATE_BYTES = 2 * 1024 * 1024
 KAPPA_BAR = 0.6                    # Landis-Koch "substantial"
@@ -171,7 +171,7 @@ def hash_evidence(source, is_path: bool | None = None) -> str:
 
 
 def read_label_corpus() -> dict:
-    """Read the owner's Codex-reflect corrections queue = kappa ground-truth labels.
+    """Read the owner's claude-reflect corrections queue = kappa ground-truth labels.
     Caught-error corpus (blind to escaped defects) -> licenses SPEAK, never BLOCK (C3)."""
     if not LABEL_CORPUS.exists():
         return {"present": False, "n": 0, "reason": "learnings-queue.json absent (no corrections captured yet)"}
@@ -188,9 +188,9 @@ def probe_passk_stats() -> dict:
     """Detect the F5 pass^k / e-value / kappa calibrator. Absent -> advisory, never fabricate."""
     # F5 may ship as a skill dir, a module, or an artifact. Probe the known shapes.
     candidates = [
-        HOME / ".Codex" / "skills" / "passk-stats" / "SKILL.md",
-        HOME / ".Codex" / "skills" / "pass-k-stats" / "SKILL.md",
-        HOME / ".Codex" / "hooks" / "passk_stats.py",
+        HOME / ".claude" / "skills" / "passk-stats" / "SKILL.md",
+        HOME / ".claude" / "skills" / "pass-k-stats" / "SKILL.md",
+        HOME / ".claude" / "hooks" / "passk_stats.py",
     ]
     for c in candidates:
         if c.exists():
@@ -284,7 +284,7 @@ if __name__ == "__main__":
   the done-signal. If someone wires this into a blocking path, that violates C3.
 - **Correlated failure.** A same-vendor judge shares the fixer's blind spots; a cross-vendor Codex
   second judge is the independent check for contested/irreversible completions.
-- **Calibration corpus is caught-error-only.** kappa vs Codex-reflect corrections optimizes for
+- **Calibration corpus is caught-error-only.** kappa vs claude-reflect corrections optimizes for
   re-catching *known* error classes; it is blind to escaped defects, so it can never license
   opinion-gating (only a fresh prospective held-out set the judge never saw could — deferred).
 - **F5 dependency.** kappa/e-value calibration requires `passk-stats`; until it exists the judge is
