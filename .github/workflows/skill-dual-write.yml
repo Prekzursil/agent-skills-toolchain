@@ -1,9 +1,10 @@
 name: skill-dual-write
 
 # D-001 dual-write gate. `.agents/skills/` is the authoritative skill root and
-# `skills/` a compatibility projection (AGENTS.md); this fails a PR that adds or
-# edits a skill under `skills/<NAME>/` without landing matching NON-EMPTY content
-# under `.agents/skills/<NAME>/`.
+# `skills/` a generated compatibility projection (AGENTS.md). CI uses final-tree
+# strict parity: every changed path in either root must have the same mode and blob
+# at the corresponding path in the other root. This permits a projection-only
+# repair to unchanged canonical content while rejecting canonical-only drift.
 #
 # WHY ITS OWN WORKFLOW AND NOT A 7th JOB IN quality.yml:
 # quality.yml is a CLOSED gate set policed by `.quality/charter_check.sh`, which
@@ -21,21 +22,18 @@ name: skill-dual-write
 # because a step below invokes it by an explicit path. The self-test step runs
 # FIRST so neither D-001 detector can fail a PR while its own tests are broken.
 #
-# UNVERIFIED (inline): on a `pull_request` event `actions/checkout` checks out the
+# UNVERIFIED [likely 55-80%]: on a `pull_request` event `actions/checkout` checks out the
 # MERGE commit by default, so `--base origin/main --head HEAD` may measure the
-# merged result rather than the branch tip. For an additive-only rule the two
+# merged result rather than the branch tip. The changed-path final-tree verdicts
 # should agree, but "should" is not a receipt and this has NOT been settled here.
 # Settling probe (needs owner approval -- it pushes and then deletes a ref): push a
 # scratch branch carrying a `skills/__probe/SKILL.md`-only commit, confirm this run
 # is RED, then delete the branch. Until that is run, treat the merge-commit
-# semantics as untested and the gate as advisory on that one axis.
+# semantics as untested and the pull-request gate as advisory on that one axis.
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -69,4 +67,4 @@ jobs:
       - name: gate-skill-dual-write fetch base
         run: git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
       - name: gate-skill-dual-write D-001 gate
-        run: python ci/check_skill_dual_write.py --base origin/main --head HEAD
+        run: python ci/check_skill_dual_write.py --base origin/main --head HEAD --strict-parity
