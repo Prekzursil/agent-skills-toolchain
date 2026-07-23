@@ -229,6 +229,18 @@ jobs:
       # them, so a suite that is not named here is dead weight that cannot catch a regression.
       - name: gate-tests-coverage bounded hook launcher
         run: python hooks/_shared/test_hookrun.py
+      # tools/repomap — the fan-out grounding-pack builder that
+      # rules/common/fan-out-contract.md §A11 prescribes. Stdlib-only unittest
+      # suite with its own __main__ runner, so pytest DISCOVERY would not execute
+      # it either; named explicitly like the two suites above. Reuses the existing
+      # `gate-tests-coverage` charter slug on purpose — it is not a new gate, so
+      # .quality/charter_check.sh stays consistent with no charter.yml edit.
+      # Two OPTIONAL cross-checks inside it (networkx PageRank agreement, tiktoken
+      # token counting) SKIP here because neither library is a CI dependency; both
+      # were measured locally and the numbers are recorded in tools/repomap/README.md,
+      # so a green run here is NOT evidence for those two. Measured: 63 passed.
+      - name: gate-tests-coverage repomap grounding pack
+        run: python tools/repomap/test_repo_map.py
       # G-06: the schema module is tested AND its linter is run over the checked-in
       # workflows, so a schema defect in a production workflow fails the gate.
       - name: gate-tests-coverage fanout-schema (module + production lint)
