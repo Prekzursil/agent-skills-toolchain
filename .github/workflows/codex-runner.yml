@@ -161,7 +161,10 @@ jobs:
           cp "$GITHUB_WORKSPACE/runner/ci/AGENTS.ci.md" "$CODEX_HOME/AGENTS.md"
           mkdir -p "$HOME/.agents/skills"
           cp -r "$GITHUB_WORKSPACE"/runner/ci/skills-allowlist/* "$HOME/.agents/skills/" 2>/dev/null || true
-          echo "skills installed: $(find "$HOME/.agents/skills" -mindepth 1 -maxdepth 1 -type d | wc -l)"
+          python "$GITHUB_WORKSPACE/runner/ci/skill_surface_census.py" \
+            --expected "$GITHUB_WORKSPACE/runner/ci/skills-allowlist" \
+            --actual "$HOME/.agents/skills" \
+            --require-skill acceptance-review
 
           # Harness hooks -> the vendored pure-stdlib dispatcher. HARNESS_CREDENTIAL_GUARD=1
           # turns the credential-file-read block ON for CI (it is OFF locally by owner
