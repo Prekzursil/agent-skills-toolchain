@@ -206,6 +206,14 @@ jobs:
           python ci/emit_hook_manifest.py --source hooks/hooks.json --target codex-plugin --check
           python ci/emit_hook_manifest.py --source agent-self/config/hooks/hooks.json --target codex-plugin --check
 
+      # G-06: the schema module is tested AND its linter is run over the checked-in
+      # workflows, so a schema defect in a production workflow fails the gate.
+      - name: gate-tests-coverage fanout-schema (module + production lint)
+        working-directory: tools/fanout-schema
+        run: |
+          npm test
+          npm run lint -- ../../workflows
+
   sast:
     name: gate-sast (opengrep)
     runs-on: ubuntu-latest

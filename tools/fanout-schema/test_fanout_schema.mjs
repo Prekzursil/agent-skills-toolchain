@@ -1,5 +1,5 @@
 // Tests for the fan-out schema module (B6).
-// Run: node --test tools/fanout-schema/
+// Run: npm --prefix tools/fanout-schema test
 //
 // Every assertion here is anchored to a measured number from the 10.65 GB transcript scan
 // (11,693 files, 3,735 StructuredOutput calls, 849 errors). The numbers are quoted inline so
@@ -7,7 +7,9 @@
 
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -24,6 +26,15 @@ const HERE = dirname(fileURLToPath(import.meta.url))
 const FIXTURE = JSON.parse(
   readFileSync(join(HERE, 'historical-rejection.fixture.json'), 'utf8'),
 )
+const REPO_ROOT = join(HERE, '..', '..')
+const LINTER = join(HERE, 'lint_fanout_schemas.mjs')
+const PRODUCTION_WORKFLOWS = join(REPO_ROOT, 'workflows')
+const QUALITY_WORKFLOW = join(REPO_ROOT, '.github', 'workflows', 'quality.yml')
+const TOOL_PACKAGE = join(HERE, 'package.json')
+
+function runLint(...paths) {
+  return spawnSync(process.execPath, [LINTER, ...paths], { encoding: 'utf8' })
+}
 
 // ---------------------------------------------------------------------------
 // KNOWN-POSITIVE CONTROL for the validator itself.
@@ -272,4 +283,80 @@ const S = {
 test('lintSource tolerates source with no schema at all', () => {
   assert.deepEqual(lintSource('const x = 1'), [])
   assert.deepEqual(lintSource(null), [])
+})
+
+// ---------------------------------------------------------------------------
+// ADOPTION WIRING - the library must gate a real workflow in the real CI lane
+// ---------------------------------------------------------------------------
+
+test('CONTROL: lint CLI rejects required inline confidence and accepts it as optional', (t) => {
+  // Known-broken before adoption: no CLI entrypoint existed to exercise this rule as a gate.
+  const dir = mkdtempSync(join(tmpdir(), 'fanout-schema-'))
+  t.after(() => rmSync(dir, { recursive: true, force: true }))
+  const path = join(dir, 'confidence.js')
+  writeFileSync(
+    path,
+    `const S = {
+  type: 'object',
+  properties: { summary: { type: 'string' }, confidence: { type: 'string' } },
+  required: ['summary', 'confidence'],
+}\n`,
+  )
+
+  const broken = runLint(path)
+  assert.equal(broken.status, 1, broken.stdout + broken.stderr)
+  assert.match(broken.stderr, /multi-required \[confidence\]/)
+
+  writeFileSync(
+    path,
+    `const S = {
+  type: 'object',
+  properties: { summary: { type: 'string' }, confidence: { type: 'string' } },
+  required: ['summary'],
+}\n`,
+  )
+  const fixed = runLint(path)
+  assert.equal(fixed.status, 0, fixed.stdout + fixed.stderr)
+  assert.match(fixed.stdout, /fanout-schema lint: OK \(1 schema\(s\), 1 file\(s\)\)/)
+})
+
+test('lint CLI refuses missing inputs and zero-schema targets', (t) => {
+  // Known-broken before adoption: no CLI existed to fail closed on an unscanned target.
+  const noInput = runLint()
+  assert.equal(noInput.status, 2, noInput.stdout + noInput.stderr)
+  assert.match(noInput.stderr, /usage:/)
+
+  const dir = mkdtempSync(join(tmpdir(), 'fanout-schema-empty-'))
+  t.after(() => rmSync(dir, { recursive: true, force: true }))
+  const path = join(dir, 'no-schema.js')
+  writeFileSync(path, 'const answer = 42\n')
+  const empty = runLint(path)
+  assert.equal(empty.status, 1, empty.stdout + empty.stderr)
+  assert.match(empty.stderr, /no object schema literals found/)
+
+  const missing = runLint(join(dir, 'missing.js'))
+  assert.equal(missing.status, 2, missing.stdout + missing.stderr)
+})
+
+test('production workflow schemas pass the fanout lint', () => {
+  // Known-broken before adoption: rtv-pdr.js produced 19 violations across four schemas and its
+  // approach field was only a high-level summary, not the complete required narrative.
+  const result = runLint(PRODUCTION_WORKFLOWS)
+  assert.equal(result.status, 0, result.stdout + result.stderr)
+  assert.match(result.stdout, /fanout-schema lint: OK \(4 schema\(s\), 1 file\(s\)\)/)
+  const source = readFileSync(join(PRODUCTION_WORKFLOWS, 'rtv-pdr.js'), 'utf8')
+  assert.match(source, /required: \['approach'\]/)
+  assert.match(source, /complete solution narrative/i)
+  assert.match(source, /COMPLETE solution in approach/)
+})
+
+test('quality CI invokes the production fanout lint', () => {
+  // Known-broken before adoption: neither the package script nor the CI package step existed.
+  const packageJson = JSON.parse(readFileSync(TOOL_PACKAGE, 'utf8'))
+  assert.equal(packageJson.scripts.lint, 'node lint_fanout_schemas.mjs')
+  const workflow = readFileSync(QUALITY_WORKFLOW, 'utf8')
+  assert.match(
+    workflow,
+    /working-directory: tools\/fanout-schema\r?\n\s+run: \|\r?\n\s+npm test\r?\n\s+npm run lint -- \.\.\/\.\.\/workflows/,
+  )
 })

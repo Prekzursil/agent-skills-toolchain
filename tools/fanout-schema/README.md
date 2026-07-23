@@ -234,3 +234,7 @@ truncated at a 2,048-byte transcript cap, the two sub-percentages above are **lo
 and the residual cannot be classified from the transcripts at all. The experiment that
 settles it: convert one high-volume fan-out to `findingsSchema`, re-run it, and compare the
 unparseable-JSON rate before and after on the same prompt.
+
+Run the tests: `npm --prefix tools/fanout-schema test`
+
+Lint checked-in workflows: `node tools/fanout-schema/lint_fanout_schemas.mjs workflows`
