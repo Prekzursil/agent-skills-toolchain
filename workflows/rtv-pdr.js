@@ -139,6 +139,7 @@ self_reported_confidence is for logging only — a separate judge will select th
       phase: 'Rollout',
       schema: ROLLOUT_SCHEMA,
       model: 'opus',
+      isolation: 'worktree',
     }
   ))
 }
@@ -311,6 +312,7 @@ Your solution may supersede the winner's if you find a clearly better path.`,
       phase: 'Refine',
       schema: ROLLOUT_SCHEMA,
       model: 'opus',
+      isolation: 'worktree',
     }
   )
 
