@@ -1,19 +1,22 @@
 """Tests for the A01 skill-index generator.
 
 Built on a synthetic tree rather than the live repo, so the assertions stay true as the real skill
-surface changes. The live repo is exercised separately by one calibration test that pins the
-generator against a figure the option card independently measured.
+surface changes. The live repo is exercised separately by one test that requires the committed
+marketplace routes to equal the generated snapshot exactly.
 """
 
 from __future__ import annotations
 
 import json
 import pathlib
+import subprocess
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
 from gen_skill_index import census, enumerate_skills, generate_declarations  # noqa: E402
+
+GENERATOR = pathlib.Path(__file__).resolve().parent.parent / "gen_skill_index.py"
 
 
 def _mk(tmp: pathlib.Path, root: str, name: str, body: str = "# skill\n") -> None:
@@ -26,8 +29,31 @@ def _marketplace(tmp: pathlib.Path, entries: list[str]) -> None:
     d = tmp / ".claude-plugin"
     d.mkdir(parents=True, exist_ok=True)
     (d / "marketplace.json").write_text(
-        json.dumps({"plugins": [{"name": "p", "source": "./", "skills": entries}]}),
+        json.dumps(
+            {
+                "name": "p",
+                "plugins": [
+                    {
+                        "name": "p",
+                        "source": "./",
+                        "strict": False,
+                        "description": "preserve me",
+                        "skills": entries,
+                    }
+                ],
+            }
+        ),
         encoding="utf-8",
+    )
+
+
+def _run(tmp: pathlib.Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, str(GENERATOR), "--repo", str(tmp), *args],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
     )
 
 
@@ -66,30 +92,77 @@ def test_a_projection_only_skill_is_still_declared(tmp_path):
     )
 
 
+def test_projection_roots_are_a_name_union_with_first_root_precedence(tmp_path):
+    """Known-broken pre-change: the same projection-only name is emitted twice."""
+    _mk(tmp_path, "skills", "duplicate")
+    _mk(tmp_path, "skills-claude-only", "duplicate")
+    assert generate_declarations(tmp_path) == ["./skills/duplicate"]
+
+
+def test_generation_carries_forward_declared_only_entries(tmp_path):
+    """Known-broken pre-change: regeneration silently drops a published absent path."""
+    _mk(tmp_path, ".agents/skills", "current")
+    _marketplace(tmp_path, ["./skills/current", "./skills/published-alias"])
+    assert generate_declarations(tmp_path) == [
+        "./.agents/skills/current",
+        "./skills/published-alias",
+    ]
+
+
 def test_control_fires_when_the_tree_is_empty(tmp_path):
     """An empty result must be reported as an unvalidated detector, not as 'no drift'."""
     assert census(tmp_path)["control_enumerator_found_skills"] is False
 
 
 def test_control_passes_on_a_populated_tree(tmp_path):
-    _mk(tmp_path, ".agents/skills", "x")
+    _mk(tmp_path, ".agents/skills", "010-editor")
     assert census(tmp_path)["control_enumerator_found_skills"] is True
 
 
-def test_calibration_against_the_card_measurement():
-    """Pin the generator to a figure the A01 option card measured independently.
+def test_unrelated_populated_tree_does_not_satisfy_known_present_control(tmp_path):
+    """Known-broken pre-change: any nonempty root passes the detector control."""
+    _mk(tmp_path, ".agents/skills", "unrelated")
+    assert census(tmp_path)["control_enumerator_found_skills"] is False
 
-    The card states "110 declared skills, 6 dangling". If this generator disagrees with that on the
-    real tree, either the generator is wrong or the surface moved — both are worth failing on,
-    because the whole point of A01 is that this number stops being hand-maintained folklore.
-    """
+
+def test_check_rejects_projection_route_for_canonical_skill(tmp_path):
+    """Known-broken pre-change: basename-only drift accepts the wrong root."""
+    _mk(tmp_path, ".agents/skills", "010-editor")
+    _marketplace(tmp_path, ["./skills/010-editor"])
+    stale = _run(tmp_path, "--check", "--fail-on-drift")
+    assert stale.returncode == 1, stale.stdout + stale.stderr
+
+    _marketplace(tmp_path, ["./.agents/skills/010-editor"])
+    current = _run(tmp_path, "--check", "--fail-on-drift")
+    assert current.returncode == 0, current.stdout + current.stderr
+
+
+def test_write_updates_only_the_generated_skill_index(tmp_path):
+    """Known-broken pre-change: the generator has no write mode."""
+    _mk(tmp_path, ".agents/skills", "010-editor")
+    _mk(tmp_path, "skills", "projection-only")
+    _marketplace(tmp_path, ["./skills/010-editor"])
+
+    proc = _run(tmp_path, "--write")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    doc = json.loads(
+        (tmp_path / ".claude-plugin/marketplace.json").read_text(encoding="utf-8")
+    )
+    plugin = doc["plugins"][0]
+    assert plugin["skills"] == [
+        "./.agents/skills/010-editor",
+        "./skills/projection-only",
+    ]
+    assert plugin["strict"] is False
+    assert plugin["description"] == "preserve me"
+
+
+def test_committed_marketplace_matches_generated_declarations():
+    """Known-broken pre-change: the committed hand-list differs from generated output."""
     repo = pathlib.Path(__file__).resolve().parent.parent.parent
     if not (repo / ".claude-plugin" / "marketplace.json").is_file():
-        return  # not a full checkout; nothing to calibrate against
-    c = census(repo)
-    assert c["declared_count"] == 110, (
-        f"declared drifted from the card's 110: {c['declared_count']}"
+        return  # not a full checkout; nothing to compare
+    doc = json.loads(
+        (repo / ".claude-plugin/marketplace.json").read_text(encoding="utf-8")
     )
-    assert len(c["dangling_declared_but_absent"]) == 6, (
-        f"dangling drifted from the card's 6: {c['dangling_declared_but_absent']}"
-    )
+    assert doc["plugins"][0]["skills"] == generate_declarations(repo)

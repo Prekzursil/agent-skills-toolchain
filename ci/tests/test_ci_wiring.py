@@ -21,10 +21,12 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = REPO_ROOT / ".github" / "workflows" / "skill-dual-write.yml"
 GUARD = REPO_ROOT / "ci" / "check_skill_dual_write.py"
+INDEX = REPO_ROOT / "ci" / "gen_skill_index.py"
 APPLIER = REPO_ROOT / "tools" / "d001-dual-write" / "d001_apply.py"
 
 SELFTEST_MARKER = "python -m pytest ci/tests tools/d001-dual-write/tests"
 GATE_MARKER = "python ci/check_skill_dual_write.py"
+INDEX_GATE_MARKER = "python ci/gen_skill_index.py --repo . --check --fail-on-drift"
 
 
 def workflow_text() -> str:
@@ -57,6 +59,12 @@ def test_workflow_invokes_the_guard_by_explicit_path() -> None:
     text = workflow_text()
     assert GATE_MARKER in text
     assert "--base origin/main --head HEAD" in text
+
+
+def test_workflow_invokes_the_generated_index_gate_by_explicit_path() -> None:
+    """Known-broken pre-change: the A01 generator is never executed by CI."""
+    assert INDEX.is_file()
+    assert INDEX_GATE_MARKER in workflow_text()
 
 
 def test_workflow_job_carries_a_gate_marker_name() -> None:
