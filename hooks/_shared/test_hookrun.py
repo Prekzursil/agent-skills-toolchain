@@ -269,7 +269,7 @@ import subprocess
 import sys
 import time
 
-descendant = "import pathlib,sys,time;time.sleep(0.8);pathlib.Path(sys.argv[1]).write_text('ran')"
+descendant = "import pathlib,sys,time;time.sleep(2.0);pathlib.Path(sys.argv[1]).write_text('ran')"
 subprocess.Popen([sys.executable, "-c", descendant, sys.argv[2]])
 pathlib.Path(sys.argv[1]).write_text("ready")
 time.sleep(10)
@@ -283,7 +283,11 @@ time.sleep(10)
         assert "hookrun: timed out after 0.5s: hang.py" in result.stderr
         assert elapsed < 2.0
         assert ready.exists(), "hook never spawned the descendant before timeout"
-        time.sleep(1.0)
+        # Wait LONGER than the descendant's 2.0s sleep on purpose: had the process-tree kill
+        # failed, the descendant would have written by now, so an absent marker is positive
+        # evidence of cleanup rather than of impatience. Shortening this below the sleep would
+        # make the assertion pass whether or not cleanup works.
+        time.sleep(2.5)
         assert not marker.exists(), (
             "timed-out descendant survived the process-tree kill"
         )
