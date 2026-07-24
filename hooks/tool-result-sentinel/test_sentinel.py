@@ -170,6 +170,96 @@ def main() -> int:
     )
     cases.append(("TOOL_SENTINEL=off is SILENT", fired(out), False, out))
 
+    # ── HTTP-status semantics (WebFetch/fetch tools): a status_code uses HTTP
+    #    semantics, NOT exit-code semantics. 200/3xx are success; >=400 is a
+    #    failure. Regression for the "WebFetch 200 marked FAILED exit code 200" bug.
+    # 10. WebFetch HTTP 200 -> SILENT (200 is success, not "exit code 200").
+    out = run(
+        {
+            "session_id": "s10-http",
+            "tool_name": "WebFetch",
+            "tool_input": {"url": "https://example.com"},
+            "tool_response": {"status_code": 200, "content": "ok"},
+        },
+        env,
+    )
+    cases.append(("WebFetch status_code 200 is SILENT", fired(out), False, out))
+
+    # 11. WebFetch HTTP 301 redirect -> SILENT (1xx-3xx are not failures).
+    out = run(
+        {
+            "session_id": "s11-http",
+            "tool_name": "WebFetch",
+            "tool_input": {"url": "https://example.com/old"},
+            "tool_response": {"status_code": 301},
+        },
+        env,
+    )
+    cases.append(("WebFetch status_code 301 is SILENT", fired(out), False, out))
+
+    # 12. WebFetch HTTP 404 -> FIRES (>=400 is a real HTTP failure).
+    out = run(
+        {
+            "session_id": "s12-http",
+            "tool_name": "WebFetch",
+            "tool_input": {"url": "https://example.com/missing"},
+            "tool_response": {"status_code": 404},
+        },
+        env,
+    )
+    cases.append(("WebFetch status_code 404 FIRES", fired(out), True, out))
+
+    # 13. WebFetch HTTP 500 -> FIRES.
+    out = run(
+        {
+            "session_id": "s13-http",
+            "tool_name": "WebFetch",
+            "tool_input": {"url": "https://example.com/boom"},
+            "tool_response": {"status_code": 500},
+        },
+        env,
+    )
+    cases.append(("WebFetch status_code 500 FIRES", fired(out), True, out))
+
+    # BOTH-STATES guard: a real structural failure must STILL fire even when a
+    # 200 status_code is also present (the HTTP-200 fix must not mask exit codes,
+    # interruptions, or MCP error envelopes).
+    # 14. exit_code 1 alongside status_code 200 -> FIRES.
+    out = run(
+        {
+            "session_id": "s14-http",
+            "tool_name": "Bash",
+            "tool_input": {"command": "curl -sf https://example.com"},
+            "tool_response": {"status_code": 200, "exit_code": 1},
+        },
+        env,
+    )
+    cases.append(("exit_code 1 FIRES despite status_code 200", fired(out), True, out))
+
+    # 15. interrupted alongside status_code 200 -> FIRES.
+    out = run(
+        {
+            "session_id": "s15-http",
+            "tool_name": "WebFetch",
+            "tool_input": {"url": "https://example.com/slow"},
+            "tool_response": {"status_code": 200, "interrupted": True},
+        },
+        env,
+    )
+    cases.append(("interrupted FIRES despite status_code 200", fired(out), True, out))
+
+    # 16. MCP isError envelope alongside status_code 200 -> FIRES.
+    out = run(
+        {
+            "session_id": "s16-http",
+            "tool_name": "mcp__fetch__fetch",
+            "tool_input": {"url": "https://example.com"},
+            "tool_response": {"status_code": 200, "isError": True},
+        },
+        env,
+    )
+    cases.append(("isError FIRES despite status_code 200", fired(out), True, out))
+
     ok = True
     for name, got, want, out in cases:
         status = "PASS" if got == want else "FAIL"

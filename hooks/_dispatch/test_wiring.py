@@ -173,7 +173,14 @@ REQUIRED_STANDALONE_HANDLERS = {
         ),
     },
     "PostToolUse": {
-        "cmd-rewrite/compress-output.py": ("Bash", 10, ""),
+        # Extended beyond Bash to the browser rail so oversized base64 screenshots
+        # (Playwright / claude-in-chrome / chrome-devtools) are dropped to a temp
+        # file instead of flooding context. Mirror this in the live settings.json.
+        "cmd-rewrite/compress-output.py": (
+            "Bash|mcp__playwright__.*|mcp__claude-in-chrome__.*|mcp__chrome-devtools__.*",
+            10,
+            "",
+        ),
         "per-edit-check/check.py": ("Edit|Write|MultiEdit", 12, ""),
     },
 }

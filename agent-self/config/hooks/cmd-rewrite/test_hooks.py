@@ -7,9 +7,13 @@ All tests print PASS / FAIL and a summary at the end.
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import json
+import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).parent
@@ -389,6 +393,134 @@ def test_b_non_noisy_command_large() -> None:
     )
 
 
+def _temp_dir() -> str:
+    """Same temp dir the hook resolves for dropped screenshots."""
+    return os.environ.get("TEMP") or os.environ.get("TMP") or tempfile.gettempdir()
+
+
+def test_b_browser_large_image_dropped() -> None:
+    """Browser MCP image ≥ 40KB decoded → placeholder + a real file on disk."""
+    raw = b"A" * 50000  # 50 KB decoded, well over IMG_MIN_BYTES (40 KB)
+    big_b64 = base64.b64encode(raw).decode("ascii")
+    payload = {
+        "tool_name": "mcp__playwright__browser_take_screenshot",
+        "tool_input": {},
+        "tool_response": {
+            "content": [
+                {"type": "text", "text": "clicked Submit"},
+                {"type": "image", "data": big_b64, "mimeType": "image/png"},
+            ]
+        },
+    }
+    rc, out = _run(COMPRESS, payload)
+    _check("B08 browser large image: exit 0", rc == 0, f"rc={rc}")
+    _check("B08 output not empty (image dropped)", out != "", "hook was silent")
+    data = json.loads(out)
+    _check(
+        "B08 hookEventName is PostToolUse",
+        data["hookSpecificOutput"]["hookEventName"] == "PostToolUse",
+    )
+    compressed = data["hookSpecificOutput"]["updatedToolOutput"]
+    _check(
+        "B08 placeholder present",
+        "[screenshot dropped:" in compressed,
+        repr(compressed[:200]),
+    )
+    _check(
+        "B08 raw base64 removed from context",
+        big_b64 not in compressed,
+        "the 50KB base64 blob is still in the output",
+    )
+    # The file the placeholder points at must really exist, with the exact bytes.
+    digest = hashlib.sha1(raw, usedforsecurity=False).hexdigest()[:12]
+    saved = os.path.join(_temp_dir(), f"screenshot_{digest}.png")
+    _check(
+        "B08 screenshot file written to disk", os.path.isfile(saved), f"missing {saved}"
+    )
+    if os.path.isfile(saved):
+        _check(
+            "B08 saved bytes match decoded image",
+            os.path.getsize(saved) == len(raw),
+            f"size {os.path.getsize(saved)} != {len(raw)}",
+        )
+
+
+def test_b_browser_data_uri_image_dropped() -> None:
+    """A data:image/…;base64 URI over threshold is dropped too (not just MCP)."""
+    raw = b"B" * 45000
+    big_b64 = base64.b64encode(raw).decode("ascii")
+    payload = {
+        "tool_name": "mcp__chrome-devtools__take_screenshot",
+        "tool_input": {},
+        "tool_response": f'<img src="data:image/png;base64,{big_b64}">',
+    }
+    rc, out = _run(COMPRESS, payload)
+    _check("B09 data-URI image: exit 0", rc == 0, f"rc={rc}")
+    _check("B09 output not empty (data-URI dropped)", out != "", "hook was silent")
+    if out:
+        compressed = json.loads(out)["hookSpecificOutput"]["updatedToolOutput"]
+        _check(
+            "B09 placeholder present",
+            "[screenshot dropped:" in compressed,
+            repr(compressed[:200]),
+        )
+        _check("B09 base64 removed", big_b64 not in compressed, "base64 still present")
+
+
+def test_b_browser_small_image_passthrough() -> None:
+    """Browser image < 40KB decoded → passes through untouched (silent)."""
+    small_b64 = base64.b64encode(b"A" * 1000).decode("ascii")  # 1 KB « 40 KB
+    payload = {
+        "tool_name": "mcp__playwright__browser_take_screenshot",
+        "tool_input": {},
+        "tool_response": {
+            "content": [{"type": "image", "data": small_b64, "mimeType": "image/png"}]
+        },
+    }
+    rc, out = _run(COMPRESS, payload)
+    _check(
+        "B10 small browser image: silent passthrough",
+        rc == 0 and out == "",
+        f"rc={rc} out={repr(out[:120])}",
+    )
+
+
+def test_b_browser_text_only_passthrough() -> None:
+    """Browser a11y snapshot with NO image → passes through untouched (silent)."""
+    a11y = 'button "Submit"\nlink "Home"\ntextbox "Search"\n' * 60  # text-only
+    payload = {
+        "tool_name": "mcp__claude-in-chrome__read_page",
+        "tool_input": {},
+        "tool_response": {"content": [{"type": "text", "text": a11y}]},
+    }
+    rc, out = _run(COMPRESS, payload)
+    _check(
+        "B11 a11y text-only: silent passthrough",
+        rc == 0 and out == "",
+        f"rc={rc} out={repr(out[:120])}",
+    )
+
+
+def test_b_bash_still_compresses_after_browser_rail() -> None:
+    """Regression: the Bash rail still summarises git status (browser rail added)."""
+    big_output = _make_git_status(300, 5)
+    payload = {
+        "tool_name": "Bash",
+        "tool_input": {"command": "git status"},
+        "tool_response": {"type": "text", "text": big_output},
+    }
+    rc, out = _run(COMPRESS, payload)
+    _check("B12 bash git-status still compresses: exit 0", rc == 0, f"rc={rc}")
+    _check("B12 output not empty", out != "", "bash rail regressed to silent")
+    if out:
+        compressed = json.loads(out)["hookSpecificOutput"]["updatedToolOutput"]
+        _check(
+            "B12 compressed shorter than original",
+            len(compressed) < len(big_output),
+            f"{len(compressed)} vs {len(big_output)}",
+        )
+
+
 for fn in [
     test_b_git_status_large,
     test_b_short_output_passthrough,
@@ -397,6 +529,11 @@ for fn in [
     test_b_non_bash_tool,
     test_b_tool_response_string,
     test_b_non_noisy_command_large,
+    test_b_browser_large_image_dropped,
+    test_b_browser_data_uri_image_dropped,
+    test_b_browser_small_image_passthrough,
+    test_b_browser_text_only_passthrough,
+    test_b_bash_still_compresses_after_browser_rail,
 ]:
     try:
         fn()
