@@ -2050,7 +2050,7 @@ Private Node tests must cover:
 11. reverse-control route allowlist, Basic auth/header, owned-session/directory validation, idempotency, hop/suppression, no self-invocation, bounded SSE reconnect;
 12. gateway-offline behavior: status remains intelligible, observations do not brick read-only work, new skill/high-risk/bridge actions deny.
 
-External adapter acceptance occurs only in its CyberStrike-owned directory against exact `@cyberstrike-io/plugin@1.1.15`. Typecheck/build it there, assert exactly one runtime export, hash it, and do not copy build products into the private repo.
+External adapter acceptance occurs only in its CyberStrike-owned directory against exact `@cyberstrike-io/plugin@1.1.14` (verify with `npm view @cyberstrike-io/plugin versions` — 1.1.15 exists only as `-beta.2`; 1.1.14 is latest stable). Typecheck/build it there, assert exactly one runtime export, hash it, and do not copy build products into the private repo.
 
 Live Windows bridge smoke:
 

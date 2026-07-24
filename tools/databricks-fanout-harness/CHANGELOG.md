@@ -14,6 +14,17 @@
   - **Validated:** re-gating the completed artifacts returns 3/3 `DONE`; a fresh no-cap run (the 4th
     "parallel-worktree orchestrator" prompt) polled 25m36s to a correct `DONE`.
 
+### Changed
+- **Node codex profile — fast + max-efficiency + full-permission, now passed via `-c`**
+  (`contract.node_codex_flags()` + `preflight_units._CODEX`). Because the node runs
+  `codex exec --ignore-user-config`, the owner's `~/.codex/config.toml` does NOT apply there, so the profile
+  is passed explicitly: `-c model_reasoning_effort=ultra -c service_tier=priority -c approval_policy=never
+  -c sandbox_mode=danger-full-access`. **"fast" maps to `service_tier=priority`** (priority serving) — codex
+  0.145 has no `fast` config key (`fast-mode` is only a TUI/status-line state).
+  - **TODO (node-side):** the Databricks `batch_runner` notebook must apply the same `-c` flags to its
+    per-unit `codex exec` for the FAN-OUT to run under this profile (this change only covers the harness's
+    preflight probe + the documented contract).
+
 ### Added
 - `generated-prompts/` — 4 large paste-ready adoption prompts produced by the harness's own 21-agent
   coverage→synthesis fan-out (a full dogfood of the rail): one-shot dynamic e2e `/workflow` ·

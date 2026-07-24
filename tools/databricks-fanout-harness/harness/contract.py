@@ -13,7 +13,21 @@ RAIL = {
     "s3_log_dest": "s3://bolt-databricks-logs/cluster-logs/bolt-datascience", "s3_region": "eu-central-1",
 }
 # [G3-FIX #3] version OBSERVED not pinned — node install is `npm install -g @openai/codex` (latest).
-CODEX = {"model": "gpt-5.6-sol", "effort": "ultra", "cli_version_at_proof": "0.144.6"}
+# The node runs `codex exec --ignore-user-config`, so ~/.codex/config.toml does NOT apply there — the
+# owner's fast + max-efficiency + full-permission profile must be passed EXPLICITLY via -c on the command.
+CODEX = {"model": "gpt-5.6-sol", "effort": "ultra", "cli_version_at_proof": "0.144.6",
+         "service_tier": "priority",            # "fast": codex 0.145 has NO `fast` config key ("fast-mode"
+                                                #  is only a TUI/status-line state); service_tier=priority is
+                                                #  the headless-exec fast/priority-serving lever.
+         "approval_policy": "never",            # autonomous — no approval prompts
+         "sandbox_mode": "danger-full-access"}  # full access (clone/install/run on the node)
+
+
+def node_codex_flags() -> str:
+    """The -c flags the node's `codex exec` MUST carry (because --ignore-user-config drops the user's
+    ~/.codex/config.toml). Encodes the owner's fast (priority) + full-permission + ultra-effort profile."""
+    return (f'-c model_reasoning_effort={CODEX["effort"]} -c service_tier={CODEX["service_tier"]} '
+            f'-c approval_policy={CODEX["approval_policy"]} -c sandbox_mode={CODEX["sandbox_mode"]}')
 
 PER_LANE_FLOORS = {"coverage": 1024, "smoke": 1024, "default": 1024}  # all >= node's 1024 gate
 def floor_for(lane: str) -> int:
