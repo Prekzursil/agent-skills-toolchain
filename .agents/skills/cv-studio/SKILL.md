@@ -1,19 +1,8 @@
 ---
 name: cv-studio
-description: >
-  Generate an ATS-clean PDF resume AND a visually-designed CV from ONE structured profile,
-  plus tailored cover letters and an optimised LinkedIn profile. Use when the user wants to
-  create, redesign, tailor, or ATS-optimise a resume or CV, write a cover letter, produce a
-  job-specific version, or rewrite their LinkedIn headline / About / experience / skills.
-  Zero-fabrication: every claim traces to the profile. ATS PDF via RenderCV (Typst,
-  parser-verified, tagged single-column); visual CV via JSON Resume themes or the
-  design-studio / figma pipeline. Triggers: "make my resume", "ATS-optimise my CV",
-  "tailor my resume to this job", "write a cover letter", "optimise my LinkedIn profile",
-  "rewrite my LinkedIn headline / About".
-license: MIT (skill). Engines: RenderCV + JSON Resume are MIT. Reference content is
-  paraphrased from MIT-licensed repos (credited in references/); no unlicensed text vendored.
+description: "> Generate an ATS-clean PDF resume AND a visually-designed CV from ONE structured profile, plus tailored cover letters and an optimised LinkedIn profile. Use when the user wants to create, redesign, tailor, or ATS-optimise a resume or CV, write a cover letter, produce a job-specific version, or rewrite their LinkedIn headline / About / experience / skills. Zero-fabrication: every claim traces to the profile. ATS PDF via RenderCV (Typst, parser-verified, tagged single-column); visual CV via JSON Resume themes or the design-studio / figma pipeline. Triggers: \"make my resume\", \"ATS-optimise my CV\", \"tailor my resume to this job\", \"write a cover letter\", \"optimise my LinkedIn profile\", \"rewrite my LinkedIn headline / About\"."
+license: "MIT (skill). Engines: RenderCV + JSON Resume are MIT. Reference content is paraphrased from MIT-licensed repos (credited in references/); no unlicensed text vendored."
 ---
-
 # cv-studio — one profile → ATS PDF · visual CV · tailored letter · LinkedIn
 
 A CV is **two artifacts with opposite constraints** (this is the load-bearing insight):

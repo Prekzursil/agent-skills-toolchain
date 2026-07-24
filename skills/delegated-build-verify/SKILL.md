@@ -1,8 +1,7 @@
 ---
 name: delegated-build-verify
-description: Use when delegating a large build to a generator (Codex fan-out, subagents, or a Workflow) and you must independently verify the result — the "agent builds X, then you evaluate" pattern. Turns a converged plan/grill into an authoritative build-spec that doubles as the evaluation rubric, fans out the generator, then verifies with an active fabrication hunt. Pairs downstream of grill-me-extensive (scope first). Triggers: "build X then evaluate", "fan out Codex to build this then check it", "generate it then grade it", spec-driven build + independent verify.
+description: "Use when delegating a large build to a generator (Codex fan-out, subagents, or a Workflow) and you must independently verify the result — the \"agent builds X, then you evaluate\" pattern. Turns a converged plan/grill into an authoritative build-spec that doubles as the evaluation rubric, fans out the generator, then verifies with an active fabrication hunt. Pairs downstream of grill-me-extensive (scope first). Triggers: \"build X then evaluate\", \"fan out Codex to build this then check it\", \"generate it then grade it\", spec-driven build + independent verify."
 ---
-
 # Delegated Build + Verify
 
 Generator–verifier delegation for big builds. The generator (Codex threads / a Workflow /
