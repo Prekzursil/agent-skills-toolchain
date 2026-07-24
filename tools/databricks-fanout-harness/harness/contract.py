@@ -19,15 +19,16 @@ CODEX = {"model": "gpt-5.6-sol", "effort": "ultra", "cli_version_at_proof": "0.1
          "service_tier": "priority",            # "fast": codex 0.145 has NO `fast` config key ("fast-mode"
                                                 #  is only a TUI/status-line state); service_tier=priority is
                                                 #  the headless-exec fast/priority-serving lever.
-         "approval_policy": "never",            # autonomous — no approval prompts
-         "sandbox_mode": "danger-full-access"}  # full access (clone/install/run on the node)
+         "approval_policy": "never",            # intended posture; the node APPLIES perms via the
+         "sandbox_mode": "danger-full-access"}  # `--dangerously-bypass-approvals-and-sandbox` flag, not -c
 
 
 def node_codex_flags() -> str:
-    """The -c flags the node's `codex exec` MUST carry (because --ignore-user-config drops the user's
-    ~/.codex/config.toml). Encodes the owner's fast (priority) + full-permission + ultra-effort profile."""
-    return (f'-c model_reasoning_effort={CODEX["effort"]} -c service_tier={CODEX["service_tier"]} '
-            f'-c approval_policy={CODEX["approval_policy"]} -c sandbox_mode={CODEX["sandbox_mode"]}')
+    """The -c flags the node's `codex exec` carries BEYOND its permission flag (because
+    --ignore-user-config drops ~/.codex/config.toml). The node bypasses approvals+sandbox via the
+    `--dangerously-bypass-approvals-and-sandbox` FLAG (not -c); these -c restore the owner's fast
+    (priority tier) + ultra-effort profile. Applied + verified on the live batch_runner 2026-07-24."""
+    return f'-c service_tier={CODEX["service_tier"]} -c model_reasoning_effort={CODEX["effort"]}'
 
 PER_LANE_FLOORS = {"coverage": 1024, "smoke": 1024, "default": 1024}  # all >= node's 1024 gate
 def floor_for(lane: str) -> int:
@@ -46,7 +47,7 @@ class Unit:
     lane: str
     prompt: str
     artifact: str
-    timeout_s: int = 900
+    timeout_s: int | None = None  # None = NO node timeout (owner: "no timeout"); set a positive value to opt in
     meta: dict = field(default_factory=dict)
 
 

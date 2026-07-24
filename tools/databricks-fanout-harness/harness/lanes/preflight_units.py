@@ -6,11 +6,11 @@ from __future__ import annotations
 import re
 from harness.contract import Unit
 
-# fast (service_tier=priority) + full-permission + autonomous profile — passed via -c because
-# --ignore-user-config drops ~/.codex/config.toml on the node (see contract.node_codex_flags).
-_CODEX = ('codex exec --skip-git-repo-check --ignore-user-config --model gpt-5.6-sol '
-          '-c service_tier=priority -c approval_policy=never -c sandbox_mode=danger-full-access '
-          '-c model_reasoning_effort=')
+# Mirrors the node's per-unit command: perms via --dangerously-bypass-approvals-and-sandbox (a FLAG),
+# fast (service_tier=priority) + effort via -c because --ignore-user-config drops ~/.codex/config.toml.
+_CODEX = ('codex exec --skip-git-repo-check --ignore-user-config '
+          '--dangerously-bypass-approvals-and-sandbox --model gpt-5.6-sol '
+          '-c service_tier=priority -c model_reasoning_effort=')
 
 def node_preflight_unit() -> Unit:
     prompt = f"""Node codex behavioral preflight. Run these THREE shell commands on the node and
