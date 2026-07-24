@@ -1,6 +1,6 @@
 ---
 name: agent-as-judge
-description: Advisory, evidence-citing Agent-as-a-Judge. Use when you want a second opinion on whether a completion meets its Definition of Done AFTER the deterministic verification cluster (typed receipts, fail-first red-proof, execution-consensus, golden-journey oracle) has run - it decomposes the DoD into falsifiable YES/NO items, cites a ledger-event or evidence-hash per item (chain-of-custody), execute-to-confirms every would-be-blocking finding, and scores against the ICD-203 nine analytic standards. Its opinion NEVER gates or grants done (COUNCIL C3), so it is 100% ADVISORY and ships in SHADOW mode (observe + log, never blocks, never nags). Imports passk-stats (F5) for kappa calibration vs the owner's claude-reflect corrections; stays advisory while kappa < 0.6. NOT a done-gate, NOT terminal authority. Do NOT use to BLOCK a merge/completion, and do NOT use it in place of the deterministic gates.
+description: Advisory, evidence-citing Agent-as-a-Judge. Use for a second opinion on whether a completion meets its Definition of Done AFTER the deterministic verification cluster (typed receipts, fail-first, execution-consensus, golden-journey oracle) ran - decomposes the DoD into falsifiable YES/NO items, cites evidence per item, scores on ICD-203. 100% ADVISORY/SHADOW, never blocks. NOT a done-gate.
 ---
 # Agent-as-a-Judge (advisory, evidence-citing)
 

@@ -1,6 +1,6 @@
 ---
 name: codex-invoke
-description: The ONE canonical entry point for invoking OpenAI Codex from any Claude session or Workflow with per-call scoping. Use whenever you need to run `codex exec` (or drive the `mcp__codex__codex` / `codex-reply` rail) with a specific model, reasoning effort, sandbox/approval policy, an MCP-server allowlist or seal, a skills allowlist, or structured `--output-schema` output - built Windows-safe, DRY-RUN-previewable, and guarded by an explicit SUCCESS/FAILED error contract. Triggers include run this with Codex scoped to read-only, fan out a sealed zero-MCP Codex job, give me the exact codex argv (dry run), or a structured-output Codex call. Picks the rail automatically (any scoping request forces the exec rail, the only rail that can scope). NEVER hand-roll `codex exec` argv - route through here. Ships a `codex-doctor` health-check. NOT for in-session routing of the MCP rail (use codex-orchestrate), the consult/curate/review lanes (use codex-consult), or split-store recovery (use codex-runtime-recovery).
+description: The ONE canonical entry point for invoking OpenAI Codex with per-call scoping. Use whenever you run `codex exec` (or drive the `mcp__codex__codex` / `codex-reply` rail) with a specific model, sandbox/approval policy, MCP allowlist or seal, skills allowlist, or structured `--output-schema` output. NEVER hand-roll `codex exec` argv. NOT for MCP-rail routing (codex-orchestrate).
 license: MIT
 ---
 # Codex Invoke

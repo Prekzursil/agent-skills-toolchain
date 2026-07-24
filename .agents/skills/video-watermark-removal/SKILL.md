@@ -1,6 +1,6 @@
 ---
 name: video-watermark-removal
-description: "Use when removing a static logo, watermark, or TV bug from a video seamlessly (so it is not noticeable it was ever there). PRIMARY method = ProPainter flow-guided temporal inpaint on a TIGHT logo-only mask (pulls REAL background pixels from neighbouring frames -> sharp, no soft haze), CHUNKED in time so it fits a small GPU, with PER-FRAME presence gating so frames where the logo is occluded stay pristine. big-LAMA per-frame is the fast fallback but its fill is visibly SOFT. Plus the pitfalls that bite: tight logo-shaped mask not a generous box (oversized boxes smear faces), chunk long clips to bound RAM, retry transient WSL2 CUDA failures, and PROVE clean with a logo-template NCC gate across the whole timeline (never claim done on a single-frame check). Includes a companion method for a FIXED-PATH animated overlay via cross-clip-average phase masks; still NOT for arbitrary moving watermarks or full-frame logos."
+description: Use when removing a static logo, watermark, or TV bug from a video seamlessly. PRIMARY method = ProPainter flow-guided temporal inpaint on a TIGHT logo-only mask (pulls REAL background pixels from neighbouring frames -> sharp, no soft haze), CHUNKED in time to fit a small GPU, with PER-FRAME presence gating so occluded frames stay pristine. big-LAMA is the fast SOFT fallback.
 ---
 # Video Watermark / Logo Removal (seamless)
 

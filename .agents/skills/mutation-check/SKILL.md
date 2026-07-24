@@ -1,6 +1,6 @@
 ---
 name: mutation-check
-description: Use at the verify boundary to empirically test test-STRENGTH (not just coverage) — given a changed Python source file and the command that runs its tests, it applies a small high-signal mutation set to the function(s) under test and asserts each mutation makes at least one test go RED. A mutation the suite leaves green ("survived") is a Goodhart-green gap where the tests execute the code but don't assert its behaviour. Use it as a gate (exit 1 on any survivor) after coverage is already green; do NOT use it to find bugs in the source (it probes the TESTS) or on non-Python code.
+description: Use at the verify boundary to empirically test test-STRENGTH, not just coverage - given a changed Python source file and the command that runs its tests, it applies a small mutation set to the function(s) under test and asserts each mutation makes at least one test go RED. A mutation the suite leaves green ("survived") is a Goodhart-green gap. Use as a gate after coverage; Python-only.
 ---
 
 # mutation-check — the execution-grounded test-strength gate

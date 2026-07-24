@@ -1,12 +1,6 @@
 ---
 name: devtu
-description: >
-  ToolUniverse (mims-harvard/ToolUniverse) development toolkit — one skill, eight sub-command
-  modes. Use when working on ToolUniverse tools: create a new scientific/API tool, fix a failing
-  or erroring tool, optimize tool JSON descriptions for clarity, optimize research skills (evidence
-  grading, report quality), auto-discover life-science APIs and generate integration PRs, run the
-  full self-improvement / debug-test-round loop, apply tool-code quality patterns, or safely push
-  and fix CI on GitHub. Pick the mode from intent; each mode's full playbook lives under modes/.
+description: "ToolUniverse (mims-harvard/ToolUniverse) development toolkit - one skill, eight sub-command modes. Use when working on ToolUniverse tools: create a new scientific/API tool, fix a failing tool, optimize tool JSON descriptions, optimize research skills, auto-discover life-science APIs and generate integration PRs, run the debug-test loop, or push and fix CI. Each mode's playbook is under modes/."
 ---
 
 # DevTU — ToolUniverse Development Toolkit

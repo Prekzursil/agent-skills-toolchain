@@ -1,6 +1,6 @@
 ---
 name: context-sandbox
-description: Use when a command, file read, web fetch, or MCP tool call is about to return a large or noisy payload (logs, JSON dumps, build output, page snapshots, search results) that would otherwise be echoed verbatim into the conversation and rot the context window. Guides the agent to sandbox the raw output, surface only the derived answer, and index reusable bytes into persistent memory for on-demand recall instead of keeping them in-window. Markdown guidance only, not an automated guarantee.
+description: Use when a command, file read, web fetch, or MCP tool call is about to return a large or noisy payload (logs, JSON dumps, build output, page snapshots, search results) that would otherwise be echoed verbatim and rot the context window. Guides the agent to sandbox the raw output, surface only the derived answer, and index reusable bytes into memory for on-demand recall.
 license: ELv2
 metadata:
   net-new-after: deep-research, research-ops, verification-loop, context-budget, strategic-compact, content-hash-cache-pattern, knowledge-ops

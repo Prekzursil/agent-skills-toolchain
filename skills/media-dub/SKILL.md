@@ -1,6 +1,6 @@
 ---
 name: media-dub
-description: "Use when producing a local DUB of a video - re-voicing speech into another language (or restyling it in the same language) while KEEPING the original speaker's voice, fully offline. Safe-ship engine is Chatterbox-Multilingual (Resemble AI, MIT, 23-language zero-shot voice clone); rides the media_studio substrate (Parakeet/whisper ASR -> CTC word-alignment -> ffmpeg `atempo` duration-fit -> `sidechaincompress` ducking -> mux). Covers the `dub.start` RPC, the ASR->translate->synth->fit->assemble->duck+mux stages, per-segment `atempo` time-stretch, the full-length VO track via `adelay`+`amix`, and the LICENSE gate: optional IndexTTS2 and LatentSync lip-sync are COMMERCIAL-embed-gated on `dub-license` in SHADOW mode (observe + log, never blocks). Do NOT use for: pure TTS narration with no source voice (use `speech`); muxing an ALREADY-finished dub (use audio-extract-mix); transcription/subtitles only (use transcribe/caption); or lip-sync without a dub."
+description: Use when producing a local DUB of a video - re-voicing speech into another language (or restyling it same-language) while KEEPING the original speaker's voice, fully offline. Safe-ship engine is Chatterbox-Multilingual (Resemble AI, MIT, 23-lang zero-shot clone); rides media_studio (ASR, CTC word-alignment, ffmpeg atempo duration-fit, ducking, mux). NOT for pure TTS (use speech).
 ---
 # media-dub — local voice-clone dubbing (Chatterbox safe ship)
 

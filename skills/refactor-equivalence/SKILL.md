@@ -1,6 +1,6 @@
 ---
 name: refactor-equivalence
-description: "Use when a change CLAIMS to be a pure/deterministic refactor — \"same behavior, cleaner code\", \"no functional change\", \"just simplified this\", extract-method, inline, rewrite a helper — and you want an EXTERNAL proof (not the author's opinion) that old and new are actually equivalent. CrossHair `diffbehavior` uses Z3 to search for a concrete input where old_fn(x) != new_fn(x); if none exists across all paths, the refactor is likely sound. A Hypothesis differential test is the fallback when CrossHair can't symbolically execute the function (C extensions, unsupported types, timeouts). Scoped to PURE, DETERMINISTIC functions only (no I/O, no globals, no clock/random/network). NOT for behavior-CHANGING edits, not a general test runner (use smallest-check-ladder), not for non-Python. Advisory/shadow: it reports a counterexample, it never blocks."
+description: Use when a change CLAIMS to be a pure/deterministic refactor - extract-method, inline, rewrite a helper, "no functional change" - and you want an EXTERNAL proof that old and new are equivalent. CrossHair diffbehavior uses Z3 to find an input where old_fn(x) != new_fn(x); a Hypothesis differential test is the fallback. Scoped to PURE, DETERMINISTIC functions; not for non-Python. Advisory only.
 ---
 # Refactor-Equivalence (CrossHair diffbehavior + Hypothesis fallback)
 

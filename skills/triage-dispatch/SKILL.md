@@ -1,6 +1,6 @@
 ---
 name: triage-dispatch
-description: Use when repairing an app with MULTIPLE bugs or broken user-journeys at once (not a single fix) — instead of edit-one-file / rerun-the-whole-suite / hope, first map the broken journeys with evidence, capture each REAL error (never infer the failing stage from surviving artifacts), build a defect graph, then dispatch parallel bounded-scope fix agents and verify only impacted regions before an outer full+e2e+mutation gate. NOT for a single well-understood one-line fix, and NOT a substitute for the held-out golden-journey done-signal.
+description: Use when repairing an app with MULTIPLE bugs or broken user-journeys at once (not a single fix) - instead of edit-one-file / rerun-the-whole-suite / hope, first map the broken journeys with evidence, capture each REAL error, build a defect graph, then dispatch parallel bounded-scope fix agents and verify only impacted regions before an outer full+e2e+mutation gate.
 ---
 
 # triage-dispatch — audit → defect-graph → parallel bounded fixes → verify
