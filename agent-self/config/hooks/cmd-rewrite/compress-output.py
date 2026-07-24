@@ -8,14 +8,16 @@ without adding proportional signal:
   • `git status` in a large repo can list hundreds of untracked files.
   • Build/CI output, test runners, and compiler logs often contain megabytes of
     ANSI-coloured noise.
+  • Browser tools (Playwright / claude-in-chrome / chrome-devtools) return
+    multi-MB base64 screenshots — the #2 lifetime context consumer after Bash.
 
-This hook fires AFTER the Bash tool executes (PostToolUse) and compresses the
-tool response when it matches a known-noisy pattern AND exceeds a size threshold.
-All other output passes through unchanged.
+This hook fires AFTER the Bash tool OR a browser tool executes (PostToolUse) and
+compresses the tool response when it matches a known-noisy pattern (and, for the
+Bash rail, exceeds a size threshold). All other output passes through unchanged.
 
 NARROW SCOPE — ONLY SAFE COMPRESSIONS
 =======================================
-We apply exactly two transformations, each gated by explicit pattern + size:
+We apply the following transformations, each gated by explicit pattern + size:
 
   1. git-status-summary  (command matches /\\bgit\\s+status\\b/)
      If output length > SIZE_THRESHOLD, keep:
@@ -28,6 +30,16 @@ We apply exactly two transformations, each gated by explicit pattern + size:
      If output length > SIZE_THRESHOLD AND contains ANSI escape codes,
      strip escape sequences.  This reduces token count without losing content.
      Applied AFTER git-status processing (so git-status summary is also clean).
+
+  3. screenshot-drop  (browser tools: mcp__playwright__*, mcp__claude-in-chrome__*,
+     mcp__chrome-devtools__*)
+     Base64 image blobs (data:image/…;base64,… URIs AND MCP "data":"…" image
+     content) whose DECODED size ≥ IMG_MIN_BYTES are written to
+     %TEMP%/screenshot_<sha1>.png and replaced with a
+     "[screenshot dropped: N KB, saved to <path>]" placeholder.  Small,
+     element-scoped images pass through untouched.  Runs regardless of total
+     output size (a small JSON envelope can still wrap a big image).  Fail-open
+     per blob: any decode/write error leaves that blob unchanged.
 
 HONEST CAVEATS
 ==============
@@ -45,8 +57,10 @@ unchanged by Claude Code.
 
 Stdin (PostToolUse JSON):
     session_id    str
-    tool_name     str        — always "Bash" (enforced by matcher)
-    tool_input    dict       — {"command": "<shell command string>"}
+    tool_name     str        — "Bash" OR a browser tool (mcp__playwright__*,
+                               mcp__claude-in-chrome__*, mcp__chrome-devtools__*),
+                               scoped by the settings.json matcher.
+    tool_input    dict       — {"command": "<shell command string>"} (Bash rail)
     tool_response str | dict — {"type":"text","text":"..."} or raw str
 
 Stdout (on compression):
@@ -58,19 +72,34 @@ Stdout (no change): nothing — exit 0.
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import json
+import os
 import re
 import sys
+import tempfile
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
-# Only compress if output exceeds this many characters.
-SIZE_THRESHOLD: int = int(
-    __import__("os").environ.get("COMPRESS_SIZE_THRESHOLD", "4000")
-)
+# Only compress if output exceeds this many characters (Bash rail).
+SIZE_THRESHOLD: int = int(os.environ.get("COMPRESS_SIZE_THRESHOLD", "4000"))
 
 # Show at most this many file paths per category in git-status summary.
 MAX_SHOW_PATHS: int = 10
+
+# Browser-rail tools whose results can wrap multi-MB base64 screenshots — the #2
+# lifetime context consumer after Bash. The settings.json matcher routes them here
+# so oversized images can be dropped to a temp file instead of flooding context.
+_BROWSER_PREFIXES: tuple[str, ...] = (
+    "mcp__playwright__",
+    "mcp__claude-in-chrome__",
+    "mcp__chrome-devtools__",
+)
+
+# Drop a base64 image blob only if its DECODED size is at least this many bytes;
+# small, element-scoped screenshots pass through untouched.
+IMG_MIN_BYTES: int = int(os.environ.get("COMPRESS_IMG_MIN_BYTES", "40000"))
 
 # Regex to detect ANSI escape sequences (CSI + OSC variants).
 _ANSI_RE = re.compile(
@@ -84,6 +113,14 @@ _ANSI_RE = re.compile(
     r"[A-Z\\^_@]"  # other Fe sequences
     r")"
 )
+
+# Base64 image blobs, two shapes:
+#   (A) data-URI:  data:image/png;base64,<b64>   (HTML / markdown embeds)
+#   (B) MCP image content field:  "data": "<b64>"  (raw base64, no data: prefix)
+# The MCP form requires a long value so ordinary short "data" fields are ignored;
+# every candidate is still decoded and size-checked before it is dropped.
+_DATA_URI_RE = re.compile(r"data:image/[A-Za-z0-9.+-]+;base64,([A-Za-z0-9+/=]+)")
+_MCP_DATA_RE = re.compile(r'"data"\s*:\s*"([A-Za-z0-9+/=]{100,})"')
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -109,6 +146,54 @@ def _extract_response_text(tool_response) -> str | None:
         except Exception:
             return None
     return None
+
+
+# ── Screenshot dropper (browser rail) ─────────────────────────────────────────
+
+
+def _screenshot_dir() -> str:
+    """Directory for dropped screenshots: %TEMP% on Windows, else the OS temp dir."""
+    return os.environ.get("TEMP") or os.environ.get("TMP") or tempfile.gettempdir()
+
+
+def _drop_large_images(text: str) -> tuple[str, int]:
+    """Replace oversized base64 image blobs with a saved-to-disk placeholder.
+
+    Scans *text* for the two base64 image shapes (data-URI and MCP "data" field).
+    For each blob whose DECODED size is >= IMG_MIN_BYTES, the bytes are written to
+    %TEMP%/screenshot_<sha1[:12]>.png and the blob is replaced with
+    "[screenshot dropped: <KB> KB, saved to <path>]".  Small (element-scoped)
+    images pass through untouched.  Fail-open per blob: any decode/write error
+    keeps that blob exactly as it was.
+
+    Returns (new_text, dropped_count).
+    """
+    dropped = 0
+
+    def _sub(match: re.Match, wrap) -> str:
+        nonlocal dropped
+        b64 = match.group(1)
+        try:
+            raw = base64.b64decode(b64, validate=False)
+        except Exception:
+            return match.group(0)  # not decodable -> keep original
+        if len(raw) < IMG_MIN_BYTES:
+            return match.group(0)  # small / element-scoped -> untouched
+        try:
+            digest = hashlib.sha1(raw).hexdigest()[:12]
+            path = os.path.join(_screenshot_dir(), f"screenshot_{digest}.png")
+            with open(path, "wb") as fh:
+                fh.write(raw)
+        except Exception:
+            return match.group(0)  # cannot persist -> keep original
+        dropped += 1
+        return wrap(f"[screenshot dropped: {len(raw) // 1024} KB, saved to {path}]")
+
+    # (A) data-URI blobs — replace the whole URI with the placeholder.
+    text = _DATA_URI_RE.sub(lambda m: _sub(m, lambda p: p), text)
+    # (B) MCP "data" fields — keep the JSON key so surrounding structure survives.
+    text = _MCP_DATA_RE.sub(lambda m: _sub(m, lambda p: f'"data":"{p}"'), text)
+    return text, dropped
 
 
 # ── Git-status summariser ─────────────────────────────────────────────────────
@@ -250,6 +335,18 @@ def _is_git_status_command(command: str) -> bool:
     return bool(re.search(r"\bgit\b.*\bstatus\b", first_seg))
 
 
+def _emit(text: str) -> None:
+    """Write the PostToolUse updatedToolOutput envelope to stdout."""
+    out = {
+        "hookSpecificOutput": {
+            "hookEventName": "PostToolUse",
+            "updatedToolOutput": text,
+        }
+    }
+    sys.stdout.write(json.dumps(out, ensure_ascii=False))
+    sys.stdout.flush()
+
+
 def main() -> int:
     try:
         raw = sys.stdin.read() or "{}"
@@ -258,8 +355,9 @@ def main() -> int:
         return 0  # fail-open: malformed JSON → passthrough
 
     try:
-        tool_name = data.get("tool_name", "")
-        if tool_name != "Bash":
+        tool_name = data.get("tool_name") or ""
+        is_browser = tool_name.startswith(_BROWSER_PREFIXES)
+        if tool_name != "Bash" and not is_browser:
             return 0
 
         tool_input = data.get("tool_input") or {}
@@ -272,10 +370,18 @@ def main() -> int:
         if text is None:
             return 0
 
+        # ── Browser rail: drop oversized base64 screenshots. Runs even on short
+        #    text — a small JSON envelope can still wrap a multi-MB image. ──
+        if is_browser:
+            new_text, dropped = _drop_large_images(text)
+            if dropped:
+                _emit(new_text)
+            return 0
+
+        # ── Bash rail: git-status summary + ANSI strip, size-gated. ──
         if len(text) <= SIZE_THRESHOLD:
             return 0  # output is short — passthrough
 
-        # ── Apply transformations ──
         compressed = text
         did_compress = False
 
@@ -301,14 +407,7 @@ def main() -> int:
         if not did_compress:
             return 0  # nothing changed — silent exit
 
-        out = {
-            "hookSpecificOutput": {
-                "hookEventName": "PostToolUse",
-                "updatedToolOutput": compressed,
-            }
-        }
-        sys.stdout.write(json.dumps(out, ensure_ascii=False))
-        sys.stdout.flush()
+        _emit(compressed)
 
     except Exception:
         pass  # fail-open: any logic error → exit 0, do nothing
