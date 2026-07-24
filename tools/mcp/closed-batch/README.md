@@ -118,11 +118,19 @@ measured. Settling experiment: register it, run a few searches, and watch for 42
 
 ## Test evidence
 
+Two evidence tiers, kept distinct so nothing below reads wider than it was measured.
+**Only the 35-test pytest suite is CI-enforced, and every one of those tests runs against
+the committed 8-block `tests/fixture_claude.json` — not the live 37-block file.** The
+mutation harness and the real-`~/.claude.json` runs further down were **one-off manual
+measurements**: real when taken, but their harness/driver is not committed, so CI does not
+re-run them — treat them as evidence-once, not standing guarantees.
+
 `python -m pytest tools/mcp/closed-batch/tests -q` → **35 passed**. Wired into CI as
 `gate-tests-coverage closed-batch config editor` (reuses the existing charter slug, so
 `.quality/charter.yml` needs no edit).
 
-**Mutation harness: 12 mutations, 12 killed, 0 survivors.** Green tests are not evidence
+**Mutation harness (one-off; the harness itself is not committed, so CI does not re-run it):
+12 mutations, 12 killed, 0 survivors.** Green tests are not evidence
 until each safety behaviour, when reverted, turns the suite red. Killed: guard disabled ·
 scope widened to every project block · grep clobbers · backup skipped · `apply_plan`
 mutates its input · dedup loses case-normalisation · detector matches command lines
@@ -134,8 +142,9 @@ disabled servers · dry-run writes anyway · playwright flag replaces instead of
   exit 3, `REFUSING: Claude is RUNNING (claude.exe)`, file hash unchanged, 0 backups.
 - known-CLOSED (stubbed lister): applies normally.
 
-**End-to-end on a COPY of the real 234,653-byte `~/.claude.json`** (live file never
-touched; verified by hash afterwards):
+**End-to-end, a one-off manual run on a COPY of the real 234,653-byte `~/.claude.json`**
+(live file never touched, verified by hash afterwards; the committed, CI-enforced proxy for
+this is `test_apply_touches_only_the_intended_sites` on the 8-block fixture):
 
 ```
 project blocks changed : 6 of 37     (the 4 scoped repos -> 6 keys)
@@ -147,7 +156,10 @@ backup sha == pre-apply sha : True
 REVERT byte-identical       : True
 ```
 
-**Serialiser fidelity.** `dumps_config(load_config(x)) == x` byte-for-byte on the real
-234,595-character live file — Claude Code writes `indent=2`, no trailing newline, and this
-writer reproduces it exactly. That is what makes "every untouched region is preserved" a
-measurement rather than a hope.
+**Serialiser fidelity.** `dumps_config(load_config(x)) == x` byte-for-byte — Claude Code
+writes `indent=2`, no trailing newline, and this writer reproduces it exactly. CI enforces
+this round-trip on the committed 8-block fixture (`test_writer_round_trips_the_fixture_exactly`);
+it was ALSO measured once, by hand, against the real 234,595-character `~/.claude.json`.
+So "every untouched region is preserved" is CI-proven on the fixture and measured once on
+the real file — not a standing guarantee continuously enforced over the live file's full
+37-block shape.
