@@ -101,28 +101,6 @@ against the wrong bytes, so it verified nothing.
   format differently. Use `uvx <tool>@<pinned-version>`, never the ambient one.
 - Generalises to any formatter/linter with line-ending-sensitive output (ruff, black, prettier).
 
-## 8c. A bash HEREDOC mangles backslashes — use the `Write` tool for scripts
-
-`python - <<'PY' … PY` with Windows paths or regex escapes inside fails: `'\\Users\\'` arrives as
-`'\Users\'` → `SyntaxError: unterminated string literal`, and `c.replace('\\\\','\\')` becomes
-`c.replace('\','\')`. Bit twice in one session (2026-07-19b) despite `<<'PY'` quoting.
-
-- **Fix:** write the script with the **`Write` tool** to the scratchpad, then `python <path>`.
-  Content travels as a JSON parameter and is never re-parsed by the shell. Same reasoning as §9.
-  Reserve heredocs for backslash-free payloads (e.g. `git commit -F -`).
-
-## 8d. `git diff origin/main --stat` before EVERY PR — a stale branch proposes mass deletion
-
-A branch far behind `main` produces a PR that **deletes everything main has gained**. Measured
-2026-07-19b: a leftover feature branch showed **1,188 files / 316,222 deletions** against main.
-Cherry-picking the one wanted commit onto a fresh `origin/main` branch reduced it to 7 files / 4
-deletions.
-
-- **Fix:** always check the **commit-to-commit** surface `git diff origin/main...HEAD --stat`
-  (three dots) — plain `git diff origin/main` also folds in working-tree noise, which is how
-  untracked credential files appear to be "in the PR" when they are not.
-- Pairs with the worktree empty-index trap (scoped `git add` staging 6,013 deletions).
-
 ## 8e. Windows `sshd_config` — appending is WRONG; global directives are illegal after `Match`
 
 The stock Windows OpenSSH `C:\ProgramData\ssh\sshd_config` **ends** with:
@@ -197,53 +175,6 @@ Measured cost of the here-string route vs the tool it was replacing:
 scanned as a command line. Reserve here-strings for appends and for piping into a native exe. A
 document that contains literal `@'` / `'@` sequences CANNOT be written by a here-string at all —
 they terminate it and corrupt the file.
-
-
-
-## 10. An apostrophe in a Bash-tool command body breaks the tool's OWN quoting
-
-The Bash tool wraps the command you pass in single quotes before handing it to `sh -c`. So any
-**literal `'` inside a heredoc body, a grep pattern, or an inline `python -c '…'`** closes that
-outer quote early and the call dies with `unexpected EOF while looking for matching '`' — before a
-single byte runs. Ledger-proven across ONE session (2026-07-19), it killed **6+** calls in a row:
-a `git commit -F - <<'EOF'` whose message said *"the repo's own CI"* and *"don't"*; a
-`diff … | grep -c 'Only in'`; a `python -c "assert x, 'msg'"`; a `sed 's/…/…/'` with `?`/`[]`.
-Doubling down (escaping, swapping quote styles) wasted ~9 minutes before the pattern was named.
-
-- **Fix — never inline apostrophe-bearing content into a Bash-tool command.** Write it to a file
-  with the `Write` tool, then pass the PATH:
-  - commit messages → `git commit -F <path>` (NOT `-m "…"` with prose, NOT a `<<'EOF'` heredoc);
-  - PR/issue bodies → `gh pr create --body-file <path>`;
-  - multi-line scripts → `python <script.py>` / `bash <script.sh>`, never `python -c '…'`.
-- **PowerShell is the escape hatch for git ops** when a file is overkill — its own quoting survives
-  apostrophes that Git-Bash mangles (this session's `git commit -F <file>` and `git push` both
-  worked first-try in PowerShell after the Bash heredoc route failed repeatedly).
-- Generalises to `awk '…'`, `jq '…'`, `perl -e '…'` — anything whose idiom is single-quoted. Prefer
-  the dedicated tool (Grep, Write, a script file) over an inline single-quoted shell string.
-- Two-strikes (AGENTS.md §4b): after the SECOND `unexpected EOF … matching '` on the same call
-  shape, STOP escaping and switch transport (file + `-F`, or PowerShell) — do not attempt a third.
-
----
-*A one-line pointer to this file belongs in AGENTS.md §11 (owned by the D3 item — not
-edited here).*
-
-
-## 11. `MSYS_NO_PATHCONV=1` must be SCOPED, never global — measured PROMPT-1.5 (2026-07-21)
-
-§1 says to use `MSYS_NO_PATHCONV=1` when a git revision contains `:` or a leading `/`. Setting it
-**globally** inverts the problem: it also suppresses the conversion that legitimate `/c/Users/...`
-PATH arguments depend on.
-
-Measured: `export MSYS_NO_PATHCONV=1` followed by
-`git clone --no-hardlinks /c/Users/Prekzursil/source/<repo> repo` -> the clone **silently did not
-happen**; every downstream probe then reported `NO` and the whole verification read as a failure.
-
-- **Fix:** Windows-style paths (`C:/Users/...`) for PATH arguments; apply the env var only around
-  REVISION arguments (`origin/main:path/to/file`, `HEAD^`, ref syntax, pathspecs).
-- This is the same defect class an in-repo guard exists to catch — *"a global suppression is not
-  acceptable; enforcement must be command-aware AND argument-aware"* — reproduced on the
-  orchestrator while it was verifying that very guard. The rule being written down did not prevent
-  it; only the scoping did.
 
 ---
 *A one-line pointer to this file belongs in AGENTS.md §11 (owned by the D3 item — not
