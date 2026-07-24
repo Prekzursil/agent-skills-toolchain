@@ -229,6 +229,24 @@ jobs:
       # them, so a suite that is not named here is dead weight that cannot catch a regression.
       - name: gate-tests-coverage bounded hook launcher
         run: python hooks/_shared/test_hookrun.py
+      # claim-verify-gate ships a stdlib-only regression suite AND a mutation
+      # probe for that suite. Named explicitly for the same reason as the two
+      # steps above: there is no repo-wide pytest autodiscovery here, so a suite
+      # CI does not invoke is dead weight that cannot catch a regression. The
+      # mutation step is the both-states check applied to the suite itself
+      # (rules/common/single-signal-verification.md:44): it reverts five
+      # load-bearing decisions in claim_gate.py and requires the suite to go RED
+      # for each, so a suite that has stopped protecting them fails the gate.
+      # --self-test is the same discipline applied to the gate's own rules.
+      # Reuses the existing gate-tests-coverage charter slug on purpose - it is
+      # not a new gate, so .quality/charter_check.sh stays consistent with no
+      # charter.yml edit. Measured locally on python 3.14.6: 29 test functions
+      # passed, 5/5 mutations killed, all 10 rules fired in the broken state.
+      - name: gate-tests-coverage claim-verify-gate (suite + mutation probe)
+        run: |
+          python .agents/skills/claim-verify-gate/scripts/claim_gate.py --self-test
+          python .agents/skills/claim-verify-gate/scripts/test_claim_gate.py
+          python .agents/skills/claim-verify-gate/scripts/test_claim_gate_mutations.py
       # G-06: the schema module is tested AND its linter is run over the checked-in
       # workflows, so a schema defect in a production workflow fails the gate.
       - name: gate-tests-coverage fanout-schema (module + production lint)
