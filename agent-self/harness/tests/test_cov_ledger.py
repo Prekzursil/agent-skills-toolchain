@@ -687,3 +687,100 @@ def test_legacy_events_skips_non_dict_sanitized(tmp_path, monkeypatch):
     # Force a non-dict sanitize result so the defensive skip fires (1278->1270).
     monkeypatch.setattr(L, "_sanitize_value", lambda value, depth=0: ["not-a-dict"])
     assert ledger._legacy_events(str(tmp_path)) == []
+
+
+# ---- goal_short distillation (display-only; reinjection-safe) --------------------
+
+
+def test_distill_goal_short_unwraps_agent_message_envelope():
+    got = L.distill_goal_short(
+        '<agent-message from="team-lead">Fix the login redirect bug</agent-message>'
+    )
+    assert got == "Fix the login redirect bug"
+
+
+def test_distill_goal_short_system_prompt_boilerplate_is_empty():
+    assert (
+        L.distill_goal_short(
+            "You are summarizing a Claude Code session. The conversation covers X, Y, Z."
+        )
+        == ""
+    )
+    assert (
+        L.distill_goal_short("You are a helpful assistant that summarizes text.") == ""
+    )
+
+
+def test_distill_goal_short_keeps_first_clause_of_a_normal_task():
+    got = L.distill_goal_short(
+        "Add a goal_short field to the session goal JSON so the status line can show it."
+    )
+    assert got == "Add a goal_short field to the session"
+    assert len(got) <= 40
+
+
+def test_distill_goal_short_short_sentence_is_returned_whole():
+    assert L.distill_goal_short("Ship the receipt gate") == "Ship the receipt gate"
+
+
+def test_distill_goal_short_truncates_a_single_long_token():
+    got = L.distill_goal_short("x" * 60)
+    assert got == "x" * 40 and len(got) == 40
+
+
+def test_distill_goal_short_is_idempotent():
+    for raw in (
+        "<agent-message>Refactor the parity harness end to end now</agent-message>",
+        "You are summarizing a Claude Code session for compaction.",
+        "Ship the receipt gate",
+        "",
+    ):
+        once = L.distill_goal_short(raw)
+        assert L.distill_goal_short(once) == once
+
+
+def test_distill_goal_short_pure_wrapper_or_nonalpha_is_empty():
+    assert L.distill_goal_short(None) == ""  # not text
+    assert (
+        L.distill_goal_short("<system-reminder></system-reminder>") == ""
+    )  # empty after tag-strip
+    assert L.distill_goal_short("   ") == ""  # empty after ws-collapse
+    assert L.distill_goal_short("1234 5678 90") == ""  # no alpha
+    assert (
+        L.distill_goal_short("! leading punctuation only clause") == ""
+    )  # empty first clause
+
+
+def test_write_session_goal_preserves_goal_and_adds_short(tmp_path):
+    ledger = _ledger(tmp_path)
+    text = "Ship the receipt gate to production safely"
+    ledger._write_session_goal("sess-short", text)
+    data = json.loads(
+        ledger._session_goal_path("sess-short").read_text(encoding="utf-8")
+    )
+    assert data["goal"] == text  # RAW goal byte-unchanged
+    assert data["goal_short"] == "Ship the receipt gate to production"
+    assert ledger._read_session_goal("sess-short") == text  # reinjection reads goal
+
+
+def test_write_session_goal_omits_short_for_boilerplate(tmp_path):
+    ledger = _ledger(tmp_path)
+    text = "You are summarizing a Claude Code session for compaction."
+    ledger._write_session_goal("sess-boiler", text)
+    data = json.loads(
+        ledger._session_goal_path("sess-boiler").read_text(encoding="utf-8")
+    )
+    assert data["goal"] == text
+    assert "goal_short" not in data
+    assert set(data) == {"goal", "ts"}  # legacy shape preserved exactly
+    assert ledger._read_session_goal("sess-boiler") == text
+
+
+def test_set_goal_end_to_end_short_present_goal_is_reinjection_source(tmp_path):
+    ledger = _ledger(tmp_path)
+    cwd = str(tmp_path)
+    ledger.set_goal(cwd, "Refactor the ledger goal writer", session_id="sess-e2e")
+    assert ledger.goal(cwd, session_id="sess-e2e") == "Refactor the ledger goal writer"
+    data = json.loads(ledger._session_goal_path("sess-e2e").read_text(encoding="utf-8"))
+    assert data["goal"] == "Refactor the ledger goal writer"
+    assert data["goal_short"] == "Refactor the ledger goal writer"  # <=40 -> whole

@@ -465,6 +465,52 @@ class _FileLock:
             pass
 
 
+# --- goal_short distillation (DISPLAY-ONLY; never read by goal-reinjection) ------
+# Deterministic, LLM-free. PURE function of its input. The `goal` field is written
+# byte-for-byte unchanged; this only ADDS a sibling `goal_short` key, and only when a
+# real objective survives distillation (else the key is omitted -> the status line
+# falls back to cleaning `goal` itself).
+_GS_TAG = re.compile(r"<[^>]*>")
+_GS_WS = re.compile(r"\s+")
+# First-clause boundary: a sentence terminator followed by space/end, or a spaced
+# dash/colon. "modules.py" is safe (its '.' is not followed by whitespace).
+_GS_CLAUSE = re.compile(r"[.!?]+(?:\s|$)|\s[-–—:]\s")
+# Wrapper preambles that carry NO user objective -> distil to "" (omit, not garbage).
+_GS_BOILERPLATE = (
+    re.compile(r"(?i)^you are summarizing a claude code session"),
+    re.compile(
+        r"(?i)^you are (?:a|an|the)\b[^.!?]*\b(?:assistant|agent|subagent|model|summariz)"
+    ),
+    re.compile(r"(?i)^(?:please\s+)?summariz(?:e|ing)\b"),
+    re.compile(r"(?i)^this (?:session|conversation) is being summariz"),
+    re.compile(r"(?i)^(?:system|assistant)\s*:"),
+)
+
+
+def distill_goal_short(text: Any, *, max_len: int = 40) -> str:
+    """Short (<= max_len char) objective label distilled deterministically from a raw
+    goal, for status-line DISPLAY only. Returns "" when the input is pure
+    wrapper/boilerplate with no objective signal. Pure and idempotent:
+    distill_goal_short(distill_goal_short(x)) == distill_goal_short(x)."""
+    if not text:
+        return ""
+    s = _GS_TAG.sub(" ", str(text))
+    s = _GS_WS.sub(" ", s).strip()
+    if not s or not any(ch.isalpha() for ch in s):
+        return ""
+    if any(pattern.search(s) for pattern in _GS_BOILERPLATE):
+        return ""
+    clause = _GS_CLAUSE.split(s, maxsplit=1)[0].strip()
+    if not clause:
+        return ""
+    if len(clause) <= max_len:
+        return clause
+    short = clause[:max_len].rstrip()
+    if " " in short:
+        short = short[: short.rfind(" ")].rstrip()
+    return short
+
+
 class EventLedger:
     """Append-only, secret-redacted event facts shared by both providers."""
 
@@ -1008,13 +1054,14 @@ class EventLedger:
         return ""
 
     def _write_session_goal(self, session_id: str, text: str) -> None:
-        atomic_write_json(
-            self._session_goal_path(session_id),
-            {
-                "goal": text,
-                "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            },
-        )
+        payload: dict[str, Any] = {
+            "goal": text,
+            "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        }
+        short = distill_goal_short(text)
+        if short:
+            payload["goal_short"] = short
+        atomic_write_json(self._session_goal_path(session_id), payload)
 
     def set_goal(self, cwd: str, text: str, session_id: str | None = None) -> None:
         clean = redact_text(text, redact_paths=True, max_chars=500).strip()
