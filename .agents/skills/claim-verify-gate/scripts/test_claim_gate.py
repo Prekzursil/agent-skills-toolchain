@@ -278,6 +278,42 @@ def test_missing_unverified_tag_in_doc_fires() -> None:
     check("untagged doc fires", "untagged-unverified" in rules_of(report, "C1"))
 
 
+def test_trailing_share_threshold_is_pinned() -> None:
+    # The two placement tests above only fix behaviour at the extremes (a tag at
+    # position 0, and one at ~96% of the doc), which constrains _TAIL_SHARE only
+    # to the wide band (~0.02, 1.0). A WEAKENED threshold (0.15 -> 0.05, a
+    # narrower trailing window) therefore survived the suite green. Pin the
+    # boundary near 0.15 with a tag just inside and just outside the
+    # trailing-15% window (single-signal-verification.md:44).
+    def doc_with_tag_at(fraction: float) -> str:
+        total = 1000
+        head = round(total * fraction)
+        filler = total - head - len("UNVERIFIED")
+        return ("x" * head) + "UNVERIFIED" + ("y" * filler)
+
+    def trailing_fires(doc: str) -> bool:
+        report = claim_gate.evaluate(
+            payload(
+                verdict="UNVERIFIED",
+                verify_probe=None,
+                evidence=[],
+                settling_experiment="re-probe with curl",
+            ),
+            doc=doc,
+        )
+        return "trailing-unverified" in rules_of(report, "C1")
+
+    # Inside the trailing 15% window (tag at 88%): MUST fire; narrowing the
+    # window to <=0.10 stops catching it, so reverting the constant goes red.
+    check("tag inside trailing window fires", trailing_fires(doc_with_tag_at(0.88)))
+    # Outside the trailing 15% window (tag at 82%): MUST NOT fire; widening the
+    # window to >=0.20 wrongly flags it.
+    check(
+        "tag outside trailing window passes",
+        not trailing_fires(doc_with_tag_at(0.82)),
+    )
+
+
 # --- input validation ------------------------------------------------------
 
 

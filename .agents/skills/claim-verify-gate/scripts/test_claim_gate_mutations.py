@@ -26,6 +26,11 @@ MUTATIONS = [
         "_TAIL_SHARE = 1.0",
     ),
     (
+        "tail share 0.15 -> 0.05 (window too narrow to flag a trailing tag)",
+        "_TAIL_SHARE = 0.15",
+        "_TAIL_SHARE = 0.05",
+    ),
+    (
         "residual never recognised",
         'residual = verdict == "UNVERIFIED" and not violations',
         "residual = False",
