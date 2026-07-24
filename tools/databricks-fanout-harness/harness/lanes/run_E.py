@@ -37,10 +37,16 @@ def _dbfs(posix: str) -> str:
     return posix.replace("/dbfs/", "dbfs:/", 1)
 
 
-def submit_and_gate(units, name, run_cmd=run_cmd, extra_env=None, timeout_s=3600, poll_s=30):
+def submit_and_gate(units, name, run_cmd=run_cmd, extra_env=None, timeout_s=None, poll_s=30):
     """Build+upload+submit a batch, poll to terminal, harvest, apply the 5-clause gate.
     Returns {uid: (verdict, local_path_or_None)}. The node writes {RESULT_DIR}/{uid}.md, so every
-    unit's artifact basename must be {uid}.md and they must share one result dir (our convention)."""
+    unit's artifact basename must be {uid}.md and they must share one result dir (our convention).
+
+    timeout_s=None (DEFAULT) => NO wall-clock cap: poll until the Databricks job reaches a terminal
+    state (jobs always terminate; cluster autotermination is the backstop). Pass an explicit
+    timeout_s ONLY to opt into a cap. A hard cap previously produced a FALSE-NEGATIVE `TIMEOUT` on a
+    run whose artifacts were complete + gate-valid but whose cluster took >45min end-to-end
+    (2026-07-24 e2e dogfood); large fan-out waves legitimately run for hours."""
     result_posix = str(Path(units[0].artifact).parent).replace("\\", "/")   # /dbfs/tmp/<prog>/results
     root_posix = str(Path(result_posix).parent).replace("\\", "/")          # /dbfs/tmp/<prog>
     dbfs_result, dbfs_root = _dbfs(result_posix), _dbfs(root_posix)
@@ -81,7 +87,7 @@ def submit_and_gate(units, name, run_cmd=run_cmd, extra_env=None, timeout_s=3600
         return f"{m}m{s:02d}s"
 
     t0 = time.time()
-    while time.time() - t0 < timeout_s:
+    while timeout_s is None or time.time() - t0 < timeout_s:
         rc, out, _ = run_cmd(["databricks", "jobs", "get-run", str(run_id), "--profile", RAIL["profile"]])
         state, msg = "?", ""
         try:
@@ -112,7 +118,7 @@ def submit_and_gate(units, name, run_cmd=run_cmd, extra_env=None, timeout_s=3600
 def node_preflight(run_cmd=run_cmd) -> tuple[bool, str, str]:
     """Step 1: submit the node behavioral preflight; gate on ultra-accepted AND bogus-rejected."""
     u = preflight_units.node_preflight_unit()
-    verdicts = submit_and_gate([u], "preflight-node", run_cmd, timeout_s=1800)
+    verdicts = submit_and_gate([u], "preflight-node", run_cmd)  # no cap; opt in via timeout_s
     verdict, path = verdicts[u.id]
     if verdict != "DONE" or path is None or not Path(path).exists():
         return False, "unknown", f"node preflight not DONE (verdict={verdict})"
@@ -124,7 +130,7 @@ def runnability(repo, clone_url, run_cmd=run_cmd, extra_env=None):
     """Step 2: submit the runnability+push preflight; on DONE, parse the uncovered-file gaps.
     Returns (ok, gaps, artifact_text). Needs the write github_token for the push-probe half."""
     u = preflight_units.runnability_unit(repo, clone_url)
-    verdicts = submit_and_gate([u], f"preflight-run-{repo}", run_cmd, extra_env=extra_env, timeout_s=2400)
+    verdicts = submit_and_gate([u], f"preflight-run-{repo}", run_cmd, extra_env=extra_env)
     verdict, path = verdicts[u.id]
     if verdict != "DONE" or path is None or not Path(path).exists():
         return False, [], ""
@@ -142,4 +148,4 @@ def run_coverage_fanout(repo, gaps, run_cmd=run_cmd, github_token_ref=None):
         print(f"[run_E] no gaps for {repo} -> nothing to fan out")
         return {}
     return submit_and_gate(units, f"coverage-{repo}", run_cmd,
-                           extra_env={"GITHUB_TOKEN": token}, timeout_s=5400)
+                           extra_env={"GITHUB_TOKEN": token})
