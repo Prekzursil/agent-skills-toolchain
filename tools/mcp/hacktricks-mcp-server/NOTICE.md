@@ -54,6 +54,8 @@ must, at minimum:
   citation-grade reads with `git show <sha>:<path>` / blob equality;
 - never log raw queries, page content, credentials, or target selectors.
 
-> Status: this NOTICE + provenance record is landed. The hardened runtime build
-> (`src/`, `package.json`, `package-lock.json`, tests, install/validate scripts) is a
-> tracked follow-up; see `README.md`.
+> Status: the hardened runtime build (`src/`, `package.json`, `package-lock.json`,
+> `test/*.test.mjs`, install/validate scripts) is landed and passes `npm test`
+> (tsc build + `node --test` at 100% line/branch/function coverage over the tested
+> modules). Corpus provisioning, deploy, and MCP fleet registration remain human-gated;
+> see `README.md`.

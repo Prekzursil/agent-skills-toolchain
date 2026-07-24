@@ -25,18 +25,33 @@ independently re-confirmed by a fresh read-only clone on 2026-07-24 (see
 
 ## Status of this directory (honest)
 
-Landed in this change: the provenance/license/review record above. This documents the
-reviewed backend and its safety verdict so the skill, fleet config, and default-off
-work can reference a stable record.
+Landed earlier: the provenance/license/review record above.
 
-**Not yet built in this change** (tracked follow-up): the hardened runtime
-(`package.json`, `package-lock.json`, `tsconfig.json`, `src/index.ts`, `src/corpus.ts`,
-`src/markdown.ts`, `src/provenance.ts`, `src/citation.ts`, `src/verify-citation.ts`,
-`test/*.test.mjs`, `test/fixtures/`, `scripts/install-hacktricks-mcp-server.ps1`,
-`scripts/validate-hacktricks-mcp-server.ps1`). Until it is built, tested to 100%
-line/branch coverage under `node --test`, and deployed, the `hacktricks` MCP backend is
-NOT registered in the live fleet, and the offline corpus lane (`htk_search.ps1`) plus
-the official REST `hacktricks-api` helper remain the working retrieval paths.
+**Built in this change:** the hardened runtime — `package.json`, `package-lock.json`,
+`tsconfig.json` (strict, NodeNext, ES2022), and `src/` (`index.ts`, `server.ts`,
+`tools.ts`, `corpus.ts`, `markdown.ts`, `provenance.ts`, `citation.ts`, `verify.ts`,
+`verify-citation.ts`, `validation.ts`, `errors.ts`, `text.ts`, `util.ts`, `limits.ts`,
+`defaults.ts`), `test/*.test.mjs`, `scripts/install-hacktricks-mcp-server.ps1`,
+`scripts/validate-hacktricks-mcp-server.ps1`, and `scripts/smoke.mjs`. The seven MCP
+tools initialize over stdio through the MCP SDK (verified by `scripts/smoke.mjs`) and
+perform real read-only operations against a pinned corpus; all inputs are validated
+before I/O; ripgrep is invoked as an executable (`-e … --`, `--json`, bounded
+timeout/buffer); the corpus is fail-closed on wrong origin/SHA/dirty/symlink-escape.
+
+**Coverage scope (honest):** `npm test` gates 100% line/branch/function coverage under
+`node --test` over the twelve tested modules (all of `src/` except the three
+process-boundary entrypoints). `index.ts`, `defaults.ts`, and `verify-citation.ts` are
+the real transport/argv/network boundary and are excluded from the coverage denominator
+(they are not imported by any test); their behavior is exercised end-to-end by the
+`smoke.mjs` stdio round-trip. Test files are excluded from the denominator via
+`--test-coverage-exclude`.
+
+**Still human-gated (NOT done by the build):** corpus provisioning to
+`D:\knowledge\hacktricks`, deploy to `~/.local/opt/hacktricks-mcp-server`, MCP fleet
+registration + user-scope promotion, and a live Claude/Codex `tools/list` acceptance.
+Until those run, the `hacktricks` MCP backend is NOT registered in the live fleet, and
+the offline corpus lane (`htk_search.ps1`) plus the official REST `hacktricks-api`
+helper remain the working retrieval paths.
 
 Build/test contract for the follow-up (from the frozen adoption prompt):
 
