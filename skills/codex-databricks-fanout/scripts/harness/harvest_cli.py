@@ -19,8 +19,11 @@ import subprocess
 import sys
 from collections import Counter
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from gate import gate  # noqa: E402
+sys.path.insert(
+    0, str(pathlib.Path(__file__).resolve().parents[1])
+)  # scripts/ (for `import harness`)
+from harness.contract import RAIL  # noqa: E402
+from harness.gate import gate  # noqa: E402
 
 
 def _env(config_file: str | None) -> dict[str, str]:
@@ -41,10 +44,10 @@ def _env(config_file: str | None) -> dict[str, str]:
 
 
 def _cli(
-    args: list[str], env: dict[str, str], timeout: int = 180
+    args: list[str], env: dict[str, str], *, profile: str, timeout: int = 180
 ) -> subprocess.CompletedProcess:
     return subprocess.run(
-        ["databricks", *args],
+        ["databricks", *args, "--profile", profile],
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -62,11 +65,12 @@ def harvest(
     fence: str | None = None,
     required_fields: tuple[str, ...] = (),
     expected: int | None = None,
+    profile: str = RAIL["profile"],
 ) -> dict:
     env = _env(config_file)
     dest.mkdir(parents=True, exist_ok=True)
 
-    listing = _cli(["fs", "ls", result_dir], env)
+    listing = _cli(["fs", "ls", result_dir], env, profile=profile)
     names = [
         ln.split("/")[-1].split()[-1]
         for ln in listing.stdout.splitlines()
@@ -75,7 +79,7 @@ def harvest(
 
     states: dict[str, str] = {}
     for name in names:
-        cat = _cli(["fs", "cat", f"{result_dir}/{name}"], env)
+        cat = _cli(["fs", "cat", f"{result_dir}/{name}"], env, profile=profile)
         text = cat.stdout
         (dest / name).write_bytes(text.encode("utf-8", errors="replace"))
         unit_id = name[:-3]
@@ -115,6 +119,7 @@ def main() -> int:
     )
     ap.add_argument("--required-field", action="append", default=[])
     ap.add_argument("--expected", type=int)
+    ap.add_argument("--profile", default=RAIL["profile"])
     a = ap.parse_args()
 
     res = harvest(
@@ -124,6 +129,7 @@ def main() -> int:
         fence=a.fence,
         required_fields=tuple(a.required_field),
         expected=a.expected,
+        profile=a.profile,
     )
     print(json.dumps({k: v for k, v in res.items() if k != "states"}, indent=1))
     for state in ("SEVERED", "MALFORMED"):

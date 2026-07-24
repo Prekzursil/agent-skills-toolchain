@@ -38,7 +38,16 @@ from dataclasses import dataclass, field
 # storage. A path-only predicate silently pushes each consumer into writing its own copy, which is
 # exactly how a shared definition acquires no adopters. `artifact_text_ok` closes that gap and this
 # is its first production caller.
-_SHARED = pathlib.Path(__file__).resolve().parents[2] / "hooks" / "_shared"
+# Locate hooks/_shared by walking up: the skill's scripts/ sits at different depths in the two
+# dual-write mirrors (.agents/skills/ is one deeper), so a fixed parents[N] cannot be byte-identical.
+_SHARED = next(
+    (
+        p / "hooks" / "_shared"
+        for p in pathlib.Path(__file__).resolve().parents
+        if (p / "hooks" / "_shared").is_dir()
+    ),
+    pathlib.Path(__file__).resolve().parent,
+)
 if str(_SHARED) not in sys.path:
     sys.path.insert(0, str(_SHARED))
 try:
