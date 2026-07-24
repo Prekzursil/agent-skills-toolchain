@@ -149,6 +149,14 @@ class Config:
         "*~",
         "*.old",
         "*.save",
+        # Hook RUNTIME STATE that .gitignore already excludes. This walker does not consult
+        # .gitignore, so without these two the scanner reports files git is already ignoring
+        # as "drift" that a sync should carry -- drift that can never be resolved by
+        # committing, because committing them is exactly what .gitignore forbids. Measured
+        # 2026-07-20: git-hygiene/.last-run (this hook own throttle stamp) and
+        # local-tui-reminder/.shown-2026-07-20 were 2 of a reported 169.
+        ".last-run",
+        ".shown-*",
     )
     max_depth: int = 2
     # Measured end-to-end on this box: 3.7 s warm, 5.6 s cold. 8 s leaves headroom so a cold

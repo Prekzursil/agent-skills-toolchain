@@ -26,6 +26,7 @@ DESIGN CONSTRAINTS, each from a decision or a measured failure:
 Install: Stop hook in ~/.claude/settings.json ->
     python "C:/Users/Prekzursil/.claude/hooks/profile-capture/capture.py"
 """
+
 from __future__ import annotations
 
 import json
@@ -37,8 +38,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 QUEUE = HERE / "capture-queue.jsonl"
 SEEN = HERE / "seen.txt"
-THRESHOLD = 5          # surface only at this many pending candidates
-MAX_QUEUE = 500        # bounded sink; never grows without limit
+THRESHOLD = 5  # surface only at this many pending candidates
+MAX_QUEUE = 500  # bounded sink; never grows without limit
 MIN_LEN, MAX_LEN = 25, 600
 
 # --- what counts as the owner saying something about himself -------------------------------
@@ -52,9 +53,11 @@ MIN_LEN, MAX_LEN = 25, 600
 # consistency, not fit to the real distribution (the trap named in my_writing/RUNBOOK.md 6).
 #
 # v2 requires a BIOGRAPHICAL OBJECT, not merely a first-person verb.
-BIO_NOUN = (r"student|teaching assistant|ta\b|assistant|developer|engineer|researcher|"
-            r"programmer|freelancer|intern|phd|msc|bsc|master'?s|bachelor'?s|undergrad|"
-            r"graduate|romanian|english|based in|from\b")
+BIO_NOUN = (
+    r"student|teaching assistant|ta\b|assistant|developer|engineer|researcher|"
+    r"programmer|freelancer|intern|phd|msc|bsc|master'?s|bachelor'?s|undergrad|"
+    r"graduate|romanian|english|based in|from\b"
+)
 PATTERNS = [
     # "I am a student", "I'm a teaching assistant" - a first-person COPULA plus a role noun
     rf"\bi(?:'m| am)\s+(?:an?\s+|the\s+)?(?:{BIO_NOUN})",
@@ -70,7 +73,6 @@ PATTERNS = [
     # Romanian
     r"\bsunt\s+(?:un\s+|o\s+)?(?:student|inginer|profesor|asistent)\b",
     r"\blocuiesc\b|\bm[aă] numesc\b|\bam terminat\b|\bam absolvit\b|\bm-am n[aă]scut\b",
-
     # v3: LABEL:VALUE. Measured on real transcripts - v2 caught ZERO across 72 MB, including
     # a session where he stated his name, birth date, phones, role and ORCID, because he
     # answers direct questions in terse labelled form and never in first person:
@@ -93,17 +95,24 @@ NARRATION = re.compile(
     r"\bi(?:'m| am)\s+(?:now|not|also|still|going to|about to|already|currently)\s+\w+ing\b"
     r"|\bi(?:'m| am)\s+not\s+(?:choosing|applying|theori|relaunch|going)"
     r"|\bi\s+(?:will|would|can|could|should|shall)\b"
-    r"|\blet me\b|\bi'?ll\b", re.I)
+    r"|\blet me\b|\bi'?ll\b",
+    re.I,
+)
 
 # Pasted structured content - a bullet, heading, table row, quote, code or template slot is
 # not somebody talking about themselves.
-PASTED = re.compile(r"^\s*(?:[-*+•>#|]|\d+\.\s|```|\[|\{)|\[(?:role|action|benefit|name)\]"
-                    r"|^\s*(?:As a|Example:|STATUS|VENUE)\b", re.I)
+PASTED = re.compile(
+    r"^\s*(?:[-*+•>#|]|\d+\.\s|```|\[|\{)|\[(?:role|action|benefit|name)\]"
+    r"|^\s*(?:As a|Example:|STATUS|VENUE)\b",
+    re.I,
+)
 
 # Code/config shapes. A label:value line that carries quotes, a trailing comma, a comment
 # marker or braces is a config key, not a person answering a question. Measured: the v3
 # label set fired on `name: 'my-workflow',   // the /slash name` in a workflow script.
-CODEISH = re.compile(r"""['"`]|,\s*$|//|/\*|=>|[{}\[\]]|\bself\.|\bdef\s|\bconst\s|\bvar\s""")
+CODEISH = re.compile(
+    r"""['"`]|,\s*$|//|/\*|=>|[{}\[\]]|\bself\.|\bdef\s|\bconst\s|\bvar\s"""
+)
 
 # Never capture these unprompted. G-2 keeps a full-fidelity PRIVATE tier, but it is the
 # owner's to populate - a hook harvesting health or relationship detail is not acceptable.
@@ -117,7 +126,9 @@ EXCLUDE = [
 # Work-shaped false friends: "my agents", "my units", "my repo" - the measured 4/4.
 FALSE_FRIENDS = re.compile(
     r"\bmy\s+(?:agents?|units?|repos?|branch|commits?|tests?|files?|scripts?|hooks?|"
-    r"workflow|session|corpus|tools?|servers?|configs?|prompts?)\b", re.I)
+    r"workflow|session|corpus|tools?|servers?|configs?|prompts?)\b",
+    re.I,
+)
 
 PAT = [re.compile(p, re.I) for p in PATTERNS]
 EXC = [re.compile(p, re.I) for p in EXCLUDE]
@@ -177,14 +188,14 @@ def main() -> int:
             # a slash-command or a pasted block is not self-disclosure
             if s.startswith(("/", "```", "http")):
                 continue
-            if PASTED.search(s):          # v2: bullets, headings, templates, quoted blocks
+            if PASTED.search(s):  # v2: bullets, headings, templates, quoted blocks
                 continue
             # v3: config keys are not self-disclosure. Scope this to the FIRST LINE only -
             # scanning the whole segment killed a genuine "birth day: ... / phone number: ..."
             # capture because the segment ran on into pasted hook output containing a quote.
             if CODEISH.search(s.split("\n", 1)[0]):
                 continue
-            if NARRATION.search(s):       # v2: "I am now ...ing" is progress, not biography
+            if NARRATION.search(s):  # v2: "I am now ...ing" is progress, not biography
                 continue
             if FALSE_FRIENDS.search(s):
                 continue
@@ -196,12 +207,16 @@ def main() -> int:
             if key in seen:
                 continue
             seen.add(key)
-            new.append({
-                "captured": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                "session": payload.get("session_id", ""),
-                "text": s,
-                "status": "pending",
-            })
+            new.append(
+                {
+                    "captured": datetime.now(timezone.utc).strftime(
+                        "%Y-%m-%dT%H:%M:%SZ"
+                    ),
+                    "session": payload.get("session_id", ""),
+                    "text": s,
+                    "status": "pending",
+                }
+            )
 
     if new:
         HERE.mkdir(parents=True, exist_ok=True)
@@ -221,16 +236,20 @@ def main() -> int:
 
     # Surface ONLY at the threshold. Never nag.
     if pending >= THRESHOLD:
-        print(json.dumps({
-            "hookSpecificOutput": {
-                "hookEventName": "Stop",
-                "additionalContext": (
-                    f"[profile-capture] {pending} unreviewed statements you made about "
-                    f"yourself are queued at {QUEUE}. Run /profile-review to approve or "
-                    f"discard them. Nothing has been written to your profile."
-                ),
-            }
-        }))
+        print(
+            json.dumps(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "Stop",
+                        "additionalContext": (
+                            f"[profile-capture] {pending} unreviewed statements you made about "
+                            f"yourself are queued at {QUEUE}. Run /profile-review to approve or "
+                            f"discard them. Nothing has been written to your profile."
+                        ),
+                    }
+                }
+            )
+        )
     return 0
 
 

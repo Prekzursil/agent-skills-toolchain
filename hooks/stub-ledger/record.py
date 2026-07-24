@@ -94,7 +94,12 @@ def main() -> int:
 
         if stubscan.is_test_file(file_path):
             return 0  # test/fixture files legitimately contain stub/TODO fixtures
-        hits = stubscan.find_stubs(content)
+        # Pass the write TARGET. Without it stubscan's `_discriminator` returns None and the
+        # use-vs-mention filter is never armed at RECORD time, so every marker the agent writes
+        # is banked unconditionally and only report.py's re-scan can drop it -- which it cannot
+        # do for an unsaved/unreadable path. Measured 2026-07-24: 53 records banked, 20 surfaced,
+        # 20/20 false positives.
+        hits = stubscan.find_stubs(content, file_path)
         if not hits:
             return 0
 

@@ -95,6 +95,16 @@ _ROUTE = re.compile(
     r"\bpath\s*\(|<Route\b[^>]*\bpath=)\s*['\"]([^'\"]{1,80})['\"]",
     re.IGNORECASE,
 )
+# A route literal is a PATH: it contains a separator (or is the `*` catch-all). The `.get(`
+# alternative above was written for `router.get("/users")` but matches EVERY Python
+# `dict.get("key")`. Measured 2026-07-24 against tools/monitorcore/monitorcore/health_source.py:
+# `band=str(obj.get("band", "unknown"))` at :141, `driver=str(obj.get("driver", ""))` at :142 and
+# `t.get('name')` at :127 were reported as routes "linked/navigated 0x" while being ordinary dict
+# lookups of dataclass field names that the module constructs and reads. (The dataclass field
+# DECLARATIONS at :60-61 match `_ROUTE` zero times -- they were never the trigger.) Requiring a
+# separator keeps every real dialect: Express `/users/:id`, Flask/FastAPI `@app.route("/x")`,
+# Django `path("articles/<int:year>/")`, React `<Route path="/home">`.
+_ROUTE_PATHLIKE = re.compile(r"/|^\*$")
 # Version-suffix detector (requires a separator or Vn — avoids base64/sha256).
 _VERSUF = re.compile(
     r"^(?P<base>.+?)(?:[._-](?:v\d+|new|copy|old|final|backup|orig|\d+)|V\d+)$",
@@ -210,7 +220,7 @@ def _extract(block: str):
                 syms.add(name)
     for m in _ROUTE.finditer(block):
         p = m.group(1)
-        if len(p) >= 4 and re.search(r"[A-Za-z]", p):
+        if len(p) >= 4 and re.search(r"[A-Za-z]", p) and _ROUTE_PATHLIKE.search(p):
             routes.add(p)
     return syms, routes
 

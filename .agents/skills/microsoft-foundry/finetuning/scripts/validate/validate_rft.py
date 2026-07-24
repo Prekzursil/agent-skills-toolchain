@@ -157,19 +157,19 @@ def validate_rft(filepath, expected_field=None):
     print(f"Warnings: {len(warnings)}")
 
     if all_extra_field_counts:
-        print("\nGrader fields found:")
+        print(f"\nGrader fields found:")
         for field, count in all_extra_field_counts.most_common():
             print(f"  • '{field}' — in {count}/{total} records")
 
     if errors:
-        print("\n❌ ERRORS (must fix):")
+        print(f"\n❌ ERRORS (must fix):")
         for e in errors[:20]:
             print(f"  • {e}")
         if len(errors) > 20:
             print(f"  ... and {len(errors) - 20} more errors")
 
     if warnings:
-        print("\n⚠️  WARNINGS:")
+        print(f"\n⚠️  WARNINGS:")
         for w in warnings[:10]:
             print(f"  • {w}")
         if len(warnings) > 10:
@@ -177,13 +177,13 @@ def validate_rft(filepath, expected_field=None):
 
     # RFT-specific guidance
     if total > 0:
-        print("\n💡 RFT tips:")
-        print("  • Ensure your training grader matches your eval grader (alignment gotcha)")
-        print("  • Start with reasoning_effort='medium', pass_threshold=0.5")
-        print("  • RFT is primarily for o-series models (o4-mini). Check Azure docs for the latest supported model list.")
+        print(f"\n💡 RFT tips:")
+        print(f"  • Ensure your training grader matches your eval grader (alignment gotcha)")
+        print(f"  • Start with reasoning_effort='medium', pass_threshold=0.5")
+        print(f"  • RFT is primarily for o-series models (o4-mini). Check Azure docs for the latest supported model list.")
 
     if not errors:
-        print("\n✅ Data is valid for RFT fine-tuning!")
+        print(f"\n✅ Data is valid for RFT fine-tuning!")
     else:
         print(f"\n❌ Fix {len(errors)} error(s) before submitting.")
         sys.exit(1)

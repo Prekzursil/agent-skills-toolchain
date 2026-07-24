@@ -229,5 +229,15 @@ real Python entry points run under the hub's own interpreter.
   `dbx_warehouse_delete`, `dbx_exec`, `dbx_run_on_cluster`) need `confirm=True`;
   lifecycle tools take an opt-in `wait`. Per-`db`-account = per workspace.
 
+### Databricks as a Codex agent host (not just Spark)
+
+For **N parallel Codex CLI units** (research / implement), do **not** use interactive
+`dbx_cluster_create` on this account (often DENIED). Use the measured **policy job-cluster**
+fan-out: skill **`codex-databricks-fanout`**, guide **`guides/codex-databricks-ops.md`**.
+
+Summary: `jobs submit` + `policy_id=0002189219BF8EF3` + `r5d.2xlarge` + stagger 3s + secret
+`codex-harness-prekzursil`/`auth_json`; harvest with **`databricks fs cat`** (not `fs cp`
+DBFS→local); DONE = `UNIT-COMPLETE` AND-gate.
+
 **Registration + full mechanics:** see `tools/mcp/cloud-hub/README.md`. The hub is
 not wired into `~/.mcp.json` by this skill — the orchestrator registers it.

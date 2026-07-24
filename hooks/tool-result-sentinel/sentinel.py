@@ -219,6 +219,18 @@ def _structural_failed(resp) -> tuple[bool, str]:
     """Structural FAILED signals usable for ANY tool (incl. Bash)."""
     if not isinstance(resp, dict):
         return False, ""
+    # HTTP status codes use HTTP semantics, NOT exit-code semantics: 200 is success,
+    # not "exit code 200". Only >=400 is a failure; 1xx-3xx falls through to the real
+    # error checks below. (Regression fix: status_code was wrongly in the exit-code tuple,
+    # so every HTTP-200 WebFetch was classified FAILED "exit code 200".)
+    sc = resp.get("status_code")
+    if sc is not None:
+        try:
+            iv = int(sc)
+            if iv >= 400:
+                return True, f"http {iv}"
+        except (TypeError, ValueError):
+            pass
     # numeric exit/return codes
     for key in (
         "exit_code",
@@ -226,7 +238,6 @@ def _structural_failed(resp) -> tuple[bool, str]:
         "returncode",
         "return_code",
         "code",
-        "status_code",
     ):
         val = resp.get(key)
         if val is not None:
@@ -261,6 +272,52 @@ def _structural_failed(resp) -> tuple[bool, str]:
     return False, ""
 
 
+def _infra_hit(text: str, tool_name: str = ""):
+    """First REAL infra-failure phrase in `text`, or None if every match is a MENTION.
+
+    Two stages of the shared use-vs-mention rule, in order:
+
+    1. JSON payload -> scan its string VALUES only. A field NAME mentions a condition;
+       it never reports one. Measured: `"user_cancelled_or_timedout": false` on a
+       RUNNING Databricks job was classified FAILED because the KEY matched
+       /tim(ed|e)-?out/, telling me to discard a live, successful probe.
+    2. remaining text -> prose rules. A phrase inside `backticks`, a fenced block, a
+       table cell, or a negated sentence is a MENTION. Measured: reading the memory note
+       that DOCUMENTS this defect fired it, because an accurate write-up must quote the
+       trigger phrase -- the guard suppresses its own bug report.
+
+    Both stages live in hooks/_shared/use_vs_mention.py so every guard shares ONE
+    implementation. Pattern-tuning was tried 3x against a sibling detector and the
+    matcher followed every rewording; the fix has to be in the discriminator.
+
+    Imported lazily and best-effort: a missing or broken shared module degrades to the
+    previous raw-text behaviour rather than crashing the hook (AGENTS.md s6 fail-open).
+    """
+    if not text:
+        return None
+    try:
+        shared = str(THIS.parent / "_shared")
+        if shared not in sys.path:
+            sys.path.insert(0, shared)
+        from use_vs_mention import Context, find_real, json_value_text  # type: ignore
+
+        values = json_value_text(text)
+        surface = text if values is None else values
+        # NON-prose context on purpose. The prose ruleset requires a match to sit inside
+        # a fenced block, which is right for a TODO marker and WRONG here: a genuine
+        # error message is unfenced prose. Measured -- forcing prose mode silenced ALL
+        # FOUR positive controls plus the existing suite's "could not connect" case,
+        # i.e. it traded false alarms for total blindness, a strictly worse failure.
+        # The non-prose branch suppresses exactly the two mention forms that bit us:
+        # a phrase in `backticks` and a negated sentence.
+        ctx = Context(tool_name=tool_name)
+        real = find_real(surface, _INFRA_FAIL, ctx, kind="marker")
+        return real[0] if real else None
+    except Exception:  # noqa: BLE001 - fail-open to the old behaviour
+        m = _INFRA_FAIL.search(text)
+        return m if m else None
+
+
 def classify(tool_name: str, tool_input, resp) -> tuple[str, str]:
     """Return (verdict, reason). verdict in SUCCESS/FAILED/AMBIGUOUS."""
     # 1. Structural FAILED (all tools).
@@ -270,11 +327,11 @@ def classify(tool_name: str, tool_input, resp) -> tuple[str, str]:
 
     is_mcp = tool_name.startswith("mcp__")
 
-    # 2. MCP-only: infra/transport failure phrases in the result text.
+    # 2. MCP-only: infra/transport failure phrases that are real OCCURRENCES, not
+    #    mentions inside a field name or a returned document body.
     if is_mcp:
-        text = _gather_text(resp)
-        if text and _INFRA_FAIL.search(text):
-            m = _INFRA_FAIL.search(text)
+        m = _infra_hit(_gather_text(resp), tool_name)
+        if m is not None:
             return "FAILED", f"infra-failure text: '{m.group(0)}'"
 
     # 3. AMBIGUOUS: empty where content is expected (MCP must-return-content tools).

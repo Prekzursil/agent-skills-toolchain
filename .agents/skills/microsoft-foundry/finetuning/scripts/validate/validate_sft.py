@@ -92,7 +92,7 @@ def validate_sft(filepath: str) -> None:
 
     if token_counts:
         avg_tok = sum(token_counts) / len(token_counts)
-        print("\nToken stats (approx):")
+        print(f"\nToken stats (approx):")
         print(f"  Avg: {avg_tok:.0f}  Min: {min(token_counts)}  Max: {max(token_counts)}")
         print(f"  Total: {sum(token_counts):,}")
 
@@ -102,19 +102,19 @@ def validate_sft(filepath: str) -> None:
         print(f"\nSystem prompts: {len(system_prompts)} unique")
 
     if errors:
-        print("\n❌ ERRORS (must fix):")
+        print(f"\n❌ ERRORS (must fix):")
         for e in errors[:20]:
             print(f"  • {e}")
         if len(errors) > 20:
             print(f"  ... and {len(errors) - 20} more errors")
 
     if warnings:
-        print("\n⚠️  WARNINGS:")
+        print(f"\n⚠️  WARNINGS:")
         for w in warnings[:10]:
             print(f"  • {w}")
 
     if not errors:
-        print("\n✅ Data is valid for SFT fine-tuning!")
+        print(f"\n✅ Data is valid for SFT fine-tuning!")
     else:
         print(f"\n❌ Fix {len(errors)} error(s) before submitting.")
         sys.exit(1)
