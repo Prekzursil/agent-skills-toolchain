@@ -27,6 +27,8 @@ import re
 import sys
 from dataclasses import dataclass, field
 
+from harness.contract import SENTINEL_TAIL_BYTES
+
 # The size/sentinel rule belongs to the C1 shared completion predicate, which states it is "the
 # single definition every producer and consumer must share". This module therefore DELEGATES that
 # half rather than reimplementing it, and adds only what C1 does not cover: unit identity and the
@@ -54,13 +56,6 @@ try:
     from completion import artifact_text_ok
 except Exception:  # pragma: no cover - exercised by the fallback test
     artifact_text_ok = None  # type: ignore[assignment]
-
-SENTINEL_TAIL_BYTES = 600
-"""How far from the end the completion sentinel must appear.
-
-Measured in bytes, not lines: agents append trailing prose of unpredictable line length, and a
-line-based window silently widens on a file with long lines.
-"""
 
 
 @dataclass(frozen=True)

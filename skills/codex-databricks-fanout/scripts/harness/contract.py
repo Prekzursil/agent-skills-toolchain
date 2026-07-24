@@ -32,6 +32,15 @@ def floor_for(lane: str) -> int:
     return PER_LANE_FLOORS.get(lane, PER_LANE_FLOORS["default"])
 
 
+SENTINEL_TAIL_BYTES = 600
+"""How far from the end the completion sentinel must appear -- the single source of truth for both
+gates (and_gate_artifact here and the structural gate in gate.py).
+
+Measured in bytes, not lines: agents append trailing prose of unpredictable line length, and a
+line-based window silently widens on a file with long lines.
+"""
+
+
 LANE_SCHEMAS = {
     "coverage": {
         "file",
@@ -57,7 +66,7 @@ class Unit:
 
 
 def and_gate_artifact(unit_id, artifact, min_bytes=1024) -> tuple[bool, str, int]:
-    """Clauses 2-4: exists AND >= min_bytes AND sentinel in last 600 bytes.
+    """Clauses 2-4: exists AND >= min_bytes AND sentinel in last SENTINEL_TAIL_BYTES bytes.
     Ported from the proven completion_predicate.py (passed the 67/67 run)."""
     artifact = Path(artifact)
     if not artifact.is_file():
@@ -66,7 +75,9 @@ def and_gate_artifact(unit_id, artifact, min_bytes=1024) -> tuple[bool, str, int
     if size < min_bytes:
         return False, f"artifact-too-small-{size}", size
     try:
-        tail = artifact.read_bytes()[-600:].decode("utf-8", errors="replace")
+        tail = artifact.read_bytes()[-SENTINEL_TAIL_BYTES:].decode(
+            "utf-8", errors="replace"
+        )
     except OSError as e:
         return False, f"unreadable-{e}", size
     if f"UNIT-COMPLETE: {unit_id}" not in tail:
