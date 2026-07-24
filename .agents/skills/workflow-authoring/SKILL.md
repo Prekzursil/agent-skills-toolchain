@@ -280,6 +280,41 @@ is accepting a receipt, not an answer — reject it at fan-in.
 
 ---
 
+## Governed single-shot run
+
+Everything above is how to write the workflow JS. When you instead want to GOVERN a whole run
+end-to-end from a single invocation — ground → design/plan gates → fan-out → integrate → reconcile
+→ one focused merge-when-green PR → memory sync — this skill vendors a reusable orchestrator
+meta-prompt: [`templates/governed-run-orchestrator.md`](templates/governed-run-orchestrator.md).
+
+It is a fill-in **template, not a second engine** — it rides the native Claude Code Workflow tool
+and this skill's bus. Use it in four steps:
+
+1. **Fill** — copy the template and replace ONLY its two authoritative slots. `<GOAL>` is the
+   durable outcome + named scope + resume-state + exclusions; `<DoD>` is the numbered completion
+   AND-gate. Add as many `DOD-NN` rows as the goal needs, each an externally observable state with
+   TWO mechanically independent evidence sources. Remove every `[...]` instructional sentinel; keep
+   the `<GOAL>`/`<DoD>` tag names and the `DOD-NN` id format.
+2. **Freeze** — freeze the filled `<GOAL>`/`<DoD>`, the artifact root, the schemas, and the prompt
+   hashes before the first unit launches, and never rewrite them mid-run (fan-out contract §A10).
+3. **Launch** — invoke `/workflow` and paste the whole filled prompt as its single raw string
+   argument. `/workflow` takes ONE string; do not invent `--goal`/`--dod` flags (see §2,
+   args-as-string).
+4. **Terminal marker** — the run ends with exactly one mechanically derived
+   `SUCCESS:<workflow-id>` (only when every `DOD-NN` passes with both evidence records) OR
+   `FAILED:<workflow-id> <reason>` (with every unmet id, preserved artifacts/branches, the exact
+   blocker, and one resumable next action). A progress report, a job id, "started in the
+   background", or "check status" is NEVER terminal success.
+
+This **complements, and does not duplicate**, the neighbouring orchestration skills: the
+cross-vendor architect/editor split, the sandbox ladder, and retry-escalation live in
+[`../orchestration-patterns/SKILL.md`](../orchestration-patterns/SKILL.md); the large
+parallel-agent-on-Databricks fan-out lives in
+[`../codex-databricks-fanout/SKILL.md`](../codex-databricks-fanout/SKILL.md). Author the workflow
+JS with §1–§12 above; reach for the template only to govern an entire run.
+
+---
+
 ## Companion artifacts in this workspace
 
 - **`/plan-gate`** (`~/.claude/workflows/plan-gate.mjs`) — saved, schema-typed
