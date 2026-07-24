@@ -256,6 +256,17 @@ jobs:
       # them, so a suite that is not named here is dead weight that cannot catch a regression.
       - name: gate-tests-coverage bounded hook launcher
         run: python hooks/_shared/test_hookrun.py
+      # tools/mcp/closed-batch — the apply-when-closed ~/.claude.json batch editor.
+      # Stdlib-only, so no install step; named explicitly for the same reason as the
+      # suites above (there is no repo-wide pytest autodiscovery, so an unnamed suite
+      # cannot catch a regression). What it gates is destructive-edit safety: that the
+      # live-session guard refuses to write, that only the SCOPED project blocks lose
+      # "serena" while every other block stays byte-identical, that the unrelated MCP
+      # curation is never wiped, and that --revert-from restores the file byte-for-byte.
+      # Measured when it landed: 35 passed, and a 12-mutation harness killed 12/12
+      # (guard disabled, scope widened, backup skipped, fail-open, CRLF writer, ...).
+      - name: gate-tests-coverage closed-batch config editor
+        run: python -m pytest tools/mcp/closed-batch/tests -q
       # tools/repomap — the fan-out grounding-pack builder that
       # rules/common/fan-out-contract.md §A11 prescribes. Stdlib-only unittest
       # suite with its own __main__ runner, so pytest DISCOVERY would not execute
