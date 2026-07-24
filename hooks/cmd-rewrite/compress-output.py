@@ -180,7 +180,7 @@ def _drop_large_images(text: str) -> tuple[str, int]:
         if len(raw) < IMG_MIN_BYTES:
             return match.group(0)  # small / element-scoped -> untouched
         try:
-            digest = hashlib.sha1(raw).hexdigest()[:12]
+            digest = hashlib.sha1(raw, usedforsecurity=False).hexdigest()[:12]
             path = os.path.join(_screenshot_dir(), f"screenshot_{digest}.png")
             with open(path, "wb") as fh:
                 fh.write(raw)

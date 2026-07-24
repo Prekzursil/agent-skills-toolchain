@@ -432,7 +432,7 @@ def test_b_browser_large_image_dropped() -> None:
         "the 50KB base64 blob is still in the output",
     )
     # The file the placeholder points at must really exist, with the exact bytes.
-    digest = hashlib.sha1(raw).hexdigest()[:12]
+    digest = hashlib.sha1(raw, usedforsecurity=False).hexdigest()[:12]
     saved = os.path.join(_temp_dir(), f"screenshot_{digest}.png")
     _check(
         "B08 screenshot file written to disk", os.path.isfile(saved), f"missing {saved}"
