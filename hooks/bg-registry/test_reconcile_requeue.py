@@ -189,6 +189,36 @@ class TestClassifyOrphan:
         )
         assert d.prompted is False
 
+    def test_non_requeue_actions_leave_attempt_unchanged(self):
+        # Only REQUEUE/SALVAGE increment attempt; DONE / LEAVE_ALIVE / UNKNOWN must leave it
+        # untouched. Closes the review's attempt-invariant gap: with only the +1 branches tested,
+        # a mutation that also bumped attempt on the terminal actions survived under 100% coverage.
+        r = _rec(attempt=2)
+        done = classify_orphan(
+            r,
+            current_sid=CUR,
+            now=NOW,
+            is_artifact_complete=_complete,
+            is_pid_alive=_dead,
+        )
+        alive = classify_orphan(
+            r,
+            current_sid=CUR,
+            now=NOW,
+            is_artifact_complete=_severed,
+            is_pid_alive=_alive,
+        )
+        unknown = classify_orphan(
+            r,
+            current_sid=CUR,
+            now=NOW,
+            is_artifact_complete=_severed,
+            is_pid_alive=_unknown,
+        )
+        assert (done.action, done.attempt) == (DONE, 2)
+        assert (alive.action, alive.attempt) == (LEAVE_ALIVE, 2)
+        assert (unknown.action, unknown.attempt) == (UNKNOWN, 2)
+
 
 class TestPlanRequeue:
     def test_10_unit_hardkill_only_incomplete_requeue(self):

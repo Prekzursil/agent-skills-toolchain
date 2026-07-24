@@ -16,10 +16,12 @@ Three distinct measured problems, one mechanism (07-OPTIONS-C.md, C16):
       third identical attempt and escalates, emitting the fingerprint + the two attempts +
       a demand for a materially different approach.
 
-The taxonomy classes are the ones the cross-vendor-dispatch rule already names, so a
-producer and this handler cannot drift: severed-stream / codex-exit-<n> / win-arg-limit /
-timeout-<n>s / schema-invalid, plus 429 (rate-limit) and an explicit UNCLASSIFIED so a
-novel shape fails VISIBLY rather than falling through a default unnoticed.
+The taxonomy class STEMS align (by convention) with the names the cross-vendor-dispatch
+rule already uses: severed-stream / win-arg-limit / schema-invalid, plus the two the rule
+renders with a numeric suffix -- codex-exit(-<n>) and timeout(-<n>s) -- where the CALLER
+appends the suffix, plus 429 (rate-limit) and an explicit UNCLASSIFIED so a novel shape
+fails VISIBLY rather than falling through a default unnoticed. Alignment is a convention,
+not an enforced link: renaming a class here WOULD drift from the rule, so keep them in sync.
 
 Stdlib-only, no I/O; safe to import from a hook or the fan-out barrier.
 """
