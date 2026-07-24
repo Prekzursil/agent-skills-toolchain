@@ -1,6 +1,6 @@
 ---
 name: run-taskwatch_monitor
-description: Use when running, launching, or smoke-testing taskwatch_monitor — the general-purpose long-task progress monitor (the FEP dashboard generalized) — to watch a long-running job (build, download, CI run, FEP/BPMD driver, LLM generation, rclone transfer) with an honest, BLIND-aware status, p50/p90 ETA, and no fabricated percentages. Covers register/list/status, the live watch TUI, the MCP server, install/launch, and the offline smoke test. Do NOT use for editing the taskwatch source (that is the cov-gated build), and do NOT expect the live TUI to render inside chat (use status --json for readable output).
+description: Use when running, launching, or smoke-testing taskwatch_monitor - the general-purpose long-task progress monitor - to watch a long-running job (build, download, CI run, FEP/BPMD driver, LLM generation, rclone transfer) with an honest, BLIND-aware status, p50/p90 ETA, and no fabricated percentages. Covers register/list/status, the live watch TUI, the MCP server, and the smoke test.
 ---
 
 # Run taskwatch_monitor

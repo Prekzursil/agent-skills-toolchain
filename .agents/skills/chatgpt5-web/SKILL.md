@@ -1,12 +1,6 @@
 ---
 name: chatgpt5-web
-description: >
-  Direct browser-automation ChatGPT 5 web lane — one skill, three modes selected by a `mode:` arg
-  (query / discuss / curate). Use when the user explicitly wants the ChatGPT web side (not Codex
-  orchestration): mode:query for a single direct question or task (chatgpt5_web_query); mode:discuss
-  to debate, ideate, or spar back-and-forth (chatgpt5_web_discuss); mode:curate to compare candidates
-  and pick or recommend the best (chatgpt5_web_curate). Do NOT use for the legacy
-  agent-lanes-chatgpt-web-* routes or for Codex-side lanes (use codex-consult for those).
+description: "Direct browser-automation ChatGPT 5 web lane - one skill, three modes via a `mode:` arg. Use when the user explicitly wants the ChatGPT web side (not Codex orchestration): mode:query for a single direct question; mode:discuss to debate/ideate/spar; mode:curate to compare candidates and pick the best. NOT for Codex-side lanes (use codex-consult)."
 ---
 
 # ChatGPT 5 Web

@@ -1,6 +1,6 @@
 ---
 name: claude-science-local
-description: Use to bring up, diagnose, or recover Anthropic's Claude Science local compchem / life-science workbench - a WSL2 daemon on 127.0.0.1:8000. Triggers - claude science, compchem or life-science workbench, :8000 down or unreachable, cs open, start claude science, science daemon wedged or off, open the science UI. Teaches the cs verbs (open, ensure, status, fix, doctor, backup, restore), why HTTP 401 means alive, the host-RAM SQLite wedge and that cs fix recovers it, cs ensure before any :8000 call, and that scope is LOCAL only.
+description: Use to bring up, diagnose, or recover Claude Science, Anthropic's local compchem / life-science workbench - a WSL2 daemon on 127.0.0.1:8000. Triggers - claude science, compchem/life-science workbench, :8000 down, cs open/status/fix/doctor/ensure, science daemon wedged. Teaches why HTTP 401 means alive, the host-RAM SQLite wedge that cs fix recovers, and cs ensure before any :8000 call.
 license: MIT
 ---
 

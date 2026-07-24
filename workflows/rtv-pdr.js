@@ -30,12 +30,12 @@ export const meta = {
 
 const ROLLOUT_SCHEMA = {
   type: 'object',
-  additionalProperties: false,
-  required: ['approach', 'key_changes', 'hypotheses', 'failure_modes', 'candidate_patch_or_plan', 'self_reported_confidence'],
+  additionalProperties: true,
+  required: ['approach'],
   properties: {
     approach: {
       type: 'string',
-      description: 'The high-level strategy or angle chosen for this rollout',
+      description: 'The complete solution narrative: strategy, concrete changes, and patch or plan. This is the ONLY required field; put all substance here even if optional fields are omitted.',
     },
     key_changes: {
       type: 'array',
@@ -65,8 +65,8 @@ const ROLLOUT_SCHEMA = {
 
 const COMPARE_SCHEMA = {
   type: 'object',
-  additionalProperties: false,
-  required: ['winner_id', 'reason'],
+  additionalProperties: true,
+  required: ['winner_id'],
   properties: {
     winner_id: {
       type: 'string',
@@ -81,13 +81,13 @@ const COMPARE_SCHEMA = {
 
 const FINAL_SCHEMA = {
   type: 'object',
-  additionalProperties: false,
-  required: ['winner', 'runner_up', 'rounds', 'rationale'],
+  additionalProperties: true,
+  required: ['rationale'],
   properties: {
     winner: {
       type: 'object',
-      additionalProperties: false,
-      required: ['id', 'summary'],
+      additionalProperties: true,
+      required: ['id'],
       properties: {
         id: { type: 'string', description: 'Rollout ID, e.g. "R0"' },
         summary: { type: 'object', additionalProperties: true, description: 'The winning rollout distillation (ROLLOUT_SCHEMA shape)' },
@@ -130,14 +130,16 @@ Avoid guessing what other rollouts might do; choose the strategy that YOU find m
 TASK:
 ${taskDesc}${repoCtx}
 
-Produce a structured distillation of your solution attempt. Be honest about failure_modes and risks.
-The candidate_patch_or_plan should be as concrete as possible (actual diff/code if you can, else a precise plan).
+Produce a structured distillation of your solution attempt. Put the COMPLETE solution in approach:
+strategy, concrete changes, and the actual patch/code or precise plan. It is the ONLY required field,
+so it must preserve all substance even if you omit optional fields. Be honest about failure_modes and risks.
 self_reported_confidence is for logging only — a separate judge will select the winner.`,
     {
       label: `rollout:R${idx}`,
       phase: 'Rollout',
       schema: ROLLOUT_SCHEMA,
       model: 'opus',
+      isolation: 'worktree',
     }
   ))
 }
@@ -310,6 +312,7 @@ Your solution may supersede the winner's if you find a clearly better path.`,
       phase: 'Refine',
       schema: ROLLOUT_SCHEMA,
       model: 'opus',
+      isolation: 'worktree',
     }
   )
 

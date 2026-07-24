@@ -1,6 +1,6 @@
 ---
 name: secsearch
-description: Unified offline search across ALL local security-knowledge corpora under D:\knowledge (HackTricks + PayloadsAllTheThings + OWASP WSTG + OWASP CheatSheets + Atomic Red Team, plus the GTFOBins/LOLBAS prose). One ripgrep query, per-source provenance tags so you know which corpus each hit came from. Unlimited, no network, no quota. Use this FIRST for any cross-source security/pentest/red-team/web-AppSec lookup; escalate to hacktricks-api only when local search is insufficient; use lolbin-lookup instead for structured GTFOBins/LOLBAS binary lookups.
+description: Unified offline search across ALL local security-knowledge corpora under D:\knowledge (HackTricks + PayloadsAllTheThings + OWASP WSTG + OWASP CheatSheets + Atomic Red Team, plus GTFOBins/LOLBAS prose). One ripgrep query, per-source provenance tags. Unlimited, no network, no quota. Use FIRST for any cross-source security/pentest/red-team lookup; use lolbin-lookup for structured binary lookups.
 license: Skill MIT. Indexed content keeps its upstream licenses (HackTricks CC BY-NC-SA, GTFOBins/LOLBAS GPL-3.0, OWASP CC-BY-SA, PayloadsAllTheThings/Atomic MIT) — personal local reference only, no redistribution. See D:\knowledge\CORPORA.md.
 ---
 

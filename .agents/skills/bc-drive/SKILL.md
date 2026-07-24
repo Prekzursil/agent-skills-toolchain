@@ -1,6 +1,6 @@
 ---
 name: bc-drive
-description: Deterministic ON-DEMAND driver for a LIVE Battle Cats (jp.co.ponos.battlecatsen, EN 15.4.1) instance on rooted BlueStacks. Reads engine state (scene/metrics) via crash-safe one-shot Frida NativeFunction calls (NO per-frame Interceptor) and actuates via OS-level `adb shell input tap` in device px. BC is a CUSTOM PONOS C++/GLES engine (not cocos2d-x). Use to script/inspect BC menu navigation, resolve its device-to-drawable coordinate space, or read its scene state. Requires adb + frida-server up.
+description: Deterministic ON-DEMAND driver for a LIVE Battle Cats (jp.co.ponos.battlecatsen, EN 15.4.1) on rooted BlueStacks. Reads engine state (scene/metrics) via crash-safe one-shot Frida NativeFunction calls (NO per-frame Interceptor) and actuates via OS-level `adb shell input tap` in device px. BC is a CUSTOM PONOS C++/GLES engine (not cocos2d-x). Use to script/inspect BC menus or read scene state.
 ---
 
 # bc-drive — on-demand Battle Cats canvas driver

@@ -1,6 +1,6 @@
 ---
 name: design-review-loop
-description: MOVED — renamed to design-studio. This is a redirect tombstone kept so in-flight invocations of the old name still resolve. Use the design-studio skill instead; it is the SAME TCR design-review loop (G0 PRIME to G7 VERIFY, revert-gate) plus a thin mode router. Pick a mode — direct, audit, mirror, critique, iterate, implement, verify, loop, drive, session — or run design-studio loop for the whole pass. Triggers that used to land here (design review, run the design-review loop, TCR loop, audit the UI, transpose or mirror to Figma, design critique, implement the design, iterate design, drive the app, interactive design tweak) now route through design-studio.
+description: MOVED - renamed to design-studio. Redirect tombstone kept so old invocations still resolve. Use design-studio instead; it is the SAME TCR design-review loop (G0 PRIME to G7 VERIFY, revert-gate) plus a mode router (direct, audit, mirror, critique, iterate, implement, verify, loop, drive, session). Old triggers - design review, TCR loop, mirror to Figma - route to design-studio.
 metadata:
   origin: user
 ---

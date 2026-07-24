@@ -160,8 +160,19 @@ jobs:
         run: |
           cp "$GITHUB_WORKSPACE/runner/ci/AGENTS.ci.md" "$CODEX_HOME/AGENTS.md"
           mkdir -p "$HOME/.agents/skills"
-          cp -r "$GITHUB_WORKSPACE"/runner/ci/skills-allowlist/* "$HOME/.agents/skills/" 2>/dev/null || true
-          echo "skills installed: $(find "$HOME/.agents/skills" -mindepth 1 -maxdepth 1 -type d | wc -l)"
+          cp -r "$GITHUB_WORKSPACE"/runner/ci/skills-allowlist/* "$HOME/.agents/skills/"
+          python "$GITHUB_WORKSPACE/runner/ci/skill_surface_census.py" \
+            --expected "$GITHUB_WORKSPACE/runner/ci/skills-allowlist" \
+            --actual "$HOME/.agents/skills" \
+            --require-skill acceptance-review
+          # M20: the census above proves the RIGHT skills arrived with the right content.
+          # This proves the resulting description surface FITS - the loader silently drops skills
+          # past ~8,000 description characters, so an over-budget tier fails open and is invisible.
+          # Both run: they answer different questions and neither subsumes the other.
+          python "$GITHUB_WORKSPACE/runner/ci/check_skill_context_budget.py" \
+            --repo "$GITHUB_WORKSPACE/runner" \
+            --runtime-root "$HOME/.agents/skills" \
+            --max-trigger-chars 8000
 
           # Harness hooks -> the vendored pure-stdlib dispatcher. HARNESS_CREDENTIAL_GUARD=1
           # turns the credential-file-read block ON for CI (it is OFF locally by owner

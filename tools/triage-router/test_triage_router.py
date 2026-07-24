@@ -11,6 +11,8 @@ Tests:
   3. Escalation mode
   4. Fail-safe (no lizard + unreadable paths)
   5. Pre-computed score pass-through
+  6. CLI integration
+  7. Production adoption wiring
 """
 
 from __future__ import annotations
@@ -34,6 +36,17 @@ SONNET_MAX = tr.SONNET_MAX_DEFAULT
 
 PASS = "\033[32mPASS\033[0m"
 FAIL = "\033[31mFAIL\033[0m"
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+ROUTER_CALL = "python tools/triage-router/triage_router.py --files"
+MODEL_ROUTE_DOCS = (
+    REPO_ROOT / "commands" / "model-route.md",
+    REPO_ROOT / "agent-self" / "config" / "commands" / "model-route.md",
+)
+START_TASK_DOCS = (
+    REPO_ROOT / "commands" / "start-task.md",
+    REPO_ROOT / "agent-self" / "config" / "commands" / "start-task.md",
+)
 
 
 def _print_verdict(label: str, verdict: tr.Verdict) -> None:
@@ -400,6 +413,139 @@ def test_cli() -> list[bool]:
 
 
 # ---------------------------------------------------------------------------
+# Test 7: Production adoption wiring
+# ---------------------------------------------------------------------------
+
+
+def test_adoption_wiring() -> list[bool]:
+    print("\n" + "=" * 60)
+    print("TEST 7: Production adoption wiring")
+    print("=" * 60)
+
+    router = REPO_ROOT / "tools" / "triage-router" / "triage_router.py"
+    tools_registry = REPO_ROOT / "tools" / "README.md"
+    quality_workflow = REPO_ROOT / ".github" / "workflows" / "quality.yml"
+    model_route_bodies = {
+        path: path.read_text(encoding="utf-8") for path in MODEL_ROUTE_DOCS
+    }
+    start_task_bodies = {
+        path: path.read_text(encoding="utf-8") for path in START_TASK_DOCS
+    }
+    tools_registry_body = tools_registry.read_text(encoding="utf-8")
+    quality_workflow_body = quality_workflow.read_text(encoding="utf-8")
+
+    # Positive control: prove every inspected surface and anchor is readable before
+    # trusting a missing adoption token from any of them.
+    router_present = router.is_file() and "def route(" in router.read_text(
+        encoding="utf-8"
+    )
+    known_present_anchors = (
+        router_present
+        and all("# Model Route Command" in body for body in model_route_bodies.values())
+        and all(
+            "decompose into work units with DoD items, file scopes, dependencies"
+            in body
+            for body in start_task_bodies.values()
+        )
+        and "[`tools/mcp/agent-lanes-codex`](mcp/README.md)" in tools_registry_body
+        and "gate-tests-coverage harness (enshrined runtime; measured, not 100%-gated)"
+        in quality_workflow_body
+    )
+
+    cases = [("known-present detector anchors found", known_present_anchors)]
+
+    model_route_parity = len({path.read_bytes() for path in MODEL_ROUTE_DOCS}) == 1
+
+    # Known-broken before F02: neither /model-route copy invoked the CLI nor
+    # consumed its required fields, escalation contract, and Opus fail-safe.
+    for path, body in model_route_bodies.items():
+        label = path.relative_to(REPO_ROOT).as_posix()
+        cases.extend(
+            [
+                (
+                    f"{label} invokes the router CLI with command-copy parity",
+                    model_route_parity and ROUTER_CALL in body,
+                ),
+                (
+                    f"{label} consumes verdict and fail-safe",
+                    model_route_parity
+                    and all(
+                        token in body
+                        for token in (
+                            "`recommended_tier`",
+                            "`model_id`",
+                            "--escalate <current-tier>",
+                            "claude-opus-4-8",
+                        )
+                    ),
+                ),
+            ]
+        )
+
+    start_task_parity = len({path.read_bytes() for path in START_TASK_DOCS}) == 1
+
+    # Known-broken before F02: neither /start-task copy delegated model choice,
+    # consumed the recommended tier, or escalated after a verification failure.
+    for path, body in start_task_bodies.items():
+        label = path.relative_to(REPO_ROOT).as_posix()
+        scope_at = body.find(
+            "decompose into work units with DoD items, file scopes, dependencies"
+        )
+        route_at = body.find("/model-route", max(scope_at, 0))
+        dispatch_at = body.find("**Pattern**: Spawn parallel sub-agents")
+        route_window = (
+            body[route_at:dispatch_at]
+            if route_at >= 0 and dispatch_at > route_at
+            else ""
+        )
+        cases.extend(
+            [
+                (
+                    f"{label} routes after file scope with command-copy parity",
+                    start_task_parity
+                    and scope_at >= 0
+                    and scope_at < route_at < dispatch_at,
+                ),
+                (
+                    f"{label} consumes recommended_tier",
+                    start_task_parity and "`recommended_tier`" in route_window,
+                ),
+                (
+                    f"{label} wires verification failure to escalation",
+                    start_task_parity and "--escalate <current-tier>" in route_window,
+                ),
+            ]
+        )
+
+    cases.extend(
+        [
+            # Known-broken before F02: the shipped tool was absent from the live registry.
+            (
+                "tool is listed in the tools registry",
+                "[`tools/triage-router`](triage-router/README.md)"
+                in tools_registry_body,
+            ),
+            # Known-broken before F02: quality CI never executed this standalone suite.
+            (
+                "quality CI executes the standalone suite",
+                (
+                    "      - name: triage-router standalone regression\n"
+                    "        working-directory: tools/triage-router\n"
+                    "        run: python test_triage_router.py"
+                )
+                in quality_workflow_body,
+            ),
+        ]
+    )
+
+    passes = []
+    for label, ok in cases:
+        passes.append(ok)
+        print(f"  => {PASS if ok else FAIL} {label}")
+    return passes
+
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 
@@ -413,6 +559,7 @@ def main() -> None:
     all_passes += test_failsafe()
     all_passes += test_provided_score()
     all_passes += test_cli()
+    all_passes += test_adoption_wiring()
 
     total = len(all_passes)
     passed = sum(all_passes)

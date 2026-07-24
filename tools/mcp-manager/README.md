@@ -145,6 +145,61 @@ not toggled — project-scope `.mcp.json` files are managed by Claude Code direc
 
 ---
 
+## claude.ai remote connectors — the census undercount fix
+
+The four planes above are **CLI-side**: local `stdio` processes or `http`/`sse`
+endpoints the CLI launches, all defined in a config file on disk. **claude.ai
+connectors are a different, fifth class** — remote MCP servers configured in the
+claude.ai web app (Settings → Connectors), OAuth-authenticated, and injected into
+the model's tool list **server-side**. They surface only as runtime
+`mcp__claude_ai_<Name>__*` namespaces and are **never persisted to any config
+file** (`grep -c mcp__claude_ai_ ~/.claude.json` = `0`). So a pure-code inventory is
+**structurally blind** to them and reports the CLI count alone as if it were the
+whole surface. `core/surface_census.py` closes that undercount.
+
+It reports a **3-tier** count that keeps the two classes separate so they are never
+conflated, reconciled from two sources:
+
+- **LIVE** (authoritative) — a manifest an agent writes from its runtime tool
+  inventory (`data/claude_ai_connectors.example.json` shows the format). This is the
+  only ground truth for the *current* connector set; code and hooks cannot read it.
+- **EVER** (durable, code-only) — `~/.claude.json` `claudeAiMcpEverConnected`, an
+  *ever-connected* **superset** that also **lags** newly-connected connectors, so it
+  is neither sound nor complete as "live". Used only as a labeled fallback so the
+  census never reads a silent `0`, and as a superset cross-check (it surfaces the
+  stale + disconnected deltas), **never** as the live count.
+
+```powershell
+# uses the stable manifest at ~/.claude/mcp-manager/claude_ai_connectors.json
+python -m core.surface_census
+# or point at any manifest / home explicitly:
+python -m core.surface_census --home C:/Users/you --manifest path/to/live.json
+```
+
+```jsonc
+// true_live_total = cli_side_count (all CLI planes) + claude_ai_reported_count
+{ "schema": "mcp-surface-census/v1",
+  "cli_side_count": 74, "claude_ai_live_count": 20, "claude_ai_ever_count": 43,
+  "claude_ai_reported_basis": "manifest", "true_live_total": 94,
+  "live_missing_on_disk": ["AdisInsight", "Felt_Maps", "TomTom_Maps"],
+  "ever_not_live_count": 26 }
+```
+
+`cli_side_count` is the **full cross-plane** count (claude user+project, `.mcp.json`,
+codex, funnel — 74 on this box), which is deliberately broader than a bare
+`~/.mcp.json + ~/.claude.json mcpServers` count (68); the fix's contribution is the
+previously-invisible **claude.ai tier** (20), so the total goes from a CLI-only
+figure to the true combined surface.
+
+**Refresh loop.** The live set exists only in the model's injected tool list, so a
+SessionStart hook (pure code) cannot see it — refresh is a one-line **model** step:
+*"list the distinct `mcp__claude_ai_*` namespaces in your tool inventory and
+overwrite the `connectors` array in `~/.claude/mcp-manager/claude_ai_connectors.json`
+(dated, with the session id)."* Between refreshes the EVER fallback keeps the census
+non-zero. The census itself stays pure code and deterministic.
+
+---
+
 ## Safe-write guarantees
 
 **Claude plane (`~/.claude.json`):**

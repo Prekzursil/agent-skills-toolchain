@@ -1,6 +1,6 @@
 ---
 name: mcp-code-orchestrate
-description: Use when one task needs the SAME tool-call shape repeated across MANY items - an xref-walk over dozens of functions, a descriptor sweep over many SMILES, batch-resolving or screening a list of papers, or aggregating one query across several MCP servers. Write ONE script (Python via the Bash tool) that calls the underlying provider CLIs, native libraries, or MCP stdio, filters and aggregates IN-CODE, and returns ONLY the distilled result, instead of N model round-trips that each bloat context with raw tool output. This is Anthropic's code-execution-with-MCP pattern (up to ~98.7% fewer tokens on fan-out work). Decision rule - reach for it once you would otherwise make more than about 5 same-shape tool calls. Not for a single tool call.
+description: Use when one task needs the SAME tool-call shape repeated across MANY items - an xref-walk over many functions, a descriptor sweep over many SMILES, or one query across several MCP servers. Write ONE script (Python via the Bash tool) that calls the provider CLIs, native libraries, or MCP stdio, filters IN-CODE, and returns ONLY the distilled result. Reach for it past ~5 same-shape calls.
 license: MIT
 ---
 

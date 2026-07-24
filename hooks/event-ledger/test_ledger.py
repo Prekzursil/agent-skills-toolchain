@@ -9,6 +9,7 @@ import importlib.util
 import io
 import json
 import os
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -61,6 +62,199 @@ def main():
     ledger.append(proj, "milestone", text="upgraded 1mcp", supersedes_failures=[fseq])
     st2 = ledger.state(proj)
     check("failure auto-tombstoned", len(st2["open_failures"]) == 0)
+
+    print("== typed claim-edge store ==")
+    required_relations = {
+        "supports",
+        "contradicts",
+        "duplicate_of",
+        "supersedes",
+        "derived_from",
+    }
+    # Known-broken before G-04: the typed relation vocabulary is absent.
+    check(
+        "claim-edge relation vocabulary is exposed",
+        required_relations <= set(getattr(ledger, "CLAIM_RELATIONS", ())),
+    )
+
+    invalid_note_kind = subprocess.run(
+        [
+            sys.executable,
+            str(HERE / "note.py"),
+            "--kind",
+            "claim_edge",
+            "missing edge schema",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    # Known-broken before G-04: there is no separate public annotation-kind contract.
+    check(
+        "generic note CLI cannot bypass the claim-edge schema",
+        hasattr(ledger, "NOTE_KINDS")
+        and "claim_edge" in ledger.KINDS
+        and "claim_edge" not in ledger.NOTE_KINDS
+        and invalid_note_kind.returncode != 0,
+    )
+
+    edge_proj = "C:/fake/projectEdges"
+    claim = ledger.append(edge_proj, "decision", text="tests pass")
+    source_ref = "receipt:test-run-1"
+    target_ref = f"seq:{claim['seq']}"
+    try:
+        supports = ledger.append_claim_edge(
+            edge_proj,
+            "supports",
+            source=source_ref,
+            target=target_ref,
+        )
+        contradicts = ledger.append_claim_edge(
+            edge_proj,
+            "contradicts",
+            source=source_ref,
+            target=target_ref,
+        )
+        matches = ledger.claim_edges(
+            edge_proj,
+            relation="supports",
+            source=source_ref,
+            target=target_ref,
+        )
+        stored = [
+            json.loads(line)
+            for line in ledger._events_file(edge_proj)
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line.strip()
+        ]
+        direct_ok = (
+            supports.get("kind") == "claim_edge"
+            and supports.get("seq") == claim["seq"] + 1
+            and supports in stored
+            and contradicts in stored
+            and len(matches) == 1
+            and matches[0].get("seq") == supports["seq"]
+        )
+    except Exception as ex:
+        check(f"typed edges share and query events.jsonl (raised {ex})", False)
+    else:
+        # Known-broken before G-04: no edge API or claim_edge event kind exists.
+        check("typed edges share and query events.jsonl", direct_ok)
+
+    before_invalid = ledger.state(edge_proj)["seq"]
+    direct_schema_rejected = False
+    invalid_rejected = False
+    empty_ref_rejected = False
+    empty_target_rejected = False
+    invalid_query_rejected = False
+    try:
+        ledger.append(
+            edge_proj,
+            "claim_edge",
+            relation="supports",
+            source=source_ref,
+        )
+    except ValueError:
+        direct_schema_rejected = True
+    except Exception:
+        pass
+    try:
+        ledger.append_claim_edge(
+            edge_proj,
+            "invented_relation",
+            source=source_ref,
+            target=target_ref,
+        )
+    except ValueError:
+        invalid_rejected = True
+    except Exception:
+        pass
+    try:
+        ledger.append_claim_edge(
+            edge_proj,
+            "supports",
+            source=source_ref,
+            target="",
+        )
+    except ValueError:
+        empty_target_rejected = True
+    except Exception:
+        pass
+    try:
+        ledger.claim_edges(edge_proj, relation="invented_relation")
+    except ValueError:
+        invalid_query_rejected = True
+    except Exception:
+        pass
+    try:
+        ledger.append_claim_edge(
+            edge_proj,
+            "supports",
+            source="",
+            target=target_ref,
+        )
+    except ValueError:
+        empty_ref_rejected = True
+    except Exception:
+        pass
+    # Known-broken before G-04: no boundary rejects malformed edge writes/queries.
+    check(
+        "invalid edge schema is rejected without an append",
+        direct_schema_rejected
+        and invalid_rejected
+        and empty_ref_rejected
+        and empty_target_rejected
+        and invalid_query_rejected
+        and ledger.state(edge_proj)["seq"] == before_invalid,
+    )
+
+    failure = ledger.append(edge_proj, "failure", text="retired claim")
+    note_result = subprocess.run(
+        [
+            sys.executable,
+            str(HERE / "note.py"),
+            "--kind",
+            "milestone",
+            "--cwd",
+            edge_proj,
+            "--supersedes",
+            str(failure["seq"]),
+            "replacement claim",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    try:
+        milestone = next(
+            event
+            for event in reversed(ledger.replay(edge_proj, 20))
+            if event.get("kind") == "milestone"
+            and event.get("text") == "replacement claim"
+        )
+        supersedes = ledger.claim_edges(
+            edge_proj,
+            relation="supersedes",
+            source=f"seq:{milestone['seq']}",
+            target=f"seq:{failure['seq']}",
+        )
+        cli_edge_ok = (
+            note_result.returncode == 0
+            and len(supersedes) == 1
+            and supersedes[0].get("kind") == "claim_edge"
+            and all(
+                item.get("seq") != failure["seq"]
+                for item in ledger.state(edge_proj)["open_failures"]
+            )
+        )
+    except Exception:
+        cli_edge_ok = False
+    # Known-broken before G-04: --supersedes tombstones but stores no claim_edge.
+    check(
+        "note --supersedes writes a typed edge and preserves tombstoning",
+        cli_edge_ok,
+    )
 
     print("== per-project isolation (slug) ==")
     ledger.append("C:/fake/projectB", "goal", text="other")

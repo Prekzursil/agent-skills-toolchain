@@ -138,6 +138,7 @@ def normalize_event(
                 else ""
             )
         ),
+        transcript_path=str(data.get("transcript_path") or ""),
         agent=AgentEnvelope(
             id=str(agent_id or ""),
             type=str(agent_type or ""),

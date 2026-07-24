@@ -36,6 +36,7 @@ class HookEvent:
     prompt: str = ""
     source: str = ""
     trigger: str = ""
+    transcript_path: str = ""
     agent: AgentEnvelope = field(default_factory=AgentEnvelope)
 
     def to_dict(self) -> dict[str, Any]:

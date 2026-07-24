@@ -166,6 +166,16 @@ jobs:
         run: |
           pip install -e ".[dev]"
           pytest --cov=monitorcore --cov-branch --cov-report=term-missing --cov-fail-under=100
+      # tools/stdin-server — a stdlib-only interactive-stdin MCP server (Desktop Commander
+      # start_process/interact_with_process/read_process_output). Zero third-party deps, so
+      # only pytest+pytest-cov are installed; the whole module is 100% line+branch gated. The
+      # subprocess/thread I/O is exercised against REAL short-lived child processes (a
+      # `python -i -u` REPL, `python -c` one-shots), so the gate measures behaviour, not mocks.
+      - name: gate-tests-coverage stdin-server
+        working-directory: tools/stdin-server
+        run: |
+          pip install pytest pytest-cov
+          pytest --cov=stdin_server --cov-branch --cov-report=term-missing --cov-fail-under=100
       # agent-self/harness — the enshrined shared lifecycle harness (SSOT for the live
       # ~/.agents/harness deploy loop). Runs its full pytest suite on the CI interpreter as a
       # REGRESSION gate for the projected tree, and measures branch coverage (term-missing).
@@ -179,6 +189,12 @@ jobs:
         run: |
           pip install pytest pytest-cov pyyaml
           python -m pytest agent-self/harness/tests -q --cov=agent-self/harness --cov-branch --cov-report=term-missing
+      # tools/triage-router uses a stdlib-only custom runner, not pytest discovery.
+      # Naming the script here turns its existing tests and production-wiring checks
+      # into an executed regression lane instead of an inert test file.
+      - name: triage-router standalone regression
+        working-directory: tools/triage-router
+        run: python test_triage_router.py
       # hooks/cmd-rewrite — the SOLE PreToolUse rewriter for the Bash tool. There is no
       # repo-wide test autodiscovery here, so these suites run only because this step names
       # them; without it they are dead weight that cannot catch a regression. Both are
@@ -199,6 +215,86 @@ jobs:
         run: |
           python test_msys_pathconv.py
           python test_hooks.py
+
+      # tools/search-expansion — RRF rank fusion, the pure SearXNG settings.yml transform,
+      # and the query-plan translate->dedup sibling (Enterprise-Search decompose borrow).
+      # Reuses the existing `gate-tests-coverage` charter slug on purpose: it is not a new
+      # gate, so .quality/charter_check.sh stays consistent with no charter.yml edit.
+      # Only the three PURE modules are coverage-gated. searxng_regional.py is the I/O shell
+      # (HTTP probes, docker restart, file backup); mocking it to 100% would assert against
+      # the mocks, so it is covered by lint/types and by live exercise instead — the runs
+      # are recorded in docs/search-expansion/README.md. pyyaml is a real test dependency:
+      # the suite PARSES the rendered block rather than eyeballing it, because a malformed
+      # settings.yml takes the owner's search instance down.
+      - name: gate-tests-coverage search-expansion (rrf + searxng config + query plan)
+        working-directory: tools/search-expansion
+        run: |
+          pip install pytest pytest-cov pyyaml
+          pytest --cov=rank_fusion --cov=searxng_config --cov=query_plan --cov-branch \
+            --cov-report=term-missing --cov-fail-under=100
+
+      - name: gate-tests-coverage strict-target hook manifests
+        run: |
+          python -m pytest ci/tests/test_emit_hook_manifest.py -q
+          python ci/emit_hook_manifest.py --source hooks/hooks.json --target codex-plugin --check
+          python ci/emit_hook_manifest.py --source agent-self/config/hooks/hooks.json --target codex-plugin --check
+
+      # L13 adoption: the checked-in adversarial corpus plus its miner regressions.
+      - name: gate-tests-coverage adversarial harness corpus
+        run: |
+          python -m pytest \
+            ci/tests/test_harness_corpus_wiring.py \
+            tools/harness-corpus/test_hook_telemetry.py \
+            hooks/git-hygiene/test_docs_hygiene.py -q
+      # G-10: hooks/_shared suites are standalone scripts with their own __main__, so pytest
+      # DISCOVERY is not evidence that they ran — call this one explicitly.
+      - name: gate-tests-coverage hook-manifest provenance
+        run: python hooks/_shared/test_manifest_provenance.py
+      # A04: hookrun is a standalone suite with its own __main__ runner, so pytest
+      # DISCOVERY would not execute it either. Named explicitly, like the provenance gate above.
+      # Measured when A04 landed: hooks/_shared holds 7 test suites and CI invoked exactly ONE of
+      # them, so a suite that is not named here is dead weight that cannot catch a regression.
+      - name: gate-tests-coverage bounded hook launcher
+        run: python hooks/_shared/test_hookrun.py
+      # claim-verify-gate ships a stdlib-only regression suite AND a mutation
+      # probe for that suite. Named explicitly for the same reason as the two
+      # steps above: there is no repo-wide pytest autodiscovery here, so a suite
+      # CI does not invoke is dead weight that cannot catch a regression. The
+      # mutation step is the both-states check applied to the suite itself
+      # (rules/common/single-signal-verification.md:44): it reverts five
+      # load-bearing decisions in claim_gate.py and requires the suite to go RED
+      # for each, so a suite that has stopped protecting them fails the gate.
+      # --self-test is the same discipline applied to the gate's own rules.
+      # Reuses the existing gate-tests-coverage charter slug on purpose - it is
+      # not a new gate, so .quality/charter_check.sh stays consistent with no
+      # charter.yml edit. Measured locally on python 3.14.6: 29 test functions
+      # passed, 5/5 mutations killed, all 10 rules fired in the broken state.
+      - name: gate-tests-coverage claim-verify-gate (suite + mutation probe)
+        run: |
+          python .agents/skills/claim-verify-gate/scripts/claim_gate.py --self-test
+          python .agents/skills/claim-verify-gate/scripts/test_claim_gate.py
+          python .agents/skills/claim-verify-gate/scripts/test_claim_gate_mutations.py
+      # G-06: the schema module is tested AND its linter is run over the checked-in
+      # workflows, so a schema defect in a production workflow fails the gate.
+      - name: gate-tests-coverage fanout-schema (module + production lint)
+        working-directory: tools/fanout-schema
+        run: |
+          npm test
+          npm run lint -- ../../workflows
+
+      # hooks/_dispatch/test_wiring.py also audits a deployed Windows harness, so
+      # running the whole module is not repo-portable. Select only its cross-consumer
+      # plugin-manifest conformance tests in this required Python test lane.
+      - name: gate-tests-coverage hook manifest conformance
+        run: python -m pytest hooks/_dispatch/test_wiring.py -q -k hook_manifest_conformance
+
+      # browser-rail helper -- PURE-logic unit tests only: no browser, no
+      # playwright install, no network (browser_rail.py imports playwright lazily).
+      # Deliberately NOT a `gate-<slug>` step name so charter_check.sh's reverse
+      # check ignores it, same rationale as the monitorcore vendor-drift step.
+      # pytest is already installed by the step above.
+      - name: browser-rail helper tests (pure logic, no browser)
+        run: python -m pytest skills/browser-rail/scripts/test_browser_rail.py -q
 
   sast:
     name: gate-sast (opengrep)

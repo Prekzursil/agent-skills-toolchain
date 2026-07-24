@@ -1,6 +1,6 @@
 ---
 name: competitive-programming-solver
-description: Solves algorithmic and competitive programming problems by producing fast, correct solutions in C, C++, and Python. Use this skill whenever the user mentions a problem from Codeforces, AtCoder, LeetCode, Infoarena, pbinfo, Kattis, SPOJ, USACO, ICPC, IOI, or any online judge / olympiad / contest. Also use for any problem statement with input/output specs, time/memory limits, or wording like "given N elements... output the answer", "TLE", "AC", "passes the time limit", "1-indexed array", or "competitive programming". Trigger even if the user only shares an input file, a buggy submission, or asks "why is my solution slow / wrong / failing test X". Default to producing all three languages unless the user specifies one.
+description: Solves algorithmic / competitive-programming problems with fast, correct solutions in C, C++, and Python. Use whenever the user mentions Codeforces, AtCoder, LeetCode, Infoarena, pbinfo, Kattis, SPOJ, USACO, ICPC, IOI, or any online judge / olympiad / contest, or a statement with input/output specs, time/memory limits, "TLE", "AC", or "competitive programming". Trigger even for a buggy submission.
 ---
 
 # Competitive Programming Solver

@@ -9,6 +9,10 @@ Full configuration and toolchain repo for all my AI agents: Codex CLI, Claude Co
 git clone https://github.com/Prekzursil/agent-skills-toolchain.git
 cd agent-skills-toolchain
 
+# Register and install the single Claude Code skill surface
+claude plugin marketplace add Prekzursil/agent-skills-toolchain --sparse .claude-plugin .agents/skills skills skills-claude-only
+claude plugin install agent-skills-toolchain@agent-skills-toolchain
+
 # Unlock encrypted credential stores (accounts.json) for plug-and-play MCP hubs.
 # Needs git-crypt + the exported key from your password manager. See docs/SECRETS.md.
 git-crypt unlock /path/to/agent-skills-toolchain.gitcrypt.key
@@ -256,7 +260,7 @@ This repo can also carry exact upstream snapshots when I need the full project i
 
 ### Skills
 
-Live installable skills currently ship from `skills/`:
+Live installable skills currently ship from the authoritative `.agents/skills/` tree:
 
 - `quality-gate-automation-architect` - safe automation architecture for PR repair, coverage ratchets, analyzer debt burn-down, and merge governance.
 - `hexstrike-ai-setup` - install, wire, and validate the local HexStrike runtime for Codex, Claude, and Gemini.
@@ -272,9 +276,7 @@ Live installable skills currently ship from `skills/`:
 - `codex-vscode-host-routing` - keep VS Code Codex hosted on Windows by default.
 - `reboot-safe-ops-continuation` - capture resumable machine state before forced reboots.
 - `codex-consult` - one skill, three modes (consult / review / curate) for the Codex-side orchestration lane; replaces the former `codex-local-*` and `agent-lanes-codex-*` per-mode skills.
-- `agent-lanes-chatgpt-web-query` / `chatgpt5-web-query` - explicitly select the direct ChatGPT web query lane.
-- `agent-lanes-chatgpt-web-discuss` / `chatgpt5-web-discuss` - explicitly select the direct ChatGPT web discussion lane.
-- `agent-lanes-chatgpt-web-curate` / `chatgpt5-web-curate` - explicitly select the direct ChatGPT web curation lane.
+- `chatgpt5-web` - one direct ChatGPT web lane with query / discuss / curate modes; replaces the former `agent-lanes-chatgpt-web-*` and `chatgpt5-web-*` per-mode skills.
 - `using-superpowers`, `brainstorming`, `writing-plans`, `executing-plans`, `systematic-debugging`, `test-driven-development`, `verification-before-completion`, `dispatching-parallel-agents`, `subagent-driven-development`, `requesting-code-review`, `receiving-code-review`, and `using-git-worktrees` - general-purpose workflow skills promoted from the current local Codex skill set.
 - `codex-orchestrate` (one skill for all codex-as-MCP modes — brainstorm/discuss/coordinate/review/audit/curate/governance/triage), `codex-consult` (the local PromptBridge consult/curate/review lanes), and `multi-agent-quickstart` - orchestration and lane-helper skills promoted from the current local Codex skill set. The former per-mode wrappers (`codex-audit`, `codex-brainstorm`, `codex-coordinate`, `codex-curate`, `codex-discuss`, `codex-fix`, `codex-governance`, `codex-review`, `codex-triage`) are consolidated into `codex-orchestrate`.
 
@@ -338,7 +340,7 @@ Use this when you want direct browser-mediated ChatGPT interaction, session-awar
 
 Recommended explicit names:
 
-- skills: `agent-lanes-chatgpt-web-query`, `agent-lanes-chatgpt-web-discuss`, `agent-lanes-chatgpt-web-curate`
+- skills: `chatgpt5-web` (modes: query / discuss / curate)
 - tools: `chatgpt5_web_query`, `chatgpt5_web_discuss`, `chatgpt5_web_curate`
 
 ### Routing rule
@@ -346,7 +348,7 @@ Recommended explicit names:
 The naming rule is intentional:
 
 - `agent-lanes-codex-*` means "prefer the Codex-side lane"
-- `agent-lanes-chatgpt-web-*` means "prefer the direct ChatGPT web lane"
+- `chatgpt5-web` means "prefer the direct ChatGPT web lane"; its mode selects query, discussion, or curation
 
 ## Working rules
 

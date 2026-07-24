@@ -178,6 +178,58 @@ def _is_negated(text: str, start: int) -> bool:
     return bool(_NEGATION.search(text[lo:start]))
 
 
+# ---------------------------------------------------------------- kind="stub" support
+# A code-comment opener. `#(?!\d)` so a GitHub issue reference (`#1785`) is not read as a
+# comment intro -- the same narrowing stubscan.py already carries, for the same measured reason.
+_CODE_COMMENT_INTRO = re.compile(r"(?:#(?!\d)|//|/\*|<!--)")
+# A markdown table row cell: the match sits BETWEEN two pipes on its own line. Kept separate
+# from "the line starts with |" because the measured fire
+# (INPUT-ADDENDUM-live-fires.md:82) is a labelled listing --
+# `R14  markdown table cell:      | prompts/list_changed | Not implemented ... |` -- whose line
+# begins with prose, not a pipe.
+_STRIKE = re.compile(r"~~[^\n]+?~~")
+
+
+def _in_table_cell(text: str, start: int, end: int) -> bool:
+    lo, hi = _line_bounds(text, start)
+    line = text[lo:hi]
+    return "|" in line[: start - lo] and "|" in line[end - lo :]
+
+
+def _in_blockquote(text: str, start: int) -> bool:
+    lo, hi = _line_bounds(text, start)
+    return text[lo:hi].lstrip().startswith(">")
+
+
+def _strike_spans(text: str, start: int) -> list[tuple[int, int]]:
+    lo, hi = _line_bounds(text, start)
+    return [(lo + m.start(), lo + m.end()) for m in _STRIKE.finditer(text[lo:hi])]
+
+
+def _stub_negation_window(text: str, start: int) -> int:
+    """Offset from which to scan for a negation cue, for `kind="stub"`.
+
+    Negation is a property of PROSE. Scanning back to the sentence start drags the CODE that
+    precedes an end-of-line comment into the window, and Python's `None` literal then reads as
+    the English quantifier "none". Measured 2026-07-24: the line
+    `cert = None  # placeholder PEM until the loader lands` was scored NEGATED and silently
+    dropped -- a real placeholder the guard is supposed to catch. Clamping the window to the
+    comment body removes the code from view.
+
+    (Both quotes above are kept on ONE line each: `_inline_code_spans` is deliberately
+    line-scoped, so a backticked marker WRAPPED across two lines is not recognised as a code
+    span and this very docstring would flag itself. That wrapped-span gap is real but out of
+    scope here; the settling experiment is a two-line comment-continuation span test.)
+    """
+    lo = 0
+    for m in _SENTENCE_END.finditer(text, 0, start):
+        lo = m.end()
+    line_lo, _ = _line_bounds(text, start)
+    for m in _CODE_COMMENT_INTRO.finditer(text[line_lo:start]):
+        lo = max(lo, line_lo + m.end())
+    return lo
+
+
 def is_real_occurrence(text: str, span, context: Context, kind: str = "marker") -> bool:
     """True if the match at `span` is a real OCCURRENCE, False if a MENTION.
 
@@ -196,13 +248,54 @@ def is_real_occurrence(text: str, span, context: Context, kind: str = "marker") 
                 return True  # unknown verb -> fail-open
             return not _within(_quoted_spans(text), start, end)
 
-        if kind == "doclink":
+        if kind in ("doclink", "claim"):
             # Inverted polarity (see the module docstring): a link is real UNLESS it
             # is being shown as an example. Applies in prose and in source files
             # alike -- a link inside a fence in a .py docstring is still an example.
+            #
+            # "claim" shares this polarity and is NOT a marker. A completion claim
+            # ("the feature is now complete") is REAL precisely when it appears in
+            # ordinary prose -- that is what an assistant asserting completion looks
+            # like. It is a MENTION when quoted or fenced, i.e. when the text is
+            # discussing the phrase rather than asserting it. Routing a claim through
+            # kind="marker" inverts this and suppresses every genuine claim, because
+            # marker polarity treats prose as mention.
             if _within(_fenced_spans(text), start, end):
                 return False
             return not _within(_inline_code_spans(text, start), start, end)
+
+        if kind == "stub":
+            # STRICTER THAN "marker", and deliberately so. The stub-ledger's contract is
+            # "built-but-incomplete CODE must not be silently forgotten" -- so the evidence bar
+            # is a marker in CODE, not a marker anywhere.
+            #
+            # (1) A PROSE document is documentation. `marker` treats a fenced block in a .md as
+            #     real code being shown; 12 of 20 live false positives measured 2026-07-24 were
+            #     exactly that -- a fenced corpus listing in INPUT-ADDENDUM-live-fires.md:81-95
+            #     enumerating detector inputs, one row of which reads literally
+            #     `# TODO: handle the empty-list case`.
+            #     Nothing structural separates that row from a real one,
+            #     so the earlier "a fenced block in a doc is code being shown" assertion is
+            #     REFUTED and inverted here. Residual, disclosed: a design doc whose fenced
+            #     snippet really is pending work is now missed; the settling experiment is a
+            #     labelled sweep of prose-origin fires across sessions, which so far shows
+            #     0 true positives out of 12.
+            # (2) A markdown TABLE CELL, a BLOCKQUOTE and STRUCK-THROUGH text are mentions even
+            #     inside a source file -- a docstring can hold a compliance table about another
+            #     product's gaps, and `~~...~~` marks an ABANDONED idea, not pending work.
+            if _is_prose(context):
+                return False
+            if _within(_inline_code_spans(text, start), start, end):
+                return False
+            if (
+                _in_table_cell(text, start, end)
+                or _in_blockquote(text, start)
+                or _within(_strike_spans(text, start), start, end)
+            ):
+                return False
+            return not _NEGATION.search(
+                text[_stub_negation_window(text, start) : start]
+            )
 
         # kind == "marker"
         if _is_prose(context):
@@ -215,6 +308,53 @@ def is_real_occurrence(text: str, span, context: Context, kind: str = "marker") 
         return not _is_negated(text, start)
     except Exception:
         return True  # fail-open: never silently disarm a guard
+
+
+def json_value_text(text: str, _depth: int = 0):
+    """The RESULT-SCANNER half of the rule: a JSON payload's string VALUES only.
+
+    A JSON *field name* MENTIONS a condition; it never reports one. Scanning a
+    serialized payload as flat text conflates the two.
+
+    Measured 2026-07-20: a Databricks run payload carrying
+    ``"user_cancelled_or_timedout": false`` -- a field whose value is False, on a job
+    that was RUNNING and later TERMINATED SUCCESS -- was classified FAILED because the
+    KEY matched /tim(ed|e)-?out/. Seven false fires in one session, including one on the
+    memory note documenting this very defect (the guard suppresses its own bug report).
+
+    Returns None when `text` is not JSON, so the caller falls back to raw text and a
+    non-JSON payload keeps its previous behaviour. Nested JSON-in-string values are
+    parsed recursively: MCP results routinely wrap a JSON document inside a string field,
+    which is exactly how the key leaked into the scan surface.
+    """
+    import json as _json
+
+    stripped = (text or "").strip()
+    if not stripped or stripped[0] not in "{[":
+        return None
+    try:
+        doc = _json.loads(stripped)
+    except (ValueError, TypeError):
+        return None
+
+    out: list[str] = []
+
+    def _walk(node, depth: int = 0) -> None:
+        if depth > 8 or len(out) > 400:
+            return
+        if isinstance(node, str):
+            nested = json_value_text(node, _depth + 1) if _depth < 3 else None
+            out.append(node if nested is None else nested)
+        elif isinstance(node, dict):
+            for value in node.values():  # VALUES only -- keys are mentions
+                _walk(value, depth + 1)
+        elif isinstance(node, list):
+            for value in node:
+                _walk(value, depth + 1)
+        # numbers / booleans / null carry no scannable text at all
+
+    _walk(doc)
+    return "\n".join(out)
 
 
 def find_real(text: str, pattern, context: Context, kind: str = "marker") -> list:

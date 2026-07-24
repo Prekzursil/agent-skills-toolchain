@@ -1,6 +1,6 @@
 ---
 name: recall-workflow-agent
-description: Use when you need the exact input PROMPT or final OUTPUT of a specific subagent from a past Workflow / ultracode fan-out run — reviewing or recovering what one fanned-out agent (a lens, a verifier, the synthesizer) actually received or returned after the run scrolled off screen or the session compacted. Identify it by a distinctive phrase from its prompt or output, the workflow name, or by listing the run's agents.
+description: Use when you need the exact input PROMPT or final OUTPUT of a specific subagent from a past Workflow / ultracode fan-out run - reviewing or recovering what one fanned-out agent (a lens, a verifier, the synthesizer) actually received or returned after the run scrolled off screen or the session compacted. Identify it by a distinctive phrase, the workflow name, or by listing the run's agents.
 ---
 
 # recall-workflow-agent

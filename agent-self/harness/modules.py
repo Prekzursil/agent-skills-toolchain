@@ -5,6 +5,7 @@ import json
 import math
 import os
 import re
+import stat
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Optional, cast
@@ -147,6 +148,12 @@ DEFAULT_MODE_BY_TIER: dict[str, str] = {
 # gate that never fires or never helps. Attaching the constant is in-scope here;
 # the forcing-function that reads it is out of scope for this lane.
 GATE_CONTRACTS: dict[str, dict[str, str]] = {
+    "sensitive_artifact": {
+        "metric": "artifact_secret_true_positive",
+        "owner": "prekzursil",
+        "deadline": "2026-09-01",
+        "fire_rate": "fires only on a credential-classified transcript/write target or an incomplete bounded scan",
+    },
     "injection_quarantine": {
         "metric": "injection_precision",
         "owner": "prekzursil",
@@ -437,6 +444,7 @@ def stage(gate_name: str, tier: str, event: Any, raw: HookResult) -> HookResult:
 
 MODULE_ORDER = (
     "secret_guard",
+    "sensitive_artifact",
     "event_ledger",
     "goal_reinjection",
     "sanitized_checkpoint",
@@ -981,6 +989,125 @@ _INGEST_TOOLS = (
     "get_strings",
     "decompile",
 )
+
+
+class SensitiveArtifactModule:
+    """Report credential-bearing transcripts and explicit write artifacts.
+
+    This is deliberately a bounded, report-only sweep. It never rewrites, moves,
+    deletes, or echoes target bytes; an unreadable, unstable, linked, or truncated
+    target is UNKNOWN rather than clean.
+    """
+
+    name = "sensitive_artifact"
+    _MAX_SCAN_BYTES = 2 * 1024 * 1024
+    _WRITE_TOOLS = frozenset({"Edit", "Write", "MultiEdit", "NotebookEdit"})
+    _REENTRANT_STOP = frozenset({"stop_hook_active", "true", "1"})
+    _REPARSE_FLAG = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+
+    def run(self, event: HookEvent) -> HookResult:
+        try:
+            candidate = self._candidate(event)
+            if candidate is None:
+                return HookResult.success()
+            raw_path, kind, tail = candidate
+            path = self._resolve_path(raw_path, event.cwd)
+            classification = self._classify(path, tail=tail)
+            if classification == "clear":
+                return HookResult.success()
+            path_id = hashlib.sha256(
+                os.path.normcase(os.path.abspath(str(path))).encode(
+                    "utf-8", "surrogatepass"
+                )
+            ).hexdigest()[:12]
+            if classification == "sensitive":
+                message = (
+                    "SENSITIVE ARTIFACT REPORT: classification=POTENTIAL-CREDENTIAL "
+                    f"kind={kind} id=sha256:{path_id}; the report-only sweep changed "
+                    "nothing and emitted no matched value. Review the local file and "
+                    "rotate any live credential."
+                )
+            else:
+                message = (
+                    "SENSITIVE ARTIFACT REPORT: classification=UNKNOWN "
+                    f"kind={kind} id=sha256:{path_id}; a bounded scan could not establish "
+                    "clean because the target was unreadable, linked, oversized, or changed "
+                    "during inspection. Nothing was modified."
+                )
+            raw = HookResult.success(
+                action="inject",
+                reason_code="sensitive_artifact",
+                additional_context=[message],
+            )
+            return stage("sensitive_artifact", TIER_ADVISORY, event, raw)
+        except Exception:
+            return HookResult.success()
+
+    @classmethod
+    def _candidate(cls, event: HookEvent) -> tuple[str, str, bool] | None:
+        if event.event == "Stop":
+            if str(event.trigger or "").lower() in cls._REENTRANT_STOP:
+                return None
+            if event.transcript_path:
+                return event.transcript_path, "transcript", True
+            return None
+        if event.event == "SubagentStop":
+            path = event.transcript_path or event.agent.transcript_path
+            return (path, "transcript", True) if path else None
+        if event.event != "PostToolUse" or event.tool.name not in cls._WRITE_TOOLS:
+            return None
+        path = _edit_target(event.tool.input)
+        return (path, "artifact", False) if path else None
+
+    @staticmethod
+    def _resolve_path(raw_path: str, cwd: str) -> Path:
+        path = Path(raw_path).expanduser()
+        if not path.is_absolute():
+            path = Path(cwd or ".").expanduser() / path
+        return path
+
+    @classmethod
+    def _classify(cls, path: Path, *, tail: bool) -> str:
+        if SecretGuardModule._CREDENTIAL_READ.search(str(path)):
+            return "sensitive"
+        try:
+            before = path.lstat()
+            attributes = int(getattr(before, "st_file_attributes", 0) or 0)
+            if (
+                stat.S_ISLNK(before.st_mode)
+                or (cls._REPARSE_FLAG and attributes & cls._REPARSE_FLAG)
+                or not stat.S_ISREG(before.st_mode)
+            ):
+                return "unknown"
+            partial = before.st_size > cls._MAX_SCAN_BYTES
+            start = max(0, before.st_size - cls._MAX_SCAN_BYTES) if tail else 0
+            with path.open("rb") as handle:
+                if start:
+                    handle.seek(start)
+                content = handle.read(cls._MAX_SCAN_BYTES + 1)
+            if len(content) > cls._MAX_SCAN_BYTES:
+                partial = True
+                content = content[: cls._MAX_SCAN_BYTES]
+            after = path.lstat()
+        except (OSError, ValueError):
+            return "unknown"
+
+        text = content.decode("utf-8", "replace")
+        if contains_secret(text):
+            return "sensitive"
+        before_key = (
+            before.st_dev,
+            before.st_ino,
+            before.st_size,
+            before.st_mtime_ns,
+        )
+        after_key = (
+            after.st_dev,
+            after.st_ino,
+            after.st_size,
+            after.st_mtime_ns,
+        )
+        return "unknown" if partial or before_key != after_key else "clear"
 
 
 class LedgerModule:
@@ -2948,6 +3075,7 @@ def build_default_modules(state_root: Path | str | None = None) -> list[Any]:
     ledger = EventLedger(root)
     return [
         SecretGuardModule(),
+        SensitiveArtifactModule(),
         LedgerModule(ledger),
         GoalModule(ledger),
         SanitizedCheckpointModule(ledger),

@@ -1,12 +1,11 @@
 ---
 name: workflow-authoring
-description: Use when writing or debugging a saved Codex Workflow (a .js/.mjs orchestration script under ~/.Codex/workflows that uses the injected agent/parallel/phase globals to fan out subagents). Covers the exact runtime API, the args-as-string gotcha, the banned Date.now() non-determinism, worktree isolation for file-mutating agents, one-level nesting, a schema on every fan-in, null-tolerant barriers via filter(Boolean), per-work-unit pipelines so one slow agent cannot deadlock the cohort, cache-cliff-aware fan-out, the typed Codex output-schema landmine when MCP tools are active, and the SDK context-editing / task-budgets / canUseTool notes. Also the map to the saved schema-typed gate Workflows plan-gate and design-gate and the mechanical plan-lint stage-0. Triggers include author a workflow, write a saved workflow, fan out subagents, my parallel workflow deadlocks, workflow returns empty, schema-typed reviewers, or codify a gate as a workflow. NOT for single ad-hoc Task subagents (spawn a Task directly) or for the metaswarm phase pipeline itself.
+description: "Use when writing or debugging a saved Claude Code Workflow (a .js/.mjs script under ~/.claude/workflows using the injected agent/parallel/phase globals to fan out subagents). Covers the runtime API, banned Date.now() non-determinism, worktree isolation, per-fan-in schemas, null-tolerant barriers, and the typed Codex output-schema landmine. Triggers: author a workflow, fan out subagents."
 ---
-
 # workflow-authoring
 
-How to write a **saved Codex Workflow** — an orchestration script under
-`~/.Codex/workflows/*.js` (or `*.mjs`) that the runtime executes to fan out
+How to write a **saved Claude Code Workflow** — an orchestration script under
+`~/.claude/workflows/*.js` (or `*.mjs`) that the runtime executes to fan out
 subagents, collect their typed results, and return a structured answer. This is
 the durable, re-invokable form of a multi-agent job (invoked as `/name`), as
 opposed to a one-off `Task()` subagent.
@@ -179,7 +178,7 @@ When a workflow fans out to Codex (via the mounted `codex mcp-server` /
 are active** in that Codex invocation (OpenAI codex issue #15451). You will get
 free-form text back and your `schema` parse will fail or mis-fill. Mitigations:
 run the schema-typed Codex lane with MCP tools disabled for that call, or
-validate/repair Codex's output on the Codex side before aggregating. Do not
+validate/repair Codex's output on the Claude side before aggregating. Do not
 assume the schema was honored just because you passed it.
 
 **Windows arg-limit corollary (measured 2026-07-18).** The same active-MCP inventory that voids
@@ -283,14 +282,14 @@ is accepting a receipt, not an answer — reject it at fan-in.
 
 ## Companion artifacts in this workspace
 
-- **`/plan-gate`** (`~/.Codex/workflows/plan-gate.mjs`) — saved, schema-typed
+- **`/plan-gate`** (`~/.claude/workflows/plan-gate.mjs`) — saved, schema-typed
   Plan Review Gate: a mechanical stage-0 lint, then 3 fresh adversarial reviewers
   (Feasibility, Completeness, Scope & Alignment), each returning
   `{ verdict, blocking }`. SHADOW/advisory — records a verdict, never blocks.
-- **`/design-gate`** (`~/.Codex/workflows/design-gate.mjs`) — saved Design
+- **`/design-gate`** (`~/.claude/workflows/design-gate.mjs`) — saved Design
   Review Gate: 5 fresh reviewers (PM, Architect, Designer, Security, CTO) in
   parallel, each `{ verdict, blocking }`. SHADOW/advisory.
-- **`plan_lint_stage0.py`** (`~/.Codex/harness-meta/`) — the mechanical stage-0
+- **`plan_lint_stage0.py`** (`~/.claude/harness-meta/`) — the mechanical stage-0
   the gate runs FIRST: `lint(plan)` checks WU ≤ 5 files, no overlapping scopes,
   and a valid DAG, returning `PLAN_LINT:clean|dirty|na` (SHADOW, exits 0). It
   also ships the **cross-session resume manifest** (`done.jsonl` + write-ahead

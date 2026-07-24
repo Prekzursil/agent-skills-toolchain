@@ -64,6 +64,7 @@ INJECT_PRIORITY: dict[str, int] = {
     "secret_literal": PRIORITY_SAFETY,
     "irreversible_operation": PRIORITY_SAFETY,
     "credential_read": PRIORITY_SAFETY,
+    "sensitive_artifact": PRIORITY_SAFETY,
     "injection_quarantine": PRIORITY_SAFETY,
     "config_drift": PRIORITY_SAFETY,
     # GOAL = 80
