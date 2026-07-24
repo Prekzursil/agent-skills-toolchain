@@ -1,6 +1,6 @@
 ---
 name: diff-blind-test-synth
-description: "Use when you want an INDEPENDENT external check that a patch/PR actually satisfies the spec — synthesize executable tests from ONLY the spec + public API (never the diff), then run them against the pre-patch tree (expect FAIL) and the patched tree (expect PASS). A divergence from that expected pattern flags a spec-miss (patch does not implement the requirement) or an over/under-fitted patch. Distinct from fail-first/red-proof (which validates the author's OWN changed tests) and execution-consensus rerank (which picks among candidate patches). Runs in SHADOW mode: observe + log only, never blocks. Evidence: UTBoost (2506.09289), MASTER A-Tier2."
+description: "Use when you want an INDEPENDENT external check that a patch/PR actually satisfies the spec - synthesize executable tests from ONLY the spec + public API (never the diff), then run them against the pre-patch tree (expect FAIL) and the patched tree (expect PASS). A divergence flags a spec-miss or over/under-fitted patch. Distinct from fail-first/red-proof. SHADOW mode: never blocks."
 ---
 # Diff-Blind Adversarial Test Synthesis
 

@@ -1,6 +1,6 @@
 ---
 name: smallest-check-ladder
-description: Use when you need to run "the smallest test that could still catch this change" instead of blindly running the whole suite (or nothing). Provides an invocable L0 to L3 ladder — L0 lint the edited file, L1 impacted tests via deterministic selectors (pytest --testmon / jest or vitest related), L2 full suite via longrun, L3 e2e — so a claim of "tests pass" is backed by a proportionate, real check. Deterministic dependency and coverage-map selection ONLY; never ML "predictive test selection". Triggers include "run the relevant tests", "smallest check for this diff", "which tests cover this file", "is it worth running the full suite". NOT for authoring new tests (use tdd-workflow) and NOT a coverage-threshold gate (that stays .coverage-thresholds.json).
+description: Use when you need to run "the smallest test that could still catch this change" instead of blindly running the whole suite (or nothing). Provides an invocable L0 to L3 ladder - L0 lint the edited file, L1 impacted tests via deterministic selectors, L2 full suite via longrun, L3 e2e - so a "tests pass" claim is backed by a proportionate check. Never ML "predictive test selection".
 origin: gem-hunt-2026-07-12 (A-Tier2, verification-gates #4/#5)
 ---
 

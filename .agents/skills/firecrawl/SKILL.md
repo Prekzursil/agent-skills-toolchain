@@ -1,6 +1,6 @@
 ---
 name: firecrawl
-description: Web scraping, crawling, structured extraction, site mapping, and change monitoring via the Firecrawl MCP. Use to turn known or discovered URLs into clean markdown or schema-structured JSON, screenshot pages or extract brand identity (colors, fonts, spacing, components), crawl or map entire sites, harvest docs and cookbooks, run competitive or design research, pull structured data with a schema, parse local PDFs and Office files, search the web with operators and domain filters, monitor pages for meaningful changes, search arXiv and GitHub, or drive an autonomous browse agent. Pairs with the Exa MCP (`web_search_exa`) — Exa finds by meaning, Firecrawl fetches, extracts, crawls, and monitors.
+description: Web scraping, crawling, structured extraction, site mapping, and change monitoring via the Firecrawl MCP. Use to turn URLs into clean markdown or schema-structured JSON, extract brand identity (colors, fonts, spacing), crawl or map sites, parse local PDFs/Office files, search the web with operators, or monitor pages for changes. Pairs with the Exa MCP (Exa finds by meaning, Firecrawl fetches).
 metadata:
   origin: custom
 ---

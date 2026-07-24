@@ -1,6 +1,6 @@
 ---
 name: workflow-authoring
-description: Use when writing or debugging a saved Claude Code Workflow (a .js/.mjs orchestration script under ~/.claude/workflows that uses the injected agent/parallel/phase globals to fan out subagents). Covers the exact runtime API, the args-as-string gotcha, the banned Date.now() non-determinism, worktree isolation for file-mutating agents, one-level nesting, a schema on every fan-in, null-tolerant barriers via filter(Boolean), per-work-unit pipelines so one slow agent cannot deadlock the cohort, and the typed Codex output-schema landmine when MCP tools are active. Also the map to the saved schema-typed gate Workflows plan-gate and design-gate. Triggers include author a workflow, write a saved workflow, fan out subagents, my parallel workflow deadlocks, workflow returns empty, or codify a gate as a workflow. NOT for single ad-hoc Task subagents (spawn a Task directly) or the metaswarm phase pipeline itself.
+description: "Use when writing or debugging a saved Claude Code Workflow (a .js/.mjs script under ~/.claude/workflows using the injected agent/parallel/phase globals to fan out subagents). Covers the runtime API, banned Date.now() non-determinism, worktree isolation, per-fan-in schemas, null-tolerant barriers, and the typed Codex output-schema landmine. Triggers: author a workflow, fan out subagents."
 ---
 # workflow-authoring
 

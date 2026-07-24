@@ -1,6 +1,6 @@
 ---
 name: design-studio
-description: ONE entry to the whole design pipeline over a running app (Reframe, momentstudio, WebCoder, bilbo) — the mode-routed successor to design-review-loop. Runs the full TCR design-review loop (8 gates, G0 PRIME to G7 VERIFY, revert-gate) plus a thin mode router to jump to one stage — direct (scope, define good, pick a direction, palette/font), audit (a11y/contrast/dead-button UI audit, visual review), mirror (code-to-canvas transpose to Figma), critique (design-critique persona panel), iterate (Figma branch, design tokens), implement (Figma-to-code), verify (re-audit delta), loop (the whole pass), drive (drive/point/interact the live app, to ui-drive), session (interactive restyle of a live element, to design-studio-session). Absorbs the folded design skills' triggers — design review, design system audit, frontend design direction, visual review, mirror to Figma, implement design, drive the app, interactive tweak. NOT for a design DOCUMENT (metaswarm review-design) nor rubric math (ui-audit, critique-panel).
+description: "ONE entry to the whole design pipeline over a running app (Reframe/momentstudio/WebCoder/bilbo), the mode-routed successor to design-review-loop. Runs the full TCR design-review loop (8 gates G0-G7, revert-gate) plus a mode router: direct, audit, mirror, critique, iterate, implement, verify, loop, drive, session. NOT for a design DOCUMENT (metaswarm review-design) nor rubric math (ui-audit)."
 metadata:
   origin: user
 ---

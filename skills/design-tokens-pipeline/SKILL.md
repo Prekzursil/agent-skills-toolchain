@@ -1,6 +1,6 @@
 ---
 name: design-tokens-pipeline
-description: Use for the W3C DTCG design-token round-trip that the TCR design-review loop relies on at G5/G6 — extract tokens out of code (CSS custom properties + Tailwind theme dumps) into a DTCG JSON tree, validate against the DTCG v1.0 rules that actually break the Tokens-Studio to Style-Dictionary round-trip (missing-type, bad-alias, alias-cycle, raw-hex-in-code, reserved-misuse), and diff two token trees to emit BOTH the forward change set AND the inverse revert patch (tokens are the one thing that round-trips losslessly, so the inverse patch is the revert surface). Transforms via Style Dictionary + sd-transforms. Do NOT use for visual capture (use transpose-to-figma) or for the critique rubric math (use critique-panel). Pairs with design-review-loop, figma, and design-system.
+description: Use for the W3C DTCG design-token round-trip the TCR design-review loop relies on at G5/G6 - extract tokens out of code (CSS custom properties + Tailwind theme dumps) into a DTCG JSON tree, validate against the DTCG v1.0 rules that break the Tokens-Studio to Style-Dictionary round-trip, and diff two token trees to emit the forward change set AND the inverse revert patch.
 metadata:
   origin: user
 ---
