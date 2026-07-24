@@ -7,9 +7,13 @@ Companion plan for `tools/mcp/mcp-http-host/` (PR #159, the shared stdio→HTTP 
 per-server evidence, an honest verdict on aggregator gateways, and the supervisor recipe.
 It changes **no live config**. Every flip stays the owner's explicit action.
 
-COVERAGE: §1 live census MEASURED · §2 ranking MEASURED for repo-local servers,
-INFERRED-from-tool-surface for third-party ones (tagged inline) · §3 aggregator evaluation
-from vendor docs (tagged inline) · §4 launcher BUILT + TESTED.
+COVERAGE: §1 live census MEASURED — but the "reclaimable / attributable-to-duplication"
+figures (5.92 GB total, 4.81 GB top-18, 2.84 GB Tier A) are a GROSS full-dedup PROJECTION,
+not a measured net saving (see the §1 "measured vs projected" note) · §2 ranking MEASURED for
+repo-local servers, INFERRED-from-tool-surface for third-party ones (tagged inline) · §3
+aggregator evaluation from vendor docs (tagged inline), and §3a records the Q3 transport
+decision (mcp-proxy spike PASSED on the box's cmd/c-wrapped servers; footprint UNVERIFIED) ·
+§4 launcher BUILT + TESTED.
 
 ---
 
@@ -27,9 +31,20 @@ with byte-identical command lines are the same server launched twice, by constru
 | Command lines with n > 1 | **58** |
 | Redundant processes (Σ n−1) | **156** |
 | Commit charge of these processes | **13.24 GB** |
-| **Commit attributable to duplication** | **5.92 GB** |
+| **Commit attributable to duplication** (GROSS projection — see note) | **5.92 GB** |
 | Redundant threads / handles | 757 / 22,404 |
 | Box state at probe time | 31.6 GB physical, **1.2 GB free**; commit **76 GB / 175.6 GB** |
+
+**Measured vs projected — the 5.92 GB is a projection, not an observation.** Every per-process
+figure and the **13.24 GB** total commit are directly measured (`PrivatePageCount`). The
+**5.92 GB "attributable to duplication" is computed**, per command line, as `commit × (n−1)/n`
+— the commit that *would* be freed **if** each duplicated server collapsed to one instance
+**and** its private commit were fully independent. It is therefore a **GROSS** figure: the
+**net** reclaim after a real migration is `5.92 GB − (N × host_commit)`, and `host_commit` is
+**UNVERIFIED** — no shared host was running at probe time (§3). No end-to-end before/after
+reclaim has been measured. Every "reclaimable" number downstream (4.81 GB top-18 in §1c,
+2.84 GB Tier A in §2) inherits this gross-projection scope. Settling test: migrate Tier A per
+§3, re-run this census, and compare total commit before/after.
 
 ### 1a. Measure COMMIT, not RSS — the metric choice changes the answer 19×
 
@@ -74,7 +89,8 @@ The reclaimable-commit figure is unaffected: it is computed per command line as
 | 11 | `qlty_mcp_server.mjs` | 7 | 6 | 217 MB | 36 MB |
 | 12-18 | searxng ×2, excel ×2, mcp-remote, mcp-graphql, codex | | | 759 MB | |
 
-Top-18 reclaimable: **4.81 GB** of the 5.92 GB total.
+Top-18 reclaimable: **4.81 GB** of the 5.92 GB total (both GROSS projections — see the §1
+"measured vs projected" note).
 
 **Two findings worth acting on independently of any migration:**
 
@@ -109,7 +125,9 @@ global. Tiers are ordered by (reclaimable commit) ÷ (risk).
 | `qlty_mcp_server.mjs` | 217 MB | runs a linter over a path per call |
 | `mcp-searxng` | 260 MB | stateless web search |
 
-Tier A total: **≈2.84 GB** — 48% of all reclaimable commit, at the lowest risk.
+Tier A total: **≈2.84 GB** — 48% of all reclaimable commit, at the lowest risk. That
+2.84 GB is a GROSS projection (net = 2.84 GB − N × host_commit, the UNVERIFIED per-host cost
+quantified in §3; see the §1 "measured vs projected" note).
 
 INFERRED-from-tool-surface, not from source, for the third-party members
 (`paper-search`, `repomix`, `markitdown`, `searxng`) — **UNVERIFIED** that none holds hidden
@@ -174,7 +192,8 @@ of services that are already shared by design. Fix = supervision (§4), not migr
 
 1. **Reap the orphans** (markitdown 941 MB + the Tier-D duplicates 599 MB) — **1.54 GB, zero
    protocol risk.** Do this first; it is the best ratio on the board.
-2. **Tier A migration**, one server per restart, measuring between each — ≈2.84 GB.
+2. **Tier A migration**, one server per restart, measuring between each — ≈2.84 GB *gross*
+   (net = gross − N × host_commit; §3 settling test).
 3. **Curate Tier C** off the default surface — large, and cheaper than any engineering.
 4. **Tier B hubs** last, only with the account-semantics decision made explicitly.
 
@@ -220,6 +239,9 @@ mode, and it explicitly supports **stdio** downstreams — so it *could* front t
 **Recommendation: `mcp-http-host` (PR #159) + this supervisor.** It preserves 1:1 server
 identity, so the existing per-server curation keeps working unchanged; it is stdlib-only
 (no Node, no Go, no Docker, no database); and it is additive and reversible per server.
+**Update — §3a: the Q3 spike now favours *adopting* `mcp-proxy` for the stdio→HTTP transport
+rather than hand-rolling `mcp_http_host.py`; the supervisor half of this recommendation is
+unchanged.**
 
 **The honest cost of that recommendation:** it needs **one host process per shared server**
 (N hosts) where an aggregator needs one process total. At 6 Tier-A servers that is 6
@@ -230,6 +252,36 @@ the migration is only worth it if `6 × host_commit` is far below the 2.84 GB re
 `likely` (55-80%) it is, since the host is a stdlib `http.server` with one subprocess pipe
 and no framework imports — but that is an inference from reading `mcp_http_host.py`, not a
 measurement, and it must be checked before Tier A is called done.
+
+### 3a. Transport update (Q3 decision) — adopt `mcp-proxy`, don't hand-roll the bridge
+
+The recommendation above hand-rolls the stdio→HTTP transport as `mcp_http_host.py` (PR #159).
+The **Q3 spike supersedes that transport choice.** A `mcp-proxy` (sparfenyuk/mcp-proxy) spike
+run on this box **works on the `cmd /c`-wrapped stdio servers** — the
+`cmd.exe /c npx -y … --mcp` launch shape §1b traces, which is exactly the case the hand-rolled
+host was built to cover.
+
+* **Prefer adopting `mcp-proxy` for the stdio→HTTP transport over maintaining a hand-rolled
+  bridge.** It gives the *same* property this section values in `mcp-http-host` — **1:1 server
+  identity, so the load-bearing per-server curation (~65 exposed / ~16 active) keeps working**
+  (one proxy per server, not a flattening aggregator like MetaMCP / MCPJungle) — but as a
+  maintained community package, not estate-local code the owner must own and debug (the
+  UTF-8-BOM and wedge-recycle bugs this PR had to find by hand are the standing cost of
+  hand-rolling).
+* **What does NOT change.** This is a *transport* swap only. The §4 supervisor
+  (ownership-scoped reaping, AND-gate wedge detection, adopt-don't-double-bind health gate,
+  opt-in manifest) is transport-agnostic and stays the deliverable — it can front `mcp-proxy`
+  processes exactly as it fronts `mcp_http_host.py`. **Tier C (§2) stays unshareable
+  regardless**: `mcp-proxy` multiplexing one stdio child has the identical cross-session
+  state-bleed as an aggregator or the host — transport choice does not change a server's
+  protocol-level statefulness.
+* **Honest scope of the spike.** It proved a `mcp-proxy` bridge **functional** on a
+  cmd/c-wrapped server; `mcp-proxy`'s own per-process **footprint is UNVERIFIED** and feeds the
+  *same* `N × host_commit` net-reclaim question as §1 and the honest-cost note above (settling
+  test: run the Tier-A servers under `mcp-proxy` and re-census). It is also not yet checked that
+  `mcp-proxy` serves `initialize` / `tools/list` from a cache the way the curation relies on.
+  Net: adopting `mcp-proxy` over a hand-rolled bridge is the better call — `likely` (55-80%) —
+  pending that footprint measurement and cache check.
 
 ---
 
@@ -306,3 +358,6 @@ but cannot start a real host.
   90 s→240 s grace fix and `MaxHealthFailStreak`; no orphan/CPU logic present.
 * `tools/mcp/mcp-http-host/README.md` (PR #159) — shared-child invariant and its own caveats.
 * MetaMCP / MCPJungle: vendor documentation retrieved 2026-07-24 (tagged UNVERIFIED inline).
+* `mcp-proxy` (sparfenyuk/mcp-proxy): Q3 spike on this box — stdio→HTTP bridge verified
+  **functional** against a `cmd /c`-wrapped `npx … --mcp` server; per-process footprint
+  UNVERIFIED (see §3a).
