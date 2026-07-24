@@ -1,6 +1,6 @@
 ---
 name: critique-panel
-description: Use to run the G3 CRITIQUE gate of the TCR design-review loop — a four named-persona design-critique panel (user-advocate / systems-consistency / a11y / brand-aesthetic) that each REASON over ui-audit's pre-computed Track-A numbers plus the screenshot, run the NN/g "I Like / I Wish / What If" ritual, score the nine DESIGN-EVAL v1 dimensions 0-4 with critical-error overrides, then synthesize into one deduped, severity-ranked findings list with a weighted composite and enumerated directions (the human decides at G4). The panel is a TRIAGE accelerator, not an oracle. Do NOT use to drive the app or measure pixels (that is ui-audit Track-A) or to pick the winning redesign direction (that is the human at G4). Pairs with ui-audit and design-review-loop.
+description: Use to run the G3 CRITIQUE gate of the TCR design-review loop - a four named-persona panel (user-advocate / systems-consistency / a11y / brand-aesthetic) that each REASON over ui-audit's Track-A numbers plus the screenshot, run the NN/g "I Like / I Wish / What If" ritual, score the nine DESIGN-EVAL v1 dimensions 0-4, then synthesize a severity-ranked findings list. A TRIAGE accelerator.
 metadata:
   origin: user
 ---

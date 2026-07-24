@@ -1,6 +1,6 @@
 ---
 name: codex-fleet-github
-description: Use when dispatching, sweeping, monitoring, or planning autonomous Codex-on-GitHub runs across the private fleet via the codex-fleet-github MCP server. Drives the Wave-1 workflow_dispatch runner (codex-runner.yml) with propose-only draft PRs and a fail-closed auth model. Covers the four tools (fleet_dispatch, fleet_sweep, fleet_status, fleet_orchestrate), token setup, and the pre-PR-68 runner-branch caveat. Do NOT use for local Codex CLI consultation (use codex-consult) or for editing the runner workflow itself.
+description: Use when dispatching, sweeping, monitoring, or planning autonomous Codex-on-GitHub runs across the private fleet via the codex-fleet-github MCP server. Drives the Wave-1 workflow_dispatch runner (codex-runner.yml) with propose-only draft PRs and a fail-closed auth model. Covers fleet_dispatch, fleet_sweep, fleet_status, fleet_orchestrate. NOT for local Codex CLI consultation (use codex-consult).
 ---
 
 # codex-fleet-github — Autonomous Codex-on-GitHub Fleet Connector

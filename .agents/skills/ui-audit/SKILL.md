@@ -1,6 +1,6 @@
 ---
 name: ui-audit
-description: Drive a running web or Electron app and emit a deterministic UI/UX + functional audit — accessibility, contrast, spacing, tap targets, dead buttons, affordance/focus-visible, motion duration, visual regression (Track-A) — then a structured design-quality VERDICT (Track-B) where Claude reasons over the pre-computed numbers + the screenshot on the DESIGN-EVAL v1 rubric — nine dimensions each scored 0-4, a critical-error override that forces a zero and caps the verdict, a weighted composite (color-contrast highest), and a one-dimension-per-call reliability protocol — against Refactoring-UI/Material/HIG/Nielsen/WCAG. READ-ONLY (drives and inspects; never edits app source). Emits terminal-state typed findings plus a typed critique schema with a computed weighted composite. Optional UIClip numeric prior (opt-in, RAM-guarded).
+description: Drive a running web or Electron app and emit a deterministic UI/UX + functional audit - a11y, contrast, spacing, tap targets, dead buttons, motion, visual regression (Track-A) - then a design-quality VERDICT (Track-B) where Claude reasons over the numbers + screenshot on the DESIGN-EVAL v1 rubric (0-4, critical-error override, weighted composite) against Refactoring-UI/HIG/Nielsen/WCAG. READ-ONLY.
 metadata:
   origin: user
 ---

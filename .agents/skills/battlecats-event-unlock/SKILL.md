@@ -1,6 +1,6 @@
 ---
 name: battlecats-event-unlock
-description: Use when working on Battle Cats (EN 15.4.1, rooted BlueStacks) special/event/tower stage visibility or on-demand unlock RE — gives the proven dual-dependency model (tree-admission + valid schedule row), the decisive 15.4.1 offsets, the Event Summoner tool, the full event atlas cross-links, and the approaches already proven DEAD so you don't repeat them. Earlier-version offsets are kept in a changelog.
+description: Use when working on Battle Cats (EN 15.4.1, rooted BlueStacks) special/event/tower stage visibility or on-demand unlock RE - gives the proven dual-dependency model (tree-admission + valid schedule row), the decisive 15.4.1 offsets, the Event Summoner tool, the full event atlas cross-links, and the approaches already proven DEAD. Earlier-version offsets in a changelog.
 ---
 
 # Battle Cats — Special / Event Stage Unlock

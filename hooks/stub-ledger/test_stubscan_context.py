@@ -63,10 +63,31 @@ def test_design_doc_is_not_flagged_with_context():
     assert stubscan.find_stubs(DESIGN_DOC, "docs/design.md") == []
 
 
-def test_fenced_code_inside_a_doc_is_still_real():
-    """Prose polarity must not over-suppress: a fenced block in a doc is code being shown."""
+def test_fenced_code_inside_a_doc_is_documentation_not_pending_work():
+    """REFUTED 2026-07-24 — this assertion used to read the other way round.
+
+    The retired wording was: *"Prose polarity must not over-suppress: a fenced block in a doc is
+    code being shown"*, asserting `len(find_stubs(doc, "docs/notes.md")) > 0`. It was an
+    assumption, and measurement refuted it. Replaying the live session ledger
+    `~/.claude/stub-ledger/5c615def-….ndjson` (53 records) surfaced 20 fires, **20/20 false
+    positives**, and **12 of the 20 were markers inside fenced blocks of .md files** — including
+    `INPUT-ADDENDUM-live-fires.md:93`, a corpus row reading literally
+    `P1  real source file:   # TODO: handle the empty-list case      <- in a .py, outside any
+    fence`. Nothing structural separates that row from the fixture below, so "fenced in prose ⇒
+    real" cannot be salvaged with a narrower pattern.
+
+    Scope of the new claim: markers count in CODE files. Residual, disclosed inline — a design
+    doc whose fenced snippet really is the author's pending work is now missed. Measured true
+    positives of that kind so far: 0 of 12. The settling experiment is a labelled sweep of
+    prose-origin fires across further sessions; if any turns out real, this rule needs a
+    document-level opt-in rather than a pattern tweak.
+
+    The paired assertion below is what keeps this from being a silent disarm: the SAME fenced
+    text in a source file must still fire.
+    """
     doc = "# Notes\n\nExample:\n\n```python\n# TODO: finish this\n```\n"
-    assert len(stubscan.find_stubs(doc, "docs/notes.md")) > 0
+    assert stubscan.find_stubs(doc, "docs/notes.md") == []
+    assert len(stubscan.find_stubs(doc, "src/notes.py")) > 0
 
 
 def test_missing_discriminator_fails_open(monkeypatch=None):

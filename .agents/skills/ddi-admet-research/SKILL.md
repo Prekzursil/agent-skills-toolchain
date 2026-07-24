@@ -1,6 +1,6 @@
 ---
 name: ddi-admet-research
-description: Use as the front-end/router for biomedical research via the tooluniverse MCP server (Harvard Zitnik lab, 2206 tools) - drug-drug interactions, ADMET/physchem prediction, CYP450 enzyme roles, target research, FDA drug labels, drug repurposing, and pharmacovigilance. Routes to the detailed installed tooluniverse-* skills; covers the uvx registration. Use when a question needs biomedical knowledge-base lookups rather than local structure computation.
+description: Use as the front-end/router for biomedical research via the tooluniverse MCP server (Harvard Zitnik lab, 2206 tools) - drug-drug interactions, ADMET/physchem prediction, CYP450 enzyme roles, target research, FDA drug labels, drug repurposing, and pharmacovigilance. Routes to the detailed tooluniverse-* skills. Use when a question needs biomedical knowledge-base lookups.
 ---
 
 # DDI / ADMET Research (ToolUniverse front-end)

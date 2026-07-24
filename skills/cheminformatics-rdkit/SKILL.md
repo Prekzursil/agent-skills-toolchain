@@ -1,6 +1,6 @@
 ---
 name: cheminformatics-rdkit
-description: Use to drive the standalone rdkit MCP server (tandemai-inc/rdkit-mcp-server, 74 cheminformatics tools, MIT) for license-free chemistry - molecular descriptors, fingerprints, similarity, substructure search, and scaffold analysis on SMILES/structures. Covers the stdio registration and the two install gotchas. Use when a chemistry question needs RDKit cheminformatics and does not require a Schrodinger license.
+description: Use to drive the standalone rdkit MCP server (tandemai-inc/rdkit-mcp-server, 74 tools, MIT) for license-free chemistry - molecular descriptors, fingerprints, similarity, substructure search, and scaffold analysis on SMILES/structures. Covers the stdio registration and two install gotchas. Use when a chemistry question needs RDKit and does not need a Schrodinger license.
 ---
 
 # Cheminformatics (RDKit MCP)

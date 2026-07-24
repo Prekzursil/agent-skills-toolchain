@@ -1,6 +1,6 @@
 ---
 name: tiktok-public-research
-description: Use when the user wants to read PUBLIC TikTok data - trending videos, a creator's public posts or likes, a hashtag feed, a single video's metadata or comments, related videos, or a user search - through the self-hosted tiktok MCP server. Covers the read-only tool inventory, the ms_token and residential-proxy reliability knobs, and the hard limits (no own feed, no saved, no DMs, no posting; unofficial-API ban and IP-block risk).
+description: Use when the user wants to read PUBLIC TikTok data - trending videos, a creator's public posts or likes, a hashtag feed, a single video's metadata or comments, related videos, or a user search - through the self-hosted tiktok MCP server. Covers the read-only tool inventory, the ms_token and residential-proxy reliability knobs, and the hard limits (no own feed, no saved, no DMs, no posting).
 ---
 
 # TikTok public-research MCP (`tiktok`)

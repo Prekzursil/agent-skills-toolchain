@@ -1,6 +1,6 @@
 ---
 name: swfoc-modding
-description: "Research-backed workflow for Star Wars: Empire at War / Forces of Corruption modding, SDK/tooling, debugging, and submod integration. Use when Codex needs to implement, troubleshoot, or explain SWFOC mods and submods, including XML/Lua edits, MEG packaging, workshop publishing, MODPATH/STEAMMOD launching, map/model pipelines, file formats (ALO/ALA/MTD/DAT/LUA), or patch/tool compatibility. For dump, runtime, debugger, signature, or native executable analysis, route to $swfoc-reverse-engineering first."
+description: "Research-backed workflow for Star Wars: Empire at War / Forces of Corruption modding, SDK/tooling, debugging, and submod integration. Use when Codex needs to implement, troubleshoot, or explain SWFOC mods and submods, including XML/Lua edits, MEG packaging, MODPATH/STEAMMOD launching, or file formats (ALO/ALA/MTD/DAT/LUA). For runtime/debugger analysis, route to $swfoc-reverse-engineering."
 ---
 
 # SWFOC Modding

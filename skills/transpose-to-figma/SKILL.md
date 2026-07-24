@@ -1,6 +1,6 @@
 ---
 name: transpose-to-figma
-description: Use when lifting a running or built UI back onto the Figma canvas (the G2 TRANSPOSE / Code-to-Canvas edge of the design-review loop) and you must pick the right code-to-Figma path — story.to.design for the component system loop, the Figma MCP generate_figma_design for live or localhost screens, or html.to.design for an audit-only DOM record. Also use when reasoning about what survives the lossy round-trip (DTCG design tokens and Code-Connected components) versus what is lost (React state, routing, data, logic). Do NOT use for Figma-to-code implementation (use figma-implement-design) or plain Figma data fetch and MCP setup (use figma). Covers Reframe, momentstudio, WebCoder, bilbo.
+description: Use when lifting a running or built UI back onto the Figma canvas (the G2 TRANSPOSE / Code-to-Canvas edge of the design-review loop) and you must pick the right code-to-Figma path - story.to.design for the component-system loop, the Figma MCP generate_figma_design for live/localhost screens, or html.to.design for an audit-only DOM record. NOT for Figma-to-code (use figma-implement-design).
 ---
 
 <!-- origin: user (design-SOTA research, 2026-06-30); implements DESIGN-SKILLS-AND-EVAL.md §1.2, DESIGN-WORKFLOW.md G2/§1/§3, FIGMA-SETUP.md §1/§2.3/§2.6/§3 -->

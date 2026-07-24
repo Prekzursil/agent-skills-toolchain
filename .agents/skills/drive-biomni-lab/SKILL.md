@@ -1,6 +1,6 @@
 ---
 name: drive-biomni-lab
-description: Use when the user wants to run a biomedical/clinical-genomics analysis on the hosted Biomni Lab (biomni.phylo.bio, Phylo Inc.) from Claude Code — starting or continuing a Biomni agent task, controlling effort/model, attaching skills or @-resources, polling a running run, switching/rotating Biomni accounts, or checking Biomni usage/billing. Triggers include "run this on Biomni", "ask Biomni to…", "start a Biomni task", "rotate Biomni accounts", "which Biomni account", or mentions of the bm_* tools. Applies to the cloud-hub `biomni` backend driven through the local cookie-broker.
+description: "Use when the user wants to run a biomedical/clinical-genomics analysis on the hosted Biomni Lab (biomni.phylo.bio, Phylo Inc.) from Claude Code - starting or continuing a Biomni agent task, controlling effort/model, attaching skills or @-resources, polling a run, switching/rotating accounts, or checking usage/billing. Triggers: \"run this on Biomni\", \"rotate Biomni accounts\", or the bm_* tools."
 ---
 
 # Drive Biomni Lab (hosted) via the cookie-broker connector

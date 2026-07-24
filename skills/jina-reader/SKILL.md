@@ -1,12 +1,6 @@
 ---
 name: jina-reader
-description: >
-  Zero-RAM, server-less way to fetch a single web page as clean, LLM-ready markdown via a one-line
-  HTTP GET to Jina Reader (r.jina.ai plus the target URL) — no MCP, no resident process. Use as the
-  cheapest first hop for a simple or mostly-static page (article, doc, blog, README, changelog) when
-  you just need its readable text and do not need crawling, JS rendering, screenshots, or schema
-  extraction. Escalate to the Firecrawl MCP for JS-heavy or dynamic pages, crawling, or structured
-  extraction; use the exa MCP web_fetch for batch URL reads. NEVER hardcode the Jina API key.
+description: Zero-RAM, server-less way to fetch a single web page as clean, LLM-ready markdown via a one-line HTTP GET to Jina Reader (r.jina.ai plus the target URL) - no MCP, no resident process. Use as the cheapest first hop for a simple or mostly-static page (article, doc, blog, README) when you just need its readable text. Escalate to Firecrawl for JS-heavy pages. NEVER hardcode the Jina API key.
 ---
 
 # Jina Reader (zero-RAM page fetch)

@@ -1,6 +1,6 @@
 ---
 name: code-security
-description: "Security guidelines for writing secure code. Use when writing code, reviewing code for vulnerabilities, or asking about secure coding practices like 'check for SQL injection' or 'review security'. IMPORTANT: Always consult this skill when writing or reviewing any code that handles user input, authentication, file operations, database queries, network requests, cryptography, or infrastructure configuration (Terraform, Kubernetes, Docker, GitHub Actions) — even if the user doesn't explicitly mention security. Also use when users ask to 'review my code', 'check this for bugs', or 'is this safe'."
+description: "Security guidelines for writing secure code. Use when writing code, reviewing code for vulnerabilities, or asked to 'check for SQL injection' or 'review security'. IMPORTANT: Always consult this when writing or reviewing code that handles user input, authentication, file operations, database queries, network requests, cryptography, or infra config - even if security is not mentioned."
 ---
 
 # Code Security Guidelines
