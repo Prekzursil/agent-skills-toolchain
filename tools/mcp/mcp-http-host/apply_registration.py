@@ -8,11 +8,16 @@ promotes into ``~/.claude.json``) - never ``~/.claude.json`` directly. Run it
 with Claude CLOSED, then promote / restart.
 
 It swaps the named server's entry from
-``{"type": "stdio", "command": ..., "args": [...]}`` to
-``{"type": "http", "url": "http://127.0.0.1:<port>/mcp"}`` (an ``http`` entry MUST
-carry ``"type"`` or Claude Code reads a bare ``url`` as a stdio misconfig). It
-NEVER touches ``accounts.json`` or any secret. Dry-run by default; ``--apply``
-writes after a timestamped ``.bak-*`` backup; ``--revert-from`` restores one.
+``{"type": "stdio", "command": ..., "args": [...]}`` to a shared-transport entry.
+``--transport http`` (the default) writes
+``{"type": "http", "url": "http://127.0.0.1:<port>/mcp"}`` and ``--transport sse``
+writes ``{"type": "sse", "url": "http://127.0.0.1:<port>/sse"}`` - the SSE endpoint
+the mcp-proxy bridge (``run_host.ps1 -Bridge mcp-proxy``) serves alongside the
+streamable-HTTP one. Either way the entry MUST carry ``"type"`` or Claude Code reads
+a bare ``url`` as a stdio misconfig. The path defaults per transport (``/mcp`` for
+http, ``/sse`` for sse) and can be overridden with ``--path``. It NEVER touches
+``accounts.json`` or any secret. Dry-run by default; ``--apply`` writes after a
+timestamped ``.bak-*`` backup; ``--revert-from`` restores one.
 
 Examples::
 
@@ -20,6 +25,8 @@ Examples::
     python apply_registration.py --server search-hub --port 8900
     # apply for real (Claude closed), backing up first
     python apply_registration.py --server search-hub --port 8900 --apply
+    # register the SSE transport instead of streamable-http
+    python apply_registration.py --server search-hub --port 8900 --transport sse --apply
     # undo
     python apply_registration.py --revert-from ~/.mcp.json.bak-20260723-120000
 """
@@ -37,12 +44,38 @@ from typing import Any
 
 DEFAULT_TARGET = os.path.expanduser("~/.mcp.json")
 DEFAULT_HOST = "127.0.0.1"
-DEFAULT_PATH = "/mcp"
+DEFAULT_HTTP_PATH = "/mcp"
+DEFAULT_SSE_PATH = "/sse"
+DEFAULT_PATH = DEFAULT_HTTP_PATH  # back-compat alias: the http default path
 
 
 def http_entry(host: str, port: int, path: str) -> dict[str, str]:
-    """The Claude Code ``http`` server entry (``type`` is mandatory)."""
+    """The Claude Code ``http`` (Streamable-HTTP) server entry (``type`` is mandatory)."""
     return {"type": "http", "url": f"http://{host}:{port}{path}"}
+
+
+def sse_entry(host: str, port: int, path: str) -> dict[str, str]:
+    """The Claude Code ``sse`` server entry (mcp-proxy serves ``/sse`` too; ``type`` mandatory)."""
+    return {"type": "sse", "url": f"http://{host}:{port}{path}"}
+
+
+_ENTRY_BUILDERS = {"http": http_entry, "sse": sse_entry}
+
+
+def build_entry(transport: str, host: str, port: int, path: str) -> dict[str, str]:
+    """Return the server entry for ``transport`` (``http`` streamable or ``sse``)."""
+    try:
+        builder = _ENTRY_BUILDERS[transport]
+    except KeyError:
+        raise ValueError(
+            f"unknown transport {transport!r} (choose http or sse)"
+        ) from None
+    return builder(host, port, path)
+
+
+def default_path(transport: str) -> str:
+    """Conventional endpoint path per transport: ``/sse`` for sse, else ``/mcp``."""
+    return DEFAULT_SSE_PATH if transport == "sse" else DEFAULT_HTTP_PATH
 
 
 def load_config(target: str) -> dict[str, Any]:
@@ -86,7 +119,8 @@ def _run(args: argparse.Namespace) -> int:
         return 0
 
     config = load_config(args.target)
-    new_entry = http_entry(args.host, args.port, args.path)
+    path = args.path if args.path is not None else default_path(args.transport)
+    new_entry = build_entry(args.transport, args.host, args.port, path)
     try:
         current = config.get("mcpServers", {})[args.server]
     except KeyError:
@@ -123,9 +157,19 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--server", help="server key to repoint, e.g. search-hub")
     parser.add_argument("--host", default=DEFAULT_HOST)
     parser.add_argument(
-        "--port", type=int, help="port the shared mcp-http-host serves on"
+        "--port", type=int, help="port the shared bridge (mcp-proxy / host) serves on"
     )
-    parser.add_argument("--path", default=DEFAULT_PATH)
+    parser.add_argument(
+        "--path",
+        default=None,
+        help="endpoint path (default: /mcp for http, /sse for sse)",
+    )
+    parser.add_argument(
+        "--transport",
+        choices=("http", "sse"),
+        default="http",
+        help="register as streamable-http (default) or sse; mcp-proxy serves both",
+    )
     parser.add_argument(
         "--apply", action="store_true", help="write the change (default is dry-run)"
     )

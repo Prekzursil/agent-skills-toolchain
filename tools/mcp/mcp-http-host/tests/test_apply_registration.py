@@ -144,3 +144,80 @@ def test_apply_change_unknown_server_raises():
         reg.apply_change(
             {"mcpServers": {}}, "ghost", {"type": "http", "url": "http://x/mcp"}
         )
+
+
+# --- --transport sse (mcp-proxy also exposes an SSE endpoint) --------------
+
+
+def test_sse_entry_shape():
+    assert reg.sse_entry("127.0.0.1", 8901, "/sse") == {
+        "type": "sse",
+        "url": "http://127.0.0.1:8901/sse",
+    }
+
+
+def test_build_entry_dispatches_by_transport():
+    assert reg.build_entry("http", "127.0.0.1", 8900, "/mcp") == {
+        "type": "http",
+        "url": "http://127.0.0.1:8900/mcp",
+    }
+    assert reg.build_entry("sse", "127.0.0.1", 8901, "/sse") == {
+        "type": "sse",
+        "url": "http://127.0.0.1:8901/sse",
+    }
+
+
+def test_build_entry_unknown_transport_raises():
+    with pytest.raises(ValueError, match="unknown transport"):
+        reg.build_entry("grpc", "127.0.0.1", 8900, "/mcp")
+
+
+def test_default_path_per_transport():
+    assert reg.default_path("sse") == "/sse"
+    assert reg.default_path("http") == "/mcp"
+
+
+def test_apply_sse_uses_sse_type_and_default_sse_path(cfg: Path):
+    rc = reg.main(
+        [
+            "--target",
+            str(cfg),
+            "--server",
+            "search-hub",
+            "--port",
+            "8901",
+            "--transport",
+            "sse",
+            "--apply",
+        ]
+    )
+    assert rc == 0
+    data = _load(cfg)
+    assert data["mcpServers"]["search-hub"] == {
+        "type": "sse",
+        "url": "http://127.0.0.1:8901/sse",  # default sse path, not /mcp
+    }
+    assert data["mcpServers"]["figma"] == OTHER_ENTRY  # unrelated entry untouched
+
+
+def test_apply_sse_honors_explicit_path(cfg: Path):
+    rc = reg.main(
+        [
+            "--target",
+            str(cfg),
+            "--server",
+            "search-hub",
+            "--port",
+            "8901",
+            "--transport",
+            "sse",
+            "--path",
+            "/events",
+            "--apply",
+        ]
+    )
+    assert rc == 0
+    assert _load(cfg)["mcpServers"]["search-hub"] == {
+        "type": "sse",
+        "url": "http://127.0.0.1:8901/events",
+    }
