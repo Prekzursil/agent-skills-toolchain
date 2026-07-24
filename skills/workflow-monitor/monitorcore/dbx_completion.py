@@ -55,7 +55,7 @@ import re
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
 __all__ = [
     "CONTRACT_VERSION",
@@ -180,6 +180,19 @@ class ArtifactProbe(Protocol):
     def size(self, path: str) -> int: ...
     def read_tail(self, path: str, nbytes: int) -> bytes: ...
     def mtime(self, path: str) -> float: ...
+
+
+@runtime_checkable
+class _SupportsReadAll(Protocol):
+    """Optional probe capability: read the WHOLE artifact, not just the tail.
+
+    ``read_all`` is deliberately NOT part of :class:`ArtifactProbe` — a remote/DBFS
+    store or a test double need not implement it. When a probe DOES provide it, the
+    declared format check parses the full payload; when it does not, gate 3 falls
+    back to the already-read tail window.
+    """
+
+    def read_all(self, path: str) -> bytes: ...
 
 
 class OsArtifactProbe:
@@ -321,8 +334,11 @@ def classify(
     # ---- gate 3: the declared format check ----------------------------------------------
     if expectation.format_check is not None:
         try:
-            raw = getattr(active_probe, "read_all", None)
-            payload = raw(path) if callable(raw) else tail
+            payload = (
+                active_probe.read_all(path)
+                if isinstance(active_probe, _SupportsReadAll)
+                else tail
+            )
             parsed_ok = expectation.format_check(payload)
         except Exception as exc:  # noqa: BLE001 - a crashing checker is a broken instrument
             signals["detector_error"] = exc
