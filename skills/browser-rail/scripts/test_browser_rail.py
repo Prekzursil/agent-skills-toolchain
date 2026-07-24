@@ -9,14 +9,19 @@ from __future__ import annotations
 
 import pytest
 
+import browser_rail
 from browser_rail import (
+    DEFAULT_CDP_PORTS,
     MIN_SCANNED_PAYLOAD_LEN,
     POST_JSON_JS,
+    RAIL_VERBS,
     UPLOAD_TEXT_JS,
+    VERB_TABLE,
     AuthSignals,
     PayloadInlinedError,
     assert_payload_not_inlined,
     cdp_http_endpoint,
+    cdp_version_endpoint,
     classify_auth,
     domain_matches,
     normalize_domain,
@@ -238,3 +243,94 @@ def test_shipped_js_reads_everything_from_the_arg(js):
 def test_post_json_js_sends_credentials():
     # Reusing the page's own session is the whole point of the rail.
     assert "credentials: 'include'" in POST_JSON_JS
+
+
+# --------------------------------------------------------------------------
+# cdp_version_endpoint + DEFAULT_CDP_PORTS -- pure session-probe helpers
+# --------------------------------------------------------------------------
+
+
+def test_cdp_version_endpoint_defaults_to_loopback():
+    assert cdp_version_endpoint() == "http://127.0.0.1:9222/json/version"
+
+
+def test_cdp_version_endpoint_honors_overrides():
+    assert (
+        cdp_version_endpoint(port=9333, host="localhost")
+        == "http://localhost:9333/json/version"
+    )
+
+
+def test_default_cdp_ports_cover_both_rail_profiles():
+    # The primary automation profile plus the conventional second profile.
+    assert DEFAULT_CDP_PORTS == (9222, 9333)
+
+
+# --------------------------------------------------------------------------
+# VERB_TABLE -- the Browser Use naming borrow, checkable without a browser
+# --------------------------------------------------------------------------
+
+# The 13 borrowed verbs, spelled out so a rename or a dropped verb fails loudly
+# rather than silently shrinking the surface (fan-out contract: enumerate, never
+# ship a bare set).
+EXPECTED_BROWSER_USE_VERBS = frozenset(
+    {
+        "browser_navigate",
+        "browser_click",
+        "browser_type",
+        "browser_get_state",
+        "browser_scroll",
+        "browser_go_back",
+        "browser_list_tabs",
+        "browser_switch_tab",
+        "browser_close_tab",
+        "browser_extract_content",
+        "browser_list_sessions",
+        "browser_close_session",
+        "browser_close_all",
+    }
+)
+
+# The nested-agent verb Browser Use ships that the rail deliberately does NOT
+# adopt: the rail is a primitive layer, not an agent runtime.
+EXCLUDED_VERB = "retry_with_browser_use_agent"
+
+
+def test_verb_table_has_exactly_the_thirteen_browser_use_verbs():
+    assert set(VERB_TABLE) == EXPECTED_BROWSER_USE_VERBS
+    assert len(VERB_TABLE) == 13
+
+
+def test_retry_agent_verb_is_absent_everywhere():
+    # The one Browser Use verb the rail refuses on purpose must not sneak back in
+    # through either table or as a module attribute.
+    assert EXCLUDED_VERB not in VERB_TABLE
+    assert EXCLUDED_VERB not in RAIL_VERBS
+    assert not hasattr(browser_rail, EXCLUDED_VERB)
+
+
+@pytest.mark.parametrize("verb", sorted(EXPECTED_BROWSER_USE_VERBS))
+def test_each_canonical_verb_is_importable_and_callable(verb):
+    # The browser_* name a caller relies on must resolve on the module...
+    assert callable(getattr(browser_rail, verb))
+
+
+@pytest.mark.parametrize("verb", sorted(VERB_TABLE))
+def test_each_verb_table_target_resolves(verb):
+    # ...and the function VERB_TABLE points at must exist and be callable, so the
+    # alias layer can never dangle. No browser is needed to check resolution.
+    assert callable(getattr(browser_rail, VERB_TABLE[verb]))
+
+
+def test_navigate_aliases_the_existing_tab_reuse_function():
+    # browser_navigate is an ALIAS, not a reimplementation: it must BE
+    # find_or_open_page so tab reuse is preserved.
+    assert VERB_TABLE["browser_navigate"] == "find_or_open_page"
+    assert browser_rail.browser_navigate is browser_rail.find_or_open_page
+
+
+@pytest.mark.parametrize("verb", sorted(RAIL_VERBS))
+def test_rail_specific_verbs_alias_their_implementations(verb):
+    # The four rail-only verbs get browser_* aliases too, each bound to its
+    # original implementation so the whole surface reads uniformly.
+    assert getattr(browser_rail, verb) is getattr(browser_rail, RAIL_VERBS[verb])

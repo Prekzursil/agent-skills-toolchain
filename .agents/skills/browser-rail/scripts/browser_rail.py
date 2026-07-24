@@ -24,10 +24,16 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import urlsplit
 
 if TYPE_CHECKING:  # pragma: no cover -- typing-only, never executed at runtime
-    from collections.abc import Iterator
+    from collections.abc import Iterable, Iterator
 
 DEFAULT_CDP_HOST = "127.0.0.1"
 DEFAULT_CDP_PORT = 9222
+
+#: Ports ``browser_list_sessions`` probes for a live CDP endpoint. 9222 is the
+#: primary automation profile; 9333 is the conventional second profile (see
+#: ``Start-BrowserRail.ps1``). Pure data here -- the network probe that reads it
+#: lives below the playwright marker.
+DEFAULT_CDP_PORTS: tuple[int, ...] = (DEFAULT_CDP_PORT, 9333)
 
 #: Roles worth reading when probing a page for auth state. Deliberately small:
 #: ``page.accessibility`` does NOT exist in playwright 1.61 (measured), so the
@@ -65,6 +71,13 @@ def cdp_http_endpoint(
 ) -> str:
     """Return the HTTP CDP endpoint Playwright's ``connect_over_cdp`` expects."""
     return f"http://{host}:{port}"
+
+
+def cdp_version_endpoint(
+    port: int = DEFAULT_CDP_PORT, host: str = DEFAULT_CDP_HOST
+) -> str:
+    """Return the CDP ``/json/version`` URL used to probe for a live session."""
+    return f"{cdp_http_endpoint(port, host)}/json/version"
 
 
 def normalize_domain(url_or_domain: str) -> str:
@@ -249,6 +262,55 @@ async (arg) => {
 
 
 # --------------------------------------------------------------------------
+# Canonical verb vocabulary -- the Browser Use naming borrow
+# --------------------------------------------------------------------------
+#
+# The rail is a Python import surface, not an MCP tool surface, so a "verb" is a
+# module-level function. VERB_TABLE adopts Browser Use's ``browser_*`` names as a
+# thin, stable ALIAS layer over the rail's own functions: a canonical name a
+# caller can rely on even if an underlying helper is later renamed. Addressing
+# stays role+name (which survives a page restyle); this only standardises the
+# NAMES. Every value is the ``__name__`` of a function defined in this module, so
+# the whole mapping is checkable without a browser -- ``getattr(module, target)``
+# must resolve for every entry (see test_browser_rail.py).
+#
+# Only ``browser_navigate`` maps to a differently-named existing function
+# (``find_or_open_page``, kept for its tab reuse). The rest are implemented as
+# ``browser_*`` functions of the same name below the marker.
+#
+# ``retry_with_browser_use_agent`` is deliberately EXCLUDED: it is Browser Use's
+# nested-agent verb, and the rail is a primitive layer, not an agent runtime.
+
+#: Browser Use's 13 borrowed navigation / interaction / session verbs -> the name
+#: of the function in THIS module that implements each.
+VERB_TABLE: dict[str, str] = {
+    "browser_navigate": "find_or_open_page",
+    "browser_click": "browser_click",
+    "browser_type": "browser_type",
+    "browser_get_state": "browser_get_state",
+    "browser_scroll": "browser_scroll",
+    "browser_go_back": "browser_go_back",
+    "browser_list_tabs": "browser_list_tabs",
+    "browser_switch_tab": "browser_switch_tab",
+    "browser_close_tab": "browser_close_tab",
+    "browser_extract_content": "browser_extract_content",
+    "browser_list_sessions": "browser_list_sessions",
+    "browser_close_session": "browser_close_session",
+    "browser_close_all": "browser_close_all",
+}
+
+#: The four rail-specific verbs Browser Use has no equivalent for, each given a
+#: matching ``browser_*`` alias so the whole surface reads uniformly. Kept apart
+#: from VERB_TABLE because they are NOT part of the borrowed vocabulary.
+RAIL_VERBS: dict[str, str] = {
+    "browser_is_authed": "is_authed",
+    "browser_evaluate": "evaluate_with_arg",
+    "browser_upload_text": "upload_text_as_file",
+    "browser_post_json": "post_json",
+}
+
+
+# --------------------------------------------------------------------------
 # --- playwright-touching --- (lazy import; manual verification only)
 # --------------------------------------------------------------------------
 
@@ -284,6 +346,16 @@ def rail(
             browser.close()
 
 
+def _iter_pages(browser: Any) -> Iterator[Any]:  # pragma: no cover -- live browser
+    """Yield every open page across all of ``browser``'s contexts, in order.
+
+    Factored out so :func:`find_or_open_page` (the tab-reuse lookup) and
+    :func:`browser_list_tabs` (the tab inventory) walk the tabs the same way.
+    """
+    for context in browser.contexts:
+        yield from context.pages
+
+
 def find_or_open_page(
     browser: Any,
     url: str,
@@ -295,14 +367,35 @@ def find_or_open_page(
     one, and opening a duplicate loses in-page state.
     """
     target = domain or url
-    for context in browser.contexts:
-        for page in context.pages:
-            if domain_matches(page.url, target):
-                return page, False
+    for page in _iter_pages(browser):
+        if domain_matches(page.url, target):
+            return page, False
     context = browser.contexts[0] if browser.contexts else browser.new_context()
     page = context.new_page()
     page.goto(url)
     return page, True
+
+
+def _iter_role_names(
+    page: Any,
+    roles: tuple[str, ...],
+    limit: int,
+) -> Iterator[tuple[str, str]]:  # pragma: no cover -- requires a live browser
+    """Yield ``(role, accessible_name)`` for each visible, named role element.
+
+    The single a11y-tree walk shared by :func:`visible_role_names` (which keeps
+    only the names) and :func:`browser_get_state` (which also needs the role and
+    a running index).
+    """
+    for role in roles:
+        locator = page.get_by_role(role)
+        for index in range(min(locator.count(), limit)):
+            item = locator.nth(index)
+            if not item.is_visible():
+                continue
+            text = (item.get_attribute("aria-label") or item.inner_text() or "").strip()
+            if text:
+                yield role, text
 
 
 def visible_role_names(
@@ -315,17 +408,7 @@ def visible_role_names(
     ``page.accessibility`` does not exist in playwright 1.61 (measured), so role
     locators are the a11y-tree access path.
     """
-    names: list[str] = []
-    for role in roles:
-        locator = page.get_by_role(role)
-        for index in range(min(locator.count(), limit)):
-            item = locator.nth(index)
-            if not item.is_visible():
-                continue
-            text = (item.get_attribute("aria-label") or item.inner_text() or "").strip()
-            if text:
-                names.append(text)
-    return names
+    return [name for _role, name in _iter_role_names(page, roles, limit)]
 
 
 def is_authed(
@@ -391,3 +474,146 @@ def post_json(
             "headers": request.headers,
         },
     )
+
+
+# --------------------------------------------------------------------------
+# Browser Use verb layer -- thin wrappers named for VERB_TABLE / RAIL_VERBS
+# --------------------------------------------------------------------------
+#
+# Each function below is a target named in VERB_TABLE. They are deliberately
+# thin: addressing stays role+name (which survives a restyle) and the
+# rail-specific verbs remain the richer surface. Every one needs a live browser
+# (or, for browser_list_sessions, a live CDP endpoint), so all are
+# pragma-no-cover; the checkable contract -- names present, retry verb absent,
+# every target resolvable -- is enforced against the pure VERB_TABLE by the tests.
+
+
+def browser_click(
+    page: Any, *, role: str, name: str
+) -> None:  # pragma: no cover -- requires a live browser
+    """Click the element addressed by ARIA ``role`` + accessible ``name``."""
+    page.get_by_role(role, name=name).click()
+
+
+def browser_type(
+    page: Any, *, role: str, name: str, text: str
+) -> None:  # pragma: no cover -- requires a live browser
+    """Fill the ``role`` + ``name`` field with ``text`` (replacing any value)."""
+    page.get_by_role(role, name=name).fill(text)
+
+
+def browser_get_state(
+    page: Any,
+    roles: tuple[str, ...] = DEFAULT_PROBE_ROLES,
+    limit: int = 120,
+) -> dict[str, Any]:  # pragma: no cover -- requires a live browser
+    """Return ``{url, title, elements:[{index, role, name}]}`` for ``page``.
+
+    The Browser Use ``get_state`` shape, read from the same role-locator walk as
+    :func:`visible_role_names` rather than from a pixel screenshot.
+    """
+    elements = [
+        {"index": index, "role": role, "name": name}
+        for index, (role, name) in enumerate(_iter_role_names(page, roles, limit))
+    ]
+    return {"url": page.url, "title": page.title(), "elements": elements}
+
+
+def browser_scroll(
+    page: Any, *, dy: float, dx: float = 0
+) -> None:  # pragma: no cover -- requires a live browser
+    """Scroll by ``(dx, dy)`` wheel deltas (positive ``dy`` scrolls down)."""
+    page.mouse.wheel(dx, dy)
+
+
+def browser_go_back(page: Any) -> Any:  # pragma: no cover -- requires a live browser
+    """Navigate back one entry in the tab's history."""
+    return page.go_back()
+
+
+def browser_list_tabs(
+    browser: Any,
+) -> list[dict[str, Any]]:  # pragma: no cover -- requires a live browser
+    """List every open tab as ``{index, url, title}`` across all contexts."""
+    return [
+        {"index": index, "url": page.url, "title": page.title()}
+        for index, page in enumerate(_iter_pages(browser))
+    ]
+
+
+def browser_switch_tab(page: Any) -> None:  # pragma: no cover -- live browser
+    """Bring ``page`` to the foreground (the rail addresses tabs by object)."""
+    page.bring_to_front()
+
+
+def browser_close_tab(page: Any) -> None:  # pragma: no cover -- live browser
+    """Close a single tab; the rest of the session is untouched."""
+    page.close()
+
+
+def browser_extract_content(
+    page: Any,
+) -> str:  # pragma: no cover -- requires a live browser
+    """Return the page body's rendered inner text."""
+    return page.inner_text("body")
+
+
+def browser_list_sessions(
+    ports: tuple[int, ...] = DEFAULT_CDP_PORTS,
+    host: str = DEFAULT_CDP_HOST,
+    timeout: float = 0.5,
+) -> list[dict[str, Any]]:  # pragma: no cover -- requires a live endpoint
+    """Probe ``ports`` for reachable CDP endpoints; one entry per live session.
+
+    Uses stdlib ``urllib`` (NOT playwright) against ``/json/version`` with a short
+    timeout, so an absent endpoint is skipped rather than raising. This is a
+    network probe, which is why it lives below the playwright marker.
+    """
+    import json
+    import urllib.error
+    import urllib.request
+
+    sessions: list[dict[str, Any]] = []
+    for port in ports:
+        try:
+            with urllib.request.urlopen(
+                cdp_version_endpoint(port, host), timeout=timeout
+            ) as response:
+                info = json.load(response)
+        except (urllib.error.URLError, OSError, ValueError):
+            continue
+        sessions.append(
+            {"port": port, "endpoint": cdp_http_endpoint(port, host), "info": info}
+        )
+    return sessions
+
+
+def browser_close_session(
+    browser: Any,
+) -> None:  # pragma: no cover -- requires a live browser
+    """DISCONNECT the rail from ``browser``.
+
+    Over CDP this detaches the automation client; it does NOT quit the owner's
+    browser or close their tabs. Named to make that distinction explicit.
+    """
+    browser.close()
+
+
+def browser_close_all(
+    browsers: Iterable[Any],
+) -> None:  # pragma: no cover -- requires a live browser
+    """Disconnect every rail connection in ``browsers``.
+
+    Each is a detach, not a quit -- see :func:`browser_close_session`.
+    """
+    for browser in browsers:
+        browser.close()
+
+
+# browser_* canonical aliases for the functions that keep their original rail
+# name -- the ALIAS entry in VERB_TABLE plus every RAIL_VERBS entry.
+browser_navigate = find_or_open_page
+browser_is_authed = is_authed
+browser_evaluate = evaluate_with_arg
+browser_upload_text = upload_text_as_file
+browser_post_json = post_json

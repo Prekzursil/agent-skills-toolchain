@@ -142,6 +142,26 @@ It is a lint against the common mistake, not a proof.
 `post_json` fetches from the page's own origin with `credentials: 'include'`, so
 the request inherits the logged-in session — no cookie is ever extracted.
 
+### Canonical `browser_*` verb names (Browser Use borrow)
+
+The rail also exposes a Browser-Use-style `browser_*` vocabulary: a thin, stable
+ALIAS layer so a caller can name an action the same way even if an underlying
+helper is later renamed. `VERB_TABLE` maps each of the 13 borrowed verbs to the
+function that implements it, and addressing stays role+name (which survives a
+restyle), so this standardises only the NAMES.
+
+- Navigate / interact: `browser_navigate` (= `find_or_open_page`, keeps tab
+  reuse), `browser_click`, `browser_type`, `browser_get_state`, `browser_scroll`,
+  `browser_go_back`, `browser_extract_content`.
+- Tabs / sessions: `browser_list_tabs`, `browser_switch_tab`, `browser_close_tab`,
+  `browser_list_sessions`, `browser_close_session` (a CDP DISCONNECT, not a quit),
+  `browser_close_all`.
+- The four rail-only verbs keep `browser_*` aliases too: `browser_is_authed`,
+  `browser_evaluate`, `browser_upload_text`, `browser_post_json`.
+
+Browser Use's `retry_with_browser_use_agent` is deliberately NOT adopted: the
+rail is a primitive layer, not an agent runtime.
+
 ## Work over 60s runs under longrun
 
 Crawls, multi-page sweeps, and long form flows exceed 60s. Per AGENTS.md §4a, run
