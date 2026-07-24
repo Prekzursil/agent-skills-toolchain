@@ -79,7 +79,10 @@ def restore_chromium(browser: str, session_file: Path) -> dict:
         pref.setdefault("session", {})
         pref["session"]["restore_on_startup"] = 1
         tmp = pref_path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(pref, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+        tmp.write_text(
+            json.dumps(pref, ensure_ascii=False, separators=(",", ":")),
+            encoding="utf-8",
+        )
         tmp.replace(pref_path)
     ud = junction if junction and junction.exists() else profile.parent
     if not exe.is_file() and browser == "edge":
@@ -96,21 +99,33 @@ def restore_chromium(browser: str, session_file: Path) -> dict:
         stderr=subprocess.DEVNULL,
         creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
     )
-    return {"ok": True, "browser": browser, "pid": proc.pid, "restored_file": str(session_file), "dest": str(dest)}
+    return {
+        "ok": True,
+        "browser": browser,
+        "pid": proc.pid,
+        "restored_file": str(session_file),
+        "dest": str(dest),
+    }
 
 
 def restore_firefox(session_file: Path) -> dict:
     kill("firefox")
     time.sleep(2)
-    profile = HOME / r"AppData\Roaming\Mozilla\Firefox\Profiles\k4cy1nuq.default-release"
+    profile = (
+        HOME / r"AppData\Roaming\Mozilla\Firefox\Profiles\k4cy1nuq.default-release"
+    )
     dest = profile / "sessionstore.jsonlz4"
     if dest.is_file():
         shutil.copy2(dest, profile / f"sessionstore.jsonlz4.bak-{int(time.time())}")
     shutil.copy2(session_file, dest)
     user_js = profile / "user.js"
-    existing = user_js.read_text(encoding="utf-8", errors="replace") if user_js.is_file() else ""
+    existing = (
+        user_js.read_text(encoding="utf-8", errors="replace")
+        if user_js.is_file()
+        else ""
+    )
     block = (
-        f'\n// CRCP pick restore {datetime.now().isoformat()}\n'
+        f"\n// CRCP pick restore {datetime.now().isoformat()}\n"
         'user_pref("browser.sessionstore.resume_session_once", true);\n'
         'user_pref("browser.startup.page", 3);\n'
     )
@@ -122,7 +137,12 @@ def restore_firefox(session_file: Path) -> dict:
         stderr=subprocess.DEVNULL,
         creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
     )
-    return {"ok": True, "browser": "firefox", "pid": proc.pid, "restored_file": str(session_file)}
+    return {
+        "ok": True,
+        "browser": "firefox",
+        "pid": proc.pid,
+        "restored_file": str(session_file),
+    }
 
 
 def main(argv: list[str]) -> int:

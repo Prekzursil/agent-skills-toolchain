@@ -158,7 +158,9 @@ def summarize_cookies(cookies: list[dict[str, Any]]) -> dict[str, Any]:
         "count": len(cookies),
         "hosts": dict(sorted(hosts.items(), key=lambda x: (-x[1], x[0]))),
         "has_dbauth": any(n == "DBAUTH" for n in names),
-        "has_nextauth": any(n.startswith("__Secure-next-auth.session-token") for n in names),
+        "has_nextauth": any(
+            n.startswith("__Secure-next-auth.session-token") for n in names
+        ),
         "has_okta_idx": any(n == "idx" for n in names),
     }
 
@@ -249,7 +251,9 @@ def snapshot_profile(browser: str, cfg: dict[str, Any], snap_root: Path) -> Path
         "baseline": measure_profile(default),
         "at": datetime.now(timezone.utc).isoformat(),
     }
-    (dest / "snapshot_meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
+    (dest / "snapshot_meta.json").write_text(
+        json.dumps(meta, indent=2), encoding="utf-8"
+    )
     return dest
 
 
@@ -262,7 +266,10 @@ def rollback_from_snapshot(cfg: dict[str, Any], snap_dir: Path) -> list[str]:
         (snap_dir / "Preferences", default / "Preferences"),
         (snap_dir / "Secure Preferences", default / "Secure Preferences"),
         (snap_dir / "Network" / "Cookies", default / "Network" / "Cookies"),
-        (snap_dir / "Network" / "Cookies-journal", default / "Network" / "Cookies-journal"),
+        (
+            snap_dir / "Network" / "Cookies-journal",
+            default / "Network" / "Cookies-journal",
+        ),
     ]
     for src, dst in pairs:
         if src.is_file():
@@ -272,7 +279,9 @@ def rollback_from_snapshot(cfg: dict[str, Any], snap_dir: Path) -> list[str]:
     return restored
 
 
-def integrity_ok(before: dict[str, Any], after: dict[str, Any]) -> tuple[bool, list[str]]:
+def integrity_ok(
+    before: dict[str, Any], after: dict[str, Any]
+) -> tuple[bool, list[str]]:
     issues = []
     if before.get("account_emails") != after.get("account_emails"):
         issues.append(
@@ -323,7 +332,9 @@ def wait_cdp(port: int, timeout: float = 60.0) -> dict[str, Any]:
         except Exception as exc:  # noqa: BLE001
             last = exc
             time.sleep(0.4)
-    raise RuntimeError(f"CDP :{port} not ready: {type(last).__name__ if last else 'timeout'}")
+    raise RuntimeError(
+        f"CDP :{port} not ready: {type(last).__name__ if last else 'timeout'}"
+    )
 
 
 def _ws_connect(ws_url: str):
@@ -355,7 +366,12 @@ class Cdp:
             pass
 
     def call(
-        self, method: str, params: dict | None = None, *, session: bool = False, timeout: float = 45
+        self,
+        method: str,
+        params: dict | None = None,
+        *,
+        session: bool = False,
+        timeout: float = 45,
     ) -> Any:
         self._id += 1
         msg: dict[str, Any] = {"id": self._id, "method": method}
@@ -381,7 +397,9 @@ class Cdp:
             tid = created.get("targetId")
         else:
             tid = pages[0]["targetId"]
-        att = self.call("Target.attachToTarget", {"targetId": tid, "flatten": True}) or {}
+        att = (
+            self.call("Target.attachToTarget", {"targetId": tid, "flatten": True}) or {}
+        )
         self.session_id = att.get("sessionId")
         if not self.session_id:
             raise RuntimeError("no sessionId")
@@ -486,7 +504,12 @@ def inject_one(
     report["baseline"] = baseline
     print(f"\n=== {cfg['label']} ===")
     print("  accounts:", baseline.get("account_emails"))
-    print("  logins:", baseline.get("login_count"), "history_urls:", baseline.get("history_urls"))
+    print(
+        "  logins:",
+        baseline.get("login_count"),
+        "history_urls:",
+        baseline.get("history_urls"),
+    )
     if nproc > 0:
         print(f"  note: {proc}.exe running ({nproc}) — dry-run only; apply will refuse")
 
@@ -541,7 +564,9 @@ def inject_one(
         report["ok"] = False
         report["error"] = f"cdp_start:{type(exc).__name__}:{exc}"
         try:
-            report["stderr_tail"] = err_log.read_text(encoding="utf-8", errors="replace")[-400:]
+            report["stderr_tail"] = err_log.read_text(
+                encoding="utf-8", errors="replace"
+            )[-400:]
         except Exception:
             pass
         # try graceful — still no /F unless forced
@@ -686,7 +711,9 @@ def inject_one(
         else:
             report["ok"] = False
             report["error"] = "browser_did_not_exit_gracefully"
-            report["hint"] = "Close it manually, then re-check integrity; avoid /F if possible"
+            report["hint"] = (
+                "Close it manually, then re-check integrity; avoid /F if possible"
+            )
             return report
 
     if dead:
@@ -724,7 +751,9 @@ def inject_one(
     report["ok"] = set_ok > 0 and ok_int
     report["status"] = (
         "WEB_LIKELY_OK"
-        if report["ok"] and (chatgpt_ok or payload == "databricks") and (dbx_ok or payload == "chatgpt")
+        if report["ok"]
+        and (chatgpt_ok or payload == "databricks")
+        and (dbx_ok or payload == "chatgpt")
         else ("COOKIES_SET_INTEGRITY_OK" if report["ok"] else "FAILED")
     )
     report["probe_chatgpt_ok"] = chatgpt_ok if payload in ("chatgpt", "both") else None

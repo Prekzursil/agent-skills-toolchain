@@ -307,7 +307,9 @@ def dedupe_cookies(cookies: list[dict[str, Any]]) -> list[dict[str, Any]]:
         key = (c["name"], domain, c.get("path") or "/")
         # Prefer longer value / later expires when duplicate
         prev = seen.get(key)
-        if prev is None or len(str(c.get("value", ""))) >= len(str(prev.get("value", ""))):
+        if prev is None or len(str(c.get("value", ""))) >= len(
+            str(prev.get("value", ""))
+        ):
             seen[key] = c
     return list(seen.values())
 
@@ -381,7 +383,9 @@ def cmd_extract() -> dict[str, Any]:
     found = find_tabs(tabs)
     print(f"Tabs total: {found['total_tabs']}")
     for name, t in found["workspaces"].items():
-        print(f"  WS {name}: {(t.get('title') or '')[:50]} | {(t.get('url') or '')[:90]}")
+        print(
+            f"  WS {name}: {(t.get('title') or '')[:50]} | {(t.get('url') or '')[:90]}"
+        )
     for t in found["okta"]:
         print(f"  Okta: {(t.get('title') or '')[:50]} | {(t.get('url') or '')[:90]}")
 
@@ -478,7 +482,9 @@ def cmd_status() -> dict[str, Any]:
     summary = data.get("summary") or summarize_cookies(cookies)
     age_h = None
     try:
-        ts = datetime.fromisoformat(str(data.get("extracted_at")).replace("Z", "+00:00"))
+        ts = datetime.fromisoformat(
+            str(data.get("extracted_at")).replace("Z", "+00:00")
+        )
         age_h = round((datetime.now(timezone.utc) - ts).total_seconds() / 3600, 2)
     except Exception:
         pass
@@ -554,7 +560,9 @@ def wait_cdp(port: int, timeout: float = 60.0) -> dict[str, Any]:
         except Exception as exc:  # noqa: BLE001
             last = exc
             time.sleep(0.4)
-    raise RuntimeError(f"CDP :{port} not ready: {type(last).__name__ if last else 'timeout'}")
+    raise RuntimeError(
+        f"CDP :{port} not ready: {type(last).__name__ if last else 'timeout'}"
+    )
 
 
 def cookie_to_cdp(c: dict[str, Any]) -> dict[str, Any]:
@@ -605,7 +613,9 @@ class Cdp:
         except Exception:
             pass
 
-    def call(self, method: str, params: dict | None = None, *, session: bool = False) -> Any:
+    def call(
+        self, method: str, params: dict | None = None, *, session: bool = False
+    ) -> Any:
         self._id += 1
         msg: dict[str, Any] = {"id": self._id, "method": method}
         if params:
@@ -630,7 +640,9 @@ class Cdp:
             tid = created.get("targetId")
         else:
             tid = pages[0]["targetId"]
-        att = self.call("Target.attachToTarget", {"targetId": tid, "flatten": True}) or {}
+        att = (
+            self.call("Target.attachToTarget", {"targetId": tid, "flatten": True}) or {}
+        )
         self.session_id = att.get("sessionId")
         if not self.session_id:
             raise RuntimeError("no sessionId")
@@ -881,7 +893,9 @@ def cmd_inject(
 ) -> dict[str, Any]:
     print("=== INJECT: databricks cookies → ISOLATED durable profiles (safe) ===\n")
     if danger_main:
-        print("!!! DANGER: --danger-main-profiles enabled — may kill daily browsers !!!")
+        print(
+            "!!! DANGER: --danger-main-profiles enabled — may kill daily browsers !!!"
+        )
     else:
         print("Safe mode: will NOT kill Chrome/Edge/Comet daily processes.")
         print("Safe mode: will NOT write into AppData\\...\\User Data main profiles.")
@@ -896,11 +910,12 @@ def cmd_inject(
         cg = load_chatgpt_cookies()
         if cg:
             # Merge ChatGPT into same durable browser so one window has both
-            before = len(cookies)
             cookies = dedupe_cookies(cookies + cg) if False else (cookies + cg)
             # don't filter chatgpt through databricks domain filter — append as-is
             chatgpt_n = len(cg)
-            print(f"Also applying ChatGPT cookies from store: {chatgpt_n} (re-login restore)")
+            print(
+                f"Also applying ChatGPT cookies from store: {chatgpt_n} (re-login restore)"
+            )
         else:
             print("No chatgpt_cookies.json found — DBX only")
 
@@ -920,13 +935,17 @@ def cmd_inject(
     if only:
         targets = {k: v for k, v in targets.items() if k in only}
         if not targets:
-            raise SystemExit(f"no matching targets in {only}; known={list(DURABLE_TARGETS)}")
+            raise SystemExit(
+                f"no matching targets in {only}; known={list(DURABLE_TARGETS)}"
+            )
 
     results = []
     for key, target in targets.items():
         try:
             results.append(
-                inject_chromium(target, cookies, allow_kill=allow_kill and key in MAIN_TARGETS)
+                inject_chromium(
+                    target, cookies, allow_kill=allow_kill and key in MAIN_TARGETS
+                )
             )
         except Exception as exc:
             results.append(
@@ -962,14 +981,18 @@ def cmd_inject(
     return report
 
 
-def cmd_sync(only: list[str] | None = None, *, danger_main: bool = False) -> dict[str, Any]:
+def cmd_sync(
+    only: list[str] | None = None, *, danger_main: bool = False
+) -> dict[str, Any]:
     cmd_extract()
     print()
     return cmd_inject(only=only, danger_main=danger_main)
 
 
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser(description="Databricks phone→PC web session bridge (safe durable default)")
+    p = argparse.ArgumentParser(
+        description="Databricks phone→PC web session bridge (safe durable default)"
+    )
     p.add_argument(
         "command",
         choices=["extract", "inject", "sync", "status"],

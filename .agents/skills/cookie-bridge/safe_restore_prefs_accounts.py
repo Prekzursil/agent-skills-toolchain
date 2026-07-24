@@ -65,7 +65,9 @@ def process_running(name: str) -> bool:
 
 
 def account_key(a: dict[str, Any]) -> str:
-    return str(a.get("account_id") or a.get("email") or json.dumps(a, sort_keys=True)[:80])
+    return str(
+        a.get("account_id") or a.get("email") or json.dumps(a, sort_keys=True)[:80]
+    )
 
 
 def list_accounts(pref: dict[str, Any]) -> list[dict[str, str]]:
@@ -83,7 +85,9 @@ def list_accounts(pref: dict[str, Any]) -> list[dict[str, str]]:
     return out
 
 
-def merge_account_info(live: dict[str, Any], bak: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+def merge_account_info(
+    live: dict[str, Any], bak: dict[str, Any]
+) -> tuple[dict[str, Any], dict[str, Any]]:
     """Union account_info by account_id/email; prefer bak entry when both exist (richer pre-break)."""
     live_list = [a for a in (live.get("account_info") or []) if isinstance(a, dict)]
     bak_list = [a for a in (bak.get("account_info") or []) if isinstance(a, dict)]
@@ -134,7 +138,8 @@ def merge_account_info(live: dict[str, Any], bak: dict[str, Any]) -> tuple[dict[
                 a["email"]
                 for a in list_accounts(new_live)
                 if a["email"]
-                and a["email"] not in {x["email"] for x in list_accounts(live) if x["email"]}
+                and a["email"]
+                not in {x["email"] for x in list_accounts(live) if x["email"]}
             }
         ),
     }
@@ -212,7 +217,9 @@ def handle_browser(name: str, *, apply: bool, backup_root: Path) -> dict[str, An
         shutil.copy2(sec, bdir / "Secure Preferences.live-before")
 
     tmp = live_p.with_suffix(".tmp-restore")
-    tmp.write_text(json.dumps(merged, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    tmp.write_text(
+        json.dumps(merged, ensure_ascii=False, separators=(",", ":")), encoding="utf-8"
+    )
     tmp.replace(live_p)
 
     report["ok"] = True
@@ -222,9 +229,17 @@ def handle_browser(name: str, *, apply: bool, backup_root: Path) -> dict[str, An
 
 
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser(description="Safe Jul20-21 Preferences account merge restore")
-    p.add_argument("--dry-run", action="store_true", help="Report only (default if no --apply)")
-    p.add_argument("--apply", action="store_true", help="Write merged Preferences (browsers must be quit)")
+    p = argparse.ArgumentParser(
+        description="Safe Jul20-21 Preferences account merge restore"
+    )
+    p.add_argument(
+        "--dry-run", action="store_true", help="Report only (default if no --apply)"
+    )
+    p.add_argument(
+        "--apply",
+        action="store_true",
+        help="Write merged Preferences (browsers must be quit)",
+    )
     p.add_argument(
         "--browsers",
         default="chrome,edge,comet",
@@ -267,9 +282,17 @@ def main(argv: list[str] | None = None) -> int:
         print("  action:", r.get("action") or r.get("error"))
         st = r.get("stats") or {}
         if st:
-            print("  accounts LIVE before:", [a.get("email") for a in st.get("live_before") or []])
-            print("  accounts BAK:        ", [a.get("email") for a in st.get("bak") or []])
-            print("  accounts after:      ", [a.get("email") for a in st.get("live_after") or []])
+            print(
+                "  accounts LIVE before:",
+                [a.get("email") for a in st.get("live_before") or []],
+            )
+            print(
+                "  accounts BAK:        ", [a.get("email") for a in st.get("bak") or []]
+            )
+            print(
+                "  accounts after:      ",
+                [a.get("email") for a in st.get("live_after") or []],
+            )
             print("  would add:           ", st.get("added_emails"))
         if r.get("error"):
             print("  error:", r["error"], r.get("hint") or "")

@@ -40,7 +40,9 @@ def promote_chromium_sessions(profile: Path, name: str) -> dict:
         return out
 
     tabs = sorted(sess.glob("Tabs_*"), key=lambda p: p.stat().st_size, reverse=True)
-    sessions = sorted(sess.glob("Session_*"), key=lambda p: p.stat().st_size, reverse=True)
+    sessions = sorted(
+        sess.glob("Session_*"), key=lambda p: p.stat().st_size, reverse=True
+    )
     if not tabs and not sessions:
         out["error"] = "empty Sessions"
         return out
@@ -54,10 +56,14 @@ def promote_chromium_sessions(profile: Path, name: str) -> dict:
     best_tabs = tabs[0] if tabs else None
     best_sess = sessions[0] if sessions else None
     out["best_tabs"] = (
-        {"name": best_tabs.name, "bytes": best_tabs.stat().st_size} if best_tabs else None
+        {"name": best_tabs.name, "bytes": best_tabs.stat().st_size}
+        if best_tabs
+        else None
     )
     out["best_session"] = (
-        {"name": best_sess.name, "bytes": best_sess.stat().st_size} if best_sess else None
+        {"name": best_sess.name, "bytes": best_sess.stat().st_size}
+        if best_sess
+        else None
     )
 
     removed: list[str] = []
@@ -66,7 +72,11 @@ def promote_chromium_sessions(profile: Path, name: str) -> dict:
         keep.add(best_tabs.resolve())
     if best_sess:
         keep.add(best_sess.resolve())
-    for p in list(sess.glob("Session_*")) + list(sess.glob("Tabs_*")) + list(sess.glob("Apps_*")):
+    for p in (
+        list(sess.glob("Session_*"))
+        + list(sess.glob("Tabs_*"))
+        + list(sess.glob("Apps_*"))
+    ):
         if p.resolve() in keep:
             continue
         size = p.stat().st_size
@@ -97,7 +107,10 @@ def promote_chromium_sessions(profile: Path, name: str) -> dict:
         pref.setdefault("session", {})
         pref["session"]["restore_on_startup"] = 1  # open last session
         tmp = pref_path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(pref, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+        tmp.write_text(
+            json.dumps(pref, ensure_ascii=False, separators=(",", ":")),
+            encoding="utf-8",
+        )
         tmp.replace(pref_path)
         out["preferences_patched"] = True
 
@@ -129,7 +142,11 @@ def promote_firefox(profile: Path) -> dict:
     out["bytes"] = best.stat().st_size
 
     user_js = profile / "user.js"
-    existing = user_js.read_text(encoding="utf-8", errors="replace") if user_js.is_file() else ""
+    existing = (
+        user_js.read_text(encoding="utf-8", errors="replace")
+        if user_js.is_file()
+        else ""
+    )
     block = (
         f"\n// CRCP session restore {datetime.now().isoformat()}\n"
         'user_pref("browser.sessionstore.resume_session_once", true);\n'
@@ -277,7 +294,9 @@ def main() -> int:
     REPORT.parent.mkdir(parents=True, exist_ok=True)
     REPORT.write_text(json.dumps(report, indent=2), encoding="utf-8")
     print(f"Wrote {REPORT}")
-    ok = all(r.get("ok") for r in results) and all(l.get("ok") for l in launches)
+    ok = all(r.get("ok") for r in results) and all(
+        launch.get("ok") for launch in launches
+    )
     return 0 if ok else 1
 
 

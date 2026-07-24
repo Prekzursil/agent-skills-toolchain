@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 import re
-import struct
 import zlib
 from datetime import datetime
 from pathlib import Path
@@ -85,7 +84,9 @@ def parse_snss_file(path: Path) -> dict[str, Any]:
         return {
             "path": str(path),
             "bytes": path.stat().st_size,
-            "mtime": datetime.fromtimestamp(path.stat().st_mtime).isoformat(timespec="seconds"),
+            "mtime": datetime.fromtimestamp(path.stat().st_mtime).isoformat(
+                timespec="seconds"
+            ),
             "windows": [],
             "tab_count": 0,
             "url_count": 0,
@@ -100,7 +101,7 @@ def parse_snss_file(path: Path) -> dict[str, Any]:
 
     groups: list[list[str]] = []
     current: list[str] = []
-    last_pos = -10**9
+    last_pos = -(10**9)
     for pos, u in positions:
         if current and pos - last_pos > 50_000 and len(current) >= 3:
             groups.append(current)
@@ -127,7 +128,9 @@ def parse_snss_file(path: Path) -> dict[str, Any]:
     return {
         "path": str(path),
         "bytes": path.stat().st_size,
-        "mtime": datetime.fromtimestamp(path.stat().st_mtime).isoformat(timespec="seconds"),
+        "mtime": datetime.fromtimestamp(path.stat().st_mtime).isoformat(
+            timespec="seconds"
+        ),
         "windows": windows,
         "tab_count": sum(w["tab_count"] for w in windows),
         "url_count": len(urls),
@@ -143,7 +146,8 @@ def parse_firefox_session(path: Path) -> dict[str, Any]:
     try:
         import lz4.block  # type: ignore
     except ImportError:
-        import subprocess, sys
+        import subprocess
+        import sys
 
         subprocess.check_call([sys.executable, "-m", "pip", "install", "lz4", "-q"])
         import lz4.block  # type: ignore
@@ -181,7 +185,9 @@ def parse_firefox_session(path: Path) -> dict[str, Any]:
     return {
         "path": str(path),
         "bytes": path.stat().st_size,
-        "mtime": datetime.fromtimestamp(path.stat().st_mtime).isoformat(timespec="seconds"),
+        "mtime": datetime.fromtimestamp(path.stat().st_mtime).isoformat(
+            timespec="seconds"
+        ),
         "windows": windows_out,
         "tab_count": sum(w["tab_count"] for w in windows_out),
         "url_count": sum(w["tab_count"] for w in windows_out),
@@ -196,7 +202,10 @@ def collect_candidates() -> dict[str, Any]:
         "firefox": HOME
         / r"AppData\Roaming\Mozilla\Firefox\Profiles\k4cy1nuq.default-release",
     }
-    out: dict[str, Any] = {"generated_at": datetime.now().isoformat(timespec="seconds"), "options": []}
+    out: dict[str, Any] = {
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "options": [],
+    }
     option_id = 0
 
     for browser, root in roots.items():
@@ -215,7 +224,11 @@ def collect_candidates() -> dict[str, Any]:
             # upgrades
             bak = root / "sessionstore-backups"
             if bak.is_dir():
-                files.extend(sorted(bak.glob("upgrade.jsonlz4*"), key=lambda p: -p.stat().st_size)[:3])
+                files.extend(
+                    sorted(
+                        bak.glob("upgrade.jsonlz4*"), key=lambda p: -p.stat().st_size
+                    )[:3]
+                )
         else:
             # all Session/Tabs under profile including nested/backups
             for p in root.rglob("*"):
@@ -229,7 +242,11 @@ def collect_candidates() -> dict[str, Any]:
         for f in files:
             option_id += 1
             try:
-                if browser == "firefox" or f.suffix.endswith("lz4") or "jsonlz4" in f.name:
+                if (
+                    browser == "firefox"
+                    or f.suffix.endswith("lz4")
+                    or "jsonlz4" in f.name
+                ):
                     parsed = parse_firefox_session(f)
                 else:
                     parsed = parse_snss_file(f)
@@ -257,12 +274,16 @@ def collect_candidates() -> dict[str, Any]:
             out["options"].append(opt)
 
     # sort: browser, then tab_count desc
-    out["options"].sort(key=lambda o: (o["browser"], -(o.get("tab_count") or 0), -o["bytes"]))
+    out["options"].sort(
+        key=lambda o: (o["browser"], -(o.get("tab_count") or 0), -o["bytes"])
+    )
     # renumber ids stably per browser
     counters = {"edge": 0, "chrome": 0, "comet": 0, "firefox": 0}
     for o in out["options"]:
         counters[o["browser"]] = counters.get(o["browser"], 0) + 1
-        prefix = {"edge": "E", "chrome": "C", "comet": "M", "firefox": "F"}[o["browser"]]
+        prefix = {"edge": "E", "chrome": "C", "comet": "M", "firefox": "F"}[
+            o["browser"]
+        ]
         o["id"] = f"{prefix}{counters[o['browser']]:02d}"
     return out
 
@@ -310,7 +331,7 @@ def to_markdown(data: dict[str, Any]) -> str:
                     else:
                         lines.append(f"  - {url}")
                 if (w.get("tab_count") or 0) > 40:
-                    lines.append(f"  - … +{w['tab_count']-40} more tabs")
+                    lines.append(f"  - … +{w['tab_count'] - 40} more tabs")
             lines.append("")
     return "\n".join(lines)
 

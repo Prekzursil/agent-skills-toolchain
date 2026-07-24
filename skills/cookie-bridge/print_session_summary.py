@@ -3,7 +3,9 @@ import re
 from pathlib import Path
 
 data = json.loads(
-    Path.home().joinpath(".crcp/cookie-bridge/session_options.json").read_text(encoding="utf-8")
+    Path.home()
+    .joinpath(".crcp/cookie-bridge/session_options.json")
+    .read_text(encoding="utf-8")
 )
 
 
@@ -30,10 +32,22 @@ def theme(hosts, urls):
                 "modal.com",
             ],
         ),
-        ("google", ["google.com", "drive.google", "accounts.google", "gmail", "business.gemini"]),
+        (
+            "google",
+            [
+                "google.com",
+                "drive.google",
+                "accounts.google",
+                "gmail",
+                "business.gemini",
+            ],
+        ),
         ("social", ["whatsapp", "telegram", "discord", "reddit"]),
         ("adult", ["xhamster", "faphouse", "onlyfans", "coomer", "gaymale", "pornhub"]),
-        ("research", ["doi.org", "z-lib", "mendeley", "scholar", "pubmed", "arxiv", "unibuc"]),
+        (
+            "research",
+            ["doi.org", "z-lib", "mendeley", "scholar", "pubmed", "arxiv", "unibuc"],
+        ),
     ]
     for label, keys in mapping:
         if any(k in h or k in u for k in keys):
@@ -65,7 +79,7 @@ for o in data["options"]:
     mtime = str(o.get("mtime") or "")[:19]
     lines.append(
         f"{o['id']:4} | {o['browser']:8} | {o['window_count']:3} | {o['tab_count']:4} | "
-        f"{o['bytes']/1e6:5.2f} | {mtime:19} | {', '.join(tags)}"
+        f"{o['bytes'] / 1e6:5.2f} | {mtime:19} | {', '.join(tags)}"
     )
     lines.append(f"     windows: {wsum}")
     lines.append(f"     file: {o['rel']}")

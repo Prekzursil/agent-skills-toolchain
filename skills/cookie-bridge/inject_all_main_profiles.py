@@ -40,8 +40,7 @@ TARGETS: dict[str, dict[str, Any]] = {
             str(Path.home() / r"AppData\Local\Google\Chrome\Application\chrome.exe"),
         ],
         # Junction: Chrome blocks CDP on the real default User Data path.
-        "user_data": Path.home()
-        / r".crcp\cookie-bridge\profile-junctions\chrome-ud",
+        "user_data": Path.home() / r".crcp\cookie-bridge\profile-junctions\chrome-ud",
         "real_user_data": Path.home() / r"AppData\Local\Google\Chrome\User Data",
         "profile_directory": "Default",
         "port": 9351,
@@ -54,8 +53,7 @@ TARGETS: dict[str, dict[str, Any]] = {
             r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
             r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
         ],
-        "user_data": Path.home()
-        / r".crcp\cookie-bridge\profile-junctions\edge-ud",
+        "user_data": Path.home() / r".crcp\cookie-bridge\profile-junctions\edge-ud",
         "real_user_data": Path.home() / r"AppData\Local\Microsoft\Edge\User Data",
         "profile_directory": "Default",
         "port": 9352,
@@ -162,7 +160,9 @@ def wait_cdp(port: int, timeout: float = 45.0) -> dict[str, Any]:
         except Exception as exc:  # noqa: BLE001
             last = exc
             time.sleep(0.4)
-    raise RuntimeError(f"CDP :{port} not ready: {type(last).__name__ if last else 'timeout'}")
+    raise RuntimeError(
+        f"CDP :{port} not ready: {type(last).__name__ if last else 'timeout'}"
+    )
 
 
 def cookie_to_cdp(c: dict[str, Any]) -> dict[str, Any]:
@@ -219,7 +219,9 @@ class Cdp:
         except Exception:
             pass
 
-    def call(self, method: str, params: dict | None = None, *, session: bool = False) -> Any:
+    def call(
+        self, method: str, params: dict | None = None, *, session: bool = False
+    ) -> Any:
         self._id += 1
         msg: dict[str, Any] = {"id": self._id, "method": method}
         if params:
@@ -244,13 +246,17 @@ class Cdp:
             tid = created.get("targetId")
         else:
             tid = pages[0]["targetId"]
-        att = self.call("Target.attachToTarget", {"targetId": tid, "flatten": True}) or {}
+        att = (
+            self.call("Target.attachToTarget", {"targetId": tid, "flatten": True}) or {}
+        )
         self.session_id = att.get("sessionId")
         if not self.session_id:
             raise RuntimeError("no sessionId")
 
 
-def inject_chromium(target: dict[str, Any], cookies: list[dict[str, Any]]) -> dict[str, Any]:
+def inject_chromium(
+    target: dict[str, Any], cookies: list[dict[str, Any]]
+) -> dict[str, Any]:
     exe = find_exe(target["exe_candidates"])
     if not exe:
         # Discover Comet exe under LocalAppData
@@ -271,7 +277,11 @@ def inject_chromium(target: dict[str, Any], cookies: list[dict[str, Any]]) -> di
     user_data = Path(target["user_data"])
     real_ud = Path(target.get("real_user_data") or user_data)
     if not real_ud.is_dir() and not user_data.is_dir():
-        return {"ok": False, "error": f"user_data missing: {user_data}", "label": target["label"]}
+        return {
+            "ok": False,
+            "error": f"user_data missing: {user_data}",
+            "label": target["label"],
+        }
     # Ensure junction exists for Chrome/Edge default-path CDP ban
     if target.get("real_user_data") and not user_data.exists():
         user_data.parent.mkdir(parents=True, exist_ok=True)
@@ -283,7 +293,9 @@ def inject_chromium(target: dict[str, Any], cookies: list[dict[str, Any]]) -> di
         )
 
     kill_processes(target["process_names"])
-    if "chrome" in target["process_names"] or target.get("label", "").startswith("Chrome"):
+    if "chrome" in target["process_names"] or target.get("label", "").startswith(
+        "Chrome"
+    ):
         kill_processes(["chrome", "GoogleCrashHandler", "GoogleCrashHandler64"])
     clear_singleton_locks(real_ud)
     clear_singleton_locks(user_data)
@@ -360,10 +372,11 @@ def inject_chromium(target: dict[str, Any], cookies: list[dict[str, Any]]) -> di
                 fails.append(f"{c.get('name')}:{type(exc).__name__}")
         cdp.call("Page.navigate", {"url": "https://chatgpt.com/"}, session=True)
         time.sleep(4)
-        probe = cdp.call(
-            "Runtime.evaluate",
-            {
-                "expression": """
+        probe = (
+            cdp.call(
+                "Runtime.evaluate",
+                {
+                    "expression": """
 (async () => {
   try {
     const r = await fetch('https://chatgpt.com/api/auth/session', {credentials:'include'});
@@ -381,12 +394,14 @@ def inject_chromium(target: dict[str, Any], cookies: list[dict[str, Any]]) -> di
   }
 })()
 """,
-                "awaitPromise": True,
-                "returnByValue": True,
-                "userGesture": True,
-            },
-            session=True,
-        ) or {}
+                    "awaitPromise": True,
+                    "returnByValue": True,
+                    "userGesture": True,
+                },
+                session=True,
+            )
+            or {}
+        )
         session_probe = (probe.get("result") or {}).get("value") or {}
         meta = cdp.call("Network.getAllCookies", session=True) or {}
         all_c = meta.get("cookies") or []
@@ -420,7 +435,9 @@ def inject_chromium(target: dict[str, Any], cookies: list[dict[str, Any]]) -> di
         cdp.close()
 
 
-def inject_firefox(target: dict[str, Any], cookies: list[dict[str, Any]]) -> dict[str, Any]:
+def inject_firefox(
+    target: dict[str, Any], cookies: list[dict[str, Any]]
+) -> dict[str, Any]:
     """Inject via Selenium into the main Firefox profile."""
     exe = find_exe(target["exe_candidates"])
     profile_path = Path(target["profile_path"])
@@ -437,12 +454,12 @@ def inject_firefox(target: dict[str, Any], cookies: list[dict[str, Any]]) -> dic
     try:
         from selenium import webdriver
         from selenium.webdriver.firefox.options import Options
-        from selenium.webdriver.firefox.service import Service
     except ImportError:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "selenium", "-q"])
+        subprocess.check_call(
+            [sys.executable, "-m", "pip", "install", "selenium", "-q"]
+        )
         from selenium import webdriver
         from selenium.webdriver.firefox.options import Options
-        from selenium.webdriver.firefox.service import Service
 
     opts = Options()
     opts.binary_location = exe
@@ -496,7 +513,8 @@ def inject_firefox(target: dict[str, Any], cookies: list[dict[str, Any]]) -> dic
         auth_cs = [
             c
             for c in cookies
-            if "openai.com" in (c.get("domain") or "") and "chatgpt" not in (c.get("domain") or "")
+            if "openai.com" in (c.get("domain") or "")
+            and "chatgpt" not in (c.get("domain") or "")
         ]
         if auth_cs:
             driver.get("https://auth.openai.com/")
@@ -599,7 +617,9 @@ def main() -> int:
     parser.add_argument("--only", help="comma list: chrome,edge,comet,firefox")
     parser.add_argument("--skip", help="comma list to skip")
     args = parser.parse_args()
-    only = {x.strip() for x in (args.only or "").split(",") if x.strip()} or set(TARGETS)
+    only = {x.strip() for x in (args.only or "").split(",") if x.strip()} or set(
+        TARGETS
+    )
     skip = {x.strip() for x in (args.skip or "").split(",") if x.strip()}
     selected = [k for k in TARGETS if k in only and k not in skip]
 
@@ -619,7 +639,13 @@ def main() -> int:
         else:
             report = inject_firefox(target, cookies)
         results["targets"][key] = report
-        print(json.dumps({k: report[k] for k in report if k != "fail_sample"}, indent=2, default=str))
+        print(
+            json.dumps(
+                {k: report[k] for k in report if k != "fail_sample"},
+                indent=2,
+                default=str,
+            )
+        )
 
     ok_count = sum(1 for r in results["targets"].values() if r.get("ok"))
     results["summary"] = {
