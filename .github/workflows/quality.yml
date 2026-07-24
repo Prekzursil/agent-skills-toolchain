@@ -166,6 +166,16 @@ jobs:
         run: |
           pip install -e ".[dev]"
           pytest --cov=monitorcore --cov-branch --cov-report=term-missing --cov-fail-under=100
+      # tools/stdin-server — a stdlib-only interactive-stdin MCP server (Desktop Commander
+      # start_process/interact_with_process/read_process_output). Zero third-party deps, so
+      # only pytest+pytest-cov are installed; the whole module is 100% line+branch gated. The
+      # subprocess/thread I/O is exercised against REAL short-lived child processes (a
+      # `python -i -u` REPL, `python -c` one-shots), so the gate measures behaviour, not mocks.
+      - name: gate-tests-coverage stdin-server
+        working-directory: tools/stdin-server
+        run: |
+          pip install pytest pytest-cov
+          pytest --cov=stdin_server --cov-branch --cov-report=term-missing --cov-fail-under=100
       # agent-self/harness — the enshrined shared lifecycle harness (SSOT for the live
       # ~/.agents/harness deploy loop). Runs its full pytest suite on the CI interpreter as a
       # REGRESSION gate for the projected tree, and measures branch coverage (term-missing).
