@@ -17,7 +17,7 @@ COVERAGE — measured vs. asserted:
 | 2. Regional engine reachability | MEASURED — per engine, both states, two independent probes |
 | 3. Enablement: apply / verify / revert | MEASURED — full cycle exercised on the live instance |
 | 4. Reach-vs-latency trade-off | MEASURED |
-| 5. RRF rank fusion | MEASURED — 84 tests, 100% branch coverage, 8/8 mutations killed |
+| 5. RRF rank fusion | MEASURED — 88 tests; 100% line+branch on the two pure modules `rank_fusion.py` + `searxng_config.py` (`searxng_regional.py` I/O shell excluded — lint+types only); 21/21 mutations killed on each |
 | 6. Multilingual query strategy | Doctrine — `multilingual-search` skill |
 
 **Final state of the owner's instance: UNCHANGED.** The config change was applied, measured,
