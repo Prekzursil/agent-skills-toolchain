@@ -1,6 +1,6 @@
 ---
 name: two-tier-verify
-description: Use when repeated code edits are triggering a full test-suite rerun each iteration and burning tokens/time, or before any commit. Splits verification into a cheap INNER loop per edit (only the affected/related tests plus type-check and lint on touched files) and a single OUTER loop at the commit boundary (full suite plus coverage plus held-out E2E/golden-journey plus a scoped mutation check). Gives concrete jest/vitest/playwright and pytest command recipes and the decision rule for which tier to run. NOT a replacement for the golden-journey done-signal (see seed-golden-journey); NOT for one-off single-file scripts where a full run is already trivial.
+description: Use when repeated code edits are triggering a full test-suite rerun and burning tokens/time, or before any commit. Splits verification into a cheap INNER loop per edit (only affected/related tests plus type-check and lint on touched files) and a single OUTER loop at the commit boundary (full suite plus coverage plus held-out E2E/golden-journey plus a scoped mutation check).
 ---
 
 # two-tier-verify

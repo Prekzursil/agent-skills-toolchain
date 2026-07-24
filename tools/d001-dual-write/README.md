@@ -43,11 +43,10 @@ is created at any point.
 ```bash
 # 0. Audit first. Non-zero means STOP: the filters or the working tree are not
 #    in a state where it is safe to build a commit from this repository.
-python tools/d001-dual-write/d001_apply.py preflight --repo . --json
+python tools/d001-dual-write/d001_apply.py --repo . --json preflight
 
 # 1. Dry run. Prints the exact blob-for-blob mirror plan and writes nothing.
-python tools/d001-dual-write/d001_apply.py mirror \
-    --repo . \
+python tools/d001-dual-write/d001_apply.py --repo . mirror \
     --source-ref <branch-or-sha> \
     --skill cloud-infra-toolchain \
     --skill codex-databricks-fanout \
@@ -56,8 +55,7 @@ python tools/d001-dual-write/d001_apply.py mirror \
 # 2. Apply. Re-runs the preflight, builds the commit against a TEMPORARY index
 #    (GIT_INDEX_FILE), verifies it, and only then creates the new branch ref.
 #    It refuses if the branch already exists — it never moves an existing ref.
-python tools/d001-dual-write/d001_apply.py mirror \
-    --repo . \
+python tools/d001-dual-write/d001_apply.py --repo . mirror \
     --source-ref <branch-or-sha> \
     --skill cloud-infra-toolchain \
     --skill codex-databricks-fanout \
@@ -69,8 +67,10 @@ git diff --name-status --no-renames <branch-or-sha>...fix/d001-dual-write
 git rev-parse '<branch-or-sha>:skills/<NAME>/SKILL.md' \
               'fix/d001-dual-write:.agents/skills/<NAME>/SKILL.md'
 
-# 4. Prove the D-001 gate now passes on the result.
-python ci/check_skill_dual_write.py --base origin/main --head fix/d001-dual-write
+# 4. Prove the D-001 gate now passes on the result. CI runs this in --strict-parity
+#    mode (every changed skill path must match its final-tree counterpart).
+python ci/check_skill_dual_write.py \
+    --base origin/main --head fix/d001-dual-write --strict-parity
 ```
 
 Step 2 is verified before the ref is written: the diff surface must be exactly
@@ -82,11 +82,32 @@ fail, nothing is written and the run exits `7`.
 both `--skill` flags; mirroring only one manufactures a relative link to a path
 that does not exist under the canonical root.
 
+## Generating a projection from canonical (`project`)
+
+The inverse direction: overlay authoritative `.agents/skills/<NAME>/` blobs onto
+the `skills/<NAME>/` compatibility projection. Every projection-only path is
+preserved (the run creates no deletions), and overwriting a divergent projection
+blob requires the `--plan-digest` printed by a reviewed dry run — that digest is
+bound to the resolved source commit, so moving the branch after review voids it.
+Global options (`--repo`, `--json`) precede the subcommand, exactly as `mirror`.
+
+```bash
+# Dry run: inspect preserved_paths and overwrites, then keep the plan_digest.
+python tools/d001-dual-write/d001_apply.py --repo . --json project \
+    --source-ref <branch-or-sha> --skill <NAME> --branch fix/d001-project
+
+# Apply. --plan-digest is required only when overwrites is non-empty; no
+# projection-only path is removed in either case.
+python tools/d001-dual-write/d001_apply.py --repo . --json project \
+    --source-ref <branch-or-sha> --skill <NAME> --branch fix/d001-project \
+    --plan-digest <digest-from-dry-run> --apply
+```
+
 ## Materialising files (only if you need them on disk)
 
 ```bash
-python tools/d001-dual-write/d001_apply.py materialize \
-    --repo . --path skills/<NAME>/SKILL.md --apply
+python tools/d001-dual-write/d001_apply.py --repo . materialize \
+    --path skills/<NAME>/SKILL.md --apply
 ```
 
 Every path must be named, and each name must be a **literal tracked file path**.

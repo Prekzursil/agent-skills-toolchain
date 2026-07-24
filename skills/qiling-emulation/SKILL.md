@@ -1,6 +1,6 @@
 ---
 name: qiling-emulation
-description: Use when you need to emulate or sandbox a native ARM/ARM64 shared object off-device — running the Battle Cats Android .so (or any Android/Linux ELF native library) inside the Qiling framework on the PC instead of on a rooted phone. This is the dynamic-OFF-device complement to the frida skill (dynamic-ON-device) and to the static ghidra/radare2/ida skills — reach for it to call a single exported native function with controlled inputs, brute-force or trace an algorithm (save crypto, PRNG, checksum, offset math) without the game engine or a device, hook native calls in a scriptable sandbox, or diff native behavior across app versions. Do NOT use for Java/Smali (use jadx), for live on-device instrumentation (use frida), or for pure static disassembly (use ghidra/radare2).
+description: Use to emulate or sandbox a native ARM/ARM64 shared object off-device - the Battle Cats Android .so or any Android/Linux ELF native library inside the Qiling framework, not on a rooted phone. The dynamic-OFF-device complement to frida and static ghidra/radare2/ida - call an exported native function, trace a save-crypto/PRNG/checksum algorithm, or diff behavior across versions. NOT for Java/Smali.
 ---
 
 # Qiling Emulation (off-device native sandbox)

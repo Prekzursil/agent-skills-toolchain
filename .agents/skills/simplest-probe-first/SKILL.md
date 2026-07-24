@@ -1,6 +1,6 @@
 ---
 name: simplest-probe-first
-description: Use BEFORE committing to any expensive or multi-step approach (vision/OCR pipeline, multi-agent fan-out, live reverse-engineering, big rewrite, long orchestration). Run the cheapest deterministic diagnostic FIRST to check whether a simpler path works. Prevents the class of waste where hours go into a heavy pipeline that a one-command check would have ruled out (e.g. a 10-hour vision run on a PDF that had no text layer).
+description: Use BEFORE committing to any expensive or multi-step approach (vision/OCR pipeline, multi-agent fan-out, live RE, big rewrite, long orchestration). Run the cheapest deterministic diagnostic FIRST to check whether a simpler path works. Prevents the waste where hours go into a heavy pipeline a one-command check would have ruled out (e.g. a 10-hour vision run on a PDF with no text layer).
 ---
 
 # Simplest-Probe-First

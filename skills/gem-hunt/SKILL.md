@@ -1,14 +1,6 @@
 ---
 name: gem-hunt
-description: >-
-  Use when the user wants to DISCOVER high-value improvements to their OWN agentic
-  workspace/toolkit — new hooks, behaviors, gems, skills, MCPs, cross-domain techniques,
-  or frontier-harness patterns — via a wide multi-lens agent fan-out, then a consolidated
-  adopt/prune decision. This is the named "agentic-perfection sweep" / "extensive gem
-  search" process. Triggers: "find more gems", "search extensive(ly) for improvements",
-  "agentic perfection", "fan out to explore improvements/hooks", "what are we missing
-  vs other tools", "self-improve the harness". NOT for interrogating ONE existing plan
-  (use grill-me-extensive), NOT for ordinary topic research (use deep-research).
+description: "Use when the user wants to DISCOVER high-value improvements to their OWN agentic workspace/toolkit - new hooks, behaviors, gems, skills, MCPs, or frontier-harness patterns - via a wide multi-lens agent fan-out, then a consolidated adopt/prune decision. The named \"agentic-perfection sweep\" / \"extensive gem search\". Triggers: \"find more gems\", \"what are we missing vs other tools\"."
 ---
 
 # Gem-Hunt — extensive multi-lens workspace self-improvement sweep

@@ -1,6 +1,6 @@
 ---
 name: sec-corpora-update
-description: Refresh the local security-knowledge corpora under D:\knowledge (PayloadsAllTheThings, GTFOBins, LOLBAS, OWASP WSTG, OWASP CheatSheets, Atomic Red Team) with a shallow git pull each. Idempotent and fail-open per repo — one repo failing never aborts the rest. Use when the secsearch or lolbin-lookup corpora are stale and you want the latest upstream content; HackTricks is refreshed separately by its own htk_update.ps1.
+description: Refresh the local security-knowledge corpora under D:\knowledge (PayloadsAllTheThings, GTFOBins, LOLBAS, OWASP WSTG, OWASP CheatSheets, Atomic Red Team) with a shallow git pull each. Idempotent and fail-open per repo - one repo failing never aborts the rest. Use when the secsearch or lolbin-lookup corpora are stale; HackTricks is refreshed by its own htk_update.ps1.
 license: Skill MIT. Refreshes third-party corpora retained for personal local reference only. See D:\knowledge\CORPORA.md.
 ---
 

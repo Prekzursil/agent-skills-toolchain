@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """D-001 dual-write guard.
 
 Decision D-001 makes ``repo/.agents/skills`` the AUTHORITATIVE skill root and
@@ -9,7 +8,7 @@ form of that rule:
      add new canonical content there unless the same change lands in
      `.agents/skills/`."
 
-This script enforces exactly that sentence and nothing more:
+The default mode enforces exactly that sentence and nothing more:
 
     For every skill NAME that a change adds or edits under ``skills/<NAME>/``,
     the same change must also add or edit NON-EMPTY content under
@@ -18,7 +17,9 @@ This script enforces exactly that sentence and nothing more:
 It is intentionally a DIFF guard, not a tree-parity guard.  A tree-parity check
 would fire on the pre-existing backlog (skills that already live in only one
 tree) and would therefore be un-adoptable without a mass migration first.  This
-guard only asks that a change not make the divergence worse.
+guard only asks that a change not make the divergence worse.  CI opts into
+``--strict-parity``, which applies D-001's generated-projection rule to changed
+paths in EITHER root by comparing their entries in the final tree/index.
 
 False negatives that earlier revisions of this guard carried are closed here,
 and each is pinned by a test in ``ci/tests``:
@@ -52,10 +53,12 @@ KNOWN RESIDUAL, stated rather than hidden, and NOT claimed to be exhaustive:
 the default rule is non-empty-content-level, NOT equivalence-level.  A one-byte
 canonical placeholder still discharges the obligation, and two copies that are
 both touched but written with DIFFERENT text still pass.  ``--strict-parity``
-closes both by requiring a per-relative-path counterpart with an identical blob
-OID; it is opt-in because it is a strictly larger policy change (see the
-adoption cost measured in the lane report).  Status ``T`` (typechange) is still
-not treated as mutating, and ``--allowlist`` is still an unguarded escape hatch.
+closes both by comparing every changed skill path with its counterpart in the
+FINAL tree (or staged index).  That final-tree comparison also permits a
+projection-only repair when it restores parity with unchanged canonical content.
+The flag remains opt-in for local callers because it is a strictly larger policy
+change; CI opts in after running this script's acceptance suite.  ``--allowlist``
+is still an unguarded escape hatch.
 
 Exit codes:
     0  no violation
@@ -81,6 +84,7 @@ import subprocess
 import sys
 from pathlib import PurePosixPath
 
+
 PROJECTION_ROOT = "skills"
 CANONICAL_ROOT = ".agents/skills"
 
@@ -88,6 +92,11 @@ CANONICAL_ROOT = ".agents/skills"
 # --no-renames, so R/C never appear.  Applied to BOTH sides: a canonical
 # deletion must not discharge a dual-write obligation.
 MUTATING = frozenset("AM")
+
+# Strict generated-projection mode also checks deletions and type changes.  A
+# deletion passes only when the counterpart is absent in the final tree too;
+# the generator itself never creates deletions.
+STRICT_CHANGES = frozenset("ADMT")
 
 # Post-image modes that can carry skill CONTENT.  120000 (symlink) and 160000
 # (gitlink) are blobs/commits, not files, and must not discharge an obligation.
@@ -119,8 +128,8 @@ _FIX = {
         "a submodule entry); land the real content under {canon}/{name}/."
     ),
     REASON_DIVERGENT: (
-        "the canonical copy is missing or differs byte-for-byte from the "
-        "projection copy for the paths listed above (--strict-parity)."
+        "the final canonical and generated-projection entries are missing, "
+        "non-regular, or differ in mode/blob (--strict-parity)."
     ),
 }
 
@@ -136,7 +145,7 @@ def _run_git(repo: str, args: list[str], stdin: str | None = None) -> str:
         capture_output=True,
         text=True,
         encoding="utf-8",
-        errors="replace",
+        errors="surrogateescape",
     )
     if proc.returncode != 0:
         raise GitError(proc.stderr.strip() or f"git {' '.join(args)} failed")
@@ -308,11 +317,51 @@ def post_images(
     return result, nonfile
 
 
+def final_entries(repo: str, head: str, staged: bool) -> dict[str, tuple[str, str]]:
+    """Return ``{path: (mode, oid)}`` from the final tree or staged index.
+
+    Strict parity is a property of the RESULT, not of which rows happened to be
+    present in one diff.  Reading the final tree lets a projection-only repair
+    match canonical content that was committed before the inspected range.
+    Both protocols are NUL-delimited, so legal whitespace in a path is data.
+    """
+    if staged:
+        out = _run_git(
+            repo,
+            ["ls-files", "--stage", "-z", "--", CANONICAL_ROOT, PROJECTION_ROOT],
+        )
+    else:
+        out = _run_git(
+            repo,
+            ["ls-tree", "-r", "-z", head, "--", CANONICAL_ROOT, PROJECTION_ROOT],
+        )
+
+    entries: dict[str, tuple[str, str]] = {}
+    for record in (r for r in out.split("\0") if r):
+        meta, separator, path = record.partition("\t")
+        if not separator:
+            raise GitError("git returned a tree record without a path separator")
+        fields = meta.split()
+        if staged:
+            if len(fields) != 3 or fields[2] != "0":
+                raise GitError(
+                    f"staged index contains an unmerged or malformed entry for {path!r}"
+                )
+            mode, oid = fields[:2]
+        else:
+            if len(fields) != 3:
+                raise GitError(f"git returned a malformed tree entry for {path!r}")
+            mode, obj_type, oid = fields
+            if obj_type not in {"blob", "commit"}:
+                raise GitError(f"git returned unexpected object type {obj_type!r}")
+        entries[path] = (mode, oid)
+    return entries
+
+
 def evaluate(
     rows: list[tuple[str, str]],
     allow: set[str],
     post: dict[str, tuple[str, int] | None],
-    strict_parity: bool = False,
     nonfile: set[str] | None = None,
 ) -> dict[str, dict[str, object]]:
     """Return {skill_name: {reason, paths, detail}} for violations."""
@@ -357,30 +406,73 @@ def evaluate(
                 "paths": paths,
                 "detail": sorted(r[2] for r in mutating),
             }
-        elif strict_parity:
-            by_rel = {r[1]: r[2] for r in substantive}
-            bad = []
-            for ppath in paths:
-                rel = _skill_rel(ppath, PROJECTION_ROOT)
-                cpath = by_rel.get(rel)
-                if cpath is None or post.get(cpath) != post.get(ppath):
-                    bad.append(ppath)
-            if bad:
-                violations[name] = {
-                    "reason": REASON_DIVERGENT,
-                    "paths": bad,
-                    "detail": sorted(by_rel.values()),
-                }
     return violations
 
 
-def _report(violations: dict[str, dict[str, object]]) -> None:
+def evaluate_strict(
+    rows: list[tuple[str, str]],
+    allow: set[str],
+    final: dict[str, tuple[str, str]],
+) -> dict[str, dict[str, object]]:
+    """Require changed skill paths to be byte- and mode-identical in the final tree.
+
+    The final tree is the load-bearing distinction from default mode: a repair
+    may touch only ``skills/`` when its canonical counterpart already existed,
+    while a canonical-only edit must still fail until its generated projection
+    is committed.  Projection-only files outside the changed path set are legacy
+    routing debt and are preserved rather than turned into a whole-tree gate.
+    """
+    bad: dict[str, list[tuple[str, str]]] = {}
+    deleted = {path for status, path in rows if status == "D"}
+    for status, path in rows:
+        if status not in STRICT_CHANGES:
+            continue
+        root = PROJECTION_ROOT
+        other = CANONICAL_ROOT
+        name = _skill_name(path, root)
+        if name is None:
+            root, other = other, root
+            name = _skill_name(path, root)
+        if name is None or name in allow:
+            continue
+        rel = _skill_rel(path, root)
+        counterpart = f"{other}/{name}/{rel}"
+        left = final.get(path)
+        right = final.get(counterpart)
+        regular = left is None or left[0] in REGULAR_MODES
+        counterpart_regular = right is None or right[0] in REGULAR_MODES
+        unpaired_deletion = status == "D" and counterpart not in deleted
+        if left != right or not regular or not counterpart_regular or unpaired_deletion:
+            bad.setdefault(name, []).append((path, counterpart))
+
+    return {
+        name: {
+            "reason": REASON_DIVERGENT,
+            "paths": sorted(path for path, _counterpart in pairs),
+            "detail": sorted(
+                f"final counterpart: {counterpart}" for _path, counterpart in pairs
+            ),
+        }
+        for name, pairs in sorted(bad.items())
+    }
+
+
+def _report(
+    violations: dict[str, dict[str, object]], *, strict_parity: bool = False
+) -> None:
     print("D-001 DUAL-WRITE VIOLATION")
-    print(
-        f"{CANONICAL_ROOT}/ is the authoritative skill root (AGENTS.md). "
-        f"These skills were added/edited under {PROJECTION_ROOT}/ without a "
-        f"matching {CANONICAL_ROOT}/ change:"
-    )
+    if strict_parity:
+        print(
+            f"{CANONICAL_ROOT}/ is authoritative and {PROJECTION_ROOT}/ is its "
+            "generated projection. These changed paths do not match in the "
+            "final tree:"
+        )
+    else:
+        print(
+            f"{CANONICAL_ROOT}/ is the authoritative skill root (AGENTS.md). "
+            f"These skills were added/edited under {PROJECTION_ROOT}/ without a "
+            f"matching {CANONICAL_ROOT}/ change:"
+        )
     for name, info in violations.items():
         reason = str(info["reason"])
         print(f"  - {name}  [{reason}]")
@@ -403,7 +495,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument(
         "--strict-parity",
         action="store_true",
-        help="also require a byte-identical canonical counterpart per path",
+        help="require changed paths to have byte-identical final-tree counterparts",
     )
     ap.add_argument("--json", action="store_true")
     ns = ap.parse_args(argv)
@@ -416,28 +508,31 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         rows = _diff_rows(ns.repo, base, head, ns.staged)
-        wanted = [
-            p
-            for status, p in rows
-            if status in MUTATING
-            and (
-                _skill_name(p, PROJECTION_ROOT) is not None
-                or _skill_name(p, CANONICAL_ROOT) is not None
-            )
-        ]
-        entries = raw_entries(ns.repo, base, head, ns.staged)
-        post, nonfile = post_images(ns.repo, entries, wanted)
+        if ns.strict_parity:
+            final = final_entries(ns.repo, head, ns.staged)
+            post: dict[str, tuple[str, int] | None] = {}
+            nonfile: set[str] = set()
+        else:
+            wanted = [
+                p
+                for status, p in rows
+                if status in MUTATING
+                and (
+                    _skill_name(p, PROJECTION_ROOT) is not None
+                    or _skill_name(p, CANONICAL_ROOT) is not None
+                )
+            ]
+            entries = raw_entries(ns.repo, base, head, ns.staged)
+            post, nonfile = post_images(ns.repo, entries, wanted)
     except GitError as exc:
         sys.stderr.write(f"{exc}\n")
         return EXIT_USAGE
 
-    violations = evaluate(
-        rows,
-        _load_allowlist(ns.allowlist),
-        post,
-        strict_parity=ns.strict_parity,
-        nonfile=nonfile,
-    )
+    allow = _load_allowlist(ns.allowlist)
+    if ns.strict_parity:
+        violations = evaluate_strict(rows, allow, final)
+    else:
+        violations = evaluate(rows, allow, post, nonfile=nonfile)
 
     if ns.json:
         print(
@@ -451,12 +546,14 @@ def main(argv: list[str] | None = None) -> int:
                 sort_keys=True,
             )
         )
+    elif not violations and ns.strict_parity:
+        print("OK: changed skill paths match their final-tree counterparts.")
     elif not violations:
         print(
             f"OK: no {PROJECTION_ROOT}/ change lacks a {CANONICAL_ROOT}/ counterpart."
         )
     else:
-        _report(violations)
+        _report(violations, strict_parity=ns.strict_parity)
 
     return EXIT_OK if not violations else EXIT_VIOLATION
 

@@ -219,6 +219,17 @@ def _structural_failed(resp) -> tuple[bool, str]:
     """Structural FAILED signals usable for ANY tool (incl. Bash)."""
     if not isinstance(resp, dict):
         return False, ""
+    # HTTP status codes use HTTP semantics, NOT exit-code semantics: 200 is success,
+    # not "exit code 200". Only >=400 is a failure; 1xx-3xx falls through to the real
+    # error checks below.
+    sc = resp.get("status_code")
+    if sc is not None:
+        try:
+            iv = int(sc)
+            if iv >= 400:
+                return True, f"http {iv}"
+        except (TypeError, ValueError):
+            pass
     # numeric exit/return codes
     for key in (
         "exit_code",
@@ -226,7 +237,6 @@ def _structural_failed(resp) -> tuple[bool, str]:
         "returncode",
         "return_code",
         "code",
-        "status_code",
     ):
         val = resp.get(key)
         if val is not None:

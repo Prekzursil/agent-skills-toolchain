@@ -166,6 +166,16 @@ jobs:
         run: |
           pip install -e ".[dev]"
           pytest --cov=monitorcore --cov-branch --cov-report=term-missing --cov-fail-under=100
+      # tools/stdin-server — a stdlib-only interactive-stdin MCP server (Desktop Commander
+      # start_process/interact_with_process/read_process_output). Zero third-party deps, so
+      # only pytest+pytest-cov are installed; the whole module is 100% line+branch gated. The
+      # subprocess/thread I/O is exercised against REAL short-lived child processes (a
+      # `python -i -u` REPL, `python -c` one-shots), so the gate measures behaviour, not mocks.
+      - name: gate-tests-coverage stdin-server
+        working-directory: tools/stdin-server
+        run: |
+          pip install pytest pytest-cov
+          pytest --cov=stdin_server --cov-branch --cov-report=term-missing --cov-fail-under=100
       # agent-self/harness — the enshrined shared lifecycle harness (SSOT for the live
       # ~/.agents/harness deploy loop). Runs its full pytest suite on the CI interpreter as a
       # REGRESSION gate for the projected tree, and measures branch coverage (term-missing).
@@ -206,6 +216,23 @@ jobs:
           python test_msys_pathconv.py
           python test_hooks.py
 
+      # tools/search-expansion — RRF rank fusion, the pure SearXNG settings.yml transform,
+      # and the query-plan translate->dedup sibling (Enterprise-Search decompose borrow).
+      # Reuses the existing `gate-tests-coverage` charter slug on purpose: it is not a new
+      # gate, so .quality/charter_check.sh stays consistent with no charter.yml edit.
+      # Only the three PURE modules are coverage-gated. searxng_regional.py is the I/O shell
+      # (HTTP probes, docker restart, file backup); mocking it to 100% would assert against
+      # the mocks, so it is covered by lint/types and by live exercise instead — the runs
+      # are recorded in docs/search-expansion/README.md. pyyaml is a real test dependency:
+      # the suite PARSES the rendered block rather than eyeballing it, because a malformed
+      # settings.yml takes the owner's search instance down.
+      - name: gate-tests-coverage search-expansion (rrf + searxng config + query plan)
+        working-directory: tools/search-expansion
+        run: |
+          pip install pytest pytest-cov pyyaml
+          pytest --cov=rank_fusion --cov=searxng_config --cov=query_plan --cov-branch \
+            --cov-report=term-missing --cov-fail-under=100
+
       - name: gate-tests-coverage strict-target hook manifests
         run: |
           python -m pytest ci/tests/test_emit_hook_manifest.py -q
@@ -240,6 +267,36 @@ jobs:
       # (guard disabled, scope widened, backup skipped, fail-open, CRLF writer, ...).
       - name: gate-tests-coverage closed-batch config editor
         run: python -m pytest tools/mcp/closed-batch/tests -q
+      # tools/repomap — the fan-out grounding-pack builder that
+      # rules/common/fan-out-contract.md §A11 prescribes. Stdlib-only unittest
+      # suite with its own __main__ runner, so pytest DISCOVERY would not execute
+      # it either; named explicitly like the two suites above. Reuses the existing
+      # `gate-tests-coverage` charter slug on purpose — it is not a new gate, so
+      # .quality/charter_check.sh stays consistent with no charter.yml edit.
+      # Two OPTIONAL cross-checks inside it (networkx PageRank agreement, tiktoken
+      # token counting) SKIP here because neither library is a CI dependency; both
+      # were measured locally and the numbers are recorded in tools/repomap/README.md,
+      # so a green run here is NOT evidence for those two. Measured: 63 passed.
+      - name: gate-tests-coverage repomap grounding pack
+        run: python tools/repomap/test_repo_map.py
+      # claim-verify-gate ships a stdlib-only regression suite AND a mutation
+      # probe for that suite. Named explicitly for the same reason as the two
+      # steps above: there is no repo-wide pytest autodiscovery here, so a suite
+      # CI does not invoke is dead weight that cannot catch a regression. The
+      # mutation step is the both-states check applied to the suite itself
+      # (rules/common/single-signal-verification.md:44): it reverts five
+      # load-bearing decisions in claim_gate.py and requires the suite to go RED
+      # for each, so a suite that has stopped protecting them fails the gate.
+      # --self-test is the same discipline applied to the gate's own rules.
+      # Reuses the existing gate-tests-coverage charter slug on purpose - it is
+      # not a new gate, so .quality/charter_check.sh stays consistent with no
+      # charter.yml edit. Measured locally on python 3.14.6: 29 test functions
+      # passed, 5/5 mutations killed, all 10 rules fired in the broken state.
+      - name: gate-tests-coverage claim-verify-gate (suite + mutation probe)
+        run: |
+          python .agents/skills/claim-verify-gate/scripts/claim_gate.py --self-test
+          python .agents/skills/claim-verify-gate/scripts/test_claim_gate.py
+          python .agents/skills/claim-verify-gate/scripts/test_claim_gate_mutations.py
       # G-06: the schema module is tested AND its linter is run over the checked-in
       # workflows, so a schema defect in a production workflow fails the gate.
       - name: gate-tests-coverage fanout-schema (module + production lint)
@@ -253,6 +310,14 @@ jobs:
       # plugin-manifest conformance tests in this required Python test lane.
       - name: gate-tests-coverage hook manifest conformance
         run: python -m pytest hooks/_dispatch/test_wiring.py -q -k hook_manifest_conformance
+
+      # browser-rail helper -- PURE-logic unit tests only: no browser, no
+      # playwright install, no network (browser_rail.py imports playwright lazily).
+      # Deliberately NOT a `gate-<slug>` step name so charter_check.sh's reverse
+      # check ignores it, same rationale as the monitorcore vendor-drift step.
+      # pytest is already installed by the step above.
+      - name: browser-rail helper tests (pure logic, no browser)
+        run: python -m pytest skills/browser-rail/scripts/test_browser_rail.py -q
 
   sast:
     name: gate-sast (opengrep)

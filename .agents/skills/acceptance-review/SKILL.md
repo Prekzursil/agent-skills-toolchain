@@ -1,6 +1,6 @@
 ---
 name: acceptance-review
-description: Use at the "done" boundary of an app change — before claiming a feature/app works, before a PR, or when a repair session says "fixed / it works now / shorts generate". Dispatches an INDEPENDENT, ideally CROSS-MODEL reviewer (Codex or Gemini CLI, else a fresh-context Claude subagent) that adversarially judges whether the real end-to-end user journey actually works or is green-but-broken — over the DIFF + declared golden-journeys + on-disk artifact evidence the journeys ran. Returns a structured SHIP / BLOCK verdict with the unproven journeys and concrete gaps. Do NOT use for ordinary code-quality review (use code-review) or for in-context self-checking (that is the biased judge this skill exists to replace).
+description: Use at the "done" boundary of an app change, before a PR or a "fixed / it works now" claim. Dispatches an INDEPENDENT cross-model reviewer (Codex/Gemini CLI, else fresh Claude) that adversarially judges whether the real end-to-end journey works or is green-but-broken, over the diff + golden-journeys + on-disk evidence. Returns a SHIP/BLOCK verdict. NOT for code review (use code-review).
 ---
 
 # Acceptance Review — the cross-model "does it actually work?" verdict

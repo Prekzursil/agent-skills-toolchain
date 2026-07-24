@@ -73,6 +73,99 @@ _PASS_BODY = re.compile(
 # forgot to finish, so it must never be surfaced as an open stub.
 _PRAGMA_NOCOVER = re.compile(r"#\s*pragma:\s*no\s+cover", re.IGNORECASE)
 
+# ---------------------------------------------------------------- per-family evidence bars
+# Measured 2026-07-24 over the 53-record session ledger 5c615def: 20 fires, 20 false positives.
+# The families are NOT equally reliable, so a single shared filter cannot fix them. _PHRASE
+# alone produced 10 of the 20; _WEAK produced 5. Each bar below names the fire it closes.
+
+# _WEAK: a DECLARATION leads with the word ("# placeholder until wired"); a comment that merely
+# DESCRIBES placeholders trails it ("# ... identifies an unexpanded ${...} placeholder." at
+# mine.py:189, offset 68; "# 2. EXTRACTION - ... leave a typed placeholder" at
+# build_corpus.py:223, offset 62). A short lead window separates the two without a verb list.
+_WEAK_LEAD_CHARS = 24
+# A sentence terminator INSIDE a comment body. `[.!?]` must be followed by whitespace or the end
+# so a version/section number ("R8 6.2") does not split the sentence.
+_COMMENT_SENTENCE_END = re.compile(r"[.!?](?:\s|$)")
+
+
+def _comment_at(line: str, pos: int):
+    """`(offset_within_comment_body, comment_body)` if `pos` sits inside a comment, else None.
+
+    Uses the LAST comment intro that opens before `pos`, so a `#` appearing after the match
+    (inside the comment's own text) cannot be mistaken for the opener.
+    """
+    best = None
+    for m in _COMMENT_INTRO.finditer(line):
+        if m.end() <= pos:
+            best = m
+        else:
+            break
+    if best is None:
+        return None
+    raw = line[best.end() :]
+    lead = len(raw) - len(raw.lstrip())
+    return pos - best.end() - lead, raw.strip()
+
+
+# A COMPLETED strikethrough span. Markdown `~~...~~` RETRACTS the item; a trailing clause then
+# explains the retraction, so the marker describes an abandoned idea rather than pending work.
+# Measured (use-vs-mention-corpus.jsonl:18, STUB-FP-upstream-unimpl):
+#   `- ~~*Sampling so the gateway can reason about which server to wake*~~ - not implemented.`
+# The phrase sits AFTER the span, so "inside the span" alone does not see it.
+# Scoped to the two RETRACTABLE families (_PHRASE, _WEAK) on purpose: _COMMENT_TAG and _NOTIMPL
+# keep the strict inside-the-span rule, so `# ~~old approach~~ TODO: use the new one` still fires
+# and the guard can never silence an explicit marker.
+_STRUCK = re.compile(r"~~[^\n]+?~~")
+
+
+def _follows_strikethrough(line: str, pos: int) -> bool:
+    return any(m.end() <= pos for m in _STRUCK.finditer(line))
+
+
+def _is_weak_declaration(line: str, pos: int) -> bool:
+    """True when the weak word LEADS its comment, i.e. declares rather than describes."""
+    at = _comment_at(line, pos)
+    return at is not None and 0 <= at[0] <= _WEAK_LEAD_CHARS
+
+
+def _is_phrase_declaration(line: str, pos: int) -> bool:
+    """True when a placeholder PHRASE is the topic of its comment's FIRST sentence.
+
+    Two bars, each closing measured fires:
+      * it must be in a COMMENT -- build_corpus.py:1141 put "not implemented" inside a report
+        STRING literal, and mcp_health.py:21 inside a docstring definition table; neither is a
+        marker the author owes.
+      * it must be in the comment's FIRST sentence -- ClaudeJson.psm1:11 QUOTES a PowerShell
+        error ("Please use the -AsHashTable switch instead. The key that was attempted to be
+        added"), where the phrase belongs to a second, reported sentence.
+    """
+    at = _comment_at(line, pos)
+    if at is None:
+        return False
+    off, body = at
+    return not any(m.end() <= off for m in _COMMENT_SENTENCE_END.finditer(body))
+
+
+def _is_intentional_noop(header: str) -> bool:
+    """True when a pass-only body's def line carries a purely EXPLANATORY trailing comment.
+
+    Measured: `def log_message(self, *args: Any) -> None:  # silence default stderr access log`
+    (mcp_http_host.py:274) is a deliberate override that silences a base class, not unfinished
+    work. This escape is safe because it requires the comment to carry NO marker of any family:
+    `def f():  # TODO wire this up` still fires through _COMMENT_TAG, and `def f():  # stub`
+    still fires through _WEAK, so a real stub cannot hide behind an explanation.
+    """
+    at = _comment_at(header, len(header))
+    if at is None or not at[1]:
+        return False
+    body = at[1]
+    return not (
+        _COMMENT_TAG.search(header)
+        or _NOTIMPL.search(body)
+        or _PHRASE.search(body)
+        or _WEAK.search(body)
+    )
+
 
 _TEST_FILE = re.compile(
     r"(?:^|[\\/])(?:test_[^\\/]+|conftest)\.py$|_test\.py$|\.test\.[jt]sx?$"
@@ -107,8 +200,10 @@ def _discriminator(path: str):
     except Exception:
         return None
     ctx = Context(file_path=path, source="file")
+    # kind="stub", not "marker": a stub is owed work in CODE, so prose documents, markdown
+    # table cells, blockquotes and struck-through text are mentions. See use_vs_mention.py.
     return lambda text, start, end: is_real_occurrence(
-        text, (start, end), ctx, kind="marker"
+        text, (start, end), ctx, kind="stub"
     )
 
 
@@ -152,6 +247,8 @@ def find_stubs(text: str, path: str = "") -> list[tuple[str, int, str]]:
         if (
             pm
             and not _NEG.search(line[max(0, pm.start() - 45) : pm.start()])
+            and _is_phrase_declaration(line, pm.start())
+            and not _follows_strikethrough(line, pm.start())
             and (
                 is_real is None or is_real(text, offset + pm.start(), offset + pm.end())
             )
@@ -165,6 +262,8 @@ def find_stubs(text: str, path: str = "") -> list[tuple[str, int, str]]:
             _COMMENT_INTRO.search(line)
             and wm
             and not _PRAGMA_NOCOVER.search(line)
+            and _is_weak_declaration(line, wm.start())
+            and not _follows_strikethrough(line, wm.start())
             and (
                 is_real is None or is_real(text, offset + wm.start(), offset + wm.end())
             )
@@ -181,6 +280,8 @@ def find_stubs(text: str, path: str = "") -> list[tuple[str, int, str]]:
             continue
         line_no = text.count("\n", 0, m.start()) + 1
         header = seg.splitlines()[0]
+        if _is_intentional_noop(header):
+            continue
         add("pass-only-body", line_no, header)
 
     out.sort(key=lambda t: t[1])

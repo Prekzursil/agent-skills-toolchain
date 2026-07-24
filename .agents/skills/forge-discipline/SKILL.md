@@ -1,6 +1,6 @@
 ---
 name: forge-discipline
-description: Use when you want to turn a named behavioral pattern (a gem, a fresh arXiv finding, or a matured instinct) into an INSTALLED, self-tested Claude Code hook in one pass. This is a BEHAVIOR forge, not a tool forge - it forges hooks/tripwires (things the harness runs deterministically), not MCP tools. Given a pattern spec it scaffolds the hook plus any tripwire, state schema, and skill stub it needs, generates and runs a chaos/GameDay self-test that PROVES the hook fires on its trigger, stays silent otherwise, and fails open on garbage, then stages everything in a review queue with the exact one-line install instruction. It NEVER auto-wires settings.json or the dispatcher manifest - the human reviews and applies the one line.
+description: Use when turning a named behavioral pattern (gem, fresh arXiv finding, matured instinct) into an INSTALLED, self-tested Claude Code hook in one pass. A BEHAVIOR forge, not a tool forge - it forges hooks/tripwires the harness runs deterministically, not MCP tools. Scaffolds the hook, runs a chaos self-test proving it fires and fails open on garbage, then stages it with the one-line install.
 ---
 
 # Discipline-Forge

@@ -1,6 +1,6 @@
 ---
 name: re-ensure
-description: Bring up the reverse-engineering MCP backends (IDA / Ghidra) on demand so mcp__ida-pro-mcp / mcp__ghidra-mcp / mcp__binary-ninja-mcp calls "just work" without manually opening or navigating the GUI apps. Use when explicitly asked to start/ensure the RE stack, or before a batch of RE tool calls. Cold-starts ONLY the requested backend (RAM-conscious), prefers an already-running GUI IDA on :13337 (never duplicates), and reports honestly that Binary Ninja (Personal license) cannot run headless. Companion to the automatic PreToolUse re-autolaunch hook.
+description: Bring up the reverse-engineering MCP backends (IDA / Ghidra) on demand so mcp__ida-pro-mcp / mcp__ghidra-mcp calls "just work" without manually opening the GUI apps. Use when asked to start/ensure the RE stack, or before a batch of RE tool calls. Cold-starts ONLY the requested backend, prefers an already-running GUI IDA on :13337, and reports that Binary Ninja (Personal) cannot run headless.
 ---
 
 # re-ensure Skill

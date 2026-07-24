@@ -1,6 +1,6 @@
 ---
 name: seed-golden-journey
-description: Use when an app needs a keystone acceptance test that proves the real product actually works end to end, not just that units pass or coverage is high. Scaffolds a HELD-OUT golden-journey test that launches the REAL app, drives the ONE primary user journey, and asserts a REAL artifact on disk (a valid media file via ffprobe, a downloaded file, a screenshot) rather than element-present. Parameterized for Electron (playwright electron launch), web (Playwright page goto), and CLI (spawn plus assert output file), with an annotated fill-in-the-blanks template derived from the Reframe exemplar. Makes the journey the merge gate and forbids citing coverage as done. NOT for broad unit/integration coverage (see two-tier-verify); NOT for mocked component tests.
+description: Use when an app needs a keystone acceptance test that proves the real product works end to end, not just that units pass or coverage is high. Scaffolds a HELD-OUT golden-journey test that launches the REAL app, drives the ONE primary user journey, and asserts a REAL artifact on disk (ffprobe media file, a downloaded file) rather than element-present. Parameterized for Electron, web, and CLI.
 ---
 
 # seed-golden-journey

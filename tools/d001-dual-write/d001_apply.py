@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""D-001 dual-write applier -- filter-safe, plumbing-only.
+"""D-001 reconciliation and projection applier -- filter-safe, plumbing-only.
 
-Mirrors ``skills/<NAME>/**`` onto ``.agents/skills/<NAME>/**`` at the SAME blob
-OIDs, on a new branch, **without ever writing the working tree**.
+``mirror`` unions legacy ``skills/<NAME>/**`` content into the authoritative
+``.agents/skills/<NAME>/**`` tree without overwriting a divergent canonical
+blob.  ``project`` overlays authoritative canonical blobs onto the compatibility
+``skills/<NAME>/**`` projection without deleting projection-only content.  Both
+build a new branch without ever writing the working tree.
 
 Why the working tree is never written
 -------------------------------------
@@ -40,20 +43,25 @@ Exit codes:
     0  OK
     1  UNSAFE  -- preflight found a filter/content problem; nothing was changed
     2  USAGE   -- bad invocation or git error
-    7  REFUSED -- a mutation was requested and denied by a safety gate;
-                  nothing was changed
+    7  REFUSED -- a mutation was requested and denied by a safety gate; no
+                  worktree path or existing ref was changed (a post-build
+                  refusal can leave unreachable Git objects for normal GC)
 
 Subcommands:
     preflight    read-only filter + content audit (never writes)
-    mirror       build the dual-write commit with plumbing (dry-run default)
+    mirror       union projection-only content into canonical (dry-run default)
+    project      generate selected projections from canonical (dry-run default)
     materialize  guarded, EXPLICIT-paths-only restore of files from the index
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
+import hmac
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -65,6 +73,9 @@ EXIT_REFUSED = 7
 
 PROJECTION_ROOT = "skills"
 CANONICAL_ROOT = ".agents/skills"
+REGULAR_MODES = frozenset({"100644", "100755"})
+SKILL_NAME_RE = re.compile(r"[a-z0-9]+(?:[-_][a-z0-9]+)*\Z")
+
 
 # Stored-form magics used by Signal A.  git-crypt's header is the only one that
 # ships; tests register their synthetic filter's magic with --magic-hex.
@@ -95,7 +106,7 @@ def run_git(
         capture_output=True,
         text=True,
         encoding="utf-8",
-        errors="replace",
+        errors="surrogateescape",
         env=full_env,
     )
     if check and proc.returncode != 0:
@@ -338,32 +349,177 @@ def cmd_preflight(ns: argparse.Namespace) -> int:
     return EXIT_OK if report["ok"] else EXIT_UNSAFE
 
 
-def plan_mirror(repo: str, source_ref: str, skills: list[str]) -> list[dict[str, str]]:
-    """[{mode, oid, src, dst}] -- one entry per projection file to mirror."""
-    plan: list[dict[str, str]] = []
+def _validate_skill_names(skills: list[str]) -> list[str]:
+    unique: list[str] = []
+    seen: set[str] = set()
     for name in skills:
-        listing = git_out(
-            repo,
-            ["ls-tree", "-r", "-z", source_ref, "--", f"{PROJECTION_ROOT}/{name}/"],
+        if SKILL_NAME_RE.fullmatch(name) is None:
+            raise GitError(
+                "--skill must be one lower-case hyphen/underscore directory name: "
+                f"{name!r}"
+            )
+        if name not in seen:
+            seen.add(name)
+            unique.append(name)
+    return unique
+
+
+def tree_files(
+    repo: str,
+    source_ref: str,
+    root: str,
+    name: str,
+    *,
+    required: bool,
+) -> dict[str, dict[str, str]]:
+    """Return files under one skill keyed by their skill-relative path."""
+    prefix = f"{root}/{name}/"
+    listing = git_out(repo, ["ls-tree", "-r", "-z", source_ref, "--", prefix])
+    result: dict[str, dict[str, str]] = {}
+    for entry in (e for e in listing.split("\0") if e):
+        meta, separator, path = entry.partition("\t")
+        if not separator or not path.startswith(prefix):
+            raise GitError(f"git returned an invalid tree entry below {prefix}")
+        fields = meta.split()
+        if len(fields) != 3:
+            raise GitError(f"git returned malformed metadata below {prefix}")
+        mode, obj_type, oid = fields
+        if obj_type not in {"blob", "commit"}:
+            raise GitError(f"git returned unexpected object type {obj_type!r}")
+        result[path[len(prefix) :]] = {
+            "mode": mode,
+            "oid": oid,
+            "path": path,
+            "type": obj_type,
+        }
+    if required and not result:
+        raise GitError(f"{root}/{name}/ has no files at {source_ref}")
+    return result
+
+
+def plan_overlay(
+    repo: str,
+    source_ref: str,
+    skills: list[str],
+    source_root: str,
+    destination_root: str,
+    *,
+    refuse_overwrite: bool,
+) -> dict[str, object]:
+    """Plan a union-preserving overlay between skill roots.
+
+    Destination-only paths are named and preserved.  Equal paths are no-ops.
+    Migration into canonical refuses divergent destinations; generation into the
+    compatibility projection records them as explicit overwrites.
+    """
+    plan: list[dict[str, str]] = []
+    conflicts: list[dict[str, str]] = []
+    nonregular_sources: list[dict[str, str]] = []
+    preserved: list[str] = []
+    overwrites: list[dict[str, str]] = []
+    for name in _validate_skill_names(skills):
+        source = tree_files(repo, source_ref, source_root, name, required=True)
+        destination = tree_files(
+            repo, source_ref, destination_root, name, required=False
         )
-        entries = [e for e in listing.split("\0") if e]
-        if not entries:
-            raise GitError(f"{PROJECTION_ROOT}/{name}/ has no files at {source_ref}")
-        for entry in entries:
-            meta, _, path = entry.partition("\t")
-            mode, obj_type, oid = meta.split()
-            if obj_type != "blob":
+        preserved.extend(
+            destination[rel]["path"]
+            for rel in sorted(destination.keys() - source.keys())
+        )
+        for rel, item in sorted(source.items()):
+            dst = f"{destination_root}/{name}/{rel}"
+            current = destination.get(rel)
+            if item["type"] != "blob" or item["mode"] not in REGULAR_MODES:
+                nonregular_sources.append(
+                    {
+                        "path": item["path"],
+                        "mode": item["mode"],
+                        "type": item["type"],
+                    }
+                )
                 continue
-            rel = path[len(f"{PROJECTION_ROOT}/{name}/") :]
+            if current and (current["mode"], current["oid"]) == (
+                item["mode"],
+                item["oid"],
+            ):
+                continue
+            if current and refuse_overwrite:
+                conflicts.append(
+                    {
+                        "source": item["path"],
+                        "destination": dst,
+                        "source_mode": item["mode"],
+                        "source_oid": item["oid"],
+                        "destination_mode": current["mode"],
+                        "destination_oid": current["oid"],
+                    }
+                )
+                continue
+            if current:
+                overwrites.append(
+                    {
+                        "source": item["path"],
+                        "destination": dst,
+                        "source_mode": item["mode"],
+                        "source_oid": item["oid"],
+                        "destination_mode": current["mode"],
+                        "destination_oid": current["oid"],
+                    }
+                )
             plan.append(
                 {
-                    "mode": mode,
-                    "oid": oid,
-                    "src": path,
-                    "dst": f"{CANONICAL_ROOT}/{name}/{rel}",
+                    "mode": item["mode"],
+                    "oid": item["oid"],
+                    "src": item["path"],
+                    "dst": dst,
                 }
             )
-    return plan
+    return {
+        "plan": plan,
+        "conflicts": conflicts,
+        "nonregular_source_entries": nonregular_sources,
+        "preserved_paths": sorted(preserved),
+        "overwrites": overwrites,
+        "overwritten_paths": sorted(item["destination"] for item in overwrites),
+    }
+
+
+def projection_plan_digest(source_commit: str, report: dict[str, object]) -> str:
+    """Bind overwrite approval to one immutable source tree and exact plan."""
+    receipt = {
+        "version": 1,
+        "operation": "project",
+        "source_commit": source_commit,
+        "plan": report["plan"],
+        "overwrites": report["overwrites"],
+        "preserved_paths": report["preserved_paths"],
+    }
+    encoded = json.dumps(receipt, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def plan_mirror(repo: str, source_ref: str, skills: list[str]) -> dict[str, object]:
+    """Union legacy projection paths into canonical without clobbering it."""
+    return plan_overlay(
+        repo,
+        source_ref,
+        skills,
+        PROJECTION_ROOT,
+        CANONICAL_ROOT,
+        refuse_overwrite=True,
+    )
+
+
+def plan_projection(repo: str, source_ref: str, skills: list[str]) -> dict[str, object]:
+    """Overlay canonical blobs onto selected generated projections; delete nothing."""
+    return plan_overlay(
+        repo,
+        source_ref,
+        skills,
+        CANONICAL_ROOT,
+        PROJECTION_ROOT,
+        refuse_overwrite=False,
+    )
 
 
 def build_commit(
@@ -395,6 +551,17 @@ def build_commit(
     return git_out(repo, ["commit-tree", tree, "-p", parent, "-m", message]).strip()
 
 
+def tree_entry(repo: str, ref: str, path: str) -> tuple[str, str]:
+    """Return one tree entry's ``(mode, oid)`` without path-text ambiguity."""
+    record = git_out(repo, ["ls-tree", "-z", ref, "--", path]).rstrip("\0")
+    meta, separator, listed_path = record.partition("\t")
+    fields = meta.split()
+    if not separator or listed_path != path or len(fields) != 3:
+        raise GitError(f"could not resolve one exact tree entry for {ref}:{path}")
+    mode, _obj_type, oid = fields
+    return mode, oid
+
+
 def verify_mirror(
     repo: str, source_ref: str, commit: str, plan: list[dict[str, str]]
 ) -> dict[str, object]:
@@ -409,23 +576,78 @@ def verify_mirror(
     actual = sorted(p for _s, p in changed)
     pairs = []
     for item in plan:
-        left = git_out(repo, ["rev-parse", f"{source_ref}:{item['src']}"]).strip()
-        right = git_out(repo, ["rev-parse", f"{commit}:{item['dst']}"]).strip()
+        left_mode, left_oid = tree_entry(repo, source_ref, item["src"])
+        right_mode, right_oid = tree_entry(repo, commit, item["dst"])
         pairs.append(
-            {"src": item["src"], "dst": item["dst"], "identical": left == right}
+            {
+                "src": item["src"],
+                "dst": item["dst"],
+                "source_mode": left_mode,
+                "destination_mode": right_mode,
+                "blob_identical": left_oid == right_oid,
+                "mode_identical": left_mode == right_mode,
+                "identical": (left_mode, left_oid) == (right_mode, right_oid),
+            }
         )
     return {
         "changed_paths": actual,
         "expected_paths": expected,
         "scope_exact": actual == expected,
         "statuses": sorted({s for s, _p in changed}),
-        "additive_only": all(s in ("A", "M") for s, _p in changed),
+        "additive_only": all(s in ("A", "M", "T") for s, _p in changed),
         "blob_pairs": pairs,
-        "all_blobs_identical": all(p["identical"] for p in pairs),
+        "all_blobs_identical": all(p["blob_identical"] for p in pairs),
+        "all_modes_identical": all(p["mode_identical"] for p in pairs),
     }
 
 
-def cmd_mirror(ns: argparse.Namespace) -> int:
+def atomic_create_ref(repo: str, ref: str, commit: str) -> bool:
+    """Create ``ref`` iff no direct or symbolic ref occupies that name.
+
+    ``update-ref <ref> <new> <zero>`` treats a dangling symbolic ref as absent,
+    even with ``--no-deref``.  A prepared transaction holds the ref lock while
+    the still-visible pre-image is inspected; a symbolic pre-image aborts the
+    transaction, and a direct pre-image makes ``prepare`` fail.
+
+    The transaction is driven over a BYTE pipe, never a text one: a text-mode
+    stdin on Windows rewrites the newline command terminator to CR+LF
+    (os.linesep) and git then rejects the carriage-return-suffixed command as
+    unknown (measured), so every ref creation would otherwise falsely conflict.
+    """
+    proc = subprocess.Popen(
+        ["git", "-C", repo, "update-ref", "--no-deref", "--stdin"],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+    )
+    assert proc.stdin is not None
+    assert proc.stdout is not None
+
+    def request(command: str) -> bool:
+        proc.stdin.write(command.encode("utf-8", "surrogateescape") + b"\n")
+        proc.stdin.flush()
+        expected = command.split()[0].encode("utf-8") + b": ok"
+        return proc.stdout.readline().strip() == expected
+
+    prepared = request("start")
+    if prepared:
+        proc.stdin.write(f"create {ref} {commit}\n".encode("utf-8", "surrogateescape"))
+        prepared = request("prepare")
+    occupied_by_symref = False
+    if prepared:
+        occupied_by_symref = (
+            run_git(repo, ["symbolic-ref", "--quiet", ref], check=False).returncode == 0
+        )
+        terminal = "abort" if occupied_by_symref else "commit"
+        completed = request(terminal)
+    else:
+        completed = False
+    proc.stdin.close()
+    returncode = proc.wait()
+    return prepared and not occupied_by_symref and completed and returncode == 0
+
+
+def cmd_overlay(ns: argparse.Namespace, *, project: bool) -> int:
     pre = preflight(ns.repo, ns.magic_hex)
     if not pre["ok"]:
         emit(
@@ -439,17 +661,75 @@ def cmd_mirror(ns: argparse.Namespace) -> int:
             },
         )
         return EXIT_REFUSED
+    valid_branch = run_git(
+        ns.repo, ["check-ref-format", "--branch", ns.branch], check=False
+    )
+    if valid_branch.returncode != 0:
+        emit(
+            ns,
+            {
+                "decision": "refuse",
+                "reason": "invalid-branch-name",
+                "message": "REFUSED before any write: --branch must be one valid "
+                "Git branch name.",
+            },
+        )
+        return EXIT_REFUSED
     try:
-        plan = plan_mirror(ns.repo, ns.source_ref, ns.skill)
+        source_commit = git_out(
+            ns.repo, ["rev-parse", f"{ns.source_ref}^{{commit}}"]
+        ).strip()
+        report = (
+            plan_projection(ns.repo, source_commit, ns.skill)
+            if project
+            else plan_mirror(ns.repo, source_commit, ns.skill)
+        )
     except GitError as exc:
         sys.stderr.write(f"{exc}\n")
         return EXIT_USAGE
+    report["source_commit"] = source_commit
+    if project:
+        report["plan_digest"] = projection_plan_digest(source_commit, report)
+    plan = report["plan"]
+    nonregular = report["nonregular_source_entries"]
+    if nonregular:
+        emit(
+            ns,
+            {
+                "decision": "refuse",
+                "reason": "nonregular-source-refused",
+                "message": "REFUSED before any write: a skill source contains a "
+                "symlink, gitlink, or other non-regular entry. Canonical skill "
+                "content must use mode 100644 or 100755.",
+                **report,
+            },
+        )
+        return EXIT_REFUSED
+    conflicts = report["conflicts"]
+    if conflicts:
+        emit(
+            ns,
+            {
+                "decision": "refuse",
+                "reason": "canonical-conflict-route-required",
+                "message": "REFUSED before any write: projection content differs "
+                "from an existing canonical blob. Route and resolve each conflict; "
+                "this migration command never overwrites canonical content.",
+                **report,
+            },
+        )
+        return EXIT_REFUSED
     exists = run_git(
         ns.repo,
         ["rev-parse", "--verify", "--quiet", f"refs/heads/{ns.branch}"],
         check=False,
     )
-    if exists.returncode == 0:
+    symbolic = run_git(
+        ns.repo,
+        ["symbolic-ref", "--quiet", f"refs/heads/{ns.branch}"],
+        check=False,
+    )
+    if exists.returncode == 0 or symbolic.returncode == 0:
         emit(
             ns,
             {
@@ -467,17 +747,46 @@ def cmd_mirror(ns: argparse.Namespace) -> int:
                 "decision": "dry-run",
                 "branch": ns.branch,
                 "source_ref": ns.source_ref,
-                "plan": plan,
+                **report,
                 "message": "DRY RUN -- nothing written. Re-run with --apply.",
             },
         )
         return EXIT_OK
-    commit = build_commit(ns.repo, ns.source_ref, plan, ns.message)
-    verification = verify_mirror(ns.repo, ns.source_ref, commit, plan)
+    if project and report["overwritten_paths"]:
+        supplied = ns.plan_digest or ""
+        expected = str(report["plan_digest"])
+        if not hmac.compare_digest(supplied, expected):
+            emit(
+                ns,
+                {
+                    "decision": "refuse",
+                    "reason": "projection-plan-not-reviewed",
+                    "message": "REFUSED before any write: overwrites require the "
+                    "plan_digest from a dry run of this exact immutable source tree. "
+                    "Review overwrites, then pass --plan-digest <digest>.",
+                    **report,
+                },
+            )
+            return EXIT_REFUSED
+    if not plan:
+        emit(
+            ns,
+            {
+                "decision": "no-op",
+                "branch": ns.branch,
+                "source_ref": ns.source_ref,
+                **report,
+                "message": "NO-OP -- selected skills are already reconciled.",
+            },
+        )
+        return EXIT_OK
+    commit = build_commit(ns.repo, source_commit, plan, ns.message)
+    verification = verify_mirror(ns.repo, source_commit, commit, plan)
     if not (
         verification["scope_exact"]
         and verification["additive_only"]
         and verification["all_blobs_identical"]
+        and verification["all_modes_identical"]
     ):
         emit(
             ns,
@@ -485,23 +794,48 @@ def cmd_mirror(ns: argparse.Namespace) -> int:
                 "decision": "refuse",
                 "reason": "verification-failed",
                 "message": "REFUSED: the built commit did not verify; the ref was "
-                "NOT updated and nothing else was touched.",
+                "NOT updated and the worktree/existing refs are untouched. The "
+                "unreachable test commit may remain until normal Git GC.",
                 "verification": verification,
             },
         )
         return EXIT_REFUSED
-    run_git(ns.repo, ["update-ref", f"refs/heads/{ns.branch}", commit])
+    created = atomic_create_ref(ns.repo, f"refs/heads/{ns.branch}", commit)
+    if not created:
+        emit(
+            ns,
+            {
+                "decision": "refuse",
+                "reason": "branch-create-conflict",
+                "message": "REFUSED: the target ref exists or appeared after "
+                "preflight. Atomic create failed, so no existing ref or worktree "
+                "path was changed; the unreachable commit may remain until normal "
+                "Git GC.",
+                "commit": commit,
+                **report,
+                "verification": verification,
+            },
+        )
+        return EXIT_REFUSED
     emit(
         ns,
         {
             "decision": "applied",
             "branch": ns.branch,
             "commit": commit,
-            "plan": plan,
+            **report,
             "verification": verification,
         },
     )
     return EXIT_OK
+
+
+def cmd_mirror(ns: argparse.Namespace) -> int:
+    return cmd_overlay(ns, project=False)
+
+
+def cmd_project(ns: argparse.Namespace) -> int:
+    return cmd_overlay(ns, project=True)
 
 
 def cmd_materialize(ns: argparse.Namespace) -> int:
@@ -647,6 +981,16 @@ def emit(ns: argparse.Namespace, payload: dict[str, object]) -> None:
             print(f"  finding: {finding}")
     for item in payload.get("plan", []) or []:  # type: ignore[union-attr]
         print(f"  mirror: {item['src']} -> {item['dst']} ({item['oid'][:12]})")
+    for path in payload.get("preserved_paths", []) or []:  # type: ignore[union-attr]
+        print(f"  preserved: {path}")
+    for path in payload.get("overwritten_paths", []) or []:  # type: ignore[union-attr]
+        print(f"  overwrite: {path}")
+    for conflict in payload.get("conflicts", []) or []:  # type: ignore[union-attr]
+        print(
+            f"  conflict: {conflict['source']} -> {conflict['destination']} "
+            f"({conflict['source_oid'][:12]} != "
+            f"{conflict['destination_oid'][:12]})"
+        )
     if "commit" in payload:
         print(f"commit: {payload['commit']}")
     verification = payload.get("verification")
@@ -654,6 +998,7 @@ def emit(ns: argparse.Namespace, payload: dict[str, object]) -> None:
         print(f"  scope_exact: {verification['scope_exact']}")
         print(f"  additive_only: {verification['additive_only']}")
         print(f"  all_blobs_identical: {verification['all_blobs_identical']}")
+        print(f"  all_modes_identical: {verification['all_modes_identical']}")
     if "ok" in payload:
         print(f"ok: {payload['ok']}")
 
@@ -683,6 +1028,21 @@ def build_parser() -> argparse.ArgumentParser:
     )
     m.add_argument("--apply", action="store_true")
 
+    p = sub.add_parser("project", help="generate projections from canonical skills")
+    p.add_argument("--source-ref", required=True)
+    p.add_argument("--skill", action="append", required=True)
+    p.add_argument("--branch", required=True)
+    p.add_argument(
+        "--message",
+        default="docs(skills): generate compatibility projection from canonical "
+        ".agents/skills tree (D-001)",
+    )
+    p.add_argument(
+        "--plan-digest",
+        help="digest from the reviewed dry run (required for divergent overwrites)",
+    )
+    p.add_argument("--apply", action="store_true")
+
     x = sub.add_parser("materialize", help="guarded, explicit-paths-only restore")
     x.add_argument("--path", action="append", default=None)
     x.add_argument("--apply", action="store_true")
@@ -694,6 +1054,7 @@ def main(argv: list[str] | None = None) -> int:
     handlers = {
         "preflight": cmd_preflight,
         "mirror": cmd_mirror,
+        "project": cmd_project,
         "materialize": cmd_materialize,
     }
     try:

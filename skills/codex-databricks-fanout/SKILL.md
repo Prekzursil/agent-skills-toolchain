@@ -1,6 +1,6 @@
 ---
 name: codex-databricks-fanout
-description: Use when fanning out Codex CLI agents onto Databricks — running many parallel Codex/LLM work units on job clusters, scaling past a local RAM ceiling, or deciding between Databricks / local / Modal / RunPod for a large agent fan-out. Carries the measured constraints from a 608-unit production run + a 48-unit auth-research re-prove + 2026-07-20 CRCP e2e/merge/web-endgame ops so a session does not re-derive them wrong.
+description: Use when fanning out Codex CLI agents onto Databricks - running many parallel Codex/LLM work units on job clusters, scaling past a local RAM ceiling, or deciding between Databricks / local / Modal / RunPod for a large agent fan-out. Carries the measured constraints from a 608-unit production run, a 48-unit auth-research re-prove, and CRCP ops so a session does not re-derive them wrong.
 ---
 
 # Codex fan-out on Databricks

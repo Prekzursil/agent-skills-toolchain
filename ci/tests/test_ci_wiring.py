@@ -138,3 +138,29 @@ def test_project_settings_register_and_enable_the_skill_surface() -> None:
     assert settings["enabledPlugins"] == {
         "agent-skills-toolchain@agent-skills-toolchain": True
     }
+
+
+STRICT_GATE_MARKER = (
+    "run: python ci/check_skill_dual_write.py "
+    "--base origin/main --head HEAD --strict-parity"
+)
+
+
+def workflow_run_lines() -> set[str]:
+    return {
+        line.strip()
+        for line in workflow_text().splitlines()
+        if not line.lstrip().startswith("#")
+    }
+
+
+def test_workflow_adopts_final_tree_strict_parity() -> None:
+    """KNOWN-BROKEN: CI invoked only the weaker non-empty same-skill rule."""
+    assert STRICT_GATE_MARKER in workflow_run_lines()
+
+
+def test_workflow_does_not_advertise_null_range_events() -> None:
+    """KNOWN-BROKEN: push/dispatch fetched main then diffed main against itself."""
+    text = workflow_text()
+    assert "\n  push:\n" not in text
+    assert "\n  workflow_dispatch:\n" not in text

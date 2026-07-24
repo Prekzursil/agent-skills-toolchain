@@ -1,15 +1,6 @@
 ---
 name: comp-pharm-cascade
-description: >-
-  Use when ranking/prioritizing a congeneric small-molecule series against a
-  protein target (binding-affinity SAR, hit triage, mechanism-of-action), or
-  when scoping such a campaign. Routes the work through a cost-escalating
-  cascade — experimental-anchor data → license-free ML (Boltz-2) breadth +
-  pose → licensed Schrödinger physics (FEP/MM-GBSA/BPMD) for the headline
-  ΔΔG → QM (EXESS) mechanism → figures — with consensus checks at the two
-  gates that are catastrophic when silently wrong (pose, and the published
-  number). NOT for a single one-off docking (use schrodinger-maestro-driver /
-  structure-based-screening) or pure knowledge lookup (use tooluniverse).
+description: Use when ranking/prioritizing a congeneric small-molecule series against a protein target (binding-affinity SAR, hit triage, mechanism-of-action), or scoping such a campaign. Routes through a cost-escalating cascade - experimental anchors, license-free ML (Boltz-2) breadth + pose, licensed Schrodinger physics, QM (EXESS) - with consensus checks at the pose and published-number gates.
 ---
 
 # comp-pharm-cascade

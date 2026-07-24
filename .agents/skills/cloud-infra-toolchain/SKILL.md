@@ -1,6 +1,6 @@
 ---
 name: cloud-infra-toolchain
-description: "Use when working with the user's cloud-infrastructure MCP stack fronted by the cloud-hub multiplexer - RunPod, Azure, Google Cloud, Kaggle, rclone, Modal, Lightning AI, and OVHcloud behind one lazy MCP slot. Covers which platform does what, adopt-vs-build-vs-vendor status, per-platform auth + the account-switch/cycle multi-account layer (incl. OVH region rotation ca/eu/us), the workflows (train on Kaggle, rent a GPU on RunPod/Modal/Lightning/OVH, deploy to Cloud Run/AKS, move data with rclone), the rclone rcd daemon prereq, the Windows `cmd /c npx` note, GPU cost-awareness + read-before-destroy operating rules, and the per-backend tool inventory. Multi-accounting can breach a platform's ToS - flag it."
+description: Use when working with the user's cloud-infrastructure MCP stack fronted by the cloud-hub multiplexer - RunPod, Azure, Google Cloud, Kaggle, rclone, Modal, Lightning AI, and OVHcloud behind one lazy MCP slot. Covers which platform does what, per-platform auth + the account-switch/cycle multi-account layer, the workflows (train, rent a GPU, deploy, move data), and GPU cost/read-before-destroy rules.
 ---
 
 # Cloud Infrastructure MCP Toolchain
