@@ -13,6 +13,23 @@ gets the binding constraint wrong (see §1).
 **Ops expansions (2026-07-20):** implementer batches, harvest footguns, apply/merge
 ownership, and “sloppy session” anti-patterns → §10–§14.
 
+## Implementation
+
+The measured constraints in this doc are enforced by executable code under
+[`scripts/`](scripts/) (details in [`scripts/README.md`](scripts/README.md)):
+
+- **`scripts/harness/contract.py`** is the AUTHORITATIVE executable RAIL — the frozen config every
+  module reads (policy_id, `r5d.2xlarge`, `concurrency=48`, `stagger_s=3.0`, profile, notebook path).
+  This SKILL.md is the measured-constraints doc; `contract.py` is the machine copy of the same rail.
+- **`scripts/harness/`** is the driver — `build_batch` → `submit` → `poll` → `harvest` (+ `lanes/`).
+- **`scripts/batch_runner.py`** is the on-Databricks worker notebook the driver invokes via
+  `RAIL["notebook"]`.
+- **`scripts/harness/gate.py`** is the STRUCTURAL completeness gate (§6 — sentinel + fenced fields, no
+  byte floor by default), mutation-tested in `scripts/tests/test_gate.py`.
+
+Unit + mutation tests: `python -m pytest scripts/tests -q`. The `scripts/e2e/` round-trips need a live
+Databricks workspace and are run manually, never in CI.
+
 ## 1. The constraint everyone guesses wrong
 
 A session planning this will typically assert:

@@ -15,7 +15,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
-from gate import gate, parse_block  # noqa: E402
+from harness.gate import gate, parse_block  # noqa: E402
 
 TERSE = """```verdict
 id: A01
