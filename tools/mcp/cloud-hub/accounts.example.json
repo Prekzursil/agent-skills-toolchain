@@ -37,6 +37,16 @@
       { "name": "workspace2", "env": { "DATABRICKS_HOST": "${DATABRICKS_HOST_2}", "DATABRICKS_TOKEN": "${DATABRICKS_TOKEN_2}" } }
     ]
   },
+  "aws": {
+    "_comment": "AWS is the ONLY env-mode platform here that is inherently SECRET-FREE: AWS_PROFILE + AWS_REGION are just NAMES, so literal values are safe. The actual credential is the IAM Identity Center SSO token in ~/.aws/sso/cache (minted by `aws sso login --sso-session <name>`), which the mcp-proxy-for-aws child resolves from the local botocore chain per request -- it never passes through this file. Each account = one ~/.aws/config [profile]; aws_account_switch respawns the proxy with a different AWS_PROFILE, so it flips BOTH the AWS account and the assumed role. One `aws sso login` covers every profile sharing an sso_start_url, and expiry needs a browser re-login (no watchdog can fix that) -- an expired token surfaces as a per-call token error, not a dead backend.",
+    "active": "datascience",
+    "accounts": [
+      { "name": "datascience", "label": "DataScience", "env": { "AWS_PROFILE": "bolt-datascience", "AWS_REGION": "eu-central-1" } },
+      { "name": "geo", "label": "Maps-Team-Test", "env": { "AWS_PROFILE": "bolt-geo", "AWS_REGION": "eu-central-1" } },
+      { "name": "dataeng", "label": "Data Engineering", "env": { "AWS_PROFILE": "bolt-common-readonly", "AWS_REGION": "eu-central-1" } },
+      { "name": "root", "label": "Root / org account", "env": { "AWS_PROFILE": "bolt-common-admin", "AWS_REGION": "eu-central-1" } }
+    ]
+  },
   "biomni": {
     "active": "primary",
     "accounts": [

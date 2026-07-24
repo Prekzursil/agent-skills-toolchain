@@ -289,4 +289,35 @@ def default_backends() -> list[BackendSpec]:
                 label="Biomni Lab",
             ),
         ),
+        BackendSpec(
+            id="aws",
+            label="AWS (mcp-proxy-for-aws -> managed AWS MCP Server)",
+            prefix="aws",
+            cmd=(
+                "cmd",
+                "/c",
+                "uvx",
+                "mcp-proxy-for-aws@1.6.4",
+                "https://aws-mcp.eu-central-1.api.aws/mcp",
+            ),
+            cache="aws.json",
+            can_enumerate_offline=False,
+            note="thin local stdio SigV4 proxy to the managed AWS MCP Server (the "
+            "GA successor to the deprecated aws-api-mcp-server): call_aws + "
+            "run_script + live AWS docs/skills + CloudTrail agent attribution. "
+            "Profile and region are PER ACCOUNT via AWS_PROFILE + AWS_REGION env "
+            "(no --profile/--region args -- the proxy falls back to AWS_PROFILE and "
+            "signs with AWS_REGION), so aws_account_switch flips the Bolt IAM "
+            "Identity Center profile; creds resolve from the local SSO cache "
+            "(`aws sso login`) and refresh per request with NO respawn. Pin "
+            ">=1.6.0 (Windows credential_process stdio-hang fix #293). Fallback if "
+            "the managed endpoint is org-blocked: awslabs.aws-api-mcp-server "
+            "(local boto3, deprecated).",
+            account=AccountPolicy(
+                platform="aws",
+                mode="env",
+                seed_env=("AWS_PROFILE", "AWS_REGION"),
+                label="AWS",
+            ),
+        ),
     ]
