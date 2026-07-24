@@ -14,6 +14,7 @@ from the lane's remediation matrix.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -423,3 +424,116 @@ def test_usage_staged_with_base_is_rejected(repo: Repo) -> None:
 def test_usage_unknown_revision_is_exit_2_not_a_false_green(repo: Repo) -> None:
     proc = run_guard(repo, "--base", "no-such-ref", "--head", "feature")
     assert proc.returncode == 2, proc.stdout + proc.stderr
+
+
+def test_strict_parity_fires_on_a_canonical_only_edit(repo: Repo) -> None:
+    """KNOWN-BROKEN: strict mode used to build obligations from projection rows only."""
+    repo.write(".agents/skills/existing-skill/SKILL.md", EDIT)
+    repo.add(".agents/skills/existing-skill/SKILL.md")
+    repo.commit("canonical edit without generated projection")
+
+    proc = run_range(repo, "--strict-parity", "--json")
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert reasons(proc) == {"existing-skill": "canonical-divergent"}
+
+
+def test_strict_parity_accepts_a_projection_repair_to_unchanged_canonical(
+    repo: Repo,
+) -> None:
+    """KNOWN-BROKEN: same-diff parity rejected repairs to an older canonical blob."""
+    repo.git("checkout", "-q", "main")
+    repo.write(".agents/skills/repair-me/SKILL.md", NEW_SKILL)
+    repo.add(".agents/skills/repair-me/SKILL.md")
+    repo.commit("canonical baseline")
+    repo.git("branch", "-D", "feature")
+    repo.git("checkout", "-q", "-b", "feature")
+    repo.write("skills/repair-me/SKILL.md", NEW_SKILL)
+    repo.add("skills/repair-me/SKILL.md")
+    repo.commit("repair generated projection")
+
+    proc = run_range(repo, "--strict-parity")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "final-tree counterparts" in proc.stdout
+
+
+def test_strict_parity_fires_when_a_projection_is_deleted_but_canonical_survives(
+    repo: Repo,
+) -> None:
+    """KNOWN-BROKEN: projection deletions were absent from the A/M obligation set."""
+    repo.remove("skills/existing-skill/SKILL.md")
+    repo.commit("delete generated projection only")
+
+    proc = run_range(repo, "--strict-parity", "--json")
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert reasons(proc) == {"existing-skill": "canonical-divergent"}
+
+
+def test_strict_parity_allows_an_explicit_deletion_from_both_trees(repo: Repo) -> None:
+    """KNOWN-BROKEN: old strict mode ignored, rather than adjudicated, deletions."""
+    repo.remove("skills/existing-skill/SKILL.md")
+    repo.remove(".agents/skills/existing-skill/SKILL.md")
+    repo.commit("explicit dual removal")
+    proc = run_range(repo, "--strict-parity")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "final-tree counterparts" in proc.stdout
+
+
+def test_strict_parity_refuses_unpaired_projection_only_deletion(repo: Repo) -> None:
+    """KNOWN-BROKEN: final absent==absent treated legacy pruning as parity."""
+    repo.git("checkout", "-q", "main")
+    repo.write("skills/legacy-only/SKILL.md", NEW_SKILL)
+    repo.add("skills/legacy-only/SKILL.md")
+    repo.commit("projection-only baseline")
+    repo.git("branch", "-D", "feature")
+    repo.git("checkout", "-q", "-b", "feature")
+    repo.remove("skills/legacy-only/SKILL.md")
+    repo.commit("attempt to prune legacy projection")
+
+    proc = run_range(repo, "--strict-parity", "--json")
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert reasons(proc) == {"legacy-only": "canonical-divergent"}
+
+
+def test_strict_parity_keeps_distinct_invalid_utf8_path_bytes_distinct(
+    repo: Repo,
+) -> None:
+    """KNOWN-BROKEN: errors=replace collapsed byte 0xff and 0xfe to one name."""
+    projection_name = os.fsdecode(b"\xff")
+    canonical_name = os.fsdecode(b"\xfe")
+    projection_path = f"skills/{projection_name}/SKILL.md"
+    canonical_path = f".agents/skills/{canonical_name}/SKILL.md"
+    repo.write(projection_path, NEW_SKILL)
+    repo.write(canonical_path, NEW_SKILL)
+    repo.add(projection_path, canonical_path)
+    repo.commit("distinct non-utf8 skill names")
+
+    raw = subprocess.run(
+        ["git", "-C", str(repo.root), "diff", "--name-only", "-z", "main...feature"],
+        capture_output=True,
+    )
+    assert raw.returncode == 0
+    assert b"\xff" in raw.stdout and b"\xfe" in raw.stdout, "fixture bytes collapsed"
+
+    proc = run_range(repo, "--strict-parity", "--json")
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert set(reasons(proc)) == {projection_name, canonical_name}
+
+
+def test_staged_strict_parity_fires_on_a_canonical_only_edit(repo: Repo) -> None:
+    """KNOWN-BROKEN: staged strict mode ignored canonical-only index changes."""
+    repo.write(".agents/skills/existing-skill/SKILL.md", EDIT)
+    repo.add(".agents/skills/existing-skill/SKILL.md")
+    proc = run_guard(repo, "--staged", "--strict-parity", "--json")
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert reasons(proc) == {"existing-skill": "canonical-divergent"}
+
+
+def test_staged_strict_parity_accepts_repair_to_head_canonical(repo: Repo) -> None:
+    """KNOWN-BROKEN: same-diff strict mode rejected staged projection-only repairs."""
+    repo.write(".agents/skills/repair-me/SKILL.md", NEW_SKILL)
+    repo.add(".agents/skills/repair-me/SKILL.md")
+    repo.commit("canonical baseline")
+    repo.write("skills/repair-me/SKILL.md", NEW_SKILL)
+    repo.add("skills/repair-me/SKILL.md")
+    proc = run_guard(repo, "--staged", "--strict-parity")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
