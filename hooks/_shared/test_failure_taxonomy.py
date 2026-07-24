@@ -150,6 +150,26 @@ class TestTimeoutLint:
     def test_positive_timeout_s_passes_and_returns_float(self):
         assert require_timeout_s({"id": "n1", "timeout_s": 1800}) == 1800.0
 
+    def test_infinite_timeout_s_is_a_lint_failure(self):
+        # inf IS a float, so it slips past the isinstance check; but timeout_s=inf means the
+        # node is NEVER killed -- the exact unbounded-hang C16 exists to make unrepresentable.
+        # Reachable: json.loads accepts the Infinity literal, YAML accepts .inf.
+        with pytest.raises(ValueError):
+            require_timeout_s({"id": "n1", "timeout_s": float("inf")})
+
+    def test_nan_timeout_s_is_a_lint_failure(self):
+        # nan <= 0 is False (all NaN comparisons are False), so it also slips the guard.
+        # An undefined timer value must not pass a mandatory timeout lint.
+        with pytest.raises(ValueError):
+            require_timeout_s({"id": "n1", "timeout_s": float("nan")})
+
+    def test_infinity_loaded_from_json_is_rejected(self):
+        import json
+
+        node = json.loads('{"id": "n1", "timeout_s": Infinity}')
+        with pytest.raises(ValueError):
+            require_timeout_s(node)
+
 
 # --------------------------------------------------- two-strikes fingerprint breaker
 class TestTwoStrikesBreaker:

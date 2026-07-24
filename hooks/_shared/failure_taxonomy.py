@@ -26,6 +26,7 @@ Stdlib-only, no I/O; safe to import from a hook or the fan-out barrier.
 
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass
 from typing import Any, Mapping, Optional
@@ -142,9 +143,13 @@ def require_timeout_s(node: Mapping[str, Any]) -> float:
         raise ValueError(
             f"node {node.get('id', '?')!r} timeout_s must be numeric, got {value!r}"
         )
-    if value <= 0:
+    # inf/nan ARE floats and slip the isinstance check; inf<=0 and nan<=0 are both False, so
+    # a plain `<= 0` guard lets them through. An accepted timeout_s=inf means the node is
+    # never killed = the unbounded hang C16 exists to make unrepresentable; nan is undefined.
+    # math.isfinite rejects both. (Reachable: json.loads accepts Infinity/NaN; YAML .inf/.nan.)
+    if not math.isfinite(value) or value <= 0:
         raise ValueError(
-            f"node {node.get('id', '?')!r} timeout_s must be > 0, got {value!r}"
+            f"node {node.get('id', '?')!r} timeout_s must be a finite value > 0, got {value!r}"
         )
     return float(value)
 
