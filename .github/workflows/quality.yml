@@ -206,20 +206,21 @@ jobs:
           python test_msys_pathconv.py
           python test_hooks.py
 
-      # tools/search-expansion — RRF rank fusion + the pure SearXNG settings.yml transform.
+      # tools/search-expansion — RRF rank fusion, the pure SearXNG settings.yml transform,
+      # and the query-plan translate->dedup sibling (Enterprise-Search decompose borrow).
       # Reuses the existing `gate-tests-coverage` charter slug on purpose: it is not a new
       # gate, so .quality/charter_check.sh stays consistent with no charter.yml edit.
-      # Only the two PURE modules are coverage-gated. searxng_regional.py is the I/O shell
+      # Only the three PURE modules are coverage-gated. searxng_regional.py is the I/O shell
       # (HTTP probes, docker restart, file backup); mocking it to 100% would assert against
       # the mocks, so it is covered by lint/types and by live exercise instead — the runs
       # are recorded in docs/search-expansion/README.md. pyyaml is a real test dependency:
       # the suite PARSES the rendered block rather than eyeballing it, because a malformed
       # settings.yml takes the owner's search instance down.
-      - name: gate-tests-coverage search-expansion (rrf + searxng config)
+      - name: gate-tests-coverage search-expansion (rrf + searxng config + query plan)
         working-directory: tools/search-expansion
         run: |
           pip install pytest pytest-cov pyyaml
-          pytest --cov=rank_fusion --cov=searxng_config --cov-branch \
+          pytest --cov=rank_fusion --cov=searxng_config --cov=query_plan --cov-branch \
             --cov-report=term-missing --cov-fail-under=100
 
       - name: gate-tests-coverage strict-target hook manifests
