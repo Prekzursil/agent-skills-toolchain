@@ -31,11 +31,14 @@ SKILL_MD = SKILL_DIR / "SKILL.md"
 SECTION_HEADING = "## Governed single-shot run"
 FROZEN_SHA = "c38cabd29348812ef19efef27f838252dc452d162b50fead07c6d875c0fe1515"
 
-# Bracketed instructional sentinels that only a PRISTINE (unfilled) template retains;
-# a filled instance replaces them with real prose.
+# Slot-only bracketed placeholders that a PRISTINE (unfilled) template retains but a filled
+# instance replaces with real prose. Each is verified to live ONLY inside a <GOAL>/<DoD> slot
+# (absent from a filled instance), so requiring all three makes this test reject a filled
+# instance: one from the GOAL slot, one from a DoD State cell, one from a DoD Evidence cell.
 UNFILLED_SENTINELS = (
-    "[State one durable end-state",
+    "[State one durable end-state in imperative, outcome language.]",
     "[One externally observable final condition.]",
+    "[first signal/source.]",
 )
 
 
