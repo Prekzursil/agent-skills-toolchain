@@ -13,6 +13,7 @@ import pytest
 from monitorcore.cockpit import (
     _blocked,
     _mtime,
+    decode_key,
     interactive_supported,
     main,
     notify,
@@ -70,6 +71,20 @@ class _FakeSource:
     def poll(self) -> Snapshot[CodexPayload]:
         self.polls += 1
         return self._snap
+
+
+# ───────────────────────────── decode_key ─────────────────────────────
+def test_decode_key_plain_and_special_keys():
+    assert decode_key("\r") == "enter"
+    assert decode_key("\x08") == "backspace"
+    assert decode_key("\x1b") == "escape"
+    assert decode_key("a") == "a"  # any other character passes through
+
+
+def test_decode_key_arrow_scan_codes():
+    assert decode_key("\x00H") == "up"  # \x00 prefix + scan code
+    assert decode_key("\xe0P") == "down"  # \xe0 prefix + scan code
+    assert decode_key("\x00Z") == ""  # unknown scan code → dropped
 
 
 # ───────────────────────────── interactive_supported ─────────────────────────────

@@ -2,10 +2,11 @@
 
 The cockpit repaints the WHOLE frame every tick. This module splits cleanly into
 PURE escape-sequence *builders* (fully covered by asserting the exact byte strings)
-and a THIN terminal I/O shell (:func:`stdout`, :func:`terminal_size`) that binds the
-real terminal and is marked ``# pragma: no cover`` — exactly as monitorcore's
-existing ctypes / syscall dodges are. :func:`paint` takes an EXPLICIT stream so its
-write+flush logic is exercised against an in-memory buffer, never a live TTY.
+and a THIN terminal I/O shell (:func:`stdout`) that binds the real terminal and is
+marked ``# pragma: no cover`` — exactly as monitorcore's existing ctypes / syscall
+dodges are. :func:`terminal_size` takes an injectable size-getter and :func:`paint`
+takes an EXPLICIT stream, so their fallback and write+flush logic are exercised
+against a stub / an in-memory buffer, never a live TTY.
 
 A full repaint is wrapped in DEC private mode **2026** (synchronized output /
 BSU–ESU): the terminal buffers the frame and swaps it atomically, so a whole-screen
@@ -24,7 +25,7 @@ from __future__ import annotations
 
 import os
 import sys
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import TextIO
 
 __all__ = [
@@ -99,9 +100,17 @@ def stdout() -> TextIO:  # pragma: no cover - binds the real terminal stream
 
 def terminal_size(
     fallback: tuple[int, int] = (80, 24),
-) -> tuple[int, int]:  # pragma: no cover - terminal-size syscall
+    *,
+    getsize: Callable[[], os.terminal_size] = os.get_terminal_size,
+) -> tuple[int, int]:
+    """Current ``(columns, lines)``, or ``fallback`` when the size query fails.
+
+    ``getsize`` is an injectable seam (defaults to the real ``os.get_terminal_size``
+    syscall) so both the success path and the ``OSError`` → ``fallback`` branch are
+    covered against a stub, never a live TTY.
+    """
     try:
-        size = os.get_terminal_size()
+        size = getsize()
     except OSError:
         return fallback
     return (size.columns, size.lines)

@@ -2,14 +2,15 @@
 full-repaint substrate (WU7), 100% line+branch.
 
 The pure escape-sequence builders are asserted against their exact bytes; the thin
-terminal I/O shell (``stdout`` / ``terminal_size``) is ``# pragma: no cover`` (it
-binds the real terminal), and ``paint`` is exercised against an in-memory buffer so
-the write+flush logic is covered without driving a TTY.
+terminal I/O shell (``stdout``) is ``# pragma: no cover`` (it binds the real
+terminal). ``terminal_size`` (via an injected size-getter) and ``paint`` (via an
+in-memory buffer) are exercised without driving a TTY, so both cover their branches.
 """
 
 from __future__ import annotations
 
 import io
+import os
 
 from monitorcore import ansi_screen as scr
 
@@ -70,3 +71,15 @@ def test_paint_writes_payload_and_flushes_the_injected_stream():
     scr.paint("XYZ", buf)
     assert buf.getvalue() == "XYZ"
     assert flushed == [True]
+
+
+def test_terminal_size_returns_columns_and_lines():
+    fake = os.terminal_size((132, 43))
+    assert scr.terminal_size(getsize=lambda: fake) == (132, 43)
+
+
+def test_terminal_size_falls_back_on_oserror():
+    def boom() -> os.terminal_size:
+        raise OSError("not a terminal")
+
+    assert scr.terminal_size((100, 30), getsize=boom) == (100, 30)

@@ -43,6 +43,7 @@ from .stall import Condition, StallSignals, StallTracker, classify_condition
 from .view import render_view
 
 __all__ = [
+    "decode_key",
     "interactive_supported",
     "main",
     "notify",
@@ -169,12 +170,25 @@ def once_frame(snap: Snapshot[CodexPayload], cols: int) -> list[str]:
     return render_view(groups, ViewState(), snap.ts, cols, cursor=False)
 
 
+def decode_key(raw: str) -> str:
+    """Map a raw console key read to a logical key name (pure, terminal-free).
+
+    ``raw`` is the 1- or 2-char sequence :func:`_getch` read: a function / arrow key
+    arrives as a ``\\x00`` / ``\\xe0`` prefix byte followed by its scan code (``H`` / ``P``
+    → up / down; any other scan code is dropped). A plain key maps ``\\r`` / ``\\x08`` /
+    ``\\x1b`` to enter / backspace / escape and passes every other character through.
+    """
+    if raw[:1] in ("\x00", "\xe0"):  # function / arrow key: raw[1:] holds the scan code
+        return {"H": "up", "P": "down"}.get(raw[1:2], "")
+    return {"\r": "enter", "\x08": "backspace", "\x1b": "escape"}.get(raw, raw)
+
+
 def _getch() -> str:  # pragma: no cover - raw single-key read from the real console
     msvcrt = importlib.import_module("msvcrt")
     ch = str(msvcrt.getwch())
-    if ch in ("\x00", "\xe0"):  # a function / arrow key → read the scan code next
-        return {"H": "up", "P": "down"}.get(str(msvcrt.getwch()), "")
-    return {"\r": "enter", "\x08": "backspace", "\x1b": "escape"}.get(ch, ch)
+    if ch in ("\x00", "\xe0"):  # a function / arrow key → read the scan code too
+        ch += str(msvcrt.getwch())
+    return decode_key(ch)
 
 
 def _default_write(
