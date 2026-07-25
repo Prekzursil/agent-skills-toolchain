@@ -62,8 +62,25 @@ class ServerRow:
         The single honest answer to "is this server broken?".  A server the
         owner deliberately disabled is never dead — reporting intentional
         curation as breakage is a false alarm that trains the owner to ignore
-        the detector.  Guarding on `enabled` also covers the cross-plane case
-        where another plane disabled a row whose status is still FAILED.
+        the detector.
+
+        Scope of the `enabled` guard, measured — NOT wider than this:
+
+        * Cross-plane rows: `dead` does return False when ANOTHER plane
+          disabled a row whose status is still FAILED, and that is the whole
+          of it.  `status._merge_rows` copies the claude-plane `status`
+          verbatim, and both UIs key on `row.status.value` rather than on
+          `dead`, so such a row still renders "error"/red.  The cross-plane
+          case is covered in this predicate ONLY — not in what the owner
+          sees.  Settling change, out of scope here and needing its own
+          tests: re-label FAILED -> DISABLED in `_merge_rows` when a plane
+          disables the row.  Guarded by
+          `test_status.py::test_cross_plane_disabled_keeps_failed_status`.
+        * `dead` is exposed in `to_dict()` but has NO production consumer:
+          `app.py json` builds `ServerInfo` dicts in `core/inventory.py` and
+          never calls `ServerRow.to_dict()`.  The change the owner actually
+          sees is the `AuthStatus.DISABLED` re-label applied by
+          `claude_adapter.reconcile_enabled`, plus the two UI status maps.
         """
         return self.enabled and self.status == AuthStatus.FAILED
 
