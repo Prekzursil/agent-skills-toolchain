@@ -682,6 +682,13 @@ def test_meta_array_unterminated_is_not_literal():
     assert any(f.check == "meta-not-literal" for f in findings)
 
 
+def test_meta_excessive_nesting_is_not_literal():
+    # a pathologically deep meta must yield a clean finding, never a RecursionError:
+    # a linter must not crash on the file it is handed.
+    findings = wl.lint_text("export const meta = { a: " + "[" * 150)
+    assert any(f.check == "meta-not-literal" for f in findings)
+
+
 # --------------------------------------------------------------------------- #
 # additional branch coverage: parallel member-chain scan edges
 # --------------------------------------------------------------------------- #

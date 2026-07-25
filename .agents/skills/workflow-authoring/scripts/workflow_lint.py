@@ -246,6 +246,10 @@ class _LiteralError(Exception):
         self.message = message
 
 
+# A generous ceiling on meta object/array nesting. Real meta is 2-3 deep; this only
+# exists so a pathological input raises a clean `meta-not-literal` finding instead of a
+# RecursionError -- a linter must never crash on the file it is handed.
+_MAX_DEPTH = 100
 _IDENT = re.compile(r"[A-Za-z_$][\w$]*")
 _NUMBER = re.compile(
     r"[+-]?(?:0[xX][0-9a-fA-F_]+|0[oO][0-7_]+|0[bB][01_]+|"
@@ -308,15 +312,17 @@ def _parse_keyword(text: str, i: int) -> int | None:
     return None
 
 
-def _parse_value(text: str, i: int) -> int:
+def _parse_value(text: str, i: int, depth: int) -> int:
+    if depth > _MAX_DEPTH:
+        raise _LiteralError(i, "meta nesting exceeds the depth limit")
     i = _skip_ws(text, i)
     if i >= len(text):
         raise _LiteralError(i, "expected a value")
     c = text[i]
     if c == "{":
-        return _parse_object(text, i)
+        return _parse_object(text, i, depth)
     if c == "[":
-        return _parse_array(text, i)
+        return _parse_array(text, i, depth)
     if c in "'\"`":
         return _parse_string_literal(text, i)
     kw = _parse_keyword(text, i)
@@ -328,7 +334,7 @@ def _parse_value(text: str, i: int) -> int:
     raise _LiteralError(i, f"non-literal token near {text[i : i + 16]!r}")
 
 
-def _parse_object(text: str, i: int) -> int:
+def _parse_object(text: str, i: int, depth: int) -> int:
     i += 1  # consume {
     while True:
         i = _skip_ws(text, i)
@@ -350,7 +356,7 @@ def _parse_object(text: str, i: int) -> int:
             raise _LiteralError(i, "method definition is not a pure literal value")
         if c != ":":
             raise _LiteralError(i, "expected ':' after property name")
-        i = _parse_value(text, i + 1)
+        i = _parse_value(text, i + 1, depth + 1)
         i = _skip_ws(text, i)
         c = _peek(text, i)
         if c == ",":
@@ -361,14 +367,14 @@ def _parse_object(text: str, i: int) -> int:
         raise _LiteralError(i, "expected ',' or '}' in object literal")
 
 
-def _parse_array(text: str, i: int) -> int:
+def _parse_array(text: str, i: int, depth: int) -> int:
     i += 1  # consume [
     while True:
         i = _skip_ws(text, i)
         c = _peek(text, i)
         if c == "]":
             return i + 1
-        i = _parse_value(text, i)
+        i = _parse_value(text, i, depth + 1)
         i = _skip_ws(text, i)
         c = _peek(text, i)
         if c == ",":
@@ -479,7 +485,7 @@ def _check_meta(text: str, masked: str, path: str, findings: list[Finding]) -> N
         )
         return
     try:
-        _parse_object(text, start)
+        _parse_object(text, start, 0)
     except _LiteralError as exc:
         findings.append(
             Finding(
