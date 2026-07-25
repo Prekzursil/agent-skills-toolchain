@@ -49,6 +49,7 @@ from pathlib import Path
 
 from .ctx import ctx_gauge, ctx_label
 from .redact import redact
+from .textsafe import strip_controls
 
 __all__ = [
     "CodexThread",
@@ -79,8 +80,14 @@ Scrub = Callable[[str], str]
 
 
 def _scrub(text: str) -> str:
-    """The mandatory ingest scrubber: mask secrets + collapse home paths (fail-closed)."""
-    return redact(text, enabled=True)[0]
+    """Strip control bytes, THEN mask secrets + collapse home paths (fail-closed).
+
+    Control bytes are removed FIRST (before ``redact``) for two reasons: redaction then
+    sees de-obfuscated text — a control byte spliced into a secret can no longer split the
+    pattern to evade masking — and no ESC/BEL/OSC byte can survive ingest to be painted to
+    the operator's terminal later (escape-injection / OSC-8 link / OSC-52 clipboard hijack).
+    """
+    return redact(strip_controls(text), enabled=True)[0]
 
 
 def _keep(value: object, current: str, scrub: Scrub) -> str:
@@ -127,8 +134,17 @@ def fmt_tokens(n: int | None) -> str:
 
 
 def clip(text: str, width: int) -> str:
-    """Whitespace-collapse ``text`` and clip it to ``width`` with an ellipsis."""
-    text = " ".join((text or "").replace("\r", " ").replace("\n", " ").split())
+    """Strip control bytes, whitespace-collapse ``text``, and clip it to ``width``.
+
+    This is the board's universal last-mile formatter (every group header / board line /
+    event row passes through it), so control bytes are stripped at the very START — before
+    the whitespace collapse and before the ``width - 1`` slice. That makes the slice
+    escape-safe (it can never cut mid-escape) and guarantees no ESC/BEL/OSC byte from
+    untrusted thread text is ever painted to the operator's terminal.
+    """
+    text = " ".join(
+        strip_controls(text or "").replace("\r", " ").replace("\n", " ").split()
+    )
     if width <= 1:
         return ""
     if len(text) <= width:

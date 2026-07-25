@@ -5,7 +5,8 @@ transform: no filesystem, no globals, no optional deps. They are the last mile b
 transcript content lands in a Markdown fence or an HTML node, and are applied *in the render
 path* (not merely unit-tested):
 
-    strip_ansi   -> drop terminal control sequences
+    strip_ansi   -> drop terminal control SEQUENCES (CSI/2-byte escapes)
+    strip_controls -> drop raw control BYTES (ESC/BEL/C0/C1/DEL) at the root
     html_escape  -> neutralise the five HTML meta-characters
     safe_fence   -> pick a backtick run that can never be closed early by the content
     truncate_block / cap_artifact -> bound size with a byte-accurate, UTF-8-safe marker
@@ -21,6 +22,7 @@ import re
 
 __all__ = [
     "strip_ansi",
+    "strip_controls",
     "html_escape",
     "safe_fence",
     "truncate_block",
@@ -39,6 +41,14 @@ TOOL_OUTPUT_CAP = 8000
 # escape (ESC + any final byte 0x30-0x7E, e.g. ESC c reset, ESC = keypad).
 _ANSI_RE = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|[0-~])")
 
+# Raw terminal control bytes: all C0 (0x00-0x1f) EXCEPT TAB/LF/CR, plus DEL (0x7f) and
+# every C1 byte (0x80-0x9f). Removing the ESC (0x1b) introducer and the 8-bit C1 CSI/OSC
+# bytes (0x9b/0x9d) defangs every CSI/OSC/2-byte escape at the ROOT — no valid escape can
+# be formed once its introducer is gone — so a raw ``text[:n]`` slice downstream can never
+# cut through the middle of one. TAB/LF/CR are kept so a whitespace collapse still finds
+# word boundaries.
+_CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]")
+
 # Longest run of backticks -- used to size a fence that the content cannot close early.
 _BACKTICK_RUN_RE = re.compile(r"`+")
 
@@ -53,6 +63,17 @@ _B64_RUN_RE = re.compile(r"[A-Za-z0-9+/]{200,}={0,2}")
 def strip_ansi(s: str) -> str:
     """Remove ANSI/VT control sequences (CSI colour, cursor, erase; single-char escapes)."""
     return _ANSI_RE.sub("", s)
+
+
+def strip_controls(s: str) -> str:
+    """Remove terminal control bytes: ESC, BEL, all C0 except TAB/LF/CR, DEL, and C1 (0x80-0x9f).
+
+    Removing the ESC introducer (and the C1 CSI/OSC bytes) defangs every CSI/OSC/2-byte escape
+    at the root. Unlike :func:`strip_ansi` (which matches whole *sequences*), this drops the raw
+    *bytes* so no partial escape can survive a later width slice and no OSC-8/OSC-52 payload can
+    reach the terminal. TAB/LF/CR are preserved so a downstream whitespace collapse still finds
+    word boundaries."""
+    return _CONTROL_RE.sub("", s)
 
 
 def html_escape(s: str) -> str:

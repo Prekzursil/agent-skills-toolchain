@@ -87,6 +87,73 @@ def test_keep_prefers_truthy_value_and_falls_back():
     assert ct._keep(None, "cur", _mark) == "cur"
 
 
+# ─────────────────── control-byte injection defense (PR #206) ───────────────────
+# The escape-injection payload an adversarial critic proved reaches the operator's
+# terminal: an SGR board-forgery + an OSC-8 link spoof (the OSC introducer is also the
+# OSC-52 clipboard-hijack vector). Built programmatically so the raw ESC/BEL bytes are
+# explicit and no literal escape hides in the source.
+_ESC = "\x1b"
+_BEL = "\x07"
+_EVIL_PAYLOAD = (
+    f"{_ESC}[31mHACKED{_ESC}[0m{_ESC}]8;;http://evil.example{_BEL}click{_ESC}]8;;{_BEL}"
+)
+
+
+def test_scrub_strips_control_bytes():
+    # ESC + BEL + CSI/OSC escapes are all gone after the ingest scrubber runs.
+    out = ct._scrub(_EVIL_PAYLOAD)
+    assert _ESC not in out
+    assert _BEL not in out
+
+
+def test_scrub_strips_controls_before_redact_so_a_split_secret_still_masks():
+    # An ESC spliced into a secret would evade redact's regex if controls were not
+    # removed FIRST; stripping-before-redact rejoins the token so it is still masked.
+    assert ct._scrub("sk-" + _ESC + "a" * 20) == "[REDACTED:api-key]"
+
+
+def test_clip_strips_control_bytes_and_keeps_inert_text():
+    out = ct.clip(_EVIL_PAYLOAD, 200)
+    assert _ESC not in out and _BEL not in out
+    assert "evil.example" in out  # survives only as INERT plain text, never a live link
+
+
+def test_clip_width_slice_is_escape_safe():
+    # Controls are removed BEFORE the width-1 slice, so the slice can never cut through
+    # the middle of an escape sequence and leak a partial ESC/CSI byte to the terminal.
+    out = ct.clip(_ESC + "[31m" + "A" * 50, 6)
+    assert _ESC not in out
+    assert out == "[31mA…"
+
+
+def test_board_render_neutralizes_injected_label_and_event_detail():
+    """ACCEPTANCE (PR #206): an untrusted thread label AND an event detail carrying the
+    escape-injection payload must not reach the rendered board with a live OSC-8 link or
+    any surviving ESC/BEL. Renders the ACTUAL cockpit board the live view uses
+    (group_tree -> board_line -> event_feed -> render_view). The board's own colour is a
+    SEPARATE paint layer, so these ANSI-free rows carry no legitimate SGR -- we assert the
+    OSC introducer, the BEL terminator, and the injected SGR/link specifically."""
+    from monitorcore.group_tree import derive_groups
+    from monitorcore.nav import ViewState
+    from monitorcore.view import render_view
+
+    labelled = _thread(
+        key="t1", label=_EVIL_PAYLOAD, status="running", start_ts=NOW, last_ts=NOW
+    )
+    detailed = _thread(
+        key="t2", label="clean", status="running", start_ts=NOW, last_ts=NOW
+    )
+    detailed.add_event(ct.ToolEvent("cmd", "shell", _EVIL_PAYLOAD, "ok", None, NOW))
+
+    groups = derive_groups([labelled, detailed])
+    frame = "\n".join(render_view(groups, ViewState(drilled="t2"), NOW, 200))
+
+    assert _ESC + "]" not in frame  # no OSC introducer (link / clipboard hijack)
+    assert _BEL not in frame  # no BEL (OSC terminator)
+    assert _ESC + "[31m" not in frame  # no injected SGR board-forgery
+    assert _ESC + "]8;;http://evil.example" + _BEL not in frame  # no live OSC-8 link
+
+
 # ───────────────────────── CodexThread model ─────────────────────────
 def test_short_id_and_name_variants():
     th = _thread(tid="0198aaaa-bbbb", label="lbl")
