@@ -47,7 +47,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
+from .ctx import ctx_gauge, ctx_label
 from .redact import redact
+from .textsafe import strip_controls
 
 __all__ = [
     "CodexThread",
@@ -78,13 +80,32 @@ Scrub = Callable[[str], str]
 
 
 def _scrub(text: str) -> str:
-    """The mandatory ingest scrubber: mask secrets + collapse home paths (fail-closed)."""
-    return redact(text, enabled=True)[0]
+    """Strip control bytes, THEN mask secrets + collapse home paths (fail-closed).
+
+    Control bytes are removed FIRST (before ``redact``) for two reasons: redaction then
+    sees de-obfuscated text — a control byte spliced into a secret can no longer split the
+    pattern to evade masking — and no ESC/BEL/OSC byte can survive ingest to be painted to
+    the operator's terminal later (escape-injection / OSC-8 link / OSC-52 clipboard hijack).
+    """
+    return redact(strip_controls(text), enabled=True)[0]
 
 
 def _keep(value: object, current: str, scrub: Scrub) -> str:
     """``value`` scrubbed when truthy, else ``current`` (the ``or``-fallback idiom)."""
     return scrub(str(value)) if value else current
+
+
+def _keep_id(value: object, current: str) -> str:
+    """Like :func:`_keep` but for an OPAQUE identifier: control-strip only, never redact.
+
+    A thread/session id is a structural identifier, not free-text prose. It needs
+    terminal-safety — no ESC/BEL/OSC byte reaching ``short_id()`` → ``name()`` →
+    :func:`board_line` and the UNCLIPPED ``render_native`` — but NOT secret-redaction:
+    :func:`redact` masks nothing in an id and could corrupt a legitimate id that happened
+    to collide with a token pattern. Falsy ``value`` keeps ``current`` (the ``or``-fallback),
+    so the assignment is idempotent when the id is absent. NOT the injectable ``scrub`` seam
+    by design — an id is control-stripped unconditionally, never redaction-mangled."""
+    return strip_controls(str(value)) if value else current
 
 
 # ---------------------------------------------------------------------------
@@ -126,8 +147,17 @@ def fmt_tokens(n: int | None) -> str:
 
 
 def clip(text: str, width: int) -> str:
-    """Whitespace-collapse ``text`` and clip it to ``width`` with an ellipsis."""
-    text = " ".join((text or "").replace("\r", " ").replace("\n", " ").split())
+    """Strip control bytes, whitespace-collapse ``text``, and clip it to ``width``.
+
+    This is the board's universal last-mile formatter (every group header / board line /
+    event row passes through it), so control bytes are stripped at the very START — before
+    the whitespace collapse and before the ``width - 1`` slice. That makes the slice
+    escape-safe (it can never cut mid-escape) and guarantees no ESC/BEL/OSC byte from
+    untrusted thread text is ever painted to the operator's terminal.
+    """
+    text = " ".join(
+        strip_controls(text or "").replace("\r", " ").replace("\n", " ").split()
+    )
     if width <= 1:
         return ""
     if len(text) <= width:
@@ -295,7 +325,7 @@ def parse_stream_line(
             th.start_ts = float(st)
         return
     if t == "thread.started":
-        th.tid = str(obj.get("thread_id") or th.tid)
+        th.tid = _keep_id(obj.get("thread_id"), th.tid)
         if th.start_ts is None:
             th.start_ts = now
         return
@@ -377,7 +407,7 @@ def parse_rollout_line(th: CodexThread, obj: dict, *, scrub: Scrub = _scrub) -> 
         th.model = scrub(m)
 
     if ttl == "session_meta":
-        th.tid = str(p.get("session_id") or th.tid)
+        th.tid = _keep_id(p.get("session_id"), th.tid)
         th.cwd = _keep(p.get("cwd"), th.cwd, scrub)
         if th.start_ts is None:
             th.start_ts = parse_iso(p.get("timestamp", "")) or lts
@@ -626,10 +656,8 @@ def board_line(th: CodexThread, now: float) -> str:
     elapsed = (now - th.start_ts) if th.start_ts else None
     idle = (now - th.last_ts) if th.last_ts else None
     bits = " · ".join(b for b in (th.model, th.tool_kind, th.source) if b)
-    ctx = ""
-    if th.ctx_window and th.ctx_tokens:
-        pct = min(100, int(th.ctx_tokens * 100 / th.ctx_window))
-        ctx = f" ctx {pct}%"
+    label = ctx_label(ctx_gauge(th.ctx_tokens, th.ctx_window))
+    ctx = f" {label}" if label else ""
     return (
         f"{glyph} [{th.status.upper()}] {th.name()}  {bits}  "
         f"{fmt_dur(elapsed)} elapsed · {fmt_dur(idle)} idle  "

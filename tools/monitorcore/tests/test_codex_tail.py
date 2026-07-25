@@ -87,6 +87,73 @@ def test_keep_prefers_truthy_value_and_falls_back():
     assert ct._keep(None, "cur", _mark) == "cur"
 
 
+# ─────────────────── control-byte injection defense (PR #206) ───────────────────
+# The escape-injection payload an adversarial critic proved reaches the operator's
+# terminal: an SGR board-forgery + an OSC-8 link spoof (the OSC introducer is also the
+# OSC-52 clipboard-hijack vector). Built programmatically so the raw ESC/BEL bytes are
+# explicit and no literal escape hides in the source.
+_ESC = "\x1b"
+_BEL = "\x07"
+_EVIL_PAYLOAD = (
+    f"{_ESC}[31mHACKED{_ESC}[0m{_ESC}]8;;http://evil.example{_BEL}click{_ESC}]8;;{_BEL}"
+)
+
+
+def test_scrub_strips_control_bytes():
+    # ESC + BEL + CSI/OSC escapes are all gone after the ingest scrubber runs.
+    out = ct._scrub(_EVIL_PAYLOAD)
+    assert _ESC not in out
+    assert _BEL not in out
+
+
+def test_scrub_strips_controls_before_redact_so_a_split_secret_still_masks():
+    # An ESC spliced into a secret would evade redact's regex if controls were not
+    # removed FIRST; stripping-before-redact rejoins the token so it is still masked.
+    assert ct._scrub("sk-" + _ESC + "a" * 20) == "[REDACTED:api-key]"
+
+
+def test_clip_strips_control_bytes_and_keeps_inert_text():
+    out = ct.clip(_EVIL_PAYLOAD, 200)
+    assert _ESC not in out and _BEL not in out
+    assert "evil.example" in out  # survives only as INERT plain text, never a live link
+
+
+def test_clip_width_slice_is_escape_safe():
+    # Controls are removed BEFORE the width-1 slice, so the slice can never cut through
+    # the middle of an escape sequence and leak a partial ESC/CSI byte to the terminal.
+    out = ct.clip(_ESC + "[31m" + "A" * 50, 6)
+    assert _ESC not in out
+    assert out == "[31mA…"
+
+
+def test_board_render_neutralizes_injected_label_and_event_detail():
+    """ACCEPTANCE (PR #206): an untrusted thread label AND an event detail carrying the
+    escape-injection payload must not reach the rendered board with a live OSC-8 link or
+    any surviving ESC/BEL. Renders the ACTUAL cockpit board the live view uses
+    (group_tree -> board_line -> event_feed -> render_view). The board's own colour is a
+    SEPARATE paint layer, so these ANSI-free rows carry no legitimate SGR -- we assert the
+    OSC introducer, the BEL terminator, and the injected SGR/link specifically."""
+    from monitorcore.group_tree import derive_groups
+    from monitorcore.nav import ViewState
+    from monitorcore.view import render_view
+
+    labelled = _thread(
+        key="t1", label=_EVIL_PAYLOAD, status="running", start_ts=NOW, last_ts=NOW
+    )
+    detailed = _thread(
+        key="t2", label="clean", status="running", start_ts=NOW, last_ts=NOW
+    )
+    detailed.add_event(ct.ToolEvent("cmd", "shell", _EVIL_PAYLOAD, "ok", None, NOW))
+
+    groups = derive_groups([labelled, detailed])
+    frame = "\n".join(render_view(groups, ViewState(drilled="t2"), NOW, 200))
+
+    assert _ESC + "]" not in frame  # no OSC introducer (link / clipboard hijack)
+    assert _BEL not in frame  # no BEL (OSC terminator)
+    assert _ESC + "[31m" not in frame  # no injected SGR board-forgery
+    assert _ESC + "]8;;http://evil.example" + _BEL not in frame  # no live OSC-8 link
+
+
 # ───────────────────────── CodexThread model ─────────────────────────
 def test_short_id_and_name_variants():
     th = _thread(tid="0198aaaa-bbbb", label="lbl")
@@ -230,6 +297,19 @@ def test_stream_thread_started_sets_tid_once():
     ct.parse_stream_line(th, {"type": "thread.started"}, NOW + 9)
     assert th.tid == "abc-1"  # falsy id keeps the old one
     assert th.start_ts == NOW  # start_ts not overwritten
+
+
+def test_stream_thread_started_strips_control_bytes_from_tid():
+    """SECURITY (escape-injection blast radius): a ``thread_id`` carrying ESC/BEL/OSC-8 is
+    control-stripped at ingest, like every other free-text field. ``tid`` flows into
+    ``short_id()``/``name()``/``board_line`` and the UNCLIPPED ``render_native``, so a raw
+    escape here would otherwise reach the operator's terminal."""
+    th = _thread()
+    evil = "\x1b[31m\x1b]8;;http://evil\x07x\x1b]8;;\x07"
+    ct.parse_stream_line(th, {"type": "thread.started", "thread_id": evil}, NOW)
+    assert "\x1b" not in th.tid and "\x07" not in th.tid
+    assert "\x1b]" not in th.tid  # no OSC introducer survives
+    assert "evil" in th.tid  # printable payload retained → stripped, not dropped
 
 
 def test_stream_turn_started_counts():
@@ -452,6 +532,17 @@ def test_rollout_session_meta_full_and_repeat():
     assert th.tid == "sid-1"
     assert th.start_ts == first_start
     assert th.ctx_window == 1000
+
+
+def test_rollout_session_meta_strips_control_bytes_from_tid():
+    """SECURITY (escape-injection blast radius): a ``session_id`` carrying ESC/BEL/OSC-8 is
+    control-stripped at ingest so no escape reaches ``board_line``/``render_native``."""
+    th = _thread(source="rollout")
+    evil = "\x1b[31m\x1b]8;;http://evil\x07x\x1b]8;;\x07"
+    ct.parse_rollout_line(th, _roll("session_meta", {"session_id": evil}))
+    assert "\x1b" not in th.tid and "\x07" not in th.tid
+    assert "\x1b]" not in th.tid  # no OSC introducer survives
+    assert "evil" in th.tid  # printable payload retained → stripped, not dropped
 
 
 def test_rollout_session_meta_start_fallbacks():
@@ -925,9 +1016,25 @@ def test_board_line_full_and_minimal():
     )
 
 
-def test_board_line_ctx_capped_at_100():
+def test_board_line_control_free_when_tid_carries_escape():
+    """SECURITY: ``render_native`` joins ``board_line`` output UNCLIPPED, so a control-laden
+    ``tid`` (scrubbed at ingest) must yield an escape-free board line — no ESC / BEL / OSC."""
+    th = _thread()  # label/cwd default empty → name() falls back to short_id() → tid
+    evil = "\x1b[31m\x1b]8;;http://evil\x07x\x1b]8;;\x07"
+    ct.parse_stream_line(th, {"type": "thread.started", "thread_id": evil}, NOW)
+    line = ct.board_line(th, NOW)
+    assert "\x1b" not in line
+    assert "\x1b]" not in line  # no OSC introducer reaches the terminal
+    assert "\x07" not in line
+
+
+def test_board_line_ctx_over_window_surfaces_suspect():
+    # WU1: a last-turn token count larger than the window is no longer MASKED by a
+    # min(100) clamp — it surfaces as SUSPECT with the true (over-100) percentage.
     th = _thread(ctx_tokens=500, ctx_window=100)
-    assert "ctx 100%" in ct.board_line(th, NOW)
+    line = ct.board_line(th, NOW)
+    assert "ctx 500% SUSPECT" in line
+    assert "ctx 100%" not in line
 
 
 def test_frame_rows_orders_and_falls_back_prompt():
