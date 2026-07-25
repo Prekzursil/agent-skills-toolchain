@@ -530,7 +530,10 @@ jobs:
           pip install pytest
           python -m pytest -q
 
-      # tools/mcp/* MCP servers -- 469 tests that ran in NO gate before this step.
+      # tools/mcp/* MCP servers -- 542 tests that ran in NO gate before these steps.
+      # (The first pass gated 469 of them; the cloud-hub block below now closes the
+      # remaining 73, which were excluded pending the git-crypt fixture work. The 469
+      # figure was accurate about what THIS step gates but understated the total gap.)
       # Measured: `grep -rn cloud-hub .github/workflows/` returned ZERO hits, with a working
       # detector control (the same grep finds `monitorcore`, which IS wired). So the suites
       # protecting the multiplexer hubs -- including tools/mcp/cloud-hub/tests/test_registry.py,
@@ -568,24 +571,31 @@ jobs:
             ( cd "tools/mcp/$p" && python -m pytest -q )
             echo "::endgroup::"
           done
-      # cloud-hub is split out because two of its suites cannot run on a CI runner AT ALL:
-      # tests/test_hub.py and tests/test_hardening.py read the real tools/mcp/cloud-hub/
-      # accounts.json, which is git-crypt ENCRYPTED on any checkout without the key -- and CI
-      # has no key. Measured in a fresh worktree (identical state to CI): 10 setup ERRORs,
-      # `accounts.AccountStoreLoadError: ... still git-crypt ENCRYPTED`. That error is correct
-      # behaviour (it refuses to continue with an empty store rather than silently disabling
-      # every account), so the fix is a fixture store in those two suites, NOT weakening the
-      # loader. Excluding them costs 63 tests and gates the remaining 206.
-      #   FOLLOW-UP: port test_hub.py + test_hardening.py onto a tmp_path fixture store so the
-      #   remaining 63 tests can be gated too.
+      # cloud-hub is split out because it needed two exclusions when first gated:
+      # tests/test_hub.py and tests/test_hardening.py build a real HubServer, which loads
+      # tools/mcp/cloud-hub/accounts.json -- git-crypt ENCRYPTED on any keyless checkout, and
+      # CI has no key. Measured in a fresh worktree (identical state to CI): 10 setup ERRORs,
+      # `accounts.AccountStoreLoadError: ... still git-crypt ENCRYPTED`. That error is CORRECT
+      # behaviour: it refuses to continue with an empty store rather than silently disabling
+      # every configured account, so the fix had to be in the tests, never in the loader.
+      #
+      # FOLLOW-UP NOW DONE -- both fixtures point hub.ACCOUNTS_PATH at a tmp_path store and
+      # restore it in teardown, so the whole file is gated. No production code changed:
+      # hub.py already accepted an injected store, and neither fixture's specs declare an
+      # account policy, so an empty store exercises the same path with no credentials
+      # anywhere near CI. Full suite went 269 passed + 10 ERRORs -> 279 passed (+73 tests,
+      # since those two files hold 73 in total).
+      #
       # BOTH-STATES PROOF this gate has teeth (not merely green): renaming `id="aws"` to
       # `id="aws_MUTANT"` in backends.py turns the exact command below RED
-      # (`1 failed, 205 passed`), and reverting returns it to `206 passed`.
-      - name: gate-tests-coverage cloud-hub (git-crypt-independent subset)
+      # (`1 failed, 278 passed`), and reverting returns it to `279 passed`. Verified against
+      # a checkout whose accounts.json was confirmed to still be ciphertext, so the run
+      # reproduces CI rather than approximating it.
+      - name: gate-tests-coverage cloud-hub (full suite)
         working-directory: tools/mcp/cloud-hub
         run: |
           pip install pytest
-          python -m pytest -q --ignore=tests/test_hub.py --ignore=tests/test_hardening.py
+          python -m pytest -q
 
       # abbyy declares `requires-python = ">=3.12"`, so pip REFUSES to install it on this job's
       # 3.11 ("requires a different Python"). It gets its own pinned interpreter, referenced

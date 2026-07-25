@@ -381,6 +381,15 @@ def infra_hub(tmp_path):
     )
     old = hub.CACHE_DIR
     hub.CACHE_DIR = str(tmp_path)
+    # HubServer builds its AccountStore from hub.ACCOUNTS_PATH, which points at the REAL
+    # tools/mcp/cloud-hub/accounts.json -- git-crypt encrypted on any keyless checkout,
+    # including every CI runner, so the store raises AccountStoreLoadError and these tests
+    # ERROR at setup. The `infra` spec declares no account policy, so an empty store is
+    # faithful: same code path, no real credentials anywhere near CI.
+    old_accounts = hub.ACCOUNTS_PATH
+    accounts_path = tmp_path / "accounts.json"
+    accounts_path.write_text("{}", encoding="utf-8")
+    hub.ACCOUNTS_PATH = str(accounts_path)
     ok, _n, msg = hub.refresh_backend(spec)
     assert ok, msg
     plan = build_plan([spec], str(tmp_path))
@@ -390,6 +399,7 @@ def infra_hub(tmp_path):
         yield server, cap, tmp_path
     finally:
         hub.CACHE_DIR = old
+        hub.ACCOUNTS_PATH = old_accounts
         for b in server.backends.values():
             b._terminate()
 
