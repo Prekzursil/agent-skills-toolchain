@@ -262,7 +262,7 @@ tools/stdin-server         $ pytest --collect-only -q  ->   28 tests collected  
 | `tools/crcp/tests/test_redact.py` | 4 | pytest+main |
 | `tools/crcp/tests/test_sse_classify.py` | 7 | pytest+main |
 | `tools/detector-self-test/detector_self_test.py` | 0 | main-only |
-| `tools/detector-self-test/tests/test_detector_self_test.py` | 34 | pytest+main |
+| `tools/detector-self-test/tests/test_detector_self_test.py` | 34 | pytest |
 | `tools/ese-gate/test_ese_gate.py` | 18 | pytest+main |
 | `tools/event-ledger/test_ledger.py` | 0 | main-only |
 | `tools/gitcrypt-worktree/tests/test_gitcrypt_worktree.py` | 28 | pytest+main |
@@ -384,8 +384,8 @@ breakdown of the not-executed set:
 |---|---|---|
 | `main-only` | 44 | NOT pytest-collectible - must be invoked as `python <file>` |
 | `neither` | 4 | NOT pytest-collectible - must be invoked as `python <file>` |
-| `pytest` | 89 | pytest-collectible |
-| `pytest+main` | 25 | pytest-collectible |
+| `pytest` | 90 | pytest-collectible |
+| `pytest+main` | 24 | pytest-collectible |
 
 ---
 
@@ -420,8 +420,12 @@ new directory-shaped selector.)
 
 ### B2 - duplicate basenames collide under pytest's default `prepend` import mode
 
-18 basenames are used by 2+ test files, 42 files involved, and the directories have no
-`__init__.py`. With the 3 `hooks/` B1 files ignored, the collision is what fails next:
+18 basenames are used by 2+ test files, 42 files involved, and none of the `hooks/`
+directories involved has an `__init__.py`. (Scoped deliberately: of the 30 directories
+holding a duplicated basename, 4 DO have one -- `tools/crcp/tests`,
+`tools/mcp-manager/tests`, `tools/monitorcore/tests`, `tools/taskwatch_monitor/tests`.
+The claim holds for every `hooks/` directory, which is where the section 6 proposal
+applies, so nothing downstream changes.) With the 3 `hooks/` B1 files ignored, the collision is what fails next:
 
 ```
 $ python -m pytest hooks/ --collect-only -q --ignore=hooks/_golden/test_hooks.py     --ignore=hooks/memory-guard/test_scan.py --ignore=hooks/cmd-rewrite/test_hooks.py
@@ -535,7 +539,9 @@ exit=0
 ```
 
 **NOT measured - the decisive open question.** I did **not** run these suites to green, and
-**not** on a Linux runner. Every probe in this document is `--collect-only` by deliberate choice:
+**not** on a Linux runner. Every probe behind the SECTION 6 numbers is `--collect-only` by
+deliberate choice (the section 6.4 cloud-hub ERROR claim is the one exception -- collection
+there always succeeds, so that observation necessarily comes from a real run):
 these are HARNESS suites that launch hook scripts as subprocesses, and executing ~60 of them on
 this machine risks writing to live harness state (`~/.claude`, the event ledger, hook caches).
 Collection is side-effect-light; a full run is not. My probes ran on **Windows / CPython
@@ -588,3 +594,33 @@ python -m pytest hooks/ --collect-only -q --import-mode=importlib \
   --ignore=hooks/_golden/test_hooks.py --ignore=hooks/memory-guard/test_scan.py \
   --ignore=hooks/cmd-rewrite/test_hooks.py                                    # 705, 0 errors
 ```
+
+---
+
+## 8. Corrections applied after adversarial recheck (2026-07-25)
+
+A fresh-context recheck independently re-derived the headline with a **zero set difference**
+(244 real suites, 82 executed, 162 not executed, 64 `hooks/` + 98 `tools/`, 1691 `def test_*`;
+all 20 `test-python` step citations exact; B1 and B2 reproduced exactly). It also found four
+items stated as measured that did not hold. Three are corrected above; the fourth is recorded
+here rather than silently fixed.
+
+- **F1 (corrected in section 3.4 and the section 4 totals).**
+  `tools/detector-self-test/tests/test_detector_self_test.py` was labelled `pytest+main`. It has
+  **no** `__main__` guard: its only two `__main__` occurrences are a **comment** (`:355`) and a
+  **string argument** (`:363 runpy.run_path(..., run_name="__main__")`). The runner-kind split is
+  therefore `pytest 90 / pytest+main 24`, not `89 / 25`. The load-bearing
+  `44 main-only + 4 neither` figure is unaffected. Worth naming: this is the same
+  **use-vs-mention** error class the sibling `tool-result-sentinel` lane exists to fix, and it
+  occurred inside a file called `detector-self-test`.
+- **F2 (corrected in section 5, B2).** The `no __init__.py` claim was universal; it is true of
+  every `hooks/` directory but false for 4 `tools/` ones.
+- **F3 (corrected in section 6.3).** "Every probe in this document is `--collect-only`" was an
+  overstated blanket: the section 6.4 cloud-hub ERROR observation cannot come from a
+  collect-only probe, because collection there succeeds. The claim itself was verified true.
+- **F4 (NOT corrected - cosmetic, recorded).** Four of seventeen workflow citations start one
+  line late: `quality.yml:204-206` (the quoted comment spans 203-205), `:278-280` (277-280),
+  `:322-323` (321-323), `:188-190` (187-190). All four land inside the correct comment block, so
+  no claim moves; they are listed here so a reader tracing a quote is not misled.
+
+None of F1-F4 widens a headline claim.
