@@ -32,15 +32,24 @@ vars are all present, an in-memory ``default`` account is synthesized from
 on-disk store when the user explicitly adds them.
 
 The on-disk store (``accounts.json``) may legitimately hold literal secrets, so
-it is written with restrictive permissions -- but it is NOT gitignored: it is
-TRACKED and committed as git-crypt CIPHERTEXT (``.gitattributes`` maps
-``tools/mcp/**/accounts.json`` to ``filter=git-crypt``), and decrypts to
-plaintext only in a tree where ``git-crypt unlock`` has been run. Two
-consequences worth knowing: a ``git add`` of this file is expected, not a leak,
-provided git-crypt is installed so the clean filter actually encrypts it; and a
-FRESH CHECKOUT OR WORKTREE starts LOCKED -- ``git worktree add`` does not inherit
-an unlocked state -- so the store there is ciphertext beginning with the
-git-crypt magic header, which ``_load`` detects and reports (see
+it is written with restrictive permissions. How it is treated by git is NOT
+uniform across the hubs that share this module -- check the hub you are in
+before assuming either way:
+
+* ``cloud-hub`` and ``search-hub``: the store is NOT gitignored. It is TRACKED
+  and committed as git-crypt CIPHERTEXT (``.gitattributes`` maps
+  ``tools/mcp/**/accounts.json`` to ``filter=git-crypt``) and decrypts to
+  plaintext only in a tree where ``git-crypt unlock`` has been run. So a
+  ``git add`` of this file is expected, not a leak -- provided git-crypt is
+  installed, so the clean filter actually encrypts it.
+* ``social-hub``: the store IS gitignored (``tools/mcp/social-hub/.gitignore``
+  lists ``accounts.json``) and is not tracked at all. There, committing it
+  WOULD be a plaintext leak.
+
+For the tracked hubs there is a second consequence worth knowing: a FRESH
+CHECKOUT OR WORKTREE starts LOCKED -- ``git worktree add`` does not inherit an
+unlocked state -- so the store there is ciphertext beginning with the git-crypt
+magic header, which ``_load`` detects and reports (see
 ``AccountStoreLoadError``) instead of failing with a bare ``UnicodeDecodeError``.
 
 Design notes for reuse: this module depends only on the stdlib and a small
