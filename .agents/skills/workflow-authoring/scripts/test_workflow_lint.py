@@ -6,8 +6,8 @@ default ``prepend`` import mode puts this file's directory on ``sys.path``), so 
 byte-identical copy under both dual-write roots (``skills/`` and ``.agents/skills/``)
 passes unchanged. Runnable two ways::
 
-    python test_workflow_lint.py     # standalone: prints PASS/FAIL, exits 0/1
-    pytest test_workflow_lint.py     # discovered as test_* functions
+    pytest test_workflow_lint.py            # the CI gate (full suite, incl. tmp_path tests)
+    python test_workflow_lint.py            # convenience: the no-fixture subset only
 
 The suite is written to exercise every branch of ``workflow_lint`` (the CI lane runs
 it under ``--cov-branch --cov-fail-under=100``); each assertion checks real linter
@@ -712,14 +712,9 @@ def test_parallel_var_at_eof_warns():
 
 
 # --------------------------------------------------------------------------- #
-# standalone runner
+# standalone runner -- runs the NO-FIXTURE subset only (CI runs the full suite,
+# including the tmp_path tests, via pytest); it is a convenience, not the gate.
 # --------------------------------------------------------------------------- #
-def test_standalone_main_runs():
-    # the module's own __main__ path is pragma-excluded; here we assert main() works
-    # as a callable with an explicit clean tree so the standalone entry is covered.
-    assert wl.main.__doc__ is None or isinstance(wl.main.__doc__, str)
-
-
 def _standalone() -> int:
     tests = [
         value for name, value in sorted(globals().items()) if name.startswith("test_")
