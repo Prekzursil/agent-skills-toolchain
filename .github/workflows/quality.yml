@@ -450,30 +450,49 @@ jobs:
       - name: gate-tests-coverage git-hygiene message budget
         run: |
           python -m pytest -q hooks/git-hygiene/test_git_hygiene.py
-      # The REST of the hooks/ regression harness -- ~66 suites / 661 tests that no step
-      # named. docs/ci-coverage-gap-2026-07-25.md measured 64 unexecuted hooks/ suites;
-      # this claims the green majority of them instead of leaving them dead weight.
+      # The REST of the hooks/ regression harness -- ~66 suites that no step named.
+      # docs/ci-coverage-gap-2026-07-25.md measured 64 unexecuted hooks/ suites; this step
+      # claims them instead of leaving them dead weight. Now 702 tests after the Wave-3
+      # triage un-ignored five more files (see the block below).
       #
       # --import-mode=importlib is REQUIRED, not cosmetic: 18 basenames are duplicated in
       # this tree (test_check.py x3, test_gate.py x2 inside hooks/ alone) and the default
       # `prepend` mode fails collection outright with `import file mismatch`.
       #
-      # Every --ignore below is load-bearing and was MEASURED on real Linux (WSL, CPython
-      # 3.12) before this step was written -- the whole-tree form is NOT green:
-      #   36 failed, 684 passed, 5 skipped, 1 error
-      # With exactly these exclusions it is: 661 passed, 4 skipped, rc=0.
+      # Both remaining --ignore lines are load-bearing and MEASURED on real Linux (WSL,
+      # CPython 3.12). When this step was first written the whole-tree form was NOT green
+      # (36 failed, 684 passed, 5 skipped, 1 error) and needed seven exclusions for
+      # 661 passed / 4 skipped. After the Wave-3 triage only two are still required.
       #
-      #   _golden/test_hooks.py, memory-guard/test_scan.py -- call sys.exit() at MODULE
-      #     level, which escapes during collection as SystemExit and aborts the ENTIRE run
-      #     with INTERNALERROR (21 of 705 collected before the abort). memory-guard is run
-      #     as a standalone script below; _golden FAILS on Linux (rc=1) and is left out.
+      #   memory-guard/test_scan.py -- calls sys.exit() at MODULE level, which escapes during
+      #     collection as SystemExit and aborts the ENTIRE run with INTERNALERROR. It is run
+      #     as a standalone script below instead.
       #   cmd-rewrite -- already invoked as standalone scripts by its own step above, and
       #     test_msys_pathconv.py::test_real_git_end_to_end ERRORs under pytest here.
-      #   _dispatch/test_manifest_presence.py, _dispatch/test_wiring.py,
-      #   memory-spool/test_replay.py, per-edit-check/test_secrets.py -- these four hold
-      #     ALL 36 Linux failures. They stay unenforced PENDING TRIAGE (broken vs
-      #     platform-coupled vs env-dep); excluding them is what makes this step safe to
-      #     land at all. test_wiring.py keeps its existing -k hook_manifest_conformance step.
+      #
+      # WAVE-3 TRIAGE COMPLETE -- five files were un-ignored here. When this step was first
+      # written, four suites held ALL 36 Linux failures and _golden failed at rc=1, so they
+      # were excluded PENDING TRIAGE. Every one has now been triaged and fixed, and each
+      # turned out to be hiding a live defect rather than merely being red:
+      #   _golden/test_hooks.py               (#209) -- resolved hooks from ~/.claude (absent on
+      #     Linux); ALSO its check 2b asserted only empty-stdout, so a DELETED hook scored PASS.
+      #     Now pytest-collectible, so it no longer needs a standalone step.
+      #   _dispatch/test_manifest_presence.py (#210) -- dark-surface was documented as wired and
+      #     never was on any of 196 refs, while stub-ledger DEFERS to it.
+      #   per-edit-check/test_secrets.py      (#211) -- the write-path secret gate check.py
+      #     advertised was never implemented.
+      #   _dispatch/test_wiring.py            (#212) -- 14 dispatcher-compatible handlers are
+      #     registered in no surface; xfail reason rescoped and its strict marker unshared.
+      #   memory-spool/test_replay.py         (#214) -- six hook dirs ship a different _common.py
+      #     under one flat sys.modules key, so collection order decided which one it imported.
+      #
+      # MEASURED on real Linux (CPython 3.12.3, pytest 8.3.3) at 4c96aa1, both arms:
+      #   with the 7 old ignores : 661 passed,  4 skipped,              rc=0   (control)
+      #   with these 2 ignores   : 702 passed, 12 skipped, 2 xfailed,   rc=0
+      # Delta: +41 tests now executed, +8 newly SKIPPED. The extra skips are honest and
+      # file-keyed, not platform cover: test_wiring's requires_live_settings predicate keys on
+      # an untracked settings.json, so it skips identically on any runner, and _golden retains
+      # one pre-existing self-skip. Zero FAILED, zero ERROR.
       #
       # The two steps above overlap this one (their suites are inside hooks/). Kept
       # deliberately: they give fast, named signal for the two suites fixed in #198/#199,
@@ -481,13 +500,8 @@ jobs:
       - name: gate-tests-coverage hooks regression harness
         run: |
           python -m pytest hooks/ -q --import-mode=importlib \
-            --ignore=hooks/_golden/test_hooks.py \
             --ignore=hooks/memory-guard/test_scan.py \
-            --ignore=hooks/cmd-rewrite \
-            --ignore=hooks/_dispatch/test_manifest_presence.py \
-            --ignore=hooks/_dispatch/test_wiring.py \
-            --ignore=hooks/memory-spool/test_replay.py \
-            --ignore=hooks/per-edit-check/test_secrets.py
+            --ignore=hooks/cmd-rewrite
       # memory-guard exits at module level so pytest cannot collect it, but it passes when
       # run the way it is designed to run (measured on Linux: rc=0). Same `python <file>`
       # convention as test_manifest_provenance.py and test_repo_map.py.
