@@ -348,28 +348,56 @@ def test_prepost_manifest_entries_are_unique_and_reference_files(event: str):
 @pytest.mark.xfail(
     strict=True,
     reason=(
-        "CONFIRMED HARNESS REGRESSION, not a stale test: 14 dispatcher-compatible "
+        "RED FROM BIRTH IN THIS REPO, and still red: the 14 dispatcher-compatible "
         "handlers (7 PreToolUse: goal-reinject/reinject, compchem-preflight, "
         "strong-tool-nudge, mcp-liveness/pretool, edit-checkpoints, contraindication, "
         "iatrogenics; 7 PostToolUse: anti-degen/fingerprint, claim-guard/ledger-write, "
         "memory-guard/scan, edit-validate/record, fresh-verify/trigger, orphan-commit, "
-        "semantic-router/observe) were dropped from events.*.checks after 2026-07-14. "
-        "All 14 scripts STILL EXIST under hooks/, but they are registered in NO surface: "
-        "absent from this manifest AND absent from the live ~/.claude/settings.json "
-        "(0 hits for every one of the 14 names; detector controlled -- 'no-force-push' "
-        "and '_dispatch' return 2 and 4 hits in the same grep). They therefore do not "
-        "run at all. This includes goal-reinject, which AGENTS.md section 2 names as the "
-        "owner of goal re-injection. Restoring them changes live hook behaviour on every "
-        "tool call and needs its own reviewed change, so it is out of scope for a test "
-        "triage; the assertion is kept executing and strict=True turns CI RED the moment "
-        "the handlers come back, forcing this marker to be removed."
+        "semantic-router/observe) are absent from events.*.checks here. "
+        "PROVENANCE -- do NOT search repo history, nothing was ever dropped there: all 8 "
+        "commits that have ever touched this manifest contain 0 of the 14 names and its "
+        "check counts only ever GREW (Pre 3->4->5, Post 3). This census arrived AHEAD of "
+        "the manifest, at faae06d ('rescue 1,756 orphaned harness files'), whose tree "
+        "carried Pre=4/Post=3 -- which is why the assertion has never passed in a "
+        "checkout. What genuinely lost the handlers is the LIVE DEPLOYED "
+        "~/.claude/hooks/_dispatch/manifest.json: its sibling backup "
+        "manifest.json.bak-20260714-012512 still carries all 14 (Pre=10/Post=12), so "
+        "recover the exact entries from that .bak, not from git. "
+        "IMPACT -- per-hook and UNRESOLVED, deliberately not overstated: all 14 scripts "
+        "still exist on disk in both trees and are registered in NO ~/.claude surface "
+        "(0 hits for all 14 in the live settings.json; detector controlled -- "
+        "no-force-push/hook.py and _dispatch/dispatch.py both hit in the same walk), so "
+        "nothing under ~/.claude runs them. That is NOT the same as 14 broken live "
+        "mechanisms. goal-reinject/reinject.py is a MEASURED orphan duplicate: goal "
+        "re-injection (AGENTS.md section 2) is live and running, owned by the ~/.agents "
+        "harness -- ~/.agents/harness/dispatcher.py is PreToolUse hook #1 in the live "
+        "settings.json and its ~/.agents/state/harness/session-goals/ state is written "
+        "during ordinary tool use. Whether each of the other 13 is genuinely-lost "
+        "functionality or likewise an orphan duplicate is NOT established; settle it per "
+        "hook before restoring anything. "
+        "SCOPE OF THIS MARKER: it guards ONLY the census assertion below. The routing "
+        "contract lives in test_prepost_manifest_routes_match_dispatch_contract, which is "
+        "deliberately UNMARKED. While one strict xfail spanned both assertions it absorbed "
+        "every routing regression, because the census can never pass while these 14 are "
+        "missing, so ANY route failure still satisfied the marker: measured, corrupting "
+        "the matcher of dup-guard -- a handler PRESENT here today -- left the suite at "
+        "exit 0, byte-identical to green. Never put the two back under one marker."
     ),
 )
 @pytest.mark.parametrize("event", ("PreToolUse", "PostToolUse"))
 def test_prepost_manifest_contains_every_dispatch_compatible_handler(event: str):
-    manifest = _load(MANIFEST)
-    checks = manifest["events"][event]["checks"]
-    actual = {check.get("name"): check.get("script") for check in checks}
+    """CENSUS ONLY -- is every dispatcher-compatible handler registered at all?
+
+    Kept separate from the routing contract on purpose.  While both assertions shared one
+    ``xfail(strict=True)`` this census could never pass, so any route failure also
+    satisfied the marker and was reported as a clean ``xfailed`` -- including one on a
+    handler that is present today.
+    """
+
+    actual = {
+        check.get("name"): check.get("script")
+        for check in _load(MANIFEST)["events"][event]["checks"]
+    }
     expected = EXPECTED_DISPATCH_CHECKS[event]
 
     missing = {
@@ -379,6 +407,20 @@ def test_prepost_manifest_contains_every_dispatch_compatible_handler(event: str)
         f"events.{event} is missing dispatcher-compatible Tier-1.1 handlers: {missing}"
     )
 
+
+@pytest.mark.parametrize("event", ("PreToolUse", "PostToolUse"))
+def test_prepost_manifest_routes_match_dispatch_contract(event: str):
+    """ROUTING ONLY, and deliberately NOT xfailed.
+
+    Scoped to the handlers actually PRESENT in the manifest, so it is enforceable today
+    against the entries that survive and turns RED the moment an absent one is restored
+    with the wrong matcher/timeout/args/emits.  ``compared`` guards against the check
+    silently degrading to a vacuous pass if every expected name disappears at once.
+    """
+
+    checks = _load(MANIFEST)["events"][event]["checks"]
+
+    compared = 0
     route_failures: list[str] = []
     for name, (args, matcher, timeout, emits) in EXPECTED_DISPATCH_ROUTES[
         event
@@ -386,6 +428,7 @@ def test_prepost_manifest_contains_every_dispatch_compatible_handler(event: str)
         check = next((item for item in checks if item.get("name") == name), None)
         if check is None:
             continue
+        compared += 1
         expected_fields = {
             "args": args,
             "matcher": matcher,
@@ -404,6 +447,10 @@ def test_prepost_manifest_contains_every_dispatch_compatible_handler(event: str)
                 )
     assert not route_failures, "dispatcher routing regressions:\n" + "\n".join(
         route_failures
+    )
+    assert compared, (
+        f"events.{event} contains none of the {len(EXPECTED_DISPATCH_ROUTES[event])} "
+        "routed handlers, so this contract checked nothing"
     )
 
 
