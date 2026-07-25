@@ -23,7 +23,11 @@ Recorded fires this suite locks down:
         `"timeout": 100000`. A returned document is DATA; only a status field reports.
      C3 WebFetch returning HTTP 200 with correct content, reported
         `FAILED (exit code 200)` -- the generic `code` key read with exit-code
-        semantics. 200 is an HTTP success, never an exit status.
+        semantics. 200 IS a legal exit status (on Windows, where this hook runs,
+        an exit status is a 32-bit DWORD, so the whole 200-399 band is legal);
+        the defect is that a BARE `code` cannot be told apart from an HTTP status,
+        so the band is treated as benign and the resulting false-negative window
+        is disclosed inline at the `code` check in sentinel.py.
 
 Run: python test_sentinel_use_vs_mention.py     (also pytest-collectable)
 """

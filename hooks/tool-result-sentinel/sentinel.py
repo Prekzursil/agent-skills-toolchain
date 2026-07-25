@@ -255,23 +255,29 @@ def _structural_failed(resp) -> tuple[bool, str]:
     # fire. Deliberately does NOT return early: a benign `code` must not mask the
     # isError / interrupted / error signals below (the both-states rule).
     #
-    # RESIDUAL FALSE NEGATIVE, disclosed. The earlier justification here -- "200-399
-    # is semantically meaningless as an exit status" -- was FACTUALLY WRONG for
-    # 200-255 and is REFUTED. An exit status is 8-bit, so that sub-range is a REAL
-    # overlap between the two readings. Re-derived on this box 2026-07-25, both
-    # directions:
-    #     sh -c 'exit 200' -> $?=200      sh -c 'exit 255' -> $?=255   (representable)
-    #     sh -c 'exit 256' -> $?=0        sh -c 'exit 399' -> $?=143   (wraps mod 256)
-    # Only 256-399 is genuinely impossible as an exit status. So a GENUINE process
-    # failure of 200-255 (255 = ssh failure / "generic failure" / Windows -1) reported
-    # under a BARE `code` is now SILENT -- measured: code=199 fires, code=200/254/255
-    # do not. Accepted under the FP-averse doctrine at the head of this file, and
-    # bounded two ways, both measured: the UNAMBIGUOUS keys above are read FIRST and
-    # return early ({"exit_code": 255, "code": 200} -> `exit code 255`), and the
-    # envelope checks below still fire on a fenced/odd payload. Exposure therefore
-    # needs a bare `code` in 200-255 with no exit_code/exitCode/returncode/return_code
-    # sibling; how many producers emit that shape is UNVERIFIED (uncertain 30-55%) --
-    # settling experiment is a labelled sweep of `code`-carrying tool_response shapes.
+    # RESIDUAL FALSE NEGATIVE, disclosed. TWO earlier justifications here were wrong and
+    # are both REFUTED; this is the corrected one. (1) "200-399 is semantically
+    # meaningless as an exit status" -- false. (2) its replacement, "an exit status is
+    # 8-bit, so only 256-399 is genuinely impossible" -- ALSO false, because that is a
+    # POSIX truth and THIS HOOK RUNS ON WINDOWS, where an exit status is a 32-bit DWORD.
+    # Re-measured 2026-07-25 on the deployment platform, WITH a control proving the probe
+    # can tell the two apart (so its agreement is not a broken detector):
+    #     Windows, python.exe direct, $LASTEXITCODE:
+    #         sys.exit(200)->200   sys.exit(255)->255   sys.exit(256)->256
+    #         sys.exit(300)->300   sys.exit(399)->399   sys.exit(1000)->1000   (32-bit)
+    #     Git Bash control, POSIX semantics:
+    #         exit 300 -> 44                                    (= 300 mod 256, wraps)
+    # So on this platform the ENTIRE 200-399 band is a legal exit status, and the
+    # residual is 200 values wide -- not the 56 the previous wording claimed. A GENUINE
+    # process failure anywhere in 200-399, reported under a BARE `code`, is now SILENT
+    # (measured: code=199 fires, code=200/254/255 do not; code=400 fires). Accepted under
+    # the FP-averse doctrine at the head of this file, and bounded two ways, both
+    # measured: the UNAMBIGUOUS keys above are read FIRST and return early
+    # ({"exit_code": 255, "code": 200} -> `exit code 255`), and the envelope checks below
+    # still fire on a fenced/odd payload. Exposure therefore needs a bare `code` in
+    # 200-399 with no exit_code/exitCode/returncode/return_code sibling; how many
+    # producers emit that shape is UNVERIFIED (uncertain 30-55%) -- settling experiment is
+    # a labelled sweep of `code`-carrying tool_response shapes.
     raw_code = resp.get("code")
     if raw_code is not None:
         try:
