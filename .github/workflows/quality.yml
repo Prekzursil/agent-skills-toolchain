@@ -495,11 +495,19 @@ jobs:
         run: |
           python hooks/memory-guard/test_scan.py
 
-      # tools/mcp/* MCP servers -- 504 tests that ran in NO gate before this step.
+      # tools/mcp/* MCP servers -- 469 tests that ran in NO gate before this step.
       # Measured: `grep -rn cloud-hub .github/workflows/` returned ZERO hits, with a working
       # detector control (the same grep finds `monitorcore`, which IS wired). So the suites
       # protecting the multiplexer hubs -- including tools/mcp/cloud-hub/tests/test_registry.py,
       # the only thing asserting the AWS backend registers with its 9 tools -- were inert.
+      #
+      # COUNT CORRECTION, recorded rather than quietly fixed: the first version of this step
+      # claimed 504 and also looped over `closed-batch`. That was an OVERCLAIM caused by a gap in
+      # my own detector -- I enumerated `working-directory:` values only, so I missed steps that
+      # name a path INLINE. closed-batch is ALREADY gated at line 274
+      # (`python -m pytest tools/mcp/closed-batch/tests -q`), so including it would have run the
+      # same 35 tests twice and inflated the headline. Two complementary detectors (path grep AND
+      # working-directory enumeration) now agree on the remaining seven.
       #
       # WHY A LOOP AND NOT `pytest tools/mcp`: from the repo root that form produces 10
       # collection ERRORS and exits 2 WITHOUT RUNNING ANYTHING, because each server expects its
@@ -512,14 +520,14 @@ jobs:
       # linkedin-mcp (mcp), patent-search-mcp (httpx, mcp), qdx-rush-mcp (rush-py, mcp,
       # python-dotenv) -- 7 more files / ~175 tests still ungated.
       #
-      # Measured per package on real Linux (CPython 3.12.3): closed-batch 35, search-hub 44,
-      # social-hub 83, mcp-host-supervisor 48, mcp-http-host 40, proxy-mcp 44,
-      # reverse-engineering-mcp-bundle 4 -- all rc=0.
+      # Measured per package on real Linux (CPython 3.12.3) and reproduced EXACTLY on the ubuntu
+      # runner: search-hub 44, social-hub 83, mcp-host-supervisor 48, mcp-http-host 40,
+      # proxy-mcp 44, reverse-engineering-mcp-bundle 4, plus cloud-hub 206 below -- all rc=0.
       - name: gate-tests-coverage mcp servers (stdlib-only; per-package rootdir)
         run: |
           pip install pytest
           set -e
-          for p in closed-batch search-hub social-hub mcp-host-supervisor \
+          for p in search-hub social-hub mcp-host-supervisor \
                    mcp-http-host proxy-mcp reverse-engineering-mcp-bundle; do
             echo "::group::tools/mcp/$p"
             ( cd "tools/mcp/$p" && python -m pytest -q )
