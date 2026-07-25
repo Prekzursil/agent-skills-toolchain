@@ -6,8 +6,8 @@ metadata:
   version: 1.0.0
   platforms:
   - all
-  source: https://github.com/Prekzursil/ghostwriter
-  upstream_author: Prekzursil (ghostwriter)
+  source: https://github.com/angelarose210/ghostwriter
+  upstream_author: angelarose210
 ---
 
 # voice-blend
