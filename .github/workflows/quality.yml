@@ -495,6 +495,55 @@ jobs:
         run: |
           python hooks/memory-guard/test_scan.py
 
+      # tools/mcp/* MCP servers -- 504 tests that ran in NO gate before this step.
+      # Measured: `grep -rn cloud-hub .github/workflows/` returned ZERO hits, with a working
+      # detector control (the same grep finds `monitorcore`, which IS wired). So the suites
+      # protecting the multiplexer hubs -- including tools/mcp/cloud-hub/tests/test_registry.py,
+      # the only thing asserting the AWS backend registers with its 9 tools -- were inert.
+      #
+      # WHY A LOOP AND NOT `pytest tools/mcp`: from the repo root that form produces 10
+      # collection ERRORS and exits 2 WITHOUT RUNNING ANYTHING, because each server expects its
+      # own directory as rootdir (`import hub`, `import accounts`, ...). Run per-package it is
+      # green. Same reason the packages above use `working-directory:`.
+      #
+      # SCOPE -- every package here declares NO dependencies (no pyproject, no requirements),
+      # so `pytest` alone is the whole install. The four dep-bearing siblings are deliberately
+      # EXCLUDED as follow-up, not silently dropped: codex-fleet-github (mcp, pyyaml, keyring),
+      # linkedin-mcp (mcp), patent-search-mcp (httpx, mcp), qdx-rush-mcp (rush-py, mcp,
+      # python-dotenv) -- 7 more files / ~175 tests still ungated.
+      #
+      # Measured per package on real Linux (CPython 3.12.3): closed-batch 35, search-hub 44,
+      # social-hub 83, mcp-host-supervisor 48, mcp-http-host 40, proxy-mcp 44,
+      # reverse-engineering-mcp-bundle 4 -- all rc=0.
+      - name: gate-tests-coverage mcp servers (stdlib-only; per-package rootdir)
+        run: |
+          pip install pytest
+          set -e
+          for p in closed-batch search-hub social-hub mcp-host-supervisor \
+                   mcp-http-host proxy-mcp reverse-engineering-mcp-bundle; do
+            echo "::group::tools/mcp/$p"
+            ( cd "tools/mcp/$p" && python -m pytest -q )
+            echo "::endgroup::"
+          done
+      # cloud-hub is split out because two of its suites cannot run on a CI runner AT ALL:
+      # tests/test_hub.py and tests/test_hardening.py read the real tools/mcp/cloud-hub/
+      # accounts.json, which is git-crypt ENCRYPTED on any checkout without the key -- and CI
+      # has no key. Measured in a fresh worktree (identical state to CI): 10 setup ERRORs,
+      # `accounts.AccountStoreLoadError: ... still git-crypt ENCRYPTED`. That error is correct
+      # behaviour (it refuses to continue with an empty store rather than silently disabling
+      # every account), so the fix is a fixture store in those two suites, NOT weakening the
+      # loader. Excluding them costs 63 tests and gates the remaining 206.
+      #   FOLLOW-UP: port test_hub.py + test_hardening.py onto a tmp_path fixture store so the
+      #   remaining 63 tests can be gated too.
+      # BOTH-STATES PROOF this gate has teeth (not merely green): renaming `id="aws"` to
+      # `id="aws_MUTANT"` in backends.py turns the exact command below RED
+      # (`1 failed, 205 passed`), and reverting returns it to `206 passed`.
+      - name: gate-tests-coverage cloud-hub (git-crypt-independent subset)
+        working-directory: tools/mcp/cloud-hub
+        run: |
+          pip install pytest
+          python -m pytest -q --ignore=tests/test_hub.py --ignore=tests/test_hardening.py
+
       # abbyy declares `requires-python = ">=3.12"`, so pip REFUSES to install it on this job's
       # 3.11 ("requires a different Python"). It gets its own pinned interpreter, referenced
       # through `outputs.python-path` rather than PATH so nothing above is affected. KEEP THE
