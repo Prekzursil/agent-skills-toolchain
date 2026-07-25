@@ -61,8 +61,24 @@ _REF = re.compile(r"^\$\{([A-Za-z_][A-Za-z0-9_]*)\}$")
 
 ACCOUNT_OPS = ("list", "current", "add", "remove", "switch", "cycle")
 
+# git-crypt prefixes every file it encrypts with this 10-byte magic header, so a
+# store checked out in a tree where git-crypt is LOCKED starts with these bytes
+# and is ciphertext from offset 10 onward. Detected explicitly because the naive
+# symptom (``UnicodeDecodeError`` at position 10) names neither git-crypt nor the
+# remedy, and costs real time to diagnose.
+_GITCRYPT_MAGIC = b"\x00GITCRYPT\x00"
+
 # (rc, stdout, stderr)
 Runner = Callable[[tuple[str, ...]], "tuple[int, str, str]"]
+
+
+class AccountStoreLoadError(RuntimeError):
+    """The account store exists but cannot be decoded.
+
+    Raised instead of degrading to an EMPTY store: empty means "no accounts",
+    which would silently disable every configured account and the whole rotation
+    pool. A missing store is still the normal first-run case and stays quiet.
+    """
 
 
 @dataclass(frozen=True)
@@ -312,12 +328,38 @@ class AccountStore:
 
     # ---- persistence -----------------------------------------------------
     def _load(self) -> dict[str, dict]:
+        # A missing/unreadable store is the normal first-run case -> start empty.
         try:
-            with open(self.path, "r", encoding="utf-8") as fh:
-                data = json.load(fh)
-            return data if isinstance(data, dict) else {}
-        except (OSError, json.JSONDecodeError):
+            with open(self.path, "rb") as fh:
+                raw = fh.read()
+        except OSError:
             return {}
+        # An UNDECODABLE store, by contrast, is a real misconfiguration: failing
+        # loudly beats a silently empty rotation pool, so these two paths raise.
+        if raw.startswith(_GITCRYPT_MAGIC):
+            raise AccountStoreLoadError(
+                f"{self.path}: this account store is still git-crypt ENCRYPTED "
+                f"(it begins with the git-crypt magic header), so it cannot be "
+                f"read. git-crypt is locked in this working tree -- note that "
+                f"'git worktree add' does NOT inherit an unlocked state. "
+                f"Remedy: unlock git-crypt here (e.g. 'git-crypt unlock "
+                f"<key-file>') and retry. Refusing to continue with an empty "
+                f"store, which would silently disable every configured account."
+            )
+        try:
+            text = raw.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise AccountStoreLoadError(
+                f"{self.path}: this account store is not valid UTF-8 and cannot "
+                f"be decoded ({exc}). Remedy: repair or remove the file. "
+                f"Refusing to continue with an empty store, which would silently "
+                f"disable every configured account."
+            ) from exc
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError:
+            return {}
+        return data if isinstance(data, dict) else {}
 
     def _persist(self) -> None:
         tmp = f"{self.path}.tmp"
