@@ -925,9 +925,13 @@ def test_board_line_full_and_minimal():
     )
 
 
-def test_board_line_ctx_capped_at_100():
+def test_board_line_ctx_over_window_surfaces_suspect():
+    # WU1: a last-turn token count larger than the window is no longer MASKED by a
+    # min(100) clamp — it surfaces as SUSPECT with the true (over-100) percentage.
     th = _thread(ctx_tokens=500, ctx_window=100)
-    assert "ctx 100%" in ct.board_line(th, NOW)
+    line = ct.board_line(th, NOW)
+    assert "ctx 500% SUSPECT" in line
+    assert "ctx 100%" not in line
 
 
 def test_frame_rows_orders_and_falls_back_prompt():

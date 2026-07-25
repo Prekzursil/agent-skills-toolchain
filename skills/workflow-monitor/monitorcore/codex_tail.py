@@ -47,6 +47,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
+from .ctx import ctx_gauge, ctx_label
 from .redact import redact
 
 __all__ = [
@@ -626,10 +627,8 @@ def board_line(th: CodexThread, now: float) -> str:
     elapsed = (now - th.start_ts) if th.start_ts else None
     idle = (now - th.last_ts) if th.last_ts else None
     bits = " · ".join(b for b in (th.model, th.tool_kind, th.source) if b)
-    ctx = ""
-    if th.ctx_window and th.ctx_tokens:
-        pct = min(100, int(th.ctx_tokens * 100 / th.ctx_window))
-        ctx = f" ctx {pct}%"
+    label = ctx_label(ctx_gauge(th.ctx_tokens, th.ctx_window))
+    ctx = f" {label}" if label else ""
     return (
         f"{glyph} [{th.status.upper()}] {th.name()}  {bits}  "
         f"{fmt_dur(elapsed)} elapsed · {fmt_dur(idle)} idle  "
