@@ -26,6 +26,14 @@ plugin:local-mcp-bridge:binary-ninja-mcp: npx -y binary-ninja-mcp --host localho
 plugin:local-mcp-bridge:github_cli: gh-cli-mcp  - ✔ Connected
 """
 
+# Two servers whose handshake FAILED: one the owner deliberately disabled (RAM
+# curation), one genuinely broken.  A dead-MCP detector must separate them.
+MCP_LIST_TWO_FAILURES = """\
+plugin:local-mcp-bridge:sonarqube: docker run sonar-mcp - ✘ Failed to connect
+claude.ai Firebase: https://firebase.google.com - ✘ Failed to connect
+claude.ai Tavily: https://mcp.tavily.com/mcp - ✔ Connected
+"""
+
 
 def _make_claude_json(tmp_path: Path, proj: str, disabled: list[str]) -> Path:
     cj = tmp_path / ".claude.json"
@@ -128,6 +136,63 @@ class TestReconcileEnabled:
         rows = claude_adapter.parse_mcp_list(MCP_LIST_SAMPLE)
         claude_adapter.reconcile_enabled(rows, set())
         assert all(r.enabled for r in rows)
+
+
+# ── disabled-vs-dead reconciliation ────────────────────────────────────────────
+
+
+class TestDisabledIsNotDead:
+    """A deliberately disabled server must never be reported as dead.
+
+    Both directions are asserted: the disabled row stops being FAILED/dead AND
+    the still-enabled broken row keeps being FAILED/dead — a detector that goes
+    silent measures nothing.
+    """
+
+    _DISABLED_ID = "plugin:local-mcp-bridge:sonarqube"
+    _BROKEN_ID = "claude.ai Firebase"
+
+    def test_disabled_row_relabelled_disabled(self):
+        rows = claude_adapter.parse_mcp_list(MCP_LIST_TWO_FAILURES)
+        claude_adapter.reconcile_enabled(rows, {self._DISABLED_ID})
+        row = {r.id: r for r in rows}[self._DISABLED_ID]
+        assert row.status == AuthStatus.DISABLED
+        assert row.dead is False
+
+    def test_enabled_broken_row_still_dead(self):
+        rows = claude_adapter.parse_mcp_list(MCP_LIST_TWO_FAILURES)
+        claude_adapter.reconcile_enabled(rows, {self._DISABLED_ID})
+        row = {r.id: r for r in rows}[self._BROKEN_ID]
+        assert row.status == AuthStatus.FAILED
+        assert row.dead is True
+
+    def test_healthy_row_status_untouched(self):
+        rows = claude_adapter.parse_mcp_list(MCP_LIST_TWO_FAILURES)
+        claude_adapter.reconcile_enabled(rows, {self._DISABLED_ID})
+        row = {r.id: r for r in rows}["claude.ai Tavily"]
+        assert row.status == AuthStatus.CONNECTED
+        assert row.dead is False
+
+    def test_handshake_detail_preserved_on_disabled_row(self):
+        """Re-labelling must not destroy the raw handshake text."""
+        rows = claude_adapter.parse_mcp_list(MCP_LIST_TWO_FAILURES)
+        claude_adapter.reconcile_enabled(rows, {self._DISABLED_ID})
+        row = {r.id: r for r in rows}[self._DISABLED_ID]
+        assert row.auth == "Failed to connect"
+
+    def test_universe_reports_disabled_not_dead(self, tmp_path: Path):
+        """End-to-end through the existing get_disabled_ids accessor."""
+        proj = "C:/proj"
+        cj = _make_claude_json(tmp_path, proj, [self._DISABLED_ID])
+        rows = claude_adapter.get_server_universe(
+            cj, proj, mcp_list_output=MCP_LIST_TWO_FAILURES
+        )
+        by_id = {r.id: r for r in rows}
+        dead = {r.id for r in rows if r.dead}
+        assert self._DISABLED_ID not in dead  # intentional, not a failure
+        assert by_id[self._DISABLED_ID].status == AuthStatus.DISABLED
+        assert self._BROKEN_ID in dead  # real breakage still reported
+        assert by_id[self._BROKEN_ID].status == AuthStatus.FAILED
 
 
 # ── get_disabled_ids ───────────────────────────────────────────────────────────
