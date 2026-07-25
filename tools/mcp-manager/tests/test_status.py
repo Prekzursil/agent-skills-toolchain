@@ -89,6 +89,29 @@ class TestMergeRows:
         merged = sm._merge_rows([[a], [b]])
         assert merged[0].enabled is False
 
+    def test_cross_plane_disabled_keeps_failed_status(self):
+        """Pins the MEASURED scope of the `enabled` guard in `ServerRow.dead`.
+
+        A row the claude plane reports FAILED, which ANOTHER plane disables,
+        merges to `enabled=False`, so `dead` is False — the predicate half of
+        the cross-plane case IS closed.  But `_merge_rows` copies the
+        claude-plane `status` verbatim, so it stays FAILED, and both UIs key
+        on `row.status.value` rather than on `dead` — the owner still sees
+        "error"/red.  This asserts BOTH halves so the docstring cannot drift
+        into claiming the rendered status is fixed too.  When the settling
+        change lands (re-label FAILED -> DISABLED in `_merge_rows`), update
+        THIS test and the `ServerRow.dead` docstring together.
+        """
+        a = self._make_row("shared", "claude", enabled=True, status=AuthStatus.FAILED)
+        b = self._make_row("shared", "codex", enabled=False)
+        merged = sm._merge_rows([[a], [b]])
+        row = merged[0]
+        assert row.enabled is False
+        # closed half: the predicate no longer calls it dead
+        assert row.dead is False
+        # NOT-closed half: the merge leaves the rendered status untouched
+        assert row.status == AuthStatus.FAILED
+
     def test_unknown_status_upgraded(self):
         a = self._make_row("x", "claude", status=AuthStatus.UNKNOWN)
         b = self._make_row("x", "codex", status=AuthStatus.CONNECTED)

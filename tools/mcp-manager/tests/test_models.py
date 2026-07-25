@@ -59,6 +59,31 @@ class TestServerRow:
         assert d["duplicated"] is False
 
 
+class TestServerRowDead:
+    """`dead` is True only for an ENABLED server whose handshake FAILED."""
+
+    def test_enabled_failed_is_dead(self):
+        row = ServerRow(id="a", name="a", enabled=True, status=AuthStatus.FAILED)
+        assert row.dead is True
+
+    def test_disabled_with_failed_status_is_not_dead(self):
+        # cross-plane case: another plane disabled it, status still FAILED
+        row = ServerRow(id="a", name="a", enabled=False, status=AuthStatus.FAILED)
+        assert row.dead is False
+
+    def test_disabled_status_is_not_dead(self):
+        row = ServerRow(id="a", name="a", enabled=False, status=AuthStatus.DISABLED)
+        assert row.dead is False
+
+    def test_connected_is_not_dead(self):
+        row = ServerRow(id="a", name="a", enabled=True, status=AuthStatus.CONNECTED)
+        assert row.dead is False
+
+    def test_to_dict_exposes_dead(self):
+        row = ServerRow(id="a", name="a", enabled=True, status=AuthStatus.FAILED)
+        assert row.to_dict()["dead"] is True
+
+
 class TestLoadout:
     def test_empty_loadout(self):
         lo = Loadout()

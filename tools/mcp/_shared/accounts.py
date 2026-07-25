@@ -31,9 +31,26 @@ vars are all present, an in-memory ``default`` account is synthesized from
 ``${ENV}`` references. It is never persisted -- literal secrets only reach the
 on-disk store when the user explicitly adds them.
 
-The on-disk store (``accounts.json``) is GITIGNORED and written with restrictive
-permissions; it may legitimately hold literal secrets, so it must never be
-committed.
+The on-disk store (``accounts.json``) may legitimately hold literal secrets, so
+it is written with restrictive permissions. How it is treated by git is NOT
+uniform across the hubs that share this module -- check the hub you are in
+before assuming either way:
+
+* ``cloud-hub`` and ``search-hub``: the store is NOT gitignored. It is TRACKED
+  and committed as git-crypt CIPHERTEXT (``.gitattributes`` maps
+  ``tools/mcp/**/accounts.json`` to ``filter=git-crypt``) and decrypts to
+  plaintext only in a tree where ``git-crypt unlock`` has been run. So a
+  ``git add`` of this file is expected, not a leak -- provided git-crypt is
+  installed, so the clean filter actually encrypts it.
+* ``social-hub``: the store IS gitignored (``tools/mcp/social-hub/.gitignore``
+  lists ``accounts.json``) and is not tracked at all. There, committing it
+  WOULD be a plaintext leak.
+
+For the tracked hubs there is a second consequence worth knowing: a FRESH
+CHECKOUT OR WORKTREE starts LOCKED -- ``git worktree add`` does not inherit an
+unlocked state -- so the store there is ciphertext beginning with the git-crypt
+magic header, which ``_load`` detects and reports (see
+``AccountStoreLoadError``) instead of failing with a bare ``UnicodeDecodeError``.
 
 Design notes for reuse: this module depends only on the stdlib and a small
 ``AccountPolicy`` passed in per platform -- no coupling to any backend registry,
@@ -61,8 +78,36 @@ _REF = re.compile(r"^\$\{([A-Za-z_][A-Za-z0-9_]*)\}$")
 
 ACCOUNT_OPS = ("list", "current", "add", "remove", "switch", "cycle")
 
+# git-crypt prefixes every file it encrypts with this 10-byte magic header, so a
+# store checked out in a tree where git-crypt is LOCKED starts with these bytes
+# and is ciphertext from offset 10 onward. Detected explicitly because the naive
+# symptom (``UnicodeDecodeError`` at position 10) names neither git-crypt nor the
+# remedy, and costs real time to diagnose.
+_GITCRYPT_MAGIC = b"\x00GITCRYPT\x00"
+
 # (rc, stdout, stderr)
 Runner = Callable[[tuple[str, ...]], "tuple[int, str, str]"]
+
+
+class AccountStoreLoadError(RuntimeError):
+    """The account store exists but cannot be decoded, parsed, or used.
+
+    Raised instead of degrading to an EMPTY store, which is never a safe
+    fallback for a NON-empty file, for two measured reasons:
+
+    * "no accounts" does not mean "no credentials" -- with the configured
+      accounts gone, ``_seed_record`` synthesizes a ``default`` from the
+      registration env vars, so the backend keeps running under a DIFFERENT
+      credential than the operator configured (silent substitution).
+    * the store is then only one ordinary op away from destruction: any
+      add/remove/switch/cycle calls ``_persist``, which ``os.replace``s the
+      empty-loaded state over the original file. A malformed store is usually
+      still repairable by hand; after that write it is not.
+
+    A MISSING store -- and an empty/whitespace-only one, which holds no
+    accounts and so cannot trigger either failure -- is the normal first-run
+    case and stays quiet.
+    """
 
 
 @dataclass(frozen=True)
@@ -312,12 +357,66 @@ class AccountStore:
 
     # ---- persistence -----------------------------------------------------
     def _load(self) -> dict[str, dict]:
+        # A missing/unreadable store is the normal first-run case -> start empty.
         try:
-            with open(self.path, "r", encoding="utf-8") as fh:
-                data = json.load(fh)
-            return data if isinstance(data, dict) else {}
-        except (OSError, json.JSONDecodeError):
+            with open(self.path, "rb") as fh:
+                raw = fh.read()
+        except OSError:
             return {}
+        # An UNDECODABLE store, by contrast, is a real misconfiguration: failing
+        # loudly beats a silently empty rotation pool, so these two paths raise.
+        if raw.startswith(_GITCRYPT_MAGIC):
+            raise AccountStoreLoadError(
+                f"{self.path}: this account store is still git-crypt ENCRYPTED "
+                f"(it begins with the git-crypt magic header), so it cannot be "
+                f"read. git-crypt is locked in this working tree -- note that "
+                f"'git worktree add' does NOT inherit an unlocked state. "
+                f"Remedy: unlock git-crypt here (e.g. 'git-crypt unlock "
+                f"<key-file>') and retry. Refusing to continue with an empty "
+                f"store, which would silently disable every configured account."
+            )
+        try:
+            text = raw.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise AccountStoreLoadError(
+                f"{self.path}: this account store is not valid UTF-8 and cannot "
+                f"be decoded ({exc}). Remedy: repair or remove the file. "
+                f"Refusing to continue with an empty store, which would silently "
+                f"disable every configured account."
+            ) from exc
+        # An EMPTY (or whitespace-only) store is treated like a MISSING one: it
+        # holds no accounts, so it can neither substitute a credential nor lose
+        # one, and a zero-byte file is a plausible bootstrap artifact (``touch``,
+        # an interrupted create, a truncating ``New-Item -Force``). Deliberate
+        # tolerance, pinned by test_empty_store_file_starts_empty_quietly.
+        if not text.strip():
+            return {}
+        # Anything else that fails to parse is a real misconfiguration. See
+        # AccountStoreLoadError for why an empty fallback is NOT safe here.
+        # Only the parser's own position/reason is reported -- never the file's
+        # content, which may hold literal secrets.
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as exc:
+            raise AccountStoreLoadError(
+                f"{self.path}: this account store is not valid JSON "
+                f"({exc.msg} at line {exc.lineno} column {exc.colno}). Remedy: "
+                f"repair the file by hand (it has NOT been modified) or remove "
+                f"it to start empty. Refusing to continue with an empty store, "
+                f"which would silently swap in a different credential and let "
+                f"the next account write overwrite this file."
+            ) from exc
+        if not isinstance(data, dict):
+            raise AccountStoreLoadError(
+                f"{self.path}: this account store must be a JSON OBJECT mapping "
+                f"platform -> record, but its top level is a "
+                f"{type(data).__name__}. Remedy: repair the file by hand (it has "
+                f"NOT been modified) or remove it to start empty. Refusing to "
+                f"continue with an empty store, which would silently swap in a "
+                f"different credential and let the next account write overwrite "
+                f"this file."
+            )
+        return data
 
     def _persist(self) -> None:
         tmp = f"{self.path}.tmp"

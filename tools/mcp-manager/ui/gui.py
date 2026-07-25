@@ -82,6 +82,8 @@ _STATUS_DISPLAY: dict[str, tuple[str, QColor]] = {
     AuthStatus.CONNECTED.value: ("connected", QColor(40, 160, 60)),
     AuthStatus.NEEDS_AUTH.value: ("needs-auth", QColor(190, 150, 0)),
     AuthStatus.FAILED.value: ("error", QColor(200, 50, 50)),
+    # grey, not red: a disabled server is intentional, not an error
+    AuthStatus.DISABLED.value: ("disabled", QColor(130, 130, 130)),
     AuthStatus.UNKNOWN.value: ("pending", QColor(130, 130, 130)),
 }
 
@@ -339,7 +341,8 @@ _PASTE_STATUS: dict[str, AuthStatus] = {
     "connected": AuthStatus.CONNECTED,
     "failed": AuthStatus.FAILED,
     "needs_auth": AuthStatus.NEEDS_AUTH,
-    "disabled": AuthStatus.UNKNOWN,
+    # a pasted panel that says 'disabled' means intentional, not pending
+    "disabled": AuthStatus.DISABLED,
     "unknown": AuthStatus.UNKNOWN,
 }
 
