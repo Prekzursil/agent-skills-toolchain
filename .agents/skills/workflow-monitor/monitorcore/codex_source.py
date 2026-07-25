@@ -25,13 +25,14 @@ classifies a snapshot into a redaction-safe :class:`~monitorcore.contract.Alert`
 from __future__ import annotations
 
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from .codex_tail import (
     CodexThread,
     Poller,
+    ToolEvent,
     board_line,
     default_sessions_dir,
     default_stream_dir,
@@ -39,8 +40,46 @@ from .codex_tail import (
 from .contract import Alert, Snapshot, SourceState
 from .redact import redact
 from .report_doc import ReportDoc, Section
+from .timeline import TimelineEvent
 
 _ID = "codexmon"
+
+# ``ToolEvent.kind`` → generic ``TimelineEvent.kind`` (unknown kinds fall through to text).
+_TL_KIND = {
+    "cmd": "tool_use",
+    "tool": "tool_use",
+    "patch": "tool_use",
+    "think": "thinking",
+    "msg": "text",
+}
+
+
+def _events_timeline(events: Iterable[ToolEvent]) -> tuple[TimelineEvent, ...]:
+    """Map a thread's captured ``ToolEvent`` deque onto the generic ``TimelineEvent`` stream.
+
+    So the shared exporters render the progress ledger (WU2's event feed) as a per-card
+    timeline "for free". cmd/tool/patch → ``tool_use`` (name = the event label, its scrubbed
+    detail as the single input + output, ``is_error`` from the event status); ``think`` →
+    ``thinking``; every other kind → ``text`` carrying the detail, else the label. Every
+    field is ALREADY scrubbed at ingest by ``codex_tail`` (no off switch).
+    """
+    out: list[TimelineEvent] = []
+    for seq, ev in enumerate(events):
+        kind = _TL_KIND.get(ev.kind, "text")
+        if kind == "tool_use":
+            out.append(
+                TimelineEvent(
+                    kind="tool_use",
+                    seq=seq,
+                    name=ev.label,
+                    tool_input={"detail": ev.detail} if ev.detail else {},
+                    output=ev.detail,
+                    is_error=ev.status == "error",
+                )
+            )
+        else:
+            out.append(TimelineEvent(kind=kind, seq=seq, text=ev.detail or ev.label))
+    return tuple(out)
 
 
 @dataclass(frozen=True)
@@ -211,6 +250,7 @@ class CodexSource:
                 tool_calls=th.tool_count,
                 lead=f"{th.turns} turns · {th.source}",
                 task=th.prompt,
+                timeline=_events_timeline(th.events),
             )
             for i, th in enumerate(threads)
         )
