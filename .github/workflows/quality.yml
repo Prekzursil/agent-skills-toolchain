@@ -450,6 +450,50 @@ jobs:
       - name: gate-tests-coverage git-hygiene message budget
         run: |
           python -m pytest -q hooks/git-hygiene/test_git_hygiene.py
+      # The REST of the hooks/ regression harness -- ~66 suites / 661 tests that no step
+      # named. docs/ci-coverage-gap-2026-07-25.md measured 64 unexecuted hooks/ suites;
+      # this claims the green majority of them instead of leaving them dead weight.
+      #
+      # --import-mode=importlib is REQUIRED, not cosmetic: 18 basenames are duplicated in
+      # this tree (test_check.py x3, test_gate.py x2 inside hooks/ alone) and the default
+      # `prepend` mode fails collection outright with `import file mismatch`.
+      #
+      # Every --ignore below is load-bearing and was MEASURED on real Linux (WSL, CPython
+      # 3.12) before this step was written -- the whole-tree form is NOT green:
+      #   36 failed, 684 passed, 5 skipped, 1 error
+      # With exactly these exclusions it is: 661 passed, 4 skipped, rc=0.
+      #
+      #   _golden/test_hooks.py, memory-guard/test_scan.py -- call sys.exit() at MODULE
+      #     level, which escapes during collection as SystemExit and aborts the ENTIRE run
+      #     with INTERNALERROR (21 of 705 collected before the abort). memory-guard is run
+      #     as a standalone script below; _golden FAILS on Linux (rc=1) and is left out.
+      #   cmd-rewrite -- already invoked as standalone scripts by its own step above, and
+      #     test_msys_pathconv.py::test_real_git_end_to_end ERRORs under pytest here.
+      #   _dispatch/test_manifest_presence.py, _dispatch/test_wiring.py,
+      #   memory-spool/test_replay.py, per-edit-check/test_secrets.py -- these four hold
+      #     ALL 36 Linux failures. They stay unenforced PENDING TRIAGE (broken vs
+      #     platform-coupled vs env-dep); excluding them is what makes this step safe to
+      #     land at all. test_wiring.py keeps its existing -k hook_manifest_conformance step.
+      #
+      # The two steps above overlap this one (their suites are inside hooks/). Kept
+      # deliberately: they give fast, named signal for the two suites fixed in #198/#199,
+      # at ~1.3s, while this step is the broad safety net.
+      - name: gate-tests-coverage hooks regression harness
+        run: |
+          python -m pytest hooks/ -q --import-mode=importlib \
+            --ignore=hooks/_golden/test_hooks.py \
+            --ignore=hooks/memory-guard/test_scan.py \
+            --ignore=hooks/cmd-rewrite \
+            --ignore=hooks/_dispatch/test_manifest_presence.py \
+            --ignore=hooks/_dispatch/test_wiring.py \
+            --ignore=hooks/memory-spool/test_replay.py \
+            --ignore=hooks/per-edit-check/test_secrets.py
+      # memory-guard exits at module level so pytest cannot collect it, but it passes when
+      # run the way it is designed to run (measured on Linux: rc=0). Same `python <file>`
+      # convention as test_manifest_provenance.py and test_repo_map.py.
+      - name: gate-tests-coverage hooks standalone (memory-guard)
+        run: |
+          python hooks/memory-guard/test_scan.py
 
       # abbyy declares `requires-python = ">=3.12"`, so pip REFUSES to install it on this job's
       # 3.11 ("requires a different Python"). It gets its own pinned interpreter, referenced
