@@ -48,6 +48,24 @@ DISPATCH_EVENTS = {
     "Stop": "stop",
 }
 
+# ENV-DEP GATE.  ``SETTINGS`` resolves to ``<CLAUDE_ROOT>/settings.json``, i.e. the
+# DEPLOYED ``~/.claude/settings.json``.  That document is machine-local user
+# configuration (env, enabledPlugins, deniedMcpServers, the live hook wiring); it is
+# deliberately untracked and therefore never exists in a plain repo checkout or on a
+# CI runner -- every assertion below that reads it died with FileNotFoundError there,
+# which is why quality.yml had to --ignore this whole module.  The skip is keyed on the
+# FILE, not on the platform, so the checks still RUN and still enforce the live wiring
+# when this suite is executed from its deployed location under ~/.claude/hooks/.
+LIVE_SETTINGS_AVAILABLE = SETTINGS.is_file()
+requires_live_settings = pytest.mark.skipif(
+    not LIVE_SETTINGS_AVAILABLE,
+    reason=(
+        f"needs the deployed live {SETTINGS.name!r} at {SETTINGS.parent}; it is "
+        "machine-local, untracked user configuration that never exists in a repo "
+        "checkout or on CI. Run this suite from ~/.claude/hooks/_dispatch/ to enforce it."
+    ),
+)
+
 # Tier-1.1 compatibility census.  These handlers only emit additionalContext
 # (or perform silent side effects), which is the full contract implemented by
 # dispatch.py today.  Keep this explicit: deriving an expectation from the
@@ -240,6 +258,7 @@ def _commands_referencing(document: dict, path: Path, event: str | None = None):
     ]
 
 
+@requires_live_settings
 @pytest.mark.parametrize("event,token", DISPATCH_EVENTS.items())
 def test_settings_has_exactly_one_local_dispatch_for_event(event: str, token: str):
     settings = _load(SETTINGS)
@@ -270,6 +289,7 @@ def test_settings_has_exactly_one_local_dispatch_for_event(event: str, token: st
     )
 
 
+@requires_live_settings
 def test_no_force_push_is_a_standalone_bash_gate():
     settings = _load(SETTINGS)
     matches = _commands_referencing(settings, NO_FORCE_PUSH, "PreToolUse")
@@ -306,7 +326,15 @@ def test_prepost_manifest_entries_are_unique_and_reference_files(event: str):
     assert all(isinstance(name, str) and name.strip() for name in names)
     assert len(names) == len(set(names)), f"events.{event} check names must be unique"
 
-    root = Path(manifest.get("hooks_root") or HOOKS_ROOT)
+    # ``hooks_root`` records the absolute DEPLOY root the dispatcher uses at runtime
+    # ("C:/Users/.../.claude/hooks").  Resolving THIS manifest's entries against that
+    # foreign path checks a different tree than the one the manifest ships in, and on a
+    # non-Windows checkout it is not even a path that exists, so every entry read as
+    # "missing".  Prefer the recorded root only while it really is a directory (keeps the
+    # deployed behaviour byte-identical), otherwise fall back to the tree this manifest
+    # lives in -- the same fallback dispatch.py:240 already applies.
+    recorded_root = Path(manifest.get("hooks_root") or HOOKS_ROOT)
+    root = recorded_root if recorded_root.is_dir() else HOOKS_ROOT
     for check in checks:
         script = check.get("script")
         assert isinstance(script, str) and script.strip(), (
@@ -317,11 +345,59 @@ def test_prepost_manifest_entries_are_unique_and_reference_files(event: str):
         )
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "RED FROM BIRTH IN THIS REPO, and still red: the 14 dispatcher-compatible "
+        "handlers (7 PreToolUse: goal-reinject/reinject, compchem-preflight, "
+        "strong-tool-nudge, mcp-liveness/pretool, edit-checkpoints, contraindication, "
+        "iatrogenics; 7 PostToolUse: anti-degen/fingerprint, claim-guard/ledger-write, "
+        "memory-guard/scan, edit-validate/record, fresh-verify/trigger, orphan-commit, "
+        "semantic-router/observe) are absent from events.*.checks here. "
+        "PROVENANCE -- do NOT search repo history, nothing was ever dropped there: all 8 "
+        "commits that have ever touched this manifest contain 0 of the 14 names and its "
+        "check counts only ever GREW (Pre 3->4->5, Post 3). This census arrived AHEAD of "
+        "the manifest, at faae06d ('rescue 1,756 orphaned harness files'), whose tree "
+        "carried Pre=4/Post=3 -- which is why the assertion has never passed in a "
+        "checkout. What genuinely lost the handlers is the LIVE DEPLOYED "
+        "~/.claude/hooks/_dispatch/manifest.json: its sibling backup "
+        "manifest.json.bak-20260714-012512 still carries all 14 (Pre=10/Post=12), so "
+        "recover the exact entries from that .bak, not from git. "
+        "IMPACT -- per-hook and UNRESOLVED, deliberately not overstated: all 14 scripts "
+        "still exist on disk in both trees and are registered in NO ~/.claude surface "
+        "(0 hits for all 14 in the live settings.json; detector controlled -- "
+        "no-force-push/hook.py and _dispatch/dispatch.py both hit in the same walk), so "
+        "nothing under ~/.claude runs them. That is NOT the same as 14 broken live "
+        "mechanisms. goal-reinject/reinject.py is a MEASURED orphan duplicate: goal "
+        "re-injection (AGENTS.md section 2) is live and running, owned by the ~/.agents "
+        "harness -- ~/.agents/harness/dispatcher.py is PreToolUse hook #1 in the live "
+        "settings.json and its ~/.agents/state/harness/session-goals/ state is written "
+        "during ordinary tool use. Whether each of the other 13 is genuinely-lost "
+        "functionality or likewise an orphan duplicate is NOT established; settle it per "
+        "hook before restoring anything. "
+        "SCOPE OF THIS MARKER: it guards ONLY the census assertion below. The routing "
+        "contract lives in test_prepost_manifest_routes_match_dispatch_contract, which is "
+        "deliberately UNMARKED. While one strict xfail spanned both assertions it absorbed "
+        "every routing regression, because the census can never pass while these 14 are "
+        "missing, so ANY route failure still satisfied the marker: measured, corrupting "
+        "the matcher of dup-guard -- a handler PRESENT here today -- left the suite at "
+        "exit 0, byte-identical to green. Never put the two back under one marker."
+    ),
+)
 @pytest.mark.parametrize("event", ("PreToolUse", "PostToolUse"))
 def test_prepost_manifest_contains_every_dispatch_compatible_handler(event: str):
-    manifest = _load(MANIFEST)
-    checks = manifest["events"][event]["checks"]
-    actual = {check.get("name"): check.get("script") for check in checks}
+    """CENSUS ONLY -- is every dispatcher-compatible handler registered at all?
+
+    Kept separate from the routing contract on purpose.  While both assertions shared one
+    ``xfail(strict=True)`` this census could never pass, so any route failure also
+    satisfied the marker and was reported as a clean ``xfailed`` -- including one on a
+    handler that is present today.
+    """
+
+    actual = {
+        check.get("name"): check.get("script")
+        for check in _load(MANIFEST)["events"][event]["checks"]
+    }
     expected = EXPECTED_DISPATCH_CHECKS[event]
 
     missing = {
@@ -331,6 +407,20 @@ def test_prepost_manifest_contains_every_dispatch_compatible_handler(event: str)
         f"events.{event} is missing dispatcher-compatible Tier-1.1 handlers: {missing}"
     )
 
+
+@pytest.mark.parametrize("event", ("PreToolUse", "PostToolUse"))
+def test_prepost_manifest_routes_match_dispatch_contract(event: str):
+    """ROUTING ONLY, and deliberately NOT xfailed.
+
+    Scoped to the handlers actually PRESENT in the manifest, so it is enforceable today
+    against the entries that survive and turns RED the moment an absent one is restored
+    with the wrong matcher/timeout/args/emits.  ``compared`` guards against the check
+    silently degrading to a vacuous pass if every expected name disappears at once.
+    """
+
+    checks = _load(MANIFEST)["events"][event]["checks"]
+
+    compared = 0
     route_failures: list[str] = []
     for name, (args, matcher, timeout, emits) in EXPECTED_DISPATCH_ROUTES[
         event
@@ -338,6 +428,7 @@ def test_prepost_manifest_contains_every_dispatch_compatible_handler(event: str)
         check = next((item for item in checks if item.get("name") == name), None)
         if check is None:
             continue
+        compared += 1
         expected_fields = {
             "args": args,
             "matcher": matcher,
@@ -357,8 +448,13 @@ def test_prepost_manifest_contains_every_dispatch_compatible_handler(event: str)
     assert not route_failures, "dispatcher routing regressions:\n" + "\n".join(
         route_failures
     )
+    assert compared, (
+        f"events.{event} contains none of the {len(EXPECTED_DISPATCH_ROUTES[event])} "
+        "routed handlers, so this contract checked nothing"
+    )
 
 
+@requires_live_settings
 @pytest.mark.parametrize("event", ("PreToolUse", "PostToolUse"))
 def test_incompatible_gates_and_transformers_remain_standalone(event: str):
     settings = _load(SETTINGS)
@@ -415,8 +511,22 @@ def test_prepost_manifest_scripts_have_no_standalone_duplicates():
         for check in manifest["events"][event]["checks"]
     }
 
+    # Each registration document is optional and the two surfaces do not co-exist:
+    # settings.json is the untracked live deployment (absent in a checkout/CI) while
+    # hooks.json is the tracked plugin surface (absent from the live ~/.claude deploy).
+    # Scan whichever are present rather than dying on the other -- skipping outright
+    # would drop the CI-checkable hooks.json half. Presence itself is asserted
+    # elsewhere: test_hook_manifest_conformance_gate_is_adopted loads HOOKS_JSON.
+    available = [
+        (label, path)
+        for label, path in (("settings.json", SETTINGS), ("hooks.json", HOOKS_JSON))
+        if path.is_file()
+    ]
+    if not available:
+        pytest.skip("neither settings.json nor hooks.json is present to scan")
+
     failures: list[str] = []
-    for label, path in (("settings.json", SETTINGS), ("hooks.json", HOOKS_JSON)):
+    for label, path in available:
         document = _load(path)
         for event, _group, hook in _hook_entries(document):
             command = _norm(str(hook.get("command") or ""))
