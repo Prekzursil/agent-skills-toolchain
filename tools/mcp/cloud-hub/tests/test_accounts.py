@@ -180,11 +180,87 @@ def test_missing_store_still_starts_empty(tmp_path):
     assert store.handle("rp", "list", {})["accounts"] == []
 
 
-def test_invalid_json_behaviour_unchanged(tmp_path):
-    """Pins the blast radius: decodable-but-malformed JSON keeps its PRE-EXISTING
-    swallow-to-empty behaviour. Only the decode path changed."""
+# NOTE (deliberate regression-guard REPLACEMENT, not a deletion): the test that
+# used to live here -- ``test_invalid_json_behaviour_unchanged`` -- PINNED the
+# opposite behaviour, i.e. that malformed JSON silently degrades to an empty
+# store. That pin was correct for the git-crypt lane, which deliberately scoped
+# itself to the *decode* path and left this one untouched. It is now INVERTED on
+# purpose: the swallow was measured to cause silent credential substitution and
+# irreversible loss of the operator's store (see the two tests below, which pin
+# both halves). The old expectation is intentionally no longer supported.
+def test_malformed_json_store_raises_and_leaves_the_file_intact(tmp_path):
+    """A decodable-but-malformed store must fail LOUDLY rather than degrade to an
+    empty one, and the failed load must leave the original bytes untouched so the
+    operator can still repair them by hand."""
     path = tmp_path / "acc.json"
-    path.write_text("{not valid json", encoding="utf-8")
+    # A trailing comma -- the most common hand-edit error. Still holds the
+    # operator's real, recoverable account names and secrets.
+    original = (
+        '{"rp": {"active": "prod", "accounts": ['
+        '{"name": "prod", "env": {"RP_KEY": "SECRET-PROD-abc123"}},'
+        "]}}"
+    )
+    path.write_text(original, encoding="utf-8")
+    pol = AccountPolicy(platform="rp", mode="env", seed_env=("RP_KEY",), label="RunPod")
+
+    with pytest.raises(accounts.AccountStoreLoadError) as exc:
+        AccountStore(str(path), [pol], environ={"RP_KEY": "envfallback"})
+
+    msg = str(exc.value)
+    assert str(path) in msg  # names the offending file
+    assert "json" in msg.lower()  # names the actual cause
+    assert "git-crypt" not in msg  # correct discrimination, no false blame
+    # The protective property: nothing was rewritten, so the store is still
+    # repairable. Under the old swallow-to-empty behaviour the first mutating op
+    # persisted over exactly these bytes and destroyed them.
+    assert path.read_text(encoding="utf-8") == original
+
+
+def test_malformed_json_error_does_not_leak_store_contents(tmp_path):
+    """The store legitimately holds literal secrets, so the raised message must
+    locate the syntax error WITHOUT echoing any of the file's content."""
+    path = tmp_path / "acc.json"
+    path.write_text(
+        '{"rp": {"accounts": [{"env": {"RP_KEY": "SECRET-DO-NOT-ECHO"}},]}}',
+        encoding="utf-8",
+    )
+    pol = AccountPolicy(platform="rp", mode="env", seed_env=("RP_KEY",), label="RunPod")
+
+    with pytest.raises(accounts.AccountStoreLoadError) as exc:
+        AccountStore(str(path), [pol], environ={})
+
+    msg = str(exc.value)
+    assert "SECRET-DO-NOT-ECHO" not in msg
+    assert "RP_KEY" not in msg
+
+
+def test_non_object_json_store_raises(tmp_path):
+    """Valid JSON that is not an OBJECT (a list/scalar -- e.g. a bad migration)
+    is the same silent-empty class and must raise too, not quietly load empty."""
+    path = tmp_path / "acc.json"
+    path.write_text('[{"name": "prod"}]', encoding="utf-8")
+    pol = AccountPolicy(platform="rp", mode="env", seed_env=("RP_KEY",), label="RunPod")
+
+    with pytest.raises(accounts.AccountStoreLoadError) as exc:
+        AccountStore(str(path), [pol], environ={"RP_KEY": "envfallback"})
+
+    assert str(path) in str(exc.value)
+    assert path.read_text(encoding="utf-8") == '[{"name": "prod"}]'
+
+
+@pytest.mark.parametrize("body", ["", "   \n\t  "])
+def test_empty_store_file_starts_empty_quietly(tmp_path, body):
+    """DELIBERATE TOLERANCE, pinned as intentional: an EMPTY or whitespace-only
+    store is treated like a missing one (quiet first-run), NOT as corruption.
+
+    It holds no accounts, so neither failure mode that justifies raising applies
+    -- there is no configured credential to substitute away and nothing
+    recoverable to overwrite. A zero-byte file is also a plausible bootstrap
+    artifact (``touch``, an interrupted create, a truncating ``New-Item -Force``),
+    so raising on it would be a false alarm with no protective value.
+    """
+    path = tmp_path / "acc.json"
+    path.write_text(body, encoding="utf-8")
     pol = AccountPolicy(platform="rp", mode="env", seed_env=("RP_KEY",), label="RunPod")
     store = AccountStore(str(path), [pol], environ={})
     assert store.handle("rp", "list", {})["accounts"] == []
