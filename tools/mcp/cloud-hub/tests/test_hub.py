@@ -79,6 +79,17 @@ def hub_env(tmp_path):
     ]
     old = hub.CACHE_DIR
     hub.CACHE_DIR = cache_dir
+    # HubServer builds its AccountStore from hub.ACCOUNTS_PATH, which points at the REAL
+    # tools/mcp/cloud-hub/accounts.json. That file is git-crypt encrypted on any checkout
+    # without the key -- including every CI runner -- so the store raises
+    # AccountStoreLoadError and these tests ERROR at setup before asserting anything.
+    # None of the specs below declare an account policy, so an empty store is faithful:
+    # it exercises the same code path without needing (or wanting) real credentials in CI.
+    old_accounts = hub.ACCOUNTS_PATH
+    accounts_path = os.path.join(cache_dir, "accounts.json")
+    with open(accounts_path, "w", encoding="utf-8") as fh:
+        json.dump({}, fh)
+    hub.ACCOUNTS_PATH = accounts_path
     for spec in specs[:2]:
         ok, _n, msg = hub.refresh_backend(spec)
         assert ok, msg
@@ -107,6 +118,7 @@ def hub_env(tmp_path):
         yield server, plan, cap
     finally:
         hub.CACHE_DIR = old
+        hub.ACCOUNTS_PATH = old_accounts
         for backend in server.backends.values():
             backend._terminate()
 
