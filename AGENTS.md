@@ -42,6 +42,19 @@ This repo does not have a single build step. Validate the parts you touch:
 - Keep related doc, script, and skill changes in the same commit only when they support one workflow.
 - PRs should summarize promoted skills or tools, validation commands run, and any new helper scripts or repo docs.
 
+## Cursor Cloud specific instructions
+
+This repo is mostly Markdown skills, but it has three runnable dev surfaces. Standard commands live in `package.json` (npm workspaces), the two Python `pyproject.toml` files, and `README.md` — reference those; only the non-obvious caveats are captured here.
+
+- **Runtimes:** Node 22 + npm 10, Python 3.12. `pwsh`/`uv` are NOT installed (the `validate:skills` npm script needs `pwsh`; skip it or install PowerShell first). No `.cursor/environment.json` — the environment is snapshot-managed.
+- **Node surface (primary app):** `npm install` at the repo root covers all three workspaces (`tools/mcp/codex-orchestrator`, `tools/web/promptbridge-talk-lane`, `tools/fanout-schema`). `npm test` runs every workspace's `node --test` suite. `npm run mcp:serve` starts the `codex-orchestrator` MCP server on **stdio** (not a TCP/HTTP port) — drive it with newline-delimited JSON-RPC (`initialize` → `notifications/initialized` → `tools/list`); it registers 54 tools. The `promptbridge_*`/`agentify_*` tools shell out to a desktop app that is absent here, so those specific tools stay unavailable in cloud — that is expected, not a setup failure.
+- **Node test artifact quirk:** `npm test` (codex-orchestrator) writes to a literal `tools/mcp/codex-orchestrator/C:/Users/Test/...` path on Linux (Windows-first tests). It is a harmless untracked artifact — delete it (`rm -rf "tools/mcp/codex-orchestrator/C:"`); never `git add` it.
+- **Python surfaces:** each Python package uses its own venv (gitignored via a local `.gitignore`). Creating a venv requires the `python3-venv` apt package (installed during setup; captured in the snapshot). Setup per package:
+  - `tools/scholarly-access-mcp` — `python3 -m venv .venv && .venv/bin/pip install -e . pytest`. Run tests with `.venv/bin/python -m pytest -q` (the network `tests/test_live.py` is auto-ignored via `addopts`; run it manually only). `.venv/bin/python list_tools.py` prints the 8-tool surface.
+  - `tools/mcp-manager` — `python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"` (pulls PySide6, ~heavy). Tests enforce 100% branch coverage: `.venv/bin/python -m pytest --cov=. --cov-branch --cov-fail-under=100 -q`. The PySide6/Textual GUI (`app.py`/`ui/`) needs a display, but the CLI runs headless (`.venv/bin/python app.py status|preset list|json`).
+- **Lint:** Python lint gate is ruff **pinned to 0.15.17** (honors `ruff.toml`): `ruff check .` + `ruff format --check .`. Install on demand (`pip install ruff==0.15.17`, or `uvx ruff@0.15.17`). The fan-out schema linter is invoked with file args, as CI does: `cd tools/fanout-schema && npm run lint -- ../../workflows`.
+- **Full quality gate details** (types via basedpyright, SAST, secrets, deps) are in `README.md` and `.github/workflows/quality.yml`.
+
 <!-- AgentBridge:start -->
 ## AgentBridge — Multi-Agent Collaboration
 
