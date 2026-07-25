@@ -332,6 +332,98 @@ jobs:
       - name: gate-tests-coverage codex-databricks-fanout
         run: python -m pytest skills/codex-databricks-fanout/scripts/tests -q
 
+      # ================================ VENDORED TOOL TREES ================================
+      # PR #185 vendored two whole tool trees into the toolkit -- tools/abbyy-finereader-ocr-mcp
+      # (89 tests) and tools/omniaudit-mcp (149 tests) -- and NEITHER was named in ANY of the 7
+      # workflows, so both suites ran in ZERO gates. By this job's own doctrine (see the hookrun
+      # step above) "a suite that is not named here is dead weight that cannot catch a
+      # regression". The two steps below name them. Reuses the existing gate-tests-coverage
+      # charter slug on purpose -- not a new gate, so .quality/charter_check.sh stays consistent
+      # with no charter.yml edit (same precedent as #197's hacktricks step).
+      #
+      # WHY A THROW-AWAY VENV PER TREE AND NOT A BARE `pip install -e .` LIKE THE STEPS ABOVE:
+      # every other step in this job installs into ONE cumulative interpreter. abbyy's pyproject
+      # declares `py-modules = ["index", "engines", "evaluation"]`, so installing it into that
+      # shared interpreter would put three EXTREMELY generic top-level modules on the import path
+      # of every other package's test run here. That is measured, not hypothetical -- after
+      # `pip install -e .` a python started from an unrelated directory resolves:
+      #   index      -> tools/abbyy-finereader-ocr-mcp/index.py
+      #   engines    -> tools/abbyy-finereader-ocr-mcp/engines.py
+      #   evaluation -> tools/abbyy-finereader-ocr-mcp/evaluation.py
+      # Each tree therefore installs into its OWN venv under $RUNNER_TEMP -- outside the
+      # checkout, so it cannot be collected by pytest or picked up by the lint/sast jobs -- and
+      # the isolation step below fails the gate if the shared interpreter is ever polluted.
+      #
+      # Both are gated at the repo's full 100% line+branch bar. MEASURED before choosing that
+      # threshold (not assumed): omniaudit 149 passed -> 1518 stmts / 312 branches / 100% on
+      # python 3.11.9; abbyy 86 passed + 3 skipped -> 452 stmts / 120 branches / 100% on python
+      # 3.12.10. abbyy's 3 skips are its live-OCR smoke tests, skipped BY CONSTRUCTION unless
+      # OCR_MCP_LIVE=1 with a real rapidocr install, so the 100% is reached without them.
+      #
+      # omniaudit ships a 5-service docker compose stack (postgres/redis/minio + api/worker) and
+      # NONE of it is started here: tests/conftest.py builds a sqlite engine in tmp_path, so the
+      # suite is self-contained. Its `sitelint` extra (playwright browser) and
+      # scripts/smoke_hardening_pass2.sh (live HTTP against a running stack) stay OUT of the
+      # gate -- they need a browser / a live service, which this lean gate deliberately has not.
+      - name: gate-tests-coverage omniaudit-mcp (vendored; isolated venv)
+        working-directory: tools/omniaudit-mcp
+        run: |
+          python -m venv "$RUNNER_TEMP/venv-omniaudit"
+          "$RUNNER_TEMP/venv-omniaudit/bin/python" -m pip install -e ".[test]"
+          "$RUNNER_TEMP/venv-omniaudit/bin/python" -m pytest \
+            --cov=packages/omniaudit --cov=apps --cov=services --cov-branch \
+            --cov-report=term-missing --cov-fail-under=100
+
+      # The both-states-verified guard for the venv isolation above. `shell: python` runs the
+      # script from a temp directory, so the repo checkout is NOT on sys.path and only a real
+      # site-packages/editable install can match -- and it runs on THIS job's shared 3.11
+      # interpreter, i.e. exactly the environment every step above installed into. Verified in
+      # BOTH states (rules/common/single-signal-verification.md): with abbyy editable-installed
+      # it exits 1 and prints the three origins; without it, exit 0 -- so its silence means
+      # something. `shell: python` also matches no-runtime-junk.yml's rationale (no CRLF-in-bash
+      # exposure on this Windows-authored repo). Deliberately NOT a `gate-<slug>` step name so
+      # charter_check.sh's reverse check ignores it, same as the monitorcore vendor-drift step.
+      # ORDERING CONTRACT: this must stay AFTER every step that installs into the shared 3.11
+      # interpreter and BEFORE the 3.12 setup below (which repoints `python` for later steps).
+      - name: vendored-tree import isolation (shared interpreter stays clean)
+        shell: python
+        run: |
+          import importlib.util
+          import sys
+
+          GENERIC = ("index", "engines", "evaluation")
+          leaked = []
+          for name in GENERIC:
+              spec = importlib.util.find_spec(name)
+              if spec is not None:
+                  leaked.append(f"{name} -> {spec.origin}")
+
+          if leaked:
+              print("Vendored generic top-level modules leaked into the SHARED interpreter:")
+              for entry in leaked:
+                  print(f"  {entry}")
+              print("Install that tree into its own venv (see the steps above), not this env.")
+              sys.exit(1)
+          print(f"OK: shared interpreter is clean of {GENERIC}.")
+
+      # abbyy declares `requires-python = ">=3.12"`, so pip REFUSES to install it on this job's
+      # 3.11 ("requires a different Python"). It gets its own pinned interpreter, referenced
+      # through `outputs.python-path` rather than PATH so nothing above is affected. KEEP THE
+      # abbyy STEP LAST in this job -- this action repoints the default `python` to 3.12.
+      - name: setup python 3.12 for the vendored abbyy tree
+        id: py312
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+      - name: gate-tests-coverage abbyy-finereader-ocr-mcp (vendored; isolated venv)
+        working-directory: tools/abbyy-finereader-ocr-mcp
+        run: |
+          "${{ steps.py312.outputs.python-path }}" -m venv "$RUNNER_TEMP/venv-abbyy"
+          "$RUNNER_TEMP/venv-abbyy/bin/python" -m pip install -e ".[test]"
+          "$RUNNER_TEMP/venv-abbyy/bin/python" -m pytest \
+            --cov=index --cov=engines --cov=evaluation --cov-branch \
+            --cov-report=term-missing --cov-fail-under=100
+
   sast:
     name: gate-sast (opengrep)
     runs-on: ubuntu-latest
