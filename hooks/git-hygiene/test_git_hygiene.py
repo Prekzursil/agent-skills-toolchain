@@ -544,6 +544,106 @@ class TestMessage:
     def test_no_message_when_everything_is_clean(self):
         assert check.build_message([], []) is None
 
+    # ---- the repo half's truncation FLOOR ---------------------------------------------
+    # The repo half is the ONLY section whose height scales with the finding count, and it
+    # is assembled ABOVE the docs names and the advisory footer. Without a budget it eats
+    # the MAX_LINES cap and the final lines[:MAX_LINES] silently amputates whatever sits
+    # below it. Measured on 2a748d9 (pre-fix): 50 repos + both coverage areas + a full docs
+    # report emitted exactly 20 lines, and the 4 that fell off the bottom were the 3
+    # `stale file:` NAMES and the "Advisory only -- nothing is blocked" footer.
+    @staticmethod
+    def _verdicts(n):
+        return [
+            check.Verdict(
+                path=f"/c/r{i}",
+                name=f"repo-{i}",
+                ownership=check.YOURS,
+                report=True,
+                severity=check.SEV_DIRTY,
+                detail=f"{i + 1} uncommitted file(s)",
+                action="commit or stash",
+            )
+            for i in range(n)
+        ]
+
+    @staticmethod
+    def _drift():
+        return [
+            check.DriftReport(
+                area="skills",
+                live_only=9,
+                differing=0,
+                actionable=9,
+                scanned=9,
+                truncated=True,
+            )
+        ]
+
+    @staticmethod
+    def _covs():
+        return [
+            check.CoverageReport(
+                area="skills",
+                missing=7,
+                names=tuple(f"skill{i}" for i in range(6)),
+                total_names=7,
+            ),
+            check.CoverageReport(
+                area="mcp",
+                missing=5,
+                names=tuple(f"srv{i}" for i in range(5)),
+                total_names=5,
+            ),
+        ]
+
+    @staticmethod
+    def _docs(n_examples=3):
+        """A docs report at the PRODUCER's shape: scan_docs_hygiene caps both example
+        tuples at [:3] (check.py:848-849), so 3 is the real worst case."""
+        return check.DocsReport(
+            broken_links=n_examples,
+            cruft_files=n_examples,
+            scanned=100,
+            truncated=True,
+            link_examples=tuple(f"doc{i}.md -> gone{i}.md" for i in range(n_examples)),
+            cruft_examples=tuple(f"leftover{i}.bak" for i in range(n_examples)),
+        )
+
+    def test_a_long_repo_list_cannot_squeeze_the_later_sections_to_nothing(self):
+        msg = check.build_message(
+            self._verdicts(50), self._drift(), self._docs(), self._covs()
+        )
+        assert msg
+        assert len(msg.splitlines()) <= check.MAX_LINES
+        # The docs half's NAMES are the actionable payload -- a bare count cannot be acted
+        # on, so losing them is losing the finding.
+        assert "stale file:" in msg, (
+            "the repo half squeezed the docs half's name-bearing lines out of the message"
+        )
+        assert "broken link:" in msg
+        # The advisory footer is what tells the reader nothing is blocked.
+        assert "Advisory only" in msg, "the repo half squeezed out the advisory footer"
+        # ...and the repo half must STILL disclose what it suppressed.
+        assert "... and" in msg, "silent truncation: the suppressed repo count is gone"
+
+    def test_repo_half_keeps_a_floor_of_rows_when_the_later_sections_are_large(self):
+        """The mirror of the defect above: the budget must never starve the repo half to
+        nothing (nor reach the slice as a NEGATIVE index, which would silently keep the
+        wrong rows and print a nonsense suppressed-count)."""
+        msg = check.build_message(
+            self._verdicts(50), self._drift(), self._docs(8), self._covs()
+        )
+        assert msg
+        rows = [ln for ln in msg.splitlines() if ln.startswith("  [")]
+        assert len(rows) >= check.MIN_ROWS, (
+            f"repo half kept {len(rows)} row(s), below the MIN_ROWS floor"
+        )
+        assert "... and" in msg, "silent truncation: the suppressed repo count is gone"
+        suppressed = [ln for ln in msg.splitlines() if "... and" in ln]
+        assert f"{50 - len(rows)} more" in suppressed[0], (
+            f"suppressed count does not match the rows shown: {suppressed[0]!r}"
+        )
+
 
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-v"]))
