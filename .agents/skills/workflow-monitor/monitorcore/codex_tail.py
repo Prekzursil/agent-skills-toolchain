@@ -95,6 +95,19 @@ def _keep(value: object, current: str, scrub: Scrub) -> str:
     return scrub(str(value)) if value else current
 
 
+def _keep_id(value: object, current: str) -> str:
+    """Like :func:`_keep` but for an OPAQUE identifier: control-strip only, never redact.
+
+    A thread/session id is a structural identifier, not free-text prose. It needs
+    terminal-safety — no ESC/BEL/OSC byte reaching ``short_id()`` → ``name()`` →
+    :func:`board_line` and the UNCLIPPED ``render_native`` — but NOT secret-redaction:
+    :func:`redact` masks nothing in an id and could corrupt a legitimate id that happened
+    to collide with a token pattern. Falsy ``value`` keeps ``current`` (the ``or``-fallback),
+    so the assignment is idempotent when the id is absent. NOT the injectable ``scrub`` seam
+    by design — an id is control-stripped unconditionally, never redaction-mangled."""
+    return strip_controls(str(value)) if value else current
+
+
 # ---------------------------------------------------------------------------
 # Pure formatting helpers (ANSI-free)
 # ---------------------------------------------------------------------------
@@ -312,7 +325,7 @@ def parse_stream_line(
             th.start_ts = float(st)
         return
     if t == "thread.started":
-        th.tid = str(obj.get("thread_id") or th.tid)
+        th.tid = _keep_id(obj.get("thread_id"), th.tid)
         if th.start_ts is None:
             th.start_ts = now
         return
@@ -394,7 +407,7 @@ def parse_rollout_line(th: CodexThread, obj: dict, *, scrub: Scrub = _scrub) -> 
         th.model = scrub(m)
 
     if ttl == "session_meta":
-        th.tid = str(p.get("session_id") or th.tid)
+        th.tid = _keep_id(p.get("session_id"), th.tid)
         th.cwd = _keep(p.get("cwd"), th.cwd, scrub)
         if th.start_ts is None:
             th.start_ts = parse_iso(p.get("timestamp", "")) or lts

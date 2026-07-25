@@ -40,6 +40,7 @@ from .codex_tail import (
 from .contract import Alert, Snapshot, SourceState
 from .redact import redact
 from .report_doc import ReportDoc, Section
+from .textsafe import strip_controls
 from .timeline import TimelineEvent
 
 _ID = "codexmon"
@@ -96,8 +97,15 @@ class CodexPayload:
 
 
 def _redact(text: str) -> str:
-    """Mask secrets / collapse home paths, returning just the scrubbed text."""
-    return redact(text, enabled=True)[0]
+    """Strip control bytes, THEN mask secrets / collapse home paths (fail-closed).
+
+    Control bytes are removed FIRST so redaction sees de-obfuscated text and no ESC/BEL/OSC
+    byte survives into the composed ``headline`` / ``alert`` strings the cockpit prints — the
+    same fail-closed floor :func:`monitorcore.codex_tail._scrub` applies at ingest. (This
+    adapter previously only redacted, so a control-laden exception string could reach the
+    terminal via the unclipped ``render_native`` headline fallback and the alert rail.)
+    """
+    return redact(strip_controls(text), enabled=True)[0]
 
 
 class CodexSource:

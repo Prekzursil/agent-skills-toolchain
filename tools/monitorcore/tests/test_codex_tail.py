@@ -299,6 +299,19 @@ def test_stream_thread_started_sets_tid_once():
     assert th.start_ts == NOW  # start_ts not overwritten
 
 
+def test_stream_thread_started_strips_control_bytes_from_tid():
+    """SECURITY (escape-injection blast radius): a ``thread_id`` carrying ESC/BEL/OSC-8 is
+    control-stripped at ingest, like every other free-text field. ``tid`` flows into
+    ``short_id()``/``name()``/``board_line`` and the UNCLIPPED ``render_native``, so a raw
+    escape here would otherwise reach the operator's terminal."""
+    th = _thread()
+    evil = "\x1b[31m\x1b]8;;http://evil\x07x\x1b]8;;\x07"
+    ct.parse_stream_line(th, {"type": "thread.started", "thread_id": evil}, NOW)
+    assert "\x1b" not in th.tid and "\x07" not in th.tid
+    assert "\x1b]" not in th.tid  # no OSC introducer survives
+    assert "evil" in th.tid  # printable payload retained → stripped, not dropped
+
+
 def test_stream_turn_started_counts():
     th = _thread()
     ct.parse_stream_line(th, {"type": "turn.started"}, NOW)
@@ -519,6 +532,17 @@ def test_rollout_session_meta_full_and_repeat():
     assert th.tid == "sid-1"
     assert th.start_ts == first_start
     assert th.ctx_window == 1000
+
+
+def test_rollout_session_meta_strips_control_bytes_from_tid():
+    """SECURITY (escape-injection blast radius): a ``session_id`` carrying ESC/BEL/OSC-8 is
+    control-stripped at ingest so no escape reaches ``board_line``/``render_native``."""
+    th = _thread(source="rollout")
+    evil = "\x1b[31m\x1b]8;;http://evil\x07x\x1b]8;;\x07"
+    ct.parse_rollout_line(th, _roll("session_meta", {"session_id": evil}))
+    assert "\x1b" not in th.tid and "\x07" not in th.tid
+    assert "\x1b]" not in th.tid  # no OSC introducer survives
+    assert "evil" in th.tid  # printable payload retained → stripped, not dropped
 
 
 def test_rollout_session_meta_start_fallbacks():
@@ -990,6 +1014,18 @@ def test_board_line_full_and_minimal():
     assert ct.board_line(minimal, NOW) == (
         "? [WEIRD] ?  stream  --:-- elapsed · --:-- idle  0 tok · 0 turns · 0 tools"
     )
+
+
+def test_board_line_control_free_when_tid_carries_escape():
+    """SECURITY: ``render_native`` joins ``board_line`` output UNCLIPPED, so a control-laden
+    ``tid`` (scrubbed at ingest) must yield an escape-free board line — no ESC / BEL / OSC."""
+    th = _thread()  # label/cwd default empty → name() falls back to short_id() → tid
+    evil = "\x1b[31m\x1b]8;;http://evil\x07x\x1b]8;;\x07"
+    ct.parse_stream_line(th, {"type": "thread.started", "thread_id": evil}, NOW)
+    line = ct.board_line(th, NOW)
+    assert "\x1b" not in line
+    assert "\x1b]" not in line  # no OSC introducer reaches the terminal
+    assert "\x07" not in line
 
 
 def test_board_line_ctx_over_window_surfaces_suspect():
