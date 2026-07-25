@@ -15,11 +15,19 @@ class AuthStatus(str, Enum):
     CONNECTED = "connected"
     NEEDS_AUTH = "needs_auth"
     FAILED = "failed"
+    # Deliberately switched off by curation (disabledMcpServers) — an intentional
+    # state, NOT a health failure.  Never derived from a handshake glyph.
+    DISABLED = "disabled"
     UNKNOWN = "unknown"
 
     @classmethod
     def from_glyph(cls, glyph: str) -> "AuthStatus":
-        """Map the glyphs printed by 'claude mcp list' to an AuthStatus."""
+        """Map the glyphs printed by 'claude mcp list' to an AuthStatus.
+
+        'claude mcp list' reports handshake health only; it has no disabled
+        glyph, so DISABLED is never produced here — it is applied by
+        claude_adapter.reconcile_enabled from the disabled set.
+        """
         g = glyph.strip()
         if g in ("✔",):
             return cls.CONNECTED
@@ -47,6 +55,18 @@ class ServerRow:
     def duplicated(self) -> bool:
         return len(set(self.planes)) > 1
 
+    @property
+    def dead(self) -> bool:
+        """True only for an ENABLED server whose handshake FAILED.
+
+        The single honest answer to "is this server broken?".  A server the
+        owner deliberately disabled is never dead — reporting intentional
+        curation as breakage is a false alarm that trains the owner to ignore
+        the detector.  Guarding on `enabled` also covers the cross-plane case
+        where another plane disabled a row whose status is still FAILED.
+        """
+        return self.enabled and self.status == AuthStatus.FAILED
+
     def to_dict(self) -> dict[str, object]:
         return {
             "id": self.id,
@@ -57,6 +77,7 @@ class ServerRow:
             "auth": self.auth,
             "command": self.command,
             "duplicated": self.duplicated,
+            "dead": self.dead,
         }
 
 
