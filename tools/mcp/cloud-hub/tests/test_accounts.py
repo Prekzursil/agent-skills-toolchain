@@ -118,6 +118,79 @@ def test_switch_unknown_account_errors(tmp_path):
 
 
 # --------------------------------------------------------------------------- #
+# store-load failures: a git-crypt-LOCKED or otherwise undecodable accounts.json
+# must fail LOUDLY and name its remedy -- never degrade to an EMPTY store, which
+# would silently disable the whole rotation pool.
+# --------------------------------------------------------------------------- #
+GITCRYPT_MAGIC = b"\x00GITCRYPT\x00"
+
+
+def test_gitcrypt_locked_store_raises_naming_gitcrypt_and_remedy(tmp_path):
+    """A tracked, git-crypt-ENCRYPTED accounts.json (the state of any worktree
+    where git-crypt was never unlocked) must raise an error that names git-crypt,
+    the offending path, and the unlock remedy -- not a raw UnicodeDecodeError."""
+    path = tmp_path / "acc.json"
+    # Byte-for-byte the real git-crypt header: 10-byte magic then the nonce, so
+    # the first non-UTF-8 byte lands at position 10 exactly as in production.
+    path.write_bytes(GITCRYPT_MAGIC + b"\xe95~\xd5=\xc3!q\xb3\xa4\xfegj\x1a")
+    pol = AccountPolicy(platform="rp", mode="env", seed_env=("RP_KEY",), label="RunPod")
+
+    with pytest.raises(accounts.AccountStoreLoadError) as exc:
+        AccountStore(str(path), [pol], environ={"RP_KEY": "s"})
+
+    msg = str(exc.value)
+    assert "git-crypt" in msg  # names the actual cause
+    assert str(path) in msg  # names the offending file
+    assert "unlock" in msg.lower()  # states the remedy
+
+
+def test_undecodable_non_gitcrypt_store_raises_without_blaming_gitcrypt(tmp_path):
+    """A genuinely corrupt (non-UTF-8) store must ALSO fail loudly and clearly,
+    but must NOT misattribute the corruption to git-crypt."""
+    path = tmp_path / "acc.json"
+    path.write_bytes(b"\x89PNG\r\n\x1a\n\xff\xd8corrupt-not-json")
+    pol = AccountPolicy(platform="rp", mode="env", seed_env=("RP_KEY",), label="RunPod")
+
+    with pytest.raises(accounts.AccountStoreLoadError) as exc:
+        AccountStore(str(path), [pol], environ={"RP_KEY": "s"})
+
+    msg = str(exc.value)
+    assert "git-crypt" not in msg  # correct discrimination, no false blame
+    assert str(path) in msg
+    assert "utf-8" in msg.lower()
+
+
+def test_valid_store_loads_unchanged(tmp_path):
+    """(c) A valid store keeps loading exactly as before."""
+    path = tmp_path / "acc.json"
+    path.write_text(
+        json.dumps({"rp": {"active": "alt", "accounts": [{"name": "alt"}]}}),
+        encoding="utf-8",
+    )
+    pol = AccountPolicy(platform="rp", mode="env", seed_env=("RP_KEY",), label="RunPod")
+    store = AccountStore(str(path), [pol], environ={"RP_KEY": "s"})
+    assert store.handle("rp", "list", {})["accounts"] == ["alt"]
+
+
+def test_missing_store_still_starts_empty(tmp_path):
+    """(d) A MISSING store is the normal first-run case and must stay silent --
+    only an unreadable/undecodable one is loud."""
+    pol = AccountPolicy(platform="rp", mode="env", seed_env=("RP_KEY",), label="RunPod")
+    store = AccountStore(str(tmp_path / "nope.json"), [pol], environ={})
+    assert store.handle("rp", "list", {})["accounts"] == []
+
+
+def test_invalid_json_behaviour_unchanged(tmp_path):
+    """Pins the blast radius: decodable-but-malformed JSON keeps its PRE-EXISTING
+    swallow-to-empty behaviour. Only the decode path changed."""
+    path = tmp_path / "acc.json"
+    path.write_text("{not valid json", encoding="utf-8")
+    pol = AccountPolicy(platform="rp", mode="env", seed_env=("RP_KEY",), label="RunPod")
+    store = AccountStore(str(path), [pol], environ={})
+    assert store.handle("rp", "list", {})["accounts"] == []
+
+
+# --------------------------------------------------------------------------- #
 # cli-mode (Azure / gcloud) via a MOCK runner -- no real CLI state touched
 # --------------------------------------------------------------------------- #
 class _MockCli:
