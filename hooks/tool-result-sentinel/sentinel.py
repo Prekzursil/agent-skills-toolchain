@@ -230,13 +230,12 @@ def _structural_failed(resp) -> tuple[bool, str]:
                 return True, f"http {iv}"
         except (TypeError, ValueError):
             pass
-    # numeric exit/return codes
+    # numeric exit/return codes. These key names are UNAMBIGUOUS process statuses.
     for key in (
         "exit_code",
         "exitCode",
         "returncode",
         "return_code",
-        "code",
     ):
         val = resp.get(key)
         if val is not None:
@@ -247,6 +246,22 @@ def _structural_failed(resp) -> tuple[bool, str]:
                 return False, ""  # explicit success exit code -> trust it
             except (TypeError, ValueError):
                 pass
+    # `code` is AMBIGUOUS: an HTTP client puts a STATUS there, a process an exit
+    # status. Read as an exit code it inverts every successful fetch -- measured
+    # 2026-07-24: WebFetch calls returning HTTP 200 with correct content were
+    # reported `FAILED (exit code 200)`. 200-399 is an HTTP success/redirect and is
+    # semantically meaningless as an exit status, so that band is NOT a failure;
+    # 1-199 and >=400 fail under both readings (127/130/137 stay caught) and still
+    # fire. Deliberately does NOT return early: a benign `code` must not mask the
+    # isError / interrupted / error signals below (the both-states rule).
+    raw_code = resp.get("code")
+    if raw_code is not None:
+        try:
+            iv = int(raw_code)
+        except (TypeError, ValueError):
+            iv = 0
+        if iv != 0 and not (200 <= iv <= 399):
+            return True, f"exit code {iv}"
     if resp.get("isError") is True or resp.get("is_error") is True:
         return True, "isError=true"
     if resp.get("interrupted") is True:
@@ -276,13 +291,24 @@ def _infra_hit(text: str, tool_name: str = ""):
 
     Two stages of the shared use-vs-mention rule, in order:
 
-    1. JSON payload -> scan its string VALUES only. A field NAME mentions a condition;
-       it never reports one. Measured: `"user_cancelled_or_timedout": false` on a
-       RUNNING Databricks job was classified FAILED because the KEY matched
-       /tim(ed|e)-?out/, telling me to discard a live, successful probe.
-    2. remaining text -> prose rules. A phrase inside `backticks`, a fenced block, a
-       table cell, or a negated sentence is a MENTION. Measured: reading the memory note
-       that DOCUMENTS this defect fired it, because an accurate write-up must quote the
+    1. STRUCTURAL -- a parseable JSON payload is reduced to its string VALUES. A field
+       NAME mentions a condition; it never reports one. Measured:
+       `"user_cancelled_or_timedout": false` on a RUNNING Databricks job was classified
+       FAILED because the KEY matched /tim(ed|e)-?out/, telling me to discard a live,
+       successful probe.
+    2. LEXICAL -- whatever surface remains is judged with `kind="result"`, which
+       suppresses a match inside a quoted field NAME, a CLOSED fenced example, an
+       inline `code span`, or a negated sentence. Stage 2 exists because stage 1 only
+       holds while the payload PARSES, and two measured fires got around it:
+         * this function receives text already capped at 8,000 chars by
+           `_gather_text`, so a real 14,060-char `dbx_run_get` body is truncated, stops
+           parsing, and every field name returns to the scan surface -- which is why
+           the defect kept firing 3x in one session after stage 1 shipped;
+         * a github `get_file_contents` that SUCCEEDED (valid blob sha + full markdown)
+           was flagged `timeout` because the FETCHED DOCUMENT held a config example
+           `"timeout": 100000`. A returned document is DATA; only a status reports.
+       It also still covers the original stage-2 fire: reading the memory note that
+       DOCUMENTS this defect fired it, because an accurate write-up must quote the
        trigger phrase -- the guard suppresses its own bug report.
 
     Both stages live in hooks/_shared/use_vs_mention.py so every guard shares ONE
@@ -302,15 +328,8 @@ def _infra_hit(text: str, tool_name: str = ""):
 
         values = json_value_text(text)
         surface = text if values is None else values
-        # NON-prose context on purpose. The prose ruleset requires a match to sit inside
-        # a fenced block, which is right for a TODO marker and WRONG here: a genuine
-        # error message is unfenced prose. Measured -- forcing prose mode silenced ALL
-        # FOUR positive controls plus the existing suite's "could not connect" case,
-        # i.e. it traded false alarms for total blindness, a strictly worse failure.
-        # The non-prose branch suppresses exactly the two mention forms that bit us:
-        # a phrase in `backticks` and a negated sentence.
         ctx = Context(tool_name=tool_name)
-        real = find_real(surface, _INFRA_FAIL, ctx, kind="marker")
+        real = find_real(surface, _INFRA_FAIL, ctx, kind="result")
         return real[0] if real else None
     except Exception:  # noqa: BLE001 - fail-open to the old behaviour
         m = _INFRA_FAIL.search(text)

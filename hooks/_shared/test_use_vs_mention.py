@@ -211,6 +211,115 @@ class TestShellQuoting:
 # --------------------------------------------------------------------------
 
 
+class TestResultKind:
+    """kind="result" — the value-not-key judge for a TOOL RESULT payload.
+
+    Closes the corpus GAP recorded as RES-FP-fieldname / RES-TP-failvalue
+    ("the discriminator has no 'result' kind ... needs a value-not-key judge").
+
+    `json_value_text()` already drops field NAMES structurally, but only while the
+    whole payload parses. A payload truncated by a caller's size cap, or a JSON/YAML
+    document embedded inside a returned string, falls back to a flat-text scan where
+    the key is visible again — so the rule also has to hold LEXICALLY.
+    """
+
+    RESULT_CTX = Context(tool_name="PostToolUse", file_path="", source="file")
+
+    def test_quoted_json_key_is_a_mention(self):
+        """The recorded Databricks fire, reached via the raw-text fallback."""
+        raw = '{"state": {"life_cycle_state": "RUNNING", "user_cancelled_or_timedout": false'
+        assert not _judge(raw, "timedout", self.RESULT_CTX, "result")
+
+    def test_quoted_key_truncated_at_the_closing_quote_is_a_mention(self):
+        """Truncation can cut the payload right after the key's closing quote."""
+        raw = '{"data": {"user_cancelled_or_timedout"'
+        assert not _judge(raw, "timedout", self.RESULT_CTX, "result")
+
+    def test_embedded_config_key_in_a_returned_document_is_a_mention(self):
+        """The recorded github get_file_contents fire: `"timeout": 100000`."""
+        doc = 'Set the budget:\n{\n  "timeout": 100000\n}\n'
+        assert not _judge(doc, "timeout", self.RESULT_CTX, "result")
+
+    def test_same_word_as_a_VALUE_is_a_real_occurrence(self):
+        """The discriminating control: key-vs-value is the ONLY difference."""
+        raw = '{"state": {"result_state": "TIMEDOUT"}}'
+        assert _judge(raw, "TIMEDOUT", self.RESULT_CTX, "result")
+
+    def test_multiword_phrase_is_never_read_as_a_key(self):
+        raw = '{"detail": "timed out waiting for the server"}'
+        assert _judge(raw, "timed out", self.RESULT_CTX, "result")
+
+    def test_unquoted_word_before_a_colon_is_NOT_treated_as_a_key(self):
+        """Quoted keys ONLY. An error message is commonly `Timeout: <cause>`, so an
+        unquoted-key rule would silence a genuine report. Residual, disclosed: a bare
+        YAML key (`timeout: 30`) in a result body is therefore still scanned.
+
+        Both spellings are asserted because the `lo == 0` arm of the quote test is
+        only reachable at index 0: a mutation that relaxed just that arm SURVIVED the
+        first version of this test, since the closer-matches-opener check happened to
+        keep the verdict right. The mid-string spelling is what actually pins the
+        quoted-only design.
+        """
+        assert _judge(
+            "Timeout: the server never answered", "Timeout", self.RESULT_CTX, "result"
+        )
+        raw = "probe result -- Timeout: the server never answered"
+        assert _judge(raw, "Timeout", self.RESULT_CTX, "result")
+
+    def test_fenced_example_in_a_returned_document_is_a_mention(self):
+        doc = "You will see:\n\n```console\ncurl: (28) Operation timed out\n```\n\nRetry.\n"
+        assert not _judge(doc, "timed out", self.RESULT_CTX, "result")
+
+    def test_error_after_a_closed_fence_still_fires(self):
+        """Guard against a fence parser that swallows the tail of the payload."""
+        doc = "Doc:\n```json\n{}\n```\nMCP error -32000: server is not responding"
+        assert _judge(doc, "MCP error", self.RESULT_CTX, "result")
+
+    def test_unclosed_fence_does_NOT_swallow_a_later_real_error(self):
+        """A truncated document leaves an UNCLOSED fence. Suppressing to EOF there
+        would silence every real error after it, so only CLOSED fences count."""
+        doc = 'Doc:\n```json\n{\n  "retries": 3\nconnection refused by the server'
+        assert _judge(doc, "connection refused", self.RESULT_CTX, "result")
+
+    def test_inline_code_span_is_a_mention(self):
+        doc = "the field `user_cancelled_or_timedout` is False on a running job"
+        assert not _judge(doc, "timedout", self.RESULT_CTX, "result")
+
+    def test_negated_sentence_is_a_mention(self):
+        doc = "Nothing failed and no connection timed out here."
+        assert not _judge(doc, "timed out", self.RESULT_CTX, "result")
+
+    def test_negation_window_does_not_reach_a_previous_line(self):
+        """A negation cue 2 lines up in a serialized payload has no bearing on this
+        report; an unbounded window would silence real failures in long payloads."""
+        doc = 'no retries configured\nrun_id 1011848026466066\n"error": "connection refused"'
+        assert _judge(doc, "connection refused", self.RESULT_CTX, "result")
+
+    def test_negation_window_is_bounded_in_a_NEWLINE_FREE_payload(self):
+        """The case the previous test cannot reach, and the one that actually bites.
+
+        A truncated JSON payload is ONE long line with no sentence terminator, so the
+        sentence-start clamp degenerates to offset 0 and an unbounded window spans the
+        whole blob. A single ordinary `not` anywhere upstream would then silence every
+        genuine failure in the payload. Realistic: Databricks emits
+        `"state_message": "Cluster not available yet"` while the same body carries the
+        real transport error.
+        """
+        pad = ", ".join(f'"task_{i:02d}": "unit_{i:02d}_running"' for i in range(12))
+        blob = (
+            '{"state_message": "Cluster not available yet", '
+            + pad
+            + ', "error": "connection refused"}'
+        )
+        assert blob.count("\n") == 0, "premise: the payload must be a single line"
+        idx = blob.index("connection refused")
+        assert idx - blob.index("not available") > 200, "cue must be outside the window"
+        assert _judge(blob, "connection refused", self.RESULT_CTX, "result")
+
+    def test_result_kind_fails_open_on_a_malformed_span(self):
+        assert is_real_occurrence("short", (900, 950), self.RESULT_CTX, kind="result")
+
+
 class TestFindReal:
     def test_filters_mentions_and_keeps_uses_in_one_document(self):
         body = (
