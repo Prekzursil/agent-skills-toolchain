@@ -10,11 +10,17 @@ Write-path secret gate (AGENTS.md §9)
 Before the linter runs, the changed file is scanned for high-confidence
 hardcoded-credential shapes (AWS access key IDs, PEM/PGP private-key armor,
 OpenAI / GitHub / Slack / Google / Stripe keys).  A match blocks the write
-with exit 2 — the reason names the credential TYPE and line number and never
-echoes the matched bytes.  A credential-shaped string is treated as a
-placeholder (and allowed) when a marker such as ``EXAMPLE`` or ``YOUR_KEY``
-appears on the same line WITHIN 24 characters of the match; a marker further
-away is incidental prose and does not exempt.
+under a four-part contract: exit 2, the reason on stderr, stdout clean, and
+the reason names the credential TYPE and line number without ever echoing the
+matched bytes.  All four are asserted by
+``test_secrets.py::test_main_blocks_secret_write``, and each was verified by
+inverting it in this file and confirming the suite goes red.  The no-echo part
+is the load-bearing one: this hook's stderr is injected into agent context, so
+a reason that quoted the offending text would print the very credential it
+caught.  A credential-shaped string is treated as a placeholder (and allowed)
+when a marker such as ``EXAMPLE`` or ``YOUR_KEY`` appears on the same line
+WITHIN 24 characters of the match; a marker further away is incidental prose
+and does not exempt.
 
 Unlike the linter the secret gate is NOT skipped for scratchpad/temp paths —
 a credential written there still lands on disk.  It is skipped for files over

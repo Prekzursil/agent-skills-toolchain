@@ -160,6 +160,10 @@ def test_main_blocks_secret_write(tmp_path):
     assert rc == 2, "a hardcoded-secret write must block (exit 2)"
     assert out.strip() == "", "exit 2 -> stdout clean, reason on stderr"
     assert "BLOCKED" in err
+    # The block reason must NEVER echo the matched bytes. This hook's stderr is
+    # injected into agent context, so a reason that quotes "the offending text
+    # to be helpful" would print the very credential it caught.
+    assert FAKE_AWS not in err, "block reason must not echo the matched credential"
 
 
 def test_main_opt_out_allows_secret(tmp_path):
