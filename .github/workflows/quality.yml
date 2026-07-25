@@ -332,6 +332,23 @@ jobs:
       - name: gate-tests-coverage codex-databricks-fanout
         run: python -m pytest skills/codex-databricks-fanout/scripts/tests -q
 
+      # skills/workflow-authoring -- the saved-Workflow static linter (workflow_lint.py).
+      # It HARD-FAILs on the determinism-breakers (Date.now / Math.random / argless
+      # new Date(), a non-literal `export const meta`) and WARNs on the args-as-string /
+      # missing-schema / missing-filter(Boolean) footguns from SKILL.md. Stdlib-only, so
+      # only pytest+pytest-cov are installed; the module is pure logic (the file walk is the
+      # only I/O and is exercised through tmp_path), so it is 100% line+branch gated. Named
+      # explicitly like the skill suites above -- there is no repo-wide pytest autodiscovery,
+      # so an unnamed suite is dead weight. Reuses the gate-tests-coverage charter slug on
+      # purpose (not a new gate), so .quality/charter_check.sh stays consistent with no
+      # charter.yml edit. The byte-identical dual-write copy under .agents/skills/ is policed
+      # by the skill-dual-write workflow's strict-parity check, not re-run here.
+      - name: gate-tests-coverage workflow-authoring lint
+        working-directory: skills/workflow-authoring/scripts
+        run: |
+          pip install pytest pytest-cov
+          pytest --cov=workflow_lint --cov-branch --cov-report=term-missing --cov-fail-under=100
+
       # ================================ VENDORED TOOL TREES ================================
       # PR #185 vendored two whole tool trees into the toolkit -- tools/abbyy-finereader-ocr-mcp
       # (89 tests) and tools/omniaudit-mcp (149 tests) -- and NEITHER was named in ANY of the 7

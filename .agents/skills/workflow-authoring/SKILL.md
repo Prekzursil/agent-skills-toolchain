@@ -315,6 +315,83 @@ JS with §1–§12 above; reach for the template only to govern an entire run.
 
 ---
 
+## Lint your workflow
+
+Before saving, run the bundled static linter over your workflow file(s):
+
+```bash
+python skills/workflow-authoring/scripts/workflow_lint.py ~/.claude/workflows/my-wf.mjs
+python skills/workflow-authoring/scripts/workflow_lint.py ~/.claude/workflows   # or a whole dir
+```
+
+It **HARD-FAILS** (non-zero exit) on the determinism-breakers that silently corrupt resume + the
+prompt cache, and **WARNS** on the recorded footguns — every check maps to a rule above:
+
+| level | check | rule |
+|---|---|---|
+| ERROR | `no-date-now` · `no-math-random` · `no-argless-new-date` | 3 — banned non-determinism (`Date.now()` / `Math.random()` / argless `new Date()`) |
+| ERROR | `meta-missing` · `meta-not-object` · `meta-not-literal` | 1 + 8 — a pure-literal `export const meta` |
+| WARN  | `args-parse-if-string` | 2 — `args.<field>` with no parse-if-string guard |
+| WARN  | `agent-schema` | 7 — an `agent()` fan-in with no `schema:` option |
+| WARN  | `parallel-filter-boolean` | 5 — a `parallel()` result not passed through `.filter(Boolean)` |
+
+`--strict` also fails on warnings; `--json` emits machine-readable findings with `file:line`.
+The linter is a **stdlib-only lexical pass** — it MASKS comment + string/template bodies before
+matching, so a banned call quoted in a string never false-fires — plus a recursive-descent
+literal parser for `meta`. It is **not** a full JS parser; the honest limits are in the module
+docstring (e.g. options passed to `agent()` via a variable read as a false WARN; `Date.now()`
+hidden in a nested template interpolation may be missed). Treat ERRORs as blocking, WARNs as
+advisory. Tests live beside it (`scripts/test_workflow_lint.py`) and run in CI at 100% branch
+coverage.
+
+## Author quick-wins (helper snippets)
+
+Copy-paste patterns that make the checks above pass. These are DOC snippets — the runtime API
+(section 1) is unchanged.
+
+**Parse-if-string args (rule 2).** `args` arrives as ONE string. Normalise it once, then read
+fields off the parsed value — never off raw `args`:
+
+```js
+const input = (() => {
+  if (typeof args !== 'string') return args ?? {}      // already an object
+  const s = args.trim()
+  if (!s) return {}
+  try { return JSON.parse(s) } catch { return { raw: s } }  // fall back to the raw string
+})()
+const topic = input.topic ?? '(none)'   // read off `input`, not `args`
+```
+
+**Schema-builder helper (rule 7).** A tiny builder keeps every fan-in schema consistent, with
+`additionalProperties: false` and a tight `required[]` (the FLOOR only — an over-broad `required`
+makes StructuredOutput reject good work):
+
+```js
+const obj = (properties, required = []) => ({
+  type: 'object', additionalProperties: false, required, properties,
+})
+const DIGEST = obj(
+  { digest: { type: 'string' }, evidence: { type: 'array', items: { type: 'string' } } },
+  ['digest', 'evidence'],   // fields an agent can ALWAYS fill; keep verdict/artifact optional
+)
+const r = await agent(prompt, { label: 'lens', schema: DIGEST })
+```
+
+**`{ envelope: true }` result shape.** For a fan-in that must not lose a partial cohort, return a
+typed envelope, not a bare array — it carries the survivors AND what failed, so a null-tolerant
+barrier degrades visibly:
+
+```js
+const results = (await parallel(thunks)).filter(Boolean)   // rule 5: drop the nulls
+return {
+  envelope: true,
+  ok: results.length,
+  total: thunks.length,
+  dropped: thunks.length - results.length,   // how many agents died — surfaced, not hidden
+  results,
+}
+```
+
 ## Companion artifacts in this workspace
 
 - **`/plan-gate`** (`~/.claude/workflows/plan-gate.mjs`) — saved, schema-typed
@@ -339,6 +416,7 @@ that blocks on a blocking FAIL is a separate, deferred step.
 
 ## Quick checklist before saving a workflow
 
+- [ ] lint clean: `python skills/workflow-authoring/scripts/workflow_lint.py <file>` (no ERROR findings)
 - [ ] `export const meta` with a stable `name` + `phases`
 - [ ] a `schema` (with `additionalProperties: false`) on every `agent()` fan-in
 - [ ] `.filter(Boolean)` after every `parallel()`
