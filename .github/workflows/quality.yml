@@ -509,6 +509,27 @@ jobs:
         run: |
           python hooks/memory-guard/test_scan.py
 
+      # tools/harness-corpus -- the hook-telemetry miner and, more importantly, the
+      # KNOWN-POSITIVE CONTROL that proves the miner can still see a hook fire before any
+      # "no hooks fired" result is believed. Stdlib-only; pytest is the whole install.
+      #
+      # Its live-corpus control is portability-skipped here BY DESIGN and that skip is now
+      # honest: the predicate tests whether a minable corpus EXISTS (>= 50 transcripts),
+      # not merely whether ~/.claude/projects is a directory. The old proxy predicate made
+      # this file fail on any box where that path exists but is empty -- measured under WSL,
+      # where it resolves to the Linux home: 6 stray transcripts, 0 hook fires, and the
+      # control reported "the DETECTOR is broken" when the real answer was "no data here".
+      # On the owner's box (12,996 transcripts) the control still RUNS and PASSES, and
+      # PR3_REQUIRE_LIVE_CORPUS=1 still turns the skip into a hard failure -- verified in
+      # all three states, so the control was not weakened to get green.
+      #
+      # Measured on real Linux (CPython 3.12.3): 11 passed, 2 skipped, rc=0.
+      - name: gate-tests-coverage harness-corpus (hook-telemetry miner + detector control)
+        working-directory: tools/harness-corpus
+        run: |
+          pip install pytest
+          python -m pytest -q
+
       # tools/mcp/* MCP servers -- 469 tests that ran in NO gate before this step.
       # Measured: `grep -rn cloud-hub .github/workflows/` returned ZERO hits, with a working
       # detector control (the same grep finds `monitorcore`, which IS wired). So the suites
