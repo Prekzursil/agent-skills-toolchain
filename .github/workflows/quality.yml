@@ -380,9 +380,17 @@ jobs:
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
       # Gate 6 — known-CVE scan of the committed npm lockfiles. Reasoned, dated per-CVE
-      # ignores live in osv-scanner.toml (auto-loaded from the repo root); no baseline.
+      # ignores live in the root osv-scanner.toml; no baseline.
+      #
+      # --config is REQUIRED, not cosmetic. osv-scanner auto-loads osv-scanner.toml only
+      # from the SCANNED FILE's own directory and "does not propagate to child
+      # directories", so the root config governed package-lock.json alone and was NEVER
+      # consulted for tools/web/agentify-desktop/package-lock.json — an ignore added at the
+      # root silently had no effect on the agentify tree. Passing --config applies the one
+      # root config to every parsed file (and ignores any per-directory osv-scanner.toml).
       - uses: google/osv-scanner-action/osv-scanner-action@9bb69575e74019c2ad085a1860787043adf47ccb # v2.2.4
         with:
           scan-args: |-
+            --config=osv-scanner.toml
             --lockfile=package-lock.json
             --lockfile=tools/web/agentify-desktop/package-lock.json
