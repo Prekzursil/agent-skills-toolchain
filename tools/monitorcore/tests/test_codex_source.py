@@ -255,6 +255,29 @@ def test_export_model_empty_and_populated(tmp_path):
     assert "wave0" in md
 
 
+def test_export_model_populates_section_timeline_from_events(tmp_path):
+    """WU8: export_model maps the thread's ToolEvent deque onto Section.timeline so the
+    shared exporters render the progress ledger — covering every kind mapping."""
+    th = _thread(key="a", label="wave0", last_ts=NOW - 1)
+    th.add_event(ct.ToolEvent("cmd", "shell", "pytest -q", "ok", None, NOW))
+    th.add_event(
+        ct.ToolEvent("patch", "patch", "", "error", None, NOW)
+    )  # tool_use, no detail
+    th.add_event(ct.ToolEvent("think", "reasoning", "planning", "", None, NOW))
+    th.add_event(
+        ct.ToolEvent("msg", "message", "", "", None, NOW)
+    )  # text falls back to label
+    src = _seeded_source(tmp_path, th)
+    (card,) = src.export_model(src.poll()).blocks
+    kinds = [e.kind for e in card.timeline]
+    assert kinds == ["tool_use", "tool_use", "thinking", "text"]
+    shell, patch, think, msg = card.timeline
+    assert shell.name == "shell" and shell.tool_input == {"detail": "pytest -q"}
+    assert patch.tool_input == {} and patch.is_error is True  # no detail → empty input
+    assert think.text == "planning"
+    assert msg.text == "message"  # empty detail → the label
+
+
 def test_headline_accessor_passthrough(tmp_path):
     src = _seeded_source(tmp_path)
     snap = src.poll()
