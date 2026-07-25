@@ -1,6 +1,7 @@
 # osv-scanner configuration for the lean dependency gate (Gate 6).
 # The gate runs osv-scanner over the committed lockfiles and must report 0 actionable CVEs.
-# osv-scanner auto-loads this file from the repo root.
+# The gate-deps job applies this file to EVERY scanned lockfile via --config (see the
+# "HOW THIS FILE IS LOADED" note below -- a bare repo-root file is NOT enough).
 #
 # POLICY: an [[IgnoredVulns]] entry is allowed ONLY for a genuinely-unfixable vuln (no
 # non-breaking upgrade) OR one that is provably not reachable in THIS repo, each with a
@@ -29,27 +30,19 @@
 #   reason = "dev-only transitive; not reachable at runtime — re-review by ignoreUntil."
 # ---------------------------------------------------------------------------
 
-# Reviewed 2026-07-25. brace-expansion DoS (unbounded expansion -> OOM crash), HIGH.
-# Hit in tools/web/agentify-desktop/package-lock.json at three resolved versions, and
-# EVERY ONE is flagged `"dev": true` in that lockfile: 1.1.16, 2.1.2, 5.0.7 (verified by
-# querying the OSV API against the same lockfile the gate scans). The root
-# package-lock.json reports 0 vulnerable packages.
+# RETIRED IGNORES (kept as a dated, greppable review record -- do not re-add without new evidence)
 #
-# NOT REACHABLE AT RUNTIME: the three copies are transitive dev-only deps of the build /
-# test tooling (minimatch/glob chains). The vulnerability requires an attacker-supplied
-# brace pattern; build tooling expands only repo-authored globs, and no shipped Electron
-# runtime path consumes it.
+# GHSA-mh99-v99m-4gvg (brace-expansion DoS, HIGH) -- ignored 2026-07-25, RETIRED 2026-07-25.
+#   Was hit at three dev-only resolved versions (1.1.16, 2.1.2, 5.0.7) in
+#   tools/web/agentify-desktop/package-lock.json when the advisory published, going red on
+#   every branch at once. The ignore was a stop-gap on the reasoning that the fix shipped
+#   only in 5.0.8 with no 1.x/2.x backport, so the copies pinned by parents requiring
+#   ^1.1.7 / ^2.0.1 had no semver-compatible bump.
+#   RETIRED because #192 landed the REAL fix instead: an npm `overrides` pin forcing
+#   brace-expansion to 5.0.8, which collapsed all three copies into a single resolution.
+#   Verified on this base before deleting the entry -- the lockfile now contains exactly ONE
+#   brace-expansion copy, at 5.0.8 (dev), so the gate reaches clean-zero by UPGRADE, which
+#   is what this policy prefers. Lesson recorded: the `overrides` route was judged unsafe in
+#   the ignore rationale above; it worked, and CI stayed green.
 #
-# WHY AN IGNORE AND NOT AN UPGRADE: the advisory publishes a fix ONLY in 5.0.8 -- there is
-# no 1.x or 2.x backport -- so the 1.1.16 and 2.1.2 copies (pinned by parents requiring
-# ^1.1.7 / ^2.0.1) cannot take it via a semver-compatible bump. Forcing them with an npm
-# `overrides` major jump is not the "safe fix" this policy prefers.
-#
-# DURABLE FIX + EXIT CRITERION: the dependabot npm entry for /tools/web/agentify-desktop
-# (weekly, Monday 06:00) is the intended remediation path. DELETE this entry as soon as the
-# lockfile carries brace-expansion >= 5.0.8 for all three copies, or sooner if a 1.x/2.x
-# backport ships. Do not extend the date without re-reviewing reachability.
-[[IgnoredVulns]]
-id = "GHSA-mh99-v99m-4gvg"
-ignoreUntil = 2026-10-23
-reason = "dev-only transitive (3 copies, all dev:true in agentify-desktop lockfile); DoS needs attacker-controlled brace input, unreachable from build tooling; fix exists only in 5.0.8 with no 1.x/2.x backport, so no semver-safe bump — dependabot (Mon 06:00) is the durable fix. Re-review by ignoreUntil."
+# The file intentionally carries NO active IgnoredVulns again.
