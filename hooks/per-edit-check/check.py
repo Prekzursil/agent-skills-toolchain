@@ -108,7 +108,12 @@ def _is_placeholder(line: str, start: int, end: int) -> bool:
     """True when a placeholder marker sits within MARKER_PROXIMITY of the match.
 
     ``start``/``end`` are the match span in *line*.  A marker that overlaps the
-    match (e.g. the AWS docs sample ``AKIAIOSFODNN7EXAMPLE``) has gap 0.
+    match has gap 0 -- which is the common case for published documentation
+    samples, whose own trailing ``EXAMPLE`` is itself one of
+    ``PLACEHOLDER_MARKERS``.  The literal sample string is deliberately NOT
+    quoted here: the repo SAST rule ``generic-aws-access-key-id`` matches it and
+    cannot distinguish a credential from prose about one.  See
+    ``test_aws_example_exempt`` for the executable form of this case.
     """
     low = line.lower()
     for marker in PLACEHOLDER_MARKERS:
