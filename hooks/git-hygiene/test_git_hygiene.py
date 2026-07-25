@@ -635,14 +635,33 @@ class TestMessage:
         )
         assert msg
         rows = [ln for ln in msg.splitlines() if ln.startswith("  [")]
-        assert len(rows) >= check.MIN_ROWS, (
-            f"repo half kept {len(rows)} row(s), below the MIN_ROWS floor"
+        # A LITERAL floor, deliberately NOT `check.MIN_ROWS`: asserting a `max(MIN_ROWS, ...)`
+        # result against MIN_ROWS itself cannot fail for ANY non-negative value of the
+        # constant, so MIN_ROWS = 0 -- the starvation defect the floor exists to prevent,
+        # where the section names ZERO repos -- would keep this test green. Measured: that
+        # mutant survived the whole 33-test file before this line used a literal.
+        assert len(rows) >= 2, (
+            f"repo half kept {len(rows)} row(s): the floor must still name >=2 repos"
         )
         assert "... and" in msg, "silent truncation: the suppressed repo count is gone"
         suppressed = [ln for ln in msg.splitlines() if "... and" in ln]
-        assert f"{50 - len(rows)} more" in suppressed[0], (
+        # Anchored on the whole phrase: a bare f"{n} more" substring-matches a LONGER
+        # number ("6 more" is inside "56 more"), so it can pass on a wrong count.
+        assert f"... and {50 - len(rows)} more" in suppressed[0], (
             f"suppressed count does not match the rows shown: {suppressed[0]!r}"
         )
+
+    def test_the_reservation_stays_out_of_the_way_when_nothing_sits_below_it(self):
+        """BOTH DIRECTIONS. The budget must only bite when a later section needs the room:
+        with nothing below it the repo half still emits its FULL row allowance. Without
+        this, `rows = MIN_ROWS` -- which permanently degrades every ordinary message from
+        MAX_ROWS named repos to 2 -- passes the entire file (measured: 33 passed)."""
+        msg = check.build_message(self._verdicts(50), [])
+        rows = [ln for ln in msg.splitlines() if ln.startswith("  [")]
+        assert len(rows) == check.MAX_ROWS, (
+            f"the uncrowded case lost rows: kept {len(rows)}, expected MAX_ROWS"
+        )
+        assert f"... and {50 - check.MAX_ROWS} more" in msg
 
 
 if __name__ == "__main__":
