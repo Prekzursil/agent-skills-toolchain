@@ -242,6 +242,8 @@ def _stub_negation_window(text: str, start: int) -> int:
 _KEY_CHAR = re.compile(r"[A-Za-z0-9_.$-]")
 # `[ \t]*` not `\s*`: a formatter emits `"key" : v` on ONE line. Allowing a newline
 # would let a quoted token be adopted as the key of a colon on the following line.
+# Pinned by test_a_NEWLINE_between_the_token_and_the_colon_is_NOT_a_key -- a `\s*`
+# relaxation SURVIVED an independent mutation harness while this was comment-only.
 _KEY_COLON = re.compile(r"^[ \t]*:")
 # Negation is a property of a clause. A serialized payload has few sentence
 # terminators, so an unclamped window can reach kilobytes back and let an unrelated
@@ -285,11 +287,26 @@ def _in_json_key(text: str, start: int, end: int) -> bool:
         hi += 1
     tail = text[hi:]
     if not tail or tail[0] != text[lo - 1]:
-        return False  # unterminated, or the quote style does not match the opener
+        # Unterminated, or the quote style does not match the opener. Pinned in BOTH
+        # pair directions by test_a_MISMATCHED_quote_pair_is_NOT_a_key -- dropping the
+        # match requirement SURVIVED an independent mutation harness before that test.
+        return False
     rest = tail[1:]
     # `not rest` = the payload was truncated EXACTLY at the key's closing quote. A key
     # that lost its colon to truncation is still a key. Deliberately tight: any
     # trailing character other than the colon means this is a VALUE, not a key.
+    #
+    # RESIDUAL FALSE NEGATIVE, disclosed: at that ONE byte a truncated real VALUE is
+    # indistinguishable from a truncated key, so this arm silences it too. Measured
+    # 2026-07-25:
+    #   [SILENT] '{"data": {"user_cancelled_or_timedout"'   <- a key, correct
+    #   [SILENT] '{"error": "ETIMEDOUT"'                    <- a real VALUE, silenced
+    #   [FIRE  ] '{"error": "ETIMEDOUT'    truncated ONE byte earlier
+    #   [FIRE  ] '{"error": "ETIMEDOUT"}'  complete
+    # The payload itself lost the disambiguator, so this is a CHOSEN DIRECTION, not an
+    # oracle: chosen toward the mention (FP-averse), and narrow because the caller's
+    # size cap has to land on exactly that byte. No probe can settle it from the
+    # truncated surface -- raising the caller's cap is what removes the case.
     return not rest or bool(_KEY_COLON.match(rest))
 
 
@@ -348,11 +365,26 @@ def is_real_occurrence(text: str, span, context: Context, kind: str = "marker") 
             #   an inline `code span`, and a negated sentence.
             # NOT routed through `marker`: marker polarity requires a match to sit
             # INSIDE a fence to count, which is exactly backwards for a result -- a
-            # genuine transport error is unfenced prose. Measured: forcing prose-marker
-            # mode silenced ALL FOUR positive controls plus the existing suite's
-            # "could not connect" case, trading false alarms for total blindness.
+            # genuine transport error is USUALLY unfenced prose (usually, not always;
+            # see the residual on the closed-fence rule below). Measured: forcing
+            # prose-marker mode silenced ALL FOUR positive controls plus the existing
+            # suite's "could not connect" case, trading false alarms for blindness.
             if _in_json_key(text, start, end):
                 return False
+            # RESIDUAL FALSE NEGATIVE, disclosed. The line above once asserted as FACT
+            # that a genuine transport error is unfenced prose; that was an ASSUMPTION
+            # with no measurement behind it, and this rule is what it justified. A
+            # server that formats its OWN error text inside a CLOSED fence is now
+            # silent on this lexical path. Measured BOTH states 2026-07-25:
+            #   "Tool failed:\n```\nMCP error -32000: server is not responding\n```"
+            #     -> FAILED on origin/main, SUCCESS here;
+            #   the same text UNFENCED -> FAILED on both.
+            # Bounded, and measured so: an MCP failure normally arrives in an envelope
+            # that stage 1 catches before this function is reached (fenced +
+            # isError:true -> `isError=true`; fenced + an `error` field -> `error field
+            # set`). How often a server fences its own error body is UNVERIFIED
+            # (uncertain 30-55%) -- settling experiment is a sweep of recorded MCP
+            # failure bodies for fenced error text.
             if _within(_closed_fenced_spans(text), start, end):
                 return False
             if _within(_inline_code_spans(text, start), start, end):

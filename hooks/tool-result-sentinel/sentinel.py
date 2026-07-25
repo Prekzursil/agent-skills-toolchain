@@ -249,11 +249,29 @@ def _structural_failed(resp) -> tuple[bool, str]:
     # `code` is AMBIGUOUS: an HTTP client puts a STATUS there, a process an exit
     # status. Read as an exit code it inverts every successful fetch -- measured
     # 2026-07-24: WebFetch calls returning HTTP 200 with correct content were
-    # reported `FAILED (exit code 200)`. 200-399 is an HTTP success/redirect and is
-    # semantically meaningless as an exit status, so that band is NOT a failure;
+    # reported `FAILED (exit code 200)`. 200-399 CANNOT BE DISTINGUISHED from an HTTP
+    # success/redirect under this ambiguous key, so the band is treated as benign;
     # 1-199 and >=400 fail under both readings (127/130/137 stay caught) and still
     # fire. Deliberately does NOT return early: a benign `code` must not mask the
     # isError / interrupted / error signals below (the both-states rule).
+    #
+    # RESIDUAL FALSE NEGATIVE, disclosed. The earlier justification here -- "200-399
+    # is semantically meaningless as an exit status" -- was FACTUALLY WRONG for
+    # 200-255 and is REFUTED. An exit status is 8-bit, so that sub-range is a REAL
+    # overlap between the two readings. Re-derived on this box 2026-07-25, both
+    # directions:
+    #     sh -c 'exit 200' -> $?=200      sh -c 'exit 255' -> $?=255   (representable)
+    #     sh -c 'exit 256' -> $?=0        sh -c 'exit 399' -> $?=143   (wraps mod 256)
+    # Only 256-399 is genuinely impossible as an exit status. So a GENUINE process
+    # failure of 200-255 (255 = ssh failure / "generic failure" / Windows -1) reported
+    # under a BARE `code` is now SILENT -- measured: code=199 fires, code=200/254/255
+    # do not. Accepted under the FP-averse doctrine at the head of this file, and
+    # bounded two ways, both measured: the UNAMBIGUOUS keys above are read FIRST and
+    # return early ({"exit_code": 255, "code": 200} -> `exit code 255`), and the
+    # envelope checks below still fire on a fenced/odd payload. Exposure therefore
+    # needs a bare `code` in 200-255 with no exit_code/exitCode/returncode/return_code
+    # sibling; how many producers emit that shape is UNVERIFIED (uncertain 30-55%) --
+    # settling experiment is a labelled sweep of `code`-carrying tool_response shapes.
     raw_code = resp.get("code")
     if raw_code is not None:
         try:

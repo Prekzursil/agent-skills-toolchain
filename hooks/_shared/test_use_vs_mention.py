@@ -266,6 +266,39 @@ class TestResultKind:
         raw = "probe result -- Timeout: the server never answered"
         assert _judge(raw, "Timeout", self.RESULT_CTX, "result")
 
+    def test_a_NEWLINE_between_the_token_and_the_colon_is_NOT_a_key(self):
+        r"""Pins `_KEY_COLON = ^[ \t]*:` (colon on the SAME line) against `\s*`.
+
+        MUTANT V10 -- one of two survivors of an INDEPENDENT 15-mutation harness run
+        against this branch. Relaxing the key-colon pattern to `\s*` lets a quoted
+        token on one line be adopted as the key of a colon on the NEXT line, turning
+        this real report into a mention.
+
+        Honest scope: the shape is CONTRIVED -- no JSON emitter produces it -- so no
+        claim about live payloads rests on this test, and the surviving mutant refuted
+        no behaviour. What it pins is the DOCUMENTED one-line constraint at
+        `_KEY_COLON`, which until now was guarded only by a comment, and the DIRECTION
+        of the risk: relaxing it can only convert a report into a mention, never the
+        reverse.
+        """
+        raw = '{"error": "TIMEDOUT"\n: 1}'
+        assert raw.count("\n") == 1, "premise: the colon must sit on the NEXT line"
+        assert _judge(raw, "TIMEDOUT", self.RESULT_CTX, "result")
+
+    def test_a_MISMATCHED_quote_pair_is_NOT_a_key(self):
+        """Pins the closer-must-match-opener check against dropping it.
+
+        MUTANT V11 -- the second independent survivor. Accepting ANY quote character
+        as the closer (instead of the one that opened the token) lets a mixed pair be
+        read as a field name, which silences the match. Asserted in BOTH directions so
+        neither half of the pair carries the test alone.
+
+        Honest scope: contrived like V10. It pins the documented decision at the
+        `tail[0] != text[lo - 1]` guard, not a measured live payload.
+        """
+        assert _judge("{'ETIMEDOUT\": 1}", "ETIMEDOUT", self.RESULT_CTX, "result")
+        assert _judge("{\"ETIMEDOUT': 1}", "ETIMEDOUT", self.RESULT_CTX, "result")
+
     def test_fenced_example_in_a_returned_document_is_a_mention(self):
         doc = "You will see:\n\n```console\ncurl: (28) Operation timed out\n```\n\nRetry.\n"
         assert not _judge(doc, "timed out", self.RESULT_CTX, "result")
