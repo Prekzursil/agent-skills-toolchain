@@ -1,9 +1,24 @@
 #!/usr/bin/env python3
-"""PostToolUse(Edit|Write|MultiEdit): per-edit fast syntax/lint check.
+"""PostToolUse(Edit|Write|MultiEdit): per-edit secret gate + fast syntax/lint check.
 
 After each file edit, runs a FAST, time-boxed (~8 s) checker on just the
 changed file and injects any failures immediately — addressing them at the
 cheapest point in the edit-fix loop.
+
+Write-path secret gate (AGENTS.md §9)
+─────────────────────────────────────
+Before the linter runs, the changed file is scanned for high-confidence
+hardcoded-credential shapes (AWS access key IDs, PEM/PGP private-key armor,
+OpenAI / GitHub / Slack / Google / Stripe keys).  A match blocks the write
+with exit 2 — the reason names the credential TYPE and line number and never
+echoes the matched bytes.  A credential-shaped string is treated as a
+placeholder (and allowed) when a marker such as ``EXAMPLE`` or ``YOUR_KEY``
+appears on the same line WITHIN 24 characters of the match; a marker further
+away is incidental prose and does not exempt.
+
+Unlike the linter the secret gate is NOT skipped for scratchpad/temp paths —
+a credential written there still lands on disk.  It is skipped for files over
+MAX_FILE_BYTES, consistent with the rest of the hook.
 
 Language dispatch
 ─────────────────
@@ -22,14 +37,16 @@ Exit protocol (AGENTS.md §6)
     syntax errors              → exit 2 + decision:block JSON (hard nudge)
 
 FAIL-OPEN: every unhandled error → exit 0, no output.
-Opt-outs:  env  PER_EDIT_CHECK=off  (any capitalisation)
-           file .disabled  (sentinel in this hook directory)
+Opt-outs:  env  PER_EDIT_CHECK=off    (any capitalisation) — whole hook
+           env  PER_EDIT_SECRETS=off  (any capitalisation) — secret gate only
+           file .disabled  (sentinel in this hook directory) — whole hook
 """
 
 from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -37,6 +54,88 @@ import sys
 HOOKDIR = os.path.dirname(os.path.abspath(__file__))
 MAX_FILE_BYTES = 512 * 1024  # 512 KB — skip generated/binary-heavy files
 TIMEOUT = 8  # seconds — hard cap per subprocess call
+
+
+# ── write-path secret gate (AGENTS.md §9) ────────────────────────────────────
+
+# Characters within which a placeholder marker on the SAME line exempts a
+# credential-shaped match.  Bounded on purpose: a real key sharing a line with
+# an unrelated far-away "# example" comment must still block.
+MARKER_PROXIMITY = 24
+
+# Lowercase substrings that mark a credential-shaped string as documentation
+# or a fill-me-in placeholder rather than a live credential.
+PLACEHOLDER_MARKERS = (
+    "example",
+    "placeholder",
+    "your_key",
+    "your-key",
+    "yourkey",
+    "your_token",
+    "your-token",
+    "redacted",
+    "dummy",
+    "fake",
+    "notarealkey",
+    "not_a_real_key",
+)
+
+# High-confidence credential shapes only.  Every entry must be specific enough
+# that a match is almost certainly a real credential — this gate BLOCKS, so a
+# false positive costs the user an edit.  Generic "password = ..." heuristics
+# are deliberately excluded.
+SECRET_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("AWS access key ID", re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
+    (
+        "private key material",
+        re.compile(r"-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY(?: BLOCK)?-----"),
+    ),
+    ("OpenAI API key", re.compile(r"\bsk-[A-Za-z0-9_-]{40,}\b")),
+    ("GitHub token", re.compile(r"\bgh[pousr]_[A-Za-z0-9]{36,}\b")),
+    ("Slack token", re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b")),
+    ("Google API key", re.compile(r"\bAIza[A-Za-z0-9_-]{35}\b")),
+    ("Stripe secret key", re.compile(r"\b[sr]k_(?:live|test)_[A-Za-z0-9]{16,}\b")),
+)
+
+
+def _is_placeholder(line: str, start: int, end: int) -> bool:
+    """True when a placeholder marker sits within MARKER_PROXIMITY of the match.
+
+    ``start``/``end`` are the match span in *line*.  A marker that overlaps the
+    match (e.g. the AWS docs sample ``AKIAIOSFODNN7EXAMPLE``) has gap 0.
+    """
+    low = line.lower()
+    for marker in PLACEHOLDER_MARKERS:
+        pos = low.find(marker)
+        while pos != -1:
+            gap = max(start - (pos + len(marker)), pos - end, 0)
+            if gap <= MARKER_PROXIMITY:
+                return True
+            pos = low.find(marker, pos + 1)
+    return False
+
+
+def _scan_secrets(fp: str) -> str | None:
+    """Scan *fp* for hardcoded-credential shapes.
+
+    Returns a human-readable reason for the FIRST non-placeholder match, or
+    ``None`` when the file is clean / too large / unreadable.  The reason names
+    the credential type and line number and NEVER echoes the matched bytes.
+    Fail-open: any unexpected error → ``None``.
+    """
+    try:
+        if os.path.getsize(fp) > MAX_FILE_BYTES:
+            return None
+        with open(fp, encoding="utf-8", errors="replace") as fh:
+            for lineno, line in enumerate(fh, start=1):
+                for label, pat in SECRET_PATTERNS:
+                    for m in pat.finditer(line):
+                        if _is_placeholder(line, m.start(), m.end()):
+                            continue
+                        return f"{label} on line {lineno}"
+        return None
+    except Exception:
+        return None
 
 
 # ── per-language checkers ────────────────────────────────────────────────────
@@ -195,6 +294,25 @@ def main() -> int:
             return 0
         if not os.path.isfile(fp):
             return 0
+
+        # ── write-path secret gate (AGENTS.md §9) ────────────────────────────
+        # Runs BEFORE the scratchpad skip and the linter: a credential written
+        # to a throwaway path still lands on disk, and a hardcoded secret is a
+        # higher-severity finding than any lint issue.
+        if os.environ.get("PER_EDIT_SECRETS", "").lower() != "off":
+            reason = _scan_secrets(fp)
+            if reason:
+                print(
+                    f"[per-edit-check] BLOCKED: {reason} of "
+                    f"{os.path.basename(fp)} looks like a hardcoded credential.\n"
+                    "Secrets must never be written into source (AGENTS.md §9) — "
+                    "read it from an environment variable or a secret manager.\n"
+                    "If this is a placeholder, mark the line (EXAMPLE / "
+                    "YOUR_KEY / PLACEHOLDER); to override, set "
+                    "PER_EDIT_SECRETS=off.",
+                    file=sys.stderr,
+                )
+                return 2
 
         # ── skip throwaway scratch trees (not deliverables) ──────────────────
         _norm = fp.replace("\\", "/").lower()

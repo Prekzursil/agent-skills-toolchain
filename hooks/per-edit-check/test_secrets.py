@@ -37,6 +37,9 @@ FAKE_SLACK = "xoxb-" + "1234567890-abcdefghij"
 FAKE_GOOGLE = "AIza" + "C" * 35
 FAKE_STRIPE = "sk_live_" + "D" * 24
 AWS_EXAMPLE = "AKIAIOSFODNN7" + "EXAMPLE"  # AWS docs sample → must be EXEMPT
+# Redaction-fixture shape used across this repo (e.g. tools/monitorcore/tests):
+# the placeholder marker lives INSIDE the token, so the gate must exempt it.
+GH_FAKE_FIXTURE = "ghp_" + "FAKE" + "0" * 32
 
 
 def _scan_text(mod, tmp_path, text, name="f.py"):
@@ -111,6 +114,16 @@ def test_placeholder_marker_exempt(tmp_path):
     """A real-shaped key on a line marked YOUR_KEY is treated as a placeholder."""
     mod = load_check()
     assert _scan_text(mod, tmp_path, f'API = "{FAKE_AWS}"  # YOUR_KEY\n') is None
+
+
+def test_fake_redaction_fixture_exempt(tmp_path):
+    """A redaction-test fixture whose token embeds FAKE must NOT block.
+
+    Without this the gate makes the repo's own redaction fixtures un-editable
+    (measured: 7 of 20 tracked-file hits were exactly this shape).
+    """
+    mod = load_check()
+    assert _scan_text(mod, tmp_path, f'TOK = "{GH_FAKE_FIXTURE}"\n') is None
 
 
 def test_clean_file_no_secret(tmp_path):
