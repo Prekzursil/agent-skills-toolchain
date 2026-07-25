@@ -440,6 +440,28 @@ jobs:
           "$RUNNER_TEMP/venv-abbyy/bin/python" -m pytest \
             --cov=index --cov=engines --cov=evaluation --cov-branch \
             --cov-report=term-missing --cov-fail-under=100
+      # tool-result-sentinel + its shared use-vs-mention discriminator. Named here
+      # because NO step named them before: docs/ci-coverage-gap-2026-07-25.md measured
+      # 162 of 244 hooks//tools/ suites executed by no CI step at all, and these were
+      # among them -- so the mutation-verified tests shipped in #198 protected nothing
+      # in CI. Explicit FILES, not a directory: a directory selector here would hit the
+      # duplicate-basename collision (18 basenames repeat across the tree) and the
+      # module-level sys.exit() files that abort collection. Reuses the existing
+      # gate-tests-coverage charter slug on purpose, so charter_check.sh stays
+      # consistent with no charter.yml edit. Deliberately NO --cov-fail-under: these
+      # are projections of a live runtime, matching the cmd-rewrite/harness precedent.
+      - name: gate-tests-coverage tool-result-sentinel
+        run: |
+          python -m pytest -q \
+            hooks/tool-result-sentinel/test_sentinel_use_vs_mention.py \
+            hooks/_shared/test_use_vs_mention.py
+          python hooks/tool-result-sentinel/test_sentinel.py
+      # git-hygiene MESSAGE-BUDGET suite. Distinct from test_docs_hygiene.py, which the
+      # adversarial-harness-corpus step above already runs -- that one does not cover
+      # build_message(), so the #199 truncation-budget fix was likewise unenforced.
+      - name: gate-tests-coverage git-hygiene message budget
+        run: |
+          python -m pytest -q hooks/git-hygiene/test_git_hygiene.py
 
   sast:
     name: gate-sast (opengrep)
