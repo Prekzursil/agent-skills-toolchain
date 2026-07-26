@@ -150,6 +150,11 @@ def _message_of(rec: dict[str, object]) -> dict[str, object]:
     return msg if isinstance(msg, dict) else {}
 
 
+def _as_str(value: object) -> str | None:
+    """``value`` when it is a string, else ``None`` — transcript JSON fields are untyped."""
+    return value if isinstance(value, str) else None
+
+
 def _last_block(records: list[dict[str, object]]) -> tuple[str | None, str | None]:
     """``(block_type, role)`` of the newest content-bearing block in ``records``.
 
@@ -167,7 +172,7 @@ def _last_block(records: list[dict[str, object]]) -> tuple[str | None, str | Non
         )
         for b in reversed(blocks):
             if isinstance(b, dict) and b.get("type"):
-                return (b.get("type"), msg.get("role"))
+                return (_as_str(b.get("type")), _as_str(msg.get("role")))
     return (None, None)
 
 
@@ -300,6 +305,7 @@ def agent_status(
     now: float | None = None,
     fresh: float = FRESH,
     stall: float = STALL,
+    terminal: bool = False,
     fingerprints: dict[str, str | None] | None = None,
 ) -> tuple[str, float]:
     """Return ``(state, age_s)`` for one transcript: ``running`` | ``working`` | ``done`` | ``stalled``.
@@ -315,6 +321,16 @@ def agent_status(
     is not re-read; any mtime movement invalidates that cache. ``now`` is injectable for
     deterministic tests, as is ``fingerprints`` (the cross-poll fingerprint memory, which
     defaults to the module-level one).
+
+    ``terminal`` lets a caller contribute terminal evidence the TRANSCRIPT DOES NOT CARRY —
+    e.g. the manifest/journal ``done`` that :func:`bucket_agent` already models, or the
+    parent transcript's completed ``Task`` tool result. It is OR-ed with the in-file signals,
+    so ``terminal=True`` guarantees ``done`` at any age and any freeze depth. This matters:
+    measured on this box, 64 of 66 long-finished transcripts that the single-signal oracle
+    mislabelled carry NO end-of-turn evidence in their own bytes (they end mid-``tool_use``
+    / ``tool_result``), so from the file alone they are genuinely indistinguishable from a
+    wedged agent. Supplying that evidence here is the only sound way to resolve them; the
+    two-signal gate alone downgrades them from an instant stall to a corroborated one.
 
     KNOWN RESIDUAL, disclosed rather than hidden: a missing or unreadable transcript still
     returns ``("stalled", 1e9)`` — absence reported as a stall, which is also single-signal.
@@ -340,7 +356,7 @@ def agent_status(
             age=age,
             fresh=fresh,
             stall=stall,
-            terminal=ev.terminal,
+            terminal=ev.terminal or terminal,
             fingerprint=ev.fingerprint,
             previous=seen.get(path),
         )

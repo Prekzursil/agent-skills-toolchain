@@ -89,3 +89,226 @@ def test_eleven_hour_old_finished_agent_is_done_never_stalled(tmp_path):
         state, age = st.agent_status(p, now=now)
         assert state == "done", f"terminal transcript reported {state!r}"
         assert age == ELEVEN_HOURS
+
+
+# ═════════════ classify_status — the PURE decision ═════════════
+def _ev(**kw):
+    """A :class:`StatusEvidence` with the module defaults, overridden by ``kw``."""
+    base = dict(
+        age=700.0,
+        fresh=st.FRESH,
+        stall=st.STALL,
+        terminal=False,
+        fingerprint="fp",
+        previous="fp",
+    )
+    base.update(kw)
+    return st.StatusEvidence(**base)
+
+
+def test_classify_fresh_is_running():
+    # freshness is decided before any content is consulted, so a frozen fingerprint and
+    # terminal evidence must both lose to a just-touched file.
+    assert st.classify_status(_ev(age=5.0, terminal=True)) == "running"
+
+
+def test_classify_terminal_is_done_at_any_age():
+    assert st.classify_status(_ev(age=ELEVEN_HOURS, terminal=True)) == "done"
+
+
+def test_classify_terminal_outranks_a_corroborated_freeze():
+    """Both stall signals present AND terminal ⇒ done. Terminal is a fact; a stall is not."""
+    ev = _ev(age=ELEVEN_HOURS, terminal=True, fingerprint="fp", previous="fp")
+    assert ev.content_frozen is True
+    assert st.classify_status(ev) == "done"
+
+
+def test_classify_stalled_needs_both_signals():
+    ev = _ev(age=700.0, fingerprint="fp", previous="fp")
+    assert ev.content_frozen is True
+    assert st.classify_status(ev) == "stalled"
+
+
+def test_classify_stale_mtime_alone_is_working_not_stalled():
+    """Signal 1 only (never-seen content): the honest answer is ``working``."""
+    ev = _ev(age=ELEVEN_HOURS, fingerprint="fp", previous=None)
+    assert ev.content_frozen is False
+    assert st.classify_status(ev) == "working"
+
+
+def test_classify_changed_fingerprint_is_working_not_stalled():
+    """A content change breaks the freeze even when the mtime is stale."""
+    ev = _ev(age=ELEVEN_HOURS, fingerprint="new", previous="old")
+    assert ev.content_frozen is False
+    assert st.classify_status(ev) == "working"
+
+
+def test_classify_frozen_content_with_fresh_mtime_is_working():
+    """Signal 2 only (mtime inside the dead-man window): not a stall either."""
+    ev = _ev(age=100.0, fingerprint="fp", previous="fp")  # FRESH < 100 < STALL
+    assert ev.content_frozen is True
+    assert st.classify_status(ev) == "working"
+
+
+def test_content_frozen_is_false_when_fingerprint_is_missing():
+    """An unreadable poll carries no content signal, so it can never corroborate a stall."""
+    assert _ev(fingerprint=None, previous=None).content_frozen is False
+
+
+# ═════════════ tail_evidence / read_evidence — terminal signals ═════════════
+def test_tail_evidence_end_turn_is_terminal_without_a_text_tail():
+    ev = st.tail_evidence(json.dumps(_finished_turn()) + "\n")
+    assert ev.last_type == "server_tool_use"
+    assert ev.terminal is True
+
+
+def test_tail_evidence_tool_use_stop_reason_is_not_terminal():
+    ev = st.tail_evidence(json.dumps(_unfinished_turn()) + "\n")
+    assert ev.last_type == "tool_use"
+    assert ev.terminal is False
+
+
+def test_tail_evidence_assistant_text_tail_is_still_terminal():
+    """The pre-existing signal is preserved: a trailing assistant text turn is done."""
+    rec = {"message": {"role": "assistant", "content": [{"type": "text", "text": "x"}]}}
+    ev = st.tail_evidence(json.dumps(rec) + "\n")
+    assert ev.terminal is True
+
+
+def test_tail_evidence_no_assistant_record_is_not_terminal():
+    """A transcript with only user records has no end-of-turn declaration to read."""
+    rec = {"message": {"role": "user", "content": [{"type": "tool_result"}]}}
+    ev = st.tail_evidence(json.dumps(rec) + "\n")
+    assert ev.last_type == "tool_result"
+    assert ev.terminal is False
+
+
+def test_tail_evidence_roleless_record_reports_no_role():
+    """A content-bearing record with no ``role`` yields a typed ``None``, not a raw object."""
+    ev = st.tail_evidence('{"message": {"content": [{"type": "text"}]}}\n')
+    assert (ev.last_type, ev.role) == ("text", None)
+    assert ev.terminal is False  # no role -> not an assistant text tail, no stop_reason
+
+
+def test_tail_evidence_non_string_block_type_is_reported_as_none():
+    """A malformed block whose ``type`` is not a string must not leak a non-``str``."""
+    ev = st.tail_evidence('{"message": {"role": "user", "content": [{"type": 7}]}}\n')
+    assert (ev.last_type, ev.role) == (None, "user")
+
+
+def test_tail_evidence_fingerprint_tracks_content_not_length_only():
+    a = st.tail_evidence('{"message": {"role": "user", "content": "aaa"}}\n')
+    b = st.tail_evidence('{"message": {"role": "user", "content": "bbb"}}\n')
+    again = st.tail_evidence('{"message": {"role": "user", "content": "aaa"}}\n')
+    assert a.fingerprint != b.fingerprint  # same length, different bytes
+    assert a.fingerprint == again.fingerprint  # stable across calls
+
+
+def test_read_evidence_unreadable_carries_no_signal():
+    ev = st.read_evidence("/no/such/file.jsonl")
+    assert ev == st.TailEvidence(
+        last_type=None, role=None, terminal=False, fingerprint=None
+    )
+
+
+# ═════════════ agent_status — the wired behaviour ═════════════
+def test_agent_status_frozen_across_two_polls_is_stalled(tmp_path):
+    p = _write(tmp_path / "wedged.jsonl", _unfinished_turn())
+    now = 1_000_000.0
+    _set_age(p, now, age=ELEVEN_HOURS)
+    assert st.agent_status(p, now=now) == ("working", ELEVEN_HOURS)  # 1 signal
+    assert st.agent_status(p, now=now) == ("stalled", ELEVEN_HOURS)  # 2 signals
+
+
+def test_agent_status_changed_content_is_never_stalled(tmp_path):
+    """A stale mtime plus MOVING content is not a freeze — the file is being written."""
+    path = tmp_path / "busy.jsonl"
+    p = _write(path, _unfinished_turn("Bash"))
+    now = 1_000_000.0
+    _set_age(p, now, age=ELEVEN_HOURS)
+    assert st.agent_status(p, now=now) == ("working", ELEVEN_HOURS)
+    # content advances while the mtime is held stale -> the freeze counter must reset
+    _write(path, _unfinished_turn("Bash"), _unfinished_turn("Read"))
+    _set_age(p, now, age=ELEVEN_HOURS)
+    assert st.agent_status(p, now=now) == ("working", ELEVEN_HOURS)
+
+
+def test_agent_status_uses_an_injected_fingerprint_memory(tmp_path):
+    """The cross-poll memory is injectable, so a caller can scope it per board."""
+    p = _write(tmp_path / "wedged.jsonl", _unfinished_turn())
+    now = 1_000_000.0
+    _set_age(p, now, age=ELEVEN_HOURS)
+    mine: dict[str, str | None] = {}
+    assert st.agent_status(p, now=now, fingerprints=mine) == ("working", ELEVEN_HOURS)
+    assert list(mine) == [p]  # recorded there, not in the module default
+    assert p not in st._FINGERPRINTS
+    assert st.agent_status(p, now=now, fingerprints=mine) == ("stalled", ELEVEN_HOURS)
+
+
+def test_agent_status_caller_supplied_terminal_evidence_beats_any_freeze(tmp_path):
+    """The board can contribute the terminal evidence the transcript does not carry.
+
+    Measured: 64 of the 66 long-finished transcripts the single-signal oracle mislabelled
+    end mid-``tool_use``/``tool_result`` and carry NO end-of-turn evidence in their own
+    bytes. ``terminal=True`` (from the manifest/journal ``done`` that ``bucket_agent``
+    models) must therefore override any depth of content freeze.
+    """
+    p = _write(tmp_path / "wedged.jsonl", _unfinished_turn())
+    now = 1_000_000.0
+    _set_age(p, now, age=ELEVEN_HOURS)
+    # without it: a corroborated stall by the second poll
+    assert st.agent_status(p, now=now) == ("working", ELEVEN_HOURS)
+    assert st.agent_status(p, now=now) == ("stalled", ELEVEN_HOURS)
+    # with it: done on every poll, however deep the freeze
+    st.reset_state()
+    for _ in range(3):
+        assert st.agent_status(p, now=now, terminal=True) == ("done", ELEVEN_HOURS)
+
+
+def test_reset_state_clears_both_caches(tmp_path):
+    p = _write(tmp_path / "wedged.jsonl", _unfinished_turn())
+    now = 1_000_000.0
+    _set_age(p, now, age=ELEVEN_HOURS)
+    st.agent_status(p, now=now)
+    st.agent_status(p, now=now)
+    assert st._STATUS_CACHE and st._FINGERPRINTS
+    st.reset_state()
+    assert not st._STATUS_CACHE and not st._FINGERPRINTS
+    # …and the freeze counter genuinely restarted: one signal again, so working
+    assert st.agent_status(p, now=now) == ("working", ELEVEN_HOURS)
+
+
+# ═════════════ MUTATION GUARD (both-states) ═════════════
+def _single_signal_gate(signals, **_kw):
+    """The OLD, refuted gate: mtime staleness alone decides. The mutant under test."""
+    return signals.mtime_stale
+
+
+def test_mutating_the_gate_to_single_signal_breaks_the_stall_verdict(
+    tmp_path, monkeypatch
+):
+    """Both-states proof that the two-signal gate is load-bearing in the SHIPPED path.
+
+    With the real gate, the first poll of a silent transcript is ``working``. Swap the
+    collaborator for the single-signal form and the very same call flips to ``stalled`` —
+    so if the gate were ever weakened, ``test_classify_stale_mtime_alone_is_working…`` and
+    ``test_agent_status_frozen_across_two_polls_is_stalled`` go red rather than staying
+    quietly green.
+    """
+    p = _write(tmp_path / "wedged.jsonl", _unfinished_turn())
+    now = 1_000_000.0
+    _set_age(p, now, age=ELEVEN_HOURS)
+    assert st.agent_status(p, now=now) == ("working", ELEVEN_HOURS)
+
+    st.reset_state()
+    monkeypatch.setattr(st, "is_corroborated_stall", _single_signal_gate)
+    assert st.agent_status(p, now=now) == ("stalled", ELEVEN_HOURS)
+
+
+def test_terminal_preemption_is_independent_of_the_stall_gate(tmp_path, monkeypatch):
+    """Terminal evidence must win even if the stall gate is maximally trigger-happy."""
+    p = _write(tmp_path / "finished.jsonl", _finished_turn())
+    now = 1_000_000.0
+    _set_age(p, now, age=ELEVEN_HOURS)
+    monkeypatch.setattr(st, "is_corroborated_stall", _single_signal_gate)
+    assert st.agent_status(p, now=now) == ("done", ELEVEN_HOURS)
