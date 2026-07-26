@@ -14,6 +14,7 @@ committed blobs carry the GITCRYPT header) and is left untouched.
 Idempotent. Run:  python scripts/build-codespace-mirror.py [--apply]
 Without --apply it is a DRY RUN and writes nothing.
 """
+
 from __future__ import annotations
 
 import json
@@ -51,19 +52,25 @@ def copy_tree(src, dst):
 
 say(f"=== build-codespace-mirror [{tag}] ===")
 
+
 # ---------- 1. SKILLS ----------
 def skill_dirs(p):
     try:
-        return {d: os.path.join(p, d) for d in os.listdir(p)
-                if os.path.isdir(os.path.join(p, d)) and not d.startswith(".")}
+        return {
+            d: os.path.join(p, d)
+            for d in os.listdir(p)
+            if os.path.isdir(os.path.join(p, d)) and not d.startswith(".")
+        }
     except OSError:
         return {}
 
 
 live = {}
 for root in (f"{HOME}/.agents/skills", f"{HOME}/.claude/skills"):
-    live.update(skill_dirs(root))          # .claude wins on name collision
-repo_have = set(skill_dirs(f"{REPO}/skills")) | set(skill_dirs(f"{REPO}/skills-claude-only"))
+    live.update(skill_dirs(root))  # .claude wins on name collision
+repo_have = set(skill_dirs(f"{REPO}/skills")) | set(
+    skill_dirs(f"{REPO}/skills-claude-only")
+)
 missing = sorted(set(live) - repo_have)
 say(f"\n[1] SKILLS: live={len(live)} repo={len(repo_have)} missing={len(missing)}")
 for name in missing:
@@ -72,7 +79,12 @@ say(f"    copied {len(missing)} skill dirs -> skills/")
 
 # ---------- 2. WORKFLOWS ----------
 wf_src = f"{HOME}/.claude/workflows"
-wf_dst = f"{REPO}/workflows"
+# NOT repo/workflows/: that is the PRODUCTION saved-workflow surface governed by the
+# K04 worktree-partition policy, and ci/tests/test_worktree_partition.py deliberately
+# asserts it contains exactly {rtv-pdr.js} so every added production workflow gets
+# classified. These are MIRRORED user harness workflows, so they live with the other
+# mirrored config instead of weakening that tripwire.
+wf_dst = f"{REPO}/agent-self/config/workflows"
 wfs = [f for f in os.listdir(wf_src)] if os.path.isdir(wf_src) else []
 say(f"\n[2] WORKFLOWS: {len(wfs)} local -> workflows/")
 for f in wfs:
@@ -100,7 +112,7 @@ def is_portable(spec: dict) -> bool:
     cmd = str(spec.get("command") or "")
     if WINPATH.match(cmd):
         return False
-    for a in (spec.get("args") or []):
+    for a in spec.get("args") or []:
         if isinstance(a, str) and WINPATH.match(a):
             return False
     return True
@@ -124,26 +136,31 @@ for cfg in (f"{HOME}/.mcp.json", f"{HOME}/.claude.json"):
 
 portable, winonly = {}, {}
 for name, spec in sorted(servers.items()):
-    clean = {k: v for k, v in spec.items() if k in
-             ("type", "url", "command", "args", "env", "headers", "cwd")}
+    clean = {
+        k: v
+        for k, v in spec.items()
+        if k in ("type", "url", "command", "args", "env", "headers", "cwd")
+    }
     if "env" in clean:
         clean["env"] = redact_env(clean["env"])
     if "headers" in clean:
         clean["headers"] = redact_env(clean["headers"])
     (portable if is_portable(clean) else winonly)[name] = clean
 
-say(f"\n[3] MCP: {len(servers)} servers discovered "
-    f"-> portable={len(portable)}  windows-only={len(winonly)}")
+say(
+    f"\n[3] MCP: {len(servers)} servers discovered "
+    f"-> portable={len(portable)}  windows-only={len(winonly)}"
+)
 mcpdir = f"{REPO}/agent-self/config/mcp"
 payloads = {
     "mcp.portable.json": {
         "_comment": "Codespace/Linux-safe MCP servers. Secrets are ${PLACEHOLDERS} - "
-                    "supply them via Codespaces Secrets, never commit values.",
+        "supply them via Codespaces Secrets, never commit values.",
         "mcpServers": portable,
     },
     "mcp.windows-only.json": {
         "_comment": "Servers bound to Windows-local installs (RE tooling, absolute "
-                    "C:/ or D:/ paths). NOT installable in a Codespace; kept for host parity.",
+        "C:/ or D:/ paths). NOT installable in a Codespace; kept for host parity.",
         "mcpServers": winonly,
     },
 }
@@ -159,25 +176,40 @@ for fn, payload in payloads.items():
 cc_src = f"{HOME}/.codex/config.toml"
 if os.path.isfile(cc_src):
     raw = open(cc_src, "r", encoding="utf-8", errors="replace").read()
-    red = re.sub(r'((?:api_key|token|secret|password)\s*=\s*)"[^"]*"',
-                 r'\1"${REDACTED}"', raw, flags=re.I)
-    n = len(re.findall(r'\$\{REDACTED\}', red))
-    say(f"\n[4] CODEX: config.toml -> agent-self/config/codex/config.toml "
-        f"({len(raw)//1024} KB, {n} value(s) redacted)")
+    red = re.sub(
+        r'((?:api_key|token|secret|password)\s*=\s*)"[^"]*"',
+        r'\1"${REDACTED}"',
+        raw,
+        flags=re.I,
+    )
+    n = len(re.findall(r"\$\{REDACTED\}", red))
+    say(
+        f"\n[4] CODEX: config.toml -> agent-self/config/codex/config.toml "
+        f"({len(raw) // 1024} KB, {n} value(s) redacted)"
+    )
     if APPLY:
         os.makedirs(f"{REPO}/agent-self/config/codex", exist_ok=True)
-        with open(f"{REPO}/agent-self/config/codex/config.toml", "w",
-                  encoding="utf-8", newline="\n") as f:
+        with open(
+            f"{REPO}/agent-self/config/codex/config.toml",
+            "w",
+            encoding="utf-8",
+            newline="\n",
+        ) as f:
             f.write(red)
 
 # ---------- 5. THE 4 DIVERGED CONFIGS: take LOCAL (owner directive) ----------
-say("\n[5] CONFIGS: local -> repo (owner directive; git history preserves repo versions)")
+say(
+    "\n[5] CONFIGS: local -> repo (owner directive; git history preserves repo versions)"
+)
 PAIRS = [
-    (f"{HOME}/.claude/settings.json",          f"{REPO}/agent-self/config/settings.json"),
-    (f"{HOME}/.claude/CLAUDE.md",              f"{REPO}/CLAUDE.md"),
-    (f"{HOME}/.claude/AGENTS.md",              f"{REPO}/AGENTS.md"),
-    (f"{HOME}/.claude/statusline-command.sh",  f"{REPO}/agent-self/config/statusline-command.sh"),
-    (f"{HOME}/.mcp.json",                      f"{REPO}/agent-self/config/mcp.json.example"),
+    (f"{HOME}/.claude/settings.json", f"{REPO}/agent-self/config/settings.json"),
+    (f"{HOME}/.claude/CLAUDE.md", f"{REPO}/CLAUDE.md"),
+    (f"{HOME}/.claude/AGENTS.md", f"{REPO}/AGENTS.md"),
+    (
+        f"{HOME}/.claude/statusline-command.sh",
+        f"{REPO}/agent-self/config/statusline-command.sh",
+    ),
+    (f"{HOME}/.mcp.json", f"{REPO}/agent-self/config/mcp.json.example"),
 ]
 for src, dst in PAIRS:
     if not os.path.isfile(src):
@@ -195,7 +227,9 @@ for src, dst in PAIRS:
                 for _n, sp in j["mcpServers"].items():
                     if isinstance(sp, dict) and isinstance(sp.get("env"), dict):
                         sp["env"] = redact_env(sp["env"])
-            say(f"    {os.path.relpath(dst, REPO)}: {old}K -> {new}K (json, env redacted)")
+            say(
+                f"    {os.path.relpath(dst, REPO)}: {old}K -> {new}K (json, env redacted)"
+            )
             if APPLY:
                 os.makedirs(os.path.dirname(dst), exist_ok=True)
                 with open(dst, "w", encoding="utf-8", newline="\n") as f:

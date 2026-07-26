@@ -29,7 +29,8 @@ run mkdir -p "$DEST"
 # ---- 1. content that is safe to mirror verbatim ----
 # skills live in two repo roots; skills-claude-only is Claude-specific and wins.
 for pair in "skills:skills" "skills-claude-only:skills" "commands:commands" \
-            "agents:agents" "rules:rules" "hooks:hooks" "workflows:workflows"; do
+            "agents:agents" "rules:rules" "hooks:hooks" \
+            "agent-self/config/workflows:workflows"; do
   src="$REPO/${pair%%:*}"; dst="$DEST/${pair##*:}"
   if [[ -d "$src" ]]; then
     n=$(find "$src" -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')
