@@ -6,6 +6,9 @@ config must produce output in which the secret VALUE appears nowhere.
 
 from __future__ import annotations
 
+from types import ModuleType, SimpleNamespace
+from typing import cast
+
 import pytest
 
 from mcpctl import safety
@@ -99,3 +102,26 @@ def test_env_fields_stringifies_and_sanitises_a_hostile_var_name():
     fields = safety.env_fields({"A\x1b]0;pwn\x07B": "x"})
     assert len(fields) == 1
     assert fields[0].name == "A]0;pwnB"
+
+
+def test_load_upstream_success_path_is_covered_without_the_sibling_tree():
+    """Coverage of the import-succeeds branch must not depend on tools/monitorcore.
+
+    ``tests/test_safety_contract.py`` also exercises this path against the REAL sibling
+    package (that is its job -- drift detection), but it hard-fails if that tree is
+    absent. Covering the branch here with synthetic stubs keeps the coverage gate a
+    property of mcpctl alone.
+    """
+    stub_textsafe = cast(
+        "ModuleType", SimpleNamespace(strip_controls=lambda s: f"stripped:{s}")
+    )
+    stub_redact = cast(
+        "ModuleType", SimpleNamespace(redact=lambda s: (f"masked:{s}", 3))
+    )
+    modules = {"monitorcore.textsafe": stub_textsafe, "monitorcore.redact": stub_redact}
+
+    upstream = safety.load_upstream(lambda name: modules[name])
+
+    assert upstream is not None
+    assert upstream.strip_controls("x") == "stripped:x"
+    assert upstream.redact("y") == ("masked:y", 3)
