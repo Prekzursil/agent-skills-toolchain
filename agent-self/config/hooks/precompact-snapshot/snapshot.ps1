@@ -32,7 +32,7 @@ $entry = [pscustomobject]@{
     transcript_path = $tpath
 }
 ($entry | ConvertTo-Json -Compress) |
-    Out-File -FilePath '{{USER_HOME}}/.claude/compaction-log.jsonl' -Append -Encoding utf8
+    Out-File -FilePath 'C:/Users/Prekzursil/.claude/compaction-log.jsonl' -Append -Encoding utf8
 
 # 2) Snapshot the volatile remember buffer if this project has one.
 $now = Join-Path $cwd '.remember/now.md'
@@ -40,7 +40,13 @@ if (Test-Path $now) {
     $snapDir = Join-Path $cwd '.remember/tmp'
     if (-not (Test-Path $snapDir)) { New-Item -ItemType Directory -Path $snapDir -Force | Out-Null }
     $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-    Copy-Item $now (Join-Path $snapDir "precompact-$stamp.md") -Force
+    # The session id goes in the FILENAME, not just the JSONL log. Without it the restore
+    # side cannot tell whose snapshot it is and falls back to "newest globally" — which
+    # injected one session's pre-compaction context into a different session. A snapshot
+    # with no session id is written un-matchable on purpose: losing a recovery is a far
+    # smaller harm than steering another session with foreign context.
+    $sidTag = if ($sid) { ($sid -replace '[^A-Za-z0-9]', '').Substring(0, [Math]::Min(16, ($sid -replace '[^A-Za-z0-9]', '').Length)) } else { 'nosession' }
+    Copy-Item $now (Join-Path $snapDir "precompact-$sidTag-$stamp.md") -Force
     # Keep only the 40 most recent snapshots.
     Get-ChildItem $snapDir -Filter 'precompact-*.md' |
         Sort-Object LastWriteTime -Descending |

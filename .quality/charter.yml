@@ -21,16 +21,19 @@ gates:
       basedpyright (standard mode) over the SOURCE of the shipped Python packages —
       tools/mcp-manager (core, ui, app.py), tools/scholarly-access-mcp (scholarly_access),
       tools/taskwatch_monitor (core, probes, cli, mcp_server, hooks, ui),
-      tools/monitorcore (monitorcore) and tools/mcpctl (mcpctl) — each checked from its own
-      root with its deps installed so imports resolve (mcpctl imports stdlib only, so it
-      needs no install).
+      tools/monitorcore (monitorcore), tools/agentspec (agentspec) and tools/mcpctl (mcpctl)
+      -- each checked from its own root with its deps installed so imports resolve. mcpctl is
+      the one package needing no install: its source imports stdlib only and its optional
+      monitorcore reuse goes through importlib with a STRING module name, so there is no
+      static sibling import for basedpyright to resolve.
   - slug: tests-coverage
     tools: ["pytest + pytest-cov", "node --test"]
     enforces: >-
       Strict 100% line+branch coverage for the shipped Python packages (mcp-manager,
-      scholarly-access-mcp, taskwatch_monitor, monitorcore, mcpctl) plus the node workspace
-      tests (root + agentify-desktop). Reasoned `# pragma: no cover -- <reason>` only for
-      genuinely-untestable branches.
+      scholarly-access-mcp, taskwatch_monitor, monitorcore, agentspec, mcpctl) plus the node
+      workspace tests (root + agentify-desktop). Reasoned `# pragma: no cover -- <reason>`
+      only for genuinely-untestable branches; agentspec and mcpctl are pure and carry none at
+      all (measured: 0 and 0 real pragmas in package source, against monitorcore's 11).
   - slug: sast
     tools: ["opengrep 1.23.0", "semgrep CE 1.166.0 (local)"]
     enforces: >-

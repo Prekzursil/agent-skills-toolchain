@@ -42,6 +42,38 @@ This repo does not have a single build step. Validate the parts you touch:
 - Keep related doc, script, and skill changes in the same commit only when they support one workflow.
 - PRs should summarize promoted skills or tools, validation commands run, and any new helper scripts or repo docs.
 
+## Cursor Cloud specific instructions
+
+The startup update script runs `npm install` and installs the pinned Python lint/test
+tooling. Notes below cover only non-obvious caveats; standard commands live in
+`package.json`, `.github/workflows/quality.yml`, and each package's `pyproject.toml`.
+
+- **Runnable surfaces.** The primary applications are Node MCP servers: `codex-orchestrator`
+  (`node mcp-server.mjs`) and `promptbridge-talk-lane`
+  (`node tools/web/promptbridge-talk-lane/src/mcp-server.mjs`). They speak MCP over stdio, so
+  drive them with an MCP client (`@modelcontextprotocol/sdk`), not by reading stdout. Server
+  startup + `tools/list` work standalone (codex-orchestrator exposes ~54 tools).
+- **`codex_consult` and the `cli.mjs self-test`/`probe` commands SPAWN the external `codex`
+  CLI binary**, which is NOT installed in cloud. Invoking those tools or running the CLI
+  self-test fails with `spawn codex ENOENT`. This is expected here — it is an external
+  integration, not a repo defect. Verify the server via handshake + `tools/list` instead.
+- **Node tests:** `npm test` runs all three workspaces (codex-orchestrator, promptbridge,
+  fanout-schema) via `node --test`.
+- **Python tooling lives in `~/.local/bin`** (ruff, pytest). Add it to `PATH`
+  (`export PATH="$HOME/.local/bin:$PATH"`) before running `ruff`/`pytest`. Repo-wide lint is
+  `ruff check .` + `ruff format --check .`.
+- **Per-package Python tests** need an editable install from that package's own dir first,
+  e.g. `pip install --break-system-packages -e ".[dev]"` in `tools/mcp-manager`,
+  `tools/scholarly-access-mcp`, `tools/taskwatch_monitor`, `tools/monitorcore`. `tools/stdin-server`
+  is stdlib-only (pytest only). There is no repo-wide pytest autodiscovery — the many standalone
+  suites in `.github/workflows/quality.yml` (test-python job) are the source of truth for what to run.
+- **Gotcha:** running the codex-orchestrator tests/self-test on Linux can create a stray literal
+  `tools/mcp/codex-orchestrator/C:/...` directory (a Windows-style default codex-home path used as
+  a filesystem path). It is safe to `rm -rf` and should not be committed.
+- **`scripts/validate-all-skills.ps1` (`npm run validate:skills`) needs PowerShell (`pwsh`) plus an
+  external skill-creator validator under `CODEX_HOME`; neither is present in cloud, so skip skill
+  validation here.**
+
 <!-- AgentBridge:start -->
 ## AgentBridge — Multi-Agent Collaboration
 
