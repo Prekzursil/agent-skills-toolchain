@@ -130,15 +130,20 @@ def normalize_event(
             # tool and was ALLOWED. A safety guard must not fail open on payload casing.
             name=str(data.get("tool_name") or data.get("toolName") or ""),
             id=str(
-                data.get("tool_use_id") or data.get("tool_id")
-                or data.get("toolUseId") or data.get("toolId") or ""
+                data.get("tool_use_id")
+                or data.get("tool_id")
+                or data.get("toolUseId")
+                or data.get("toolId")
+                or ""
             ),
             # `is not None` preserved rather than collapsed to `or`: an intentional empty
             # dict is a real payload and must not fall through to the alias.
             input=(
                 data.get("tool_input")
                 if data.get("tool_input") is not None
-                else (data.get("toolInput") if data.get("toolInput") is not None else {})
+                else (
+                    data.get("toolInput") if data.get("toolInput") is not None else {}
+                )
             ),
             result=tool_result,
         ),
