@@ -122,6 +122,16 @@ jobs:
         run: |
           pip install -e ".[dev]"
           basedpyright agentspec
+      # tools/mcpctl -- read-only MCP inventory core. NO install step on purpose: the
+      # package SOURCE imports stdlib only, and basedpyright resolves `mcpctl` from this
+      # working-directory (its own project root) exactly as it does for monitorcore
+      # above. mcpctl also contains no STATIC `import monitorcore` -- its optional reuse
+      # of monitorcore goes through importlib with a string module name -- so this step
+      # cannot hit the measured trap where `pip install -e ../monitorcore` is invisible
+      # to basedpyright and reds the gate.
+      - name: gate-types mcpctl (source)
+        working-directory: tools/mcpctl
+        run: basedpyright mcpctl
       # agent-self/harness — the enshrined shared lifecycle harness (SSOT for the live
       # ~/.agents/harness deploy loop; see agent-self/harness/README.md). It ships NO
       # pyproject (byte-exact projection of the live tree the installer deploys), so standard
@@ -185,6 +195,17 @@ jobs:
         run: |
           pip install -e ".[dev]"
           pytest --cov=monitorcore --cov-branch --cov-report=term-missing --cov-fail-under=100
+      # tools/mcpctl -- read-only MCP inventory core, stdlib-only runtime (its dev extra
+      # is just pytest + pytest-cov). The editable install is LOAD-BEARING here even
+      # though the runtime deps are empty: `tests/` is a subdirectory, so bare `pytest`
+      # (which, unlike `python -m pytest`, does NOT put the cwd on sys.path) cannot
+      # import `mcpctl` without it. Verified in a fresh venv against the committed blob,
+      # not against the working tree.
+      - name: gate-tests-coverage mcpctl
+        working-directory: tools/mcpctl
+        run: |
+          pip install -e ".[dev]"
+          pytest --cov=mcpctl --cov-branch --cov-report=term-missing --cov-fail-under=100
       # tools/stdin-server — a stdlib-only interactive-stdin MCP server (Desktop Commander
       # start_process/interact_with_process/read_process_output). Zero third-party deps, so
       # only pytest+pytest-cov are installed; the whole module is 100% line+branch gated. The

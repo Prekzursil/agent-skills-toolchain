@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcpctl"
+version = "0.1.0"
+description = "Read-only MCP inventory + health matrix core: the five on-disk configuration scopes, their measured precedence, credential-name-only redaction, and a read-only CLI"
+requires-python = ">=3.11"
+# STDLIB-ONLY runtime. mcpctl reads JSON config with the stdlib `json` and never
+# writes any configuration file, so there is no writer dependency. monitorcore is
+# a DEFENCE-IN-DEPTH optional import (see mcpctl/safety.py): mcpctl carries its own
+# always-on redaction layer so the security floor never depends on that import
+# resolving. Adding a mandatory dep here would also break the stdlib-only posture
+# the sibling monitorcore package documents.
+dependencies = []
+
+# ONE named package. Sub-modules land as files inside `mcpctl/` (scopes, topology,
+# resolve, safety, matrix, render, sources, envelope, cli).
+[tool.setuptools]
+packages = ["mcpctl"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7",
+    "pytest-cov>=4",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[tool.coverage.run]
+branch = true
+
+[tool.basedpyright]
+# The gate runs `basedpyright mcpctl` at STANDARD mode from this directory (see
+# .github/workflows/quality.yml). Pinned here so the gate is reproducible and does
+# not inherit basedpyright's stricter config-less default.
+typeCheckingMode = "standard"
+# extraPaths -- a GUARD, not a load-bearing setting today. Stated precisely because
+# the distinction is the whole point:
+#
+#   * The known blocker (gate-findings/unattributed-BLOCKING.md B1, measured): a
+#     `pip install -e ../monitorcore` is INVISIBLE to basedpyright. setuptools emits a
+#     MetaPathFinder into a `.pth` holding executable code rather than a search path;
+#     Python runs that `.pth`, basedpyright does not. So any package with a STATIC
+#     `import monitorcore` plus an editable install reds the types gate every time.
+#   * mcpctl sidesteps it rather than working around it: there is NO static monitorcore
+#     import anywhere in this package. The optional reuse goes through
+#     `importlib.import_module("monitorcore.textsafe")` in mcpctl/safety.py, which
+#     basedpyright neither resolves nor complains about.
+#   * VERIFIED by a both-states probe, 2026-07-26: `basedpyright mcpctl` reports
+#     `0 errors, 0 warnings, 0 notes` WITH this line and, after commenting it out,
+#     `0 errors, 0 warnings, 0 notes` again. It is therefore inert as of today -- do
+#     not cite it as the fix for B1.
+#
+# It is kept so that if a future edit does add a static `import monitorcore`, the gate
+# resolves it from the sibling tree instead of failing and tempting someone back to the
+# editable install that does not work.
+extraPaths = ["../monitorcore"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7",
+    "pytest-cov>=4",
+]
