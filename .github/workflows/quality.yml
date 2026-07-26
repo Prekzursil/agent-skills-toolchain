@@ -211,10 +211,20 @@ jobs:
       # and ZERO `# pragma: no cover` in it — 100% line+branch is reached by testing every branch.
       # Reuses the existing `gate-tests-coverage` charter slug on purpose, so
       # .quality/charter_check.sh stays consistent with no charter.yml gate edit.
+      #
+      # `pip install -e ".[dev]"` (the monitorcore pattern at :183-187), NOT the bare
+      # `pip install pytest pytest-cov` that stdin-server uses. MEASURED: the bare form fails
+      # here with `ImportError while loading conftest … ModuleNotFoundError: No module named
+      # 'agentspec'`, exit 4, because tests/conftest.py imports the package at COLLECTION time
+      # and pytest only puts the conftest's own directory on sys.path — not the package root.
+      # stdin-server gets away with it because nothing of its imports runs before collection.
+      # Reproduce either state locally with the venv's `pytest` CONSOLE SCRIPT, never
+      # `python -m pytest`: the `-m` form prepends the CWD to sys.path and passes in BOTH
+      # states, so it is a broken detector for this specific failure.
       - name: gate-tests-coverage agentspec
         working-directory: tools/agentspec
         run: |
-          pip install pytest pytest-cov
+          pip install -e ".[dev]"
           pytest -m "not live" --cov=agentspec --cov-branch --cov-report=term-missing --cov-fail-under=100
       # agent-self/harness — the enshrined shared lifecycle harness (SSOT for the live
       # ~/.agents/harness deploy loop). Runs its full pytest suite on the CI interpreter as a
