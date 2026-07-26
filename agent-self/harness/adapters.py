@@ -122,9 +122,24 @@ def normalize_event(
         cwd=str(data.get("cwd") or "."),
         permission_mode=str(data.get("permission_mode") or "default"),
         tool=ToolEnvelope(
-            name=str(data.get("tool_name") or ""),
-            id=str(data.get("tool_use_id") or data.get("tool_id") or ""),
-            input=data.get("tool_input") if data.get("tool_input") is not None else {},
+            # Accept the camelCase spellings too. Every other envelope field here was
+            # already alias-tolerant; the tool name and input were the sole exception, and
+            # they are the fields the destructive-command guard reads. Measured 2026-07-26
+            # with HARNESS_LIFECYCLE_GUARD=1: `rm -rf /tmp/victim` as tool_name/tool_input
+            # was denied, the same command as toolName/toolInput normalized to an empty
+            # tool and was ALLOWED. A safety guard must not fail open on payload casing.
+            name=str(data.get("tool_name") or data.get("toolName") or ""),
+            id=str(
+                data.get("tool_use_id") or data.get("tool_id")
+                or data.get("toolUseId") or data.get("toolId") or ""
+            ),
+            # `is not None` preserved rather than collapsed to `or`: an intentional empty
+            # dict is a real payload and must not fall through to the alias.
+            input=(
+                data.get("tool_input")
+                if data.get("tool_input") is not None
+                else (data.get("toolInput") if data.get("toolInput") is not None else {})
+            ),
             result=tool_result,
         ),
         last_assistant_message=str(last_message or ""),
