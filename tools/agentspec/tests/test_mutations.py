@@ -21,7 +21,14 @@ from typing import Any
 
 import pytest
 
-from agentspec.argv import ArgvPlan, ArgvTooLong, PolicyViolation, render_cmdline
+from agentspec.argv import (
+    WINDOWS_CMDLINE_CAP,
+    ArgvPlan,
+    ArgvTooLong,
+    PolicyViolation,
+    PromptOnArgv,
+    render_cmdline,
+)
 from agentspec.determinism import Finding
 from agentspec.evals.impl import DEFAULT_IMPL, Impl
 from agentspec.evals.registry import REGISTRY, row_ids, run_all, run_row
@@ -245,6 +252,37 @@ def _retry_anything_once(reason: str, *, attempt: int) -> RetryDecision:
     )
 
 
+def _embedded_prompt_allowed(**kwargs: Any) -> ArgvPlan:
+    """M-R4g: rules 1 and 2 only — bare CONTAINMENT is dropped.
+
+    This is the in-process equivalent of raising ``MIN_SUBSTRING_SCAN_LEN`` past the prompt
+    length, which the adversarial critic MEASURED to be invisible to both the suite and the
+    100% line+branch gate (2026-07-26). The prompt still cannot be passed as a bare argument
+    or as ``--flag=<body>``, and the cap is still enforced, so ONLY an assertion about a prompt
+    embedded in a LARGER argv element can catch this mutant.
+    """
+    prompt = kwargs["prompt"]
+    argv = (kwargs["exe"], *tuple(kwargs.get("flags", ())))
+    if kwargs.get("transport") == "file":
+        argv = (*argv, kwargs["prompt_flag"], kwargs["prompt_path"])
+    for element in argv:
+        if element == prompt or any(
+            element.endswith(delimiter + prompt) for delimiter in ("=", ":")
+        ):
+            raise PromptOnArgv("mutant: equality and delimiter rules only")
+    cap = kwargs.get("cap", WINDOWS_CMDLINE_CAP)
+    cmdline_len = len(render_cmdline(argv))
+    if cmdline_len > cap:
+        raise ArgvTooLong(cmdline_len=cmdline_len, cap=cap)
+    return ArgvPlan(
+        argv=argv,
+        prompt_transport=kwargs["transport"],
+        prompt_path=kwargs.get("prompt_path"),
+        stdin_payload=prompt if kwargs.get("transport") == "stdin" else None,
+        cmdline_len=cmdline_len,
+    )
+
+
 def _always_finds_a_leak(_source: str, path: str) -> tuple[Finding, ...]:
     """M-R8c: over-reach — reports the clean dispatch path as non-deterministic."""
     return (Finding(path=path, line=1, code="forbidden-import", detail="mutant"),)
@@ -352,6 +390,11 @@ MUTANTS: tuple[tuple[str, str, dict[str, Any]], ...] = (
         "M-R4f the reported command-line length is off by one",
         "R4",
         {"build_argv": _off_by_one_length},
+    ),
+    (
+        "M-R4g a prompt EMBEDDED in a larger argv element is accepted",
+        "R4",
+        {"build_argv": _embedded_prompt_allowed},
     ),
     (
         "M-R5c hardening is injected but never verified",

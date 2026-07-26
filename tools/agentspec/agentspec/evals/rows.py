@@ -21,6 +21,7 @@ from agentspec.argv import (
     WINDOWS_CMDLINE_CAP,
     ArgvPlan,
     PolicyViolation,
+    PromptOnArgv,
     RailSpec,
     build_argv,
 )
@@ -136,6 +137,10 @@ def r4_a_large_prompt_is_routed_off_argv(impl: Impl) -> tuple[bool, str]:
 
     MEASURED: an inline prompt produced ``payload_len=34472`` and killed the run with
     ``os error 206``. Cap 32,767, measured via libuv at 32,745 OK / 32,774 ENAMETOOLONG.
+
+    All THREE prompt-on-argv rules are exercised here: the bare-argument and
+    ``--flag=<body>`` shapes via the transports above, and bare CONTAINMENT via the
+    ``embedded`` case — the rule whose threshold constant was measurably unprotected.
     """
     prompt = "x" * 40_960
     plan = impl.build_argv(
@@ -159,6 +164,24 @@ def r4_a_large_prompt_is_routed_off_argv(impl: Impl) -> tuple[bool, str]:
     ):
         return False, "the stdin transport did not carry the prompt"
 
+    # The prompt EMBEDDED in a larger argv element, with the whole command line far UNDER the
+    # cap. Neither the cap check nor the equality / `--flag=<body>` rules can see this shape,
+    # so it is the only assertion that exercises bare containment. It exists because the
+    # adversarial critic MEASURED (2026-07-26) that raising MIN_SUBSTRING_SCAN_LEN disabled
+    # that rule while the suite stayed at 366 passed and coverage stayed at 100.00%.
+    embedded = "x" * 3_000
+    try:
+        impl.build_argv(
+            exe="codex.exe",
+            prompt=embedded,
+            transport="stdin",
+            flags=("exec", "the task is: " + embedded),
+        )
+    except PromptOnArgv:
+        pass
+    else:
+        return False, "a 3,000-char prompt embedded in a larger argv element was accepted"
+
     over = "b" * (WINDOWS_CMDLINE_CAP + 1 - len("c.exe") - 1)
     try:
         impl.build_argv(exe="c.exe", prompt="p", transport="stdin", flags=(over,))
@@ -177,7 +200,11 @@ def r4_a_large_prompt_is_routed_off_argv(impl: Impl) -> tuple[bool, str]:
             False,
             "control failed: the boundary case did not land exactly on the cap",
         )
-    return True, f"40 KB routed off argv; cap boundary exact at {WINDOWS_CMDLINE_CAP}"
+    return (
+        True,
+        "40 KB routed off argv; an embedded prompt under the cap is still refused; "
+        f"cap boundary exact at {WINDOWS_CMDLINE_CAP}",
+    )
 
 
 def r5_hardening_is_required_and_win_arg_limit_retries_once(
