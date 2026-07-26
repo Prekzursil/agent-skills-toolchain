@@ -48,31 +48,48 @@ The startup update script runs `npm install` and installs the pinned Python lint
 tooling. Notes below cover only non-obvious caveats; standard commands live in
 `package.json`, `.github/workflows/quality.yml`, and each package's `pyproject.toml`.
 
+- **Runtimes:** Node 22 + npm 10, Python 3.12. `pwsh` and `uv` are NOT installed (so the
+  `validate:skills` npm script cannot run — see below). There is no `.cursor/environment.json`;
+  the environment is snapshot-managed.
 - **Runnable surfaces.** The primary applications are Node MCP servers: `codex-orchestrator`
-  (`node mcp-server.mjs`) and `promptbridge-talk-lane`
-  (`node tools/web/promptbridge-talk-lane/src/mcp-server.mjs`). They speak MCP over stdio, so
-  drive them with an MCP client (`@modelcontextprotocol/sdk`), not by reading stdout. Server
-  startup + `tools/list` work standalone (codex-orchestrator exposes ~54 tools).
+  (`node mcp-server.mjs`, also `npm run mcp:serve`) and `promptbridge-talk-lane`
+  (`node tools/web/promptbridge-talk-lane/src/mcp-server.mjs`). They speak MCP over **stdio**,
+  not a TCP/HTTP port, so drive them with an MCP client (`@modelcontextprotocol/sdk`) or
+  newline-delimited JSON-RPC (`initialize` → `notifications/initialized` → `tools/list`) —
+  never by reading stdout. Server startup + `tools/list` work standalone (codex-orchestrator
+  exposes ~54 tools).
 - **`codex_consult` and the `cli.mjs self-test`/`probe` commands SPAWN the external `codex`
   CLI binary**, which is NOT installed in cloud. Invoking those tools or running the CLI
   self-test fails with `spawn codex ENOENT`. This is expected here — it is an external
   integration, not a repo defect. Verify the server via handshake + `tools/list` instead.
+  The `promptbridge_*` / `agentify_*` tools shell out to a desktop app that is likewise absent,
+  so those specific tools stay unavailable in cloud for the same reason.
 - **Node tests:** `npm test` runs all three workspaces (codex-orchestrator, promptbridge,
   fanout-schema) via `node --test`.
 - **Python tooling lives in `~/.local/bin`** (ruff, pytest). Add it to `PATH`
   (`export PATH="$HOME/.local/bin:$PATH"`) before running `ruff`/`pytest`. Repo-wide lint is
-  `ruff check .` + `ruff format --check .`.
+  `ruff check .` + `ruff format --check .`, and the gate pins **ruff 0.15.17** (honors
+  `ruff.toml`) — match it exactly (`pip install ruff==0.15.17`, or `uvx ruff@0.15.17`), because
+  a different ruff reports different findings than CI. The fan-out schema linter is invoked
+  with file args, as CI does: `cd tools/fanout-schema && npm run lint -- ../../workflows`.
 - **Per-package Python tests** need an editable install from that package's own dir first,
   e.g. `pip install --break-system-packages -e ".[dev]"` in `tools/mcp-manager`,
   `tools/scholarly-access-mcp`, `tools/taskwatch_monitor`, `tools/monitorcore`. `tools/stdin-server`
   is stdlib-only (pytest only). There is no repo-wide pytest autodiscovery — the many standalone
   suites in `.github/workflows/quality.yml` (test-python job) are the source of truth for what to run.
+  Two per-package specifics worth knowing: `tools/mcp-manager` enforces 100% branch coverage
+  (`pytest --cov=. --cov-branch --cov-fail-under=100 -q`) and its PySide6/Textual GUI needs a
+  display while its CLI runs headless (`app.py status|preset list|json`); `tools/scholarly-access-mcp`
+  auto-ignores the network suite `tests/test_live.py` via `addopts` (run it manually only), and
+  `list_tools.py` prints its 8-tool surface.
 - **Gotcha:** running the codex-orchestrator tests/self-test on Linux can create a stray literal
   `tools/mcp/codex-orchestrator/C:/...` directory (a Windows-style default codex-home path used as
   a filesystem path). It is safe to `rm -rf` and should not be committed.
 - **`scripts/validate-all-skills.ps1` (`npm run validate:skills`) needs PowerShell (`pwsh`) plus an
   external skill-creator validator under `CODEX_HOME`; neither is present in cloud, so skip skill
   validation here.**
+- **Full quality gate details** (types via basedpyright, SAST, secrets, deps) are in `README.md`
+  and `.github/workflows/quality.yml`.
 
 <!-- AgentBridge:start -->
 ## AgentBridge — Multi-Agent Collaboration
