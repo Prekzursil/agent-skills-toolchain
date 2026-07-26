@@ -180,7 +180,10 @@ def r4_a_large_prompt_is_routed_off_argv(impl: Impl) -> tuple[bool, str]:
     except PromptOnArgv:
         pass
     else:
-        return False, "a 3,000-char prompt embedded in a larger argv element was accepted"
+        return (
+            False,
+            "a 3,000-char prompt embedded in a larger argv element was accepted",
+        )
 
     over = "b" * (WINDOWS_CMDLINE_CAP + 1 - len("c.exe") - 1)
     try:

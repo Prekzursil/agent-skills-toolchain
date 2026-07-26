@@ -238,7 +238,9 @@ def test_a_progress_body_would_pass_a_two_clause_gate_which_is_why_vacuity_is_re
     assert body.strip()  # non-empty: clause 3 would pass
     assert not looks_like_progress(body.decode())  # clause 6 would not catch it
     with pytest.raises(ValueError, match="vacuous"):
-        judge("u1", RailResult(exit_code=0, receipt_bytes=body), ReceiptSpec(fmt="text"))
+        judge(
+            "u1", RailResult(exit_code=0, receipt_bytes=body), ReceiptSpec(fmt="text")
+        )
     # Detector control: the SAME body against a non-vacuous spec is caught properly.
     caught = judge(
         "u1",
