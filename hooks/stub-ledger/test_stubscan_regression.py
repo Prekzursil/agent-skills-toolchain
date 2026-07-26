@@ -86,6 +86,37 @@ CASES = [
         None,
         True,
     ),
+    # ---- SILENT: a WRAPPED description put the weak word near the start of its SECOND line ----
+    # Measured 2026-07-27 at hooks/per-edit-check/check.py:73. The lead-vs-trail test was
+    # line-scoped, so a description that wraps landed at line-offset 16 (<= _WEAK_LEAD_CHARS)
+    # and was read as a DECLARATION -- flagging PLACEHOLDER_MARKERS, a constant that is defined,
+    # used, and covered by three tests. It fired six times in one session, on the file that IS
+    # the write-path secret gate: the worst possible place to teach an operator to ignore the
+    # detector. _weak_lead_offset now reassembles the comment BLOCK and measures within the
+    # SENTENCE, where the same word sits at ~85.
+    (
+        "wrapped description above a real constant stays silent",
+        "# Lowercase substrings that mark a credential-shaped string as documentation\n"
+        "# or a fill-me-in placeholder rather than a live credential.\n"
+        'PLACEHOLDER_MARKERS = ("example",)\n',
+        None,
+        False,
+    ),
+    # ---- FIRE: the block fix must NOT blind a declaration that opens a new sentence ----
+    (
+        "declaration opening a new sentence after a wrapped one still fires",
+        "# This function parses the config file and returns a dict.\n"
+        "# placeholder until wired to the real loader.\n",
+        None,
+        True,
+    ),
+    # ---- FIRE: a trailing comment on a code line starts its OWN block, so it still leads ----
+    (
+        "trailing comment on a code line still fires",
+        "value = 1  # placeholder until wired\n",
+        None,
+        True,
+    ),
 ]
 
 
