@@ -1,6 +1,6 @@
 ---
 name: video-convert
-description: "Use when converting a video/audio file's FORMAT, CODEC, or CONTAINER in media-studio (mp4/mkv/mov/webm/gif, h264/h265/vp9/av1, or audio-only extraction to mp3/m4a/wav/flac/opus) — single file or batch, or normalizing a non-Chromium-playable source for playback (remux vs h264-720p proxy). Covers."
+description: "Use when converting a video/audio file's FORMAT, CODEC, or CONTAINER in media-studio (mp4/mkv/mov/webm/gif, h264/h265/vp9/av1, or audio-only extraction to mp3/m4a/wav/flac/opus) — single file or batch, or normalizing a non-Chromium-playable source for playback (remux vs h264-720p proxy). Covers the real ffmpeg argv builder, codec/CRF/bitrate/pix_fmt choices, faststart, container<->codec legality, and the progress/seek/timebase pitfalls that actually bite. DO NOT use this skill for: cutting/trimming/splitting clips (use reframe-video-cutting), reframing 16:9->9:16 (use reframe), burning subtitles/captions, watermark/logo removal (use video-watermark-removal), or pure thumbnail/frame extraction. Also NOT a general 'run any ffmpeg command' helper — it documents media-studio's specific, frozen convert.* / media.* contracts."
 ---
 
 # Video Convert (format / codec / container) — media-studio
