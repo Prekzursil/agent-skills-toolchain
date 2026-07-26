@@ -108,6 +108,20 @@ jobs:
         run: |
           pip install -e ".[dev]"
           basedpyright monitorcore
+      # tools/agentspec — the portable agent-workflow SPEC, the shared observation envelope and
+      # the dispatch-safety pure core. Stdlib-only with ZERO runtime deps, so nothing but
+      # pytest/pytest-cov is installed and no sibling package needs to be on the search path.
+      # That absence is deliberate: `pip install -e ../<pkg>` is INVISIBLE to basedpyright
+      # (setuptools emits a MetaPathFinder plus a .pth that only executes an import statement,
+      # and basedpyright neither runs .pth code nor follows a finder), so any FUTURE consumer of
+      # agentspec must add `[tool.basedpyright] extraPaths = ["../agentspec"]` rather than rely
+      # on the editable install. Reuses the existing `gate-types` charter slug on purpose — it is
+      # not a new gate, so .quality/charter_check.sh stays consistent.
+      - name: gate-types agentspec (source)
+        working-directory: tools/agentspec
+        run: |
+          pip install -e ".[dev]"
+          basedpyright agentspec
       # agent-self/harness — the enshrined shared lifecycle harness (SSOT for the live
       # ~/.agents/harness deploy loop; see agent-self/harness/README.md). It ships NO
       # pyproject (byte-exact projection of the live tree the installer deploys), so standard
@@ -181,6 +195,38 @@ jobs:
         run: |
           pip install pytest pytest-cov
           pytest --cov=stdin_server --cov-branch --cov-report=term-missing --cov-fail-under=100
+      # tools/agentspec — the portable agent-workflow SPEC, the shared observation envelope, the
+      # dispatch-safety pure core (argv/prompt transport, the completion AND-gate, progress-stream
+      # rejection, terminal markers, budget accounting, determinism) and the hermetic eval
+      # registry. Stdlib-only, zero runtime deps, so only pytest+pytest-cov are installed.
+      #
+      # `-m "not live"` is LOAD-BEARING and is the only step in this workflow that passes `-m`.
+      # The package registers a `live` marker and its tests/conftest.py default-deselects it, but
+      # neither is worth relying on alone: a bare `pytest` here would COLLECT AND RUN a live row
+      # the moment one is added, and this job is ubuntu-latest with no agent CLI on it. The
+      # sentinel live test is deliberately not the sole cover of any line, so 100% is still
+      # reached with it deselected (measured 2026-07-27: `406 passed, 1 deselected`, coverage
+      # 100.00%, via the pytest CONSOLE SCRIPT in a fresh venv against the LF blob tree).
+      #
+      # The package is PURE by construction, so there is no coverage `omit`, no `exclude_lines`
+      # and ZERO `# pragma: no cover` in it — 100% line+branch is reached by testing every branch.
+      # Reuses the existing `gate-tests-coverage` charter slug on purpose, so
+      # .quality/charter_check.sh stays consistent with no charter.yml gate edit.
+      #
+      # `pip install -e ".[dev]"` (the monitorcore pattern at :183-187), NOT the bare
+      # `pip install pytest pytest-cov` that stdin-server uses. MEASURED: the bare form fails
+      # here with `ImportError while loading conftest … ModuleNotFoundError: No module named
+      # 'agentspec'`, exit 4, because tests/conftest.py imports the package at COLLECTION time
+      # and pytest only puts the conftest's own directory on sys.path — not the package root.
+      # stdin-server gets away with it because nothing of its imports runs before collection.
+      # Reproduce either state locally with the venv's `pytest` CONSOLE SCRIPT, never
+      # `python -m pytest`: the `-m` form prepends the CWD to sys.path and passes in BOTH
+      # states, so it is a broken detector for this specific failure.
+      - name: gate-tests-coverage agentspec
+        working-directory: tools/agentspec
+        run: |
+          pip install -e ".[dev]"
+          pytest -m "not live" --cov=agentspec --cov-branch --cov-report=term-missing --cov-fail-under=100
       # agent-self/harness — the enshrined shared lifecycle harness (SSOT for the live
       # ~/.agents/harness deploy loop). Runs its full pytest suite on the CI interpreter as a
       # REGRESSION gate for the projected tree, and measures branch coverage (term-missing).
