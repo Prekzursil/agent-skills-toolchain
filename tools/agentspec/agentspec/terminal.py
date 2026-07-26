@@ -2,8 +2,9 @@
 
 Open-ended prose is the measured driver of repetitive-action loops, and a vague summary was how
 a severed dispatch got reported as done. So the shape is enforced, not merely recommended:
-``<id>`` may not contain whitespace (it would make the marker unparseable) and ``<reason>`` must
-be a member of the closed taxonomy.
+``<id>`` may not contain whitespace (it would make the marker unparseable) nor any other
+control byte (it would render as an escape sequence in the console printing the marker), and
+``<reason>`` must be a member of the closed taxonomy.
 
 A SEVERED verdict renders ``FAILED:<id> severed-stream (<fine-reason>)`` — ``severed-stream``
 comes FIRST so a consumer that greps for it matches, while the operator still sees the fine
@@ -50,8 +51,15 @@ def terminal_line(verdict: object) -> str:
 
 
 def _checked_id(unit_id: str) -> str:
-    if not unit_id or any(ch.isspace() for ch in unit_id):
+    """Refuse an id that would corrupt the marker line or the terminal rendering it.
+
+    Whitespace makes ``FAILED:<id> <reason>`` unparseable. Any OTHER control byte (ESC/CSI,
+    OSC-8, NUL, DEL) renders as an escape sequence in the console that prints the marker —
+    the measured statusline class where a field defeated its own sanitizer. ``isprintable``
+    is deliberately not an ASCII check: a non-ASCII but printable id is valid.
+    """
+    if not unit_id or not unit_id.isprintable() or any(ch.isspace() for ch in unit_id):
         raise ValueError(
-            f"unit_id must be non-empty and whitespace-free, got {unit_id!r}"
+            f"unit_id must be non-empty, whitespace-free and printable, got {unit_id!r}"
         )
     return unit_id

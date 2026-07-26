@@ -20,6 +20,11 @@ has to parse the other's string — the earlier design shipped only the fine cau
 have silently broken every consumer matching on ``severed-stream``.
 
 The ``progress`` field of :class:`RailResult` is DIAGNOSTICS. It is never read as a result.
+
+:func:`judge` also REFUSES a vacuous :class:`~agentspec.spec.ReceiptSpec` (fail-closed). Only
+``validate_workflow`` used to catch that, so a consumer that hand-built a spec and called
+``judge`` directly lost the catch and silently ran a two-clause gate. Both call sites now share
+:meth:`~agentspec.spec.ReceiptSpec.is_vacuous`.
 """
 
 from __future__ import annotations
@@ -92,6 +97,12 @@ def judge(unit_id: str, result: RailResult, spec: ReceiptSpec) -> Verdict:
         raise ValueError("unit_id must be non-empty")
     if spec.fmt not in RECEIPT_FORMATS:
         raise ValueError(f"receipt spec fmt must be one of {list(RECEIPT_FORMATS)}")
+    if spec.is_vacuous():
+        raise ValueError(
+            "receipt spec is vacuous: a json spec needs required_fields and a text spec needs "
+            "forbidden_markers, or the AND-gate silently reduces to 'exit 0 AND non-empty' "
+            "and a receipt reading 'work is still in progress' reports SUCCESS"
+        )
 
     if result.exit_code != 0:
         return _fail(unit_id, rail_exit(result.exit_code), (), result, severed=False)

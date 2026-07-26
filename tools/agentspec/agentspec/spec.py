@@ -43,6 +43,22 @@ class ReceiptSpec:
     required_fields: tuple[str, ...] = ()
     forbidden_markers: tuple[str, ...] = ()
 
+    def is_vacuous(self) -> bool:
+        """True when this spec gives the AND-gate NO content clause for its own format.
+
+        The ONE predicate shared by :func:`agentspec.validate.validate_workflow` (which
+        reports ``unit-receipt-clause-vacuous``) and :func:`agentspec.oracle.judge` (which
+        refuses outright), so a consumer that skips the Workflow layer cannot lose the catch.
+
+        An unrecognised ``fmt`` is NOT vacuous: both call sites reject an unknown format
+        first, and answering True here would report one defect as two ids.
+        """
+        if self.fmt == "json":
+            return not self.required_fields
+        if self.fmt == "text":
+            return not self.forbidden_markers
+        return False
+
 
 @dataclass(frozen=True, slots=True)
 class WorkUnit:

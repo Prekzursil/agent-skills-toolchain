@@ -107,9 +107,7 @@ def _validate_receipt(unit: WorkUnit) -> list[str]:
     """A receipt spec must give the AND-gate a NON-VACUOUS content clause."""
     if unit.receipt.fmt not in RECEIPT_FORMATS:
         return ["unit-receipt-format-unknown"]
-    if unit.receipt.fmt == "json" and not unit.receipt.required_fields:
-        return ["unit-receipt-clause-vacuous"]
-    if unit.receipt.fmt == "text" and not unit.receipt.forbidden_markers:
+    if unit.receipt.is_vacuous():
         return ["unit-receipt-clause-vacuous"]
     return []
 

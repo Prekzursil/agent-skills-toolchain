@@ -16,6 +16,7 @@ import pytest
 
 from agentspec.envelope import validate_observation
 from agentspec.oracle import CLAUSES, RailResult, judge, observe
+from agentspec.progress import looks_like_progress
 from agentspec.spec import ReceiptSpec
 
 JSON_SPEC = ReceiptSpec(fmt="json", required_fields=("status", "summary"))
@@ -206,6 +207,45 @@ def test_judge_refuses_a_receipt_spec_with_an_unknown_format() -> None:
             RailResult(exit_code=0, receipt_bytes=GOOD_JSON),
             ReceiptSpec(fmt="yaml"),
         )
+
+
+@pytest.mark.parametrize(
+    "spec", [ReceiptSpec(fmt="json"), ReceiptSpec(fmt="text")], ids=["json", "text"]
+)
+def test_judge_refuses_a_VACUOUS_receipt_spec_fail_closed(spec: ReceiptSpec) -> None:
+    """A vacuous content clause silently reduces the AND-gate to "exit 0 AND non-empty".
+
+    ``validate_workflow`` already reported ``unit-receipt-clause-vacuous``, but a consumer that
+    hand-builds a ``ReceiptSpec`` and calls ``judge`` directly never goes through a Workflow,
+    so it lost the catch. Refusing here is fail-closed: the caller must state what a real work
+    product looks like before the oracle will rule on one.
+    """
+    with pytest.raises(ValueError, match="vacuous"):
+        judge("u1", RailResult(exit_code=0, receipt_bytes=GOOD_JSON), spec)
+
+
+def test_a_progress_body_would_pass_a_two_clause_gate_which_is_why_vacuity_is_refused() -> (
+    None
+):
+    """The concrete damage, measured against a DELIBERATELY weakened gate.
+
+    With a vacuous text spec the only surviving clauses are exit-zero and non-empty, and
+    "work is still in progress" satisfies both. The progress-stream rule does not save it
+    either: that string carries no bracketed tag and no background-job phrase.
+    """
+    body = b"work is still in progress"
+    assert body.strip()  # non-empty: clause 3 would pass
+    assert not looks_like_progress(body.decode())  # clause 6 would not catch it
+    with pytest.raises(ValueError, match="vacuous"):
+        judge("u1", RailResult(exit_code=0, receipt_bytes=body), ReceiptSpec(fmt="text"))
+    # Detector control: the SAME body against a non-vacuous spec is caught properly.
+    caught = judge(
+        "u1",
+        RailResult(exit_code=0, receipt_bytes=body),
+        ReceiptSpec(fmt="text", forbidden_markers=("in progress",)),
+    )
+    assert caught.ok is False
+    assert caught.reason == "receipt-incomplete"
 
 
 # --- the envelope projection ---------------------------------------------------------------

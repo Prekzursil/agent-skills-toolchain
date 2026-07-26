@@ -60,6 +60,43 @@ def test_receipt_spec_is_frozen() -> None:
         ReceiptSpec(fmt="text").fmt = "json"  # type: ignore[misc]
 
 
+@pytest.mark.parametrize(
+    ("spec", "vacuous"),
+    [
+        (ReceiptSpec(fmt="json"), True),
+        (ReceiptSpec(fmt="json", required_fields=("status",)), False),
+        (ReceiptSpec(fmt="text"), True),
+        (ReceiptSpec(fmt="text", forbidden_markers=("in progress",)), False),
+        # An unknown fmt is NOT reported vacuous: both call sites check the format first and
+        # emit their own format error, so answering True here would mask it with a second id.
+        (ReceiptSpec(fmt="yaml"), False),
+        # A json spec is not rescued by text-only fields, or vice versa — the clause that
+        # matters is the one the AND-gate will actually evaluate for that format.
+        (ReceiptSpec(fmt="json", forbidden_markers=("in progress",)), True),
+        (ReceiptSpec(fmt="text", required_fields=("status",)), True),
+    ],
+    ids=[
+        "json-bare",
+        "json-with-fields",
+        "text-bare",
+        "text-with-markers",
+        "unknown-fmt",
+        "json-with-only-markers",
+        "text-with-only-fields",
+    ],
+)
+def test_is_vacuous_is_the_ONE_predicate_both_call_sites_share(
+    spec: ReceiptSpec, vacuous: bool
+) -> None:
+    """A vacuous spec reduces the six-clause AND-gate to "exit 0 AND non-empty".
+
+    ``validate_workflow`` reported it as ``unit-receipt-clause-vacuous`` while ``judge`` — the
+    function a consumer calls DIRECTLY, without ever building a Workflow — accepted it. One
+    predicate, two call sites, so the two cannot drift apart.
+    """
+    assert spec.is_vacuous() is vacuous
+
+
 def test_barrier_defaults_to_all_and_null_tolerant() -> None:
     """A barrier must tolerate a null unit result — a died agent must not deadlock it."""
     barrier = Barrier(id="b1", awaits=("u1",))
