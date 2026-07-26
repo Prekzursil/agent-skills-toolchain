@@ -5,6 +5,9 @@ deterministically by setting each fixture's mtime with ``os.utime`` and injectin
 ``now``, so every running/working/done/stalled branch — and the terminal-status cache — is
 exercised on any platform. ``bucket_agent`` is asserted to reproduce BOTH former wfmon
 duplicates (``_bucket`` with ``journal_state=None`` and ``_state_bucket`` with a journal state).
+
+The two-signal stall rule itself lives in ``test_agent_state_stall.py``; this module covers
+the bucket, the tail read, and the unchanged running/working/done paths.
 """
 
 from __future__ import annotations
@@ -19,9 +22,15 @@ from monitorcore import agent_state as st
 
 @pytest.fixture(autouse=True)
 def _clear_cache():
-    st._STATUS_CACHE.clear()
+    st.reset_state()
     yield
-    st._STATUS_CACHE.clear()
+    st.reset_state()
+
+
+def _shape(path):
+    """``(last_type, role)`` of ``path``'s newest content-bearing block."""
+    ev = st.read_evidence(path)
+    return (ev.last_type, ev.role)
 
 
 def _write(path, *entries):
@@ -71,25 +80,25 @@ def test_bucket_agent_journal_none_reproduces_bucket():
     assert st.bucket_agent(errored=False, state="queued", running=True) == "running"
 
 
-# ───────────────────────── _last_entry_shape ─────────────────────────
-def test_last_entry_shape_missing_file():
-    assert st._last_entry_shape("/no/such/file.jsonl") == (None, None)
+# ───────────────────────── read_evidence tail shape ─────────────────────────
+def test_tail_shape_missing_file():
+    assert _shape("/no/such/file.jsonl") == (None, None)
 
 
-def test_last_entry_shape_assistant_text(tmp_path):
+def test_tail_shape_assistant_text(tmp_path):
     p = _write(
         tmp_path / "a.jsonl",
         {"message": {"role": "assistant", "content": [{"type": "text", "text": "hi"}]}},
     )
-    assert st._last_entry_shape(p) == ("text", "assistant")
+    assert _shape(p) == ("text", "assistant")
 
 
-def test_last_entry_shape_content_string_is_text(tmp_path):
+def test_tail_shape_content_string_is_text(tmp_path):
     p = _write(tmp_path / "a.jsonl", {"message": {"role": "user", "content": "plain"}})
-    assert st._last_entry_shape(p) == ("text", "user")
+    assert _shape(p) == ("text", "user")
 
 
-def test_last_entry_shape_skips_blank_malformed_lines(tmp_path):
+def test_tail_shape_skips_blank_malformed_lines(tmp_path):
     p = tmp_path / "a.jsonl"
     # valid FIRST, junk AFTER: reversed iteration must skip the trailing junk lines
     p.write_text(
@@ -102,10 +111,10 @@ def test_last_entry_shape_skips_blank_malformed_lines(tmp_path):
         "{bad json\n",  # starts with { but unparseable -> skipped (line 75)
         encoding="utf-8",
     )
-    assert st._last_entry_shape(str(p)) == ("tool_use", "assistant")
+    assert _shape(str(p)) == ("tool_use", "assistant")
 
 
-def test_last_entry_shape_skips_non_type_blocks_then_returns(tmp_path):
+def test_tail_shape_skips_non_type_blocks_then_returns(tmp_path):
     # reversed blocks: bare (non-dict) + dict-without-type are skipped (84->83), then text
     p = _write(
         tmp_path / "a.jsonl",
@@ -116,17 +125,17 @@ def test_last_entry_shape_skips_non_type_blocks_then_returns(tmp_path):
             }
         },
     )
-    assert st._last_entry_shape(p) == ("text", "assistant")
+    assert _shape(p) == ("text", "assistant")
 
 
-def test_last_entry_shape_no_content_bearing_event(tmp_path):
+def test_tail_shape_no_content_bearing_event(tmp_path):
     p = _write(tmp_path / "a.jsonl", {"message": {"role": "assistant", "content": []}})
-    assert st._last_entry_shape(p) == (None, None)
+    assert _shape(p) == (None, None)
 
 
-def test_last_entry_shape_message_not_dict(tmp_path):
+def test_tail_shape_message_not_dict(tmp_path):
     p = _write(tmp_path / "a.jsonl", {"message": "oops"})
-    assert st._last_entry_shape(p) == (None, None)
+    assert _shape(p) == (None, None)
 
 
 # ───────────────────────── agent_status ─────────────────────────
@@ -163,18 +172,26 @@ def test_agent_status_done_when_last_is_assistant_text(tmp_path):
     assert p in st._STATUS_CACHE
 
 
-def test_agent_status_stalled_when_silent_past_stall(tmp_path):
+def test_agent_status_stalled_needs_a_second_frozen_poll(tmp_path):
+    """Silence past STALL is ONE signal — the stall needs a second, frozen poll.
+
+    This case previously asserted ``stalled`` on the FIRST poll, i.e. it encoded the
+    single-signal defect. Corrected to the two-signal rule: poll 1 (mtime stale, content
+    never seen before) is ``working``; poll 2 (same fingerprint) is ``stalled``.
+    """
     p = _write(
         tmp_path / "a.jsonl",
         {
             "message": {
                 "role": "assistant",
+                "stop_reason": "tool_use",
                 "content": [{"type": "tool_use", "name": "Bash"}],
             }
         },
     )
     now = 10_000.0
-    _set_age(p, now, age=700.0)  # > STALL, last event not assistant-text
+    _set_age(p, now, age=700.0)  # > STALL, no terminal evidence
+    assert st.agent_status(p, now=now) == ("working", 700.0)
     assert st.agent_status(p, now=now) == ("stalled", 700.0)
 
 
