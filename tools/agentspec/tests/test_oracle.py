@@ -64,7 +64,10 @@ def test_a_non_zero_exit_fails_with_the_rail_exit_reason_and_is_not_severed() ->
 
 def test_a_non_zero_exit_is_judged_even_when_the_receipt_is_perfect() -> None:
     """Clause 1 is independently necessary: a good receipt cannot rescue a bad exit."""
-    assert judge("u1", RailResult(exit_code=1, receipt_bytes=GOOD_JSON), JSON_SPEC).ok is False
+    assert (
+        judge("u1", RailResult(exit_code=1, receipt_bytes=GOOD_JSON), JSON_SPEC).ok
+        is False
+    )
 
 
 # --- clause 2..6: exit 0 with an unusable receipt is SEVERED -------------------------------
@@ -87,7 +90,9 @@ def test_exit_zero_with_an_empty_receipt_is_severed(empty: bytes) -> None:
 
 
 def test_exit_zero_with_an_unparseable_receipt_is_severed() -> None:
-    verdict = judge("u1", RailResult(exit_code=0, receipt_bytes=b"{not json"), JSON_SPEC)
+    verdict = judge(
+        "u1", RailResult(exit_code=0, receipt_bytes=b"{not json"), JSON_SPEC
+    )
     assert verdict.reason == "receipt-unparseable"
     assert verdict.severed is True
 
@@ -196,7 +201,11 @@ def test_judge_refuses_an_empty_unit_id() -> None:
 
 def test_judge_refuses_a_receipt_spec_with_an_unknown_format() -> None:
     with pytest.raises(ValueError, match="fmt"):
-        judge("u1", RailResult(exit_code=0, receipt_bytes=GOOD_JSON), ReceiptSpec(fmt="yaml"))
+        judge(
+            "u1",
+            RailResult(exit_code=0, receipt_bytes=GOOD_JSON),
+            ReceiptSpec(fmt="yaml"),
+        )
 
 
 # --- the envelope projection ---------------------------------------------------------------
@@ -223,7 +232,9 @@ def test_observe_projects_a_success_verdict_onto_the_envelope() -> None:
 def test_every_error_projection_carries_root_cause_retry_and_stop_condition(
     exit_code: int, body: bytes | None
 ) -> None:
-    verdict = judge("u1", RailResult(exit_code=exit_code, receipt_bytes=body), JSON_SPEC)
+    verdict = judge(
+        "u1", RailResult(exit_code=exit_code, receipt_bytes=body), JSON_SPEC
+    )
     obs = observe(verdict)
     assert obs.status == "error"
     assert obs.error is not None

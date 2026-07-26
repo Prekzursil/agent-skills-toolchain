@@ -24,7 +24,7 @@ def test_win_arg_limit_retries_on_the_first_attempt() -> None:
 
 
 def test_win_arg_limit_does_NOT_retry_a_second_time() -> None:
-    """"Exactly once" is the whole point: attempt 2 must stop."""
+    """ "Exactly once" is the whole point: attempt 2 must stop."""
     decision = plan_retry("win-arg-limit", attempt=2)
     assert decision.retry is False
     assert decision.next_attempt == 2
@@ -33,7 +33,13 @@ def test_win_arg_limit_does_NOT_retry_a_second_time() -> None:
 
 @pytest.mark.parametrize(
     "reason",
-    ["rail-exit-137", "receipt-missing", "severed-stream", "timeout-1800s", "policy-violation"],
+    [
+        "rail-exit-137",
+        "receipt-missing",
+        "severed-stream",
+        "timeout-1800s",
+        "policy-violation",
+    ],
 )
 def test_no_other_reason_retries(reason: str) -> None:
     decision = plan_retry(reason, attempt=1)

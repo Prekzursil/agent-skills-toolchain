@@ -72,12 +72,16 @@ CASES: dict[str, Workflow] = {
     "unit-dep-unknown": _wf(units=(_unit("u1", depends_on=("ghost",)),), nodes=()),
     "unit-dep-self": _wf(units=(_unit("u1", depends_on=("u1",)),), nodes=()),
     "unit-dep-cycle": _wf(
-        units=(_unit("u1", depends_on=("u2",)), _unit("u2", depends_on=("u1",))), nodes=()
+        units=(_unit("u1", depends_on=("u2",)), _unit("u2", depends_on=("u1",))),
+        nodes=(),
     ),
-    "unit-worktree-no-writes": _wf(units=(_unit("u1", isolation="worktree"),), nodes=()),
+    "unit-worktree-no-writes": _wf(
+        units=(_unit("u1", isolation="worktree"),), nodes=()
+    ),
     "unit-isolation-unknown": _wf(units=(_unit("u1", isolation="chroot"),), nodes=()),
     "unit-receipt-format-unknown": _wf(
-        units=(_unit("u1", receipt=ReceiptSpec(fmt="yaml", required_fields=("a",))),), nodes=()
+        units=(_unit("u1", receipt=ReceiptSpec(fmt="yaml", required_fields=("a",))),),
+        nodes=(),
     ),
     "unit-receipt-clause-vacuous": _wf(
         units=(_unit("u1", receipt=ReceiptSpec(fmt="json")),), nodes=()
@@ -92,7 +96,9 @@ CASES: dict[str, Workflow] = {
     "fanout-unit-duplicate": _wf(nodes=(FanOut(id="f1", units=("u1", "u1")),)),
     "barrier-empty": _wf(nodes=(Barrier(id="b1", awaits=()),)),
     "barrier-awaits-unknown": _wf(nodes=(Barrier(id="b1", awaits=("ghost",)),)),
-    "barrier-policy-unknown": _wf(nodes=(Barrier(id="b1", awaits=("u1",), policy="most"),)),
+    "barrier-policy-unknown": _wf(
+        nodes=(Barrier(id="b1", awaits=("u1",), policy="most"),)
+    ),
     "pipeline-too-short": _wf(nodes=(Pipeline(id="p1", stages=("u1",)),)),
     "pipeline-stage-unknown": _wf(nodes=(Pipeline(id="p1", stages=("u1", "ghost")),)),
     "budget-total-negative": _wf(budget_micro=-1),
@@ -118,7 +124,11 @@ def test_violations_are_returned_sorted_and_deduplicated() -> None:
     wf = _wf(id=" ", spec_version="99", units=(), nodes=())
     result = validate_workflow(wf)
     assert result == tuple(sorted(set(result)))
-    assert result == ("spec-version-unsupported", "workflow-id-empty", "workflow-no-units")
+    assert result == (
+        "spec-version-unsupported",
+        "workflow-id-empty",
+        "workflow-no-units",
+    )
 
 
 def test_a_three_unit_cycle_is_detected() -> None:

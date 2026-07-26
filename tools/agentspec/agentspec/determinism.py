@@ -88,7 +88,12 @@ def scan_package(root: Path) -> tuple[Finding, ...]:
             source = file.read_text(encoding="utf-8")
         except UnicodeDecodeError as exc:
             findings.append(
-                Finding(path=rel, line=1, code="read-error", detail=f"cannot read: {exc.reason}")
+                Finding(
+                    path=rel,
+                    line=1,
+                    code="read-error",
+                    detail=f"cannot read: {exc.reason}",
+                )
             )
             continue
         findings.extend(scan_source(source, rel))
@@ -150,7 +155,10 @@ def _check_call(node: ast.Call, path: str) -> list[Finding]:
     if name in FORBIDDEN_NAMES:
         return [
             Finding(
-                path=path, line=node.lineno, code="forbidden-call", detail=f"call to {name}()"
+                path=path,
+                line=node.lineno,
+                code="forbidden-call",
+                detail=f"call to {name}()",
             )
         ]
     return []

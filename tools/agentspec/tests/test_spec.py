@@ -115,7 +115,11 @@ def test_unit_by_id_raises_on_an_unknown_id() -> None:
     from agentspec.spec import unit_by_id
 
     wf = Workflow(
-        id="wf", spec_version=SPEC_VERSION, units=(_unit("a"),), nodes=(), budget_micro=0
+        id="wf",
+        spec_version=SPEC_VERSION,
+        units=(_unit("a"),),
+        nodes=(),
+        budget_micro=0,
     )
     with pytest.raises(KeyError, match="nope"):
         unit_by_id(wf, "nope")

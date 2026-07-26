@@ -43,7 +43,9 @@ def test_every_terminal_line_matches_the_declared_regex() -> None:
     lines = [
         success_line("u1"),
         failure_line("u1", "timeout-1800s"),
-        terminal_line(judge("u1", RailResult(exit_code=0, receipt_bytes=b""), JSON_SPEC)),
+        terminal_line(
+            judge("u1", RailResult(exit_code=0, receipt_bytes=b""), JSON_SPEC)
+        ),
     ]
     for line in lines:
         assert TERMINAL_RE.match(line), line

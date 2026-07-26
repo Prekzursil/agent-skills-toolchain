@@ -37,7 +37,9 @@ def test_a_backgrounded_UNawaited_dispatch_is_allowed() -> None:
 
 
 def test_a_missing_timeout_is_refused() -> None:
-    assert check_dispatch(background=False, timeout_s=None, awaited=True) == ("missing-timeout",)
+    assert check_dispatch(background=False, timeout_s=None, awaited=True) == (
+        "missing-timeout",
+    )
 
 
 @pytest.mark.parametrize("bad", [0, -1])

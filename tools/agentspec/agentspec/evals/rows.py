@@ -17,7 +17,13 @@ from __future__ import annotations
 from pathlib import Path
 
 import agentspec
-from agentspec.argv import WINDOWS_CMDLINE_CAP, ArgvPlan, PolicyViolation, RailSpec, build_argv
+from agentspec.argv import (
+    WINDOWS_CMDLINE_CAP,
+    ArgvPlan,
+    PolicyViolation,
+    RailSpec,
+    build_argv,
+)
 from agentspec.clock import FixedClock
 from agentspec.evals.fake_rail import DispatchRefused, FakeRail, ScriptedResponse
 from agentspec.evals.impl import Impl
@@ -47,7 +53,9 @@ def r1_no_background_on_an_awaited_dispatch(impl: Impl) -> tuple[bool, str]:
     """
     rail, plan = _rail(impl, ScriptedResponse(exit_code=0, receipt=GOOD_JSON))
     try:
-        rail.dispatch(unit_id="u1", plan=plan, timeout_s=1800, awaited=True, background=True)
+        rail.dispatch(
+            unit_id="u1", plan=plan, timeout_s=1800, awaited=True, background=True
+        )
     except DispatchRefused:
         pass
     else:
@@ -58,8 +66,14 @@ def r1_no_background_on_an_awaited_dispatch(impl: Impl) -> tuple[bool, str]:
     # an arm no mutant can reach. What still needs its own assertion is the CONTROL: the guard
     # must not over-reach onto a dispatch nothing is awaiting.
     if impl.check_dispatch(background=True, timeout_s=1800, awaited=False) != ():
-        return False, "control failed: a backgrounded UNAWAITED dispatch was refused too"
-    return True, "backgrounding an awaited dispatch is refused; unawaited is still allowed"
+        return (
+            False,
+            "control failed: a backgrounded UNAWAITED dispatch was refused too",
+        )
+    return (
+        True,
+        "backgrounding an awaited dispatch is refused; unawaited is still allowed",
+    )
 
 
 def r2_exit_zero_without_a_usable_receipt_is_severed(impl: Impl) -> tuple[bool, str]:
@@ -76,7 +90,9 @@ def r2_exit_zero_without_a_usable_receipt_is_severed(impl: Impl) -> tuple[bool, 
         ("schema-invalid", b'{"status":"ok"}'),
     )
     for label, body in cases:
-        verdict = impl.judge("u1", RailResult(exit_code=0, receipt_bytes=body), JSON_SPEC)
+        verdict = impl.judge(
+            "u1", RailResult(exit_code=0, receipt_bytes=body), JSON_SPEC
+        )
         if verdict.ok:
             return False, f"{label}: exit 0 with an unusable receipt reported SUCCESS"
         if not verdict.severed:
@@ -88,13 +104,18 @@ def r2_exit_zero_without_a_usable_receipt_is_severed(impl: Impl) -> tuple[bool, 
     good = impl.judge("u1", RailResult(exit_code=0, receipt_bytes=GOOD_JSON), JSON_SPEC)
     if not good.ok:
         return False, "control failed: a fully good run did not report SUCCESS"
-    return True, f"{len(cases)} unusable-receipt shapes are severed; a good run still passes"
+    return (
+        True,
+        f"{len(cases)} unusable-receipt shapes are severed; a good run still passes",
+    )
 
 
 def r3_a_progress_payload_is_never_a_result(impl: Impl) -> tuple[bool, str]:
     """R3 — a background-job receipt phrase or a bare progress stream is rejected as a result."""
     for phrase in BACKGROUND_PHRASES:
-        if not isinstance(impl.classify(f"Job accepted. {phrase} as task-91af."), ProgressLog):
+        if not isinstance(
+            impl.classify(f"Job accepted. {phrase} as task-91af."), ProgressLog
+        ):
             return False, f"the phrase {phrase!r} was accepted as a result"
     if not isinstance(impl.classify("[codex] thinking\n[codex] done\n"), ProgressLog):
         return False, "a bare bracketed progress stream was accepted as a result"
@@ -104,7 +125,10 @@ def r3_a_progress_payload_is_never_a_result(impl: Impl) -> tuple[bool, str]:
     body = b"started in the background as task-1"
     if impl.judge("u1", RailResult(exit_code=0, receipt_bytes=body), TEXT_SPEC).ok:
         return False, "a progress payload written as the receipt reported SUCCESS"
-    return True, f"{len(BACKGROUND_PHRASES)} phrases plus a progress stream are all rejected"
+    return (
+        True,
+        f"{len(BACKGROUND_PHRASES)} phrases plus a progress stream are all rejected",
+    )
 
 
 def r4_a_large_prompt_is_routed_off_argv(impl: Impl) -> tuple[bool, str]:
@@ -123,10 +147,16 @@ def r4_a_large_prompt_is_routed_off_argv(impl: Impl) -> tuple[bool, str]:
         prompt_path="C:/tmp/p.txt",
     )
     if plan.cmdline_len >= WINDOWS_CMDLINE_CAP:
-        return False, f"a routed 40 KB prompt still produced {plan.cmdline_len} argv chars"
+        return (
+            False,
+            f"a routed 40 KB prompt still produced {plan.cmdline_len} argv chars",
+        )
     if any(prompt in element for element in plan.argv):
         return False, "the prompt reached argv despite the file transport"
-    if impl.build_argv(exe="grok.exe", prompt=prompt, transport="stdin").stdin_payload != prompt:
+    if (
+        impl.build_argv(exe="grok.exe", prompt=prompt, transport="stdin").stdin_payload
+        != prompt
+    ):
         return False, "the stdin transport did not carry the prompt"
 
     over = "b" * (WINDOWS_CMDLINE_CAP + 1 - len("c.exe") - 1)
@@ -139,13 +169,20 @@ def r4_a_large_prompt_is_routed_off_argv(impl: Impl) -> tuple[bool, str]:
         return False, f"argv of {WINDOWS_CMDLINE_CAP + 1} chars was accepted"
 
     at_cap = "b" * (WINDOWS_CMDLINE_CAP - len("c.exe") - 1)
-    boundary = impl.build_argv(exe="c.exe", prompt="p", transport="stdin", flags=(at_cap,))
+    boundary = impl.build_argv(
+        exe="c.exe", prompt="p", transport="stdin", flags=(at_cap,)
+    )
     if boundary.cmdline_len != WINDOWS_CMDLINE_CAP:
-        return False, "control failed: the boundary case did not land exactly on the cap"
+        return (
+            False,
+            "control failed: the boundary case did not land exactly on the cap",
+        )
     return True, f"40 KB routed off argv; cap boundary exact at {WINDOWS_CMDLINE_CAP}"
 
 
-def r5_hardening_is_required_and_win_arg_limit_retries_once(impl: Impl) -> tuple[bool, str]:
+def r5_hardening_is_required_and_win_arg_limit_retries_once(
+    impl: Impl,
+) -> tuple[bool, str]:
     """R5 — ``--ignore-user-config`` on every non-interactive codex call; one retry only.
 
     MEASURED: the active MCP inventory is what blows the argv limit, so omitting that flag is
@@ -158,7 +195,10 @@ def r5_hardening_is_required_and_win_arg_limit_retries_once(impl: Impl) -> tuple
         return False, "the rail's hardening flag was not injected"
     try:
         impl.build_for_rail(
-            CODEX_RAIL, prompt="do it", prompt_path="C:/tmp/r.txt", inject_hardening=False
+            CODEX_RAIL,
+            prompt="do it",
+            prompt_path="C:/tmp/r.txt",
+            inject_hardening=False,
         )
     except PolicyViolation:
         pass
@@ -193,14 +233,19 @@ def r6_no_dispatch_without_an_explicit_timeout(impl: Impl) -> tuple[bool, str]:
         return False, "the policy predicate accepted a zero timeout"
     if impl.check_dispatch(background=False, timeout_s=1800, awaited=True) != ():
         return False, "control failed: an explicit positive timeout was refused"
-    return True, "a missing or non-positive timeout is refused; an explicit one is accepted"
+    return (
+        True,
+        "a missing or non-positive timeout is refused; an explicit one is accepted",
+    )
 
 
 def r8_the_dispatch_path_is_deterministic(impl: Impl) -> tuple[bool, str]:
     """R8 — two runs produce identical artifacts, and no clock/entropy is on the path."""
     if not impl.scan_source("import time\nx = time.time()\n", "fixture.py"):
         return False, "the determinism check stayed SILENT on a known-broken fixture"
-    oracle_source = Path(agentspec.__file__).with_name("oracle.py").read_text(encoding="utf-8")
+    oracle_source = (
+        Path(agentspec.__file__).with_name("oracle.py").read_text(encoding="utf-8")
+    )
     leaks = impl.scan_source(oracle_source, "oracle.py")
     if leaks:
         return False, f"the dispatch path itself is non-deterministic: {leaks}"
@@ -213,7 +258,9 @@ def r8_the_dispatch_path_is_deterministic(impl: Impl) -> tuple[bool, str]:
 
 def _one_run(impl: Impl) -> str:
     """One whole scripted dispatch, serialised. Deterministic by construction."""
-    rail, plan = _rail(impl, ScriptedResponse(exit_code=0, receipt=GOOD_JSON, wall_ms_delta=1234))
+    rail, plan = _rail(
+        impl, ScriptedResponse(exit_code=0, receipt=GOOD_JSON, wall_ms_delta=1234)
+    )
     result = rail.dispatch(unit_id="u1", plan=plan, timeout_s=1800, awaited=True)
     verdict = impl.judge("u1", result, JSON_SPEC)
     return impl.serialise(observe(verdict, artifacts=("out/u1.json",)))

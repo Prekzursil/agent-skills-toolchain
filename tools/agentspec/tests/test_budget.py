@@ -105,7 +105,9 @@ def test_a_debit_landing_exactly_on_the_limit_is_allowed_and_exhausts() -> None:
     assert ledger.exhausted is True
 
 
-def test_a_debit_exceeding_the_limit_raises_budget_exhausted_with_the_taxonomy_reason() -> None:
+def test_a_debit_exceeding_the_limit_raises_budget_exhausted_with_the_taxonomy_reason() -> (
+    None
+):
     ledger = Ledger(limit_micro=10).debit("u1", attempt=1, micro=9)
     with pytest.raises(BudgetExhausted) as caught:
         ledger.debit("u1", attempt=2, micro=2)
@@ -131,7 +133,12 @@ def test_cost_per_successful_task_ignores_failed_attempts() -> None:
 def test_cost_per_success_is_zero_when_nothing_succeeded() -> None:
     from agentspec.budget import cost_per_success
 
-    assert cost_per_success(Ledger(limit_micro=10).debit("u", attempt=1, micro=5), successes=0) == 0
+    assert (
+        cost_per_success(
+            Ledger(limit_micro=10).debit("u", attempt=1, micro=5), successes=0
+        )
+        == 0
+    )
 
 
 def test_cost_per_success_refuses_a_negative_success_count() -> None:

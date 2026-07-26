@@ -55,7 +55,9 @@ class RailResult:
 
     def __post_init__(self) -> None:
         if isinstance(self.wall_ms, bool) or not isinstance(self.wall_ms, int):
-            raise TypeError(f"wall_ms must be an int, not {type(self.wall_ms).__name__}")
+            raise TypeError(
+                f"wall_ms must be an int, not {type(self.wall_ms).__name__}"
+            )
         if self.wall_ms < 0:
             raise ValueError("wall_ms must be >= 0")
 
@@ -112,7 +114,9 @@ def judge(unit_id: str, result: RailResult, spec: ReceiptSpec) -> Verdict:
         try:
             payload = receipt_mod.parse_json_object(text)
         except receipt_mod.ReceiptUnparseable as exc:
-            return _fail(unit_id, "receipt-unparseable", passed, result, detail=str(exc))
+            return _fail(
+                unit_id, "receipt-unparseable", passed, result, detail=str(exc)
+            )
 
     passed = (*passed, "receipt-parses")
     if payload is not None:
@@ -232,7 +236,9 @@ def _retry_instruction(reason: str) -> str:
 
 def _stop_condition(reason: str) -> str:
     if reason in {"receipt-missing", "receipt-empty", "receipt-unparseable"}:
-        return "stop after 1 retry and report FAILED severed-stream; never report SUCCESS"
+        return (
+            "stop after 1 retry and report FAILED severed-stream; never report SUCCESS"
+        )
     return f"stop immediately and report FAILED <unit> {reason}; no automatic retry"
 
 

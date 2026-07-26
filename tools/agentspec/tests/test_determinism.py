@@ -138,7 +138,9 @@ def test_scan_package_reports_a_bad_file_with_its_relative_path_and_line(
     assert findings[0].code == "forbidden-import"
 
 
-def test_scan_package_reports_an_undecodable_file_as_a_read_error(tmp_path: Path) -> None:
+def test_scan_package_reports_an_undecodable_file_as_a_read_error(
+    tmp_path: Path,
+) -> None:
     """A file the scanner cannot read is a DETECTOR failure, never a pass."""
     pkg = tmp_path / "pkg"
     pkg.mkdir()
@@ -163,6 +165,12 @@ def test_scan_package_ignores_non_python_files(tmp_path: Path) -> None:
 
 def test_findings_are_ordered_by_path_then_line(tmp_path: Path) -> None:
     (tmp_path / "b.py").write_text("import random\n", encoding="utf-8")
-    (tmp_path / "a.py").write_text("x = 1\nimport time\nimport secrets\n", encoding="utf-8")
+    (tmp_path / "a.py").write_text(
+        "x = 1\nimport time\nimport secrets\n", encoding="utf-8"
+    )
     findings = scan_package(tmp_path)
-    assert [(f.path, f.line) for f in findings] == [("a.py", 2), ("a.py", 3), ("b.py", 1)]
+    assert [(f.path, f.line) for f in findings] == [
+        ("a.py", 2),
+        ("a.py", 3),
+        ("b.py", 1),
+    ]

@@ -43,7 +43,9 @@ def _blind_dispatch_policy(**_kw: Any) -> tuple[str, ...]:
     return ()
 
 
-def _exit_zero_is_success(unit_id: str, result: RailResult, _spec: ReceiptSpec) -> Verdict:
+def _exit_zero_is_success(
+    unit_id: str, result: RailResult, _spec: ReceiptSpec
+) -> Verdict:
     """M-R2a: the historical bug — exit 0 treated as completion."""
     return Verdict(
         unit_id=unit_id,
@@ -80,7 +82,10 @@ def _unhardened_build_for_rail(rail: Any, **kwargs: Any) -> ArgvPlan:
 def _retry_forever(reason: str, *, attempt: int) -> RetryDecision:
     """M-R5b: `win-arg-limit` retries without a bound."""
     return RetryDecision(
-        retry=True, next_attempt=attempt + 1, reason=reason, rationale="mutant: retry forever"
+        retry=True,
+        next_attempt=attempt + 1,
+        reason=reason,
+        rationale="mutant: retry forever",
     )
 
 
@@ -89,7 +94,9 @@ def _blind_scan(_source: str, _path: str) -> tuple[Any, ...]:
     return ()
 
 
-def _nondeterministic_serialise(_state: dict[str, int] = {"n": 0}) -> Callable[[Any], str]:
+def _nondeterministic_serialise(
+    _state: dict[str, int] = {"n": 0},
+) -> Callable[[Any], str]:
     """M-R8b: serialisation embeds a call counter, so two identical runs differ."""
 
     def serialise(obs: Any) -> str:
@@ -106,7 +113,9 @@ def _nondeterministic_serialise(_state: dict[str, int] = {"n": 0}) -> Callable[[
 # nothing proved was load-bearing. Rather than exclude those lines, each got a mutant.
 
 
-def _refuses_any_background(*, background: bool, timeout_s: int | None, awaited: bool) -> tuple[str, ...]:
+def _refuses_any_background(
+    *, background: bool, timeout_s: int | None, awaited: bool
+) -> tuple[str, ...]:
     """M-R1c: over-reach — refuses background even when nothing awaits the dispatch."""
     found = ["background-on-awaited-dispatch"] if background else []
     if timeout_s is None:
@@ -116,7 +125,9 @@ def _refuses_any_background(*, background: bool, timeout_s: int | None, awaited:
     return tuple(sorted(found))
 
 
-def _accepts_zero_timeout(*, background: bool, timeout_s: int | None, awaited: bool) -> tuple[str, ...]:
+def _accepts_zero_timeout(
+    *, background: bool, timeout_s: int | None, awaited: bool
+) -> tuple[str, ...]:
     """M-R6b: refuses a MISSING timeout but accepts a non-positive one."""
     found = ["background-on-awaited-dispatch"] if background and awaited else []
     if timeout_s is None:
@@ -135,7 +146,9 @@ def _fine_reason_only(verdict: Any) -> str:
     return f"FAILED:{verdict.unit_id} {verdict.failure_reason}"
 
 
-def _always_severed_failure(unit_id: str, _result: RailResult, _spec: ReceiptSpec) -> Verdict:
+def _always_severed_failure(
+    unit_id: str, _result: RailResult, _spec: ReceiptSpec
+) -> Verdict:
     """M-R2d: nothing ever succeeds, so the good-run control must fire."""
     return Verdict(
         unit_id=unit_id,
@@ -210,7 +223,10 @@ def _hardening_cannot_be_skipped(rail: Any, **kwargs: Any) -> ArgvPlan:
 def _never_retry(reason: str, *, attempt: int) -> RetryDecision:
     """M-R5d: win-arg-limit loses its one legitimate retry."""
     return RetryDecision(
-        retry=False, next_attempt=attempt, reason=reason, rationale="mutant: never retry"
+        retry=False,
+        next_attempt=attempt,
+        reason=reason,
+        rationale="mutant: never retry",
     )
 
 
@@ -222,7 +238,10 @@ def _retry_anything_once(reason: str, *, attempt: int) -> RetryDecision:
             retry=False, next_attempt=attempt, reason=reason, rationale="mutant: stop"
         )
     return RetryDecision(
-        retry=True, next_attempt=attempt + 1, reason=reason, rationale="mutant: retry any once"
+        retry=True,
+        next_attempt=attempt + 1,
+        reason=reason,
+        rationale="mutant: retry any once",
     )
 
 
@@ -232,34 +251,134 @@ def _always_finds_a_leak(_source: str, path: str) -> tuple[Finding, ...]:
 
 
 MUTANTS: tuple[tuple[str, str, dict[str, Any]], ...] = (
-    ("M-R1 pre-dispatch policy ignores --background", "R1", {"check_dispatch": _blind_dispatch_policy}),
-    ("M-R2a exit 0 alone is treated as SUCCESS", "R2", {"judge": _exit_zero_is_success}),
-    ("M-R2b the severed-stream family flag is dropped", "R2", {"judge": _never_severed}),
-    ("M-R3 the progress stream is accepted as a result", "R3", {"classify": _everything_is_a_result}),
-    ("M-R4 the Windows argv cap is not enforced", "R4", {"build_argv": _uncapped_build_argv}),
-    ("M-R5a --ignore-user-config is not required", "R5", {"build_for_rail": _unhardened_build_for_rail}),
-    ("M-R5b win-arg-limit retries without a bound", "R5", {"plan_retry": _retry_forever}),
-    ("M-R6 a missing timeout is not refused", "R6", {"check_dispatch": _blind_dispatch_policy}),
+    (
+        "M-R1 pre-dispatch policy ignores --background",
+        "R1",
+        {"check_dispatch": _blind_dispatch_policy},
+    ),
+    (
+        "M-R2a exit 0 alone is treated as SUCCESS",
+        "R2",
+        {"judge": _exit_zero_is_success},
+    ),
+    (
+        "M-R2b the severed-stream family flag is dropped",
+        "R2",
+        {"judge": _never_severed},
+    ),
+    (
+        "M-R3 the progress stream is accepted as a result",
+        "R3",
+        {"classify": _everything_is_a_result},
+    ),
+    (
+        "M-R4 the Windows argv cap is not enforced",
+        "R4",
+        {"build_argv": _uncapped_build_argv},
+    ),
+    (
+        "M-R5a --ignore-user-config is not required",
+        "R5",
+        {"build_for_rail": _unhardened_build_for_rail},
+    ),
+    (
+        "M-R5b win-arg-limit retries without a bound",
+        "R5",
+        {"plan_retry": _retry_forever},
+    ),
+    (
+        "M-R6 a missing timeout is not refused",
+        "R6",
+        {"check_dispatch": _blind_dispatch_policy},
+    ),
     ("M-R8a the determinism check reports nothing", "R8", {"scan_source": _blind_scan}),
-    ("M-R8b serialisation is non-deterministic", "R8", {"serialise": _nondeterministic_serialise()}),
+    (
+        "M-R8b serialisation is non-deterministic",
+        "R8",
+        {"serialise": _nondeterministic_serialise()},
+    ),
     # one per remaining sub-assertion, found by coverage of the row bodies
-    ("M-R1c background refused even when UNawaited", "R1", {"check_dispatch": _refuses_any_background}),
-    ("M-R2c the terminal line drops severed-stream", "R2", {"terminal_line": _fine_reason_only}),
-    ("M-R2d a fully good run stops reporting SUCCESS", "R2", {"judge": _always_severed_failure}),
-    ("M-R3b the bare progress-stream rule is lost", "R3", {"classify": _phrase_detection_only}),
-    ("M-R3c a real answer is rejected as progress", "R3", {"classify": _everything_is_progress}),
-    ("M-R3d a progress body as the receipt reports SUCCESS", "R3", {"judge": _exit_zero_is_success}),
-    ("M-R4b the prompt is placed on argv", "R4", {"build_argv": _prompt_on_argv_honest_length}),
-    ("M-R4c the prompt is on argv and the length under-reported", "R4", {"build_argv": _prompt_on_argv_understated_length}),
-    ("M-R4d the stdin prompt is silently dropped", "R4", {"build_argv": _drops_stdin_payload}),
-    ("M-R4e over-cap is refused but not as win-arg-limit", "R4", {"build_argv": _wrong_over_cap_reason}),
-    ("M-R4f the reported command-line length is off by one", "R4", {"build_argv": _off_by_one_length}),
-    ("M-R5c hardening is injected but never verified", "R5", {"build_for_rail": _hardening_cannot_be_skipped}),
+    (
+        "M-R1c background refused even when UNawaited",
+        "R1",
+        {"check_dispatch": _refuses_any_background},
+    ),
+    (
+        "M-R2c the terminal line drops severed-stream",
+        "R2",
+        {"terminal_line": _fine_reason_only},
+    ),
+    (
+        "M-R2d a fully good run stops reporting SUCCESS",
+        "R2",
+        {"judge": _always_severed_failure},
+    ),
+    (
+        "M-R3b the bare progress-stream rule is lost",
+        "R3",
+        {"classify": _phrase_detection_only},
+    ),
+    (
+        "M-R3c a real answer is rejected as progress",
+        "R3",
+        {"classify": _everything_is_progress},
+    ),
+    (
+        "M-R3d a progress body as the receipt reports SUCCESS",
+        "R3",
+        {"judge": _exit_zero_is_success},
+    ),
+    (
+        "M-R4b the prompt is placed on argv",
+        "R4",
+        {"build_argv": _prompt_on_argv_honest_length},
+    ),
+    (
+        "M-R4c the prompt is on argv and the length under-reported",
+        "R4",
+        {"build_argv": _prompt_on_argv_understated_length},
+    ),
+    (
+        "M-R4d the stdin prompt is silently dropped",
+        "R4",
+        {"build_argv": _drops_stdin_payload},
+    ),
+    (
+        "M-R4e over-cap is refused but not as win-arg-limit",
+        "R4",
+        {"build_argv": _wrong_over_cap_reason},
+    ),
+    (
+        "M-R4f the reported command-line length is off by one",
+        "R4",
+        {"build_argv": _off_by_one_length},
+    ),
+    (
+        "M-R5c hardening is injected but never verified",
+        "R5",
+        {"build_for_rail": _hardening_cannot_be_skipped},
+    ),
     ("M-R5d win-arg-limit loses its one retry", "R5", {"plan_retry": _never_retry}),
-    ("M-R5e every reason becomes retryable", "R5", {"plan_retry": _retry_anything_once}),
-    ("M-R6b a non-positive timeout is accepted", "R6", {"check_dispatch": _accepts_zero_timeout}),
-    ("M-R6c a valid explicit timeout is refused", "R6", {"check_dispatch": _refuses_every_timeout}),
-    ("M-R8c the clean dispatch path is reported as leaking", "R8", {"scan_source": _always_finds_a_leak}),
+    (
+        "M-R5e every reason becomes retryable",
+        "R5",
+        {"plan_retry": _retry_anything_once},
+    ),
+    (
+        "M-R6b a non-positive timeout is accepted",
+        "R6",
+        {"check_dispatch": _accepts_zero_timeout},
+    ),
+    (
+        "M-R6c a valid explicit timeout is refused",
+        "R6",
+        {"check_dispatch": _refuses_every_timeout},
+    ),
+    (
+        "M-R8c the clean dispatch path is reported as leaking",
+        "R8",
+        {"scan_source": _always_finds_a_leak},
+    ),
 )
 
 
@@ -271,7 +390,9 @@ def test_every_row_is_green_in_the_UNMUTATED_state() -> None:
     assert [o.row_id for o in run_all() if not o.passed] == []
 
 
-@pytest.mark.parametrize(("label", "row_id", "override"), MUTANTS, ids=[m[0] for m in MUTANTS])
+@pytest.mark.parametrize(
+    ("label", "row_id", "override"), MUTANTS, ids=[m[0] for m in MUTANTS]
+)
 def test_the_row_goes_RED_under_its_mutant(
     label: str, row_id: str, override: dict[str, Any]
 ) -> None:

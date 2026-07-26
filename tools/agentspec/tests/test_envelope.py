@@ -35,7 +35,9 @@ def test_envelope_fields_are_the_four_mandated_names() -> None:
 
 
 def test_success_builds_a_valid_envelope() -> None:
-    obs = success("unit ran", next_actions=("review the diff",), artifacts=("out/a.json",))
+    obs = success(
+        "unit ran", next_actions=("review the diff",), artifacts=("out/a.json",)
+    )
     assert obs.status == "success"
     assert obs.next_actions == ("review the diff",)
     assert obs.artifacts == ("out/a.json",)
@@ -44,7 +46,9 @@ def test_success_builds_a_valid_envelope() -> None:
 
 
 def test_warning_builds_a_valid_envelope() -> None:
-    obs = warning("unit ran but the budget is 90% spent", next_actions=("raise the cap",))
+    obs = warning(
+        "unit ran but the budget is 90% spent", next_actions=("raise the cap",)
+    )
     assert obs.status == "warning"
     assert validate_observation(obs) == ()
 
@@ -105,7 +109,9 @@ def test_rejects_an_empty_summary() -> None:
 
 
 def test_rejects_an_error_status_with_no_error_block() -> None:
-    obs = Observation(status="error", summary="boom", next_actions=("retry",), artifacts=())
+    obs = Observation(
+        status="error", summary="boom", next_actions=("retry",), artifacts=()
+    )
     assert validate_observation(obs) == ("envelope-error-missing",)
 
 
@@ -118,7 +124,9 @@ def test_rejects_a_non_error_status_carrying_an_error_block() -> None:
 
 def test_rejects_an_error_with_no_next_actions() -> None:
     """The named anti-pattern: error output with no next step."""
-    obs = Observation(status="error", summary="boom", next_actions=(), artifacts=(), error=_err())
+    obs = Observation(
+        status="error", summary="boom", next_actions=(), artifacts=(), error=_err()
+    )
     assert validate_observation(obs) == ("envelope-next-actions-empty",)
 
 
@@ -134,7 +142,9 @@ def test_rejects_a_blank_recovery_field(field: str) -> None:
         artifacts=(),
         error=dataclasses.replace(_err(), **{field: "  "}),
     )
-    assert validate_observation(obs) == (f"envelope-error-{field.replace('_', '-')}-empty",)
+    assert validate_observation(obs) == (
+        f"envelope-error-{field.replace('_', '-')}-empty",
+    )
 
 
 def test_rejects_an_error_code_outside_the_closed_taxonomy() -> None:
@@ -150,7 +160,10 @@ def test_rejects_an_error_code_outside_the_closed_taxonomy() -> None:
 
 def test_reports_every_violation_at_once_sorted() -> None:
     obs = Observation(status="nope", summary="", next_actions=(), artifacts=())
-    assert validate_observation(obs) == ("envelope-status-invalid", "envelope-summary-empty")
+    assert validate_observation(obs) == (
+        "envelope-status-invalid",
+        "envelope-summary-empty",
+    )
 
 
 def test_error_builder_refuses_an_empty_next_actions_tuple() -> None:

@@ -29,7 +29,9 @@ def decode(raw: bytes) -> str:
     try:
         text = raw.decode("utf-8")
     except UnicodeDecodeError as exc:
-        raise ReceiptUnparseable(f"receipt-unparseable: not valid UTF-8 ({exc.reason})") from exc
+        raise ReceiptUnparseable(
+            f"receipt-unparseable: not valid UTF-8 ({exc.reason})"
+        ) from exc
     return text.removeprefix("﻿")
 
 

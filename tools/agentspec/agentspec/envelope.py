@@ -71,7 +71,10 @@ def success(
     artifacts: tuple[str, ...] = (),
 ) -> Observation:
     return Observation(
-        status="success", summary=summary, next_actions=next_actions, artifacts=artifacts
+        status="success",
+        summary=summary,
+        next_actions=next_actions,
+        artifacts=artifacts,
     )
 
 
@@ -82,7 +85,10 @@ def warning(
     artifacts: tuple[str, ...] = (),
 ) -> Observation:
     return Observation(
-        status="warning", summary=summary, next_actions=next_actions, artifacts=artifacts
+        status="warning",
+        summary=summary,
+        next_actions=next_actions,
+        artifacts=artifacts,
     )
 
 
@@ -95,7 +101,9 @@ def error(
 ) -> Observation:
     """Build an error envelope. ``next_actions`` is REQUIRED and must be non-empty."""
     if not next_actions:
-        raise ValueError("error(): next_actions must be non-empty (error-only output is banned)")
+        raise ValueError(
+            "error(): next_actions must be non-empty (error-only output is banned)"
+        )
     return Observation(
         status="error",
         summary=summary,

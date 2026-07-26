@@ -65,7 +65,10 @@ def validate_workflow(workflow: Workflow) -> tuple[str, ...]:
         found.append("workflow-no-units")
     if workflow.budget_micro < 0:
         found.append("budget-total-negative")
-    elif sum(u.budget_micro for u in workflow.units if u.budget_micro > 0) > workflow.budget_micro:
+    elif (
+        sum(u.budget_micro for u in workflow.units if u.budget_micro > 0)
+        > workflow.budget_micro
+    ):
         found.append("budget-units-exceed-total")
 
     known = set(unit_ids(workflow))
@@ -125,7 +128,8 @@ def _validate_cycles(workflow: Workflow) -> list[str]:
     here so one defect does not produce two ids.
     """
     edges = {
-        unit.id: tuple(d for d in unit.depends_on if d != unit.id) for unit in workflow.units
+        unit.id: tuple(d for d in unit.depends_on if d != unit.id)
+        for unit in workflow.units
     }
     state: dict[str, int] = {}
 

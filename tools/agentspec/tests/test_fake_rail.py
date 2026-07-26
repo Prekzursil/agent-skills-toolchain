@@ -16,7 +16,9 @@ from agentspec.evals.fake_rail import (
 PLAN = build_argv(exe="fake.exe", prompt="do it", transport="stdin")
 
 
-def _rail(*responses: ScriptedResponse, start_ms: int = 0) -> tuple[FakeRail, FixedClock]:
+def _rail(
+    *responses: ScriptedResponse, start_ms: int = 0
+) -> tuple[FakeRail, FixedClock]:
     clock = FixedClock(start_ms=start_ms)
     return FakeRail(script={"u1": responses}, clock=clock), clock
 
@@ -47,8 +49,14 @@ def test_successive_calls_consume_successive_scripted_responses() -> None:
         ScriptedResponse(exit_code=1, receipt=None),
         ScriptedResponse(exit_code=0, receipt=b"ok"),
     )
-    assert rail.dispatch(unit_id="u1", plan=PLAN, timeout_s=60, awaited=True).exit_code == 1
-    assert rail.dispatch(unit_id="u1", plan=PLAN, timeout_s=60, awaited=True).exit_code == 0
+    assert (
+        rail.dispatch(unit_id="u1", plan=PLAN, timeout_s=60, awaited=True).exit_code
+        == 1
+    )
+    assert (
+        rail.dispatch(unit_id="u1", plan=PLAN, timeout_s=60, awaited=True).exit_code
+        == 0
+    )
 
 
 def test_every_dispatch_is_recorded_with_its_argv_and_timeout() -> None:
@@ -67,7 +75,9 @@ def test_every_dispatch_is_recorded_with_its_argv_and_timeout() -> None:
 def test_a_backgrounded_awaited_dispatch_is_REFUSED_by_the_rail() -> None:
     rail, _ = _rail(ScriptedResponse(exit_code=0, receipt=b"ok"))
     with pytest.raises(DispatchRefused) as caught:
-        rail.dispatch(unit_id="u1", plan=PLAN, timeout_s=60, awaited=True, background=True)
+        rail.dispatch(
+            unit_id="u1", plan=PLAN, timeout_s=60, awaited=True, background=True
+        )
     assert caught.value.reason == "policy-violation"
     assert caught.value.violations == ("background-on-awaited-dispatch",)
     assert rail.calls == ()
@@ -95,7 +105,9 @@ def test_running_past_the_end_of_a_script_raises() -> None:
 
 def test_the_progress_stream_is_carried_but_never_becomes_the_receipt() -> None:
     rail, _ = _rail(
-        ScriptedResponse(exit_code=0, receipt=None, progress="[fake] working\n[fake] done")
+        ScriptedResponse(
+            exit_code=0, receipt=None, progress="[fake] working\n[fake] done"
+        )
     )
     result = rail.dispatch(unit_id="u1", plan=PLAN, timeout_s=60, awaited=True)
     assert result.progress.startswith("[fake]")
@@ -108,7 +120,12 @@ def test_the_rail_performs_no_io_and_needs_no_network() -> None:
     import agentspec.evals.fake_rail as mod
 
     source = __import__("pathlib").Path(mod.__file__).read_text(encoding="utf-8")
-    for banned in ("import socket", "import subprocess", "import urllib", "import requests"):
+    for banned in (
+        "import socket",
+        "import subprocess",
+        "import urllib",
+        "import requests",
+    ):
         assert banned not in source
 
 

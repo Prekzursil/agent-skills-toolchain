@@ -65,7 +65,9 @@ class Ledger:
         """Return a new ledger with one more debit, or raise."""
         _require_int(micro, "micro")
         if micro <= 0:
-            raise ValueError("micro must be positive (a zero debit is not an observation)")
+            raise ValueError(
+                "micro must be positive (a zero debit is not an observation)"
+            )
         if attempt <= 0:
             raise ValueError("attempt must be >= 1")
         if not unit_id:
@@ -73,7 +75,9 @@ class Ledger:
         if any(d.unit_id == unit_id and d.attempt == attempt for d in self.debits):
             raise ValueError(f"already debited: {unit_id!r} attempt {attempt}")
         if micro > self.remaining_micro:
-            raise BudgetExhausted(requested_micro=micro, remaining_micro=self.remaining_micro)
+            raise BudgetExhausted(
+                requested_micro=micro, remaining_micro=self.remaining_micro
+            )
         return Ledger(
             limit_micro=self.limit_micro,
             debits=(*self.debits, Debit(unit_id=unit_id, attempt=attempt, micro=micro)),
@@ -96,4 +100,6 @@ def cost_per_success(ledger: Ledger, *, successes: int) -> int:
 def _require_int(value: object, name: str) -> None:
     """Reject ``bool`` explicitly: ``isinstance(True, int)`` is True in Python."""
     if isinstance(value, bool) or not isinstance(value, int):
-        raise TypeError(f"{name} must be an int (micro-units), not {type(value).__name__}")
+        raise TypeError(
+            f"{name} must be an int (micro-units), not {type(value).__name__}"
+        )

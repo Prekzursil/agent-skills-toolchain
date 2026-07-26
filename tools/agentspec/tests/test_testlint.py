@@ -104,7 +104,9 @@ def test_a_nested_helper_inside_a_test_does_not_launder_the_assertion() -> None:
 def test_a_with_block_that_is_not_a_raises_helper_does_not_count() -> None:
     """`with open(...)` is plumbing, not an assertion."""
     source = "def test_x():\n    with open('f') as handle:\n        handle.read()\n"
-    assert [f.detail for f in scan_test_source(source, "t.py")] == ["test_x has no assertion"]
+    assert [f.detail for f in scan_test_source(source, "t.py")] == [
+        "test_x has no assertion"
+    ]
 
 
 def test_a_with_block_whose_context_is_a_bare_name_does_not_count() -> None:
@@ -123,19 +125,27 @@ def test_an_immediately_invoked_lambda_is_not_an_assertion() -> None:
 
 
 def test_an_unparseable_test_module_is_reported_not_skipped() -> None:
-    assert [f.code for f in scan_test_source("def test_(:\n", "t.py")] == ["unparseable"]
+    assert [f.code for f in scan_test_source("def test_(:\n", "t.py")] == [
+        "unparseable"
+    ]
 
 
 def test_scan_tests_reports_relative_paths_and_is_ordered(tmp_path: Path) -> None:
     (tmp_path / "test_b.py").write_text("def test_b():\n    pass\n", encoding="utf-8")
     (tmp_path / "sub").mkdir()
-    (tmp_path / "sub" / "test_a.py").write_text("def test_a():\n    pass\n", encoding="utf-8")
-    (tmp_path / "helper.py").write_text("def test_ignored():\n    pass\n", encoding="utf-8")
+    (tmp_path / "sub" / "test_a.py").write_text(
+        "def test_a():\n    pass\n", encoding="utf-8"
+    )
+    (tmp_path / "helper.py").write_text(
+        "def test_ignored():\n    pass\n", encoding="utf-8"
+    )
     findings = scan_tests(tmp_path)
     assert [f.path for f in findings] == ["sub/test_a.py", "test_b.py"]
 
 
-def test_scan_tests_reports_an_undecodable_module_as_a_read_error(tmp_path: Path) -> None:
+def test_scan_tests_reports_an_undecodable_module_as_a_read_error(
+    tmp_path: Path,
+) -> None:
     (tmp_path / "test_raw.py").write_bytes(b"\xff\xfe\x00bad")
     assert [f.code for f in scan_tests(tmp_path)] == ["read-error"]
 

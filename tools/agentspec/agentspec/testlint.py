@@ -78,7 +78,12 @@ def scan_tests(root: Path) -> tuple[Finding, ...]:
             source = file.read_text(encoding="utf-8")
         except UnicodeDecodeError as exc:
             findings.append(
-                Finding(path=rel, line=1, code="read-error", detail=f"cannot read: {exc.reason}")
+                Finding(
+                    path=rel,
+                    line=1,
+                    code="read-error",
+                    detail=f"cannot read: {exc.reason}",
+                )
             )
             continue
         findings.extend(scan_test_source(source, rel))
@@ -89,9 +94,9 @@ def _test_functions(tree: ast.Module) -> list[TestFn]:
     """Every ``test_*`` function, whether module-level or a method on a class."""
     found: list[TestFn] = []
     for node in ast.walk(tree):
-        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.name.startswith(
-            "test"
-        ):
+        if isinstance(
+            node, ast.FunctionDef | ast.AsyncFunctionDef
+        ) and node.name.startswith("test"):
             found.append(node)
     return found
 

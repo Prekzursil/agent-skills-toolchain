@@ -56,7 +56,9 @@ def rail_exit(exit_code: int) -> str:
 def timeout(seconds: int) -> str:
     """Render the ``timeout-<n>s`` reason. A dispatch has no implicit timeout."""
     if seconds <= 0:
-        return _refuse("timeout: seconds must be positive (an explicit budget is mandatory)")
+        return _refuse(
+            "timeout: seconds must be positive (an explicit budget is mandatory)"
+        )
     return f"timeout-{seconds}s"
 
 

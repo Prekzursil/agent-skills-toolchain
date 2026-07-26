@@ -39,7 +39,9 @@ def test_the_windows_cap_matches_the_in_repo_measurement() -> None:
     assert GUARD.is_file(), f"in-repo measurement source is missing: {GUARD}"
     source = GUARD.read_text(encoding="utf-8")
     match = re.search(r"^WINDOWS_CMDLINE_CAP = (\d+)$", source, re.MULTILINE)
-    assert match is not None, "glob_argv_guard.py no longer declares WINDOWS_CMDLINE_CAP"
+    assert match is not None, (
+        "glob_argv_guard.py no longer declares WINDOWS_CMDLINE_CAP"
+    )
     assert int(match.group(1)) == WINDOWS_CMDLINE_CAP == 32767
 
 
@@ -55,7 +57,9 @@ def test_render_cmdline_joins_with_spaces() -> None:
 
 
 def test_render_cmdline_quotes_an_element_containing_a_space() -> None:
-    assert render_cmdline(("codex", "C:/Program Files/x")) == 'codex "C:/Program Files/x"'
+    assert (
+        render_cmdline(("codex", "C:/Program Files/x")) == 'codex "C:/Program Files/x"'
+    )
 
 
 def test_render_cmdline_quotes_an_empty_element() -> None:
@@ -122,7 +126,9 @@ def test_an_equal_element_is_refused_at_ANY_prompt_length() -> None:
 
 
 @pytest.mark.parametrize("delimiter", ["=", ":"])
-def test_the_flag_equals_value_shape_is_refused_at_ANY_prompt_length(delimiter: str) -> None:
+def test_the_flag_equals_value_shape_is_refused_at_ANY_prompt_length(
+    delimiter: str,
+) -> None:
     """Rule 2: `--message=<body>` / `--message:<body>`, however short the body."""
     with pytest.raises(PromptOnArgv):
         build_argv(
@@ -137,7 +143,12 @@ def test_a_long_prompt_embedded_anywhere_in_an_element_is_refused() -> None:
     """Rule 3: bare containment, once the prompt is long enough to be unambiguous."""
     prompt = "z" * MIN_SUBSTRING_SCAN_LEN
     with pytest.raises(PromptOnArgv):
-        build_argv(exe="c.exe", flags=(f"--wrap{prompt}tail",), prompt=prompt, transport="stdin")
+        build_argv(
+            exe="c.exe",
+            flags=(f"--wrap{prompt}tail",),
+            prompt=prompt,
+            transport="stdin",
+        )
 
 
 def test_a_short_prompt_colliding_with_a_flag_token_is_NOT_a_false_positive() -> None:
@@ -224,7 +235,9 @@ def test_one_char_over_the_cap_is_refused_with_the_win_arg_limit_reason() -> Non
 
 
 def test_the_cap_is_overridable_for_a_non_windows_rail() -> None:
-    plan = build_argv(exe="c.exe", flags=("x" * 100,), prompt="p", transport="stdin", cap=200)
+    plan = build_argv(
+        exe="c.exe", flags=("x" * 100,), prompt="p", transport="stdin", cap=200
+    )
     assert plan.cmdline_len == 106
 
 
@@ -239,14 +252,16 @@ def test_missing_hardening_lists_the_absent_flags() -> None:
 
 def test_missing_hardening_is_empty_when_every_flag_is_present() -> None:
     argv = ("codex.exe", "exec", "--ignore-user-config", "--skip-git-repo-check")
-    assert missing_hardening(argv, ("--ignore-user-config", "--skip-git-repo-check")) == ()
+    assert (
+        missing_hardening(argv, ("--ignore-user-config", "--skip-git-repo-check")) == ()
+    )
 
 
 def test_missing_hardening_matches_a_whole_element_not_a_substring() -> None:
     """`--ignore-user-configuration` must NOT satisfy `--ignore-user-config`."""
-    assert missing_hardening(("c.exe", "--ignore-user-configuration"), ("--ignore-user-config",)) == (
-        "--ignore-user-config",
-    )
+    assert missing_hardening(
+        ("c.exe", "--ignore-user-configuration"), ("--ignore-user-config",)
+    ) == ("--ignore-user-config",)
 
 
 def test_build_for_rail_injects_the_rails_hardening_flags() -> None:

@@ -169,7 +169,9 @@ def rows(
     return tuple(row for row in catalog if include_live or not row.live)
 
 
-def row_ids(*, catalog: Sequence[EvalRow] = REGISTRY, include_live: bool = False) -> tuple[str, ...]:
+def row_ids(
+    *, catalog: Sequence[EvalRow] = REGISTRY, include_live: bool = False
+) -> tuple[str, ...]:
     """The ids of the rows :func:`rows` would run, in declaration order."""
     return tuple(row.id for row in rows(catalog=catalog, include_live=include_live))
 
@@ -197,7 +199,8 @@ def run_all(
 ) -> tuple[EvalOutcome, ...]:
     """Run every selected row in declaration order."""
     return tuple(
-        run_row(row, impl=impl) for row in rows(catalog=catalog, include_live=include_live)
+        run_row(row, impl=impl)
+        for row in rows(catalog=catalog, include_live=include_live)
     )
 
 

@@ -22,10 +22,16 @@ DISPATCH_VIOLATIONS: tuple[str, ...] = (
 )
 
 
-def check_dispatch(*, background: bool, timeout_s: int | None, awaited: bool) -> tuple[str, ...]:
+def check_dispatch(
+    *, background: bool, timeout_s: int | None, awaited: bool
+) -> tuple[str, ...]:
     """Return the sorted violations for a proposed dispatch; empty means go ahead."""
-    if timeout_s is not None and (isinstance(timeout_s, bool) or not isinstance(timeout_s, int)):
-        raise TypeError(f"timeout_s must be an int or None, not {type(timeout_s).__name__}")
+    if timeout_s is not None and (
+        isinstance(timeout_s, bool) or not isinstance(timeout_s, int)
+    ):
+        raise TypeError(
+            f"timeout_s must be an int or None, not {type(timeout_s).__name__}"
+        )
     found: list[str] = []
     if background and awaited:
         found.append("background-on-awaited-dispatch")

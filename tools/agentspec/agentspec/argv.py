@@ -51,7 +51,9 @@ class ArgvTooLong(ValueError):
     reason = "win-arg-limit"
 
     def __init__(self, *, cmdline_len: int, cap: int) -> None:
-        super().__init__(f"win-arg-limit: command line is {cmdline_len} chars, cap is {cap}")
+        super().__init__(
+            f"win-arg-limit: command line is {cmdline_len} chars, cap is {cap}"
+        )
         self.cmdline_len = cmdline_len
         self.cap = cap
 
@@ -115,7 +117,9 @@ def build_argv(
     if not prompt:
         raise ValueError("prompt must be non-empty")
     if transport not in PROMPT_TRANSPORTS:
-        raise ValueError(f"transport must be one of {list(PROMPT_TRANSPORTS)}, got {transport!r}")
+        raise ValueError(
+            f"transport must be one of {list(PROMPT_TRANSPORTS)}, got {transport!r}"
+        )
 
     if transport == "file":
         if not prompt_flag:

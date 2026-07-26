@@ -51,5 +51,7 @@ def terminal_line(verdict: object) -> str:
 
 def _checked_id(unit_id: str) -> str:
     if not unit_id or any(ch.isspace() for ch in unit_id):
-        raise ValueError(f"unit_id must be non-empty and whitespace-free, got {unit_id!r}")
+        raise ValueError(
+            f"unit_id must be non-empty and whitespace-free, got {unit_id!r}"
+        )
     return unit_id

@@ -35,7 +35,9 @@ class ProgressStreamRejected(ValueError):
     reason = "progress-stream"
 
     def __init__(self, marker: str) -> None:
-        super().__init__(f"progress-stream: payload matched {marker!r} and is not a result")
+        super().__init__(
+            f"progress-stream: payload matched {marker!r} and is not a result"
+        )
         self.marker = marker
 
 
@@ -72,7 +74,9 @@ def as_result(classified: ResultText | ProgressLog) -> str:
         return classified.text
     if isinstance(classified, ProgressLog):
         raise ProgressStreamRejected(classified.marker)
-    raise TypeError(f"expected ResultText or ProgressLog, got {type(classified).__name__}")
+    raise TypeError(
+        f"expected ResultText or ProgressLog, got {type(classified).__name__}"
+    )
 
 
 def looks_like_progress(payload: str) -> bool:
