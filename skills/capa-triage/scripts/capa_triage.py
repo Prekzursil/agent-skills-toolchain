@@ -9,6 +9,7 @@ standalone binary bundles them); this wrapper defaults them so you can just:
 
 Override the locations with the CAPA_RULES / CAPA_SIGS env vars. Exit code is capa's own.
 """
+
 import os
 import subprocess
 import sys
@@ -33,7 +34,9 @@ def main(argv=None):
     try:
         return subprocess.run(cmd).returncode
     except FileNotFoundError:
-        sys.stderr.write("capa not found — is flare-capa installed? (pip install flare-capa)\n")
+        sys.stderr.write(
+            "capa not found — is flare-capa installed? (pip install flare-capa)\n"
+        )
         return 2
 
 

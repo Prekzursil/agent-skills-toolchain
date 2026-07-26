@@ -181,6 +181,10 @@ Return a compact report with:
 
 ## Handoffs
 
+If the next step is interactive installation or repair, hand off to:
+
+- `configure-ecc`
+
 If the next step is overlap cleanup or catalog review, hand off to:
 
 - `skill-stocktake`

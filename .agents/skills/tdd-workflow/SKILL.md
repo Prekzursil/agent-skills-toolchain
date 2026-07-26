@@ -1,6 +1,6 @@
 ---
 name: tdd-workflow
-description: Use this skill when writing new features, fixing bugs, or refactoring code. Enforces test-driven development with high test coverage including unit, integration, and E2E tests.
+description: Use this skill when writing new features, fixing bugs, or refactoring code. Enforces test-driven development with 80%+ coverage including unit, integration, and E2E tests.
 origin: ECC
 ---
 
@@ -22,7 +22,7 @@ This skill ensures all code development follows TDD principles with comprehensiv
 ALWAYS write tests first, then implement code to make tests pass.
 
 ### 2. Coverage Requirements
-- Coverage meets .coverage-thresholds.json (SSOT; 100% on metaswarm, else 80%+) — unit + integration + E2E
+- Minimum 80% coverage (unit + integration + E2E)
 - All edge cases covered
 - Error scenarios tested
 - Boundary conditions verified
@@ -113,7 +113,7 @@ Improve code quality while keeping tests green:
 ### Step 7: Verify Coverage
 ```bash
 npm run test:coverage
-# Verify coverage meets .coverage-thresholds.json (SSOT)
+# Verify 80%+ coverage achieved
 ```
 
 ## Testing Patterns
@@ -398,7 +398,7 @@ npm test && npm run lint
 
 ## Success Metrics
 
-- Code coverage meets .coverage-thresholds.json (SSOT)
+- 80%+ code coverage achieved
 - All tests passing (green)
 - No skipped or disabled tests
 - Fast test execution (< 30s for unit tests)

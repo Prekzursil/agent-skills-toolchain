@@ -184,7 +184,7 @@ def format_text(results):
     for r in results:
         header = r["smiles"]
         if r.get("name"):
-            header = f'{r["name"]}  {header}'
+            header = f"{r['name']}  {header}"
         if not r["valid"]:
             lines.append(f"[INVALID] {header}  ({r['error']})")
             continue

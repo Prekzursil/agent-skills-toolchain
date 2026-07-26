@@ -8,13 +8,13 @@ This prevents bugs like those found in Metabolomics skill (3 critical bugs from 
 """
 
 from tooluniverse import ToolUniverse
-import json
+
 
 def test_string_tools():
     """Test STRING (Search Tool for Retrieval of Interacting Genes/Proteins) tools"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TESTING STRING TOOLS (6 tools)")
-    print("="*80)
+    print("=" * 80)
 
     tu = ToolUniverse()
     tu.load_tools()
@@ -23,16 +23,21 @@ def test_string_tools():
     print("\n1. Testing STRING_map_identifiers...")
     try:
         result = tu.tools.STRING_map_identifiers(
-            protein_ids=["TP53", "MDM2"],  # FIX: parameter is 'protein_ids', not 'identifiers'
-            species=9606  # Homo sapiens
+            protein_ids=[
+                "TP53",
+                "MDM2",
+            ],  # FIX: parameter is 'protein_ids', not 'identifiers'
+            species=9606,  # Homo sapiens
         )
         print(f"  Type: {type(result)}")
         if isinstance(result, dict):
             print(f"  Status: {result.get('status')}")
-            if result.get('status') == 'success':
-                data = result.get('data', {})
+            if result.get("status") == "success":
+                data = result.get("data", {})
                 print(f"  Data type: {type(data)}")
-                print(f"  Data keys: {data.keys() if isinstance(data, dict) else 'N/A'}")
+                print(
+                    f"  Data keys: {data.keys() if isinstance(data, dict) else 'N/A'}"
+                )
                 print(f"  Sample: {str(data)[:200]}...")
             else:
                 print(f"  ERROR: {result.get('error')}")
@@ -44,17 +49,16 @@ def test_string_tools():
     # Test 2: Get interaction network
     print("\n2. Testing STRING_get_network...")
     try:
-        result = tu.tools.STRING_get_network(
-            protein_ids=["TP53", "MDM2"],
-            species=9606
-        )
+        result = tu.tools.STRING_get_network(protein_ids=["TP53", "MDM2"], species=9606)
         print(f"  Type: {type(result)}")
         if isinstance(result, dict):
             print(f"  Status: {result.get('status')}")
-            if result.get('status') == 'success':
-                data = result.get('data', {})
+            if result.get("status") == "success":
+                data = result.get("data", {})
                 print(f"  Data type: {type(data)}")
-                print(f"  Data keys: {data.keys() if isinstance(data, dict) else 'N/A'}")
+                print(
+                    f"  Data keys: {data.keys() if isinstance(data, dict) else 'N/A'}"
+                )
                 # Check for nested structures
                 if isinstance(data, dict):
                     for key in list(data.keys())[:3]:
@@ -70,14 +74,13 @@ def test_string_tools():
     print("\n3. Testing STRING_get_interaction_partners...")
     try:
         result = tu.tools.STRING_get_interaction_partners(
-            protein_ids=["TP53"],
-            species=9606
+            protein_ids=["TP53"], species=9606
         )
         print(f"  Type: {type(result)}")
         if isinstance(result, dict):
             print(f"  Status: {result.get('status')}")
-            if result.get('status') == 'success':
-                data = result.get('data', {})
+            if result.get("status") == "success":
+                data = result.get("data", {})
                 print(f"  Data type: {type(data)}")
                 if isinstance(data, list):
                     print(f"  List length: {len(data)}")
@@ -96,14 +99,13 @@ def test_string_tools():
     print("\n4. Testing STRING_get_protein_interactions...")
     try:
         result = tu.tools.STRING_get_protein_interactions(
-            protein_ids=["TP53"],
-            species=9606
+            protein_ids=["TP53"], species=9606
         )
         print(f"  Type: {type(result)}")
         if isinstance(result, dict):
             print(f"  Status: {result.get('status')}")
-            if result.get('status') == 'success':
-                data = result.get('data', {})
+            if result.get("status") == "success":
+                data = result.get("data", {})
                 print(f"  Data type: {type(data)}")
             else:
                 print(f"  ERROR: {result.get('error')}")
@@ -116,21 +118,22 @@ def test_string_tools():
     print("\n5. Testing STRING_functional_enrichment...")
     try:
         result = tu.tools.STRING_functional_enrichment(
-            protein_ids=["TP53", "MDM2", "ATM"],
-            species=9606
+            protein_ids=["TP53", "MDM2", "ATM"], species=9606
         )
         print(f"  Type: {type(result)}")
         if isinstance(result, dict):
             print(f"  Status: {result.get('status')}")
-            if result.get('status') == 'success':
-                data = result.get('data', {})
+            if result.get("status") == "success":
+                data = result.get("data", {})
                 print(f"  Data type: {type(data)}")
                 if isinstance(data, dict):
                     print(f"  Data keys: {data.keys()}")
                 elif isinstance(data, list):
                     print(f"  List length: {len(data)}")
                     if data:
-                        print(f"  First item keys: {data[0].keys() if isinstance(data[0], dict) else 'N/A'}")
+                        print(
+                            f"  First item keys: {data[0].keys() if isinstance(data[0], dict) else 'N/A'}"
+                        )
             else:
                 print(f"  ERROR: {result.get('error')}")
         else:
@@ -142,14 +145,13 @@ def test_string_tools():
     print("\n6. Testing STRING_ppi_enrichment...")
     try:
         result = tu.tools.STRING_ppi_enrichment(
-            protein_ids=["TP53", "MDM2", "ATM"],
-            species=9606
+            protein_ids=["TP53", "MDM2", "ATM"], species=9606
         )
         print(f"  Type: {type(result)}")
         if isinstance(result, dict):
             print(f"  Status: {result.get('status')}")
-            if result.get('status') == 'success':
-                data = result.get('data', {})
+            if result.get("status") == "success":
+                data = result.get("data", {})
                 print(f"  Data type: {type(data)}")
                 print(f"  Data: {data}")
             else:
@@ -164,9 +166,9 @@ def test_string_tools():
 
 def test_biogrid_tools():
     """Test BioGRID (Biological General Repository for Interaction Datasets) tools"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TESTING BIOGRID TOOLS (4 tools)")
-    print("="*80)
+    print("=" * 80)
 
     tu = ToolUniverse()
     tu.load_tools()
@@ -178,14 +180,16 @@ def test_biogrid_tools():
     print("\n1. Testing BioGRID_get_interactions...")
     try:
         result = tu.tools.BioGRID_get_interactions(
-            gene_names=["TP53"],  # FIX: parameter is 'gene_names' (plural, list), not 'gene_name'
-            organism="9606"  # FIX: Can use taxonomy ID or "Homo sapiens"
+            gene_names=[
+                "TP53"
+            ],  # FIX: parameter is 'gene_names' (plural, list), not 'gene_name'
+            organism="9606",  # FIX: Can use taxonomy ID or "Homo sapiens"
         )
         print(f"  Type: {type(result)}")
         if isinstance(result, dict):
             print(f"  Status: {result.get('status')}")
-            if result.get('status') == 'success':
-                data = result.get('data', {})
+            if result.get("status") == "success":
+                data = result.get("data", {})
                 print(f"  Data type: {type(data)}")
                 if isinstance(data, list):
                     print(f"  List length: {len(data)}")
@@ -205,13 +209,13 @@ def test_biogrid_tools():
     try:
         result = tu.tools.BioGRID_get_chemical_interactions(
             chemical_name="Cisplatin",  # Keep as-is, check if list needed
-            organism="9606"
+            organism="9606",
         )
         print(f"  Type: {type(result)}")
         if isinstance(result, dict):
             print(f"  Status: {result.get('status')}")
-            if result.get('status') == 'success':
-                data = result.get('data', {})
+            if result.get("status") == "success":
+                data = result.get("data", {})
                 print(f"  Data type: {type(data)}")
             else:
                 print(f"  ERROR: {result.get('error')}")
@@ -225,13 +229,13 @@ def test_biogrid_tools():
     try:
         result = tu.tools.BioGRID_get_ptms(
             gene_names=["TP53"],  # FIX: parameter is 'gene_names' (plural, list)
-            organism="9606"
+            organism="9606",
         )
         print(f"  Type: {type(result)}")
         if isinstance(result, dict):
             print(f"  Status: {result.get('status')}")
-            if result.get('status') == 'success':
-                data = result.get('data', {})
+            if result.get("status") == "success":
+                data = result.get("data", {})
                 print(f"  Data type: {type(data)}")
             else:
                 print(f"  ERROR: {result.get('error')}")
@@ -249,8 +253,8 @@ def test_biogrid_tools():
         print(f"  Type: {type(result)}")
         if isinstance(result, dict):
             print(f"  Status: {result.get('status')}")
-            if result.get('status') == 'success':
-                data = result.get('data', {})
+            if result.get("status") == "success":
+                data = result.get("data", {})
                 print(f"  Data type: {type(data)}")
             else:
                 print(f"  ERROR: {result.get('error')}")
@@ -264,9 +268,9 @@ def test_biogrid_tools():
 
 def test_sasbdb_tools():
     """Test SASBDB (Small Angle Scattering Biological Data Bank) tools"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TESTING SASBDB TOOLS (5 tools)")
-    print("="*80)
+    print("=" * 80)
 
     tu = ToolUniverse()
     tu.load_tools()
@@ -274,14 +278,12 @@ def test_sasbdb_tools():
     # Test 1: Search entries
     print("\n1. Testing SASBDB_search_entries...")
     try:
-        result = tu.tools.SASBDB_search_entries(
-            query="TP53"
-        )
+        result = tu.tools.SASBDB_search_entries(query="TP53")
         print(f"  Type: {type(result)}")
         if isinstance(result, dict):
             print(f"  Status: {result.get('status')}")
-            if result.get('status') == 'success':
-                data = result.get('data', {})
+            if result.get("status") == "success":
+                data = result.get("data", {})
                 print(f"  Data type: {type(data)}")
                 if isinstance(data, list):
                     print(f"  List length: {len(data)}")
@@ -303,8 +305,8 @@ def test_sasbdb_tools():
         print(f"  Type: {type(result)}")
         if isinstance(result, dict):
             print(f"  Status: {result.get('status')}")
-            if result.get('status') == 'success':
-                data = result.get('data', {})
+            if result.get("status") == "success":
+                data = result.get("data", {})
                 print(f"  Data type: {type(data)}")
             else:
                 print(f"  ERROR: {result.get('error')}")
@@ -314,17 +316,19 @@ def test_sasbdb_tools():
         print(f"  ❌ EXCEPTION: {type(e).__name__}: {str(e)[:200]}")
 
     # Test 3-5: Skip for now (secondary tools)
-    print("\n  (Skipping SASBDB_get_models, get_scattering_profile, download_data for initial test)")
+    print(
+        "\n  (Skipping SASBDB_get_models, get_scattering_profile, download_data for initial test)"
+    )
 
     return True
 
 
 def main():
     """Run all tool tests"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("PROTEIN INTERACTION TOOLS TEST SUITE")
     print("Following TDD: Test tools FIRST before creating documentation")
-    print("="*80)
+    print("=" * 80)
 
     tests = [
         ("STRING (6 tools)", test_string_tools),
@@ -342,21 +346,23 @@ def main():
             results[name] = f"❌ EXCEPTION: {str(e)[:100]}"
 
     # Summary
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST SUMMARY")
-    print("="*80)
+    print("=" * 80)
     for name, result in results.items():
         print(f"{name:40} {result}")
 
     # Document discoveries
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("DISCOVERIES - DOCUMENT IN SKILL.md")
-    print("="*80)
+    print("=" * 80)
 
     print("\n## Parameter Verification:")
     print("| Tool | Parameter | Verified | Note |")
     print("|------|-----------|----------|------|")
-    print("| STRING_map_identifiers | identifiers, species | ✓ | List of strings + int |")
+    print(
+        "| STRING_map_identifiers | identifiers, species | ✓ | List of strings + int |"
+    )
     print("| STRING_get_network | identifiers, species | ✓ | List of strings + int |")
     print("| BioGRID_get_interactions | gene_name, organism | ⚠️ | Requires API key |")
 
@@ -373,7 +379,10 @@ def main():
     print("- **STRING**: No API key required (rate limits apply)")
     print("- **SASBDB**: No API key required")
 
-    print("\n✅ Tool testing completed. Next: Create working pipeline → then documentation")
+    print(
+        "\n✅ Tool testing completed. Next: Create working pipeline → then documentation"
+    )
+
 
 if __name__ == "__main__":
     main()
