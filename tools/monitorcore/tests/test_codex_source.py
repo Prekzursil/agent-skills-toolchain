@@ -143,6 +143,27 @@ def test_poll_failure_without_history_returns_empty_payload(tmp_path):
     assert snap.headline == "unreachable: stream dir gone [REDACTED:api-key]"
 
 
+def test_headline_strips_control_bytes_from_error(tmp_path):
+    """SECURITY (escape-injection blast radius): an exception message carrying ESC/BEL/OSC-8
+    must not reach the cockpit through the composed ``unreachable`` headline — it is control-
+    stripped (parity with the ingest ``_scrub`` floor), while raw ``snap.error`` is kept for
+    logs."""
+
+    class _EvilPoller(ct.Poller):
+        def discover(self) -> None:
+            raise RuntimeError("boom \x1b[31m\x1b]8;;http://evil\x07 end")
+
+    src = CodexSource(
+        poller=_EvilPoller(str(tmp_path / "s"), str(tmp_path / "r")),
+        clock=lambda: NOW,
+    )
+    snap = src.poll()
+    assert snap.state is SourceState.UNREACHABLE
+    assert "\x1b" not in snap.headline and "\x07" not in snap.headline
+    assert "\x1b]" not in snap.headline  # no OSC introducer survives
+    assert "boom" in snap.headline  # printable content survives
+
+
 def test_poll_failure_retains_last_good_payload(tmp_path):
     poller = _poller(tmp_path)
     shutil.copy(_STREAM_FIXTURE, poller.stream_dir / _STREAM_FIXTURE.name)
@@ -253,6 +274,29 @@ def test_export_model_empty_and_populated(tmp_path):
     assert card.lead == "2 turns · stream"
     md = render_md(doc)  # smoke: the shared renderer consumes the mapping
     assert "wave0" in md
+
+
+def test_export_model_populates_section_timeline_from_events(tmp_path):
+    """WU8: export_model maps the thread's ToolEvent deque onto Section.timeline so the
+    shared exporters render the progress ledger — covering every kind mapping."""
+    th = _thread(key="a", label="wave0", last_ts=NOW - 1)
+    th.add_event(ct.ToolEvent("cmd", "shell", "pytest -q", "ok", None, NOW))
+    th.add_event(
+        ct.ToolEvent("patch", "patch", "", "error", None, NOW)
+    )  # tool_use, no detail
+    th.add_event(ct.ToolEvent("think", "reasoning", "planning", "", None, NOW))
+    th.add_event(
+        ct.ToolEvent("msg", "message", "", "", None, NOW)
+    )  # text falls back to label
+    src = _seeded_source(tmp_path, th)
+    (card,) = src.export_model(src.poll()).blocks
+    kinds = [e.kind for e in card.timeline]
+    assert kinds == ["tool_use", "tool_use", "thinking", "text"]
+    shell, patch, think, msg = card.timeline
+    assert shell.name == "shell" and shell.tool_input == {"detail": "pytest -q"}
+    assert patch.tool_input == {} and patch.is_error is True  # no detail → empty input
+    assert think.text == "planning"
+    assert msg.text == "message"  # empty detail → the label
 
 
 def test_headline_accessor_passthrough(tmp_path):

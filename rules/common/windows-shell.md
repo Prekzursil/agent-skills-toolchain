@@ -245,6 +245,25 @@ happen**; every downstream probe then reported `NO` and the whole verification r
   orchestrator while it was verifying that very guard. The rule being written down did not prevent
   it; only the scoping did.
 
+## 12. PowerShell `${drive:...}` inside braces is a provider path — it silently reads/writes a FILE
+
+A `${name}` reference treats a **colon INSIDE the braces** as a namespace/drive qualifier, not part
+of the variable name. `${env:PATH}` reads the `env:` namespace and `${function:prompt}` the
+`function:` drive — and the footgun: **`${C:\temp\x}` resolves against the `C:` filesystem drive and
+gets/sets the CONTENT OF THAT FILE.** So a variable whose name looks like a drive letter followed by
+`:` is parsed as a drive-qualified path: `${C:\out} = $data` WRITES a file instead of assigning a
+variable, and `${C:\in}` READS one. Reproduced live 2026-07-18: `${C:\Users\…\Temp\probe.txt}`
+returned the file's contents, and `${…\probe.txt} = "x"` created the file — neither ever touched a
+variable named `C`.
+
+- **Fix — keep the colon OUTSIDE the braces when you mean "the variable, then a literal `:`":**
+  `"${C}:\path"` (the brace closes before the `:`) interpolates `$C` then a literal `:\path`;
+  `"${C:\path}"` does NOT — it is a file access. When unsure use `$($C):\path` or
+  `[string]::Concat($C, ':\path')`, which cannot be reparsed as a provider path.
+- The same qualifier rule fires for any single-letter drive name (`A:` through `Z:`) and for the
+  scope / namespace prefixes `global:` `local:` `script:` `private:` `env:` `variable:` `function:`
+  — a leading `<word>:` inside `${…}` is ALWAYS a qualifier, never a literal.
+
 ---
 *A one-line pointer to this file belongs in AGENTS.md §11 (owned by the D3 item — not
 edited here).*

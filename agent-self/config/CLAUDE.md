@@ -2,30 +2,120 @@
 
 @AGENTS.md
 
-## Working Style
-
-- Ask clarifying questions before any long-horizon or ambiguous task: restate your understanding first, and when material ambiguity remains ask 1-3 questions rather than proceeding on assumptions. Front-load this into the first 1-2 actions (not mid-task). Keep the user's whole intent in view — don't fixate on one detail and miss the point.
-
 ## Persistent Memory (basic-memory MCP)
 
-A `basic-memory` MCP server provides durable, semantically-searchable memory — a markdown+vector vault on D: holding migrated project notes plus auto-written **compaction checkpoints**. It does NOT auto-load into context; you must query it. This is how context survives compaction: nothing is truly lost because it is re-fetchable.
+Durable semantic memory (markdown+vector vault on D:) — does NOT auto-load; you must query it. This is how context survives compaction.
 
-**Recall (pull) — do this PROACTIVELY, without being asked:**
-- Right after a compaction/summary, when resuming work, or whenever the user references prior work/decisions you don't have in context: call `mcp__basic-memory__build_context` (purpose-built to "continue a discussion"), `mcp__basic-memory__search_notes` (semantic), or `mcp__basic-memory__recent_activity` to pull relevant notes BEFORE asking the user to re-explain or proceeding on assumptions.
-- To recover what you were mid-task on before a compaction, search for `compaction checkpoint <project>` (those notes are tagged `compaction-checkpoint` and contain the pre-compaction work buffer + recent user intent).
+**Recall (pull) — PROACTIVELY, unasked:** after a compaction/resume, or when the user references prior work you lack, call `mcp__basic-memory__build_context` / `search_notes` / `recent_activity` BEFORE asking them to re-explain. To recover pre-compaction state, search `compaction checkpoint <project>` (tagged `compaction-checkpoint`).
 
-**Capture (push):**
-- When you learn something durable (a decision, a fix, a project fact, a user preference), write it with `mcp__basic-memory__write_note` so it survives the next compaction. A PreCompact hook also auto-captures a checkpoint before every compaction, so the live state is always saved even if you forget.
+**Capture (push):** write durable decisions/fixes/preferences with `mcp__basic-memory__write_note` (a PreCompact hook also auto-checkpoints). **Temporal validity:** when a fact is superseded, add `superseded_by: <permalink>` to the OLD note + `valid_as_of: <date>` to the new one, so recall surfaces current truth and dead-ends aren't re-walked.
 
-## Static-Analyzer Gotchas
+(Behavioral rules — clarify-first, anti-tunnel-vision, honesty — live in AGENTS.md §1-§9. Static-analyzer gotchas → `rules/common/static-analyzer.md`, path-scoped to py/ts.)
 
-- CodeQL `py/ineffectual-statement` misreads `await <task>` inside `with suppress(...)`:
-  rewrite as explicit `try/except ExceptionType: pass` or
-  `await asyncio.gather(task, return_exceptions=True)`. The `gather` form also
-  silences SonarCloud `python:S7497` (which otherwise demands you re-raise
-  `CancelledError` — wrong in a lifespan-cleanup context where you *are* the
-  cancellation originator).
-- SonarCloud `typescript:S3735` flags `void asyncCall()` as unnecessary. If the
-  callee handles its own errors internally, drop the `void` prefix — a bare call
-  is fine when `no-floating-promises` isn't enabled. Don't reach for `void` as
-  a "discard a promise" idiom on Sonar-linted projects.
+## Multi-AI Collaboration (Claude Code ↔ Codex CLI)
+
+**Architecture:** Two independent layers for different needs. **DO NOT use both simultaneously — they serve different use cases.**
+
+### Layer 1: Parallel fan-out (ultracode-style cross-vendor subagents)
+**When to use:** decompose a task into independent parallel Codex jobs (e.g., `codex exec` one task per repo, code-review a PR with Codex + Claude in parallel, orchestrate a multi-agent fleet).
+
+**How:** Codex runs as a native MCP tool in Claude. Any Claude subagent can invoke `codex()` N times in parallel, and results return as native tool outputs — no daemon, no bridge, just stdio.
+
+```
+# Claude Workflow spawns 5 parallel Codex threads
+parallel([
+  () => agent("task A via Codex", {schema: ...}),  # codex exec --json via MCP
+  () => agent("task B via Codex", {schema: ...}),
+  ...
+])
+```
+
+**Setup** (one-time):
+```bash
+claude mcp add --scope user codex -- codex mcp-server
+# Mounts the official OpenAI MCP at ~/.claude/settings.json
+# Takes effect on Claude restart
+```
+
+**How it works:** `codex mcp-server` spawns a fresh Codex process per `codex()` call (shared auth.json, isolated state). Results land in the **Claude session's native tool-result objects** — no parsing, no daemon, Windows-native.
+
+**Honest limits:** each Codex invocation is **single-threaded** (one agent per call) and **fresh-context** (no cross-thread memory). For true agent-team mingle with mid-turn steering, use Layer 2.
+
+### Layer 2: Live peer dialogue (interactive cross-session chat)
+**When to use:** you want to ask Codex a quick question mid-task, or pair-program with Codex in a side session while Claude works.
+
+**How:** `mcp_agent_mail` runs locally on `127.0.0.1:8812` (no network egress), kept **always-on** by a per-user logon Scheduled Task (`MCPAgentMailSupervisor`) that health-polls `/api/health` every 10s and auto-restarts the server on death (self-healing proven: ~27s recovery from a hard kill; survives crash, session-exit, and reboot). Two agents (Claude + Codex) register, authenticate with per-agent tokens, establish mutual contact (anti-spam), and **send/receive messages + file-leases in real time**. You don't invoke it — agents do. The `multi-ai-mingle` skill wraps it.
+
+```
+# In a Claude Code session — the skill wraps the HTTP mailbox API (there is NO separate TUI):
+/multi-ai-mingle hello
+```
+
+**Setup** (server is always-on via the Scheduled Task; verify it's working):
+```bash
+# Confirm the always-on agent-mail server is healthy (note: /api/health, port 8812)
+curl -s http://127.0.0.1:8812/api/health
+# Should return {"status":"ok", ...}
+
+# Confirm Claude picked up the skill
+claude skills | grep multi-ai-mingle
+# Should show "multi-ai-mingle — live mailbox for Claude↔Codex peer chat"
+```
+
+**License & security:** mcp_agent_mail is MIT + OpenAI/Anthropic rider (forbids ML training/eval folding). You use it privately (local-only, 127.0.0.1). Pinned to commit `35e774f`, sandboxed at `~/.local/opt/mcp_agent_mail`.
+
+**Honest limits:** mcp_agent_mail is interim — the long-term convergence is Claude's native Agent Teams mailbox (Wave B, pending). Consider this a **validated test channel**, not a permanent integration. The skill has a fallback; if the daemon dies, agents degrade gracefully.
+
+### Choosing between Layer 1 and Layer 2
+
+| Use case | Layer | Why |
+|----------|-------|-----|
+| "Run Codex on task X in parallel with Claude on Y" | 1 (MCP) | fan-out subagent — returns as native results |
+| "Ask Codex a quick follow-up mid-session" | 2 (mingle) | interactive peer chat — no context loss |
+| "Codex reviews my Claude PR before I merge" | 1 (MCP) | delegate to `codex-rescue` subagent via `/codex:review` |
+| "I want to see Codex thinking alongside Claude" | 1 + tmux | open Codex in a side pane, Layer 1 for orchestration |
+| "Continuous multi-session chat, no orchestration" | 2 (mingle) | live dialogue — no scripts/automation |
+
+### Remote fleet (codex-fleet-github + QZT)
+**When to use:** sweep the 26-repo fleet with autonomous Codex jobs (nightly schedule, per-repo tasks, propose-only PRs).
+
+**How:** QZT's `codex-fleet-wave` dispatches the private `codex-runner` across repos. Each PR is draft (human-approved, never auto-merged). Results roll into your admin dashboard.
+
+**Setup** (you do this):
+1. Merge PR #68 → #70 → #72 (toolchain).
+2. Merge PR #270 (QZT).
+3. Create two scoped PATs:
+   - `CODEX_DISPATCH_PAT` in QZT (can only trigger the runner, cannot read auth).
+   - `CODEX_SECRETS_PAT` in toolchain (can only write Secrets, for token-refresh).
+4. Enable the token-refresh write-back in `codex-runner.yml` (uncomment line 299, set the PAT).
+
+**Use:** open QZT's admin dashboard → "Codex Fleet" tab → enable repos + set per-repo task → "Sweep" → watch live run summary (no wait, comes back as PRs).
+
+### Budget pacing (DEPRECATED — now manual)
+AgentBridge's `get_budget` tool was the enforcement mechanism. It's retired (the daemon is off). **Budget pacing is now advisory only — you manage token quota by:**
+- **Codex:** check your ChatGPT subscription usage in the app; the 5h + weekly windows still apply to your sub.
+- **Claude:** your session-level tokens are your budget; multi-agent Workflows consume them visibly.
+- **Shared sub-ceiling:** if a nightly fleet sweep maxes your sub, it will silently starve daytime interactive coding (you'll see `429` errors). **Solution: either (a) schedule the sweep off-peak, (b) route heavy jobs to an API key with its own quota, or (c) monitor the dashboard and skip days when quota is tight.**
+
+No hooks enforce it anymore — it's on you to read the tea leaves and throttle. This is a known limit; revisit if it becomes painful.
+
+### Troubleshooting
+
+**Layer 1 (MCP):** If `codex()` returns empty or times out:
+- Confirm Codex CLI is installed: `codex --version`
+- Confirm the mount: `claude mcp list | grep codex`
+- Check the env for `CODEX_HOME` (should point to your local config): `echo $CODEX_HOME`
+- Confirm your auth: run the mingle doctor (`python ~/.local/opt/mingle/doctor/mingle_doctor.py`) which checks auth.json JWT freshness — `codex auth status` is NOT a valid subcommand (use `codex login` to re-auth)
+
+**Layer 2 (mingle):** If the skill fails to connect:
+- Confirm server health: `curl -s http://127.0.0.1:8812/api/health` (should return `{"status":"ok"}`)
+- If 404/refused: the logon Scheduled Task auto-restarts it within ~10s; to force it now run in PowerShell: `Start-ScheduledTask -TaskName MCPAgentMailSupervisor`. The supervisor + installer live at `~/.local/opt/mcp_agent_mail/supervisor/` (re-register or `-Uninstall` via its `install_service.ps1`).
+- Confirm the skill is installed: `ls -la ~/.claude/skills/multi-ai-mingle/`
+- If mcp_agent_mail ever breaks, disable it gracefully: the skill has fallback docs (no crash).
+
+**Fleet:** If sweep produces no PRs:
+- Check QZT's `codex-targets.yml` has enabled repos.
+- Confirm the dispatch PAT can trigger the runner: `gh workflow run codex-runner ... --token $PAT`.
+- Watch the runner's CI log in the private repo.
+
+---

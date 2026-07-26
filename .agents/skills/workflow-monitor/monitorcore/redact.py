@@ -1,7 +1,7 @@
 """Strict-by-default, fail-closed secret/home-path redaction (pure, stdlib-only).
 
 ``redact(text)`` masks structured secrets first, then collapses the user's home
-directory (all five real forms, including the 8.3 short name ``PREKZU~1``) to
+directory (all six real forms, including the 8.3 short name ``PREKZU~1``) to
 ``~``. It is a pure ``str -> (str, int)`` function: no filesystem, no globals
 mutated. Every substitution is wrapped in ``try/except`` so a malformed/raising
 pattern degrades to the partially-masked text and *never* surfaces the raw
@@ -15,7 +15,8 @@ additions that only ever mask *more* (fail-safe for an export tool):
   clear a minimum length, so benign dotted base64 does not match.
 
 Home collapse uses a single unified regex covering ``C:\\Users\\<u>``,
-``C:/Users/<u>``, ``/c/Users/<u>``, ``/mnt/c/Users/<u>`` and the 8.3 form. (A
+``C:/Users/<u>``, ``/c/Users/<u>``, ``/mnt/c/Users/<u>``, ``/home/<u>`` and the
+8.3 form. (A
 single anchored alternation is used deliberately: the two-regex form cannot
 collapse both the git-bash ``/c/Users`` and the WSL ``/mnt/c/Users`` correctly
 under any fixed application order, because each would partially match inside the
@@ -68,7 +69,8 @@ _SECRET_PATTERNS = [
 _HOME_PATTERNS = [
     (
         re.compile(
-            r"(?i)(?:[A-Za-z]:|/mnt/[a-z]|/[a-z])?[\\/]+Users[\\/]+[^\\/\r\n\"']+"
+            r"(?i)(?:(?:[A-Za-z]:|/mnt/[a-z]|/[a-z])?[\\/]+Users[\\/]+"
+            r"[^\\/\r\n\"']+|/home/[^/\r\n\"\x27]+)"
         ),
         "~",
     ),

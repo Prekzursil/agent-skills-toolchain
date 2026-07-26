@@ -21,11 +21,26 @@ _SECRET_PATTERNS = (
     re.compile(r"\bglpat-[A-Za-z0-9_-]{20,}\b", re.I),
     re.compile(r"\bnpm_[A-Za-z0-9]{20,}\b", re.I),
     re.compile(r"\bAIza[A-Za-z0-9_-]{30,}\b"),
-    re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/-]{20,}={0,2}"),
+    # `Basic` matters as much as `Bearer`: `Authorization: Basic <b64>` carries
+    # user:password and was passing through untouched.
+    re.compile(r"(?i)\b(?:Bearer|Basic)\s+[A-Za-z0-9._~+/=-]{20,}={0,2}"),
+    # Measured 2026-07-26 against this module: `password=abcdefghijklmnopqr` was
+    # caught, but `{"password":"abcdefghijklmnopqr"}` was returned byte-for-byte —
+    # after the key comes a QUOTE, which is neither in [A-Za-z0-9_-] nor \s, so the
+    # [:=] separator never matched. JSON is the dominant payload shape and
+    # redact_text guards set_goal before it persists to the event ledger, so a JSON
+    # credential was written to durable storage in plaintext.
+    #   ['\"]?\s* before the separator -> quoted (JSON) keys now match
+    #   [^\s'\"]{18,} as the value     -> the KEY is the discriminator, so any 18+
+    #                                     non-space run counts; the old class
+    #                                     excluded punctuation, so
+    #                                     `password=!CorrectHorseBattery...` passed.
     re.compile(
-        r"(?i)\b[A-Za-z0-9_-]*(?:API[_-]?KEY|ACCESS[_-]?KEY|SECRET|TOKEN|PASSWORD|PASSWD|PRIVATE[_-]?KEY)[A-Za-z0-9_-]*\s*[:=]\s*['\"]?[A-Za-z0-9._~+/-]{18,}={0,2}"
+        r"(?i)\b[A-Za-z0-9_-]*(?:API[_-]?KEY|ACCESS[_-]?KEY|SECRET|TOKEN|PASSWORD|PASSWD|PRIVATE[_-]?KEY)[A-Za-z0-9_-]*['\"]?\s*[:=]\s*['\"]?[^\s'\"]{18,}={0,2}"
     ),
-    re.compile(r"(?i)(?:api[_-]?key|token|secret|password)\s*[:=]\s*['\"]?[A-Za-z0-9._~+/-]{18,}={0,2}"),
+    re.compile(
+        r"(?i)(?:api[_-]?key|token|secret|password)['\"]?\s*[:=]\s*['\"]?[^\s'\"]{18,}={0,2}"
+    ),
 )
 # Checkpoint privacy is stricter than display fidelity. Once an absolute path is
 # encountered, redact the rest of that line so spaces cannot expose a path tail.

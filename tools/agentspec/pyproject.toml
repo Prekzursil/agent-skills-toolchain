@@ -1,0 +1,74 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentspec"
+version = "0.1.0"
+description = "Vendor-neutral agent workflow SPEC types, the shared observation envelope, the dispatch-safety pure core (argv transport, the completion AND-gate, progress-stream rejection, terminal markers, determinism) and a hermetic regression-eval registry"
+requires-python = ">=3.11"
+# STDLIB-ONLY, ZERO RUNTIME DEPENDENCIES — deliberate and load-bearing.
+#
+# agentspec is the SINGLE SOURCE OF TRUTH that every runtime / adapter translates to.
+# Consumers include stdlib-only vendored trees, so a mandatory third-party import would
+# ImportError at their runtime. It also keeps the package HERMETIC: no module here opens a
+# socket, spawns a process, reads a clock or draws entropy — agentspec/determinism.py
+# enforces that mechanically over this package's own source.
+dependencies = []
+
+# TWO named packages: the core plus the eval registry. `agentspec.evals` is a sub-package,
+# not a sibling top-level name, so nothing generic leaks into the shared CI interpreter
+# (quality.yml's `vendored-tree import isolation` guard checks
+# GENERIC = ("index", "engines", "evaluation") — neither `agentspec` nor `agentspec.evals`
+# collides with it).
+[tool.setuptools]
+packages = ["agentspec", "agentspec.evals"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7",
+    "pytest-cov>=4",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+# `live` is registered here AND default-deselected by tests/conftest.py, which delegates the
+# decision to the PURE agentspec.evals.pytest_live.should_deselect so the mechanism itself is
+# inside the coverage-gated package. CI additionally passes `-m "not live"` — belt and braces,
+# because a bare `pytest` in the blocking coverage step would otherwise COLLECT AND RUN a live
+# row. QUALITY-AND-EVAL-BAR-2026-07-26.md §4 mandates `-m "not live"`; no pre-existing step in
+# quality.yml passes `-m` at all, which is exactly the hole the adversarial gate measured.
+markers = [
+    "live: opt-in, needs a real agent rail; deselected unless --run-live is passed",
+]
+
+[tool.coverage.run]
+branch = true
+# NO `omit`, and no `[tool.coverage.report] exclude_lines`. The 100% line+branch bar is met by
+# testing every branch, never by excluding one. There is ZERO `# pragma: no cover` in this
+# package (grep it: `grep -rn "pragma: no cover" agentspec/` → no matches). That is achievable
+# only because the package is pure; a live transport shim legitimately needs one.
+
+[tool.basedpyright]
+# The gate runs `basedpyright agentspec` at STANDARD mode (see .github/workflows/quality.yml).
+# Pinned here so the gate is reproducible and does not inherit basedpyright's stricter
+# config-less default. Only package SOURCE is checked; tests are intentionally looser.
+#
+# There is deliberately NO `extraPaths`: agentspec imports NOTHING outside the stdlib, so it
+# needs no sibling package on the search path. RECORDED FOR CONSUMERS (measured 2026-07-26 by
+# the adversarial plan gate, finding B1 of gate-findings/unattributed-BLOCKING.md):
+# `pip install -e ../<pkg>` is INVISIBLE to basedpyright — setuptools emits a MetaPathFinder
+# plus a `.pth` whose entire content is an `import ...; install()` statement, and basedpyright
+# neither executes `.pth` code nor follows a finder. So a sibling editable install resolves at
+# RUNTIME and still fails the STATIC gate (measured: 2 errors editable / 0 errors non-editable,
+# same tree, with a detector control proving the tool resolves site-packages fine). Any package
+# that imports `agentspec` from its own root MUST therefore add
+# `[tool.basedpyright] extraPaths = ["../agentspec"]` instead of relying on the editable install.
+typeCheckingMode = "standard"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7",
+    "pytest-cov>=4",
+]

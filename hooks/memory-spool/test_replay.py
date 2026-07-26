@@ -6,14 +6,65 @@ No basic-memory install required: the CLI shell-out (replay._run) is mocked.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import sys
 from pathlib import Path
 
 THIS = Path(__file__).resolve().parent
-sys.path.insert(0, str(THIS))
-import _common as C  # noqa: E402
-import replay  # noqa: E402
+
+
+def _load_isolated():
+    """Load THIS dir's `_common` + `replay`, immune to a sibling hook's `_common`.
+
+    Six hook dirs each ship a DIFFERENT `_common.py` and import it by the bare name
+    `_common` -- a single flat key in `sys.modules`. Whichever suite pytest collects
+    first therefore binds `_common` for the whole process, so a plain `import _common`
+    here silently returned another hook's module. Measured on Linux with the full
+    `hooks/` tree: `AttributeError: module '_common' has no attribute 'payload_key'`
+    (and `bg-registry`'s module even acquires a stray `SPOOL_DIR`, because
+    `test_memory_spool.py` assigns onto whatever `_common` it was handed).
+
+    Production is already immune: `_dispatch/dispatch.py` pops these shared names
+    before each in-process hook import (`_SHARED_NAMES`). This mirrors that isolation
+    rather than depending on collection order.
+
+    `replay.py` runs its own top-level `import _common as C`, so `_common` must resolve
+    to OUR instance while replay executes; the previous binding is restored afterwards
+    so this suite never poisons a sibling in turn.
+    """
+    prev = sys.modules.get("_common")
+    had_prev = "_common" in sys.modules
+    try:
+        cspec = importlib.util.spec_from_file_location("_common", THIS / "_common.py")
+        common = importlib.util.module_from_spec(cspec)
+        sys.modules["_common"] = common
+        cspec.loader.exec_module(common)
+
+        rspec = importlib.util.spec_from_file_location(
+            "memory_spool_replay_under_test", THIS / "replay.py"
+        )
+        replay_mod = importlib.util.module_from_spec(rspec)
+        sys.modules[rspec.name] = replay_mod
+        rspec.loader.exec_module(replay_mod)
+    finally:
+        if had_prev:
+            sys.modules["_common"] = prev
+        else:
+            sys.modules.pop("_common", None)
+    return common, replay_mod
+
+
+C, replay = _load_isolated()
+
+# The suite is only meaningful if `replay` and this module share ONE `_common`. This
+# guard fails the module if `_load_isolated` ever stops binding our `_common` into
+# `sys.modules` before `replay.py` executes. It does NOT catch a full revert to the
+# flat-namespace import: that regression leaves the test AND `replay.py` bound to the
+# SAME foreign module, so `replay.C is C` is True and the guard passes -- the failure
+# surfaces instead as loud AttributeErrors naming the foreign `_common` (measured: 8,
+# with bg-registry collected first).
+assert replay.C is C, "replay.py bound a different _common than the test"
 
 
 def _spool(tmp: Path, tool: str, payload: dict) -> Path:

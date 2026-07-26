@@ -52,7 +52,7 @@ def analyze_protein_network(
     confidence_score: float = 0.7,
     include_biogrid: bool = False,
     include_structure: bool = False,
-    suppress_warnings: bool = True
+    suppress_warnings: bool = True,
 ) -> ProteinNetworkResult:
     """
     Analyze protein interaction network using ToolUniverse tools.
@@ -90,7 +90,6 @@ def analyze_protein_network(
     warnings = []
 
     # Suppress ToolUniverse stderr warnings if requested (OS-level redirect)
-    stderr_fd = None
     stderr_backup_fd = None
     if suppress_warnings:
         # Save original stderr file descriptor
@@ -107,16 +106,15 @@ def analyze_protein_network(
 
     try:
         mapping_result = tu.tools.STRING_map_identifiers(
-            protein_ids=proteins,
-            species=species,
-            limit=1,
-            echo_query=1
+            protein_ids=proteins, species=species, limit=1, echo_query=1
         )
 
         if mapping_result["status"] == "success":
             mapped_proteins = mapping_result["data"]
             success_rate = len(mapped_proteins) / len(proteins)
-            print(f"✅ Mapped {len(mapped_proteins)}/{len(proteins)} proteins ({success_rate:.1%})")
+            print(
+                f"✅ Mapped {len(mapped_proteins)}/{len(proteins)} proteins ({success_rate:.1%})"
+            )
 
             # Extract STRING IDs for next phase
             string_ids = [p["stringId"] for p in mapped_proteins]
@@ -147,14 +145,16 @@ def analyze_protein_network(
             species=species,
             confidence_score=confidence_score,
             add_nodes=0,
-            network_type="functional"
+            network_type="functional",
         )
 
         if network_result["status"] == "success":
             network_edges = network_result["data"]
             print(f"✅ STRING: Retrieved {len(network_edges)} interactions")
         else:
-            warnings.append(f"STRING network failed: {network_result.get('error', 'Unknown')}")
+            warnings.append(
+                f"STRING network failed: {network_result.get('error', 'Unknown')}"
+            )
 
     except Exception as e:
         warnings.append(f"STRING network error: {str(e)}")
@@ -167,7 +167,7 @@ def analyze_protein_network(
                 gene_names=proteins,  # Use original names (plural!)
                 organism=str(species),
                 interaction_type="both",
-                limit=100
+                limit=100,
             )
 
             if biogrid_result["status"] == "success":
@@ -176,7 +176,9 @@ def analyze_protein_network(
                 primary_source = "BioGRID"
                 print(f"✅ BioGRID: Retrieved {len(network_edges)} interactions")
             else:
-                warnings.append(f"BioGRID failed: {biogrid_result.get('error', 'Unknown')}")
+                warnings.append(
+                    f"BioGRID failed: {biogrid_result.get('error', 'Unknown')}"
+                )
 
         except Exception as e:
             warnings.append(f"BioGRID error: {str(e)}")
@@ -197,7 +199,7 @@ def analyze_protein_network(
             func_result = tu.tools.STRING_functional_enrichment(
                 protein_ids=string_ids,
                 species=species,
-                category="Process"  # GO Biological Process
+                category="Process",  # GO Biological Process
             )
 
             if func_result["status"] == "success":
@@ -206,12 +208,16 @@ def analyze_protein_network(
                 enriched_terms = [t for t in enriched_terms if t.get("fdr", 1.0) < 0.05]
                 print(f"✅ Found {len(enriched_terms)} enriched GO terms (FDR < 0.05)")
             else:
-                warnings.append(f"Functional enrichment failed: {func_result.get('error', 'Unknown')}")
+                warnings.append(
+                    f"Functional enrichment failed: {func_result.get('error', 'Unknown')}"
+                )
 
         except Exception as e:
             warnings.append(f"Functional enrichment error: {str(e)}")
     else:
-        warnings.append(f"Functional enrichment skipped: need 3+ proteins, have {len(string_ids)}")
+        warnings.append(
+            f"Functional enrichment skipped: need 3+ proteins, have {len(string_ids)}"
+        )
 
     # PPI enrichment (tests if proteins interact more than random)
     if len(string_ids) >= 3:
@@ -219,7 +225,7 @@ def analyze_protein_network(
             ppi_result = tu.tools.STRING_ppi_enrichment(
                 protein_ids=string_ids,
                 species=species,
-                confidence_score=confidence_score
+                confidence_score=confidence_score,
             )
 
             if ppi_result["status"] == "success":
@@ -227,20 +233,30 @@ def analyze_protein_network(
                 # Handle both dict and list responses
                 if isinstance(ppi_enrichment, list) and len(ppi_enrichment) > 0:
                     ppi_enrichment = ppi_enrichment[0]
-                p_value = ppi_enrichment.get("p_value", 1.0) if isinstance(ppi_enrichment, dict) else 1.0
+                p_value = (
+                    ppi_enrichment.get("p_value", 1.0)
+                    if isinstance(ppi_enrichment, dict)
+                    else 1.0
+                )
 
                 if p_value < 0.05:
                     print(f"✅ PPI enrichment significant (p={p_value:.2e})")
                 else:
                     print(f"⚠️  PPI enrichment not significant (p={p_value:.2e})")
-                    warnings.append(f"Proteins may not form functional module (p={p_value:.2e})")
+                    warnings.append(
+                        f"Proteins may not form functional module (p={p_value:.2e})"
+                    )
             else:
-                warnings.append(f"PPI enrichment failed: {ppi_result.get('error', 'Unknown')}")
+                warnings.append(
+                    f"PPI enrichment failed: {ppi_result.get('error', 'Unknown')}"
+                )
 
         except Exception as e:
             warnings.append(f"PPI enrichment error: {str(e)}")
     else:
-        warnings.append(f"PPI enrichment skipped: need 3+ proteins, have {len(string_ids)}")
+        warnings.append(
+            f"PPI enrichment skipped: need 3+ proteins, have {len(string_ids)}"
+        )
 
     # ============================================================================
     # PHASE 4: Structural Data (Optional, SASBDB)
@@ -254,9 +270,7 @@ def analyze_protein_network(
         for protein in proteins[:3]:  # Limit to first 3 proteins
             try:
                 struct_result = tu.tools.SASBDB_search_entries(
-                    query=protein,
-                    method="all",
-                    limit=5
+                    query=protein, method="all", limit=5
                 )
 
                 if struct_result["status"] == "success":
@@ -298,7 +312,7 @@ def analyze_protein_network(
         ppi_enrichment=ppi_enrichment,
         structural_data=structural_data,
         primary_source=primary_source,
-        warnings=warnings
+        warnings=warnings,
     )
 
 
@@ -321,6 +335,7 @@ def _adapt_biogrid_format(biogrid_data: Any) -> List[Dict[str, Any]]:
 # ============================================================================
 # Example Usage
 # ============================================================================
+
 
 def example_tp53_analysis():
     """
@@ -351,10 +366,10 @@ def example_tp53_analysis():
 
     # Define proteins of interest
     proteins = [
-        "TP53",    # Tumor suppressor
-        "MDM2",    # TP53 negative regulator
-        "ATM",     # DNA damage kinase
-        "CHEK2",   # Checkpoint kinase
+        "TP53",  # Tumor suppressor
+        "MDM2",  # TP53 negative regulator
+        "ATM",  # DNA damage kinase
+        "CHEK2",  # Checkpoint kinase
         "CDKN1A",  # p21, TP53 target
     ]
 
@@ -365,7 +380,7 @@ def example_tp53_analysis():
         species=9606,  # Human
         confidence_score=0.7,  # High confidence
         include_biogrid=False,  # STRING only (no API key needed)
-        include_structure=False  # Skip SASBDB (faster)
+        include_structure=False,  # Skip SASBDB (faster)
     )
 
     # Display results
@@ -383,7 +398,9 @@ def example_tp53_analysis():
         print("   Top interactions:")
         for edge in result.network_edges[:5]:
             score = edge.get("score", 0)
-            print(f"      {edge.get('preferredName_A')} ↔ {edge.get('preferredName_B')} (score: {score})")
+            print(
+                f"      {edge.get('preferredName_A')} ↔ {edge.get('preferredName_B')} (score: {score})"
+            )
 
     print(f"\n🧬 Enrichment: {len(result.enriched_terms)} significant GO terms")
     if result.enriched_terms:
@@ -394,7 +411,9 @@ def example_tp53_analysis():
     if result.ppi_enrichment and isinstance(result.ppi_enrichment, dict):
         p_val = result.ppi_enrichment.get("p_value", 1.0)
         print(f"\n🔗 PPI Enrichment: p-value = {p_val:.2e}")
-        print(f"   Expected edges: {result.ppi_enrichment.get('expected_number_of_edges', 0):.1f}")
+        print(
+            f"   Expected edges: {result.ppi_enrichment.get('expected_number_of_edges', 0):.1f}"
+        )
         print(f"   Observed edges: {result.ppi_enrichment.get('number_of_edges', 0)}")
 
     if result.warnings:

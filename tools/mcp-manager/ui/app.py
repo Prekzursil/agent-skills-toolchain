@@ -52,12 +52,15 @@ STATUS_BADGES: dict[str, str] = {
     AuthStatus.CONNECTED.value: "● connected",
     AuthStatus.NEEDS_AUTH.value: "⚠ needs-auth",
     AuthStatus.FAILED.value: "✘ error",
+    AuthStatus.DISABLED.value: "◯ disabled",
     AuthStatus.UNKNOWN.value: "? pending",
 }
 STATUS_STYLES: dict[str, str] = {
     AuthStatus.CONNECTED.value: "bold green",
     AuthStatus.NEEDS_AUTH.value: "bold yellow",
     AuthStatus.FAILED.value: "bold red",
+    # dim, not red: a disabled server is intentional, not an error
+    AuthStatus.DISABLED.value: "dim",
     AuthStatus.UNKNOWN.value: "dim",
 }
 ENABLED_BADGE = "enabled"

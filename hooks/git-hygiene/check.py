@@ -83,6 +83,13 @@ MAX_LINES = (
     20  # a hook nobody reads is a hook nobody keeps; 4 dimensions now share the cap
 )
 MAX_ROWS = 8
+# The repo half's truncation FLOOR. It is the only section whose height scales with the
+# finding count, so it is budgeted against the lines the sections below it need (see
+# build_message) -- but never below this, or a large docs section would starve the repo half
+# in turn: the same defect, mirrored. It also keeps a negative budget away from the row
+# slice, where reportable[:-n] would silently keep the WRONG rows and print a suppressed
+# count that does not match them.
+MIN_ROWS = 2
 WORKERS = 8
 
 
@@ -1060,15 +1067,26 @@ def build_message(verdicts, drifts, docs=None, covs=None) -> str | None:
         )
 
     if reportable:
+        # Same reasoning as coverage-first, applied to the one section that GROWS: the repo
+        # half is assembled ABOVE the docs names and the advisory footer, so it must fit the
+        # budget those leave rather than consume the cap and let lines[:MAX_LINES] amputate
+        # them. Measured pre-fix on 2a748d9 -- 50 repos + both coverage areas + a full docs
+        # report emitted exactly 20 lines, and the 4 that fell off the bottom were the 3
+        # name-bearing `stale file:` lines and the "Advisory only" footer. Reserving here
+        # costs nothing in the common case (no coverage/docs -> the full MAX_ROWS survives)
+        # and degrades to 4 rows in the crowded worst case instead of deleting a dimension.
+        # -1 = the advisory footer; -2 = this section's own header + its "N more" line.
+        room = MAX_LINES - len(lines) - len(docs_lines) - 1 - 2
+        rows = max(MIN_ROWS, min(MAX_ROWS, room))
         lines.append(
             f"GIT-HYGIENE / repos: {len(reportable)} of your repo(s) hold work that is not "
             f"safely in version control (vendored + agent-scratch clones already excluded):"
         )
-        for v in reportable[:MAX_ROWS]:
+        for v in reportable[:rows]:
             lines.append(f"  [{v.ownership}] {v.name}: {v.detail}  ->  {v.action}")
-        if len(reportable) > MAX_ROWS:
+        if len(reportable) > rows:
             lines.append(
-                f"  ... and {len(reportable) - MAX_ROWS} more "
+                f"  ... and {len(reportable) - rows} more "
                 f"(pwsh -File scripts/repo-sweep.ps1 for the full survey)"
             )
     lines.extend(docs_lines)

@@ -15,6 +15,7 @@ from monitorcore.textsafe import (
     html_escape,
     safe_fence,
     strip_ansi,
+    strip_controls,
     truncate_block,
 )
 
@@ -54,6 +55,50 @@ def test_strip_ansi_single_char_escape():
 
 def test_strip_ansi_identity_on_plain():
     assert strip_ansi("plain text 123") == "plain text 123"
+
+
+# ------------------------------------------------------------------------ strip_controls
+
+
+def test_strip_controls_removes_esc():
+    assert strip_controls("a\x1bb") == "ab"
+
+
+def test_strip_controls_removes_bel():
+    assert strip_controls("ding\x07dong") == "dingdong"
+
+
+def test_strip_controls_removes_csi_sequence():
+    # The ESC introducer is removed; the now-inert parameter text remains as plain chars.
+    out = strip_controls("\x1b[31mHACKED\x1b[0m")
+    assert "\x1b" not in out
+    assert out == "[31mHACKED[0m"
+
+
+def test_strip_controls_removes_osc8_hyperlink():
+    out = strip_controls("\x1b]8;;http://evil.example\x07click\x1b]8;;\x07")
+    assert "\x1b" not in out and "\x07" not in out
+    assert out == "]8;;http://evil.exampleclick]8;;"
+
+
+def test_strip_controls_removes_osc52_clipboard():
+    out = strip_controls("\x1b]52;c;SGVsbG8=\x07")
+    assert "\x1b" not in out and "\x07" not in out
+    assert out == "]52;c;SGVsbG8="
+
+
+def test_strip_controls_removes_lone_c1_byte():
+    # 0x9b is the 8-bit CSI introducer (C1) — stripped even without a leading ESC.
+    assert strip_controls("x\x9b31my") == "x31my"
+
+
+def test_strip_controls_removes_del():
+    assert strip_controls("a\x7fb") == "ab"
+
+
+def test_strip_controls_preserves_printable_and_tab_lf_cr():
+    s = "plain text 123\tcol\nrow\rend"
+    assert strip_controls(s) == s
 
 
 # -------------------------------------------------------------------------- html_escape

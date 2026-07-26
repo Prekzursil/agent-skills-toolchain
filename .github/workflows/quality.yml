@@ -108,6 +108,30 @@ jobs:
         run: |
           pip install -e ".[dev]"
           basedpyright monitorcore
+      # tools/agentspec — the portable agent-workflow SPEC, the shared observation envelope and
+      # the dispatch-safety pure core. Stdlib-only with ZERO runtime deps, so nothing but
+      # pytest/pytest-cov is installed and no sibling package needs to be on the search path.
+      # That absence is deliberate: `pip install -e ../<pkg>` is INVISIBLE to basedpyright
+      # (setuptools emits a MetaPathFinder plus a .pth that only executes an import statement,
+      # and basedpyright neither runs .pth code nor follows a finder), so any FUTURE consumer of
+      # agentspec must add `[tool.basedpyright] extraPaths = ["../agentspec"]` rather than rely
+      # on the editable install. Reuses the existing `gate-types` charter slug on purpose — it is
+      # not a new gate, so .quality/charter_check.sh stays consistent.
+      - name: gate-types agentspec (source)
+        working-directory: tools/agentspec
+        run: |
+          pip install -e ".[dev]"
+          basedpyright agentspec
+      # tools/mcpctl -- read-only MCP inventory core. NO install step on purpose: the
+      # package SOURCE imports stdlib only, and basedpyright resolves `mcpctl` from this
+      # working-directory (its own project root) exactly as it does for monitorcore
+      # above. mcpctl also contains no STATIC `import monitorcore` -- its optional reuse
+      # of monitorcore goes through importlib with a string module name -- so this step
+      # cannot hit the measured trap where `pip install -e ../monitorcore` is invisible
+      # to basedpyright and reds the gate.
+      - name: gate-types mcpctl (source)
+        working-directory: tools/mcpctl
+        run: basedpyright mcpctl
       # agent-self/harness — the enshrined shared lifecycle harness (SSOT for the live
       # ~/.agents/harness deploy loop; see agent-self/harness/README.md). It ships NO
       # pyproject (byte-exact projection of the live tree the installer deploys), so standard
@@ -136,6 +160,11 @@ jobs:
         working-directory: tools/web/agentify-desktop
         run: |
           npm install --omit=dev --no-audit
+          npm test
+      - name: gate-tests-coverage hacktricks-mcp-server
+        working-directory: tools/mcp/hacktricks-mcp-server
+        run: |
+          npm ci
           npm test
 
   test-python:
@@ -166,6 +195,17 @@ jobs:
         run: |
           pip install -e ".[dev]"
           pytest --cov=monitorcore --cov-branch --cov-report=term-missing --cov-fail-under=100
+      # tools/mcpctl -- read-only MCP inventory core, stdlib-only runtime (its dev extra
+      # is just pytest + pytest-cov). The editable install is LOAD-BEARING here even
+      # though the runtime deps are empty: `tests/` is a subdirectory, so bare `pytest`
+      # (which, unlike `python -m pytest`, does NOT put the cwd on sys.path) cannot
+      # import `mcpctl` without it. Verified in a fresh venv against the committed blob,
+      # not against the working tree.
+      - name: gate-tests-coverage mcpctl
+        working-directory: tools/mcpctl
+        run: |
+          pip install -e ".[dev]"
+          pytest --cov=mcpctl --cov-branch --cov-report=term-missing --cov-fail-under=100
       # tools/stdin-server — a stdlib-only interactive-stdin MCP server (Desktop Commander
       # start_process/interact_with_process/read_process_output). Zero third-party deps, so
       # only pytest+pytest-cov are installed; the whole module is 100% line+branch gated. The
@@ -176,6 +216,38 @@ jobs:
         run: |
           pip install pytest pytest-cov
           pytest --cov=stdin_server --cov-branch --cov-report=term-missing --cov-fail-under=100
+      # tools/agentspec — the portable agent-workflow SPEC, the shared observation envelope, the
+      # dispatch-safety pure core (argv/prompt transport, the completion AND-gate, progress-stream
+      # rejection, terminal markers, budget accounting, determinism) and the hermetic eval
+      # registry. Stdlib-only, zero runtime deps, so only pytest+pytest-cov are installed.
+      #
+      # `-m "not live"` is LOAD-BEARING and is the only step in this workflow that passes `-m`.
+      # The package registers a `live` marker and its tests/conftest.py default-deselects it, but
+      # neither is worth relying on alone: a bare `pytest` here would COLLECT AND RUN a live row
+      # the moment one is added, and this job is ubuntu-latest with no agent CLI on it. The
+      # sentinel live test is deliberately not the sole cover of any line, so 100% is still
+      # reached with it deselected (measured 2026-07-27: `406 passed, 1 deselected`, coverage
+      # 100.00%, via the pytest CONSOLE SCRIPT in a fresh venv against the LF blob tree).
+      #
+      # The package is PURE by construction, so there is no coverage `omit`, no `exclude_lines`
+      # and ZERO `# pragma: no cover` in it — 100% line+branch is reached by testing every branch.
+      # Reuses the existing `gate-tests-coverage` charter slug on purpose, so
+      # .quality/charter_check.sh stays consistent with no charter.yml gate edit.
+      #
+      # `pip install -e ".[dev]"` (the monitorcore pattern at :183-187), NOT the bare
+      # `pip install pytest pytest-cov` that stdin-server uses. MEASURED: the bare form fails
+      # here with `ImportError while loading conftest … ModuleNotFoundError: No module named
+      # 'agentspec'`, exit 4, because tests/conftest.py imports the package at COLLECTION time
+      # and pytest only puts the conftest's own directory on sys.path — not the package root.
+      # stdin-server gets away with it because nothing of its imports runs before collection.
+      # Reproduce either state locally with the venv's `pytest` CONSOLE SCRIPT, never
+      # `python -m pytest`: the `-m` form prepends the CWD to sys.path and passes in BOTH
+      # states, so it is a broken detector for this specific failure.
+      - name: gate-tests-coverage agentspec
+        working-directory: tools/agentspec
+        run: |
+          pip install -e ".[dev]"
+          pytest -m "not live" --cov=agentspec --cov-branch --cov-report=term-missing --cov-fail-under=100
       # agent-self/harness — the enshrined shared lifecycle harness (SSOT for the live
       # ~/.agents/harness deploy loop). Runs its full pytest suite on the CI interpreter as a
       # REGRESSION gate for the projected tree, and measures branch coverage (term-missing).
@@ -326,6 +398,289 @@ jobs:
       # slug (not a new gate). pytest is already installed by an earlier step.
       - name: gate-tests-coverage codex-databricks-fanout
         run: python -m pytest skills/codex-databricks-fanout/scripts/tests -q
+
+      # skills/workflow-authoring -- the saved-Workflow static linter (workflow_lint.py).
+      # It HARD-FAILs on the determinism-breakers (Date.now / Math.random / argless
+      # new Date(), a non-literal `export const meta`) and WARNs on the args-as-string /
+      # missing-schema / missing-filter(Boolean) footguns from SKILL.md. Stdlib-only, so
+      # only pytest+pytest-cov are installed; the module is pure logic (the file walk is the
+      # only I/O and is exercised through tmp_path), so it is 100% line+branch gated. Named
+      # explicitly like the skill suites above -- there is no repo-wide pytest autodiscovery,
+      # so an unnamed suite is dead weight. Reuses the gate-tests-coverage charter slug on
+      # purpose (not a new gate), so .quality/charter_check.sh stays consistent with no
+      # charter.yml edit. The byte-identical dual-write copy under .agents/skills/ is policed
+      # by the skill-dual-write workflow's strict-parity check, not re-run here.
+      - name: gate-tests-coverage workflow-authoring lint
+        working-directory: skills/workflow-authoring/scripts
+        run: |
+          pip install pytest pytest-cov
+          pytest --cov=workflow_lint --cov-branch --cov-report=term-missing --cov-fail-under=100
+
+      # ================================ VENDORED TOOL TREES ================================
+      # PR #185 vendored two whole tool trees into the toolkit -- tools/abbyy-finereader-ocr-mcp
+      # (89 tests) and tools/omniaudit-mcp (149 tests) -- and NEITHER was named in ANY of the 7
+      # workflows, so both suites ran in ZERO gates. By this job's own doctrine (see the hookrun
+      # step above) "a suite that is not named here is dead weight that cannot catch a
+      # regression". The two steps below name them. Reuses the existing gate-tests-coverage
+      # charter slug on purpose -- not a new gate, so .quality/charter_check.sh stays consistent
+      # with no charter.yml edit (same precedent as #197's hacktricks step).
+      #
+      # WHY A THROW-AWAY VENV PER TREE AND NOT A BARE `pip install -e .` LIKE THE STEPS ABOVE:
+      # every other step in this job installs into ONE cumulative interpreter. abbyy's pyproject
+      # declares `py-modules = ["index", "engines", "evaluation"]`, so installing it into that
+      # shared interpreter would put three EXTREMELY generic top-level modules on the import path
+      # of every other package's test run here. That is measured, not hypothetical -- after
+      # `pip install -e .` a python started from an unrelated directory resolves:
+      #   index      -> tools/abbyy-finereader-ocr-mcp/index.py
+      #   engines    -> tools/abbyy-finereader-ocr-mcp/engines.py
+      #   evaluation -> tools/abbyy-finereader-ocr-mcp/evaluation.py
+      # Each tree therefore installs into its OWN venv under $RUNNER_TEMP -- outside the
+      # checkout, so it cannot be collected by pytest or picked up by the lint/sast jobs -- and
+      # the isolation step below fails the gate if the shared interpreter is ever polluted.
+      #
+      # Both are gated at the repo's full 100% line+branch bar. MEASURED before choosing that
+      # threshold (not assumed): omniaudit 149 passed -> 1518 stmts / 312 branches / 100% on
+      # python 3.11.9; abbyy 86 passed + 3 skipped -> 452 stmts / 120 branches / 100% on python
+      # 3.12.10. abbyy's 3 skips are its live-OCR smoke tests, skipped BY CONSTRUCTION unless
+      # OCR_MCP_LIVE=1 with a real rapidocr install, so the 100% is reached without them.
+      #
+      # omniaudit ships a 5-service docker compose stack (postgres/redis/minio + api/worker) and
+      # NONE of it is started here: tests/conftest.py builds a sqlite engine in tmp_path, so the
+      # suite is self-contained. Its `sitelint` extra (playwright browser) and
+      # scripts/smoke_hardening_pass2.sh (live HTTP against a running stack) stay OUT of the
+      # gate -- they need a browser / a live service, which this lean gate deliberately has not.
+      - name: gate-tests-coverage omniaudit-mcp (vendored; isolated venv)
+        working-directory: tools/omniaudit-mcp
+        run: |
+          python -m venv "$RUNNER_TEMP/venv-omniaudit"
+          "$RUNNER_TEMP/venv-omniaudit/bin/python" -m pip install -e ".[test]"
+          "$RUNNER_TEMP/venv-omniaudit/bin/python" -m pytest \
+            --cov=packages/omniaudit --cov=apps --cov=services --cov-branch \
+            --cov-report=term-missing --cov-fail-under=100
+
+      # The both-states-verified guard for the venv isolation above. `shell: python` runs the
+      # script from a temp directory, so the repo checkout is NOT on sys.path and only a real
+      # site-packages/editable install can match -- and it runs on THIS job's shared 3.11
+      # interpreter, i.e. exactly the environment every step above installed into. Verified in
+      # BOTH states (rules/common/single-signal-verification.md): with abbyy editable-installed
+      # it exits 1 and prints the three origins; without it, exit 0 -- so its silence means
+      # something. `shell: python` also matches no-runtime-junk.yml's rationale (no CRLF-in-bash
+      # exposure on this Windows-authored repo). Deliberately NOT a `gate-<slug>` step name so
+      # charter_check.sh's reverse check ignores it, same as the monitorcore vendor-drift step.
+      # ORDERING CONTRACT: this must stay AFTER every step that installs into the shared 3.11
+      # interpreter and BEFORE the 3.12 setup below (which repoints `python` for later steps).
+      - name: vendored-tree import isolation (shared interpreter stays clean)
+        shell: python
+        run: |
+          import importlib.util
+          import sys
+
+          GENERIC = ("index", "engines", "evaluation")
+          leaked = []
+          for name in GENERIC:
+              spec = importlib.util.find_spec(name)
+              if spec is not None:
+                  leaked.append(f"{name} -> {spec.origin}")
+
+          if leaked:
+              print("Vendored generic top-level modules leaked into the SHARED interpreter:")
+              for entry in leaked:
+                  print(f"  {entry}")
+              print("Install that tree into its own venv (see the steps above), not this env.")
+              sys.exit(1)
+          print(f"OK: shared interpreter is clean of {GENERIC}.")
+
+      # tool-result-sentinel + its shared use-vs-mention discriminator. Named here because
+      # NO step named them before: docs/ci-coverage-gap-2026-07-25.md measured 162 of 244
+      # hooks//tools/ suites executed by no CI step at all, and these were among them -- so
+      # the mutation-verified tests shipped in #198 protected nothing in CI. Explicit FILES,
+      # not a directory: a directory selector here would hit the duplicate-basename collision
+      # (18 basenames repeat across the tree) and the module-level sys.exit() files that abort
+      # collection. Reuses the existing gate-tests-coverage charter slug on purpose, so
+      # charter_check.sh stays consistent with no charter.yml edit. Deliberately NO
+      # --cov-fail-under: these are projections of a live runtime, matching the
+      # cmd-rewrite/harness precedent.
+      #
+      # PLACEMENT IS LOAD-BEARING: these MUST stay above the py312 setup-python below, which
+      # repoints the default `python` to 3.12 -- an interpreter with no pytest installed.
+      # Appending them after it produced exactly that failure on the first attempt:
+      #   /opt/hostedtoolcache/Python/3.12.13/x64/bin/python: No module named pytest
+      - name: gate-tests-coverage tool-result-sentinel
+        run: |
+          python -m pytest -q \
+            hooks/tool-result-sentinel/test_sentinel_use_vs_mention.py \
+            hooks/_shared/test_use_vs_mention.py
+          python hooks/tool-result-sentinel/test_sentinel.py
+      # git-hygiene MESSAGE-BUDGET suite. Distinct from test_docs_hygiene.py, which the
+      # adversarial-harness-corpus step above already runs -- that one does not cover
+      # build_message(), so the #199 truncation-budget fix was likewise unenforced.
+      - name: gate-tests-coverage git-hygiene message budget
+        run: |
+          python -m pytest -q hooks/git-hygiene/test_git_hygiene.py
+      # The REST of the hooks/ regression harness -- ~66 suites that no step named.
+      # docs/ci-coverage-gap-2026-07-25.md measured 64 unexecuted hooks/ suites; this step
+      # claims them instead of leaving them dead weight. Now 702 tests after the Wave-3
+      # triage un-ignored five more files (see the block below).
+      #
+      # --import-mode=importlib is REQUIRED, not cosmetic: 18 basenames are duplicated in
+      # this tree (test_check.py x3, test_gate.py x2 inside hooks/ alone) and the default
+      # `prepend` mode fails collection outright with `import file mismatch`.
+      #
+      # Both remaining --ignore lines are load-bearing and MEASURED on real Linux (WSL,
+      # CPython 3.12). When this step was first written the whole-tree form was NOT green
+      # (36 failed, 684 passed, 5 skipped, 1 error) and needed seven exclusions for
+      # 661 passed / 4 skipped. After the Wave-3 triage only two are still required.
+      #
+      #   memory-guard/test_scan.py -- calls sys.exit() at MODULE level, which escapes during
+      #     collection as SystemExit and aborts the ENTIRE run with INTERNALERROR. It is run
+      #     as a standalone script below instead.
+      #   cmd-rewrite -- already invoked as standalone scripts by its own step above, and
+      #     test_msys_pathconv.py::test_real_git_end_to_end ERRORs under pytest here.
+      #
+      # WAVE-3 TRIAGE COMPLETE -- five files were un-ignored here. When this step was first
+      # written, four suites held ALL 36 Linux failures and _golden failed at rc=1, so they
+      # were excluded PENDING TRIAGE. Every one has now been triaged and fixed, and each
+      # turned out to be hiding a live defect rather than merely being red:
+      #   _golden/test_hooks.py               (#209) -- resolved hooks from ~/.claude (absent on
+      #     Linux); ALSO its check 2b asserted only empty-stdout, so a DELETED hook scored PASS.
+      #     Now pytest-collectible, so it no longer needs a standalone step.
+      #   _dispatch/test_manifest_presence.py (#210) -- dark-surface was documented as wired and
+      #     never was on any of 196 refs, while stub-ledger DEFERS to it.
+      #   per-edit-check/test_secrets.py      (#211) -- the write-path secret gate check.py
+      #     advertised was never implemented.
+      #   _dispatch/test_wiring.py            (#212) -- 14 dispatcher-compatible handlers are
+      #     registered in no surface; xfail reason rescoped and its strict marker unshared.
+      #   memory-spool/test_replay.py         (#214) -- six hook dirs ship a different _common.py
+      #     under one flat sys.modules key, so collection order decided which one it imported.
+      #
+      # MEASURED on real Linux (CPython 3.12.3, pytest 8.3.3) at 4c96aa1, both arms:
+      #   with the 7 old ignores : 661 passed,  4 skipped,              rc=0   (control)
+      #   with these 2 ignores   : 702 passed, 12 skipped, 2 xfailed,   rc=0
+      # Delta: +41 tests now executed, +8 newly SKIPPED. The extra skips are honest and
+      # file-keyed, not platform cover: test_wiring's requires_live_settings predicate keys on
+      # an untracked settings.json, so it skips identically on any runner, and _golden retains
+      # one pre-existing self-skip. Zero FAILED, zero ERROR.
+      #
+      # The two steps above overlap this one (their suites are inside hooks/). Kept
+      # deliberately: they give fast, named signal for the two suites fixed in #198/#199,
+      # at ~1.3s, while this step is the broad safety net.
+      - name: gate-tests-coverage hooks regression harness
+        run: |
+          python -m pytest hooks/ -q --import-mode=importlib \
+            --ignore=hooks/memory-guard/test_scan.py \
+            --ignore=hooks/cmd-rewrite
+      # memory-guard exits at module level so pytest cannot collect it, but it passes when
+      # run the way it is designed to run (measured on Linux: rc=0). Same `python <file>`
+      # convention as test_manifest_provenance.py and test_repo_map.py.
+      - name: gate-tests-coverage hooks standalone (memory-guard)
+        run: |
+          python hooks/memory-guard/test_scan.py
+
+      # tools/harness-corpus -- the hook-telemetry miner and, more importantly, the
+      # KNOWN-POSITIVE CONTROL that proves the miner can still see a hook fire before any
+      # "no hooks fired" result is believed. Stdlib-only; pytest is the whole install.
+      #
+      # Its live-corpus control is portability-skipped here BY DESIGN and that skip is now
+      # honest: the predicate tests whether a minable corpus EXISTS (>= 50 transcripts),
+      # not merely whether ~/.claude/projects is a directory. The old proxy predicate made
+      # this file fail on any box where that path exists but is empty -- measured under WSL,
+      # where it resolves to the Linux home: 6 stray transcripts, 0 hook fires, and the
+      # control reported "the DETECTOR is broken" when the real answer was "no data here".
+      # On the owner's box (12,996 transcripts) the control still RUNS and PASSES, and
+      # PR3_REQUIRE_LIVE_CORPUS=1 still turns the skip into a hard failure -- verified in
+      # all three states, so the control was not weakened to get green.
+      #
+      # Measured on real Linux (CPython 3.12.3): 11 passed, 2 skipped, rc=0.
+      - name: gate-tests-coverage harness-corpus (hook-telemetry miner + detector control)
+        working-directory: tools/harness-corpus
+        run: |
+          pip install pytest
+          python -m pytest -q
+
+      # tools/mcp/* MCP servers -- 542 tests that ran in NO gate before these steps.
+      # (The first pass gated 469 of them; the cloud-hub block below now closes the
+      # remaining 73, which were excluded pending the git-crypt fixture work. The 469
+      # figure was accurate about what THIS step gates but understated the total gap.)
+      # Measured: `grep -rn cloud-hub .github/workflows/` returned ZERO hits, with a working
+      # detector control (the same grep finds `monitorcore`, which IS wired). So the suites
+      # protecting the multiplexer hubs -- including tools/mcp/cloud-hub/tests/test_registry.py,
+      # the only thing asserting the AWS backend registers with its 9 tools -- were inert.
+      #
+      # COUNT CORRECTION, recorded rather than quietly fixed: the first version of this step
+      # claimed 504 and also looped over `closed-batch`. That was an OVERCLAIM caused by a gap in
+      # my own detector -- I enumerated `working-directory:` values only, so I missed steps that
+      # name a path INLINE. closed-batch is ALREADY gated at line 274
+      # (`python -m pytest tools/mcp/closed-batch/tests -q`), so including it would have run the
+      # same 35 tests twice and inflated the headline. Two complementary detectors (path grep AND
+      # working-directory enumeration) now agree on the remaining seven.
+      #
+      # WHY A LOOP AND NOT `pytest tools/mcp`: from the repo root that form produces 10
+      # collection ERRORS and exits 2 WITHOUT RUNNING ANYTHING, because each server expects its
+      # own directory as rootdir (`import hub`, `import accounts`, ...). Run per-package it is
+      # green. Same reason the packages above use `working-directory:`.
+      #
+      # SCOPE -- every package here declares NO dependencies (no pyproject, no requirements),
+      # so `pytest` alone is the whole install. The four dep-bearing siblings are deliberately
+      # EXCLUDED as follow-up, not silently dropped: codex-fleet-github (mcp, pyyaml, keyring),
+      # linkedin-mcp (mcp), patent-search-mcp (httpx, mcp), qdx-rush-mcp (rush-py, mcp,
+      # python-dotenv) -- 7 more files / ~175 tests still ungated.
+      #
+      # Measured per package on real Linux (CPython 3.12.3) and reproduced EXACTLY on the ubuntu
+      # runner: search-hub 44, social-hub 83, mcp-host-supervisor 48, mcp-http-host 40,
+      # proxy-mcp 44, reverse-engineering-mcp-bundle 4, plus cloud-hub 206 below -- all rc=0.
+      - name: gate-tests-coverage mcp servers (stdlib-only; per-package rootdir)
+        run: |
+          pip install pytest
+          set -e
+          for p in search-hub social-hub mcp-host-supervisor \
+                   mcp-http-host proxy-mcp reverse-engineering-mcp-bundle; do
+            echo "::group::tools/mcp/$p"
+            ( cd "tools/mcp/$p" && python -m pytest -q )
+            echo "::endgroup::"
+          done
+      # cloud-hub is split out because it needed two exclusions when first gated:
+      # tests/test_hub.py and tests/test_hardening.py build a real HubServer, which loads
+      # tools/mcp/cloud-hub/accounts.json -- git-crypt ENCRYPTED on any keyless checkout, and
+      # CI has no key. Measured in a fresh worktree (identical state to CI): 10 setup ERRORs,
+      # `accounts.AccountStoreLoadError: ... still git-crypt ENCRYPTED`. That error is CORRECT
+      # behaviour: it refuses to continue with an empty store rather than silently disabling
+      # every configured account, so the fix had to be in the tests, never in the loader.
+      #
+      # FOLLOW-UP NOW DONE -- both fixtures point hub.ACCOUNTS_PATH at a tmp_path store and
+      # restore it in teardown, so the whole file is gated. No production code changed:
+      # hub.py already accepted an injected store, and neither fixture's specs declare an
+      # account policy, so an empty store exercises the same path with no credentials
+      # anywhere near CI. Full suite went 269 passed + 10 ERRORs -> 279 passed (+73 tests,
+      # since those two files hold 73 in total).
+      #
+      # BOTH-STATES PROOF this gate has teeth (not merely green): renaming `id="aws"` to
+      # `id="aws_MUTANT"` in backends.py turns the exact command below RED
+      # (`1 failed, 278 passed`), and reverting returns it to `279 passed`. Verified against
+      # a checkout whose accounts.json was confirmed to still be ciphertext, so the run
+      # reproduces CI rather than approximating it.
+      - name: gate-tests-coverage cloud-hub (full suite)
+        working-directory: tools/mcp/cloud-hub
+        run: |
+          pip install pytest
+          python -m pytest -q
+
+      # abbyy declares `requires-python = ">=3.12"`, so pip REFUSES to install it on this job's
+      # 3.11 ("requires a different Python"). It gets its own pinned interpreter, referenced
+      # through `outputs.python-path` rather than PATH so nothing above is affected. KEEP THE
+      # abbyy STEP LAST in this job -- this action repoints the default `python` to 3.12.
+      - name: setup python 3.12 for the vendored abbyy tree
+        id: py312
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+      - name: gate-tests-coverage abbyy-finereader-ocr-mcp (vendored; isolated venv)
+        working-directory: tools/abbyy-finereader-ocr-mcp
+        run: |
+          "${{ steps.py312.outputs.python-path }}" -m venv "$RUNNER_TEMP/venv-abbyy"
+          "$RUNNER_TEMP/venv-abbyy/bin/python" -m pip install -e ".[test]"
+          "$RUNNER_TEMP/venv-abbyy/bin/python" -m pytest \
+            --cov=index --cov=engines --cov=evaluation --cov-branch \
+            --cov-report=term-missing --cov-fail-under=100
 
   sast:
     name: gate-sast (opengrep)
