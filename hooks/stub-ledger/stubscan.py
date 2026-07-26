@@ -122,10 +122,90 @@ def _follows_strikethrough(line: str, pos: int) -> bool:
     return any(m.end() <= pos for m in _STRUCK.finditer(line))
 
 
-def _is_weak_declaration(line: str, pos: int) -> bool:
-    """True when the weak word LEADS its comment, i.e. declares rather than describes."""
+# How far back to walk when reassembling a wrapped comment block. Bounded so a long banner
+# comment cannot make this quadratic; 12 lines covers every real wrapped sentence measured.
+_BLOCK_LOOKBACK = 12
+
+
+def _comment_only(line: str) -> bool:
+    """True when the whole line is a comment (so it can CONTINUE a wrapped block).
+
+    A trailing comment on a code line (`value = 1  # placeholder until wired`) is deliberately
+    NOT block-continuable: it starts its own block, so its weak word still leads and still fires.
+    """
+    stripped = line.strip()
+    if not stripped:
+        return False
+    m = _COMMENT_INTRO.match(stripped)
+    return m is not None and m.start() == 0
+
+
+def _weak_lead_offset(
+    line: str, pos: int, lines: list[str] | None = None, idx0: int | None = None
+) -> int | None:
+    """Offset of `pos` within its SENTENCE, measured across the whole wrapped comment BLOCK.
+
+    Returns None when `pos` is not inside a comment.
+
+    Why block+sentence rather than per-line: a comment that DESCRIBES placeholders often wraps,
+    which drops the word near the start of its SECOND line while it still trails far into its
+    sentence. Measured 2026-07-27 at hooks/per-edit-check/check.py:73 --
+
+        # Lowercase substrings that mark a credential-shaped string as documentation
+        # or a fill-me-in placeholder rather than a live credential.
+        PLACEHOLDER_MARKERS = (...)
+
+    -- "placeholder" sits at line-offset 16 (<= 24), so the line-scoped test read a DESCRIPTION
+    as a DECLARATION and flagged a constant that is defined, used, and covered by three tests.
+    It fired six times in one session, on the file that IS the write-path secret gate, which is
+    the worst place to train an operator to ignore the detector. Across the reassembled block
+    the same word is at sentence-offset ~85 -> descriptive, correctly ignored.
+
+    A declaration that legitimately opens a NEW sentence still leads it (offset 0) and still
+    fires, so this narrows false positives without blinding the detector.
+    """
     at = _comment_at(line, pos)
-    return at is not None and 0 <= at[0] <= _WEAK_LEAD_CHARS
+    if at is None:
+        return None
+    off, body = at
+    if lines is None or idx0 is None or not _comment_only(line):
+        return off
+
+    prefix: list[str] = []
+    j = idx0 - 1
+    while j >= 0 and len(prefix) < _BLOCK_LOOKBACK and _comment_only(lines[j]):
+        prev = _comment_at(lines[j], len(lines[j]))
+        if prev is None:
+            break
+        prefix.append(prev[1])
+        j -= 1
+    if not prefix:
+        return off
+
+    prefix.reverse()
+    joined_prefix = " ".join(p for p in prefix if p)
+    abs_pos = (len(joined_prefix) + 1 if joined_prefix else 0) + off
+    whole = f"{joined_prefix} {body}" if joined_prefix else body
+
+    sentence_start = 0
+    for m in _COMMENT_SENTENCE_END.finditer(whole):
+        if m.end() <= abs_pos:
+            sentence_start = m.end()
+        else:
+            break
+    return abs_pos - sentence_start
+
+
+def _is_weak_declaration(
+    line: str, pos: int, lines: list[str] | None = None, idx0: int | None = None
+) -> bool:
+    """True when the weak word LEADS its comment, i.e. declares rather than describes.
+
+    `lines`/`idx0` are optional and backward-compatible: omitted, the test is per-line exactly
+    as before; supplied, a wrapped comment block is reassembled first (see _weak_lead_offset).
+    """
+    off = _weak_lead_offset(line, pos, lines, idx0)
+    return off is not None and 0 <= off <= _WEAK_LEAD_CHARS
 
 
 def _is_phrase_declaration(line: str, pos: int) -> bool:
@@ -262,7 +342,7 @@ def find_stubs(text: str, path: str = "") -> list[tuple[str, int, str]]:
             _COMMENT_INTRO.search(line)
             and wm
             and not _PRAGMA_NOCOVER.search(line)
-            and _is_weak_declaration(line, wm.start())
+            and _is_weak_declaration(line, wm.start(), lines, i - 1)
             and not _follows_strikethrough(line, wm.start())
             and (
                 is_real is None or is_real(text, offset + wm.start(), offset + wm.end())
