@@ -164,11 +164,61 @@ def test_a_short_prompt_colliding_with_a_flag_token_is_NOT_a_false_positive() ->
 
 
 def test_the_containment_rule_is_off_one_char_below_the_threshold() -> None:
-    """Boundary: len == threshold refuses, len == threshold - 1 does not."""
+    """Boundary of the RELATION between rule 3 and the constant, not of its VALUE.
+
+    Both fixtures are DERIVED from ``MIN_SUBSTRING_SCAN_LEN``, so they follow the constant
+    wherever it moves. That is deliberate here — but on its own it left the value itself
+    unprotected, which is what
+    ``test_the_substring_scan_threshold_VALUE_is_pinned`` below now covers.
+    """
     short = "z" * (MIN_SUBSTRING_SCAN_LEN - 1)
     assert prompt_on_argv(f"--wrap{short}tail", short) is False
     long = "z" * MIN_SUBSTRING_SCAN_LEN
     assert prompt_on_argv(f"--wrap{long}tail", long) is True
+
+
+# --- rule 3's THRESHOLD VALUE, pinned (the mutation the derived fixtures could not see) -----
+
+
+def test_the_substring_scan_threshold_VALUE_is_pinned() -> None:
+    """Drift gate on the constant itself — the same treatment ``WINDOWS_CMDLINE_CAP`` gets.
+
+    MEASURED HOLE THIS CLOSES (2026-07-26, both states, one-line edit to ``argv.py:36``):
+    every other reference to this constant was DERIVED from it, so raising it to ``4096``
+    left the suite at ``366 passed, 1 deselected`` with ``Total coverage: 100.00%`` while a
+    3,000-char prompt embedded in an argv element was ACCEPTED
+    (``threshold=4096 ACCEPTED prompt_on_argv=True cmdline_len=3030``). Branch coverage
+    cannot help: rule 3 is a single-line ``and``, so no arc flips. Moving the value must now
+    be a reviewed diff, exactly like the cap.
+    """
+    assert MIN_SUBSTRING_SCAN_LEN == 64
+
+
+def test_the_containment_rule_boundary_at_LITERAL_lengths() -> None:
+    """The same boundary as above with the lengths written out, so the fixtures do NOT move.
+
+    64 refuses, 63 does not. Raising the constant reds the first assertion; lowering it reds
+    the second.
+    """
+    assert prompt_on_argv("--wrap" + "z" * 64 + "tail", "z" * 64) is True
+    assert prompt_on_argv("--wrap" + "z" * 63 + "tail", "z" * 63) is False
+
+
+def test_a_prompt_embedded_in_a_larger_element_UNDER_the_cap_is_refused() -> None:
+    """The exact shape the raised-threshold mutant let through, end to end.
+
+    3,000 chars is long enough to be unambiguous and the whole command line stays at 3,030
+    chars — far under the 32,767 cap — so the cap check cannot catch it either. Rules 1 and 2
+    also miss it, because the prompt is a SUBSTRING of a larger element. Only rule 3 sees it.
+    """
+    prompt = "x" * 3_000
+    with pytest.raises(PromptOnArgv, match="3000 chars"):
+        build_argv(
+            exe="codex.exe",
+            prompt=prompt,
+            transport="stdin",
+            flags=("exec", "the task is: " + prompt),
+        )
 
 
 def test_the_exe_itself_is_checked_for_the_prompt() -> None:
@@ -302,3 +352,35 @@ def test_a_rail_spec_declaring_an_unknown_transport_is_refused() -> None:
     rail = RailSpec(name="bad", exe="b.exe", prompt_transport="argv")
     with pytest.raises(ValueError, match="transport"):
         build_for_rail(rail, prompt="p")
+
+
+# --- RailSpec DEFAULTS, pinned (same class of hole as rule 3's threshold) -------------------
+
+
+def test_the_rail_spec_defaults_are_pinned() -> None:
+    """MEASURED (2026-07-26): both of the load-bearing defaults were unasserted.
+
+    Raising ``cap`` to ``10**9`` and flipping ``prompt_transport`` from ``"file"`` to
+    ``"stdin"`` each left the suite green — ``build_argv``'s OWN ``cap`` default was protected
+    but ``RailSpec``'s was not, and no test declared which transport a rail gets when it does
+    not name one. Both are safety- or shape-relevant to every rail declared as a config row.
+    """
+    rail = RailSpec(name="x", exe="x.exe")
+    assert rail.cap == WINDOWS_CMDLINE_CAP == 32767
+    assert rail.prompt_transport == "file"
+    assert rail.hardening == ()
+    assert rail.prompt_flag is None
+
+
+def test_build_for_rail_enforces_the_default_cap_when_the_rail_declares_none() -> None:
+    """The behavioural half of the ``cap`` pin: no explicit cap must still mean 32,767.
+
+    Every pre-existing over-cap test passed ``cap=`` to ``build_argv`` directly, so a raised
+    ``RailSpec.cap`` default was invisible.
+    """
+    rail = RailSpec(name="x", exe="c.exe", prompt_transport="stdin")
+    over = "b" * (WINDOWS_CMDLINE_CAP + 1 - len("c.exe") - 1)
+    with pytest.raises(ArgvTooLong) as caught:
+        build_for_rail(rail, prompt="p", flags=(over,))
+    assert caught.value.cap == WINDOWS_CMDLINE_CAP
+    assert caught.value.cmdline_len == WINDOWS_CMDLINE_CAP + 1
