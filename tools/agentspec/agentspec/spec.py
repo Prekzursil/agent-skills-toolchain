@@ -22,7 +22,7 @@ Design rules, each with a measured reason:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 RECEIPT_FORMATS: tuple[str, ...] = ("json", "text")
 BARRIER_POLICIES: tuple[str, ...] = ("all", "any")
@@ -55,7 +55,7 @@ class WorkUnit:
     depends_on: tuple[str, ...] = ()
     budget_micro: int = 0
     isolation: str = "shared"
-    writes: tuple[str, ...] = field(default=())
+    writes: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
