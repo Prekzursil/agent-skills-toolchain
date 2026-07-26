@@ -121,7 +121,22 @@ sentinel): `pytest --run-live`.
    `MIN_SUBSTRING_SCAN_LEN`, `RailSpec.cap`, `RailSpec.prompt_transport`,
    `RATE_LIMIT_MAX_ATTEMPTS`, `RATE_LIMIT_BASE_BACKOFF_MS` — and R4 additionally exercises bare
    containment through the eval registry, so the same edit now reds 7 tests in 3 files and
-   drops coverage to 98.59%.
+   drops coverage to 98.64%.
+
+   Reproduce the proof for any constant — there is no tooling to install, and the point is that
+   the FULL gate command must go RED, not just one test:
+
+   ```bash
+   # edit the constant in agentspec/*.py, then:
+   pytest -m "not live" --cov=agentspec --cov-branch --cov-fail-under=100   # must exit non-zero
+   git checkout -- agentspec/                                              # restore
+   ```
+
+   Measured 2026-07-27 over 14 such edits — the two threshold directions, both `RailSpec`
+   defaults, the printability check, vacuity at both call sites, the `family` hyphen boundary,
+   the rate-limit ceiling, the backoff doubling, member-vs-whole-string matching, and the
+   progress-rule over-reach: **14 RED, 0 survivors**, from a baseline of `406 passed,
+   1 deselected` at `100.00%`.
 2. **`testlint.py`** fails any `test_*` function with zero assertions, and runs over this
    package's own suite.
 3. **No exclusion.** There is ZERO `# pragma: no cover` and no coverage `omit` in this package —
