@@ -203,8 +203,14 @@ say(
 )
 PAIRS = [
     (f"{HOME}/.claude/settings.json", f"{REPO}/agent-self/config/settings.json"),
-    (f"{HOME}/.claude/CLAUDE.md", f"{REPO}/CLAUDE.md"),
-    (f"{HOME}/.claude/AGENTS.md", f"{REPO}/AGENTS.md"),
+    # NOT the repo ROOT CLAUDE.md / AGENTS.md. Those are the repo's OWN documents
+    # (root AGENTS.md is "# Repository Guidelines", the contributor guide; root
+    # CLAUDE.md carries the AgentBridge markers). The MIRRORED harness docs -- the
+    # "# Global Claude Guidance" and "# Cross-Tool Behavior Contract" pair -- live
+    # under agent-self/config/. Writing them to root destroys the contributor guide;
+    # that mistake was caught only when main's PR #189 conflicted on AGENTS.md.
+    (f"{HOME}/.claude/CLAUDE.md", f"{REPO}/agent-self/config/CLAUDE.md"),
+    (f"{HOME}/.claude/AGENTS.md", f"{REPO}/agent-self/config/AGENTS.md"),
     (
         f"{HOME}/.claude/statusline-command.sh",
         f"{REPO}/agent-self/config/statusline-command.sh",

@@ -1,121 +1,41 @@
-# Global Claude Guidance
+<!-- AgentBridge:start -->
+## AgentBridge — Multi-Agent Collaboration
 
-@AGENTS.md
+You are working in a **multi-agent environment** powered by AgentBridge.
+Another AI agent (Codex, by OpenAI) is available in a parallel session on this machine.
 
-## Persistent Memory (basic-memory MCP)
+### Communication mechanism
+- **Claude → Codex**: Use the AgentBridge MCP tools (`reply` / `get_messages`) — these are yours only.
+- **Codex → Claude**: Codex has no symmetric tool. The bridge transparently intercepts Codex's normal output and forwards it to you as push notifications (if a push fails, drain the fallback queue with `get_messages`).
+- If Codex ever complains it can't find a "send-to-Claude" API, remind it that its side is transparent — it just writes a reply and you'll see it.
 
-Durable semantic memory (markdown+vector vault on D:) — does NOT auto-load; you must query it. This is how context survives compaction.
+### When to collaborate vs. work solo
+- **Collaborate** when the task benefits from a second perspective, parallel execution, or capabilities you lack (e.g., sandboxed code execution, independent verification).
+- **Work solo** for simple, self-contained tasks where the coordination overhead isn't worth it.
+- When in doubt, **propose a task split** to Codex rather than doing everything yourself.
 
-**Recall (pull) — PROACTIVELY, unasked:** after a compaction/resume, or when the user references prior work you lack, call `mcp__basic-memory__build_context` / `search_notes` / `recent_activity` BEFORE asking them to re-explain. To recover pre-compaction state, search `compaction checkpoint <project>` (tagged `compaction-checkpoint`).
+### Capability comparison
+| Capability | Claude (you) | Codex |
+|---|---|---|
+| Architecture & planning | Strong | Moderate |
+| Code review & analysis | Strong | Strong |
+| Sandboxed code execution | No | Yes |
+| File editing & refactoring | Yes (via tools) | Yes (via sandbox) |
+| Web search & docs | Yes | Limited |
+| Independent verification | Cross-review | Reproduce & test |
 
-**Capture (push):** write durable decisions/fixes/preferences with `mcp__basic-memory__write_note` (a PreCompact hook also auto-checkpoints). **Temporal validity:** when a fact is superseded, add `superseded_by: <permalink>` to the OLD note + `valid_as_of: <date>` to the new one, so recall surfaces current truth and dead-ends aren't re-walked.
+### How to start collaborating
+1. When you receive a complex task, **proactively propose a division of labor** to Codex via the reply tool.
+2. State what you'll handle and what you'd like Codex to take on.
+3. Ask for Codex's agreement or counter-proposal before proceeding.
+4. After task completion, **cross-review** each other's work.
 
-(Behavioral rules — clarify-first, anti-tunnel-vision, honesty — live in AGENTS.md §1-§9. Static-analyzer gotchas → `rules/common/static-analyzer.md`, path-scoped to py/ts.)
-
-## Multi-AI Collaboration (Claude Code ↔ Codex CLI)
-
-**Architecture:** Two independent layers for different needs. **DO NOT use both simultaneously — they serve different use cases.**
-
-### Layer 1: Parallel fan-out (ultracode-style cross-vendor subagents)
-**When to use:** decompose a task into independent parallel Codex jobs (e.g., `codex exec` one task per repo, code-review a PR with Codex + Claude in parallel, orchestrate a multi-agent fleet).
-
-**How:** Codex runs as a native MCP tool in Claude. Any Claude subagent can invoke `codex()` N times in parallel, and results return as native tool outputs — no daemon, no bridge, just stdio.
-
-```
-# Claude Workflow spawns 5 parallel Codex threads
-parallel([
-  () => agent("task A via Codex", {schema: ...}),  # codex exec --json via MCP
-  () => agent("task B via Codex", {schema: ...}),
-  ...
-])
-```
-
-**Setup** (one-time):
-```bash
-claude mcp add --scope user codex -- codex mcp-server
-# Mounts the official OpenAI MCP at ~/.claude/settings.json
-# Takes effect on Claude restart
-```
-
-**How it works:** `codex mcp-server` spawns a fresh Codex process per `codex()` call (shared auth.json, isolated state). Results land in the **Claude session's native tool-result objects** — no parsing, no daemon, Windows-native.
-
-**Honest limits:** each Codex invocation is **single-threaded** (one agent per call) and **fresh-context** (no cross-thread memory). For true agent-team mingle with mid-turn steering, use Layer 2.
-
-### Layer 2: Live peer dialogue (interactive cross-session chat)
-**When to use:** you want to ask Codex a quick question mid-task, or pair-program with Codex in a side session while Claude works.
-
-**How:** `mcp_agent_mail` runs locally on `127.0.0.1:8812` (no network egress), kept **always-on** by a per-user logon Scheduled Task (`MCPAgentMailSupervisor`) that health-polls `/api/health` every 10s and auto-restarts the server on death (self-healing proven: ~27s recovery from a hard kill; survives crash, session-exit, and reboot). Two agents (Claude + Codex) register, authenticate with per-agent tokens, establish mutual contact (anti-spam), and **send/receive messages + file-leases in real time**. You don't invoke it — agents do. The `multi-ai-mingle` skill wraps it.
-
-```
-# In a Claude Code session — the skill wraps the HTTP mailbox API (there is NO separate TUI):
-/multi-ai-mingle hello
-```
-
-**Setup** (server is always-on via the Scheduled Task; verify it's working):
-```bash
-# Confirm the always-on agent-mail server is healthy (note: /api/health, port 8812)
-curl -s http://127.0.0.1:8812/api/health
-# Should return {"status":"ok", ...}
-
-# Confirm Claude picked up the skill
-claude skills | grep multi-ai-mingle
-# Should show "multi-ai-mingle — live mailbox for Claude↔Codex peer chat"
-```
-
-**License & security:** mcp_agent_mail is MIT + OpenAI/Anthropic rider (forbids ML training/eval folding). You use it privately (local-only, 127.0.0.1). Pinned to commit `35e774f`, sandboxed at `~/.local/opt/mcp_agent_mail`.
-
-**Honest limits:** mcp_agent_mail is interim — the long-term convergence is Claude's native Agent Teams mailbox (Wave B, pending). Consider this a **validated test channel**, not a permanent integration. The skill has a fallback; if the daemon dies, agents degrade gracefully.
-
-### Choosing between Layer 1 and Layer 2
-
-| Use case | Layer | Why |
-|----------|-------|-----|
-| "Run Codex on task X in parallel with Claude on Y" | 1 (MCP) | fan-out subagent — returns as native results |
-| "Ask Codex a quick follow-up mid-session" | 2 (mingle) | interactive peer chat — no context loss |
-| "Codex reviews my Claude PR before I merge" | 1 (MCP) | delegate to `codex-rescue` subagent via `/codex:review` |
-| "I want to see Codex thinking alongside Claude" | 1 + tmux | open Codex in a side pane, Layer 1 for orchestration |
-| "Continuous multi-session chat, no orchestration" | 2 (mingle) | live dialogue — no scripts/automation |
-
-### Remote fleet (codex-fleet-github + QZT)
-**When to use:** sweep the 26-repo fleet with autonomous Codex jobs (nightly schedule, per-repo tasks, propose-only PRs).
-
-**How:** QZT's `codex-fleet-wave` dispatches the private `codex-runner` across repos. Each PR is draft (human-approved, never auto-merged). Results roll into your admin dashboard.
-
-**Setup** (you do this):
-1. Merge PR #68 → #70 → #72 (toolchain).
-2. Merge PR #270 (QZT).
-3. Create two scoped PATs:
-   - `CODEX_DISPATCH_PAT` in QZT (can only trigger the runner, cannot read auth).
-   - `CODEX_SECRETS_PAT` in toolchain (can only write Secrets, for token-refresh).
-4. Enable the token-refresh write-back in `codex-runner.yml` (uncomment line 299, set the PAT).
-
-**Use:** open QZT's admin dashboard → "Codex Fleet" tab → enable repos + set per-repo task → "Sweep" → watch live run summary (no wait, comes back as PRs).
-
-### Budget pacing (DEPRECATED — now manual)
-AgentBridge's `get_budget` tool was the enforcement mechanism. It's retired (the daemon is off). **Budget pacing is now advisory only — you manage token quota by:**
-- **Codex:** check your ChatGPT subscription usage in the app; the 5h + weekly windows still apply to your sub.
-- **Claude:** your session-level tokens are your budget; multi-agent Workflows consume them visibly.
-- **Shared sub-ceiling:** if a nightly fleet sweep maxes your sub, it will silently starve daytime interactive coding (you'll see `429` errors). **Solution: either (a) schedule the sweep off-peak, (b) route heavy jobs to an API key with its own quota, or (c) monitor the dashboard and skip days when quota is tight.**
-
-No hooks enforce it anymore — it's on you to read the tea leaves and throttle. This is a known limit; revisit if it becomes painful.
-
-### Troubleshooting
-
-**Layer 1 (MCP):** If `codex()` returns empty or times out:
-- Confirm Codex CLI is installed: `codex --version`
-- Confirm the mount: `claude mcp list | grep codex`
-- Check the env for `CODEX_HOME` (should point to your local config): `echo $CODEX_HOME`
-- Confirm your auth: run the mingle doctor (`python ~/.local/opt/mingle/doctor/mingle_doctor.py`) which checks auth.json JWT freshness — `codex auth status` is NOT a valid subcommand (use `codex login` to re-auth)
-
-**Layer 2 (mingle):** If the skill fails to connect:
-- Confirm server health: `curl -s http://127.0.0.1:8812/api/health` (should return `{"status":"ok"}`)
-- If 404/refused: the logon Scheduled Task auto-restarts it within ~10s; to force it now run in PowerShell: `Start-ScheduledTask -TaskName MCPAgentMailSupervisor`. The supervisor + installer live at `~/.local/opt/mcp_agent_mail/supervisor/` (re-register or `-Uninstall` via its `install_service.ps1`).
-- Confirm the skill is installed: `ls -la ~/.claude/skills/multi-ai-mingle/`
-- If mcp_agent_mail ever breaks, disable it gracefully: the skill has fallback docs (no crash).
-
-**Fleet:** If sweep produces no PRs:
-- Check QZT's `codex-targets.yml` has enabled repos.
-- Confirm the dispatch PAT can trigger the runner: `gh workflow run codex-runner ... --token $PAT`.
-- Watch the runner's CI log in the private repo.
-
----
+### Budget pacing — drive the WEEKLY quota to ~100% over the week, evenly, without reaching a 5h cap (active when agent-quota-guard is installed)
+- **Core principle: token is the means, value is the end.** Raising intensity means producing more real parallel value (deeper reviews, more independent exploration / verification / genuine subtasks) — never manufacturing low-value work to consume quota. The budget to MAXIMIZE is the **weekly** quota (refreshed once a week): drive each side's weekly toward ~100% by its weekly reset, and consume it **evenly** across the week — front-loading then starving, or under-consuming throughout, both leave weekly quota unredeemed (forfeited). The **5h window is NOT a quota bucket to fill — it is a RATE CAP**: stay under it within any 5h period; reaching it = a forced pause until the 5h resets = wasted time, not progress.
+- **Re-query your budget before EVERY allocation decision** — Claude: `get_budget` → **rendered text** covering both sides; Codex: `check_budget` with `agent:"claude"|"codex"` → **normalized JSON**, per side. (Two different shapes — read the right one below.) Never reuse remembered numbers: a weekly window can refresh EARLY (resetting both 5h and weekly), fully restoring a side you believed was exhausted.
+- **Even-pacing test (per side — Claude runs it)** — compare two quantities: *budget-windows* = how many 5h windows the weekly quota still covers at the current burn rate; *clock-windows* = how many 5h windows physically fit before the weekly reset = (weekly reset − now) ÷ 5h. **Claude** (`get_budget` text) carries BOTH, pre-computed for BOTH sides: the lines "按当前节奏，周额度还够 … 个 5h 窗口" (budget-windows) and "距周刷新还能容纳 … 个 5h 窗口（时钟）" (clock-windows). **Codex** (`check_budget` JSON) today carries only per-bucket `util` / `reset_epoch` / `reset_after_seconds` — no burn rate, no `five_hour_windows_left` — so Codex CANNOT compute budget-windows itself; it reads its weekly `util` and clock-windows only. To locate Codex's weekly bucket: of the `buckets[]` entries whose `id` contains `seven_day` or `secondary_window` (there can be several — e.g. a model-specific `additional_rate_limits[…]` one at 0%), take the HIGHEST-util one (the binding account-level window, matching how the bridge parses it); its clock-windows = `reset_after_seconds` ÷ 5h (never the top-level `reset_epoch`, which tracks the current limiter, not necessarily the weekly window). For the budget-windows half and the raise/hold/reduce verdict, Codex relies on Claude's `get_budget` (the burn projection lives there, for both sides) and reports its own weekly `util` + reset timing so Claude can run the test. (If a future `check_budget` exposes `five_hour_windows_left` on the weekly bucket, Codex reads it directly.) **The verdict (Claude computes it, per side):** budget > clock → **under-consuming** (weekly will be left unused) → **raise intensity**; budget < clock → **over-consuming** (won't last to the weekly reset) → **reduce intensity**; within ~1 window, or no confident rate → **hold**. **Codex, absent a fresh Claude verdict, holds at its current intensity (it never escalates unilaterally) and stays clear of the 5h cap — surfacing its weekly `util` + reset timing so Claude can issue the verdict.**
+- **Raise intensity — use the levers your role has.** Orchestrator (Claude): pick larger, more-decomposable tasks; run more parallel subagents at once (3–5+ vs 1); raise delegation density; open more concurrent streams (review + explore + verify in parallel). Executor (Codex): go deeper in-turn, take larger chunks, run more verification/repro. Both: deepen quality (multi-angle review, broader test/repro) — never manufacture make-work. **Reduce intensity:** fewer/serial subagents (Claude), short bounded chunks, defer optional deep work. Stay below the **动态暂停线** (shown in `get_budget`; its `余量` = headroom from your current util to that soft line, measured on the resettable hard-winner window — the 5h OR the weekly window, whichever currently limits you) — that soft ceiling, not the raw 5h cap, is the "do not cross, avoid a forced pause" line. **If that line is absent, or you only have JSON (Codex),** fall back to the 5h bucket's raw util vs 100% (Codex: of the `buckets[]` entries whose `id` contains `five_hour` or `primary_window`, take the HIGHEST-util one) and keep clear of the 5h cap.
+- **Distinguish 5h from weekly:** a 5h window resetting does NOT consume or waste weekly budget — it only refreshes your rate headroom, so you can keep going when weekly is under-consumed. A near 5h reset is therefore not urgency but the release of a rate limit. The real "unused = forfeited" is the **weekly budget as its WEEKLY reset nears**: if weekly is still under-consumed then, raise intensity (within the 5h cap) to use it. If even pacing needs a rate beyond one 5h window's capacity, you are rate-limited → keep each 5h window as full as possible (under the cap).
+- **Two-subscription imbalance — the quotas are INDEPENDENT and differ in BOTH amount AND reset timing** (each side's weekly and 5h windows reset on different clocks). **The cross-side split is the orchestrator's (Claude) decision:** route more work to the side that is MORE under-consuming on the even-pacing test (the larger budget-windows − clock-windows gap); when EITHER side lacks a confident rate (so the gap can't be compared), fall back to the more budget-rich side (larger absolute weekly headroom). On any tie (equal gap, or equal headroom), prefer the side whose **weekly resets SOONER** (its leftover is forfeited earlier). **As the executor (Codex) you do NOT decide the global split** — execute what you're assigned, and when your own budget is rich report it (with evidence) so Claude routes more to you. The tighter / over-consuming side carries less.
+- **Side-aware pause (the hard floor the code enforces — obey, do not reinvent), with each side's own action:** **Codex exhausted** (`system_budget_pause`) → Codex's turns stop (gate closed); **Claude** must not retry replies and continues solo on independent work, checkpointing the split point — but the SAME `system_budget_pause` is ALSO emitted when both sides are exhausted, so do not infer "solo" from the directive name alone: read its content (it names the paused side[s]) or re-check `get_budget`, and continue solo ONLY while Claude's own side is healthy; if Claude is also at its line, handle it as **Both** below. **Claude exhausted** (`system_budget_handoff`) → **Claude** sends ONE handoff (remaining tasks / context / artifact locations / acceptance criteria) then stops; **Codex** receives the baton and carries the work forward as far as its remaining quota allows that turn. **Both** → joint pause; checkpoint and wait for `resume` (Claude's own quota-guard also hard-stops Claude independently). A transient probe **429 is NOT exhaustion** → fall back to cached util and keep working.
+<!-- AgentBridge:end -->
