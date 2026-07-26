@@ -158,6 +158,20 @@ load-bearing for the test step: `tests/` is a subdirectory, so bare `pytest` -- 
 unlike `python -m pytest`, does not put the cwd on `sys.path` -- cannot import `mcpctl`
 without it.
 
+### Anti-coverage-theatre: the mutation probe
+
+Coverage measures execution, not assertion strength, so `tests/test_mutations.py` reverts
+**17** load-bearing decisions one at a time -- drop the `xai-` / `AIza` / opaque-token
+pattern, neuter the home collapse, make `strip_controls` the identity, let `env_fields`
+carry the value, report a `${VAR}` reference as `present`, walk ancestors in
+`project_row`, read `deniedMcpServers` as bare strings, let approval override a disable,
+put `disabled` above `denied`, let the loadout template decide, force `inferred=False`,
+render an unmeasured tool count as `0`, pass `last_error` through raw, accept a blank
+recovery field, always print `SUCCESS:` -- and requires the matching property check to go
+**RED** for each. It ships in `tests/`, so the existing gate step executes it; it is not
+prose. A control test (`test_every_check_passes_unmutated`) proves each check is green
+unmutated, so a check that is simply broken cannot masquerade as detecting everything.
+
 Liveness (`tool_count`, `last_error`, `pid`, `rss_bytes`) is **injected**. `None` means
 "not measured", never "zero" and never "dead": the matrix prints `-` for an unmeasured
 tool count so an absent measurement can never read as a health verdict.
