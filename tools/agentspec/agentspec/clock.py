@@ -19,6 +19,18 @@ class Clock(Protocol):
     def now_ms(self) -> int: ...
 
 
+@runtime_checkable
+class SteppableClock(Clock, Protocol):
+    """A clock a harness can step explicitly — the port the fake rail needs.
+
+    Kept separate from :class:`Clock` so a production consumer can inject a read-only clock
+    while the eval rail demands one it can drive. That also removes a duck-typing branch from
+    the rail: no ``getattr(clock, "advance", None)`` fallback, so no untestable arm.
+    """
+
+    def advance(self, ms: int) -> int: ...
+
+
 class FixedClock:
     """A deterministic clock: time moves ONLY when :meth:`advance` is called."""
 

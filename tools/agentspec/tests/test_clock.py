@@ -57,6 +57,24 @@ def test_an_object_without_now_ms_does_not_satisfy_the_protocol() -> None:
     assert not isinstance(NotAClock(), Clock)
 
 
+def test_fixed_clock_also_satisfies_the_steppable_port() -> None:
+    from agentspec.clock import SteppableClock
+
+    assert isinstance(FixedClock(), SteppableClock)
+
+
+def test_a_read_only_clock_is_a_clock_but_NOT_steppable() -> None:
+    """The two ports are distinct on purpose: the fake rail needs to drive time."""
+    from agentspec.clock import SteppableClock
+
+    class ReadOnlyClock:
+        def now_ms(self) -> int:
+            return 7
+
+    assert isinstance(ReadOnlyClock(), Clock)
+    assert not isinstance(ReadOnlyClock(), SteppableClock)
+
+
 def test_elapsed_ms_is_a_pure_subtraction_over_two_readings() -> None:
     from agentspec.clock import elapsed_ms
 
