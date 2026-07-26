@@ -55,6 +55,20 @@ def check_controls_stripped() -> None:
     assert "\x1b" not in safety.strip_controls("a\x1b]52;c;x\x07b")
 
 
+def check_safe_strips_before_it_matches() -> None:
+    """A control byte INSIDE a token must not defeat redaction.
+
+    ``check_controls_stripped`` tests ``strip_controls`` in ISOLATION and so cannot see
+    this: the bug is the ORDER inside ``safe``. Redacting first matches against text
+    that still holds the control byte (no secret pattern's character class admits
+    C0/C1/DEL, so nothing matches), and the later strip then reassembles the clean,
+    complete secret. Measured on the swapped ordering: 20/20 shape x separator
+    combinations leaked verbatim.
+    """
+    poisoned = FAKE_XAI[:10] + "\x1b" + FAKE_XAI[10:]
+    assert FAKE_XAI not in safety.safe(f"Bearer {poisoned}")
+
+
 def check_env_value_never_captured() -> None:
     fields = safety.env_fields({"TOK": FAKE_GH_PAT})
     assert FAKE_GH_PAT not in repr(fields)
@@ -183,6 +197,15 @@ def _mutate_home_regex(mp: pytest.MonkeyPatch) -> None:
 
 def _mutate_strip_to_identity(mp: pytest.MonkeyPatch) -> None:
     mp.setattr(safety, "_STRIP", lambda s: s)
+
+
+def _mutate_safe_to_redact_before_stripping(mp: pytest.MonkeyPatch) -> None:
+    """Restore the shipped-then-fixed ordering bug: match first, sanitise after."""
+    mp.setattr(
+        safety,
+        "safe",
+        lambda text: safety.strip_controls(safety.redact_text(text)),
+    )
 
 
 def _mutate_env_fields_to_leak_the_value(mp: pytest.MonkeyPatch) -> None:
@@ -378,6 +401,11 @@ MUTANTS: tuple[
         _mutate_terminal_line_to_always_succeed,
         check_terminal_line_marks_an_error_as_failed,
     ),
+    (
+        "safe-order-swapped",
+        _mutate_safe_to_redact_before_stripping,
+        check_safe_strips_before_it_matches,
+    ),
 )
 
 
@@ -410,5 +438,5 @@ def test_each_mutant_is_detected(
 
 def test_the_mutant_set_covers_every_module_with_a_load_bearing_decision():
     """Guards against the set quietly shrinking to the easy modules."""
-    assert len(MUTANTS) >= 17
+    assert len(MUTANTS) >= 18
     assert len({m[0] for m in MUTANTS}) == len(MUTANTS), "duplicate mutant id"

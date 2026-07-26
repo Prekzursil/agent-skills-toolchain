@@ -66,11 +66,42 @@ def test_redact_text_collapses_the_home_directory():
     assert out.startswith("~")
 
 
-def test_safe_is_redact_then_strip_controls():
+def test_safe_masks_a_secret_with_control_bytes_ADJACENT_to_it():
+    """The easy case: controls sit beside the token, so the token stays intact."""
     out = safety.safe(f"\x1b]8;;http://x\x07{FAKE_GH_PAT}")
     assert FAKE_GH_PAT not in out
     assert "\x1b" not in out
     assert "\x07" not in out
+
+
+@pytest.mark.parametrize(
+    "sep",
+    ["\x1b", "\x07", "\x00", "\x7f", "\x9b"],
+    ids=["esc", "bel", "nul", "del", "c1"],
+)
+@pytest.mark.parametrize(
+    "token",
+    [FAKE_GH_PAT, FAKE_XAI, FAKE_GEMINI, FAKE_OPENAI],
+    ids=["ghp", "xai", "gemini", "openai"],
+)
+def test_safe_masks_a_secret_with_a_control_byte_INTERLEAVED_inside_it(
+    token: str, sep: str
+):
+    """The bypass: a control byte INSIDE the token must not defeat redaction.
+
+    Order matters. If ``redact`` runs first it matches against text that still holds
+    the control byte -- no secret pattern's character class admits C0/C1/DEL, so
+    nothing matches -- and a later ``strip_controls`` then REASSEMBLES the clean,
+    complete secret into the output. The sanitiser would destroy the very evidence
+    that should have triggered the mask, so ``safe`` must strip FIRST, then match.
+    """
+    poisoned = token[:10] + sep + token[10:]
+    out = safety.safe(f"401 Unauthorized: Bearer {poisoned}")
+    assert token not in out, (
+        f"the clean secret was reassembled verbatim after stripping {sep!r}"
+    )
+    assert sep not in out
+    assert "[REDACTED" in out
 
 
 def test_env_fields_reports_names_and_classification_never_values():

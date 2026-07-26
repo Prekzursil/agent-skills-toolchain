@@ -98,8 +98,18 @@ matrix marks an inferred state with `~`.
   three-way classification (`present` / `absent` / `reference` for a `${VAR}`
   indirection) -- never the value. A credential cannot leak from a record that never
   held it, which is strictly stronger than redacting at render time.
-* **Textual defence in depth.** Free text mcpctl *does* carry -- `command`, `args`, and
-  an injected `last_error` -- passes an always-on redaction layer.
+* **Textual defence in depth, and the ORDER is load-bearing.** Free text mcpctl *does*
+  carry -- `command`, `args`, and an injected `last_error` -- passes `safety.safe`, which
+  **strips control bytes FIRST and only then matches secret shapes**. That order is the
+  whole guarantee, not a detail: no secret pattern's character class admits C0/C1/DEL, so
+  redacting first would let a single control byte planted *inside* a token defeat every
+  pattern, and the later strip would then reassemble the clean, complete secret into the
+  output -- the sanitiser destroying the evidence that should have triggered the mask.
+  Measured on the reversed ordering: **20/20** token-shape x separator-class combinations
+  (`ghp_`/`xai-`/`AIza`/`sk-` x ESC/BEL/NUL/DEL/C1) leaked the secret verbatim, including
+  end-to-end through the `matrix --json` CLI seam. Both directions are now pinned by
+  tests: `test_safe_masks_a_secret_with_a_control_byte_INTERLEAVED_inside_it` and the
+  `safe-order-swapped` row of the mutation probe, which fails if the order is reverted.
 * **The layer does not depend on `monitorcore`.** `monitorcore.redact`'s pattern set
   (`redact.py:32-59`) covers `sk-`, `ghp_`, `github_pat_`, `AKIA`, `xox?-`, Bearer-JWT,
   PEM, `.gitcrypt.key`, `gh[oure]_` and a bare JWT -- and nothing else. The shapes this

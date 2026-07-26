@@ -171,8 +171,23 @@ def redact_text(text: str) -> str:
 
 
 def safe(text: str) -> str:
-    """The one function every untrusted string passes through before rendering."""
-    return strip_controls(redact_text(text))
+    """The one function every untrusted string passes through before rendering.
+
+    ORDER IS LOAD-BEARING: strip controls FIRST, then match secrets.
+
+    Reversing it is a credential-leak bypass, not a style choice. None of the secret
+    patterns' character classes admit C0/C1/DEL, so a single control byte planted
+    *inside* a token defeats every pattern; a later strip would then remove that byte
+    and reassemble the clean, complete secret into the rendered output -- the
+    sanitiser destroying the evidence that should have triggered the mask. Measured on
+    the pre-fix ordering: 20/20 shape x separator combinations leaked verbatim through
+    the CLI (see ``test_safe_masks_a_secret_with_a_control_byte_INTERLEAVED_inside_it``
+    and the ``safe-order-swapped`` mutant, both of which fail if this is reordered).
+
+    Stripping first can only ever over-match (two unrelated fragments joined by a
+    removed control byte), which fails safe -- toward redaction, never toward a leak.
+    """
+    return redact_text(strip_controls(text))
 
 
 def env_fields(env: object) -> tuple[EnvField, ...]:
