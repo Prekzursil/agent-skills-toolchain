@@ -80,7 +80,9 @@ def parse_mcp_list(output: str) -> list[ServerRow]:
                 id=server_id,
                 name=short_name,
                 planes=["claude"],
-                enabled=True,  # will be reconciled with disabledMcpServers below
+                # Born enabled with a handshake-derived status; both are
+                # reconciled against disabledMcpServers by reconcile_enabled().
+                enabled=True,
                 status=status,
                 auth=m.group("status").strip(),
                 command=m.group("command").strip(),
@@ -141,9 +143,25 @@ def get_disabled_ids(claude_json: Path, project_path: str) -> set[str]:
 
 
 def reconcile_enabled(rows: list[ServerRow], disabled_ids: set[str]) -> None:
-    """Mutate rows in-place to reflect whether each server is disabled."""
+    """Mutate rows in-place to reflect whether each server is disabled.
+
+    ``parse_mcp_list`` cannot see curation — it only reads the handshake glyph,
+    so every row is born ``enabled=True`` with a health-derived status.  A
+    server the owner deliberately disabled is usually not reachable, so its
+    handshake line reads ``✘ Failed to connect``; left alone that row is
+    indistinguishable from a broken server and the dead-MCP detector cries
+    "dead" about load-bearing configuration.
+
+    Reconciling against the disabled set (from ``get_disabled_ids``) re-labels
+    those rows ``AuthStatus.DISABLED`` — intentional, not a failure — while
+    leaving every still-enabled row's handshake status untouched, so genuinely
+    broken servers are still reported as ``FAILED``/dead.  The raw handshake
+    text stays in ``row.auth`` so no diagnostic detail is lost.
+    """
     for row in rows:
         row.enabled = row.id not in disabled_ids
+        if not row.enabled:
+            row.status = AuthStatus.DISABLED
 
 
 def get_server_universe(

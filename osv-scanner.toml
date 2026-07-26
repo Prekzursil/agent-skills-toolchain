@@ -1,6 +1,7 @@
 # osv-scanner configuration for the lean dependency gate (Gate 6).
 # The gate runs osv-scanner over the committed lockfiles and must report 0 actionable CVEs.
-# osv-scanner auto-loads this file from the repo root.
+# The gate-deps job applies this file to EVERY scanned lockfile via --config (see the
+# "HOW THIS FILE IS LOADED" note below -- a bare repo-root file is NOT enough).
 #
 # POLICY: an [[IgnoredVulns]] entry is allowed ONLY for a genuinely-unfixable vuln (no
 # non-breaking upgrade) OR one that is provably not reachable in THIS repo, each with a
@@ -12,13 +13,36 @@
 #   - package-lock.json                                (root npm tree)
 #   - tools/web/agentify-desktop/package-lock.json     (agentify-desktop npm tree)
 #
+# HOW THIS FILE IS LOADED — do not assume "repo root" is enough. osv-scanner auto-loads
+# osv-scanner.toml only from the SCANNED FILE's own directory, and it "does not propagate
+# to child directories". So this root file applies to package-lock.json by default, but it
+# is NOT consulted for tools/web/agentify-desktop/package-lock.json. The gate-deps job
+# therefore passes --config=osv-scanner.toml explicitly, which applies THIS file to every
+# parsed lockfile. Verified 2026-07-25: an IgnoredVulns entry added here had zero effect on
+# the agentify tree until --config was added.
+#
 # ---------------------------------------------------------------------------
-# As of adoption the scanned lockfiles report 0 actionable CVEs, so this file carries no
-# IgnoredVulns. Add a dated, reasoned entry here only for a future vuln that is genuinely
-# unfixable or provably unreachable, e.g.:
+# Entry format for a dated, reasoned per-CVE ignore:
 #
 #   [[IgnoredVulns]]
 #   id = "GHSA-xxxx-xxxx-xxxx"
 #   ignoreUntil = 2026-12-31
 #   reason = "dev-only transitive; not reachable at runtime — re-review by ignoreUntil."
 # ---------------------------------------------------------------------------
+
+# RETIRED IGNORES (kept as a dated, greppable review record -- do not re-add without new evidence)
+#
+# GHSA-mh99-v99m-4gvg (brace-expansion DoS, HIGH) -- ignored 2026-07-25, RETIRED 2026-07-25.
+#   Was hit at three dev-only resolved versions (1.1.16, 2.1.2, 5.0.7) in
+#   tools/web/agentify-desktop/package-lock.json when the advisory published, going red on
+#   every branch at once. The ignore was a stop-gap on the reasoning that the fix shipped
+#   only in 5.0.8 with no 1.x/2.x backport, so the copies pinned by parents requiring
+#   ^1.1.7 / ^2.0.1 had no semver-compatible bump.
+#   RETIRED because #192 landed the REAL fix instead: an npm `overrides` pin forcing
+#   brace-expansion to 5.0.8, which collapsed all three copies into a single resolution.
+#   Verified on this base before deleting the entry -- the lockfile now contains exactly ONE
+#   brace-expansion copy, at 5.0.8 (dev), so the gate reaches clean-zero by UPGRADE, which
+#   is what this policy prefers. Lesson recorded: the `overrides` route was judged unsafe in
+#   the ignore rationale above; it worked, and CI stayed green.
+#
+# The file intentionally carries NO active IgnoredVulns again.

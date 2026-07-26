@@ -12,10 +12,11 @@ paths:
 ---
 # CI Hygiene (non-negotiables)
 
-Cross-tool rule read by Claude Code · Codex CLI · Antigravity (agy). Three CI
-footguns that make a suite look GREEN while proving nothing (a no-op gate, a
-hung runner, a "public site on a private repo"). All three are ledger-proven —
-each one shipped a false-positive or a hang that cost real debugging.
+Cross-tool rule read by Claude Code · Codex CLI · Antigravity (agy). CI footguns
+that make a suite look GREEN while proving nothing (a no-op gate, a hung runner, a
+"public site on a private repo"), plus adjacent CI / merge-hygiene traps. All are
+ledger-proven — each one shipped a false-positive, a hang, or a wrong
+"already-merged" verdict that cost real debugging.
 
 ## 1. `python -m X` as a CI gate is a NO-OP without a real `if __name__ == "__main__"`
 
@@ -80,6 +81,37 @@ assuming "private repo = private site".
 - **Fix:** for a genuinely private artifact use a CI **artifact upload**
   (`actions/upload-artifact`, retention-scoped) or a private object store, not
   Pages. If Pages is required, treat every byte as public and scrub it first.
+
+## 4. Squash-merge rewrites history — `is-ancestor` reports a MERGED branch as NOT merged
+
+When a PR lands via **squash-merge** (this repo's default), GitHub writes ONE new commit onto
+`main` with a fresh SHA and the branch's original commits never enter `main`'s history. So
+`git merge-base --is-ancestor <branch> main` exits **1 ("not an ancestor")** for a branch that is
+fully MERGED — the work landed, those commits did not. Deciding "did this land?" from ancestry then
+reports false-behind and re-proposes already-merged work. (Ledger-proven: monitorcore PR-B1/B2/B3,
+2026-07-18.)
+
+- **Fix — trust PR state, not commit ancestry.** Ask GitHub: `gh pr view <n> --json state,mergedAt`
+  (or `gh pr list --state merged --head <branch>`); `state == MERGED` is the receipt. Reserve
+  ancestry checks for genuine fast-forward / rebase merges. Pairs with the stale-branch
+  mass-deletion guard in `windows-shell.md` §8d (`git diff origin/main...HEAD --stat` before a PR).
+
+## 5. Pin every gate tool; gitleaks allowlists are PLURAL and mutually exclusive with the singular table
+
+- **Pin each gate tool to an exact version.** CI runs `ruff==0.15.17` (`quality.yml`); a local
+  `0.15.x` mismatch formats differently and a green local check can go red in CI. Install pinned
+  (`pip install <tool>==<ver>` / `uvx <tool>@<ver>`), never the ambient one. (The CRLF-vs-LF half of
+  this story is `windows-shell.md` §8b.)
+- **gitleaks: use the plural `[[allowlists]]` array, never the singular `[allowlist]` table, and
+  NEVER both.** gitleaks REFUSES to load a config that mixes the two forms and then **silently falls
+  back to its defaults** — every waiver gone, every synthetic fixture false-flagged. Plural path
+  waivers reach the multi-line `private-key` rule only on **gitleaks >= 8.30** (8.24.3 did not), so
+  pin accordingly. The CI action's bundled gitleaks can also differ from a local `8.30.1` (it
+  URL-decodes and re-scans percent-encoded strings that local does not), so a local-clean file can
+  still flag in CI — verify against the action, not only local.
+- **Split PATs by capability.** A token that only TRIGGERS a workflow must not also read auth or
+  write Secrets; use two least-privilege PATs (e.g. a dispatch PAT vs a Secrets-write PAT), never
+  one broad token.
 
 ---
 *Deploy: copy to `~/.claude/rules/common/ci-hygiene.md` (imperative-copy sync

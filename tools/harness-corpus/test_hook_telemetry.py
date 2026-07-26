@@ -314,6 +314,36 @@ LIVE_CORPUS = Path(os.path.expanduser("~/.claude/projects"))
 #      supposed to have the corpus (i.e. the owner's machine, or a harness-regression job).
 _REQUIRE_LIVE = os.environ.get("PR3_REQUIRE_LIVE_CORPUS") == "1"
 
+# The portability predicate must test the ACTUAL precondition ("is there a corpus to mine?"),
+# not the proxy ("does the directory exist"). Measured: under WSL, ~/.claude/projects resolves
+# to the LINUX home, which exists but held 6 stray transcripts with 0 hook fires -- so
+# `is_dir()` was True, the skip did not fire, and the control FAILED for lack of data while
+# reporting "the DETECTOR is broken". A control that cries wolf on an empty corpus is worse
+# than no control: it trains you to ignore the one signal that catches a real detector break.
+# The owner's box has 12,996 transcripts, so this floor separates the two cleanly without
+# weakening anything.
+_MIN_LIVE_TRANSCRIPTS = 50
+
+
+def _live_transcript_count(limit: int = _MIN_LIVE_TRANSCRIPTS) -> int:
+    """Number of .jsonl transcripts under LIVE_CORPUS, counting no further than ``limit``.
+
+    Bounded on purpose: the real corpus is ~13k files / ~12 GB and this runs at import time.
+    """
+    if not LIVE_CORPUS.is_dir():
+        return 0
+    n = 0
+    for _dirpath, _dirs, files in os.walk(LIVE_CORPUS):
+        for f in files:
+            if f.endswith(".jsonl"):
+                n += 1
+                if n >= limit:
+                    return n
+    return n
+
+
+_LIVE_TRANSCRIPTS = _live_transcript_count()
+
 
 def test_live_corpus_is_present_when_required():
     """Fails loudly if the live corpus is required but missing, so the control below cannot
@@ -326,11 +356,20 @@ def test_live_corpus_is_present_when_required():
         f"PR3_REQUIRE_LIVE_CORPUS=1 but {LIVE_CORPUS} is absent -- the known-positive control "
         f"would have silently skipped, leaving the detector unguarded."
     )
+    assert _LIVE_TRANSCRIPTS >= _MIN_LIVE_TRANSCRIPTS, (
+        f"PR3_REQUIRE_LIVE_CORPUS=1 but {LIVE_CORPUS} holds only {_LIVE_TRANSCRIPTS} "
+        f"transcript(s) (< {_MIN_LIVE_TRANSCRIPTS}) -- too thin to be a known-positive "
+        f"control, so the detector would be left unguarded."
+    )
 
 
 @pytest.mark.skipif(
-    not LIVE_CORPUS.is_dir() and not _REQUIRE_LIVE,
-    reason="live corpus not present (portability skip; set PR3_REQUIRE_LIVE_CORPUS=1 to enforce)",
+    _LIVE_TRANSCRIPTS < _MIN_LIVE_TRANSCRIPTS and not _REQUIRE_LIVE,
+    reason=(
+        f"live corpus too thin to be a known-positive control "
+        f"(< {_MIN_LIVE_TRANSCRIPTS} transcripts; portability skip -- "
+        f"set PR3_REQUIRE_LIVE_CORPUS=1 to enforce)"
+    ),
 )
 def test_control_detector_finds_known_present_hooks_in_live_corpus():
     """Prove the detector finds a KNOWN-PRESENT item before any absence is ever reported.

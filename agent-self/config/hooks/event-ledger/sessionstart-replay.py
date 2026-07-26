@@ -39,8 +39,15 @@ def build_context(cwd: str) -> str | None:
         return None
     st = ledger.state(cwd)
     lines = ["## Event ledger (ground truth — replayed, not summarized)"]
-    if st.get("goal"):
-        lines.append(f"**Goal:** {st['goal']}")
+    # The active goal is deliberately NOT replayed here. This ledger keys state by
+    # PROJECT only -- ledger.state(cwd) has no session dimension and set via note.py
+    # --kind goal is last-writer-wins -- so injecting it hands one session whichever
+    # OTHER session wrote a goal last, in the same cwd. Decisions, failures and
+    # milestones below are durable project history and ARE safe to share; a goal is
+    # live per-session control state and is not.
+    # The correctly session-scoped re-anchor already exists: harness ledger.goal(cwd,
+    # session_id) with strict per-session isolation, surfaced by the PreToolUse hook.
+    # Re-adding a goal line here would duplicate that mechanism with worse scoping.
     open_fail = st.get("open_failures") or []
     if open_fail:
         lines.append(

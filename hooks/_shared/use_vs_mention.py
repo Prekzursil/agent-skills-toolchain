@@ -36,6 +36,11 @@ THREE RULES, matching the D1 fix direction:
       No negation test: a link is structural rather than assertional, so the mood
       of the surrounding sentence carries no signal, and a cue-based test would
       misread the common "see [the old plan](x) — now removed" phrasing.
+  (d) `kind="result"` — a TOOL RESULT payload. A match counts only when the payload
+      REPORTS the condition; it is a MENTION when the payload merely CONTAINS the
+      word — inside a field NAME, inside a CLOSED fenced example or an inline
+      `code span` in a returned document, or in a negated sentence. Closes the
+      corpus GAP recorded as RES-FP-fieldname / RES-TP-failvalue.
 
 FAIL-OPEN BY DESIGN: any malformed input or internal error returns True
 ("treat as real"). A crashing or over-eager discriminator would silently disarm
@@ -230,6 +235,109 @@ def _stub_negation_window(text: str, start: int) -> int:
     return lo
 
 
+# ------------------------------------------------------ kind="result" support
+# Characters legal in a bare JSON/YAML field name. A match containing anything else
+# (a space, a colon) cannot BE a field name, which is what makes the early-out below
+# safe: `timedout` could be a key, `timed out` is a phrase.
+_KEY_CHAR = re.compile(r"[A-Za-z0-9_.$-]")
+# `[ \t]*` not `\s*`: a formatter emits `"key" : v` on ONE line. Allowing a newline
+# would let a quoted token be adopted as the key of a colon on the following line.
+# Pinned by test_a_NEWLINE_between_the_token_and_the_colon_is_NOT_a_key -- a `\s*`
+# relaxation SURVIVED an independent mutation harness while this was comment-only.
+_KEY_COLON = re.compile(r"^[ \t]*:")
+# Negation is a property of a clause. A serialized payload has few sentence
+# terminators, so an unclamped window can reach kilobytes back and let an unrelated
+# "no"/"not" silence a genuine failure report. Clamping can only make the guard fire
+# MORE, never less, which is the safe direction for a detector.
+_RESULT_NEG_LOOKBACK = 200
+
+
+def _in_json_key(text: str, start: int, end: int) -> bool:
+    """True when the match sits inside a QUOTED JSON/YAML field NAME.
+
+    A field NAME mentions a condition; it never reports one. `json_value_text()`
+    already enforces that STRUCTURALLY by dropping keys, but only while the whole
+    payload parses. Two measured roads around it, both landing here:
+      * the caller's scan-surface cap truncates a real payload mid-document, so it
+        stops parsing and every key returns to the raw scan surface. Measured
+        2026-07-24: a 14,060-char `dbx_run_get` body clipped to the sentinel's
+        8,000-char cap, after which `"user_cancelled_or_timedout": false` matched
+        /tim(ed|e)-?out/ on a RUNNING job -- the SAME defect the structural rule was
+        written to kill, reached by a different road.
+      * a JSON/YAML document embedded inside a returned STRING value (a fetched
+        config file) is never parsed as JSON at all. Measured 2026-07-24: a github
+        `get_file_contents` call that returned a valid blob sha plus full markdown
+        was flagged `timeout` because the DOCUMENT contained `"timeout": 100000`.
+
+    QUOTED keys only, deliberately. An unquoted `word:` rule would also match the
+    common `Timeout: <cause>` error-message shape and silence a genuine report.
+    Residual, disclosed INLINE: a bare YAML key (`timeout: 30`) in a result body is
+    therefore still scanned; the settling experiment is a labelled sweep of fires on
+    YAML-returning tools.
+    """
+    if start >= end or any(not _KEY_CHAR.match(c) for c in text[start:end]):
+        return False  # a multi-word phrase is not a bare field name
+    lo = start
+    while lo > 0 and _KEY_CHAR.match(text[lo - 1]):
+        lo -= 1
+    if lo == 0 or text[lo - 1] not in "\"'":
+        return False
+    hi = end
+    while hi < len(text) and _KEY_CHAR.match(text[hi]):
+        hi += 1
+    tail = text[hi:]
+    if not tail or tail[0] != text[lo - 1]:
+        # Unterminated, or the quote style does not match the opener. Pinned in BOTH
+        # pair directions by test_a_MISMATCHED_quote_pair_is_NOT_a_key -- dropping the
+        # match requirement SURVIVED an independent mutation harness before that test.
+        return False
+    rest = tail[1:]
+    # `not rest` = the payload was truncated EXACTLY at the key's closing quote. A key
+    # that lost its colon to truncation is still a key. Deliberately tight: any
+    # trailing character other than the colon means this is a VALUE, not a key.
+    #
+    # RESIDUAL FALSE NEGATIVE, disclosed: at that ONE byte a truncated real VALUE is
+    # indistinguishable from a truncated key, so this arm silences it too. Measured
+    # 2026-07-25:
+    #   [SILENT] '{"data": {"user_cancelled_or_timedout"'   <- a key, correct
+    #   [SILENT] '{"error": "ETIMEDOUT"'                    <- a real VALUE, silenced
+    #   [FIRE  ] '{"error": "ETIMEDOUT'    truncated ONE byte earlier
+    #   [FIRE  ] '{"error": "ETIMEDOUT"}'  complete
+    # The payload itself lost the disambiguator, so this is a CHOSEN DIRECTION, not an
+    # oracle: chosen toward the mention (FP-averse), and narrow because the caller's
+    # size cap has to land on exactly that byte. No probe can settle it from the
+    # truncated surface -- raising the caller's cap is what removes the case.
+    return not rest or bool(_KEY_COLON.match(rest))
+
+
+def _closed_fenced_spans(text: str) -> list[tuple[int, int]]:
+    """Content ranges of CLOSED ``` / ~~~ fenced blocks ONLY.
+
+    Unlike `_fenced_spans`, an UNCLOSED fence is ignored rather than run to EOF. A
+    result payload is routinely truncated by the caller's size cap, which leaves a
+    dangling fence; treating that as a span to EOF would silence every real error
+    after it -- the same "an unbalanced delimiter swallows the rest of the document"
+    hazard `_inline_code_spans` is line-scoped to avoid.
+    """
+    spans: list[tuple[int, int]] = []
+    open_at = None
+    for m in _FENCE.finditer(text):
+        if open_at is None:
+            open_at = m.end() + 1
+        else:
+            spans.append((open_at, m.start()))
+            open_at = None
+    return spans
+
+
+def _result_negation_window(text: str, start: int) -> int:
+    """Offset from which to scan for a negation cue, for `kind="result"`."""
+    lo = 0
+    for m in _SENTENCE_END.finditer(text, max(0, start - 4000), start):
+        lo = m.end()
+    return max(lo, start - _RESULT_NEG_LOOKBACK, 0)
+
+
 def is_real_occurrence(text: str, span, context: Context, kind: str = "marker") -> bool:
     """True if the match at `span` is a real OCCURRENCE, False if a MENTION.
 
@@ -247,6 +355,43 @@ def is_real_occurrence(text: str, span, context: Context, kind: str = "marker") 
             if tool and tool not in _SHELL_TOOLS:
                 return True  # unknown verb -> fail-open
             return not _within(_quoted_spans(text), start, end)
+
+        if kind == "result":
+            # A TOOL RESULT is judged on whether the payload REPORTS the condition or
+            # merely CONTAINS the word. Every mention form below is a MEASURED fire:
+            #   a field NAME  -> `"user_cancelled_or_timedout": false` on a live job;
+            #   a config key inside a FETCHED document -> `"timeout": 100000`;
+            #   a CLOSED fenced console transcript in a fetched runbook;
+            #   an inline `code span`, and a negated sentence.
+            # NOT routed through `marker`: marker polarity requires a match to sit
+            # INSIDE a fence to count, which is exactly backwards for a result -- a
+            # genuine transport error is USUALLY unfenced prose (usually, not always;
+            # see the residual on the closed-fence rule below). Measured: forcing
+            # prose-marker mode silenced ALL FOUR positive controls plus the existing
+            # suite's "could not connect" case, trading false alarms for blindness.
+            if _in_json_key(text, start, end):
+                return False
+            # RESIDUAL FALSE NEGATIVE, disclosed. The line above once asserted as FACT
+            # that a genuine transport error is unfenced prose; that was an ASSUMPTION
+            # with no measurement behind it, and this rule is what it justified. A
+            # server that formats its OWN error text inside a CLOSED fence is now
+            # silent on this lexical path. Measured BOTH states 2026-07-25:
+            #   "Tool failed:\n```\nMCP error -32000: server is not responding\n```"
+            #     -> FAILED on origin/main, SUCCESS here;
+            #   the same text UNFENCED -> FAILED on both.
+            # Bounded, and measured so: an MCP failure normally arrives in an envelope
+            # that stage 1 catches before this function is reached (fenced +
+            # isError:true -> `isError=true`; fenced + an `error` field -> `error field
+            # set`). How often a server fences its own error body is UNVERIFIED
+            # (uncertain 30-55%) -- settling experiment is a sweep of recorded MCP
+            # failure bodies for fenced error text.
+            if _within(_closed_fenced_spans(text), start, end):
+                return False
+            if _within(_inline_code_spans(text, start), start, end):
+                return False
+            return not _NEGATION.search(
+                text[_result_negation_window(text, start) : start]
+            )
 
         if kind in ("doclink", "claim"):
             # Inverted polarity (see the module docstring): a link is real UNLESS it

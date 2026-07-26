@@ -22,12 +22,14 @@ _SECRET_PATTERNS = (
     re.compile(r"\bglpat-[A-Za-z0-9_-]{20,}\b", re.I),
     re.compile(r"\bnpm_[A-Za-z0-9]{20,}\b", re.I),
     re.compile(r"\bAIza[A-Za-z0-9_-]{30,}\b"),
-    re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/-]{20,}={0,2}"),
+    # `Basic` matters as much as `Bearer`: `Authorization: Basic <b64>` carries
+    # user:password and was passing through untouched (measured 2026-07-26).
+    re.compile(r"(?i)\b(?:Bearer|Basic)\s+[A-Za-z0-9._~+/=-]{20,}={0,2}"),
     re.compile(
-        r"(?i)\b[A-Za-z0-9_-]*(?:API[_-]?KEY|ACCESS[_-]?KEY|SECRET|TOKEN|PASSWORD|PASSWD|PRIVATE[_-]?KEY)[A-Za-z0-9_-]*\s*[:=]\s*['\"]?[A-Za-z0-9._~+/-]{18,}={0,2}"
+        r"(?i)\b[A-Za-z0-9_-]*(?:API[_-]?KEY|ACCESS[_-]?KEY|SECRET|TOKEN|PASSWORD|PASSWD|PRIVATE[_-]?KEY)[A-Za-z0-9_-]*['\"]?\s*[:=]\s*['\"]?[^\s'\"]{18,}={0,2}"
     ),
     re.compile(
-        r"(?i)(?:api[_-]?key|token|secret|password)\s*[:=]\s*['\"]?[A-Za-z0-9._~+/-]{18,}={0,2}"
+        r"(?i)(?:api[_-]?key|token|secret|password)['\"]?\s*[:=]\s*['\"]?[^\s'\"]{18,}={0,2}"
     ),
     # Preserve the existing sync-self.ps1 JSON heuristic when routing it through
     # this shared, value-redacting classifier. It intentionally accepts shorter

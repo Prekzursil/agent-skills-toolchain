@@ -175,8 +175,22 @@ def test_claude_build_hooks_folds_in_live_settings_hand_edits():
         g for g in pre if "dispatcher.py" in g["hooks"][0]["command"]
     )
     assert dispatcher_group["matcher"] == (
-        "Bash|PowerShell|Edit|Write|MultiEdit|NotebookEdit|apply_patch|Task|WebFetch|mcp__.*"
+        "Bash|PowerShell|Edit|Write|MultiEdit|NotebookEdit|apply_patch|Agent|Task"
+        "|WebFetch|mcp__.*"
     )
+    # Assert BEHAVIOUR, not just the string. The subagent-spawn tool was renamed
+    # Task -> Agent and this matcher never followed, so every subagent spawn missed the
+    # dispatcher while a subagent can do anything a session can. A string-equality
+    # assertion could not catch that; these can.
+    import re as _re
+
+    _m = dispatcher_group["matcher"]
+    for _gated in ("Agent", "Task", "Bash", "PowerShell", "Edit", "Write"):
+        assert _re.fullmatch(_m, _gated), f"{_gated} must reach the dispatcher"
+    for _ungated in ("Read", "Grep", "Glob"):
+        assert not _re.fullmatch(_m, _ungated), (
+            f"{_ungated} is read-only; gating it costs a dispatcher run for no gain"
+        )
     assert codex["PreToolUse"][0]["matcher"] == ".*"
 
     # (b) 2nd SessionStart group: the local-TUI reminder.

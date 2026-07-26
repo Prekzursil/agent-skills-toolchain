@@ -69,7 +69,14 @@ _NO_MATCHER = {"UserPromptSubmit", "Stop"}
 # Paths resolve from Path.home() so the generated block matches the live literal
 # (C:/Users/<user>/...) without hard-coding a username.
 # --------------------------------------------------------------------------- #
-_CLAUDE_PRETOOLUSE_MATCHER = "Bash|PowerShell|Edit|Write|MultiEdit|NotebookEdit|apply_patch|Task|WebFetch|mcp__.*"
+# `Agent` is the CURRENT name of the subagent-spawn tool; `Task` is its legacy name and is
+# kept for older hosts. The rename was never followed here, so every subagent spawn missed
+# the dispatcher entirely -- no goal re-anchor, no file-scope check, no lifecycle guard, no
+# ledger record -- while a subagent can do anything a session can. Verified 2026-07-26
+# against the live matcher: "Agent" did not match, "Task" did.
+# Deliberately NOT widened to ".*": read-only tools (Read/Grep/Glob) need no gate, and
+# gating them would cost a dispatcher run per call for no security gain.
+_CLAUDE_PRETOOLUSE_MATCHER = "Bash|PowerShell|Edit|Write|MultiEdit|NotebookEdit|apply_patch|Agent|Task|WebFetch|mcp__.*"
 
 
 def _command_group(

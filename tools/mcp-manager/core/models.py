@@ -15,11 +15,19 @@ class AuthStatus(str, Enum):
     CONNECTED = "connected"
     NEEDS_AUTH = "needs_auth"
     FAILED = "failed"
+    # Deliberately switched off by curation (disabledMcpServers) — an intentional
+    # state, NOT a health failure.  Never derived from a handshake glyph.
+    DISABLED = "disabled"
     UNKNOWN = "unknown"
 
     @classmethod
     def from_glyph(cls, glyph: str) -> "AuthStatus":
-        """Map the glyphs printed by 'claude mcp list' to an AuthStatus."""
+        """Map the glyphs printed by 'claude mcp list' to an AuthStatus.
+
+        'claude mcp list' reports handshake health only; it has no disabled
+        glyph, so DISABLED is never produced here — it is applied by
+        claude_adapter.reconcile_enabled from the disabled set.
+        """
         g = glyph.strip()
         if g in ("✔",):
             return cls.CONNECTED
@@ -47,6 +55,35 @@ class ServerRow:
     def duplicated(self) -> bool:
         return len(set(self.planes)) > 1
 
+    @property
+    def dead(self) -> bool:
+        """True only for an ENABLED server whose handshake FAILED.
+
+        The single honest answer to "is this server broken?".  A server the
+        owner deliberately disabled is never dead — reporting intentional
+        curation as breakage is a false alarm that trains the owner to ignore
+        the detector.
+
+        Scope of the `enabled` guard, measured — NOT wider than this:
+
+        * Cross-plane rows: `dead` does return False when ANOTHER plane
+          disabled a row whose status is still FAILED, and that is the whole
+          of it.  `status._merge_rows` copies the claude-plane `status`
+          verbatim, and both UIs key on `row.status.value` rather than on
+          `dead`, so such a row still renders "error"/red.  The cross-plane
+          case is covered in this predicate ONLY — not in what the owner
+          sees.  Settling change, out of scope here and needing its own
+          tests: re-label FAILED -> DISABLED in `_merge_rows` when a plane
+          disables the row.  Guarded by
+          `test_status.py::test_cross_plane_disabled_keeps_failed_status`.
+        * `dead` is exposed in `to_dict()` but has NO production consumer:
+          `app.py json` builds `ServerInfo` dicts in `core/inventory.py` and
+          never calls `ServerRow.to_dict()`.  The change the owner actually
+          sees is the `AuthStatus.DISABLED` re-label applied by
+          `claude_adapter.reconcile_enabled`, plus the two UI status maps.
+        """
+        return self.enabled and self.status == AuthStatus.FAILED
+
     def to_dict(self) -> dict[str, object]:
         return {
             "id": self.id,
@@ -57,6 +94,7 @@ class ServerRow:
             "auth": self.auth,
             "command": self.command,
             "duplicated": self.duplicated,
+            "dead": self.dead,
         }
 
 
