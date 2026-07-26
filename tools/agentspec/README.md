@@ -23,13 +23,13 @@ shared spec, two runtimes diverge into rival dialects.
 | `spec.py` | frozen declarative types: `WorkUnit`, `FanOut`, `Barrier`, `Pipeline`, `Workflow`, `ReceiptSpec` |
 | `validate.py` | the closed 28-id violation set over a `Workflow` |
 | `envelope.py` | `status` / `summary` / `next_actions` / `artifacts` + the error path's three recovery fields |
-| `taxonomy.py` | the ONE closed failure vocabulary every lane matches on |
+| `taxonomy.py` | the closed failure vocabulary every lane matches on (+ `family` for policy branching) |
 | `argv.py` | `build_argv` / `build_for_rail` / `RailSpec` — the prompt never reaches argv |
 | `oracle.py` | **the completion AND-gate** — the most important function here |
 | `receipt.py` | decode / parse / schema / forbidden-marker checks |
 | `progress.py` | `ResultText` vs `ProgressLog` — a progress stream cannot become a result |
 | `terminal.py` | `SUCCESS:<id>` / `FAILED:<id> <reason>` |
-| `retry.py` | only `win-arg-limit` retries, exactly once |
+| `retry.py` | `win-arg-limit` retries once; `rate-limited` backs off, bounded; nothing else |
 | `dispatchpolicy.py` | no fire-and-forget on an awaited dispatch; no implicit timeout |
 | `budget.py` | an immutable, monotonic, no-double-count ledger; `cost_per_success` |
 | `clock.py` | the injected `Clock` / `SteppableClock` ports (deliberately no `SystemClock`) |
@@ -51,9 +51,47 @@ for consumers that match on `severed-stream`), so neither audience has to parse 
 string.
 
 `ReceiptSpec` must supply a non-vacuous content clause — `required_fields` for JSON,
-`forbidden_markers` for text — or `validate_workflow` reports `unit-receipt-clause-vacuous`.
-Without it the gate silently reduces to "exit 0 AND non-empty", and a rail that exits 0 over
-`"work is still in progress"` reads as SUCCESS.
+`forbidden_markers` for text. `validate_workflow` reports `unit-receipt-clause-vacuous` **and
+`judge` itself raises**, because a consumer that hand-builds a `ReceiptSpec` never goes through
+a `Workflow` and used to lose the catch. Without the clause the gate silently reduces to
+"exit 0 AND non-empty", and a rail that exits 0 over `"work is still in progress"` reads as
+SUCCESS — the progress-stream rule does not save it, since that string carries neither a
+bracketed tag nor a background-job phrase. Both call sites share
+`ReceiptSpec.is_vacuous()`, so they cannot drift.
+
+## The two failure vocabularies in this repo — map, do not merge
+
+`agentspec/taxonomy.py` is the vendor-neutral set for the SPEC layer.
+`hooks/_shared/failure_taxonomy.py` is the pre-existing set for the hook / fan-in-barrier
+layer, and it is **not** a duplicate implementation: `hooks/_shared/completion.py` judges
+artifact size, sentinels and liveness across four states, while `agentspec/oracle.py` judges a
+receipt against a schema across two. Complementary, and the hooks tree is deliberately
+untouched by this package. What WOULD bite is a monitor grepping one string set against the
+other, so:
+
+| this package | hooks/_shared | note |
+|---|---|---|
+| `rail-exit-<n>` | `codex-exit-<n>` | same class; ours is vendor-neutral because a rail may be any vendor |
+| `rate-limited-<status>` | `"429"` | same class; ours keeps the segment shape so `family()` recognises it |
+| `severed-stream` | `severed-stream` | identical string |
+| `win-arg-limit` | `win-arg-limit` | identical string |
+| `schema-invalid` | `schema-invalid` | identical string |
+| `timeout-<n>s` | `timeout` | ours carries the budget in the code |
+| — | `unclassified` | absent here **on purpose**: this package's boundary functions REFUSE a non-member rather than bucket it, so an unclassified code cannot enter |
+
+Retry policy agrees across both, with one deliberate difference in the ACTOR:
+
+| reason | this package (`plan_retry`) | hooks (`HANDLERS`) |
+|---|---|---|
+| `win-arg-limit` | retry once, prompt off argv | `retry`, `max_retries=1`, `--ignore-user-config` |
+| `rate-limited` | 6 attempts, doubling backoff, no jitter | `backoff`, `max_retries=5`, jitter |
+| `severed-stream` | `retry=False` — **no AUTOMATIC retry** | `redispatch`, `max_retries=1` |
+
+The `severed-stream` row is not a contradiction: `oracle._retry_instruction` does tell the
+operator to "re-dispatch the SAME unit once". The difference is who decides — a runtime or a
+human that has read the diagnostic tail, never this function looping on its own. Jitter is
+absent here because it needs entropy and `determinism.py` fails this package's own source on a
+`random` import; the transport shim adds jitter to the schedule agentspec returns.
 
 ## Running the gates
 
@@ -71,9 +109,19 @@ sentinel): `pytest --run-live`.
 
 100% coverage does not prove behaviour. Three layers, in order:
 
-1. **`tests/test_mutations.py` — 27 mutants**, each required to turn its row RED, plus the
+1. **`tests/test_mutations.py` — 28 mutants**, each required to turn its row RED, plus the
    unmutated state asserted green, plus a coverage assertion that the mutant set spans every row
    id, plus a blast-radius control (a mutant must not red an unrelated row).
+1b. **Constant pins.** A mutant swaps a whole FUNCTION through the injected `Impl`, so it
+   cannot reach a module CONSTANT. An adversarial reviewer measured that hole on 2026-07-26:
+   raising `argv.MIN_SUBSTRING_SCAN_LEN` from `64` to `4096` disabled the third prompt-on-argv
+   rule while the suite stayed at `366 passed` and coverage stayed at `100.00%`, because every
+   fixture was DERIVED from the constant. Every threshold-shaped constant now carries a literal
+   pin plus an absolute-length behavioural test — `WINDOWS_CMDLINE_CAP`,
+   `MIN_SUBSTRING_SCAN_LEN`, `RailSpec.cap`, `RailSpec.prompt_transport`,
+   `RATE_LIMIT_MAX_ATTEMPTS`, `RATE_LIMIT_BASE_BACKOFF_MS` — and R4 additionally exercises bare
+   containment through the eval registry, so the same edit now reds 7 tests in 3 files and
+   drops coverage to 98.59%.
 2. **`testlint.py`** fails any `test_*` function with zero assertions, and runs over this
    package's own suite.
 3. **No exclusion.** There is ZERO `# pragma: no cover` and no coverage `omit` in this package —

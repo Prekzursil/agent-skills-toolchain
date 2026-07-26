@@ -36,8 +36,9 @@ from typing import Any
 from agentspec import receipt as receipt_mod
 from agentspec.envelope import ErrorDetail, Observation, error, success
 from agentspec.progress import looks_like_progress
+from agentspec.retry import RATE_LIMIT_MAX_ATTEMPTS
 from agentspec.spec import RECEIPT_FORMATS, ReceiptSpec
-from agentspec.taxonomy import rail_exit
+from agentspec.taxonomy import family, rail_exit
 
 CLAUSES: tuple[str, ...] = (
     "exit-zero",
@@ -230,6 +231,11 @@ def _root_cause(verdict: Verdict, reason: str) -> str:
 
 
 def _retry_instruction(reason: str) -> str:
+    if family(reason) == "rate-limited":
+        return (
+            "back off and re-dispatch the SAME unit: agentspec.retry.plan_retry returns the "
+            "bounded doubling schedule; add jitter in the transport, never here"
+        )
     if reason == "receipt-missing":
         return (
             "re-dispatch the SAME unit once, in the FOREGROUND, with an explicit "
@@ -246,6 +252,11 @@ def _retry_instruction(reason: str) -> str:
 
 
 def _stop_condition(reason: str) -> str:
+    if family(reason) == "rate-limited":
+        return (
+            f"stop after {RATE_LIMIT_MAX_ATTEMPTS} attempts and report "
+            f"FAILED <unit> {reason}; never retry unbounded"
+        )
     if reason in {"receipt-missing", "receipt-empty", "receipt-unparseable"}:
         return (
             "stop after 1 retry and report FAILED severed-stream; never report SUCCESS"

@@ -58,6 +58,34 @@ def test_a_payload_that_is_only_bracketed_progress_lines_is_rejected() -> None:
     assert got.marker == "progress-line-only"
 
 
+def test_an_INDENTED_bracketed_progress_stream_is_still_rejected() -> None:
+    """The rule tolerates leading whitespace — a piped stream is often indented.
+
+    Untested until now; the adversarial critic flagged the leading-whitespace form as
+    uncovered while RETRACTING the anchoring concern (``classify`` uses ``re.match``, which
+    anchors at position 0 whatever the pattern says).
+    """
+    got = classify("   [codex] thinking\n\t[codex] done\n")
+    assert isinstance(got, ProgressLog)
+    assert got.marker == "progress-line-only"
+
+
+def test_a_bracketed_tag_with_NO_delimiter_is_NOT_treated_as_progress() -> None:
+    """SCOPE, pinned deliberately — and a disclosed residual, not a fixed defect.
+
+    The rule requires whitespace after the tag, so ``[codex]done`` classifies as a RESULT.
+    Widening it would also catch a body whose every line is a bracketed reference
+    (``[1]Smith``), and an over-reaching guard that rejects a real answer is treated here as
+    exactly as broken as one that lets a progress stream through.
+
+    UNVERIFIED whether any real rail emits ``[tag]body`` with no delimiter — every observed
+    ``[codex] …`` line has a space. SETTLING EXPERIMENT: grep a corpus of captured codex /
+    claude progress streams for ``^\\[[a-z]+\\][^ ]``; if any hit, widen the rule AND add the
+    bracketed-reference control that keeps it from over-reaching.
+    """
+    assert isinstance(classify("[codex]done\n[codex]thinking\n"), ResultText)
+
+
 def test_a_progress_prefix_followed_by_real_content_is_a_result() -> None:
     """Detector control: the prefix rule must NOT swallow a payload with real content."""
     got = classify("[codex] thinking\nThe answer is 42.\n")

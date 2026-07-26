@@ -15,8 +15,9 @@ import json
 import pytest
 
 from agentspec.envelope import validate_observation
-from agentspec.oracle import CLAUSES, RailResult, judge, observe
+from agentspec.oracle import CLAUSES, RailResult, Verdict, judge, observe
 from agentspec.progress import looks_like_progress
+from agentspec.retry import RATE_LIMIT_MAX_ATTEMPTS
 from agentspec.spec import ReceiptSpec
 
 JSON_SPEC = ReceiptSpec(fmt="json", required_fields=("status", "summary"))
@@ -288,6 +289,29 @@ def test_every_error_projection_carries_root_cause_retry_and_stop_condition(
 def test_a_severed_projection_names_severed_stream_in_its_root_cause() -> None:
     verdict = judge("u1", RailResult(exit_code=0, receipt_bytes=None), JSON_SPEC)
     assert "severed-stream" in observe(verdict).error.root_cause  # type: ignore[union-attr]
+
+
+def test_a_rate_limited_projection_carries_the_BACKOFF_recovery_advice() -> None:
+    """``judge`` never mints ``rate-limited`` — a RAIL-level 429 does, and ``Verdict`` is public.
+
+    So the envelope projection must give a 429 the backoff instruction and the attempt ceiling,
+    not the generic "inspect the diagnostic tail" fallback, which would tell an operator to
+    stop where the correct action is to wait and re-dispatch.
+    """
+    verdict = Verdict(
+        unit_id="u1",
+        ok=False,
+        reason="rate-limited-429",
+        severed=False,
+        passed_clauses=(),
+        detail="the rail returned HTTP 429",
+    )
+    obs = observe(verdict)
+    assert obs.error is not None
+    assert obs.error.code == "rate-limited-429"
+    assert "back off" in obs.error.retry_instruction
+    assert str(RATE_LIMIT_MAX_ATTEMPTS) in obs.error.stop_condition
+    assert validate_observation(obs) == ()
 
 
 def test_an_incomplete_text_projection_carries_the_content_reason() -> None:
