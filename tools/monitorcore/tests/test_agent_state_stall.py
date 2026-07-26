@@ -259,10 +259,89 @@ def test_agent_status_caller_supplied_terminal_evidence_beats_any_freeze(tmp_pat
     # without it: a corroborated stall by the second poll
     assert st.agent_status(p, now=now) == ("working", ELEVEN_HOURS)
     assert st.agent_status(p, now=now) == ("stalled", ELEVEN_HOURS)
-    # with it: done on every poll, however deep the freeze
+    # with it: done on every poll, however deep the freeze.
+    # NOTE the ``reset_state`` below scopes this test to a CLEAN cache. That is a real
+    # case, but on its own it MASKED a live defect — see the sibling
+    # ``…_overrides_an_already_cached_stall``, which deliberately omits the reset.
     st.reset_state()
     for _ in range(3):
         assert st.agent_status(p, now=now, terminal=True) == ("done", ELEVEN_HOURS)
+
+
+def test_caller_terminal_evidence_overrides_an_already_cached_stall(tmp_path):
+    """``terminal=True`` must beat a stall ALREADY IN THE CACHE — no reset first.
+
+    The natural polling order is: the monitor polls, infers a stall, and only THEN does the
+    manifest/``Task``-result evidence arrive. Because a finished agent's mtime never moves
+    again, a ``stalled`` cached before that moment can never be invalidated by mtime, so a
+    cache short-circuit placed ahead of the ``terminal`` read makes the wrong verdict
+    PERMANENT. Measured on the unfixed code: ``working → stalled → stalled → stalled``.
+
+    Deliberately does NOT call :func:`reset_state` — the reset is exactly what hid this.
+    """
+    p = _write(tmp_path / "wedged.jsonl", _unfinished_turn())
+    now = 1_000_000.0
+    _set_age(p, now, age=ELEVEN_HOURS)
+    assert st.agent_status(p, now=now) == ("working", ELEVEN_HOURS)
+    assert st.agent_status(p, now=now) == ("stalled", ELEVEN_HOURS)
+    assert st._STATUS_CACHE[p][1] == "stalled"  # the wrong verdict is now cached
+
+    # Evidence arrives late. Every subsequent poll must answer ``done`` — the first by
+    # recomputing past the stale cache, the rest from the CORRECTED cache entry.
+    for _ in range(3):
+        assert st.agent_status(p, now=now, terminal=True) == ("done", ELEVEN_HOURS)
+    assert st._STATUS_CACHE[p][1] == "done"  # …and the entry was repaired, not bypassed
+
+
+def test_a_cached_stall_is_recomputed_once_the_mtime_moves(tmp_path):
+    """A cached verdict must not outlive the file it described (the mtime half).
+
+    Guards the docstring's "any mtime movement invalidates that cache". Without the
+    ``cached[0] == mtime`` half of the check, a woken-up agent stays ``stalled`` forever:
+    ``--cov-branch`` scores the ``if`` OUTCOME, not each sub-condition, so mutating it to a
+    bare ``if cached:`` otherwise leaves the suite green at 100%.
+    """
+    path = tmp_path / "wedged.jsonl"
+    p = _write(path, _unfinished_turn("Bash"))
+    now = 1_000_000.0
+    _set_age(p, now, age=ELEVEN_HOURS)
+    assert st.agent_status(p, now=now) == ("working", ELEVEN_HOURS)
+    # the stall is cached against THIS mtime:
+    assert st.agent_status(p, now=now) == ("stalled", ELEVEN_HOURS)
+
+    # The agent wakes and appends, which moves the mtime. Hold the file STALE so the
+    # freshness short-circuit cannot be what answers — the cache check must be reached.
+    _write(path, _unfinished_turn("Bash"), _unfinished_turn("Read"))
+    woke = ELEVEN_HOURS - 1.0
+    _set_age(path, now, age=woke)
+    assert st.agent_status(p, now=now) == ("working", woke)
+
+
+def test_an_mtime_move_alone_forces_a_re_read_even_when_content_is_identical(tmp_path):
+    """The mtime axis in isolation: byte-identical content, moved mtime ⇒ still re-read.
+
+    The sibling above moves mtime and content together (they always move together in the
+    wild), so it cannot say WHICH one invalidated. Here the content is unchanged, so the
+    recomputed verdict equals the cached one and the return value proves nothing — the
+    observable is instead the injected fingerprint memory, which is written ONLY on the
+    recompute path (``agent_state.agent_status`` records ``seen[path]`` after reading).
+    An empty dict afterwards means the cache short-circuited and the file was never read.
+    """
+    p = _write(tmp_path / "wedged.jsonl", _unfinished_turn())
+    now = 1_000_000.0
+    _set_age(p, now, age=ELEVEN_HOURS)
+    shared: dict[str, str | None] = {}
+    assert st.agent_status(p, now=now, fingerprints=shared) == ("working", ELEVEN_HOURS)
+    assert st.agent_status(p, now=now, fingerprints=shared) == ("stalled", ELEVEN_HOURS)
+
+    os.utime(p, (now, now - (ELEVEN_HOURS - 1.0)))  # mtime moves; bytes do not
+    # a FRESH memory, so non-empty afterwards ⇔ the file really was re-read:
+    probe: dict[str, str | None] = {}
+    assert st.agent_status(p, now=now, fingerprints=probe) == (
+        "working",  # a fresh memory has no previous fingerprint ⇒ one signal only
+        ELEVEN_HOURS - 1.0,
+    )
+    assert list(probe) == [p], "cache hit: the moved mtime did not invalidate"
 
 
 def test_reset_state_clears_both_caches(tmp_path):

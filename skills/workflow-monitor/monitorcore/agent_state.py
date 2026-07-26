@@ -318,14 +318,23 @@ def agent_status(
     signal is not evidence.
 
     Terminal states (``done`` / ``stalled``) are cached by frozen mtime so a finished agent
-    is not re-read; any mtime movement invalidates that cache. ``now`` is injectable for
-    deterministic tests, as is ``fingerprints`` (the cross-poll fingerprint memory, which
-    defaults to the module-level one).
+    is not re-read. TWO things invalidate that cache: any mtime movement, and a caller
+    supplying ``terminal=True`` against a cached ``stalled`` — see below for why the second
+    is load-bearing rather than belt-and-braces. ``now`` is injectable for deterministic
+    tests, as is ``fingerprints`` (the cross-poll fingerprint memory, which defaults to the
+    module-level one).
 
     ``terminal`` lets a caller contribute terminal evidence the TRANSCRIPT DOES NOT CARRY —
     e.g. the manifest/journal ``done`` that :func:`bucket_agent` already models, or the
     parent transcript's completed ``Task`` tool result. It is OR-ed with the in-file signals,
-    so ``terminal=True`` guarantees ``done`` at any age and any freeze depth. This matters:
+    so ``terminal=True`` yields ``done`` at any freeze depth and at any age PAST ``fresh``.
+    Scoped deliberately: below ``fresh`` the answer is ``running``, because freshness is
+    decided before any content or caller evidence is consulted (a just-touched transcript is
+    a live agent whatever a stale manifest says). The cache bypass above is what makes the
+    rest of that sentence true in the SHIPPED path and not merely in :func:`classify_status`:
+    a finished agent's mtime never moves again, so without it a ``stalled`` cached before the
+    evidence arrived would be permanent and ``terminal=True`` would be silently ignored
+    forever. This matters:
     measured on this box, 64 of 66 long-finished transcripts that the single-signal oracle
     mislabelled carry NO end-of-turn evidence in their own bytes (they end mid-``tool_use``
     / ``tool_result``), so from the file alone they are genuinely indistinguishable from a
@@ -347,7 +356,7 @@ def agent_status(
     if age < fresh:
         return ("running", age)
     cached = _STATUS_CACHE.get(path)
-    if cached and cached[0] == mtime:
+    if cached and cached[0] == mtime and not (terminal and cached[1] == "stalled"):
         return (cached[1], age)
     seen = _FINGERPRINTS if fingerprints is None else fingerprints
     ev = read_evidence(path)
