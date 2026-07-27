@@ -115,6 +115,13 @@ def transport_failure(
 
     Refuses a reason outside the closed taxonomy: an envelope carrying an unmatched code is
     invisible to every consumer that greps the taxonomy, which is the failure this guards.
+
+    The MARKER carries ``family(reason)`` while the ENVELOPE keeps the full parametrised code:
+    ``env-missing-codex`` renders as ``FAILED:<id> env-missing`` but stays ``env-missing-codex``
+    in ``error.code``. That is a deliberate split, not a constraint --
+    :func:`agentspec.terminal.failure_line` is family-aware and would accept the parametrised
+    form. The marker is the line a consumer GREPS, so it is kept at the closed-set granularity
+    a grep can enumerate; the parameter, which is unbounded, stays in the field built for it.
     """
     if not is_reason(reason):
         raise UnknownReason(

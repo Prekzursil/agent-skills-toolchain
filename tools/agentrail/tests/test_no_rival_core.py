@@ -88,13 +88,64 @@ def test_every_inline_reason_in_the_source_resolves_to_a_taxonomy_member() -> No
 
 
 def test_the_inline_reason_scanner_would_catch_a_minted_reason() -> None:
-    """The detector control: prove the scanner sees a bad reason before trusting its silence."""
+    """The detector control: prove the scanner sees a bad reason before trusting its silence.
+
+    ``resolution_failure`` is in here because it was MISSING from ``REASON_SINKS``: its reason
+    is the THIRD positional, the old index rule could only express 0 or 1, and an injected
+    ``resolution_failure(unit_id, "codex", "rail-was-grumpy", tried=())`` left the gate green.
+    Every sink is now driven at its declared index, so a new one cannot be half-added.
+    """
     minted = _reason_fields(
         'transport_failure("u1", "rail-was-grumpy", detail="d")\n'
+        'resolution_failure("u1", "codex", "rail-was-sulky", tried=())\n'
+        'failure_line("u1", "rail-was-quiet")\n'
+        'plan_retry("rail-was-tired", attempt=1)\n'
         'class Boom(ValueError):\n    reason = "totally-invented"\n'
     )
-    assert set(minted) == {"rail-was-grumpy", "totally-invented"}
+    assert set(minted) == {
+        "rail-was-grumpy",
+        "rail-was-sulky",
+        "rail-was-quiet",
+        "rail-was-tired",
+        "totally-invented",
+    }
     assert not any(family(literal) for literal in minted)
+
+
+def test_every_declared_reason_sink_is_a_real_callable_at_its_declared_index() -> None:
+    """A watchlist entry naming a function that does not exist would pass forever.
+
+    Checks the NAME resolves and that the declared index is inside the callable's real
+    positional signature -- the two ways this table can be wrong without anything going red.
+    """
+    import inspect
+
+    from agentspec.retry import plan_retry
+    from agentspec.terminal import failure_line
+
+    from agentrail.report import resolution_failure, transport_failure
+
+    resolved = {
+        "transport_failure": transport_failure,
+        "failure_line": failure_line,
+        "resolution_failure": resolution_failure,
+        "plan_retry": plan_retry,
+    }
+    assert set(resolved) == set(REASON_SINKS), (
+        "every sink must be resolved and checked here"
+    )
+    for name, func in resolved.items():
+        positional = [
+            parameter
+            for parameter in inspect.signature(func).parameters.values()
+            if parameter.kind
+            in {parameter.POSITIONAL_ONLY, parameter.POSITIONAL_OR_KEYWORD}
+        ]
+        index = REASON_SINKS[name]
+        assert index < len(positional), f"{name}: index {index} is out of range"
+        assert "reason" in positional[index].name, (
+            f"{name}: positional {index} is {positional[index].name!r}, not the reason"
+        )
 
 
 def test_the_transport_enum_is_agentspecs_and_is_not_widened() -> None:
@@ -148,10 +199,26 @@ def test_the_scanner_watches_names_that_actually_exist_in_agentspec() -> None:
     assert missing == set(), f"watchlist names absent from agentspec: {sorted(missing)}"
 
 
-REASON_SINKS: frozenset[str] = frozenset(
-    {"transport_failure", "failure_line", "rail_exit", "plan_retry"}
-)
-"""Callables whose SECOND positional argument (or first, for the single-arg ones) is a reason."""
+REASON_SINKS: dict[str, int] = {
+    "transport_failure": 1,
+    "failure_line": 1,
+    "resolution_failure": 2,
+    "plan_retry": 0,
+}
+"""Callables that CONSUME a reason, mapped to the POSITIONAL INDEX it arrives at.
+
+Two repairs, both measured:
+
+* Was a set plus an inline ``index = 1 if name in {...} else 0``, which could not express a
+  third position -- so ``resolution_failure(unit_id, rail_name, reason, ...)`` was omitted and
+  an injected ``resolution_failure(u, "codex", "rail-was-grumpy", tried=())`` left this gate
+  GREEN. Nothing could actually ship one (``transport_failure`` raises ``UnknownReason`` at
+  runtime), but a static gate advertising defence-in-depth it does not have is worse than no
+  gate, because it is trusted.
+* ``rail_exit`` was listed and is NOT a sink: ``agentspec.taxonomy.rail_exit(exit_code: int)``
+  PRODUCES a reason from an int. A watchlist entry that can never match is the same class of
+  fake coverage as the row above, pointing the other way.
+"""
 
 
 def _reason_fields(source: str) -> tuple[str, ...]:
@@ -174,7 +241,7 @@ def _reason_arg(node: object) -> tuple[str, ...]:
     name = getattr(node.func, "id", None) or getattr(node.func, "attr", None)
     if name not in REASON_SINKS:
         return ()
-    index = 1 if name in {"transport_failure", "failure_line"} else 0
+    index = REASON_SINKS[name]
     if len(node.args) <= index:
         return ()
     candidate = node.args[index]

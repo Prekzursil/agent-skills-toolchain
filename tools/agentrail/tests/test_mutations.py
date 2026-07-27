@@ -231,7 +231,87 @@ def broken_deploy_guard() -> bytes | None:
 
 
 # --------------------------------------------------------------------------------------------
-# M6 -- the anti-duplication scanner, reverted by forking an agentspec constant.
+# M6 -- the shim's exit-code propagation, reverted to the fail-open bare `endlocal`.
+# --------------------------------------------------------------------------------------------
+
+
+def check_the_shim_carries_the_exit_code_out(body: str) -> None:
+    tail = [line.strip() for line in body.splitlines() if line.strip()][-1]
+    assert tail == "endlocal & exit /b %errorlevel%", (
+        f"the shim's last statement is {tail!r}; a bare `endlocal` RESETS ERRORLEVEL to 0, so "
+        f"every failure exits 0 and every caller that branches on the exit code reads success"
+    )
+
+
+def sound_shim_exit_code() -> str:
+    return render_shim(["/tools"])
+
+
+def broken_shim_exit_code() -> str:
+    """MUTATION: end on a bare ``endlocal``, which is what shipped and measured exit 0."""
+    return render_shim(["/tools"]).replace(
+        "endlocal & exit /b %errorlevel%", "endlocal"
+    )
+
+
+# --------------------------------------------------------------------------------------------
+# M7 -- the JSON printer, reverted to a plain-text renderer that emits the control byte live.
+#
+# NOT `ensure_ascii=False`: that mutation was TRIED and it is an EQUIVALENT MUTANT. MEASURED --
+# `json.dumps({"k": "a\x1b]8;;x\x07"}, ensure_ascii=False)` still emits ``, because RFC
+# 8259 forbids a raw C0 control inside a JSON string and `json` escapes it whatever the flag
+# says; `ensure_ascii` governs NON-ASCII only. Shipping that row would have been theatre: a
+# mutation that changes nothing, guarded by a check that could never go red. The real invariant
+# is "the envelope is printed AS JSON", and a plain-text renderer is what actually breaks it.
+# --------------------------------------------------------------------------------------------
+
+OSC8 = "\x1b]8;;http://attacker/steal\x07click\x1b]8;;\x07"
+
+
+def check_no_live_escape_reaches_the_terminal(rendered: str) -> None:
+    offenders = [
+        f"U+{ord(char):04X}" for char in rendered if ord(char) < 0x20 and char != "\n"
+    ]
+    assert offenders == [], (
+        f"the printed envelope carries live control byte(s) {offenders}; an OSC-8/OSC-52 "
+        f"sequence from a rails.toml value or a --flag would execute in the operator's console"
+    )
+
+
+def _envelope_carrying_a_control_byte() -> Any:
+    from agentrail.cli import CommandResult
+
+    return CommandResult(
+        observation=transport_failure(
+            "u1",
+            "spawn-failed",
+            detail=f"the rail said {OSC8}",
+            next_action="inspect it",
+            retry_instruction="r",
+            stop_condition="s",
+            artifacts=(f"flag={OSC8}",),
+        ).observation,
+        terminal="FAILED:u1 spawn-failed",
+    )
+
+
+def sound_json_printer() -> str:
+    from agentrail.cli import render
+
+    return render(_envelope_carrying_a_control_byte())
+
+
+def broken_json_printer() -> str:
+    """MUTATION: a friendlier ``--text`` renderer -- the plausible change that breaks it."""
+    result = _envelope_carrying_a_control_byte()
+    observation = result.observation
+    return "\n".join(
+        (observation.summary, *observation.artifacts, *observation.next_actions)
+    )
+
+
+# --------------------------------------------------------------------------------------------
+# M8 -- the anti-duplication scanner, reverted by forking an agentspec constant.
 # --------------------------------------------------------------------------------------------
 
 
@@ -270,6 +350,12 @@ class Mutation:
     check: Callable[[Any], None]
     sound: Callable[[], Any]
     broken: Callable[[], Any]
+    refuses_to_build: bool = False
+    """True when ``broken()`` is EXPECTED to raise, because the refusal IS the detection.
+
+    Declared per row rather than inferred: an exception is only evidence if it was predicted.
+    See :func:`_assert_mutation_is_detected` for the blind spot this closes.
+    """
 
 
 MUTATIONS: tuple[Mutation, ...] = (
@@ -278,6 +364,11 @@ MUTATIONS: tuple[Mutation, ...] = (
         check_codex_resolves_after_a_version_bump,
         sound_codex_glob,
         broken_codex_glob,
+        # DECLARED: with the glob pinned to today's path and only tomorrow's build present,
+        # nothing resolves at all, so `resolve` raises ExecutableNotFound before the check can
+        # look at an exe. The refusal IS the detection -- but it now has to be predicted. The
+        # old gate accepted it for the wrong reason: ANY exception counted, including a typo.
+        refuses_to_build=True,
     ),
     Mutation(
         "spill-removed-prompt-rides-argv",
@@ -310,6 +401,18 @@ MUTATIONS: tuple[Mutation, ...] = (
         broken_deploy_guard,
     ),
     Mutation(
+        "shim-exit-code-swallowed-by-endlocal",
+        check_the_shim_carries_the_exit_code_out,
+        sound_shim_exit_code,
+        broken_shim_exit_code,
+    ),
+    Mutation(
+        "printer-downgraded-to-plain-text",
+        check_no_live_escape_reaches_the_terminal,
+        sound_json_printer,
+        broken_json_printer,
+    ),
+    Mutation(
         "rival-core-argv-cap-forked",
         check_no_rival_core,
         sound_source_tree,
@@ -325,9 +428,12 @@ REQUIRED_ROWS: frozenset[str] = frozenset(
         "envelope-field-deleted-error-path",
         "reason-outside-the-closed-taxonomy",
         "deploy-guard-to-unconditional-write",
+        "shim-exit-code-swallowed-by-endlocal",
+        "printer-downgraded-to-plain-text",
     }
 )
-"""The rows the acceptance bar names explicitly. Deleting one must fail the suite."""
+"""The rows the acceptance bar names explicitly, plus the two the repair pass added after a
+reproduced defect. Deleting one must fail the suite."""
 
 
 @pytest.mark.parametrize("mutation", MUTATIONS, ids=lambda mutation: mutation.name)
@@ -336,12 +442,87 @@ def test_every_check_is_green_unmutated(mutation: Mutation) -> None:
     mutation.check(mutation.sound())
 
 
+def _assert_mutation_is_detected(mutation: Mutation) -> None:
+    """Reverting the decision must be DETECTED -- by an assertion or by a declared refusal.
+
+    ``broken()`` is called OUTSIDE the ``pytest.raises`` block, and that placement is the whole
+    point. With the call INSIDE it, a row whose body merely CRASHES -- a typo, a ``NameError``,
+    a stale import -- satisfied the raises-block and was scored as "the mutation was detected".
+
+    MEASURED: replacing one ``broken_*`` body with ``raise NameError("typo_in_my_mutation_row")``
+    left this gate GREEN (``241 passed, 9 deselected``). The gate that exists to prove the
+    other checks are real could not prove it about itself.
+
+    A refusal to BUILD is still a legitimate detection -- a mutation the type system or a
+    validator rejects outright is detected -- but it now has to be DECLARED by the row, so an
+    accidental crash and an intended refusal stop looking identical.
+    """
+    try:
+        value = mutation.broken()
+    except Exception as exc:  # noqa: BLE001 -- classified below, never swallowed
+        assert mutation.refuses_to_build, (
+            f"{mutation.name}: broken() raised {type(exc).__name__}: {exc}. A mutation row that "
+            f"merely crashes proves nothing about the check. Fix the row, or set "
+            f"refuses_to_build=True if the refusal IS the detection."
+        )
+        return
+    assert not mutation.refuses_to_build, (
+        f"{mutation.name}: declared refuses_to_build but broken() returned a value"
+    )
+    with pytest.raises(Exception) as caught:
+        mutation.check(value)
+    assert not isinstance(caught.value, pytest.skip.Exception)
+
+
 @pytest.mark.parametrize("mutation", MUTATIONS, ids=lambda mutation: mutation.name)
 def test_every_mutation_turns_its_check_red(mutation: Mutation) -> None:
-    """Reverting the decision must be DETECTED -- by an assertion or by a refusal to build."""
-    with pytest.raises(Exception) as caught:
-        mutation.check(mutation.broken())
-    assert not isinstance(caught.value, pytest.skip.Exception)
+    _assert_mutation_is_detected(mutation)
+
+
+def _crashing_broken() -> dict[str, Any]:
+    raise NameError("typo_in_my_mutation_row")
+
+
+def test_the_gate_rejects_a_row_that_merely_crashes() -> None:
+    """META-CONTROL. The measured blind spot, asserted so it cannot silently return.
+
+    Without this, ``refuses_to_build`` would itself be an unexercised branch in the gate --
+    exactly the "a check that never runs in the broken state is not a check" failure this file
+    exists to prevent, one level up.
+    """
+    crashing = Mutation(
+        "synthetic-crashing-row",
+        check_envelope_is_complete,
+        sound_success_envelope,
+        _crashing_broken,
+    )
+    with pytest.raises(AssertionError, match="merely crashes proves nothing"):
+        _assert_mutation_is_detected(crashing)
+
+
+def test_the_gate_accepts_a_row_whose_refusal_to_build_is_the_detection() -> None:
+    """The other half of the control: a DECLARED refusal must still count as detected."""
+    declared = Mutation(
+        "synthetic-declared-refusal",
+        check_envelope_is_complete,
+        sound_success_envelope,
+        _crashing_broken,
+        refuses_to_build=True,
+    )
+    _assert_mutation_is_detected(declared)
+
+
+def test_the_gate_rejects_a_declared_refusal_that_quietly_stopped_refusing() -> None:
+    """A row that stops raising must not keep its exemption -- that is how a gate rots."""
+    stale = Mutation(
+        "synthetic-stale-refusal",
+        check_envelope_is_complete,
+        sound_success_envelope,
+        sound_success_envelope,
+        refuses_to_build=True,
+    )
+    with pytest.raises(AssertionError, match="declared refuses_to_build"):
+        _assert_mutation_is_detected(stale)
 
 
 def test_the_registry_still_covers_every_named_decision() -> None:
@@ -352,10 +533,17 @@ def test_the_registry_still_covers_every_named_decision() -> None:
 
 
 def test_the_sound_and_broken_values_actually_differ() -> None:
-    """A mutation producing the SAME value as the control would be theatre."""
+    """A mutation producing the SAME value as the control would be theatre.
+
+    Same blind spot as :func:`_assert_mutation_is_detected`, same fix: an exception is only
+    accepted here when the row DECLARED it, so a crashing row cannot buy its exemption twice.
+    """
     for mutation in MUTATIONS:
         try:
             broken = mutation.broken()
-        except Exception:  # noqa: BLE001 -- a refusal to build IS a difference
+        except Exception as exc:  # noqa: BLE001 -- classified, never swallowed
+            assert mutation.refuses_to_build, (
+                f"{mutation.name}: broken() raised {type(exc).__name__}: {exc}"
+            )
             continue
         assert broken != mutation.sound(), f"{mutation.name} mutated nothing"

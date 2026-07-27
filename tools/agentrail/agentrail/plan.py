@@ -28,18 +28,64 @@ from agentspec.argv import ArgvPlan, ArgvTooLong, build_for_rail
 from agentspec.dispatchpolicy import check_dispatch
 from agentspec.retry import RetryDecision, plan_retry
 
-from agentrail.rails import ConfigError, RailRow
-
-SPILL_PREFERENCE: tuple[str, ...] = ("file", "stdin")
-"""Which legal transport an argv-native rail spills to, best first."""
+from agentrail.rails import ConfigError, RailRow, checked_marker_id
 
 WIN_ARG_LIMIT = "win-arg-limit"
 """Imported semantics, local label: the string itself is a MEMBER of agentspec's closed
 taxonomy (``tests/test_no_rival_core.py`` asserts that), not a rival vocabulary."""
 
 
+_UNIT_ID_FILENAME_TRAPS: tuple[str, ...] = ("/", "\\", ":")
+"""Characters that stop a unit id being a single, contained filename COMPONENT."""
+
+
+def checked_unit_id(unit_id: str) -> str:
+    """Validate a unit id ONCE, at the boundary, against BOTH contracts that bind it.
+
+    RULE 1 -- can agentspec render it as a marker? Not decided here: it is delegated to
+    :func:`agentrail.rails.checked_marker_id`, which calls agentspec's own renderer.
+
+    RULE 2 -- is it a contained FILENAME? This one is agentrail's own, and is not a duplicate
+    of anything agentspec owns, because only agentrail turns the id into a path:
+    ``<spill_dir>/<unit_id>.prompt.txt``. agentspec's rule cannot cover it -- ``/`` and ``:``
+    are printable and whitespace-free, so agentspec (correctly, for a marker) accepts them.
+
+    MEASURED, both traps, with a recording filesystem:
+
+    * ``unit_id="../../../../evil/pwned"`` writes to
+      ``S:/spill/../../../../evil/pwned.prompt.txt`` -- outside the declared ``--spill-dir``,
+      creating directories and truncating any ``*.prompt.txt`` already there;
+    * ``unit_id="C:evil"`` is worse and silent: Windows reads ``C:evil.prompt.txt`` as a
+      DRIVE-RELATIVE path, so ``spill/C:evil.prompt.txt`` landed at the current directory of
+      drive ``C:`` with no error and an empty spill dir.
+
+    Refused rather than sanitised: a rewritten id would no longer match the ``SUCCESS:<id>`` /
+    ``FAILED:<id>`` marker the caller is told to grep for, which trades one silent mismatch
+    for another. :mod:`agentrail.deploy` already carries a guard for this data-loss class; the
+    spill write is the other place that needed one.
+    """
+    checked_marker_id(unit_id, field="unit_id")
+    traps = tuple(char for char in _UNIT_ID_FILENAME_TRAPS if char in unit_id)
+    if traps:
+        raise ConfigError(
+            f"unit_id {unit_id!r} contains {list(traps)}: the id becomes the spill filename "
+            f"<spill_dir>/<unit_id>.prompt.txt, and a separator or drive letter escapes the "
+            f"declared --spill-dir. Use a plain identifier."
+        )
+    return unit_id
+
+
 class DispatchRefused(ValueError):
-    """The dispatch SHAPE is illegal -- checked before any rail is touched."""
+    """The dispatch SHAPE is illegal -- checked before any rail is touched.
+
+    DELIBERATELY declared here and not imported from
+    :class:`agentspec.evals.fake_rail.DispatchRefused`, which carries the same name and the
+    same ``violations`` field. The POLICY is shared -- both call
+    :func:`agentspec.dispatchpolicy.check_dispatch`, which is the part that must not fork --
+    but ``agentspec.evals`` is agentspec's hermetic TEST-DOUBLE subpackage, and importing a
+    test double into a production dispatch shell would be a worse coupling than a four-line
+    exception wrapper. Only the wrapper is duplicated; the decision is not.
+    """
 
     reason = "policy-violation"
 
@@ -53,6 +99,13 @@ class PromptSpill:
     """A prompt that must be written to disk before the argv in the plan can be run.
 
     Carried as DATA so the planner stays pure: :mod:`agentrail.runner` performs the write.
+
+    NOT deleted afterwards, deliberately. The path is reported in the envelope's ``artifacts``
+    as ``prompt=<path>`` precisely so a failed dispatch can be reproduced byte-for-byte, and a
+    package whose reason for existing is "do not discard a completed run's evidence" should not
+    delete that evidence on the way out. Retention is the caller's policy: ``--spill-dir``
+    exists so it can point at a directory it already sweeps. The containment rule in
+    :func:`checked_unit_id` is what keeps the files inside that directory.
     """
 
     path: str
@@ -116,8 +169,7 @@ def build_plan(
     ``force_transport`` exists for :func:`plan_with_retry` to re-plan onto a shorter transport;
     production callers leave it ``None`` and let :func:`spill_transport` decide.
     """
-    if not unit_id.strip():
-        raise ConfigError("unit_id must be non-empty")
+    checked_unit_id(unit_id)
     effective_timeout = row.default_timeout_s if timeout_s is None else timeout_s
 
     violations = check_dispatch(

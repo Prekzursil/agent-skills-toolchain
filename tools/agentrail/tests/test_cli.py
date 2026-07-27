@@ -507,3 +507,206 @@ class _FakeStdin:
 
     def read(self) -> str:
         return self._text
+
+
+# --------------------------------------------------------------------------------------------
+# The envelope holds on the paths that used to escape it entirely.
+# --------------------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("command", ["plan", "run"])
+@pytest.mark.parametrize(
+    "unit_id",
+    ["wu 1", "wu\t1", "\x1b]8;;http://evil\x07wu1", "../../../../evil/pwned"],
+    ids=["space", "tab", "osc-8-hyperlink", "traversal"],
+)
+def test_an_unusable_unit_id_is_an_envelope_and_never_a_traceback(
+    command: str, unit_id: str
+) -> None:
+    """REGRESSION -- the measured worst case: ``spawned=1, stdout_lines=0``.
+
+    ``build_plan`` gated on ``.strip()`` while :mod:`agentspec.terminal` demands
+    whitespace-free-and-printable, and nothing guarded the seam. ``run`` therefore dispatched
+    the rail, the rail finished, and the result was destroyed by an unenveloped ``ValueError``
+    raised while rendering the marker -- no envelope, no ``next_actions``, no terminal marker,
+    and a traceback instead of stdout.
+
+    Both halves are asserted: a well-formed envelope AND nothing spawned.
+    """
+    env, out, spawn, fs = environment()
+    code = cli.main(
+        [
+            command,
+            "demo",
+            "--unit-id",
+            unit_id,
+            "--prompt-file",
+            PROMPT_FILE,
+            "--spill-dir",
+            "/spill",
+        ],
+        env=env,
+    )
+    payload = out.payload()
+    assert code == cli.EXIT_ERROR
+    assert payload["status"] == "error"
+    assert_enveloped(payload)
+    assert spawn.calls == [], "the rail must not run before the id is judged usable"
+    assert fs.writes == [], (
+        "and no prompt may be spilled for an id that cannot be reported"
+    )
+
+
+@pytest.mark.parametrize(
+    ("unit_id", "expected"),
+    [("wu-1", "wu-1"), ("wu 1", cli.PROG), ("\x1bwu", cli.PROG), (None, cli.PROG)],
+    ids=["renderable", "whitespace", "control-byte", "absent"],
+)
+def test_the_fallback_unit_id_is_always_renderable(
+    unit_id: str | None, expected: str
+) -> None:
+    """Both states of the last-resort id, unit-tested because it cannot be reached end to end.
+
+    ``_prepare`` now rejects an unusable id before any arm that consults this helper, so the
+    fallback is dead from the CLI surface -- see the reachability note on ``_unit``. It is
+    still asserted here in both directions: an error path that raises while REPORTING an error
+    is precisely the defect this repair pass exists to remove, and the renderable row is the
+    control that proves the helper does not simply always answer ``agentrail``.
+    """
+    import argparse
+
+    from agentspec.terminal import success_line
+
+    namespace = (
+        argparse.Namespace() if unit_id is None else argparse.Namespace(unit_id=unit_id)
+    )
+    answer = cli._unit(namespace)  # noqa: SLF001 -- the contract under test is this helper's
+    assert answer == expected
+    assert success_line(answer), "whatever comes back must render as a marker"
+
+
+def test_the_unit_id_is_judged_before_the_unverified_gate_can_render_it() -> None:
+    """Why the check sits at the TOP of ``_prepare`` and not only inside ``build_plan``.
+
+    ``_unverified`` renders ``FAILED:<unit_id> policy-violation`` and runs BEFORE any planning,
+    so on the unverified-rail path a bad id reaches ``failure_line`` first. Without the
+    boundary check the ``ValueError`` net still produces an envelope -- the contract holds --
+    but the operator is told "ValueError while rendering a marker" instead of "your unit id is
+    unusable, here is why". This pins the PRECISE diagnosis, which is the thing the boundary
+    check actually buys; measured otherwise-green, so without this assertion the check would
+    be an undetectable decision.
+    """
+    env, out, spawn, _ = environment()
+    code = cli.main(
+        ["plan", "shaky", "--unit-id", "wu 1", "--prompt-file", PROMPT_FILE], env=env
+    )
+    payload = out.payload()
+    detail = payload["error"]
+    assert code == cli.EXIT_ERROR
+    assert isinstance(detail, dict)
+    assert "ConfigError" in str(detail["root_cause"]), detail["root_cause"]
+    assert "unit_id" in str(detail["root_cause"])
+    assert "UNVERIFIED" not in str(detail["root_cause"]), (
+        "the id is judged before the rail's verified state is even consulted"
+    )
+    assert spawn.calls == []
+
+
+def test_the_failure_marker_falls_back_to_a_renderable_id() -> None:
+    """The error path must not destroy its own output by re-raising on the bad id."""
+    env, out, _, _ = environment()
+    cli.main(
+        ["plan", "demo", "--unit-id", "wu 1", "--prompt-file", PROMPT_FILE], env=env
+    )
+    terminal = out.payload()["terminal"]
+    assert isinstance(terminal, str)
+    assert terminal.startswith("FAILED:agentrail "), terminal
+    assert "wu 1" not in terminal, (
+        "an unrenderable id must not be echoed into the marker"
+    )
+
+
+def test_a_legal_unit_id_still_plans_and_runs() -> None:
+    """The control. A validator that refused everything would satisfy the tests above."""
+    code, payload = run(
+        ["plan", "demo", "--unit-id", "wu-1", "--prompt-file", PROMPT_FILE]
+    )
+    assert code == cli.EXIT_OK
+    assert payload["status"] == "success"
+    assert payload["terminal"] == "SUCCESS:wu-1"
+
+
+def test_a_rail_name_that_cannot_be_rendered_is_refused_at_load() -> None:
+    """``resolve`` sits on the same seam: ``_ok(..., row.name)`` renders the NAME as a marker.
+
+    A repo-supplied ``--config`` is untrusted input, and ``[rail."my rail"]`` is legal TOML.
+    """
+    hostile = RAILS_TOML + (
+        '\n[rail."my rail"]\nexe_globs = ["${HOME}/bin/*"]\n'
+        'native_transport = "stdin"\nreceipt_format = "text"\n'
+        'receipt_forbidden_markers = ["still in progress"]\nverified = true\n'
+    )
+    env, out, _, _ = environment(files={CONFIG: hostile.encode("utf-8")})
+    code = cli.main(["resolve", "my rail"], env=env)
+    payload = out.payload()
+    assert code == cli.EXIT_ERROR
+    assert_enveloped(payload)
+    assert payload["terminal"] == "FAILED:agentrail policy-violation"
+
+
+def test_an_unexpected_value_error_is_still_enveloped(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The NET. Every guard in agentrail and agentspec is a ``ValueError``.
+
+    The specific arms render richer envelopes and stay; this one only guarantees that a guard
+    nobody wired an arm for cannot leave the CLI's docstring ("never raises for an expected
+    failure") false.
+    """
+
+    def explode(*_: object, **__: object) -> object:
+        raise ValueError("a guard nobody wired an arm for")
+
+    monkeypatch.setattr(cli, "row_by_name", explode)
+    env, out, _, _ = environment()
+    code = cli.main(["resolve", "demo"], env=env)
+    payload = out.payload()
+    assert code == cli.EXIT_ERROR
+    assert_enveloped(payload)
+    detail = payload["error"]
+    assert isinstance(detail, dict)
+    assert detail["code"] == "policy-violation"
+    assert "a guard nobody wired an arm for" in detail["root_cause"]
+
+
+def test_the_printer_escapes_a_control_byte_instead_of_emitting_it() -> None:
+    """``ensure_ascii`` is the ONLY thing between a config value and terminal injection.
+
+    agentrail carries no control-strip layer (see the ``render`` docstring), so this property
+    is load-bearing rather than incidental. An operator-supplied ``--flag`` reaches
+    ``artifacts`` verbatim; OSC-8 there would be a live hyperlink in the console printing it.
+    """
+    osc8 = "\x1b]8;;http://attacker/steal\x07x\x1b]8;;\x07"
+    env, out, _, _ = environment()
+    cli.main(
+        [
+            "plan",
+            "demo",
+            "--unit-id",
+            "wu-1",
+            "--prompt-file",
+            PROMPT_FILE,
+            "--flag",
+            osc8,
+        ],
+        env=env,
+    )
+    artifacts = out.payload()["artifacts"]
+    assert isinstance(artifacts, list)
+    assert any("\x1b" in str(item) for item in artifacts), (
+        "control: the ESC really did reach an envelope field -- nothing strips it"
+    )
+
+    printed = out.lines[-1]
+    assert "\x1b" not in printed, "the PRINTED line must carry it escaped, not live"
+    assert "\\u001b" in printed

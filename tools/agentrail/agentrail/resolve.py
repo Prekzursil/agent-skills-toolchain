@@ -74,11 +74,21 @@ def resolve(
         tried.append(pattern)
         matches = tuple(match for match in fs.glob(pattern) if fs.is_file(match))
         if matches:
+            # `fs.glob` is contractually SORTED, so `matches[0]` is deterministic -- but
+            # deterministic is not the same as right. MEASURED with both vendor builds present
+            # (the stale-npm-update case this module's docstring names): sorted-first is
+            # `codex-win32-arm64`, silently chosen on an x64 box. The pick is pinned by a test
+            # AND surfaced as a warning, because a choice nobody was told about is the part
+            # that costs an operator an afternoon.
+            ambiguity = _ambiguity_warning(row.name, pattern, matches)
+            if ambiguity is not None and sink is not None:
+                sink.warn(ambiguity)
             return Resolution(
                 rail_name=row.name,
                 exe=matches[0],
                 source="glob",
                 tried=tuple(tried),
+                warnings=() if ambiguity is None else (ambiguity,),
             )
 
     for candidate in row.exe_fallbacks:
@@ -111,6 +121,25 @@ def glob_ambiguity(row: RailRow, fs: RailFileSystem) -> tuple[str, ...]:
             if fs.is_file(match) and match not in seen:
                 seen.append(match)
     return tuple(sorted(seen))
+
+
+def _ambiguity_warning(
+    rail_name: str, pattern: str, matches: tuple[str, ...]
+) -> str | None:
+    """Name the choice when one glob matched several builds. ``None`` when there was no choice.
+
+    NOT a raise and NOT a ``degraded`` flag: the resolution is usable and a rail that still
+    works must not be turned into a failure by a diagnostic. ``degraded`` keeps its one meaning
+    -- "the primary glob missed and a fallback carried the call".
+    """
+    if len(matches) < 2:
+        return None
+    return (
+        f"rail {rail_name!r}: glob {pattern!r} matched {len(matches)} builds {list(matches)}; "
+        f"took the first, {matches[0]!r}. Two builds usually means an interrupted `npm -g "
+        f"update` left a stale target triple behind -- 'first' is alphabetical, not "
+        f"architecture-aware, so remove the build you do not want."
+    )
 
 
 def _fallback_warning(rail_name: str, candidate: str, globs: tuple[str, ...]) -> str:

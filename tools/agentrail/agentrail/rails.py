@@ -24,6 +24,7 @@ from typing import Any
 
 from agentspec.argv import PROMPT_TRANSPORTS, WINDOWS_CMDLINE_CAP, RailSpec
 from agentspec.spec import RECEIPT_FORMATS, ReceiptSpec
+from agentspec.terminal import success_line
 
 from agentrail import CONFIG_VERSION
 
@@ -37,6 +38,29 @@ class ConfigError(ValueError):
     """A rails.toml row is unusable. Raised at LOAD time, never at dispatch time."""
 
     reason = "policy-violation"
+
+
+def checked_marker_id(value: str, *, field: str) -> str:
+    """Reject an identifier agentspec could not render as a terminal marker. DELEGATED.
+
+    The rule itself is agentspec's and is called, never paraphrased:
+    :func:`agentspec.terminal.success_line` is the function that decides whether an id can be
+    rendered, so invoking it is the only way the two cannot drift.
+
+    MEASURED DEFECT THIS CLOSES: an earlier draft re-implemented the rule locally as
+    ``unit_id.strip()``. That accepts ``"wu 7"``; agentspec rejects it. The two validators sat
+    on either side of a dispatch, so a rail RAN and its result was then thrown away by an
+    unenveloped ``ValueError`` while rendering the marker (measured: ``spawned=1,
+    stdout_lines=0``) -- the discard-a-completed-run class :mod:`agentspec.oracle` exists to
+    prevent. The failure is converted to :class:`ConfigError` because that is the type
+    :func:`agentrail.cli.main` already renders into the shared envelope: a boundary rejection
+    must arrive as an envelope, not as a traceback.
+    """
+    try:
+        success_line(value)
+    except ValueError as exc:
+        raise ConfigError(f"{field} {value!r} is unusable: {exc}") from exc
+    return value
 
 
 @dataclass(frozen=True, slots=True)
@@ -180,6 +204,12 @@ def _row(name: str, body: object) -> RailRow:
         raise ConfigError(f"rail {name!r}: expected a table, got {type(body).__name__}")
     if not name:
         raise ConfigError("a rail table name must be non-empty")
+    # The rail name becomes a terminal-marker id (`agentrail resolve <rail>` reports
+    # SUCCESS:<name>) and a taxonomy code (`env-missing-<name>`), so a name agentspec cannot
+    # render has to be refused HERE, at load, not discovered while rendering the failure. A
+    # repo-supplied `--config` is an untrusted input under AGENTS.md 9, and `[rail."my rail"]`
+    # is legal TOML -- no malice is needed to reach this.
+    checked_marker_id(name, field="rail table name")
 
     missing = tuple(key for key in _REQUIRED_KEYS if key not in body)
     if missing:

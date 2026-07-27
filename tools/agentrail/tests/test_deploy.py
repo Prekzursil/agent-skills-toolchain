@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from agentrail.deploy import (
@@ -86,15 +88,81 @@ def test_the_shim_expands_no_batch_variable_it_never_sets() -> None:
     ``cmd`` substitutes ``%NAME%`` silently, so a Python-side placeholder that leaks into the
     template does not error -- it just deletes itself from the message. This asserts the only
     percent-expansions present are ones the shim sets, or the argument forwarder.
+
+    ``errorlevel`` is allowed and is NOT an exception to the rule: it is a ``cmd`` BUILT-IN,
+    always defined, and it is the mechanism the exit-code propagation below depends on.
     """
     import re
 
     body = render_shim(["/a/tools"])
-    allowed = {"AGENTRAIL_TOOLS", "PYTHONPATH"}
+    allowed = {"AGENTRAIL_TOOLS", "PYTHONPATH", "errorlevel"}
     referenced = set(re.findall(r"%([A-Za-z_][A-Za-z0-9_]*)%", body))
     assert referenced <= allowed, f"undefined batch variable(s): {referenced - allowed}"
     assert "python -m agentrail %*" in body
     assert MARKER in body
+
+
+def test_the_shim_propagates_the_exit_code_instead_of_swallowing_it() -> None:
+    """REGRESSION -- the shim was a FAIL-OPEN gate: exit 0 for every failure.
+
+    ``endlocal`` succeeds and RESETS ERRORLEVEL to 0, so ending the batch file on a bare
+    ``endlocal`` discarded whatever ``python -m agentrail`` returned. Measured against the
+    deployed artifact: ``agentrail resolve no-such-rail`` printed ``"status": "error"`` and
+    ``FAILED:agentrail policy-violation`` while the process exited **0**, so every caller that
+    branches on the exit code -- CI, ``longrun``, ``&&`` chaining, ``if errorlevel 1`` -- read
+    success. The ``exit /b 1`` in the not-found branch was fine; only the path that actually
+    runs was broken, which is why a ``--help`` / ``rails`` / ``resolve codex`` smoke test
+    missed it.
+    """
+    body = render_shim(["/a/tools"])
+    executable = [line.strip() for line in body.splitlines() if line.strip()]
+    assert executable[-1] == "endlocal & exit /b %errorlevel%", (
+        "the LAST statement must carry the exit code out; a bare `endlocal` resets it to 0"
+    )
+    assert body.index("python -m agentrail %*") < body.index("endlocal &")
+    assert "exit /b 1" in body, (
+        "the not-found branch keeps its own explicit failure code"
+    )
+
+
+@pytest.mark.live
+def test_the_rendered_shim_really_propagates_a_nonzero_exit(tmp_path: Path) -> None:
+    """The BATCH-SEMANTICS proof, opt-in because it spawns a real ``cmd.exe``.
+
+    The test above asserts a token; this one asserts the behaviour the token buys, with the
+    broken form as its own control so a green result cannot come from a probe that never
+    measured anything. Windows-only -- ``cmd`` is the interpreter under test.
+
+    Run it with ``pytest --run-live -m live``.
+    """
+    import subprocess
+    import sys
+
+    if sys.platform != "win32":
+        pytest.skip("cmd.exe is the interpreter under test")
+
+    failing = 'python -c "import sys; sys.exit(7)"'
+    shapes = {
+        "broken": f"@echo off\r\nsetlocal\r\n{failing}\r\nendlocal\r\n",
+        "fixed": f"@echo off\r\nsetlocal\r\n{failing}\r\nendlocal & exit /b %errorlevel%\r\n",
+    }
+    codes: dict[str, int] = {}
+    for label, text in shapes.items():
+        script = tmp_path / f"{label}.cmd"
+        script.write_bytes(text.encode("ascii"))
+        codes[label] = subprocess.run(
+            ["cmd", "/c", str(script)], capture_output=True, check=False
+        ).returncode
+
+    assert codes["broken"] == 0, (
+        "control: a bare `endlocal` really does clobber ERRORLEVEL"
+    )
+    assert codes["fixed"] == 7, "the shipped shape really does propagate it"
+    assert (
+        shapes["fixed"]
+        .rstrip()
+        .endswith(render_shim(["/a/tools"]).rstrip().splitlines()[-1])
+    ), "the shape proven here is the shape the renderer emits"
 
 
 def test_blank_and_duplicate_candidate_roots_are_dropped() -> None:

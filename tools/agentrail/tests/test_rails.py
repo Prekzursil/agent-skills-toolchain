@@ -92,6 +92,76 @@ def test_load_rows_rejects_an_empty_rail_name() -> None:
         load_rows('config_version = "1"\n[rail.""]\n')
 
 
+def _toml_escape(char: str) -> str:
+    """The six characters TOML reads as a unicode escape, built without a backslash.
+
+    Composed with :func:`chr` on purpose. ``tomllib`` REFUSES a raw control byte in a
+    key, so a test that embeds one passes for the wrong reason -- the document is
+    rejected before this package sees it. The ESCAPED form is accepted and decodes back
+    into the control character, which is what actually reaches the rail name.
+    """
+    return chr(92) + f"u{ord(char):04X}"
+
+
+_ESC = _toml_escape("\x1b")
+_BEL = _toml_escape("\x07")
+
+
+@pytest.mark.parametrize(
+    "quoted_name",
+    [
+        "my rail",
+        "my" + chr(9) + "rail",
+        "rail" + _ESC + "[31m",
+        _ESC + "]8;;http://evil" + _BEL + "rail",
+    ],
+    ids=["space", "tab", "csi-colour", "osc-8-hyperlink"],
+)
+def test_load_rows_rejects_a_rail_name_agentspec_could_not_render(
+    quoted_name: str,
+) -> None:
+    """REGRESSION: the rail name is a marker id too, and it was only checked for emptiness.
+
+    ``agentrail resolve <rail>`` renders ``SUCCESS:<name>``, and the name also parametrises the
+    ``env-missing-<name>`` taxonomy code. With only the emptiness check, ``[rail."my rail"]``
+    in a ``--config`` file crashed the CLI with an unenveloped ``ValueError`` -- and a
+    repo-supplied config is untrusted input (AGENTS.md 9), so no malice is required.
+
+    The last two rows use TOML's ``\\uXXXX`` KEY ESCAPE rather than a raw byte, and that is a
+    measured distinction, not a stylistic one: ``tomllib`` refuses a raw ``\\x1b`` in a key
+    ("Illegal character") but ACCEPTS the escaped form and hands back a real control character.
+    Writing the raw byte would have produced a test that passes for the wrong reason -- TOML
+    rejecting the document -- and proved nothing about this check.
+
+    Refused at LOAD, which is this module's stated contract: "raised at LOAD time, never at
+    dispatch time".
+    """
+    body = (
+        '\nexe_globs = ["/x"]\nnative_transport = "stdin"\n'
+        'receipt_format = "text"\nreceipt_forbidden_markers = ["p"]\n'
+    )
+    with pytest.raises(ConfigError, match="rail table name"):
+        load_rows(f'config_version = "1"\n[rail."{quoted_name}"]{body}')
+
+
+def test_the_hostile_rail_name_documents_reach_tomllib_intact() -> None:
+    """DETECTOR CONTROL for the test above: prove TOML delivered the bad key.
+
+    Without this, a document TOML itself rejected would make the check look like it fired.
+    """
+    import tomllib
+
+    key = _ESC + "[31m"
+    parsed = tomllib.loads(f'["{key}"]\nx = 1\n')
+    assert list(parsed) == ["\x1b[31m"]
+
+
+def test_a_rail_name_with_no_control_bytes_still_loads() -> None:
+    """The control: the new check must not have banned ordinary names."""
+    rows = load_rows(MINIMAL)
+    assert rows[0].name == "demo"
+
+
 def test_load_rows_rejects_missing_required_keys() -> None:
     with pytest.raises(ConfigError, match="missing required key"):
         load_rows('config_version = "1"\n[rail.demo]\nexe_globs = ["/x"]\n')

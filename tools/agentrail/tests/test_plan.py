@@ -136,9 +136,103 @@ def test_caller_flags_land_before_hardening() -> None:
     assert built.argv == ("exe", "run", "--extra", "--safe")
 
 
-def test_an_empty_unit_id_is_refused() -> None:
-    with pytest.raises(ConfigError, match="unit_id must be non-empty"):
-        build_plan(row(), "exe", unit_id="   ", prompt="p", spill_dir="/t")
+@pytest.mark.parametrize(
+    "unit_id",
+    [
+        "",
+        "   ",
+        "wu 7",
+        "wu\t7",
+        "wu\x1b[31m7",
+        "wu\x00 7",
+        "\x1b]8;;http://evil\x07wu1",
+    ],
+    ids=[
+        "empty",
+        "all-whitespace",
+        "embedded-space",
+        "embedded-tab",
+        "csi-colour",
+        "nul-byte",
+        "osc-8-hyperlink",
+    ],
+)
+def test_an_id_agentspec_could_not_render_is_refused_before_anything_runs(
+    unit_id: str,
+) -> None:
+    """REGRESSION. Two validators for one field, disagreeing across a dispatch.
+
+    ``build_plan`` used to gate on ``unit_id.strip()``, which accepts every row here except the
+    first two, while :func:`agentspec.terminal.success_line` rejects all seven. The dispatch
+    therefore RAN and the completed result was then destroyed by an unenveloped ``ValueError``
+    raised while rendering the marker. The old test covered only ``"   "`` -- the adjacent
+    case, not the defect case -- which is why 100% line coverage did not see it.
+    """
+    with pytest.raises(ConfigError, match="unit_id"):
+        build_plan(row(), "exe", unit_id=unit_id, prompt="p", spill_dir="/t")
+
+
+def test_the_unit_id_rule_is_agentspecs_own_and_is_not_paraphrased() -> None:
+    """The anti-drift property: agree with agentspec by CALLING it, not by matching it.
+
+    Control included -- a legal id must still pass, or a validator that refused everything
+    would satisfy the disagreement check while breaking the package.
+    """
+    from agentspec.terminal import success_line
+
+    from agentrail.plan import checked_unit_id
+
+    for candidate in ("wu-1", "u1", "wu.7", "wü-1"):
+        assert checked_unit_id(candidate) == candidate
+        assert success_line(candidate) == f"SUCCESS:{candidate}"
+
+    for candidate in ("", "wu 7", "wu\x1b7"):
+        with pytest.raises(ConfigError):
+            checked_unit_id(candidate)
+        with pytest.raises(ValueError, match="unit_id must be"):
+            success_line(candidate)
+
+
+@pytest.mark.parametrize(
+    "unit_id",
+    ["../../../../evil/pwned", "a/b", "a\\b", "C:evil", "..\\..\\evil"],
+    ids=[
+        "traversal",
+        "forward-slash",
+        "backslash",
+        "drive-relative",
+        "windows-traversal",
+    ],
+)
+def test_an_id_that_would_escape_the_spill_dir_is_refused(unit_id: str) -> None:
+    """MEASURED escapes, both of them silent, from ``<spill_dir>/<unit_id>.prompt.txt``.
+
+    * ``"../../../../evil/pwned"`` wrote to ``S:/spill/../../../../evil/pwned.prompt.txt``,
+      creating directories outside the declared spill dir and truncating any ``*.prompt.txt``
+      already there, with caller-supplied content.
+    * ``"C:evil"`` is worse: Windows reads ``C:evil.prompt.txt`` as DRIVE-RELATIVE, so the
+      write landed at the current directory of drive ``C:`` and the spill dir stayed empty --
+      no exception, no trace.
+
+    agentspec accepts all of these (they are printable and whitespace-free) and is right to:
+    they are legal MARKERS. Containment is agentrail's own rule because only agentrail turns
+    the id into a filename.
+    """
+    with pytest.raises(ConfigError, match="spill"):
+        build_plan(row(), "exe", unit_id=unit_id, prompt="p", spill_dir="/t")
+
+
+def test_a_legal_unit_id_still_builds_the_expected_spill_path() -> None:
+    """The control for the containment rule: it must not have banned ordinary ids."""
+    built = build_plan(
+        row(native_transport="file", prompt_flag="--prompt-file"),
+        "exe",
+        unit_id="wu-7.retry2",
+        prompt="p",
+        spill_dir="/t",
+    )
+    assert built.spill is not None
+    assert built.spill.path == "/t/wu-7.retry2.prompt.txt"
 
 
 def test_the_rows_default_timeout_applies_when_none_is_given() -> None:

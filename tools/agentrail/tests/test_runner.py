@@ -177,9 +177,21 @@ def test_an_os_error_maps_onto_the_closed_taxonomy(exc: OSError, expected: str) 
 
 
 def test_windows_error_206_is_recognised_as_the_measured_argv_failure() -> None:
-    """`os error 206` at payload_len=34472 is the failure this whole package exists for."""
+    """`os error 206` at payload_len=34472 is the failure this whole package exists for.
+
+    The winerror below is the LITERAL 206, not ``WIN_ERROR_FILENAME_EXCED_RANGE``. Feeding the
+    constant back into the test that names it made the test incapable of failing: measured,
+    setting the constant to ``999999`` left both this test (``1 passed``) and the whole gated
+    suite (``241 passed``) green, while a REAL winerror=206 then classified as ``spawn-failed``.
+    That misclassification silently disables the recovery this package exists to provide --
+    ``agentspec.retry.RETRYABLE_ONCE`` is exactly ``("win-arg-limit",)``, so a 206 landing
+    anywhere else is never retried.
+    """
+    assert WIN_ERROR_FILENAME_EXCED_RANGE == 206, (
+        "206 is a MEASURED Windows error code (ERROR_FILENAME_EXCED_RANGE), not a tunable"
+    )
     exc = OSError("filename exceeds range")
-    exc.winerror = WIN_ERROR_FILENAME_EXCED_RANGE  # pyright: ignore[reportAttributeAccessIssue]
+    exc.winerror = 206  # pyright: ignore[reportAttributeAccessIssue]
 
     def fake_run(
         argv: Sequence[str], **kwargs: object

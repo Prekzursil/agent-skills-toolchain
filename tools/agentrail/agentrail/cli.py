@@ -26,7 +26,12 @@ from agentspec.terminal import success_line
 
 from agentrail import CONFIG_VERSION
 from agentrail.deploy import SHIM_NAME, deploy_shim
-from agentrail.plan import DispatchPlan, DispatchRefused, plan_with_retry
+from agentrail.plan import (
+    DispatchPlan,
+    DispatchRefused,
+    checked_unit_id,
+    plan_with_retry,
+)
 from agentrail.ports import CollectingWarnings
 from agentrail.rails import ConfigError, RailRow, expand_rows, load_rows, row_by_name
 from agentrail.report import (
@@ -82,7 +87,23 @@ def default_environment() -> Environment:
 
 
 def main(argv: Sequence[str] | None = None, env: Environment | None = None) -> int:
-    """Run one command. Returns a process exit code; never raises for an expected failure."""
+    """Run one command. Returns a process exit code; never raises for an expected failure.
+
+    The trailing ``except ValueError`` is a NET, not the primary defence -- every guard in
+    agentrail (:class:`~agentrail.rails.ConfigError`,
+    :class:`~agentrail.plan.DispatchRefused`, :class:`~agentrail.report.UnknownReason`) and
+    every guard in agentspec (``PromptOnArgv``, ``PolicyViolation``, ``ArgvTooLong``, and the
+    ``ValueError`` :func:`agentspec.terminal.success_line` raises) is a ``ValueError``, so that
+    one clause is exactly the "a guard refused" family. It is NOT ``except Exception``: a
+    ``TypeError`` or ``AttributeError`` is a programming defect and dressing it up as a
+    policy-violation envelope would hide it.
+
+    MEASURED: without this arm, ``plan <rail> --unit-id "wu 1"`` printed a bare traceback and
+    NO envelope at all -- strictly worse than the "error-only output without next steps"
+    anti-pattern, since there were no next steps and no marker either. The specific arms above
+    stay because they render RICHER envelopes; this one only guarantees that no path can
+    escape without one.
+    """
     environment = default_environment() if env is None else env
     args = build_parser().parse_args(list(argv) if argv is not None else None)
     handler: Callable[[argparse.Namespace, Environment], CommandResult] = args.handler
@@ -96,7 +117,9 @@ def main(argv: Sequence[str] | None = None, env: Environment | None = None) -> i
         )
     except (PromptOnArgv, PolicyViolation) as exc:
         result = _envelope_error(_policy_failure(_unit(args), exc))
-    environment.out(json.dumps(_wire(result), indent=2, sort_keys=True))
+    except ValueError as exc:
+        result = _envelope_error(_policy_failure(_unit(args), exc))
+    environment.out(render(result))
     return EXIT_OK if result.observation.status != "error" else EXIT_ERROR
 
 
@@ -307,7 +330,15 @@ def candidate_tools_dirs(env: Environment) -> tuple[str, ...]:
 def _prepare(
     args: argparse.Namespace, env: Environment
 ) -> tuple[RailRow, DispatchPlan, Resolution] | CommandResult:
-    """Shared plan construction. Returns an ENVELOPE on any refusal, never a bare exception."""
+    """Shared plan construction. Returns an ENVELOPE on any refusal, never a bare exception.
+
+    The unit id is checked FIRST -- before the row lookup, before the verified gate, before the
+    prompt is read and long before anything is spawned. Every one of those steps renders a
+    terminal marker keyed to the id, so an id agentspec cannot render has to be rejected while
+    rejecting it is still cheap. Measured with the check missing: ``run`` reached the rail
+    (``spawned=1``) and then discarded its result.
+    """
+    checked_unit_id(args.unit_id)
     row = row_by_name(_rows(args, env), args.rail)
     if not row.verified and not args.allow_unverified:
         return _envelope_error(_unverified(row, args.unit_id))
@@ -450,8 +481,27 @@ def _describe(row: RailRow) -> str:
 
 
 def _unit(args: argparse.Namespace) -> str:
-    """The unit id for a failure raised before a handler could name one."""
-    return str(getattr(args, "unit_id", None) or PROG)
+    """A MARKER-SAFE unit id for a failure raised before a handler could name one.
+
+    Falls back to :data:`PROG` when the caller's own id is the unusable thing. Rendering a
+    failure envelope needs a legal marker id, so echoing the offending id back into
+    :func:`agentspec.terminal.failure_line` would raise a SECOND ``ValueError`` while reporting
+    the first -- the error path destroying its own output.
+
+    HONEST REACHABILITY NOTE: with :func:`_prepare` validating the id first, no CLI invocation
+    today can reach the fallback -- an unusable id becomes a :class:`ConfigError` long before
+    any of the arms that call this. It is kept, and unit-tested directly in BOTH states, for
+    the same reason the ``except ValueError`` net above is kept: those arms exist for paths
+    nobody wired, and the one thing an error path must never do is raise. That is a deliberate
+    exception to this package's no-unreachable-defensive-code rule, and it is stated here
+    rather than left for a reader to discover as an untested branch.
+    """
+    candidate = str(getattr(args, "unit_id", None) or PROG)
+    try:
+        success_line(candidate)
+    except ValueError:
+        return PROG
+    return candidate
 
 
 def _ok(observation: Observation, unit_id: str) -> CommandResult:
@@ -466,6 +516,28 @@ def _wire(result: CommandResult) -> dict[str, object]:
     payload: dict[str, object] = dict(result.observation.as_dict())
     payload["terminal"] = result.terminal
     return payload
+
+
+def render(result: CommandResult) -> str:
+    """The ONE printer, and the ONLY reason a control byte cannot reach the operator's console.
+
+    An envelope field can legitimately carry operator-supplied text -- a ``--flag`` lands in
+    ``artifacts`` as ``argv=...``, a rails.toml ``notes`` lands in the ``rails`` listing -- and
+    agentrail control-strips none of it. What neutralises an OSC-8 or OSC-52 sequence is that
+    the output is JSON: RFC 8259 forbids a raw C0 control inside a string, so :mod:`json`
+    escapes ESC as ``\\u001b`` unconditionally.
+
+    MEASURED, because the obvious guess is wrong: ``ensure_ascii`` is NOT what does this.
+    ``json.dumps({"k": "a\\x1b]8;;x\\x07"}, ensure_ascii=False)`` still emits ``\\u001b`` --
+    the flag governs NON-ASCII (>= U+0080) only. It is passed explicitly anyway for a smaller,
+    honest reason: pure-ASCII output cannot mojibake through a Windows console codepage.
+
+    So the load-bearing invariant is "the envelope is printed AS JSON", and the change that
+    would break it is a plain-text renderer, not a keyword. That is what the
+    ``printer-downgraded-to-plain-text`` mutation row reverts. Extracted from :func:`main`
+    because an invariant living inside an inline ``json.dumps`` call cannot be mutation-gated.
+    """
+    return json.dumps(_wire(result), indent=2, sort_keys=True, ensure_ascii=True)
 
 
 def _print(line: str) -> None:

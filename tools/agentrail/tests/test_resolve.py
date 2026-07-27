@@ -90,6 +90,51 @@ def test_nothing_resolving_raises_a_closed_taxonomy_reason() -> None:
     assert caught.value.tried == (CODEX_GLOB, SHIM)
 
 
+def test_two_coexisting_builds_pin_the_tie_break_and_warn_about_it() -> None:
+    """MEASURED: with both vendor builds present, resolve() silently took ``arm64`` on an x64
+    box and reported nothing -- ``degraded=False``, ``warnings=()``.
+
+    Two properties are pinned here, and the pin is what makes them checkable:
+
+    * WHICH build wins. ``matches[0]`` over a SORTED list is deterministic, but until this
+      assertion existed a ``matches[0] -> matches[-1]`` mutation survived the whole suite.
+    * That the operator is TOLD. A choice made between two builds with no warning is how a
+      stale target triple survives an interrupted ``npm -g update`` unnoticed.
+
+    Not a failure and not ``degraded``: the resolution works, and turning a working rail into
+    an error over a diagnostic would be its own defect.
+    """
+    fs = FakeFileSystem({CODEX_TODAY: b"", CODEX_TOMORROW: b""})
+    sink = CollectingWarnings()
+    resolution = resolve(codex_row(), fs, sink=sink)
+
+    assert resolution.exe == min(CODEX_TODAY, CODEX_TOMORROW), (
+        "the tie-break is the FIRST of the sorted matches"
+    )
+    assert resolution.exe == CODEX_TOMORROW, "sorted-first here is the arm64 build"
+    assert resolution.source == "glob"
+    assert resolution.degraded is False, "an ambiguous glob is not a degradation"
+    assert len(resolution.warnings) == 1
+    assert "matched 2 builds" in resolution.warnings[0]
+    assert "took the first" in resolution.warnings[0]
+    assert sink.drain() == resolution.warnings
+
+
+def test_an_unambiguous_glob_stays_silent() -> None:
+    """The detector control: a warning that always fires would be noise, not a signal."""
+    sink = CollectingWarnings()
+    resolution = resolve(codex_row(), FakeFileSystem({CODEX_TODAY: b""}), sink=sink)
+    assert resolution.warnings == ()
+    assert sink.messages == []
+
+
+def test_an_ambiguous_glob_resolves_without_a_sink() -> None:
+    """The warning still reaches the envelope through ``Resolution.warnings``."""
+    fs = FakeFileSystem({CODEX_TODAY: b"", CODEX_TOMORROW: b""})
+    resolution = resolve(codex_row(), fs, sink=None)
+    assert len(resolution.warnings) == 1
+
+
 def test_glob_ambiguity_reports_every_match_deduplicated_and_sorted() -> None:
     fs = FakeFileSystem({CODEX_TODAY: b"", CODEX_TOMORROW: b""})
     row = RailRow(name="codex", exe_globs=(CODEX_GLOB, CODEX_GLOB))

@@ -53,8 +53,23 @@ if defined PYTHONPATH (
   set "PYTHONPATH=%AGENTRAIL_TOOLS%\\agentrail;%AGENTRAIL_TOOLS%\\agentspec"
 )
 python -m agentrail %*
-endlocal
+endlocal & exit /b %errorlevel%
 """
+"""``endlocal`` alone RESETS ERRORLEVEL to 0, so a bare one made the shim exit 0 for EVERY
+failure -- a fail-open gate on the only entry point used outside the checkout.
+
+MEASURED, four-way control, each .cmd running ``python -c "sys.exit(7)"``::
+
+    no_endlocal                                 -> exit 7   (propagates)
+    with_endlocal                               -> exit 0   (clobbered)
+    setlocal + endlocal (the shim's exact shape) -> exit 0   (clobbered)
+    endlocal & exit /b %errorlevel%             -> exit 7   (the fix)
+
+``%errorlevel%`` is expanded when ``cmd`` PARSES the line, which happens before ``endlocal``
+runs on it, so the pre-reset value is the one that reaches ``exit /b``. Everything that
+branches on the exit code -- CI, ``longrun``'s SUCCESS:/FAILED: wrapper, ``&&`` chaining, an
+orchestrator's ``if errorlevel 1`` -- read success on an unresolvable executable, a refused
+unverified rail, a policy violation and a severed stream until this line existed."""
 
 
 @dataclass(frozen=True, slots=True)
