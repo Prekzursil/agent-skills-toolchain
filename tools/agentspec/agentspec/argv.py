@@ -28,6 +28,9 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from agentspec import wire
+from agentspec.canonical import dumps as canonical_dumps
+
 WINDOWS_CMDLINE_CAP = 32767
 """Mirrors tools/glob-argv-guard/glob_argv_guard.py; the drift is gated by a test."""
 
@@ -64,7 +67,9 @@ class PolicyViolation(ValueError):
     reason = "policy-violation"
 
     def __init__(self, missing: tuple[str, ...]) -> None:
-        super().__init__(f"policy-violation: missing hardening flags {list(missing)}")
+        super().__init__(
+            f"policy-violation: missing hardening flags {canonical_dumps(list(missing))}"
+        )
         self.missing = missing
 
 
@@ -139,11 +144,12 @@ def build_argv(
     for element in argv:
         if prompt_on_argv(element, prompt):
             raise PromptOnArgv(
-                f"the prompt ({len(prompt)} chars) appears in argv element {element[:40]!r}; "
+                f"the prompt ({wire.utf16_len(prompt)} chars) appears in argv element "
+                f"{canonical_dumps(''.join(list(element)[:40]))}; "
                 "route it to a file or stdin"
             )
 
-    cmdline_len = len(render_cmdline(argv))
+    cmdline_len = wire.utf16_len(render_cmdline(argv))
     if cmdline_len > cap:
         raise ArgvTooLong(cmdline_len=cmdline_len, cap=cap)
 
@@ -210,10 +216,10 @@ def prompt_on_argv(element: str, prompt: str) -> bool:
     for delimiter in _VALUE_DELIMITERS:
         if element.endswith(delimiter + prompt):
             return True
-    return len(prompt) >= MIN_SUBSTRING_SCAN_LEN and prompt in element
+    return wire.utf16_len(prompt) >= MIN_SUBSTRING_SCAN_LEN and prompt in element
 
 
 def _quote(element: str) -> str:
-    if element == "" or any(ch.isspace() for ch in element):
+    if element == "" or wire.contains_blank(element):
         return f'"{element}"'
     return element

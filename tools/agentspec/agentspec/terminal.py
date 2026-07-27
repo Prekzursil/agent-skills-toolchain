@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import re
 
+from agentspec import wire
 from agentspec.taxonomy import is_reason
 
 TERMINAL_RE = re.compile(r"^(?:SUCCESS:\S+|FAILED:\S+ [^\s].*)$")
@@ -55,10 +56,16 @@ def _checked_id(unit_id: str) -> str:
 
     Whitespace makes ``FAILED:<id> <reason>`` unparseable. Any OTHER control byte (ESC/CSI,
     OSC-8, NUL, DEL) renders as an escape sequence in the console that prints the marker —
-    the measured statusline class where a field defeated its own sanitizer. ``isprintable``
-    is deliberately not an ASCII check: a non-ASCII but printable id is valid.
+    the measured statusline class where a field defeated its own sanitizer. It is deliberately
+    NOT an ASCII check: a non-ASCII but printable id is valid.
+
+    The predicate is :func:`agentspec.wire.is_printable_id`, an EXPLICIT range table, and NOT
+    ``str.isprintable()``. ``isprintable`` consults THIS interpreter's Unicode tables and the JS
+    mirror's ``\p{C}`` consults the ENGINE's; measured, CPython 3.14 (Unicode 16.0.0) and
+    Node 24 (17.0) disagreed on 4,803 code points, and CI's Node 22 is a third table again. A
+    contract must not move when a runtime is upgraded.
     """
-    if not unit_id or not unit_id.isprintable() or any(ch.isspace() for ch in unit_id):
+    if not wire.is_printable_id(unit_id):
         raise ValueError(
             f"unit_id must be non-empty, whitespace-free and printable, got {unit_id!r}"
         )

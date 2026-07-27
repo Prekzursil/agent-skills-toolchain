@@ -206,6 +206,34 @@ jobs:
         run: |
           npm ci
           npm test
+      # agentspec-js — the JS half of the two-runtime spec. `npm ci` at :157 already installs it
+      # (it is a root workspace) and root `npm test` at :158 already invokes it; this explicit
+      # step exists for FAILURE ATTRIBUTION, mirroring the two steps above.
+      #
+      # Its `npm test` is the only coverage gate in the node job, and it is deliberately built
+      # against a MEASURED trap: `node --test --experimental-test-coverage` does NOT see a source
+      # file that no test imports — the file is absent from the table entirely (not listed at 0%)
+      # and the run exits 0 reporting "all files 100.00", reproduced on Node 22 AND Node 24.
+      # `--test-coverage-include=src/**` does NOT fix it (it filters the loaded set, it never
+      # force-loads). The gate therefore pairs a disk-walking census test (test/census.test.mjs,
+      # which dynamic-imports every module under src/) with all THREE thresholds — lines alone
+      # or branches alone stays blind, because a never-executed file reports branch 100.00 while
+      # funcs is 0.00. Proven RED with an unimported file present, then GREEN once removed.
+      - name: gate-tests-coverage agentspec-js (100% line+branch, census-guarded)
+        working-directory: tools/agentspec-js
+        run: npm test
+      # C9 PARITY: the Python and JS runtimes must emit BYTE-IDENTICAL normalised receipts AND
+      # reach BYTE-IDENTICAL decisions. TWO corpora, because those turned out to be two claims:
+      #   canonical-corpus.json (88 cases) drives the SERIALISER;
+      #   behaviour-corpus.json (132 cases) drives judge / missingFields / buildArgv /
+      #     checkDispatch / planRetry and 16 more, which the canonical oracle never touched.
+      # The second one exists because a differential harness found 78 outcome divergences while
+      # BOTH unit suites were green at 100% line+branch — coverage cannot see a divergence, only
+      # executing both runtimes on one input and comparing bytes can. A single differing byte
+      # fails. agentspec is pure stdlib, so no pip install is needed in the node job.
+      - name: gate-tests-coverage agentspec parity oracle (python <-> js, byte-identical)
+        working-directory: tools/agentspec-js
+        run: npm run parity
 
   test-python:
     name: gate-tests-coverage (python packages)

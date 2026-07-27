@@ -13,6 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Literal
 
+from agentspec import wire
 from agentspec.taxonomy import is_reason
 
 Status = Literal["success", "warning", "error"]
@@ -118,13 +119,13 @@ def validate_observation(obs: Observation) -> tuple[str, ...]:
     violations: list[str] = []
     if obs.status not in STATUSES:
         violations.append("envelope-status-invalid")
-    if not obs.summary.strip():
+    if wire.is_blank(obs.summary):
         violations.append("envelope-summary-empty")
     if obs.status == "error":
         violations.extend(_validate_error_path(obs))
     elif obs.error is not None:
         violations.append("envelope-error-unexpected")
-    return tuple(sorted(violations))
+    return wire.sorted_wire(violations)
 
 
 def _validate_error_path(obs: Observation) -> list[str]:
@@ -136,10 +137,10 @@ def _validate_error_path(obs: Observation) -> list[str]:
         violations.append("envelope-next-actions-empty")
     if not is_reason(obs.error.code):
         violations.append("envelope-error-code-unknown")
-    if not obs.error.root_cause.strip():
+    if wire.is_blank(obs.error.root_cause):
         violations.append("envelope-error-root-cause-empty")
-    if not obs.error.retry_instruction.strip():
+    if wire.is_blank(obs.error.retry_instruction):
         violations.append("envelope-error-retry-instruction-empty")
-    if not obs.error.stop_condition.strip():
+    if wire.is_blank(obs.error.stop_condition):
         violations.append("envelope-error-stop-condition-empty")
     return violations

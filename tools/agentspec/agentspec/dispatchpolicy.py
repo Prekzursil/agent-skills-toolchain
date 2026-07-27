@@ -15,6 +15,8 @@ there is a detector control asserting this function stays silent in that case.
 
 from __future__ import annotations
 
+from agentspec import wire
+
 DISPATCH_VIOLATIONS: tuple[str, ...] = (
     "background-on-awaited-dispatch",
     "missing-timeout",
@@ -26,12 +28,8 @@ def check_dispatch(
     *, background: bool, timeout_s: int | None, awaited: bool
 ) -> tuple[str, ...]:
     """Return the sorted violations for a proposed dispatch; empty means go ahead."""
-    if timeout_s is not None and (
-        isinstance(timeout_s, bool) or not isinstance(timeout_s, int)
-    ):
-        raise TypeError(
-            f"timeout_s must be an int or None, not {type(timeout_s).__name__}"
-        )
+    if timeout_s is not None:
+        wire.require_wire_integer(timeout_s, "timeout_s")
     found: list[str] = []
     if background and awaited:
         found.append("background-on-awaited-dispatch")
@@ -39,4 +37,4 @@ def check_dispatch(
         found.append("missing-timeout")
     elif timeout_s <= 0:
         found.append("nonpositive-timeout")
-    return tuple(sorted(found))
+    return wire.sorted_wire(found)

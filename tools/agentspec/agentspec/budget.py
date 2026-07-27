@@ -13,6 +13,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from agentspec import wire
+
 
 class BudgetExhausted(Exception):
     """Raised when a debit would exceed the ceiling. Carries the taxonomy reason."""
@@ -45,6 +47,7 @@ class Ledger:
     debits: tuple[Debit, ...] = ()
 
     def __post_init__(self) -> None:
+        wire.require_wire_integer(self.limit_micro, "limit_micro")
         if self.limit_micro < 0:
             raise ValueError("limit_micro must be >= 0")
 
@@ -63,7 +66,7 @@ class Ledger:
 
     def debit(self, unit_id: str, *, attempt: int, micro: int) -> Ledger:
         """Return a new ledger with one more debit, or raise."""
-        _require_int(micro, "micro")
+        wire.require_wire_integer(micro, "micro")
         if micro <= 0:
             raise ValueError(
                 "micro must be positive (a zero debit is not an observation)"
@@ -90,16 +93,9 @@ def cost_per_success(ledger: Ledger, *, successes: int) -> int:
     Raw token totals flatter a run that retried a lot; this divides the WHOLE spend
     (including failed attempts) by the number of units that actually succeeded.
     """
+    wire.require_wire_integer(successes, "successes")
     if successes < 0:
         raise ValueError("successes must be >= 0")
     if successes == 0:
         return 0
     return ledger.spent_micro // successes
-
-
-def _require_int(value: object, name: str) -> None:
-    """Reject ``bool`` explicitly: ``isinstance(True, int)`` is True in Python."""
-    if isinstance(value, bool) or not isinstance(value, int):
-        raise TypeError(
-            f"{name} must be an int (micro-units), not {type(value).__name__}"
-        )
