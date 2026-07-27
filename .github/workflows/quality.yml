@@ -151,6 +151,27 @@ jobs:
       - name: gate-types agentrail (source)
         working-directory: tools/agentrail
         run: basedpyright agentrail
+      # tools/mcpapply -- the MUTATION sibling of mcpctl (plan/apply the five config
+      # scopes, the stream-json live-control channel behind a port, the token/RAM impact
+      # preview, and the loopback-only stdlib web GUI). It exists as its own package
+      # because mcpctl is read-only BY CONSTRUCTION: an mcpctl test walks the AST of
+      # every module there and fails on any write call, any out-of-process call, and any
+      # http/socket/urllib import -- so the writer, the process guard and the GUI cannot
+      # live in it without breaking the gate that makes it trustworthy to read from.
+      #
+      # NO install step: the package SOURCE is stdlib-only apart from mcpctl, which is
+      # resolved by `[tool.basedpyright] extraPaths = ["../mcpctl"]` in its pyproject.
+      # That line is LOAD-BEARING here (unlike the inert guard of the same name in
+      # mcpctl), and it is the measured B1 trap: `pip install -e ../mcpctl` is INVISIBLE
+      # to basedpyright, because setuptools emits a MetaPathFinder inside a .pth holding
+      # executable code and basedpyright neither runs .pth code nor follows a finder.
+      # Both-states probe, 2026-07-27, in a venv where mcpctl WAS editable-installed:
+      # with extraPaths `0 errors`; with it commented out `17 errors`, all
+      # reportMissingImports on `mcpctl.*`. So the editable install alone does not
+      # satisfy this step -- do not "simplify" it away.
+      - name: gate-types mcpapply (source)
+        working-directory: tools/mcpapply
+        run: basedpyright mcpapply
       # agent-self/harness — the enshrined shared lifecycle harness (SSOT for the live
       # ~/.agents/harness deploy loop; see agent-self/harness/README.md). It ships NO
       # pyproject (byte-exact projection of the live tree the installer deploys), so standard
@@ -225,6 +246,37 @@ jobs:
         run: |
           pip install -e ".[dev]"
           pytest --cov=mcpctl --cov-branch --cov-report=term-missing --cov-fail-under=100
+      # tools/mcpapply -- the MUTATION sibling of mcpctl. Two install lines, both
+      # load-bearing:
+      #
+      #   * `pip install -e ../mcpctl` FIRST. mcpapply imports mcpctl statically in
+      #     seven modules (it is the whole read layer), and mcpctl is deliberately NOT
+      #     declared in mcpapply's `dependencies`: naming the bare string `mcpctl` there
+      #     would make pip resolve it from PyPI, a name this repo does not own, and pull
+      #     a stranger's package into a tool that writes the operator's credential-
+      #     bearing config. The sibling tree is the only supply chain here.
+      #   * `pip install -e ".[dev]"` (the monitorcore/agentspec pattern), NOT the bare
+      #     `pip install pytest pytest-cov` that stdin-server uses. MEASURED: `tests/` is
+      #     a subdirectory and tests/conftest.py imports the package at COLLECTION time,
+      #     so the bare form dies with `ModuleNotFoundError: No module named 'mcpapply'`.
+      #     Reproduce either state with the venv's `pytest` CONSOLE SCRIPT, never
+      #     `python -m pytest` -- the `-m` form prepends CWD to sys.path and passes in
+      #     BOTH states, so it is a broken detector for exactly this failure.
+      #
+      # `-m "not live"` is load-bearing too. tests/test_live.py registers ONE `live` row
+      # that would spawn a REAL host session; its conftest default-deselects it, but a
+      # bare pytest here would run it the moment that hook regressed, on a runner with
+      # no host binary -- and `mcp_toggle` PERSISTS a write to ~/.claude.json, so a live
+      # row is a mutation, not just a slow test. It is deliberately not the sole cover of
+      # any line, so 100% is still reached with it deselected (measured 2026-07-27:
+      # 225 passed, 1 deselected, 100.00% line+branch, ZERO `# pragma: no cover` in
+      # package source).
+      - name: gate-tests-coverage mcpapply
+        working-directory: tools/mcpapply
+        run: |
+          pip install -e ../mcpctl
+          pip install -e ".[dev]"
+          pytest -m "not live" --cov=mcpapply --cov-branch --cov-report=term-missing --cov-fail-under=100
       # tools/stdin-server — a stdlib-only interactive-stdin MCP server (Desktop Commander
       # start_process/interact_with_process/read_process_output). Zero third-party deps, so
       # only pytest+pytest-cov are installed; the whole module is 100% line+branch gated. The
