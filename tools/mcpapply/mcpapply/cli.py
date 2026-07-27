@@ -18,7 +18,7 @@ from __future__ import annotations
 import argparse
 import json
 from collections.abc import Callable, Mapping, Sequence
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Protocol, cast
 
@@ -36,8 +36,25 @@ from mcpapply.apply import (
     apply_plan,
     render_result,
 )
+from mcpapply.backup import Clock, fixed_clock, make_clock
 from mcpapply.guard import make_guard
-from mcpapply.impact import Cost, Impact, Regime, TokenBasis, preview, render_impact
+from mcpapply.impact import (
+    TOOL_BLOCK_OVERHEAD_TOKENS,
+    Cost,
+    Impact,
+    Regime,
+    TokenBasis,
+    preview,
+    render_impact,
+)
+from mcpapply.live import (
+    INTENT_OPS,
+    LiveClient,
+    LiveOutcome,
+    default_live_client,
+    render_live,
+    run_live,
+)
 from mcpapply.plan import (
     Change,
     Plan,
@@ -54,6 +71,11 @@ from mcpapply.plan import (
 __all__ = ["build_change", "load_costs", "main"]
 
 _MUTATORS = ("enable", "disable", "add", "remove", "edit", "reconnect")
+
+#: Verbs that have no on-disk representation at all -- they exist only as a control
+#: frame. Running one without ``--live`` used to print ``SUCCESS: 0 file(s) written``,
+#: which reads as "done" for an operation that never happened.
+_LIVE_ONLY_COMMANDS = ("reconnect",)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -74,10 +96,11 @@ def _parser() -> argparse.ArgumentParser:
         "--project",
         default=None,
         help=(
-            "projects[] key to write. Matched EXACTLY -- an ancestor row is never "
-            "substituted, because the host keys projects by the session's exact cwd. "
-            "Without it, a disable falls back to the root list, which does NOT prevent "
-            "the server process from spawning."
+            "projects[] key to write. Separators are normalised to forward slashes "
+            "(the host's own spelling), but the key is otherwise matched EXACTLY -- an "
+            "ancestor row is never substituted, because the host keys projects by the "
+            "session's exact cwd. Without it, a disable falls back to the root list, "
+            "which does NOT prevent the server process from spawning."
         ),
     )
     parser.add_argument(
@@ -106,6 +129,35 @@ def _parser() -> argparse.ArgumentParser:
         "--tool-search",
         default=None,
         help="ENABLE_TOOL_SEARCH value, so the token figure names its regime",
+    )
+    parser.add_argument(
+        "--fleet-size",
+        type=int,
+        default=0,
+        help=(
+            "how many tool-bearing servers are loaded now. Only used to decide whether "
+            f"the one-off {TOOL_BLOCK_OVERHEAD_TOKENS}-token tool block is reclaimed "
+            "too (it is, and only, when the plan removes the last of them)."
+        ),
+    )
+    parser.add_argument(
+        "--live",
+        action="store_true",
+        help=(
+            "carry the change out over the stream-json control channel instead of "
+            "writing config. REQUIRED for `reconnect`, which has no on-disk form. "
+            "Refused outright when the recorded evidence for that (scope, op) pair "
+            "says it does not work."
+        ),
+    )
+    parser.add_argument(
+        "--live-cwd",
+        default=None,
+        help=(
+            "cwd for the control session (default: this process's). mcp_toggle "
+            "persists its write to projects[<the control session's cwd>], so the wrong "
+            "value lands the change under the wrong project row."
+        ),
     )
     parser.add_argument("--port", type=int, default=0, help="GUI port (0 = ephemeral)")
     parser.add_argument("--json", action="store_true", help="emit JSON instead of text")
@@ -225,24 +277,29 @@ def main(
     runner: Callable[[Sequence[str]], str] | None = None,
     serve_fn: Callable[[gui.GuiPorts, int], int] | None = None,
     liveness: Mapping[str, Liveness] | None = None,
+    client_for: Callable[[str], LiveClient] | None = None,
     write: Callable[[str], None] = print,
 ) -> int:
     """Run the CLI. Returns 0 on success/warning, 1 on error."""
     args = _parser().parse_args(argv)
     load = sources.load_sources if loader is None else loader
     file_store: FileStore = RealFileStore() if store is None else store
-    clock = datetime.now(timezone.utc) if now is None else now
+    # A CLOCK, not an instant. The GUI runs for hours and derives a backup filename
+    # per write; one frozen datetime meant every apply after the first overwrote the
+    # sidecar the previous one told the operator to restore from.
+    clock: Clock = make_clock() if now is None else fixed_clock(now)
     home = sources.default_home() if args.home is None else Path(args.home)
     paths = sources.source_paths(home)
+    project_key = _project_key(args.project)
 
     docs, problems = load(paths)
-    top = build_topology(docs, project_key=args.project)
 
     if args.command == "gui":
         return _gui_command(
             args,
             paths=paths,
-            docs=docs,
+            load=load,
+            project_key=project_key,
             store=file_store,
             clock=clock,
             runner=runner,
@@ -261,6 +318,10 @@ def main(
             stop_condition="stop immediately; this is a usage error, not a transient failure",
         )
 
+    top = build_topology(docs, project_key=project_key)
+    if args.live or args.command in _LIVE_ONLY_COMMANDS:
+        return _live_command(args, top, client_for=client_for, write=write)
+
     try:
         change = build_change(args.command, top, args.server, args.spec, args.scope)
     except ValueError as exc:
@@ -274,9 +335,26 @@ def main(
             "argument, not a transient condition",
         )
 
-    plan = build_plan([change], project_key=args.project)
-    costs = _costs_from(args, file_store)
-    impact = preview(plan, costs, regime=Regime(_regime_name(args.tool_search)))
+    plan = build_plan([change], project_key=project_key)
+    try:
+        costs = _costs_from(args, file_store)
+    except (OSError, ValueError) as exc:
+        return _fail(
+            write,
+            args.command,
+            safe(f"--costs could not be read: {exc}"),
+            root_cause="the measured-cost file named by --costs is missing or is not a "
+            "JSON object keyed by server name",
+            retry="correct or drop --costs and re-run once",
+            stop_condition="stop after ONE retry: a missing or malformed file is a "
+            "standing condition, not a transient one",
+        )
+    impact = preview(
+        plan,
+        costs,
+        regime=Regime(_regime_name(args.tool_search)),
+        fleet_size=args.fleet_size,
+    )
     result = apply_plan(
         plan,
         paths=paths,
@@ -290,6 +368,119 @@ def main(
         ),
     )
     return _report(args, plan, impact, result, problems, write)
+
+
+def _project_key(raw: str | None) -> str | None:
+    """Normalise a ``--project`` value to the host's own key spelling.
+
+    The host keys ``projects`` by an absolute path with FORWARD slashes. Passing a
+    Windows-native path straight through created a brand-new row nobody reads: the
+    requested disable silently did not land, ``~/.claude.json`` gained a junk row that
+    accumulated on every repeat, and the terminal line still said SUCCESS.
+
+    This is separator normalisation ONLY -- :func:`mcpctl.sources.project_key_for` does
+    no ancestor walk, and neither does this, because substituting a parent row for a
+    missing one is exactly the mis-targeting ``--help`` warns about.
+    """
+    return None if raw is None else sources.project_key_for(Path(raw))
+
+
+def _live_command(
+    args: argparse.Namespace,
+    top: object,
+    *,
+    client_for: Callable[[str], LiveClient] | None,
+    write: Callable[[str], None],
+) -> int:
+    """Route one verb through the control channel instead of the config writer."""
+    from mcpctl.topology import Topology
+
+    if args.command not in INTENT_OPS:
+        return _fail(
+            write,
+            args.command,
+            f"`{args.command}` has no control-channel form",
+            root_cause=f"only {', '.join(sorted(INTENT_OPS))} map to a control frame; "
+            f"`{args.command}` is a configuration-document mutation",
+            retry=f"re-run `mcpapply {args.command} {args.server}` without --live",
+            stop_condition="stop immediately; this is a usage error, not a transient failure",
+        )
+    if args.command in _LIVE_ONLY_COMMANDS and not args.live:
+        return _fail(
+            write,
+            args.command,
+            f"`{args.command}` writes no configuration and needs --live",
+            root_cause=f"`{args.command}` exists only as a control frame, so without "
+            "--live it would have reported success while doing nothing at all",
+            retry=f"re-run as `mcpapply {args.command} {args.server} --live --apply`",
+            stop_condition="stop immediately; this is a usage error, not a transient failure",
+        )
+    topology = cast("Topology", top)
+    scopes = topology.scopes_of(safe(args.server))
+    scope = scopes[0] if scopes else ScopeId(args.scope)
+    cwd = str(Path.cwd()) if args.live_cwd is None else args.live_cwd
+    build = client_for or (lambda where: default_live_client(cwd=where))
+    outcome = run_live(
+        intent=args.command,
+        server=safe(args.server),
+        scope=scope,
+        apply=args.apply,
+        client_for=lambda: build(cwd),
+    )
+    return _report_live(args, outcome, write)
+
+
+def _classify_live(outcome: LiveOutcome) -> envelope.Envelope:
+    if outcome.refusal:
+        return envelope.error(
+            f"refused: {outcome.refusal}",
+            root_cause="the recorded per-scope evidence marks this control operation "
+            "as not working; offering it anyway would be an overclaim",
+            retry="use the configuration path instead (`mcpapply disable/enable` "
+            "without --live), which is written and verified on disk",
+            stop_condition="stop immediately: this is a standing evidence verdict, not "
+            "a transient failure",
+        )
+    if outcome.dry_run:
+        return envelope.success(
+            "DRY RUN: no control session started, zero frames sent",
+            next_actions=("re-run with --apply to send it",),
+        )
+    return envelope.success(
+        f"{len(outcome.sent)} control frame(s) sent",
+        next_actions=(
+            "mcp_toggle PERSISTS to ~/.claude.json; re-read the matrix to confirm",
+        ),
+    )
+
+
+def _report_live(
+    args: argparse.Namespace, outcome: LiveOutcome, write: Callable[[str], None]
+) -> int:
+    env = _classify_live(outcome)
+    terminal = envelope.terminal_line(f"mcpapply-{args.command}", env)
+    if args.json:
+        write(
+            json.dumps(
+                {
+                    "envelope": env.to_dict(),
+                    "live": outcome.to_dict(),
+                    "terminal": terminal,
+                },
+                indent=2,
+                sort_keys=True,
+            )
+        )
+        return 1 if env.status == "error" else 0
+    write(render_live(outcome))
+    if env.status == "error":
+        write(f"root cause: {env.root_cause}")
+        write(f"retry: {env.retry}")
+        write(f"stop: {env.stop_condition}")
+    for action in env.next_actions:
+        write(f"next: {action}")
+    write(terminal)
+    return 1 if env.status == "error" else 0
 
 
 def _regime_name(tool_search: str | None) -> str:
@@ -340,6 +531,21 @@ def _classify(result: ApplyResult, dry_run_requested: bool) -> envelope.Envelope
             "window) and re-run with --apply",
             stop_condition="stop after ONE retry: a second identical refusal is a "
             "standing condition, not a transient one",
+        )
+    if result.problems and not result.dry_run and not result.written:
+        # A refusal that wrote NOTHING is a failure, not a warning. The stale-write
+        # refusal -- the entire justification for the deliberate no-lock design -- and
+        # an unparseable target both land here, and both used to print SUCCESS with
+        # exit 0, so `mcpapply disable X --apply && echo landed` printed "landed".
+        return envelope.error(
+            f"{len(result.problems)} problem(s); NOTHING was written -- the requested "
+            "change did not happen",
+            root_cause="every target was refused before the write (the file moved "
+            "under the preview, or it could not be parsed)",
+            retry="re-run with --apply so the plan is rebuilt against the current "
+            "contents",
+            stop_condition="stop after ONE retry: a second identical refusal is a "
+            "standing condition, not a race",
         )
     if result.problems:
         return envelope.warning(
@@ -408,34 +614,62 @@ def _gui_command(
     args: argparse.Namespace,
     *,
     paths: sources.SourcePaths,
-    docs: SourceDocs,
+    load: Callable[
+        [sources.SourcePaths], tuple[SourceDocs, tuple[sources.SourceProblem, ...]]
+    ],
+    project_key: str | None,
     store: FileStore,
-    clock: datetime,
+    clock: Clock,
     runner: Callable[[Sequence[str]], str] | None,
     serve_fn: Callable[[gui.GuiPorts, int], int] | None,
     liveness: Mapping[str, Liveness] | None,
     write: Callable[[str], None],
 ) -> int:
+    """Serve the GUI, RE-READING the configuration on every request.
+
+    The documents are deliberately NOT captured at launch. A snapshot made the GUI
+    unable to undo its own change -- after disabling a server it planned against a
+    world where that had never happened, wrote nothing, and went on rendering the
+    server as enabled -- and it also silently hid a file that became unparseable while
+    the window was open. Re-reading costs one file read per request on a loopback
+    socket, which is nothing next to being wrong.
+    """
     costs = _costs_from(args, store)
     regime = Regime(_regime_name(args.tool_search))
     live = {} if liveness is None else dict(liveness)
 
+    def current() -> tuple[object, tuple[sources.SourceProblem, ...]]:
+        docs, problems = load(paths)
+        return build_topology(docs, project_key=project_key), problems
+
     def rows() -> tuple[Row, ...]:
-        top = build_topology(docs, project_key=args.project)
-        return build_rows(top, liveness=live)
+        from mcpctl.topology import Topology
+
+        top, _ = current()
+        return build_rows(cast("Topology", top), liveness=live)
+
+    def problems() -> tuple[str, ...]:
+        _, found = current()
+        return tuple(f"{p.label} ({p.path}): {p.reason}" for p in found)
 
     def plan_for(intent: str, server_name: str) -> Plan:
-        top = build_topology(docs, project_key=args.project)
-        if intent not in _MUTATORS:
-            raise ValueError(f"unknown intent {intent!r}")
+        if intent not in gui.GUI_INTENTS:
+            raise ValueError(
+                f"intent {intent!r} is not offered by the GUI; the GUI offers "
+                f"{', '.join(gui.GUI_INTENTS)}. Definition edits need a --spec this "
+                "form cannot carry, and `remove`/`reconnect` are CLI-only."
+            )
+        top, _ = current()
         change = build_change(intent, top, server_name, args.spec, args.scope)
-        return build_plan([change], project_key=args.project)
+        return build_plan([change], project_key=project_key)
 
     def do_apply(plan: Plan, confirmed: bool) -> ApplyResult:
         return apply_plan(
             plan,
             paths=paths,
             store=store,
+            # The CALLABLE, so every apply in this long-lived process derives its own
+            # backup filename instead of clobbering the previous sidecar.
             now=clock,
             apply=confirmed,
             guard=make_guard(
@@ -447,8 +681,11 @@ def _gui_command(
 
     ports = gui.GuiPorts(
         rows=rows,
+        problems=problems,
         plan_for=plan_for,
-        impact_for=lambda plan: preview(plan, costs, regime=regime),
+        impact_for=lambda plan: preview(
+            plan, costs, regime=regime, fleet_size=args.fleet_size
+        ),
         apply_plan=do_apply,
         token=gui.new_token(),
     )

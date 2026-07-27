@@ -37,7 +37,13 @@ from typing import Protocol, cast
 from mcpctl.safety import safe
 from mcpctl.sources import SourcePaths
 
-from mcpapply.backup import BackupRecord, backup_path, restore_command
+from mcpapply.backup import (
+    BackupRecord,
+    Clock,
+    backup_path,
+    fixed_clock,
+    restore_command,
+)
 from mcpapply.plan import Edit, Op, Plan
 
 __all__ = [
@@ -297,7 +303,16 @@ def apply_edits_to_doc(
 def _serialise(
     doc: Mapping[str, object], *, trailing_newline: bool, newline: str
 ) -> str:
-    text = json.dumps(doc, indent=2, ensure_ascii=False)
+    """Re-serialise a document, REFUSING to emit non-standard JSON.
+
+    ``allow_nan=False`` is deliberate. Python's default would write the bare tokens
+    ``Infinity``/``NaN``, which ``json.loads`` accepts but ``JSON.parse`` -- i.e. the
+    host that actually reads these files -- rejects outright. A numeric literal large
+    enough to overflow (``1e400``) round-trips into exactly that, so the writer would
+    turn a merely-odd config into one the host cannot parse at all. Raising here is
+    caught by :func:`apply_plan` and reported as a refusal.
+    """
+    text = json.dumps(doc, indent=2, ensure_ascii=False, allow_nan=False)
     if trailing_newline:
         text += "\n"
     return text if newline == "\n" else text.replace("\n", newline)
@@ -352,7 +367,7 @@ def apply_plan(
     *,
     paths: SourcePaths,
     store: FileStore,
-    now: datetime,
+    now: datetime | Clock,
     apply: bool = False,
     guard: Callable[[], str] | None = None,
 ) -> ApplyResult:
@@ -361,10 +376,17 @@ def apply_plan(
     ``apply`` defaults to ``False``. That default is the entire safety contract of this
     package: nothing reaches disk unless a caller opted in explicitly.
 
+    ``now`` accepts either an instant or a :data:`~mcpapply.backup.Clock`. A
+    long-lived caller (the GUI) MUST pass the callable: a frozen instant derives one
+    backup filename for the whole process, so every apply after the first overwrites
+    the sidecar the previous one told the operator to restore from. Within a single
+    call the clock is read once, so every file in one plan shares one stamp.
+
     ``guard`` is a fail-CLOSED precondition (see :mod:`mcpapply.guard`): it returns a
     non-empty string to REFUSE the write. It is consulted only on the apply path, so a
     preview always works even while the host is running.
     """
+    clock: Clock = now if callable(now) else fixed_clock(now)
     grouped = _edits_by_label(plan)
     changes: list[FileChange] = []
     problems: list[str] = []
@@ -390,11 +412,18 @@ def apply_plan(
             continue
         updated, issues = apply_edits_to_doc(doc, grouped[label])
         problems.extend(issues)
-        after = _serialise(
-            updated,
-            trailing_newline=before.endswith("\n") or not before,
-            newline=line_ending(before),
-        )
+        try:
+            after = _serialise(
+                updated,
+                trailing_newline=before.endswith("\n") or not before,
+                newline=line_ending(before),
+            )
+        except ValueError as exc:
+            problems.append(
+                f"{label}: holds a non-finite number ({exc}) that cannot be written as "
+                "standard JSON; refusing to write it"
+            )
+            continue
         changed = after != before
         changes.append(
             FileChange(
@@ -429,7 +458,7 @@ def apply_plan(
             if store.read_text(path) != before:
                 problems.append(_STALE.format(label=safe(str(path))))
                 continue
-            destination = backup_path(path, now)
+            destination = backup_path(path, clock(), taken=store.exists)
             size = store.copy_file(path, destination)
             backups.append(
                 BackupRecord(source=str(path), backup=str(destination), size_bytes=size)

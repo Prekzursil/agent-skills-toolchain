@@ -191,7 +191,10 @@ def test_a_non_loopback_host_header_is_rejected_dns_rebinding(base: str):
 def test_a_hostile_server_name_cannot_inject_html_or_js(base: str):
     status, body, headers = _get(f"{base}/")
     assert status == 200
-    assert headers["Content-Security-Policy"] == "default-src 'self'"
+    assert (
+        headers["Content-Security-Policy"]
+        == "default-src 'self'; frame-ancestors 'none'"
+    )
     # No live tag and no attribute-breaking quote survives; the escaped form does.
     assert "<img" not in body
     assert "&lt;img src=x onerror=&quot;alert(1)&quot;&gt;" in body

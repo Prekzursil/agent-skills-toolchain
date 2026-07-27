@@ -42,6 +42,7 @@ from __future__ import annotations
 
 import json
 import subprocess  # noqa: S404 -- spawning the host session is this module's purpose.
+import uuid
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum
@@ -53,18 +54,23 @@ from mcpctl.scopes import ScopeId
 
 __all__ = [
     "AFFORDANCES",
+    "INTENT_OPS",
     "Affordance",
     "ControlError",
     "LiveClient",
     "LiveOp",
+    "LiveOutcome",
     "Proof",
     "SubprocessTransport",
     "Transport",
     "affordance",
     "control_frame",
+    "default_live_client",
     "kick_frame",
     "liveness_from_status",
     "parse_frame",
+    "render_live",
+    "run_live",
     "session_argv",
     "status_servers",
 ]
@@ -433,3 +439,167 @@ class SubprocessTransport:
 
     def close(self) -> None:
         self._process.kill()
+
+
+def _uuid_id() -> str:
+    """A fresh ``request_id``. Responses arrive out of order, so it must be unique."""
+    return uuid.uuid4().hex
+
+
+def default_live_client(
+    *,
+    cwd: str,
+    binary: str = "claude",
+    spawn: Spawn = default_spawn,
+    new_id: Callable[[], str] = _uuid_id,
+) -> LiveClient:
+    """Spawn a real control session and return a KICKED client, ready for frames.
+
+    The kick is not optional and not a nicety: a stream-json-input session does not
+    emit ``system/init`` until it has received its first user message, so a caller that
+    waits for init before writing deadlocks forever. ``spawn`` stays injected so the
+    hermetic tests exercise this exact function without launching the host binary.
+    """
+    client = LiveClient(
+        SubprocessTransport(session_argv(binary), cwd=cwd, spawn=spawn),
+        new_id=new_id,
+    )
+    client.kick()
+    return client
+
+
+#: Which control op each operator intent maps to. ``add``/``remove``/``edit`` are
+#: absent on purpose: they are config-document mutations, not control frames.
+INTENT_OPS: Mapping[str, LiveOp] = {
+    "enable": LiveOp.TOGGLE,
+    "disable": LiveOp.TOGGLE,
+    "reconnect": LiveOp.RECONNECT,
+}
+
+_REFUSED = (
+    "the live {op} against a {scope} server is recorded {proof}, so this tool will not "
+    "offer it: {note}"
+)
+
+
+@dataclass(frozen=True)
+class LiveOutcome:
+    """What the control channel did -- or, on the dry-run/refused paths, did not do."""
+
+    intent: str
+    server: str
+    scope: ScopeId
+    op: LiveOp
+    proof: Proof
+    dry_run: bool = True
+    #: Every line actually written to the session. EMPTY on a dry run, always.
+    sent: tuple[str, ...] = ()
+    #: Server names observed by the follow-up ``mcp_status``.
+    observed: tuple[str, ...] = ()
+    refusal: str = ""
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "intent": self.intent,
+            "server": self.server,
+            "scope": self.scope.value,
+            "op": self.op.value,
+            "proof": self.proof.value,
+            "dry_run": self.dry_run,
+            "frames_sent": len(self.sent),
+            "observed": list(self.observed),
+            "refusal": self.refusal,
+        }
+
+
+def run_live(
+    *,
+    intent: str,
+    server: str,
+    scope: ScopeId,
+    apply: bool,
+    client_for: Callable[[], LiveClient],
+) -> LiveOutcome:
+    """Carry ``intent`` out over the control channel, or explain why it will not be.
+
+    Three gates, in order:
+
+    1. **The recorded affordance.** :data:`AFFORDANCES` is evidence, not optimism; a
+       pair it marks ``disproven``/``unproven`` is REFUSED with the recorded note
+       rather than attempted and reported as a success. This is what makes the
+       package's "the UI does not offer an unproven affordance" claim mechanical
+       instead of aspirational.
+    2. **Dry run.** Without ``apply`` no session is created and ZERO frames are sent --
+       ``client_for`` is not even called.
+    3. **Execute, then re-observe.** ``mcp_reconnect``/``mcp_toggle`` return no
+       payload, so the only honest confirmation is a follow-up ``mcp_status``.
+    """
+    op = INTENT_OPS[intent]
+    card = affordance(scope, op)
+    if not card.offer:
+        return LiveOutcome(
+            intent=intent,
+            server=server,
+            scope=scope,
+            op=op,
+            proof=card.proof,
+            refusal=_REFUSED.format(
+                op=op.value,
+                scope=scope.value,
+                proof=card.proof.value,
+                note=card.note,
+            ),
+        )
+    if not apply:
+        return LiveOutcome(
+            intent=intent, server=server, scope=scope, op=op, proof=card.proof
+        )
+    client = client_for()
+    if op is LiveOp.RECONNECT:
+        client.reconnect(server)
+    else:
+        client.toggle(server, enabled=intent == "enable")
+    observed = tuple(
+        sorted(
+            str(entry["name"])
+            for entry in client.status()
+            if isinstance(entry.get("name"), str)
+        )
+    )
+    return LiveOutcome(
+        intent=intent,
+        server=server,
+        scope=scope,
+        op=op,
+        proof=card.proof,
+        dry_run=False,
+        sent=tuple(client.sent),
+        observed=observed,
+    )
+
+
+def render_live(outcome: LiveOutcome) -> str:
+    """Plain-text rendering of a control-channel outcome."""
+    lines = [
+        f"live {outcome.op.value} {outcome.server} "
+        f"[{outcome.scope.value}, evidence: {outcome.proof.value}]"
+    ]
+    if outcome.refusal:
+        lines.append(f"REFUSED: {outcome.refusal}")
+        return "\n".join(lines)
+    if outcome.dry_run:
+        lines.append(
+            "DRY RUN -- no control session was started and ZERO frames were sent. "
+            "Re-run with --apply to send it."
+        )
+        return "\n".join(lines)
+    lines.append(f"sent {len(outcome.sent)} frame(s) over the control channel")
+    lines.append(
+        "observed after the change: "
+        + (", ".join(outcome.observed) if outcome.observed else "(no servers reported)")
+    )
+    lines.append(
+        "mcp_toggle PERSISTS to ~/.claude.json -> projects[<the control session's "
+        "cwd>].disabledMcpServers; it is not an in-memory flip"
+    )
+    return "\n".join(lines)

@@ -53,7 +53,11 @@
     }
     var impact = payload.impact || {};
     lines.push("");
-    lines.push("tokens saved: " + fmt(impact.token_delta));
+    // The basis rides WITH the number, always. A proxy figure spans 12.5x on this
+    // box, so an unlabelled integer is indistinguishable from a measurement.
+    lines.push(
+      "tokens saved: " + fmt(impact.token_delta) + " [" + fmt(impact.token_basis) + "]"
+    );
     lines.push("commit saved: " + fmt(impact.commit_delta));
     (impact.notes || []).forEach(function (note) {
       lines.push("note: " + note);

@@ -18,6 +18,11 @@ from mcpctl.scopes import ScopeId
 
 from mcpapply.live import (
     AFFORDANCES,
+    INTENT_OPS,
+    Affordance,
+    default_live_client,
+    render_live,
+    run_live,
     ControlError,
     LiveClient,
     LiveOp,
@@ -437,3 +442,158 @@ def test_the_live_test_is_actually_deselected_by_default(pytestconfig: pytest.Co
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert "1 test collected" in result.stdout
+
+
+# --------------------------------------------------------------------------
+# The command surface -- what makes this module REACHABLE from production
+# --------------------------------------------------------------------------
+
+
+class _Recorder:
+    """A client that records calls, standing in for a real control session."""
+
+    def __init__(self) -> None:
+        self.sent: list[str] = ["kick"]
+        self.calls: list[tuple[str, object]] = []
+
+    def reconnect(self, name: str) -> None:
+        self.calls.append(("reconnect", name))
+        self.sent.append("reconnect")
+
+    def toggle(self, name: str, *, enabled: bool) -> None:
+        self.calls.append(("toggle", enabled))
+        self.sent.append("toggle")
+
+    def status(self) -> tuple[dict[str, object], ...]:
+        self.sent.append("status")
+        return ({"name": "alpha"}, {"name": 7}, {"nope": "x"})
+
+
+def test_the_request_id_generator_is_unique_per_call():
+    """Responses arrive OUT OF ORDER, so the demultiplexer key must not repeat."""
+    from mcpapply.live import _uuid_id
+
+    ids = {_uuid_id() for _ in range(50)}
+    assert len(ids) == 50
+
+
+def test_the_default_client_spawns_kicks_and_is_ready_for_frames(tmp_path):
+    """The kick is mandatory: a stream-json session emits no init until it gets one,
+    so a caller that waits for init before writing deadlocks forever."""
+    seen: list[tuple[Sequence[str], str]] = []
+
+    def record(argv: Sequence[str], cwd: str):
+        seen.append((argv, cwd))
+        return default_spawn([sys.executable, "-c", "pass"], cwd)
+
+    client = default_live_client(cwd=str(tmp_path), binary="claude", spawn=record)
+    assert seen and seen[0][0][0] == "claude"
+    assert seen[0][1] == str(tmp_path)
+    assert len(client.sent) == 1
+    assert json.loads(client.sent[0])["type"] == "user"
+
+
+def test_only_the_three_control_verbs_map_to_a_frame():
+    """add/remove/edit are document mutations; they have no control-channel form."""
+    assert set(INTENT_OPS) == {"enable", "disable", "reconnect"}
+    assert INTENT_OPS["enable"] is INTENT_OPS["disable"] is LiveOp.TOGGLE
+    assert INTENT_OPS["reconnect"] is LiveOp.RECONNECT
+
+
+def test_a_dry_run_builds_no_session_and_sends_no_frame():
+    outcome = run_live(
+        intent="disable",
+        server="alpha",
+        scope=ScopeId.CLAUDE_USER,
+        apply=False,
+        client_for=lambda: pytest.fail("a dry run built a control session"),
+    )
+    assert outcome.dry_run is True
+    assert outcome.sent == ()
+    assert "ZERO frames were sent" in render_live(outcome)
+
+
+def test_an_offered_toggle_is_executed_then_RE_OBSERVED():
+    """toggle/reconnect return no payload, so a follow-up status is the only proof."""
+    client = _Recorder()
+    outcome = run_live(
+        intent="enable",
+        server="alpha",
+        scope=ScopeId.CLAUDE_USER,
+        apply=True,
+        client_for=lambda: client,
+    )
+    assert client.calls == [("toggle", True)]
+    assert outcome.dry_run is False
+    assert outcome.observed == ("alpha",), "a non-str name must be skipped, not crash"
+    assert outcome.proof is Proof.PROVISIONAL
+    text = render_live(outcome)
+    assert "observed after the change: alpha" in text
+    assert "PERSISTS" in text
+    assert outcome.to_dict() == {
+        "intent": "enable",
+        "server": "alpha",
+        "scope": ScopeId.CLAUDE_USER.value,
+        "op": LiveOp.TOGGLE.value,
+        "proof": Proof.PROVISIONAL.value,
+        "dry_run": False,
+        "frames_sent": 3,
+        "observed": ["alpha"],
+        "refusal": "",
+    }
+
+
+def test_a_refused_pair_renders_the_recorded_reason_and_sends_nothing():
+    outcome = run_live(
+        intent="disable",
+        server="alpha",
+        scope=ScopeId.MCP_JSON,
+        apply=True,
+        client_for=lambda: pytest.fail("a disproven affordance was attempted"),
+    )
+    assert outcome.proof is Proof.DISPROVEN
+    assert outcome.sent == ()
+    text = render_live(outcome)
+    assert text.startswith("live mcp_toggle alpha")
+    assert "REFUSED:" in text
+    assert "CLEAN NEGATIVE" in text
+
+
+def test_an_UPGRADED_affordance_is_honoured_rather_than_hardcoded_off(monkeypatch):
+    """The evidence table is DATA. Reconnect is refused for every scope on today's
+    record, so the executor branch is only reachable once a pair is upgraded -- which
+    is precisely the behaviour that must not rot. Patch the record, not the logic."""
+    monkeypatch.setattr(
+        "mcpapply.live.AFFORDANCES",
+        (
+            Affordance(
+                ScopeId.CLAUDE_USER, LiveOp.RECONNECT, Proof.PROVEN, "upgraded by n=5"
+            ),
+        ),
+    )
+    client = _Recorder()
+    outcome = run_live(
+        intent="reconnect",
+        server="alpha",
+        scope=ScopeId.CLAUDE_USER,
+        apply=True,
+        client_for=lambda: client,
+    )
+    assert client.calls == [("reconnect", "alpha")]
+    assert outcome.proof is Proof.PROVEN
+    assert outcome.refusal == ""
+
+
+def test_an_empty_status_reports_so_rather_than_an_empty_line():
+    class Silent(_Recorder):
+        def status(self) -> tuple[dict[str, object], ...]:
+            return ()
+
+    outcome = run_live(
+        intent="disable",
+        server="alpha",
+        scope=ScopeId.CLAUDE_USER,
+        apply=True,
+        client_for=Silent,
+    )
+    assert "(no servers reported)" in render_live(outcome)

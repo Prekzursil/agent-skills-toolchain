@@ -413,7 +413,7 @@ def _mutate_signature_default(mp: pytest.MonkeyPatch) -> None:
 
 
 def _mutate_backup_to_be_skipped(mp: pytest.MonkeyPatch) -> None:
-    mp.setattr(A, "backup_path", lambda target, now: target)
+    mp.setattr(A, "backup_path", lambda target, now, taken=None: target)
     original = A.apply_plan
 
     def no_backup(plan, **kwargs):
@@ -649,10 +649,225 @@ def _mutate_diff_to_skip_redaction(mp: pytest.MonkeyPatch) -> None:
     mp.setattr(A, "_diff", raw)
 
 
+# --------------------------------------------------------------------------
+# Checks for the decisions taken in the adversarial-review repair
+# --------------------------------------------------------------------------
+
+
+def check_each_apply_gets_its_own_backup_name() -> None:
+    """Two writes in one process must not land on the same sidecar."""
+    root = Path("/h")
+    store = A.MemoryFileStore()
+    _seed(store, root, {"mcpServers": {"srv": {"command": "x"}}})
+    first = A.apply_plan(
+        _disable_plan(),
+        paths=_paths(root),
+        store=store,
+        now=FIXED_NOW,
+        apply=True,
+        guard=lambda: "",
+    )
+    pristine = store.files[first.backups[0].backup]
+    _seed(store, root, {"mcpServers": {"srv": {"command": "y"}}})
+    second = A.apply_plan(
+        _disable_plan(),
+        paths=_paths(root),
+        store=store,
+        now=FIXED_NOW,
+        apply=True,
+        guard=lambda: "",
+    )
+    assert first.backups[0].backup != second.backups[0].backup
+    assert store.files[first.backups[0].backup] == pristine
+
+
+def check_a_proxy_token_figure_is_labelled_as_one() -> None:
+    """A guessed number must never render identically to a measured one."""
+    plan = _disable_plan()
+
+    def rendered(basis: I.TokenBasis) -> str:
+        cost = I.Cost(token_cost=500, token_basis=basis, commit_bytes=1)
+        return I.render_impact(I.preview(plan, {"srv": cost}, regime=I.Regime.EAGER))
+
+    assert rendered(I.TokenBasis.EXACT) != rendered(I.TokenBasis.TOOL_COUNT)
+    assert "[tool-count-proxy]" in rendered(I.TokenBasis.TOOL_COUNT)
+
+
+def check_a_provenanceless_number_is_not_summed() -> None:
+    """``token_cost`` with no declared basis is unmeasured, not a total."""
+    cost = I.Cost(token_cost=500, token_basis=I.TokenBasis.NOT_MEASURED)
+    result = I.preview(_disable_plan(), {"srv": cost}, regime=I.Regime.EAGER)
+    assert result.token_delta is None
+    assert result.partial is True
+
+
+def check_an_empty_spec_cannot_replace_a_definition() -> None:
+    """The one-word wipe: `edit <srv>` with no --spec."""
+    top = _simple_top()
+    try:
+        P.plan_edit(top, "srv", {})
+    except ValueError:
+        return
+    raise AssertionError("an empty spec was accepted and would wipe the definition")
+
+
+def check_a_native_project_path_reaches_the_row_the_host_reads() -> None:
+    from mcpapply.cli import _project_key
+
+    assert _project_key(PROJECT_KEY.replace("/", chr(92))) == PROJECT_KEY
+
+
+def check_a_write_that_did_not_happen_is_not_reported_as_success() -> None:
+    from mcpapply.cli import _classify
+
+    refused = A.ApplyResult(dry_run=False, problems=("target moved; REFUSED",))
+    assert _classify(refused, False).status == "error"
+
+
+def check_the_static_root_is_contained_not_blocklisted() -> None:
+    """A name that resolves outside the static tree must never be served."""
+    escaped = (S.STATIC_DIR.resolve().parent / "pyproject.toml").resolve()
+    assert not escaped.is_relative_to(S.STATIC_DIR.resolve())
+
+
+def check_the_host_allowlist_requires_a_numeric_port() -> None:
+    assert S.host_allowed("127.0.0.1:8000") is True
+    assert S.host_allowed("127.0.0.1:8000.evil.example") is False
+
+
+def check_the_gui_offers_no_intent_its_form_cannot_carry() -> None:
+    assert "edit" not in S.GUI_INTENTS
+    assert "remove" not in S.GUI_INTENTS
+    assert set(S.GUI_INTENTS) <= {"disable", "enable"}
+
+
+def _mutate_backup_name_to_ignore_collisions(mp: pytest.MonkeyPatch) -> None:
+    """Revert to the stamp-only name: two writes in one second collide."""
+    from mcpapply import backup as B
+
+    mp.setattr(
+        A,
+        "backup_path",
+        lambda target, now, taken=None: target.with_name(
+            f"{target.name}.{B.BACKUP_SUFFIX}-{B.utc_stamp(now)}.bak"
+        ),
+    )
+
+
+def _mutate_weakest_basis_to_always_exact(mp: pytest.MonkeyPatch) -> None:
+    """Launder every proxy figure as a measurement."""
+    mp.setattr(I, "weakest_basis", lambda bases: I.TokenBasis.EXACT)
+    mp.setattr(I, "render_impact", _basis_free_render)
+
+
+def _basis_free_render(impact: "I.Impact") -> str:
+    """The pre-fix renderer: a bare integer with no basis beside it."""
+    return f"tokens saved:  {impact.token_delta}"
+
+
+def _mutate_undeclared_basis_to_be_summed(mp: pytest.MonkeyPatch) -> None:
+    """Treat a provenance-less number as if it were measured."""
+    real = I.Cost
+
+    def coerced(*args: object, **kwargs: object):
+        kwargs.setdefault("token_basis", I.TokenBasis.EXACT)
+        if kwargs.get("token_basis") is I.TokenBasis.NOT_MEASURED:
+            kwargs["token_basis"] = I.TokenBasis.EXACT
+        return real(*args, **kwargs)  # type: ignore[arg-type]
+
+    mp.setattr(I, "Cost", coerced)
+
+
+def _mutate_empty_spec_guard_away(mp: pytest.MonkeyPatch) -> None:
+    mp.setattr(P, "_require_spec", lambda spec, *, verb, name: None)
+
+
+def _mutate_project_key_to_pass_the_raw_value(mp: pytest.MonkeyPatch) -> None:
+    from mcpapply import cli as C
+
+    mp.setattr(C, "_project_key", lambda raw: raw)
+
+
+def _mutate_classify_to_warn_on_a_failed_write(mp: pytest.MonkeyPatch) -> None:
+    """The pre-fix mapping: any problem is a warning, and a warning is SUCCESS."""
+    from mcpctl import envelope
+
+    from mcpapply import cli as C
+
+    def lenient(result, dry_run_requested):
+        if result.problems:
+            return envelope.warning("problems", next_actions=())
+        return envelope.success("ok")
+
+    mp.setattr(C, "_classify", lenient)
+
+
+def _mutate_containment_to_a_character_blocklist(mp: pytest.MonkeyPatch) -> None:
+    """Revert to `"/" in name or ".." in name`, which misses every Windows shape."""
+    mp.setattr(Path, "is_relative_to", lambda self, other: True)
+
+
+def _mutate_gui_intents_to_the_full_verb_set(mp: pytest.MonkeyPatch) -> None:
+    mp.setattr(
+        S, "GUI_INTENTS", ("enable", "disable", "add", "remove", "edit", "reconnect")
+    )
+
+
+def _mutate_host_allowlist_to_split_on_the_last_colon(mp: pytest.MonkeyPatch) -> None:
+    mp.setattr(
+        S, "host_allowed", lambda host: host.rsplit(":", 1)[0] in S.LOOPBACK_HOSTS
+    )
+
+
 #: (mutant id, apply-the-mutation, the check that MUST go red)
 MUTANTS: tuple[
     tuple[str, Callable[[pytest.MonkeyPatch], None], Callable[[], None]], ...
 ] = (
+    (
+        "backup-name-frozen-per-process",
+        _mutate_backup_name_to_ignore_collisions,
+        check_each_apply_gets_its_own_backup_name,
+    ),
+    (
+        "proxy-basis-laundered-as-exact",
+        _mutate_weakest_basis_to_always_exact,
+        check_a_proxy_token_figure_is_labelled_as_one,
+    ),
+    (
+        "undeclared-basis-summed-as-a-total",
+        _mutate_undeclared_basis_to_be_summed,
+        check_a_provenanceless_number_is_not_summed,
+    ),
+    (
+        "empty-spec-wipes-a-definition",
+        _mutate_empty_spec_guard_away,
+        check_an_empty_spec_cannot_replace_a_definition,
+    ),
+    (
+        "project-key-separator-unnormalised",
+        _mutate_project_key_to_pass_the_raw_value,
+        check_a_native_project_path_reaches_the_row_the_host_reads,
+    ),
+    (
+        "refusal-reported-as-success",
+        _mutate_classify_to_warn_on_a_failed_write,
+        check_a_write_that_did_not_happen_is_not_reported_as_success,
+    ),
+    (
+        "static-containment-downgraded-to-a-blocklist",
+        _mutate_containment_to_a_character_blocklist,
+        check_the_static_root_is_contained_not_blocklisted,
+    ),
+    (
+        "host-allowlist-splits-on-the-last-colon",
+        _mutate_host_allowlist_to_split_on_the_last_colon,
+        check_the_host_allowlist_requires_a_numeric_port,
+    ),
+    (
+        "gui-api-accepts-verbs-its-form-cannot-carry",
+        _mutate_gui_intents_to_the_full_verb_set,
+        check_the_gui_offers_no_intent_its_form_cannot_carry,
+    ),
     (
         "dry-run-default-flipped-to-apply",
         _mutate_apply_default_to_true,
@@ -805,7 +1020,7 @@ def test_each_mutant_is_detected(
 
 def test_the_mutant_set_covers_every_load_bearing_module():
     """Guards against the set quietly shrinking to the easy modules."""
-    assert len(MUTANTS) >= 24
+    assert len(MUTANTS) >= 33
     assert len({m[0] for m in MUTANTS}) == len(MUTANTS), "duplicate mutant id"
 
 

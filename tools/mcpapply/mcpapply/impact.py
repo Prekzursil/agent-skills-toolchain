@@ -26,7 +26,12 @@ Measured facts encoded here
   server. It is credited only when a plan removes the LAST tool-bearing server.
 * **The cheap proxies are bad.** Tokens-per-tool spans 75.8 -> 945.0 (12.5x) and
   bytes-per-token 2.82 -> 6.24 (2.2x). A proxy-derived number is reported with its
-  :class:`TokenBasis` attached so it can never be mistaken for a measurement.
+  :class:`TokenBasis` attached -- on :class:`Impact` itself, in ``to_dict()``, in the
+  text renderer and in the GUI -- so it can never be mistaken for a measurement. The
+  aggregate carries the WEAKEST contributing basis (:func:`weakest_basis`), because a
+  sum of one exact and one guessed number is a guess. A ``token_cost`` supplied with
+  NO ``token_basis`` has unknown provenance and is therefore NOT summed at all: it is
+  counted as unmeasured, which forces ``partial`` and names the server.
 * **Deferred tool loading changes the arithmetic by ~14x** (cloud-hub 77,198 eager vs
   5,370 deferred). The regime is an explicit input, never assumed.
 * **RAM is saved only at the NEXT session start**, and only when the disable lands in
@@ -36,7 +41,7 @@ Measured facts encoded here
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from enum import Enum
 
@@ -51,6 +56,7 @@ __all__ = [
     "preview",
     "regime_from_env",
     "render_impact",
+    "weakest_basis",
 ]
 
 #: The constant tool-use preamble, measured by difference: a request with no tools
@@ -68,8 +74,33 @@ class TokenBasis(str, Enum):
     SCHEMA_BYTES = "schema-bytes-proxy"
     #: Derived from tool count. Spread 12.5x -- the worst proxy; use only as a hint.
     TOOL_COUNT = "tool-count-proxy"
-    #: No number available.
+    #: No number available -- or a number whose provenance was never declared.
     NOT_MEASURED = "not-measured"
+
+    @property
+    def is_proxy(self) -> bool:
+        """True for a basis that estimates rather than measures."""
+        return self in (TokenBasis.SCHEMA_BYTES, TokenBasis.TOOL_COUNT)
+
+
+#: How much a basis can be trusted, weakest LAST. An aggregate is only as good as its
+#: worst contributor, so :func:`preview` reports the maximum of this ordering.
+_BASIS_RANK: Mapping[TokenBasis, int] = {
+    TokenBasis.EXACT: 0,
+    TokenBasis.SCHEMA_BYTES: 1,
+    TokenBasis.TOOL_COUNT: 2,
+    TokenBasis.NOT_MEASURED: 3,
+}
+
+
+def weakest_basis(bases: Iterable[TokenBasis]) -> TokenBasis:
+    """The least trustworthy basis in ``bases``; :attr:`TokenBasis.EXACT` when empty.
+
+    A sum of one exact and one proxy number is a PROXY number. Reporting the strongest
+    contributor -- or, as this module previously did, reporting nothing at all -- is
+    how a guessed figure passes as a measurement.
+    """
+    return max(bases, key=lambda b: _BASIS_RANK[b], default=TokenBasis.EXACT)
 
 
 class Regime(str, Enum):
@@ -131,6 +162,9 @@ class Impact:
     regime: Regime
     #: Tokens no longer sent per request. ``None`` = nothing measurable at all.
     token_delta: int | None = None
+    #: How :attr:`token_delta` was arrived at -- the WEAKEST basis that fed it. Always
+    #: rendered next to the number, so a proxy can never pass as a measurement.
+    token_basis: TokenBasis = TokenBasis.NOT_MEASURED
     #: Commit bytes not allocated by a NEW session. ``None`` = nothing measurable.
     commit_delta: int | None = None
     #: Names whose cost was unavailable. Non-empty => every delta is a LOWER BOUND.
@@ -148,6 +182,7 @@ class Impact:
         return {
             "regime": self.regime.value,
             "token_delta": self.token_delta,
+            "token_basis": self.token_basis.value,
             "commit_delta": self.commit_delta,
             "partial": self.partial,
             "unmeasured": list(self.unmeasured),
@@ -179,6 +214,19 @@ _DEFERRED = (
 _UNKNOWN_REGIME = (
     "the tool-loading regime is unknown; token figures assume the regime the costs "
     "were measured under and may not apply"
+)
+
+_PROXY_BASIS = (
+    "the token figure rests on {basis}, a PROXY and not a measurement: tokens-per-tool "
+    "spans 12.5x (75.8 -> 945.0) and bytes-per-token 2.2x on this box, so read it as a "
+    "hint about direction, never as a budget"
+)
+
+_UNDECLARED_BASIS = (
+    "{names}: a token_cost was supplied with NO token_basis, so its provenance is "
+    "unknown and it is NOT summed into the total. Declare token_basis "
+    "(exact-count-tokens / schema-bytes-proxy / tool-count-proxy) in the costs file to "
+    "have it counted."
 )
 
 
@@ -216,6 +264,8 @@ def preview(
     token_seen = False
     commit_seen = False
     unmeasured: list[str] = []
+    undeclared: list[str] = []
+    bases: list[TokenBasis] = []
     no_ram: list[str] = []
     notes: list[str] = []
 
@@ -226,8 +276,15 @@ def preview(
             continue
         if cost.token_cost is None:
             unmeasured.append(name)
+        elif cost.token_basis is TokenBasis.NOT_MEASURED:
+            # A number the parser itself flagged as having no provenance. Summing it
+            # would present a guess as a total, which is the exact laundering the
+            # TokenBasis label exists to prevent -- so it counts as UNMEASURED.
+            undeclared.append(name)
+            unmeasured.append(name)
         else:
             token_total += cost.token_cost
+            bases.append(cost.token_basis)
             token_seen = True
         if cost.remote:
             continue
@@ -248,6 +305,11 @@ def preview(
             f"the plan removes the last tool-bearing server, so the one-off "
             f"{TOOL_BLOCK_OVERHEAD_TOKENS}-token tool block is reclaimed too"
         )
+    basis = weakest_basis(bases) if token_seen else TokenBasis.NOT_MEASURED
+    if basis.is_proxy:
+        notes.append(_PROXY_BASIS.format(basis=basis.value))
+    if undeclared:
+        notes.append(_UNDECLARED_BASIS.format(names=", ".join(undeclared)))
     if unmeasured:
         notes.append(_UNMEASURED_NOTE.format(n=len(unmeasured)))
     if no_ram:
@@ -262,6 +324,7 @@ def preview(
     return Impact(
         regime=regime,
         token_delta=token_total if token_seen else None,
+        token_basis=basis,
         commit_delta=commit_total if commit_seen else None,
         unmeasured=tuple(unmeasured),
         no_ram_saving=tuple(no_ram),
@@ -278,7 +341,7 @@ def render_impact(impact: Impact) -> str:
     """Plain-text impact preview."""
     lines = [
         f"regime:        {impact.regime.value}",
-        f"tokens saved:  {_cell(impact.token_delta)}"
+        f"tokens saved:  {_cell(impact.token_delta)} [{impact.token_basis.value}]"
         + ("  (LOWER BOUND)" if impact.partial else ""),
         f"commit saved:  {_cell(impact.commit_delta, ' bytes')}"
         + ("  (LOWER BOUND)" if impact.partial else ""),

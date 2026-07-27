@@ -7,8 +7,10 @@ from pathlib import Path
 
 from mcpapply.backup import (
     BACKUP_SUFFIX,
+    MAX_COLLISION_SUFFIXES,
     BackupRecord,
     backup_path,
+    fixed_clock,
     make_clock,
     restore_command,
     utc_stamp,
@@ -66,3 +68,47 @@ def test_the_production_clock_is_tz_aware_utc():
     moment = make_clock()()
     assert moment.tzinfo is not None
     assert moment.utcoffset() == timedelta(0)
+
+
+def test_a_fixed_clock_returns_the_same_instant_every_call():
+    clock = fixed_clock(FIXED_NOW)
+    assert clock() == clock() == FIXED_NOW
+
+
+# --------------------------------------------------------------------------
+# A backup must never overwrite an earlier backup
+# --------------------------------------------------------------------------
+
+
+def test_a_taken_name_is_never_reused_so_an_earlier_backup_survives():
+    """Two writes in the SAME SECOND must not land on the same sidecar.
+
+    Regression: the GUI froze one ``datetime`` for its whole process, so every apply
+    after the first overwrote the sidecar the previous apply's printed restore command
+    pointed at. Even with a live clock, two writes inside one second still collide, so
+    the name itself has to be collision-avoidant.
+    """
+    target = Path("/home/o/.claude.json")
+    first = backup_path(target, FIXED_NOW, taken=lambda _p: False)
+    assert first.name == f".claude.json.{BACKUP_SUFFIX}-{STAMP}.bak"
+
+    existing = {first}
+    second = backup_path(target, FIXED_NOW, taken=lambda p: p in existing)
+    assert second != first
+    assert second.name == f".claude.json.{BACKUP_SUFFIX}-{STAMP}-1.bak"
+
+    existing.add(second)
+    third = backup_path(target, FIXED_NOW, taken=lambda p: p in existing)
+    assert third not in existing
+    assert third.name == f".claude.json.{BACKUP_SUFFIX}-{STAMP}-2.bak"
+
+
+def test_an_exhausted_suffix_range_falls_back_to_a_microsecond_stamp():
+    """Never give up and return a colliding name -- widen the stamp instead."""
+    target = Path("/home/o/.claude.json")
+    sidecar = backup_path(target, FIXED_NOW, taken=lambda _p: True)
+    assert sidecar.name == (
+        f".claude.json.{BACKUP_SUFFIX}-{utc_stamp(FIXED_NOW, precise=True)}.bak"
+    )
+    assert f"-{MAX_COLLISION_SUFFIXES - 1}.bak" not in sidecar.name
+    assert utc_stamp(FIXED_NOW, precise=True) != utc_stamp(FIXED_NOW)

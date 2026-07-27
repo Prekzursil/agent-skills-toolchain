@@ -246,7 +246,33 @@ def test_every_record_serialises_completely():
 
 
 def test_the_proxies_are_labelled_so_they_cannot_pass_as_measurements():
-    """Tokens-per-tool spans 12.5x, so a proxy number must carry its basis."""
-    assert TokenBasis.TOOL_COUNT.value.endswith("proxy")
-    assert TokenBasis.SCHEMA_BYTES.value.endswith("proxy")
-    assert TokenBasis.EXACT.value == "exact-count-tokens"
+    """Tokens-per-tool spans 12.5x, so a proxy number must carry its basis.
+
+    This assertion used to stop at the ENUM SPELLING -- ``TOOL_COUNT.value.endswith
+    ("proxy")`` -- which never called :func:`preview` and so passed whether or not the
+    label reached an operator. It did not: ``Impact`` had no basis field at all, and an
+    exact and a tool-count-proxy figure rendered byte-identically. Assert over the
+    OUTPUT, not the spelling.
+    """
+    assert TokenBasis.TOOL_COUNT.is_proxy and TokenBasis.SCHEMA_BYTES.is_proxy
+    assert not TokenBasis.EXACT.is_proxy and not TokenBasis.NOT_MEASURED.is_proxy
+
+    top = topology_from(
+        {
+            "claude_json": {
+                "mcpServers": {"s": {"command": "x"}},
+                "projects": {PROJECT_KEY: {"disabledMcpServers": []}},
+            }
+        },
+        project_key=PROJECT_KEY,
+    )
+    plan = P.build_plan([P.plan_disable(top, "s")], project_key=PROJECT_KEY)
+
+    def rendered(basis: TokenBasis) -> str:
+        cost = Cost(token_cost=500, token_basis=basis, commit_bytes=1)
+        return render_impact(preview(plan, {"s": cost}, regime=Regime.EAGER))
+
+    exact, proxy = rendered(TokenBasis.EXACT), rendered(TokenBasis.TOOL_COUNT)
+    assert exact != proxy, "a proxy figure is indistinguishable from a measurement"
+    assert "[exact-count-tokens]" in exact and "[tool-count-proxy]" in proxy
+    assert "500" in exact and "500" in proxy

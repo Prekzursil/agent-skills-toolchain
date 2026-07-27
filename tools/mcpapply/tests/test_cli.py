@@ -193,12 +193,22 @@ def test_remove_deletes_the_definition(home: Path, paths: SourcePaths):
     assert "ghidra-mcp" not in claude["mcpServers"]
 
 
-def test_reconnect_is_live_only_and_writes_nothing(home: Path, paths: SourcePaths):
+def test_reconnect_without_live_is_a_usage_error_not_a_silent_success(
+    home: Path, paths: SourcePaths
+):
+    """`reconnect` has no on-disk form, so it must never report a bare SUCCESS.
+
+    Regression: it used to print ``SUCCESS:mcpapply-reconnect 0 file(s) written`` and
+    exit 0 while doing nothing whatsoever -- no config write (correct: it has none)
+    and no control frame either, because no production path built a client.
+    """
     before = paths.claude_json.read_bytes()
     code, sink = _run(home, "reconnect", "cloud-hub", "--apply")
-    assert code == 0
+    assert code == 1
     assert paths.claude_json.read_bytes() == before
-    assert "cannot be reached by any local channel" in sink.text
+    assert "FAILED:mcpapply-reconnect" in sink.text
+    assert "needs --live" in sink.text
+    assert "SUCCESS" not in sink.text
 
 
 # --------------------------------------------------------------------------
@@ -371,8 +381,25 @@ def test_the_gui_apply_port_honours_the_confirm_flag(home: Path, paths: SourcePa
 def test_the_gui_plan_port_rejects_an_unknown_intent(home: Path):
     captured: list[gui.GuiPorts] = []
     _run(home, "gui", serve_fn=lambda p, _port: (captured.append(p), 0)[1])
-    with pytest.raises(ValueError, match="unknown intent"):
+    with pytest.raises(ValueError, match="not offered by the GUI"):
         captured[0].plan_for("rm -rf", "cloud-hub")
+
+
+@pytest.mark.parametrize("intent", ["add", "edit", "remove", "reconnect"])
+def test_the_gui_api_refuses_every_verb_its_form_does_not_offer(
+    home: Path, intent: str
+):
+    """The dropdown and the API allowlist are ONE list, so they cannot drift.
+
+    Regression: the form offered three intents while the API accepted all six, so
+    ``edit`` was reachable over HTTP with no spec field to fill -- and an ``edit`` with
+    no spec replaced a live definition with ``{}``.
+    """
+    captured: list[gui.GuiPorts] = []
+    _run(home, "gui", serve_fn=lambda p, _port: (captured.append(p), 0)[1])
+    assert intent not in gui.GUI_INTENTS
+    with pytest.raises(ValueError, match="not offered by the GUI"):
+        captured[0].plan_for(intent, "cloud-hub")
 
 
 # --------------------------------------------------------------------------
@@ -385,7 +412,27 @@ def test_build_change_dispatches_every_verb(top):
         assert (
             build_change(verb, top, "cloud-hub", "", "claude-user").intent.value == verb
         )
-    assert build_change("add", top, "n", "", "claude-user").edits[0].spec == {}
+    spec = '{"command": "npx"}'
+    assert build_change("add", top, "n", spec, "claude-user").edits[0].spec == {
+        "command": "npx"
+    }
+    assert build_change("edit", top, "cloud-hub", spec, "claude-user").edits[
+        0
+    ].spec == {"command": "npx"}
+
+
+@pytest.mark.parametrize("verb", ["add", "edit"])
+def test_a_definition_verb_with_no_spec_REFUSES_instead_of_writing_an_empty_object(
+    top, verb: str
+):
+    """The one-word wipe: ``mcpapply edit cloud-hub --apply`` with no --spec.
+
+    ``--spec`` defaults to ``""`` -> ``json.loads("{}")`` -> ``{}`` -> the whole
+    definition (command, args and the entire env block) replaced with an empty object,
+    reported as SUCCESS. The curation is LOAD-BEARING, so this must REFUSE.
+    """
+    with pytest.raises(ValueError, match="EMPTY spec"):
+        build_change(verb, top, "cloud-hub", "", "claude-user")
 
 
 def test_the_default_store_and_clock_are_real(tmp_path: Path):

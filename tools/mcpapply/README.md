@@ -101,9 +101,16 @@ Other measured facts encoded in `impact.py`:
   measurement with error 0 across two multi-server combinations), so summing deltas
   carries no modelling error.
 * The 496-token tool block is charged **once per request**, and is credited only when a
-  plan removes the last tool-bearing server.
-* The cheap proxies are bad — tokens-per-tool spans 12.5×, bytes-per-token 2.2× — so a
-  proxy number always carries its `TokenBasis` and can never pass as a measurement.
+  plan removes the last tool-bearing server. Pass `--fleet-size <n>` (how many
+  tool-bearing servers are loaded now) to make that credit reachable; without it the
+  preview conservatively under-credits.
+* The cheap proxies are bad — tokens-per-tool spans 12.5×, bytes-per-token 2.2× — so the
+  `TokenBasis` rides **with** the number, on `Impact` itself, in `to_dict()`, in the text
+  renderer and in the GUI. The aggregate reports the **weakest** contributing basis,
+  because a sum of one exact and one guessed number is a guess.
+* A `token_cost` supplied with **no** `token_basis` has unknown provenance and is **not
+  summed at all** — it counts as unmeasured, which forces `partial` and names the server.
+  Declare the basis in the costs file to have it counted.
 * Deferred tool loading changes the arithmetic by ~14×, so the regime is an explicit
   input and is printed with the number.
 * Memory is reclaimed at the **next** session start, never "freed now".
@@ -120,7 +127,16 @@ folklore are encoded in `live.AFFORDANCES` and enforced by the mutation probe:
 * `mcp_toggle` is **not "any scope"**. Project scope (`.mcp.json`) is a recorded CLEAN
   NEGATIVE — connected before the disable, connected after. Dynamic is proven twice,
   user scope once (sandbox only, marked provisional). An unrecorded pair defaults to
-  UNPROVEN, i.e. the UI does not offer it.
+  UNPROVEN.
+
+**The affordance table gates the product mechanically, not aspirationally.**
+`live.run_live` consults `affordance(scope, op)` *before* it builds a session: a pair the
+record marks disproven/unproven is REFUSED with the recorded note and a `FAILED:`
+envelope, and no frame is sent. On today's record that means `reconnect` refuses for both
+config scopes — the honest outcome, since the evidence says it does not work there — and
+the only offerable live op is a user-scope `mcp_toggle`, labelled provisional. The GUI
+offers neither: `server.GUI_INTENTS` is the single source for both the rendered dropdown
+and the API allowlist, so the form and the HTTP surface cannot drift apart.
 * `mcp_toggle` is a **persistent config write**, not an in-memory flip: it edits
   `~/.claude.json → projects[<the control session's cwd>].disabledMcpServers`. So the
   live lane mutates the same file the config lane does, it cannot be previewed through
@@ -182,6 +198,21 @@ python -m mcpapply gui
 Verbs: `enable` · `disable` · `add` · `remove` · `edit` · `reconnect` · `gui`.
 Every one is dry-run until `--apply`.
 
+`--project` is normalised to the host's own spelling (forward slashes) but is otherwise
+matched EXACTLY — no ancestor walk. `add` and `edit` REQUIRE a non-empty `--spec`: an
+empty object is not a server definition, and writing one would replace the command, args
+and the whole env block with nothing.
+
+```bash
+# route the change through the live control channel instead of the config files
+python -m mcpapply disable cloud-hub --live --apply --live-cwd "C:/Users/me/proj"
+```
+
+`--live` is gated by `live.AFFORDANCES`, so an operation the record marks
+disproven/unproven is refused rather than attempted. `reconnect` has no on-disk form and
+therefore requires `--live`; without it the command fails loudly instead of reporting a
+hollow success.
+
 ---
 
 ## Gates
@@ -193,14 +224,31 @@ basedpyright mcpapply
 ruff check . && ruff format --check .
 ```
 
-Measured 2026-07-27 on CI's interpreter (CPython 3.11.9): **225 passed, 1 deselected,
-100.00 % line+branch, 0 basedpyright
-findings, ruff clean, gitleaks clean, the repo SAST ruleset clean, ZERO
-`# pragma: no cover` in package source.**
+Measured 2026-07-27 (CPython 3.14.6 locally; CI runs 3.11): **295 passed, 1 deselected,
+100.00 % line+branch, 0 basedpyright findings, ruff clean, ZERO `# pragma: no cover` in
+package source.**
 
-`tests/test_mutations.py` reverts 24 load-bearing decisions one at a time and requires
+`tests/test_mutations.py` reverts 33 load-bearing decisions one at a time and requires
 each to be caught, with a control test proving every check is green unmutated —
 coverage alone does not prove behaviour.
+
+`tests/test_regressions.py` locks the defects found by adversarial review. Each test
+names the defect and how it presented, and each was verified RED against the pre-fix
+source before the fix landed. The set worth knowing about, because each was a claim this
+README or a docstring made that the code did not keep:
+
+| Defect | How it presented |
+| --- | --- |
+| One backup filename per PROCESS | The GUI froze one clock at launch, so every apply after the first overwrote the sidecar the previous apply told the operator to restore from. |
+| `edit <srv>` with no `--spec` | Replaced a live definition with `{}` — command, args and the whole env block gone — and reported SUCCESS. |
+| `--project 'C:\a\b'` | Minted a phantom `projects[]` row nobody reads; the disable did not land; the terminal line still said SUCCESS. |
+| A refusal that wrote nothing | Reported `SUCCESS:` and exit 0, so `… --apply && echo landed` printed "landed". |
+| GUI planned against a launch snapshot | It could not undo its own change, and rendered a disabled server as enabled. |
+| `live.py` imported by no module | `reconnect` was an inert verb the GUI still offered. |
+| `/static/` containment | Blocked `/` and `..` but not the native backslash or a drive letter, so an unauthenticated request read an arbitrary file. |
+| Non-ASCII token header | `compare_digest` raised; the connection dropped with no response at all. |
+| `TokenBasis` parsed then dropped | An exact and a tool-count-proxy figure rendered byte-identically. |
+| A POST refused before its body was read | The close sent RST and discarded the 401/400, so the caller saw a reset instead of the reason. |
 
 Reproduce the coverage gate with the venv's `pytest` **console script**, never
 `python -m pytest`: the `-m` form prepends the CWD to `sys.path` and passes in both

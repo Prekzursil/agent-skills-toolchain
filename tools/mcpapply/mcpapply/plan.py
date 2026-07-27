@@ -295,6 +295,25 @@ _ORPHAN_PROJECT_MENTION = (
     "key, so that scope cannot be cleared; re-run with the exact cwd"
 )
 
+_EMPTY_SPEC = (
+    "refusing to {verb} {name!r} with an EMPTY spec: an empty object is not a server "
+    "definition (it names no command, url or type), and writing one REPLACES the "
+    "existing definition -- command, args and the whole env block -- with nothing. "
+    "Pass the definition with --spec '{{...}}'. To delete a server, use `remove`."
+)
+
+
+def _require_spec(spec: Mapping[str, object], *, verb: str, name: str) -> None:
+    """Reject an empty definition spec.
+
+    The wipe this prevents is one word wide: ``mcpapply edit cloud-hub --apply`` with
+    no ``--spec`` defaulted to ``{}`` and replaced a live definition with an empty
+    object while reporting success. The curation is LOAD-BEARING, so a destructive
+    no-argument default must REFUSE, not warn.
+    """
+    if not spec:
+        raise ValueError(_EMPTY_SPEC.format(verb=verb, name=name))
+
 
 def plan_disable(top: Topology, name: str) -> Change:
     """Plan a disable: ONE suppressor, preferring the spawn-preventing project row."""
@@ -372,6 +391,7 @@ def plan_add(
             f"a definition can only be added to {ScopeId.CLAUDE_USER.value} or "
             f"{ScopeId.MCP_JSON.value}, not {scope.value}"
         )
+    _require_spec(spec, verb="add", name=safe_name)
     warnings: list[str] = []
     if top.spec_of(safe_name) is not None:
         warnings.append("a definition already exists; this REPLACES it")
@@ -437,6 +457,7 @@ def plan_edit(top: Topology, name: str, spec: Mapping[str, object]) -> Change:
     """Plan replacing an existing definition in place, in its own definition scope."""
     safe_name = safe(name)
     resolution = _resolution_of(top, safe_name)
+    _require_spec(spec, verb="edit", name=safe_name)
     scopes = top.scopes_of(safe_name)
     if not scopes:
         return Change(
@@ -460,6 +481,8 @@ def plan_edit(top: Topology, name: str, spec: Mapping[str, object]) -> Change:
             ),
         ),
         warnings=(
+            "this REPLACES the whole definition -- command, args and env are taken "
+            "from --spec, not merged into what is there now",
             "editing a definition takes effect at the NEXT session start unless "
             "it is followed by a live mcp_reconnect",
         )
