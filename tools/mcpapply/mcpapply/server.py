@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import html
 import json
+import re
 import secrets
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
@@ -84,6 +85,17 @@ LOOPBACK_HOSTS: frozenset[str] = frozenset({"127.0.0.1", "localhost", "[::1]", "
 GUI_INTENTS: tuple[str, ...] = ("disable", "enable")
 
 STATIC_DIR = Path(__file__).parent / "static"
+
+#: A static asset name must match this BEFORE the filesystem is touched.
+#:
+#: MEASURED: ``(STATIC_DIR / name).resolve()`` on Windows turns ``//host/share/x.js`` into the
+#: UNC path ``\\host\share\x.js`` -- a UNC root discards the base -- and ``resolve()`` then
+#: dials the SMB redirector: a captured outbound SYN to port 445 on an attacker-named host from
+#: an UNAUTHENTICATED route, plus a handler thread pinned for the SMB timeout (30s+). Checking
+#: containment AFTER resolving is therefore too late; ``resolve()`` is itself the dangerous call.
+#: The static tree is two flat files, so this charset (no separator, no colon, no UNC prefix)
+#: is sufficient and cannot be spelled around. Containment below is kept as defence in depth.
+_SAFE_ASSET = re.compile(r"[A-Za-z0-9_.-]{1,64}")
 
 #: The largest request body this API will accept. A plan request is a few hundred
 #: bytes; anything past this is a mistake or an attempt to exhaust memory.
@@ -305,7 +317,15 @@ def make_handler(ports: GuiPorts) -> type[BaseHTTPRequestHandler]:
             blocklist (reject ``/`` and ``..``) let every backslash and drive-letter
             form through and served an arbitrary file to an unauthenticated caller.
             ``resolve()`` can raise on a malformed name, which is also a 404.
+
+            The NAME is allowlisted FIRST, before any filesystem call, because ``resolve()``
+            is itself dangerous: a UNC spelling such as ``//host/share/x.js`` discards the
+            base and makes ``resolve()`` dial SMB on an attacker-named host from this
+            unauthenticated route. Containment below is retained as defence in depth.
             """
+            if not _SAFE_ASSET.fullmatch(name):
+                self._json(404, {"error": "not found"})
+                return
             root = STATIC_DIR.resolve()
             try:
                 target = (root / name).resolve()

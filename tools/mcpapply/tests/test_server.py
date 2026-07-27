@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import re
 import threading
+import time
 import urllib.error
 import urllib.request
 from collections.abc import Iterator
@@ -20,6 +21,7 @@ from mcpapply import plan as P
 from mcpapply.apply import ApplyResult, FileChange
 from mcpapply.impact import Cost, Impact, Regime, TokenBasis, preview
 from mcpapply.server import (
+    _SAFE_ASSET,
     LOOPBACK_HOSTS,
     STATIC_DIR,
     GuiPorts,
@@ -345,6 +347,49 @@ def test_static_assets_are_served_with_their_media_type(base: str):
 def test_a_traversal_or_unknown_asset_is_404(base: str):
     for name in ("../pyproject.toml", "nope.js", "app.py", "sub/dir.js"):
         assert _get(f"{base}/static/{name}")[0] == 404
+
+
+# A UNC spelling must be refused by the NAME allowlist, before the filesystem is touched.
+#
+# MEASURED regression: `(STATIC_DIR / "//host/share/x.js").resolve()` on Windows yields the UNC
+# path \\host\share\x.js -- a UNC root DISCARDS the base -- and `resolve()` then hands it to
+# the SMB redirector. Observed: a real outbound SYN to port 445 on an attacker-named host
+# (RFC 5737 TEST-NET-1 used as a never-routed control) from this UNAUTHENTICATED route, plus a
+# handler thread pinned for the SMB timeout (30s+). Containment checked AFTER resolving is too
+# late, because `resolve()` is itself the dangerous call.
+_UNC_SPELLINGS = (
+    "//192.0.2.77/nope/x.js",
+    "//host/share/x.js",
+    "\\\\host\\share\\x.js",
+    "///host/share/x.js",
+)
+
+
+@pytest.mark.parametrize("name", _UNC_SPELLINGS)
+def test_a_unc_asset_name_is_refused_by_the_charset_before_any_filesystem_call(
+    name: str,
+):
+    """The guard is a pure predicate, so it cannot dial anything. Pinned directly."""
+    assert _SAFE_ASSET.fullmatch(name) is None
+
+
+def test_the_asset_charset_still_admits_the_real_assets():
+    """Control: the allowlist must not be so tight that it breaks the GUI's own files."""
+    for good in ("app.js", "app.css"):
+        assert _SAFE_ASSET.fullmatch(good) is not None
+
+
+def test_a_unc_asset_request_is_404_and_returns_promptly(base: str):
+    """End to end over the real socket: 404, and fast enough to prove no SMB dial happened.
+
+    A dial to an unroutable host blocks for the SMB timeout (measured 13s-30s+ pre-fix), so a
+    sub-second response is itself evidence the filesystem was never reached. The threshold is
+    deliberately loose (5s) -- it only has to separate "guarded" from "dialled".
+    """
+    for name in _UNC_SPELLINGS:
+        started = time.monotonic()
+        assert _get(f"{base}/static/{name}")[0] == 404
+        assert time.monotonic() - started < 5.0
 
 
 # --------------------------------------------------------------------------
