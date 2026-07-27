@@ -19,10 +19,13 @@ from monitorcore.agents_source import (
     AgentRow,
     AgentsPayload,
     AgentsSource,
+    _counts,
     row_from_scan,
     workflow_key,
 )
-from monitorcore.contract import MonitorSource, Snapshot, SourceState
+from monitorcore.contract import MonitorSource, SourceState
+from monitorcore.render_html import render_html
+from monitorcore.render_md import render_md
 
 NOW = 1_784_283_000.0
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -63,7 +66,10 @@ def _scan_row(**kw: object) -> dict[str, object]:
 
 def _source(rows: list[dict[str, object]]) -> AgentsSource:
     return AgentsSource(
-        subdir="/fake", scan_fn=lambda *_a, **_k: rows, clock=lambda: NOW
+        subdir="/fake",
+        scan_fn=lambda *_a, **_k: rows,
+        exists_fn=lambda _p: True,
+        clock=lambda: NOW,
     )
 
 
@@ -151,6 +157,7 @@ def test_poll_without_a_subdir_uses_the_injected_picker():
     src = AgentsSource(
         scan_fn=lambda *_a, **_k: [_scan_row()],
         pick_fn=lambda _p: "/d",
+        exists_fn=lambda _p: True,
         clock=lambda: NOW,
     )
     assert src.poll().payload.root == "/d"
@@ -174,7 +181,9 @@ def test_poll_never_raises_and_retains_the_last_good_payload():
             return [_scan_row(name="kept")]
         raise OSError("disk gone\x1b[2J")
 
-    src = AgentsSource(subdir="/fake", scan_fn=_flaky, clock=lambda: NOW)
+    src = AgentsSource(
+        subdir="/fake", scan_fn=_flaky, exists_fn=lambda _p: True, clock=lambda: NOW
+    )
     good = src.poll()
     bad = src.poll()
     assert good.payload.rows[0].name == "kept"
@@ -199,16 +208,33 @@ def test_render_native_lists_the_rows():
     assert isinstance(text, str) and "scout" in text
 
 
-def test_export_model_carries_one_card_per_agent_and_a_rollup():
+def test_export_model_carries_one_card_per_agent():
     src = _source(
         [_scan_row(name="scout"), _scan_row(name="dead", running=False, wf="wf_9")]
     )
     doc = src.export_model(src.poll())
     assert doc.title == "agents"
     assert [b.title for b in doc.blocks] == ["scout", "dead"]  # pyright: ignore[reportAttributeAccessIssue]
-    assert dict(doc.rollup)["total"] == 2
-    assert dict(doc.rollup)["running"] == 1
+    assert [b.badge for b in doc.blocks] == ["running", "idle"]  # pyright: ignore[reportAttributeAccessIssue]
     assert doc.generated_at.startswith("2026-")
+
+
+def test_export_model_leaves_the_agent_shaped_rollup_EMPTY():
+    """Neither ``done`` nor ``tokens`` is measured here, so no rollup line is honest."""
+    src = _source([_scan_row()])
+    assert src.export_model(src.poll()).rollup == ()
+
+
+@pytest.mark.parametrize("render", [render_md, render_html])
+def test_export_model_round_trips_through_the_shared_renderers(render: object):
+    """The gate the previous rollup missed: ``export(doc, "md")`` KeyError'd on ``done``.
+
+    Asserting on ``dict(doc.rollup)["total"]`` never touched a renderer, so a rollup that
+    omitted two REQUIRED keys passed 100% coverage and still crashed the live export path.
+    """
+    src = _source([_scan_row(name="scout"), _scan_row(name="dead", running=False)])
+    out = render(src.export_model(src.poll()))  # pyright: ignore[reportCallIssue]
+    assert isinstance(out, str) and "scout" in out
 
 
 def test_headline_is_the_poll_time_one_liner():
@@ -232,18 +258,46 @@ def test_alert_classifies_error_unreachable_and_healthy():
 
 
 def test_an_unexpected_bucket_still_tallies_without_a_keyerror():
-    src = _source([])
-    snap: Snapshot[AgentsPayload] = Snapshot(
-        source_id="agents",
-        ts=NOW,
-        reachable=True,
-        stale=False,
-        state=SourceState.IDLE,
-        headline="h",
-        payload=AgentsPayload(rows=(_row(bucket="mystery"),)),
+    """``done`` is unreachable today but IS in ``bucket_agent``'s vocabulary — tolerate it."""
+    assert _counts([_row(bucket="mystery"), _row(bucket="done")]) == {
+        "running": 0,
+        "idle": 0,
+        "error": 0,
+        "mystery": 1,
+        "done": 1,
+    }
+
+
+# ─────────────────────── absent vs empty (an unmeasured source) ───────────────────────
+def test_an_ABSENT_subagents_dir_is_unreachable_not_an_empty_measured_scan():
+    """``scan`` over a missing path returns ``[]`` — indistinguishable from a real idle dir."""
+    src = AgentsSource(
+        subdir="/nope",
+        scan_fn=lambda *_a, **_k: [],
+        exists_fn=lambda _p: False,
+        clock=lambda: NOW,
     )
-    doc = src.export_model(snap)
-    assert dict(doc.rollup)["total"] == 1
+    snap = src.poll()
+    assert snap.reachable is False and snap.stale is True
+    assert snap.state is SourceState.UNREACHABLE
+    assert snap.error is not None and "subagents dir not found" in snap.error
+    assert snap.payload == AgentsPayload()
+
+
+def test_an_EMPTY_but_PRESENT_subagents_dir_is_a_measured_zero():
+    """The control for the test above: reached-and-empty must stay reachable."""
+    snap = _source([]).poll()
+    assert snap.reachable is True and snap.state is SourceState.IDLE
+    assert snap.payload.rows == ()
+
+
+def test_the_absent_dir_message_collapses_the_home_path():
+    src = AgentsSource(
+        subdir=str(Path.home() / "secret" / "subagents"),
+        exists_fn=lambda _p: False,
+        clock=lambda: NOW,
+    )
+    assert str(Path.home()) not in (src.poll().error or "")
 
 
 def test_the_committed_meta_fixture_is_the_one_the_tree_builder_uses():

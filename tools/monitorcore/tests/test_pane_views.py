@@ -13,7 +13,7 @@ import pytest
 
 from monitorcore.agents_source import AgentRow, AgentsPayload
 from monitorcore.codex_source import CodexPayload
-from monitorcore.codex_tail import CodexThread
+from monitorcore.codex_tail import CodexThread, fmt_dur
 from monitorcore.contract import Snapshot, SourceState
 from monitorcore.databricks_source import DbxPayload, DbxUnit, Liveness
 from monitorcore.mcp_source import McpPayload, McpServer
@@ -82,10 +82,26 @@ def _text(pane: Pane, snap: Snapshot[object] | None, ctx: PaneCtx = CTX) -> str:
 # ───────────────────────────── helpers ─────────────────────────────
 @pytest.mark.parametrize(
     ("seconds", "expected"),
-    [(-3.0, "0s"), (0.0, "0s"), (42.0, "42s"), (600.0, "10m"), (7200.0, "2.0h")],
+    [
+        (-3.0, "00:00"),
+        (0.0, "00:00"),
+        (42.0, "00:42"),
+        (600.0, "10:00"),
+        (7200.0, "2:00:00"),
+    ],
 )
 def test_age_label_covers_every_band(seconds: float, expected: str):
     assert age_label(seconds) == expected
+
+
+def test_age_label_is_the_EXISTING_house_duration_format_not_a_third_one():
+    """One board, one spelling: the codex pane already paints ``fmt_dur``."""
+    assert age_label(90.0) == fmt_dur(90.0)
+
+
+def test_age_label_clamps_clock_skew_instead_of_printing_unknown():
+    """``fmt_dur`` reserves ``--:--`` for "not measured"; a negative age IS measured."""
+    assert age_label(-3.0) == "00:00" and fmt_dur(-3.0) == "--:--"
 
 
 def test_measured_prints_not_measured_for_none_and_the_value_otherwise():
@@ -207,7 +223,20 @@ def test_workflows_pane_rolls_agents_up_by_owning_workflow():
     joined = "\n".join(body.lines)
     assert "wf_1" in joined and "(no workflow)" in joined
     assert "2 agents" in joined
-    assert "3s" in joined  # the newest member drives the workflow age
+    assert "00:03" in joined  # the newest member drives the workflow age
+
+
+def test_workflows_pane_says_done_is_NOT_MEASURED_rather_than_implying_zero():
+    """Without the per-workflow journal port, a FINISHED and a HUNG workflow look alike.
+
+    ``agents_source`` passes ``journal_state=None``, so no row can ever bucket ``done``.
+    Printing ``0 done`` — or omitting it — would let a completed workflow read as a hang on
+    the board built to spot hangs, so the missing signal is named on every row.
+    """
+    rows = (_agent(name="a", wf="wf_1", bucket="idle", age_s=11000.0),)
+    joined = "\n".join(WorkflowsPane().body(_snap(AgentsPayload(rows=rows)), CTX).lines)
+    assert f"done={NOT_MEASURED_SHORT}" in joined
+    assert "0 done" not in joined
 
 
 def test_workflows_pane_marks_a_workflow_with_a_failed_agent():
@@ -247,7 +276,7 @@ def test_databricks_pane_lists_units_with_the_sources_own_busy_glyph():
     )
     body = DatabricksPane().body(_snap(DbxPayload(units=units)), CTX)
     assert body.count == 2
-    assert "u-1" in body.lines[0] and "idle=8s" in body.lines[0]
+    assert "u-1" in body.lines[0] and "idle=00:08" in body.lines[0]
     assert body.lines[0][2] != body.lines[1][2]  # busy vs idle glyph differ
 
 
@@ -266,13 +295,66 @@ def test_databricks_pane_with_no_units_reports_a_measured_empty_not_not_measured
 
 # ───────────────────────────── mcp pane ─────────────────────────────
 def test_mcp_pane_prints_unmeasured_health_never_a_zero_tool_count():
-    servers = (McpServer(name="cloud-hub", declared_in=("user",), transport="stdio"),)
+    servers = (
+        McpServer(
+            name="cloud-hub",
+            declared_in=("user",),
+            state="enabled",
+            transport="stdio",
+        ),
+    )
     body = McpPane().body(_snap(McpPayload(servers=servers)), CTX)
     assert body.count == 1
     row = body.lines[0]
     assert f"tools={NOT_MEASURED_SHORT}" in row
     assert "tools=0" not in row
     assert "enabled" in row and "scopes=1" in row
+
+
+def test_mcp_pane_prints_the_resolved_state_and_keeps_a_disagreement_as_a_note():
+    servers = (
+        McpServer(
+            name="markitdown",
+            declared_in=("~/.claude.json",),
+            disabled_in=("~/.claude/settings.json",),
+            state="denied",
+            notes=("approved in enabledMcpjsonServers but suppressed by settings",),
+        ),
+    )
+    row = McpPane().body(_snap(McpPayload(servers=servers)), CTX).lines[0]
+    assert "[denied]" in row and "note=approved in" in row
+
+
+def test_mcp_pane_names_every_config_document_it_could_not_parse():
+    """A corrupt document used to drop its servers with the parse error rendered NOWHERE."""
+    body = McpPane().body(
+        _snap(
+            McpPayload(
+                servers=(McpServer(name="kept", state="enabled"),),
+                problems=("~/.claude.json: unparsable json: line 1",),
+                docs_attempted=2,
+            )
+        ),
+        CTX,
+    )
+    joined = "\n".join(body.lines)
+    assert "mcp config" in joined and NOT_MEASURED in joined
+    assert "unparsable json" in joined
+    assert "kept" in joined  # the readable scope is still listed
+
+
+def test_mcp_pane_reports_an_unreadable_document_even_with_zero_servers():
+    """Otherwise "one config is corrupt" renders identically to "nothing is declared"."""
+    corrupt = McpPane().body(
+        _snap(
+            McpPayload(problems=("~/.claude.json: unparsable json",), docs_attempted=1)
+        ),
+        CTX,
+    )
+    empty = McpPane().body(_snap(McpPayload(docs_attempted=1)), CTX)
+    assert "unparsable json" in "\n".join(corrupt.lines)
+    assert corrupt.lines != empty.lines
+    assert "no MCP servers declared" in "\n".join(empty.lines)
 
 
 def test_mcp_pane_shows_a_measured_error_when_one_is_supplied():

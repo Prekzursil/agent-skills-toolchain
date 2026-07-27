@@ -32,6 +32,7 @@ __all__ = [
     "NavItem",
     "ViewState",
     "apply",
+    "clamp",
     "fuzzy_match",
     "keymap",
     "nav_items",
@@ -135,8 +136,13 @@ def nav_items(groups: Sequence[Group]) -> tuple[NavItem, ...]:
     return tuple(items)
 
 
-def _clamp(idx: int, count: int) -> int:
-    """Clamp ``idx`` into ``[0, count)`` (``0`` when the list is empty)."""
+def clamp(idx: int, count: int) -> int:
+    """Clamp ``idx`` into ``[0, count)`` (``0`` when the list is empty).
+
+    Public because :mod:`monitorcore.pane` re-exports it: the pane seam clamps its cursor
+    against exactly the same rule the Phase-1 drill view does, and a second copy of this
+    four-branch body is precisely the kind of duplicate that drifts.
+    """
     if count <= 0:
         return 0
     if idx < 0:
@@ -149,7 +155,7 @@ def _clamp(idx: int, count: int) -> int:
 def _reclamp(state: ViewState, groups: Sequence[Group]) -> ViewState:
     """Re-clamp ``selected`` after a change that may have grown/shrunk the item list."""
     count = len(nav_items(visible_groups(groups, state)))
-    return replace(state, selected=_clamp(state.selected, count))
+    return replace(state, selected=clamp(state.selected, count))
 
 
 def apply(state: ViewState, key: str, groups: Sequence[Group]) -> ViewState:
@@ -167,14 +173,14 @@ def _apply_nav(state: ViewState, key: str, groups: Sequence[Group]) -> ViewState
     items = nav_items(visible_groups(groups, state))
     count = len(items)
     if action is Action.UP:
-        return replace(state, selected=_clamp(state.selected - 1, count))
+        return replace(state, selected=clamp(state.selected - 1, count))
     if action is Action.DOWN:
-        return replace(state, selected=_clamp(state.selected + 1, count))
+        return replace(state, selected=clamp(state.selected + 1, count))
     if action is Action.QUIT:
         return replace(state, quit=True)
     if action is Action.FILTER:
         return replace(state, filtering=True, query="")
-    selected = _clamp(state.selected, count)
+    selected = clamp(state.selected, count)
     item = items[selected] if count else None
     if action is Action.DRILL:
         return _drill(state, item, selected)

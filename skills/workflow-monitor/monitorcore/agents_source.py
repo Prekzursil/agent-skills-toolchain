@@ -13,10 +13,20 @@ Two deliberate honesty limits, stated here so no reader infers more than is meas
 
 * The bucket is derived from signals ``discovery`` already produced — the ``running`` mtime
   flag and an errored tail (``last_event_summary`` prefixes a failed ``tool_result`` with
-  ``✗``). It is NOT the terminal-evidence classifier: :func:`monitorcore.agent_state
-  .agent_status` re-reads every transcript tail to distinguish ``done`` from ``stalled``, and
-  running it per row would double the I/O the scan just did. So this source reports
-  ``running`` / ``idle`` / ``error`` and never claims ``done``.
+  :data:`monitorcore.discovery.ERROR_GLYPH`). It is NOT the terminal-evidence classifier:
+  :func:`monitorcore.agent_state.agent_status` re-reads every transcript tail to distinguish
+  ``done`` from ``stalled``, and running it per row would double the I/O the scan just did.
+  So this source passes ``journal_state=None`` to :func:`~monitorcore.agent_state
+  .bucket_agent` and therefore reports ``running`` / ``idle`` / ``error`` and NEVER ``done``.
+  Consequence, stated so the panes can be honest about it: a finished workflow and a hung
+  one both come back with zero running agents. The per-workflow journal read that WOULD
+  separate them (one ``journal.jsonl`` per workflow, not one per agent — see
+  ``.agents/skills/workflow-monitor/workflow_run.py``'s ``journal_states``, which feeds
+  ``wfmon_export/model.py``'s ``_rollup``) is a port this package does not carry, so the
+  ``workflows`` pane prints ``done=not-measured`` instead of a fabricated ``0 done``.
+* A root directory that does not EXIST is unreachable, not empty. ``scan`` over a missing
+  path returns ``[]``, which would otherwise render byte-identically to a real but idle
+  directory — an unavailable source painted as healthy.
 * A row's workflow id is the one ``discovery`` derives from the PATH (``""`` for a flat Task
   agent). This source does not read a workflow manifest — that is the ``wf_fleet`` port, a
   separate unit — so the ``workflows`` pane groups the agents a workflow OWNS, and does not
@@ -28,44 +38,30 @@ stale snapshot carrying the last-good payload. Stdlib-only, so it vendors cleanl
 
 from __future__ import annotations
 
+import os
 import time
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-from .agent_state import bucket_agent
+from .agent_state import FRESH, bucket_agent
 from .contract import Alert, Snapshot, SourceState
-from .discovery import PROJECTS, pick_active_dir, scan
-from .redact import redact
+from .discovery import ERROR_GLYPH, PROJECTS, pick_active_dir, scan
+from .redact import scrub
 from .report_doc import ReportDoc, Section
-from .textsafe import strip_controls
 
 __all__ = [
     "AgentRow",
     "AgentsPayload",
     "AgentsSource",
-    "ERROR_GLYPH",
     "row_from_scan",
     "workflow_key",
 ]
 
 _ID = "agents"
 
-#: ``discovery.last_event_summary`` marks a failed ``tool_result`` with this prefix.
-ERROR_GLYPH = "✗"
-
 #: The bucket a row with no workflow id lands in on the ``workflows`` pane.
 UNGROUPED_WF = "(no workflow)"
-
-
-def _scrub(value: object) -> str:
-    """Strip control bytes, THEN mask secrets / collapse home paths (fail-closed).
-
-    The order matters and matches :func:`monitorcore.codex_tail._scrub`: control bytes are
-    removed FIRST so a spliced ESC cannot split a secret pattern and evade the mask.
-    """
-    text = "" if value is None else str(value)
-    return redact(strip_controls(text), enabled=True)[0]
 
 
 @dataclass(frozen=True)
@@ -104,10 +100,11 @@ def workflow_key(row: AgentRow) -> str:
 def row_from_scan(raw: dict[str, object]) -> AgentRow:
     """Fold one :func:`monitorcore.discovery.scan` dict into a scrubbed :class:`AgentRow`.
 
-    Pure: every untrusted field passes :func:`_scrub` at ingest, and the coarse bucket comes
-    from the existing pure :func:`monitorcore.agent_state.bucket_agent` (no new policy here).
+    Pure: every untrusted field passes the shared :func:`monitorcore.redact.scrub` ingest
+    floor, and the coarse bucket comes from the existing pure
+    :func:`monitorcore.agent_state.bucket_agent` (no new policy here).
     """
-    last = _scrub(raw.get("last"))
+    last = scrub(raw.get("last"))
     running = bool(raw.get("running"))
     bucket = bucket_agent(
         errored=last.startswith(ERROR_GLYPH), state=None, running=running
@@ -115,16 +112,16 @@ def row_from_scan(raw: dict[str, object]) -> AgentRow:
     age = raw.get("age")
     size = raw.get("size")
     return AgentRow(
-        name=_scrub(raw.get("name")),
-        agent_type=_scrub(raw.get("type")),
-        desc=_scrub(raw.get("desc")),
-        wf=_scrub(raw.get("wf")),
+        name=scrub(raw.get("name")),
+        agent_type=scrub(raw.get("type")),
+        desc=scrub(raw.get("desc")),
+        wf=scrub(raw.get("wf")),
         bucket=bucket,
         age_s=float(age) if isinstance(age, (int, float)) else 0.0,
         running=running,
         size=int(size) if isinstance(size, int) else 0,
         last=last,
-        path=_scrub(raw.get("jsonl")),
+        path=scrub(raw.get("jsonl")),
     )
 
 
@@ -138,10 +135,11 @@ class AgentsSource:
         *,
         subdir: str | None = None,
         projects: str = PROJECTS,
-        active_secs: float = 45.0,
+        active_secs: float = FRESH,
         width: int = 200,
         scan_fn: Callable[..., list[dict[str, object]]] = scan,
         pick_fn: Callable[[str], str | None] = pick_active_dir,
+        exists_fn: Callable[[str], bool] = os.path.isdir,
         clock: Callable[[], float] = time.time,
     ) -> None:
         self._subdir = subdir
@@ -150,6 +148,7 @@ class AgentsSource:
         self._width = width
         self._scan = scan_fn
         self._pick = pick_fn
+        self._exists = exists_fn
         self._clock = clock
         self._last: Snapshot[AgentsPayload] | None = None
 
@@ -162,13 +161,19 @@ class AgentsSource:
             )
             if root is None:
                 return self._unreachable(ts, "no subagent transcripts found")
+            # A root that does not exist is UNMEASURED, not "zero agents": ``scan`` walks
+            # nothing and returns ``[]``, which renders byte-identically to a real but
+            # empty directory. The case that bites is an EXPLICIT ``--subagents-dir`` typo
+            # (``pick_active_dir`` can only hand back a directory it just found).
+            if not self._exists(root):
+                return self._unreachable(ts, f"subagents dir not found: {scrub(root)}")
             raw = self._scan(root, self._active_secs, self._width, now=ts)
             rows = tuple(row_from_scan(item) for item in raw)
         # NEVER raise out of poll (BaseException still propagates by design).
         except Exception as exc:
             return self._unreachable(ts, str(exc))
 
-        payload = AgentsPayload(rows=rows, root=_scrub(root))
+        payload = AgentsPayload(rows=rows, root=scrub(root))
         state = _derive_state(rows)
         newest = min((r.age_s for r in rows), default=None)
         snap = Snapshot(
@@ -188,7 +193,7 @@ class AgentsSource:
     def _unreachable(self, ts: float, error: str) -> Snapshot[AgentsPayload]:
         """A stale/unreachable snapshot retaining the last-good payload (never a fake zero)."""
         payload = self._last.payload if self._last is not None else AgentsPayload()
-        text = _scrub(error)
+        text = scrub(error)
         snap = Snapshot(
             source_id=self.id,
             ts=ts,
@@ -219,7 +224,6 @@ class AgentsSource:
         """
         rows = snap.payload.rows
         generated = datetime.fromtimestamp(snap.ts, tz=timezone.utc).isoformat()
-        counts = _counts(rows)
         blocks = tuple(
             Section(
                 title=r.name,
@@ -239,12 +243,13 @@ class AgentsSource:
             blocks=blocks,
             subtitle=snap.headline,
             meta=(("source", self.id), ("root", snap.payload.root)),
-            rollup=(
-                ("total", len(rows)),
-                ("running", counts["running"]),
-                ("error", counts["error"]),
-                ("idle", counts["idle"]),
-            ),
+            # EMPTY on purpose. The shared rollup line is agent-manifest-shaped
+            # (``total/done/error/running/idle/tokens``) and this source measures neither
+            # ``done`` (see the honesty limits above) nor ``tokens``; emitting them as
+            # ``0`` would fabricate two zeros, and omitting only those two KeyErrors both
+            # renderers. Both skip the line when ``rollup`` is empty, and the honest counts
+            # ride in ``subtitle`` (the headline) and on each card's ``badge``.
+            rollup=(),
             active=snap.state == SourceState.RUNNING,
             redaction_mode="strict",
         )
@@ -264,8 +269,8 @@ class AgentsSource:
             return Alert(
                 source_id=snap.source_id,
                 level=level,
-                headline=_scrub(snap.headline),
-                detail=_scrub(snap.error or ""),
+                headline=scrub(snap.headline),
+                detail=scrub(snap.error or ""),
                 ts=snap.ts,
             )
         return None

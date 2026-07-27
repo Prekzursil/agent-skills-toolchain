@@ -19,12 +19,13 @@ import pytest
 from monitorcore.agents_source import AgentRow, AgentsPayload, AgentsSource
 from monitorcore.ansi_screen import render_frame
 from monitorcore.codex_source import CodexPayload, CodexSource
-from monitorcore.codex_tail import CodexThread
+from monitorcore.codex_tail import CodexThread, ToolEvent
 from monitorcore.contract import MonitorSource, Snapshot, SourceState
 from monitorcore.databricks_source import DatabricksSource, DbxPayload, DbxUnit
 from monitorcore.mcp_source import McpPayload, McpServer, McpSource
 from monitorcore.pane import NOT_MEASURED, PaneId
 from monitorcore.pane_views import PANES
+from monitorcore.stall import StallTracker
 from monitorcore.unified import (
     BoardFrame,
     BoardState,
@@ -32,6 +33,7 @@ from monitorcore.unified import (
     _digit_pane,
     active_pane,
     apply_key,
+    codex_marks,
     default_sources,
     frame,
     main,
@@ -123,6 +125,21 @@ def _fixture_sources(*, hostile: bool = False) -> dict[str, MonitorSource[object
             McpSource.id,
             McpPayload(servers=(McpServer(name=name, declared_in=("user",)),)),
         ),
+    }
+
+
+def _blocked_thread(key: str = "t1") -> CodexThread:
+    """An IDLE thread whose newest event is still ``running`` — WU6's BLOCKED shape."""
+    th = CodexThread(key=key, source="stream", path="p", label="lane")
+    th.status = "idle"
+    th.last_ts = NOW - 500.0
+    th.add_event(ToolEvent("cmd", "command", "sleep", "running", None, NOW - 500.0))
+    return th
+
+
+def _codex_only(thread: CodexThread) -> dict[str, MonitorSource[object]]:
+    return {
+        CodexSource.id: _FakeSource(CodexSource.id, CodexPayload(threads=(thread,)))
     }
 
 
@@ -395,3 +412,124 @@ def test_a_hostile_name_cannot_reach_the_painted_frame(pane_id: str):
     # SYNC_BEGIN + HOME + one CLEAR_EOL per line + CLEAR_EOS + SYNC_END
     painted = render_frame(out)
     assert painted.count("\x1b") == 4 + len(out)
+
+
+# ─────────────────── the WU6 stall layer reaches the codex PANE ───────────────────
+STALE_MTIME = lambda _path: None  # noqa: E731 — an unreadable mtime is signal 1
+
+
+def test_codex_marks_classifies_a_blocked_thread_through_the_EXISTING_classifier():
+    snaps = poll_all(_codex_only(_blocked_thread()))
+    marks = codex_marks(snaps, StallTracker(), NOW, stale_s=90.0, mtime_fn=STALE_MTIME)
+    assert marks == {"t1": "BLOCKED"}
+
+
+def test_codex_marks_is_empty_when_the_codex_source_is_not_registered():
+    marks = codex_marks({}, StallTracker(), NOW, stale_s=90.0, mtime_fn=STALE_MTIME)
+    assert marks == {}
+
+
+def test_the_board_PAINTS_the_stall_marker_the_phase_1_cockpit_paints():
+    """The regression: the codex pane imported the renderer but dropped ``marks=``.
+
+    The marker is the one signal this monitor exists for, so an A/B against the Phase-1
+    loop — identical source, identical seams — must agree.
+    """
+    painted: list[tuple[str, ...]] = []
+    keys = iter(["q"])
+    run_board(
+        _codex_only(_blocked_thread()),
+        read_key=lambda: next(keys),
+        write=lambda rows: painted.append(tuple(rows)),
+        clock=lambda: NOW,
+        cols_fn=lambda: 200,
+        mtime_fn=STALE_MTIME,
+    )
+    assert "[BLOCKED]" in "\n".join(painted[0])
+
+
+def test_the_board_reuses_ONE_tracker_so_a_content_freeze_can_corroborate():
+    """A per-frame tracker could never fire: a STALL needs TWO polls to corroborate.
+
+    ``STALLED`` outranks ``BLOCKED``, and it is the only marker gated on the cross-poll
+    signal — so this is what a throwaway tracker would silently downgrade.
+    """
+    tracker = StallTracker()
+    snaps = poll_all(_codex_only(_blocked_thread()))
+    first = codex_marks(snaps, tracker, NOW, stale_s=90.0, mtime_fn=STALE_MTIME)
+    second = codex_marks(snaps, tracker, NOW, stale_s=90.0, mtime_fn=STALE_MTIME)
+    assert first == {"t1": "BLOCKED"}  # only signal 1 (mtime) has spoken so far
+    assert second == {"t1": "STALL"}  # the content freeze corroborates on poll 2
+
+
+def test_a_single_once_frame_shows_no_stall_marker_because_it_cannot_corroborate():
+    rendered = frame(
+        BoardState(pane=PaneId.CODEX),
+        snaps=poll_all(_codex_only(_blocked_thread())),
+        cols=200,
+        now=NOW,
+        cursor=False,
+    )
+    joined = "\n".join(rendered.lines)
+    assert "[IDLE]" in joined and "[BLOCKED]" not in joined
+
+
+# ─────────────────── the board is the LAST MILE for a raw error ───────────────────
+def test_the_board_never_paints_a_raw_credential_from_a_snapshot_error():
+    """Adapters keep ``Snapshot.error`` unredacted for logs; the frame must not show it."""
+    token = "sk-" + "d" * 24
+
+    class _Leaky:
+        id = DatabricksSource.id
+
+        def poll(self) -> Snapshot[object]:
+            return Snapshot(
+                source_id=self.id,
+                ts=NOW,
+                reachable=False,
+                stale=True,
+                state=SourceState.UNREACHABLE,
+                headline="dbx [unreachable]",
+                payload=DbxPayload(),
+                age_s=None,
+                error=f"auth failed for {token} at C:/Users/someone/.dbxmon",
+            )
+
+    rendered = frame(
+        BoardState(pane=PaneId.DATABRICKS),
+        snaps=poll_all({DatabricksSource.id: _Leaky()}),
+        cols=300,
+        now=NOW,
+        cursor=False,
+    )
+    joined = "\n".join(rendered.lines)
+    assert token not in joined and "[REDACTED:api-key]" in joined
+    assert "C:/Users/someone" not in joined
+
+
+# ─────────────────── a mis-registered payload degrades ONE pane ───────────────────
+@pytest.mark.parametrize("pane_id", PANE_IDS)
+def test_a_wrong_typed_payload_row_degrades_instead_of_tearing_the_board_down(
+    pane_id: str,
+):
+    """``rows=("oops",)`` used to reach ``row.bucket`` and kill the WHOLE board."""
+
+    class _Bogus:
+        threads = ("oops",)
+        rows = ("oops",)
+        units = ("oops",)
+        servers = ("oops",)
+        problems = (7,)
+
+    snaps = {
+        src_id: _snap(src_id, _Bogus())
+        for src_id in (
+            CodexSource.id,
+            AgentsSource.id,
+            DatabricksSource.id,
+            McpSource.id,
+        )
+    }
+    rendered = frame(BoardState(pane=pane_id), snaps=snaps, cols=120, now=NOW)
+    assert rendered.count == 0
+    assert rendered.lines[0].startswith("panes ")

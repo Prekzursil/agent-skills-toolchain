@@ -58,7 +58,7 @@ from enum import StrEnum
 from types import ModuleType
 
 from .contract import Alert, Snapshot, SourceState
-from .redact import redact
+from .redact import scrub
 from .report_doc import ReportDoc, Section
 
 __all__ = [
@@ -355,6 +355,7 @@ class DatabricksSource:
         *,
         events_path: str | None = None,
         reader: Callable[[], Iterable[dict]] | None = None,
+        exists_fn: Callable[[str], bool] = os.path.exists,
         api: Callable[[], dict[str, str]] | None = None,
         thresholds: LivenessThresholds | None = None,
         max_units: int = 200,
@@ -364,6 +365,10 @@ class DatabricksSource:
     ) -> None:
         self._events_path = events_path or default_events_path()
         self._reader = reader or (lambda: _read_jsonl(self._events_path))
+        #: Only the DEFAULT file reader lets us ask "was the artifact even there?" — an
+        #: injected reader IS the measurement, so its emptiness is a measured zero.
+        self._owns_path = reader is None
+        self._exists = exists_fn
         self._api = api
         self._th = thresholds or LivenessThresholds()
         self._max_units = max(1, max_units)
@@ -383,24 +388,20 @@ class DatabricksSource:
     # ───────────────────────── poll (never throws) ─────────────────────────
     def poll(self) -> Snapshot[DbxPayload]:
         ts = self._clock()
+        # An ABSENT event stream is UNMEASURED, not "0 units". ``_read_jsonl`` yields
+        # nothing for a missing file, so without this check a never-wired Databricks lane
+        # renders byte-identically to a reached-but-empty one: ``[idle] 0 active / 0 done
+        # / 0 stalled of 0 units`` plus "no units observed in the event stream" — an
+        # unavailable source painted as healthy, and a claim that a stream was observed.
+        if self._owns_path and not self._exists(self._events_path):
+            return self._unreachable(ts, f"event stream not found: {self._events_path}")
         try:
             acc, collisions, seen = self._fold(self._reader())
             statuses = self._api() if self._api is not None else {}
             units = self._finalize(acc, statuses, ts)
         # NEVER raise out of poll (BaseException still propagates by design).
         except Exception as exc:
-            payload = self._last.payload if self._last is not None else DbxPayload()
-            return Snapshot(
-                source_id=self.id,
-                ts=ts,
-                reachable=False,
-                stale=True,
-                state=SourceState.UNREACHABLE,
-                headline=self._headline(None, SourceState.UNREACHABLE, str(exc)),
-                payload=payload,
-                age_s=None,
-                error=str(exc),
-            )
+            return self._unreachable(ts, str(exc))
 
         state = self._derive_state(units, collisions)
         payload = DbxPayload(
@@ -424,6 +425,26 @@ class DatabricksSource:
         self._acc = acc
         self._last = snap
         return snap
+
+    def _unreachable(self, ts: float, error: str) -> Snapshot[DbxPayload]:
+        """A stale/unreachable snapshot retaining the last-good payload (never a fake zero).
+
+        Shared by the two ways a poll can fail to MEASURE anything: a reader that raised,
+        and an event stream that is not on disk at all. Both must be distinguishable from a
+        stream that was read and legitimately held nothing.
+        """
+        payload = self._last.payload if self._last is not None else DbxPayload()
+        return Snapshot(
+            source_id=self.id,
+            ts=ts,
+            reachable=False,
+            stale=True,
+            state=SourceState.UNREACHABLE,
+            headline=self._headline(None, SourceState.UNREACHABLE, error),
+            payload=payload,
+            age_s=None,
+            error=error,
+        )
 
     # ───────────────────────── the fold (stateless per poll) ─────────────────────────
     def _fold(
@@ -713,5 +734,11 @@ class DatabricksSource:
 
 
 def _redact(text: str) -> str:
-    """Mask secrets / collapse home paths, returning just the scrubbed text."""
-    return redact(text, enabled=True)[0]
+    """The shared ingest floor — control bytes stripped FIRST, then secrets masked.
+
+    Delegates to :func:`monitorcore.redact.scrub` rather than calling ``redact`` directly.
+    The local copy this replaces omitted ``strip_controls``, so a control-laden Databricks
+    error string could both split a secret pattern past the mask and carry an escape byte
+    into a painted headline — a silent drift from the floor every sibling adapter applies.
+    """
+    return scrub(text)

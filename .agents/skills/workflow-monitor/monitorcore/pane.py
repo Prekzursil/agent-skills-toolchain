@@ -11,8 +11,9 @@ read, exactly once per tick, and the board hands the result to whichever pane is
 
 Three invariants every pane inherits:
 
-* **Untrusted text is stripped at INGEST and again at the LAST MILE.** :func:`safe` runs
-  :func:`monitorcore.textsafe.strip_controls` the moment a foreign string enters a row, and
+* **Untrusted text is scrubbed at INGEST and again at the LAST MILE.** :func:`safe` runs the
+  shared :func:`monitorcore.redact.scrub` floor (control bytes stripped, THEN secrets and
+  home paths masked) the moment a foreign string enters a row, and
   :func:`cursor_rows` re-clips every row through :func:`monitorcore.codex_tail.clip` (which
   strips again) before it can reach a painted frame. Either barrier alone defangs a CSI/OSC
   injection; both are kept so a future pane that forgets one still cannot emit an escape
@@ -21,9 +22,12 @@ Three invariants every pane inherits:
   credentials or no reachable stream renders :func:`not_measured`, never a fabricated ``0``.
   (:mod:`monitorcore.databricks_source` already treats an unmeasured signal this way; the
   panes extend the same rule to every new column.)
-* **A pane never raises.** A payload that does not carry the attribute a pane expects
-  degrades to an empty row set via :func:`payload_rows`, so one mis-wired source degrades a
-  single pane instead of tearing the board down — the ``poll`` cardinal rule, one layer up.
+* **A pane never raises.** A payload that does not carry the attribute a pane expects — OR
+  that carries it with the wrong ELEMENT type — degrades to an empty row set via
+  :func:`payload_rows`, so one mis-wired source degrades a single pane instead of tearing
+  the board down. Panes therefore pass ``of=<row type>``; the container-only check is not
+  enough, because a right-shaped tuple holding wrong-typed rows still reaches the row
+  formatter and raises ``AttributeError`` inside the paint path.
 
 Pure over its inputs (no I/O, no clock, no global state), so it reaches 100% line+branch
 under injected values and vendors cleanly into a skill's plain Python.
@@ -31,14 +35,16 @@ under injected values and vendors cleanly into a skill's plain Python.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from dataclasses import dataclass
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, Protocol, runtime_checkable
 
 from .codex_tail import clip
 from .contract import Snapshot
-from .textsafe import strip_controls
+from .nav import clamp
+from .redact import scrub
+from .view import CURSOR, GUTTER, GUTTER_LEN
 
 __all__ = [
     "CURSOR",
@@ -57,13 +63,11 @@ __all__ = [
     "state_badge",
 ]
 
-# The selection marker is width 2 and aligns with the plain gutter, exactly as ``view`` does,
-# so switching panes never shifts the columns under the operator's eye.
-CURSOR = "> "
-GUTTER = "  "
+# ``CURSOR`` / ``GUTTER`` / ``clamp`` are RE-EXPORTED from the Phase-1 modules that already
+# own them (:mod:`monitorcore.view`, :mod:`monitorcore.nav`) rather than re-declared here:
+# the marker width and the clamp rule must stay identical or switching panes would shift the
+# columns under the operator's eye and the two cursors would disagree at the edges.
 NOT_MEASURED = "not measured"
-
-_GUTTER_LEN = len(GUTTER)
 
 
 class PaneId(StrEnum):
@@ -82,12 +86,19 @@ class PaneCtx:
 
     ``cursor=False`` is the read-only ``--once`` frame (no selection marker), mirroring
     :func:`monitorcore.view.render_view`'s own ``cursor`` seam.
+
+    ``marks`` carries the WU6 two-signal condition markers (``STALL`` / ``BLOCKED``) keyed by
+    thread key, exactly as :func:`monitorcore.cockpit.stall_marks` produces them and
+    :func:`monitorcore.view.render_view` consumes them. It is empty for a single ``--once``
+    frame, because one snapshot cannot corroborate a content freeze — the same rule
+    :func:`monitorcore.cockpit.once_frame` already states.
     """
 
     cols: int
     now: float
     selected: int = 0
     cursor: bool = True
+    marks: Mapping[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -120,26 +131,22 @@ class Pane(Protocol):
 
 
 def safe(value: object) -> str:
-    """Barrier 1 — coerce ``value`` to text and strip every terminal control byte.
+    """Barrier 1 — the shared ingest floor: strip control bytes, THEN mask secrets.
 
-    Applied at INGEST, i.e. the moment an untrusted string (an agent name, an MCP server
-    name, a workflow label, an exception text) enters a row. ``None`` becomes ``""`` rather
-    than the literal ``"None"``, so an unmeasured field never renders as a fake value.
+    Applied the moment an untrusted string (an agent name, an MCP server name, a workflow
+    label, an exception text) enters a row. ``None`` becomes ``""`` rather than the literal
+    ``"None"``, so an unmeasured field never renders as a fake value.
+
+    It runs the FULL :func:`monitorcore.redact.scrub`, not ``strip_controls`` alone, because
+    a pane is the last mile for text the sources deliberately leave raw: every adapter keeps
+    ``Snapshot.error`` unredacted "for logs" (``test_databricks_source`` asserts an ``sk-``
+    token survives there) while redacting only ``headline``/``alert``. :func:`state_badge`
+    and :func:`not_measured` paint that raw error, so stripping alone would put a live
+    credential and the operator's full home path on screen next to an already-masked
+    headline. The floor is idempotent, so re-applying it over already-scrubbed source fields
+    costs nothing and cannot regress.
     """
-    if value is None:
-        return ""
-    return strip_controls(str(value))
-
-
-def clamp(idx: int, count: int) -> int:
-    """Clamp ``idx`` into ``[0, count)`` (``0`` when there is nothing selectable)."""
-    if count <= 0:
-        return 0
-    if idx < 0:
-        return 0
-    if idx >= count:
-        return count - 1
-    return idx
+    return scrub(value)
 
 
 def cursor_rows(lines: Sequence[str], ctx: PaneCtx) -> tuple[str, ...]:
@@ -149,7 +156,7 @@ def cursor_rows(lines: Sequence[str], ctx: PaneCtx) -> tuple[str, ...]:
     a partial escape and no ESC/BEL/OSC byte survives into the frame even if a pane forgot
     :func:`safe` at ingest.
     """
-    inner = max(0, ctx.cols - _GUTTER_LEN)
+    inner = max(0, ctx.cols - GUTTER_LEN)
     sel = clamp(ctx.selected, len(lines))
     out: list[str] = []
     for idx, line in enumerate(lines):
@@ -170,19 +177,31 @@ def not_measured(label: str, detail: str = "") -> str:
     return text
 
 
-def payload_rows(snap: Snapshot[Any] | None, attr: str) -> tuple[Any, ...]:
+def payload_rows(
+    snap: Snapshot[Any] | None, attr: str, *, of: type | tuple[type, ...] | None = None
+) -> tuple[Any, ...]:
     """The payload's ``attr`` sequence, or ``()`` — a mismatched payload never raises.
 
-    ``poll_all`` can hand a pane a synthesised snapshot whose payload is ``None`` (a rogue
-    adapter that raised), and a mis-registered source could hand it the wrong payload type.
-    Both degrade to "no rows" instead of an ``AttributeError`` inside the paint path.
+    Three degradations, all silent and all row-level:
+
+    * ``snap is None`` — ``poll_all`` never registered the source.
+    * ``attr`` missing, or not a sequence — a rogue adapter handed over a ``None`` payload.
+    * an ELEMENT of the wrong type — a mis-registered source whose container is right but
+      whose rows are not. ``of`` filters those out, so the row formatter downstream cannot
+      raise ``AttributeError`` mid-paint and tear the whole board down. Checking only the
+      container (the previous behaviour) left that hole open: ``rows=("oops",)`` reached
+      ``row.bucket`` and killed every pane, not just the mis-wired one.
+
+    ``of=None`` keeps the container-only check, for a caller that genuinely accepts ``Any``.
     """
     if snap is None:
         return ()
     rows = getattr(snap.payload, attr, ())
-    if isinstance(rows, tuple | list):
+    if not isinstance(rows, tuple | list):
+        return ()
+    if of is None:
         return tuple(rows)
-    return ()
+    return tuple(row for row in rows if isinstance(row, of))
 
 
 def state_badge(snap: Snapshot[Any] | None, *, source_id: str) -> str:

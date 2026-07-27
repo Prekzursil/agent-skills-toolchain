@@ -84,6 +84,26 @@ def test_safe_coerces_non_strings():
     assert safe(7) == "7"
 
 
+def test_safe_also_MASKS_secrets_because_a_pane_is_the_last_mile_for_raw_errors():
+    """Sources keep ``Snapshot.error`` RAW "for logs"; the pane is what puts it on screen.
+
+    ``state_badge`` and ``not_measured`` both paint that raw string, so a barrier that only
+    stripped control bytes would print a live credential next to an already-masked headline.
+    """
+    token = "sk-" + "c" * 24
+    out = safe(f"auth failed for {token}")
+    assert token not in out and "[REDACTED:api-key]" in out
+
+
+def test_safe_collapses_the_operators_home_path():
+    assert safe(r"C:\Users\someone\.dbxmon\events.jsonl").startswith("~")
+
+
+def test_safe_is_idempotent_over_an_already_scrubbed_field():
+    once = safe("plain name")
+    assert safe(once) == once
+
+
 # ───────────────────────────── clamp ─────────────────────────────
 def test_clamp_pins_to_zero_when_nothing_is_selectable():
     assert clamp(4, 0) == 0
@@ -149,6 +169,25 @@ def test_payload_rows_tolerates_a_payload_without_the_attribute():
 
 def test_payload_rows_tolerates_a_non_sequence_attribute():
     assert payload_rows(_snap(_Payload(rows=42)), "rows") == ()
+
+
+def test_payload_rows_drops_elements_of_the_WRONG_TYPE_when_a_type_is_declared():
+    """A right-shaped container holding wrong rows used to reach the row formatter.
+
+    The container check alone let ``rows=("oops",)`` through, and ``row.bucket`` then raised
+    ``AttributeError`` inside the paint path — tearing down the WHOLE board, not one pane.
+    """
+    assert payload_rows(_snap(_Payload(rows=("oops", 1, 2))), "rows", of=int) == (1, 2)
+    assert payload_rows(_snap(_Payload(rows=("oops",))), "rows", of=int) == ()
+
+
+def test_payload_rows_accepts_a_tuple_of_types():
+    got = payload_rows(_snap(_Payload(rows=(1, "a", 2.5))), "rows", of=(int, float))
+    assert got == (1, 2.5)
+
+
+def test_payload_rows_without_a_declared_type_keeps_every_element():
+    assert payload_rows(_snap(_Payload(rows=("oops",))), "rows") == ("oops",)
 
 
 # ───────────────────────────── state_badge ─────────────────────────────

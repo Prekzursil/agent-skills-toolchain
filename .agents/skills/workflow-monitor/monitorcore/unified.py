@@ -16,15 +16,23 @@ The loop is keystroke-driven, deliberately, exactly as Phase 1 is: one keypress 
 Keys — ``1``-``5`` jump straight to a pane · ``tab`` cycles · ``↑``/``k`` and ``↓``/``j``
 move the selection within the active pane · ``q`` quits.
 
+The loop also owns the WU6 stall layer for the codex pane (:func:`codex_marks`), because the
+content-freeze half of that classifier needs a :class:`~monitorcore.stall.StallTracker` that
+outlives one frame. Without it the pane would render the Phase-1 view MINUS its
+``[STALL]`` / ``[BLOCKED]`` markers — the one inference a fleet monitor exists to surface.
+
 Two safety properties hold for every pane, not just the ones shipped here:
 
 * **One bad source cannot kill the board.** ``poll`` is contractually forbidden to raise, but
   :func:`poll_all` still wraps each call: a rogue adapter becomes an *unreachable* snapshot
-  and its pane prints "not measured", while every other pane keeps rendering.
+  and its pane prints "not measured", while every other pane keeps rendering. A payload with
+  wrong-TYPED rows degrades the same way (:func:`monitorcore.pane.payload_rows`).
 * **Nothing untrusted reaches the terminal un-stripped.** Every row leaves a pane through
   :func:`monitorcore.pane.cursor_rows` → :func:`monitorcore.codex_tail.clip`, and the
   header/badge are clipped here, so a hostile agent name / workflow label / MCP server name
-  cannot emit an escape byte into the painted frame.
+  cannot emit an escape byte into the painted frame. The badge additionally REDACTS
+  (:func:`monitorcore.pane.safe`), because adapters keep ``Snapshot.error`` raw for logs and
+  this board is where that string becomes pixels.
 """
 
 from __future__ import annotations
@@ -37,8 +45,8 @@ from typing import Any
 
 from .agents_source import AgentsSource
 from .codex_source import CodexSource
-from .codex_tail import clip
-from .cockpit import _default_write, _getch, _supported
+from .codex_tail import CodexThread, clip
+from .cockpit import _default_write, _getch, _mtime, _supported, stall_marks
 from .contract import MonitorSource, Snapshot, SourceState
 from .databricks_source import DatabricksSource
 from .mcp_source import McpSource
@@ -49,16 +57,19 @@ from .pane import (
     PaneId,
     clamp,
     pane_bar,
+    payload_rows,
     safe,
     state_badge,
 )
 from .pane_views import PANES
+from .stall import StallTracker
 
 __all__ = [
     "BoardFrame",
     "BoardState",
     "active_pane",
     "apply_key",
+    "codex_marks",
     "default_sources",
     "frame",
     "main",
@@ -130,6 +141,25 @@ def poll_all(
     return out
 
 
+def codex_marks(
+    snaps: Mapping[str, Snapshot[Any]],
+    tracker: StallTracker,
+    now: float,
+    *,
+    stale_s: float,
+    mtime_fn: Callable[[str], float | None] = _mtime,
+) -> dict[str, str]:
+    """The WU6 ``STALL`` / ``BLOCKED`` markers for the codex snapshot in ``snaps``.
+
+    The board, not the pane, owns this: a content freeze needs TWO polls to corroborate, so
+    the :class:`~monitorcore.stall.StallTracker` has to outlive a single frame. This is the
+    SAME :func:`monitorcore.cockpit.stall_marks` classifier the Phase-1 cockpit loop drives
+    — re-derived markers would be a second, drifting stall policy.
+    """
+    threads = payload_rows(snaps.get(CodexSource.id), "threads", of=CodexThread)
+    return stall_marks(tracker, threads, now, stale_s=stale_s, mtime_fn=mtime_fn)
+
+
 def frame(
     state: BoardState,
     *,
@@ -138,11 +168,23 @@ def frame(
     cols: int = 120,
     now: float = 0.0,
     cursor: bool = True,
+    marks: Mapping[str, str] | None = None,
 ) -> BoardFrame:
-    """Compose the whole board: the tab strip, the source badge, then the active pane's rows."""
+    """Compose the whole board: the tab strip, the source badge, then the active pane's rows.
+
+    ``marks`` is the codex stall/blocked overlay (see :func:`codex_marks`); it is ``None``
+    for a single read-only frame, because one snapshot cannot corroborate a freeze — the
+    rule :func:`monitorcore.cockpit.once_frame` already states for the Phase-1 board.
+    """
     pane = active_pane(panes, state.pane)
     snap = snaps.get(pane.source_id)
-    ctx = PaneCtx(cols=cols, now=now, selected=state.selected, cursor=cursor)
+    ctx = PaneCtx(
+        cols=cols,
+        now=now,
+        selected=state.selected,
+        cursor=cursor,
+        marks=marks if marks is not None else {},
+    )
     body = pane.body(snap, ctx)
     badge = clip(
         state_badge(snap, source_id=pane.source_id), max(0, cols - _GUTTER_LEN)
@@ -209,18 +251,30 @@ def run_board(
     clock: Callable[[], float] = time.time,
     cols_fn: Callable[[], int] = lambda: 120,
     initial: BoardState | None = None,
+    tracker: StallTracker | None = None,
+    mtime_fn: Callable[[str], float | None] = _mtime,
+    stale_s: float = 90.0,
 ) -> BoardState:
     """The keystroke-driven multi-pane loop: poll → render → read a key → apply → repeat.
 
     Blocks on ``read_key`` (a keystroke drives each repaint — no busy poll), the same
     contract :func:`monitorcore.cockpit.run_interactive` established. Returns the final
     :class:`BoardState` when the user quits.
+
+    The loop owns ONE :class:`~monitorcore.stall.StallTracker` for its whole lifetime — the
+    cross-poll half of WU6's two-signal stall classifier only corroborates from the second
+    poll onward, so a per-frame tracker would never fire. ``mtime_fn`` and ``stale_s`` are
+    the same injected seams :func:`monitorcore.cockpit.run_interactive` exposes.
     """
     state = initial if initial is not None else BoardState()
+    tracker = tracker if tracker is not None else StallTracker()
     while True:
         now = clock()
         snaps = poll_all(sources, clock=clock)
-        rendered = frame(state, snaps=snaps, panes=panes, cols=cols_fn(), now=now)
+        marks = codex_marks(snaps, tracker, now, stale_s=stale_s, mtime_fn=mtime_fn)
+        rendered = frame(
+            state, snaps=snaps, panes=panes, cols=cols_fn(), now=now, marks=marks
+        )
         write(rendered.lines)
         state = apply_key(state, read_key(), panes=panes, count=rendered.count)
         if state.quit:
@@ -292,6 +346,8 @@ def main(
     srcs = sources if sources is not None else default_sources(args, clock=clock)
     state = BoardState(pane=args.pane)
     if args.once or not supported_fn():
+        # No ``marks=``: one snapshot cannot corroborate a content freeze, so ``--once``
+        # shows fact-level state only — the identical rule ``cockpit.once_frame`` follows.
         rendered = frame(
             state,
             snaps=poll_all(srcs, clock=clock),
