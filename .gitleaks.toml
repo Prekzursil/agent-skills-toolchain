@@ -137,3 +137,37 @@ description = "c2patool-provenance SKILL.md: private_key is a c2patool manifest 
 paths = [
   '''skills/c2patool-provenance/SKILL\.md$''',
 ]
+
+# chatgpt_desktop v1 raw_stream fixtures — captured ChatGPT stream traces, frozen test DATA
+# enumerated by the already-committed MANIFEST.json (fixture_path + sha256 + bytes per entry).
+# gitleaks' noisy generic-api-key rule fires 1053 times across the 13 snapshots on the literal
+# token `"key": "<slug>"`. Confirmed FP by ENUMERATING THE FULL VALUE SET, not by sampling:
+# all 2583 occurrences collapse to just 21 distinct values, and every one is a React-style UI
+# list identifier for a rendered transcript element —
+#   chatgpt-reasoning-group-0 · assistant-message-0 · user-message-<slug>-0 ·
+#   reasoning-<slug>-0 · web-search-<slug>-0
+# They appear inside `turns[].itemKeys`, i.e. structural render keys, not credentials. The
+# files were independently swept for real credential shapes (JWT/eyJ, sk-, sk-ant-, AKIA,
+# ASIA, ghp_, github_pat_, dapi, xox*, __Secure-, Bearer, PEM) = 0 hits. Baseline control:
+# the same gitleaks 8.30.1 + this config over origin/main reports no leaks, so the 1053 are
+# introduced by these fixtures alone. Only 12 of the 21 values actually trip the rule (the
+# `reasoning-<slug>-<n>` ones — the rest lack the entropy), which is what the regex below pins.
+#
+# DELIBERATELY *NOT* PATH-SCOPED. A `paths` waiver here was written first and MEASURED to be
+# wrong: gitleaks applies `paths` as a FILE-LEVEL pre-filter, so the snapshot scanned ~0 bytes
+# instead of 58 KB and a real secret dropped into the same file would have been invisible
+# (`condition = "AND"` does not prevent the file-level skip). This waiver is therefore
+# finding-level — `regexTarget = "secret"` with an anchored pattern — so the files are still
+# read in full and every other rule still applies to them.
+#
+# Verified by a 4-arm mutation test, not by assumption:
+#   ARM 0  real ghp_ token in a scratch dir      -> FIRES     (detector alive)
+#   ARM 1  fixture dir with this config          -> 1,782,739 bytes READ (not skipped)
+#   ARM A  fixture dir unmodified                -> 0 leaks   (the FP is waived)
+#   ARM B  real ghp_ token injected INTO snap_004 -> FIRES     (still caught)
+[[allowlists]]
+description = "chatgpt_desktop raw_stream fixtures: generic-api-key FP on React UI list keys (itemKeys), verified over the full 21-value set"
+regexTarget = "secret"
+regexes = [
+  '''^reasoning-[a-z0-9]{5,8}-\d+$''',
+]

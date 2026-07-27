@@ -44,8 +44,8 @@ jobs:
     name: gate-lint-format (ruff)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
       # Self-contained pinned ruff (mirrors reframe): honors the committed ruff.toml
@@ -78,8 +78,8 @@ jobs:
     name: gate-types (basedpyright)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
       - run: pip install basedpyright==1.39.8
@@ -151,6 +151,27 @@ jobs:
       - name: gate-types agentrail (source)
         working-directory: tools/agentrail
         run: basedpyright agentrail
+      # tools/mcpapply -- the MUTATION sibling of mcpctl (plan/apply the five config
+      # scopes, the stream-json live-control channel behind a port, the token/RAM impact
+      # preview, and the loopback-only stdlib web GUI). It exists as its own package
+      # because mcpctl is read-only BY CONSTRUCTION: an mcpctl test walks the AST of
+      # every module there and fails on any write call, any out-of-process call, and any
+      # http/socket/urllib import -- so the writer, the process guard and the GUI cannot
+      # live in it without breaking the gate that makes it trustworthy to read from.
+      #
+      # NO install step: the package SOURCE is stdlib-only apart from mcpctl, which is
+      # resolved by `[tool.basedpyright] extraPaths = ["../mcpctl"]` in its pyproject.
+      # That line is LOAD-BEARING here (unlike the inert guard of the same name in
+      # mcpctl), and it is the measured B1 trap: `pip install -e ../mcpctl` is INVISIBLE
+      # to basedpyright, because setuptools emits a MetaPathFinder inside a .pth holding
+      # executable code and basedpyright neither runs .pth code nor follows a finder.
+      # Both-states probe, 2026-07-27, in a venv where mcpctl WAS editable-installed:
+      # with extraPaths `0 errors`; with it commented out `17 errors`, all
+      # reportMissingImports on `mcpctl.*`. So the editable install alone does not
+      # satisfy this step -- do not "simplify" it away.
+      - name: gate-types mcpapply (source)
+        working-directory: tools/mcpapply
+        run: basedpyright mcpapply
       # agent-self/harness — the enshrined shared lifecycle harness (SSOT for the live
       # ~/.agents/harness deploy loop; see agent-self/harness/README.md). It ships NO
       # pyproject (byte-exact projection of the live tree the installer deploys), so standard
@@ -169,8 +190,8 @@ jobs:
     name: gate-tests-coverage (node workspaces)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
       - run: npm ci
@@ -218,8 +239,8 @@ jobs:
     name: gate-tests-coverage (python packages)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
       - name: gate-tests-coverage mcp-manager
@@ -253,6 +274,37 @@ jobs:
         run: |
           pip install -e ".[dev]"
           pytest --cov=mcpctl --cov-branch --cov-report=term-missing --cov-fail-under=100
+      # tools/mcpapply -- the MUTATION sibling of mcpctl. Two install lines, both
+      # load-bearing:
+      #
+      #   * `pip install -e ../mcpctl` FIRST. mcpapply imports mcpctl statically in
+      #     seven modules (it is the whole read layer), and mcpctl is deliberately NOT
+      #     declared in mcpapply's `dependencies`: naming the bare string `mcpctl` there
+      #     would make pip resolve it from PyPI, a name this repo does not own, and pull
+      #     a stranger's package into a tool that writes the operator's credential-
+      #     bearing config. The sibling tree is the only supply chain here.
+      #   * `pip install -e ".[dev]"` (the monitorcore/agentspec pattern), NOT the bare
+      #     `pip install pytest pytest-cov` that stdin-server uses. MEASURED: `tests/` is
+      #     a subdirectory and tests/conftest.py imports the package at COLLECTION time,
+      #     so the bare form dies with `ModuleNotFoundError: No module named 'mcpapply'`.
+      #     Reproduce either state with the venv's `pytest` CONSOLE SCRIPT, never
+      #     `python -m pytest` -- the `-m` form prepends CWD to sys.path and passes in
+      #     BOTH states, so it is a broken detector for exactly this failure.
+      #
+      # `-m "not live"` is load-bearing too. tests/test_live.py registers ONE `live` row
+      # that would spawn a REAL host session; its conftest default-deselects it, but a
+      # bare pytest here would run it the moment that hook regressed, on a runner with
+      # no host binary -- and `mcp_toggle` PERSISTS a write to ~/.claude.json, so a live
+      # row is a mutation, not just a slow test. It is deliberately not the sole cover of
+      # any line, so 100% is still reached with it deselected (measured 2026-07-27:
+      # 225 passed, 1 deselected, 100.00% line+branch, ZERO `# pragma: no cover` in
+      # package source).
+      - name: gate-tests-coverage mcpapply
+        working-directory: tools/mcpapply
+        run: |
+          pip install -e ../mcpctl
+          pip install -e ".[dev]"
+          pytest -m "not live" --cov=mcpapply --cov-branch --cov-report=term-missing --cov-fail-under=100
       # tools/stdin-server — a stdlib-only interactive-stdin MCP server (Desktop Commander
       # start_process/interact_with_process/read_process_output). Zero third-party deps, so
       # only pytest+pytest-cov are installed; the whole module is 100% line+branch gated. The
@@ -751,7 +803,7 @@ jobs:
       # abbyy STEP LAST in this job -- this action repoints the default `python` to 3.12.
       - name: setup python 3.12 for the vendored abbyy tree
         id: py312
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
       - name: gate-tests-coverage abbyy-finereader-ocr-mcp (vendored; isolated venv)
@@ -767,7 +819,7 @@ jobs:
     name: gate-sast (opengrep)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Gate 4 — static security analysis with the CURATED in-repo ruleset under
       # .quality/opengrep/ (NOT --config auto: registry packs are network-fetched and drift,
       # making the gate non-deterministic). Clean-zero: 0 findings, no baseline. Genuine
@@ -790,13 +842,13 @@ jobs:
       contents: read
       pull-requests: read
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       # Gate 5 — secret scan over full history, honoring the committed .gitleaks.toml
       # allowlist (owner-intentional private-env store + reasoned doc/fixture placeholders).
       # New real secrets outside those explicit paths still fail the gate.
-      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           # Pin gitleaks to a version that HONORS the committed .gitleaks.toml plural
           # [[allowlists]] path waivers. The action's default (8.24.3) does NOT apply
@@ -814,7 +866,7 @@ jobs:
     name: gate-deps (osv-scanner)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Gate 6 — known-CVE scan of the committed npm lockfiles. Reasoned, dated per-CVE
       # ignores live in the root osv-scanner.toml; no baseline.
       #
@@ -824,7 +876,7 @@ jobs:
       # consulted for tools/web/agentify-desktop/package-lock.json — an ignore added at the
       # root silently had no effect on the agentify tree. Passing --config applies the one
       # root config to every parsed file (and ignores any per-directory osv-scanner.toml).
-      - uses: google/osv-scanner-action/osv-scanner-action@9bb69575e74019c2ad085a1860787043adf47ccb # v2.2.4
+      - uses: google/osv-scanner-action/osv-scanner-action@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2.3.8
         with:
           scan-args: |-
             --config=osv-scanner.toml

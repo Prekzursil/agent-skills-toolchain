@@ -72,6 +72,8 @@ INJECT_PRIORITY: dict[str, int] = {
     "subagent_handoff": PRIORITY_GOAL,
     "ipass_readback": PRIORITY_GOAL,
     "postcompact_reanchor": PRIORITY_GOAL,
+    # owner explicitly authorized these work classes — do not over-refuse
+    "owner_ops_authorization": PRIORITY_GOAL,
     # VERIFY = 60
     "unverified_completion_claim": PRIORITY_VERIFY,
     "receipt_gate": PRIORITY_VERIFY,

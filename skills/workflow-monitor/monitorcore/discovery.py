@@ -15,6 +15,7 @@ import os
 import time
 
 __all__ = [
+    "ERROR_GLYPH",
     "find_subagent_dirs",
     "last_event_summary",
     "newest_mtime",
@@ -23,6 +24,11 @@ __all__ = [
 ]
 
 PROJECTS = os.path.expanduser(r"~/.claude/projects")
+
+#: The prefix :func:`last_event_summary` puts on a FAILED ``tool_result``. Exported because
+#: :mod:`monitorcore.agents_source` classifies a row as errored by testing for it — a
+#: consumer coupled to a producer's literal must read the literal, not re-type it.
+ERROR_GLYPH = "✗"
 
 
 def find_subagent_dirs(projects: str = PROJECTS) -> list[str]:
@@ -98,7 +104,9 @@ def last_event_summary(jsonl: str, width: int) -> str:
             if t == "tool_result":
                 rc = b.get("content")
                 s = rc if isinstance(rc, str) else json.dumps(rc, ensure_ascii=False)
-                return _one_line(("✗ " if b.get("is_error") else "↳ ") + s, width)
+                return _one_line(
+                    (f"{ERROR_GLYPH} " if b.get("is_error") else "↳ ") + s, width
+                )
             if t == "thinking":
                 return _one_line("💭 " + b.get("thinking", ""), width)
     return ""

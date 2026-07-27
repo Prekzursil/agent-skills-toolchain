@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcpapply"
+version = "0.1.0"
+description = "MCP mutation core: plan/apply config changes across the five scopes, the stream-json live-control channel behind a port, a token/RAM impact preview that never renders 'not measured' as 0, and a loopback-only stdlib web GUI"
+requires-python = ">=3.11"
+# STDLIB-ONLY apart from the sibling read core. `mcpctl` supplies every READ (scopes,
+# precedence, the object-shaped deniedMcpServers, the exact-cwd projects row, the
+# credential-name-only redaction, the health matrix); this package adds only the
+# inverse scope map, the writer, the live channel, the impact preview and the GUI.
+#
+# `mcpctl` is a HARD import-time requirement but is deliberately NOT listed here.
+# Naming it would make `pip install` resolve the string `mcpctl` from PyPI -- a name
+# this repo does not own -- so a typo-squat could be pulled into a tool that writes the
+# operator's live credentials-bearing config. It is installed from the SIBLING TREE
+# instead: `pip install -e ../mcpctl` (the CI step does exactly that, before this one).
+dependencies = []
+
+[tool.setuptools]
+packages = ["mcpapply"]
+
+[tool.setuptools.package-data]
+mcpapply = ["static/*.html", "static/*.js", "static/*.css"]
+
+[project.scripts]
+mcpapply = "mcpapply.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7",
+    "pytest-cov>=4",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+# `live` marks the ONE test that would drive a real host session. It is
+# default-deselected by tests/conftest.py AND by `-m "not live"` in the CI step: the
+# gated suite must never spawn a real Claude Code session (a cold fleet boot measured
+# 104-275 s, it mutates the operator's own ~/.claude.json via mcp_toggle, and CI has no
+# host binary at all). Run it deliberately with `pytest -m live`.
+markers = ["live: drives a REAL host session; never run in the gated suite"]
+
+[tool.coverage.run]
+branch = true
+
+[tool.basedpyright]
+typeCheckingMode = "standard"
+# LOAD-BEARING here, unlike in mcpctl where the same line is an inert guard.
+# MEASURED (gate-findings/unattributed-BLOCKING.md B1): `pip install -e ../mcpctl` is
+# INVISIBLE to basedpyright -- setuptools emits a MetaPathFinder inside a .pth holding
+# executable code, and basedpyright neither runs .pth code nor follows a finder. This
+# package imports mcpctl STATICALLY in seven modules (it is the read layer, so an
+# importlib string-name dodge would make reading unreliable), so without this line the
+# types gate reds on every `from mcpctl... import ...`.
+extraPaths = ["../mcpctl"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7",
+    "pytest-cov>=4",
+]

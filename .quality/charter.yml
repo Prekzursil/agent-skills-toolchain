@@ -22,26 +22,35 @@ gates:
       tools/mcp-manager (core, ui, app.py), tools/scholarly-access-mcp (scholarly_access),
       tools/taskwatch_monitor (core, probes, cli, mcp_server, hooks, ui),
       tools/monitorcore (monitorcore), tools/agentspec (agentspec), tools/mcpctl (mcpctl)
-      and tools/agentrail (agentrail)
-      -- each checked from its own root with its deps installed so imports resolve. mcpctl is
-      the one package needing no install: its source imports stdlib only and its optional
-      monitorcore reuse goes through importlib with a STRING module name, so there is no
-      static sibling import for basedpyright to resolve. agentrail needs no install either,
-      for the OPPOSITE reason: it DOES statically import agentspec, and resolves it through
-      `[tool.basedpyright] extraPaths = ["../agentspec"]` because an editable sibling install
-      is invisible to the type checker (measured both ways: 17 errors without, 0 with).
+      and tools/agentrail (agentrail) and tools/mcpapply (mcpapply)
+      -- each checked from its own root with its deps installed so imports resolve. mcpctl needs
+      no install because its source is stdlib-only and its optional monitorcore reuse goes through
+      importlib with a STRING module name, so there is no static sibling import to resolve.
+      agentrail and mcpapply need no install either, but for the OPPOSITE reason: each DOES
+      statically import a sibling (agentspec and mcpctl respectively) and resolves it via
+      `[tool.basedpyright] extraPaths`, because an editable sibling install is INVISIBLE to
+      basedpyright -- setuptools emits a MetaPathFinder inside a .pth holding executable code, and
+      basedpyright neither runs .pth code nor follows a finder. Measured BOTH WAYS for each
+      package: 17 errors with the extraPaths line removed, 0 errors with it present.
   - slug: tests-coverage
     tools: ["pytest + pytest-cov", "node --test"]
     enforces: >-
       Strict 100% line+branch coverage for the shipped Python packages (mcp-manager,
-      scholarly-access-mcp, taskwatch_monitor, monitorcore, agentspec, mcpctl, agentrail) plus
-      the node workspace tests (root + agentify-desktop + agentspec-js). Reasoned `# pragma: no cover -- <reason>`
-      only for genuinely-untestable branches; agentspec, mcpctl and agentrail carry none at all
-      (measured: 0, 0 and 0 real pragmas in package source, against monitorcore's 11). agentspec
-      and mcpctl reach that by being pure; agentrail reaches it by making every impure edge --
-      spawn, clock, filesystem -- an injected PORT, so its gated suite performs no network I/O
-      and spawns no process, and its live rail probes sit behind a default-deselected `live`
-      marker that CI also filters with `-m "not live"`.
+      scholarly-access-mcp, taskwatch_monitor, monitorcore, agentspec, mcpctl, agentrail,
+      mcpapply) plus the node workspace tests (root + agentify-desktop + agentspec-js). Reasoned
+      `# pragma: no cover -- <reason>` only for genuinely-untestable branches; agentspec, mcpctl,
+      agentrail and mcpapply carry none at all (measured: 0, 0, 0 and 0 real pragmas in package
+      source, against monitorcore's 11). agentspec and mcpctl reach that by being pure; agentrail
+      and mcpapply reach it by making every impure edge -- spawn, clock, filesystem, the
+      stream-json control channel -- an injected PORT. What that buys DIFFERS per package, and
+      the distinction is load-bearing: agentrail's gated suite performs no network I/O and spawns
+      no process, whereas mcpapply's DOES spawn short-lived children and bind loopback sockets on
+      purpose, to exercise the process guard and the web GUI for real rather than against a mock
+      (measured: every bind and connect on 127.0.0.1, zero non-loopback; exact counts move with
+      the test suite, so they are deliberately not pinned here). It never
+      reaches a real host session. Both also run under `-m "not live"`: agentrail's live rail
+      probes and mcpapply's live row (which MUTATES ~/.claude.json through the control channel)
+      are default-deselected, and CI filters them a second time at the step.
   - slug: sast
     tools: ["opengrep 1.23.0", "semgrep CE 1.166.0 (local)"]
     enforces: >-
