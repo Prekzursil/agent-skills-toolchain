@@ -98,7 +98,7 @@ DPAPI-vaulted with 100% round-trip verification.
 
 | Browser | Session Status | Procs | Notes |
 |---|---|---|---|
-| Chrome | **WEB_SESSION_OK** | 48 | CDP broker alive on :9340, Default profile, user=prekzursil1993@gmail.com |
+| Chrome | **WEB_SESSION_OK** | 48 | CDP broker alive on :9340, Default profile, user=<personal-account> |
 | Edge | **WEB_SESSION_OK** | 80 | Default profile, CDP via junction |
 | Comet (Perplexity) | **WEB_SESSION_OK** | 51 | Default profile, direct CDP |
 | Firefox | **WEB_SESSION_OK** | 0 | k4cy1nuq.default-release, Selenium inject, not currently running |

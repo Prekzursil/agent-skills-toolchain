@@ -8,7 +8,7 @@ only after `git-crypt unlock <key>` on a trusted device.
 ## Contents
 | File | Source account | Extracted |
 |------|----------------|-----------|
-| `chatgpt_cookies.json` | ChatGPT / Codex (costin.ionescu@bolt.eu workspace) | 2026-07-20 |
+| `chatgpt_cookies.json` | ChatGPT / Codex (<work-workspace-account> workspace) | 2026-07-20 |
 | `databricks_cookies.json` | Databricks (bolt workspaces) | 2026-07-23 |
 | `aws_cookies.json` | AWS IAM Identity Center portal + Okta SSO | 2026-07-24 |
 
