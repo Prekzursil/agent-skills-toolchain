@@ -59,6 +59,7 @@ def test_fixed_module_order_is_security_then_continuity_then_quality():
         "anti_degeneration",
         "claim_warning",
         "design_tool_reminder",
+        "owner_ops_authorization",
         "subagent_lifecycle",
         "bc_offset_guard",
         "enforcement_scaffold",
