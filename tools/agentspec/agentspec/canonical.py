@@ -315,16 +315,31 @@ def _encode(value: Any, out: list[str], depth: int, seen: tuple[int, ...]) -> No
 def _encode_int(value: int) -> str:
     """R7. ``bool`` never reaches here — :func:`_encode` matches it first, by identity.
 
-    ``int.__str__`` is called UNBOUND on purpose. ``str(value)`` dispatches to the runtime
-    type's ``__str__``, and ``isinstance(value, int)`` admits arbitrary subclasses, so a
-    subclass whose ``__str__`` returns ``"PWNED"`` made this encoder emit ``{"a":PWNED}`` —
-    a document ``json.loads`` then refuses. MEASURED, not hypothetical. The JS side has no
-    counterpart: a boxed ``new Number(5)`` is already rejected as an unsupported type, so this
-    is the one place Python's structural typing was strictly laxer than JS's.
+    ``int.__repr__`` is called UNBOUND on purpose, and it must be ``__repr__`` -- not
+    ``__str__``, not ``str()``, not ``f"{value:d}"``. ``isinstance(value, int)`` admits
+    arbitrary subclasses, and each of the other three renderings can be hijacked by one:
+
+    ==================  =====  ============  ===========  ==============  =======  =======
+    candidate           plain  __repr__ sub  __str__ sub  __format__ sub  IntEnum  IntFlag
+    ==================  =====  ============  ===========  ==============  =======  =======
+    ``str(v)``          5      **PWNED**     **PWNED**    5               1        1
+    ``int.__str__(v)``  5      **PWNED**     5            5               **bad**  **bad**
+    ``f"{v:d}"``        5      5             5            **PWNED**       1        1
+    ``int.__repr__(v)`` 5      5             5            5               1        1
+    ==================  =====  ============  ===========  ==============  =======  =======
+
+    ``int.__str__`` looks like the safe unbound call but is NOT: ``int.__str__ is
+    object.__str__`` is ``True``, and ``object.__str__`` delegates to ``type(x).__repr__`` --
+    so it does not escape the subclass, it only moves which dunder hijacks it. It also renders
+    stdlib ``IntEnum``/``IntFlag`` as ``<Colour.RED: 1>``, which ``json.loads`` refuses.
+    MEASURED on CPython 3.11 (CI), 3.12 and 3.14 -- not a local-interpreter artifact.
+
+    The JS side has no counterpart: a boxed ``new Number(5)`` is already rejected as an
+    unsupported type, so this is the one place Python's structural typing is laxer than JS's.
     """
     if not MIN_SAFE_INTEGER <= value <= MAX_SAFE_INTEGER:
-        raise CanonicalJsonError(E_INT_RANGE, int.__str__(value))
-    return int.__str__(value)
+        raise CanonicalJsonError(E_INT_RANGE, int.__repr__(value))
+    return int.__repr__(value)
 
 
 def _encode_container(

@@ -9,6 +9,7 @@ Python-side unit gate underneath it.
 
 from __future__ import annotations
 
+import enum
 import json
 import math
 from typing import Any
@@ -394,15 +395,74 @@ class _HijackedInt(int):
         return "PWNED"
 
 
-def test_R12_an_int_subclass_cannot_inject_its_own_rendering() -> None:
-    """MEASURED: ``str(value)`` emitted ``{"a":PWNED}`` — a document json.loads then refuses.
+class _HijackedIntRepr(int):
+    """Overrides ``__repr__`` — the door ``int.__str__`` leaves WIDE OPEN.
 
-    JS rejects the analogous boxed ``new Number(5)`` outright, so this was the one place
-    Python's structural typing was strictly LAXER than the JS mirror's.
+    ``int.__str__ is object.__str__`` is True and ``object.__str__`` delegates to
+    ``type(x).__repr__``, so an "unbound ``__str__``" call does not escape the subclass.
     """
-    assert dumpb(_HijackedInt(5)) == b"5"
-    assert dumpb({"a": _HijackedInt(5)}) == b'{"a":5}'
-    assert json.loads(dumps({"a": _HijackedInt(5)})) == {"a": 5}
+
+    def __repr__(self) -> str:
+        return "PWNED_REPR"
+
+
+class _HijackedIntFormat(int):
+    """Overrides ``__format__`` — the door ``f"{v:d}"`` leaves open."""
+
+    def __format__(self, spec: str) -> str:
+        return "PWNED_FMT"
+
+
+class _Colour(enum.IntEnum):
+    RED = 1
+
+
+class _Perm(enum.IntFlag):
+    A = 1
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (_HijackedInt(5), b"5"),
+        (_HijackedIntRepr(5), b"5"),
+        (_HijackedIntFormat(5), b"5"),
+        (_Colour.RED, b"1"),
+        (_Perm.A, b"1"),
+        (5, b"5"),
+    ],
+    ids=["str-sub", "repr-sub", "format-sub", "IntEnum", "IntFlag", "plain"],
+)
+def test_R12_no_int_subclass_can_inject_its_own_rendering(
+    value: int, expected: bytes
+) -> None:
+    """Every dunder an int subclass can override, plus the two stdlib enum int types.
+
+    MEASURED history, both directions:
+    * ``str(value)``        emitted ``{"a":PWNED}``      — hijacked by ``__str__`` AND ``__repr__``
+    * ``int.__str__(value)`` emitted ``{"a":PWNED_REPR}`` — still hijacked by ``__repr__``, and
+      REGRESSED ``IntEnum``/``IntFlag`` to ``<_Colour.RED: 1>``, which ``json.loads`` refuses
+    * ``f"{value:d}"``      is hijacked by ``__format__``
+    Only ``int.__repr__(value)`` survives all six rows. The previous test overrode ONLY
+    ``__str__`` — the one door the broken fix closed — so the test and the fix were mutually
+    confirming and jointly blind. That is why this is parametrised over every override.
+    """
+    assert dumpb(value) == expected
+    assert dumpb({"a": value}) == b'{"a":' + expected + b"}"
+    assert json.loads(dumps({"a": value})) == {"a": int(value)}
+
+
+def test_R12_the_out_of_range_detail_reports_the_REAL_number() -> None:
+    """A hostile subclass must not control the error text either."""
+
+    class _Big(int):
+        def __repr__(self) -> str:
+            return "PWNED_IN_THE_ERROR"
+
+    with pytest.raises(CanonicalJsonError) as exc:
+        dumpb(_Big(MAX_SAFE_INTEGER + 1))
+    assert "PWNED" not in str(exc.value)
+    assert str(MAX_SAFE_INTEGER + 1) in str(exc.value)
 
 
 def test_R12_an_out_of_range_int_subclass_still_reports_its_real_value() -> None:
