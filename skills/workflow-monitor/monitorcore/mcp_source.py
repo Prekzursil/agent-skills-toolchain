@@ -228,6 +228,27 @@ def _denied_names(raw: object) -> frozenset[str]:
     return frozenset(out)
 
 
+def _norm_project_key(path: str) -> str:
+    """Fold a ``projects`` key for comparison, INDEPENDENTLY of the host platform.
+
+    ``os.path.normcase``/``normpath`` are platform-DEPENDENT and must NOT be used here. On
+    Windows they fold ``/`` to ``\\`` and lowercase, so the two separator styles compare
+    equal; on POSIX ``normcase`` is a no-op and a backslash is an ordinary filename
+    character, so ``C:/proj/sub`` and ``C:\\proj\\sub`` compare UNEQUAL. These keys are
+    Windows paths the host wrote into a config that this code also parses on Linux (CI runs
+    ubuntu-latest), so the compare must not depend on where it runs.
+
+    MEASURED 2026-07-27: the ``os.path`` form returned True on this Windows box and False
+    under ``posixpath``, which is exactly the CI failure
+    (``test_parse_doc_matches_a_project_row_across_separator_styles``).
+
+    Contrast :func:`default_paths`, which normalises REAL local paths built by
+    ``os.path.join`` on the running platform -- that use of ``normcase`` is correct and is
+    deliberately left alone.
+    """
+    return path.replace("\\", "/").rstrip("/").casefold()
+
+
 def _project_disabled(projects: object, cwd: str) -> frozenset[str]:
     """``projects[<exact cwd>].disabledMcpServers`` — matched on the NORMALISED cwd.
 
@@ -237,11 +258,11 @@ def _project_disabled(projects: object, cwd: str) -> frozenset[str]:
     """
     if not cwd or not isinstance(projects, dict):
         return frozenset()
-    want = os.path.normcase(os.path.normpath(cwd))
+    want = _norm_project_key(cwd)
     for key, row in projects.items():
         if not isinstance(key, str) or not isinstance(row, dict):
             continue
-        if os.path.normcase(os.path.normpath(key)) == want:
+        if _norm_project_key(key) == want:
             return _names(row.get(_K_DISABLED))
     return frozenset()
 
