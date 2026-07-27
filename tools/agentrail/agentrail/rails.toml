@@ -1,0 +1,159 @@
+# agentrail rail rows -- ADDING AN AGENT CLI IS A ROW HERE, NEVER NEW PYTHON.
+#
+# `${HOME}` is the only variable, substituted at load time by agentrail.rails.expand_rows.
+#
+# VERIFIED vs UNVERIFIED is a measured distinction, not a vibe:
+#   verified = true   the CLI was PROVEN executable headless (--version returned 0) and its
+#                     prompt transport was proven by an executable probe with a control.
+#   verified = false  the binary is INSTALLED but headless operation is UNVERIFIED. Both such
+#                     rows below timed out on `--version` at 15s. A TIMEOUT IS A DETECTOR
+#                     FAILURE, NOT A VERDICT: the row therefore ships, opt-in, and is never
+#                     described as working. `agentrail rails` marks it, and the CLI refuses to
+#                     run it without --allow-unverified.
+#
+# RECEIPT FORMATS. Every row below uses `text` + forbidden_markers rather than `json` +
+# required_fields, and that is deliberate. The probes that settled these rails reached only
+# ERROR paths, so the SUCCESS-path JSON schema of grok and opencode is UNVERIFIED and pinning
+# invented field names would fail every real dispatch on a schema clause. codex is `text` for a
+# stronger reason: its receipt is the `--output-last-message` FILE, which holds the agent's
+# final message as prose, while its `--json` STDOUT is JSONL (many objects) and would not parse
+# as one object at all. `json` + required_fields remains fully supported by the loader and is
+# the better spec the moment a success-path schema is measured.
+#
+# A vacuous receipt spec is REJECTED AT LOAD: a json row needs required_fields and a text row
+# needs forbidden_markers, or agentspec's completion AND-gate silently reduces to
+# "exit 0 AND non-empty" and a receipt reading "work is still in progress" reports SUCCESS.
+
+config_version = "1"
+
+# --------------------------------------------------------------------------------------------
+# codex -- the REFERENCE rail. Installed + authenticated; codex-cli 0.145.0.
+# --------------------------------------------------------------------------------------------
+[rail.codex]
+verified = true
+# TWO wildcard segments, both volatile: the npm package publishes a per-platform sub-package
+# (codex-win32-x64) and the vendor directory is keyed by target triple. Hardcoding today's
+# resolved path is a recorded defect -- it survives until the next `npm -g update` and then
+# fails with a path that looks plausible. MEASURED: this glob returns exactly 1 match here.
+exe_globs = [
+  "${HOME}/AppData/Roaming/npm/node_modules/@openai/codex/node_modules/@openai/codex-win32-*/vendor/*/bin/codex.exe",
+]
+# The npm shim. It works, but it hops through an extra Node process and needs `node` on PATH,
+# so resolving to it emits a WARNING that reaches the result envelope's artifacts.
+exe_fallbacks = ["${HOME}/AppData/Roaming/npm/codex.cmd"]
+base_flags = [
+  "exec",
+  "--json",
+  "--skip-git-repo-check",
+  "--color", "never",
+  "-s", "read-only",
+]
+# --ignore-user-config is the load-bearing hardening flag: without it the whole active MCP
+# inventory is pulled onto the command line, which is how the argv limit was blown in the first
+# place. VERIFIED present in `codex exec --help`. agentspec injects it AND then verifies it.
+hardening = ["--ignore-user-config"]
+# PROVEN by executable probe with a negative control: `codex exec` reads the prompt from stdin
+# and announces `Reading prompt from stdin...`; with EMPTY stdin it exits 1 with
+# `No prompt provided via stdin.` The control matters -- it rules out the reading in which a
+# literal `-` was taken as a one-character prompt. There is NO prompt-file flag on codex
+# (`-i/--image` is images; `--output-schema` constrains the response), so stdin is the only
+# agentspec-legal transport for this rail.
+#
+# The explicit `-` stdin marker is deliberately NOT in base_flags: agentspec appends hardening
+# AFTER the caller's flags, so a positional `-` could not stay last, and the no-argument form
+# is the one the probe actually measured. Never pass both a prompt argument and piped stdin --
+# codex then appends stdin as a <stdin> block and silently changes the payload.
+native_transport = "stdin"
+receipt_flag = "--output-last-message"
+receipt_format = "text"
+receipt_forbidden_markers = [
+  "still in progress",
+  "running in the background",
+  "started in the background",
+  "unable to",
+]
+default_timeout_s = 900
+notes = "codex-cli 0.145.0. exec-only flags: -a/--ask-for-approval is TOP-LEVEL and errors with exit 2 on exec."
+
+# --------------------------------------------------------------------------------------------
+# grok -- the cleanest transport story: a real prompt-FILE flag, no spill needed.
+# --------------------------------------------------------------------------------------------
+[rail.grok]
+verified = true
+# Static path, expressed as a glob so resolution stays uniform: a glob over a literal path
+# matches exactly that path when it exists, and nothing when it does not.
+exe_globs = ["${HOME}/.grok/bin/grok.exe"]
+base_flags = ["--output-format", "json", "--verbatim", "--no-alt-screen"]
+# PROVEN a real file read: pointing --prompt-file at a nonexistent path returns
+# `Failed to read '...' (os error 3)`, i.e. the flag opens the file. The argv-shaped
+# alternatives (-p/--single, --prompt-json, and the bare positional) exist and are deliberately
+# UNUSED -- they are exactly the agentspec policy violation this package refuses to commit.
+native_transport = "file"
+prompt_flag = "--prompt-file"
+receipt_format = "text"
+receipt_forbidden_markers = [
+  "still in progress",
+  "running in the background",
+  "unable to",
+]
+default_timeout_s = 900
+notes = "grok 0.2.111. --output-format defaults to plain, so json is set explicitly. Success-path JSON schema UNVERIFIED."
+
+# --------------------------------------------------------------------------------------------
+# opencode -- the generic-rail target: a third vendor proving the spec is not codex-shaped.
+# --------------------------------------------------------------------------------------------
+[rail.opencode]
+verified = true
+# npm shim only -- there is no vendored native exe to glob for, so this rail resolves through
+# the fallback list by design and the degradation warning is expected rather than a fault.
+exe_fallbacks = [
+  "${HOME}/AppData/Roaming/npm/opencode.cmd",
+  "${HOME}/AppData/Roaming/npm/opencode",
+]
+base_flags = ["run", "--format", "json"]
+# PROVEN by a presence-gate discriminator: with stdin piped and no positional message the run
+# proceeds past the message gate and creates a session; with stdin empty it fails
+# `You must provide a message or a command`. `-f/--file` attaches files TO the message and is
+# NOT a prompt-file flag, so stdin is the agentspec-legal route.
+native_transport = "stdin"
+receipt_format = "text"
+receipt_forbidden_markers = [
+  "still in progress",
+  "running in the background",
+  "unable to",
+]
+default_timeout_s = 900
+notes = "opencode 1.17.13. `run` stands up a local server on a random port -- a real socket, so it belongs behind the spawn port and never in the gated suite."
+
+# --------------------------------------------------------------------------------------------
+# agy -- INSTALLED, HEADLESS UNVERIFIED. Opt-in only.
+# --------------------------------------------------------------------------------------------
+[rail.agy]
+verified = false
+exe_globs = ["${HOME}/AppData/Local/agy/bin/agy.exe"]
+base_flags = []
+# UNVERIFIED, and declared `argv` for that reason: `argv` is the WORST case a CLI can want, so
+# assuming it means agentrail spills rather than trusting an unmeasured file/stdin claim. With
+# no prompt_flag the spill lands on STDIN. If a live probe later proves a prompt-file flag,
+# that is a two-line edit to this row and no Python changes at all -- which is the whole point.
+native_transport = "argv"
+receipt_format = "text"
+receipt_forbidden_markers = ["still in progress", "unable to"]
+default_timeout_s = 600
+notes = "PARTLY SETTLED: `agy --version` exits 0 within 20s -- the earlier 15s TIMEOUT was a DETECTOR failure, not a verdict, exactly as suspected. Still verified = false because that only settles the BINARY half: the prompt transport is UNMEASURED and assumed argv. The remaining settling experiment is a live headless one-shot proving where agy reads its prompt from."
+
+# --------------------------------------------------------------------------------------------
+# gemini -- INSTALLED, HEADLESS UNVERIFIED. Opt-in only.
+# --------------------------------------------------------------------------------------------
+[rail.gemini]
+verified = false
+# A .ps1 is NOT directly spawnable by CreateProcess. Resolution will find this file, and a live
+# dispatch would need a powershell.exe wrapper -- an UNSOLVED problem for this row, recorded
+# here rather than papered over. This is part of why the row is opt-in.
+exe_globs = ["${HOME}/.local/bin/gemini.ps1"]
+base_flags = []
+native_transport = "argv"
+receipt_format = "text"
+receipt_forbidden_markers = ["still in progress", "unable to"]
+default_timeout_s = 600
+notes = "UNVERIFIED and BLOCKED: spawning the resolved .ps1 fails with WinError 193 ('%1 is not a valid Win32 application') -- MEASURED, so the earlier 15s --version timeout was masking a hard incompatibility rather than mere slowness. The settling experiment is to find a native gemini.exe/.cmd entry point (or add a powershell.exe wrapper row); until one exists this rail cannot be dispatched at all."
