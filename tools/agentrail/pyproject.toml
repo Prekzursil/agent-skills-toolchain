@@ -1,0 +1,78 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentrail"
+version = "0.1.0"
+description = "Config-driven multi-rail agent dispatch shell over the agentspec dispatch-safety core: TOML rail rows, dynamic executable resolution, prompt spilling off argv, and the agentspec completion AND-gate rendered into the shared observation envelope"
+requires-python = ">=3.11"
+# STDLIB-ONLY at RUNTIME, and agentspec is deliberately NOT declared here.
+#
+# agentspec is an in-repo sibling package that is never published, so naming it in
+# `dependencies` would make pip resolve `agentspec` from PyPI (wrong package or a hard
+# resolution failure). The sibling is wired in two places instead, and the two are NOT
+# interchangeable:
+#   * RUNTIME / tests -> `pip install -e ../agentspec` (the CI coverage step does this).
+#   * STATIC / types  -> `[tool.basedpyright] extraPaths` below. MEASURED by agentspec's own
+#     pyproject (:59-67): an editable install is INVISIBLE to basedpyright, because setuptools
+#     emits a MetaPathFinder plus a `.pth` holding an import statement and basedpyright neither
+#     executes the `.pth` nor follows the finder.
+dependencies = []
+
+# ONE named package. Nothing generic leaks into the shared CI interpreter: quality.yml's
+# `vendored-tree import isolation` guard fails the job if `index`, `engines` or `evaluation`
+# resolve there, and `agentrail` collides with none of them.
+[tool.setuptools]
+packages = ["agentrail"]
+
+# rails.toml is DATA, not code: the whole point of the package is that adding a rail is a
+# config row rather than new Python, so the config has to ship inside the wheel.
+[tool.setuptools.package-data]
+agentrail = ["rails.toml"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7",
+    "pytest-cov>=4",
+]
+
+[project.scripts]
+agentrail = "agentrail.cli:console_main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+# `live` is registered here AND default-deselected by tests/conftest.py, which delegates the
+# decision to the PURE agentspec.evals.pytest_live.should_deselect -- reused rather than
+# reimplemented, like everything else agentspec already owns. CI additionally passes
+# `-m "not live"`; belt and braces, because the live rows spawn a REAL agent CLI and the
+# ubuntu-latest runner has none.
+markers = [
+    "live: opt-in, needs a real agent rail; deselected unless --run-live is passed",
+]
+
+[tool.coverage.run]
+branch = true
+# NO `omit`, and no `[tool.coverage.report] exclude_lines`. The 100% line+branch bar is met by
+# testing every branch, never by excluding one. There is ZERO `# pragma: no cover` in this
+# package -- achievable because every impure edge (spawn, clock, filesystem) is an injected
+# PORT, so the pure layer is fully coverable and the thin real adapters are driven either with
+# an injected stdlib callable (spawn) or against a pytest tmp_path (filesystem).
+
+[tool.basedpyright]
+# The gate runs `basedpyright agentrail` at STANDARD mode (see .github/workflows/quality.yml).
+# Pinned here so the gate is reproducible and does not inherit basedpyright's stricter
+# config-less default. Only package SOURCE is checked; tests are intentionally looser.
+typeCheckingMode = "standard"
+# LOAD-BEARING, unlike mcpctl's inert guard: agentrail carries STATIC `from agentspec.X import Y`
+# in five modules, and the sibling editable install cannot satisfy the type checker (see the
+# dependencies comment above). Proven both ways -- with this line removed, basedpyright reports
+# `Import "agentspec.argv" could not be resolved`; with it, 0 errors.
+extraPaths = ["../agentspec"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7",
+    "pytest-cov>=4",
+]
