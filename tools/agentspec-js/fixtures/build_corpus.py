@@ -99,14 +99,26 @@ def cases() -> list[dict[str, Any]]:
         ("float-2pow53", num("9007199254740992"), "9007199254740992"),
         ("float-2pow63", num("9223372036854775808"), "9223372036854776000"),
     ]
-    rows += [ok(f"num/{name}", value, expected) for name, value, expected in number_rows]
+    rows += [
+        ok(f"num/{name}", value, expected) for name, value, expected in number_rows
+    ]
 
     # ---- R7 / R8 rejections ----------------------------------------------------------
     rows += [
-        reject("num/int-2pow53", integer("9007199254740992"), "schema-invalid-int-range"),
-        reject("num/int-2pow53-plus1", integer("9007199254740993"), "schema-invalid-int-range"),
+        reject(
+            "num/int-2pow53", integer("9007199254740992"), "schema-invalid-int-range"
+        ),
+        reject(
+            "num/int-2pow53-plus1",
+            integer("9007199254740993"),
+            "schema-invalid-int-range",
+        ),
         reject("num/int-10pow30", integer("1" + "0" * 30), "schema-invalid-int-range"),
-        reject("num/int-neg-2pow63", integer("-9223372036854775808"), "schema-invalid-int-range"),
+        reject(
+            "num/int-neg-2pow63",
+            integer("-9223372036854775808"),
+            "schema-invalid-int-range",
+        ),
         reject("num/nan", num("NaN"), "schema-invalid-nonfinite"),
         reject("num/inf", num("Infinity"), "schema-invalid-nonfinite"),
         reject("num/neg-inf", num("-Infinity"), "schema-invalid-nonfinite"),
@@ -139,7 +151,10 @@ def cases() -> list[dict[str, Any]]:
         ("high-then-high", "\ud800\ud800", '"\\ud800\\ud800"'),
         ("pair-then-lone", "😀\ud800", '"\U0001f600\\ud800"'),
     ]
-    rows += [ok(f"str/{name}", text(value), expected) for name, value, expected in string_rows]
+    rows += [
+        ok(f"str/{name}", text(value), expected)
+        for name, value, expected in string_rows
+    ]
 
     # ---- R2 / R3 containers ----------------------------------------------------------
     rows += [
@@ -236,7 +251,14 @@ def cases() -> list[dict[str, Any]]:
             obj(
                 ("status", text("error")),
                 ("summary", text("wu-2: receipt-missing")),
-                ("next_actions", arr(text("resolve receipt-missing before treating this unit as done"))),
+                (
+                    "next_actions",
+                    arr(
+                        text(
+                            "resolve receipt-missing before treating this unit as done"
+                        )
+                    ),
+                ),
                 ("artifacts", arr(text("logs/wu-2.log"))),
                 (
                     "error",
@@ -263,8 +285,16 @@ def cases() -> list[dict[str, Any]]:
 
     # ---- R13 depth -------------------------------------------------------------------
     rows += [
-        ok("deep/arr-at-limit-99", {"nest": {"depth": 99, "kind": "arr"}}, "[" * 99 + "1" + "]" * 99),
-        ok("deep/arr-at-cap-100", {"nest": {"depth": 100, "kind": "arr"}}, "[" * 100 + "1" + "]" * 100),
+        ok(
+            "deep/arr-at-limit-99",
+            {"nest": {"depth": 99, "kind": "arr"}},
+            "[" * 99 + "1" + "]" * 99,
+        ),
+        ok(
+            "deep/arr-at-cap-100",
+            {"nest": {"depth": 100, "kind": "arr"}},
+            "[" * 100 + "1" + "]" * 100,
+        ),
         reject(
             "deep/arr-over-cap-101",
             {"nest": {"depth": 101, "kind": "arr"}},

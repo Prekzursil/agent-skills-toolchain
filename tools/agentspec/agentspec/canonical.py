@@ -225,7 +225,9 @@ def _fold_surrogate_pair(high: int, low: int) -> str:
     Not folding is worse than lossy — it emits raw surrogates, and :func:`dumpb` then dies with
     ``UnicodeEncodeError`` instead of producing bytes (measured while building this module).
     """
-    return chr(0x10000 + ((high - _HIGH_SURROGATE_FIRST) << 10) + (low - _LOW_SURROGATE_FIRST))
+    return chr(
+        0x10000 + ((high - _HIGH_SURROGATE_FIRST) << 10) + (low - _LOW_SURROGATE_FIRST)
+    )
 
 
 def _shortest_digits(magnitude: float) -> tuple[str, int]:
