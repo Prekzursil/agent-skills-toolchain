@@ -25,6 +25,8 @@ other. The observable contract - every form to ``~`` - is unchanged.)
 
 import re
 
+from .textsafe import strip_controls
+
 # Secrets are masked BEFORE home-path collapse. Order within this list matters
 # in two places: the ``Bearer`` JWT must precede the standalone JWT (so the
 # label prefix is preserved), and the ``*.gitcrypt.key`` path is consumed before
@@ -95,6 +97,26 @@ def redact(text: str, *, enabled: bool = True) -> tuple[str, int]:
             # Fail-closed: drop this pattern, keep the already-masked text.
             continue
     return text, total
+
+
+def scrub(value: object) -> str:
+    """THE shared ingest floor: coerce to text, strip control bytes, THEN redact.
+
+    Every adapter that ingests attacker-influenceable text (a Codex thread label, a Claude
+    agent name, an MCP server name, a Databricks unit error) must funnel through this ONE
+    function rather than re-declaring it, because the ORDER is load-bearing and a copy that
+    drifts silently loses a security property:
+
+    * ``strip_controls`` FIRST, so a control byte spliced into a secret can no longer split
+      the pattern past the mask, and so no ESC/BEL/OSC byte survives ingest to be painted to
+      the operator's terminal later (escape-injection / OSC-8 link / OSC-52 clipboard hijack).
+    * ``redact`` SECOND, fail-closed, so the raw input is never returned wholesale.
+
+    ``None`` becomes ``""`` rather than the literal ``"None"``, so an unmeasured field never
+    renders as a fake value.
+    """
+    text = "" if value is None else str(value)
+    return redact(strip_controls(text), enabled=True)[0]
 
 
 class Redactor:

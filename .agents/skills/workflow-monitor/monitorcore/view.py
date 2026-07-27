@@ -29,11 +29,11 @@ from .group_tree import Group, group_header
 from .nav import ViewState, nav_items, visible_groups
 from .responsive import Layout, board_title, layout_for
 
-__all__ = ["render_view"]
+__all__ = ["CURSOR", "GUTTER", "GUTTER_LEN", "render_view"]
 
-_CURSOR = "> "  # selection marker (width 2, aligns with the plain gutter)
-_GUTTER = "  "
-_GUTTER_LEN = len(_GUTTER)
+CURSOR = "> "  # selection marker (width 2, aligns with the plain gutter)
+GUTTER = "  "
+GUTTER_LEN = len(GUTTER)
 _THREAD_INDENT = "  "  # a thread sits under its group header
 _EVENT_INDENT = "    "  # an event sits under its thread line
 _THREAD_INDENT_LEN = len(_THREAD_INDENT)
@@ -57,7 +57,7 @@ def render_view(
     """
     marks = marks or {}
     lay = layout_for(cols) if layout is None else layout
-    inner = max(0, cols - _GUTTER_LEN)
+    inner = max(0, cols - GUTTER_LEN)
     vgroups = visible_groups(groups, state)
     items = nav_items(vgroups)
     sel = _sel_index(state, len(items))
@@ -144,4 +144,4 @@ def _thread_block(
 
 def _row(content: str, *, selected: bool) -> str:
     """Prefix ``content`` with the selection cursor or the plain gutter."""
-    return (_CURSOR if selected else _GUTTER) + content
+    return (CURSOR if selected else GUTTER) + content

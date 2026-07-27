@@ -17,7 +17,7 @@ import json
 
 import pytest
 
-from monitorcore.redact import Redactor, redact
+from monitorcore.redact import Redactor, redact, scrub
 
 # The secret scanner (gitleaks) flags any contiguous dashed BEGIN-private-key
 # marker even when the key body is FAKE. Assemble that marker from a separate
@@ -269,3 +269,30 @@ def test_fail_closed_never_returns_raw_even_if_all_fail(monkeypatch):
     masked, n = redact(raw)  # must not raise
     assert isinstance(masked, str)
     assert n == 0
+
+
+# ───────────────────────────── scrub (the shared ingest floor) ─────────────────────
+def test_scrub_strips_control_bytes_BEFORE_masking_so_a_split_secret_still_masks():
+    """The ORDER is the whole point: an ESC spliced into a token must not evade the mask.
+
+    Five adapters each kept a private copy of this two-step, and one of them
+    (``databricks_source._redact``) had already dropped the strip half.
+    """
+    spliced = "sk-" + "a" * 10 + "\x1b" + "a" * 14
+    out = scrub(spliced)
+    assert "[REDACTED:api-key]" in out
+    assert "\x1b" not in out
+
+
+def test_scrub_masks_and_collapses_like_redact_after_stripping():
+    assert scrub(r"at C:\Users\someone\logs") == r"at ~\logs"
+
+
+def test_scrub_coerces_none_to_empty_never_the_word_none():
+    assert scrub(None) == ""
+    assert scrub(7) == "7"
+
+
+def test_scrub_is_idempotent():
+    once = scrub("plain \x07text")
+    assert scrub(once) == once

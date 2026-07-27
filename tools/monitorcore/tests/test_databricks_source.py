@@ -50,6 +50,7 @@ from monitorcore.databricks_source import (
     DbxUnit,
     Liveness,
     LivenessThresholds,
+    _read_jsonl,
     busy_glyph,
     default_events_path,
     derive_liveness,
@@ -171,18 +172,57 @@ def test_liveness_vocabulary_is_the_eight_states():
 
 
 # ───────────────────────── poll: never raises ─────────────────────────
-def test_poll_never_raises_when_event_file_missing(tmp_path):
-    """A run that has not written its event file yet is quietly empty, never an error."""
+def test_an_ABSENT_event_file_is_unreachable_not_a_measured_zero(tmp_path):
+    """An event stream that is not on disk was never MEASURED — it is not "0 units".
+
+    ``_read_jsonl`` yields nothing for a missing path, so this used to return
+    ``reachable=True`` / ``[idle] 0 active ... of 0 units`` — byte-identical to a stream
+    that WAS read and legitimately held nothing, and the pane then printed "no units
+    observed in the event stream" about a file it never opened.
+    """
     src = DatabricksSource(
         events_path=str(tmp_path / "does-not-exist.jsonl"),
         thresholds=TH,
         clock=lambda: NOW,
     )
     snap = src.poll()  # must not raise
-    assert snap.reachable is True
-    assert snap.stale is False
+    assert snap.reachable is False and snap.stale is True
+    assert snap.state is SourceState.UNREACHABLE
+    assert snap.error is not None and "event stream not found" in snap.error
+    assert snap.payload == DbxPayload()
+
+
+def test_read_jsonl_still_guards_a_path_that_vanishes_under_it(tmp_path):
+    """``poll`` pre-checks existence, but the reader keeps its own guard for the RACE.
+
+    Between the existence check and the open, a rotating writer can unlink the stream; the
+    reader must yield nothing rather than raise ``FileNotFoundError`` up through ``poll``.
+    """
+    assert list(_read_jsonl(str(tmp_path / "vanished.jsonl"))) == []
+
+
+def test_an_EMPTY_but_PRESENT_event_file_is_a_measured_zero(tmp_path):
+    """The control for the test above: reached-and-empty must stay reachable."""
+    path = tmp_path / "events.jsonl"
+    path.write_text("", encoding="utf-8")
+    snap = DatabricksSource(
+        events_path=str(path), thresholds=TH, clock=lambda: NOW
+    ).poll()
+    assert snap.reachable is True and snap.stale is False
     assert snap.state is SourceState.IDLE
     assert snap.payload == DbxPayload()
+
+
+def test_an_INJECTED_reader_is_itself_the_measurement_so_the_path_is_not_probed():
+    """With a reader supplied, emptiness is measured — there is no artifact to look for."""
+    snap = DatabricksSource(
+        events_path="/definitely/not/here.jsonl",
+        reader=lambda: [],
+        exists_fn=lambda _p: False,
+        thresholds=TH,
+        clock=lambda: NOW,
+    ).poll()
+    assert snap.reachable is True and snap.state is SourceState.IDLE
 
 
 def test_poll_never_raises_on_unreadable_locked_file(tmp_path):
