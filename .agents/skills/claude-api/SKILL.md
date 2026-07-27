@@ -260,13 +260,42 @@ for result in client.messages.batches.results(batch.id):
 
 ## Claude Agent SDK
 
-Build multi-step agents:
+The Agent SDK is a **separate package** — `claude-agent-sdk` on PyPI, `@anthropic-ai/claude-agent-sdk` on npm. It is not part of the `anthropic` SDK: `import anthropic` gives you the raw Messages API, not an agent. The SDK owns the loop, executes tools, and applies permissions and hooks for you.
+
+```bash
+pip install claude-agent-sdk
+```
 
 ```python
-# Note: Agent SDK API surface may change — check official docs
+import anyio
+from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, TextBlock, query
+
+async def main():
+    options = ClaudeAgentOptions(system_prompt="You are a security reviewer.")
+    async for message in query(
+        prompt="Review the auth module for security issues",
+        options=options,
+    ):
+        if isinstance(message, AssistantMessage):
+            for block in message.content:
+                if isinstance(block, TextBlock):
+                    print(block.text)
+
+anyio.run(main)
+```
+
+`query()` is keyword-only and one-shot. Use `ClaudeSDKClient` for a stateful, interruptible conversation.
+
+### Manual agent loop (raw Messages API)
+
+Without the Agent SDK you own the loop, and two rules are not optional:
+
+- Continue **only** while `stop_reason == "tool_use"`. Every other value (`end_turn`, `max_tokens`, `stop_sequence`, `refusal`, `pause_turn`) must exit the loop — testing `== "end_turn"` spins forever on all of them.
+- Answer **every** `tool_use` block with a `tool_result` carrying the same `tool_use_id`, in the very next user message. Appending the assistant turn without those results makes the next `messages.create()` fail with HTTP 400.
+
+```python
 import anthropic
 
-# Define tools as functions
 tools = [{
     "name": "search_codebase",
     "description": "Search the codebase for relevant code",
@@ -277,7 +306,6 @@ tools = [{
     }
 }]
 
-# Run an agentic loop with tool use
 client = anthropic.Anthropic()
 messages = [{"role": "user", "content": "Review the auth module for security issues"}]
 
@@ -288,11 +316,18 @@ while True:
         tools=tools,
         messages=messages,
     )
-    if response.stop_reason == "end_turn":
+    if response.stop_reason != "tool_use":
         break
-    # Handle tool calls and continue the loop
     messages.append({"role": "assistant", "content": response.content})
-    # ... execute tools and append tool_result messages
+    messages.append({"role": "user", "content": [
+        {
+            "type": "tool_result",
+            "tool_use_id": block.id,
+            "content": str(run_tool(block.name, block.input)),  # your dispatcher
+        }
+        for block in response.content
+        if block.type == "tool_use"
+    ]})
 ```
 
 ## Cost Optimization
