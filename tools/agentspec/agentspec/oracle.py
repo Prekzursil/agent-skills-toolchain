@@ -34,6 +34,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from agentspec import receipt as receipt_mod
+from agentspec import wire
+from agentspec.canonical import dumps as canonical_dumps
 from agentspec.envelope import ErrorDetail, Observation, error, success
 from agentspec.progress import looks_like_progress
 from agentspec.retry import RATE_LIMIT_MAX_ATTEMPTS
@@ -60,10 +62,7 @@ class RailResult:
     wall_ms: int = 0
 
     def __post_init__(self) -> None:
-        if isinstance(self.wall_ms, bool) or not isinstance(self.wall_ms, int):
-            raise TypeError(
-                f"wall_ms must be an int, not {type(self.wall_ms).__name__}"
-            )
+        wire.require_wire_integer(self.wall_ms, "wall_ms")
         if self.wall_ms < 0:
             raise ValueError("wall_ms must be >= 0")
 
@@ -94,7 +93,7 @@ class Verdict:
 
 def judge(unit_id: str, result: RailResult, spec: ReceiptSpec) -> Verdict:
     """Apply the six-clause AND-gate to ``result``."""
-    if not unit_id.strip():
+    if wire.is_blank(unit_id):
         raise ValueError("unit_id must be non-empty")
     if spec.fmt not in RECEIPT_FORMATS:
         raise ValueError(f"receipt spec fmt must be one of {list(RECEIPT_FORMATS)}")
@@ -117,7 +116,7 @@ def judge(unit_id: str, result: RailResult, spec: ReceiptSpec) -> Verdict:
         text = receipt_mod.decode(result.receipt_bytes)
     except receipt_mod.ReceiptUnparseable as exc:
         return _fail(unit_id, "receipt-unparseable", passed, result, detail=str(exc))
-    if not text.strip():
+    if wire.is_blank(text):
         return _fail(unit_id, "receipt-empty", passed, result)
 
     passed = (*passed, "receipt-non-empty")
@@ -139,7 +138,7 @@ def judge(unit_id: str, result: RailResult, spec: ReceiptSpec) -> Verdict:
                 "schema-invalid",
                 passed,
                 result,
-                detail=f"schema-invalid: missing or blank {list(absent)}",
+                detail=f"schema-invalid: missing or blank {canonical_dumps(list(absent))}",
             )
 
     passed = (*passed, "receipt-schema")
@@ -150,7 +149,7 @@ def judge(unit_id: str, result: RailResult, spec: ReceiptSpec) -> Verdict:
             "receipt-incomplete",
             passed,
             result,
-            detail=f"receipt-incomplete: body carries {list(markers)}",
+            detail=f"receipt-incomplete: body carries {canonical_dumps(list(markers))}",
         )
     if looks_like_progress(text):
         return _fail(

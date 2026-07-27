@@ -18,6 +18,8 @@ import pytest
 from agentspec.canonical import (
     E_CYCLIC,
     E_INT_RANGE,
+    E_INVALID_UTF8,
+    E_KEY_COLLISION,
     E_KEY_TYPE,
     E_MAX_DEPTH,
     E_NONFINITE,
@@ -376,3 +378,89 @@ def test_encode_decode_encode_is_a_fixed_point(value: Any) -> None:
     """67 canonical documents x 3 directions (py->py, js->py, py->js): 0 failures."""
     once = dumps(value)
     assert dumps(loads(once)) == once
+
+
+_ASTRAL = chr(0x1F600)
+"""The astral character a JS string holds as ONE well-formed surrogate PAIR."""
+
+_LONE_PAIR = chr(0xD83D) + chr(0xDE00)
+"""The SAME two UTF-16 units as two SEPARATE Python code points — a value JS cannot express."""
+
+
+class _HijackedInt(int):
+    """An ``int`` subclass whose ``__str__`` lies. R12's dispatch admits it via isinstance."""
+
+    def __str__(self) -> str:
+        return "PWNED"
+
+
+def test_R12_an_int_subclass_cannot_inject_its_own_rendering() -> None:
+    """MEASURED: ``str(value)`` emitted ``{"a":PWNED}`` — a document json.loads then refuses.
+
+    JS rejects the analogous boxed ``new Number(5)`` outright, so this was the one place
+    Python's structural typing was strictly LAXER than the JS mirror's.
+    """
+    assert dumpb(_HijackedInt(5)) == b"5"
+    assert dumpb({"a": _HijackedInt(5)}) == b'{"a":5}'
+    assert json.loads(dumps({"a": _HijackedInt(5)})) == {"a": 5}
+
+
+def test_R12_an_out_of_range_int_subclass_still_reports_its_real_value() -> None:
+    """The rejection detail must be the NUMBER, not whatever the subclass wanted to print."""
+    with pytest.raises(CanonicalJsonError) as caught:
+        dumps(_HijackedInt(MAX_SAFE_INTEGER + 1))
+    assert caught.value.code == E_INT_RANGE
+    assert caught.value.detail == "9007199254740992"
+
+
+def test_R4b_two_keys_that_fold_to_one_wire_key_are_REJECTED() -> None:
+    """MEASURED: the fold emitted a DUPLICATE key, which RFC 8259 calls non-interoperable.
+
+    It also falsified this module's own documented fixed point — re-encoding the decoded
+    document gave a ONE-key object, so ``dumps(loads(dumps(x))) != dumps(x)``.
+    """
+    with pytest.raises(CanonicalJsonError) as caught:
+        dumps({_ASTRAL: 1, _LONE_PAIR: 2})
+    assert caught.value.code == E_KEY_COLLISION
+    assert E_KEY_COLLISION in REJECTION_CODES
+
+
+def test_R4b_stays_silent_when_the_fold_creates_no_collision() -> None:
+    """The detector control: a folded key that is UNIQUE still encodes, and still round-trips."""
+    once = dumps({_LONE_PAIR: 2, "a": 1})
+    assert once == '{"a":1,"' + _ASTRAL + '":2}'
+    assert dumps(loads(once)) == once
+
+
+CORRUPT_BYTES = [
+    ("bad-start", b'"' + bytes([0xFF]) + b'"'),
+    ("truncated", b'"' + bytes([0xE2, 0x82]) + b'"'),
+    ("overlong", b'"' + bytes([0xC0, 0xAF]) + b'"'),
+    ("cesu8-surrogate", b'"' + bytes([0xED, 0xA0, 0xBD]) + b'"'),
+    ("inside-object", b'{"a":"' + bytes([0xFF]) + b'"}'),
+]
+
+
+@pytest.mark.parametrize(
+    ("label", "raw"), CORRUPT_BYTES, ids=[c[0] for c in CORRUPT_BYTES]
+)
+def test_loadb_REFUSES_corrupt_bytes_with_a_shared_canonical_code(
+    label: str, raw: bytes
+) -> None:
+    """MEASURED: the JS mirror ACCEPTED all five, substituting U+FFFD and never throwing.
+
+    `dumpb(loadb(corrupt))` there produced a well-formed, plausible-looking canonical receipt
+    manufactured out of corrupt input, on a path this runtime halts. The failure now carries a
+    taxonomy CODE rather than this interpreter's ``UnicodeDecodeError``, because JS has no such
+    exception and the two runtimes must name the same failure.
+    """
+    with pytest.raises(CanonicalJsonError) as caught:
+        loadb(raw)
+    assert caught.value.code == E_INVALID_UTF8
+    assert caught.value.detail == "not valid UTF-8"
+
+
+def test_loadb_still_accepts_valid_bytes_including_a_BOM_as_data() -> None:
+    """The detector control: the strict decode must not reject the happy path or a BOM."""
+    assert loadb(b'{"a":1}') == {"a": 1}
+    assert loadb('{"\ufeff":1}'.encode("utf-8")) == {"\ufeff": 1}

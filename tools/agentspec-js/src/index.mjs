@@ -14,6 +14,7 @@
  */
 
 export * as argv from "./argv.mjs";
+export * as behaviour from "./behaviour.mjs";
 export * as budget from "./budget.mjs";
 export * as canonical from "./canonical.mjs";
 export * as clock from "./clock.mjs";
@@ -30,6 +31,7 @@ export * as taxonomy from "./taxonomy.mjs";
 export * as terminal from "./terminal.mjs";
 export * as validate from "./validate.mjs";
 export * as version from "./version.mjs";
+export * as wire from "./wire.mjs";
 
 /**
  * The module basenames this barrel covers, as the census test's expected set.
@@ -40,6 +42,7 @@ export * as version from "./version.mjs";
  */
 export const MODULES = Object.freeze([
   "argv",
+  "behaviour",
   "budget",
   "canonical",
   "clock",
@@ -57,4 +60,5 @@ export const MODULES = Object.freeze([
   "terminal",
   "validate",
   "version",
+  "wire",
 ]);

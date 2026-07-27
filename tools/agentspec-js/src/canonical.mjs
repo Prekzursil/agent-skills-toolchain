@@ -26,6 +26,7 @@
 
 import { Buffer } from "node:buffer";
 
+
 /** R7. Beyond this an integer-typed value cannot survive a JS `Number` round trip. */
 export const MAX_SAFE_INTEGER = 9007199254740991n;
 
@@ -40,15 +41,19 @@ export const E_KEY_TYPE = "schema-invalid-nonstring-key";
 export const E_VALUE_TYPE = "schema-invalid-unsupported-type";
 export const E_CYCLIC = "schema-invalid-cyclic";
 export const E_MAX_DEPTH = "schema-invalid-max-depth";
+export const E_KEY_COLLISION = "schema-invalid-key-collision";
+export const E_INVALID_UTF8 = "schema-invalid-utf8";
 
 /** Sorted and CLOSED. `test/crosslang.test.mjs` asserts equality with the Python tuple. */
 export const REJECTION_CODES = Object.freeze([
   E_CYCLIC,
   E_INT_RANGE,
+  E_KEY_COLLISION,
   E_MAX_DEPTH,
   E_NONFINITE,
   E_KEY_TYPE,
   E_VALUE_TYPE,
+  E_INVALID_UTF8,
 ]);
 
 const SHORT_ESCAPES = new Map([
@@ -146,10 +151,31 @@ export function loads(text) {
   return JSON.parse(text);
 }
 
-/** Decode canonical BYTES. */
+/**
+ * Decode canonical BYTES, REFUSING a lossy decode.
+ *
+ * `Buffer.toString("utf8")` is LOSSY: it substitutes U+FFFD and NEVER throws, while
+ * Python's `bytes.decode("utf-8")` raises. MEASURED before the fix:
+ * `loadb(Buffer.from([0x7b,0x22,0x61,0x22,0x3a,0x22,0xff,0x22,0x7d]))` returned
+ * `{"a":"\ufffd"}` here and raised there, so `dumpb(loadb(corrupt))` manufactured a
+ * well-formed, plausible-looking canonical receipt out of corrupt bytes — the exact
+ * silent-coercion class `receipt.decode` already had a fatal `TextDecoder` for, applied
+ * to everything EXCEPT the function this module is named for.
+ *
+ * `ignoreBOM: true` means "do not strip a leading BOM", matching Python: a BOM is DATA
+ * here, and stripping one is `receipt.decode`'s separate, single, leading concern.
+ */
 export function loadb(raw) {
-  return loads(Buffer.from(raw).toString("utf8"));
+  let text;
+  try {
+    text = STRICT_UTF8.decode(Buffer.from(raw));
+  } catch {
+    throw new CanonicalJsonError(E_INVALID_UTF8, "not valid UTF-8");
+  }
+  return loads(text);
 }
+
+const STRICT_UTF8 = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
 
 function hex4(code) {
   return `\\u${code.toString(16).padStart(4, "0")}`;
@@ -239,7 +265,11 @@ function encodeMapping(value, out, depth, seen) {
   }
   // Default `.sort()` compares by UTF-16 code unit — exactly R3, and exactly what the Python
   // side reproduces via `utf16_sort_key`. Python's own `sorted()` would order by code point.
-  const keys = Object.keys(value).sort();
+  // `getOwnPropertyNames`, not `keys`: a Python dict has no enumerable/non-enumerable
+  // distinction, so a non-enumerable own data property was silently DROPPED here and
+  // emitted there. (`__proto__` assigned on a producer object is NOT recoverable from
+  // inside an encoder — no own property is ever created — and is disclosed instead.)
+  const keys = Object.getOwnPropertyNames(value).sort();
   out.push("{");
   for (let position = 0; position < keys.length; position += 1) {
     if (position > 0) {

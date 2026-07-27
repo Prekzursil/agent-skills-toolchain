@@ -8,7 +8,7 @@ validator never emits. That bidirectional lock is the anti-divergence guard.
 
 from __future__ import annotations
 
-from agentspec import SPEC_VERSION
+from agentspec import SPEC_VERSION, wire
 from agentspec.spec import (
     BARRIER_POLICIES,
     ISOLATIONS,
@@ -59,7 +59,7 @@ def validate_workflow(workflow: Workflow) -> tuple[str, ...]:
     found: list[str] = []
     if workflow.spec_version != SPEC_VERSION:
         found.append("spec-version-unsupported")
-    if not workflow.id.strip():
+    if wire.is_blank(workflow.id):
         found.append("workflow-id-empty")
     if not workflow.units:
         found.append("workflow-no-units")
@@ -77,14 +77,14 @@ def validate_workflow(workflow: Workflow) -> tuple[str, ...]:
     found.extend(_validate_duplicate_unit_ids(workflow))
     found.extend(_validate_cycles(workflow))
     found.extend(_validate_nodes(workflow, known))
-    return tuple(sorted(set(found)))
+    return wire.sorted_wire(set(found))
 
 
 def _validate_unit(unit: WorkUnit, known: set[str]) -> list[str]:
     found: list[str] = []
-    if not unit.id.strip():
+    if wire.is_blank(unit.id):
         found.append("unit-id-empty")
-    if not unit.prompt.strip():
+    if wire.is_blank(unit.prompt):
         found.append("unit-prompt-empty")
     if unit.timeout_s <= 0:
         found.append("unit-timeout-missing")
@@ -156,7 +156,7 @@ def _validate_nodes(workflow: Workflow, known_units: set[str]) -> list[str]:
         found.append("node-id-duplicate")
     addressable = known_units | set(ids)
     for node in workflow.nodes:
-        if not node.id.strip():
+        if wire.is_blank(node.id):
             found.append("node-id-empty")
         elif node.id in known_units:
             found.append("node-id-collides-unit")

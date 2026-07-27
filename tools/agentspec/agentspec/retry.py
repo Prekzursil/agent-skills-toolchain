@@ -25,6 +25,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from agentspec import wire
 from agentspec.taxonomy import family
 
 RETRYABLE_ONCE: tuple[str, ...] = ("win-arg-limit",)
@@ -53,18 +54,26 @@ class RetryDecision:
     backoff_ms: int = 0
 
     def __post_init__(self) -> None:
-        if isinstance(self.backoff_ms, bool) or not isinstance(self.backoff_ms, int):
-            raise TypeError(
-                f"backoff_ms must be an int, not {type(self.backoff_ms).__name__}"
-            )
+        wire.require_wire_integer(self.backoff_ms, "backoff_ms")
         if self.backoff_ms < 0:
             raise ValueError("backoff_ms must be >= 0")
 
 
 def rate_limit_backoff_ms(attempt: int) -> int:
-    """The wait before the retry that follows ``attempt``. Pure: no clock, no entropy."""
+    """The wait before the retry that follows ``attempt``. Pure: no clock, no entropy.
+
+    The domain is BOUNDED to the declared schedule. Unbounded, the doubling leaves the
+    range both runtimes represent exactly: measured ``rate_limit_backoff_ms(60)`` gave
+    ``576460752303423488000`` in Python (an exact ``int``) and ``576460752303423500000``
+    in JS (a rounded double). Nothing legitimately asks for attempt 60 — the ceiling is
+    :data:`RATE_LIMIT_MAX_ATTEMPTS` — so refusing is strictly better than diverging.
+    """
     if attempt <= 0:
         raise ValueError("attempt must be >= 1")
+    if attempt > RATE_LIMIT_MAX_ATTEMPTS:
+        raise ValueError(
+            f"attempt must be <= RATE_LIMIT_MAX_ATTEMPTS ({RATE_LIMIT_MAX_ATTEMPTS})"
+        )
     return RATE_LIMIT_BASE_BACKOFF_MS * 2 ** (attempt - 1)
 
 

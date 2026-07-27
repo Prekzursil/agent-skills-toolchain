@@ -10,6 +10,8 @@
  * the ledger is a value, not an accumulator.
  */
 
+import { requireWireInteger } from "./wire.mjs";
+
 /** Raised when a debit would exceed the ceiling. Carries the taxonomy reason. */
 export class BudgetExhausted extends Error {
   constructor(requestedMicro, remainingMicro) {
@@ -30,6 +32,7 @@ export function debitRecord({ unitId, attempt, micro }) {
 
 /** A budget ceiling plus the ordered debits taken against it. */
 export function ledger({ limitMicro, debits = [] }) {
+  requireWireInteger(limitMicro, "limit_micro");
   if (limitMicro < 0) {
     throw new RangeError("limitMicro must be >= 0");
   }
@@ -51,7 +54,7 @@ export function exhausted(book) {
 
 /** Return a new ledger with one more debit, or throw. */
 export function debit(book, unitId, { attempt, micro }) {
-  requireInteger(micro, "micro");
+  requireWireInteger(micro, "micro");
   if (micro <= 0) {
     throw new RangeError("micro must be positive (a zero debit is not an observation)");
   }
@@ -81,24 +84,16 @@ export function debit(book, unitId, { attempt, micro }) {
  * failed attempts) by the number of units that actually succeeded.
  */
 export function costPerSuccess(book, { successes }) {
+  requireWireInteger(successes, "successes");
   if (successes < 0) {
     throw new RangeError("successes must be >= 0");
   }
   if (successes === 0) {
     return 0;
   }
-  return Math.floor(spentMicro(book) / successes);
-}
-
-/**
- * Reject a non-integer amount.
- *
- * `Number.isSafeInteger` also rejects `true`, which matters: Python must reject `bool`
- * explicitly because `isinstance(True, int)` is true there, and the two sides must agree on
- * which values are refusable rather than one silently charging a boolean.
- */
-function requireInteger(value, name) {
-  if (!Number.isSafeInteger(value)) {
-    throw new TypeError(`${name} must be an integer (micro-units), not ${JSON.stringify(value)}`);
-  }
+  // BigInt, not `Math.floor(a / b)`: the double division is only PROVABLY equal to
+  // Python's `//` once both operands are bounded, and proving it for every pair in the
+  // range is harder than just doing the exact integer division. The quotient of two
+  // wire integers is a wire integer, so the `Number` conversion is lossless.
+  return Number(BigInt(spentMicro(book)) / BigInt(successes));
 }

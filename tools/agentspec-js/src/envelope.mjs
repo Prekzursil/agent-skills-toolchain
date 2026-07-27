@@ -13,6 +13,7 @@
  */
 
 import { isReason } from "./taxonomy.mjs";
+import { isBlank, sortedWire } from "./wire.mjs";
 
 /** The four mandated field names, in wire order. */
 export const ENVELOPE_FIELDS = Object.freeze(["status", "summary", "next_actions", "artifacts"]);
@@ -76,7 +77,7 @@ export function validateObservation(obs) {
   if (!STATUSES.includes(obs.status)) {
     violations.push("envelope-status-invalid");
   }
-  if (obs.summary.trim() === "") {
+  if (isBlank(obs.summary)) {
     violations.push("envelope-summary-empty");
   }
   if (obs.status === "error") {
@@ -84,7 +85,7 @@ export function validateObservation(obs) {
   } else if (obs.error !== null) {
     violations.push("envelope-error-unexpected");
   }
-  return Object.freeze(violations.sort());
+  return sortedWire(violations);
 }
 
 /** Violations that only apply when `status === "error"`. */
@@ -99,13 +100,13 @@ function validateErrorPath(obs) {
   if (!isReason(obs.error.code)) {
     violations.push("envelope-error-code-unknown");
   }
-  if (obs.error.rootCause.trim() === "") {
+  if (isBlank(obs.error.rootCause)) {
     violations.push("envelope-error-root-cause-empty");
   }
-  if (obs.error.retryInstruction.trim() === "") {
+  if (isBlank(obs.error.retryInstruction)) {
     violations.push("envelope-error-retry-instruction-empty");
   }
-  if (obs.error.stopCondition.trim() === "") {
+  if (isBlank(obs.error.stopCondition)) {
     violations.push("envelope-error-stop-condition-empty");
   }
   return violations;

@@ -37,13 +37,21 @@ test("the corpus covers every canonical rejection code that can be reached by VA
       .filter((row) => row.status === "reject")
       .map((row) => row.output),
   );
-  // Cyclic, non-string-key and unsupported-type cannot be expressed in a plain-JSON corpus
-  // (a JSON file has no cycles, no symbols and no Date), so they are pinned by the unit suites
-  // on each side instead. Naming them here keeps the gap explicit rather than accidental.
+  // These cannot be expressed as a VALUE in a plain-JSON corpus, so they are pinned by the
+  // unit suites on each side instead. Naming them here keeps the gap explicit rather than
+  // accidental:
+  //   cyclic / nonstring-key / unsupported-type — a JSON file has no cycles, no symbols,
+  //     no Date;
+  //   key-collision — reachable only through Python's surrogate FOLD, which the JS encoder
+  //     cannot perform (its encoding is injective), so no single corpus value rejects on
+  //     both runtimes; `test_canonical.py::test_R4b_*` pins the Python side;
+  //   utf8 — a DECODER rejection (`loadb`), not an encoder one; this corpus drives `dumps`.
   const unreachableInJson = new Set([
     "schema-invalid-cyclic",
     "schema-invalid-nonstring-key",
     "schema-invalid-unsupported-type",
+    "schema-invalid-key-collision",
+    "schema-invalid-utf8",
   ]);
   for (const code of REJECTION_CODES) {
     if (!unreachableInJson.has(code)) {

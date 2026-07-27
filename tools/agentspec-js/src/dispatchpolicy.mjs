@@ -14,6 +14,8 @@
  * and there is a detector control asserting this function stays silent in that case.
  */
 
+import { requireWireInteger, sortedWire } from "./wire.mjs";
+
 export const DISPATCH_VIOLATIONS = Object.freeze([
   "background-on-awaited-dispatch",
   "missing-timeout",
@@ -22,8 +24,8 @@ export const DISPATCH_VIOLATIONS = Object.freeze([
 
 /** Return the sorted violations for a proposed dispatch; empty means go ahead. */
 export function checkDispatch({ background, timeoutS, awaited }) {
-  if (timeoutS !== null && !Number.isSafeInteger(timeoutS)) {
-    throw new TypeError(`timeoutS must be an integer or null, not ${JSON.stringify(timeoutS)}`);
+  if (timeoutS !== null) {
+    requireWireInteger(timeoutS, "timeout_s");
   }
   const found = [];
   if (background && awaited) {
@@ -34,5 +36,5 @@ export function checkDispatch({ background, timeoutS, awaited }) {
   } else if (timeoutS <= 0) {
     found.push("nonpositive-timeout");
   }
-  return Object.freeze(found.sort());
+  return sortedWire(found);
 }

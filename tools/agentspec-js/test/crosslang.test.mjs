@@ -24,6 +24,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { MIN_SUBSTRING_SCAN_LEN, PROMPT_TRANSPORTS, WINDOWS_CMDLINE_CAP } from "../src/argv.mjs";
+import { BLANK_CHARS, MAX_WIRE_INTEGER, MIN_WIRE_INTEGER, NON_PRINTABLE_ID_RANGES } from "../src/wire.mjs";
 import { REJECTION_CODES } from "../src/canonical.mjs";
 import { DISPATCH_VIOLATIONS } from "../src/dispatchpolicy.mjs";
 import { ENVELOPE_FIELDS, STATUSES } from "../src/envelope.mjs";
@@ -61,6 +62,8 @@ const TUPLE_CONTRACTS = [
   ["spec", "BARRIER_POLICIES", BARRIER_POLICIES],
   ["spec", "ISOLATIONS", ISOLATIONS],
   ["validate", "VIOLATIONS", VIOLATIONS],
+  ["wire", "BLANK_CHARS", BLANK_CHARS],
+  ["wire", "NON_PRINTABLE_ID_RANGES", NON_PRINTABLE_ID_RANGES],
 ];
 
 for (const [moduleName, constantName, jsValue] of TUPLE_CONTRACTS) {
@@ -93,7 +96,29 @@ test("canonical.REJECTION_CODES matches the Python declaration exactly", () => {
   // `E_* = "..."` declaration rather than scraped as a literal.
   const fromPython = readTupleOfNamedStrings(pySource("canonical"), "REJECTION_CODES");
   assert.deepEqual([...REJECTION_CODES], fromPython);
-  assert.equal(fromPython.length, 6);
+  assert.equal(fromPython.length, 8);
+});
+
+test("the shared wire rules are DERIVED from wire.py, not retyped", () => {
+  // The two tables above are compared member-by-member by TUPLE_CONTRACTS. These are the
+  // SEMANTIC invariants a member-equality check cannot state, and each one is a measured
+  // divergence: a runtime whose blank set gains U+FEFF calls a two-BOM receipt EMPTY, and
+  // one that loses U+001C calls a severed stream a six-clause SUCCESS.
+  const fromPython = readTupleOfStrings(pySource("wire"), "BLANK_CHARS");
+  assert.equal(fromPython.length, 29);
+  assert.ok(!fromPython.includes("\ufeff"), "Python BLANK_CHARS gained the BOM");
+  assert.ok(!BLANK_CHARS.includes("\ufeff"), "JS BLANK_CHARS gained the BOM");
+  for (const char of ["\u001c", "\u001d", "\u001e", "\u001f", "\u0085"]) {
+    assert.ok(fromPython.includes(char), `Python BLANK_CHARS lost U+${char.codePointAt(0).toString(16)}`);
+    assert.ok(BLANK_CHARS.includes(char), `JS BLANK_CHARS lost U+${char.codePointAt(0).toString(16)}`);
+  }
+  // Python writes the bound as an EXPRESSION (`2**53 - 1`), so the value is asserted here
+  // and the expression text is pinned by the regex — the same split canonical.py uses.
+  assert.equal(MAX_WIRE_INTEGER, Number.MAX_SAFE_INTEGER);
+  assert.equal(MIN_WIRE_INTEGER, -Number.MAX_SAFE_INTEGER);
+  assert.match(pySource("wire"), /^MAX_WIRE_INTEGER = 2\*\*53 - 1$/mu);
+  assert.match(pySource("wire"), /^MIN_WIRE_INTEGER = -\(2\*\*53 - 1\)$/mu);
+  assert.equal(NON_PRINTABLE_ID_RANGES.length, 42);
 });
 
 test("SPEC_VERSION matches the Python package", () => {
@@ -141,7 +166,7 @@ test("every canonical rejection code resolves to the schema-invalid taxonomy mem
 test("the drift gate is reading REAL files, not silently missing them", () => {
   // The whole file above would pass vacuously if `pySource` returned "" for everything, so the
   // preconditions are asserted rather than assumed.
-  for (const moduleName of ["taxonomy", "argv", "canonical", "validate", "__init__"]) {
+  for (const moduleName of ["taxonomy", "argv", "canonical", "validate", "wire", "__init__"]) {
     assert.ok(pySource(moduleName).length > 100, `${moduleName}.py looks empty`);
   }
   assert.throws(() => pySource("no_such_module"), /ENOENT/u);

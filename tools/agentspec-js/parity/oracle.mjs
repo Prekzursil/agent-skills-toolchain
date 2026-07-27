@@ -1,18 +1,29 @@
 /**
- * THE PARITY ORACLE — run both runtimes over the shared corpus and compare BYTES.
+ * THE PARITY ORACLE — run both runtimes over the shared corpora and compare BYTES.
  *
  * A single differing byte fails the run. This is the C9 acceptance criterion made executable:
- * a JS runtime that cannot reproduce the Python runtime's normalised receipt bytes exactly is
- * not a second runtime, it is a second dialect.
+ * a JS runtime that cannot reproduce the Python runtime's normalised bytes exactly is not a
+ * second runtime, it is a second dialect.
  *
- * Three independent gates, in order, because each can fail for a different reason:
- *   1. the PYTHON emitter agrees with the corpus expectations (else the Python encoder drifted);
- *   2. the JS emitter agrees with the corpus expectations (else the JS encoder drifted);
- *   3. the two manifests are byte-identical (else the two agree with the fixture but not with
- *      each other — which can only happen if the fixture itself under-specifies a case).
+ * TWO corpora, because "the same bytes" turned out to be two claims:
  *
- * Gate 3 is not redundant with 1 and 2: it is the one that still fires when a case is missing
- * an expectation, so the corpus cannot silently stop constraining a runtime.
+ *   1. `canonical` — the SERIALISER. Both sides encode the same values and the manifests must
+ *      match byte for byte.
+ *   2. `behaviour` — the DECISION FUNCTIONS. Added after a measured failure of the first gate
+ *      to say anything at all about them: `emit_py.py` imports only `dumpb`, so `judge`,
+ *      `missingFields`, `buildArgv`, `checkDispatch` and `planRetry` were never cross-checked.
+ *      An independent 483-case differential harness then found **78 outcome divergences** while
+ *      both unit suites were green at 100% line+branch — including `judge` reporting SUCCESS on
+ *      one runtime and `severed-stream` on the other for identical receipt bytes.
+ *
+ * Per corpus, three gates in order, because each fails for a different reason:
+ *   a. the PYTHON emitter runs clean (else the Python side crashed, not merely disagreed);
+ *   b. the JS emitter runs clean;
+ *   c. the two manifests are byte-identical.
+ *
+ * The canonical emitters ALSO check each case against a declared expectation, so gate (c) is not
+ * redundant: it is the one that still fires when a case is missing an expectation, i.e. when the
+ * fixture itself has stopped constraining a runtime.
  *
  * Zero dependencies. Usage: `node parity/oracle.mjs` (from tools/agentspec-js).
  */
@@ -26,8 +37,11 @@ import { fileURLToPath } from "node:url";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const workDir = mkdtempSync(join(tmpdir(), "agentspec-parity-"));
-const pyOut = join(workDir, "out_py.txt");
-const jsOut = join(workDir, "out_js.txt");
+
+const CORPORA = [
+  { name: "canonical", py: "emit_py.py", js: "emit_js.mjs" },
+  { name: "behaviour", py: "emit_behaviour_py.py", js: "emit_behaviour_js.mjs" },
+];
 
 /** Windows ships `python`; the ubuntu CI runner ships `python3`. Try both, in that order. */
 function pythonCommand() {
@@ -59,13 +73,10 @@ function run(label, command, args) {
   }
 }
 
-run("python emitter", pythonCommand(), [join(HERE, "emit_py.py"), pyOut]);
-run("js emitter", process.execPath, [join(HERE, "emit_js.mjs"), jsOut]);
-
-const pyBytes = readFileSync(pyOut);
-const jsBytes = readFileSync(jsOut);
-
-if (!pyBytes.equals(jsBytes)) {
+function compare(name, pyBytes, jsBytes) {
+  if (pyBytes.equals(jsBytes)) {
+    return;
+  }
   const pyLines = pyBytes.toString("utf8").split("\n");
   const jsLines = jsBytes.toString("utf8").split("\n");
   const differing = [];
@@ -76,18 +87,30 @@ if (!pyBytes.equals(jsBytes)) {
   }
   process.stderr.write(`${differing.slice(0, 10).join("\n")}\n`);
   fail(
-    `manifests differ in ${differing.length} line(s); ` +
+    `${name} manifests differ in ${differing.length} line(s); ` +
       `py=${pyBytes.length} bytes, js=${jsBytes.length} bytes`,
   );
 }
 
-const caseCount = pyBytes.toString("utf8").trimEnd().split("\n").length;
-if (caseCount === 0) {
-  fail("the manifests are empty; an empty parity run passes vacuously");
+const python = pythonCommand();
+const summary = [];
+
+for (const corpus of CORPORA) {
+  const pyOut = join(workDir, `${corpus.name}_py.txt`);
+  const jsOut = join(workDir, `${corpus.name}_js.txt`);
+  run(`${corpus.name} python emitter`, python, [join(HERE, corpus.py), pyOut]);
+  run(`${corpus.name} js emitter`, process.execPath, [join(HERE, corpus.js), jsOut]);
+  const pyBytes = readFileSync(pyOut);
+  const jsBytes = readFileSync(jsOut);
+  compare(corpus.name, pyBytes, jsBytes);
+  const caseCount = pyBytes.toString("utf8").trimEnd().split("\n").length;
+  if (pyBytes.length === 0) {
+    fail(`the ${corpus.name} manifests are empty; an empty parity run passes vacuously`);
+  }
+  summary.push(`${corpus.name}=${caseCount} cases/${pyBytes.length} bytes`);
 }
 
 rmSync(workDir, { recursive: true, force: true });
 process.stdout.write(
-  `SUCCESS:parity ${caseCount} cases, ${pyBytes.length} manifest bytes byte-identical ` +
-    `across the Python and JS runtimes\n`,
+  `SUCCESS:parity byte-identical across the Python and JS runtimes (${summary.join(", ")})\n`,
 );

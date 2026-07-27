@@ -15,6 +15,7 @@
  */
 
 import { family } from "./taxonomy.mjs";
+import { requireWireInteger } from "./wire.mjs";
 
 export const RETRYABLE_ONCE = Object.freeze(["win-arg-limit"]);
 
@@ -32,19 +33,30 @@ export const RATE_LIMIT_BASE_BACKOFF_MS = 1000;
  * float renders `1.0` in Python and `1` in JS.
  */
 export function retryDecision({ retry, nextAttempt, reason, rationale, backoffMs = 0 }) {
-  if (!Number.isSafeInteger(backoffMs)) {
-    throw new TypeError(`backoffMs must be an integer, not ${JSON.stringify(backoffMs)}`);
-  }
+  requireWireInteger(backoffMs, "backoff_ms");
   if (backoffMs < 0) {
     throw new RangeError("backoffMs must be >= 0");
   }
   return Object.freeze({ retry, nextAttempt, reason, rationale, backoffMs });
 }
 
-/** The wait before the retry that follows `attempt`. Pure: no clock, no entropy. */
+/**
+ * The wait before the retry that follows `attempt`. Pure: no clock, no entropy.
+ *
+ * The domain is BOUNDED to the declared schedule. Unbounded, the doubling leaves the
+ * range both runtimes represent exactly: measured `rateLimitBackoffMs(60)` gave
+ * `576460752303423500000` here (a rounded double) and `576460752303423488000` in Python
+ * (an exact int). Nothing legitimately asks for attempt 60 — the ceiling is
+ * `RATE_LIMIT_MAX_ATTEMPTS` — so refusing is strictly better than diverging.
+ */
 export function rateLimitBackoffMs(attempt) {
   if (attempt <= 0) {
     throw new RangeError("attempt must be >= 1");
+  }
+  if (attempt > RATE_LIMIT_MAX_ATTEMPTS) {
+    throw new RangeError(
+      `attempt must be <= RATE_LIMIT_MAX_ATTEMPTS (${RATE_LIMIT_MAX_ATTEMPTS})`,
+    );
   }
   return RATE_LIMIT_BASE_BACKOFF_MS * 2 ** (attempt - 1);
 }

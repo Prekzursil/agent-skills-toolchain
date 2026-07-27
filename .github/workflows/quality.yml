@@ -201,10 +201,15 @@ jobs:
       - name: gate-tests-coverage agentspec-js (100% line+branch, census-guarded)
         working-directory: tools/agentspec-js
         run: npm test
-      # C9 PARITY: the Python and JS runtimes must emit BYTE-IDENTICAL normalised receipts.
-      # Runs both over the shared language-neutral corpus and compares the manifests byte for
-      # byte; a single differing byte fails. agentspec is pure stdlib, so PYTHONPATH is enough
-      # and no pip install is needed in the node job.
+      # C9 PARITY: the Python and JS runtimes must emit BYTE-IDENTICAL normalised receipts AND
+      # reach BYTE-IDENTICAL decisions. TWO corpora, because those turned out to be two claims:
+      #   canonical-corpus.json (88 cases) drives the SERIALISER;
+      #   behaviour-corpus.json (132 cases) drives judge / missingFields / buildArgv /
+      #     checkDispatch / planRetry and 16 more, which the canonical oracle never touched.
+      # The second one exists because a differential harness found 78 outcome divergences while
+      # BOTH unit suites were green at 100% line+branch — coverage cannot see a divergence, only
+      # executing both runtimes on one input and comparing bytes can. A single differing byte
+      # fails. agentspec is pure stdlib, so no pip install is needed in the node job.
       - name: gate-tests-coverage agentspec parity oracle (python <-> js, byte-identical)
         working-directory: tools/agentspec-js
         run: npm run parity

@@ -3,9 +3,20 @@
  *
  * The JS mirror of `agentspec/receipt.py`. Kept separate from `oracle.mjs` so each function is
  * single-purpose and each failure mode maps to exactly one taxonomy reason.
+ *
+ * EVERY string thrown here reaches `error.root_cause` on the wire through `oracle.observe`, so
+ * none may carry a runtime-specific rendering. Measured before the fix, for the SAME receipt
+ * bytes: `not valid UTF-8 (invalid continuation)` here against `(invalid start byte)` there
+ * (and this side had never measured which rule broke — it was hardcoded); `Unexpected token`
+ * against `Expecting value: line 1 column 1 (char 0)`; `array` against `list`.
+ *
+ * The blankness, ordering and case-fold rules come from `wire.mjs` rather than from `trim()`,
+ * `.sort()` and `toLowerCase()`, all three of which disagree with their Python counterparts.
  */
 
 import { Buffer } from "node:buffer";
+
+import { foldAsciiCase, isBlank, jsonTypeName, sortedWire } from "./wire.mjs";
 
 const BOM = "\ufeff";
 
@@ -34,7 +45,7 @@ export function decode(raw) {
   try {
     text = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(buffer);
   } catch {
-    throw new ReceiptUnparseable("receipt-unparseable: not valid UTF-8 (invalid continuation)");
+    throw new ReceiptUnparseable("receipt-unparseable: not valid UTF-8");
   }
   if (text.startsWith(BOM)) {
     return text.slice(BOM.length);
@@ -47,12 +58,12 @@ export function parseJsonObject(text) {
   let payload;
   try {
     payload = JSON.parse(text);
-  } catch (cause) {
-    throw new ReceiptUnparseable(`receipt-unparseable: invalid JSON (${cause.message})`);
+  } catch {
+    throw new ReceiptUnparseable("receipt-unparseable: invalid JSON");
   }
   if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
     throw new ReceiptUnparseable(
-      `receipt-unparseable: top level must be an object, got ${describeTopLevel(payload)}`,
+      `receipt-unparseable: top level must be an object, got ${jsonTypeName(payload)}`,
     );
   }
   return payload;
@@ -66,9 +77,9 @@ export function parseJsonObject(text) {
  */
 export function missingFields(payload, spec) {
   const missing = spec.requiredFields.filter(
-    (field) => !Object.hasOwn(payload, field) || isBlank(payload[field]),
+    (field) => !Object.hasOwn(payload, field) || isBlankValue(payload[field]),
   );
-  return Object.freeze(missing.sort());
+  return sortedWire(missing);
 }
 
 /**
@@ -78,24 +89,16 @@ export function missingFields(payload, spec) {
  * clause, without which the gate reduces to "exit 0 and non-empty" on a text receipt.
  */
 export function presentMarkers(text, spec) {
-  const lowered = text.toLowerCase();
-  const found = spec.forbiddenMarkers.filter((marker) => lowered.includes(marker.toLowerCase()));
-  return Object.freeze(found.sort());
+  const lowered = foldAsciiCase(text);
+  const found = spec.forbiddenMarkers.filter((marker) =>
+    lowered.includes(foldAsciiCase(marker)),
+  );
+  return sortedWire(found);
 }
 
-function isBlank(value) {
+function isBlankValue(value) {
   if (value === null) {
     return true;
   }
-  return typeof value === "string" && value.trim() === "";
-}
-
-function describeTopLevel(payload) {
-  if (payload === null) {
-    return "null";
-  }
-  if (Array.isArray(payload)) {
-    return "array";
-  }
-  return typeof payload;
+  return typeof value === "string" && isBlank(value);
 }

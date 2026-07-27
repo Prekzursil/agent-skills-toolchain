@@ -11,6 +11,8 @@
  * progress stream, because the two are different shapes and the unwrap is the only door.
  */
 
+import { foldAsciiCase, isBlank } from "./wire.mjs";
+
 /** Sorted and closed. Each is a receipt phrase observed on a real fire-and-forget return. */
 export const BACKGROUND_PHRASES = Object.freeze([
   "check /codex:status",
@@ -45,13 +47,13 @@ export class ProgressStreamRejected extends Error {
 
 /** Split `payload` into the result variant or the progress variant. */
 export function classify(payload) {
-  const lowered = payload.toLowerCase();
+  const lowered = foldAsciiCase(payload);
   for (const phrase of BACKGROUND_PHRASES) {
-    if (lowered.includes(phrase)) {
+    if (lowered.includes(foldAsciiCase(phrase))) {
       return Object.freeze({ kind: "progress", text: payload, marker: phrase });
     }
   }
-  const lines = payload.split(LINE_BOUNDARY_RE).filter((line) => line.trim() !== "");
+  const lines = payload.split(LINE_BOUNDARY_RE).filter((line) => !isBlank(line));
   if (lines.length > 0 && lines.every((line) => PROGRESS_LINE_RE.test(line))) {
     return Object.freeze({ kind: "progress", text: payload, marker: "progress-line-only" });
   }

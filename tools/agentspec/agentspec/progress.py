@@ -16,6 +16,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from agentspec import wire
+
 BACKGROUND_PHRASES: tuple[str, ...] = (
     "check /codex:status",
     "check the job status",
@@ -58,11 +60,11 @@ class ProgressLog:
 
 def classify(payload: str) -> ResultText | ProgressLog:
     """Split ``payload`` into the result variant or the progress variant."""
-    lowered = payload.lower()
+    lowered = wire.fold_ascii_case(payload)
     for phrase in BACKGROUND_PHRASES:
-        if phrase in lowered:
+        if wire.fold_ascii_case(phrase) in lowered:
             return ProgressLog(text=payload, marker=phrase)
-    lines = [line for line in payload.splitlines() if line.strip()]
+    lines = [line for line in payload.splitlines() if not wire.is_blank(line)]
     if lines and all(PROGRESS_LINE_RE.match(line) for line in lines):
         return ProgressLog(text=payload, marker="progress-line-only")
     return ResultText(text=payload)

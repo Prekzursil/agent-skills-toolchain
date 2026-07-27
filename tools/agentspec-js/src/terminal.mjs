@@ -12,20 +12,10 @@
  */
 
 import { isReason } from "./taxonomy.mjs";
+import { isPrintableId } from "./wire.mjs";
 
 /** Anchored at both ends: a line either IS a terminal marker or it is not. */
 export const TERMINAL_RE = /^(?:SUCCESS:\S+|FAILED:\S+ [^\s].*)$/u;
-
-/**
- * The non-printable classes `_checked_id` rejects on the Python side.
- *
- * Python's `str.isprintable()` is false for every Unicode Cc/Cf/Cs/Co/Cn/Zl/Zp/Zs code point
- * except ASCII space (and space is separately rejected as whitespace). `\p{C}` covers
- * Cc/Cf/Cs/Co/Cn and `\p{Z}` covers Zs/Zl/Zp, so together they reproduce the Python predicate.
- * Getting this wrong in either direction matters: a JS-only accept lets an ESC/OSC-8 sequence
- * into a marker line the console then interprets.
- */
-const NON_PRINTABLE_RE = /[\p{C}\p{Z}]/u;
 
 /** Render `SUCCESS:<id>`. */
 export function successLine(unitId) {
@@ -60,9 +50,17 @@ export function terminalLine(verdict) {
   return failureLine(unitId, reason);
 }
 
-/** Refuse an id that would corrupt the marker line or the terminal rendering it. */
+/**
+ * Refuse an id that would corrupt the marker line or the terminal rendering it.
+ *
+ * The predicate is `wire.isPrintableId`, an EXPLICIT range table, not `/[\p{C}\p{Z}]/u`.
+ * A regex property escape reads the ENGINE's Unicode tables and `str.isprintable()` reads
+ * the INTERPRETER's; measured, Node 24 (Unicode 17.0) and CPython 3.14 (16.0.0) disagreed
+ * on 4,803 code points, and CI's Node 22 is a third table again. A contract must not move
+ * when a runtime is upgraded.
+ */
 function checkedId(unitId) {
-  if (unitId === "" || NON_PRINTABLE_RE.test(unitId)) {
+  if (!isPrintableId(unitId)) {
     throw new RangeError(
       `unitId must be non-empty, whitespace-free and printable, got ${JSON.stringify(unitId)}`,
     );

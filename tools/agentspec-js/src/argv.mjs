@@ -16,6 +16,9 @@
  * good state is as broken as one that stays silent in the bad state.
  */
 
+import { dumps as canonicalDumps } from "./canonical.mjs";
+import { containsBlank, utf16Len } from "./wire.mjs";
+
 /** Mirrors tools/glob-argv-guard/glob_argv_guard.py; the drift is gated by a test. */
 export const WINDOWS_CMDLINE_CAP = 32767;
 
@@ -49,7 +52,7 @@ export class ArgvTooLong extends Error {
 /** A required hardening flag is absent from a non-interactive invocation. */
 export class PolicyViolation extends Error {
   constructor(missing) {
-    super(`policy-violation: missing hardening flags ${JSON.stringify(missing)}`);
+    super(`policy-violation: missing hardening flags ${canonicalDumps(missing)}`);
     this.name = "PolicyViolation";
     this.reason = "policy-violation";
     this.missing = missing;
@@ -133,13 +136,14 @@ export function buildArgv({
   for (const element of argv) {
     if (promptOnArgv(element, prompt)) {
       throw new PromptOnArgv(
-        `the prompt (${prompt.length} chars) appears in argv element ` +
-          `${JSON.stringify(element.slice(0, 40))}; route it to a file or stdin`,
+        `the prompt (${utf16Len(prompt)} chars) appears in argv element ` +
+          `${canonicalDumps([...element].slice(0, 40).join(""))}; ` +
+          `route it to a file or stdin`,
       );
     }
   }
 
-  const cmdlineLen = renderCmdline(argv).length;
+  const cmdlineLen = utf16Len(renderCmdline(argv));
   if (cmdlineLen > cap) {
     throw new ArgvTooLong(cmdlineLen, cap);
   }
@@ -206,11 +210,14 @@ export function promptOnArgv(element, prompt) {
       return true;
     }
   }
-  return prompt.length >= MIN_SUBSTRING_SCAN_LEN && element.includes(prompt);
+  return utf16Len(prompt) >= MIN_SUBSTRING_SCAN_LEN && element.includes(prompt);
 }
 
 function quote(element) {
-  if (element === "" || /\s/u.test(element)) {
+  // `containsBlank`, not `/\s/u`: the regex class matches U+FEFF (which Python's
+  // `str.isspace()` does not) and MISSES U+001C-U+001F and U+0085 (which it does), so the
+  // two runtimes quoted DIFFERENT elements and therefore measured different cmdline lengths.
+  if (element === "" || containsBlank(element)) {
     return `"${element}"`;
   }
   return element;

@@ -9,6 +9,7 @@
  */
 
 import { SPEC_VERSION } from "./version.mjs";
+import { isBlank, sortedWire } from "./wire.mjs";
 import { BARRIER_POLICIES, ISOLATIONS, RECEIPT_FORMATS, isVacuous, nodeIds, unitIds } from "./spec.mjs";
 
 export const VIOLATIONS = Object.freeze([
@@ -48,7 +49,7 @@ export function validateWorkflow(wf) {
   if (wf.specVersion !== SPEC_VERSION) {
     found.push("spec-version-unsupported");
   }
-  if (wf.id.trim() === "") {
+  if (isBlank(wf.id)) {
     found.push("workflow-id-empty");
   }
   if (wf.units.length === 0) {
@@ -67,7 +68,7 @@ export function validateWorkflow(wf) {
   found.push(...validateDuplicateUnitIds(wf));
   found.push(...validateCycles(wf));
   found.push(...validateNodes(wf, known));
-  return Object.freeze([...new Set(found)].sort());
+  return sortedWire(new Set(found));
 }
 
 function declaredUnitBudget(wf) {
@@ -78,10 +79,10 @@ function declaredUnitBudget(wf) {
 
 function validateUnit(unit, known) {
   const found = [];
-  if (unit.id.trim() === "") {
+  if (isBlank(unit.id)) {
     found.push("unit-id-empty");
   }
-  if (unit.prompt.trim() === "") {
+  if (isBlank(unit.prompt)) {
     found.push("unit-prompt-empty");
   }
   if (unit.timeoutS <= 0) {
@@ -173,7 +174,7 @@ function validateNodes(wf, knownUnits) {
   }
   const addressable = new Set([...knownUnits, ...ids]);
   for (const node of wf.nodes) {
-    if (node.id.trim() === "") {
+    if (isBlank(node.id)) {
       found.push("node-id-empty");
     } else if (knownUnits.has(node.id)) {
       found.push("node-id-collides-unit");

@@ -25,12 +25,14 @@
  * and silently ran a two-clause gate.
  */
 
+import { dumps as canonicalDumps } from "./canonical.mjs";
 import { errorDetail, error as errorEnvelope, success } from "./envelope.mjs";
 import { looksLikeProgress } from "./progress.mjs";
 import * as receiptModule from "./receipt.mjs";
 import { RATE_LIMIT_MAX_ATTEMPTS } from "./retry.mjs";
 import { RECEIPT_FORMATS, isVacuous } from "./spec.mjs";
 import { family, railExit } from "./taxonomy.mjs";
+import { isBlank, requireWireInteger } from "./wire.mjs";
 
 export const CLAUSES = Object.freeze([
   "exit-zero",
@@ -43,9 +45,9 @@ export const CLAUSES = Object.freeze([
 
 /** What a rail hands back. `wallMs` is an integer; a float would break wire parity. */
 export function railResult({ exitCode, receiptBytes, progress = "", wallMs = 0 }) {
-  if (!Number.isSafeInteger(wallMs)) {
-    throw new TypeError(`wallMs must be an integer, not ${JSON.stringify(wallMs)}`);
-  }
+  // The WIRE spelling (`wall_ms`) is used in the message so the two runtimes emit the
+  // same bytes; the JS-side field name stays camelCase.
+  requireWireInteger(wallMs, "wall_ms");
   if (wallMs < 0) {
     throw new RangeError("wallMs must be >= 0");
   }
@@ -59,7 +61,7 @@ export function failureReason(verdict) {
 
 /** Apply the six-clause AND-gate to `result`. */
 export function judge(unitId, result, spec) {
-  if (unitId.trim() === "") {
+  if (isBlank(unitId)) {
     throw new RangeError("unitId must be non-empty");
   }
   if (!RECEIPT_FORMATS.includes(spec.fmt)) {
@@ -89,7 +91,7 @@ export function judge(unitId, result, spec) {
   } catch (cause) {
     return fail(unitId, "receipt-unparseable", passed, result, { detail: cause.message });
   }
-  if (text.trim() === "") {
+  if (isBlank(text)) {
     return fail(unitId, "receipt-empty", passed, result);
   }
 
@@ -108,7 +110,7 @@ export function judge(unitId, result, spec) {
     const absent = receiptModule.missingFields(payload, spec);
     if (absent.length > 0) {
       return fail(unitId, "schema-invalid", passed, result, {
-        detail: `schema-invalid: missing or blank ${JSON.stringify(absent)}`,
+        detail: `schema-invalid: missing or blank ${canonicalDumps(absent)}`,
       });
     }
   }
@@ -117,7 +119,7 @@ export function judge(unitId, result, spec) {
   const markers = receiptModule.presentMarkers(text, spec);
   if (markers.length > 0) {
     return fail(unitId, "receipt-incomplete", passed, result, {
-      detail: `receipt-incomplete: body carries ${JSON.stringify(markers)}`,
+      detail: `receipt-incomplete: body carries ${canonicalDumps(markers)}`,
     });
   }
   if (looksLikeProgress(text)) {

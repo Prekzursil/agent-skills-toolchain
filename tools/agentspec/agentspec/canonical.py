@@ -20,7 +20,12 @@ The rules, each tied to the measured row that forced it:
   Python ``1,10,2,b`` vs JS ``1,2,10,b``. Code-unit order also puts an astral emoji BEFORE
   ``U+FFFF`` (lead surrogate ``0xD83D`` < ``0xFFFF``), which code-point order gets backwards.
 * **R4** Keys must be ``str``. A non-string key is REJECTED, never coerced — Python renders
-  ``{1.0: x}`` as ``"1.0"`` and JS renders it ``"1"``, silently and differently.
+  a dict holding BOTH the astral code point AND the same character as two separate lone
+  surrogate code points folded to a document with a DUPLICATE key, which
+  RFC 8259 calls non-interoperable and which falsified :func:`loads`' own stated fixed point
+  (``dumps(loads(dumps(x))) == dumps(x)`` returned the 2-key document as a 1-key document).
+  The JS encoder is injective by construction and cannot reach this arm; the code exists on
+  both sides so the closed rejection set stays identical.
 * **R5** Numbers rendered by the ECMAScript ``Number::toString`` algorithm (ECMA-262
   6.1.6.1.20). JS gets this from ``String(x)``; Python must implement it, because Python
   switches to exponential at 1e16 while ECMAScript switches at 1e21, and Python zero-pads the
@@ -57,8 +62,19 @@ The rules, each tied to the measured row that forced it:
   ``int``, and the next encode rejects it under R7. JS needs no equivalent — ``JSON.parse``
   always yields a double.
 
-Every rejection code is *segment*-shaped, so :func:`agentspec.taxonomy.family` resolves all six
-to the existing closed member ``schema-invalid``. The taxonomy does NOT grow for this module.
+* **R16** DECODER: :func:`loadb` REFUSES bytes that are not valid UTF-8, and reports it as
+  :data:`E_INVALID_UTF8` rather than as this interpreter's ``UnicodeDecodeError``. JS has no
+  such exception and its default byte decode is LOSSY — measured, ``loadb`` there returned a
+  well-formed value with U+FFFD substituted where this side raised, so ``dumpb(loadb(x)))``
+  manufactured a plausible-looking canonical receipt out of corrupt input.
+
+Every rejection code is *segment*-shaped, so :func:`agentspec.taxonomy.family` resolves all
+eight to the existing closed member ``schema-invalid``. The taxonomy does NOT grow for this
+module.
+
+The rules above make the two runtimes agree on the BYTES. Agreeing on the DECISIONS is
+:mod:`agentspec.wire`'s job, and it is a separate contract with a separate corpus — a
+differential harness found 78 behavioural divergences while this module was already exact.
 
 Pure: no clock, no entropy, no I/O. :func:`agentspec.determinism.scan_package` covers it.
 """
@@ -68,6 +84,8 @@ from __future__ import annotations
 import json
 from decimal import Decimal
 from typing import Any
+
+from agentspec.wire import utf16_sort_key as utf16_sort_key
 
 MAX_SAFE_INTEGER = 2**53 - 1
 """R7. Beyond this an integer-typed value cannot survive a JS ``Number`` round trip."""
@@ -80,17 +98,21 @@ MAX_DEPTH = 100
 E_NONFINITE = "schema-invalid-nonfinite"
 E_INT_RANGE = "schema-invalid-int-range"
 E_KEY_TYPE = "schema-invalid-nonstring-key"
+E_KEY_COLLISION = "schema-invalid-key-collision"
 E_VALUE_TYPE = "schema-invalid-unsupported-type"
 E_CYCLIC = "schema-invalid-cyclic"
 E_MAX_DEPTH = "schema-invalid-max-depth"
+E_INVALID_UTF8 = "schema-invalid-utf8"
 
 REJECTION_CODES: tuple[str, ...] = (
     E_CYCLIC,
     E_INT_RANGE,
+    E_KEY_COLLISION,
     E_MAX_DEPTH,
     E_NONFINITE,
     E_KEY_TYPE,
     E_VALUE_TYPE,
+    E_INVALID_UTF8,
 )
 """Sorted and CLOSED. The JS mirror asserts set equality against this tuple."""
 
@@ -121,11 +143,6 @@ class CanonicalJsonError(ValueError):
         super().__init__(f"{code}: {detail}")
         self.code = code
         self.detail = detail
-
-
-def utf16_sort_key(text: str) -> bytes:
-    """R3. The UTF-16 code-unit ordering JS ``Array.prototype.sort()`` uses on strings."""
-    return text.encode("utf-16-be", "surrogatepass")
 
 
 def encode_string(text: str) -> str:
@@ -194,8 +211,21 @@ def loads(text: str) -> Any:
 
 
 def loadb(raw: bytes) -> Any:
-    """Decode canonical BYTES."""
-    return loads(raw.decode("utf-8"))
+    """Decode canonical BYTES, REFUSING a lossy decode.
+
+    The failure is reported as a :class:`CanonicalJsonError` rather than as this
+    interpreter's ``UnicodeDecodeError`` because the JS mirror has no such exception:
+    ``Buffer.toString('utf8')`` is LOSSY by default (it substitutes U+FFFD and never
+    throws), so the JS side had to be given a fatal ``TextDecoder`` AND a shared error
+    class. MEASURED before the fix: ``loadb(b'{\"a\":\"\\xff\"}')`` raised here and
+    returned a well-formed ``{\"a\":\"\\ufffd\"}`` there — a plausible-looking canonical
+    receipt manufactured out of corrupt bytes, on a path this runtime halts.
+    """
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise CanonicalJsonError(E_INVALID_UTF8, "not valid UTF-8") from exc
+    return loads(text)
 
 
 def _low_surrogate_at(text: str, index: int, size: int) -> int | None:
@@ -224,6 +254,12 @@ def _fold_surrogate_pair(high: int, low: int) -> str:
     mapping that keeps parity TOTAL, so that one degenerate Python value is normalised away.
     Not folding is worse than lossy — it emits raw surrogates, and :func:`dumpb` then dies with
     ``UnicodeEncodeError`` instead of producing bytes (measured while building this module).
+
+    THE CONSEQUENCE THAT WAS MISSED FIRST TIME: inside a MAPPING the fold is not merely a value
+    normalisation, it is a KEY COLLISION. Two distinct dict keys folded onto one wire key and
+    the encoder emitted a duplicate-key document. R4b now rejects that, so the lossiness stays
+    confined to scalar values where it is a normalisation, and can never produce a document the
+    module's own round-trip invariant does not hold for.
     """
     return chr(
         0x10000 + ((high - _HIGH_SURROGATE_FIRST) << 10) + (low - _LOW_SURROGATE_FIRST)
@@ -277,10 +313,18 @@ def _encode(value: Any, out: list[str], depth: int, seen: tuple[int, ...]) -> No
 
 
 def _encode_int(value: int) -> str:
-    """R7. ``bool`` never reaches here — :func:`_encode` matches it first, by identity."""
+    """R7. ``bool`` never reaches here — :func:`_encode` matches it first, by identity.
+
+    ``int.__str__`` is called UNBOUND on purpose. ``str(value)`` dispatches to the runtime
+    type's ``__str__``, and ``isinstance(value, int)`` admits arbitrary subclasses, so a
+    subclass whose ``__str__`` returns ``"PWNED"`` made this encoder emit ``{"a":PWNED}`` —
+    a document ``json.loads`` then refuses. MEASURED, not hypothetical. The JS side has no
+    counterpart: a boxed ``new Number(5)`` is already rejected as an unsupported type, so this
+    is the one place Python's structural typing was strictly laxer than JS's.
+    """
     if not MIN_SAFE_INTEGER <= value <= MAX_SAFE_INTEGER:
-        raise CanonicalJsonError(E_INT_RANGE, str(value))
-    return str(value)
+        raise CanonicalJsonError(E_INT_RANGE, int.__str__(value))
+    return int.__str__(value)
 
 
 def _encode_container(
@@ -301,15 +345,24 @@ def _encode_container(
 def _encode_mapping(
     value: dict[Any, Any], out: list[str], depth: int, seen: tuple[int, ...]
 ) -> None:
-    """R3/R4. Keys checked before ANY output, so a rejection never emits a partial object."""
+    """R3/R4/R4b. Keys checked before ANY output, so a rejection never emits a partial object."""
     for key in value:
         if not isinstance(key, str):
             raise CanonicalJsonError(E_KEY_TYPE, type(key).__name__)
+    ordered = sorted(value, key=utf16_sort_key)
+    rendered: list[str] = []
+    emitted: set[str] = set()
+    for key in ordered:
+        wire_key = encode_string(key)
+        if wire_key in emitted:
+            raise CanonicalJsonError(E_KEY_COLLISION, wire_key)
+        emitted.add(wire_key)
+        rendered.append(wire_key)
     out.append("{")
-    for position, key in enumerate(sorted(value, key=utf16_sort_key)):
+    for position, key in enumerate(ordered):
         if position:
             out.append(",")
-        out.append(encode_string(key))
+        out.append(rendered[position])
         out.append(":")
         _encode(value[key], out, depth, seen)
     out.append("}")
