@@ -8,10 +8,17 @@ account for, and a delta over an incomplete set is explicitly marked ``partial``
 
 Two axes, deliberately NOT fused into one score
 -----------------------------------------------
-Measured on this box, tokens and memory are ANTI-CORRELATED:
+On this box, tokens and memory are ANTI-CORRELATED:
 
 * ``cloud-hub``      -- 409 tools, **77,198 tokens**, but only **17 MB** commit.
 * ``chrome-devtools`` -- 29 tools, **331 MB** commit.
+
+Provenance of those two figures, stated because this module exists to make provenance
+explicit: they are INHERITED from the budgeting scout run of 2026-07-27, not measured by
+the work unit that wrote this file, and the ledger directory meant to hold the raw
+artifact is empty. They were independently corroborated during review via
+``Win32_Process``/``PagedMemorySize64`` (16.3-16.9 MB and ~320 MB respectively), i.e.
+within 3-6% and conservative. See ``tests/test_impact.py`` for the full note.
 
 A single blended "cost" number would recommend disabling exactly the wrong server, so
 :class:`Impact` reports two independent deltas and the renderer shows two columns.

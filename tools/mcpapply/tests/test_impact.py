@@ -18,8 +18,21 @@ from mcpapply.impact import (
 )
 from conftest import PROJECT_KEY, topology_from
 
-# Measured on this box, 2026-07-27. Kept as literals so the anti-correlation the
-# two-axis design exists for is visible in the test itself.
+# PROVENANCE, stated precisely because this package's whole thesis is that a number
+# must carry how it was arrived at.
+#
+# These are INHERITED from the budgeting scout run of 2026-07-27; this work unit did
+# not measure them, and the ledger directory that was to hold the raw artifact
+# (`.claude/event-ledger/mcpbudget-scout-558a1067`) is EMPTY, so there is no on-disk
+# receipt behind them. They were, however, INDEPENDENTLY CORROBORATED during review by
+# a different method the package does not use -- `Get-CimInstance Win32_Process` ->
+# `PagedMemorySize64` -- which read cloud-hub at 16.3-16.9 MB against the 17.4 MB
+# encoded here, and the chrome-devtools 3-process subtree at ~320-321 MB against 331 MB.
+# Both within 3-6%, both in the conservative direction.
+#
+# They are kept as literals so the anti-correlation the two-axis design exists for is
+# visible in the test itself: 409 tools / 77,198 tokens but only 17 MB, against 29 tools
+# and 331 MB. A blended single "cost" score would recommend disabling the wrong server.
 CLOUD_HUB = Cost(
     tool_count=409,
     token_cost=77_198,
