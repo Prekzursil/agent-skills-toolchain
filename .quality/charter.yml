@@ -22,25 +22,30 @@ gates:
       tools/mcp-manager (core, ui, app.py), tools/scholarly-access-mcp (scholarly_access),
       tools/taskwatch_monitor (core, probes, cli, mcp_server, hooks, ui),
       tools/monitorcore (monitorcore), tools/agentspec (agentspec), tools/mcpctl (mcpctl)
-      and tools/mcpapply (mcpapply)
-      -- each checked from its own root with its deps installed so imports resolve. mcpctl is
-      the one package needing no install: its source imports stdlib only and its optional
-      monitorcore reuse goes through importlib with a STRING module name, so there is no
-      static sibling import for basedpyright to resolve. mcpapply needs no install either,
-      but for the opposite reason: it imports mcpctl STATICALLY, so it declares
-      `[tool.basedpyright] extraPaths = ["../mcpctl"]` -- an editable sibling install is
-      invisible to basedpyright (measured: 0 errors with the line, 17 without).
+      and tools/agentrail (agentrail) and tools/mcpapply (mcpapply)
+      -- each checked from its own root with its deps installed so imports resolve. mcpctl needs
+      no install because its source is stdlib-only and its optional monitorcore reuse goes through
+      importlib with a STRING module name, so there is no static sibling import to resolve.
+      agentrail and mcpapply need no install either, but for the OPPOSITE reason: each DOES
+      statically import a sibling (agentspec and mcpctl respectively) and resolves it via
+      `[tool.basedpyright] extraPaths`, because an editable sibling install is INVISIBLE to
+      basedpyright -- setuptools emits a MetaPathFinder inside a .pth holding executable code, and
+      basedpyright neither runs .pth code nor follows a finder. Measured BOTH WAYS for each
+      package: 17 errors with the extraPaths line removed, 0 errors with it present.
   - slug: tests-coverage
     tools: ["pytest + pytest-cov", "node --test"]
     enforces: >-
       Strict 100% line+branch coverage for the shipped Python packages (mcp-manager,
-      scholarly-access-mcp, taskwatch_monitor, monitorcore, agentspec, mcpctl, mcpapply) plus
-      the node workspace tests (root + agentify-desktop). Reasoned `# pragma: no cover --
-      <reason>` only for genuinely-untestable branches; agentspec, mcpctl and mcpapply carry
-      none at all (measured: 0, 0 and 0 real pragmas in package source, against
-      monitorcore's 11). mcpapply additionally runs with `-m "not live"`: it registers one
-      `live` row that would spawn a REAL host session, and that row is a MUTATION (the
-      control channel's toggle persists a write to ~/.claude.json), not merely a slow test.
+      scholarly-access-mcp, taskwatch_monitor, monitorcore, agentspec, mcpctl, agentrail,
+      mcpapply) plus the node workspace tests (root + agentify-desktop). Reasoned
+      `# pragma: no cover -- <reason>` only for genuinely-untestable branches; agentspec, mcpctl,
+      agentrail and mcpapply carry none at all (measured: 0, 0, 0 and 0 real pragmas in package
+      source, against monitorcore's 11). agentspec and mcpctl reach that by being pure; agentrail
+      and mcpapply reach it by making every impure edge -- spawn, clock, filesystem, the
+      stream-json control channel -- an injected PORT, so their gated suites perform no network
+      I/O and spawn no process. Both also run under `-m "not live"`: agentrail's live rail probes
+      and mcpapply's live row (which MUTATES ~/.claude.json through the control channel) are
+      default-deselected, and CI filters them a second time at the step.
   - slug: sast
     tools: ["opengrep 1.23.0", "semgrep CE 1.166.0 (local)"]
     enforces: >-

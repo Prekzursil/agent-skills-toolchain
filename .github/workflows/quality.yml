@@ -132,6 +132,25 @@ jobs:
       - name: gate-types mcpctl (source)
         working-directory: tools/mcpctl
         run: basedpyright mcpctl
+      # tools/agentrail — the config-driven multi-rail dispatch shell over agentspec. Unlike
+      # mcpctl above it DOES carry a STATIC `from agentspec.X import Y` in six modules, so it hits
+      # the trap the agentspec step at :111-119 predicted head-on: `pip install -e ../agentspec` is
+      # INVISIBLE to basedpyright (setuptools emits a MetaPathFinder plus a `.pth` holding an
+      # import statement, and basedpyright neither executes the `.pth` nor follows the finder).
+      # The fix is `[tool.basedpyright] extraPaths = ["../agentspec"]` in this package's
+      # pyproject.toml, which resolves the sibling STATICALLY from the tree and therefore needs no
+      # install step here at all.
+      #
+      # That guard is LOAD-BEARING, unlike mcpctl's inert one, and was proven BOTH WAYS rather
+      # than assumed — measured 2026-07-27 with basedpyright 1.39.8 on this tree:
+      # extraPaths commented out -> 17 errors (`Import "agentspec.clock" could not be resolved`);
+      # extraPaths restored      ->  0 errors. tests/test_quality_invariants.py asserts the line
+      # is still present, so deleting it fails the test suite as well as this gate.
+      #
+      # Reuses the existing `gate-types` charter slug on purpose — it is not a new gate.
+      - name: gate-types agentrail (source)
+        working-directory: tools/agentrail
+        run: basedpyright agentrail
       # tools/mcpapply -- the MUTATION sibling of mcpctl (plan/apply the five config
       # scopes, the stream-json live-control channel behind a port, the token/RAM impact
       # preview, and the loopback-only stdlib web GUI). It exists as its own package
@@ -300,6 +319,40 @@ jobs:
         run: |
           pip install -e ".[dev]"
           pytest -m "not live" --cov=agentspec --cov-branch --cov-report=term-missing --cov-fail-under=100
+      # tools/agentrail — the config-driven multi-rail dispatch shell OVER agentspec. It consumes
+      # the merged core (oracle / taxonomy / argv / retry / envelope / terminal / progress /
+      # dispatchpolicy / clock) and reimplements none of it; tests/test_no_rival_core.py walks the
+      # package AST and fails on any redeclaration, so that claim is gated rather than asserted.
+      #
+      # `pip install -e ../agentspec` is EXPLICIT here even though the agentspec step above has
+      # already installed it into this same 3.11 interpreter. Inheriting that as cumulative state
+      # would make this step silently order-dependent: reordering or removing the agentspec step
+      # would red agentrail with a ModuleNotFoundError that points at the wrong package. It is
+      # also the RUNTIME half of a two-mechanism wiring whose STATIC half is
+      # `[tool.basedpyright] extraPaths = ["../agentspec"]` in the package's pyproject — the two
+      # are not interchangeable (see the gate-types agentrail step for the measurement).
+      #
+      # `pip install -e ".[dev]"`, NOT the bare `pip install pytest pytest-cov`: tests/conftest.py
+      # imports agentspec.evals.pytest_live at COLLECTION time, so the bare form dies with exit 4
+      # before a single test runs. Reproduce either state with the venv's `pytest` CONSOLE SCRIPT,
+      # never `python -m pytest` — the -m form prepends cwd to sys.path and passes in BOTH states,
+      # so it is a broken detector for exactly this failure.
+      #
+      # `-m "not live"` is LOAD-BEARING: the live rows resolve and SPAWN a real agent CLI
+      # (codex/grok/opencode) and this runner has none. Belt and braces — the marker is registered
+      # in pyproject, tests/conftest.py default-deselects it via agentspec.evals.pytest_live, and
+      # CI filters it here too. Measured 2026-07-27 in a fresh 3.11 venv against this tree:
+      # `219 passed, 9 deselected`, coverage 100.00% line+branch, ZERO `# pragma: no cover` in
+      # package source (tokenised, not grepped — three modules DISCUSS the pragma in prose).
+      #
+      # Reuses the existing `gate-tests-coverage` charter slug on purpose, so
+      # .quality/charter_check.sh stays consistent with no new gate entry.
+      - name: gate-tests-coverage agentrail
+        working-directory: tools/agentrail
+        run: |
+          pip install -e ../agentspec
+          pip install -e ".[dev]"
+          pytest -m "not live" --cov=agentrail --cov-branch --cov-report=term-missing --cov-fail-under=100
       # agent-self/harness — the enshrined shared lifecycle harness (SSOT for the live
       # ~/.agents/harness deploy loop). Runs its full pytest suite on the CI interpreter as a
       # REGRESSION gate for the projected tree, and measures branch coverage (term-missing).
