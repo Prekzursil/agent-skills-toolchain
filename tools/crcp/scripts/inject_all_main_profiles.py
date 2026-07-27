@@ -1,24 +1,21 @@
 #!/usr/bin/env python3
-"""Inject phone ChatGPT cookies into MAIN browser profiles on this machine.
+"""DEPRECATED — force-kills browsers and rebinds main profiles (caused Jul-20 corruption).
 
-Targets (measured 2026-07-21):
-  - Chrome  Default ("Your Chrome" / prekzursil1993@gmail.com)
-  - Edge    Default
-  - Comet   Default (profile name Prekzursil)
-  - Firefox default-release (k4cy1nuq.default-release)
+Use instead:
+  python safe_main_cookie_inject.py --browser chrome --payload both
+  python safe_main_cookie_inject.py --browser edge --payload both
 
-Usage:
-  python inject_all_main_profiles.py
-  python inject_all_main_profiles.py --skip firefox
-  python inject_all_main_profiles.py --only chrome,edge
+To run THIS legacy script you MUST set env:
+  I_ACCEPT_PROFILE_RISK=1
 
-WARNING: Stops browser processes for each target so the main profile can bind CDP.
+WARNING: taskkill /F + main User Data CDP rebind can thrash prefs/sessions.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import socket
 import subprocess
 import sys
@@ -608,6 +605,14 @@ fetch('https://chatgpt.com/api/auth/session', {credentials:'include'})
 
 
 def main() -> int:
+    if os.environ.get("I_ACCEPT_PROFILE_RISK") != "1":
+        print(
+            "REFUSED: inject_all_main_profiles.py is deprecated (Jul-20 profile corruption).\n"
+            "Use: python safe_main_cookie_inject.py --browser chrome --payload both\n"
+            "Or set I_ACCEPT_PROFILE_RISK=1 only if you fully understand the risk."
+        )
+        return 2
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--only", help="comma list: chrome,edge,comet,firefox")
     parser.add_argument("--skip", help="comma list to skip")
