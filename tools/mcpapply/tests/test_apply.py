@@ -10,6 +10,7 @@ from mcpctl.scopes import ScopeId
 from mcpctl.sources import SourcePaths, load_sources, source_paths
 from mcpctl.topology import Topology, build_topology
 
+from mcpapply import apply as mcpapply_apply
 from mcpapply import plan as P
 from mcpapply.apply import (
     ApplyResult,
@@ -21,6 +22,7 @@ from mcpapply.apply import (
     line_ending,
     render_result,
 )
+from mcpapply.live import LiveClient
 from conftest import FIXED_NOW, PROJECT_KEY, STAMP, write_home
 
 
@@ -59,6 +61,61 @@ def test_the_default_is_dry_run_and_nothing_reaches_disk(
     after = {label: p.read_text(encoding="utf-8") for label, p in paths.as_tuple()}
     assert after == before
     assert list(home.glob("**/*.bak")) == []
+
+
+def test_a_dry_run_sends_ZERO_control_frames(paths: SourcePaths):
+    """The other half of the dry-run contract: no disk write AND no wire traffic.
+
+    A plan carrying a live-only reconnect is previewed while a real
+    :class:`~mcpapply.live.LiveClient` sits on a fake transport. The transport must
+    record nothing -- not even the session kick.
+    """
+    sent: list[str] = []
+
+    class RecordingTransport:
+        def send(self, line: str) -> None:
+            sent.append(line)
+
+        def lines(self):
+            return iter(())
+
+    client = LiveClient(RecordingTransport(), new_id=lambda: "never-used")
+    top = _reload(paths)
+    result = apply_plan(
+        _plan(
+            top, P.plan_reconnect(top, "cloud-hub"), P.plan_disable(top, "cloud-hub")
+        ),
+        paths=paths,
+        store=RealFileStore(),
+        now=FIXED_NOW,
+    )
+    assert result.dry_run is True
+    assert result.written == ()
+    assert sent == []
+    assert client.sent == []
+
+
+def test_the_writer_has_no_path_to_the_control_channel_at_all():
+    """Mechanical, over the AST: `apply.py` cannot send a frame even by accident,
+    because it does not import the module that can. Asserted rather than asserted-in-
+    prose, and with a detector control so its silence means something."""
+    import ast
+
+    def imported_modules(source: str) -> set[str]:
+        found: set[str] = set()
+        for node in ast.walk(ast.parse(source)):
+            if isinstance(node, ast.Import):
+                found |= {a.name for a in node.names}
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                found.add(node.module)
+        return found
+
+    # Detector control: prove the probe CAN see the import it is looking for.
+    assert "mcpapply.live" in imported_modules("from mcpapply.live import LiveClient")
+    assert "mcpapply.live" not in imported_modules('"""mentions mcpapply.live"""')
+
+    source = Path(mcpapply_apply.__file__).read_text(encoding="utf-8")
+    assert not {m for m in imported_modules(source) if m.startswith("mcpapply.live")}
 
 
 def test_the_dry_run_still_shows_the_exact_diff(paths: SourcePaths):
@@ -605,7 +662,9 @@ def test_the_files_own_line_endings_survive_a_write(tmp_path: Path):
     its line endings."""
     paths = write_home(tmp_path)
     crlf = json.dumps({"mcpServers": {}}, indent=2).replace("\n", "\r\n") + "\r\n"
-    paths.mcp_json.write_text(crlf, encoding="utf-8", newline="")
+    # Bytes, not `write_text(newline=...)`: that keyword only reached Path in 3.13 and
+    # this package supports >=3.11 (CI runs 3.11 -- it caught exactly this).
+    paths.mcp_json.write_bytes(crlf.encode("utf-8"))
     top = build_topology(load_sources(paths)[0], project_key=None)
     apply_plan(
         P.build_plan(
@@ -618,7 +677,7 @@ def test_the_files_own_line_endings_survive_a_write(tmp_path: Path):
         apply=True,
         guard=lambda: "",
     )
-    written = paths.mcp_json.read_text(encoding="utf-8", newline="")
+    written = paths.mcp_json.read_bytes().decode("utf-8")
     assert "\r\n" in written
     assert "\n" not in written.replace("\r\n", "")
 
@@ -649,7 +708,8 @@ def test_the_writer_round_trips_a_real_shaped_config_byte_for_byte(tmp_path: Pat
         + "\n"
     )
     target = tmp_path / ".claude.json"
-    target.write_text(original, encoding="utf-8", newline="")
-    doc = json.loads(original)
+    target.write_bytes(original.encode("utf-8"))
+    doc = json.loads(RealFileStore().read_text(target))
     rebuilt = _serialise(doc, trailing_newline=True, newline=line_ending(original))
     assert rebuilt == original
+    assert target.read_bytes().decode("utf-8") == rebuilt

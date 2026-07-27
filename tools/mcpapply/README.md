@@ -193,7 +193,8 @@ basedpyright mcpapply
 ruff check . && ruff format --check .
 ```
 
-Measured 2026-07-27: **223 passed, 1 deselected, 100.00 % line+branch, 0 basedpyright
+Measured 2026-07-27 on CI's interpreter (CPython 3.11.9): **225 passed, 1 deselected,
+100.00 % line+branch, 0 basedpyright
 findings, ruff clean, gitleaks clean, the repo SAST ruleset clean, ZERO
 `# pragma: no cover` in package source.**
 
