@@ -757,7 +757,9 @@ def test_resume_template_lint_is_not_a_vacuous_pass():
 
     A clean verdict is only evidence if the detector can go red on this input.
     """
-    mutated = _template_block().replace("const HOME =", "const T = Date.now()\nconst HOME =", 1)
+    mutated = _template_block().replace(
+        "const HOME =", "const T = Date.now()\nconst HOME =", 1
+    )
     findings = wl.lint_text(mutated, str(_TEMPLATE))
     assert any(f.check == "no-date-now" for f in findings), findings
 
