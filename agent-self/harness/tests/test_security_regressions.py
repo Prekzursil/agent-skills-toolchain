@@ -95,6 +95,93 @@ def test_secret_bearing_assignments_are_detected_and_redacted(assignment):
     assert assignment.split("=", 1)[-1] not in redact_text(assignment)
 
 
+# Regression proof for the JSON-credential bypass fixed in #222 / #226. The fix
+# landed WITHOUT a test in this CI-gated suite, and `ci/harness/tests/` (which does
+# carry one) is named in no workflow, so nothing here was protecting it. Mutation-
+# measured 2026-07-29 by reverting the three redaction.py patterns: all 56 redaction
+# tests in this tree stayed GREEN while `{"password":"abcdefghijklmnopqr"}` was
+# returned byte-for-byte, `password=!CorrectHorse...` passed (the old value class
+# excluded punctuation), and `Authorization: Basic <b64>` passed (only Bearer was
+# covered). This matters because redact_text guards set_goal before the event ledger
+# persists it (modules.py `set_goal(..., redact_text(prompt))`, ledger.py set_goal).
+@pytest.mark.parametrize(
+    ("label", "payload", "secret"),
+    [
+        ("json compact", '{"password":"abcdefghijklmnopqr"}', "abcdefghijklmnopqr"),
+        ("json spaced", '{"password": "abcdefghijklmnopqr"}', "abcdefghijklmnopqr"),
+        ("json api_key", '{"api_key":"abcdefghijklmnopqrst"}', "abcdefghijklmnopqrst"),
+        (
+            "punctuation-leading value",
+            "password=!CorrectHorseBatteryStaple123",
+            "!CorrectHorseBatteryStaple123",
+        ),
+        (
+            "basic auth header",
+            "Authorization: Basic dXNlcjpTdXBlclNlY3JldCE=",
+            "dXNlcjpTdXBlclNlY3JldCE=",
+        ),
+    ],
+)
+def test_structured_credentials_are_detected_and_their_value_redacted(
+    label, payload, secret
+):
+    assert contains_secret(payload), f"contains_secret missed {label}: {payload!r}"
+
+    redacted = redact_text(payload)
+
+    assert secret not in redacted, f"{label} value survived: {redacted!r}"
+    assert "[REDACTED]" in redacted, f"{label} left unmarked: {redacted!r}"
+
+
+def test_structured_tool_input_mapping_is_scanned_not_only_flat_text():
+    """A non-string tool input is JSON-serialized before it is scanned."""
+    mapping = {"command": "deploy", "password": "abcdefghijklmnopqr"}
+
+    assert contains_secret(mapping)
+    assert "abcdefghijklmnopqr" not in redact_text(json.dumps(mapping))
+
+
+# Over-redaction has a real cost: the ledger goal and the re-anchor become unreadable.
+# A pattern widened until everything matches would pass the cases above and fail here.
+@pytest.mark.parametrize(
+    "prose",
+    [
+        "the password field is required on the signup form",
+        "rotate the token before Friday, see the runbook",
+        "api_key handling is covered in guides/security.md",
+        "Set the PASSWORD environment variable at startup",
+        "TOKEN_REFRESH_INTERVAL = 3600  # seconds",
+    ],
+)
+def test_benign_prose_naming_a_credential_field_is_not_over_redacted(prose):
+    assert redact_text(prose) == prose
+
+
+def test_json_credential_in_a_prompt_never_becomes_a_persisted_goal(tmp_path):
+    state_root = tmp_path / "state"
+    dispatcher = HarnessDispatcher(state_root=state_root)
+    payload = {
+        "session_id": "secret-session",
+        "turn_id": "turn-1",
+        "cwd": str(tmp_path),
+        "hook_event_name": "UserPromptSubmit",
+        "prompt": 'Store this config: {"password":"abcdefghijklmnopqr"}',
+    }
+
+    result = dispatcher.dispatch(
+        payload, provider="codex", event_name="UserPromptSubmit"
+    )
+
+    # Redact-not-block, as with the labeled-assignment sibling above: the prompt is
+    # processed, but the credential must not reach the durable goal or ledger state.
+    assert result.action != "block"
+    ledger = EventLedger(state_root)
+    goal = ledger.goal(str(tmp_path))
+    assert goal
+    assert "abcdefghijklmnopqr" not in goal
+    assert "abcdefghijklmnopqr" not in json.dumps(ledger.state(str(tmp_path)))
+
+
 @pytest.mark.parametrize(
     "secret",
     [
