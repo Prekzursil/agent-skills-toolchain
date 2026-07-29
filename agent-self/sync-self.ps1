@@ -5,11 +5,20 @@
   Pairs with bootstrap.ps1 (which deploys the bundle onto a fresh machine).
 
   Run from anywhere:  pwsh tools/workspace-config/sync-config.ps1
-  What it captures:  settings(.local).json, hooks/, commands/, rules/, AGENTS.md, CLAUDE.md,
+  What it captures:  settings(.local).json, hooks/, commands/, rules/, harness-meta/,
+                     AGENTS.md, CLAUDE.md,
                      keybindings.json, statusline*.sh, the workspace docs, MEMORY + memories,
                      and the user-scope MCP servers (from ~/.claude.json) + ~/.mcp.json.
   What it does NOT capture:  .credentials.json (per-machine login), conversation history /
                      projects, *.bak*, __pycache__, node_modules, big corpora.
+
+  NOTE ON harness-meta: this script WIPES $BundleRoot before re-populating it, so any tree
+  NOT copied below is DELETED from the repo on the next run. ~/.claude/harness-meta held the
+  stage-0 plan linter (plan_lint_stage0.py) with no version control at all until it was added
+  here, so it must be captured or the sync would silently un-version it again. It is captured
+  via an explicit FILE ALLOWLIST ($HarnessMetaFiles) rather than Copy-Tree -- see the comment
+  at that variable for the measured reason. Its CI gate is ci/tests/test_plan_lint_stage0.py,
+  which asserts the allowlist still names it.
   Paths to your home are rewritten to {{USER_HOME}} / {{USER}} so the bundle is machine-agnostic.
   Any value that still looks like a secret is listed in SECRETS-REVIEW.txt (review before commit).
 #>
@@ -52,6 +61,25 @@ function Copy-File($Name) {
 
 # --- core harness ---
 'hooks','commands','rules' | ForEach-Object { Copy-Tree $_ }
+
+# --- harness-meta: ALLOWLIST, not the whole tree (see the note in the header) ---
+# ~/.claude/harness-meta holds 19 stdlib tools of which only the listed ones are versioned
+# + CI-gated. It is an allowlist because a blind Copy-Tree of that directory would (a) sweep
+# in 800 KB of logs/ runtime state and three data corpora, and (b) turn CI RED: measured
+# 2026-07-29 with the pinned ruff 0.15.17, the unlisted siblings carry 14 `ruff check` errors
+# and 18 of 19 files fail `ruff format --check`, and quality.yml lints the whole repo.
+# To add one: fix its lint/format, write a suite, name that suite in quality.yml, THEN list it.
+$HarnessMetaFiles = @('plan_lint_stage0.py')
+$hmSrc = Join-Path $ClaudeHome 'harness-meta'
+if (Test-Path $hmSrc) {
+    $hmDst = Join-Path $BundleRoot 'harness-meta'
+    New-Item -ItemType Directory -Force -Path $hmDst | Out-Null
+    foreach ($name in $HarnessMetaFiles) {
+        $f = Join-Path $hmSrc $name
+        if (Test-Path $f) { Copy-Item $f (Join-Path $hmDst $name) -Force }
+        else { "WARN: harness-meta/$name is on the sync allowlist but missing from $hmSrc" | Out-Host }
+    }
+}
 'settings.json','settings.local.json','AGENTS.md','CLAUDE.md','keybindings.json',
 'statusline-command.sh','statusline.sh','statusline-debug.sh' | ForEach-Object { Copy-File $_ }
 

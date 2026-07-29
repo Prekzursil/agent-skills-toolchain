@@ -444,6 +444,38 @@ jobs:
           python ci/emit_hook_manifest.py --source hooks/hooks.json --target codex-plugin --check
           python ci/emit_hook_manifest.py --source agent-self/config/hooks/hooks.json --target codex-plugin --check
 
+      # agent-self/config/harness-meta/plan_lint_stage0.py -- the mechanical stage-0 plan
+      # linter + cross-session resume manifest that skills/workflow-authoring/SKILL.md:404 and
+      # its governed-run-orchestrator template already instruct agents to run. Until this step
+      # it existed ONLY on one machine's live disk (~/.claude/harness-meta/): absent from all
+      # 561 commits and every branch, with no test and no reviewer. It is versioned under
+      # agent-self/config/ because that tree IS the repo's mirror of ~/.claude -- bootstrap.ps1
+      # copies `config\*` into ~/.claude recursively, so the repo copy deploys back to the live
+      # path with no new machinery, and sync-self.ps1 snapshots live -> repo (its Copy-Tree list
+      # now names harness-meta; the suite asserts that, because that script WIPES the bundle
+      # and would otherwise delete the module on its next run).
+      # The suite lives in ci/tests/ ON PURPOSE, outside the snapshot zone -- a test file under
+      # config/harness-meta/ would be deleted by the next sync-self.ps1 run.
+      # 100% line+branch gated: the module is pure stdlib logic whose only I/O (the jsonl
+      # manifest, the rotating shadow sink) is exercised through tmp_path. Named explicitly
+      # like the suites above -- there is no repo-wide pytest autodiscovery, so an unnamed
+      # suite is dead weight. Reuses the gate-tests-coverage charter slug on purpose (not a
+      # new gate), so .quality/charter_check.sh stays consistent with no charter.yml edit.
+      # Measured on python 3.14.6 via the pytest CONSOLE SCRIPT: 93 passed, 100% (405 stmts,
+      # 156 branches, 0 missing); a 7-mutation probe over the load-bearing decisions
+      # (nesting/size ceilings, write-ahead partial, latest_state recency, scope collision,
+      # torn-line tolerance, the sync allowlist) killed 7/7.
+      # WHEN THE LIVE COPY CHANGES: re-snapshot with `pwsh agent-self/sync-self.ps1`, run
+      # `ruff format` on the snapshot (this gate lints the whole repo; the live tree is not
+      # format-clean), and extend this suite -- new uncovered CLI surface fails --cov-fail-under
+      # here, which is exactly the drift alarm. That is how the --ids/--next flags added to the
+      # live copy on 2026-07-29 arrived with tests instead of arriving unnoticed.
+      - name: gate-tests-coverage plan-lint stage-0 + resume manifest
+        run: |
+          pip install pytest pytest-cov
+          pytest ci/tests/test_plan_lint_stage0.py -q --cov=plan_lint_stage0 \
+            --cov-branch --cov-report=term-missing --cov-fail-under=100
+
       # L13 adoption: the checked-in adversarial corpus plus its miner regressions.
       - name: gate-tests-coverage adversarial harness corpus
         run: |
