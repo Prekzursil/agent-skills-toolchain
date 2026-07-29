@@ -45,9 +45,10 @@ paths:
 **The SSOT outranks any agent's or skill's own default.** `agents/tdd-guide.md` advertises a flat
 "80%+"; that number is its **fallback** for a project with no `.coverage-thresholds.json`, never a
 pass mark and never a ceiling. When the file exists, its numbers are the only pass/fail line —
-`tools/editor/metaswarm/.coverage-thresholds.json` requires 100 on lines, branches, functions and
-statements, so 80% there is a FAIL even if tdd-guide reports compliant. Read the file before
-reporting coverage compliance; do not report a threshold you did not read.
+`tools/editor/metaswarm/.coverage-thresholds.json` requires 100 on lines, branches, functions
+and statements, so 80% is a FAIL there even though `.coverage-thresholds.json` is what
+tdd-guide reports against. Read the file before reporting coverage compliance; do not report a
+threshold you did not read.
 
 Test Types (ALL required):
 1. **Unit Tests** - Individual functions, utilities, components

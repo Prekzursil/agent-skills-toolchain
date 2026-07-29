@@ -221,12 +221,25 @@ def test_chief_of_staff_does_not_advertise_a_hook_that_does_not_exist():
 def test_dispatcher_posttooluse_inventory_is_the_one_a111_measured():
     """Detector control for the test above.
 
-    Pins the exact three checks A111 found, so a future PostToolUse addition
-    forces a human to re-read the claim rather than silently flipping the
-    implication test to vacuously true.
+    Pins the exact PostToolUse inventory, so an addition forces a human to re-read the
+    claim rather than silently flipping the implication test to vacuously true.
+
+    RE-READ 2026-07-30 (integration of the derive-167 settlement). A111 measured three
+    checks; two more were wired on this branch and the claim was re-read against both:
+
+      * ``claim-guard/ledger-write`` (matcher ``Bash``) -- wired by C34 as the producer
+        for the already-wired ``journey-coverage`` Stop consumer.
+      * ``edit-validate/record`` (matcher ``Edit|Write|MultiEdit``) -- wired by C06 as
+        the producer for the already-wired ``dark-surface`` Stop consumer.
+
+    Neither name nor matcher matches ``_COMMS_MATCHER`` (gmail / slack /
+    conversations_add_message / send), so ``has_comms_check`` is still False and the
+    implication above is still load-bearing rather than vacuously satisfied.
     """
     assert [c["name"] for c in _posttooluse_checks()] == [
         "memory-spool/flush_check",
         "tool-result-sentinel",
+        "claim-guard/ledger-write",
         "stub-ledger/record",
+        "edit-validate/record",
     ]
