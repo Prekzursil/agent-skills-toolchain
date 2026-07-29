@@ -212,9 +212,20 @@
       ]
     },
     "PreToolUse": {
-      "settings_matcher": "Task|Write|mcp__basic-memory__write_note|mcp__basic-memory__edit_note|Workflow|mcp__codex__codex|Bash|PowerShell",
+      "settings_matcher": "Task|Edit|Write|MultiEdit|mcp__basic-memory__write_note|mcp__basic-memory__edit_note|Workflow|mcp__codex__codex|Bash|PowerShell",
       "settings_timeout": 15,
       "checks": [
+        {
+          "name": "edit-checkpoints",
+          "script": "edit-checkpoints/checkpoint.py",
+          "args": [],
+          "timeout": 15,
+          "matcher": "Edit|Write|MultiEdit",
+          "isolate": null,
+          "side_effect": "snapshot+index-append",
+          "emits": false,
+          "comment": "The PRODUCER for /rollback. commands/rollback.md:3-7 promises a checkpoint is taken automatically before edits and :21-24 reads ~/.claude/checkpoints/<session_id>/index.ndjson, but checkpoint.py was registered in NO surface -- not here, not hooks.json -- so a fresh session had no index to roll back to. Dispatcher-compatible: checkpoint.py:17 is silent and inject-free, main() returns 0 on every path and fail-opens on any exception, so it adds no blocking or emitting behaviour. Route pinned by test_wiring.py EXPECTED_DISPATCH_ROUTES['PreToolUse']['edit-checkpoints'] = ([], 'Edit|Write|MultiEdit', 15, False). settings_matcher gained Edit|MultiEdit so the outer wire actually reaches this route (agent-self/config/settings.json already routes all three). Opt-out: EDIT_CHECKPOINTS=off or hooks/edit-checkpoints/.disabled."
+        },
         {
           "name": "bg-registry/register",
           "script": "bg-registry/register.py",

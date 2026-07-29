@@ -41,8 +41,21 @@ ISOLATION
 SAFETY
   FAIL-OPEN at every level (try/except -> exit 0). Master opt-out: HOOK_DISPATCH=off in
   env, or a _dispatch/.disabled file (disables the whole consolidated set; per-check
-  opt-outs still work individually). Pure stdlib. Never blocks (exit 0 only) — the
-  consolidated checks are all inject-only; none ever returned exit 2.
+  opt-outs still work individually). Pure stdlib. Never blocks (exit 0 only).
+
+  Two things are deliberately NOT fail-open, because failing open there means running
+  the wrong code or losing a gate silently:
+
+  * PATH CONTAINMENT. `manifest.json` is data. A `script` that resolves outside
+    `hooks_root` ("../outside.py", "/abs/outside.py") is DROPPED, not imported —
+    `_load_module` calls `exec_module`, so accepting such a path executes code from
+    outside the configured hook tree at import time, before any per-check timeout.
+  * BLOCK REQUESTS ARE NOT SWALLOWED. A consolidated check is supposed to be
+    inject-only, but the manifest can (and does) list checks with a mode that returns
+    a non-zero would-be exit code — journey-coverage/check.py returns 2 under
+    JOURNEY_COVERAGE_MODE=block. The dispatcher cannot honour exit 2, so instead of
+    discarding the result it appends an explicit note to additionalContext naming the
+    check and its status. A disarmed gate must be visible, never silent.
 """
 
 from __future__ import annotations
@@ -151,6 +164,24 @@ def _load_manifest() -> dict:
         return {}
 
 
+def _resolve_script(root: str, script: str) -> str | None:
+    """Resolve a manifest ``script`` under ``root``; return None if it escapes.
+
+    ``manifest.json`` is DATA, and ``_load_module`` executes whatever path it is
+    handed. ``os.path.join(root, "../outside.py")`` and
+    ``os.path.join(root, "/abs/outside.py")`` both leave the configured hook tree,
+    so they are rejected here rather than imported.
+    """
+    try:
+        root_p = Path(root).resolve()
+        candidate = (root_p / script).resolve()
+    except (OSError, ValueError):
+        return None
+    if candidate == root_p or root_p not in candidate.parents:
+        return None
+    return str(candidate)
+
+
 def _load_module(script_path: str, uniq_name: str):
     """Import a hook module fresh under a unique name, isolating dir-local shared names."""
     for shared in _SHARED_NAMES:
@@ -164,29 +195,48 @@ def _load_module(script_path: str, uniq_name: str):
     return mod
 
 
-def _call_main(mod, args) -> None:
-    """Invoke the module's main(), passing argv only if it accepts a parameter."""
+def _call_main(mod, args):
+    """Invoke the module's main(), passing argv only if it accepts a parameter.
+
+    Returns whatever ``main()`` returned — for a hook script that is its would-be
+    process exit code, which the caller needs to detect a disarmed block request.
+    """
     fn = getattr(mod, "main", None)
     if fn is None:
-        return
+        return None
     try:
         nparams = len(inspect.signature(fn).parameters)
     except (TypeError, ValueError):
         nparams = 0
-    if nparams >= 1:
-        fn(list(args))
-    else:
-        fn()
+    return fn(list(args)) if nparams >= 1 else fn()
 
 
-def _worker(mod, args, buf: io.StringIO, payload_json: str) -> None:
+def _worker(mod, args, buf: io.StringIO, payload_json: str, rc_sink: list) -> None:
     """Run one check in its own thread: route I/O thread-locally, call main(), fail-open."""
     try:
         _tls.out = buf
         _tls.inp = io.StringIO(payload_json)
-        _call_main(mod, args)
+        rc_sink.append(_call_main(mod, args))
     except BaseException:
         pass  # fail-open: a check must never crash the dispatcher
+
+
+def _blocking_status(rc: object) -> int | None:
+    """The would-be non-zero exit code a check returned, or None if it did not."""
+    if isinstance(rc, bool) or not isinstance(rc, int) or rc == 0:
+        return None
+    return rc
+
+
+def _disarmed_note(name: str, rc: int) -> str:
+    """Explain a block request the inject-only dispatcher could not honour."""
+    return (
+        f"[_dispatch] check {name!r} returned exit status {rc} — a BLOCK request. "
+        "The dispatcher is inject-only, so nothing was blocked. Treat the check's "
+        "own message above as its finding and act on it; to restore real blocking, "
+        "move the check out of _dispatch/manifest.json into a standalone "
+        "settings.json entry."
+    )
 
 
 def _extract_ctx(text: str) -> list[str]:
@@ -240,14 +290,16 @@ def run(event: str, raw_payload: str, manifest: dict) -> str | None:
     root = manifest.get("hooks_root") or str(THIS.parent)
 
     # Serial imports (cheap; keeps the _common/stubscan sys.modules pop race-free).
-    loaded = []  # (chk, module, buffer)
+    loaded = []  # (chk, module, buffer, rc_sink)
     for chk in matched:
         try:
-            path = os.path.join(root, chk["script"])
+            path = _resolve_script(root, chk["script"])
+            if path is None:
+                continue  # escapes hooks_root -> never imported (see module docstring)
             uniq = "dispq_" + re.sub(r"\W", "_", str(chk.get("name") or chk["script"]))
             mod = _load_module(path, uniq)
             if mod is not None:
-                loaded.append((chk, mod, io.StringIO()))
+                loaded.append((chk, mod, io.StringIO(), []))
         except BaseException:
             continue
     if not loaded:
@@ -255,10 +307,10 @@ def run(event: str, raw_payload: str, manifest: dict) -> str | None:
 
     # Concurrent execution: thread-per-check, per-check deadline join.
     threads = []
-    for chk, mod, buf in loaded:
+    for chk, mod, buf, rc_sink in loaded:
         t = threading.Thread(
             target=_worker,
-            args=(mod, chk.get("args") or [], buf, raw_payload),
+            args=(mod, chk.get("args") or [], buf, raw_payload, rc_sink),
             daemon=True,
         )
         t.start()
@@ -266,7 +318,7 @@ def run(event: str, raw_payload: str, manifest: dict) -> str | None:
 
     start = time.monotonic()
     pieces: list[str] = []
-    for (chk, _mod, buf), t in zip(loaded, threads):
+    for (chk, _mod, buf, rc_sink), t in zip(loaded, threads):
         try:
             budget = float(chk.get("timeout") or 8)
         except (TypeError, ValueError):
@@ -277,6 +329,14 @@ def run(event: str, raw_payload: str, manifest: dict) -> str | None:
             continue  # timed out -> fail-open, drop this check's (incomplete) output
         try:
             pieces.extend(_extract_ctx(buf.getvalue()))
+        except BaseException:
+            continue
+        try:
+            rc = _blocking_status(rc_sink[0] if rc_sink else None)
+            if rc is not None:
+                pieces.append(
+                    _disarmed_note(str(chk.get("name") or chk.get("script")), rc)
+                )
         except BaseException:
             continue
 

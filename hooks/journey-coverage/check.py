@@ -229,9 +229,13 @@ def main() -> int:
             "exists but was never executed is the classic green-but-broken blind spot. "
             "Run them (and show the real artifact) before calling the app done."
         )
-        if MODE == "block":
-            sys.stderr.write(msg + "\n")
-            return 2
+        # Emit the inject-only JSON in EVERY firing mode, block included. This hook is
+        # registered through _dispatch/manifest.json, and that dispatcher aggregates
+        # stdout additionalContext while discarding the return code — so a block-mode
+        # finding that only wrote stderr + `return 2` reached nobody: exit 2 was
+        # dropped and the model never saw the message. Standalone, Claude Code ignores
+        # stdout when a hook exits 2 and uses stderr, so printing here is inert there
+        # and load-bearing under the dispatcher.
         print(
             json.dumps(
                 {
@@ -242,6 +246,9 @@ def main() -> int:
                 }
             )
         )
+        if MODE == "block":
+            sys.stderr.write(msg + "\n")
+            return 2
         return 0
     except Exception:  # noqa: BLE001 - fail-open: a crashing gate is worse than none
         return 0

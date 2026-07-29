@@ -178,6 +178,37 @@ def test_block_mode_exits_2_on_uncovered(tmp_path):
     assert "JOURNEY-COVERAGE" in r.stderr
 
 
+def test_block_mode_also_emits_context_so_the_dispatcher_cannot_swallow_it(tmp_path):
+    """This hook's ONLY registration is _dispatch/manifest.json:144-152, and that
+    dispatcher aggregates stdout additionalContext while DISCARDING the return code.
+    So block mode -- which wrote only stderr and returned 2 -- produced no
+    host-readable output at all on its live route: the exit 2 was dropped and the
+    finding reached nobody. Emitting the inject-only JSON in block mode too is what
+    makes the message survive; standalone, Claude Code ignores stdout on an exit-2
+    hook, so this costs nothing there.
+    """
+
+    payload, env = _seed(tmp_path, done=True, specs=True, ledger_cmds=["pytest tests/"])
+    r = _run_hook(payload, {**env, "JOURNEY_COVERAGE_MODE": "block"})
+
+    assert r.returncode == 2, "block mode must still block when run standalone"
+    emitted = json.loads(r.stdout.strip())
+    hso = emitted["hookSpecificOutput"]
+    assert hso["hookEventName"] == "Stop"
+    assert "golden-journey.spec.ts" in hso["additionalContext"]
+
+
+def test_block_mode_emits_nothing_when_every_journey_ran(tmp_path):
+    """CONTROL for the test above: the new print must stay inside the SAME firing
+    condition, not turn block mode into an unconditional emitter."""
+
+    payload, env = _seed(
+        tmp_path, done=True, specs=True, ledger_cmds=["npx playwright test"]
+    )
+    r = _run_hook(payload, {**env, "JOURNEY_COVERAGE_MODE": "block"})
+    assert r.returncode == 0 and r.stdout.strip() == ""
+
+
 def test_block_mode_silent_when_covered(tmp_path):
     payload, env = _seed(
         tmp_path, done=True, specs=True, ledger_cmds=["npx playwright test"]
