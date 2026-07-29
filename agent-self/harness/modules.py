@@ -1396,6 +1396,18 @@ class LedgerModule:
             summary=_digest([event.prompt, event.source], 16),
         )
 
+    @staticmethod
+    def _provenance(event: HookEvent) -> dict[str, str]:
+        # D17-F4 · carry the parent-child edge into the durable record so a
+        # completion fact can be joined back to what spawned it. Omitted rather
+        # than written empty (no cost on hosts that do not report lineage), and
+        # redacted with redact_paths so a host that stuffs a transcript path into
+        # a parent field cannot turn this into a path-persisting sidechannel.
+        parent = str(event.agent.parent_id or "").strip()
+        if not parent:
+            return {}
+        return {"parent_id": redact_text(parent, redact_paths=True, max_chars=200)}
+
     def _append_task(self, event: HookEvent) -> None:
         # native-taskcompleted (module half): record the task close so the claim
         # gate can enforce verification per-task; the gate itself is in ClaimWarning.
@@ -1416,6 +1428,7 @@ class LedgerModule:
             turn_id=event.turn_id,
             agent_type=event.agent.type,
             output_hash=_digest(event.last_assistant_message),
+            **self._provenance(event),
         )
 
     def _append_turn(self, event: HookEvent) -> None:
@@ -1454,6 +1467,7 @@ class LedgerModule:
             turn_id=event.turn_id,
             agent_type=event.agent.type,
             output_hash=_digest(event.last_assistant_message),
+            **self._provenance(event),
         )
 
 
@@ -1750,6 +1764,56 @@ def _clamp01(value: Any, default: float = 0.5) -> float:
         return default
 
 
+# --- recall-index freshness contract (P1C22) ---------------------------------
+# recall_index.py stamps every document it writes with `schema_version`,
+# `built_at` and `vault_hash`. The consumer used to read NONE of them, so an
+# obsolete index left on disk after its source notes changed or were deleted was
+# still scored and injected - "UNTRUSTED historical context" is a label, not a
+# freshness guard. The consumer now refuses to serve a document it cannot date:
+#   * `schema_version` must be an int this consumer understands, and
+#   * `built_at` must parse and be within the age limit.
+# A rejected candidate falls through to the next configured index path, and when
+# every candidate is rejected recall simply stays quiet (fail-safe, never stale).
+# Keep _RECALL_INDEX_SCHEMA_VERSION == recall_index.SCHEMA_VERSION; the drift is
+# asserted by test_p1c22_consumer_schema_ceiling_tracks_the_producer. Set
+# AGENT_HARNESS_RECALL_MAX_AGE_DAYS=0 to disable the age check (out-of-band
+# rebuild loops); any unparseable value falls back to the default.
+_RECALL_INDEX_SCHEMA_VERSION = 2
+_RECALL_INDEX_MAX_AGE_DAYS = 30.0
+
+
+def _recall_index_age_limit_days() -> float:
+    raw = os.environ.get("AGENT_HARNESS_RECALL_MAX_AGE_DAYS", "").strip()
+    if not raw:
+        return _RECALL_INDEX_MAX_AGE_DAYS
+    try:
+        return max(0.0, float(raw))
+    except ValueError:
+        return _RECALL_INDEX_MAX_AGE_DAYS
+
+
+def _recall_index_is_servable(data: dict[str, Any]) -> bool:
+    version = data.get("schema_version")
+    if isinstance(version, bool) or not isinstance(version, int):
+        return False
+    if not 1 <= version <= _RECALL_INDEX_SCHEMA_VERSION:
+        return False
+    limit = _recall_index_age_limit_days()
+    if limit <= 0:
+        return True
+    built_at = data.get("built_at")
+    if not isinstance(built_at, str) or not built_at.strip():
+        return False
+    try:
+        stamp = datetime.fromisoformat(built_at.strip())
+    except ValueError:
+        return False
+    if stamp.tzinfo is None:
+        stamp = stamp.replace(tzinfo=timezone.utc)
+    age_days = (datetime.now(timezone.utc) - stamp).total_seconds() / 86400.0
+    return age_days <= limit
+
+
 class RecallModule:
     name = "bounded_recall"
 
@@ -1782,8 +1846,13 @@ class RecallModule:
         for path in self.index_paths:
             data = read_json(path, {})
             notes = data.get("notes") if isinstance(data, dict) else None
-            if isinstance(notes, list):
-                return [item for item in notes if isinstance(item, dict)]
+            if not isinstance(notes, list):
+                continue
+            if not _recall_index_is_servable(cast(dict[str, Any], data)):
+                # P1C22 · undatable or expired artifact: skip it instead of
+                # silently injecting obsolete notes, and try the next candidate.
+                continue
+            return [item for item in notes if isinstance(item, dict)]
         return []
 
     def run(self, event: HookEvent) -> HookResult:

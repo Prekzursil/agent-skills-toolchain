@@ -26,6 +26,10 @@ normalize -> ordered modules -> core HookResult -> native adapter -> provider st
 - Only irreversible operations and literal-secret or credential access paths are blocked.
 - Recall reads a local lexical index only. Hooks never call vector, semantic, network,
   or model search.
+- Recall never serves an index it cannot date. A candidate index file is used only when it
+  declares a `schema_version` this consumer understands and a `built_at` inside the age
+  limit; otherwise it is skipped in favour of the next configured path, and recall stays
+  quiet when every candidate is rejected. Stale-but-quiet beats obsolete-and-injected.
 - Pre-compaction checkpoints contain a session hash and project hash, never a transcript
   path, raw session identifier, absolute cwd, or unredacted secret.
 - Provider output never contains `suppressOutput`.
@@ -43,6 +47,18 @@ Rebuild the shared Basic Memory lexical index:
 ```powershell
 python C:\Users\Prekzursil\.agents\harness\recall_index.py --vault D:\basic-memory
 ```
+
+The rebuild is manual, so the index is the one harness artifact that can silently rot:
+notes get edited, superseded, or deleted in the vault while the built document stays on
+disk. `recall_index.py` therefore stamps each document with `schema_version` (the note
+schema it was produced with), `built_at` (UTC build time) and `vault_hash` (a fingerprint
+over every indexed path plus its mtime), and `RecallModule` refuses to serve a document
+whose `schema_version` it does not understand or whose `built_at` is older than 30 days.
+Consequence to expect in the field: recall goes quiet rather than wrong once the index
+expires — rerun the command above (and re-run it after any bulk vault edit, since an
+unchanged `built_at` is what the age check reads). Operators who rebuild out-of-band on a
+different cadence can widen or disable the age check with
+`AGENT_HARNESS_RECALL_MAX_AGE_DAYS` (days; `0` disables it).
 
 Install registrations after the tests pass:
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import concurrent.futures
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -750,34 +751,29 @@ def test_checkpoint_is_redacted_bounded_and_contains_no_raw_paths_or_session(tmp
 
 
 def test_recall_uses_local_lexical_index_and_requires_high_precision(tmp_path):
-    index = tmp_path / "recall-index.json"
-    index.write_text(
-        json.dumps(
+    index = _recall_index(
+        tmp_path,
+        [
             {
-                "notes": [
-                    {
-                        "title": "Reframe Make Shorts auto transcribe decision",
-                        "permalink": "projects/reframe/make-shorts-auto-transcribe",
-                        "summary": "Auto transcribe before selecting clips when transcript is absent.",
-                        "keywords": [
-                            "reframe",
-                            "make",
-                            "shorts",
-                            "auto",
-                            "transcribe",
-                            "transcript",
-                        ],
-                    },
-                    {
-                        "title": "Unrelated note",
-                        "permalink": "notes/unrelated",
-                        "summary": "Other work.",
-                        "keywords": ["other"],
-                    },
-                ]
-            }
-        ),
-        encoding="utf-8",
+                "title": "Reframe Make Shorts auto transcribe decision",
+                "permalink": "projects/reframe/make-shorts-auto-transcribe",
+                "summary": "Auto transcribe before selecting clips when transcript is absent.",
+                "keywords": [
+                    "reframe",
+                    "make",
+                    "shorts",
+                    "auto",
+                    "transcribe",
+                    "transcript",
+                ],
+            },
+            {
+                "title": "Unrelated note",
+                "permalink": "notes/unrelated",
+                "summary": "Other work.",
+                "keywords": ["other"],
+            },
+        ],
     )
     module = RecallModule(index_paths=[index], max_results=2, state_root=tmp_path)
 
@@ -1286,6 +1282,141 @@ def test_ledger_records_instructions_and_task_events(iso, tmp_path):
     assert "instructions" in kinds and "task" in kinds
 
 
+def test_instructions_activation_telemetry_is_reachable_from_a_real_host(iso, tmp_path):
+    # B9 · the direct LedgerModule.run() call above keeps _append_instructions
+    # COVERED, but coverage is not reachability: the handler only ever runs if a
+    # provider is actually registered for InstructionsLoaded. It was not, so the
+    # RULES activation telemetry could never be emitted in production while the
+    # unit test stayed green. Assert the registration surface, then drive the
+    # event through the dispatcher (the path a host takes) rather than the module.
+    from harness.dispatcher import HarnessDispatcher
+    from harness.registration import EVENTS as _EVENTS, build_hooks as _build_hooks
+
+    assert "InstructionsLoaded" in _EVENTS
+    for provider in ("claude", "codex"):
+        groups = _build_hooks(provider)["InstructionsLoaded"]
+        command = groups[0]["hooks"][0]["command"].replace("\\", "/")
+        assert command.endswith(
+            f'/dispatcher.py" --provider {provider} --event InstructionsLoaded'
+        )
+
+    ledger = EventLedger(tmp_path / "state")
+    result = HarnessDispatcher(
+        modules=[LedgerModule(ledger)], state_root=tmp_path / "state"
+    ).dispatch(
+        {
+            "session_id": "session-1",
+            "turn_id": "turn-1",
+            "cwd": str(tmp_path),
+            "hook_event_name": "InstructionsLoaded",
+            "source": "AGENTS.md",
+        },
+        provider="claude",
+        event_name="InstructionsLoaded",
+    )
+
+    assert result.status == "SUCCESS:hook-instructionsloaded"
+    records = [
+        e for e in ledger.replay(str(tmp_path), limit=20) if e["kind"] == "instructions"
+    ]
+    assert len(records) == 1 and records[0]["source"] == "AGENTS.md"
+
+
+# =============================================================================
+# D17-F4 · parent -> child task/subagent provenance (envelope + ledger)
+# =============================================================================
+def _lineage_record(tmp_path, name, kind, **overrides):
+    ledger = EventLedger(tmp_path / "state")
+    LedgerModule(ledger).run(event(tmp_path, name, **overrides))
+    records = [e for e in ledger.replay(str(tmp_path), limit=20) if e["kind"] == kind]
+    assert len(records) == 1
+    return records[0]
+
+
+@pytest.mark.parametrize(
+    ("parent_key", "expected"),
+    [
+        ("parent_task_id", "parent-7"),
+        ("parentTaskId", "parent-7"),
+        ("parent_agent_id", "parent-7"),
+        ("parentAgentId", "parent-7"),
+        ("parent_id", "parent-7"),
+        ("parentId", "parent-7"),
+    ],
+)
+def test_task_completion_records_the_spawning_task(iso, tmp_path, parent_key, expected):
+    # A provider that supplies BOTH the child and its parent used to lose the
+    # parent during normalization, so the completion fact could not be joined
+    # back to what spawned it. Every spelling a host may use is accepted.
+    record = _lineage_record(
+        tmp_path,
+        "TaskCompleted",
+        "task",
+        task_id="child-9",
+        task_type="reviewer",
+        last_assistant_message="SUCCESS:review",
+        **{parent_key: expected},
+    )
+    assert record["parent_id"] == expected
+
+
+def test_task_lineage_prefers_the_task_edge_over_the_agent_edge(iso, tmp_path):
+    record = _lineage_record(
+        tmp_path,
+        "TaskCompleted",
+        "task",
+        task_id="child-9",
+        parent_task_id="parent-task",
+        parent_agent_id="parent-agent",
+        last_assistant_message="SUCCESS:review",
+    )
+    assert record["parent_id"] == "parent-task"
+
+
+def test_subagent_lifecycle_records_the_spawning_agent(iso, tmp_path):
+    record = _lineage_record(
+        tmp_path,
+        "SubagentStop",
+        "subagentstop",
+        agent_id="child-9",
+        agent_type="reviewer",
+        parent_agent_id="agent-parent",
+        last_assistant_message="SUCCESS:review",
+    )
+    assert record["parent_id"] == "agent-parent"
+
+
+@pytest.mark.parametrize("absent", [{}, {"parent_task_id": ""}, {"parent_id": "   "}])
+def test_lineage_field_is_omitted_when_no_parent_is_reported(iso, tmp_path, absent):
+    # KNOWN-NEGATIVE control: hosts that report no lineage must not start paying
+    # for an always-empty column, and the assertions above must be able to fail.
+    record = _lineage_record(
+        tmp_path,
+        "TaskCompleted",
+        "task",
+        task_id="child-9",
+        last_assistant_message="SUCCESS:review",
+        **absent,
+    )
+    assert "parent_id" not in record
+
+
+def test_lineage_never_persists_a_transcript_path(iso, tmp_path):
+    # The claim is explicitly "provenance WITHOUT persisting transcript paths":
+    # a host that stuffs one into a parent field must not turn the ledger into a
+    # path sidechannel.
+    record = _lineage_record(
+        tmp_path,
+        "TaskCompleted",
+        "task",
+        task_id="child-9",
+        parent_task_id="C:/Users/someone/.claude/projects/p/abc.jsonl",
+        last_assistant_message="SUCCESS:review",
+    )
+    assert "abc.jsonl" not in record["parent_id"]
+    assert "Users" not in record["parent_id"]
+
+
 # =============================================================================
 # D2 · injection tripwire (shadow default; enforce-on-demand)
 # =============================================================================
@@ -1574,9 +1705,19 @@ def test_budget_pacing_injects_on_change_only(iso, tmp_path, monkeypatch):
 # =============================================================================
 # B1/B3 · composite recall scoring, session-suppress, poison-gate, stigmergic
 # =============================================================================
-def _recall_index(tmp_path, notes):
-    index = tmp_path / "recall-index.json"
-    index.write_text(json.dumps({"notes": notes}), encoding="utf-8")
+def _recall_index(tmp_path, notes, *, name="recall-index.json", **document):
+    """A document shaped like a REAL recall_index.py build. The P1C22 freshness
+    guard skips any index that does not declare a supported schema_version and a
+    fresh built_at, so a bare {"notes": [...]} fixture is not a servable index."""
+    index = tmp_path / name
+    payload = {
+        "schema_version": 2,
+        "built_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "vault_hash": "0" * 64,
+        "notes": notes,
+    }
+    payload.update(document)
+    index.write_text(json.dumps(payload), encoding="utf-8")
     return index
 
 

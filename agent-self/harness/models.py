@@ -20,6 +20,11 @@ class AgentEnvelope:
     id: str = ""
     type: str = ""
     transcript_path: str = ""
+    # D17-F4 · the spawning task/agent, when the host names one. Without it a
+    # TaskCompleted/SubagentStop fact cannot be joined back to what spawned it,
+    # so concurrent workers are indistinguishable in the ledger. An OPAQUE ID
+    # only — never a transcript path, and never a second transcript field.
+    parent_id: str = ""
 
 
 @dataclass(frozen=True)

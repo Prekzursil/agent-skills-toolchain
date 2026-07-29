@@ -250,7 +250,17 @@ class HarnessDispatcher:
         *,
         provider: str,
         event_name: str,
+        transport_error: str | None = None,
     ) -> HookResult:
+        """Run the module chain over one normalized event.
+
+        ``transport_error`` names a failure that happened BEFORE normalization —
+        the caller could not turn the host's stdin into an event payload, so the
+        modules are about to run over an empty ``raw``. Staying fail-open there is
+        deliberate (D010), but the durable record must not read SUCCESS/ok: the
+        hook did no real work, and a promotion or smoke oracle that grades the
+        terminal record would otherwise score that silent loss as green.
+        """
         started = time.perf_counter()
         event = normalize_event(raw, provider=provider, event_name=event_name)
         action = "allow"
@@ -259,8 +269,8 @@ class HarnessDispatcher:
         collected: list[tuple[int, str, str]] = []
         seen: set[str] = set()
         continuation: str | None = None
-        had_error = False
-        failed_modules: list[str] = []
+        had_error = bool(transport_error)
+        failed_modules: list[str] = [transport_error] if transport_error else []
 
         # F6 · per-module error-streak circuit-breaker (SHADOW by default).
         breaker_mode = _mode_env("HARNESS_BREAKER_MODE", "shadow")
@@ -532,13 +542,20 @@ def _parse_args(argv: list[str] | None = None) -> Any:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+    # D010 · a wire payload the harness cannot parse still fails OPEN (rc 0, no
+    # stdout, modules run over {}), but it is named so the terminal record reads
+    # FAILED:hook-<event>/internal_error instead of a false SUCCESS. Empty stdin
+    # is NOT an error - several hosts send nothing for some events.
+    transport_error: str | None = None
     try:
         raw_text = sys.stdin.read()
         raw = json.loads(raw_text or "{}")
         if not isinstance(raw, dict):
             raw = {}
+            transport_error = "_transport:non_object_payload"
     except Exception:
         raw = {}
+        transport_error = "_transport:malformed_json"
 
     try:
         dispatcher = HarnessDispatcher(state_root=args.state_root)
@@ -546,6 +563,7 @@ def main(argv: list[str] | None = None) -> int:
             raw,
             provider=args.provider,
             event_name=args.event,
+            transport_error=transport_error,
         )
         native = render_output(result, provider=args.provider, event_name=args.event)
         if native or args.event in {"Stop", "SubagentStop"}:
