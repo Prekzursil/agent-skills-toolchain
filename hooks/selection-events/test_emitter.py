@@ -21,6 +21,17 @@ sys.dont_write_bytecode = True
 
 HERE = Path(__file__).resolve().parent
 HOOK = HERE / "emitter.py"
+# The committed deploy surface (agent-self/README.md: the snapshot of ~/.claude that
+# actually ships).  Absent when this suite runs from its DEPLOYED location, so every
+# assertion against it is file-keyed rather than platform-keyed.
+DEPLOY_SETTINGS = HERE.parent.parent / "agent-self" / "config" / "settings.json"
+EMITTER_COMMAND_FRAGMENT = "selection-events/emitter.py"
+# The hook events emitter.main() dispatches on (module docstring, "Supported hook
+# events").  Hard-coded on purpose: deriving this set from emitter.py would let a
+# dropped dispatch arm make its own wiring regression test pass.
+EMITTER_HOOK_EVENTS = frozenset(
+    {"UserPromptSubmit", "PostToolUse", "PostToolUseFailure"}
+)
 EVENT_KEYS = {
     "seq",
     "schema",
@@ -545,6 +556,48 @@ class EmitterTests(unittest.TestCase):
         )
         self.assertEqual(0, storage_error.returncode)
         self.assertEqual("", storage_error.stdout)
+
+
+class DeployWiringTest(unittest.TestCase):
+    """The deploy surface must reach every hook event the emitter implements.
+
+    Regression: ``PostToolUse`` was missing while ``PostToolUseFailure`` was
+    registered, so ``_emit_selection(data, True)`` was unreachable through the
+    configured lifecycle and every selection.v1 row the ledger could ever receive
+    carried ``success=false`` -- a systematically failure-biased dataset.
+    """
+
+    def registered_events(self) -> set[str]:
+        doc = json.loads(DEPLOY_SETTINGS.read_text(encoding="utf-8"))
+        found: set[str] = set()
+        for event, groups in doc.get("hooks", {}).items():
+            for group in groups:
+                for hook in group.get("hooks", []):
+                    command = str(hook.get("command", ""))
+                    if EMITTER_COMMAND_FRAGMENT in command:
+                        found.add(event)
+        return found
+
+    def test_deploy_config_registers_every_implemented_event(self) -> None:
+        if not DEPLOY_SETTINGS.is_file():
+            self.skipTest(f"needs the committed deploy surface at {DEPLOY_SETTINGS}")
+        registered = self.registered_events()
+        # Detector control: the known-present registrations must be found first, so
+        # an empty result can never be read as "nothing is missing".
+        self.assertIn("UserPromptSubmit", registered)
+        self.assertIn("PostToolUseFailure", registered)
+        self.assertEqual(
+            set(),
+            EMITTER_HOOK_EVENTS - registered,
+            "emitter.py handles these hook events but the deploy config never "
+            f"delivers them: {sorted(EMITTER_HOOK_EVENTS - registered)}",
+        )
+        self.assertEqual(
+            set(),
+            registered - EMITTER_HOOK_EVENTS,
+            "the deploy config registers the emitter for events it ignores: "
+            f"{sorted(registered - EMITTER_HOOK_EVENTS)}",
+        )
 
 
 if __name__ == "__main__":
