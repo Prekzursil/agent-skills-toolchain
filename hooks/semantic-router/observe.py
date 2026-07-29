@@ -2,9 +2,16 @@
 """PostToolUse hook — success-alignment observer for the semantic router.
 
 Closes the loop: when the agent actually INVOKES something the router suggested this session
-(a Skill, a Task subagent, or an MCP tool), credit it (used++ in success.json). route.py then
-gives historically-acted-on units a small ranking nudge (success.boost). This is the cheap,
-durable Memento-Skills signal — no transcript scraping, no model calls.
+(a Skill, a Task subagent, or an MCP tool) AND that invocation did not visibly fail, credit it
+(used++ in success.json). route.py then gives historically-acted-on units a small ranking nudge
+(success.boost). This is the cheap, durable Memento-Skills signal — no transcript scraping, no
+model calls.
+
+Scope of the outcome check (`explicitly_failed`): it filters invocations the payload REPORTS
+as failed.
+It is not a task-outcome oracle — an invocation that returns cleanly but turns out to be the
+wrong route still earns a credit. Grading that needs an acceptance signal (tests, owner
+correction, reopen state) this hook does not receive.
 
 Matched in settings.json for Skill / Task / mcp__* tools. Inject-nothing, exit 0, fail-open.
 

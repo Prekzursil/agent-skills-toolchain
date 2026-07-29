@@ -103,12 +103,47 @@ def _decision_shapes(prompt):
     return out
 
 
+# A YAML block-scalar header: '>' or '|' plus any chomping (+/-) and/or indentation
+# (digit) indicator. `description: >` puts the real text on the FOLLOWING indented
+# lines, so a same-line-only regex captures the marker itself; the unit is then
+# indexed with zero descriptive tokens and cannot clear the 2-shared-token gate below.
+_BLOCK_SCALAR = re.compile(r"^[|>][+\-0-9]{0,2}$")
+_FM_NAME = re.compile(r"^(?:name|title):[ \t]*(.*)$")
+_FM_DESC = re.compile(r"^description:[ \t]*(.*)$")
+
+
+def _fm_value(text, key_rx):
+    """First `key_rx` value in `text`, flattened to one line ("" if absent).
+
+    Same-line scalars behave exactly as before. A block scalar ('>' / '|', with any
+    chomping or indentation indicator) or an empty value instead consumes the
+    following more-indented lines, space-joined — this index only ever tokenizes the
+    description, so folding literal and folded blocks alike is lossless here.
+    """
+    lines = text.split("\n")
+    for i, ln in enumerate(lines):
+        m = key_rx.match(ln)
+        if not m:
+            continue
+        val = m.group(1).strip()
+        if val and not _BLOCK_SCALAR.match(val):
+            return val.strip("\"'")
+        indent = len(ln) - len(ln.lstrip())
+        block = []
+        for nxt in lines[i + 1 :]:
+            if not nxt.strip():
+                continue
+            if (len(nxt) - len(nxt.lstrip())) <= indent:
+                break
+            block.append(nxt.strip())
+        return " ".join(block).strip()
+    return ""
+
+
 def _meta(md, default_name, want_first_line=False):
     head = open(md, encoding="utf-8", errors="replace").read()[:2000]
-    nm = re.search(r"(?m)^(?:name|title):\s*(.+)$", head)
-    ds = re.search(r"(?m)^description:\s*(.+)$", head)
-    name = (nm.group(1) if nm else default_name).strip().strip("\"'")
-    desc = (ds.group(1) if ds else "").strip().strip("\"'")
+    name = _fm_value(head, _FM_NAME) or default_name.strip().strip("\"'")
+    desc = _fm_value(head, _FM_DESC)
     if not desc and want_first_line:
         for line in head.splitlines():
             ln = line.strip()

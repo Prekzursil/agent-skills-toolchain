@@ -75,6 +75,44 @@ def _read(p):
         return ""
 
 
+# A YAML block-scalar header: '>' or '|' plus any chomping (+/-) and/or indentation
+# (digit) indicator. `description: >` puts the real text on the FOLLOWING indented
+# lines, so a same-line-only regex captures the marker itself and the whole blurb is
+# lost (6 of 345 canonical SKILL.md files use this form).
+_BLOCK_SCALAR = re.compile(r"^[|>][+\-0-9]{0,2}$")
+_FM_NAME = re.compile(r"(?i)^(?:name|title):[ \t]*(.*)$")
+_FM_DESC = re.compile(r"(?i)^description:[ \t]*(.*)$")
+
+
+def _fm_value(fm, key_rx):
+    """First frontmatter value matching `key_rx`, flattened to a single line.
+
+    Same-line scalars behave exactly as before. A block scalar ('>' / '|', with any
+    chomping or indentation indicator) or an empty value instead consumes the
+    following more-indented lines. Both folded and literal blocks are space-joined:
+    every consumer here treats the description as a one-line routing blurb (embedded
+    doc head, 'use when' weighting, 200-char excerpt, token bag).
+    """
+    lines = fm.split("\n")
+    for i, ln in enumerate(lines):
+        m = key_rx.match(ln)
+        if not m:
+            continue
+        val = m.group(1).strip()
+        if val and not _BLOCK_SCALAR.match(val):
+            return val.strip("\"'")
+        indent = len(ln) - len(ln.lstrip())
+        block = []
+        for nxt in lines[i + 1 :]:
+            if not nxt.strip():
+                continue
+            if (len(nxt) - len(nxt.lstrip())) <= indent:
+                break
+            block.append(nxt.strip())
+        return " ".join(block).strip()
+    return ""
+
+
 def _split_frontmatter(text):
     """Return (name, description, body). Tolerant of files with or without frontmatter."""
     name = desc = ""
@@ -83,12 +121,8 @@ def _split_frontmatter(text):
         m = re.search(r"^---\s*\n(.*?)\n---\s*\n?", text, re.S)
         if m:
             fm, body = m.group(1), text[m.end() :]
-            nm = re.search(r"(?mi)^(?:name|title):\s*(.+)$", fm)
-            ds = re.search(r"(?mi)^description:\s*(.+)$", fm)
-            if nm:
-                name = nm.group(1).strip().strip("\"'")
-            if ds:
-                desc = ds.group(1).strip().strip("\"'")
+            name = _fm_value(fm, _FM_NAME)
+            desc = _fm_value(fm, _FM_DESC)
     return name, desc, body
 
 
