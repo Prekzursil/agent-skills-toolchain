@@ -15,6 +15,7 @@ Proves the contract's cardinal rules on the first in-package adapter:
 
 from __future__ import annotations
 
+import builtins
 import shutil
 from pathlib import Path
 
@@ -220,6 +221,83 @@ def test_poll_lets_base_exception_propagate(tmp_path):
     )
     with pytest.raises(KeyboardInterrupt):
         src.poll()
+
+
+# ─────────────────── poll: an unreadable stream is NOT a success ───────────────────
+def _lock_jsonl(monkeypatch, *names: str) -> None:
+    """Make ``open`` raise ``OSError('share locked')`` for the named stream files."""
+    real_open = builtins.open
+
+    def selective(path, *args, **kwargs):
+        if any(str(path).endswith(n) for n in names):
+            raise OSError("share locked")
+        return real_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "open", selective)
+
+
+def test_poll_marks_a_wholly_unreadable_stream_unreachable(tmp_path, monkeypatch):
+    """REGRESSION (D-wu-32): a registered stream whose pending bytes cannot be read
+    must NOT be published as ``reachable=True, stale=False, error=None``.
+
+    Before the fix ``Tail.read_new`` returned ``[]`` for a failed read exactly as it
+    does for an empty one, so the failure never reached ``poll``'s ``except`` arm and
+    the board showed a fresh, healthy source while a running thread quietly aged to
+    ``done`` behind the outage.
+    """
+    poller = _poller(tmp_path)
+    stream = poller.stream_dir / "wave.jsonl"
+    stream.write_text('{"type":"turn.started"}\n', encoding="utf-8")
+    src = CodexSource(poller=poller, clock=lambda: NOW)
+    good = src.poll()
+    assert good.reachable is True and good.stale is False
+    assert good.state is SourceState.RUNNING and good.error is None
+
+    stream.write_text('{"type":"turn.started"}\n' * 2, encoding="utf-8")
+    _lock_jsonl(monkeypatch, "wave.jsonl")
+    try:
+        bad = src.poll()
+    finally:
+        monkeypatch.undo()
+
+    assert bad.reachable is False  # every registered tail failed
+    assert bad.stale is True
+    assert bad.state is SourceState.UNREACHABLE
+    assert bad.error == "stream:wave.jsonl: share locked"
+    assert bad.headline.endswith("· 1 unreadable")
+    assert src.alert(bad) is not None  # the outage is surfaced, not hidden
+    assert bad.payload.threads  # last-good per-thread state is retained
+
+
+def test_poll_stays_reachable_but_stale_when_only_one_stream_is_locked(
+    tmp_path, monkeypatch
+):
+    """A PARTIAL read failure keeps ``reachable=True`` — the source WAS touched — but
+    the snapshot is still ``stale`` and carries the error, because one thread's state
+    is retained rather than measured."""
+    poller = _poller(tmp_path)
+    for name in ("open.jsonl", "locked.jsonl"):
+        (poller.stream_dir / name).write_text(
+            '{"type":"turn.started"}\n', encoding="utf-8"
+        )
+    src = CodexSource(poller=poller, clock=lambda: NOW)
+    src.poll()
+    for name in ("open.jsonl", "locked.jsonl"):
+        (poller.stream_dir / name).write_text(
+            '{"type":"turn.started"}\n' * 2, encoding="utf-8"
+        )
+
+    _lock_jsonl(monkeypatch, "locked.jsonl")
+    try:
+        snap = src.poll()
+    finally:
+        monkeypatch.undo()
+
+    assert snap.reachable is True
+    assert snap.stale is True
+    assert snap.state is SourceState.RUNNING  # the readable stream still reports
+    assert snap.error == "stream:locked.jsonl: share locked"
+    assert "· 1 unreadable" in snap.headline
 
 
 # ───────────────────────── coarse-state derivation ─────────────────────────
