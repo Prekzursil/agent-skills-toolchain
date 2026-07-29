@@ -1,10 +1,18 @@
 #!/usr/bin/env python3
-"""Tests for background-digest/reader.py. Runs WITHOUT pytest: `python test_background_digest.py`.
+"""Tests for background-digest/reader.py. Runs standalone (`python test_background_digest.py`)
+AND under pytest.
+
+The historical `main()` body below is a standalone assertion suite; `test_legacy_suite()`
+at the bottom re-exports it to pytest, because the only CI step that reaches this file is
+`python -m pytest hooks/ -q` (quality.yml:702) and a file with no `test_*` callable is
+collected with ZERO tests. Regression tests for ranked surfacing live in the `test_*`
+functions below them.
 
 Isolates the digest + archive into a temp dir via env (set BEFORE import) so the real
 ~/.claude/BACKGROUND-DIGEST.md is never touched.
 """
 
+import importlib.util
 import io
 import json
 import os
@@ -240,6 +248,100 @@ def main():
         return 1
     print("ALL PASS")
     return 0
+
+
+# ---------------------------------------------------------------------------------
+# pytest-collectable regression tests (ranked surfacing / attention budget).
+# `python -m pytest hooks/ -q` (quality.yml:702) is the only CI step that reaches this
+# file, and it collects nothing unless a callable is named test_*.
+# ---------------------------------------------------------------------------------
+
+URGENT = (
+    "[2026-07-27 00:01:00] [resource-guard] NEEDS_YOU: disk full; builds blocked "
+    "| PROPOSE: free space"
+)
+ROUTINE = [f"[2026-07-26 {i:02d}:00:00] [idle] routine-{i:02d}" for i in range(12)]
+
+
+def _with_cap(cap, lines):
+    """Call the PURE builder at a fixed cap, restoring the module constant after."""
+    prev = R.MAX_SURFACE
+    R.MAX_SURFACE = cap
+    try:
+        return R.build_message(lines)
+    finally:
+        R.MAX_SURFACE = prev
+
+
+def test_urgent_entry_is_not_buried_by_older_routine_chatter():
+    """D-j04: 12 older routine notices + 1 later NEEDS_YOU, 12 slots.
+
+    Pre-fix (`entries[:MAX_SURFACE]`) the urgent record fell into overflow. Ranked
+    selection must surface it, and as the FIRST card.
+    """
+    msg, surfaced = _with_cap(12, [*ROUTINE, URGENT])
+    assert URGENT in surfaced, "urgent record was deferred to overflow"
+    cards = [ln for ln in msg.splitlines() if ln.startswith("[")]
+    assert cards[0] == URGENT, f"urgent record not ranked first; got {cards[0]!r}"
+    # FIFO within a band still holds: the routine cards keep queue order.
+    assert cards[1:] == ROUTINE[:11]
+
+
+def test_urgent_survives_the_three_card_attention_budget():
+    """D-j01 + D-j04 together: at the default 3-slot budget the urgent record is kept
+    and the displaced routine chatter is reported as overflow, never dropped."""
+    msg, surfaced = _with_cap(3, [*ROUTINE, URGENT])
+    assert URGENT in surfaced
+    assert len(surfaced) == 3
+    assert "...(+10 more pending" in msg
+
+
+def test_identical_repeated_state_coalesces_to_one_card_without_loss():
+    """D-j04 (coalesce): 100 byte-identical idle notices must cost ONE card, and every
+    collapsed line must still be consumed so it reaches the archive."""
+    chatter = [
+        f"[2026-07-26 {i % 24:02d}:00:00] [idle] agent-7 idle" for i in range(100)
+    ]
+    msg, surfaced = _with_cap(3, [*chatter, URGENT])
+    cards = [ln for ln in msg.splitlines() if ln.startswith("[")]
+    assert len(cards) == 2, f"expected urgent + 1 coalesced card, got {len(cards)}"
+    assert cards[0] == URGENT
+    assert "(x100 observations)" in cards[1]
+    assert len(surfaced) == 101, "coalesced repeats must still be consumed/archived"
+    assert "more pending" not in msg
+
+
+def test_ranking_is_deterministic():
+    """Same input -> same order, twice (no clock, no set iteration order)."""
+    a, _ = _with_cap(5, [*ROUTINE, URGENT])
+    b, _ = _with_cap(5, [*ROUTINE, URGENT])
+    assert a == b
+
+
+def test_default_attention_budget_is_three():
+    """D-j01: the UNSET-env default. This module pins BG_DIGEST_MAX=3 at import, so the
+    default is measured by executing a FRESH copy of reader.py with the variable popped.
+    BG_DIGEST_FILE/ARCHIVE stay pointed at the temp dir, so ~/.claude is still untouched.
+    """
+    saved = os.environ.pop("BG_DIGEST_MAX", None)
+    try:
+        spec = importlib.util.spec_from_file_location(
+            "reader_default_probe", R.__file__
+        )
+        fresh = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(fresh)
+    finally:
+        if saved is not None:
+            os.environ["BG_DIGEST_MAX"] = saved
+    assert fresh.MAX_SURFACE == 3, (
+        f"default BG_DIGEST_MAX is {fresh.MAX_SURFACE}, exceeding the 3-delta "
+        "SessionStart attention budget"
+    )
+
+
+def test_legacy_suite():
+    """Run the standalone assertion suite above under pytest (it was never collected)."""
+    assert main() == 0, f"standalone suite failures: {_FAILS}"
 
 
 if __name__ == "__main__":
