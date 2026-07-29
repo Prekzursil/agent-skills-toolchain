@@ -151,6 +151,41 @@ def test_stop_check_names_unique_and_nonempty():
     assert len(names) == len(set(names)), "Stop check names must be unique"
 
 
+def test_journey_coverage_producer_is_wired():
+    """A wired CONSUMER whose only PRODUCER is unwired reports a false negative.
+
+    ``journey-coverage/check.py`` is registered under ``events.Stop.checks`` and its
+    docstring (check.py:14-16) names "the claim-guard Bash-exit ledger" as external
+    signal #2; it reads that ledger in ``_ok_commands`` (check.py:144-162) and treats a
+    missing file as ``[]``.  The ONLY writer of that ledger is
+    ``claim-guard/ledger-write.py``.  While the writer was in no manifest event and no
+    ``settings.json`` entry, ``_ok_commands`` always returned ``[]``, so a journey suite
+    that had just passed was still reported as "NOT run this turn".
+
+    Asserted explicitly (not derived from the manifest) so dropping the producer cannot
+    make its own regression test pass.  ``matcher`` is pinned because the writer only
+    records ``tool_name == "Bash"`` (ledger-write.py:177-179): a wider matcher would add
+    invocations that record nothing, a narrower one records nothing at all.
+    """
+    post = _manifest()["events"]["PostToolUse"]["checks"]
+    by_script = {c.get("script"): c for c in post}
+    producer = by_script.get("claim-guard/ledger-write.py")
+    assert producer is not None, (
+        "journey-coverage is wired under events.Stop.checks but its ledger producer "
+        "claim-guard/ledger-write.py is absent from events.PostToolUse.checks, so the "
+        "Stop consumer can only ever see an empty ledger"
+    )
+    assert producer.get("matcher") == "Bash", (
+        f"claim-guard/ledger-write matcher={producer.get('matcher')!r}, expected 'Bash'"
+    )
+    assert producer.get("emits") is False, (
+        "claim-guard/ledger-write is record-only and must never inject context"
+    )
+    assert "journey-coverage" in _stop_check_names(), (
+        "precondition: this contract only matters while the consumer is wired at Stop"
+    )
+
+
 def test_a6_did_not_touch_already_live_gates():
     """wire-check + journey-coverage were already live — they must remain present."""
     names = set(_stop_check_names())

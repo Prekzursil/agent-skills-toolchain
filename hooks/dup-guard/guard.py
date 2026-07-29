@@ -69,6 +69,11 @@ _RECUR = {
     ".gitignore",
     "go.mod",
     "cargo.toml",
+    # A Swift package manifest recurs once per package, exactly like package.json /
+    # go.mod / cargo.toml. It is also matched by _SRC_EXT (".swift"), so without this
+    # entry the SECOND package in a monorepo was reported as a duplicated
+    # implementation ("extend / import the existing one") -- a false positive.
+    "package.swift",
     "pyproject.toml",
     "requirements.txt",
 }

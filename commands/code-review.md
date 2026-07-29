@@ -37,4 +37,10 @@ Comprehensive security and quality review of uncommitted changes:
 
 4. Block commit if CRITICAL or HIGH issues found
 
+   This command's gate is authoritative for the review it runs and is deliberately
+   STRICTER than the general default in `rules/common/code-review.md`, which grades HIGH
+   as `WARN` and allows "Only HIGH issues (merge with caution)". A HIGH finding surfaced
+   by `/code-review` blocks the commit; the WARN row is the fallback for reviews this
+   command did not run, never an override of it.
+
 Never approve code with security vulnerabilities!

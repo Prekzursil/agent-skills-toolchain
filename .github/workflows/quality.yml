@@ -541,6 +541,15 @@ jobs:
       # autodiscovery. Named explicitly. Stdlib-only, no install needed.
       - name: gate-tests-coverage event-ledger prune-report + oats
         run: python agent-self/config/hooks/event-ledger/test_prune_oats.py
+      # D-a002: a HIGH-only review must not get two mutually exclusive merge outcomes
+      # (rules/common/code-review.md grades HIGH as WARN; the two specialised reviewers and
+      # /code-review block on CRITICAL *or* HIGH). There is no repo-wide pytest
+      # autodiscovery, so ci/tests/ needs this NAMED step or the suite never runs. The step
+      # name keeps the existing `gate-tests-coverage` marker (a space follows the slug), so
+      # .quality/charter_check.sh's reverse check still maps it to the `tests-coverage`
+      # charter gate and no new charter slug is required.
+      - name: gate-tests-coverage review-severity coherence
+        run: python -m pytest ci/tests/test_review_severity_coherence.py -q
       # G-10: hooks/_shared suites are standalone scripts with their own __main__, so pytest
       # DISCOVERY is not evidence that they ran — call this one explicitly.
       - name: gate-tests-coverage hook-manifest provenance

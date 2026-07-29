@@ -124,6 +124,37 @@ def setup_repo() -> Path:
     return repo
 
 
+def test_second_swift_package_manifest_is_silent() -> None:
+    """`Package.swift` recurs once per package -- a 2nd one is NOT a duplicate.
+
+    Collected by the ``pytest hooks/`` step already named in
+    ``.github/workflows/quality.yml`` (no new CI step needed).  ``.swift`` is in
+    ``_SRC_EXT``, so before ``package.swift`` joined ``_RECUR`` this fired
+    "extend / import the existing one" at every additional Swift package in a
+    monorepo.  Observed RED before the guard change, GREEN after.
+    """
+    repo = Path(tempfile.gettempdir()) / f"dg-swift-{uuid.uuid4().hex}"
+    (repo / "PackageA").mkdir(parents=True, exist_ok=True)
+    (repo / "PackageA" / "Package.swift").write_text(
+        "// swift-tools-version:5.9\nimport PackageDescription\n", encoding="utf-8"
+    )
+    out = run(
+        {
+            "session_id": "swift-pkg",
+            "tool_name": "Write",
+            "cwd": str(repo),
+            "tool_input": {
+                "file_path": str(repo / "PackageB" / "Package.swift"),
+                "content": "// swift-tools-version:5.9\nimport PackageDescription\n",
+            },
+        }
+    )
+    assert not fired(out), (
+        "a second Swift package manifest must not be reported as a duplicate; "
+        f"guard emitted: {out!r}"
+    )
+
+
 def main() -> int:
     repo = setup_repo()
     cwd = str(repo)
