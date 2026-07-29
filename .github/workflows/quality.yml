@@ -522,6 +522,17 @@ jobs:
         run: |
           python -m pytest ci/tests/test_rules_scope.py -q
 
+      # D-a050: rules/common is the UNIVERSAL layer every rules/<lang>/ dir declares it
+      # extends, but Claude Code realises that only through the `paths:` frontmatter --
+      # a universal rule whose selector omits a language's extensions is simply absent
+      # for that language's work (measured: Perl and Dart loaded zero common rules).
+      # skill-dual-write.yml already collects all of ci/tests, but quality.yml is the
+      # source of truth for what runs and there is NO repo-wide pytest autodiscovery,
+      # so the suite is named here too. Reuses the existing gate-tests-coverage charter
+      # slug on purpose -- not a new gate, so .quality/charter_check.sh stays consistent
+      # with no charter.yml edit.
+      - name: gate-tests-coverage rules selector inheritance
+        run: python -m pytest ci/tests/test_rules_selector_inheritance.py -q
       # L13 adoption: the checked-in adversarial corpus plus its miner regressions.
       - name: gate-tests-coverage adversarial harness corpus
         run: |

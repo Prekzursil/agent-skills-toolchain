@@ -36,6 +36,19 @@ Language dispatch
   .yaml/.yml    yaml.safe_load  (skip silently if pyyaml absent)
   .java         pure-Python delimiter-balance heuristic, ADVISORY only
   .rs           skipped  — cargo check too heavy for a per-edit hook
+  everything    skipped, SILENTLY — the catch-all in ``_run_check``.  ``.kt``,
+  else          ``.kts``, ``.swift``, ``.dart``, ``.go``, ``.java``, ``.php``,
+                ``.pl`` … all return the same ``([], False)`` as the three
+                deliberate skips above and as a genuinely clean file.  This
+                hook covers the five families listed here and NOTHING else.
+                In particular it does NOT implement ``rules/<lang>/hooks.md``:
+                those files open with "Configure in ``~/.claude/settings.json``"
+                and are portable guidance for whoever operates a project in
+                that language, not a specification for this hook.  Adding a
+                language means adding a fast, always-available checker here —
+                a per-edit hook cannot shell out to tsc / ktlint / swiftlint.
+                The write-path secret gate above is the one check that DOES
+                run for every extension.
 
 Every other extension (.go, .rb, .cs, .kt, .swift, ...) is a deliberate silent
 skip: no checker for it is both always-available and cheap enough here.
@@ -43,8 +56,25 @@ skip: no checker for it is both always-available and cheap enough here.
 Exit protocol (AGENTS.md §6)
 ─────────────────────────────
   ruff lint issues             → exit 0 + additionalContext inject (soft nudge)
+  hardcoded credential         → exit 2 + reason on stderr, stdout clean
   py_compile / node / JSON
-    syntax errors              → exit 2 + decision:block JSON (hard nudge)
+    syntax errors              → exit 2 + reason on stderr, stdout clean
+
+  There is NO ``decision:block`` JSON on either exit-2 path and there never
+  was: Claude Code ignores stdout at exit 2, so the emit branch writes plain
+  text to stderr (see the comment there).  An earlier version of this docstring
+  advertised such a payload; it was never emitted (measured: stdout == "").
+
+  AGENTS.md §6 reserves exit 2 for "irreversible/dangerous only — destructive
+  git ops, secrets in code, force-push to main".  The credential gate is
+  squarely inside that list.  The SYNTAX-error block is NOT, and this is a
+  known, unresolved tension rather than a settled reading: ``test_check.py``
+  enshrines exit 2 for syntax in five assertions, and
+  ``test_python_ruff_e999_syntax_error_blocks`` records that soft-injecting
+  E999 was previously classified as a bug ("M2b").  Reconciling the two is a
+  policy decision for the contract owner — do not silently flip either side.
+  Settling experiment: soft-inject syntax errors behind an env flag for a week
+  and measure whether the edit-fix loop degrades.
 
 FAIL-OPEN: every unhandled error → exit 0, no output.
 Opt-outs:  env  PER_EDIT_CHECK=off    (any capitalisation) — whole hook

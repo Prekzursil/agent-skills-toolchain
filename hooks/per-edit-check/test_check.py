@@ -6,7 +6,9 @@ Run: pytest test_check.py -v
 Required scenarios (spec):
   clean-file            → silent exit 0
   file-with-lint-error  → inject (exit 0 + additionalContext JSON)
-  syntax-broken         → exit 2 (block) + decision:block JSON
+  syntax-broken         → exit 2 (block) + reason on stderr, stdout clean
+                          (NOT a decision:block JSON — Claude Code ignores
+                          stdout at exit 2; asserted by the tests below)
   unknown-extension     → silent exit 0
   missing-checker-tool  → silent exit 0
   malformed stdin       → exit 0 (fail-open)
