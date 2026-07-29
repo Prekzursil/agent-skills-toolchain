@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
+import harness.recall_index as R
 from harness.recall_index import build_index
 
 
@@ -237,3 +240,85 @@ def test_documented_shell_command_not_poisoned(tmp_path):
         "---\ntitle: Install\n---\nBootstrap: curl -fsSL https://get.example.dev | sh\n",
     )
     assert data["notes"][0]["poisoned"] is False
+
+
+# --- D-wu-34: the index target must never alias a source note ------------------
+#
+# Regression for the destructive-aliasing defect: `--target` pointing at a note
+# inside the scanned vault replaced that note's Markdown with the generated index
+# JSON while the CLI still exited 0 and printed SUCCESS:recall-index. The bytes
+# were unrecoverable and nothing in the output said so.
+
+_SOURCE_NOTE = "---\ntitle: Important\n---\n\nDo not lose this paragraph.\n"
+
+
+def test_build_index_refuses_to_overwrite_a_source_note_in_the_vault(tmp_path):
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    note = vault / "important.md"
+    note.write_text(_SOURCE_NOTE, encoding="utf-8")
+
+    with pytest.raises(ValueError):
+        build_index(vault, note)
+
+    # The guard must run BEFORE the write, so the source is byte-for-byte intact.
+    assert note.read_text(encoding="utf-8") == _SOURCE_NOTE
+
+
+def test_build_index_refuses_a_new_target_path_inside_the_vault(tmp_path):
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    (vault / "a.md").write_text("---\ntitle: A\n---\nbody\n", encoding="utf-8")
+    inside = vault / "nested" / "recall-index.json"
+
+    with pytest.raises(ValueError):
+        build_index(vault, inside)
+
+    assert not inside.exists()
+
+
+def test_build_index_refuses_the_vault_directory_itself_as_target(tmp_path):
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    (vault / "a.md").write_text("---\ntitle: A\n---\nbody\n", encoding="utf-8")
+
+    with pytest.raises(ValueError):
+        build_index(vault, vault)
+
+    assert vault.is_dir()
+
+
+def test_cli_reports_failed_instead_of_destroying_a_source_note(
+    tmp_path, monkeypatch, capsys
+):
+    # The headline symptom: exit 0 + SUCCESS while the note was gone. The command
+    # must now reach a FAILED terminal state and leave the note untouched.
+    monkeypatch.setenv("AGENT_HARNESS_STATE_ROOT", str(tmp_path / "state"))
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    note = vault / "important.md"
+    note.write_text(_SOURCE_NOTE, encoding="utf-8")
+
+    rc = R.main(["--vault", str(vault), "--target", str(note)])
+
+    out = capsys.readouterr().out
+    assert rc == 1
+    assert "FAILED:recall-index ValueError" in out
+    assert "SUCCESS" not in out
+    assert note.read_text(encoding="utf-8") == _SOURCE_NOTE
+
+
+def test_guard_is_not_over_broad_for_a_name_prefixed_sibling(tmp_path):
+    # `vault-backup/` merely shares a NAME PREFIX with `vault/`; a string-prefix
+    # containment test would wrongly reject it. Containment is per path component.
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    (vault / "a.md").write_text("---\ntitle: A\n---\nbody\n", encoding="utf-8")
+    sibling = tmp_path / "vault-backup"
+    sibling.mkdir()
+    target = sibling / "index.json"
+
+    count = build_index(vault, target)
+
+    assert count == 1
+    assert json.loads(target.read_text(encoding="utf-8"))["schema_version"] == 2

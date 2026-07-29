@@ -256,6 +256,16 @@ def build_index(vault: Path | str, target: Path | str) -> int:
     now = time.time()
     if not vault_path.exists():
         raise FileNotFoundError(vault_path)
+    # An index target inside the scanned vault ALIASES a source note: the writer
+    # below replaces that pathname outright, so the note's Markdown bytes are lost
+    # while the caller still gets a success return (and the CLI still prints
+    # SUCCESS). Reject it before anything is read or written. `parent.resolve() /
+    # name` is compared because that is the exact directory entry os.replace acts
+    # on - a symlinked FINAL component is replaced in place, not followed.
+    write_target = target_path.expanduser()
+    write_target = write_target.parent.resolve() / write_target.name
+    if write_target.is_relative_to(vault_path):
+        raise ValueError(f"refusing to write the index inside the vault: {target}")
 
     for path in sorted(vault_path.rglob("*.md")):
         try:
