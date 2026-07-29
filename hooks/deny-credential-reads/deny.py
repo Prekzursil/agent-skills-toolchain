@@ -57,6 +57,16 @@ SECRET_FRAGMENTS = [
     ".p12",
     ".pfx",
 ]
+# PUBLIC placeholder templates. By universal convention these are COMMITTED to
+# version control and hold no real secret (`.env` is gitignored, `.env.example`
+# is not), so the `.env.*` glob must not swallow them: it made the guard deny the
+# first step of `commands/update-docs.md:29` ("Read `.env.example` (or
+# `.env.template`, `.env.sample`)"). Matched as EXACT basenames, never as a glob,
+# so `.env.example.bak` / `.env.examples` stay sensitive.
+PUBLIC_TEMPLATE_SUFFIXES = ("example", "template", "sample")
+PUBLIC_TEMPLATE_BASENAMES = frozenset(
+    ".env." + suffix for suffix in PUBLIC_TEMPLATE_SUFFIXES
+)
 
 
 def is_sensitive(path):
@@ -64,6 +74,8 @@ def is_sensitive(path):
         return False
     p = str(path).strip().strip('"').strip("'")
     base = os.path.basename(p).lower()
+    if base in PUBLIC_TEMPLATE_BASENAMES:
+        return False
     low = p.replace("\\", "/").lower()
     for g in SENSITIVE_GLOBS:
         gl = g.lower()
@@ -72,11 +84,26 @@ def is_sensitive(path):
     return False
 
 
+def _fragment_pattern(fragment):
+    """Regex source for one SECRET_FRAGMENTS entry.
+
+    `.env` is the only special case: an occurrence that is exactly a public
+    template (`.env.example`, `.env.template`, `.env.sample`) must NOT match, so
+    `cat .env.example` stays allowed while `cat .env`, `cat .env.local` and
+    `cat .env.examples` keep matching. The trailing `(?![\\w.-])` keeps this
+    exemption in lockstep with the exact-basename rule in is_sensitive().
+    """
+    if fragment != ".env":
+        return re.escape(fragment)
+    suffixes = "|".join(PUBLIC_TEMPLATE_SUFFIXES)
+    return r"\.env(?!\.(?:" + suffixes + r")(?![\w.-]))"
+
+
 def bash_touches_secret(cmd):
     if not cmd:
         return False
     low = str(cmd).lower()
-    frag = "|".join(re.escape(f) for f in SECRET_FRAGMENTS)
+    frag = "|".join(_fragment_pattern(f) for f in SECRET_FRAGMENTS)
     # a read verb on the same segment as a secret fragment
     if re.search(READ_VERBS + r"[^\n|;&<>]*(?:" + frag + r")", low):
         return True
