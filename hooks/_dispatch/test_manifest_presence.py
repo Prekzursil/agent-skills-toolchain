@@ -52,6 +52,18 @@ WIRED_BY_A6 = ("dark-surface",)
 # inject-only; an exit-2 gate folded into it is silently disarmed.
 REQUIRED_STANDALONE_SCRIPTS = ("test-tamper-guard/guard.py",)
 
+# A6 wired dark-surface at Stop but NOT its PostToolUse producer, so the gate was
+# live-but-inert: dark-surface/check.py:190-202 reads <tmp>/edit-validate/<sid>.edits
+# and returns [] on any missing file, and :217-230 only emits for a file in that
+# list.  Its SOLE producer is edit-validate/record.py:19-40.  stub-ledger/report.py
+# returns 0 on a completion-claim Stop turn to "defer to dark-surface", so while the
+# producer was unregistered NEITHER half fired on exactly the turns that matter --
+# the same GREEN-not-LIVE shape the dark-surface entry itself was added to catch.
+# Route pinned to test_wiring.EXPECTED_DISPATCH_ROUTES["PostToolUse"].
+DARK_SURFACE_PRODUCER = "edit-validate/record"
+DARK_SURFACE_PRODUCER_SCRIPT = "edit-validate/record.py"
+DARK_SURFACE_PRODUCER_MATCHER = "Edit|Write|MultiEdit"
+
 
 def _manifest() -> dict:
     return json.loads(MANIFEST.read_text(encoding="utf-8"))
@@ -143,3 +155,57 @@ def test_a6_did_not_touch_already_live_gates():
     """wire-check + journey-coverage were already live — they must remain present."""
     names = set(_stop_check_names())
     assert {"wire-check", "journey-coverage"}.issubset(names)
+
+
+def _posttooluse_checks() -> list[dict]:
+    return _manifest()["events"]["PostToolUse"]["checks"]
+
+
+def test_dark_surface_producer_is_wired_at_posttooluse():
+    """A Stop consumer is INERT unless the producer of its input is registered too.
+
+    Wiring dark-surface at Stop while leaving edit-validate/record unregistered
+    left the gate permanently silent: no .edits file is ever written, so
+    ``_edited_files`` returns [] on every turn and the stub scan has nothing to
+    scan.  Asserting the consumer's presence alone cannot catch that -- this is
+    the missing half.
+    """
+    assert "dark-surface" in set(_stop_check_names()), (
+        "precondition: dark-surface must be the registered Stop consumer"
+    )
+    names = [c.get("name") for c in _posttooluse_checks()]
+    assert DARK_SURFACE_PRODUCER in names, (
+        f"{DARK_SURFACE_PRODUCER!r} missing from events.PostToolUse.checks, so "
+        "dark-surface at Stop can never see an edited file and is wired-but-inert "
+        f"(PostToolUse currently registers {names})"
+    )
+
+
+def test_dark_surface_producer_route_matches_its_consumer():
+    """The producer must fire on exactly the file-editing tools dark-surface reads.
+
+    A narrower matcher (e.g. ``Write``) would silently drop Edit/MultiEdit paths
+    from the .edits feed and re-open the same blind spot for those tools only.
+    """
+    check = next(
+        (c for c in _posttooluse_checks() if c.get("name") == DARK_SURFACE_PRODUCER),
+        None,
+    )
+    assert check is not None, f"{DARK_SURFACE_PRODUCER!r} not registered"
+    assert check.get("script") == DARK_SURFACE_PRODUCER_SCRIPT
+    assert set((check.get("matcher") or "").split("|")) == set(
+        DARK_SURFACE_PRODUCER_MATCHER.split("|")
+    ), f"producer matcher {check.get('matcher')!r} must cover Edit|Write|MultiEdit"
+    assert check.get("emits") is False, (
+        "the producer only appends to a file; it must not claim to emit context"
+    )
+
+
+def test_dark_surface_producer_script_exists_in_this_tree():
+    """The registered script must exist beside the manifest, not only on the host.
+
+    ``test_wired_gates_reference_existing_scripts`` resolves ``hooks_root``, which
+    is an absolute live Windows path and is skipped everywhere else -- so on CI
+    nothing checked that the newly wired script is actually in the repo.
+    """
+    assert (MANIFEST.parent.parent / DARK_SURFACE_PRODUCER_SCRIPT).is_file()

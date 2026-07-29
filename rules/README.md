@@ -66,6 +66,44 @@ cp -r rules/php ~/.claude/rules/php
 # Attention ! ! ! Configure according to your actual project requirements; the configuration here is for reference only.
 ```
 
+### Codex CLI
+
+Both install routes above target `~/.claude/rules/` only, which **Codex CLI never
+reads** — it discovers its own instruction files under `$CODEX_HOME` (default
+`~/.codex`). So a rule that calls itself cross-tool (for example
+[`common/windows-shell.md`](common/windows-shell.md)) is NOT in Codex's instruction
+chain until you add a pointer yourself:
+
+```bash
+# Point Codex at the installed rules (Codex does not read ~/.claude/rules).
+cp -r rules/common "${CODEX_HOME:-$HOME/.codex}/rules/common"
+# ...then reference them from $CODEX_HOME/AGENTS.md, e.g.
+#   Read ~/.codex/rules/common/windows-shell.md before any shell op.
+```
+
+> **Re-apply this after every Codex bootstrap.** `cli.mjs install` / `cli.mjs update`
+> **replaces `$CODEX_HOME/AGENTS.md` wholesale** with the generated PromptBridge
+> contract — `writeManagedFile(files.agentsPath, rendered.agents)` at
+> `tools/mcp/codex-orchestrator/integrations/codex/bootstrap.mjs:704`, whose rendered
+> body (`:326`) contains no rules pointer. It backs the old file up first, but the
+> pointer is gone from the live file until you put it back. Note the asymmetry:
+> `config.toml` next to it IS merged via a managed block (`:667-668`); only
+> `AGENTS.md` is clobbered.
+>
+> UNVERIFIED: whether a sibling `AGENTS.override.md` would survive that overwrite and
+> still be discovered — it is not written by `applyBootstrapToHome`
+> (`bootstrap.mjs:649-655`), so it plausibly would, but nothing in this repo
+> documents Codex's discovery order. Settle it by running `cli.mjs install` against a
+> throwaway `CODEX_HOME` containing both files and checking which survives and which
+> Codex actually loads. Until then, treat `$CODEX_HOME/AGENTS.md` as the only route
+> and re-apply after each bootstrap.
+
+Note `agent-self/config/codex/config.toml` is **not** an install source for this — it
+is an inbound, redacted snapshot of the live config written *into* the repo by
+`scripts/build-codespace-mirror.py:187-198`, and nothing deploys it back out
+(`agent-self/bootstrap.ps1:28` copies `config/*` to `~/.claude` only). Editing it
+changes no Codex behaviour and is overwritten on the next mirror run.
+
 ## Rules vs Skills
 
 - **Rules** define standards, conventions, and checklists that apply broadly (e.g., "80% test coverage", "no hardcoded secrets").

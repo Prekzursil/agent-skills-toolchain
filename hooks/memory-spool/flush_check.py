@@ -68,23 +68,43 @@ def run_posttool(data: dict) -> int:
             except OSError:
                 pass
         return 0
-    # FAILED / empty -> keep the spool, mark failed, alert loudly.
+    # Not confirmed saved -> keep the spool either way, but do NOT collapse the two
+    # observations. An error envelope is an OBSERVED failure; an absent/empty receipt
+    # is only an unobserved success, and single-signal-verification.md forbids
+    # reporting the second as the first (see C.response_failed).
+    confirmed_failure = C.response_failed(tr)
     title = C.title_of(tool, ti)
     kept = matches[-1]
     try:
         rec = C.load_json(kept)
-        rec["status"] = "failed"
-        rec["failed_ts"] = C.now()
+        rec["status"] = "failed" if confirmed_failure else "unconfirmed"
+        rec["failed_ts" if confirmed_failure else "unconfirmed_ts"] = C.now()
         kept.write_text(json.dumps(rec, ensure_ascii=False), encoding="utf-8")
     except Exception:
         pass
     short = tool.split("__")[-1]
-    C.emit(
-        "PostToolUse",
-        f"[memory-spool] basic-memory {short} did NOT confirm saving '{title}'. "
-        f"Memory is NOT persisted. The payload is spooled at {kept} - re-attempt the "
-        f"write (check mcp-liveness: the store may be down) before relying on recall.",
-    )
+    if confirmed_failure:
+        msg = (
+            f"[memory-spool] basic-memory {short} reported an ERROR saving "
+            f"'{title}'. Memory is NOT persisted. The payload is spooled at "
+            f"{kept} - re-attempt the write (check mcp-liveness: the store may "
+            f"be down) before relying on recall."
+        )
+    else:
+        # The retry advice is deliberately weaker here than above: edit_note
+        # append/prepend is NOT idempotent, so a blind re-attempt against a write
+        # that actually landed duplicates it.
+        msg = (
+            f"[memory-spool] basic-memory {short} returned no result for "
+            f"'{title}', so persistence is UNCONFIRMED. That is an absent "
+            f"receipt, not an observed failure - the write may have landed. The "
+            f"payload is kept at {kept}. Get a second, independent signal first: "
+            f"read the note back (read_note / search_notes). Only re-attempt if "
+            f"the read-back misses it - a blind retry of a non-idempotent "
+            f"edit_note append/prepend can duplicate an edit that already "
+            f"committed."
+        )
+    C.emit("PostToolUse", msg)
     return 0
 
 
@@ -123,9 +143,10 @@ def run_sessionstart(data: dict) -> int:
     C.emit(
         "SessionStart",
         f"[memory-spool] {len(unflushed)} memory write(s) were spooled but never "
-        f"confirmed saved: {titles}{extra}. These were lost mid-write (likely a "
-        f"basic-memory outage) - re-attempt the write_note(s) or discard the spool "
-        f"({C.SPOOL_DIR}).",
+        f"confirmed saved: {titles}{extra}. No success receipt was observed, which "
+        f"is NOT evidence the writes failed - read them back (read_note / "
+        f"search_notes) to settle it, then re-attempt only the misses or discard "
+        f"the spool ({C.SPOOL_DIR}).",
     )
     return 0
 

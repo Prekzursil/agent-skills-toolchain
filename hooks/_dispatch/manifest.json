@@ -197,6 +197,17 @@
           "isolate": "stubscan",
           "side_effect": "ledger-append",
           "emits": false
+        },
+        {
+          "name": "edit-validate/record",
+          "script": "edit-validate/record.py",
+          "args": [],
+          "timeout": 5,
+          "matcher": "Edit|Write|MultiEdit",
+          "isolate": null,
+          "side_effect": "edits-append",
+          "emits": false,
+          "comment": "The missing PRODUCER for the Stop gate wired above. dark-surface/check.py:190-202 reads <temp>/edit-validate/<session_id>.edits and returns [] on any missing file, so :217-230 found nothing to scan on every turn -- the Stop entry was live but permanently inert. record.py:19-40 is its sole producer and was registered in no surface; stub-ledger/report.py returns 0 on a completion-claim Stop turn to 'defer to dark-surface', so while this was unwired NEITHER half fired on exactly the turns that matter. This is the same GREEN-not-LIVE defect the dark-surface entry was itself added to catch, one layer down. Route pinned by test_wiring.EXPECTED_DISPATCH_ROUTES (args [], matcher Edit|Write|MultiEdit, timeout 5, emits false); presence + route asserted by test_manifest_presence.py. isolate is null because record.py imports no _common/stubscan sibling. side_effect is 'edits-append' not 'none': it appends one line per edit to <temp>/edit-validate/<sid>.edits (record.py:35-40). It NEVER emits and never wakes Claude -- that loop-proofing is the whole point of the design (record.py:5-8)."
         }
       ]
     },

@@ -39,7 +39,9 @@ class UserRepositoryImpl implements UserRepository {
     for (final user in remote) {
       await _local.save(user);
     }
-    return remote;
+    // Unmodifiable, per coding-style.md — returning `remote` itself would hand
+    // callers a mutable handle on the data source's own list.
+    return List.unmodifiable(remote);
   }
 
   @override
