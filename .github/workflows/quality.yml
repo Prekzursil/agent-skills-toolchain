@@ -533,6 +533,20 @@ jobs:
       # with no charter.yml edit.
       - name: gate-tests-coverage rules selector inheritance
         run: python -m pytest ci/tests/test_rules_selector_inheritance.py -q
+      # A023 + A048: rules/ documentation coherence. Two first-party contradictions
+      # shipped on main because no gate reads two documents side by side — the review
+      # Block boundary (rules/common/code-review.md said HIGH -> WARN while both review
+      # commands blocked on HIGH, so one HIGH-only result had two terminal decisions),
+      # and the Perl repository example that violated its own all-attributes
+      # Types::Standard mandate. Both checks are direction-agnostic: they require the
+      # documents to AGREE, not to agree on a particular answer. Named explicitly because
+      # there is no repo-wide pytest autodiscovery — an unnamed suite cannot catch a
+      # regression. Reuses the existing gate-tests-coverage charter slug on purpose (not a
+      # new gate), so .quality/charter_check.sh stays consistent with no charter.yml edit.
+      # Measured both states: 3 failed / 16 passed against the pre-fix docs, 19 passed after.
+      - name: gate-tests-coverage rules doc coherence (review boundary + perl examples)
+        run: python -m pytest ci/tests/test_rules_doc_coherence.py -q
+
       # L13 adoption: the checked-in adversarial corpus plus its miner regressions.
       - name: gate-tests-coverage adversarial harness corpus
         run: |
