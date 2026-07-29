@@ -21,9 +21,11 @@ This module owns three CLI surfaces:
   (re)generates the hook registrations. Safe to run repeatedly.
 * ``install.py --deploy [--target harness|skills|hooks]`` CAS-lite deploys ONE
   repo tree into its live target: a staged/atomic per-file copy guarded by a
-  single-writer lock, a plan-time content hash, a pre-write compare-and-swap
-  (abort if live changed since PLAN), and a fail-closed post-write parity check
-  that restores the pre-deploy backup on any mismatch, then writes a receipt.
+  single-writer lock, a plan-time content hash, a plan-time compile check of the
+  candidate on the python import surfaces (byte parity proves the copy, never
+  that the copy is loadable), a pre-write compare-and-swap (abort if live changed
+  since PLAN), and a fail-closed post-write parity check that restores the
+  pre-deploy backup on any mismatch, then writes a receipt.
   See the "Deploy" section banner for the full phase composition.
 * ``install.py --reconcile-skills`` performs the read-only D-001 prerequisite:
   inventory canonical, projection, provider-only, and both live skill surfaces;
@@ -108,6 +110,16 @@ LIVE_HARNESS_DIR = HOME / ".agents" / "harness"
 # the single-writer lock; .deploy-stage-* are the atomic staging temp dirs.
 # The CAS-lite deploy machinery (ONE target per call).
 DEPLOY_TARGETS = ("harness", "skills", "hooks")
+# Targets whose managed .py files are PYTHON IMPORT SURFACES, so a candidate that
+# does not even compile must never reach the live tree: "harness" is imported as a
+# package by every consumer, and each hooks/<name>/*.py is imported in-process by
+# hooks/_dispatch/dispatch.py. "skills" is deliberately EXCLUDED: it is a document
+# vault, and skills/codex-databricks-fanout/scripts/batch_runner.py is a
+# `# Databricks notebook source` file whose widget cell legitimately precedes its
+# `from __future__` import, so CPython cannot compile it -- gating skills would
+# fail-closed on a file that is correct for its runtime. Measured 2026-07-29:
+# harness 33/33 and hooks 193/193 managed .py compile; skills 214/215.
+COMPILE_GATED_TARGETS = ("harness", "hooks")
 DEPLOY_LOCK_NAME = ".deploy.lock"
 # A lock older than this (seconds) is treated as stale (crashed writer) and stolen.
 DEPLOY_LOCK_STALE_SECONDS = 600.0
@@ -534,6 +546,9 @@ def install(*, check: bool = False) -> int:
 #
 #   LOCK      single-writer ~/.agents/harness/.deploy.lock (pid+ts, stale-steal)
 #   PLAN      sha256 every managed LIVE file (current) AND every candidate file
+#   VALIDITY  on a python import surface (COMPILE_GATED_TARGETS) compile() every
+#             candidate .py; a candidate that cannot compile ABORTS here, before
+#             any backup/stage/write -- byte parity proves the copy, not the code
 #   BACKUP    pre-deploy copy of the live tree (last-known-good, runtime-clean)
 #   STAGE     copy candidates into a temp dir on the SAME filesystem as the target
 #   CAS       re-hash each live file immediately before the write phase; if it !=
@@ -608,6 +623,37 @@ def _managed_files(root: Path) -> dict[str, Path]:
 def _managed_hashes(root: Path) -> dict[str, str]:
     """Plan-time content hashes of every managed file currently under ``root``."""
     return {rel: _hash_file(path) for rel, path in _managed_files(root).items()}
+
+
+def _uncompilable_python(candidate: dict[str, Path]) -> list[dict[str, str]]:
+    """Managed candidate ``.py`` files whose bytes do not compile -> diagnostics.
+
+    Byte parity proves the deploy COPIED exactly what it planned; it cannot prove
+    the copy is loadable. A candidate whose ``__init__.py`` was a SyntaxError used
+    to deploy green with a receipt while no consumer could ``import harness`` at
+    all -- byte-identical to a broken source is still broken.
+
+    Scope, stated narrowly on purpose: this is a SYNTAX/compile check only. It
+    deliberately does NOT import the module, because importing would execute
+    arbitrary candidate code inside the deployer. Residual gap, disclosed rather
+    than hidden: a file that compiles but raises at import time (bad relative
+    import, missing dependency) still deploys green; settling that needs an
+    out-of-process import smoke of the LIVE tree after the write, which is a
+    separate change with its own sandboxing decision.
+
+    ``compile`` reads raw bytes so PEP 263 encoding declarations and a UTF-8 BOM
+    are honored exactly as the interpreter would. ``OSError`` is intentionally NOT
+    caught here -- the caller runs this inside the PLAN scan whose ``except
+    OSError`` already reports ``managed_file_scan_failed``."""
+    problems: list[dict[str, str]] = []
+    for rel in sorted(candidate):
+        if not rel.endswith(".py"):
+            continue
+        try:
+            compile(candidate[rel].read_bytes(), rel, "exec")
+        except (SyntaxError, ValueError) as exc:
+            problems.append({"file": rel, "problem": f"{type(exc).__name__}: {exc}"})
+    return problems
 
 
 def _default_source(target: str) -> Path:
@@ -826,6 +872,14 @@ def deploy(
             }
             live_plan_hashes = _managed_hashes(dst)
             receipt_paths = sorted(candidate)
+            # VALIDITY (fail-CLOSED, before ANY write): on a Python import surface
+            # a candidate that does not compile must not be deployed. Byte parity
+            # alone would have called it "deployed".
+            uncompilable = (
+                _uncompilable_python(candidate)
+                if target in COMPILE_GATED_TARGETS
+                else []
+            )
         except OSError as exc:
             _emit(
                 {
@@ -833,6 +887,18 @@ def deploy(
                     "target": target,
                     "reason": "managed_file_scan_failed",
                     "problem": type(exc).__name__,
+                }
+            )
+            return 1
+
+        # Abort at PLAN: no backup, no staging, no live write, no receipt.
+        if uncompilable:
+            _emit(
+                {
+                    "status": "failed",
+                    "target": target,
+                    "reason": "candidate_syntax_invalid",
+                    "invalid": uncompilable,
                 }
             )
             return 1

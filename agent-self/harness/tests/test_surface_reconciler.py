@@ -754,6 +754,41 @@ def test_symlinked_parent_retarget_before_write_changes_bound_surface(
     assert not (roots[LIVE_VAULT] / "installed.json").exists()
 
 
+def test_skills_deploy_is_not_compile_gated(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    """The candidate-compile gate covers the python IMPORT surfaces only.
+
+    ``skills`` is a document vault, and a real tracked member of it --
+    skills/codex-databricks-fanout/scripts/batch_runner.py, a
+    ``# Databricks notebook source`` file whose widget cell legitimately runs
+    before its ``from __future__`` import -- cannot be compiled by CPython.
+    Gating skills would fail-close a deploy on a file that is correct for its
+    own runtime, so this asserts the exclusion rather than leaving it implicit.
+    """
+    roots = _aligned_roots(tmp_path)
+    notebook = b"import os\nos.environ['X'] = '1'\nfrom __future__ import annotations\n"
+    for surface in (REPO_CANONICAL, REPO_PROJECTION, LIVE_VAULT):
+        _skill_file(roots[surface], "shared", "scripts/notebook.py", notebook)
+    monkeypatch.setattr(install_mod, "BACKUPS_DIR", tmp_path / "backups")
+
+    # control: these exact bytes DO trip the gate on a compile-gated target
+    with pytest.raises(SyntaxError):
+        compile(notebook, "notebook.py", "exec")
+
+    code = deploy(
+        source_dir=roots[REPO_PROJECTION],
+        live_dir=roots[LIVE_VAULT],
+        target="skills",
+        skill_surface_roots=roots,
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert code == 0
+    assert payload["status"] == "deployed"
+    assert install_mod.COMPILE_GATED_TARGETS == ("harness", "hooks")
+
+
 def test_looping_daily_alias_is_failed_not_an_exception(tmp_path: Path) -> None:
     """Known broken: Path.resolve RuntimeError escaped instead of returning FAILED."""
     roots = _aligned_roots(tmp_path)
