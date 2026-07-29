@@ -10,6 +10,7 @@ import pytest
 from wearables.datum import Datum, Provenance, make_datum
 from wearables.normalize import (
     NormalizationError,
+    canonical_metric,
     nm_from_p,
     normalize_datum,
     p_from_nm,
@@ -168,3 +169,62 @@ def test_normalize_backfills_unit_as_reported_when_absent():
     d = _datum(unit="uM", value_as_reported=1.0, unit_as_reported=None)
     out = normalize_datum(d)
     assert out.unit_as_reported == "uM"
+
+
+# --- D-wu-42: metric and unit are two authorities on ONE measurement --------
+
+
+def test_p_scale_metric_wins_when_the_source_declared_no_unit():
+    """pipeline defaults a missing unit to nM; that default must not win.
+
+    Payload {"value": 6.0, "metric": "pIC50"} -> pipeline builds unit="nM" with
+    unit_as_reported=None. Reading 6.0 as a concentration emits 6.0 nM; the true
+    concentration for pIC50 6 is 1000.0 nM (~167x error).
+    """
+    d = _datum(
+        metric="pIC50",
+        value=None,
+        value_as_reported=6.0,
+        unit="nM",
+        unit_as_reported=None,
+    )
+    out = normalize_datum(d)
+    assert out.value == pytest.approx(nm_from_p(6.0))
+    assert out.value == pytest.approx(1000.0)
+    assert out.unit == "nM"
+
+
+def test_source_declared_concentration_unit_outranks_the_metric_name():
+    """A unit the SOURCE actually reported still governs the number."""
+    d = _datum(
+        metric="pKi",
+        value=None,
+        value_as_reported=1000.0,
+        unit="nM",
+        unit_as_reported="nM",
+    )
+    out = normalize_datum(d)
+    assert out.value == pytest.approx(1000.0)
+
+
+def test_non_p_metric_with_defaulted_unit_is_still_a_concentration():
+    d = _datum(
+        metric="Ki",
+        value=None,
+        value_as_reported=6.0,
+        unit="nM",
+        unit_as_reported=None,
+    )
+    assert normalize_datum(d).value == pytest.approx(6.0)
+
+
+def test_canonical_metric_maps_p_scale_names_to_their_linear_endpoint():
+    assert canonical_metric("pKi") == "Ki"
+    assert canonical_metric("pIC50") == "IC50"
+    assert canonical_metric("pEC50") == "EC50"
+    assert canonical_metric("pKd") == "Kd"
+
+
+def test_canonical_metric_passes_through_a_linear_metric_unchanged():
+    assert canonical_metric("Ki") == "Ki"
+    assert canonical_metric("  IC50 ") == "IC50"

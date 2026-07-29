@@ -216,3 +216,36 @@ def test_existing_flag_not_duplicated():
 
 def test_empty_input_returns_empty():
     assert verify([]) == []
+
+
+# --- D-wu-57: grouping runs BEFORE unit reconciliation, so the group key must
+# --- canonicalize the metric or pKi/Ki rows never meet -----------------------
+
+
+def test_pki_and_ki_rows_for_one_endpoint_are_cross_verified():
+    """GtoPdb pKi 6.0 (=1000 nM) vs ChEMBL Ki 5000 nM is a 5x disagreement.
+
+    Keying the group on the raw metric string puts these in two single-source
+    groups, each below the >=2-source bar, so the contradiction is silently
+    dropped.
+    """
+    pki = _norm_datum(source="GtoPdb", value=6.0, unit="pKi", metric="pKi")
+    ki = _norm_datum(source="ChEMBL", value=5000.0, unit="nM", metric="Ki")
+    out = verify([pki, ki])
+    assert all(d.source_class == "derived" for d in out)
+    assert all(any(f.startswith("disagreement") for f in d.flags) for d in out)
+
+
+def test_pic50_rows_do_not_group_with_ki_rows():
+    """Canonicalization maps pIC50->IC50, NOT to Ki: different endpoints."""
+    pic50 = _norm_datum(source="GtoPdb", value=6.0, unit="pIC50", metric="pIC50")
+    ki = _norm_datum(source="ChEMBL", value=5000.0, unit="nM", metric="Ki")
+    out = verify([pic50, ki])
+    assert all(d.flags == () for d in out)
+
+
+def test_pki_and_ki_within_tolerance_still_not_flagged():
+    pki = _norm_datum(source="GtoPdb", value=6.0, unit="pKi", metric="pKi")
+    ki = _norm_datum(source="ChEMBL", value=2000.0, unit="nM", metric="Ki")
+    out = verify([pki, ki])
+    assert all(d.flags == () for d in out)

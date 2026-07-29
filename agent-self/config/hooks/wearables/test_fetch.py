@@ -134,3 +134,73 @@ def test_fetch_negative_retries_treated_as_zero():
     )
     result = fetch_bioactivity(rc, transport, retries=-5)
     assert result.source == "PubChem"
+
+
+# --- D-wu-38: the fetch chain keys on a COMPOUND id, so the requested target
+# --- must be checked against the target the provider DECLARED ---------------
+
+
+def _payload(target_id="O75899"):
+    return {"value": 8.0, "unit": "nM", "metric": "Ki", "target_id": target_id}
+
+
+def test_fetch_rejects_source_whose_declared_target_contradicts_request():
+    """A ChEMBL payload for P00533 must NOT answer a request for O75899."""
+    rc = _resolved(cross_ids={"ChEMBL": "CHEMBL701"})
+    transport = FakeTransport({("ChEMBL", "CHEMBL701"): _payload("P00533")})
+    with pytest.raises(FetchError) as exc:
+        fetch_bioactivity(rc, transport, target_id="O75899")
+    assert "P00533" in str(exc.value)
+
+
+def test_fetch_falls_through_to_a_source_declaring_the_requested_target():
+    rc = _resolved()
+    transport = FakeTransport(
+        {
+            ("ChEMBL", "CHEMBL701"): _payload("P00533"),
+            ("PubChem", "2284"): _payload("O75899"),
+        }
+    )
+    result = fetch_bioactivity(rc, transport, target_id="O75899")
+    assert result.source == "PubChem"
+    assert result.payload["target_id"] == "O75899"
+
+
+def test_fetch_accepts_matching_declared_target():
+    rc = _resolved(cross_ids={"ChEMBL": "CHEMBL701"})
+    transport = FakeTransport({("ChEMBL", "CHEMBL701"): _payload("O75899")})
+    assert fetch_bioactivity(rc, transport, target_id="O75899").source == "ChEMBL"
+
+
+def test_fetch_accepts_alternate_declaration_keys():
+    rc = _resolved(cross_ids={"ChEMBL": "CHEMBL701"})
+    payload = {"value": 8.0, "target_accession": "O75899", "uniprot": "  "}
+    transport = FakeTransport({("ChEMBL", "CHEMBL701"): payload})
+    assert fetch_bioactivity(rc, transport, target_id="O75899").source == "ChEMBL"
+
+
+def test_fetch_accepts_payload_that_declares_no_target():
+    """Undeclared target is UNCHECKABLE, not a mismatch -- accept unchanged."""
+    rc = _resolved(cross_ids={"ChEMBL": "CHEMBL701"})
+    transport = FakeTransport({("ChEMBL", "CHEMBL701"): {"value": 8.0, "unit": "nM"}})
+    assert fetch_bioactivity(rc, transport, target_id="O75899").source == "ChEMBL"
+
+
+def test_fetch_without_requested_target_keeps_legacy_behaviour():
+    rc = _resolved(cross_ids={"ChEMBL": "CHEMBL701"})
+    transport = FakeTransport({("ChEMBL", "CHEMBL701"): _payload("P00533")})
+    assert fetch_bioactivity(rc, transport).source == "ChEMBL"
+
+
+def test_fetch_target_mismatch_after_transport_failure_reports_mismatch():
+    """A dead source AND a mismatching source -> mismatch is the real reason."""
+    rc = _resolved(cross_ids={"ChEMBL": "CHEMBL701", "PubChem": "2284"})
+    transport = FakeTransport(
+        {
+            ("ChEMBL", "CHEMBL701"): TransportError("HTTP 500"),
+            ("PubChem", "2284"): _payload("P00533"),
+        }
+    )
+    with pytest.raises(FetchError) as exc:
+        fetch_bioactivity(rc, transport, target_id="O75899")
+    assert "PubChem" in str(exc.value)

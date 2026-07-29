@@ -451,6 +451,18 @@ jobs:
             ci/tests/test_harness_corpus_wiring.py \
             tools/harness-corpus/test_hook_telemetry.py \
             hooks/git-hygiene/test_docs_hygiene.py -q
+      # D-p1b03: the copy-pasteable hook JSON in rules/**/hooks.md must use the
+      # three-level event -> matcher-group -> typed-handler shape that
+      # agent-self/harness/registration.py emits. A flat "command" on the matcher
+      # group is invalid and the hook NEVER FIRES -- silently, so only a mechanical
+      # gate catches it. Covers BOTH roots (rules/ and agent-self/config/rules/).
+      - name: gate-tests-coverage rules hook-example shape
+        run: python -m pytest ci/tests/test_rules_hook_examples.py -q
+      # D-wu-25: prune-report/oats is a standalone runner with its own __main__, so
+      # pytest DISCOVERY would not execute it -- and there is no repo-wide
+      # autodiscovery. Named explicitly. Stdlib-only, no install needed.
+      - name: gate-tests-coverage event-ledger prune-report + oats
+        run: python agent-self/config/hooks/event-ledger/test_prune_oats.py
       # G-10: hooks/_shared suites are standalone scripts with their own __main__, so pytest
       # DISCOVERY is not evidence that they ran — call this one explicitly.
       - name: gate-tests-coverage hook-manifest provenance
@@ -797,15 +809,30 @@ jobs:
           pip install pytest
           python -m pytest -q
 
-      # abbyy declares `requires-python = ">=3.12"`, so pip REFUSES to install it on this job's
-      # 3.11 ("requires a different Python"). It gets its own pinned interpreter, referenced
-      # through `outputs.python-path` rather than PATH so nothing above is affected. KEEP THE
-      # abbyy STEP LAST in this job -- this action repoints the default `python` to 3.12.
-      - name: setup python 3.12 for the vendored abbyy tree
+      # abbyy and the wearables package both declare `requires-python = ">=3.12"`, so pip
+      # REFUSES to install on this job's 3.11 ("requires a different Python"). They get their
+      # own pinned interpreter, referenced through `outputs.python-path` rather than PATH so
+      # nothing above is affected. KEEP THE py3.12 STEPS LAST in this job -- this action
+      # repoints the default `python` to 3.12, so no 3.11 step may follow them.
+      - name: setup python 3.12 for the py312-only trees
         id: py312
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
+      # D-wu-38/42/51/57: agent-self/config/hooks/wearables ships its OWN 100% line+branch
+      # gate (its pyproject addopts) and 207 tests -- but it was named NOWHERE in this file,
+      # so none of it ran. Four HIGH findings (a renderer that emitted bearer tokens
+      # unscrubbed, a target-blind fetch that mis-attributed measurements, a ~167x
+      # normalization error, and a grouping bug that dropped cross-source disagreements)
+      # landed with zero CI protection. Isolated venv: rdkit is the only real dep, and
+      # `pytest` runs from inside the package dir so the pyproject gate + conftest apply.
+      - name: gate-tests-coverage wearables (py3.12; isolated venv)
+        working-directory: agent-self/config/hooks/wearables
+        run: |
+          "${{ steps.py312.outputs.python-path }}" -m venv "$RUNNER_TEMP/venv-wearables"
+          "$RUNNER_TEMP/venv-wearables/bin/python" -m pip install pytest pytest-cov rdkit
+          "$RUNNER_TEMP/venv-wearables/bin/python" -m pytest \
+            --cov=wearables --cov-branch --cov-report=term-missing --cov-fail-under=100
       - name: gate-tests-coverage abbyy-finereader-ocr-mcp (vendored; isolated venv)
         working-directory: tools/abbyy-finereader-ocr-mcp
         run: |

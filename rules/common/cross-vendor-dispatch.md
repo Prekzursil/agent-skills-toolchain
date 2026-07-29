@@ -65,6 +65,13 @@ Any agent that shells to another agent runtime must set an EXPLICIT Bash `timeou
 run under `longrun` (AGENTS.md §4a). The silent 10-min default is what one agent rationalised
 `--background` to escape.
 
+**§1 and this section do NOT conflict — read §1 as banning ABANDONMENT, not backgrounding.**
+`longrun` backgrounds its child by construction, so a literal reading of §1 would make §4a
+unreachable and leave a >60s dispatch with no compliant path at all. The invariant is: you may
+background ONLY under `longrun`, and you MUST then block on `Monitor` until the job reaches a
+terminal state and you hold the `-o` payload. Returning a job id, a receipt, or anything before
+that payload is the banned thing.
+
 ## 8. `codex:codex-rescue` is NOT a work-unit agent
 
 By its own description it is a rescue forwarder for "when Claude Code is stuck". Use
