@@ -170,6 +170,8 @@ def test_event_schema_carries_the_parent_lineage_field_as_an_opaque_id(tmp_path)
     assert event.agent.parent_id == "parent-7"
     # An opaque id, NOT a second transcript channel.
     assert event.agent.transcript_path == ""
+
+
 def test_package_initializer_publishes_the_core_model_contract():
     """``harness/__init__.py`` re-exports HookEvent/HookResult, but EVERY in-tree
     consumer imports them from ``harness.models`` directly -- so nothing else in
