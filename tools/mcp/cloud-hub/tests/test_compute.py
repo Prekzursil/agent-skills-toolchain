@@ -90,10 +90,22 @@ class _FakeMachine:
 
 class _FakeStudio:
     log: dict = {}
+    created: list = []
+    #: Names this fake pretends do NOT exist yet. Mirrors lightning_sdk.Studio:
+    #: ``create_ok=True`` CREATES a missing Studio, ``create_ok=False`` raises.
+    missing: set = set()
 
-    def __init__(self, name, teamspace=None) -> None:
+    def __init__(self, name, teamspace=None, create_ok=True) -> None:
+        _FakeStudio.log = {
+            "name": name,
+            "teamspace": teamspace,
+            "create_ok": create_ok,
+        }
+        if name in _FakeStudio.missing:
+            if not create_ok:
+                raise ValueError(f"Studio '{name}' does not exist.")
+            _FakeStudio.created.append(name)
         self.name, self.teamspace, self.status = name, teamspace, "running"
-        _FakeStudio.log = {"name": name, "teamspace": teamspace}
 
     def start(self, machine=None):
         _FakeStudio.log["machine"] = machine
@@ -133,6 +145,9 @@ def _reset(monkeypatch):
     _http._ovh_delta.clear()
     _http._oauth_cache.clear()
     dispatch._ACCOUNTS = None
+    _FakeStudio.log = {}
+    _FakeStudio.created = []
+    _FakeStudio.missing = set()
     yield
 
 
@@ -538,6 +553,57 @@ def test_lightning_pull_is_honest_note(env, sdk):
 def test_lightning_status(env, sdk):
     out = dispatch.status("compute://lightning/studio/ts/s1")
     assert out["ok"] and out["state"] == "running"
+
+
+def test_lightning_status_is_lookup_only_and_never_creates(env, sdk):
+    """A typo in a status handle must 404, not conjure a persistent Studio.
+
+    lightning_sdk.Studio defaults to create_ok=True, so an unqualified
+    construction CREATES whatever name fails to resolve; inheriting that on a
+    read path returns ok=True for a resource the caller never had.
+    """
+    _FakeStudio.missing = {"misspelled"}
+    out = dispatch.status("compute://lightning/studio/acme/misspelled")
+    assert out["ok"] is False
+    assert "does not exist" in out["error"]
+    assert _FakeStudio.created == []
+    assert _FakeStudio.log["create_ok"] is False
+
+
+def test_lightning_provision_is_the_only_verb_that_may_create(env, sdk):
+    """Both-states pin: the read paths refuse, provision still creates."""
+    _FakeStudio.missing = {"brand-new"}
+    out = dispatch.provision("lightning", name="brand-new", gpu="A10G", teamspace="ts")
+    assert out["ok"] is True
+    assert _FakeStudio.created == ["brand-new"]
+    assert _FakeStudio.log["create_ok"] is True
+
+
+@pytest.mark.parametrize(
+    ("call", "err_fragment"),
+    [
+        (lambda: dispatch.status("compute://lightning/studio/ts/ghost"), "status"),
+        (lambda: dispatch.exec_("compute://lightning/studio/ts/ghost", "ls"), "run"),
+        (
+            lambda: dispatch.push(
+                "compute://lightning/studio/ts/ghost", "/tmp/a", "/data/a"
+            ),
+            "upload",
+        ),
+        (
+            lambda: dispatch.teardown("compute://lightning/studio/ts/ghost"),
+            "stop",
+        ),
+    ],
+)
+def test_lightning_read_verbs_never_create_a_missing_studio(
+    env, sdk, call, err_fragment
+):
+    _FakeStudio.missing = {"ghost"}
+    out = call()
+    assert out["ok"] is False
+    assert err_fragment in out["error"]
+    assert _FakeStudio.created == []
 
 
 def test_lightning_ls_needs_teamspace(env, sdk):

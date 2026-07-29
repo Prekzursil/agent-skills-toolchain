@@ -282,3 +282,78 @@ def test_secret_get_decodes_value(monkeypatch):
     monkeypatch.setattr(dbx_server, "_client", lambda: (FakeW(), None))
     out = json.loads(dbx_server.dbx_secret_get("scope", "key"))
     assert out["ok"] and out["data"]["value"] == "s3cr3t"
+
+
+# --------------------------------------------------------------------------- #
+# Capped reads -- the cap must bound the READ, not just the RESULT             #
+# --------------------------------------------------------------------------- #
+class _RecordingStream:
+    """A stream that records every size it is asked for."""
+
+    def __init__(self, total: int) -> None:
+        self._remaining = total
+        self.read_sizes: list = []
+
+    def read(self, size=-1):
+        self.read_sizes.append(size)
+        if size is None or size < 0:
+            # A real socket-backed stream would happily hand back the whole object
+            # here; refusing makes an unbounded ask a hard, visible failure.
+            raise AssertionError("unbounded read: the cap was applied too late")
+        n = min(size, self._remaining)
+        self._remaining -= n
+        return b"x" * n
+
+
+def test_read_stream_never_asks_for_more_than_the_cap():
+    stream = _RecordingStream(dbx_server._MAX_READ * 3)
+    out = dbx_server._read_stream(stream)
+    assert out["truncated"] is True
+    assert len(out["text"]) == dbx_server._MAX_READ
+    # Never an unbounded ask, and never more than one byte past the cap in total.
+    assert all(s > 0 for s in stream.read_sizes)
+    assert sum(stream.read_sizes) <= dbx_server._MAX_READ + 1
+
+
+def test_read_stream_tolerates_short_reads():
+    """A socket-backed stream may return fewer bytes than asked for."""
+
+    class _Dribble:
+        def __init__(self, total):
+            self._remaining = total
+            self.calls = 0
+
+        def read(self, size=-1):
+            self.calls += 1
+            assert size > 0
+            n = min(size, 8192, self._remaining)
+            self._remaining -= n
+            return b"y" * n
+
+    stream = _Dribble(dbx_server._MAX_READ * 2)
+    out = dbx_server._read_stream(stream)
+    assert out["truncated"] is True
+    assert len(out["text"]) == dbx_server._MAX_READ
+    assert stream.calls > 1
+
+
+def test_read_stream_returns_a_short_object_whole_and_untruncated():
+    stream = _RecordingStream(10)
+    out = dbx_server._read_stream(stream)
+    assert out == {"text": "x" * 10, "truncated": False}
+
+
+def test_volume_download_reads_through_the_cap(monkeypatch):
+    stream = _RecordingStream(dbx_server._MAX_READ * 2)
+
+    class FakeFiles:
+        def download(self, path):
+            return type("Resp", (), {"contents": stream})()
+
+    class FakeW:
+        files = FakeFiles()
+
+    monkeypatch.setattr(dbx_server, "_client", lambda: (FakeW(), None))
+    out = json.loads(dbx_server.dbx_volume_download("/Volumes/c/s/v/huge.bin"))
+    assert out["ok"] and out["data"]["truncated"] is True
+    assert sum(stream.read_sizes) <= dbx_server._MAX_READ + 1

@@ -174,9 +174,34 @@ def _to_enum(enum_cls, value: str):
         return next(iter(enum_cls))
 
 
+def _read_capped(stream, limit: int) -> bytes:
+    """Read AT MOST ``limit`` bytes, tolerating short reads.
+
+    A single ``stream.read(n)`` may legitimately return fewer than ``n`` bytes on a
+    socket-backed stream, so loop until the limit or EOF.
+    """
+    chunks: list[bytes] = []
+    got = 0
+    while got < limit:
+        chunk = stream.read(limit - got)
+        if not chunk:
+            break
+        chunks.append(chunk)
+        got += len(chunk)
+    return b"".join(chunks)
+
+
 def _read_stream(stream) -> dict:
     """Read a binary stream (capped); decode utf-8 text, else base64."""
-    raw = stream.read() if hasattr(stream, "read") else bytes(stream)
+    # Bound the READ, not just the RESULT. A bare `stream.read()` passes size=-1 and
+    # materializes the WHOLE remote object before the cap can be applied, so a large
+    # but permitted Volume/DBFS file exhausts this process even though at most
+    # _MAX_READ bytes are ever returned. Ask for one byte past the cap so truncation
+    # is still detectable without holding the rest of the object in memory.
+    if hasattr(stream, "read"):
+        raw = _read_capped(stream, _MAX_READ + 1)
+    else:
+        raw = bytes(stream)
     truncated = len(raw) > _MAX_READ
     raw = raw[:_MAX_READ]
     try:

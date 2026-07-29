@@ -328,6 +328,45 @@ def test_guard_fails_closed_when_the_process_probe_breaks(target, monkeypatch, c
     assert open(target, encoding="utf-8", newline="").read() == before
 
 
+def test_detect_claude_refuses_an_empty_census_instead_of_calling_it_idle():
+    """Zero parsed rows is a BROKEN PROBE, never 'no Claude running'.
+
+    The process doing the probing is itself in the table, so a real census can
+    never be empty. Reading `[]` as all-clear is what let a successful-but-blank
+    `tasklist`/`ps` green-light a write against a live session.
+    """
+    with pytest.raises(RuntimeError, match="EMPTY"):
+        m.detect_claude(lambda: [])
+
+
+def test_guard_fails_closed_when_the_process_probe_returns_nothing(
+    target, monkeypatch, capsys
+):
+    """A successful probe that parses to zero rows must REFUSE, not write.
+
+    Both-states pin: the sibling `closed` fixture supplies a non-empty census with
+    no claude image and still writes, so this asserts the empty case specifically
+    and not merely 'the guard refuses'.
+    """
+    monkeypatch.setattr(m, "_tasklist_names", lambda: [])
+    before = open(target, encoding="utf-8", newline="").read()
+    rc, out = run(["--target", target, "--apply"], capsys)
+    assert rc == 3
+    assert "failing closed" in out
+    assert open(target, encoding="utf-8", newline="").read() == before
+
+
+def test_blank_process_command_output_parses_to_an_empty_census(monkeypatch):
+    """The upstream trigger: the platform command exits 0 with unusable stdout."""
+
+    class _Completed:
+        stdout = "   \n\n  \n"
+
+    monkeypatch.setattr(m.subprocess, "run", lambda *a, **k: _Completed())
+    with pytest.raises(RuntimeError, match="EMPTY"):
+        m.detect_claude()
+
+
 def test_ignore_flag_overrides_the_guard_with_a_loud_warning(target, running, capsys):
     rc, out = run(["--target", target, "--apply", "--ignore-claude-check"], capsys)
     assert rc == 0

@@ -71,8 +71,27 @@ def _ref(handle: handles.Handle) -> tuple[str, str]:
     return (parts[0] if parts else ""), ""
 
 
-def _studio(sdk, name: str, teamspace: str):
-    return sdk.Studio(name, teamspace=teamspace or None)
+def _studio(sdk, name: str, teamspace: str, *, create_ok: bool = False):
+    """Look up a Studio. LOOKUP-ONLY by default - only ``provision`` may create.
+
+    ``lightning_sdk.Studio.__init__`` defaults to ``create_ok=True``, so an
+    unqualified construction CREATES a Studio whenever the name does not resolve.
+    Inherited by the read/lookup verbs that is a silent mutation: a typo in a
+    ``status``/``exec``/``push``/``teardown`` handle conjures a persistent Studio and
+    ``status`` then reports ``ok=True, state=...`` for a resource the caller never
+    had. Defaulting to ``create_ok=False`` turns that into the ``ValueError`` the SDK
+    raises for a missing Studio, which each caller already maps to an error envelope.
+
+    RESIDUAL, deliberately NOT handled here: for an EXISTING RUNNING Studio the SDK
+    calls ``self._setup()`` - which starts a 30s keepalive daemon - from the
+    ``existing_studio is not None`` branch, BEFORE it ever consults ``create_ok``
+    (lightning_sdk v2026.07.22 ``studio.py``). So ``create_ok=False`` does NOT stop a
+    read from defeating autosleep on a running paid Studio. The only suppression the
+    SDK offers is the private ``Studio._skip_setup`` thread-local; using it needs a
+    decision this adapter cannot make alone (this repo does not pin lightning-sdk, so
+    a private thread-local could vanish on any bump). Track it separately.
+    """
+    return sdk.Studio(name, teamspace=teamspace or None, create_ok=create_ok)
 
 
 def provision(env: dict, spec: dict, dry_run: bool) -> dict:
@@ -96,7 +115,9 @@ def provision(env: dict, spec: dict, dry_run: bool) -> dict:
         return envelope.err("lightning", err)
     try:
         with _auth(env):
-            studio = _studio(sdk, name, teamspace)
+            # provision is the ONE verb whose intent is to bring a Studio into
+            # existence, so it is the only caller allowed to create.
+            studio = _studio(sdk, name, teamspace, create_ok=True)
             studio.start(machine=getattr(sdk.Machine, machine, machine))
             state = str(getattr(studio, "status", "started"))
     except Exception as exc:  # noqa: BLE001

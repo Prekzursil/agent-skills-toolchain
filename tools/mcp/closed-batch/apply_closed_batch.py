@@ -150,8 +150,22 @@ def detect_claude(lister: Callable[[], list[str]] | None = None) -> list[str]:
 
     FAILS CLOSED: if the process table cannot be read the caller must treat it as
     "Claude might be running", because a false "all clear" here costs the whole edit.
+
+    An EMPTY CENSUS is a broken probe, not an idle machine, and must raise rather
+    than read as "no Claude running". A real process table always contains at least
+    the process doing the probing, so zero parsed rows means the platform command
+    succeeded but produced nothing usable (blank stdout, an unexpected format, a
+    localised header-only listing). Without this, `_guard` sees `[]`, returns 0, and
+    an `--apply` writes the config out from under a LIVE session that rewrites
+    ~/.claude.json every ~30s - exactly the clobber the guard exists to prevent.
     """
     names = (lister or _tasklist_names)()
+    if not names:
+        raise RuntimeError(
+            "process census is EMPTY - the probe is broken, not the machine idle "
+            "(this process is itself in the table). Refusing to read that as "
+            "'no Claude running'."
+        )
     return sorted({n.lower() for n in names if n.lower() in CLAUDE_IMAGE_NAMES})
 
 
