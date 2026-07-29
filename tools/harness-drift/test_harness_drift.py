@@ -357,7 +357,8 @@ def test_main_defaults_repo_root_to_the_checkout(tmp_path: Path) -> None:
     payload = json.loads(out.read_text(encoding="utf-8"))
     expected_root = hd._posix(Path(hd.__file__).resolve().parents[2])
     assert payload["summary"]["repo_root"] == expected_root
-    # Every repo rules/ file must land as REPO-ONLY against an empty live tree.
-    assert payload["summary"]["counts"] == {
-        hd.V_REPO_ONLY: payload["summary"]["total_rows"]
-    }
+    assert payload["summary"]["areas"] == ["rules"]
+    # Against an empty live tree every row can only be REPO-ONLY. Row count is
+    # deliberately not asserted: the module is importable from a bare two-file
+    # extraction (how the LF-blob check runs it), where rules/ does not exist.
+    assert {r["verdict"] for r in payload["rows"]} <= {hd.V_REPO_ONLY}
