@@ -760,13 +760,18 @@ def run_mirror_export(out_dir: Path, *, decrypt: bool = False) -> dict[str, Any]
         decrypted, failed = _decrypted_records(path, user_data / "Local State")
         records.extend(decrypted)
         failures += failed
+    summary["decrypted_count"] = len(records)
+    summary["decrypt_failed_count"] = failures
+    decrypted_names = {str(record["name"]) for record in records}
+    if NEXTAUTH_COOKIE not in decrypted_names:
+        # status/ok were derived from inventory names before any decryption ran.
+        # The requested session cookie was not decrypted, so refuse to publish an
+        # unusable export and report failure instead of a successful "ok".
+        summary["status"] = "decrypt_incomplete"
+        summary["ok"] = False
+        summary["export_kind"] = "decrypt_incomplete"
+        return summary
     export_cookies_json(records, secret_path, allow_decrypt=True)
-    summary.update(
-        {
-            "export_path": str(secret_path),
-            "export_kind": "decrypted_json",
-            "decrypted_count": len(records),
-            "decrypt_failed_count": failures,
-        }
-    )
+    summary["export_path"] = str(secret_path)
+    summary["export_kind"] = "decrypted_json"
     return summary

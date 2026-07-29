@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest import mock
 
 from crcp import auth_mirror
+from crcp.__main__ import _exit_for
 
 
 def _chrome_timestamp(unix_seconds: int) -> int:
@@ -141,6 +142,70 @@ class AuthMirrorTests(unittest.TestCase):
         self.assertEqual(report["status"], "partial_without_nextauth")
         self.assertNotIn("encrypted-one", text)
         self.assertNotIn('"value"', text)
+
+    def _profile_with_nextauth(self, blob: bytes) -> Path:
+        user_data = self.root / "profile"
+        target = user_data / "Default" / "Network" / "Cookies"
+        target.parent.mkdir(parents=True)
+        with sqlite3.connect(target) as connection:
+            connection.execute(
+                """CREATE TABLE cookies (
+                    host_key TEXT, name TEXT, path TEXT, is_secure INTEGER,
+                    is_httponly INTEGER, samesite INTEGER, is_persistent INTEGER,
+                    expires_utc INTEGER, encrypted_value BLOB
+                )"""
+            )
+            connection.execute(
+                "INSERT INTO cookies VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (".chatgpt.com", auth_mirror.NEXTAUTH_COOKIE, "/", 1, 1, 0, 1, 0, blob),
+            )
+        return user_data
+
+    def test_decrypt_export_refuses_when_session_cookie_undecryptable(self) -> None:
+        # Regression for D-wu-47: the pre-decrypt summary reports status "ok"
+        # whenever the NextAuth cookie is present by NAME in the inventory. If
+        # that cookie cannot be decrypted the export must NOT publish an empty
+        # file, must NOT report success, and the CLI must exit non-zero.
+        user_data = self._profile_with_nextauth(b"v10-undecryptable")
+        output = self.root / "secret-out"
+        with mock.patch.object(
+            auth_mirror, "default_user_data_dir", return_value=user_data
+        ):
+            with mock.patch.object(
+                auth_mirror, "decrypt_cookie_value", return_value=None
+            ):
+                with mock.patch.object(auth_mirror, "export_cookies_json") as publisher:
+                    report = auth_mirror.run_mirror_export(output, decrypt=True)
+        publisher.assert_not_called()
+        self.assertEqual(report["status"], "decrypt_incomplete")
+        self.assertIs(report["ok"], False)
+        self.assertEqual(report["decrypted_count"], 0)
+        self.assertEqual(report["decrypt_failed_count"], 1)
+        self.assertNotEqual(report["export_kind"], "decrypted_json")
+        self.assertNotIn("export_path", report)
+        self.assertFalse((output / "cookies.json").exists())
+        self.assertEqual(_exit_for(report), 1)
+
+    def test_decrypt_export_publishes_when_session_cookie_decrypts(self) -> None:
+        # Guard the success path so the D-wu-47 fix does not over-correct: when
+        # the NextAuth cookie decrypts, the export is published and reported ok.
+        user_data = self._profile_with_nextauth(b"v10-decryptable")
+        output = self.root / "secret-out"
+        with mock.patch.object(
+            auth_mirror, "default_user_data_dir", return_value=user_data
+        ):
+            with mock.patch.object(
+                auth_mirror, "decrypt_cookie_value", return_value=b"session-value"
+            ):
+                report = auth_mirror.run_mirror_export(output, decrypt=True)
+        self.assertEqual(report["status"], "ok")
+        self.assertEqual(report["export_kind"], "decrypted_json")
+        self.assertEqual(report["decrypted_count"], 1)
+        self.assertEqual(report["decrypt_failed_count"], 0)
+        self.assertEqual(_exit_for(report), 0)
+        published = json.loads((output / "cookies.json").read_text(encoding="utf-8"))
+        self.assertEqual(published[0]["name"], auth_mirror.NEXTAUTH_COOKIE)
+        self.assertEqual(published[0]["value"], "session-value")
 
 
 if __name__ == "__main__":
