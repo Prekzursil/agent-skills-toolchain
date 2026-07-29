@@ -512,6 +512,15 @@ jobs:
       # with no charter.yml edit. Measured: 9 passed after the fix, 2 failed before it.
       - name: gate-tests-coverage coverage-authority consistency
         run: python -m pytest ci/tests/test_coverage_authority_consistency.py -q
+      # D-a010: a rule whose BODY claims global reach ("ALL substantive subagents")
+      # must not carry source-code-only `paths:` frontmatter -- a path-scoped rule is
+      # selected only when a matching file is touched, so the policy went missing in
+      # exactly the research/orchestration state it governs. Stdlib-only. Reuses the
+      # existing gate-tests-coverage charter slug on purpose -- it is not a new gate,
+      # so .quality/charter_check.sh stays consistent with no charter.yml edit.
+      - name: gate-tests-coverage rules scope (globally-worded rules stay reachable)
+        run: |
+          python -m pytest ci/tests/test_rules_scope.py -q
 
       # L13 adoption: the checked-in adversarial corpus plus its miner regressions.
       - name: gate-tests-coverage adversarial harness corpus
