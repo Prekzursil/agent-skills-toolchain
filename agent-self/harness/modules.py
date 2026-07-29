@@ -2260,8 +2260,19 @@ class ClaimWarningModule:
     # Base completion-language trigger (existing, enforced). The A1 v2 hardening
     # (typed receipts, freshness, zero-diff, repro-fingerprint, compchem, WEP) rides
     # on top as SHADOW-first sub-gates so the base honesty loop is unchanged.
+    # Assertive lint-success language, kept deliberately tight (the verb must follow
+    # the noun, so "lint should pass" / "lint is not clean" do NOT match). It appears
+    # in BOTH _CLAIM and the lint_clean family below, the same way "fixed" and "all
+    # tests pass" already do -- the base trigger decides whether the gate runs, the
+    # family decides which receipt class would substantiate it.
+    _LINT_CLAIM = (
+        r"\blint(?:ing)?\s+(?:passes|passed|is\s+clean|is\s+green|succeeds)\b"
+        r"|\blint(?:er)?\s+(?:checks?\s+)?(?:pass(?:es|ed)?|clean)\b"
+        r"|\bno\s+lint(?:ing)?\s+(?:errors|warnings)\b"
+    )
     _CLAIM = re.compile(
-        r"(?i)\b(?:all tests pass(?:ed)?|everything (?:is )?(?:fixed|working)|fully working|complete[d]?|fixed|resolved|done)\b"
+        r"(?i)(?:\b(?:all tests pass(?:ed)?|everything (?:is )?(?:fixed|working)|fully working|complete[d]?|fixed|resolved|done)\b"
+        r"|" + _LINT_CLAIM + r")"
     )
     _FAMILIES = (
         (
@@ -2283,6 +2294,12 @@ class ClaimWarningModule:
                 r"(?i)\b(?:type[- ]?clean|no type errors|typecheck(?:s)?\b[^.\n]{0,20}\bpass|mypy\b[^.\n]{0,20}\bclean|basedpyright\b[^.\n]{0,20}\bclean)\b"
             ),
         ),
+        # ledger.py's CLAIM_RECEIPT_MAP already declares lint_clean -> ("lint",), but
+        # no detector ever emitted the name, so the class was unreachable and a
+        # lint-only completion returned allow. hooks/honest-signal/check.py:100-108
+        # DEFERS lint claims to hooks/claim-guard/claim-check.py, which is registered
+        # in no surface, so this module is the only checker that sees the input.
+        ("lint_clean", re.compile(r"(?i)" + _LINT_CLAIM)),
         (
             "coverage",
             re.compile(

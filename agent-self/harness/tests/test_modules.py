@@ -847,6 +847,91 @@ def test_claim_warning_requires_recent_verification_evidence(tmp_path):
     assert module.run(stop).action == "allow"
 
 
+def test_claim_warning_flags_an_unsupported_lint_success_claim(tmp_path):
+    """An assertive lint-success claim with no lint receipt must not pass silently.
+
+    ``hooks/honest-signal/check.py`` (the wired Stop checker) DEFERS every
+    lint/test/build/coverage claim to ``hooks/claim-guard/claim-check.py``
+    (check.py:100-108 defines the domain, find_offenders at :193-204 returns no
+    offender for it) -- and claim-check.py is registered in no surface at all, so
+    this harness module is the only checker that sees the input.  ``lint_clean`` is
+    the receipt family ``CLAIM_RECEIPT_MAP`` already declares (ledger.py:117 ->
+    ``("lint",)``) but that no detector ever emitted, so the declared class was
+    unreachable and a lint-only completion returned ``allow``.
+    """
+
+    ledger = EventLedger(tmp_path / "state")
+    module = ClaimWarningModule(ledger)
+    stop = event(tmp_path, "Stop", last_assistant_message="Lint passes, definitely.")
+
+    warning = module.run(stop)
+    assert warning.action == "inject"
+    assert any("verification" in text.lower() for text in warning.additional_context)
+
+    # NON-SYMMETRIC control: the hedged / future-tense form must stay silent, so a
+    # green result here cannot come from an over-broad "any sentence with lint" match.
+    hedged = event(
+        tmp_path,
+        "Stop",
+        last_assistant_message="Lint should pass once ruff is installed.",
+    )
+    assert module.run(hedged).action == "allow"
+
+    # A green lint command classifies as a "lint" receipt (see
+    # test_ledger_receipts_and_taint.py: "ruff check ." -> "lint"), which is exactly
+    # the class CLAIM_RECEIPT_MAP maps lint_clean to, so the gate must go silent.
+    LedgerModule(ledger).run(
+        event(
+            tmp_path,
+            "PostToolUse",
+            tool_name="Bash",
+            tool_use_id="verify-lint-1",
+            tool_input={"command": "ruff check ."},
+            tool_response={"exit_code": 0, "output": "All checks passed!"},
+        )
+    )
+    assert module.run(stop).action == "allow"
+
+
+@pytest.mark.parametrize(
+    "message,is_claim",
+    [
+        ("Lint passes, definitely.", True),
+        ("Linting passes now.", True),
+        ("lint is clean", True),
+        ("The linter checks pass.", True),
+        ("No lint errors remain.", True),
+        # Hedged / negated / merely-mentions-lint -> NOT a claim.
+        ("Lint should pass once ruff is installed.", False),
+        ("Lint is not clean yet.", False),
+        ("I have not run lint.", False),
+        ("Rewrote the linter config.", False),
+        # Pre-existing trigger behaviour, pinned so the lint alternative cannot
+        # widen or narrow it.
+        ("Everything is fixed and all tests pass.", True),
+        ("Investigating the parser now.", False),
+    ],
+)
+def test_claim_warning_lint_trigger_is_assertive_only(message, is_claim):
+    """The lint trigger must fire on assertive success language only.
+
+    A direct-probe pass over these phrasings caught the first draft of the family
+    regex missing "the linter checks pass", so the breadth is pinned here rather
+    than left to the single end-to-end case above.
+    """
+
+    assert bool(ClaimWarningModule._CLAIM.search(message)) is is_claim
+    families = [
+        name
+        for name, pattern in ClaimWarningModule._FAMILIES
+        if pattern.search(message)
+    ]
+    if is_claim and "lint" in message.lower():
+        assert "lint_clean" in families
+    else:
+        assert "lint_clean" not in families
+
+
 def test_active_goal_is_isolated_per_session_in_shared_cwd(tmp_path):
     """Concurrent sessions in one cwd must NOT stomp each other's active goal."""
     ledger = EventLedger(tmp_path / "state")
