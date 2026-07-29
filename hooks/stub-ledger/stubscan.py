@@ -3,8 +3,9 @@
 
 find_stubs(text) -> list[(marker, line_no, snippet)] for the high-signal placeholder
 shapes an agent leaves behind: comment tags (TODO/FIXME/HACK/XXX/STUB), NotImplemented,
-"implement later" / "not implemented" / "coming soon" / "TBD" phrases, pass-only / ...-only
-function bodies, and the weak words placeholder/stub/unimplemented in a comment.
+Rust's todo!()/unimplemented!() incompleteness macros, "implement later" / "not implemented"
+/ "coming soon" / "TBD" phrases, pass-only / ...-only function bodies, and the weak words
+placeholder/stub/unimplemented in a comment.
 
 Used by BOTH record.py (scan written content) and report.py (re-scan current files to
 confirm a recorded stub is STILL open). Kept tight to avoid flagging prose that merely
@@ -24,6 +25,19 @@ _COMMENT_TAG = re.compile(
 _NOTIMPL = re.compile(
     r"NotImplementedError|raise\s+NotImplemented\b|\bNotImplemented\b"
 )
+# Rust's LANGUAGE-LEVEL incompleteness macros. `todo!()` / `unimplemented!()` are the exact
+# Rust analogue of `raise NotImplementedError` -- an unambiguous compiler-blessed declaration
+# that the body is unfinished, which panics at runtime if reached. Neither family above sees
+# them: `_NOTIMPL` is name-based, and `_WEAK` matches the bare word "unimplemented" only
+# INSIDE a comment (find_stubs requires `_COMMENT_INTRO` on the line), while these sit in
+# CODE. Measured at 27fb388: `fn validate(u: &User) -> bool { todo!() }` written to
+# `src/auth.rs` scored `find_stubs(...) == []` while the `# TODO` control fired, so the
+# ledger silently lost an owed-work marker in a validation routine.
+# The trailing `[(\[{]` is what keeps this a MACRO rule and not a word rule: a prose
+# sentence containing "todo" or an identifier like `todo_list` cannot match, and the
+# candidate is still routed through the shared use-vs-mention discriminator below, so a
+# design doc quoting `todo!()` in a fenced block stays a mention.
+_MACRO_STUB = re.compile(r"\b(todo|unimplemented)!\s*[(\[{]")
 _PHRASE = re.compile(
     r"implement(?:ed|ation)?\s+(?:this\s+|it\s+)?later"
     r"|wire\s+(?:this\s+|it\s+|them\s+)?(?:up\s+)?later"
@@ -323,6 +337,11 @@ def find_stubs(text: str, path: str = "") -> list[tuple[str, int, str]]:
             is_real is None or is_real(text, offset + nm.start(), offset + nm.end())
         ):
             add("NotImplemented", i, line)
+        mm = _MACRO_STUB.search(line)
+        if mm and (
+            is_real is None or is_real(text, offset + mm.start(), offset + mm.end())
+        ):
+            add(f"{mm.group(1)}!", i, line)
         pm = _PHRASE.search(line)
         if (
             pm

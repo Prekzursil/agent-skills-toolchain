@@ -189,6 +189,17 @@
           "emits": true
         },
         {
+          "name": "claim-guard/ledger-write",
+          "script": "claim-guard/ledger-write.py",
+          "args": [],
+          "timeout": 5,
+          "matcher": "Bash",
+          "isolate": null,
+          "side_effect": "ledger-append",
+          "emits": false,
+          "comment": "D011 producer-restore. The Bash-exit ledger this hook appends (%TEMP%/claude-claim-ledger/<sid>.ndjson, ledger-write.py:15,195-197) is NOT an orphan surface: journey-coverage/check.py:36-41 reads exactly that root and is ALREADY wired under events.Stop.checks, so while this producer was absent the live consumer ran every Stop turn against an empty ledger and could never see a journey as covered. Contract mirrors test_wiring.py:140 (args [], matcher Bash, timeout 5, emits false) -- record-only, injects nothing (ledger-write.py:10), fail-open (:199-200), opt-out CLAIM_GUARD_MODE=off (:165-166). Restoring the WRITER only is deliberate: claim-check.py can exit 2 under CLAIM_GUARD_MODE=block (claim-check.py:22-24,36-37) and must therefore stay OUT of the inject-only dispatcher."
+        },
+        {
           "name": "stub-ledger/record",
           "script": "stub-ledger/record.py",
           "args": [],

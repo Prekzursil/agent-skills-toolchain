@@ -9,8 +9,22 @@ way it injects a one-line reminder that wfmon is available.
 READ-ONLY monitor (it never touches the run). FAIL-OPEN (any error -> exit 0, no output, never
 blocks the Workflow). Opt-out: `WFMON_AUTOLAUNCH=off` in env, or a `.disabled` file beside this script.
 
-settings.json wiring is via the _dispatch manifest (PreToolUse, matcher "Workflow"); the live
-PreToolUse matcher is `.*`, so the dispatcher already fires on the Workflow tool.
+SUPERSEDED / UNWIRED (A087). This hook is the wfmon-only PREDECESSOR of the registry-driven
+`monitor-autolaunch` hook, which owns the `Workflow` trigger through `monitors.toml`
+(`monitor-autolaunch/check.py:1-24`; `_dispatch/manifest.json` PreToolUse, matcher
+`Task|Workflow|mcp__codex__codex`). It is no longer registered in the tracked deploy mirror
+`agent-self/config/settings.json`, for two measured reasons: (1) running BOTH on one Workflow
+call opens wfmon twice, and (2) this file honours only `WFMON_AUTOLAUNCH` while the successor
+also honours the per-monitor `MONITOR_AUTOLAUNCH_WFMON` -- so with
+`MONITOR_AUTOLAUNCH_WFMON=off` and `WFMON_AUTOLAUNCH` unset the successor opts out
+(`monitor-autolaunch/check.py:65-69`) and this one still launches (`:65-70` below).
+The retired comment here claimed "settings.json wiring is via the _dispatch manifest
+(PreToolUse, matcher \"Workflow\"); the live PreToolUse matcher is `.*`". Both halves were
+FALSE and are recorded rather than deleted so the dead end is not re-walked: this script was
+never a manifest check (it ran as its own standalone settings group), and the tracked
+PreToolUse dispatcher matcher was never `.*` -- it did not contain `Workflow` at all, which is
+exactly what kept the successor unreachable. Kept on disk (not deleted) so an older deploy that
+still references it keeps working.
 """
 
 from __future__ import annotations

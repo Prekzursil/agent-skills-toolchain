@@ -9,6 +9,7 @@ hooks already consolidated behind ``_dispatch``.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import re
 from pathlib import Path
@@ -23,6 +24,10 @@ MANIFEST = HERE / "manifest.json"
 SETTINGS = CLAUDE_ROOT / "settings.json"
 HOOKS_JSON = HOOKS_ROOT / "hooks.json"
 AGENT_SELF_HOOKS_JSON = CLAUDE_ROOT / "agent-self" / "config" / "hooks" / "hooks.json"
+# The TRACKED deploy mirror of the live settings (agent-self/README.md; deployed by
+# agent-self/bootstrap.ps1). Unlike SETTINGS above it exists in every checkout and on CI, so
+# assertions against it are not gated behind requires_live_settings.
+TRACKED_DEPLOY_SETTINGS = CLAUDE_ROOT / "agent-self" / "config" / "settings.json"
 KNOWN_BROKEN_HOOKS_JSON = (
     HOOKS_ROOT / "_fleet-backups" / "20260713-WU-A" / "hooks.json.before"
 )
@@ -343,6 +348,160 @@ def test_prepost_manifest_entries_are_unique_and_reference_files(event: str):
         assert (root / script).is_file(), (
             f"events.{event} check {check.get('name')!r} points to missing {root / script}"
         )
+
+
+def _sample_tool_name(alternative: str) -> str:
+    """A concrete tool_name that the given matcher ALTERNATIVE is meant to admit.
+
+    ``mcp__basic-memory__.*`` -> ``mcp__basic-memory__x``; a literal alternative is itself.
+    """
+
+    return re.sub(r"\.\*|\.\+", "x", alternative)
+
+
+@pytest.mark.parametrize("event,token", DISPATCH_EVENTS.items())
+def test_tracked_deploy_mirror_admits_every_dispatched_route(event: str, token: str):
+    """A087: the TRACKED deploy mirror must not silently prefilter a manifest route away.
+
+    ``test_settings_has_exactly_one_local_dispatch_for_event`` above enforces the same mirror
+    invariant, but only against the DEPLOYED ``~/.claude/settings.json`` -- machine-local and
+    untracked, so ``requires_live_settings`` skips it in every checkout and on every CI runner.
+    ``agent-self/config/settings.json`` IS tracked and IS what ``agent-self/bootstrap.ps1``
+    deploys, so this assertion is checkable here and closes the detector hole.
+
+    Measured at 27fb388: the mirror's PreToolUse dispatcher matcher was
+    ``Task|Bash|PowerShell|Edit|Write|MultiEdit|mcp__basic-memory__.*|mcp__schrodinger__glide_dock``
+    ``|mcp__schrodinger__prime_mmgbsa|mcp__cheatengine__.*|mcp__frida-mcp__.*`` -- no
+    ``Workflow`` and no ``mcp__codex__codex``, so the registry-driven ``monitor-autolaunch``
+    check (matcher ``Task|Workflow|mcp__codex__codex``) could only ever be reached through
+    ``Task``.  A ``Workflow`` tool call never started the dispatcher at all, while the
+    superseded standalone ``workflow-monitor-autolaunch`` group ran in its place and ignores
+    the per-monitor ``MONITOR_AUTOLAUNCH_WFMON`` opt-out the successor honours.
+
+    The second assertion is the one that actually catches this class: string equality alone
+    would pass on any two matching-but-wrong values, so every inner check matcher's
+    alternatives are re-derived and required to survive the outer prefilter.
+    """
+
+    settings = _load(TRACKED_DEPLOY_SETTINGS)
+    # RELATIVE needle, deliberately.  The mirror records the DEPLOY root
+    # (C:/Users/<user>/.claude/hooks/...), which never equals this checkout's absolute
+    # DISPATCH path -- matching on the absolute path made this assertion report "found 0" in
+    # BOTH the broken and the fixed state, i.e. it measured nothing.
+    matches = _commands_referencing(settings, DISPATCH.relative_to(HOOKS_ROOT), event)
+    assert len(matches) == 1, (
+        f"the tracked deploy mirror must carry exactly one hooks.{event} local dispatch "
+        f"command; found {len(matches)}"
+    )
+    _event, group, hook = matches[0]
+    command = str(hook.get("command") or "").strip()
+    assert re.search(rf"(?:^|\s){re.escape(token)}\s*$", command, re.IGNORECASE), (
+        f"hooks.{event} dispatcher must receive the {token!r} event token: {command!r}"
+    )
+
+    manifest_event = _load(MANIFEST)["events"][event]
+    expected_matcher = manifest_event.get("settings_matcher")
+    actual_matcher = group.get("matcher")
+    if expected_matcher is None:
+        assert actual_matcher is None, (
+            f"hooks.{event} declares no settings_matcher; the mirror must not add one "
+            f"({actual_matcher!r})"
+        )
+    elif expected_matcher == "*":
+        assert actual_matcher in {"*", ".*"}, (
+            f"hooks.{event} must match every event subtype, got {actual_matcher!r}"
+        )
+    else:
+        assert actual_matcher == expected_matcher, (
+            f"hooks.{event} mirror matcher {actual_matcher!r} does not mirror manifest "
+            f"settings_matcher {expected_matcher!r}"
+        )
+    assert hook.get("timeout", 0) >= manifest_event["settings_timeout"], (
+        f"hooks.{event} mirror timeout must cover the manifest's dispatcher budget"
+    )
+
+    # No dead routes: every tool a manifest check claims must clear the outer prefilter.
+    outer = actual_matcher if isinstance(actual_matcher, str) else ".*"
+    if outer == "*":
+        outer = ".*"
+    checked = 0
+    dead: list[str] = []
+    for check in manifest_event.get("checks") or []:
+        inner = check.get("matcher")
+        if not isinstance(inner, str) or not inner:
+            continue  # unconditional check: the outer matcher decides on its own
+        for alternative in inner.split("|"):
+            if not alternative:
+                continue
+            checked += 1
+            sample = _sample_tool_name(alternative)
+            if not re.fullmatch(outer, sample):
+                dead.append(f"{check.get('name')} needs {alternative!r} ({sample!r})")
+    assert not dead, (
+        f"hooks.{event} prefilter {outer!r} silently suppresses manifest routes:\n"
+        + "\n".join(dead)
+    )
+    if event == "PreToolUse":
+        assert checked, (
+            "PreToolUse carries matcher-scoped checks, so a zero here means this "
+            "assertion degraded to a vacuous pass"
+        )
+
+
+def _dispatch_module():
+    """Import the PRODUCTION dispatcher (stdlib-only at module level)."""
+
+    spec = importlib.util.spec_from_file_location("dispatch_under_test", DISPATCH)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_bash_posttooluse_reaches_the_claim_ledger_writer():
+    """D011: a Bash PostToolUse event must select ``claim-guard/ledger-write``.
+
+    Runs the PRODUCTION selector (``dispatch._select``), never a re-implementation, and
+    carries its own positive control: ``tool-result-sentinel`` (matcher ``.*``) must be
+    selected for the SAME input, so a selector that silently matched nothing could not
+    make this assertion pass vacuously.
+
+    CONSUMER-LIVENESS half.  The writer is not a write-only orphan: it appends the
+    per-session Bash-exit ledger under ``CLAIM_GUARD_LEDGER_ROOT``
+    (claim-guard/ledger-write.py:39-44, :195-197) and ``journey-coverage/check.py:36-41``
+    reads exactly that root while already being wired under ``events.Stop.checks``.  While
+    the producer was absent that live Stop gate ran every turn against an empty ledger and
+    could never see a journey as covered.  Both halves are asserted here so re-orphaning
+    EITHER side turns this red.
+    """
+
+    dispatch = _dispatch_module()
+    manifest = _load(MANIFEST)
+    checks = manifest["events"]["PostToolUse"]["checks"]
+
+    selected = [check.get("name") for check in dispatch._select(checks, "Bash")]
+    assert "tool-result-sentinel" in selected, (
+        "positive control: the '.*' sentinel must select for Bash; without it a broken "
+        f"selector would satisfy this test vacuously (selected={selected})"
+    )
+    assert "claim-guard/ledger-write" in selected, (
+        "a Bash PostToolUse event must reach the claim-guard ledger writer, otherwise "
+        f"no command/exit record is ever appended (selected={selected})"
+    )
+    assert "claim-guard/ledger-write" not in [
+        check.get("name") for check in dispatch._select(checks, "Read")
+    ], "the ledger writer must stay Bash-scoped, not run on every tool"
+
+    stop_names = {check.get("name") for check in manifest["events"]["Stop"]["checks"]}
+    assert "journey-coverage" in stop_names, (
+        "the ledger's live consumer must stay wired, or the writer becomes write-only"
+    )
+    writer = (HOOKS_ROOT / "claim-guard" / "ledger-write.py").read_text(
+        encoding="utf-8"
+    )
+    reader = (HOOKS_ROOT / "journey-coverage" / "check.py").read_text(encoding="utf-8")
+    assert (
+        "CLAIM_GUARD_LEDGER_ROOT" in writer and "CLAIM_GUARD_LEDGER_ROOT" in reader
+    ), "producer and consumer must keep naming the same ledger root"
 
 
 @pytest.mark.xfail(
