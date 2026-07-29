@@ -514,6 +514,15 @@ jobs:
       # them, so a suite that is not named here is dead weight that cannot catch a regression.
       - name: gate-tests-coverage bounded hook launcher
         run: python hooks/_shared/test_hookrun.py
+      # event-ledger is the post-compaction recovery keystone (SessionStart replays it as
+      # ground truth instead of the lossy auto-summary), and its suite is a standalone
+      # __main__ runner too -- MEASURED: `python -m pytest hooks/event-ledger -q
+      # --import-mode=importlib` reports "no tests ran", so the broad `pytest hooks/` net
+      # below collects NOTHING from it and "event-ledger" appeared nowhere in this file.
+      # The whole surface (ledger core, note CLI, stop-hook, SessionStart replay) therefore
+      # ran in NO gate, which is how the open/deferred-thread continuity gap reached HEAD.
+      - name: gate-tests-coverage event-ledger recovery keystone
+        run: python hooks/event-ledger/test_ledger.py
       # tools/mcp/closed-batch — the apply-when-closed ~/.claude.json batch editor.
       # Stdlib-only, so no install step; named explicitly for the same reason as the
       # suites above (there is no repo-wide pytest autodiscovery, so an unnamed suite

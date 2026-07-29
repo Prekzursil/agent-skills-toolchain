@@ -302,6 +302,82 @@ def main():
         ok_json = False
     check("replay injects ground-truth context", ok_json)
 
+    print("== deferred open threads survive recovery ==")
+    tproj = "C:/fake/projectThreads"
+    open_cli = subprocess.run(
+        [
+            sys.executable,
+            str(HERE / "note.py"),
+            "--kind",
+            "thread",
+            "--cwd",
+            tproj,
+            "--id",
+            "T-17",
+            "revisit parser after dependency lands",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    # Known-broken before this fix: KINDS carried no "thread", so the CLI exited 2 and a
+    # direct append silently downgraded the row to "note".
+    check("thread is a first-class annotation kind", "thread" in ledger.KINDS)
+    check("note CLI records a typed thread", open_cli.returncode == 0)
+    ledger.append(tproj, "note", text="freeform aside worth keeping")
+    check(
+        "open_threads projects exactly the deferred item",
+        [t.get("id") for t in (ledger.state(tproj).get("open_threads") or [])]
+        == ["T-17"],
+    )
+
+    def replay_ctx(project):
+        _, raw = run_hook(
+            HERE / "sessionstart-replay.py", {"cwd": project, "source": "compact"}
+        )
+        try:
+            return (
+                json.loads(raw.strip().splitlines()[-1])
+                .get("hookSpecificOutput", {})
+                .get("additionalContext", "")
+            )
+        except Exception:
+            return ""
+
+    ctx_open = replay_ctx(tproj)
+    # Known-broken before this fix: build_context replayed neither an open-thread
+    # projection nor note rows, so a deferred item was dropped from recovery context
+    # even though the injected header advertised "decisions/notes".
+    check("recovery replays the open thread", "T-17" in ctx_open)
+    check("recovery replays the note rows its header promises", "aside" in ctx_open)
+
+    close_cli = subprocess.run(
+        [
+            sys.executable,
+            str(HERE / "note.py"),
+            "--kind",
+            "thread",
+            "--cwd",
+            tproj,
+            "--id",
+            "T-17",
+            "--status",
+            "closed",
+            "parser revisited",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    # A reconciled projection, not another memory source: closing retires the row instead
+    # of appending a second one, so a settled item stops being replayed forever.
+    check(
+        "closing a thread retires it from the projection and from recovery",
+        close_cli.returncode == 0
+        and (ledger.state(tproj).get("open_threads") or []) == []
+        and "T-17" not in replay_ctx(tproj),
+    )
+
     print(
         f"\nRESULT: {'PASS' if not fails else 'FAIL: ' + ', '.join(fails)}  "
         f"({len(fails)} failures)"

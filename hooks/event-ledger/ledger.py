@@ -79,8 +79,15 @@ KINDS = (
     "milestone",
     "selection",
     "claim_edge",
+    "thread",
     "note",
 )
+# Statuses that RETIRE an open thread. A thread is a RECONCILED PROJECTION, not another
+# memory source: re-recording the same --id with a closing status REMOVES the row instead
+# of appending a second one, so what replays is exactly what is still owed. Without this
+# kind a deferred item had to be filed as a generic "note", which the SessionStart replay
+# dropped — so open threads silently vanished across compaction/resume/clear.
+THREAD_CLOSED_STATUSES = ("closed", "done", "resolved", "dropped", "superseded")
 CLAIM_RELATIONS = (
     "supports",
     "contradicts",
@@ -171,6 +178,7 @@ def _load_state_path(f: Path, project_path: str) -> dict:
         "goal": None,
         "head": None,
         "open_failures": [],
+        "open_threads": [],
         "last_event_ts": None,
     }
 
@@ -278,6 +286,23 @@ def _write_state_atomic(path: Path, state: dict) -> None:
             pass
 
 
+def _reconcile_threads(rows, seq: int, fields: dict) -> list[dict]:
+    """Fold one thread event into the open-threads projection (idempotent per thread id).
+
+    One row per ``id``: re-recording the same id replaces it, and a closing status drops it
+    outright. That keeps the projection a reconciliation of what is still owed rather than
+    an append-only second memory source that would replay settled items forever.
+    """
+    tid = str(fields.get("id") or f"seq:{seq}")
+    status = str(fields.get("status") or "open").strip().lower()
+    kept = [r for r in (rows or []) if r.get("id") != tid]
+    if status not in THREAD_CLOSED_STATUSES:
+        kept.append(
+            {"id": tid, "seq": seq, "text": fields.get("text"), "status": status}
+        )
+    return kept[-25:]
+
+
 def append(project_path: str, kind: str, **fields) -> dict:
     """Append a typed event; bump the monotonic seq; update the state projection.
 
@@ -346,6 +371,10 @@ def append(project_path: str, kind: str, **fields) -> dict:
                 if f.get("seq") not in set(fields["supersedes_failures"])
             ]
             state["open_failures"] = keep
+        if kind == "thread":
+            state["open_threads"] = _reconcile_threads(
+                state.get("open_threads"), seq, fields
+            )
         _write_state_atomic(state_path, state)
         return ev
     finally:
