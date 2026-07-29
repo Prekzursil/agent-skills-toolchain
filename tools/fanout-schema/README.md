@@ -235,6 +235,98 @@ and the residual cannot be classified from the transcripts at all. The experimen
 settles it: convert one high-volume fan-out to `findingsSchema`, re-run it, and compare the
 unparseable-JSON rate before and after on the same prompt.
 
+---
+
+## 6. `preflight()` — abort a fan-out whose work-list silently collapsed
+
+Sections 1-5 are about the **shape of the answer** a subagent returns. This section is about
+the **shape of the launch** — a distinct failure that the schema rules cannot see, because it
+happens before a single agent is spawned.
+
+### The measured failure (2026-07-29, one 51-agent workflow)
+
+The script opened `const P = args`. The runtime delivers `args` as a **JSON-encoded string**,
+so every `P.<field>` read `undefined`. Consequently:
+
+- `Array.from({length: P.nClusters})` became `Array.from({length: undefined})` = `[]`, and the
+  work-list collapsed from 49 units to 1;
+- every interpolated `${P.path}` rendered as the literal four-letter text `undefined`.
+
+**Nothing threw.** The run spent 38 minutes and 324k tokens fanning out a single garbage unit
+and reported completion. Corroborating measurement, taken per-file so a `grep -c` exit code
+cannot lie: of the 10 saved workflows in `~/.claude/workflows`, **`throw new Error` count = 0
+in every one**, and the only 3 `throw` matches that exist at all are inside comments
+(`// a throwing reviewer resolves to null`). Not one saved fan-out could abort itself.
+
+The guard idiom that *would* have caught it already existed in the corpus —
+`const ARGS = typeof args === 'string' ? args : ''` at
+`~/.claude/workflows/codex-auth-research-fanout.mjs:143` — but prose in one file is not a
+guard in the others, and that file has 0 throws too.
+
+### Using it
+
+```js
+import { preflight } from '../../tools/fanout-schema/fanout_schema.mjs'
+
+const units = buildWorkList(config)
+const prompts = units.map((u) => renderPrompt(u))
+
+preflight({ units, expected: config.nClusters, prompts, argsRaw: config })
+// -> { units: 49, expected: 49, prompts: 49 }, or THROWS
+
+await parallel(units.map((u, i) => () => agent(prompts[i], { schema: LENS })))
+```
+
+Call it **after** the work-list and prompts are built and **before** the first spawn. It
+throws an `Error` carrying a stable `err.rule` from the exported `PREFLIGHT` map:
+
+| `err.rule` | fires when |
+|---|---|
+| `preflight/args-not-object` | `argsRaw` is a string (the measured root cause), `null`, an array, or a scalar |
+| `preflight/units-not-array` | `units` is not an array — otherwise `units.length` is `undefined` |
+| `preflight/expected-not-positive-int` | `expected` is not a positive integer |
+| `preflight/collapsed-work-list` | `units` is empty, or `units.length < 2` while `expected > 1` |
+| `preflight/undefined-in-prompt` | a prompt matches `/\bundefined\b/` — a failed interpolation |
+| `preflight/prompts-not-array` | `prompts` is not an array of strings |
+
+Pass `argsRaw` **only** after you have turned `args` into an object; handing over the raw
+string is itself the bug and is what throws. A workflow that deliberately treats `args` as a
+flat string (the `codex-auth-research-fanout.mjs:143` idiom) should simply omit the field.
+
+### Why the two shape checks are not optional polish
+
+`expected` is normally derived from the same args object that broke — `expected: P.nClusters`.
+If `expected` arrives `undefined`, then `expected > 1` is `false`, so a guard written only as
+
+```js
+if (units.length < 2 && expected > 1) throw new Error('collapsed')   // INERT
+```
+
+**never fires on the exact bug it was written for**. `undefined < 2` is likewise `false`, so a
+non-array `units` disarms it too. Both are therefore hard throws in `preflight`, and both are
+covered by their own mutant in `test_preflight_mutations.mjs`.
+
+### Guard coverage is proven, not asserted
+
+`npm test` runs the unit suite **and** `test_preflight_mutations.mjs`, which removes each of
+the five guards in turn and requires the suite to go **red**. A surviving mutant fails the
+gate. Measured on this commit: `BASELINE pass=36 fail=0`, then `M1..M5 KILLED`,
+`SUCCESS:preflight-mutations 5/5 killed`. A green suite alone would not have shown that any
+guard was reachable.
+
+**Known false positive, accepted deliberately.** A prompt whose *prose* uses the English word
+("behaviour here is undefined") also throws; the fix is to reword the prompt. There is no
+opt-out, because the trade is one-sided — a reworded adjective costs seconds, the missed
+interpolation cost 38 minutes and 324k tokens.
+
+**UNVERIFIED — the adoption effect.** No saved workflow calls `preflight()` yet, so its
+real-world catch rate is unmeasured; the only evidence is the one reproduced failure plus the
+five killed mutants. The experiment that settles it: wire `preflight()` into the next
+multi-cluster fan-out and record whether it ever fires in anger.
+
+---
+
 Run the tests: `npm --prefix tools/fanout-schema test`
+(unit suite + the preflight mutation probe; both must pass)
 
 Lint checked-in workflows: `node tools/fanout-schema/lint_fanout_schemas.mjs workflows`
