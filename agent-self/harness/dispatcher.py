@@ -67,6 +67,10 @@ INJECT_PRIORITY: dict[str, int] = {
     "sensitive_artifact": PRIORITY_SAFETY,
     "injection_quarantine": PRIORITY_SAFETY,
     "config_drift": PRIORITY_SAFETY,
+    # Same gate, different verdict: the baseline itself is unparseable, so drift
+    # detection is DISABLED. Ranks with config_drift — an operator must not read a
+    # silent gate as a clean one.
+    "config_baseline_unreadable": PRIORITY_SAFETY,
     # GOAL = 80
     "goal_reinjection": PRIORITY_GOAL,
     "subagent_handoff": PRIORITY_GOAL,
