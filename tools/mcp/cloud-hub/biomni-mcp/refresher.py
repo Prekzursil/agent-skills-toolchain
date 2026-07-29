@@ -41,12 +41,17 @@ import json
 import os
 import sys
 import time
+import urllib.error
+import urllib.request
 
 WEB_URL = "https://biomni.phylo.bio"
 API_HOST = "api.phylo.bio"
 SIGNIN_HOST = "signin.phylo.bio"
 CAPTURE_TIMEOUT_MS = 45_000
 LOGIN_TIMEOUT_MS = 300_000  # 5 min for the human to finish signing in
+# The authenticated endpoint used to decide whether a captured cookie is LIVE.
+AUTH_CHECK_URL = f"https://{API_HOST}/v2/auth/me"
+AUTH_CHECK_TIMEOUT = 15.0
 
 
 def _default_profile() -> str:
@@ -84,6 +89,38 @@ def select_bearer(captured: list[str]) -> str:
     return max(tokens, key=len) if tokens else ""
 
 
+def check_session_cookie(
+    value: str,
+    cookie_name: str = "session_id",
+    url: str = AUTH_CHECK_URL,
+    timeout: float = AUTH_CHECK_TIMEOUT,
+) -> str:
+    """Ask the API whether this session cookie is still accepted.
+
+    Returns ``valid`` | ``revoked`` | ``unknown``.
+
+    A NON-EMPTY cookie is not proof of a live session: Phylo/WorkOS revoke
+    server-side while Chrome keeps handing back the same opaque value. Without
+    this check ``refresh`` stored that dead value and exited 0, and ``watch``
+    re-stored it every interval -- both reporting recovery from exactly the stale
+    -cookie 401 the README tells you to fix by running them.
+
+    ``unknown`` (transport error, 5xx, any non-2xx that is not 401/403)
+    deliberately does NOT count as revoked: an upstream blip must not throw away
+    a working token.
+    """
+    if not value:
+        return "revoked"
+    req = urllib.request.Request(url, headers={"Cookie": f"{cookie_name}={value}"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
+            return "valid" if 200 <= resp.status < 300 else "unknown"
+    except urllib.error.HTTPError as exc:
+        return "revoked" if exc.code in (401, 403) else "unknown"
+    except (urllib.error.URLError, OSError, ValueError):
+        return "unknown"
+
+
 def write_token(store: dict, token: str) -> str:
     """Write the token to the configured store; return a human status. Never logs it."""
     if store["kind"] == "file":
@@ -106,7 +143,11 @@ def _write_token_file(path: str, token: str) -> None:
     if parent:
         os.makedirs(parent, exist_ok=True)
     tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as fh:
+    # 0600 at CREATION -- the temp file holds the same session token as the
+    # destination, so chmod-ing only after os.replace left it world-readable at
+    # the process umask for the length of every write.
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
         fh.write(token)
     os.replace(tmp, path)
     try:  # best-effort lockdown (Windows honours only the read-only bit)
@@ -197,7 +238,9 @@ def _capture_cookie(
 
     Biomni authenticates to api.phylo.bio with a ``session_id`` COOKIE (no Bearer),
     so we read that cookie from the live, already-signed-in session — no bot login,
-    nothing evaded. If it isn't present yet, we open the app once to let it set.
+    nothing evaded. If it is missing OR server-revoked, we open the app once to let
+    the session re-establish, then re-read and RE-CHECK it: presence alone is not
+    freshness (see :func:`check_session_cookie`).
     """
     sync_playwright, err = _playwright()
     if err:
@@ -219,7 +262,8 @@ def _capture_cookie(
             )
         ctx = browser.contexts[0] if browser.contexts else browser.new_context()
         value = _find(ctx)
-        if not value:  # open the app once to trigger the session cookie, then re-read
+        state = check_session_cookie(value, cookie_name)
+        if state == "revoked":  # missing OR dead: open the app once, then re-read
             page = ctx.new_page()
             try:
                 page.goto(url, timeout=60_000)
@@ -230,8 +274,15 @@ def _capture_cookie(
             finally:
                 with contextlib.suppress(Exception):
                     page.close()
-    if value:
+            state = check_session_cookie(value, cookie_name)
+    if state != "revoked":  # valid, or unverifiable (do not discard on a blip)
         return value, ""
+    if value:
+        return "", (
+            f"the '{cookie_name}' cookie in that Chrome is REJECTED by {API_HOST} "
+            "(HTTP 401/403) — the server-side session was revoked or expired. Sign "
+            "into Biomni again in that browser, then retry."
+        )
     return "", (
         f"no '{cookie_name}' cookie for api.phylo.bio in that Chrome — sign into "
         "Biomni there first, then retry."

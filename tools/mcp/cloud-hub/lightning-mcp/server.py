@@ -59,6 +59,24 @@ def _fail(error: str) -> str:
     return json.dumps({"ok": False, "error": error}, ensure_ascii=False)
 
 
+def _status(obj, default: str) -> str:
+    """Read a POST-ACTION ``status`` without letting that read fail the action.
+
+    ``getattr(obj, "status", default)`` only covers a MISSING attribute. In
+    ``lightning_sdk`` ``status`` is a property that performs a SEPARATE
+    control-plane request (``Studio.status`` -> ``get_studio_status``;
+    ``Job.status`` -> refetch), so a timeout / 5xx / auth blip there used to be
+    caught by the caller's broad ``except`` and returned as
+    ``studio_start failed`` -- telling the caller nothing started while the
+    Studio or Job was already live and BILLING. The mutation's success is not
+    conditional on being able to read its status afterwards.
+    """
+    try:
+        return str(getattr(obj, "status", default))
+    except Exception as exc:  # noqa: BLE001  (any SDK/transport error)
+        return f"{default} (status unavailable: {exc})"
+
+
 @mcp.tool()
 def lightning_machine_types() -> str:
     """List the Studio/Job machine (GPU) types available in the SDK."""
@@ -88,7 +106,7 @@ def lightning_studio_start(name: str, machine: str = "CPU", teamspace: str = "")
                 "ok": True,
                 "studio": name,
                 "machine": machine,
-                "status": str(getattr(studio, "status", "started")),
+                "status": _status(studio, "started"),
             },
             ensure_ascii=False,
         )
@@ -148,7 +166,7 @@ def lightning_studio_switch_machine(
                 "ok": True,
                 "studio": name,
                 "machine": machine,
-                "status": str(getattr(studio, "status", "switched")),
+                "status": _status(studio, "switched"),
             },
             ensure_ascii=False,
         )
@@ -206,7 +224,7 @@ def lightning_job_submit(
             {
                 "ok": True,
                 "job": name,
-                "status": str(getattr(job, "status", "submitted")),
+                "status": _status(job, "submitted"),
             },
             ensure_ascii=False,
         )

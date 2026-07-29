@@ -85,6 +85,36 @@ def test_env_store_persists_across_reload(tmp_path):
     assert on_disk["rp"]["accounts"][0]["env"]["RP_KEY"] == "${RP_KEY}"
 
 
+def test_persist_creates_the_temp_file_privately(tmp_path, monkeypatch):
+    """The 0600 lockdown must cover the TEMP file, not only the final path.
+
+    ``_persist`` writes the whole plaintext store to ``accounts.json.tmp`` and
+    only chmods after ``os.replace``, so the temp file carried every literal
+    credential at the default (typically 0644) mode for the length of the write.
+    Assert the CREATION MODE rather than the resulting stat bits, because Windows
+    honours only the read-only bit and would make a bit-level assertion pass in CI
+    and fail locally (or vice versa).
+    """
+    opens: list[tuple[str, int]] = []
+    real_open = os.open
+
+    def _spy(path, flags, mode=0o777, **kwargs):
+        if str(path).endswith(".tmp"):
+            opens.append((str(path), mode))
+        return real_open(path, flags, mode, **kwargs)
+
+    monkeypatch.setattr(os, "open", _spy)
+    store, _ = _env_store(tmp_path, {"RP_KEY": "s"})
+    store.handle("rp", "add", {"name": "alt", "env": {"RP_KEY": "literal-secret"}})
+
+    assert opens, "the store was not written through os.open -- mode is unset"
+    assert all(mode == 0o600 for _p, mode in opens), opens
+    # The write still lands, and the temp file is not left behind.
+    on_disk = json.loads((tmp_path / "acc.json").read_text(encoding="utf-8"))
+    assert on_disk["rp"]["accounts"][-1]["env"]["RP_KEY"] == "literal-secret"
+    assert not (tmp_path / "acc.json.tmp").exists()
+
+
 def test_account_label_stored_and_shown(tmp_path):
     """Optional label (e.g. the account email) is stored on add and surfaced by
     list (a name->label map) + current, so accounts are identifiable beyond the

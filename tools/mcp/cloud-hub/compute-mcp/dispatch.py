@@ -11,6 +11,8 @@ is an ``ok=False`` result, never an exception.
 
 from __future__ import annotations
 
+import functools
+
 import accounts_bridge
 import envelope
 import handles
@@ -28,6 +30,25 @@ def _resolve_env(provider: str, account: str = "") -> dict:
     return _ACCOUNTS.resolve_env(provider, account)
 
 
+def _enveloped(fn):
+    """Turn an unknown explicit ``account`` into the shared ``ok=False`` envelope.
+
+    Keeps this module's stated contract -- "a bad handle or an unknown provider
+    is an ok=False result, never an exception" -- true for a bad ACCOUNT too.
+    ``_resolve_env`` now raises instead of quietly handing back the ambient
+    credentials, so the refusal has to be shaped here, before any provider call.
+    """
+
+    @functools.wraps(fn)
+    def _wrapped(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except accounts_bridge.UnknownAccountError as exc:
+            return envelope.err("compute", str(exc))
+
+    return _wrapped
+
+
 def _parse(handle_str: str):
     """Parse a handle -> (Handle, None) or (None, error_envelope)."""
     try:
@@ -40,6 +61,7 @@ def _ports(ports: str) -> list[str]:
     return [p.strip() for p in ports.split(",") if p.strip()] if ports else []
 
 
+@_enveloped
 def provision(
     provider: str,
     gpu: str = "",
@@ -76,6 +98,7 @@ def provision(
     return mod.provision(_resolve_env(provider, account), spec, dry_run)
 
 
+@_enveloped
 def status(handle: str, account: str = "") -> dict:
     """Fetch the current state of a provisioned box."""
     h, err = _parse(handle)
@@ -84,6 +107,7 @@ def status(handle: str, account: str = "") -> dict:
     return PROVIDERS[h.provider].status(_resolve_env(h.provider, account), h)
 
 
+@_enveloped
 def ls(
     provider: str, project: str = "", teamspace: str = "", account: str = ""
 ) -> dict:
@@ -95,6 +119,7 @@ def ls(
     return mod.ls(_resolve_env(provider, account), opts)
 
 
+@_enveloped
 def cost(provider: str, project: str = "", account: str = "") -> dict:
     """Report account balance / spend for a provider."""
     mod = PROVIDERS.get(provider)
@@ -103,6 +128,7 @@ def cost(provider: str, project: str = "", account: str = "") -> dict:
     return mod.cost(_resolve_env(provider, account), {"project": project})
 
 
+@_enveloped
 def catalog(
     provider: str, region: str = "", project: str = "", account: str = ""
 ) -> dict:
@@ -114,6 +140,7 @@ def catalog(
     return mod.catalog(_resolve_env(provider, account), opts)
 
 
+@_enveloped
 def teardown(
     handle: str,
     terminate: bool = False,
@@ -129,6 +156,7 @@ def teardown(
     return PROVIDERS[h.provider].teardown(env, h, terminate, confirm, dry_run)
 
 
+@_enveloped
 def exec_(handle: str, command: str, account: str = "") -> dict:
     """Run a command on a box (SSH for RunPod/OVH, SDK for Lightning)."""
     h, err = _parse(handle)
@@ -143,6 +171,7 @@ def exec_(handle: str, command: str, account: str = "") -> dict:
     return _wrap_exec(h.provider, h.format(), transfer.ssh_run(target, command))
 
 
+@_enveloped
 def logs(handle: str, lines: int = 200, account: str = "") -> dict:
     """Best-effort log tail (no provider offers a compute log-stream API)."""
     h, err = _parse(handle)
@@ -169,6 +198,7 @@ def logs(handle: str, lines: int = 200, account: str = "") -> dict:
     return res
 
 
+@_enveloped
 def pull(
     handle: str, remote_path: str, local_path: str, via: str = "", account: str = ""
 ) -> dict:
@@ -176,6 +206,7 @@ def pull(
     return _copy("pull", handle, local_path, remote_path, via, account)
 
 
+@_enveloped
 def push(
     handle: str, local_path: str, remote_path: str, via: str = "", account: str = ""
 ) -> dict:

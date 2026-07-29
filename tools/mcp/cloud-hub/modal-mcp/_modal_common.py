@@ -31,6 +31,7 @@ import threading
 
 _CLI_TIMEOUT = 900  # seconds; volume put/get + image builds can be slow
 _LOG_TIMEOUT = 30  # seconds; bounded window for streaming log commands
+_REAP_GRACE = 5  # seconds; bounded wait for a signalled stream child to exit
 _MAX_OUT = 8000  # cap captured stdout so a huge log can't bloat a JSON reply
 _NO_CLI = (
     "modal CLI not found; `pip install modal` and set "
@@ -193,6 +194,25 @@ def run_cli(
     }
 
 
+def _reap(proc) -> int | None:
+    """Signal a streaming child and WAIT for it; escalate SIGTERM -> SIGKILL.
+
+    Returns its exit status, or ``None`` if it survived both signals. Signalling
+    alone is not reaping: ``terminate()`` without a ``wait()`` leaves a zombie and
+    leaves the real exit status unknown, which is why the caller used to report a
+    failed ``modal ... logs`` as a success.
+    """
+    for send in (proc.terminate, proc.kill):
+        try:
+            send()
+            return proc.wait(timeout=_REAP_GRACE)
+        except subprocess.TimeoutExpired:
+            continue  # ignored the signal -- escalate
+        except OSError:
+            break  # cannot signal it; fall through to a non-blocking status read
+    return proc.poll()
+
+
 def run_cli_stream(
     *args: str,
     profile: str = "",
@@ -237,15 +257,18 @@ def run_cli_stream(
     reader.start()
     reader.join(timeout)
     truncated = reader.is_alive()
-    try:
-        proc.terminate()
-    except OSError:
-        pass
+    returncode = _reap(proc)
+    # A window WE cut short exits by our own signal, so its status is meaningless
+    # -- ``truncated`` already reports that. Only a child that ended on its own
+    # carries a real verdict, and a nonzero one is a FAILURE: without this a
+    # ``modal app logs <unknown>`` that printed "Error: app not found" and exited
+    # 7 was returned to the caller as ``{"ok": true}``.
     return {
-        "ok": True,
+        "ok": True if truncated else returncode == 0,
         "output": "\n".join(lines)[:_MAX_OUT],
         "truncated": truncated,
         "timeout_s": timeout,
+        "returncode": returncode,
     }
 
 

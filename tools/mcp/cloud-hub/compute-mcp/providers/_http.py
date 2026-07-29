@@ -155,15 +155,28 @@ def _ovh_timestamp(base: str) -> int:
     return int(time.time()) + _ovh_delta[base]
 
 
-def _ovh_oauth_token(env: dict[str, str], base_id: str) -> str | None:
-    """Fetch/cache an OVH OAuth2 client-credentials bearer token, or None."""
+def _ovh_oauth_token(
+    env: dict[str, str], base_id: str
+) -> tuple[str | None, str | None]:
+    """Fetch/cache an OVH OAuth2 client-credentials bearer token.
+
+    Returns ``(token, error)`` -- and the two ``None`` token cases are NOT
+    interchangeable:
+
+    * ``(None, None)``  -- no OAuth pair configured; the API-key trio is the
+      account's intended auth and signing with it is correct.
+    * ``(None, "...")`` -- an OAuth pair IS configured but the exchange failed.
+      The caller must ABORT. Collapsing this into the first case is how a request
+      resolved for the OAuth account used to go out signed as whatever API-key
+      identity happened to be in the ambient environment.
+    """
     client_id = env.get("OVH_CLIENT_ID", "")
     client_secret = env.get("OVH_CLIENT_SECRET", "")
     if not client_id or not client_secret:
-        return None
+        return None, None
     cached = _oauth_cache.get(client_id)
     if cached and cached[1] > time.time():
-        return cached[0]
+        return cached[0], None
     token_url = OVH_AUTH_BASES.get(base_id, OVH_AUTH_BASES["ovh-eu"])
     creds = urllib.parse.urlencode(
         {
@@ -185,8 +198,12 @@ def _ovh_oauth_token(env: dict[str, str], base_id: str) -> str | None:
             token,
             time.time() + int(val.get("expires_in", 3600)) - 30,
         )
-        return token
-    return None
+        return token, None
+    return None, (
+        f"OVH OAuth2 token exchange failed (HTTP {status}) for client_id "
+        f"{client_id!r}; refusing to fall back to the API-key credentials, which "
+        f"are a DIFFERENT identity"
+    )
 
 
 def ovh_request(
@@ -208,7 +225,12 @@ def ovh_request(
         url += "?" + urllib.parse.urlencode(query)
     body_str = "" if body is None else json.dumps(body, separators=(",", ":"))
     headers: dict[str, str] = {}
-    token = _ovh_oauth_token(env, base_id)
+    token, token_err = _ovh_oauth_token(env, base_id)
+    if token_err is not None:
+        # Configured-but-broken OAuth is a HARD failure: silently signing with the
+        # API-key trio would execute this call (possibly a DELETE) as another
+        # principal. Shaped like a transport failure so callers already handle it.
+        return 0, {"error": token_err}
     if token is not None:
         headers["Authorization"] = f"Bearer {token}"
     else:

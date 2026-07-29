@@ -32,8 +32,10 @@ Wire:  BIOMNI_API_BASE=http://127.0.0.1:8787  BIOMNI_BROKER=1   (on the biomni c
 from __future__ import annotations
 
 import argparse
+import hmac
 import json
 import os
+import secrets
 import subprocess
 import sys
 import time
@@ -47,6 +49,17 @@ DEFAULT_PORT = 8787
 DEFAULT_TTL = 60.0
 HEALTH_PATH = "/__broker/health"
 
+# The LOCAL client capability: a credential distinct from the upstream Biomni
+# session, presented by the connector on every non-health request. Binding to
+# 127.0.0.1 limits network reachability but says NOTHING about WHICH local
+# process opened the socket -- without this, any other program on the box could
+# `DELETE /v2/projects/<id>` and have the broker perform it with the user's real
+# session. Loopback stays defence in depth, not the authorization decision.
+CLIENT_AUTH_HEADER = "X-Biomni-Broker-Client"
+DEFAULT_CLIENT_TOKEN_FILE = os.path.join(
+    os.path.expanduser("~"), ".biomni-mcp", "broker_client_token"
+)
+
 # Biomni's live API authenticates with a `session_id` COOKIE (verified against the
 # running app: every api.phylo.bio request carries the cookie, no Authorization
 # header exists). So the broker injects a Cookie by default. ``bearer`` mode is
@@ -56,6 +69,7 @@ COOKIE_NAME = os.environ.get("BIOMNI_BROKER_COOKIE_NAME", "session_id").strip()
 
 # Hop-by-hop headers (RFC 7230 §6.1) + auth/host/cookie/length the proxy rewrites.
 _STRIP_HEADERS = {
+    CLIENT_AUTH_HEADER.lower(),  # a LOCAL credential -- never forward it upstream
     "authorization",
     "cookie",
     "host",
@@ -164,6 +178,78 @@ class TokenCache:
 
 
 # --------------------------------------------------------------------------- #
+# Local client capability (who may USE the broker) — distinct from the upstream
+# session (what the broker injects). Never mix the two.
+# --------------------------------------------------------------------------- #
+def resolve_client_capability(environ: dict) -> tuple[str, str]:
+    """Resolve the local client capability; MINT + persist one if none exists.
+
+    Priority: ``BIOMNI_BROKER_CLIENT_TOKEN`` (env) -> ``BIOMNI_BROKER_CLIENT_TOKEN_FILE``
+    (default ``~/.biomni-mcp/broker_client_token``, chmod 600) -> freshly minted and
+    written to that file. Minting keeps the existing wiring hands-off: the broker
+    creates the file, and the connector reads the same default path, so nothing
+    else has to be reconfigured.
+    """
+    explicit = (environ.get("BIOMNI_BROKER_CLIENT_TOKEN") or "").strip()
+    if explicit:
+        return explicit, "env"
+    path = (
+        environ.get("BIOMNI_BROKER_CLIENT_TOKEN_FILE") or ""
+    ).strip() or DEFAULT_CLIENT_TOKEN_FILE
+    existing = _read_secret_file(path)
+    if existing:
+        return existing, "file"
+    minted = secrets.token_urlsafe(32)
+    _write_secret_file(path, minted)
+    return minted, "minted"
+
+
+def _read_secret_file(path: str) -> str:
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return fh.read().strip()
+    except OSError:
+        return ""
+
+
+def _write_secret_file(path: str, value: str) -> None:
+    """Atomically write a secret with restrictive (0600) permissions."""
+    parent = os.path.dirname(path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+    tmp = f"{path}.tmp"
+    # 0600 at CREATION -- the temp file holds the same secret as the destination.
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        fh.write(value)
+    os.replace(tmp, path)
+    try:  # best-effort lockdown (Windows honours only the read-only bit)
+        os.chmod(path, 0o600)
+    except OSError:
+        pass
+
+
+def client_authorized(headers, capability: str) -> bool:
+    """True only when the caller presented the exact local capability.
+
+    Accepts ``X-Biomni-Broker-Client: <cap>`` or ``Authorization: Bearer <cap>``.
+    Fails CLOSED on an empty configured capability, so a misconfigured broker
+    refuses everything rather than reverting to the open behaviour.
+    """
+    if not capability:
+        return False
+    presented = (headers.get(CLIENT_AUTH_HEADER) or "").strip()
+    if not presented:
+        auth = (headers.get("Authorization") or "").strip()
+        parts = auth.split(None, 1)
+        if len(parts) == 2 and parts[0].lower() == "bearer":
+            presented = parts[1].strip()
+    if not presented:
+        return False
+    return hmac.compare_digest(presented, capability)
+
+
+# --------------------------------------------------------------------------- #
 # Header rewriting (pure — unit-tested)
 # --------------------------------------------------------------------------- #
 def upstream_headers(
@@ -193,7 +279,7 @@ def upstream_headers(
 # --------------------------------------------------------------------------- #
 # Reverse-proxy handler
 # --------------------------------------------------------------------------- #
-def make_handler(upstream: str, cache: TokenCache):
+def make_handler(upstream: str, cache: TokenCache, client_capability: str):
     upstream = upstream.rstrip("/")
     upstream_host = urllib.parse.urlsplit(upstream).netloc
 
@@ -230,6 +316,21 @@ def make_handler(upstream: str, cache: TokenCache):
         def _proxy(self) -> None:
             if self.path == HEALTH_PATH:
                 self._health()
+                return
+            # Authorize the LOCAL CLIENT first -- before the stored session can be
+            # resolved or injected. Reaching 127.0.0.1 is not a credential.
+            if not client_authorized(self.headers, client_capability):
+                self._send_json(
+                    401,
+                    {
+                        "ok": False,
+                        "error": "missing/invalid local broker capability; send it "
+                        f"as {CLIENT_AUTH_HEADER} (or Authorization: Bearer). It is "
+                        "in BIOMNI_BROKER_CLIENT_TOKEN or the chmod-600 file at "
+                        "BIOMNI_BROKER_CLIENT_TOKEN_FILE (default "
+                        "~/.biomni-mcp/broker_client_token).",
+                    },
+                )
                 return
             token, source = cache.get()
             if not token:
@@ -301,11 +402,13 @@ def main(argv: list[str]) -> int:
 
     cache = TokenCache(dict(os.environ), args.ttl)
     token, source = cache.get()
-    handler = make_handler(args.upstream, cache)
+    capability, cap_source = resolve_client_capability(dict(os.environ))
+    handler = make_handler(args.upstream, cache, capability)
     httpd = ThreadingHTTPServer(("127.0.0.1", args.port), handler)
     print(
         f"[biomni-broker] 127.0.0.1:{args.port} -> {args.upstream} | "
-        f"token_source={source} present={bool(token)} ({_mask(token)})",
+        f"token_source={source} present={bool(token)} ({_mask(token)}) | "
+        f"client_capability={cap_source} ({_mask(capability)})",
         file=sys.stderr,
     )
     print(

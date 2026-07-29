@@ -420,7 +420,16 @@ class AccountStore:
 
     def _persist(self) -> None:
         tmp = f"{self.path}.tmp"
-        with open(tmp, "w", encoding="utf-8") as fh:
+        # 0600 AT CREATION, not after: the temp file carries the SAME literal
+        # secrets as the final store, so chmod-ing only the destination left the
+        # whole plaintext bundle readable at the process umask (typically 0644)
+        # for the length of every write.
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        try:  # a stale tmp from an earlier crash keeps its old, laxer mode
+            os.chmod(tmp, 0o600)
+        except OSError:
+            pass
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
             json.dump(self._data, fh, indent=2, ensure_ascii=False)
         os.replace(tmp, self.path)
         try:  # best-effort lockdown (Windows honours the read-only bit only)
