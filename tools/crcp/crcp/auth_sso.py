@@ -243,6 +243,19 @@ def exchange_code_for_tokens(
         raise RuntimeError("token exchange transport failed") from exc
     if not isinstance(data, dict):
         raise RuntimeError("token endpoint returned a non-object JSON response")
+    error = data.get("error")
+    if error:
+        # Report the OAuth error CODE only; error_description can echo secrets.
+        code = error if isinstance(error, str) else type(error).__name__
+        raise RuntimeError(f"token exchange returned OAuth error: {code[:100]}")
+    if not any(
+        isinstance(data.get(name), str) and data[name].strip()
+        for name in ("access_token", "id_token")
+    ):
+        # An HTTP 200 carrying no usable credential is a failed exchange, not a
+        # completed login; accepting it would report success with nothing to
+        # authenticate a later request.
+        raise RuntimeError("token endpoint returned no usable credential")
     return data
 
 

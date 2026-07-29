@@ -140,6 +140,15 @@ def wait_for_cdp(port: int, timeout_s: float = 30.0) -> dict[str, Any]:
     )
 
 
+def cdp_port_owner(port: int, timeout: float = 1.0) -> dict[str, Any] | None:
+    """Return the CDP identity already serving ``port``, or ``None`` if free."""
+    try:
+        version = _http_json(f"http://127.0.0.1:{port}/json/version", timeout=timeout)
+    except Exception:  # noqa: BLE001 — any failure means "nothing is answering"
+        return None
+    return version if isinstance(version, dict) else {}
+
+
 def launch_browser(
     *,
     profile_dir: Path,
@@ -148,6 +157,17 @@ def launch_browser(
     browser_path: str | None = None,
 ) -> dict[str, Any]:
     """Launch Chrome/Edge with remote debugging into a dedicated profile."""
+    # A browser that cannot bind the port exits silently while the INCUMBENT
+    # keeps answering /json/version, so wait_for_cdp would hand back someone
+    # else's browser under our new PID. Refuse instead of guessing; reusing an
+    # existing endpoint is what attach-only mode is for.
+    incumbent = cdp_port_owner(port)
+    if incumbent is not None:
+        raise BrokerError(
+            f"CDP port {port} is already served by "
+            f"{incumbent.get('Browser') or 'an unknown browser'}; "
+            "close it, choose another port, or use attach-only mode"
+        )
     prepare_profile_dir(profile_dir)
     if browser_path:
         kind, exe = "custom", browser_path
@@ -171,6 +191,12 @@ def launch_browser(
         creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
     )
     version = wait_for_cdp(port)
+    if proc.poll() is not None:
+        # Something is answering on the port but it is not the child we started.
+        raise BrokerError(
+            f"launched browser exited with code {proc.returncode} while :{port} "
+            "is served by another process"
+        )
     return {
         "ok": True,
         "kind": kind,

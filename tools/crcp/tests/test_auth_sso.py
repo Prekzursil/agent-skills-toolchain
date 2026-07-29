@@ -41,7 +41,11 @@ class AuthSsoTests(unittest.TestCase):
 
     @mock.patch("crcp.auth_sso.exchange_code_for_tokens")
     def test_offline_code_completion_mocks_network(self, exchange: mock.Mock) -> None:
-        exchange.return_value = {"expires_in": 3600}
+        # A REAL bundle: the previous {"expires_in": 3600} fixture asserted that a
+        # response carrying no credential still completes, which is exactly the
+        # false positive exchange_code_for_tokens now rejects. See
+        # tests/test_reliability_regressions.py::SsoTokenExchangeTests.
+        exchange.return_value = {"access_token": "at", "expires_in": 3600}
         result = auth_sso.run_sso_login(
             open_browser=False,
             code="one-time-code",
