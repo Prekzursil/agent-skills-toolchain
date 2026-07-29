@@ -36,7 +36,7 @@ from harness import build_batch, submit, poll, harvest
 from harness.lanes import preflight_units, coverage
 
 try:
-    # `engine` is the backend-agnostic CSIE core (engine.verify = clauses 2-5, CSIE-DESIGN §4/§8).
+    # `engine` is the backend-agnostic CSIE core (engine.verify = clauses 2-5, references/CSIE-DESIGN.md §4/§8).
     # It is NOT present in every checkout that carries this harness -- the skill mirror ships
     # harness/ + lanes/ without engine/ -- so the import is guarded and `_verdict` falls back to
     # the equally-complete harness.poll.classify. A hard import here would make the whole driver
@@ -94,7 +94,7 @@ def _verdict(state: str, unit, artifact_path: str | None) -> str:
     TWO complete gate implementations are live in this tree, so this selects by availability
     instead of claiming there is one:
       * `engine.verify.and_gate` (clauses 2-5; verdicts DONE/FAILED) -- the intended production
-        path (CSIE-DESIGN §4/§8), used whenever the `engine` package is importable.
+        path (references/CSIE-DESIGN.md §4/§8), used whenever the `engine` package is importable.
       * `harness.poll.classify` otherwise -- a SECOND, complete clause-1-5 implementation with a
         verdict vocabulary engine.verify does not have (it can return "UNKNOWN" for an unreadable
         artifact). It is NOT retired and nothing deprecates it: it lives at harness/poll.py:10 and

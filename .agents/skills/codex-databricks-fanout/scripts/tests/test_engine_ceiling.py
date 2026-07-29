@@ -1,6 +1,7 @@
 """R9: the unattended cron must not start without a hard ceiling.
 
-CSIE-DESIGN.md:201 — "Nightly stays OFF until the ceiling exists." The harness deliberately
+references/CSIE-DESIGN.md:200-201 — "Nightly stays OFF until the ceiling
+exists." (the sentence wraps: "Nightly" ends :200, the rest is :201.) The harness deliberately
 defaults to NO wall-clock cap (a hard cap once produced a false TIMEOUT on a wave whose
 artifacts were complete), which is right for an interactive run and unsafe for a cron. So the
 ceiling lives in the engine and is checked BEFORE fan-out.

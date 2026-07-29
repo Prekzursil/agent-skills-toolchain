@@ -1,4 +1,4 @@
-"""Role-split compute-backend contracts (CSIE-DESIGN §4, R6)."""
+"""Role-split compute-backend contracts (references/CSIE-DESIGN.md §4, §11 R6)."""
 
 from __future__ import annotations
 

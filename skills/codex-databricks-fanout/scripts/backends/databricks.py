@@ -1,4 +1,4 @@
-"""BuildBackend adapter over the built harness submit/poll/harvest (CSIE-DESIGN §4). Self-contained:
+"""BuildBackend adapter over the built harness submit/poll/harvest (references/CSIE-DESIGN.md §4). Self-contained:
 submit writes the payload it submits. NOTE: the live two-tier loop (rerouting run_E through this) is
 DEFERRED — this is the unit-tested contract, not yet wired into run_E (Roadmap)."""
 

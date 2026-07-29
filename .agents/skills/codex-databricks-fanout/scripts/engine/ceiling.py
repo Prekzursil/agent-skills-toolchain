@@ -1,6 +1,6 @@
 """R9: the hard wave ceiling for UNATTENDED (cron) fan-out.
 
-CSIE-DESIGN.md:197-202 — the harness `submit_and_gate` deliberately defaults to NO wall-clock
+references/CSIE-DESIGN.md:197-202 (§11 R9) — the harness `submit_and_gate` deliberately defaults to NO wall-clock
 cap, because a hard cap once produced a FALSE `TIMEOUT` on a wave whose artifacts were complete
 and gate-valid. That default is correct for an interactive run and unsafe for a cron, so the
 ceiling lives here in the engine and leaves the harness default untouched.

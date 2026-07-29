@@ -1,4 +1,4 @@
-"""Backend-agnostic completion gate (CSIE-DESIGN §4/§8). Clauses 2-5; clause 1 (job terminal) is the
+"""Backend-agnostic completion gate (references/CSIE-DESIGN.md §4/§8). Clauses 2-5; clause 1 (job terminal) is the
 backend caller's precondition. Delegates the proven predicates in harness.contract — one impl each."""
 
 from __future__ import annotations

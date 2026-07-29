@@ -38,6 +38,15 @@ The measured constraints in this doc are enforced by executable code under
   single-repo push token — the node itself gets none), `backlog.py` (allowlisted structured
   issue/PR fields only; free text never drives privileged action).
 
+- **`references/`** carries the two design specs the code above cites, brought over with the
+  `backends/`+`engine/` port so those citations resolve in-tree:
+  [`references/CSIE-DESIGN.md`](references/CSIE-DESIGN.md) (the CSIE spec — §4 is the
+  backend split, §11 R9 the wave ceiling; `engine/ceiling.py` cites it by LINE) and
+  [`references/prompt-revalidation-design.md`](references/prompt-revalidation-design.md)
+  (an owner-approved but NOT-yet-implemented Phase-A/Phase-B prompt-revalidation pipeline that
+  would run on this harness — no code here implements it; it is carried as design context, and
+  nothing in `scripts/` cites it).
+
 Unit + mutation tests: `python -m pytest scripts/tests -q`; `backends/` + `engine/` are additionally
 held at 100% line+branch by their own CI step. The `scripts/e2e/` round-trips need a live Databricks
 workspace and are run manually, never in CI — `run_wave.py` is the only driver that applies the R9
