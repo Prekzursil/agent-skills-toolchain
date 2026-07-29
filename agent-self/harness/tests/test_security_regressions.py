@@ -293,3 +293,89 @@ def test_checkpoint_redacts_private_key_body_from_remember_buffer(tmp_path):
     assert "PRIVATE_BODY_SENTINEL" not in content
     assert "PRIVATE KEY" not in content
     assert "[REDACTED]" in content
+
+
+# --- cross-session verification-evidence leakage (D-wu-24) -------------------
+# A completion claim must be substantiated only by evidence the CLAIMING session
+# produced. Claude Code sends prompt_id rather than turn_id, so its events used to
+# normalize to turn_id="" -- which the ledger reads as "matches every turn". A
+# sibling session's green pytest receipt therefore satisfied this session's gate.
+# These payloads deliberately carry NO turn_id, reproducing that live Claude shape.
+
+
+def _claim_gate_outcome(root: Path, prover_session: str):
+    """Session A edits a file, `prover_session` runs pytest, then A claims done."""
+    project = root / "proj"
+    (project / ".git").mkdir(parents=True)
+    cwd = str(project)
+    dispatcher = HarnessDispatcher(state_root=root / "state")
+
+    dispatcher.dispatch(
+        {
+            "session_id": "sess-A",
+            "cwd": cwd,
+            "tool_name": "Write",
+            "tool_input": {"file_path": str(project / "x.py")},
+            "tool_response": "ok",
+        },
+        provider="claude",
+        event_name="PostToolUse",
+    )
+    dispatcher.dispatch(
+        {
+            "session_id": prover_session,
+            "cwd": cwd,
+            "tool_name": "Bash",
+            "tool_input": {"command": "pytest -q"},
+            "tool_response": {"exit_code": 0, "stdout": "1 passed in 0.10s"},
+        },
+        provider="claude",
+        event_name="PostToolUse",
+    )
+    return dispatcher.dispatch(
+        {
+            "session_id": "sess-A",
+            "cwd": cwd,
+            "last_assistant_message": "Fixed; all tests passed.",
+        },
+        provider="claude",
+        event_name="Stop",
+    )
+
+
+def test_completion_gate_ignores_another_sessions_verification_receipt(tmp_path):
+    leaked = _claim_gate_outcome(tmp_path, prover_session="sess-B")
+
+    assert leaked.action == "inject"
+    assert leaked.reason_code == "unverified_completion_claim"
+    assert any(
+        "without recent objective verification" in text
+        for text in leaked.additional_context
+    )
+
+
+def test_completion_gate_still_accepts_the_claiming_sessions_own_receipt(tmp_path):
+    # The other half of the guard: scoping evidence to the session must NOT make the
+    # gate fire on every Claude Stop (no Claude event carries a turn_id). A session
+    # that proved its own claim stays silent.
+    owned = _claim_gate_outcome(tmp_path, prover_session="sess-A")
+
+    assert owned.action == "allow"
+    assert owned.reason_code == "ok"
+
+
+def test_evidence_turn_id_prefers_host_turn_then_session_then_declines(tmp_path):
+    explicit = _event(tmp_path, "Stop", turn_id="turn-9", session_id="sess-1")
+    assert explicit.evidence_turn_id == "turn-9"
+
+    first = _event(tmp_path, "Stop", turn_id="", session_id="sess-1")
+    second = _event(tmp_path, "Stop", turn_id="", session_id="sess-2")
+    assert first.evidence_turn_id.startswith("session-")
+    assert first.evidence_turn_id != second.evidence_turn_id
+
+    # normalize_event defaults a missing session_id to the literal "unknown", which
+    # every unidentified session shares, so it can scope nothing: decline instead of
+    # minting a token that would silently re-merge those sessions.
+    unidentified = _event(tmp_path, "Stop", turn_id="", session_id="")
+    assert unidentified.session_id == "unknown"
+    assert unidentified.evidence_turn_id == ""

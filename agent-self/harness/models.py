@@ -1,10 +1,22 @@
 from __future__ import annotations
 
+import hashlib
 from dataclasses import asdict, dataclass, field
 from typing import Any, Literal
 
 
 Action = Literal["allow", "block", "inject", "continue"]
+
+# Identity strings that name NO single session or turn. adapters.normalize_event
+# defaults a missing turn_id to "" and a missing session_id to "unknown", so every
+# unidentified event shares them. ledger._session_isolatable applies the same rule
+# to per-session goal files; evidence_turn_id below applies it to receipts.
+UNIDENTIFIED_IDS = frozenset({"", "unknown"})
+
+
+def _identifies(value: str) -> bool:
+    """Whether `value` names one session/turn rather than a shared placeholder."""
+    return str(value).strip().lower() not in UNIDENTIFIED_IDS
 
 
 @dataclass(frozen=True)
@@ -43,6 +55,41 @@ class HookEvent:
     trigger: str = ""
     transcript_path: str = ""
     agent: AgentEnvelope = field(default_factory=AgentEnvelope)
+
+    @property
+    def evidence_turn_id(self) -> str:
+        """The key under which this event's verification evidence is stored and queried.
+
+        `turn_id` is the host's per-turn key when it sends one, but Claude Code sends
+        `prompt_id` instead, so in practice most Claude events normalize to the empty
+        string (measured in-tree: `harness-sota-2026-07-18-corpus/P1C04.md:26` sampled
+        `claude|empty=742` against `codex|set=164`). The ledger's evidence queries read
+        an empty turn as "match every turn" (`ledger.py:1123,1133`), so an unidentified
+        event both stores its receipts as project-wide wildcards and answers its own
+        completion gate with some OTHER session's receipt. Measured: a Stop claiming
+        "Fixed; all tests passed" was ALLOWED because a concurrent session in the same
+        project had run pytest.
+
+        Falling back to a session-derived token keeps the key non-empty and unique per
+        session, so evidence is scoped to the session that produced it instead of to the
+        whole project — without inventing a turn boundary the host never reported. When
+        neither identity is usable the result is "" and today's behavior is unchanged,
+        because there is then nothing to scope by.
+
+        Scope of the guarantee: this attributes events written from here on. Rows already
+        on disk with turn_id="" keep matching every turn, because the ledger is
+        append-only and they cannot be re-attributed after the fact; they age out of the
+        bounded receipt scan (`ledger._RECEIPT_SCAN_LIMIT`) and must still beat the
+        freshness floor. Only kind=="tool_result" and kind=="mutation" are written with
+        this key, since those are the only kinds the evidence queries read.
+        """
+        if _identifies(self.turn_id):
+            return str(self.turn_id).strip()
+        session = str(self.session_id).strip()
+        if not _identifies(session):
+            return ""
+        digest = hashlib.sha256(session.encode("utf-8", "replace")).hexdigest()
+        return f"session-{digest[:16]}"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

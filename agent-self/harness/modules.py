@@ -1238,7 +1238,12 @@ class LedgerModule:
         )
         fields: dict[str, Any] = dict(
             provider=event.provider,
-            turn_id=event.turn_id,
+            # evidence_turn_id, not the raw turn_id: a host that sends no turn_id
+            # (every Claude event — it sends prompt_id) would otherwise store this
+            # receipt with turn_id="" , which the ledger's evidence queries treat as
+            # "belongs to every turn", so it would substantiate a CONCURRENT session's
+            # completion claim. The session-derived fallback keeps it attributable.
+            turn_id=event.evidence_turn_id,
             tool=event.tool.name,
             result_hash=_digest(event.tool.result),
             verified=_verified_result(event.tool.result),
@@ -1316,7 +1321,10 @@ class LedgerModule:
             "mutation",
             dedupe_key=unique,
             provider=event.provider,
-            turn_id=event.turn_id,
+            # Attributable turn key, same reason as _append_tool_result: the mutation
+            # seq is the freshness FLOOR a receipt must beat, so an unattributable
+            # mutation would raise (or fail to raise) every other session's floor.
+            turn_id=event.evidence_turn_id,
             path=path,
             tool=event.tool.name,
             **({"canonical_tree": canonical} if canonical else {}),
@@ -2343,6 +2351,11 @@ class ClaimWarningModule:
         # Prefer the SI-1 fresh-receipt signal (a status=="pass" receipt of the
         # required class whose seq post-dates the last mutation) when the ledger
         # lane has landed; else fall back to the legacy any-green has_verification.
+        # Both queries use evidence_turn_id so an event the host did not give a
+        # turn_id still asks "did MY session prove this?" rather than "did anyone
+        # in this project prove this?" — the latter let a sibling session's green
+        # pytest receipt silence this gate.
+        turn = event.evidence_turn_id
         fresh = getattr(self.ledger, "has_fresh_receipt", None)
         if callable(fresh) and CLAIM_RECEIPT_MAP and families:
             classes = tuple(
@@ -2350,11 +2363,11 @@ class ClaimWarningModule:
             )
             if classes:
                 try:
-                    return bool(fresh(event.cwd, event.turn_id, classes))
+                    return bool(fresh(event.cwd, turn, classes))
                 except Exception:
                     pass
         try:
-            return bool(self.ledger.has_verification(event.cwd, event.turn_id))
+            return bool(self.ledger.has_verification(event.cwd, turn))
         except Exception:
             return False
 
@@ -2391,7 +2404,7 @@ class ClaimWarningModule:
         if not callable(last):
             return None
         try:
-            return int(cast(int, last(event.cwd, event.turn_id)))
+            return int(cast(int, last(event.cwd, event.evidence_turn_id)))
         except Exception:
             return None
 
@@ -2427,7 +2440,7 @@ class ClaimWarningModule:
         if not callable(finder) or not callable(last_fp):
             return HookResult.success()
         try:
-            fingerprint = last_fp(event.cwd, event.turn_id)
+            fingerprint = last_fp(event.cwd, event.evidence_turn_id)
             receipt = finder(event.cwd, fingerprint) if fingerprint else None
         except Exception:
             return HookResult.success()
@@ -2459,7 +2472,7 @@ class ClaimWarningModule:
         if not classes:
             return HookResult.success()
         try:
-            if fresh(event.cwd, event.turn_id, classes):
+            if fresh(event.cwd, event.evidence_turn_id, classes):
                 return HookResult.success()
         except Exception:
             return HookResult.success()

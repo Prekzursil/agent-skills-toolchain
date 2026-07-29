@@ -298,7 +298,11 @@ class LedgerModule:
                 "tool_result",
                 dedupe_key=unique,
                 provider=event.provider,
-                turn_id=event.turn_id,
+                # evidence_turn_id, not the raw turn_id: a host that sends no turn_id
+                # (every Claude event -- it sends prompt_id) would otherwise store this
+                # receipt with turn_id="", which has_verification treats as "belongs to
+                # every turn", so it would substantiate a CONCURRENT session's claim.
+                turn_id=event.evidence_turn_id,
                 tool=event.tool.name,
                 result_hash=_digest(event.tool.result),
                 verified=_verified_result(event.tool.result),
@@ -621,7 +625,9 @@ class ClaimWarningModule:
     def run(self, event: HookEvent) -> HookResult:
         if event.event != "Stop" or not self._CLAIM.search(event.last_assistant_message):
             return HookResult.success()
-        if self.ledger.has_verification(event.cwd, event.turn_id):
+        # evidence_turn_id so an event the host gave no turn_id still asks "did MY
+        # session prove this?" rather than "did anyone in this project prove this?".
+        if self.ledger.has_verification(event.cwd, event.evidence_turn_id):
             return HookResult.success()
         return HookResult.success(
             action="inject",
