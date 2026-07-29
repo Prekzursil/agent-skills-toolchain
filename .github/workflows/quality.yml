@@ -495,6 +495,23 @@ jobs:
       # not a silent detector. Measured: 5 red before the fixes, 9 green after.
       - name: gate-tests-coverage rules tree integrity
         run: python -m pytest ci/tests/test_rules_integrity.py -q
+      # D-a016: the coverage-authority contract between agents/tdd-guide.md and
+      # rules/common/testing.md. The rules make .coverage-thresholds.json the SSOT and keep
+      # 80%+ only as the no-threshold-file fallback; the TDD specialist those rules route
+      # coverage verification TO used to assert a flat 80%+ in four places and never named
+      # the SSOT, so on a repo whose threshold file sets a higher floor the one agent whose
+      # job is verifying coverage was the one that could report a false sufficient. The suite
+      # forbids a coverage percentage on any line of those two documents that does not name
+      # the threshold file, in BOTH directions, and carries a both-states probe that re-runs
+      # the predicate over the verbatim pre-fix wording, per the both-states discipline in
+      # rules/common/single-signal-verification.md, so a green run here is evidence about
+      # the two documents and not merely evidence that the detector stopped working.
+      # ci/tests is already collected as a DIRECTORY by skill-dual-write.yml; naming it here
+      # too puts it in the required lane. Reuses the existing gate-tests-coverage charter
+      # slug on purpose — it is not a new gate, so .quality/charter_check.sh stays consistent
+      # with no charter.yml edit. Measured: 9 passed after the fix, 2 failed before it.
+      - name: gate-tests-coverage coverage-authority consistency
+        run: python -m pytest ci/tests/test_coverage_authority_consistency.py -q
 
       # L13 adoption: the checked-in adversarial corpus plus its miner regressions.
       - name: gate-tests-coverage adversarial harness corpus
