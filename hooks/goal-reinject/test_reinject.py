@@ -54,6 +54,84 @@ def _run_reinject(
     return rc, cap.getvalue()
 
 
+# ── pytest-collected regressions (C010) ──────────────────────────────────────
+# `main()` below is a standalone runner that pytest does NOT collect, and this file
+# is not named in quality.yml, so before these were added `pytest hooks/goal-reinject/`
+# collected ZERO tests. These ride the broad `pytest hooks/` step (quality.yml:702).
+
+
+def _seed_goal(tmp_ledger: str, proj: str, text: str) -> None:
+    os.environ["EVENT_LEDGER_ROOT"] = tmp_ledger
+    sys.path.insert(0, str(LEDGER_DIR))
+    import ledger  # noqa: PLC0415
+
+    importlib.reload(ledger)
+    ledger.append(proj, "goal", text=text)
+
+
+def _turns(tmp_ledger, tmp_counter, tool, session, proj, n):
+    """Fire n PreToolUse turns for `tool`; return the list of stdout strings."""
+    outs = []
+    for _ in range(n):
+        payload = {"tool_name": tool, "session_id": session, "cwd": proj}
+        _rc, out = _run_reinject(tmp_ledger, tmp_counter, payload)
+        outs.append(out.strip())
+    return outs
+
+
+def test_read_only_turns_reach_the_reinjection_interval():
+    """AGENTS.md §2 says "Every N turns" — a read/search/MCP-only session must
+    re-anchor at the interval. Before the fix `main()` returned at the
+    Edit/Write/Bash gate, the counter stayed at 0, and the gap was unbounded."""
+    tmp_ledger = tempfile.mkdtemp(prefix="reinject-ledger-")
+    tmp_counter = tempfile.mkdtemp(prefix="reinject-counter-")
+    proj = "/tmp/c010-readonly"
+    _seed_goal(tmp_ledger, proj, "KEEP THE ROOT OBJECTIVE")
+
+    outs = _turns(tmp_ledger, tmp_counter, "Read", "s-read", proj, 8)
+    assert outs[:7] == [""] * 7, "turns 1-7 must stay silent"
+    assert "KEEP THE ROOT OBJECTIVE" in outs[7], "turn 8 must re-anchor"
+
+
+def test_mcp_tool_turns_also_count():
+    """The same gap applied to every MCP/web tool name, not just Read."""
+    tmp_ledger = tempfile.mkdtemp(prefix="reinject-ledger-")
+    tmp_counter = tempfile.mkdtemp(prefix="reinject-counter-")
+    proj = "/tmp/c010-mcp"
+    _seed_goal(tmp_ledger, proj, "KEEP THE ROOT OBJECTIVE")
+
+    outs = _turns(
+        tmp_ledger, tmp_counter, "mcp__basic-memory__search_notes", "s-mcp", proj, 8
+    )
+    assert "KEEP THE ROOT OBJECTIVE" in outs[7]
+
+
+def test_write_tools_still_count():
+    """Regression guard: the original Edit/Write/Bash behaviour is preserved."""
+    tmp_ledger = tempfile.mkdtemp(prefix="reinject-ledger-")
+    tmp_counter = tempfile.mkdtemp(prefix="reinject-counter-")
+    proj = "/tmp/c010-edit"
+    _seed_goal(tmp_ledger, proj, "KEEP THE ROOT OBJECTIVE")
+
+    outs = _turns(tmp_ledger, tmp_counter, "Edit", "s-edit", proj, 8)
+    assert outs[:7] == [""] * 7
+    assert "KEEP THE ROOT OBJECTIVE" in outs[7]
+
+
+def test_event_without_tool_name_never_advances_the_counter():
+    """A malformed / non-tool event must not consume cadence."""
+    tmp_ledger = tempfile.mkdtemp(prefix="reinject-ledger-")
+    tmp_counter = tempfile.mkdtemp(prefix="reinject-counter-")
+    proj = "/tmp/c010-notool"
+    _seed_goal(tmp_ledger, proj, "KEEP THE ROOT OBJECTIVE")
+
+    for _ in range(9):
+        _rc, out = _run_reinject(
+            tmp_ledger, tmp_counter, {"session_id": "s-none", "cwd": proj}
+        )
+        assert out.strip() == ""
+
+
 def main() -> int:
     tmp_ledger = tempfile.mkdtemp(prefix="reinject-ledger-")
     tmp_counter = tempfile.mkdtemp(prefix="reinject-counter-")
@@ -121,11 +199,25 @@ def main() -> int:
         check("no-goal call: exit 0", rc == 0)
         check("no-goal call: no output", out.strip() == "")
 
-    print("== non-write tool → no injection, counter not advanced ==")
-    payload_read = {"tool_name": "Read", "session_id": session, "cwd": proj}
+    print("== read-only tools DO advance the cadence (C010) ==")
+    # Fresh session: 7 Read turns stay silent, the 8th Read re-anchors. Before the
+    # C010 fix every one of these returned early and the counter never moved.
+    sess_read = "sess-readonly"
+    payload_read = {"tool_name": "Read", "session_id": sess_read, "cwd": proj}
+    for i in range(1, 8):
+        rc, out = _run_reinject(tmp_ledger, tmp_counter, payload_read)
+        check(f"Read turn {i}: exit 0", rc == 0)
+        check(f"Read turn {i}: no output", out.strip() == "")
     rc, out = _run_reinject(tmp_ledger, tmp_counter, payload_read)
-    check("Read tool: exit 0", rc == 0)
-    check("Read tool: no output", out.strip() == "")
+    check("Read turn 8: exit 0", rc == 0)
+    check("Read turn 8: injects the goal", "ship the reinject hook" in out)
+
+    print("== an event with no tool_name does NOT advance the cadence ==")
+    payload_notool = {"session_id": "sess-notool", "cwd": proj}
+    for _ in range(9):
+        rc, out = _run_reinject(tmp_ledger, tmp_counter, payload_notool)
+        check("no tool_name: exit 0", rc == 0)
+        check("no tool_name: no output", out.strip() == "")
 
     print("== fail-open: bad stdin → exit 0, no crash ==")
     old_stdin = sys.stdin

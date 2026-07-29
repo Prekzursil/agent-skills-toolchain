@@ -79,7 +79,7 @@ TEST_HINT = re.compile(
 # Top-level definitions (line-anchored over the added-line block).
 _DEF_TOPLEVEL = re.compile(
     r"^(?:export\s+(?:default\s+)?)?(?:async\s+)?"
-    r"(?:def|class|function|interface|type|enum|struct|trait)\s+([A-Za-z_]\w{2,})",
+    r"(?:def|class|function|func|interface|type|enum|struct|trait)\s+([A-Za-z_]\w{2,})",
     re.MULTILINE,
 )
 _DEF_EXPORT_CONST = re.compile(
@@ -228,7 +228,7 @@ def _extract(block: str):
 def _ref_count(cwd: str, name: str) -> int:
     """Count NON-definition references to `name` across the repo."""
     def_re = re.compile(
-        r"(?:def|class|function|interface|type|enum|struct|trait|const|let|var)\s+"
+        r"(?:def|class|function|func|interface|type|enum|struct|trait|const|let|var)\s+"
         + re.escape(name)
         + r"\b"
         r"|\b" + re.escape(name) + r"\s*[=:]\s*(?:\(|async|function)"

@@ -35,7 +35,10 @@ Comprehensive security and quality review of uncommitted changes:
    - Issue description
    - Suggested fix
 
-4. Block commit if CRITICAL or HIGH issues found
+4. Apply the severity gate defined in [rules/common/code-review.md](../rules/common/code-review.md#review-severity-levels) — that table is the single source of truth for the outcome, and this command must not restate it differently:
+   - **CRITICAL** → **BLOCK** the commit. Must be fixed before merge.
+   - **HIGH** → **WARN**. Report it and advise fixing before merge; merge with caution. Do *not* block.
+   - **MEDIUM** → INFO (consider fixing). **LOW** → NOTE (optional).
 
    This command's gate is authoritative for the review it runs and is deliberately
    STRICTER than the general default in `rules/common/code-review.md`, which grades HIGH

@@ -89,7 +89,7 @@ TRIGGER them; only a model call JUDGES (the self-calibration law):
 | `inquisitiveness/prompt-guard.py` (UserPromptSubmit) | **recall-first** + simplest-probe-first inject on substantive prompts |
 | `sonar-secrets/*` (UserPromptSubmit, PreToolUse Read) | secret-leak guard |
 | `anti-degen/fingerprint.py` (PostToolUse) | repeat-action / degeneration fingerprint `(tool,args_hash,output_hash)` |
-| `goal-reinject/reinject.py` (PreToolUse Edit/Write/Bash) | goal re-injection + periodic **FALSIFY-CHECK** |
+| `goal-reinject/reinject.py` (PreToolUse, every tool) | goal re-injection every N **turns** + periodic **FALSIFY-CHECK** |
 | `event-ledger/sessionstart-replay.py` + `stop-hook.py` | replay ledger as ground truth on resume; **capture milestones** → `.beads/knowledge` |
 | `mcp-defaults/enforce-mcp-defaults.py` (SessionStart) | keep the curated MCP set (anti-bloat) |
 | `precompact-snapshot` + `precompact-basicmemory` (PreCompact) | snapshot + capture to the semantic vault before compaction |

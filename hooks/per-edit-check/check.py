@@ -35,6 +35,16 @@ Language dispatch
   .json         pure-Python json.load  (always available)
   .yaml/.yml    yaml.safe_load  (skip silently if pyyaml absent)
   .java         pure-Python delimiter-balance heuristic, ADVISORY only
+  .c/.cc/.cpp/.cxx/.h/.hh/.hpp
+                pure-Python scan for the constructs rules/cpp/security.md
+                forbids (raw new/delete, malloc/free, strcpy/strcat/sprintf,
+                reinterpret_cast).  Advisory inject, never a block.  clang-tidy
+                and cppcheck are NOT invoked — both need a compile database and
+                blow the ~8 s budget.
+  .php          pint --test, else php-cs-fixer --dry-run, else php -l (the two
+                formatters rules/php/coding-style.md:24 names); when none is on
+                PATH, a stdlib PSR-12 subset so a toolless box is not silently
+                green.
   .rs           skipped  — cargo check too heavy for a per-edit hook
   everything    skipped, SILENTLY — the catch-all in ``_run_check``.  ``.kt``,
   else          ``.kts``, ``.swift``, ``.dart``, ``.go``, ``.java``, ``.php``,
@@ -381,6 +391,184 @@ def _check_java(fp: str) -> tuple[list[str], bool]:
         return [], False
 
 
+# ── C / C++ memory + buffer policy (rules/cpp/security.md) ───────────────────
+
+C_EXT = (".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp")
+
+# Each entry: (compiled pattern, message).  Every rule below is a verbatim
+# "Never use ..." demand from rules/cpp/security.md:15-32, so a hit is a stated
+# policy violation, not a taste call.  clang-tidy/cppcheck are deliberately NOT
+# invoked: both need the compile database and blow the ~8 s per-edit budget.
+_C_RULES = (
+    (re.compile(r"\bnew\s+[A-Za-z_:][\w:<>]*"), "raw `new` — use a smart pointer"),
+    (
+        re.compile(r"\bdelete\s*(?:\[\s*\])?\s+[A-Za-z_]"),
+        "raw `delete` — use a smart pointer",
+    ),
+    (
+        re.compile(r"\b(?:m|c|re)alloc\s*\("),
+        "`malloc`/`calloc`/`realloc` — use C++ allocation",
+    ),
+    (re.compile(r"\bfree\s*\("), "`free` — use C++ allocation"),
+    (re.compile(r"\bstrcpy\s*\("), "`strcpy` — use std::string or fmt::format"),
+    (re.compile(r"\bstrcat\s*\("), "`strcat` — use std::string or fmt::format"),
+    (re.compile(r"\bsprintf\s*\("), "`sprintf` — use std::string or fmt::format"),
+    (
+        re.compile(r"\breinterpret_cast\s*<"),
+        "`reinterpret_cast` — avoid unless unavoidable",
+    ),
+)
+
+_C_LINE_COMMENT = re.compile(r"//.*$", re.MULTILINE)
+_C_BLOCK_COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
+_C_STRING = re.compile(r"\"(?:\\.|[^\"\\])*\"|'(?:\\.|[^'\\])*'")
+
+
+def _strip_c_noise(line: str) -> str:
+    """Blank out string literals and line comments so a mention is not a use.
+
+    `printf("call free() here")` and `// never call strcpy` must not be flagged;
+    only real code is scanned.
+    """
+    return _C_STRING.sub('""', _C_LINE_COMMENT.sub("", line))
+
+
+def _check_c(fp: str) -> tuple[list[str], bool]:
+    """Flag constructs rules/cpp/security.md forbids.  Advisory, never blocking.
+
+    Returns ``(issues, is_syntax_error)`` — ``is_syntax_error`` is always False:
+    these are policy findings, so they inject rather than block the write.
+    """
+    try:
+        with open(fp, encoding="utf-8", errors="replace") as fh:
+            src = fh.read()
+        # Block comments can span lines, so strip them before splitting.
+        src = _C_BLOCK_COMMENT.sub("", src)
+        issues: list[str] = []
+        for lineno, raw in enumerate(src.splitlines(), 1):
+            code = _strip_c_noise(raw)
+            if not code.strip():
+                continue
+            for rx, msg in _C_RULES:
+                if rx.search(code):
+                    issues.append(f"{os.path.basename(fp)}:{lineno}: {msg}")
+        return issues, False
+    except Exception:
+        return [], False
+
+
+# ── PHP formatting policy (rules/php/coding-style.md, rules/php/hooks.md) ─────
+
+_PHP_HEREDOC_OPEN = re.compile(r"<<<[~'\"]?\s*([A-Za-z_]\w*)")
+_PHP_OPEN_TAG = re.compile(r"<\?(?!php\b|=)")
+
+
+def _check_php_tool(fp: str) -> tuple[list[str], bool] | None:
+    """Run Pint / PHP-CS-Fixer / ``php -l`` if present; None when none is.
+
+    rules/php/coding-style.md:24 names Pint and PHP-CS-Fixer by name, so they are
+    preferred over the built-in subset check whenever they are actually on PATH.
+    """
+    for exe, args, hard in (
+        ("pint", ["--test", fp], False),
+        ("php-cs-fixer", ["fix", "--dry-run", "--diff", fp], False),
+        ("php", ["-l", fp], True),
+    ):
+        found = shutil.which(exe)
+        if not found:
+            continue
+        try:
+            r = subprocess.run(
+                [found, *args],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=TIMEOUT,
+            )
+        except Exception:
+            return [], False
+        if r.returncode == 0:
+            return [], False
+        out = (r.stdout or "") + (r.stderr or "")
+        lines = [ln for ln in out.splitlines() if ln.strip()]
+        return (lines[:20] or [f"{exe} reported a problem"]), hard
+    return None
+
+
+def _check_php_psr12(fp: str) -> tuple[list[str], bool]:
+    """Stdlib-only PSR-12 subset, so a toolless box is not silently green.
+
+    Only high-confidence, deterministic rules are implemented; heredoc/nowdoc
+    bodies and inline-HTML regions are excluded so their formatting is not
+    misread as PHP indentation.
+    """
+    try:
+        with open(fp, encoding="utf-8", errors="replace", newline="") as fh:
+            raw = fh.read()
+    except Exception:
+        return [], False
+
+    issues: list[str] = []
+    text = raw.replace("\r\n", "\n")
+    stripped = text.rstrip()
+
+    if stripped.endswith("?>"):
+        issues.append("PSR-12 §2.2: omit the closing `?>` in a PHP-only file")
+    if _PHP_OPEN_TAG.search(text):
+        issues.append("PSR-12 §2.2: use the long `<?php` open tag, not `<?`")
+    # PSR-12 §2.1 (LF line endings) is deliberately NOT checked here: this repo is
+    # Windows-primary and .php is not normalised in .gitattributes, so the rule
+    # would fire on essentially every local edit. That is noise in an advisory
+    # hook, and a real Pint / PHP-CS-Fixer run (preferred above) reports it anyway.
+
+    in_php = False
+    heredoc: str | None = None
+    bad_indent = 0
+    tabbed = 0
+    for line in text.split("\n"):
+        if heredoc is not None:
+            if line.strip().rstrip(";,").strip() == heredoc:
+                heredoc = None
+            continue
+        if not in_php:
+            if "<?php" in line or "<?=" in line:
+                in_php = True
+            else:
+                continue
+        elif "?>" in line:
+            in_php = False
+        m = _PHP_HEREDOC_OPEN.search(line)
+        if m:
+            heredoc = m.group(1)
+            continue
+        if not line.strip():
+            continue
+        indent = line[: len(line) - len(line.lstrip())]
+        if "\t" in indent:
+            tabbed += 1
+        elif len(indent) % 4:
+            bad_indent += 1
+    if tabbed:
+        issues.append(f"PSR-12 §2.4: {tabbed} line(s) indent with tabs, not 4 spaces")
+    if bad_indent:
+        issues.append(
+            f"PSR-12 §2.4: {bad_indent} line(s) not indented in multiples of 4 spaces"
+        )
+    return issues, False
+
+
+def _check_php(fp: str) -> tuple[list[str], bool]:
+    """Prefer the real formatter; fall back to the built-in PSR-12 subset."""
+    try:
+        via_tool = _check_php_tool(fp)
+        if via_tool is not None:
+            return via_tool
+        return _check_php_psr12(fp)
+    except Exception:
+        return [], False
+
+
 def _run_check(fp: str) -> tuple[list[str], bool]:
     """Dispatch to the right checker by extension.
 
@@ -400,6 +588,10 @@ def _run_check(fp: str) -> tuple[list[str], bool]:
         return _check_yaml(fp)
     if ext == ".java":
         return _check_java(fp)
+    if ext in C_EXT:
+        return _check_c(fp)
+    if ext == ".php":
+        return _check_php(fp)
     if ext == ".rs":
         return [], False  # cargo check too heavy for per-edit
     return [], False
