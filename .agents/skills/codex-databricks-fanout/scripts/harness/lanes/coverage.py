@@ -1,5 +1,5 @@
 """Program E lane: one Unit per uncovered-file gap. The unit writes tests, runs the REAL suite,
-pushes to an agent/ branch ONLY on green."""
+commits a LOCAL agent/ branch ONLY on green (no push — the node has no write token, R1)."""
 
 from __future__ import annotations
 import re
@@ -29,9 +29,14 @@ DO:
 1. Identify why {lines} in {f} are uncovered.
 2. Write tests exercising exactly those lines/branches.
 3. Run the repo's REAL suite + coverage. Gate = suite GREEN and those lines now covered.
-   If red or no improvement: FAILED, push NOTHING.
-4. On green ONLY: commit + push to {branch} (scoped add, never -A) using the node's GITHUB_TOKEN.
-   NEVER main, NEVER an existing branch, NEVER open/merge a PR, NEVER force-push.
+   If red or no improvement: FAILED, commit NOTHING.
+4. On green ONLY: commit to a LOCAL branch {branch} (scoped add, never -A), and record its sha.
+   Do NOT push — there is no token on the node (R1).
+   NEVER main, NEVER an existing branch, NEVER open/merge a PR, NEVER force.
+5. EXPORT the commit so it outlives this node, which is ephemeral and takes your branch with it:
+   `mkdir -p /dbfs/tmp/E-coverage/patches && git format-patch -1 --stdout > /dbfs/tmp/E-coverage/patches/{uid}.patch`
+   Verify it is non-empty; if the export fails, say so and set patch_file: none. A commit that is
+   only a local sha is LOST work — the artifact records the claim, the patch carries the change.
 
 CONFIDENCE vocab, inline and adjacent to each claim: VERIFIED / LIKELY / INFERRED / CONTRADICTED /
 UNKNOWN. EVIDENCE block of 3-5 file:line anchors, exempt from any length cap.
@@ -43,7 +48,8 @@ under the harvest floor and is discarded. It MUST contain these fields and END w
   tests_added: <n>
   suite_status: <green|red>
   coverage_after: <number>
-  branch_pushed: <{branch} or none>
+  branch_ready: <{branch}@<local-sha> or none>
+  patch_file: </dbfs/tmp/E-coverage/patches/{uid}.patch or none>
 UNIT-COMPLETE: {uid}
 """
         units.append(
