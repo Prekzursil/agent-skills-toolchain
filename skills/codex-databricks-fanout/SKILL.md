@@ -26,9 +26,22 @@ The measured constraints in this doc are enforced by executable code under
   `RAIL["notebook"]`.
 - **`scripts/harness/gate.py`** is the STRUCTURAL completeness gate (§6 — sentinel + fenced fields, no
   byte floor by default), mutation-tested in `scripts/tests/test_gate.py`.
+- **`scripts/backends/`** is the role-split compute-backend abstraction: `base.py` holds the
+  `BuildBackend`/`VerifyBackend` protocols, `databricks.py` adapts the driver above to them, and
+  `github_actions.py` reads a repo's real ubuntu+windows+macos matrix verdict. Read
+  `github_actions.py`'s module docstring before trusting `all_green` — it records, with executed
+  falsifiers, the job-name shapes it CANNOT match and therefore FAILS OPEN on.
+- **`scripts/engine/`** is backend-agnostic and reusable: `verify.py` (the one completion-gate impl
+  on the `run_E` path), `ceiling.py` (the R9 hard wave ceiling an UNATTENDED/cron fan-out must pass —
+  every branch fails closed, and an unknown quota refuses), `sanitize.py` (neutralize a clone's
+  auto-loaded agent config; DEPTH-0 only, and NOT execution safety), `tokens.py` (short-lived
+  single-repo push token — the node itself gets none), `backlog.py` (allowlisted structured
+  issue/PR fields only; free text never drives privileged action).
 
-Unit + mutation tests: `python -m pytest scripts/tests -q`. The `scripts/e2e/` round-trips need a live
-Databricks workspace and are run manually, never in CI.
+Unit + mutation tests: `python -m pytest scripts/tests -q`; `backends/` + `engine/` are additionally
+held at 100% line+branch by their own CI step. The `scripts/e2e/` round-trips need a live Databricks
+workspace and are run manually, never in CI — `run_wave.py` is the only driver that applies the R9
+ceiling, because the interactive ones deliberately do not.
 
 ## 1. The constraint everyone guesses wrong
 
