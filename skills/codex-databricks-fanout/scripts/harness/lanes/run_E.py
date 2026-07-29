@@ -37,10 +37,16 @@ from harness.lanes import preflight_units, coverage
 
 try:
     # `engine` is the backend-agnostic CSIE core (engine.verify = clauses 2-5, references/CSIE-DESIGN.md §4/§8).
-    # It is NOT present in every checkout that carries this harness -- the skill mirror ships
-    # harness/ + lanes/ without engine/ -- so the import is guarded and `_verdict` falls back to
-    # the equally-complete harness.poll.classify. A hard import here would make the whole driver
-    # unimportable in the mirror, which is how a module acquires zero test coverage.
+    # engine/ IS present in this skill tree as of the A00 pure-additions merge (measured:
+    # `python -c "import engine.verify"` from scripts/ succeeds, and engine.verify.and_gate
+    # exists), so on THIS tree the try-branch is the live path -- the earlier comment here
+    # saying "the skill mirror ships harness/ + lanes/ without engine/" was true before that
+    # merge and is now stale.
+    # The guard STAYS, for a reason that outlives that fact: this driver is also copied into
+    # checkouts that carry harness/ alone, and a hard import would make the whole module
+    # unimportable there (which is how a module acquires zero test coverage). `_verdict` then
+    # falls back to the equally-complete harness.poll.classify, and both arms are tested --
+    # see tests/test_run_E_cancel.py::test_engine_import_is_guarded_not_required.
     from engine import verify
 except ImportError:
     verify = None

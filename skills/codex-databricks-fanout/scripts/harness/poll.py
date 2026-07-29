@@ -8,14 +8,15 @@ harness/lanes/run_E.py is scoped to run_E's production path, not to this package
 Migrating those call sites onto engine.verify is Roadmap work; until then, do NOT
 assume a single gate.
 
-The engine.verify half of that claim is UNVERIFIED in this checkout: `engine/` and
-run_E's engine.verify path are carried on the databricks-side copy and land here
-with the engine/ port. Settle it with `python -c "import engine.verify"` from
-scripts/ -- if that fails the port has not landed and `classify` is the ONLY gate
-implementation present, which does not weaken the warning above, it only means the
-second impl is not here yet. (No line number on the smoke_2unit citation on
-purpose: that call sits at :51 in the databricks copy and :97 in this one, so a
-pinned line number is stale by construction.)
+That engine.verify half was UNVERIFIED when this file was merged; it is now SETTLED
+by the experiment its own tag named. `engine/` landed with the A00 pure-additions
+merge, and `python -c "import engine.verify"` from scripts/ succeeds with
+and_gate present -- so BOTH gate implementations are live in this tree and the
+"do NOT assume a single gate" warning above applies here in full, not just on the
+databricks copy. Migrating the call sites onto engine.verify stays Roadmap work.
+(No line number on the smoke_2unit citation on purpose: that call sits at :51 in
+the databricks copy and :97 in this one, so a pinned line number is stale by
+construction.)
 """
 
 from __future__ import annotations
