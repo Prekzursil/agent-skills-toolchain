@@ -135,13 +135,21 @@ REASON = (
 
 
 def _guard_enabled():
-    """Owner directive 2026-07-11: this credential-file-READ block is OPT-IN and
+    """Owner directive 2026-07-11: THIS HOOK's credential-file block is OPT-IN and
     OFF by default. It created setbacks in interactive sessions (inspecting one's
     OWN ~/.ssh keys / .env / config, and workflows that merely NAME a credential
     file). Set HARNESS_CREDENTIAL_GUARD=1 (or true/yes/on) to re-enable. Mirrors the
     gate in ~/.agents/harness/modules.py SecretGuardModule so both credential
     mechanisms share ONE toggle. The secret-LITERAL input block and the
-    irreversible-op (disk-wipe / history-rewrite) gate are separate and unaffected."""
+    irreversible-op (disk-wipe / history-rewrite) gate are separate and unaffected.
+
+    SCOPE — the toggle does NOT make credential reads unconditionally allowed. The
+    declarative permissions.deny rules in settings.json (Read(./.env), Read(**/.env),
+    Read(**/*.pem), Read(**/*.credentials*) — see agent-self/config/settings.json)
+    are native, always-on and NOT gated by HARNESS_CREDENTIAL_GUARD. With the guard
+    off, Read on those four patterns is still denied by the platform; what the guard
+    turns off is only this hook's WIDER surface (the rest of SENSITIVE_GLOBS, plus
+    Grep/Edit/Bash/PowerShell). Pinned by test_guard_scope.py."""
     return os.environ.get("HARNESS_CREDENTIAL_GUARD", "").strip().lower() in {
         "1",
         "true",
@@ -153,9 +161,10 @@ def _guard_enabled():
 def main():
     data = json.load(sys.stdin)
     if not _guard_enabled():
-        sys.exit(
-            0
-        )  # credential-file block DISABLED BY DEFAULT (owner directive 2026-07-11)
+        # THIS HOOK's credential-file block is DISABLED BY DEFAULT (owner directive
+        # 2026-07-11). The always-on native permissions.deny Read rules in
+        # settings.json are unaffected -- see _guard_enabled's SCOPE note.
+        sys.exit(0)
     tool = data.get("tool_name", "")
     ti = data.get("tool_input", {}) or {}
     if tool in ("Read", "Edit", "NotebookEdit", "MultiEdit"):

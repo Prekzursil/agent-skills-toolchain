@@ -2,7 +2,7 @@
 """UserPromptSubmit hook — full-coverage skill / agent / command / MCP router (lexical UNI, v3).
 
 THE FIX for "the agent only uses skills/MCPs when explicitly invoked." Scores each prompt against ONE
-lexical index over ALL routable units — skills (every SKILL.md), the 16 agents, the 64 commands — by
+lexical index over ALL routable units — every installed skill (SKILL.md), agent and command — by
 IDF-weighted token overlap, and surfaces MCP families via the shared capabilities.py table (all ~48
 servers, not the old 8). Injects the top candidates so the right tool is in front of the model every turn.
 

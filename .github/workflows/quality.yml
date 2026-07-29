@@ -462,6 +462,17 @@ jobs:
           pytest --cov=rank_fusion --cov=searxng_config --cov=query_plan --cov-branch \
             --cov-report=term-missing --cov-fail-under=100
 
+      # C46: ci/tests/ has NO tree-wide step, so a suite added there runs only if it is
+      # named here (quality.yml is the source of truth for what executes). Pins the
+      # deployable ~/.claude docs against the code that resolves the paths they name —
+      # agent-self/config/CLAUDE.md is copied verbatim to ~/.claude by bootstrap.ps1, so a
+      # wrong path in it is an operator instruction, not prose. Reuses the existing
+      # `gate-tests-coverage` charter slug on purpose: .quality/charter_check.sh matches on
+      # `gate-<slug>` markers, so inventing a new one would need a charter.yml edit and
+      # would otherwise turn the EXISTING lint job red.
+      - name: gate-tests-coverage deployable-doc/code path consistency
+        run: python -m pytest ci/tests/test_deploy_doc_consistency.py -q
+
       - name: gate-tests-coverage strict-target hook manifests
         run: |
           python -m pytest ci/tests/test_emit_hook_manifest.py -q
