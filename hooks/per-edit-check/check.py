@@ -34,7 +34,11 @@ Language dispatch
   .ts/.tsx      skipped  — tsc --noEmit too slow; node --check won't parse TS
   .json         pure-Python json.load  (always available)
   .yaml/.yml    yaml.safe_load  (skip silently if pyyaml absent)
+  .java         pure-Python delimiter-balance heuristic, ADVISORY only
   .rs           skipped  — cargo check too heavy for a per-edit hook
+
+Every other extension (.go, .rb, .cs, .kt, .swift, ...) is a deliberate silent
+skip: no checker for it is both always-available and cheap enough here.
 
 Exit protocol (AGENTS.md §6)
 ─────────────────────────────
@@ -258,6 +262,95 @@ def _check_yaml(fp: str) -> tuple[list[str], bool]:
         return [str(exc)], True
 
 
+# Java has no checker that is both always-available and cheap enough for a
+# per-edit hook: google-java-format, Checkstyle, Maven and Gradle are JVM
+# launches that blow the TIMEOUT budget, and `javac` on one file without the
+# project classpath false-flags anything importing a sibling class.  What IS
+# always available is the structural invariant every valid Java compilation
+# unit satisfies -- (), [] and {} balance once comments and literals are
+# removed.  A violation means the file cannot compile, so it is worth saying;
+# but this is a scanner, not a parser, so it is reported as an ADVISORY
+# (exit 0 + inject) and can never reject an edit.
+_JAVA_PAIRS = {")": "(", "]": "[", "}": "{"}
+
+
+def _java_delimiter_error(src: str) -> str | None:
+    """Return a message when *src* has unbalanced ``()``/``[]``/``{}``, else None.
+
+    Conservative by construction: any state this scanner cannot resolve
+    unambiguously returns ``None`` rather than guessing -- an unterminated
+    comment or literal, or the presence of a ``\\u`` escape (Java expands
+    unicode escapes *before* lexing, so ``\\u007B`` really is an opening brace).
+    """
+    if "\\u" in src:
+        return None  # a unicode escape can encode a delimiter -- refuse to guess
+    stack: list[tuple[str, int]] = []
+    i, line, n = 0, 1, len(src)
+    while i < n:
+        ch = src[i]
+        if ch == "\n":
+            line += 1
+            i += 1
+        elif src.startswith("//", i):
+            j = src.find("\n", i)
+            i = n if j == -1 else j
+        elif src.startswith("/*", i):
+            j = src.find("*/", i + 2)
+            if j == -1:
+                return None  # unterminated block comment
+            line += src.count("\n", i, j)
+            i = j + 2
+        elif src.startswith('"""', i):
+            j = src.find('"""', i + 3)
+            if j == -1:
+                return None  # unterminated text block
+            line += src.count("\n", i, j)
+            i = j + 3
+        elif ch in ('"', "'"):
+            j = i + 1
+            while j < n and src[j] != ch:
+                if src[j] == "\\":
+                    j += 1
+                elif src[j] == "\n":
+                    return None  # unterminated string / char literal
+                j += 1
+            if j >= n:
+                return None
+            i = j + 1
+        elif ch in ("(", "[", "{"):
+            stack.append((ch, line))
+            i += 1
+        elif ch in _JAVA_PAIRS:
+            if not stack or stack[-1][0] != _JAVA_PAIRS[ch]:
+                return f"unmatched closing '{ch}' on line {line}"
+            stack.pop()
+            i += 1
+        else:
+            i += 1
+    if stack:
+        opener, opened_at = stack[0]
+        return f"unclosed '{opener}' opened on line {opened_at}"
+    return None
+
+
+def _check_java(fp: str) -> tuple[list[str], bool]:
+    """Structural sanity check for *fp* (delimiter balance only).
+
+    Returns ``(issues, is_syntax_error)``.  ``is_syntax_error`` is always
+    ``False``: a heuristic must nudge, never block.
+    Fail-open: ``([], False)`` on any unexpected error.
+    """
+    try:
+        with open(fp, encoding="utf-8", errors="replace") as fh:
+            src = fh.read()
+        msg = _java_delimiter_error(src)
+        if msg:
+            return [f"{msg} - this file cannot compile"], False
+        return [], False
+    except Exception:
+        return [], False
+
+
 def _run_check(fp: str) -> tuple[list[str], bool]:
     """Dispatch to the right checker by extension.
 
@@ -275,6 +368,8 @@ def _run_check(fp: str) -> tuple[list[str], bool]:
         return _check_json(fp)
     if ext in (".yaml", ".yml"):
         return _check_yaml(fp)
+    if ext == ".java":
+        return _check_java(fp)
     if ext == ".rs":
         return [], False  # cargo check too heavy for per-edit
     return [], False
