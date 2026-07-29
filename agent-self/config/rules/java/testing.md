@@ -121,7 +121,9 @@ Use descriptive names with `@DisplayName`:
 
 ## Coverage
 
-- Target 80%+ line coverage
+- Coverage target: whatever `.coverage-thresholds.json` declares — it is the repository
+  SSOT and is NOT relaxed by this file. Target 80%+ line coverage only when the repository
+  defines no threshold file. (Extends, does not override, `common/testing.md`.)
 - Use JaCoCo for coverage reporting
 - Focus on service and domain logic — skip trivial getters/config classes
 

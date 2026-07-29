@@ -60,8 +60,11 @@ REPEAT until (all_threads_resolved AND no_new_comments AND no_new_reviews_after_
   6. Respond to EVERY thread individually
   6b. For "Outside diff range" comments: leave a general PR comment acknowledging
   7. CRITICAL: WAIT FOR CI/CD, then RE-CHECK for NEW comments/reviews
-     - Monitor CI/CD pipeline: `gh pr checks $PR_NUMBER --watch`
-     - Wait until ALL checks complete (not just pass - complete)
+     - Monitor CI/CD pipeline with longrun, NEVER a foreground `--watch` (AGENTS.md 4a):
+       `longrun.sh -i pr-checks-$PR_NUMBER -h 15 -t 300 -- gh pr checks $PR_NUMBER --watch`
+       launched with `run_in_background` + `Monitor`
+     - Wait until ALL checks complete (not just pass - complete), i.e. until longrun
+       prints its terminal `SUCCESS:pr-checks-$PR_NUMBER` / `FAILED:pr-checks-$PR_NUMBER`
      - Automated reviewers (CodeRabbit) post comments during/after their check
      - Check BOTH inline threads AND review bodies for new feedback
      - Check for NEW REVIEWS with "Actionable comments posted: X" (X > 0)
@@ -499,8 +502,16 @@ gh api "/repos/$OWNER/$REPO_NAME/pulls/$PR_NUMBER/comments/$COMMENT_ID/replies" 
 ```bash
 PR_NUMBER=XXX
 echo "Waiting for CI/CD checks to complete..."
-gh pr checks $PR_NUMBER --watch
+# AGENTS.md 4a: CI `--watch` routinely runs past 60s, so it MUST NOT block the
+# foreground. Wrap it in longrun and launch with run_in_background + Monitor; the
+# completion signal is longrun's terminal SUCCESS:<id> / FAILED:<id> marker, not a
+# blocking call that strands the agent until GitHub reaches a terminal state.
+LONGRUN="${LONGRUN:-$HOME/source/agent-skills-toolchain/scripts/longrun.sh}"
+"$LONGRUN" -i "pr-checks-$PR_NUMBER" -h 15 -t 300 -- gh pr checks "$PR_NUMBER" --watch
 ```
+
+> Windows/PowerShell equivalent: `scripts/longrun.ps1 -Id "pr-checks-$PR_NUMBER"
+> -HeartbeatSec 15 -HangTimeoutSec 300 -Cmd gh pr checks $PR_NUMBER --watch`.
 
 Then re-check for new comments using the workflow in Section 1.
 
