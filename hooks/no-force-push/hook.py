@@ -13,6 +13,15 @@ tripwire.py, or the opt-out (env FORGE_NO_FORCE_PUSH_OFF=1 / a .disabled file) a
 (allow). The tripwire import lives INSIDE the guard precisely so a corrupted
 predicate module fails open instead of exiting non-zero. A crashing gate that
 blocked (or errored on) every command would be far worse than a silent one.
+
+BUT the opt-out is NEVER evaluated before the predicate. Both kill switches live
+inside the same-user plane the gate is meant to constrain (a `.disabled` marker is
+an ordinary file write; the env var is an ordinary config edit), so neither forms a
+trust boundary. Checking them first made a bypass indistinguishable from "nothing
+dangerous happened": exit 0, empty stdout, empty stderr. The predicate therefore
+runs FIRST, and a bypassed positive detection is announced on BOTH stdout (which
+Claude Code surfaces in transcript mode on the exit-0 path) and stderr before the
+allow. The break-glass still allows - it just can no longer do so silently.
 """
 
 from __future__ import annotations
@@ -25,17 +34,25 @@ from pathlib import Path
 THIS = Path(__file__).resolve().parent
 DISABLED = THIS / ".disabled"
 
+BYPASS_NOTICE = (
+    "no-force-push: GATE BYPASSED - a force-push was detected and NOT blocked "
+    "because {switch} is active. AGENTS.md section 9 still requires explicit user "
+    "approval; this kill switch is reachable by any process running as this user, "
+    "so the bypass is announced rather than passed over in silence."
+)
 
-def _disabled() -> bool:
-    return DISABLED.exists() or os.environ.get(
-        "FORGE_NO_FORCE_PUSH_OFF", ""
-    ).lower() in ("1", "on", "true")
+
+def _active_optout() -> str | None:
+    """Name the ACTIVE kill switch, or return None when the gate is armed."""
+    if DISABLED.exists():
+        return f"the .disabled marker at {DISABLED}"
+    if os.environ.get("FORGE_NO_FORCE_PUSH_OFF", "").lower() in ("1", "on", "true"):
+        return "the FORGE_NO_FORCE_PUSH_OFF environment variable"
+    return None
 
 
 def main(argv=None) -> int:
     try:
-        if _disabled():
-            return 0
         # Import the predicate INSIDE the try so a missing/broken tripwire.py
         # fails OPEN (exit 0) - never blocks, never exits non-zero. (Sibling
         # module; this is a standalone process, so no dispatcher name collision.)
@@ -50,10 +67,21 @@ def main(argv=None) -> int:
         if not isinstance(payload, dict):
             return 0
         halt, reason = tripwire.should_halt(payload)
-        if halt:
-            sys.stderr.write(str(reason) + "\n")
+        if not halt:
+            return 0
+        # Positive detection. Only NOW does the opt-out get a vote, and taking it
+        # leaves a record on both streams instead of an empty exit 0.
+        switch = _active_optout()
+        if switch is not None:
+            notice = BYPASS_NOTICE.format(switch=switch)
+            sys.stdout.write(notice + "\n")
+            sys.stdout.flush()
+            sys.stderr.write(notice + "\n")
             sys.stderr.flush()
-            return 2  # BLOCK: exit-2 path; reason -> model
+            return 0  # break-glass: allow, but never silently
+        sys.stderr.write(str(reason) + "\n")
+        sys.stderr.flush()
+        return 2  # BLOCK: exit-2 path; reason -> model
     except Exception:
         return 0  # fail-open: any error -> allow
     return 0
