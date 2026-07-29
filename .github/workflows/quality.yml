@@ -516,6 +516,21 @@ jobs:
           pip install pytest pytest-cov
           pytest ci/tests/test_plan_lint_stage0.py -q --cov=plan_lint_stage0 \
             --cov-branch --cov-report=term-missing --cov-fail-under=100
+      # A043: a language rule whose prose says "extends common/xxx.md" is only actually
+      # composable with that base if the base's `paths:` frontmatter selects the same file
+      # kinds -- a path-scoped rule loads ONLY on a selector match, so a glob the base omits
+      # loads the extension ALONE and the base guidance silently never arrives. Measured:
+      # rules/kotlin/patterns.md selected **/*.kts while rules/common/patterns.md did not, so
+      # editing app/build.gradle.kts lost the whole common base. Stdlib-only (pytest already
+      # installed by an earlier step) and named explicitly for the reason the steps below give:
+      # there is no repo-wide pytest autodiscovery, so an unnamed suite cannot catch a
+      # regression. Reuses the existing `gate-tests-coverage` charter slug on purpose -- it is
+      # not a new gate, so .quality/charter_check.sh stays consistent with no charter.yml edit.
+      # Includes its own both-states control (rules/common/single-signal-verification.md:44):
+      # the gap detector is asserted to FIRE on a synthetic broken pair, so a green run is
+      # evidence rather than a silent no-op. Measured: 2 failed -> 4 passed across the fix.
+      - name: gate-tests-coverage rules selector inheritance
+        run: python -m pytest ci/tests/test_rules_selector_inheritance.py -q
 
       # L13 adoption: the checked-in adversarial corpus plus its miner regressions.
       - name: gate-tests-coverage adversarial harness corpus
@@ -642,8 +657,7 @@ jobs:
           pip install pytest pytest-cov
           pytest --cov=workflow_lint --cov-branch --cov-report=term-missing --cov-fail-under=100
 
-      # ================================ VENDORED TOOL TREES ================================
-      # PR #185 vendored two whole tool trees into the toolkit -- tools/abbyy-finereader-ocr-mcp
+      # ================================ VENDORED TOOL TREES =========================      # PR #185 vendored two whole tool trees into the toolkit -- tools/abbyy-finereader-ocr-mcp
       # (89 tests) and tools/omniaudit-mcp (149 tests) -- and NEITHER was named in ANY of the 7
       # workflows, so both suites ran in ZERO gates. By this job's own doctrine (see the hookrun
       # step above) "a suite that is not named here is dead weight that cannot catch a

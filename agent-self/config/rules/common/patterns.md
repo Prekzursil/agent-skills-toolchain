@@ -16,6 +16,7 @@ paths:
   - "**/*.cs"
   - "**/*.swift"
   - "**/*.kt"
+  - "**/*.kts"
   - "**/*.sh"
 ---
 # Common Patterns
