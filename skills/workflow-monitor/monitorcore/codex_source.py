@@ -141,8 +141,13 @@ class CodexSource:
 
     # ───────────────────────── poll (never throws) ─────────────────────────
     def poll(self) -> Snapshot[CodexPayload]:
-        ts = self._clock()
+        # The clock read is INSIDE the guard: the contract's cardinal rule covers
+        # the injected clock too (it is also threaded into the Poller), so a broken
+        # clock degrades one board row instead of escaping poll. ts stays 0.0 when
+        # the clock itself is what failed -- there is no time to report.
+        ts = 0.0
         try:
+            ts = self._clock()
             self._poller.discover()
             self._poller.ingest()
             self._poller.prune()

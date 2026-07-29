@@ -143,6 +143,39 @@ def test_poll_failure_without_history_returns_empty_payload(tmp_path):
     assert snap.headline == "unreachable: stream dir gone [REDACTED:api-key]"
 
 
+def test_poll_does_not_escape_when_the_injected_clock_raises(tmp_path):
+    """The cardinal rule covers the CLOCK port, not only the poller.
+
+    ``clock`` is a supported constructor port (it is also threaded into the default
+    ``Poller``), and the read used to sit OUTSIDE the guard, so a clock that raises
+    escaped ``poll`` and could tear down the shared cockpit loop -- whose poll calls
+    are unguarded -- instead of degrading one board row.
+    """
+
+    def _dead_clock() -> float:
+        raise RuntimeError("clock offline")
+
+    src = CodexSource(poller=_poller(tmp_path), clock=_dead_clock)
+    snap = src.poll()  # MUST NOT raise
+    assert snap.reachable is False and snap.stale is True
+    assert snap.state is SourceState.UNREACHABLE
+    assert snap.ts == 0.0  # the clock itself failed -- there is no time to report
+    assert snap.error == "clock offline"
+    assert snap.headline == "unreachable: clock offline"
+    assert snap.payload == CodexPayload()
+
+
+def test_poll_does_not_swallow_baseexception_from_the_clock(tmp_path):
+    """Guarding the clock must not widen the guard to ``BaseException``."""
+
+    def _interrupt() -> float:
+        raise KeyboardInterrupt
+
+    src = CodexSource(poller=_poller(tmp_path), clock=_interrupt)
+    with pytest.raises(KeyboardInterrupt):
+        src.poll()
+
+
 def test_headline_strips_control_bytes_from_error(tmp_path):
     """SECURITY (escape-injection blast radius): an exception message carrying ESC/BEL/OSC-8
     must not reach the cockpit through the composed ``unreachable`` headline — it is control-

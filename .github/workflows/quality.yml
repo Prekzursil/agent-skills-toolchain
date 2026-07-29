@@ -73,6 +73,17 @@ jobs:
           diff -r --exclude=__pycache__ \
             tools/monitorcore/monitorcore \
             skills/workflow-monitor/monitorcore
+      # D-wu-19: the codex-runner installs ci/skills-allowlist/* VERBATIM into
+      # $HOME/.agents/skills (codex-runner.yml:163) and skill_surface_census.py then
+      # merkle-compares the two roots, so the acceptance-review helper must live IN the
+      # allowlist -- copying it in after the census would fail the census. That makes it
+      # a second copy of the canonical script; this is its drift guard. Deliberately NOT
+      # a `gate-<slug>` step name, same rationale as the monitorcore step above.
+      - name: acceptance-review helper drift (canonical == CI projection)
+        run: |
+          diff \
+            .agents/skills/acceptance-review/scripts/acceptance_review.py \
+            ci/skills-allowlist/acceptance-review/scripts/acceptance_review.py
 
   types:
     name: gate-types (basedpyright)
@@ -263,6 +274,19 @@ jobs:
         run: |
           pip install -e ".[dev]"
           pytest --cov=monitorcore --cov-branch --cov-report=term-missing --cov-fail-under=100
+      # skills/workflow-monitor holds the ONLY copy of the WfmonSource adapter
+      # (wfmon_export/), and no step named its suite -- with no repo-wide pytest
+      # autodiscovery, a regression there could not be caught (this is how the D-p1c10
+      # escaping-clock case stayed uncovered). Scoped to the adapter-contract file: it
+      # imports stdlib plus in-tree modules only (no textual), and conftest.py puts the
+      # skill root on sys.path, so bare pytest is the whole install. Reuses the declared
+      # `tests-coverage` slug without a --cov-fail-under threshold, same as the
+      # harness-corpus step further down.
+      - name: gate-tests-coverage wfmon adapter contract (skills/workflow-monitor)
+        working-directory: skills/workflow-monitor
+        run: |
+          pip install pytest
+          pytest tests/test_source.py -q
       # tools/mcpctl -- read-only MCP inventory core, stdlib-only runtime (its dev extra
       # is just pytest + pytest-cov). The editable install is LOAD-BEARING here even
       # though the runtime deps are empty: `tests/` is a subdirectory, so bare `pytest`

@@ -82,8 +82,13 @@ class WfmonSource:
 
     # ───────────────────────── poll (never throws) ─────────────────────────
     def poll(self) -> Snapshot[WfmonPayload]:
-        ts = self._clock()
+        # The clock read is INSIDE the guard: the contract's cardinal rule covers
+        # the injected clock too, so a broken clock degrades one board row instead
+        # of escaping poll. ts stays 0.0 when the clock itself is what failed --
+        # there is no time to report.
+        ts = 0.0
         try:
+            ts = self._clock()
             model = self._reader(
                 self._wf_id,
                 projects=self._projects,
