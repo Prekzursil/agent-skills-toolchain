@@ -8,6 +8,11 @@ Three pieces, in dependency order:
   fields silently dropped by an older reader.
 * **The writer** (:func:`dump_event`) - emits exactly ONE NDJSON line, with a
   second redaction pass over every emitted string.
+* **The monitor-adapter mapping** (:func:`normalize`) - the seam
+  ``databricks_source.DatabricksSource`` probes for, translating one envelope
+  into that adapter's fold vocabulary. Without it a *valid* envelope reached the
+  fold under its native field names, matched none of them, and was silently
+  dropped while the board still read reachable / fresh / idle.
 * **The reader** (:class:`EventReader`) - incrementally tails an append-only
   NDJSON file in bounded memory and yields validated events, tolerating a torn
   final line, malformed JSON, duplicate ``event_id``, non-monotonic
@@ -66,6 +71,7 @@ __all__ = [
     "dump_event",
     "load_event",
     "new_event",
+    "normalize",
     "redact",
 ]
 
@@ -594,6 +600,100 @@ def dump_event(event: DbxEvent) -> str:
         sort_keys=True,
         default=str,
     )
+
+
+# --------------------------------------------------------------------------
+# The monitor-adapter mapping
+# --------------------------------------------------------------------------
+
+#: ``lifecycle_state`` values that ARE a state transition, mapped onto the
+#: ``databricks_source`` fold vocabulary. Only these six transitions exist on the
+#: adapter side; the executing states (``RUNNING`` / ``QUIET`` / ``STALLED``) are
+#: NOT transitions and fall through to :data:`_KIND_BY_PROGRESS`.
+_KIND_BY_LIFECYCLE: dict[str, str] = {
+    "PENDING": "queued",
+    "ADMITTED": "queued",
+    "STARTING": "start",
+    "RETRYABLE": "retry",
+    "QUARANTINED": "error",
+    "FAILED": "error",
+    "SEVERED": "error",
+    "CANCELLED": "cancel",
+    "DONE": "done",
+}
+
+#: ``progress_kind`` → fold kind for an event that is pure in-flight motion.
+#: ``lifecycle`` / ``reasoning`` / ``message`` / ``tool`` all collapse to ``event``
+#: (they advance the last-arrival clock and nothing more) — see the ``normalize``
+#: docstring for why ``tool`` deliberately does NOT become ``tool_start``.
+_KIND_BY_PROGRESS: dict[str, str] = {
+    "heartbeat": "heartbeat",
+    "artifact": "artifact",
+    "error": "error",
+    "terminal": "done",
+}
+
+
+def normalize(rec: dict[str, Any]) -> dict[str, Any] | None:
+    """Map ONE v1 envelope onto the ``databricks_source`` fold vocabulary.
+
+    This is the adapter seam ``DatabricksSource._normalize`` probes for. Without it
+    a *valid* envelope reached the fold under its native field names, matched none
+    of them, and was dropped for having no ``unit_id`` — one ``events_seen`` and
+    zero units, published as a reachable, non-stale, IDLE source with no error.
+
+    Returns ``None`` for anything that is not a v1 envelope (detected by the two
+    discriminating keys ``schema_version`` + ``logical_unit_id``, neither of which
+    exists in the adapter's own record shape), so a legacy record passes through
+    untouched — the caller's contract is "a dict, or fall back to the input".
+
+    **Deliberately lossy, in the safe direction.** The envelope carries no
+    start/end discriminator for a tool call, no remote-task id, and no lease
+    event, so ``progress_kind == "tool"`` becomes a plain ``event`` rather than a
+    ``tool_start``. Synthesising ``tool_active=True`` from a signal that can never
+    say the call ENDED would pin the unit ``TOOL_ACTIVE`` forever and make it
+    permanently ineligible for ``STALLED`` — a monitor that goes blind on exactly
+    the unit that needs attention. ``started_ts`` likewise comes only from a real
+    ``STARTING`` event: re-deriving it from every ``RUNNING`` record would keep
+    resetting the starting-grace clock.
+    """
+    if not isinstance(rec, dict):
+        return None
+    if "schema_version" not in rec or "logical_unit_id" not in rec:
+        return None
+    unit_id = str(rec.get("logical_unit_id") or "")
+    if not unit_id:
+        return None
+
+    lifecycle = str(rec.get("lifecycle_state") or "")
+    progress = str(rec.get("progress_kind") or "")
+    kind = _KIND_BY_LIFECYCLE.get(lifecycle) or _KIND_BY_PROGRESS.get(progress, "event")
+
+    out: dict[str, Any] = {
+        "kind": kind,
+        "unit_id": unit_id,
+        "run_id": str(rec.get("databricks_run_id") or ""),
+        "ts": _as_float(rec.get("observed_at_utc")),
+    }
+    if kind == "start":
+        # Two distinct PROGRAM runs claiming one databricks run id is the collision
+        # the adapter looks for; ``attempt_id`` is deliberately excluded, because a
+        # retry inside one program is not a second claimant.
+        out["attempt_token"] = str(rec.get("program_run_id") or "")
+    elif kind == "done":
+        out["status"] = "SUCCESS" if lifecycle == "DONE" else "TERMINATED"
+    elif kind == "error":
+        out["message"] = str(rec.get("error_class") or lifecycle or "error")
+    elif kind == "artifact":
+        out["bytes"] = int(rec.get("artifact_bytes") or 0)
+    return out
+
+
+def _as_float(value: Any) -> float:
+    """``value`` as a float, or ``0.0`` when it is not numeric (never raises)."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return 0.0
+    return float(value)
 
 
 # --------------------------------------------------------------------------

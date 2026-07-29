@@ -1086,3 +1086,189 @@ def test_tracked_unit_map_evicts_least_recently_used_and_loses_their_history(tmp
     assert roomy.stats.monotonic_violations == 1
     assert roomy.recent_monotonic_violations == ("e-a2",)
     assert roomy.tracked_units == 3
+
+
+# --------------------------------------------------------------------------
+# 12. normalize() — the monitor-adapter mapping (REGRESSION: D-wu-46)
+# --------------------------------------------------------------------------
+
+
+def _wire(**over) -> dict:
+    """One event as it actually travels: dumped to NDJSON and decoded back."""
+    return json.loads(dump_event(_evt(**over)))
+
+
+def test_normalize_is_exported_under_the_name_the_adapter_probes_for():
+    """REGRESSION (D-wu-46): ``DatabricksSource._normalize`` looks up an attribute
+    literally named ``normalize``. It was absent, so every valid envelope reached the
+    fold under its native field names and was dropped for having no ``unit_id``."""
+    assert callable(getattr(dbx_events, "normalize", None))
+    assert "normalize" in dbx_events.__all__
+
+
+def test_normalize_maps_the_envelope_onto_the_fold_vocabulary():
+    got = dbx_events.normalize(
+        _wire(
+            logical_unit_id="u-1",
+            databricks_run_id="run-9",
+            observed_at_utc=101.5,
+            lifecycle_state="RUNNING",
+            progress_kind="heartbeat",
+        )
+    )
+    assert got == {
+        "kind": "heartbeat",
+        "unit_id": "u-1",
+        "run_id": "run-9",
+        "ts": 101.5,
+    }
+
+
+@pytest.mark.parametrize(
+    ("lifecycle", "progress", "kind"),
+    [
+        ("PENDING", "lifecycle", "queued"),
+        ("ADMITTED", "lifecycle", "queued"),
+        ("STARTING", "lifecycle", "start"),
+        ("RETRYABLE", "lifecycle", "retry"),
+        ("CANCELLED", "lifecycle", "cancel"),
+        ("QUARANTINED", "lifecycle", "error"),
+        ("SEVERED", "lifecycle", "error"),
+        # executing states are NOT transitions — progress_kind decides
+        ("RUNNING", "heartbeat", "heartbeat"),
+        ("QUIET", "artifact", "artifact"),
+        ("STALLED", "error", "error"),
+        ("RUNNING", "terminal", "done"),
+        ("RUNNING", "reasoning", "event"),
+        ("RUNNING", "message", "event"),
+        ("RUNNING", "lifecycle", "event"),
+        # a tool event deliberately does NOT become tool_start (see below)
+        ("RUNNING", "tool", "event"),
+    ],
+)
+def test_normalize_kind_matrix(lifecycle, progress, kind):
+    got = dbx_events.normalize(_wire(lifecycle_state=lifecycle, progress_kind=progress))
+    assert got is not None and got["kind"] == kind
+
+
+def test_normalize_never_synthesises_a_tool_call_it_cannot_close():
+    """The envelope has no start/end discriminator for a tool call.
+
+    Emitting ``tool_start`` from it would set ``tool_active`` with nothing able to
+    clear it, pinning the unit ``TOOL_ACTIVE`` and making it permanently ineligible
+    for ``STALLED`` — the monitor would go blind on the unit that needs attention.
+    """
+    got = dbx_events.normalize(
+        _wire(lifecycle_state="RUNNING", progress_kind="tool", tool_name="Bash")
+    )
+    assert got is not None
+    assert got["kind"] == "event"
+    assert "tool_start" not in got.values()
+
+
+def test_normalize_carries_the_kind_specific_payload():
+    start = dbx_events.normalize(
+        _wire(lifecycle_state="STARTING", program_run_id="prog-A")
+    )
+    assert start is not None and start["attempt_token"] == "prog-A"
+
+    done = dbx_events.normalize(_wire(lifecycle_state="DONE"))
+    assert done is not None and done["status"] == "SUCCESS"
+
+    # progress_kind=terminal without a DONE lifecycle is terminal-but-unlabelled
+    terminated = dbx_events.normalize(
+        _wire(lifecycle_state="RUNNING", progress_kind="terminal")
+    )
+    assert terminated is not None and terminated["status"] == "TERMINATED"
+
+    failed = dbx_events.normalize(
+        _wire(lifecycle_state="FAILED", error_class="TimeoutError")
+    )
+    assert failed is not None and failed["message"] == "TimeoutError"
+
+    # a failure with no error_class still names something actionable
+    bare = dbx_events.normalize(_wire(lifecycle_state="FAILED", error_class=None))
+    assert bare is not None and bare["message"] == "FAILED"
+
+    grew = dbx_events.normalize(
+        _wire(lifecycle_state="QUIET", progress_kind="artifact", artifact_bytes=4096)
+    )
+    assert grew is not None and grew["bytes"] == 4096
+
+    empty = dbx_events.normalize(
+        _wire(lifecycle_state="QUIET", progress_kind="artifact", artifact_bytes=None)
+    )
+    assert empty is not None and empty["bytes"] == 0
+
+
+@pytest.mark.parametrize(
+    "rec",
+    [
+        pytest.param(
+            {"kind": "heartbeat", "ts": 1.0, "unit_id": "u1", "run_id": "r1"},
+            id="legacy-adapter-record",
+        ),
+        pytest.param({"schema_version": 1}, id="no-logical-unit-id"),
+        pytest.param({"logical_unit_id": "u-1"}, id="no-schema-version"),
+        pytest.param({"schema_version": 1, "logical_unit_id": ""}, id="blank-unit-id"),
+        pytest.param(["not", "a", "dict"], id="not-a-dict"),
+    ],
+)
+def test_normalize_declines_anything_that_is_not_a_v1_envelope(rec):
+    """Declining with ``None`` is load-bearing: ``DatabricksSource._normalize`` falls
+    back to the RAW record, so the adapter's own schema keeps working unchanged."""
+    assert dbx_events.normalize(rec) is None
+
+
+def test_normalize_tolerates_a_non_numeric_timestamp():
+    rec = _wire()
+    rec["observed_at_utc"] = "not-a-number"
+    got = dbx_events.normalize(rec)
+    assert got is not None and got["ts"] == 0.0
+
+    rec["observed_at_utc"] = True  # a bool is not a timestamp
+    assert dbx_events.normalize(rec)["ts"] == 0.0
+
+
+def test_valid_envelope_now_reaches_the_databricks_adapter_as_a_unit():
+    """REGRESSION (D-wu-46), end to end through the real adapter.
+
+    Measured BEFORE the fix, with the exact same input: ``events_seen=1``,
+    ``unit_count=0``, ``state=idle``, ``reachable=True``, ``stale=False``,
+    ``error=None`` — one valid heartbeat acknowledged, its unit silently discarded,
+    and the row painted healthy. The adapter is constructed on its AUTO sibling seam
+    (no ``events_mod`` kwarg), which is the production path.
+    """
+    from monitorcore.databricks_source import DatabricksSource
+    from monitorcore.databricks_source import Liveness as _Liveness
+
+    now = 1784500200.0
+    stream = [
+        _wire(
+            logical_unit_id="u-1",
+            sequence=1,
+            event_id="e-1",
+            lifecycle_state="STARTING",
+            progress_kind="lifecycle",
+            observed_at_utc=now - 60,
+        ),
+        _wire(
+            logical_unit_id="u-1",
+            sequence=2,
+            event_id="e-2",
+            lifecycle_state="RUNNING",
+            progress_kind="heartbeat",
+            observed_at_utc=now - 5,
+        ),
+    ]
+    src = DatabricksSource(reader=lambda: iter(stream), clock=lambda: now)
+    snap = src.poll()
+
+    assert snap.payload.events_seen == 2
+    (unit,) = snap.payload.units  # was () before the fix
+    assert unit.unit_id == "u-1"
+    assert unit.run_id == "dbx-778812"
+    assert unit.heartbeat_ts == now - 5
+    assert unit.liveness is _Liveness.THINKING
+    assert unit.busy is True
+    assert snap.age_s == 5.0  # was None — nothing had been attributed at all
