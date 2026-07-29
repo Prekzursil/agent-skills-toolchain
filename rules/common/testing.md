@@ -22,6 +22,13 @@ paths:
 
 ## Minimum Test Coverage: per `.coverage-thresholds.json` (100% on metaswarm; 80%+ where none is defined)
 
+**The SSOT outranks any agent's or skill's own default.** `agents/tdd-guide.md` advertises a flat
+"80%+"; that number is its **fallback** for a project with no `.coverage-thresholds.json`, never a
+pass mark and never a ceiling. When the file exists, its numbers are the only pass/fail line —
+`tools/editor/metaswarm/.coverage-thresholds.json` requires 100 on lines, branches, functions and
+statements, so 80% there is a FAIL even if tdd-guide reports compliant. Read the file before
+reporting coverage compliance; do not report a threshold you did not read.
+
 Test Types (ALL required):
 1. **Unit Tests** - Individual functions, utilities, components
 2. **Integration Tests** - API endpoints, database operations
@@ -46,4 +53,6 @@ MANDATORY workflow:
 
 ## Agent Support
 
-- **tdd-guide** - Use PROACTIVELY for new features, enforces write-tests-first
+- **tdd-guide** - Use PROACTIVELY for new features, enforces write-tests-first. Its "80%+" is
+  the no-SSOT **fallback** only; where `.coverage-thresholds.json` exists, that file wins and the
+  agent's verdict does not clear the gate.

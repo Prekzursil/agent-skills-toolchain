@@ -4,17 +4,38 @@ Ledger-proven 2026-07-18 (`wf_82c5b350-9ba`): 3 Codex-backed subagents produced 
 artifacts** against 16 files from 2 Claude peers. The failure was in the ADAPTER, not the vendor —
 Codex's coding quality was never actually exercised. These rules close each observed hole.
 
-## 1. A work-unit dispatch MUST block. Fire-and-forget is banned.
+## 1. A work-unit dispatch MUST be JOINED. Fire-and-forget is banned.
 
-- NEVER `--background`, `&`, `nohup`, `spawn(detached)`, or `run_in_background` for a dispatch
-  whose result a barrier is waiting on. Foreground is already the DEFAULT in
-  `codex-companion.mjs:788` (it backgrounds only `if (options.background)`).
+**Reconciliation with AGENTS.md §4a — read this first.** §4a requires any op expected to
+run longer than 60s — *expressly including "long Codex generations" and "multi-agent
+dispatch"* — to run under `longrun` with `run_in_background`/`Monitor`, never as a
+blocking foreground call. A
+cross-vendor work unit routinely exceeds 60s. Read as a ban on backgrounding, this rule would
+leave a 300-second awaited dispatch with **no compliant launch mode** — foreground violating
+§4a, background violating this rule. It is not such a ban. The two rules govern different axes:
+
+| axis | owner | requirement |
+|---|---|---|
+| how the PROCESS is launched | AGENTS.md §4a | >60s ⇒ `longrun` + `run_in_background`, watched by `Monitor` |
+| when the AGENT may return | this rule | only after the run reaches a terminal state AND §2 passes |
+
+**Background the process, never the obligation.** Launching under `longrun` with
+`run_in_background` and then blocking on `Monitor` until the run terminates is **COMPLIANT** and
+is the required shape for anything over 60s. What is banned is *returning to the barrier while
+the unit is still running*.
+
+- NEVER release a fan-in barrier before the dispatched run has reached a terminal state. That
+  bans `--background`, `&`, `nohup`, `spawn(detached)`, or `run_in_background` **without a join**
+  — not the backgrounded launch itself.
 - NEVER return a job id, a `"started in the background as task-…"` string, or a
   `"Check /codex:status"` receipt as a work-unit result. One agent's ENTIRE final answer was such
   a receipt; its job then COMPLETED on disk and the real finding was discarded unread.
-- A backgrounded job's result is unreachable in practice: jobs written from a subagent carry
-  `sessionId: null`, and `lib/job-control.mjs:19` filters `/codex:status` by session id, so
-  `null === "<id>"` hides every one of them. Background = silently losing the work.
+- Prove the join is real. An unjoined background job's result is unreachable in practice: jobs
+  written from a subagent carried `sessionId: null` while the status command filtered by session
+  id, so `null === "<id>"` hid every one of them. *(That specific mechanism is historical — the
+  `codex-companion.mjs` / `lib/job-control.mjs` companion is not present in this repo. The
+  failure mode it demonstrates is not: any launch whose result you cannot address is a silent
+  loss, so pin the run id and the `-o/--output-last-message` path at launch time.)*
 
 ## 2. Blocking on process exit is NOT proof of completion (AND-gate ≥2 signals)
 
@@ -62,8 +83,10 @@ ONCE with `--ignore-user-config`) · `timeout-<n>s` · `schema-invalid`.
 ## 7. Timeouts
 
 Any agent that shells to another agent runtime must set an EXPLICIT Bash `timeout` (30 min) and
-run under `longrun` (AGENTS.md §4a). The silent 10-min default is what one agent rationalised
-`--background` to escape.
+run under `longrun` (AGENTS.md §4a). "Under `longrun`" means backgrounded-and-monitored per §4a;
+§1's join requirement is what keeps that compliant, so there is no conflict to resolve here. The
+silent 10-min default is what one agent rationalised `--background` to escape — the fix is the
+explicit timeout plus the join, not an unmonitored detach.
 
 **§1 and this section do NOT conflict — read §1 as banning ABANDONMENT, not backgrounding.**
 `longrun` backgrounds its child by construction, so a literal reading of §1 would make §4a

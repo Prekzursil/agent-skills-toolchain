@@ -106,7 +106,7 @@ changes no Codex behaviour and is overwritten on the next mirror run.
 
 ## Rules vs Skills
 
-- **Rules** define standards, conventions, and checklists that apply broadly (e.g., "80% test coverage", "no hardcoded secrets").
+- **Rules** define standards, conventions, and checklists that apply broadly (e.g., "test coverage meets `.coverage-thresholds.json`", "no hardcoded secrets").
 - **Skills** (`skills/` directory) provide deep, actionable reference material for specific tasks (e.g., `python-patterns`, `golang-testing`).
 
 Language-specific rule files reference relevant skills where appropriate. Rules tell you *what* to do; skills tell you *how* to do it.
@@ -137,12 +137,28 @@ When language-specific rules and common rules conflict, **language-specific rule
 
 ### Example
 
-`common/coding-style.md` recommends immutability as a default principle. A language-specific `golang/coding-style.md` can override this:
+`common/coding-style.md` recommends immutability as a default principle.
+[`golang/coding-style.md`](golang/coding-style.md) overrides it for Go. That file carries
+the note below verbatim — the `../common/` prefix is correct **from `rules/golang/`**, which
+is why it is shown here as a snippet rather than as a link rendered from this README:
 
-> Idiomatic Go uses pointer receivers for struct mutation — see [common/coding-style.md](../common/coding-style.md) for the general principle, but Go-idiomatic mutation is preferred here.
+```
+> **Language note**: this section overrides the "Immutability (CRITICAL)" rule in
+> [common/coding-style.md](../common/coding-style.md) for Go.
+```
+
+An override is only real when the language-specific file actually states it. A README example
+is not an override — `ci/tests/test_rules_integrity.py` fails if a language override named here
+is missing from the file it names.
 
 ### Common rules with override notes
 
 Rules in `rules/common/` that may be overridden by language-specific files are marked with:
 
 > **Language note**: This rule may be overridden by language-specific rules for languages where this pattern is not idiomatic.
+
+**This marker is the only precedence signal that actually loads.** This README is scoped to
+`**/*.__never_load__` (see the frontmatter), so the "Rule Priority" section above is
+documentation for humans and never enters a model's context. The common rule does load — for
+every extension in its own `paths:` list — so the override must be recorded *in the common
+rule*, next to the text it qualifies, or the conflict is unresolvable at the point of use.

@@ -444,6 +444,23 @@ jobs:
           python ci/emit_hook_manifest.py --source hooks/hooks.json --target codex-plugin --check
           python ci/emit_hook_manifest.py --source agent-self/config/hooks/hooks.json --target codex-plugin --check
 
+      # rules/ had NO gate of any kind before this step: ruff, basedpyright, npm and
+      # opengrep all ignore markdown, so nothing read the rule tree. Five defects were
+      # live at 27fb388 -- a 404 relative link in rules/README.md, the "Language note"
+      # override marker the README promises appearing 0 times under rules/common/, a Go
+      # override the README advertises that golang/coding-style.md never states, a
+      # coverage SSOT that agents/tdd-guide.md's flat 80% silently outranked, and an
+      # awaited >60s cross-vendor dispatch with no compliant launch mode (AGENTS.md 4a
+      # demands background, cross-vendor-dispatch rule 1 forbade it). Named explicitly
+      # like the suites around it -- there is no repo-wide pytest autodiscovery, so an
+      # unnamed suite cannot catch a regression. Reuses the gate-tests-coverage charter
+      # slug on purpose (not a new gate), so .quality/charter_check.sh needs no edit.
+      # The link test is a pure filesystem walk; the other four are text-contract
+      # assertions over prose and each ships a known-broken control, so a green run is
+      # not a silent detector. Measured: 5 red before the fixes, 9 green after.
+      - name: gate-tests-coverage rules tree integrity
+        run: python -m pytest ci/tests/test_rules_integrity.py -q
+
       # L13 adoption: the checked-in adversarial corpus plus its miner regressions.
       - name: gate-tests-coverage adversarial harness corpus
         run: |
