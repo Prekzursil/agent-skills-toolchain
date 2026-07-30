@@ -40,7 +40,22 @@ Exit protocol (AGENTS.md §6)
 ─────────────────────────────
   ruff lint issues             → exit 0 + additionalContext inject (soft nudge)
   py_compile / node / JSON
-    syntax errors              → exit 2 + decision:block JSON (hard nudge)
+    syntax errors              → exit 2, reason on STDERR, stdout clean
+  secret gate match            → exit 2, reason on STDERR, stdout clean
+
+  No block-decision JSON is ever emitted on the exit-2 path and none can be:
+  Claude Code ignores stdout at exit 2, which is why the reason goes to stderr
+  and why every exit-2 case in ``test_check.py`` asserts stdout is EMPTY.  An
+  earlier revision of this docstring advertised such a payload; it never existed
+  and ``test_docstring_promises_no_decision_json_the_exit_2_path_cannot_emit``
+  now pins the prose to the measured behaviour.
+
+  §6 reconciliation — exit 2 here is NOT a block.  This is PostToolUse: the edit
+  has already been written and nothing is reverted or denied; exit 2 is simply
+  the only channel Claude Code reliably surfaces to the model after the fact.
+  §6's "irreversible/dangerous only" restriction governs *denying an operation*,
+  which is a PreToolUse capability this hook does not use.  The one genuinely
+  §6-listed condition it does carry ("secrets in code") uses the same channel.
 
 FAIL-OPEN: every unhandled error → exit 0, no output.
 Opt-outs:  env  PER_EDIT_CHECK=off    (any capitalisation) — whole hook

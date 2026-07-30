@@ -33,9 +33,31 @@ failed:
 python tools/triage-router/triage_router.py --files <file> [<file> ...] --escalate <current-tier> --pretty
 ~~~
 
-The CLI JSON is authoritative. Use `recommended_tier` (`haiku`, `sonnet`, or
-`opus`) as the Claude subagent `model` selector and retain `model_id` in the
-handoff for auditability. Do not recreate the old prose heuristic.
+The CLI JSON is authoritative for the *score*. Retain `recommended_tier` and
+`model_id` verbatim in the handoff for auditability. Do not recreate the old prose
+heuristic. Then apply the policy floor below before choosing the subagent `model`.
+
+## Policy Floor — the router may not under-route substantive work
+
+`rules/common/performance.md:23-35` is the governing owner policy and it is
+unconditional: **every substantive subagent — coding, review, research,
+orchestration — defaults to Opus**, and Haiku is explicitly "NOT for coding, review,
+or any task where output quality matters". That rule states it "overrides any generic
+cost-routing advice", which includes this router.
+
+The router scores *code health*, not *task substance*, so it will return a cheaper
+tier for a substantive unit. Measured at this commit with `lizard` present:
+
+| `--files` | `recommended_tier` |
+| --- | --- |
+| `tools/triage-router/triage_router.py` | `sonnet` |
+| `ci/emit_hook_manifest.py` | `haiku` |
+| `hooks/_shared/hookrun.py` | `haiku` |
+
+So the effective tier is **`max(recommended_tier, opus)` whenever the work unit is
+substantive**, and the handoff must say the floor was applied. A tier below Opus may
+be used ONLY for a trivial, mechanical, high-frequency step — throwaway lookup,
+format/lint pass, log triage. `--budget` never lowers the floor (see Usage above).
 
 If no target file can be resolved, the checkout or router is unavailable, the
 command exits nonzero, or the JSON lacks either required field, fail up to
