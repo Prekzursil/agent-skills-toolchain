@@ -97,6 +97,18 @@ Before marking code complete:
 | MEDIUM | Maintainability concern | **INFO** - Consider fixing |
 | LOW | Style or minor suggestion | **NOTE** - Optional |
 
+> **Language note — the HIGH row is the GENERAL default and it is overridable.** This table
+> is the single source of truth for the *general* review outcome: a review holding HIGH but
+> no CRITICAL is a WARN, not a block. Language-specific review surfaces MAY be deliberately
+> stricter and block on HIGH; where they do, they say so in their own text. The surfaces that
+> currently override this row are the **Python** review path (`agents/python-reviewer.md`,
+> `commands/python-review.md`, `skills/source-command-python-review`) and the
+> **TypeScript/JavaScript** review path (`agents/typescript-reviewer.md`). Anything not on
+> that list follows the WARN row. This marker lives here, next to the text it qualifies,
+> because `rules/README.md` is scoped `**/*.__never_load__` and its "Rule Priority" section
+> never enters a model's context — an override recorded only there is unresolvable at the
+> point of use.
+
 ## Agent Usage
 
 Use these agents for code review:
@@ -153,6 +165,10 @@ Use these agents for code review:
 - **Approve**: No CRITICAL or HIGH issues
 - **Warning**: Only HIGH issues (merge with caution)
 - **Block**: CRITICAL issues found
+- **Scope**: these are the GENERAL criteria. A language-specific surface that declares itself
+  stricter (see the Language note under [Review Severity Levels](#review-severity-levels))
+  blocks on HIGH for its own language; that is an override of this list, not a contradiction
+  of it.
 
 ## Integration with Other Rules
 
