@@ -17,8 +17,19 @@ all (the repo shipped only repo→live sync). This rule + its enforcing hook clo
   git and is OVERWRITTEN on the next deploy. Edit the repo source, then deploy — never the
   other way. (A PreToolUse hook warns on a deployed-copy edit; heed it.)
 - **Reconcile with the built tool, don't hand-copy:** `scripts/sync-from-live.ps1`
-  (`-Report json` to see drift, `-WhatIf`, then a scoped commit) carries live→repo with the
-  nested-repo / vendored-tree / repo-owned-file guards already applied.
+  (`-Drift -Report json` to see drift, `-WhatIf` to dry-run, then a scoped commit) carries
+  live→repo with the nested-repo / vendored-tree / repo-owned-file guards already applied.
+- **`-Report` selects the OUTPUT FORMAT, not read-only mode. Bare `-Report json` WRITES.**
+  `scripts/sync-from-live.ps1:477` gates every copy on `$writeAllowed = (-not $WhatIf -and
+  -not $Drift)` — `Report` is not in that expression, so `-Report json` alone selects mode
+  `sync` and `Copy-Item -Force` overwrites repo files with live bytes (`:593-613`), then omits
+  NEW/CHANGED from the unresolved set (`:686-693`) and still reports `CLEAN` with exit 0. An
+  "inspection" you believed was read-only can therefore destroy an uncommitted repo edit and
+  report success. The script's own example (`:124`) is the correct one: `-Drift -Report json`.
+  **Only `-Drift` or `-WhatIf` makes a run non-writing.**
+- **Its pre-write guard reads STAGED paths only** (`git diff --cached --name-only`,
+  `:481-488`), so unstaged and untracked repo-authored work is unprotected on an apply run.
+  Commit or stage authoritative repo edits before any non-`-Drift` invocation.
 
 ## Enforcement (this is the "hooks" half)
 

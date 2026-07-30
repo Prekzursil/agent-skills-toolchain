@@ -516,6 +516,23 @@ jobs:
           pip install pytest pytest-cov
           pytest ci/tests/test_plan_lint_stage0.py -q --cov=plan_lint_stage0 \
             --cov-branch --cov-report=term-missing --cov-fail-under=100
+      # rules/common/*.md are MECHANIZED elsewhere in the tree (a jq producer, the
+      # sync-from-live PowerShell tool, the harness hook generator, the claim gate), and
+      # nothing else in CI compares a rule against the thing it governs. Eight rule-vs-code
+      # drifts shipped simultaneously because of that gap -- among them a record delimiter
+      # that had been stripped to the empty string (so distinct records aliased), a rule
+      # advertising a MUTATING sync as the way to "see drift", and a bundle mirror that
+      # downgrades the live model-routing rule on next bootstrap. Named explicitly for the
+      # same reason as the suites below: there is no repo-wide pytest autodiscovery here, so
+      # an unnamed suite is dead weight that cannot catch a regression. Reuses the existing
+      # `gate-tests-coverage` charter slug on purpose -- it is not a new gate, so
+      # .quality/charter_check.sh stays consistent with no charter.yml edit. Stdlib-only, no
+      # install step. Fail-first measured on the pre-fix tree: 24 failed / 1 passed; after: 25
+      # passed. (The 1 pre-existing pass guards against RE-introducing a literal 0x1f byte,
+      # which an Edit-tool write did in fact do during that work -- it is a guard, not a
+      # defect probe.)
+      - name: gate-tests-coverage rules/common rule-vs-code contracts
+        run: pytest ci/tests/test_rules_common_contracts.py -q
 
       # L13 adoption: the checked-in adversarial corpus plus its miner regressions.
       - name: gate-tests-coverage adversarial harness corpus
