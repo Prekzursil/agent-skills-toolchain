@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import io
 import json
+import pathlib
+import re
 from contextlib import redirect_stderr, redirect_stdout
 
 import workflow_lint as wl
@@ -716,6 +718,149 @@ def test_parallel_var_at_eof_warns():
     src = "export const meta = { name: 'x' }\nconst raw = await parallel(t)\nreturn raw"
     findings = wl.lint_text(src)
     assert any(f.check == "parallel-filter-boolean" for f in findings)
+
+
+# --------------------------------------------------------------------------- #
+# templates/resume-wired-fanout.md -- the shipped resume-manifest wiring template.
+#
+# A template that teaches a footgun is worse than no template, so the fenced `js`
+# block is gated here rather than trusted. Note the block is a WORKFLOW body: its
+# top-level `return` is legal only because the runtime wraps the body, so
+# `node --check` rejects it by design -- which is exactly why the template is
+# markdown (matching governed-run-orchestrator.md) and is checked with the
+# project's own lexical linter instead.
+# --------------------------------------------------------------------------- #
+_TEMPLATE = (
+    pathlib.Path(__file__).resolve().parents[1] / "templates" / "resume-wired-fanout.md"
+)
+_JS_BLOCK = re.compile(r"\n```js\n(.*?)\n```\n", re.S)
+
+
+def _template_block() -> str:
+    blocks = _JS_BLOCK.findall(_TEMPLATE.read_text(encoding="utf-8"))
+    assert len(blocks) == 1, f"expected exactly one ```js block, found {len(blocks)}"
+    return blocks[0]
+
+
+def _strip_js_comments(src: str) -> str:
+    """Remove // and /* */ comments, leaving string literals intact.
+
+    Needed because the assertions below are substring checks: without this, a token that
+    appears only inside a comment satisfies a test about the CODE. Renaming a flag in the
+    code while leaving its comment behind would then keep CI green.
+    """
+    out, i, n = [], 0, len(src)
+    while i < n:
+        c = src[i]
+        if c in "\"'`":  # skip a string literal whole
+            quote, i = c, i + 1
+            out.append(quote)
+            while i < n:
+                if src[i] == "\\":
+                    out.append(src[i : i + 2])
+                    i += 2
+                    continue
+                out.append(src[i])
+                if src[i] == quote:
+                    i += 1
+                    break
+                i += 1
+            continue
+        if src.startswith("//", i):
+            while i < n and src[i] != "\n":
+                i += 1
+            continue
+        if src.startswith("/*", i):
+            end = src.find("*/", i + 2)
+            i = n if end == -1 else end + 2
+            continue
+        out.append(c)
+        i += 1
+    return "".join(out)
+
+
+def _template_code() -> str:
+    """The template's executable code with comments removed."""
+    return _strip_js_comments(_template_block())
+
+
+def test_resume_template_exists_in_this_dual_write_root():
+    """Resolves relative to THIS file, so both dual-write roots are covered."""
+    assert _TEMPLATE.is_file(), _TEMPLATE
+
+
+def test_resume_template_block_is_lint_clean():
+    findings = wl.lint_text(_template_block(), str(_TEMPLATE))
+    assert findings == [], [wl.format_finding(f) for f in findings]
+
+
+def test_resume_template_lint_is_not_a_vacuous_pass():
+    """Both-states control: the linter MUST fire on a mutated copy of the block.
+
+    A clean verdict is only evidence if the detector can go red on this input.
+    """
+    mutated = _template_block().replace(
+        "const HOME =", "const T = Date.now()\nconst HOME =", 1
+    )
+    findings = wl.lint_text(mutated, str(_TEMPLATE))
+    assert any(f.check == "no-date-now" for f in findings), findings
+
+
+def test_resume_template_carries_all_three_contract_touchpoints():
+    """The wiring is the point; a template missing a touch-point cannot resume.
+
+    Asserted against comment-stripped CODE: a flag named only in a comment is not wiring.
+    """
+    code = _template_code()
+    for token in ("--next", "--mark-partial", "--mark-done", "--mark-failed", "--ids"):
+        assert token in code, (
+            f"{token} missing from the template CODE (comments stripped)"
+        )
+
+
+def test_resume_template_write_ahead_precedes_the_terminal_mark():
+    """--mark-partial must be instructed BEFORE --mark-done, or nothing is recoverable.
+
+    Ordering is a property of the CODE; comment order proves nothing about execution order.
+    """
+    code = _template_code()
+    assert code.index("--mark-partial") < code.index("--mark-done")
+
+
+def test_resume_template_declares_a_literal_work_list_and_derives_ids():
+    code = _template_code()
+    assert "const UNITS = [" in code
+    assert "UNITS.map((u) => u.id).join(',')" in code
+
+
+def test_resume_template_throws_on_a_collapsed_work_list():
+    """SKILL.md rule 2 + the measured 49->1 collapse: a template must fail loudly.
+
+    Against CODE: a `throw` shown inside a comment is an illustration, not a guard.
+    """
+    assert "throw new Error(" in _template_code()
+
+
+def test_comment_stripper_is_not_vacuous():
+    """Both-states control for _strip_js_comments itself.
+
+    If the stripper silently returned its input, every assertion above would be exactly as
+    weak as the substring checks it replaced - and would still pass. So prove it removes a
+    comment, keeps code, and does not eat a `//` inside a string literal.
+    """
+    assert "gone" not in _strip_js_comments("const a = 1 // gone\n")
+    assert "const a = 1" in _strip_js_comments("const a = 1 // gone\n")
+    assert "gone" not in _strip_js_comments("/* gone */const b = 2")
+    assert "https://x" in _strip_js_comments('const u = "https://x"')
+    # and it must actually change the real template, or routing through it is a no-op
+    assert len(_template_code()) < len(_template_block())
+
+
+def test_resume_template_discloses_the_unproven_durability_half():
+    """An UNVERIFIED claim must be inline in the template, not omitted."""
+    block = _template_block()
+    assert "UNVERIFIED" in block
+    assert "page-cache" in block or "power" in block
 
 
 # --------------------------------------------------------------------------- #
