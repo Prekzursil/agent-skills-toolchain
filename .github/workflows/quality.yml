@@ -954,6 +954,44 @@ jobs:
           # gitleaks-action needs GITHUB_TOKEN to enumerate PR commits on pull_request
           # events (push works without it); without it the gate hard-fails on every PR.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # The step above CANNOT be the gate's verdict on a pull_request, because the action
+      # picks its own revision range and that range is TRUNCATED. At the pinned v3.0.0,
+      # src/gitleaks.js:160-167 (and the executed bundle dist/index.js) issue exactly ONE
+      # `GET /repos/{owner}/{repo}/pulls/{pull_number}/commits` with no `per_page`/`page`
+      # and never call `octokit.paginate` (measured: 0 call sites in src/ and dist/). It
+      # then takes `headRef = commits.data[commits.data.length - 1].sha` — i.e. the last
+      # SHA of page 1. GitHub's default page size for that endpoint is 30 (measured live:
+      # gitleaks-action PR 64 returns 30 items plus a `Link: …; rel="next"`), so on a PR
+      # with more than 30 commits gitleaks is handed `base^..<commit-30>` and NEVER SEES
+      # commits 31+. A secret introduced in commit 31 leaves this job green.
+      # There is no configuration fix: the action's only range knob is `BASE_REF`, and
+      # src/gitleaks.js:174-178 applies it to `baseRef` ONLY — the truncated head end
+      # cannot be overridden. `fetch-depth: 0` above makes the objects local but does not
+      # repair the range the action chose.
+      # So the VERDICT comes from this range-independent scan instead: the same pinned
+      # binary and the same committed .gitleaks.toml, over the FULL local history, which
+      # is what the "Gate 5" comment above has always claimed. On a pull_request the
+      # checkout is the merge revision, so every PR commit is an ancestor of HEAD and is
+      # covered regardless of commit count. Re-measured on main @ dab44ba with the same
+      # pinned 8.30.1 binary: 422 commits scanned, ~97 MB, "no leaks found", exit 0, 23s —
+      # so this step does not turn an already-green history red.
+      #
+      # A release tarball fetched by `curl` is not covered by the "all actions are
+      # SHA-pinned" rule at the top of this file, so it carries its own digest. The
+      # expected sha256 was taken from the release's own checksums.txt AND independently
+      # recomputed from the downloaded artifact (both = 551f6fc8…). Bumping
+      # GITLEAKS_VERSION therefore REQUIRES bumping GITLEAKS_SHA256 in the same edit.
+      - name: gate-secrets full-history scan (range-independent)
+        env:
+          GITLEAKS_VERSION: "8.30.1"
+          GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/gitleaks.tar.gz" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
+          "$RUNNER_TEMP/gitleaks" version
+          "$RUNNER_TEMP/gitleaks" git --config .gitleaks.toml --redact --exit-code 1 .
 
   deps:
     name: gate-deps (osv-scanner)
