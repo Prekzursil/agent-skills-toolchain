@@ -626,7 +626,7 @@ test('preflight: the mutation probe is actually WIRED into the CI-invoked npm te
   const ids = [...probe.matchAll(/'(M\d [a-z-]+)'/g)].map((m) => m[1])
   assert.equal(ids.length, 5, `expected 5 mutants, found ${ids.join(', ')}`)
   for (const guard of [
-    'if (units.length === 0 || (units.length < 2 && expected > 1)) {',
+    'if (units.length !== expected) {',
     'const m = UNDEFINED_TOKEN.exec(p)',
     "if (typeof argsRaw === 'string') {",
     'if (!Number.isInteger(expected) || expected < 1) {',
@@ -635,6 +635,37 @@ test('preflight: the mutation probe is actually WIRED into the CI-invoked npm te
     assert.ok(probe.includes(guard), `probe lost its anchor for: ${guard}`)
     assert.ok(module.includes(guard), `module lost the guard: ${guard}`)
   }
+})
+
+// Both cases below were green-lit by the first version of preflight(), which is how they were
+// found: an adversarial review passed `units=5, expected=49` and `prompts=[]` and neither threw.
+// The original guard only fired below 2 units, so it caught a TOTAL collapse and missed a partial
+// one - the harder case, because 5 running agents look like progress while 44 are never dispatched.
+test('preflight: THROW 4 - a PARTIAL collapse (5 of 49) is not survivable', () => {
+  const units = [1, 2, 3, 4, 5]
+  assert.throws(
+    () => preflight({ units, expected: 49 }),
+    (e) => e.rule === PREFLIGHT.COLLAPSED_WORK_LIST && /built 5 unit\(s\) but expected 49/.test(e.message),
+    'a 5-of-49 work-list must throw, not just a 0- or 1-unit one',
+  )
+  // and the reverse mismatch is equally a defect - the author's declared count is the contract
+  assert.throws(
+    () => preflight({ units: [1, 2, 3], expected: 2 }),
+    (e) => e.rule === PREFLIGHT.COLLAPSED_WORK_LIST,
+    'over-expansion must throw too',
+  )
+  // control: the matching case must still pass, or this test proves nothing
+  assert.deepEqual(preflight({ units, expected: 5 }), { units: 5, expected: 5, prompts: 0 })
+})
+
+test('preflight: THROW 5 - an empty prompts array cannot silently skip the scan', () => {
+  assert.throws(
+    () => preflight({ units: [1, 2], expected: 2, prompts: [] }),
+    (e) => e.rule === PREFLIGHT.PROMPTS_NOT_ARRAY && /nothing would be scanned/.test(e.message),
+    'opting in to the prompt scan with nothing to scan must throw',
+  )
+  // control: omitting `prompts` entirely is the documented opt-out and must stay silent
+  assert.deepEqual(preflight({ units: [1, 2], expected: 2 }), { units: 2, expected: 2, prompts: 0 })
 })
 
 test('preflight: rule ids are stable, unique and namespaced', () => {

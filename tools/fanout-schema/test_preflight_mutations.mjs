@@ -27,7 +27,7 @@ const SUITE = join(HERE, 'test_fanout_schema.mjs')
 const MUTATIONS = [
   [
     'M1 collapsed-work-list',
-    'if (units.length === 0 || (units.length < 2 && expected > 1)) {',
+    'if (units.length !== expected) {',
     'if (false) {',
   ],
   ['M2 undefined-in-prompt', 'const m = UNDEFINED_TOKEN.exec(p)', 'const m = null'],

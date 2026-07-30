@@ -359,16 +359,40 @@ export function preflight(opts = {}) {
         ' - an undefined `expected` would make the collapse check silently inert',
     )
   }
-  if (units.length === 0 || (units.length < 2 && expected > 1)) {
+  // ANY size mismatch fails, not just a collapse to 0 or 1.
+  //
+  // The first version of this check was `units.length === 0 || (units.length < 2 && expected > 1)`,
+  // which green-lit the exact defect class this function exists to stop: a PARTIAL collapse.
+  // `units=5, expected=49` passed silently. The originating incident was a 51-agent fan-out whose
+  // work-list collapsed because `args` arrived as a JSON-encoded string - and a partial collapse is
+  // strictly harder to notice than a total one, because 5 running agents look like progress while
+  // 44 units are simply never dispatched. `expected` is the author's own declared count, so any
+  // disagreement with it is a defect; there is no legitimate reason to build a different number.
+  if (units.length !== expected) {
+    const how = units.length < expected ? 'collapsed' : 'over-expanded'
     fail(
       PREFLIGHT.COLLAPSED_WORK_LIST,
-      `work-list collapsed: built ${units.length} unit(s) but expected ${expected}`,
+      `work-list ${how}: built ${units.length} unit(s) but expected ${expected}` +
+        (units.length > 0 && units.length < expected
+          ? ` - ${expected - units.length} unit(s) would never be dispatched`
+          : ''),
     )
   }
 
   if (prompts !== undefined) {
     if (!Array.isArray(prompts)) {
       fail(PREFLIGHT.PROMPTS_NOT_ARRAY, `prompts must be an array, got ${typeofOf(prompts)}`)
+    }
+    // An EMPTY prompts array passed silently: the scan loop below simply never ran, so a caller
+    // that opted in to prompt checking got none, and got no warning either. Passing `prompts` is a
+    // request to scan; having nothing to scan while units exist means the prompts were not
+    // actually collected. Omit the field entirely to opt out.
+    if (prompts.length === 0 && units.length > 0) {
+      fail(
+        PREFLIGHT.PROMPTS_NOT_ARRAY,
+        `prompts is an empty array while ${units.length} unit(s) exist - nothing would be` +
+          ' scanned. Omit `prompts` to opt out of the scan; pass the real prompts to opt in.',
+      )
     }
     for (let i = 0; i < prompts.length; i++) {
       const p = prompts[i]
