@@ -262,6 +262,42 @@ def _extract_ctx(text: str) -> list[str]:
     return out
 
 
+RECEIPT_PREFIX = "[_dispatch]"
+
+
+def _receipt(event: str, name: str, status: str) -> None:
+    """Attest on stderr that a SELECTED check did not deliver (fail-open).
+
+    C33 D-l02: every non-delivery path below (`_resolve_script` rejection, import
+    failure, deadline overrun, unreadable buffer) used to be a bare ``continue``, so
+    a matched-but-broken check was byte-identical on every observable channel to a
+    healthy event that simply had nothing to say. Static registration plus a green
+    direct-invocation test therefore never attested that the dispatcher actually
+    selected, loaded, ran and delivered anything.
+
+    Deliberately stderr, not stdout: stdout is the additionalContext channel the
+    host parses as JSON, so a diagnostic there would corrupt the aggregate. Emitted
+    ONLY for a check that was selected and then lost — never for a quiet healthy
+    event, or the receipt becomes noise instead of signal (pinned by
+    ``test_no_selected_check_is_silent``).
+
+    SCOPE: dispatcher-side observability only. It does not prove the host invoked
+    or delivered the hook; that needs a live Stop canary on the Windows host.
+    """
+    try:
+        sys.stderr.write(
+            f"{RECEIPT_PREFIX} event={event} check={name} status={status}\n"
+        )
+        sys.stderr.flush()
+    except BaseException:
+        pass  # attestation must never break a dispatch that is otherwise fine
+
+
+def _check_label(chk: dict) -> str:
+    """A stable identifier for a check in a receipt line."""
+    return str(chk.get("name") or chk.get("script") or "?")
+
+
 def _select(checks: list, tool_name: str) -> list:
     """Keep checks whose matcher (regex on tool_name; absent/None = always) matches."""
     sel = []
@@ -295,12 +331,17 @@ def run(event: str, raw_payload: str, manifest: dict) -> str | None:
         try:
             path = _resolve_script(root, chk["script"])
             if path is None:
-                continue  # escapes hooks_root -> never imported (see module docstring)
+                # escapes hooks_root -> never imported (see module docstring)
+                _receipt(event, _check_label(chk), "out-of-root")
+                continue
             uniq = "dispq_" + re.sub(r"\W", "_", str(chk.get("name") or chk["script"]))
             mod = _load_module(path, uniq)
             if mod is not None:
                 loaded.append((chk, mod, io.StringIO(), []))
+            else:
+                _receipt(event, _check_label(chk), "load-failed")
         except BaseException:
+            _receipt(event, _check_label(chk), "load-failed")
             continue
     if not loaded:
         return None
@@ -326,10 +367,13 @@ def run(event: str, raw_payload: str, manifest: dict) -> str | None:
         remaining = max(0.0, budget - (time.monotonic() - start))
         t.join(timeout=remaining)
         if t.is_alive():
-            continue  # timed out -> fail-open, drop this check's (incomplete) output
+            # timed out -> fail-open, drop this check's (incomplete) output
+            _receipt(event, _check_label(chk), "timeout")
+            continue
         try:
             pieces.extend(_extract_ctx(buf.getvalue()))
         except BaseException:
+            _receipt(event, _check_label(chk), "output-unreadable")
             continue
         try:
             rc = _blocking_status(rc_sink[0] if rc_sink else None)

@@ -78,13 +78,21 @@ _SPEC_GLOBS = (
     "**/cypress/e2e/**/*.cy.*",
     "**/tests/e2e/**/*.py",
     "**/playwright/**/*.spec.*",
+    # Flutter: `integration_test/` is the on-device journey mechanism, and
+    # rules/dart/testing.md:26,204-207 prescribes exactly this layout
+    # (integration_test/flows/login_flow_test.dart). Without it a Flutter app
+    # reads as "no declared journeys" and the gate returns silently.
+    "**/integration_test/**/*.dart",
 )
 # A command that runs ALL specs (so it covers every journey) even without naming one.
 # Every alternative names a real RUN subcommand. A bare ``npx\s+playwright`` used to sit
 # here and matched setup/diagnostic subcommands that start no test at all.
 _BROAD_E2E = re.compile(
     r"\b(?:playwright(?:@\S+)?\s+test|cypress\s+run|npm\s+run\s+e2e|pnpm\s+e2e|"
-    r"yarn\s+e2e|vitest\s+run.*e2e|jest.*e2e|pytest\s+-m\s+e2e|nightwatch)\b",
+    r"yarn\s+e2e|vitest\s+run.*e2e|jest.*e2e|pytest\s+-m\s+e2e|nightwatch|"
+    # Flutter device-test runners that execute the whole integration_test/ dir.
+    # A bare `flutter test` (the unit/widget suite) deliberately does NOT match.
+    r"flutter\s+test\s+integration_test|flutter\s+drive)\b",
     re.IGNORECASE,
 )
 # Runner invocations that install, inspect or report but execute NO test.

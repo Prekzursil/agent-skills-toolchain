@@ -513,6 +513,18 @@ def test_bash_posttooluse_reaches_the_claim_ledger_writer():
         "iatrogenics; 6 PostToolUse: anti-degen/fingerprint, "
         "memory-guard/scan, edit-validate/record, fresh-verify/trigger, orphan-commit, "
         "semantic-router/observe) are absent from events.*.checks here. "
+        "SCOPE CORRECTION 2 -- COUNTED, not paraphrased: 3 of the 13 named above are "
+        "now PRESENT in the manifest (PreToolUse mcp-liveness/pretool and "
+        "edit-checkpoints, PostToolUse edit-validate/record) and exactly 10 remain "
+        "absent, so this marker still holds. Each restoration carried its own per-hook "
+        "adjudication, which is what this reason demands: edit-checkpoints has a live "
+        "consumer contract in commands/rollback.md and no duplicate owner; "
+        "mcp-liveness/pretool performs the real basic-memory `initialize` handshake "
+        "that the already-wired heartbeat/heartbeat.py explicitly does NOT do. The "
+        "wording is corrected here rather than deleted so the count is not re-derived "
+        "wrong -- and the restorations are pinned by their own UNMARKED tests, not by "
+        "this census, which can never pass while any of the remaining 10 is absent and "
+        "therefore protects no single restoration. "
         "SCOPE CORRECTION -- this list said 14 and included claim-guard/ledger-write "
         "under PostToolUse. That entry is now PRESENT in the manifest: it is the only "
         "writer of the Bash-exit ledger that the already-wired Stop consumer "
@@ -572,6 +584,41 @@ def test_prepost_manifest_contains_every_dispatch_compatible_handler(event: str)
     }
     assert not missing, (
         f"events.{event} is missing dispatcher-compatible Tier-1.1 handlers: {missing}"
+    )
+
+
+def test_mcp_liveness_pretool_is_actually_dispatched():
+    """C33 D-a094, re-derived: the basic-memory liveness handshake ran nowhere.
+
+    ``EXPECTED_DISPATCH_CHECKS``/``EXPECTED_DISPATCH_ROUTES`` above have required
+    ``mcp-liveness/pretool`` since this census was written, but it was absent from
+    ``events.PreToolUse.checks``, so every ``mcp__basic-memory__*`` call proceeded
+    with no liveness handshake at all.
+
+    Settled per-hook, which is exactly what the strict-xfail census below demands
+    before anything is restored: this is NOT an orphan duplicate.
+    ``heartbeat/heartbeat.py`` (already wired at SessionStart and Stop) performs only
+    a TCP connect and says in its own words that the real ``initialize`` handshake is
+    the PreToolUse liveness hook's job -- so this is genuinely-lost functionality.
+    It is also inject-only: ``liveness.run()`` returns 0 on every path and speaks
+    solely through ``emit()``, so consolidating it loses nothing.
+
+    Scoped deliberately to ONE handler. The other 12 still need the same individual
+    adjudication and this test does not claim otherwise.
+    """
+    checks = _load(MANIFEST)["events"]["PreToolUse"]["checks"]
+    entry = next(
+        (c for c in checks if c.get("name") == "mcp-liveness/pretool"),
+        None,
+    )
+    assert entry is not None, (
+        "mcp-liveness/pretool is required by EXPECTED_DISPATCH_CHECKS/ROUTES but is "
+        "absent from events.PreToolUse.checks -- basic-memory calls run with no "
+        "liveness handshake"
+    )
+    assert entry.get("script") == "mcp-liveness/liveness.py"
+    assert entry.get("args") == ["pretool"], (
+        "without the 'pretool' argv the module defaults to sessionstart mode"
     )
 
 

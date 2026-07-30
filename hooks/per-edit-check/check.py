@@ -264,6 +264,13 @@ def _check_js(fp: str) -> tuple[list[str], bool]:
         )
         if r.returncode != 0:
             lines = [ln for ln in (r.stderr or "").splitlines() if ln.strip()]
+            # Trust node's OWN error marker, exactly as _check_python trusts ruff's
+            # E999. node has no JSX parser, so `node --check x.jsx` exits 1 with
+            # `TypeError [ERR_UNKNOWN_FILE_EXTENSION]` and NOT a single SyntaxError
+            # line -- an environment/loader failure, not a defect in the file. Classing
+            # every nonzero exit as a syntax break hard-BLOCKED every valid JSX edit.
+            if not any("SyntaxError" in ln for ln in lines):
+                return [], False  # fail-open: loader/environment failure -> silent skip
             return (lines or ["parse error"]), True
         return [], False
     except Exception:
@@ -594,6 +601,16 @@ def _run_check(fp: str) -> tuple[list[str], bool]:
         return _check_php(fp)
     if ext == ".rs":
         return [], False  # cargo check too heavy for per-edit
+    # .swift lands here (C33 D-a068, rescoped from "Swift is unvalidated" -- the code
+    # is correct and intentional, the original sentence was wider than its evidence).
+    # It is a DELIBERATE skip on the same grounds as .ts and .rs above: swiftc is not
+    # on this Windows-primary box, so a check would be untestable here, and
+    # test_check.py:286-293 already pins .swift as a skipped extension. rules/swift/
+    # hooks.md is user-facing advice for a CONSUMING project's own settings.json --
+    # structurally identical to rules/python/hooks.md's black/mypy advice, which this
+    # hook likewise does not implement -- not a contract per-edit-check enforces.
+    # Recorded here because Swift previously fell into this anonymous fallthrough, so
+    # a reader could not tell "deliberate" from "forgotten".
     return [], False
 
 
