@@ -25,6 +25,30 @@ reports/health_live.json
 reports/*_last.*
 reports/*_live_smoke_err.txt
 
+# DENY-BY-DEFAULT for everything under reports/ except the human-written .md narratives.
+#
+# The name-by-name allowlist above fails OPEN: every new probe / audit / health dump is
+# fully committable until someone remembers to add a line for it. MEASURED 2026-07-29 in a
+# clean clone of main, with `git check-ignore --no-index` over the 85 paths present in a
+# live crcp working tree: the allowlist did close all 85 of THOSE, but a merely-renamed
+# dump was wide open — `reports/new_openai_audit_2026-08-01.json` and
+# `reports/random_notes.json` were both committable. The class is genuinely sensitive: a
+# count-only scan of the live dumps found a value-shaped `sk-…` string in
+# reports/auth_status_audit.json (the other live dumps carried only the *field names*
+# `access_token` / `refresh_token`, not values).
+#
+# Machine state lives in .json/.jsonl/.txt/.db; the durable narrative lives in .md. So deny
+# the whole tree and re-admit only .md. Of the 59 tracked top-level reports, 47 are .md and
+# 12 are .json — the .json stay tracked either way, because .gitignore never applies to an
+# already-tracked path. A deliberate new dump can still be committed with `git add -f`.
+#
+# The directory negations are load-bearing: git will not descend into an ignored directory,
+# so without them `!reports/**/*.md` would never be evaluated.
+reports/**
+!reports/
+!reports/**/
+!reports/**/*.md
+
 # Runtime ingest drop-box (crcp/inbox.py consumes it) — payloads + cursor, never source.
 inbox/
 

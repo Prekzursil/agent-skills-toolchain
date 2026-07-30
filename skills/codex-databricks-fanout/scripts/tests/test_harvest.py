@@ -25,4 +25,22 @@ def test_below_floor_flagged(tmp_path):
         return 0, "tiny", ""
 
     res = harvest.harvest("dbfs:/r", tmp_path, [U], run)
-    assert res["u1"][0] == "below-floor"
+    # Assert the whole tuple: the byte count is returned alongside the verdict, so a
+    # size that stops tracking the body is a silent defect the verdict alone hides.
+    assert res["u1"] == ("below-floor", 4)
+
+
+def test_absent_when_cat_fails_and_no_local_file_written(tmp_path):
+    """rc != 0 is the third terminal state -- absent, size 0, nothing written.
+
+    Neither pre-merge variant exercised this branch, so a regression that wrote an
+    empty file on a failed `fs cat` -- crediting the unit with a phantom artifact --
+    would have been invisible to this suite.
+    """
+
+    def run(argv):
+        return 1, "", "RESOURCE_DOES_NOT_EXIST: /dbfs/r/u1.md"
+
+    res = harvest.harvest("dbfs:/r", tmp_path, [U], run)
+    assert res["u1"] == ("absent", 0)
+    assert not (tmp_path / "u1.md").exists()
