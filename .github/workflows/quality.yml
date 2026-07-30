@@ -394,6 +394,35 @@ jobs:
           pip install -e ../agentspec
           pip install -e ".[dev]"
           pytest -m "not live" --cov=agentrail --cov-branch --cov-report=term-missing --cov-fail-under=100
+      # tools/crcp — the Cross-Rail Control Plane. MEASURED 2026-07-29: before this step
+      # `grep -rn crcp .github/` returned NOTHING, so all 11 suites under tools/crcp/tests/
+      # had NEVER run in CI — including the credential-egress allowlist that keeps the
+      # OpenAI bearer in ~/.codex/auth.json off caller-controlled hosts. There is no
+      # repo-wide pytest autodiscovery here, so an unnamed suite is a suite that does not
+      # exist; this step is what makes tests/test_auth_broker_credential_scope.py and
+      # tests/test_credential_egress_transport.py actually gate anything.
+      #
+      # PYTHONPATH carries BOTH roots and is LOAD-BEARING: the directory mixes two import
+      # conventions — `from crcp import auth_broker` needs tools/crcp on sys.path, while
+      # tests/test_redact.py and three siblings do `from redact import ...` and need
+      # tools/crcp/crcp. Without both, four suites die at COLLECTION and pytest exits
+      # without running any of the other seven. Do not "simplify" it to one entry.
+      #
+      # `pip install pytest` only — the package is stdlib-only for test purposes
+      # (websocket-client is imported lazily inside CdpSession.__init__, which the suites
+      # bypass). Verified in a fresh venv holding nothing but pytest, run through the
+      # pytest CONSOLE SCRIPT (never `python -m pytest`, whose implicit cwd insertion
+      # would mask the sys.path breakage this PYTHONPATH exists to prevent):
+      # `80 passed, 12 subtests passed`.
+      #
+      # Deliberately NOT a --cov-fail-under=100 lane, following the agent-self/harness
+      # precedent below: tools/crcp is a large pre-existing 40-module package, so a hard
+      # 100% bar would pin main red and misrepresent it. Closing to parity is follow-up.
+      - name: gate-tests-coverage crcp (credential egress; measured, not 100%-gated)
+        working-directory: tools/crcp
+        run: |
+          pip install pytest
+          PYTHONPATH="$PWD:$PWD/crcp" pytest tests -q
       # agent-self/harness — the enshrined shared lifecycle harness (SSOT for the live
       # ~/.agents/harness deploy loop). Runs its full pytest suite on the CI interpreter as a
       # REGRESSION gate for the projected tree, and measures branch coverage (term-missing).

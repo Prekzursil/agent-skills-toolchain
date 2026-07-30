@@ -23,6 +23,7 @@ import urllib.request
 from datetime import datetime, timezone
 from typing import Any
 
+from .http_secure import open_url
 from .write_path import DEFAULT_UA, _browser_headers
 
 
@@ -244,7 +245,11 @@ def sentinel_prepare(
         ),
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=30) as resp:
+    # open_url, NOT urllib.request.urlopen: _browser_headers attaches the live bearer
+    # (apply_to_headers) and `url` is built from the caller-supplied ``bridge.base``,
+    # so a raw urlopen sends the credential to any host the caller names — and follows
+    # a cross-host 3xx with it. open_url enforces the allowlist per hop.
+    with open_url(req, timeout=30) as resp:
         data = json.loads(resp.read().decode("utf-8"))
     data["_device_id"] = did
     data["_session_id"] = sid
@@ -362,7 +367,9 @@ def try_finalize(
         method="POST",
     )
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        # open_url for the same reason as sentinel_prepare: live bearer + a URL derived
+        # from the caller-supplied ``bridge.base``.
+        with open_url(req, timeout=30) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             return {"ok": True, "status": resp.status, "body": data}
     except urllib.error.HTTPError as e:
