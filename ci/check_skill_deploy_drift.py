@@ -19,13 +19,24 @@ it drifts.
 WHY IT REPORTS AND REFUSES TO COPY
 ----------------------------------
 The obvious "fix" -- copy the vault over the live tree -- is DESTRUCTIVE here.
-Measured across the 79 shared skills of the live tree: 37 identical, **0 where
-the vault is a strict superset**, 8 live-ahead and 34 diverged.  A blind
-vault->live sync would have destroyed live-unique content in 42 of 79 skills.
-Concretely, ``codex-databricks-fanout/SKILL.md`` is 214 live lines vs 335 vault
-lines -- which looks like pure staleness -- yet the live copy holds 61 unique
-non-blank lines the vault does not, including a whole ``## 9. Harness paths``
-section and a measured 48-way fan-out result.
+Measured 2026-07-29 across the 79 shared skills of the live tree: 37 identical,
+**0 where the vault is a strict superset**, 8 live-ahead and 34 diverged.  A
+blind vault->live sync would therefore have destroyed live-unique content in 42
+of 79 skills.  Re-measured 2026-07-30 with a second, independent algorithm
+(``difflib.ndiff`` LCS opcodes rather than set membership): 42/0/4/33 -- the
+**0 vault-supersets result is stable under both**, which is the load-bearing
+number; the other three drifted within a day, so treat any count here as a
+dated sample and re-run the tool rather than quoting it.
+
+Both copies hold substantive unique lines: the divergence is two-directional,
+so no one-directional sync is provably safe.  (An earlier version of this
+docstring illustrated that with three specific lines from
+``codex-databricks-fanout/SKILL.md`` -- a ``## 9. Harness paths`` section, a
+48-way fan-out result, a ``WinError 87`` note -- claiming the vault lacked
+them.  It does not; all three are present in the vault, and that skill has since
+been rewritten by the harness reconcile.  The illustration was wrong even though
+the conclusion it illustrated is right, which is exactly why this tool reports
+measurements instead of asserting a direction.)
 
 So direction is derived TWO-DIRECTIONALLY from unique-line sets and the tool
 emits a ``safe_to_deploy`` list that contains only files where one side is a
