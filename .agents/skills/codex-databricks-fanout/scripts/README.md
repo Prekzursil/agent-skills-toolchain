@@ -1,9 +1,11 @@
 # codex-databricks-fanout — scripts
 
-The **executable** implementation of the `codex-databricks-fanout` skill. `SKILL.md` documents the
-measured constraints; this directory is the code that enforces them. Consolidated from a standalone
-harness repo (the driver) plus the toolchain's `tools/databricks-fanout/` (the structural gate +
-worker notebook), extracted from a production run of **604 units across 9 job submissions**.
+The **executable** implementation of the `codex-databricks-fanout` skill — the Codex-on-Databricks
+fan-out harness. `SKILL.md` documents the measured constraints; this directory is the code that
+enforces them. Consolidated from a standalone harness repo (the driver) plus the toolchain's
+`tools/databricks-fanout/` (the structural gate + worker notebook), extracted from a production run
+of **604 units across 9 job submissions**. Program spec + rationale:
+`~/.claude/databricks-fanout-program-2026-07-24/SPEC.md` (the program's `PLAN.md` sits beside it).
 
 ## Layout
 
@@ -18,6 +20,19 @@ worker notebook), extracted from a production run of **604 units across 9 job su
 | `batch_runner.py` | the **worker** — the on-Databricks notebook the driver invokes via `RAIL["notebook"]`. A notebook export, NOT a standalone module (`dbutils` is runtime-injected), so it is excluded from lint/format |
 | `tests/` | unit tests for every driver module **plus** the mutation-tested `test_gate.py` (both-states proof) |
 | `e2e/` | live round-trips (`smoke_2unit`, `run_fanout`, `run_runnability`, `watch`) — **require a live Databricks workspace**; see Testing |
+
+Landing alongside this consolidation, from the same standalone repo: `backends/` (role-split
+`BuildBackend` / `VerifyBackend` contracts plus a Databricks and a GitHub-Actions adapter),
+`engine/` (per-unit short-lived token minting, repo-config sanitisation, untrusted-backlog parsing,
+the unattended wave ceiling, and a backend-agnostic verify gate), two further lanes
+(`harness/lanes/research.py`, `derive.py`), and the operational `e2e/` scripts. Read each module's
+own docstring before wiring anything onto it: several state an explicit **DEFERRED (Roadmap)** limit
+— the primitives are built and unit-tested, the live path is not. `ls` this directory for what
+actually landed; a module docstring beats this table.
+
+This directory is dual-written. `.agents/skills/codex-databricks-fanout/scripts/` is canonical and
+`skills/codex-databricks-fanout/scripts/` is its projection; `.github/workflows/skill-dual-write.yml`
+requires the two blobs to stay byte-identical, so every edit here lands twice.
 
 ## The completeness gate is STRUCTURAL, not a byte floor
 
@@ -53,11 +68,30 @@ true when it was last written (the write-as-you-go skeleton it may still hold).
 
 ## Testing
 
-Unit + mutation tests (stdlib-only, no Databricks, run in CI):
+Unit + mutation tests — stdlib-only, no Databricks, run in CI. The authoritative invocation is the
+one CI runs, from the **repo root** (`.github/workflows/quality.yml`, step
+`gate-tests-coverage codex-databricks-fanout`):
 
 ```
+python -m pytest skills/codex-databricks-fanout/scripts/tests -q
+```
+
+It names the `tests/` **directory**, not a file list, so a newly added `tests/test_*.py` is collected
+automatically — this repo has no repo-wide pytest autodiscovery, but this suite has no per-file
+allow-list either. From inside this directory the short form works too, because `conftest.py` puts
+`scripts/` on `sys.path` so `import harness` resolves:
+
+```
+pytest tests -q
 python -m pytest tests -q
 ```
+
+On this Windows box the interpreter carrying pytest is `C:/Python314/python.exe`
+(`C:/Python314/Scripts/pytest.exe` for the console script). When *verifying* a claim rather than
+reproducing CI, prefer the console script: `python -m pytest` prepends the cwd to `sys.path` and can
+mask a real import break. Measured 2026-07-29 on Python 3.14.6: **47 passed in ~1.2 s**, identically
+under both forms, from the repo root and from this directory, and against both the canonical
+`.agents/skills/…` copy and the `skills/…` projection.
 
 The `e2e/` scripts (`smoke_2unit`, `run_fanout`, `run_runnability`, `watch`) drive a **live Databricks
 workspace** (real, billable job submissions) and are therefore **NOT run in CI** — invoke them

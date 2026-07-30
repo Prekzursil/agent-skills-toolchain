@@ -545,6 +545,26 @@ jobs:
       - name: gate-tests-coverage codex-databricks-fanout
         run: python -m pytest skills/codex-databricks-fanout/scripts/tests -q
 
+      # codex-databricks-fanout -- the backends/ + engine/ COVERAGE half of the step above.
+      # The step above proves the suite is green but enforces no threshold, so the pluggable
+      # backend abstraction (backends/base.py + the databricks/github-actions adapters) and the
+      # reusable completion engine (engine/{verify,ceiling,sanitize,tokens,backlog}.py) would
+      # arrive gated only by "the tests ran". Their source repo gated them at 100% line+branch
+      # and measured 100% here (180 stmts / 36 branches, 0 missed) on the merged tree, so the
+      # threshold travels with the code rather than being silently dropped in transit.
+      # harness/* is deliberately NOT in --cov: its source repo measured it at 83% and never
+      # gated it, and inventing a threshold it has never met would fail this lane on arrival.
+      # working-directory (not a repo-root path) because --cov=backends is an IMPORT name:
+      # scripts/ must be the rootdir for `import backends` to resolve, exactly as conftest.py
+      # arranges under pytest. Reuses the gate-tests-coverage charter slug (not a new gate);
+      # pytest-cov is already installed by the harness step earlier in this job.
+      - name: gate-tests-coverage codex-databricks-fanout (backends+engine 100%)
+        working-directory: skills/codex-databricks-fanout/scripts
+        run: >-
+          python -m pytest tests -q
+          --cov=backends --cov=engine --cov-branch
+          --cov-report=term-missing --cov-fail-under=100
+
       # skills/workflow-authoring -- the saved-Workflow static linter (workflow_lint.py).
       # It HARD-FAILs on the determinism-breakers (Date.now / Math.random / argless
       # new Date(), a non-literal `export const meta`) and WARNs on the args-as-string /
