@@ -17,7 +17,12 @@ paths:
 
 - Prefer immutable DTOs and value objects for data crossing service boundaries.
 - Use `readonly` properties or immutable constructors for request/response payloads where possible.
-- Keep arrays for simple maps; promote business-critical structures into explicit classes.
+- Keep arrays for simple maps that stay inside one layer; promote business-critical
+  structures into explicit classes.
+- Precedence when both clauses could apply: crossing a service/domain boundary wins over
+  "simple". Framework/request input heading for domain logic becomes a validated DTO (see
+  *Error Handling* below and `patterns.md`) even when the map is small and flat — simplicity
+  is not an exemption at a boundary.
 
 ## Formatting
 

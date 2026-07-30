@@ -45,7 +45,7 @@ The Feature Implementation Workflow describes the development pipeline: research
    - Write tests first (RED)
    - Implement to pass tests (GREEN)
    - Refactor (IMPROVE)
-   - Verify 80%+ coverage
+   - Verify coverage meets `.coverage-thresholds.json` (SSOT; 80%+ if none defined)
 
 3. **Code Review**
    - Use **code-reviewer** agent immediately after writing code
