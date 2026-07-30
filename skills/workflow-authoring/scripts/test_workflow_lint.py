@@ -757,7 +757,7 @@ def _strip_js_comments(src: str) -> str:
             out.append(quote)
             while i < n:
                 if src[i] == "\\":
-                    out.append(src[i:i + 2])
+                    out.append(src[i : i + 2])
                     i += 2
                     continue
                 out.append(src[i])
@@ -813,7 +813,9 @@ def test_resume_template_carries_all_three_contract_touchpoints():
     """
     code = _template_code()
     for token in ("--next", "--mark-partial", "--mark-done", "--mark-failed", "--ids"):
-        assert token in code, f"{token} missing from the template CODE (comments stripped)"
+        assert token in code, (
+            f"{token} missing from the template CODE (comments stripped)"
+        )
 
 
 def test_resume_template_write_ahead_precedes_the_terminal_mark():
