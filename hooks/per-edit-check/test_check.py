@@ -295,6 +295,61 @@ def test_unknown_or_skipped_extension_silent(tmp_path: Path, ext: str):
     assert out.strip() == ""
 
 
+def _node_unknown_extension(fp: str):
+    """The REAL `node --check <x>.jsx` failure (measured, node v24.16.0).
+
+    Node has no JSX parser, so it rejects the *extension* before ever looking at
+    the contents -- exit 1, and not a single ``SyntaxError`` line.
+    """
+    return _proc(
+        1,
+        stderr=(
+            "node:internal/modules/esm/get_format:236\n"
+            "  throw new ERR_UNKNOWN_FILE_EXTENSION(ext, filepath);\n"
+            "        ^\n\n"
+            f'TypeError [ERR_UNKNOWN_FILE_EXTENSION]: Unknown file extension ".jsx" for {fp}\n'
+            "    at Object.getFileProtocolModuleFormat [as file:] "
+            "(node:internal/modules/esm/get_format:236:9)\n"
+            "  code: 'ERR_UNKNOWN_FILE_EXTENSION'\n"
+            "}\n"
+        ),
+    )
+
+
+def test_valid_jsx_is_not_blocked_by_node_loader_error(tmp_path: Path):
+    """REGRESSION: a node ENVIRONMENT failure must never be reported as a syntax error.
+
+    `node --check valid.jsx` exits 1 with ERR_UNKNOWN_FILE_EXTENSION because node
+    cannot parse JSX at all.  Classifying every nonzero exit as a syntax break
+    hard-BLOCKED (exit 2) every ordinary, perfectly valid JSX edit.
+    """
+    f = tmp_path / "valid.jsx"
+    f.write_text("export const X = () => <div />;\n")
+    mod = load_check()
+    with (
+        mock.patch("shutil.which", return_value="/usr/bin/node"),
+        mock.patch("subprocess.run", return_value=_node_unknown_extension(str(f))),
+    ):
+        rc, out, err = run_hook(mod, make_event(str(f)))
+    assert rc == 0, "a node loader/environment failure must not block the edit"
+    assert out.strip() == ""
+    assert err.strip() == ""
+
+
+def test_jsx_with_real_syntax_error_still_blocks(tmp_path: Path):
+    """Control: when node DOES report a SyntaxError, the block is preserved."""
+    f = tmp_path / "broken.jsx"
+    f.write_text("const x = ;\n")
+    mod = load_check()
+    with (
+        mock.patch("shutil.which", return_value="/usr/bin/node"),
+        mock.patch("subprocess.run", return_value=_node_syntax_err()),
+    ):
+        rc, out, err = run_hook(mod, make_event(str(f)))
+    assert rc == 2, "a genuine SyntaxError must still block"
+    assert err.strip()
+
+
 # ── 5. missing checker tool → silent exit 0 ─────────────────────────────────
 
 

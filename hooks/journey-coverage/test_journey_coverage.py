@@ -71,6 +71,45 @@ def test_find_journey_specs_empty_when_none(tmp_path):
     assert jc.find_journey_specs(str(tmp_path)) == []
 
 
+def test_find_journey_specs_discovers_flutter_integration_tests(tmp_path):
+    """REGRESSION (C33 D-a030, re-derived onto the landed dispatcher).
+
+    Flutter's ``integration_test/`` is the on-device journey mechanism that
+    ``rules/dart/testing.md:26,204-207`` itself prescribes
+    (``integration_test/flows/login_flow_test.dart``). While it was absent from
+    ``_SPEC_GLOBS`` a Flutter repo read as "no declared journeys", so ``main()``
+    took its early-success branch and an unexecuted critical flow was never flagged.
+    """
+    _mk(tmp_path, "integration_test/flows/login_flow_test.dart")
+    _mk(tmp_path, "integration_test/flows/checkout_flow_test.dart")
+    _mk(tmp_path, "test/widget_test.dart")  # a unit/widget test, NOT a journey
+    found = jc.find_journey_specs(str(tmp_path))
+    assert "integration_test/flows/login_flow_test.dart" in found
+    assert "integration_test/flows/checkout_flow_test.dart" in found
+    assert not any("widget_test" in f for f in found)
+
+
+def test_covered_by_broad_flutter_runner():
+    """REGRESSION (second half of the Flutter gap): once discovery works, a
+    successful whole-suite ``flutter test integration_test`` must COUNT as a broad
+    journey run, or every Flutter repo is permanently reported uncovered.
+    """
+    specs = [
+        "integration_test/flows/login_flow_test.dart",
+        "integration_test/flows/checkout_flow_test.dart",
+    ]
+    assert jc.uncovered_journeys(specs, ["flutter test integration_test"]) == []
+    assert jc.uncovered_journeys(specs, ["flutter drive --target=x"]) == []
+    # A named single flow still leaves the other uncovered.
+    assert jc.uncovered_journeys(specs, ["flutter test login_flow_test.dart"]) == [
+        "integration_test/flows/checkout_flow_test.dart"
+    ]
+    # A plain `flutter test` (the unit/widget suite) is NOT a journey run.
+    assert jc.uncovered_journeys(specs, ["flutter test"]) == specs
+    # Mention-not-use must not count either (the is_broad_run contract).
+    assert jc.uncovered_journeys(specs, ["echo flutter test integration_test"]) == specs
+
+
 # --------------------------------------------------------------------------- #
 # uncovered_journeys / _ran (the gate's core)
 # --------------------------------------------------------------------------- #

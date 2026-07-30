@@ -264,6 +264,13 @@ def _check_js(fp: str) -> tuple[list[str], bool]:
         )
         if r.returncode != 0:
             lines = [ln for ln in (r.stderr or "").splitlines() if ln.strip()]
+            # Trust node's OWN error marker, exactly as _check_python trusts ruff's
+            # E999. node has no JSX parser, so `node --check x.jsx` exits 1 with
+            # `TypeError [ERR_UNKNOWN_FILE_EXTENSION]` and NOT a single SyntaxError
+            # line -- an environment/loader failure, not a defect in the file. Classing
+            # every nonzero exit as a syntax break hard-BLOCKED every valid JSX edit.
+            if not any("SyntaxError" in ln for ln in lines):
+                return [], False  # fail-open: loader/environment failure -> silent skip
             return (lines or ["parse error"]), True
         return [], False
     except Exception:
