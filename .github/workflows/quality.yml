@@ -315,6 +315,19 @@ jobs:
         run: |
           pip install pytest pytest-cov
           pytest --cov=stdin_server --cov-branch --cov-report=term-missing --cov-fail-under=100
+      # tools/harness-drift — the deterministic two-directional differ that replaces LLM
+      # judgement for the live-~/.claude-vs-repo drift classification. Stdlib-only, so only
+      # pytest+pytest-cov are installed. The suite is mutation-verified: reverting the
+      # two-directional read to the historical one-directional form (which mis-called 31
+      # two-way-DIVERGED files deploy-safe) turns 5 tests RED, and 5/5 seeded mutations were
+      # killed. No working-directory install: the test imports the module as a sibling, and
+      # `pytest` (unlike `python -m pytest`) does put the rootdir on sys.path here because
+      # both files sit in the same directory with no tests/ subdir.
+      - name: gate-tests-coverage harness-drift
+        working-directory: tools/harness-drift
+        run: |
+          pip install pytest pytest-cov
+          pytest --cov=harness_drift --cov-branch --cov-report=term-missing --cov-fail-under=100
       # tools/agentspec — the portable agent-workflow SPEC, the shared observation envelope, the
       # dispatch-safety pure core (argv/prompt transport, the completion AND-gate, progress-stream
       # rejection, terminal markers, budget accounting, determinism) and the hermetic eval
