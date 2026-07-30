@@ -433,6 +433,9 @@ jobs:
         run: |
           python test_msys_pathconv.py
           python test_hooks.py
+          # pytest-style, so it needs the runner: the broad `pytest hooks/` step
+          # --ignores this whole directory, which would leave this suite dead weight.
+          pytest test_updated_input_preservation.py -q --import-mode=importlib
 
       # tools/search-expansion — RRF rank fusion, the pure SearXNG settings.yml transform,
       # and the query-plan translate->dedup sibling (Enterprise-Search decompose borrow).
@@ -818,6 +821,44 @@ jobs:
       - name: gate-tests-coverage hooks standalone (memory-guard)
         run: |
           python hooks/memory-guard/test_scan.py
+
+      # agent-self/config/hooks -- the DEPLOYED snapshot mirror of the live ~/.claude
+      # (agent-self/README.md), copied out by agent-self/bootstrap.ps1. Before this step
+      # NO CI step named anything under agent-self/config/hooks. (Re-measured at dab44ba:
+      # the `gate-tests-coverage plan-lint stage-0` step added by #249 DOES name
+      # agent-self/config/harness-meta, so the narrower claim -- nothing under
+      # config/hooks -- is the true one; the wider 'nothing under agent-self/config'
+      # wording this comment originally carried is REFUTED.) That tree is NOT a parity
+      # mirror of hooks/ (21 hook dirs vs ~70) and the `pytest hooks/` step above does not
+      # reach it, so every suite here was dead weight that could not catch a regression --
+      # exactly the gap docs/ci-coverage-gap-2026-07-25.md measured.
+      #
+      # EXPLICIT FILES, not a directory, for two measured reasons:
+      #   * agent-self/config/hooks/memory-guard/test_scan.py calls sys.exit() at MODULE
+      #     level (same as its hooks/ twin), which escapes during collection and aborts the
+      #     whole run with INTERNALERROR;
+      #   * basenames repeat across this tree (test_hooks.py in _golden/ and cmd-rewrite/),
+      #     hence --import-mode=importlib as well.
+      #
+      # `-o addopts=` is LOAD-BEARING: agent-self/config/hooks/wearables/pyproject.toml
+      # carries `addopts = --cov=wearables --cov-fail-under=100`, and pytest picks that up
+      # as the inifile whenever a wearables path is in argv. The whole-package gate cannot
+      # run here anyway -- wearables/resolve.py imports rdkit, which is not a CI dependency
+      # (measured: 3 collection ERRORs) -- so this step is a pass/fail runner, matching the
+      # cmd-rewrite and agent-self/harness precedents above for a projection of a live
+      # runtime. Reuses the gate-tests-coverage charter slug on purpose: not a new gate, so
+      # .quality/charter_check.sh stays consistent with no charter.yml edit.
+      # Measured locally (CPython 3.14.6, pytest 8.4.2): 116 passed.
+      - name: gate-tests-coverage agent-self deployed-config hooks
+        run: |
+          pytest -q --import-mode=importlib -o addopts="" \
+            agent-self/config/hooks/claim-guard/test_claim_guard_turn_scope.py \
+            agent-self/config/hooks/cmd-rewrite/test_updated_input_preservation.py \
+            agent-self/config/hooks/edit-validate/test_edit_validate_roundtrip.py \
+            agent-self/config/hooks/event-ledger/test_replay_goal_isolation.py \
+            agent-self/config/hooks/memory-guard/test_scan_route_normalization.py \
+            agent-self/config/hooks/test-tamper-guard/test_guard_comment_collision.py \
+            agent-self/config/hooks/wearables/security/test_egress.py
 
       # tools/harness-corpus -- the hook-telemetry miner and, more importantly, the
       # KNOWN-POSITIVE CONTROL that proves the miner can still see a hook fire before any

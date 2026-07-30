@@ -103,6 +103,18 @@ def egress_guard(request: object) -> EgressDecision:
         if request.source_class not in {"public_db", "derived", "unpublished"}:
             return _deny(f"fail-closed: unknown source_class {request.source_class!r}")
 
+        # A dataclass ANNOTATION is not a runtime check: EgressRequest(...,
+        # allow_derived_egress="false") constructs fine, and the old raw-truthiness
+        # gate (`not request.allow_derived_egress`) then read that string as an
+        # affirmative downgrade -- the literal text "false" authorised derived
+        # content to a third-party LLM. Unclassifiable input must DENY here, per
+        # the fail-CLOSED contract in this package's __init__.
+        if not isinstance(request.allow_derived_egress, bool):
+            return _deny(
+                "fail-closed: allow_derived_egress must be a bool, got "
+                f"{type(request.allow_derived_egress).__name__}"
+            )
+
         is_third_party = (
             request.model in _THIRD_PARTY_MODELS
             and request.endpoint in _THIRD_PARTY_ENDPOINTS
@@ -125,7 +137,10 @@ def egress_guard(request: object) -> EgressDecision:
         # third-party LLM path: source_class gate
         if request.source_class == "unpublished":
             return _deny("source_class=unpublished may not reach a third-party LLM")
-        if request.source_class == "derived" and not request.allow_derived_egress:
+        if (
+            request.source_class == "derived"
+            and request.allow_derived_egress is not True
+        ):
             return _deny(
                 "source_class=derived is sensitive-by-default (no downgrade flag)"
             )

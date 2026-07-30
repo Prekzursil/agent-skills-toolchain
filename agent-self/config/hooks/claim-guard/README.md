@@ -11,8 +11,23 @@ Mechanizes the "NEVER self-certify" / anti-sycophancy rule from `AGENTS.md`:
 
 | File | Hook event | Purpose |
 |------|-----------|---------|
-| `ledger-write.py` | PostToolUse (matcher: `Bash`) | Appends `{ts, cmd, exit, ok}` records to the per-session ledger |
+| `ledger-write.py` | PostToolUse (matcher: `Bash`) | Appends `{ts, cmd, exit, ok, turn}` records to the per-session ledger |
 | `claim-check.py` | Stop (no matcher) | Parses the final assistant response; warns if claims lack evidence |
+
+## Turn scoping (why the ledger is not just per-session)
+
+The ledger FILE is per session, but the contract above says evidence **this
+turn**. A session spans many turns, so session scope alone let a receipt vouch
+for a later turn that ran nothing: turn 1 runs `pytest -q` successfully, turn 2
+runs no tests and says "Tests pass.", and the checker stayed silent because the
+turn-1 record was still in the file.
+
+`claim-check.py` therefore appends a `{"turn_end": true}` boundary marker at the
+end of **every** Stop that is not a `stop_hook_active` continuation — including
+the silent paths, since a turn that made no claim still consumed its receipts —
+and `_load_ledger` returns only the records written after the last marker.
+`ledger-write.py` stamps each receipt with `turn`, the number of markers that
+preceded it, so a record carries its own turn identity.
 
 ## Behavior
 
