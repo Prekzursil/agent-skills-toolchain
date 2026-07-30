@@ -149,7 +149,18 @@ def _guard_enabled():
     are native, always-on and NOT gated by HARNESS_CREDENTIAL_GUARD. With the guard
     off, Read on those four patterns is still denied by the platform; what the guard
     turns off is only this hook's WIDER surface (the rest of SENSITIVE_GLOBS, plus
-    Grep/Edit/Bash/PowerShell). Pinned by test_guard_scope.py."""
+    Grep/Edit/Bash/PowerShell). Pinned by test_guard_scope.py.
+
+    WHAT A REAL FIX WOULD TAKE (C33 D-a086, recorded so the gap is not re-derived).
+    A matching deny rule is evaluated AFTER hooks and blocks even under
+    defaultMode=bypassPermissions, so with the guard OFF `Read ./.env` is still
+    refused -- which is not what "OPT-IN / OFF by default / ONE toggle" reads like.
+    Realizing the directive for the Read tool means REMOVING those four entries from
+    the LIVE ~/.claude/settings.json. That is a deliberate weakening of a declarative
+    security control and therefore an OWNER decision (AGENTS.md section 9), not a
+    defect fix -- and agent-self/config/settings.json is a regenerated snapshot of the
+    live file (agent-self/README.md:9,17), so editing it here would neither take
+    effect nor survive the next sync-self.ps1 run. Deferred deliberately, not missed."""
     return os.environ.get("HARNESS_CREDENTIAL_GUARD", "").strip().lower() in {
         "1",
         "true",
