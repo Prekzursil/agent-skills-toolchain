@@ -73,3 +73,49 @@ jobs:
                   print(f"  [{kind}] {path}")
               sys.exit(1)
           print("OK: no tracked runtime junk.")
+      - name: crcp reports must stay deny-by-default
+        shell: python
+        run: |
+          import subprocess, sys
+
+          # tools/crcp/reports/ holds live auth / session / health dumps (one of them has
+          # carried a value-shaped `sk-…` string). Its .gitignore must DENY the whole tree
+          # and re-admit only the human-written .md narratives, so a merely-renamed dump
+          # cannot be committed by accident. A name-by-name allowlist fails OPEN.
+          #
+          # Both-states gate: MUST_IGNORE catches removal/weakening of the deny patterns;
+          # MUST_SEE catches an over-broad rewrite that also swallows the .md narratives.
+          # Every probe path is synthetic and untracked, so the check is index-independent.
+          MUST_IGNORE = [
+              "tools/crcp/reports/gatecheck_audit.json",
+              "tools/crcp/reports/gatecheck_cookies.txt",
+              "tools/crcp/reports/gatecheck_watch.jsonl",
+              "tools/crcp/reports/gatecheck_state.db",
+              "tools/crcp/reports/gatecheck_capture.har",
+              "tools/crcp/reports/web_endgame/gatecheck_nested.json",
+          ]
+          MUST_SEE = [
+              "tools/crcp/reports/gatecheck_narrative.md",
+              "tools/crcp/reports/web_endgame/gatecheck_nested.md",
+          ]
+
+          def is_ignored(path):
+              # --no-index so an already-tracked path cannot skew the answer; check-ignore
+              # exits 0 when the path IS ignored, 1 when it is not.
+              return subprocess.run(
+                  ["git", "check-ignore", "--no-index", "-q", path]
+              ).returncode == 0
+
+          failures = []
+          for path in MUST_IGNORE:
+              if not is_ignored(path):
+                  failures.append(f"  [fails-open] {path} is NOT ignored but must be")
+          for path in MUST_SEE:
+              if is_ignored(path):
+                  failures.append(f"  [over-broad] {path} IS ignored but must stay visible")
+
+          if failures:
+              print("tools/crcp/.gitignore no longer denies by default:")
+              print("\n".join(failures))
+              sys.exit(1)
+          print("OK: crcp reports deny-by-default holds (6 denied, 2 admitted).")
