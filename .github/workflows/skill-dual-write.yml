@@ -58,6 +58,14 @@ jobs:
       # trusted to judge a pull request.
       - name: gate-skill-dual-write self-test
         run: python -m pytest ci/tests tools/d001-dual-write/tests -q
+      # L10: the vault->live deploy drift reporter. Named EXPLICITLY as well as
+      # covered by the directory glob above, because this repo has no test
+      # autodiscovery and the `ci/tests` glob is one refactor away from not
+      # containing this file. The suite is hermetic (tmp_path only) -- the runner
+      # has no ~/.claude or ~/.agents tree, and the tool is a LOCAL operator
+      # command against those live trees, not a CI gate over them.
+      - name: gate-skill-deploy-drift self-test
+        run: python -m pytest ci/tests/test_check_skill_deploy_drift.py -q
       # Exact route comparison catches stale names and old skills/ routes; the
       # generator carries forward declared-only compatibility names.
       - name: gate-skill-surface-manifest
