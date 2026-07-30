@@ -61,11 +61,11 @@ compliance almost perfectly; nothing is inherited from the global contract.
     pinned digest removes an estimated 60-90 tool calls in a single 39-agent workflow — and kills
     the mid-flight split-brain that let 8 agents ship a premise fixed while they ran. Cap
     intra-agent re-reads of one path at ~4, then read it wide once.
-    **The generator now exists:** `python tools/repomap/repo_map.py --budget 900
-    --out <artifact-root>/GROUNDING-PACK.md` ranks the tree by PageRank over symbol
-    references and sizes the digest to a token budget. Build it ONCE before the first
-    spawn, inline it in every prompt (a path invites the re-reads this rule is about),
-    and freeze it for the run per §A10. Wiring + measured limits: `tools/repomap/README.md`.
+    **The generator now exists** — on `main` since `#166` — but its path is repo-relative, so per
+    §A5 pass the ABSOLUTE form (`<checkout>` = the `agent-skills-toolchain` tree) or it dies with
+    `[Errno 2]` from any other cwd: `python <checkout>/tools/repomap/repo_map.py --root <checkout>
+    --budget 900 --out <artifact-root>/GROUNDING-PACK.md`. It ranks the tree by PageRank over symbol
+    references, sized to a token budget. Build ONCE, inline it, freeze per §A10; see its README.
 
 12. **Pin the artifact root and `ls` it in the prompt** — 10 `Read` failures were pure cwd
     confusion.
