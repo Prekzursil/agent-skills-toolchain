@@ -12,6 +12,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .http_secure import open_url
+
 
 def _b64url(s: str) -> bytes:
     return base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
@@ -283,7 +285,11 @@ def chatgpt_bridge_status(codex_home: Path | None = None) -> dict[str, Any]:
         method="GET",
     )
     try:
-        with urllib.request.urlopen(req, timeout=20) as resp:
+        # open_url, NOT urllib.request.urlopen: this request carries a live bearer and
+        # urllib's redirect handler forwards Authorization to the redirect target on a
+        # CROSS-HOST 3xx (proven on a loopback sink). open_url re-validates every hop
+        # against the allowlist and drops credential headers cross-origin.
+        with open_url(req, timeout=20) as resp:
             body = resp.read(500)
             out["http_status"] = resp.status
             out["signals"].append("backend_api_me_ok")

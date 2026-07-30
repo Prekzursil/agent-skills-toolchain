@@ -113,8 +113,19 @@ PROMPT
     max_turns=10
   fi
 
-  # Prevent observe.sh from recording this automated Haiku session as observations
-  ECC_SKIP_OBSERVE=1 ECC_HOOK_PROFILE=minimal claude --model haiku --max-turns "$max_turns" --print \
+  # Prevent observe.sh from recording this automated Haiku session as observations.
+  #
+  # --bare is REQUIRED here, not cosmetic. This loop runs unattended in whatever
+  # checkout the caller happens to be sitting in (project resolution is
+  # CLAUDE_PROJECT_DIR or the caller's git cwd -- see detect-project.sh), and a
+  # non-bare `--print` run loads that working directory's hooks, plugins, MCP
+  # config, auto-memory and CLAUDE.md BEFORE the prompt below is ever read. In an
+  # untrusted checkout that is arbitrary startup content steering a process that
+  # then writes durable instinct files. --bare is documented as "Minimal mode: skip
+  # hooks, LSP, plugin sync, attribution, auto-memory, background prefetches,
+  # keychain reads, and CLAUDE.md auto-discovery" -- exactly the surface at issue,
+  # and the observer needs none of it (its whole input is $prompt_file).
+  ECC_SKIP_OBSERVE=1 ECC_HOOK_PROFILE=minimal claude --bare --model haiku --max-turns "$max_turns" --print \
     --allowedTools "Read,Write" \
     < "$prompt_file" >> "$LOG_FILE" 2>&1 &
   claude_pid=$!

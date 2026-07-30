@@ -47,6 +47,21 @@ From simplest to most sophisticated:
 
 The `claude -p` flag runs Claude Code non-interactively with a prompt, exits when done. Chain calls to build a pipeline:
 
+### Startup-config safety: add `--bare` in any checkout you do not control
+
+Every `claude -p` invocation in this document is **non-bare**, and a non-bare headless run loads the *working directory's* startup material — project hooks, plugins, MCP config, auto-memory and `CLAUDE.md` — **before your prompt is read**. `-p` also skips the interactive folder-trust confirmation, so nothing pauses to ask. Point one of the unattended loops below (security review, de-sloppify, the PR loop) at a freshly cloned or third-party checkout and that checkout's `.claude/settings.json` `SessionStart` command runs, and its `CLAUDE.md` is in context, ahead of the audit you actually asked for. The audit is then reasoning over content the audited repo chose.
+
+```bash
+# Untrusted / unattended: skip the checkout's startup surface entirely.
+claude -p --bare --allowedTools "Read,Grep,Glob" "Audit this codebase for security vulnerabilities..."
+```
+
+`--bare` is documented as *"Minimal mode: skip hooks, LSP, plugin sync, attribution, auto-memory, background prefetches, keychain reads, and CLAUDE.md auto-discovery"* (verified against `claude --help`, CLI 2.1.220). Rules of thumb:
+
+- **Reviewing/auditing code you did not write → always `--bare`.** The loop needs no project hooks to read files.
+- **Driving your own trusted repo → omit it** if the loop genuinely depends on project hooks, MCP servers, or `CLAUDE.md`; you are then trusting that repo on purpose.
+- If you need *some* project context but not its executable surface, inline the specific files into the prompt instead of letting auto-discovery load them.
+
 ```bash
 #!/bin/bash
 # daily-dev.sh — Sequential pipeline for a feature branch

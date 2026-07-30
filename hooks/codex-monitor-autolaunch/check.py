@@ -18,12 +18,32 @@ file beside this script.
 
 Wire via the _dispatch manifest (PreToolUse, matcher `Bash|PowerShell`); the dispatcher fires on
 Bash/PowerShell tools and this hook self-filters to `codex exec` / `codex mcp` command text.
+
+TRANSPORT-CONTRACT PREFLIGHT (added for D-a004)
+-----------------------------------------------
+This hook was the ONLY check `_dispatch/manifest.json` selected for a Bash/PowerShell
+`codex exec` (manifest.json:248-255), and it did nothing but open a dashboard -- so a
+noncanonical dispatch entered the tool path with none of the guarantees
+`rules/common/cross-vendor-dispatch.md` requires (no background dispatch :7-17; AND-gated
+result, prompt-by-file, `--ignore-user-config`, terminal state, explicit 30-min timeout
+:19-30/:32-46/:55-66) and `agents/codex.md:28-36,50,101` implements. `transport_violations()`
+now preflights that command and injects a redirect to the canonical adapter.
+
+It ADVISES, never blocks: `dispatch.py` is inject-only (dispatch.py:44-45) and an exit-2 gate
+folded into it is *silently disarmed* (`_dispatch/test_manifest_presence.py:51-53`), so a hard
+block here would be worse than useless -- it would look enforced and not be.
+
+The two opt-outs are deliberately INDEPENDENT: `CODEX_MONITOR_AUTOLAUNCH=off` suppresses the
+dashboard only (D-a004 measured that flag reducing this hook to `aggregate=None`), while
+`CODEX_TRANSPORT_PREFLIGHT=off` suppresses the advisory only. A `.disabled` file still turns
+the whole hook off.
 """
 
 from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -52,6 +72,98 @@ def _is_codex_launch(payload: dict) -> bool:
         if "codex exec" in cmd or "codex mcp" in cmd:
             return True
     return False
+
+
+# --- transport-contract preflight (D-a004) -------------------------------------------
+# A work-unit dispatch is `codex exec`. `codex mcp` starts the MCP server and `codex exec
+# resume` is the adapter's own documented repair step (agents/codex.md:76) -- neither is a
+# fresh work-unit dispatch, so neither is preflighted.
+_EXEC = re.compile(r"\bcodex\s+exec\b")
+_RESUME = re.compile(r"\bcodex\s+exec\s+resume\b")
+
+# Backgrounding, in every form the rule bans (cross-vendor-dispatch.md:7-17;
+# agents/codex.md:101). A backgrounded job's result is unreachable in practice.
+_BACKGROUND = (
+    (re.compile(r"--background\b"), "--background"),
+    (re.compile(r"\bnohup\b"), "nohup"),
+    (re.compile(r"(?<![&>])&\s*$"), "a trailing `&`"),
+    (re.compile(r"\bStart-Process\b", re.I), "Start-Process"),
+    (re.compile(r"\bstart\s+/b\b", re.I), "start /b"),
+)
+
+# Prompt staged off the command line: a `<` redirect, an explicit --prompt-file, or a pipe
+# into codex. Windows caps the command line at 32,767 chars (agents/codex.md:20-22).
+_STAGED_PROMPT = (
+    re.compile(r"<\s*\S"),
+    re.compile(r"--prompt-file\b"),
+    re.compile(r"\|\s*codex\s+exec\b"),
+)
+
+# The only result channel the adapter trusts (agents/codex.md:70-71).
+_RESULT_CHANNEL = re.compile(r"(?:^|\s)-o(?:\s|=)|--output-last-message\b")
+
+_MIN_TIMEOUT_MS = 1800000  # 30 min (agents/codex.md:50)
+
+
+def transport_violations(payload: dict) -> list[str]:
+    """Return the cross-vendor transport-contract violations in a Codex CLI dispatch.
+
+    Empty list == compliant, not-a-dispatch, or undecidable. Pure: no I/O, no side
+    effects, so it is safe to call from anywhere and trivial to test.
+    """
+    payload = payload or {}
+    if str(payload.get("tool_name") or "") not in ("Bash", "PowerShell"):
+        return []
+    tool_input = payload.get("tool_input") or {}
+    cmd = str(tool_input.get("command") or "")
+    if not _EXEC.search(cmd) or _RESUME.search(cmd):
+        return []
+
+    out: list[str] = []
+    for pattern, label in _BACKGROUND:
+        if pattern.search(cmd):
+            out.append(f"backgrounded via `{label}` -- the result is unreachable")
+            break
+    if tool_input.get("run_in_background"):
+        out.append("backgrounded via the tool's own `run_in_background` param")
+    if not any(p.search(cmd) for p in _STAGED_PROMPT):
+        out.append(
+            "the prompt is inlined, not staged on disk -- Windows caps the command "
+            "line at 32,767 chars; write it to a file and pass it on stdin"
+        )
+    if "--ignore-user-config" not in cmd:
+        out.append(
+            "missing `--ignore-user-config` -- the active MCP inventory blows the arg "
+            "cap and voids --output-schema"
+        )
+    if not _RESULT_CHANNEL.search(cmd):
+        out.append(
+            "no `-o`/`--output-last-message` result channel -- exit 0 alone is "
+            "`severed-stream`, not SUCCESS"
+        )
+    timeout = tool_input.get("timeout")
+    if not isinstance(timeout, (int, float)) or timeout < _MIN_TIMEOUT_MS:
+        out.append(
+            f"no explicit {_MIN_TIMEOUT_MS} ms timeout -- the silent 10-min default is "
+            "what a prior run rationalised `--background` to escape"
+        )
+    return out
+
+
+def _preflight(payload: dict) -> None:
+    """Inject a redirect to the canonical adapter for a noncanonical dispatch."""
+    if os.environ.get("CODEX_TRANSPORT_PREFLIGHT", "").lower() == "off":
+        return
+    violations = transport_violations(payload)
+    if not violations:
+        return
+    _emit(
+        "Cross-vendor transport contract violation "
+        "(rules/common/cross-vendor-dispatch.md): "
+        + "; ".join(violations)
+        + ". Dispatch work units through the canonical adapter instead — "
+        "agents/codex.md:28-36. Advisory only; `CODEX_TRANSPORT_PREFLIGHT=off` silences."
+    )
 
 
 def _launch() -> bool:
@@ -103,12 +215,20 @@ def _emit(msg: str) -> None:
 
 def main() -> None:
     try:
-        if (
-            DISABLED.exists()
-            or os.environ.get("CODEX_MONITOR_AUTOLAUNCH", "").lower() == "off"
-        ):
+        if DISABLED.exists():
             return
         payload = json.loads(sys.stdin.read() or "{}")
+    except Exception:  # noqa: BLE001 — fail-open
+        return
+    # The contract preflight runs BEFORE, and independently of, the dashboard. Gating it
+    # on CODEX_MONITOR_AUTOLAUNCH would let a monitoring opt-out silently re-open D-a004.
+    try:
+        _preflight(payload)
+    except Exception:  # noqa: BLE001 — fail-open
+        pass
+    try:
+        if os.environ.get("CODEX_MONITOR_AUTOLAUNCH", "").lower() == "off":
+            return
         if not _is_codex_launch(payload):
             return
         if not LAUNCH.exists():

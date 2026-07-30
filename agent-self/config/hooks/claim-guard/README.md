@@ -12,6 +12,7 @@ Mechanizes the "NEVER self-certify" / anti-sycophancy rule from `AGENTS.md`:
 | File | Hook event | Purpose |
 |------|-----------|---------|
 | `ledger-write.py` | PostToolUse (matcher: `Bash`) | Appends `{ts, cmd, exit, ok, turn}` records to the per-session ledger |
+| `ledger-write.py` | PostToolUse (matcher: `Bash\|PowerShell`) | Appends `{ts, cmd, exit, ok}` records to the per-session ledger |
 | `claim-check.py` | Stop (no matcher) | Parses the final assistant response; warns if claims lack evidence |
 
 ## Turn scoping (why the ledger is not just per-session)
@@ -32,7 +33,9 @@ preceded it, so a record carries its own turn identity.
 ## Behavior
 
 ### ledger-write.py (PostToolUse)
-- Fires after every Bash tool call
+- Fires after every shell tool call (`Bash` and `PowerShell` — PowerShell is a
+  first-class shell here, and dropping it left the Stop consumers reading an empty
+  ledger and calling real evidence "never run")
 - Extracts the command string and exit code from the tool payload
 - Appends a JSON record to the session ledger
 - Completely silent (record-only, never injects text)
@@ -108,13 +111,13 @@ Add these two blocks to your `settings.json` `hooks` section:
 "hooks": {
   "PostToolUse": [
     {
-      "matcher": "Bash",
+      "matcher": "Bash|PowerShell",
       "hooks": [
         {
           "type": "command",
           "command": "python C:/Users/Prekzursil/.claude/hooks/claim-guard/ledger-write.py",
           "timeout": 5,
-          "statusMessage": "Claim-guard: recording Bash result to ledger"
+          "statusMessage": "Claim-guard: recording shell result to ledger"
         }
       ]
     }

@@ -394,6 +394,35 @@ jobs:
           pip install -e ../agentspec
           pip install -e ".[dev]"
           pytest -m "not live" --cov=agentrail --cov-branch --cov-report=term-missing --cov-fail-under=100
+      # tools/crcp — the Cross-Rail Control Plane. MEASURED 2026-07-29: before this step
+      # `grep -rn crcp .github/` returned NOTHING, so all 11 suites under tools/crcp/tests/
+      # had NEVER run in CI — including the credential-egress allowlist that keeps the
+      # OpenAI bearer in ~/.codex/auth.json off caller-controlled hosts. There is no
+      # repo-wide pytest autodiscovery here, so an unnamed suite is a suite that does not
+      # exist; this step is what makes tests/test_auth_broker_credential_scope.py and
+      # tests/test_credential_egress_transport.py actually gate anything.
+      #
+      # PYTHONPATH carries BOTH roots and is LOAD-BEARING: the directory mixes two import
+      # conventions — `from crcp import auth_broker` needs tools/crcp on sys.path, while
+      # tests/test_redact.py and three siblings do `from redact import ...` and need
+      # tools/crcp/crcp. Without both, four suites die at COLLECTION and pytest exits
+      # without running any of the other seven. Do not "simplify" it to one entry.
+      #
+      # `pip install pytest` only — the package is stdlib-only for test purposes
+      # (websocket-client is imported lazily inside CdpSession.__init__, which the suites
+      # bypass). Verified in a fresh venv holding nothing but pytest, run through the
+      # pytest CONSOLE SCRIPT (never `python -m pytest`, whose implicit cwd insertion
+      # would mask the sys.path breakage this PYTHONPATH exists to prevent):
+      # `80 passed, 12 subtests passed`.
+      #
+      # Deliberately NOT a --cov-fail-under=100 lane, following the agent-self/harness
+      # precedent below: tools/crcp is a large pre-existing 40-module package, so a hard
+      # 100% bar would pin main red and misrepresent it. Closing to parity is follow-up.
+      - name: gate-tests-coverage crcp (credential egress; measured, not 100%-gated)
+        working-directory: tools/crcp
+        run: |
+          pip install pytest
+          PYTHONPATH="$PWD:$PWD/crcp" pytest tests -q
       # agent-self/harness — the enshrined shared lifecycle harness (SSOT for the live
       # ~/.agents/harness deploy loop). Runs its full pytest suite on the CI interpreter as a
       # REGRESSION gate for the projected tree, and measures branch coverage (term-missing).
@@ -536,6 +565,38 @@ jobs:
       # defect probe.)
       - name: gate-tests-coverage rules/common rule-vs-code contracts
         run: pytest ci/tests/test_rules_common_contracts.py -q
+      # A043: a language rule whose prose says "extends common/xxx.md" is only actually
+      # composable with that base if the base's `paths:` frontmatter selects the same file
+      # kinds -- a path-scoped rule loads ONLY on a selector match, so a glob the base omits
+      # loads the extension ALONE and the base guidance silently never arrives. Measured:
+      # rules/kotlin/patterns.md selected **/*.kts while rules/common/patterns.md did not, so
+      # editing app/build.gradle.kts lost the whole common base. Stdlib-only (pytest already
+      # installed by an earlier step) and named explicitly for the reason the steps below give:
+      # there is no repo-wide pytest autodiscovery, so an unnamed suite cannot catch a
+      # regression. Reuses the existing `gate-tests-coverage` charter slug on purpose -- it is
+      # not a new gate, so .quality/charter_check.sh stays consistent with no charter.yml edit.
+      # Includes its own both-states control (rules/common/single-signal-verification.md:44):
+      # the gap detector is asserted to FIRE on a synthetic broken pair, so a green run is
+      # evidence rather than a silent no-op. Measured: 2 failed -> 4 passed across the fix.
+      - name: gate-tests-coverage rules selector inheritance
+        run: python -m pytest ci/tests/test_rules_selector_inheritance.py -q
+
+      # C26: doc-vs-code contracts for the rule/command surface. Prose has no compiler, so
+      # the adjudicated findings (a rule promising coverage the shipped hook does not give,
+      # an exit-2 recipe AGENTS.md §6 forbids, a perl example that will not parse, a
+      # hard-coded context denominator, a router tier that under-routes substantive work,
+      # a gather() recipe that swallows unexpected failures) are pinned against the OTHER
+      # side of each contract -- the hook source, the sibling rule, the measured runtime --
+      # plus byte parity with the agent-self/config deploy mirror.
+      # Scope correction to the authoring unit's comment: ci/tests/ IS already swept, by
+      # `python -m pytest ci/tests tools/d001-dual-write/tests -q`
+      # (.github/workflows/skill-dual-write.yml:60) on every pull_request. This named step
+      # is therefore belt-and-braces, not the only thing standing between this suite and
+      # never running -- it keeps the doc contracts inside the blocking `quality` job
+      # alongside the other gate-tests-coverage suites. Reuses that charter slug on purpose
+      # (not a new gate), so .quality/charter_check.sh stays consistent with no charter edit.
+      - name: gate-tests-coverage rules/commands doc contracts
+        run: python -m pytest ci/tests/test_rules_doc_contracts.py -q
 
       # L13 adoption: the checked-in adversarial corpus plus its miner regressions.
       - name: gate-tests-coverage adversarial harness corpus
@@ -662,8 +723,7 @@ jobs:
           pip install pytest pytest-cov
           pytest --cov=workflow_lint --cov-branch --cov-report=term-missing --cov-fail-under=100
 
-      # ================================ VENDORED TOOL TREES ================================
-      # PR #185 vendored two whole tool trees into the toolkit -- tools/abbyy-finereader-ocr-mcp
+      # ================================ VENDORED TOOL TREES =========================      # PR #185 vendored two whole tool trees into the toolkit -- tools/abbyy-finereader-ocr-mcp
       # (89 tests) and tools/omniaudit-mcp (149 tests) -- and NEITHER was named in ANY of the 7
       # workflows, so both suites ran in ZERO gates. By this job's own doctrine (see the hookrun
       # step above) "a suite that is not named here is dead weight that cannot catch a
@@ -1012,6 +1072,44 @@ jobs:
           # gitleaks-action needs GITHUB_TOKEN to enumerate PR commits on pull_request
           # events (push works without it); without it the gate hard-fails on every PR.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # The step above CANNOT be the gate's verdict on a pull_request, because the action
+      # picks its own revision range and that range is TRUNCATED. At the pinned v3.0.0,
+      # src/gitleaks.js:160-167 (and the executed bundle dist/index.js) issue exactly ONE
+      # `GET /repos/{owner}/{repo}/pulls/{pull_number}/commits` with no `per_page`/`page`
+      # and never call `octokit.paginate` (measured: 0 call sites in src/ and dist/). It
+      # then takes `headRef = commits.data[commits.data.length - 1].sha` — i.e. the last
+      # SHA of page 1. GitHub's default page size for that endpoint is 30 (measured live:
+      # gitleaks-action PR 64 returns 30 items plus a `Link: …; rel="next"`), so on a PR
+      # with more than 30 commits gitleaks is handed `base^..<commit-30>` and NEVER SEES
+      # commits 31+. A secret introduced in commit 31 leaves this job green.
+      # There is no configuration fix: the action's only range knob is `BASE_REF`, and
+      # src/gitleaks.js:174-178 applies it to `baseRef` ONLY — the truncated head end
+      # cannot be overridden. `fetch-depth: 0` above makes the objects local but does not
+      # repair the range the action chose.
+      # So the VERDICT comes from this range-independent scan instead: the same pinned
+      # binary and the same committed .gitleaks.toml, over the FULL local history, which
+      # is what the "Gate 5" comment above has always claimed. On a pull_request the
+      # checkout is the merge revision, so every PR commit is an ancestor of HEAD and is
+      # covered regardless of commit count. Re-measured on main @ dab44ba with the same
+      # pinned 8.30.1 binary: 422 commits scanned, ~97 MB, "no leaks found", exit 0, 23s —
+      # so this step does not turn an already-green history red.
+      #
+      # A release tarball fetched by `curl` is not covered by the "all actions are
+      # SHA-pinned" rule at the top of this file, so it carries its own digest. The
+      # expected sha256 was taken from the release's own checksums.txt AND independently
+      # recomputed from the downloaded artifact (both = 551f6fc8…). Bumping
+      # GITLEAKS_VERSION therefore REQUIRES bumping GITLEAKS_SHA256 in the same edit.
+      - name: gate-secrets full-history scan (range-independent)
+        env:
+          GITLEAKS_VERSION: "8.30.1"
+          GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/gitleaks.tar.gz" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
+          "$RUNNER_TEMP/gitleaks" version
+          "$RUNNER_TEMP/gitleaks" git --config .gitleaks.toml --redact --exit-code 1 .
 
   deps:
     name: gate-deps (osv-scanner)

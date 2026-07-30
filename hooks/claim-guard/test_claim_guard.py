@@ -438,6 +438,31 @@ class TestLedgerWrite:
         )
         assert self._records(ledger) == []
 
+    def test_powershell_is_recorded(self, tmp_path):
+        """A PowerShell shell result is command evidence, exactly like Bash.
+
+        REGRESSION: the writer used to hard-gate on ``tool_name != "Bash"``, so every
+        command run through the PowerShell tool -- the primary shell on Windows -- was
+        dropped.  The Stop consumers (claim-check.py and journey-coverage/check.py) then
+        read an EMPTY ledger and reported genuinely-executed evidence as "never run this
+        turn".  Keep this alongside ``test_non_bash_not_recorded``: the gate must admit
+        shells and still reject non-shell tools.
+        """
+
+        _, ledger = self._run_lw(
+            tmp_path,
+            {
+                "session_id": "lw3-ps",
+                "tool_name": "PowerShell",
+                "tool_input": {"command": "npx playwright test"},
+                "tool_response": {"exit_code": 0, "stdout": "1 passed"},
+            },
+        )
+        recs = self._records(ledger)
+        assert len(recs) == 1
+        assert recs[0]["cmd"] == "npx playwright test"
+        assert recs[0]["ok"] is True
+
     def test_off_mode_does_not_record(self, tmp_path):
         _, ledger = self._run_lw(
             tmp_path,
