@@ -9,7 +9,10 @@ user directory, so the interesting cases are the refusals, not the deletions:
 * a path that is not a ``.../plugins/cache`` directory is refused outright;
 * dry-run deletes nothing.
 
-The husk fixtures mirror what was actually measured on this box: the only child
+The husk fixtures reproduce the DEFINING trait of a real husk -- a partial .git with
+nothing checked out. They do NOT reproduce its shape: six live husks had 20/1/4/19/22/15
+children, so the single-child fixture is a simplification. Candidacy is name-based
+(STAGING_RE), never child-count-based, so the simplification does not weaken the tests. The only child
 of an abandoned staging dir is ``.git``.
 """
 
@@ -35,7 +38,11 @@ def make_cache(tmp_path: Path) -> Path:
 
 
 def make_husk(root: Path, name: str, *, mtime_ms: int, body: int = 3) -> Path:
-    """Create a husk whose only child is a ``.git`` tree, like the real ones."""
+    """Create a husk whose only child is a ``.git`` tree.
+
+    A simplification: real husks carry 20/1/4/19/22/15 children (measured). Only the
+    partial ``.git`` with no worktree is load-bearing, and matching is by name.
+    """
     path = root / name
     objects = path / ".git" / "objects" / "pack"
     objects.mkdir(parents=True)

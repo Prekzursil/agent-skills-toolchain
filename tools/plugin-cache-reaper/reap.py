@@ -18,8 +18,16 @@ commands and output):
 * SUCCESS path      -> the staging dir IS removed. No leak.
 * clone FAILS fast  -> the staging dir IS removed. No leak.
 * process is KILLED mid-clone -> the staging dir SURVIVES, holding a partial
-  ``.git`` and no worktree. This is the leak, and it matches the husks found in
-  the live cache exactly (a husk's only child is ``.git``).
+  ``.git`` and nothing checked out. This is the leak.
+
+The reproduced husk resembles the live ones in the way that matters -- a partial
+``.git`` with no worktree -- but NOT in shape. An earlier version of this note
+claimed "a husk's only child is ``.git``"; measuring six live husks gave child
+counts of 20, 1, 4, 19, 22 and 15, so exactly one of six matched. How far a clone
+got before it died varies, so the child count varies with it. Nothing here depends
+on that: candidacy is decided by NAME (``STAGING_RE``) alone and never by counting
+children, so the reaper is unaffected. The claim was false and is corrected in
+place rather than quietly dropped.
 
 There is no on-exit handler and no start-up sweep in the CLI, so every
 interrupted materialisation leaks one staging tree forever. This module is the

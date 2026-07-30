@@ -31,9 +31,19 @@ Three paths were exercised against an isolated `CLAUDE_CONFIG_DIR` sandbox:
 | clone fails fast (bogus repo URL, `git-subdir` **and** `url`) | **removed** |
 | process **killed mid-clone** | **SURVIVES** — leaks, holding a partial `.git` and no worktree |
 
-The survivor's shape matches the live husks exactly: the only child of a leaked
-`temp_*` directory is `.git`. There is no on-exit handler and no start-up sweep, so every
-interrupted materialisation leaks one staging tree permanently.
+The survivor matches the live husks in the way that matters — a partial `.git` with nothing
+checked out — but **not** in shape. An earlier draft said "the only child of a leaked `temp_*`
+directory is `.git`"; six live husks measured **20, 1, 4, 19, 22 and 15** children, so one of six
+matched. The child count tracks how far the clone got before it died, and nothing depends on it:
+candidacy is decided by name (`STAGING_RE`) alone, never by counting children.
+
+There is no on-exit handler and no start-up sweep, so every interrupted materialisation leaks one
+staging tree permanently.
+
+Scope note: `_reap_stage` — cited in the original brief as a 1.5 GB / 12,887-file directory — did
+not exist when this tool was written, and the size claim stays refuted. It exists now at **52
+bytes**, and this reaper does **not** collect it: `STAGING_RE` matches `temp_*` only. That is
+deliberate rather than an oversight, but it means `_reap_stage` is out of scope here.
 
 Paths that were checked and do **not** leak: `claude plugin marketplace update`, an
 idempotent re-`install`, and a fresh session start (`claude -p`, with the version dirs
