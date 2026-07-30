@@ -176,6 +176,14 @@ Run: `black app/routes/user.py app/services/auth.py`
 | ⚠️ Warning | Only MEDIUM issues (merge with caution) |
 | ❌ Block | CRITICAL or HIGH issues found |
 
+**Precedence (a HIGH-only review is a BLOCK):** this gate is authoritative for a Python
+review and is deliberately STRICTER than the general default in
+`rules/common/code-review.md` (Review Severity Levels), whose severity table grades HIGH as
+`WARN` and whose Approval Criteria allow "Only HIGH issues (merge with caution)".
+Language-specific rules take precedence over common ones, and that common rule records this
+override next to its own HIGH row, so do NOT read the WARN row as permission to merge a HIGH
+finding from this command.
+
 ## Integration with Other Commands
 
 - Use `/tdd` first to ensure tests pass
