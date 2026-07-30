@@ -267,6 +267,153 @@ function typeofOf(v) {
   return typeof v
 }
 
+/** Stable `err.rule` ids thrown by preflight(). Callers may switch on them. */
+export const PREFLIGHT = {
+  UNITS_NOT_ARRAY: 'preflight/units-not-array',
+  EXPECTED_NOT_POSITIVE_INT: 'preflight/expected-not-positive-int',
+  COLLAPSED_WORK_LIST: 'preflight/collapsed-work-list',
+  PROMPTS_NOT_ARRAY: 'preflight/prompts-not-array',
+  UNDEFINED_IN_PROMPT: 'preflight/undefined-in-prompt',
+  ARGS_NOT_OBJECT: 'preflight/args-not-object',
+}
+
+function fail(rule, message) {
+  const err = new Error(`preflight: ${message}`)
+  err.rule = rule
+  throw err
+}
+
+// Word-boundary match on the literal token a failed `${...}` interpolation leaves behind.
+// KNOWN FALSE POSITIVE, accepted deliberately: a prompt whose PROSE uses the English word
+// ("behaviour here is undefined") also throws. The fix is to reword the prompt. The trade is
+// one-sided - a reworded adjective costs seconds, the missed interpolation cost 38 minutes
+// and 324k tokens - so this check has no opt-out.
+const UNDEFINED_TOKEN = /\bundefined\b/
+
+/**
+ * Abort a fan-out BEFORE spawning, when the work-list has silently collapsed.
+ *
+ * MEASURED FAILURE THIS GUARD EXISTS FOR (2026-07-29, one 51-agent workflow):
+ * the script opened `const P = args`, but the runtime delivers `args` as a JSON-encoded
+ * STRING, so every `P.<field>` read `undefined`. `Array.from({length: P.nClusters})`
+ * became `Array.from({length: undefined})` = `[]`, the work-list collapsed 49 -> 1, and
+ * every interpolated `${P.path}` became the literal text "undefined". NOTHING THREW:
+ * 38 minutes and 324k tokens were spent fanning out a single garbage unit.
+ * Corroborating measurement: `grep -c 'throw new Error'` over the 10 saved workflows in
+ * ~/.claude/workflows returns 0 for every one of them - the 3 `throw` hits that do exist
+ * are all inside COMMENTS ("a throwing reviewer resolves to null"), so as of this commit
+ * not a single saved fan-out can abort itself.
+ *
+ * WHY THE TWO SHAPE CHECKS ARE NOT OPTIONAL POLISH. `expected` is normally derived from
+ * the same args object that broke - e.g. `expected: P.nClusters`. If `expected` arrives
+ * `undefined`, then `expected > 1` is `false`, and a guard written only as
+ * `units.length < 2 && expected > 1` NEVER FIRES on the exact bug it was written for.
+ * Likewise a non-array `units` makes `units.length` `undefined`, and `undefined < 2` is
+ * also `false`. Both are therefore hard throws, not warnings: without them this function
+ * would silently reproduce the defect it guards.
+ *
+ * @param {object}   opts
+ * @param {Array}    opts.units     the built work-list, one entry per agent to spawn.
+ * @param {number}   opts.expected  how many units the author believes they built.
+ * @param {string[]} [opts.prompts] the fully-interpolated prompt strings, if built already.
+ * @param {object}   [opts.argsRaw] the workflow's `args`. Pass it ONLY after you have
+ *   turned it into an object; passing the raw string is itself the bug and throws. If the
+ *   workflow parses `args` as a flat string (the `typeof args === 'string' ? args : ''`
+ *   idiom at ~/.claude/workflows/codex-auth-research-fanout.mjs:143), omit this field.
+ * @returns {{units:number, expected:number, prompts:number}} counts, for logging.
+ * @throws {Error} with a stable `.rule` from {@link PREFLIGHT}.
+ */
+export function preflight(opts = {}) {
+  if (opts === null || typeof opts !== 'object' || Array.isArray(opts)) {
+    fail(PREFLIGHT.UNITS_NOT_ARRAY, `expected an options object, got ${typeofOf(opts)}`)
+  }
+  const { units, expected, prompts, argsRaw } = opts
+
+  // `argsRaw` first: when it is wrong every other field is downstream garbage, so this
+  // message is the one an author actually needs to see.
+  if (argsRaw !== undefined) {
+    if (typeof argsRaw === 'string') {
+      let hint = 'the runtime delivers `args` as a string, not an object'
+      try {
+        const parsed = JSON.parse(argsRaw)
+        if (parsed !== null && typeof parsed === 'object') {
+          hint = 'argsRaw is a JSON-ENCODED STRING - JSON.parse(args) before destructuring it'
+        }
+      } catch {
+        hint = 'argsRaw is a flat string - scan it with a regex instead of destructuring it'
+      }
+      fail(PREFLIGHT.ARGS_NOT_OBJECT, `${hint} (got ${JSON.stringify(argsRaw.slice(0, 80))})`)
+    }
+    if (argsRaw === null || typeof argsRaw !== 'object' || Array.isArray(argsRaw)) {
+      fail(PREFLIGHT.ARGS_NOT_OBJECT, `argsRaw must be an object, got ${typeofOf(argsRaw)}`)
+    }
+  }
+
+  if (!Array.isArray(units)) {
+    fail(PREFLIGHT.UNITS_NOT_ARRAY, `units must be an array, got ${typeofOf(units)}`)
+  }
+  if (!Number.isInteger(expected) || expected < 1) {
+    fail(
+      PREFLIGHT.EXPECTED_NOT_POSITIVE_INT,
+      `expected must be a positive integer, got ${typeofOf(expected)} ${String(expected)}` +
+        ' - an undefined `expected` would make the collapse check silently inert',
+    )
+  }
+  // ANY size mismatch fails, not just a collapse to 0 or 1.
+  //
+  // The first version of this check was `units.length === 0 || (units.length < 2 && expected > 1)`,
+  // which green-lit the exact defect class this function exists to stop: a PARTIAL collapse.
+  // `units=5, expected=49` passed silently. The originating incident was a 51-agent fan-out whose
+  // work-list collapsed because `args` arrived as a JSON-encoded string - and a partial collapse is
+  // strictly harder to notice than a total one, because 5 running agents look like progress while
+  // 44 units are simply never dispatched. `expected` is the author's own declared count, so any
+  // disagreement with it is a defect; there is no legitimate reason to build a different number.
+  if (units.length !== expected) {
+    const how = units.length < expected ? 'collapsed' : 'over-expanded'
+    fail(
+      PREFLIGHT.COLLAPSED_WORK_LIST,
+      `work-list ${how}: built ${units.length} unit(s) but expected ${expected}` +
+        (units.length > 0 && units.length < expected
+          ? ` - ${expected - units.length} unit(s) would never be dispatched`
+          : ''),
+    )
+  }
+
+  if (prompts !== undefined) {
+    if (!Array.isArray(prompts)) {
+      fail(PREFLIGHT.PROMPTS_NOT_ARRAY, `prompts must be an array, got ${typeofOf(prompts)}`)
+    }
+    // An EMPTY prompts array passed silently: the scan loop below simply never ran, so a caller
+    // that opted in to prompt checking got none, and got no warning either. Passing `prompts` is a
+    // request to scan; having nothing to scan while units exist means the prompts were not
+    // actually collected. Omit the field entirely to opt out.
+    if (prompts.length === 0 && units.length > 0) {
+      fail(
+        PREFLIGHT.PROMPTS_NOT_ARRAY,
+        `prompts is an empty array while ${units.length} unit(s) exist - nothing would be` +
+          ' scanned. Omit `prompts` to opt out of the scan; pass the real prompts to opt in.',
+      )
+    }
+    for (let i = 0; i < prompts.length; i++) {
+      const p = prompts[i]
+      if (typeof p !== 'string') {
+        fail(PREFLIGHT.PROMPTS_NOT_ARRAY, `prompts[${i}] must be a string, got ${typeofOf(p)}`)
+      }
+      const m = UNDEFINED_TOKEN.exec(p)
+      if (m) {
+        const from = Math.max(0, m.index - 30)
+        fail(
+          PREFLIGHT.UNDEFINED_IN_PROMPT,
+          `prompts[${i}] contains the literal token "undefined" at char ${m.index} - a` +
+            ` failed interpolation: ...${p.slice(from, m.index + 40)}...`,
+        )
+      }
+    }
+  }
+
+  return { units: units.length, expected, prompts: prompts === undefined ? 0 : prompts.length }
+}
+
 function checkValue(p, value, path, errors) {
   if (p.type && !matchesType(p.type, value)) {
     errors.push({ kind: 'wrong_type', property: path, expected: p.type, got: typeofOf(value) })
