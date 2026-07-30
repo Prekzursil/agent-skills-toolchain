@@ -278,6 +278,45 @@ real finding the harness could not collect. Use `agentType: 'codex'` (the synchr
 Any barrier that accepts a result containing `started in the background` or `Check /codex:status`
 is accepting a receipt, not an answer — reject it at fan-in.
 
+## 13. Wire the resume manifest — the cross-session half of rule 6
+
+`plan_lint_stage0.py` has shipped a complete, `fsync`'d `ResumeManifest` since 2026-07-12 and, as
+measured 2026-07-29, had **zero callers**: the only reference anywhere was the `LINTER` const at
+`plan-gate.mjs:35`, which runs `lint()` and never touches the manifest. Consequence — every saved
+Workflow that dies mid-wave redoes the whole wave.
+
+**Wire it with an `agent()` step, never a JS shim.** The runner *wraps the body* (rule 1), so a
+static top-level `import` is a SyntaxError; measured across all 11 saved workflows there is not one
+`import`, `require(`, `child_process` or `fs.` call — every disk read is delegated to an agent's
+shell. Copy `templates/resume-wired-fanout.md` (its `js` block is kept lint-clean and is gated by
+`scripts/test_workflow_lint.py`). Three touch-points, nothing else:
+
+| when | command | effect |
+|---|---|---|
+| GROUND, once | `--manifest M --ids <all> --next` | stdout = exactly the ids still to run, one per line |
+| BEFORE each unit | `--manifest M --mark-partial <id>` | write-ahead; an `fsync`'d `partial` record |
+| AFTER each unit | `--manifest M --mark-done <id>` / `--mark-failed <id>` | terminal state |
+
+`--ids` and `--next` exist because a Workflow's unit list is a **JS array**: `resume()` derives
+`pending` from a declared work-list, and the CLI's only other source was `--plan`, which reads a
+plan *document*. So an author had to synthesise a throwaway `plan.wu.json` just to name their own
+units — that friction is the mechanical reason the manifest shipped uncalled.
+
+Durability, measured (not assumed): with `--mark-partial WU3` written, a `taskkill /F` on the unit
+process, and `--resume` in a fresh interpreter, WU3 lands in `partial` — process-crash recovery is
+**executable-proven** (13/13 assertions, and 3/3 mutants of the fold/append/torn-line logic go RED,
+so the probe is not vacuous). **UNVERIFIED, inline: machine-crash / power-loss durability is NOT
+proven** — a process kill cannot distinguish `fsync`'d bytes from page-cache bytes, so the
+experiment cannot see the `fsync` at all (only an instrumented counter shows the call is reached,
+`FSYNC_CALLS=1` per append). Settling experiment: run the same protocol in a VM and hard-cut power
+between the append and the read.
+
+Two honest limits to design around: `--mark-done` is **asserted by the unit agent**, not verified by
+the orchestrator, so pair it with an independent postcondition probe (artifact exists AND ends with
+your completion marker) exactly as the accumulator workflow's AND-gate does — a unit that lies is
+skipped forever, which is worse than being re-driven. And `done.jsonl` is append-only and never
+pruned; `records()` re-reads the whole file, which is fine at wave scale and is not a database.
+
 ---
 
 ## Governed single-shot run
@@ -408,7 +447,8 @@ return {
   `partial` records): mark a WU `partial` before it runs and `done` after it
   commits, then on a resumed session `resume(all_wu_ids)` classifies WUs into
   done / partial (crashed → re-drive) / pending — so a teammate that dies on a
-  session cut is not silently redone.
+  session cut is not silently redone. **Wiring it is rule 13**; the copy-paste
+  template is `templates/resume-wired-fanout.md`.
 
 Both gates ship in **SHADOW mode** (council C5): they surface a verdict + append
 one line to a bounded, auto-rotating shadow sink; promotion to an ENFORCE gate

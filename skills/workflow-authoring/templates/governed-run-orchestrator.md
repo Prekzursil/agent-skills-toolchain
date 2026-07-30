@@ -101,8 +101,12 @@ Before mutation or dispatch:
 5. Create a secret-free frozen grounding pack before fan-out:
 
    ```text
-   python tools/repomap/repo_map.py --budget 900 --out <artifact-root>/GROUNDING-PACK.md
+   python <checkout>/tools/repomap/repo_map.py --root <checkout> --budget 900 --out <artifact-root>/GROUNDING-PACK.md
    ```
+
+   `<checkout>` is the `agent-skills-toolchain` working tree. The bare repo-relative
+   `tools/repomap/repo_map.py` only resolves when cwd IS that root; from any other cwd it
+   dies with `[Errno 2] No such file or directory`.
 
    Enumerate the artifact root before launch; freeze that listing, the pack SHA-256, source subject kind/ref/content SHA-256, schemas, common preamble, launcher, and prompt hashes. Inline the frozen pack where the fan-out contract requires it; telling children to reread a mutable path is not equivalent.
 6. Run a clean read-only repository preflight and preserve unrelated user changes. Do not reset, checkout over, stash, clean, delete, or rewrite them. If an overlap cannot be safely isolated, fail that unit with the exact owner decision required.

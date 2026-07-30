@@ -339,6 +339,19 @@ jobs:
         run: |
           pip install pytest pytest-cov
           pytest --cov=stdin_server --cov-branch --cov-report=term-missing --cov-fail-under=100
+      # tools/harness-drift — the deterministic two-directional differ that replaces LLM
+      # judgement for the live-~/.claude-vs-repo drift classification. Stdlib-only, so only
+      # pytest+pytest-cov are installed. The suite is mutation-verified: reverting the
+      # two-directional read to the historical one-directional form (which mis-called 31
+      # two-way-DIVERGED files deploy-safe) turns 5 tests RED, and 5/5 seeded mutations were
+      # killed. No working-directory install: the test imports the module as a sibling, and
+      # `pytest` (unlike `python -m pytest`) does put the rootdir on sys.path here because
+      # both files sit in the same directory with no tests/ subdir.
+      - name: gate-tests-coverage harness-drift
+        working-directory: tools/harness-drift
+        run: |
+          pip install pytest pytest-cov
+          pytest --cov=harness_drift --cov-branch --cov-report=term-missing --cov-fail-under=100
       # tools/agentspec — the portable agent-workflow SPEC, the shared observation envelope, the
       # dispatch-safety pure core (argv/prompt transport, the completion AND-gate, progress-stream
       # rejection, terminal markers, budget accounting, determinism) and the hermetic eval
@@ -473,6 +486,34 @@ jobs:
       - name: gate-tests-coverage deployable-doc/code path consistency
         run: python -m pytest ci/tests/test_deploy_doc_consistency.py -q
 
+      # tools/plugin-cache-reaper — the sweep for abandoned plugin-install staging
+      # clones under ~/.claude/plugins/cache. Named explicitly for the usual reason:
+      # there is no repo-wide pytest autodiscovery here, so an unnamed suite is dead
+      # weight that cannot catch a regression. Reuses the existing
+      # `gate-tests-coverage` charter slug on purpose — it is not a new gate, so
+      # .quality/charter_check.sh stays consistent with no charter.yml edit.
+      # What it gates is destructive-delete safety on a LIVE user directory: that a
+      # real cache entry (`cache/<marketplace>/<plugin>/<version>`) can never match
+      # the staging name allow-list, that BOTH age signals (the epoch-ms in the
+      # directory name AND its mtime) must clear the window before anything is
+      # removed, that a path which is not `.../plugins/cache` is refused outright,
+      # and that dry-run — the default — deletes nothing.
+      # Stdlib-only, so only pytest+pytest-cov are installed. The mutation step is
+      # the both-states check applied to the suite itself
+      # (rules/common/single-signal-verification.md:44): it reverts the AND-gate to
+      # an `or`, drops the regex end-anchor, removes the is-a-directory check,
+      # no-ops the root validation, and makes dry-run delete anyway, and requires the
+      # suite to go RED for each. It found a real hole on its first run. Measured
+      # locally on python 3.14.6: 45 passed, 100.00% line+branch, 5/5 mutations
+      # killed. install_reaper_task.ps1 is intentionally NOT invoked here —
+      # registering the scheduled task is an owner action, not a CI action.
+      - name: gate-tests-coverage plugin-cache-reaper (suite + mutation probe)
+        working-directory: tools/plugin-cache-reaper
+        run: |
+          pip install pytest pytest-cov
+          pytest --cov=reap --cov-branch --cov-report=term-missing --cov-fail-under=100
+          python test_reap_mutations.py
+
       - name: gate-tests-coverage strict-target hook manifests
         run: |
           python -m pytest ci/tests/test_emit_hook_manifest.py -q
@@ -533,6 +574,38 @@ jobs:
       # with no charter.yml edit.
       - name: gate-tests-coverage rules selector inheritance
         run: python -m pytest ci/tests/test_rules_selector_inheritance.py -q
+
+      # agent-self/config/harness-meta/plan_lint_stage0.py -- the mechanical stage-0 plan
+      # linter + cross-session resume manifest that skills/workflow-authoring/SKILL.md:404 and
+      # its governed-run-orchestrator template already instruct agents to run. Until this step
+      # it existed ONLY on one machine's live disk (~/.claude/harness-meta/): absent from all
+      # 561 commits and every branch, with no test and no reviewer. It is versioned under
+      # agent-self/config/ because that tree IS the repo's mirror of ~/.claude -- bootstrap.ps1
+      # copies `config\*` into ~/.claude recursively, so the repo copy deploys back to the live
+      # path with no new machinery, and sync-self.ps1 snapshots live -> repo (its Copy-Tree list
+      # now names harness-meta; the suite asserts that, because that script WIPES the bundle
+      # and would otherwise delete the module on its next run).
+      # The suite lives in ci/tests/ ON PURPOSE, outside the snapshot zone -- a test file under
+      # config/harness-meta/ would be deleted by the next sync-self.ps1 run.
+      # 100% line+branch gated: the module is pure stdlib logic whose only I/O (the jsonl
+      # manifest, the rotating shadow sink) is exercised through tmp_path. Named explicitly
+      # like the suites above -- there is no repo-wide pytest autodiscovery, so an unnamed
+      # suite is dead weight. Reuses the gate-tests-coverage charter slug on purpose (not a
+      # new gate), so .quality/charter_check.sh stays consistent with no charter.yml edit.
+      # Measured on python 3.14.6 via the pytest CONSOLE SCRIPT: 93 passed, 100% (405 stmts,
+      # 156 branches, 0 missing); a 7-mutation probe over the load-bearing decisions
+      # (nesting/size ceilings, write-ahead partial, latest_state recency, scope collision,
+      # torn-line tolerance, the sync allowlist) killed 7/7.
+      # WHEN THE LIVE COPY CHANGES: re-snapshot with `pwsh agent-self/sync-self.ps1`, run
+      # `ruff format` on the snapshot (this gate lints the whole repo; the live tree is not
+      # format-clean), and extend this suite -- new uncovered CLI surface fails --cov-fail-under
+      # here, which is exactly the drift alarm. That is how the --ids/--next flags added to the
+      # live copy on 2026-07-29 arrived with tests instead of arriving unnoticed.
+      - name: gate-tests-coverage plan-lint stage-0 + resume manifest
+        run: |
+          pip install pytest pytest-cov
+          pytest ci/tests/test_plan_lint_stage0.py -q --cov=plan_lint_stage0 \
+            --cov-branch --cov-report=term-missing --cov-fail-under=100
       # A023 + A048: rules/ documentation coherence. Two first-party contradictions
       # shipped on main because no gate reads two documents side by side — the review
       # Block boundary (rules/common/code-review.md grades HIGH -> WARN while the Python
@@ -705,6 +778,26 @@ jobs:
       # slug (not a new gate). pytest is already installed by an earlier step.
       - name: gate-tests-coverage codex-databricks-fanout
         run: python -m pytest skills/codex-databricks-fanout/scripts/tests -q
+
+      # codex-databricks-fanout -- the backends/ + engine/ COVERAGE half of the step above.
+      # The step above proves the suite is green but enforces no threshold, so the pluggable
+      # backend abstraction (backends/base.py + the databricks/github-actions adapters) and the
+      # reusable completion engine (engine/{verify,ceiling,sanitize,tokens,backlog}.py) would
+      # arrive gated only by "the tests ran". Their source repo gated them at 100% line+branch
+      # and measured 100% here (180 stmts / 36 branches, 0 missed) on the merged tree, so the
+      # threshold travels with the code rather than being silently dropped in transit.
+      # harness/* is deliberately NOT in --cov: its source repo measured it at 83% and never
+      # gated it, and inventing a threshold it has never met would fail this lane on arrival.
+      # working-directory (not a repo-root path) because --cov=backends is an IMPORT name:
+      # scripts/ must be the rootdir for `import backends` to resolve, exactly as conftest.py
+      # arranges under pytest. Reuses the gate-tests-coverage charter slug (not a new gate);
+      # pytest-cov is already installed by the harness step earlier in this job.
+      - name: gate-tests-coverage codex-databricks-fanout (backends+engine 100%)
+        working-directory: skills/codex-databricks-fanout/scripts
+        run: >-
+          python -m pytest tests -q
+          --cov=backends --cov=engine --cov-branch
+          --cov-report=term-missing --cov-fail-under=100
 
       # skills/workflow-authoring -- the saved-Workflow static linter (workflow_lint.py).
       # It HARD-FAILs on the determinism-breakers (Date.now / Math.random / argless
