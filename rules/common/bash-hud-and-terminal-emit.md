@@ -24,7 +24,7 @@ Measured (HIGH severity): a `U+001F` in `session_name` shifted its tail into the
 `transcript_path` slot, which then built a spoofed OSC-8 link — the field defeated its own sanitizer.
 
 - **Fix:** strip control bytes in the producer, before the join/split. With jq:
-  `map(tostring | gsub("[[:cntrl:]]";"")) | join("")` — every field is clean *before* the
+  `map(tostring | gsub("[[:cntrl:]]";"")) | join("\u001f")` — every field is clean *before* the
   delimiter is added, so no value can carry the delimiter OR an escape. (`jq [[:cntrl:]]` is verified
   to strip ESC/BEL/US/CR/LF.) This closes escape-injection AND column-shift in one place.
 - Corollary — **treat every field that reaches the terminal as hostile**: `session_name`, a harness
@@ -86,17 +86,17 @@ Claude Code debounces renders 300ms and **cancels** an in-flight one. On a memor
   (a text grep counts comments and substrings). **Control the detector first** — confirm the shim catches a
   known spawn before trusting a zero.
 
-## 8. Editing scripts that contain a `` (or any control byte) delimiter
+## 8. Editing scripts that contain a `\u001f` (or any control byte) delimiter
 
-The Edit tool may convert a `` in replacement text to a literal 0x1f byte, or drop it; and a literal
-control byte in a **Bash-tool command** trips the control-char validator. jq `join("")` and
+The Edit tool may convert a `\u001f` in replacement text to a literal 0x1f byte, or drop it; and a literal
+control byte in a **Bash-tool command** trips the control-char validator. jq `join("\u001f")` and
 `join("<literal 0x1f>")` produce identical output, but the literal makes future Edits fragile.
 
-- **Fix:** keep delimiters as the `` escape; normalize with a Write-tool python fixer using
-  `chr(0x1f)`; verify counts with `grep -n` + a python `.count()` — a bare `grep -c 'join("")'` lies
+- **Fix:** keep delimiters as the `\u001f` escape; normalize with a Write-tool python fixer using
+  `chr(0x1f)`; verify counts with `grep -n` + a python `.count()` — a bare `grep -c 'join("\u001f")'` lies
   (`\u` is not portable grep regex; you'll see `grep -n` show 4 and `grep -c` show 0 = a broken detector, per single-signal-verification).
 
 ---
 *Captured 2026-07-24 from the statusline-HUD rebuild. Related: [[single-signal-verification]] (detector
-control), [[windows-shell]] (``-in-command, CRLF), [[fan-out-contract]] (the parallel sec+perf review
+control), [[windows-shell]] (`\u001f`-in-command, CRLF), [[fan-out-contract]] (the parallel sec+perf review
 that surfaced §2/§6/§7).*

@@ -204,13 +204,19 @@ def main() -> int:
         if rewritten is None:
             return 0  # no change needed — silent exit
 
+        # `updatedInput` REPLACES the entire tool_input object -- every field the
+        # caller sent that we are not changing must be copied through, or it is
+        # dropped. Emitting a bare {"command": ...} silently discarded
+        # `description`, `timeout` and `run_in_background`, so a requested
+        # background call with a 600000 ms timeout became a foreground call at the
+        # default timeout. Copy first, then override only `command`.
+        updated_input = dict(tool_input)
+        updated_input["command"] = rewritten
         out = {
             "hookSpecificOutput": {
                 "hookEventName": "PreToolUse",
                 "permissionDecision": "allow",
-                "updatedInput": {
-                    "command": rewritten,
-                },
+                "updatedInput": updated_input,
             }
         }
         sys.stdout.write(json.dumps(out, ensure_ascii=False))

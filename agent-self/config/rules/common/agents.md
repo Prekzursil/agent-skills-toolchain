@@ -1,50 +1,31 @@
 # Agent Orchestration
 
-## Available Agents
+The agent roster is injected live every session — read it; do NOT keep a static list (it drifts). Route via `/start-task`; prefer parallel subagents for independent work + split-role reviewers (senior / security / consistency) for high-stakes calls. Subagent-handoff contract: AGENTS.md §5.
 
-Located in `~/.claude/agents/`:
+## This rule has install dependencies — copying `rules/common` alone does not satisfy them
 
-| Agent | Purpose | When to Use |
-|-------|---------|-------------|
-| planner | Implementation planning | Complex features, refactoring |
-| architect | System design | Architectural decisions |
-| tdd-guide | Test-driven development | New features, bug fixes |
-| code-reviewer | Code review | After writing code |
-| security-reviewer | Security analysis | Before commits |
-| build-error-resolver | Fix build errors | When build fails |
-| e2e-runner | E2E testing | Critical user flows |
-| refactor-cleaner | Dead code cleanup | Code maintenance |
-| doc-updater | Documentation | Updating docs |
-| rust-reviewer | Rust code review | Rust projects |
+Both names above are separate artifacts that the documented common-rules install does **not**
+deploy. `rules/README.md:56-57` installs common rules with `cp -r rules/common
+~/.claude/rules/common`, and `scripts/sync-rules.ps1:48-68` likewise copies only the Markdown
+files under `rules/common/`. Neither ships a command file or an `AGENTS.md`. On a clean profile
+the rule is therefore active and tells the agent to route via `/start-task` and honour
+`AGENTS.md §5`, while both targets are absent — the router cannot resolve and the handoff
+contract cannot be read.
 
-## Immediate Agent Usage
+Install these alongside the rule, or the two references above are dangling:
 
-No user prompt needed:
-1. Complex feature requests - Use **planner** agent
-2. Code just written/modified - Use **code-reviewer** agent
-3. Bug fix or new feature - Use **tdd-guide** agent
-4. Architectural decision - Use **architect** agent
+| Reference | Source in this repo | Install to |
+|---|---|---|
+| `/start-task` | `commands/start-task.md` | `~/.claude/commands/start-task.md` |
+| `AGENTS.md §5` | `agent-self/config/AGENTS.md` | `~/.claude/AGENTS.md` |
 
-## Parallel Task Execution
+**Not the repository-root `AGENTS.md`.** That file is the contributor guide and has no §5;
+`scripts/build-codespace-mirror.py:206-213` records that the harness contract lives at
+`agent-self/config/AGENTS.md`. `scripts/bootstrap-codespace.sh:31-39` installs rules, commands
+and agents together but copies the root `AGENTS.md` at `:95-98`, so that path broadens the
+deployment without resolving the §5 dependency. `agent-self/bootstrap.ps1:26-28` deploys the
+whole of `agent-self/config/`, which does carry all three.
 
-ALWAYS use parallel Task execution for independent operations:
-
-```markdown
-# GOOD: Parallel execution
-Launch 3 agents in parallel:
-1. Agent 1: Security analysis of auth module
-2. Agent 2: Performance review of cache system
-3. Agent 3: Type checking of utilities
-
-# BAD: Sequential when unnecessary
-First agent 1, then agent 2, then agent 3
-```
-
-## Multi-Perspective Analysis
-
-For complex problems, use split role sub-agents:
-- Factual reviewer
-- Senior engineer
-- Security expert
-- Consistency reviewer
-- Redundancy checker
+**Verify after install, don't assume:** a rule that names a route is only as good as the route.
+Confirm `~/.claude/commands/start-task.md` and a `~/.claude/AGENTS.md` containing a §5 both
+exist before treating this rule as in force.

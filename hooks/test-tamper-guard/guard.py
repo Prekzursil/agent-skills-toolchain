@@ -74,6 +74,48 @@ _ASSERT_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Comment openers stripped before an assertion count. _ASSERT_RE matches broad
+# English words ("assert", "should", "verify", "must"), so a PROSE comment scores
+# as an assertion. That is only cosmetic on its own, but the net-drop signal
+# subtracts added matches from removed ones, so one comment CANCELS one real
+# deletion: the documented README fixture
+#     -    assert 1 + 1 == 2
+#     +    pass  # assert removed
+# removes the file's only executable assertion and emitted NO warning, because
+# the word "assert" inside the new comment scored 1 added assertion. Count only
+# the executable part of a line.
+_COMMENT_OPENERS = ("#", "//")
+
+
+def _code_part(line: str) -> str:
+    """Return *line* with any trailing line-comment removed.
+
+    Quote-aware so a ``#`` or ``//`` inside a string literal is NOT treated as a
+    comment opener (``assert x == "a # b"`` must still count). Unterminated
+    quotes are left alone -- a diff line is a fragment, not a parseable file, so
+    the conservative choice is to keep the whole line and count it.
+    """
+    quote: str | None = None
+    i = 0
+    n = len(line)
+    while i < n:
+        ch = line[i]
+        if quote is not None:
+            if ch == "\\":
+                i += 2
+                continue
+            if ch == quote:
+                quote = None
+        elif ch in "\"'":
+            quote = ch
+        else:
+            for opener in _COMMENT_OPENERS:
+                if line.startswith(opener, i):
+                    return line[:i]
+        i += 1
+    return line
+
+
 # Added-line patterns that indicate test disabling / weakening.
 _SKIP_RE = re.compile(
     r"(@pytest\.mark\.skip|@pytest\.mark\.xfail|"
@@ -175,8 +217,8 @@ def _analyse_diff(diff_text: str) -> dict:
             stripped = content.strip()
             if not stripped:
                 continue
-            # Count removed assertions
-            if _ASSERT_RE.search(content):
+            # Count removed assertions -- executable code only, see _code_part.
+            if _ASSERT_RE.search(_code_part(content)):
                 removed_assert_count += 1
 
         elif raw_line.startswith("+"):
@@ -184,14 +226,17 @@ def _analyse_diff(diff_text: str) -> dict:
             stripped = content.strip()
             if not stripped:
                 continue
-            # Skip/disable patterns on added lines
+            # Skip/disable patterns on added lines. NOT comment-stripped: several
+            # _SKIP_RE alternatives (`# type: ignore ... assert`, `TODO ... test`)
+            # only ever appear INSIDE a comment, so stripping would disarm them.
             if _SKIP_RE.search(content):
                 signals.setdefault("skip_added", []).append(stripped[:120])
             # Trivial-true asserts on added lines
             if _TRIVIAL_ASSERT_RE.search(content):
                 signals.setdefault("trivial_assert_added", []).append(stripped[:120])
-            # Count added assertions (for net-drop calc)
-            if _ASSERT_RE.search(content):
+            # Count added assertions (for net-drop calc) -- executable code only,
+            # so a prose comment cannot cancel a real deletion.
+            if _ASSERT_RE.search(_code_part(content)):
                 added_assert_count += 1
 
     # Net assertion drop

@@ -50,6 +50,11 @@ from pathlib import Path
 # Configuration
 # ---------------------------------------------------------------------------
 MODE = os.environ.get("CLAIM_GUARD_MODE", "warn").lower()
+# Turn-boundary marker. Mirrors TURN_BOUNDARY_KEY in ledger-write.py -- the pair
+# cannot share a module (hyphenated filenames are not importable), which is why
+# `_ledger_file` is already duplicated across the two hooks.
+TURN_BOUNDARY_KEY = "turn_end"
+
 _LEDGER_ROOT = Path(
     os.environ.get(
         "CLAIM_GUARD_LEDGER_ROOT",
@@ -290,7 +295,14 @@ def _ledger_file(session_id: str) -> Path:
 
 
 def _load_ledger(session_id: str) -> list[dict]:
-    """Return all ledger records for this session. Returns [] on any error."""
+    """Return THIS TURN's ledger records for this session. [] on any error.
+
+    The ledger file spans the whole session, but the contract in README.md is
+    evidence "this turn". Records written before the most recent turn-boundary
+    marker belong to an earlier turn and must NOT vouch for the current final
+    response -- otherwise turn 1's successful `pytest -q` silently supports a
+    turn-2 "Tests pass." that ran no tests at all.
+    """
     path = _ledger_file(session_id)
     if not path.exists():
         return []
@@ -302,12 +314,38 @@ def _load_ledger(session_id: str) -> list[dict]:
                 if not line:
                     continue
                 try:
-                    records.append(json.loads(line))
+                    rec = json.loads(line)
                 except Exception:
-                    pass
+                    continue
+                if not isinstance(rec, dict):
+                    continue
+                if rec.get(TURN_BOUNDARY_KEY) is True:
+                    # A turn closed here; everything before it is stale evidence.
+                    records.clear()
+                    continue
+                records.append(rec)
     except Exception:
         pass
     return records
+
+
+def _close_turn(session_id: str) -> None:
+    """Append the turn-boundary marker. Best-effort; never raises.
+
+    Stop IS the turn boundary, so this runs on every non-continuation Stop --
+    including the silent paths (no claims fired, no transcript) and the
+    CLAIM_GUARD_MODE=block escalation that returns 2. If it only ran when a
+    warning was emitted, a quiet turn would leave its receipts live for the
+    next turn to consume, which is the exact defect being fixed.
+    """
+    try:
+        path = _ledger_file(session_id)
+        if not path.exists():
+            return  # nothing was recorded this turn; no boundary to close
+        with path.open("a", encoding="utf-8", errors="replace") as fh:
+            fh.write(json.dumps({TURN_BOUNDARY_KEY: True}) + "\n")
+    except Exception:
+        pass
 
 
 def _has_support(category: str, ledger: list[dict]) -> bool:
@@ -518,12 +556,20 @@ def main() -> int:
     except Exception:
         return 0  # fail-open: malformed stdin
 
-    try:
-        # Anti-loop guard: if we're already inside a stop-hook continuation, do nothing
-        if data.get("stop_hook_active"):
-            return 0
+    if not isinstance(data, dict):
+        return 0  # fail-open: stdin parsed to a non-object (e.g. a bare list)
 
-        session_id = str(data.get("session_id") or "unknown")
+    # Read BEFORE the anti-loop guard: the `finally` below needs the real session
+    # id on every exit path, including the early returns inside the try.
+    session_id = str(data.get("session_id") or "unknown")
+    in_continuation = bool(data.get("stop_hook_active"))
+
+    try:
+        # Anti-loop guard: if we're already inside a stop-hook continuation, do
+        # nothing. No boundary is written here either: the continuation is still
+        # the SAME turn, and closing it would strand the turn's own receipts.
+        if in_continuation:
+            return 0
         transcript_path = str(data.get("transcript_path") or "")
 
         # Get the final assistant response text
@@ -559,6 +605,13 @@ def main() -> int:
 
     except Exception:
         pass  # fail-open: any logic error → silent exit 0
+    finally:
+        # Stop IS the turn boundary. Close it on EVERY path past the
+        # stop_hook_active guard -- including the early returns and the block
+        # escalation -- because a turn that made no claim still consumed its
+        # receipts.
+        if not in_continuation:
+            _close_turn(session_id)
 
     return 0
 

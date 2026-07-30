@@ -48,6 +48,25 @@ prints nothing, and **exits 0** — a permanently green gate that checks nothing
   (b) **fail closed** — any parse error, missing input, or empty walk returns
   non-zero, never "nothing found → pass"; (c) emit a terminal `SUCCESS:`/`FAILED:`
   marker so the log is diffable.
+- **Fail closed on an empty EXTRACTION too, not just an empty walk.** "I found
+  files" and "I found something to check" are different postconditions, and a
+  gate that only guards the first is still a no-op. Measured on
+  `tools/re-harness/mcp_doc_drift.py`: `read_docs()` (`:190-203`) appends every
+  readable path to `read` even when both extracted sets are empty;
+  `build_report()` (`:230-244`) returns `no-docs` only when `read` is empty, with
+  no guard for zero extracted subjects; `main()` (`:285-297`) then reads zero HIGH
+  and zero MEDIUM findings as clean and prints
+  `SUCCESS:docdrift all 0 documented server(s) mounted + connected` with rc 0. One
+  readable file containing none of the recognized handles — a mispointed, emptied,
+  or reformatted doc set — makes the whole audit report green. **The subject count
+  is a postcondition: if the per-input check produced zero comparable subjects,
+  return non-zero,** and never build a success message out of a `len()` that can
+  legitimately be `0`.
+- **A "clean" test case with a real subject does not cover the zero-subject
+  path.** `test_mcp_doc_drift.py:107-109` covers a missing/unreadable path and
+  `:133-139` covers a positive clean case with a real handle; neither requires a
+  readable zero-signal input to fail. Pair every fail-closed clause with a test
+  that supplies a *readable but empty-of-subjects* input and asserts non-zero.
 - **Verify the gate can fail:** before trusting a new gate, feed it a known-bad
   input and confirm it exits non-zero. A gate that has never gone red is
   indistinguishable from a no-op.
