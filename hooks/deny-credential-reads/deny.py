@@ -34,6 +34,22 @@ SENSITIVE_GLOBS = [
     "id_rsa.*",
     "id_ed25519",
     "id_ed25519.*",
+    # The RSA and Ed25519 names were guarded while the other two ssh-keygen defaults were
+    # not, so `cat ~/.ssh/id_ecdsa` sailed through a hook whose whole purpose is to stop
+    # exactly that. ssh-keygen -t emits rsa | ed25519 | ecdsa | dsa; guard all four or the
+    # denylist is a coin flip on which key type the user happens to have.
+    "id_ecdsa",
+    "id_ecdsa.*",
+    "id_ecdsa_sk",
+    "id_ecdsa_sk.*",
+    "id_ed25519_sk",
+    "id_ed25519_sk.*",
+    "id_dsa",
+    "id_dsa.*",
+    # auth.json is the Codex/ChatGPT credential store (~/.codex/auth.json) and holds a live
+    # refresh_token. It was absent from every pattern list, which is the gap that matters
+    # most here: it is the credential this estate actually rotates.
+    "auth.json",
     "secrets.*",
     "*.secret",
     ".netrc",
@@ -50,6 +66,11 @@ SECRET_FRAGMENTS = [
     "credential",
     "id_rsa",
     "id_ed25519",
+    # same four-key-type gap as the filename list above: a read verb aimed at an ECDSA or DSA
+    # key was not even a candidate for the near-verb check.
+    "id_ecdsa",
+    "id_dsa",
+    "auth.json",
     ".pem",
     ".key",
     ".netrc",
