@@ -517,6 +517,23 @@ jobs:
           pytest ci/tests/test_plan_lint_stage0.py -q --cov=plan_lint_stage0 \
             --cov-branch --cov-report=term-missing --cov-fail-under=100
 
+      # C26: doc-vs-code contracts for the rule/command surface. Prose has no compiler, so
+      # the adjudicated findings (a rule promising coverage the shipped hook does not give,
+      # an exit-2 recipe AGENTS.md §6 forbids, a perl example that will not parse, a
+      # hard-coded context denominator, a router tier that under-routes substantive work,
+      # a gather() recipe that swallows unexpected failures) are pinned against the OTHER
+      # side of each contract -- the hook source, the sibling rule, the measured runtime --
+      # plus byte parity with the agent-self/config deploy mirror.
+      # Scope correction to the authoring unit's comment: ci/tests/ IS already swept, by
+      # `python -m pytest ci/tests tools/d001-dual-write/tests -q`
+      # (.github/workflows/skill-dual-write.yml:60) on every pull_request. This named step
+      # is therefore belt-and-braces, not the only thing standing between this suite and
+      # never running -- it keeps the doc contracts inside the blocking `quality` job
+      # alongside the other gate-tests-coverage suites. Reuses that charter slug on purpose
+      # (not a new gate), so .quality/charter_check.sh stays consistent with no charter edit.
+      - name: gate-tests-coverage rules/commands doc contracts
+        run: python -m pytest ci/tests/test_rules_doc_contracts.py -q
+
       # L13 adoption: the checked-in adversarial corpus plus its miner regressions.
       - name: gate-tests-coverage adversarial harness corpus
         run: |

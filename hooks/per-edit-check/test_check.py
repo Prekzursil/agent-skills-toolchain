@@ -6,7 +6,7 @@ Run: pytest test_check.py -v
 Required scenarios (spec):
   clean-file            → silent exit 0
   file-with-lint-error  → inject (exit 0 + additionalContext JSON)
-  syntax-broken         → exit 2 (block) + decision:block JSON
+  syntax-broken         → exit 2, reason on stderr, stdout EMPTY (no decision JSON)
   unknown-extension     → silent exit 0
   missing-checker-tool  → silent exit 0
   malformed stdin       → exit 0 (fail-open)
@@ -500,3 +500,34 @@ def test_python_ruff_e999_syntax_error_blocks(tmp_path: Path):
     assert out.strip() == "", "stdout must be empty on exit 2"
     assert err.strip(), "block reason must appear on stderr"
     assert "broken.py" in err
+
+
+# ── 13. D-a008: the DOCUMENTED exit protocol must match MEASURED behaviour ──
+
+
+def test_docstring_promises_no_decision_json_the_exit_2_path_cannot_emit(
+    tmp_path: Path,
+):
+    """check.py used to document "exit 2 + decision:block JSON".  No such payload exists.
+
+    Claude Code ignores stdout at exit 2, which is why the reason goes to stderr and why
+    every exit-2 case above asserts stdout is EMPTY.  A docstring advertising a
+    ``decision:block`` payload therefore describes a channel this hook cannot use, and it
+    was the sentence an audit read as proof the hook hard-blocks a completed PostToolUse
+    edit.  Pinned against MEASURED behaviour in the same test so the prose can never drift
+    away from the code again: assert the claim is absent AND that nothing reaches stdout.
+    """
+
+    mod = load_check()
+    doc = mod.__doc__ or ""
+    assert "decision:block" not in doc, (
+        "check.py's docstring promises a decision:block JSON payload; the exit-2 path "
+        "never emits one (stdout is ignored at exit 2 and measured empty below)"
+    )
+
+    f = tmp_path / "bad.json"
+    f.write_text('{"key": invalid}\n')
+    rc, out, err = run_hook(mod, make_event(str(f)))
+    assert rc == 2, "bad JSON still exits 2"
+    assert out.strip() == "", "measured: stdout empty, so no decision JSON can exist"
+    assert err.strip(), "the reason is on stderr, the only channel read at exit 2"

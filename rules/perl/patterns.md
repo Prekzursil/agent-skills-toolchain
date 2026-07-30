@@ -16,6 +16,7 @@ Use **DBI** or **DBIx::Class** behind an interface:
 
 ```perl
 package MyApp::Repo::User;
+use v5.36;    # REQUIRED: without it `($self, $id)` parses as a malformed prototype
 use Moo;
 
 has dbh => (is => 'ro', required => 1);
@@ -33,6 +34,7 @@ Use **Moo** classes with **Types::Standard** (equivalent to Python dataclasses):
 
 ```perl
 package MyApp::DTO::User;
+use v5.36;
 use Moo;
 use Types::Standard qw(Str Int);
 
