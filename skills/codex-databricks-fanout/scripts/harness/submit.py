@@ -6,6 +6,12 @@ from harness.contract import RAIL
 
 
 def build_payload(n, batch_dbfs, result_dir, extra_env=None) -> dict:
+    if extra_env and any(k in extra_env for k in ("GITHUB_TOKEN", "GH_TOKEN")):
+        raise ValueError(
+            "R1: a write GITHUB_TOKEN/GH_TOKEN must NOT be injected into "
+            "spark_env_vars (the node runs untrusted code AND ships env to S3 logs). "
+            "Push out-of-band via engine.tokens."
+        )
     conc = min(RAIL["concurrency"], max(1, n))
     env = {
         "BATCH_CONCURRENCY": str(conc),
@@ -54,6 +60,9 @@ def build_payload(n, batch_dbfs, result_dir, extra_env=None) -> dict:
                     "spark_env_vars": env,
                     "data_security_mode": "LEGACY_SINGLE_USER_STANDARD",
                     "enable_elastic_disk": True,
+                    # R1: spark_env_vars must carry NO write secret (these logs
+                    # ship to S3). NOTE: JFROG_* here are read-only artifactory
+                    # creds; if ever rotated to writable, mint them short-lived too.
                     "cluster_log_conf": {
                         "s3": {
                             "destination": RAIL["s3_log_dest"],
