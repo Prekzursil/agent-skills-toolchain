@@ -35,6 +35,13 @@ def test_not_ready_if_bogus_accepted():
     assert not ok and "both-states" in m.lower()
 
 
+def test_not_ready_if_version_probe_itself_fails():
+    # Neither pre-merge variant covered the `codex --version` rc!=0 path, so the
+    # STOP-the-fan-out branch was untested; version falls back to "unknown".
+    ok, ver, m = preflight.assert_codex_ready(lambda argv: (127, "", "not found"))
+    assert not ok and ver == "unknown" and "--version" in m
+
+
 def test_check_node_preflight_behavioral():
     ok, ver, _ = preflight.check_node_preflight(
         "codex_version: 0.144.6\nultra_rc: 0\nbogus_rc: 2\n"
@@ -45,4 +52,4 @@ def test_check_node_preflight_behavioral():
     )[0]
     assert not preflight.check_node_preflight(
         "codex_version: 0.1\nultra_rc: 0\nbogus_rc: 0\n"
-    )[0]
+    )[0]  # blind
