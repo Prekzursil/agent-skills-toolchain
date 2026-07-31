@@ -34,6 +34,7 @@ import { resolve, join } from 'node:path';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
+import { realpathSync } from 'node:fs';
 
 // Interactive set: native controls + ARIA roles + component-framework hooks
 // ([onclick] inline handlers, [routerLink] Angular nav). querySelectorAll dedupes,
@@ -133,15 +134,40 @@ export async function crawlUrl(url, opts = {}) {
 
       const onReq = () => { reqCount++; };
       const onConsole = () => { consoleCount++; };
+      // An UNCAUGHT handler throw surfaces as 'pageerror', NOT as a console event
+      // (measured). Such a control is WIRED BUT BROKEN — a different defect from a
+      // dead one — so it is reported as its own flag rather than folded into effect.
+      const pageErrors = [];
+      const onPageError = (e) => { pageErrors.push((e && e.message) ? e.message.split('\n')[0] : String(e)); };
 
       try {
         await gotoAndSettle(testPage, url, { waitSelector, settleMs });
 
-        // Install a mutation counter.
+        // Install a mutation RECORDER (not a bare counter) — see BUG-2 below.
         await testPage.evaluate(() => {
-          window.__uiAuditMut = 0;
+          window.__uiAuditSigs = new Set();
+          // A stable per-mutation signature: type + element identity + a shallow
+          // child-index path. Ambient churn (a ticking clock, a polling list)
+          // re-emits the SAME signature every tick, so it can be subtracted;
+          // a click that appends a node emits a signature the ambient set lacks.
+          const sig = (m) => {
+            const el = m.target instanceof Element
+              ? m.target
+              : (m.target && m.target.parentElement) || null;
+            if (!el) return m.type + '|<detached>';
+            let path = '';
+            let node = el;
+            for (let d = 0; d < 4 && node && node.parentElement; d++) {
+              path = Array.prototype.indexOf.call(node.parentElement.children, node) + '/' + path;
+              node = node.parentElement;
+            }
+            const cls = el.classList ? Array.from(el.classList).slice(0, 3).join('.') : '';
+            return m.type + '|' + el.tagName + '#' + (el.id || '') + '.' + cls + '|' + path;
+          };
           if (window.__uiAuditMo) window.__uiAuditMo.disconnect();
-          window.__uiAuditMo = new MutationObserver(() => { window.__uiAuditMut++; });
+          window.__uiAuditMo = new MutationObserver((recs) => {
+            for (const m of recs) window.__uiAuditSigs.add(sig(m));
+          });
           window.__uiAuditMo.observe(document.documentElement, {
             childList: true, subtree: true, attributes: true, characterData: true,
           });
@@ -149,6 +175,20 @@ export async function crawlUrl(url, opts = {}) {
 
         testPage.on('request', onReq);
         testPage.on('console', onConsole);
+        testPage.on('pageerror', onPageError);
+
+        // --- BUG-2 fix: ambient-noise control window ---------------------------
+        // Observe for the SAME duration WITHOUT clicking, to learn what this page
+        // mutates on its own. Measured motivation: against a page with a 100ms
+        // ticker, the old bare-count classifier reported effect:'dom' for EVERY
+        // control and found 0 of 2 planted dead buttons — a false green on any
+        // app that polls or animates. The no-click window is the control that
+        // makes the post-click reading mean something.
+        reqCount = 0;
+        await new Promise(r => setTimeout(r, waitAfterClick));
+        let noiseSigs = [];
+        try { noiseSigs = await testPage.evaluate(() => Array.from(window.__uiAuditSigs)); } catch { /* OK */ }
+        const noiseReq = reqCount;
 
         // Re-query handles on THIS fresh page and click the exact element by handle.
         // No selector string is passed to click(), so strict-mode ambiguity is impossible.
@@ -159,7 +199,8 @@ export async function crawlUrl(url, opts = {}) {
         reqCount = 0;
         consoleCount = 0;
         dialogOpened = false;
-        try { await testPage.evaluate(() => { window.__uiAuditMut = 0; }); } catch { /* OK */ }
+        pageErrors.length = 0;
+        try { await testPage.evaluate(() => { window.__uiAuditSigs.clear(); }); } catch { /* OK */ }
 
         const urlBefore = testPage.url();
         let clickError = null;
@@ -179,16 +220,23 @@ export async function crawlUrl(url, opts = {}) {
         const urlAfter = testPage.url();
         const navHappened = urlAfter !== urlBefore;
 
-        let mutations = 0;
+        let postSigs = [];
         if (!navHappened) {
-          try { mutations = await testPage.evaluate(() => window.__uiAuditMut ?? 0); } catch { /* navigated mid-eval */ }
+          try { postSigs = await testPage.evaluate(() => Array.from(window.__uiAuditSigs)); } catch { /* navigated mid-eval */ }
         }
+        // Subtract the ambient set: only mutations this page did NOT do on its own
+        // count as an effect of the click. Errs toward reporting MORE dead controls
+        // (a click that only touches an ambiently-churning node reads as 'none'),
+        // which is the safe direction — a false 'dead' gets filtered by review,
+        // whereas a false 'alive' silently hides a real broken control.
+        const noiseSet = new Set(noiseSigs);
+        const attributed = postSigs.filter(s => !noiseSet.has(s));
 
         let effect;
         if (navHappened) effect = 'nav';
         else if (dialogOpened) effect = 'dialog';
-        else if (mutations > 0) effect = 'dom';
-        else if (reqCount > 0) effect = 'network';
+        else if (attributed.length > 0) effect = 'dom';
+        else if (reqCount > noiseReq) effect = 'network';
         else if (consoleCount > 0) effect = 'console';
         else if (clickError) effect = 'error';   // click failed AND nothing observed -> uncertain, NOT dead
         else effect = 'none';
@@ -200,7 +248,15 @@ export async function crawlUrl(url, opts = {}) {
           text: elem.text,
           screen,
           effect,
+          // Evidence for the classification, so a reader can audit it instead of
+          // trusting the label: how noisy the page was vs what the click added.
+          noise: { mutationSigs: noiseSigs.length, requests: noiseReq },
+          attributedMutations: attributed.length,
         };
+        if (pageErrors.length) {
+          finding.pageError = true;
+          finding.pageErrorMessage = pageErrors[0];
+        }
         if (clickError) finding.clickError = clickError;
         findings.push(finding);
       } catch (err) {
@@ -216,6 +272,7 @@ export async function crawlUrl(url, opts = {}) {
       } finally {
         testPage.off('request', onReq);
         testPage.off('console', onConsole);
+        testPage.off('pageerror', onPageError);
         await testPage.close().catch(() => {});
         await testCtx.close().catch(() => {});
       }
@@ -257,11 +314,25 @@ async function main() {
 
   const dead = findings.filter(f => f.effect === 'none');
   const errored = findings.filter(f => f.effect === 'error');
+  const throwing = findings.filter(f => f.pageError);
+  const noisiest = findings.reduce((m, f) => Math.max(m, f.noise?.mutationSigs ?? 0), 0);
   console.log(`\nFound ${dead.length} dead control(s) out of ${findings.length} interactive elements` +
     (errored.length ? ` (${errored.length} not actionable — reported as 'error', not 'dead')` : '') + ':');
   for (const f of dead) {
     console.log(`  DEAD  ${f.selector}  (${f.tagName}) "${f.text}"`);
   }
+  // A wired-but-throwing control is a DIFFERENT defect from a dead one; report it
+  // separately so it cannot hide inside a reassuring "0 dead" headline.
+  if (throwing.length) {
+    console.log(`\n${throwing.length} control(s) raised an uncaught page error when clicked:`);
+    for (const f of throwing) {
+      console.log(`  THROWS  ${f.selector}  (${f.tagName}) "${f.text}" -> ${f.pageErrorMessage}`);
+    }
+  }
+  // Disclose the ambient-noise level: a high number means the page churns on its
+  // own, so the classification leaned heavily on noise subtraction. Silence here
+  // would let a reader assume a quiet page.
+  console.log(`\nAmbient noise: up to ${noisiest} mutation signature(s) per no-click control window.`);
 
   if (values.out) {
     const outPath = resolve(values.out);
@@ -277,7 +348,17 @@ async function main() {
 }
 
 const __filename = fileURLToPath(import.meta.url);
-if (process.argv[1] && resolve(process.argv[1]) === resolve(__filename)) {
+// Junction/symlink-safe main-module check. `~/.claude/skills` is a junction to
+// `skills.daily`; Node resolves symlinks for ESM so import.meta.url reports the REAL
+// path while resolve(argv[1]) stays lexical. A lexical compare therefore NEVER matched
+// on the documented `~/.claude/skills/...` invocation and main() silently never ran
+// (exit 0, no output, no artifacts). realpathSync.native also collapses 8.3 short
+// names (PREKZU~1), which realpathSync does not.
+const __isMain = (a, b) => {
+  try { return realpathSync.native(a) === realpathSync.native(b); }
+  catch { return resolve(a) === resolve(b); }
+};
+if (process.argv[1] && __isMain(process.argv[1], __filename)) {
   main().catch(err => {
     console.error(`FAILED:dead-button-crawl ${err.message}`);
     process.exit(1);
