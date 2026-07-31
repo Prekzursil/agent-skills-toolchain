@@ -996,6 +996,28 @@ jobs:
       - name: gate-tests-coverage git-hygiene message budget
         run: |
           python -m pytest -q hooks/git-hygiene/test_git_hygiene.py
+      # deny-credential-reads denylist + tool-path coverage. The broad `pytest hooks/` net
+      # below already collects this directory, so this step is FAST NAMED SIGNAL for a
+      # security hook, on the same deliberate-overlap principle as the two steps above --
+      # not a claim that the suite was previously unrun.
+      #
+      # WHY IT WAS ADDED (mutation-measured at fcfa30f, both arms):
+      #   deleting the id_ecdsa / id_dsa / *_sk / auth.json patterns PR #260 added left the
+      #   pre-existing 32 tests GREEN, while `Read ~/.ssh/id_ecdsa` went from deny to ALLOW.
+      #   A surviving mutant means the suite was not protecting the fix. With
+      #   test_denylist_coverage.py the same mutant kills 35 tests, and three further
+      #   dispatch mutants (drop PowerShell / drop the notebook_path fallback / drop
+      #   Edit+MultiEdit) each go red too. 4/4 mutants killed; control 141 passed.
+      #
+      # The suite asserts on the parsed stdout decision, never on the exit code: deny()
+      # PRINTS permissionDecision=deny and exits 0, so an exit-code assertion sees nothing
+      # and passes on a hook that denies nothing.
+      - name: gate-tests-coverage deny-credential-reads denylist coverage
+        run: |
+          python -m pytest -q --import-mode=importlib \
+            hooks/deny-credential-reads/test_denylist_coverage.py \
+            hooks/deny-credential-reads/test_deny.py \
+            hooks/deny-credential-reads/test_guard_scope.py
       # The REST of the hooks/ regression harness -- ~66 suites that no step named.
       # docs/ci-coverage-gap-2026-07-25.md measured 64 unexecuted hooks/ suites; this step
       # claims them instead of leaving them dead weight. Now 702 tests after the Wave-3
