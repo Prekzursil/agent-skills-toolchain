@@ -28,6 +28,7 @@ import subprocess
 import tempfile
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Any, Mapping
@@ -59,8 +60,113 @@ CHAT_HOSTS = (
 )
 
 
+# --- Credential egress allowlist -------------------------------------------
+# The OpenAI bearer in ~/.codex/auth.json must only ever reach OpenAI origins.
+# Deny by default: any host not suffix-matching one of these is refused, and the
+# credential headers are stripped from redirect hops that leave the allowlist.
+TRUSTED_CREDENTIAL_HOST_SUFFIXES = ("chatgpt.com", "openai.com")
+CREDENTIAL_HEADER_NAMES = frozenset({"authorization", "chatgpt-account-id"})
+
+
 class BrokerError(RuntimeError):
     """Non-secret broker failure."""
+
+
+class CredentialScopeError(BrokerError):
+    """Credential egress refused because the target host is not allowlisted.
+
+    ``crcp_safe_message`` opts this class out of the CLI's blanket message
+    redaction (``crcp/__main__.py``): the text is built only from
+    :func:`_safe_url`, which drops userinfo, query and fragment, so it carries no
+    secret. Without the opt-in the operator sees a generic "auth command failed"
+    and misdiagnoses a security refusal as a browser fault.
+    """
+
+    crcp_safe_message = True
+
+
+def _safe_url(url: str) -> str:
+    """Scheme://host/path only — never echo query/fragment (may carry secrets)."""
+    try:
+        parts = urllib.parse.urlsplit((url or "").strip())
+    except ValueError:
+        return "<unparseable-url>"
+    if not parts.scheme and not parts.netloc:
+        return (url or "")[:120]
+    try:
+        host = parts.hostname or ""
+    except ValueError:
+        host = "<invalid-host>"
+    return f"{parts.scheme}://{host}{parts.path}"[:200]
+
+
+def is_trusted_credential_url(url: str) -> bool:
+    """True only for https URLs on an allowlisted OpenAI host.
+
+    Uses ``urlsplit().hostname`` so credential-in-userinfo spoofs such as
+    ``https://chatgpt.com@evil.example/`` resolve to the REAL host (evil.example)
+    and are rejected.
+    """
+    try:
+        parts = urllib.parse.urlsplit((url or "").strip())
+    except ValueError:
+        return False
+    if parts.scheme.lower() != "https":
+        return False
+    try:
+        host = parts.hostname or ""
+    except ValueError:
+        return False
+    host = host.strip().lower().rstrip(".")
+    if not host:
+        return False
+    return any(
+        host == suffix or host.endswith("." + suffix)
+        for suffix in TRUSTED_CREDENTIAL_HOST_SUFFIXES
+    )
+
+
+def require_trusted_credential_url(url: str, *, what: str = "target URL") -> str:
+    """Return ``url`` if credentials may be attached to it, else raise loudly."""
+    if not is_trusted_credential_url(url):
+        allowed = ", ".join(TRUSTED_CREDENTIAL_HOST_SUFFIXES)
+        raise CredentialScopeError(
+            f"refusing to attach OpenAI credentials to untrusted {what}: "
+            f"{_safe_url(url)} — allowed: https on {allowed} (or a subdomain). "
+            "Re-run with --no-bearer to open other hosts without credentials."
+        )
+    return url
+
+
+def scoped_auth_headers(url: str, access_token: str, account_id: str) -> dict[str, str]:
+    """Credential headers for ``url`` — empty dict for any untrusted host.
+
+    This is the single per-request decision point, so it is also what each
+    redirect hop is re-evaluated against.
+    """
+    if not is_trusted_credential_url(url):
+        return {}
+    headers = {"Authorization": f"Bearer {access_token}"}
+    if account_id:
+        headers["ChatGPT-Account-Id"] = account_id
+        headers["chatgpt-account-id"] = account_id
+    return headers
+
+
+def strip_untrusted_credential_headers(
+    url: str, headers: Mapping[str, str]
+) -> tuple[dict[str, str], bool]:
+    """Drop credential headers when ``url`` is off-allowlist.
+
+    Returns ``(headers, stripped)``. Called for every intercepted request, so a
+    3xx from an allowlisted host to an arbitrary one loses the bearer.
+    """
+    if is_trusted_credential_url(url):
+        return dict(headers), False
+    kept = {
+        k: v for k, v in headers.items() if k.lower() not in CREDENTIAL_HEADER_NAMES
+    }
+    return kept, len(kept) != len(headers)
 
 
 def _find_browser() -> tuple[str, str]:
@@ -229,6 +335,8 @@ class CdpSession:
         self.ws = websocket.create_connection(ws_url, timeout=30, suppress_origin=True)
         self.session_id: str | None = None
         self.version = version
+        self.credential_scoping = False
+        self.stripped_credential_hops: list[str] = []
 
     def close(self) -> None:
         try:
@@ -244,7 +352,10 @@ class CdpSession:
         session: bool = False,
     ) -> Any:
         self._id += 1
-        msg: dict[str, Any] = {"id": self._id, "method": method}
+        # Capture our own id: nested sends (redirect interception below) bump
+        # self._id, so comparing against the live attribute would never match.
+        msg_id = self._id
+        msg: dict[str, Any] = {"id": msg_id, "method": method}
         if params:
             msg["params"] = params
         if session and self.session_id:
@@ -254,11 +365,59 @@ class CdpSession:
         while time.time() < deadline:
             raw = self.ws.recv()
             data = json.loads(raw)
-            if data.get("id") == self._id:
+            if data.get("id") == msg_id:
                 if data.get("error"):
                     raise BrokerError(f"CDP {method}: {data['error']}")
                 return data.get("result")
+            if data.get("method") == "Fetch.requestPaused":
+                self._continue_paused(data.get("params") or {})
         raise BrokerError(f"CDP timeout: {method}")
+
+    def enable_credential_scoping(self) -> None:
+        """Intercept every request so off-allowlist hops lose the credential.
+
+        ``Network.setExtraHTTPHeaders`` has NO host scoping — Chrome replays it
+        on every request from the session, including redirect targets. Request-
+        stage ``Fetch`` interception is what re-checks the host per hop.
+        """
+        self.call(
+            "Fetch.enable",
+            {"patterns": [{"urlPattern": "*", "requestStage": "Request"}]},
+            session=True,
+        )
+        self.credential_scoping = True
+
+    def _continue_paused(self, params: Mapping[str, Any]) -> None:
+        request_id = params.get("requestId")
+        if not request_id:
+            return
+        request = params.get("request") or {}
+        url = str(request.get("url") or "")
+        headers, stripped = strip_untrusted_credential_headers(
+            url, dict(request.get("headers") or {})
+        )
+        payload: dict[str, Any] = {"requestId": request_id}
+        if not is_trusted_credential_url(url):
+            # Send an EXPLICIT header set for every off-allowlist hop, even when the
+            # paused headers did not visibly carry the credential. Whether Chrome
+            # merges Network.setExtraHTTPHeaders before or after Fetch interception is
+            # version-dependent; ``Fetch.continueRequest`` headers OVERRIDE the request
+            # header set, so specifying it unconditionally is correct under either
+            # ordering. Gating on ``stripped`` would leave the late-merge ordering open.
+            payload["headers"] = [
+                {"name": name, "value": value} for name, value in headers.items()
+            ]
+        if stripped:
+            self.stripped_credential_hops.append(_safe_url(url))
+        self._id += 1
+        msg: dict[str, Any] = {
+            "id": self._id,
+            "method": "Fetch.continueRequest",
+            "params": payload,
+        }
+        if self.session_id:
+            msg["sessionId"] = self.session_id
+        self.ws.send(json.dumps(msg))
 
     def attach_page(self, url_substr: str | None = None) -> str:
         infos = (self.call("Target.getTargets") or {}).get("targetInfos") or []
@@ -517,14 +676,24 @@ def inject_cookies(
 
 
 def inject_bearer_headers(
-    session: CdpSession, access_token: str, account_id: str
+    session: CdpSession,
+    access_token: str,
+    account_id: str,
+    *,
+    target_url: str,
 ) -> None:
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-    }
-    if account_id:
-        headers["ChatGPT-Account-Id"] = account_id
-        headers["chatgpt-account-id"] = account_id
+    """Attach the OpenAI bearer — allowlisted hosts only, deny by default.
+
+    ``target_url`` is required (keyword-only) so no call site can inject the
+    credential without declaring where it is about to be sent.
+    """
+    require_trusted_credential_url(target_url, what="start URL")
+    headers = scoped_auth_headers(target_url, access_token, account_id)
+    if not headers:  # pragma: no cover — require_* above already raised
+        raise BrokerError("refusing to inject empty credential header set")
+    # Arm per-hop stripping BEFORE the unscoped header set exists, so a redirect
+    # off the allowlist cannot carry it.
+    session.enable_credential_scoping()
     session.call("Network.setExtraHTTPHeaders", {"headers": headers}, session=True)
 
 
@@ -577,6 +746,10 @@ def run_broker(
     keep_open: bool = True,
 ) -> dict[str, Any]:
     """Main entry: launch/attach browser, inject cookies+Bearer, navigate, probe."""
+    # Fail loudly BEFORE a browser is launched or auth.json is even read: a
+    # caller-supplied --url off the allowlist must never see the credential.
+    if not skip_bearer:
+        require_trusted_credential_url(start_url, what="--url start URL")
     report: dict[str, Any] = {
         "ok": False,
         "steps": [],
@@ -632,13 +805,20 @@ def run_broker(
         report["cookies"] = cookie_stats
 
         if not skip_bearer:
-            inject_bearer_headers(session, tokens["access_token"], tokens["account_id"])
+            inject_bearer_headers(
+                session,
+                tokens["access_token"],
+                tokens["account_id"],
+                target_url=start_url,
+            )
             report["steps"].append("injected_bearer_headers")
 
         nav = session.navigate(start_url, wait_s=4.0)
         report["navigate"] = {
             "url": start_url,
             "frameId": nav.get("frameId") is not None,
+            "credential_scoping": session.credential_scoping,
+            "credential_stripped_hops": list(session.stripped_credential_hops),
         }
         report["steps"].append("navigated")
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""claim-guard/ledger-write.py — PostToolUse hook (matcher: Bash).
+"""claim-guard/ledger-write.py — PostToolUse hook (matcher: Bash|PowerShell).
 
-Records every Bash command and its exit status to an on-disk NDJSON ledger so
+Records every shell command and its exit status to an on-disk NDJSON ledger so
 claim-check.py (Stop hook) can verify that success-claims in the final response
 are backed by actual tool evidence this turn.
 
@@ -15,11 +15,21 @@ DESIGN CONSTRAINTS:
 Ledger location: %TEMP%\\claude-claim-ledger\\<session_id>.ndjson
 (gitignore-safe: lives in the system temp directory, not in any repo)
 
+TURN SCOPING (see TURN_BOUNDARY_KEY below): the ledger file is per SESSION, but
+the contract claim-check enforces is "supporting evidence THIS TURN". A session
+spans many turns, so a receipt needs a turn identity or turn 1's successful
+`pytest -q` silently vouches for a turn-2 "Tests pass." that ran nothing. Each
+receipt is therefore stamped with the index of the turn it was produced in, and
+claim-check appends a boundary marker at every Stop, which is what advances that
+index.
+
+
 PostToolUse stdin JSON keys used:
   session_id    str   - identifies the current session / turn group
-  tool_name     str   - must be "Bash" for this hook (enforced by matcher)
+  tool_name     str   - must be a SHELL tool (see _SHELL_TOOLS); the matcher normally
+                        enforces this, the code re-checks defensively
   tool_input    dict  - {"command": "...", ...}
-  tool_response str|dict - stdout/stderr/exit code payload from Bash
+  tool_response str|dict - stdout/stderr/exit code payload from the shell tool
 """
 
 from __future__ import annotations
@@ -36,12 +46,28 @@ from pathlib import Path
 # Configuration
 # ---------------------------------------------------------------------------
 MODE = os.environ.get("CLAIM_GUARD_MODE", "warn").lower()
+
+# Tool names whose results count as COMMAND evidence.  Anything that runs a shell
+# command line belongs here; keep it in sync with the PostToolUse matcher that
+# registers this hook.  Bash-only was a Windows-hostile blind spot: PowerShell is a
+# first-class shell on this estate, so a `PowerShell` payload was dropped on the floor
+# and the Stop consumers (claim-check.py, journey-coverage/check.py) then read an empty
+# ledger and reported genuinely-executed evidence as "never run this turn".
+_SHELL_TOOLS = frozenset({"Bash", "PowerShell"})
+
 _LEDGER_ROOT = Path(
     os.environ.get(
         "CLAIM_GUARD_LEDGER_ROOT",
         str(Path(tempfile.gettempdir()) / "claude-claim-ledger"),
     )
 )
+
+# Marker record appended by claim-check.py (Stop) to close a turn. A receipt
+# carries the number of markers that preceded it, which IS its turn index. This
+# key is duplicated in claim-check.py deliberately: the pair already duplicates
+# `_ledger_file` because a hyphenated filename is not importable, and the two
+# hooks are deployed as standalone scripts with no shared module.
+TURN_BOUNDARY_KEY = "turn_end"
 
 
 # ---------------------------------------------------------------------------
@@ -58,8 +84,33 @@ def _ledger_file(session_id: str) -> Path:
     return _LEDGER_ROOT / f"{safe or 'unknown'}.ndjson"
 
 
+def current_turn(ledger_path: Path) -> int:
+    """Return the 0-based index of the turn currently in progress.
+
+    That is the number of turn-boundary markers already written. Unreadable or
+    absent ledger -> turn 0, which is the same answer a fresh session gives.
+    """
+    try:
+        if not ledger_path.exists():
+            return 0
+        turn = 0
+        with ledger_path.open("r", encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    if json.loads(line).get(TURN_BOUNDARY_KEY) is True:
+                        turn += 1
+                except Exception:
+                    continue
+        return turn
+    except Exception:
+        return 0
+
+
 def _extract_command(tool_input) -> str:
-    """Extract the command string from the Bash tool_input."""
+    """Extract the command string from the shell tool_input."""
     if isinstance(tool_input, dict):
         return str(tool_input.get("command") or tool_input.get("cmd") or "")
     return str(tool_input or "")
@@ -67,7 +118,7 @@ def _extract_command(tool_input) -> str:
 
 def _parse_exit_and_ok(tool_response) -> tuple[int | None, bool]:
     """
-    Extract (exit_code, ok) from the Bash tool_response.
+    Extract (exit_code, ok) from the shell tool_response.
 
     tool_response shapes we handle:
       - dict with "exit_code" key (preferred)
@@ -173,9 +224,9 @@ def main() -> int:
 
     try:
         tool_name = str(data.get("tool_name") or "")
-        # Guard: only record Bash tool calls (settings.json matcher already does this,
-        # but be defensive)
-        if tool_name != "Bash":
+        # Guard: only record SHELL tool calls (the settings.json matcher already does
+        # this, but be defensive)
+        if tool_name not in _SHELL_TOOLS:
             return 0
 
         session_id = str(data.get("session_id") or "unknown")
@@ -185,14 +236,18 @@ def main() -> int:
         command = _extract_command(tool_input)
         exit_code, ok = _parse_exit_and_ok(tool_response)
 
+        ledger_path = _ledger_file(session_id)
+
         record = {
             "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "cmd": command,
             "exit": exit_code,
             "ok": ok,
+            # Turn identity. Without it a receipt is only session-scoped and
+            # claim-check cannot tell "ran this turn" from "ran an hour ago".
+            "turn": current_turn(ledger_path),
         }
 
-        ledger_path = _ledger_file(session_id)
         with ledger_path.open("a", encoding="utf-8", errors="replace") as fh:
             fh.write(json.dumps(record, ensure_ascii=False) + "\n")
 

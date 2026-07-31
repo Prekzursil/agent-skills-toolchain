@@ -159,14 +159,20 @@ def _tool_name_lc(raw: str) -> str:
     return raw.lower().replace("__", "_").replace("-", "_")
 
 
+# The CONFIGURED substrings must be folded with the SAME normalizer as the incoming
+# tool_name. Folding the needle with only `.replace("-", "_")` made every rule that
+# spells an MCP separator as `__` permanently unmatchable: incoming
+# `mcp__repomix__pack_remote_repository` folds to `mcp_repomix_pack_remote_repository`
+# while the rule `repomix__pack_remote` kept its double underscore, so the remote-pack
+# route documented in README.md:28 was silently never scanned.
 def _is_allowlisted(tool_name: str) -> bool:
     lc = _tool_name_lc(tool_name)
-    return any(sub.replace("-", "_") in lc for sub in ALLOW_SUBSTRINGS)
+    return any(_tool_name_lc(sub) in lc for sub in ALLOW_SUBSTRINGS)
 
 
 def _is_scannable(tool_name: str) -> bool:
     lc = _tool_name_lc(tool_name)
-    return any(sub.replace("-", "_") in lc for sub in SCAN_SUBSTRINGS)
+    return any(_tool_name_lc(sub) in lc for sub in SCAN_SUBSTRINGS)
 
 
 def _extract_text(tool_response) -> str:

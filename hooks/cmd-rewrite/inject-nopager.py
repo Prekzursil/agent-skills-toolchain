@@ -267,7 +267,13 @@ def main() -> int:
         payload = {"hookEventName": "PreToolUse"}
         if rewritten is not None:
             payload["permissionDecision"] = "allow"
-            payload["updatedInput"] = {"command": rewritten}
+            # `updatedInput` REPLACES the entire tool_input object -- every
+            # field the caller sent that we are not changing must be copied
+            # through, or it is dropped. A bare command-only object silently
+            # discarded `description`, `timeout` and `run_in_background`, so a
+            # requested background call with a 600000 ms timeout became a
+            # foreground call at the default timeout.
+            payload["updatedInput"] = {**tool_input, "command": rewritten}
         if context:
             payload["additionalContext"] = context
         out = {"hookSpecificOutput": payload}

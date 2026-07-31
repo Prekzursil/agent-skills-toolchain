@@ -39,12 +39,16 @@ def build_context(cwd: str) -> str | None:
         return None
     st = ledger.state(cwd)
     lines = ["## Event ledger (ground truth — replayed, not summarized)"]
-    # The active goal is deliberately NOT replayed here. This ledger keys state by
-    # PROJECT only -- ledger.state(cwd) has no session dimension and set via note.py
-    # --kind goal is last-writer-wins -- so injecting it hands one session whichever
-    # OTHER session wrote a goal last, in the same cwd. Decisions, failures and
-    # milestones below are durable project history and ARE safe to share; a goal is
-    # live per-session control state and is not.
+    # The active goal is deliberately NOT replayed here -- neither the singleton
+    # state.goal projection NOR the raw `kind: "goal"` events in the tail below.
+    # This ledger keys state by PROJECT only -- ledger.state(cwd) has no session
+    # dimension and set via note.py --kind goal is last-writer-wins -- so injecting
+    # it hands one session whichever OTHER session wrote a goal last, in the same
+    # cwd. ledger.append() writes BOTH forms on every goal (a raw event AND the
+    # projection), so suppressing only the projection left the same private text
+    # reachable through the event tail. Decisions, failures and milestones below are
+    # durable project history and ARE safe to share; a goal is live per-session
+    # control state and is not.
     # The correctly session-scoped re-anchor already exists: harness ledger.goal(cwd,
     # session_id) with strict per-session isolation, surfaced by the PreToolUse hook.
     # Re-adding a goal line here would duplicate that mechanism with worse scoping.
@@ -79,9 +83,7 @@ def build_context(cwd: str) -> str | None:
         )
     # recent decisions/failures/milestones + a few turns
     notable = [
-        e
-        for e in events
-        if e.get("kind") in ("decision", "failure", "goal", "milestone")
+        e for e in events if e.get("kind") in ("decision", "failure", "milestone")
     ][-10:]
     if notable:
         lines.append("**Recent decisions:**")

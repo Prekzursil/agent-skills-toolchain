@@ -68,23 +68,21 @@ Exit protocol (AGENTS.md §6)
   ruff lint issues             → exit 0 + additionalContext inject (soft nudge)
   hardcoded credential         → exit 2 + reason on stderr, stdout clean
   py_compile / node / JSON
-    syntax errors              → exit 2 + reason on stderr, stdout clean
+    syntax errors              → exit 2, reason on STDERR, stdout clean
 
-  There is NO ``decision:block`` JSON on either exit-2 path and there never
-  was: Claude Code ignores stdout at exit 2, so the emit branch writes plain
-  text to stderr (see the comment there).  An earlier version of this docstring
-  advertised such a payload; it was never emitted (measured: stdout == "").
+  No block-decision JSON is ever emitted on the exit-2 path and none can be:
+  Claude Code ignores stdout at exit 2, which is why the reason goes to stderr
+  and why every exit-2 case in ``test_check.py`` asserts stdout is EMPTY.  An
+  earlier revision of this docstring advertised such a payload; it never existed
+  and ``test_docstring_promises_no_decision_json_the_exit_2_path_cannot_emit``
+  now pins the prose to the measured behaviour.
 
-  AGENTS.md §6 reserves exit 2 for "irreversible/dangerous only — destructive
-  git ops, secrets in code, force-push to main".  The credential gate is
-  squarely inside that list.  The SYNTAX-error block is NOT, and this is a
-  known, unresolved tension rather than a settled reading: ``test_check.py``
-  enshrines exit 2 for syntax in five assertions, and
-  ``test_python_ruff_e999_syntax_error_blocks`` records that soft-injecting
-  E999 was previously classified as a bug ("M2b").  Reconciling the two is a
-  policy decision for the contract owner — do not silently flip either side.
-  Settling experiment: soft-inject syntax errors behind an env flag for a week
-  and measure whether the edit-fix loop degrades.
+  §6 reconciliation — exit 2 here is NOT a block.  This is PostToolUse: the edit
+  has already been written and nothing is reverted or denied; exit 2 is simply
+  the only channel Claude Code reliably surfaces to the model after the fact.
+  §6's "irreversible/dangerous only" restriction governs *denying an operation*,
+  which is a PreToolUse capability this hook does not use.  The one genuinely
+  §6-listed condition it does carry ("secrets in code") uses the same channel.
 
 FAIL-OPEN: every unhandled error → exit 0, no output.
 Opt-outs:  env  PER_EDIT_CHECK=off    (any capitalisation) — whole hook

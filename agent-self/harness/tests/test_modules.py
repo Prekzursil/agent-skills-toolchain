@@ -1682,6 +1682,83 @@ def test_config_drift_silent_on_presnapshot_manifest(iso, tmp_path, monkeypatch)
     assert SecretGuardModule().run(event(tmp_path, "ConfigChange")).action == "allow"
 
 
+def test_config_drift_reports_a_corrupt_baseline_instead_of_healthy_ok(
+    iso, tmp_path, monkeypatch
+):
+    # D-wu-63. read_json collapses missing / malformed / unreadable into the
+    # caller's default, so a TRUNCATED installed.json used to take the same
+    # fail-open branch as "no baseline yet" and the gate returned action=allow /
+    # reason_code=ok — byte-identical to a genuine no-drift verdict. Corrupt
+    # persisted control state silently disabled a SAFETY gate and reported clean.
+    settings = tmp_path / "settings.json"
+    installed = tmp_path / "installed.json"
+    settings.write_text(json.dumps({"hooks": {"live": True}}), encoding="utf-8")
+    installed.write_text('{"settings":', encoding="utf-8")  # truncated write
+    monkeypatch.setenv("HARNESS_SETTINGS_PATH", str(settings))
+    monkeypatch.setenv("HARNESS_INSTALLED_PATH", str(installed))
+    monkeypatch.setenv("HARNESS_GATE_MODE__config_drift", "enforce")
+    out = SecretGuardModule().run(event(tmp_path, "ConfigChange"))
+    assert out.action == "inject"
+    assert out.reason_code == "config_baseline_unreadable"
+    assert "installed.json" in out.additional_context[0]
+    assert "DISABLED" in out.additional_context[0]
+
+
+def test_config_drift_reports_corrupt_live_settings(iso, tmp_path, monkeypatch):
+    # Same conflation on the other side of the comparison: an unparseable LIVE
+    # settings.json is damaged control state, not a pre-install absence.
+    settings = tmp_path / "settings.json"
+    installed = tmp_path / "installed.json"
+    settings.write_text("{not json", encoding="utf-8")
+    installed.write_text(_manifest({"hooks": {}}), encoding="utf-8")
+    monkeypatch.setenv("HARNESS_SETTINGS_PATH", str(settings))
+    monkeypatch.setenv("HARNESS_INSTALLED_PATH", str(installed))
+    monkeypatch.setenv("HARNESS_GATE_MODE__config_drift", "enforce")
+    out = SecretGuardModule().run(event(tmp_path, "ConfigChange"))
+    assert out.action == "inject"
+    assert out.reason_code == "config_baseline_unreadable"
+    assert "live settings" in out.additional_context[0]
+
+
+def test_config_drift_reports_an_unreadable_baseline_path(iso, tmp_path, monkeypatch):
+    # A path that EXISTS but cannot be read (here: a directory) is damage, not
+    # absence. Cross-platform: POSIX raises IsADirectoryError, Windows raises
+    # PermissionError — both are OSError, neither is FileNotFoundError.
+    settings = tmp_path / "settings.json"
+    settings.write_text(json.dumps({"hooks": {"live": True}}), encoding="utf-8")
+    (tmp_path / "installed.json").mkdir()
+    monkeypatch.setenv("HARNESS_SETTINGS_PATH", str(settings))
+    monkeypatch.setenv("HARNESS_INSTALLED_PATH", str(tmp_path / "installed.json"))
+    monkeypatch.setenv("HARNESS_GATE_MODE__config_drift", "enforce")
+    out = SecretGuardModule().run(event(tmp_path, "ConfigChange"))
+    assert out.action == "inject"
+    assert out.reason_code == "config_baseline_unreadable"
+
+
+def test_config_drift_still_fails_open_on_a_genuinely_absent_baseline(
+    iso, tmp_path, monkeypatch
+):
+    # The complement of the three tests above, and the reason the fix keys on the
+    # READ STATUS rather than on "the value is not a dict": a first run before
+    # install.py has ever written installed.json must stay SILENT, not nag.
+    settings = tmp_path / "settings.json"
+    settings.write_text(json.dumps({"hooks": {"live": True}}), encoding="utf-8")
+    monkeypatch.setenv("HARNESS_SETTINGS_PATH", str(settings))
+    monkeypatch.setenv("HARNESS_INSTALLED_PATH", str(tmp_path / "never-written.json"))
+    monkeypatch.setenv("HARNESS_GATE_MODE__config_drift", "enforce")
+    out = SecretGuardModule().run(event(tmp_path, "ConfigChange"))
+    assert out.action == "allow" and out.reason_code == "ok"
+
+
+def test_config_baseline_unreadable_ranks_with_config_drift_in_the_mixer():
+    # The two verdicts share the config_drift gate, so they must share its SAFETY
+    # priority — otherwise the "your drift gate is blind" warning gets ducked by
+    # the very mixer rule that protects the drift warning itself.
+    from harness.dispatcher import PRIORITY_SAFETY, _inject_priority
+
+    assert _inject_priority("config_baseline_unreadable") == PRIORITY_SAFETY
+
+
 def test_config_drift_roundtrips_with_real_install_manifest(iso, tmp_path, monkeypatch):
     # END-TO-END guard against the shape divergence peer review caught: install()
     # WRITES the manifest and _config_drift READS the SAME file. If either side's

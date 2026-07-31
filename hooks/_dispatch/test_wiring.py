@@ -504,86 +504,206 @@ def test_bash_posttooluse_reaches_the_claim_ledger_writer():
     ), "producer and consumer must keep naming the same ledger root"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "RED FROM BIRTH IN THIS REPO, and still red: the 13 dispatcher-compatible "
-        "handlers (7 PreToolUse: goal-reinject/reinject, compchem-preflight, "
-        "strong-tool-nudge, mcp-liveness/pretool, edit-checkpoints, contraindication, "
-        "iatrogenics; 6 PostToolUse: anti-degen/fingerprint, "
-        "memory-guard/scan, edit-validate/record, fresh-verify/trigger, orphan-commit, "
-        "semantic-router/observe) are absent from events.*.checks here. "
-        "SCOPE CORRECTION 2 -- COUNTED, not paraphrased: 3 of the 13 named above are "
-        "now PRESENT in the manifest (PreToolUse mcp-liveness/pretool and "
-        "edit-checkpoints, PostToolUse edit-validate/record) and exactly 10 remain "
-        "absent, so this marker still holds. Each restoration carried its own per-hook "
-        "adjudication, which is what this reason demands: edit-checkpoints has a live "
-        "consumer contract in commands/rollback.md and no duplicate owner; "
-        "mcp-liveness/pretool performs the real basic-memory `initialize` handshake "
-        "that the already-wired heartbeat/heartbeat.py explicitly does NOT do. The "
-        "wording is corrected here rather than deleted so the count is not re-derived "
-        "wrong -- and the restorations are pinned by their own UNMARKED tests, not by "
-        "this census, which can never pass while any of the remaining 10 is absent and "
-        "therefore protects no single restoration. "
-        "SCOPE CORRECTION -- this list said 14 and included claim-guard/ledger-write "
-        "under PostToolUse. That entry is now PRESENT in the manifest: it is the only "
-        "writer of the Bash-exit ledger that the already-wired Stop consumer "
-        "journey-coverage/check.py:14-16,144-162 reads, so while it was unregistered "
-        "every done-claim reported a just-passed journey as 'never run'. The earlier "
-        "wording is corrected here rather than deleted so the count is not re-derived "
-        "wrong; the remaining 13 are still absent and this marker still holds. "
-        "PROVENANCE -- do NOT search repo history, nothing was ever dropped there: all 8 "
-        "commits that had touched this manifest before that restoration contain 0 of the "
-        "14 names and its check counts only ever GREW (Pre 3->4->5, Post 3->4). This "
-        "census arrived AHEAD of "
-        "the manifest, at faae06d ('rescue 1,756 orphaned harness files'), whose tree "
-        "carried Pre=4/Post=3 -- which is why the assertion has never passed in a "
-        "checkout. What genuinely lost the handlers is the LIVE DEPLOYED "
-        "~/.claude/hooks/_dispatch/manifest.json: its sibling backup "
-        "manifest.json.bak-20260714-012512 still carries all 14 (Pre=10/Post=12), so "
-        "recover the exact entries from that .bak, not from git. "
-        "IMPACT -- per-hook and UNRESOLVED, deliberately not overstated: all 13 scripts "
-        "still exist on disk in both trees and are registered in NO ~/.claude surface "
-        "(0 hits for all 13 in the live settings.json; detector controlled -- "
-        "no-force-push/hook.py and _dispatch/dispatch.py both hit in the same walk), so "
-        "nothing under ~/.claude runs them. That is NOT the same as 14 broken live "
-        "mechanisms. goal-reinject/reinject.py is a MEASURED orphan duplicate: goal "
-        "re-injection (AGENTS.md section 2) is live and running, owned by the ~/.agents "
-        "harness -- ~/.agents/harness/dispatcher.py is PreToolUse hook #1 in the live "
-        "settings.json and its ~/.agents/state/harness/session-goals/ state is written "
-        "during ordinary tool use. Whether each of the other 12 is genuinely-lost "
-        "functionality or likewise an orphan duplicate is NOT established; settle it per "
-        "hook before restoring anything. "
-        "SCOPE OF THIS MARKER: it guards ONLY the census assertion below. The routing "
-        "contract lives in test_prepost_manifest_routes_match_dispatch_contract, which is "
-        "deliberately UNMARKED. While one strict xfail spanned both assertions it absorbed "
-        "every routing regression, because the census can never pass while these 13 are "
-        "missing, so ANY route failure still satisfied the marker: measured, corrupting "
-        "the matcher of dup-guard -- a handler PRESENT here today -- left the suite at "
-        "exit 0, byte-identical to green. Never put the two back under one marker."
+# D-wu-49.  This census used to be ONE ``xfail(strict=True)`` per EVENT covering all seven
+# absent handlers at once, so restoring a single handler left the parameter still failing
+# (six others still missing) and therefore STILL reported as a clean ``xfailed``.  The gate
+# could not prove an individual repair -- measured on anti-degen/fingerprint, whose script
+# exists in both trees while the manifest carries only three PostToolUse checks.  It is now
+# parametrised PER HANDLER, with the strict marker applied only to the ones known-absent
+# below, so restoring exactly one flips ITS case to XPASS -> strict failure -> the entry
+# must be removed from this allowlist in the same commit.  The marker text is explicit
+# that whether each handler is genuinely-lost functionality or an orphan duplicate of the
+# ~/.agents harness is UNRESOLVED and must be settled per hook.
+# MERGE OF fix/derive-167-settlement INTO main: that same-commit obligation has now been
+# discharged for FOUR handlers.  The branch wires PreToolUse mcp-liveness/pretool and
+# edit-checkpoints and PostToolUse claim-guard/ledger-write and edit-validate/record in
+# hooks/_dispatch/manifest.json, each with its own per-hook adjudication and its own
+# UNMARKED test, so those four names are deleted from the allowlist below and their
+# census cases are now ordinary passing assertions.  Ten remain absent and marked.
+KNOWN_UNREGISTERED_HANDLERS = {
+    "PreToolUse": frozenset(
+        {
+            "goal-reinject/reinject",
+            "compchem-preflight",
+            "strong-tool-nudge",
+            "contraindication",
+            "iatrogenics",
+        }
     ),
+    "PostToolUse": frozenset(
+        {
+            "anti-degen/fingerprint",
+            "memory-guard/scan",
+            "fresh-verify/trigger",
+            "orphan-commit",
+            "semantic-router/observe",
+        }
+    ),
+}
+
+CENSUS_XFAIL_REASON = (
+    "RED FROM BIRTH IN THIS REPO, and still red: the 13 dispatcher-compatible "
+    "handlers (7 PreToolUse: goal-reinject/reinject, compchem-preflight, "
+    "strong-tool-nudge, mcp-liveness/pretool, edit-checkpoints, contraindication, "
+    "iatrogenics; 6 PostToolUse: anti-degen/fingerprint, "
+    "memory-guard/scan, edit-validate/record, fresh-verify/trigger, orphan-commit, "
+    "semantic-router/observe) are absent from events.*.checks here. "
+    "SCOPE CORRECTION 2 -- COUNTED, not paraphrased: 3 of the 13 named above are "
+    "now PRESENT in the manifest (PreToolUse mcp-liveness/pretool and "
+    "edit-checkpoints, PostToolUse edit-validate/record) and exactly 10 remain "
+    "absent, so this marker still holds. Each restoration carried its own per-hook "
+    "adjudication, which is what this reason demands: edit-checkpoints has a live "
+    "consumer contract in commands/rollback.md and no duplicate owner; "
+    "mcp-liveness/pretool performs the real basic-memory `initialize` handshake "
+    "that the already-wired heartbeat/heartbeat.py explicitly does NOT do. The "
+    "wording is corrected here rather than deleted so the count is not re-derived "
+    "wrong -- and the restorations are pinned by their own UNMARKED tests, not by "
+    "this census, which can never pass while any of the remaining 10 is absent and "
+    "therefore protects no single restoration. "
+    "SCOPE CORRECTION -- this list said 14 and included claim-guard/ledger-write "
+    "under PostToolUse. That entry is now PRESENT in the manifest: it is the only "
+    "writer of the Bash-exit ledger that the already-wired Stop consumer "
+    "journey-coverage/check.py:14-16,144-162 reads, so while it was unregistered "
+    "every done-claim reported a just-passed journey as 'never run'. The earlier "
+    "wording is corrected here rather than deleted so the count is not re-derived "
+    "wrong; the remaining 13 are still absent and this marker still holds. "
+    "PROVENANCE -- do NOT search repo history, nothing was ever dropped there: all 8 "
+    "commits that had touched this manifest before that restoration contain 0 of the "
+    "14 names and its check counts only ever GREW (Pre 3->4->5, Post 3->4). This "
+    "census arrived AHEAD of "
+    "the manifest, at faae06d ('rescue 1,756 orphaned harness files'), whose tree "
+    "carried Pre=4/Post=3 -- which is why the assertion has never passed in a "
+    "checkout. What genuinely lost the handlers is the LIVE DEPLOYED "
+    "~/.claude/hooks/_dispatch/manifest.json: its sibling backup "
+    "manifest.json.bak-20260714-012512 still carries all 14 (Pre=10/Post=12), so "
+    "recover the exact entries from that .bak, not from git. "
+    "IMPACT -- per-hook and UNRESOLVED, deliberately not overstated: all 13 scripts "
+    "still exist on disk in both trees and are registered in NO ~/.claude surface "
+    "(0 hits for all 13 in the live settings.json; detector controlled -- "
+    "no-force-push/hook.py and _dispatch/dispatch.py both hit in the same walk), so "
+    "nothing under ~/.claude runs them. That is NOT the same as 14 broken live "
+    "mechanisms. goal-reinject/reinject.py is a MEASURED orphan duplicate: goal "
+    "re-injection (AGENTS.md section 2) is live and running, owned by the ~/.agents "
+    "harness -- ~/.agents/harness/dispatcher.py is PreToolUse hook #1 in the live "
+    "settings.json and its ~/.agents/state/harness/session-goals/ state is written "
+    "during ordinary tool use. Whether each of the other 12 is genuinely-lost "
+    "functionality or likewise an orphan duplicate is NOT established; settle it per "
+    "hook before restoring anything. "
+    "SCOPE OF THIS MARKER: it guards ONLY the census assertion below. The routing "
+    "contract lives in test_prepost_manifest_routes_match_dispatch_contract, which is "
+    "deliberately UNMARKED. While one strict xfail spanned both assertions it absorbed "
+    "every routing regression, because the census can never pass while these 13 are "
+    "missing, so ANY route failure still satisfied the marker: measured, corrupting "
+    "the matcher of dup-guard -- a handler PRESENT here today -- left the suite at "
+    "exit 0, byte-identical to green. Never put the two back under one marker. "
+    "PER-HANDLER SCOPE (D-wu-49): this marker is now applied to ONE handler at a time, "
+    "so restoring that handler alone turns its case XPASS and, being strict, RED -- the "
+    "gate can finally prove an individual repair instead of absorbing it."
 )
-@pytest.mark.parametrize("event", ("PreToolUse", "PostToolUse"))
-def test_prepost_manifest_contains_every_dispatch_compatible_handler(event: str):
-    """CENSUS ONLY -- is every dispatcher-compatible handler registered at all?
+
+
+def _census_params() -> list[pytest.ParameterSet]:
+    """One parameter per (event, handler), strict-xfailed only where known-absent."""
+
+    params: list[pytest.ParameterSet] = []
+    for event, expected in EXPECTED_DISPATCH_CHECKS.items():
+        for name in expected:
+            marks = (
+                (pytest.mark.xfail(strict=True, reason=CENSUS_XFAIL_REASON),)
+                if name in KNOWN_UNREGISTERED_HANDLERS[event]
+                else ()
+            )
+            params.append(pytest.param(event, name, marks=marks, id=f"{event}-{name}"))
+    return params
+
+
+def test_known_unregistered_allowlist_names_only_census_handlers():
+    """The allowlist may not carry a name the census does not expect.
+
+    Without this, a typo'd or stale entry would silently exempt nothing (or worse, keep
+    exempting a handler after it was dropped from the census) and the per-handler marker
+    would be reported as passing while guarding an empty set.
+    """
+
+    stale = {
+        (event, name)
+        for event, names in KNOWN_UNREGISTERED_HANDLERS.items()
+        for name in names
+        if name not in EXPECTED_DISPATCH_CHECKS[event]
+    }
+    assert not stale, f"KNOWN_UNREGISTERED_HANDLERS names non-census handlers: {stale}"
+
+
+def test_known_unregistered_allowlist_matches_the_manifest():
+    """The allowlist may not claim a handler is absent while the manifest registers it.
+
+    This is the maintenance contract the per-handler marker creates, made ACTIONABLE.
+    Without it, wiring a handler still turns its strict-xfail case XPASS and the suite
+    still goes red -- but the only diagnostic is pytest's bare ``[XPASS(strict)]``, which
+    says nothing about what to do.  A reader then reasonably suspects the wiring is
+    wrong, when in fact the wiring is the POINT and this list is what is stale.
+
+    Concrete case this exists for, measured rather than assumed: main's base
+    ``hooks/_dispatch/manifest.json`` registered PreToolUse = [bg-registry/register,
+    memory-spool/spool, dup-guard, monitor-autolaunch, codex-monitor-autolaunch] and
+    PostToolUse = [memory-spool/flush_check, tool-result-sentinel, stub-ledger/record],
+    so every allowlisted name was genuinely absent and the marker was honest.  This
+    docstring predicted that an in-flight branch wiring ``edit-checkpoints`` and
+    ``claim-guard/ledger-write`` would make THIS test fail first and name them.  That
+    merge has now happened and the prediction held: fix/derive-167-settlement wires four
+    handlers -- PreToolUse ``mcp-liveness/pretool`` and ``edit-checkpoints``, PostToolUse
+    ``claim-guard/ledger-write`` and ``edit-validate/record`` -- so all four were deleted
+    from KNOWN_UNREGISTERED_HANDLERS in the merge commit and this test is green again
+    against the merged manifest (PreToolUse now also carries mcp-liveness/pretool and
+    edit-checkpoints; PostToolUse now also carries claim-guard/ledger-write and
+    edit-validate/record).  Ten names remain allowlisted and genuinely absent.
+
+    The fix is always the same and is never "weaken the census": delete the restored
+    name from KNOWN_UNREGISTERED_HANDLERS in the same commit that wires it.
+    """
+
+    registered = {
+        event: {
+            check.get("name") for check in _load(MANIFEST)["events"][event]["checks"]
+        }
+        for event in KNOWN_UNREGISTERED_HANDLERS
+    }
+    contradicted = sorted(
+        f"{event}:{name}"
+        for event, names in KNOWN_UNREGISTERED_HANDLERS.items()
+        for name in names
+        if name in registered[event]
+    )
+    assert not contradicted, (
+        "KNOWN_UNREGISTERED_HANDLERS still lists handlers the manifest now registers: "
+        f"{contradicted}. They were wired -- that is the outcome this census exists to "
+        "detect. Remove them from the allowlist (do NOT relax the census); their "
+        "strict-xfail cases then become ordinary passing assertions."
+    )
+
+
+@pytest.mark.parametrize(("event", "name"), _census_params())
+def test_prepost_manifest_contains_every_dispatch_compatible_handler(
+    event: str, name: str
+):
+    """CENSUS ONLY -- is this dispatcher-compatible handler registered at all?
 
     Kept separate from the routing contract on purpose.  While both assertions shared one
     ``xfail(strict=True)`` this census could never pass, so any route failure also
     satisfied the marker and was reported as a clean ``xfailed`` -- including one on a
-    handler that is present today.
+    handler that is present today.  It is also parametrised PER HANDLER rather than per
+    event, so a single restoration is independently detectable (D-wu-49).
     """
 
     actual = {
         check.get("name"): check.get("script")
         for check in _load(MANIFEST)["events"][event]["checks"]
     }
-    expected = EXPECTED_DISPATCH_CHECKS[event]
+    expected_script = EXPECTED_DISPATCH_CHECKS[event][name]
 
-    missing = {
-        name: script for name, script in expected.items() if actual.get(name) != script
-    }
-    assert not missing, (
-        f"events.{event} is missing dispatcher-compatible Tier-1.1 handlers: {missing}"
+    assert actual.get(name) == expected_script, (
+        f"events.{event} is missing dispatcher-compatible Tier-1.1 handler "
+        f"{name!r} -> {expected_script!r}"
     )
 
 

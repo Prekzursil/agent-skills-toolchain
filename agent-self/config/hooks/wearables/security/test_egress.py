@@ -4,6 +4,8 @@ NON-SYMMETRIC fixtures: the derived branch carries BOTH a DENY (no downgrade)
 and an ALLOW (explicit downgrade) assertion so an inverted gate cannot pass.
 """
 
+import pytest
+
 from wearables.security.egress import (
     EgressDecision,
     EgressRequest,
@@ -252,3 +254,53 @@ def test_internal_exception_denied_fail_closed(monkeypatch):
     )
     assert decision.allowed is False
     assert "fail-closed" in decision.reason.lower()
+
+
+# --- malformed downgrade flag (fail-closed on a non-bool field) ------------
+#
+# EgressRequest is a plain frozen dataclass, and a dataclass ANNOTATION performs
+# no runtime validation: EgressRequest(..., allow_derived_egress="false")
+# constructs successfully. The old gate read that field for truthiness, so every
+# non-empty string -- including the literal text "false" -- authorised derived
+# content to a third-party LLM. Only the boolean True is a downgrade; anything
+# else is unclassifiable input and must DENY per this package's fail-CLOSED
+# contract. The literal "false" case is kept explicit because it is the one that
+# reads as a denial to a human and as an approval to Python.
+@pytest.mark.parametrize(
+    "malformed",
+    ["false", "true", "0", "1", 1, 0, [], ["yes"], {}, None, object()],
+)
+def test_non_bool_downgrade_flag_is_denied_fail_closed(malformed):
+    decision = egress_guard(
+        _req(source_class="derived", allow_derived_egress=malformed)
+    )
+    assert decision.allowed is False
+    assert "fail-closed" in decision.reason.lower()
+    assert "allow_derived_egress" in decision.reason
+
+
+def test_the_string_false_does_not_read_as_an_approval():
+    decision = egress_guard(_req(source_class="derived", allow_derived_egress="false"))
+    assert decision.allowed is False
+
+
+def test_bool_downgrade_flags_still_decide_normally():
+    """Positive control -- the type gate must not swallow the real decision."""
+    assert (
+        egress_guard(_req(source_class="derived", allow_derived_egress=True)).allowed
+        is True
+    )
+    assert (
+        egress_guard(_req(source_class="derived", allow_derived_egress=False)).allowed
+        is False
+    )
+
+
+def test_malformed_flag_cannot_widen_a_non_derived_path():
+    """A bad flag never turns an otherwise-denied request into an allow."""
+    assert (
+        egress_guard(
+            _req(source_class="unpublished", allow_derived_egress="true")
+        ).allowed
+        is False
+    )

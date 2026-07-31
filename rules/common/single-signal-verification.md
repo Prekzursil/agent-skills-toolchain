@@ -51,6 +51,24 @@ This is the most expensive recurring failure mode. SIX live instances in ONE ses
    still one lens if they read the same stale input — verify load-bearing subagent claims
    against the real config/code before acting (this rule caught a "ground truth" that three
    design agents carried forward from a stale premise).
+6. **Declare the SOURCE probe, not just the verifier — an undeclared source is zero signals,
+   not one.** Independence is a property of a *pair*; with only the verifier recorded there is
+   no pair to compare and nothing to certify. State both: what measurement PRODUCED the claim,
+   and what mechanically different measurement CHECKED it.
+   - **Mechanizing this rule inherits the obligation.** A gate that compares probe fingerprints
+     must treat a missing/empty source as a VIOLATION, never as "differs from the verifier, so
+     independent". Measured on `.agents/skills/claim-verify-gate/scripts/claim_gate.py`:
+     `_validate()` (`:132-156`) requires an id, text, and recognized verdict but **not**
+     `source_probe`; at `:173-185` an absent source normalizes to four empty strings, which any
+     non-empty verifier trivially differs from, so the `same-probe-rerun` check cannot fire. A
+     `CONFIRMED` claim with no `source_probe`, one verifier, and a syntactically valid evidence
+     anchor returns `"violations": []`, `"ok": true`, exit 0 — the gate certifies corroboration
+     for a claim that declares no producing measurement at all. That contradicts the caller's
+     own prose at `.agents/skills/claim-verify-gate/SKILL.md:66-68`. Require a non-empty
+     `source_probe` for any `CONFIRMED`/`REFUTED` verdict *before* comparing fingerprints.
+   - **A green suite is not coverage of this path.** The shipped regression reported all 30
+     test functions passing while the hole was live: its missing-probe case omits the
+     *verifier*, not the *source*. Test the absent-source direction explicitly (rule 3b).
 
 ## When it bites hardest
 Long autonomous loops, fan-out monitoring, RE offset work, "is it done yet" polling, and any

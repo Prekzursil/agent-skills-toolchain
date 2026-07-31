@@ -839,13 +839,21 @@ def main(argv: list[str] | None = None) -> int:
         _print_json({"ok": False, "error": {"kind": "config", "message": str(exc)}})
         return 2
     except Exception as exc:
+        # Default stays fail-closed: suppress the message. An exception may opt in
+        # via `crcp_safe_message = True` when its text is constructed to be
+        # secret-free (see auth_broker.CredentialScopeError). Without this, a
+        # credential-egress REFUSAL is indistinguishable from a browser fault and
+        # gets misdiagnosed instead of acted on.
+        safe = bool(getattr(exc, "crcp_safe_message", False))
         _print_json(
             {
                 "ok": False,
                 "error": {
-                    "kind": "runtime",
+                    "kind": "credential_scope" if safe else "runtime",
                     "type": type(exc).__name__,
-                    "message": "auth command failed; details suppressed to protect credentials",
+                    "message": str(exc)
+                    if safe
+                    else "auth command failed; details suppressed to protect credentials",
                 },
             }
         )

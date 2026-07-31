@@ -127,6 +127,24 @@ To add support for a new language (e.g., `rust/`):
    > This file extends [common/xxx.md](../common/xxx.md) with <Language> specific content.
    ```
 4. Reference existing skills if available, or create new ones under `skills/`.
+5. **Make the `extends` claim loadable — mirror every source-extension glob into the common base.**
+   That `>` line is prose, not an `@` import: it loads nothing. What actually loads a rule is its
+   `paths:` frontmatter, and a path-scoped rule applies *only* when the edited file matches one of
+   its globs. So if the language file selects an extension its common counterpart does not, editing
+   such a file loads the extension **alone** and the base guidance silently never arrives — the
+   `extends` sentence is false for that file kind. Rule Priority (below) cannot rescue it: precedence
+   only orders rules that both matched.
+
+   Ledger-proven: `rules/kotlin/patterns.md` selected `**/*.kt` **and** `**/*.kts` while
+   `rules/common/patterns.md` selected only `**/*.kt`, so editing `app/build.gradle.kts` got the
+   Kotlin patterns without the skeleton-project / repository-pattern / API-response base it claims to
+   extend. Fix: add the glob to the common file (done for `**/*.kts`), or narrow the `extends` claim
+   to the extensions the base really covers. `ci/tests/test_rules_selector_inheritance.py` pins that
+   pair; its docstring lists the pairs still unreconciled and why.
+
+   A build-manifest glob (`**/go.mod`, `**/CMakeLists.txt`, `**/composer.json`, `**/pubspec.yaml`)
+   is the deliberate exception — a manifest is not source, so a source-scoped common rule may
+   legitimately skip it. Decide per glob rather than mirroring blindly.
 
 ## Rule Priority
 

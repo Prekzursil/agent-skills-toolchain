@@ -61,6 +61,37 @@ jobs:
           # `400 Bad Request: invalid model name` (measured in CI on this workflow's first run).
           docker exec "${{ job.services.ollama.id }}" ollama pull "$SEMROUTER_EMBED_MODEL"
           python hooks/semantic-router/embed.py
+      # A candidate must not supply its own regression bar. On a pull_request the checkout
+      # above lands the MERGE revision, so hooks/harness-bench/baseline.json is
+      # candidate-controlled, and gate.py reads exactly that file: gate.py:136 ->
+      # bench._load_baseline() -> bench.py:53-54
+      # `Path(os.environ.get("BENCH_BASELINE", str(THIS / "baseline.json")))`.
+      # gate.py:137-149 validates only counter SHAPE and corpus TOTALS -- there is no
+      # provenance check -- so a PR that breaks every positive route AND rewrites the
+      # committed baseline to skill 0/14, mcp 0/5 (totals preserved, so the totals guard
+      # still passes) flips the verdict. Measured against the real on-disk loader:
+      #   main's bar      -> FAILED:routing-regression ... skill 13/14->0/14; mcp 3/5->0/5  (rc=1)
+      #   PR-supplied bar -> PASS:routing-regression deterministic-runs=5                   (rc=0)
+      # Pin the bar to the BASE branch's copy instead.
+      # If the base copy cannot be obtained we leave BENCH_BASELINE pointing at a path that
+      # does NOT exist: _load_baseline() then returns None and the probe prints
+      # `INDETERMINATE:routing-regression invalid-baseline`. Never fall back to the
+      # candidate's own file -- silently reverting to it is the hole this step closes.
+      - name: pin the regression bar to the base branch (pull_request only)
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          BAR="$RUNNER_TEMP/bench-base-baseline.json"
+          echo "BENCH_BASELINE=$BAR" >> "$GITHUB_ENV"
+          git fetch --no-tags --depth=1 origin "$BASE_SHA" || true
+          if git show "$BASE_SHA:hooks/harness-bench/baseline.json" > "$BAR"; then
+            echo "pinned the regression bar to base $BASE_SHA:"
+            cat "$BAR"
+          else
+            rm -f "$BAR"
+            echo "base baseline unavailable; the probe will report INDETERMINATE (never PASS)"
+          fi
       - name: routing regression probe (5-run; shadow)
         continue-on-error: true
         run: python hooks/harness-bench/gate.py --runs 5

@@ -217,6 +217,17 @@ def validate_contract(output: str, contract: dict) -> tuple[bool, str]:
         max_retries       : int        — blocking-round cap (consumed elsewhere)
 
     Returns (passed: bool, reason: str).  reason is "" on pass.
+
+    SCOPE — this validates the SHAPE of ONE subagent's output against that
+    subagent's own contract.  It is deliberately blind to its siblings: a
+    SubagentStop event carries one agent_type and one transcript, so two
+    reviewers that rate the SAME defect CRITICAL and MEDIUM both pass here, and
+    that is correct.  Reconciling contradictory severities across reviewers into
+    the single terminal SHIP/NEEDS WORK/BLOCKED recommendation is the
+    ORCHESTRATOR's job and is specified in
+    agent-self/config/commands/orchestrate.md ("Severity Reconciliation",
+    R1-R5).  Do not grow cross-agent arbitration into this function — it has
+    neither the sibling outputs nor the finding identity needed to do it.
     """
     stripped = (output or "").strip()
     reasons: list[str] = []

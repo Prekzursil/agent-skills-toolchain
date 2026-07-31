@@ -14,12 +14,24 @@ try:
     from .ledger import EventLedger, default_state_root, project_key
     from .models import HookEvent, HookResult
     from .redaction import contains_secret, redact_text
-    from .storage import atomic_write_json, atomic_write_text, read_json
+    from .storage import (
+        READ_DAMAGED,
+        atomic_write_json,
+        atomic_write_text,
+        read_json,
+        read_json_status,
+    )
 except ImportError:  # pragma: no cover
     from ledger import EventLedger, default_state_root, project_key
     from models import HookEvent, HookResult
     from redaction import contains_secret, redact_text
-    from storage import atomic_write_json, atomic_write_text, read_json
+    from storage import (
+        READ_DAMAGED,
+        atomic_write_json,
+        atomic_write_text,
+        read_json,
+        read_json_status,
+    )
 
 # --- SI-1 typed-receipt surface (defined in ledger.py by the ledger lane) ------
 # Imported DEFENSIVELY so this module composes whether or not the ledger lane has
@@ -937,8 +949,33 @@ class SecretGuardModule:
         installed_path = os.environ.get("HARNESS_INSTALLED_PATH") or str(
             Path(__file__).resolve().parent / "installed.json"
         )
-        current = read_json(Path(settings_path), None)
-        installed = read_json(Path(installed_path), None)
+        current, current_status = read_json_status(Path(settings_path), None)
+        installed, installed_status = read_json_status(Path(installed_path), None)
+        # A control file that EXISTS but cannot be parsed/read is DAMAGED state,
+        # not "no baseline yet". read_json alone collapsed both into None, so a
+        # truncated installed.json silently disabled this gate and returned the
+        # healthy `ok` verdict — byte-identical to a genuine no-drift result. Fail
+        # LOUD on damage; keep failing OPEN on a genuinely-absent (pre-install)
+        # file, which is the legitimate first-run state.
+        damaged = [
+            label
+            for label, status in (
+                ("live settings", current_status),
+                ("installed baseline (installed.json)", installed_status),
+            )
+            if status in READ_DAMAGED
+        ]
+        if damaged:
+            raw = HookResult.success(
+                action="inject",
+                reason_code="config_baseline_unreadable",
+                additional_context=[
+                    "CONFIG BASELINE DAMAGED: the "
+                    + " and the ".join(damaged)
+                    + " could not be parsed, so config-drift detection is DISABLED — a changed hook block or MCP enabled/disabled state would now go UNREPORTED. Repair the file (re-run install.py) before treating a clean drift result as evidence."
+                ],
+            )
+            return stage("config_drift", TIER_HEURISTIC, event, raw)
         if not isinstance(current, dict) or not isinstance(installed, dict):
             return HookResult.success()
         # install.py records the curated sections under manifest["settings"] (the

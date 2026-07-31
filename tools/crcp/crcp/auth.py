@@ -285,8 +285,10 @@ def chatgpt_bridge_status(codex_home: Path | None = None) -> dict[str, Any]:
         method="GET",
     )
     try:
-        # open_url, not urlopen: urllib's default redirect handler replays
-        # Authorization and ChatGPT-Account-Id to a new origin.
+        # open_url, NOT urllib.request.urlopen: this request carries a live bearer and
+        # urllib's redirect handler forwards Authorization to the redirect target on a
+        # CROSS-HOST 3xx (proven on a loopback sink). open_url re-validates every hop
+        # against the allowlist and drops credential headers cross-origin.
         with open_url(req, timeout=20) as resp:
             body = resp.read(500)
             out["http_status"] = resp.status

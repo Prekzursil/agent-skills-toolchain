@@ -1,61 +1,22 @@
 ---
 paths:
-  - "**/*.py"
-  - "**/*.ts"
-  - "**/*.tsx"
-  - "**/*.js"
-  - "**/*.jsx"
-  - "**/*.go"
-  - "**/*.rs"
-  - "**/*.java"
-  - "**/*.rb"
-  - "**/*.php"
-  - "**/*.c"
-  - "**/*.cpp"
-  - "**/*.h"
-  - "**/*.cs"
-  - "**/*.swift"
-  - "**/*.kt"
-  - "**/*.sh"
-  - "**/*.cc"
-  - "**/*.cgi"
-  - "**/*.csproj"
-  - "**/*.css"
-  - "**/*.csx"
-  - "**/*.cxx"
-  - "**/*.dart"
-  - "**/*.hh"
-  - "**/*.hpp"
-  - "**/*.html"
-  - "**/*.kts"
-  - "**/*.pl"
-  - "**/*.pm"
-  - "**/*.psgi"
-  - "**/*.pyi"
-  - "**/*.scss"
-  - "**/*.sln"
-  - "**/*.svelte"
-  - "**/*.t"
-  - "**/*.vue"
+  - "**/*"
 ---
 # Performance Optimization
 
 ## Model Selection Strategy
 
-**Haiku 4.5** (90% of Sonnet capability, 3x cost savings):
-- Lightweight agents with frequent invocation
-- Pair programming and code generation
-- Worker agents in multi-agent systems
+This user values **quality over cost** — usage is not a constraint. Default **substantive
+subagents to Opus** (memory: `feedback_opus_not_sonnet_subagents`); Sonnet's bare-minimum
+output wastes more time than it saves. This overrides any generic cost-routing advice.
 
-**Sonnet 4.6** (Best coding model):
-- Main development work
-- Orchestrating multi-agent workflows
-- Complex coding tasks
+**Opus 4.8 / Fable 5** (deepest reasoning — the default for real work):
+- ALL substantive subagents: coding, review, research, orchestration
+- Complex architecture, maximum-reasoning, and analysis tasks
 
-**Opus 4.5** (Deepest reasoning):
-- Complex architectural decisions
-- Maximum reasoning requirements
-- Research and analysis tasks
+**Haiku 4.5** (fast + cheap — ONLY for trivial, high-frequency, mechanical steps):
+- Throwaway lookups, simple format/lint passes, log triage
+- NOT for coding, review, or any task where output quality matters
 
 ## Context Window Management
 

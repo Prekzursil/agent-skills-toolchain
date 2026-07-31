@@ -39,6 +39,46 @@ def test_regression_probe_ships_in_shadow() -> None:
     assert "routing regression probe (5-run; shadow)" in text
 
 
+def test_regression_bar_is_pinned_to_the_base_branch_not_the_candidate() -> None:
+    """A PR must not be allowed to supply the bar it is measured against.
+
+    Known-broken: the probe ran with no BENCH_BASELINE, so gate.py:136 ->
+    bench._load_baseline() -> bench.py:53-54 read the CHECKED-OUT
+    hooks/harness-bench/baseline.json.  On a pull_request that file belongs to the
+    candidate.  gate.py:137-149 checks counter shape and corpus totals only -- no
+    provenance -- so a PR that breaks every positive route AND lowers its own
+    baseline to skill 0/14, mcp 0/5 (totals preserved) turns
+    `FAILED:routing-regression ... skill 13/14->0/14; mcp 3/5->0/5` (rc=1) into
+    `PASS:routing-regression deterministic-runs=5` (rc=0).  Measured against the
+    real on-disk loader.
+    """
+    text = workflow_text()
+    assert "BENCH_BASELINE=" in text, "the probe runs against the candidate's own bar"
+    assert "BASE_SHA: ${{ github.event.pull_request.base.sha }}" in text
+    assert '"$BASE_SHA:hooks/harness-bench/baseline.json"' in text
+    assert 'echo "BENCH_BASELINE=$BAR" >> "$GITHUB_ENV"' in text
+
+
+def test_the_bar_is_pinned_before_the_probe_consumes_it() -> None:
+    """Order is load-bearing: a pin step after the probe would change nothing."""
+    text = workflow_text()
+    pin = text.index("pin the regression bar to the base branch")
+    probe = text.index("routing regression probe (5-run; shadow)")
+    assert pin < probe
+
+
+def test_an_unavailable_base_bar_never_falls_back_to_the_candidate_file() -> None:
+    """Fail to INDETERMINATE, never to a PASS measured against the PR's own bar."""
+    text = workflow_text()
+    pin_step = text.split("pin the regression bar to the base branch", 1)[1].split(
+        "- name: routing regression probe", 1
+    )[0]
+    # The failure branch deletes the file so _load_baseline() returns None and the
+    # gate prints INDETERMINATE; it must not copy or point back at the in-tree file.
+    assert 'rm -f "$BAR"' in pin_step
+    assert "hooks/harness-bench/baseline.json" not in pin_step.split("else", 1)[1]
+
+
 def test_workflow_pins_actions_engine_and_model() -> None:
     # Known-broken: absent workflow meant no pinned runtime for the model-shaped router.
     text = workflow_text()
