@@ -172,6 +172,33 @@ def _token() -> tuple[str, str]:
     return access, ""
 
 
+BROKER_CLIENT_HEADER = "X-Biomni-Broker-Client"
+BROKER_CLIENT_TOKEN_FILE = os.path.join(
+    os.path.expanduser("~"), ".biomni-mcp", "broker_client_token"
+)
+
+
+def _broker_client_capability() -> str:
+    """The LOCAL capability the token-broker requires from its client.
+
+    Read fresh (env, else the chmod-600 file the broker writes at startup) so a
+    broker restart that mints a new capability is picked up without restarting
+    this connector. It is NOT the Biomni session -- the broker holds that.
+    """
+    explicit = os.environ.get("BIOMNI_BROKER_CLIENT_TOKEN", "").strip()
+    if explicit:
+        return explicit
+    path = (
+        os.environ.get("BIOMNI_BROKER_CLIENT_TOKEN_FILE", "").strip()
+        or BROKER_CLIENT_TOKEN_FILE
+    )
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return fh.read().strip()
+    except OSError:
+        return ""
+
+
 def _api(
     method: str,
     path: str,
@@ -191,6 +218,10 @@ def _api(
         url += "?" + urllib.parse.urlencode(query)
     data = None
     headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+    if _broker_mode():
+        # The broker refuses any local caller that cannot prove it is the wired
+        # connector; loopback reachability alone is not a credential.
+        headers[BROKER_CLIENT_HEADER] = _broker_client_capability()
     if body is not None:
         data = json.dumps(body).encode("utf-8")
         headers["Content-Type"] = "application/json"

@@ -17,10 +17,38 @@ paths:
   - "**/*.swift"
   - "**/*.kt"
   - "**/*.sh"
+  - "**/*.cc"
+  - "**/*.cgi"
+  - "**/*.csproj"
+  - "**/*.css"
+  - "**/*.csx"
+  - "**/*.cxx"
+  - "**/*.dart"
+  - "**/*.hh"
+  - "**/*.hpp"
+  - "**/*.html"
+  - "**/*.kts"
+  - "**/*.pl"
+  - "**/*.pm"
+  - "**/*.psgi"
+  - "**/*.pyi"
+  - "**/*.scss"
+  - "**/*.sln"
+  - "**/*.svelte"
+  - "**/*.t"
+  - "**/*.vue"
 ---
 # Coding Style
 
 ## Immutability (CRITICAL)
+
+> **Language note**: This rule may be overridden by language-specific rules for languages where
+> this pattern is not idiomatic. Where `rules/<language>/coding-style.md` states an override, the
+> language-specific rule **wins** — specific beats general. Current overrides:
+> [golang/coding-style.md](../golang/coding-style.md) (pointer receivers, functional options)
+> and [rust/coding-style.md](../rust/coding-style.md) (`let mut`, consuming `mut self` builders).
+> The marker lives here, not only in `rules/README.md`, because that README is scoped to
+> `**/*.__never_load__` and never enters context — this rule does.
 
 ALWAYS create new objects, NEVER mutate existing ones:
 
@@ -65,4 +93,4 @@ Before marking work complete:
 - [ ] No deep nesting (>4 levels)
 - [ ] Proper error handling
 - [ ] No hardcoded values (use constants or config)
-- [ ] No mutation (immutable patterns used)
+- [ ] No mutation (immutable patterns used), unless a language override above applies

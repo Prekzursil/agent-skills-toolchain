@@ -29,12 +29,16 @@ running app").
 
 ## Procedure
 
-**1. Gather evidence (deterministic).** From the repo root run the helper — it collects
-the change set, the declared journeys, the artifact evidence, the reward-hack surface,
-and probes which cross-model CLIs are actually on PATH:
+**1. Gather evidence (deterministic).** Run the helper **by its own path** — it ships
+beside this SKILL.md, NOT inside the repository under review, and `--repo` (never the
+working directory) is what selects that repository. Read `<SKILL_DIR>` as the directory
+holding this file: `~/.agents/skills/acceptance-review` once installed,
+`.agents/skills/acceptance-review` inside the toolchain repo. It collects the change
+set, the declared journeys, the artifact evidence, the reward-hack surface, and probes
+which cross-model CLIs are actually on PATH:
 
 ```
-python scripts/acceptance_review.py --repo <REPO> [--base <REF>] [--out <DIR>]
+python <SKILL_DIR>/scripts/acceptance_review.py --repo <REPO> [--base <REF>] [--out <DIR>]
 ```
 
 Base defaults to the merge-base with a mainline (`origin/main`→`main`→…→`HEAD~1`). It
@@ -63,9 +67,9 @@ To actually run a CLI reviewer, add `--dispatch` (wrap it with `longrun` /
 timeout 240s). A timeout or an unparseable reply is treated as **BLOCK**, never a pass.
 
 ```
-python scripts/acceptance_review.py --repo <REPO> --dispatch          # auto → codex/gemini
-python scripts/acceptance_review.py --repo <REPO> --reviewer gemini --dispatch --model gemini-2.5-pro
-python scripts/acceptance_review.py --repo <REPO> --reviewer claude   # prints the fresh-subagent instruction
+python <SKILL_DIR>/scripts/acceptance_review.py --repo <REPO> --dispatch          # auto → codex/gemini
+python <SKILL_DIR>/scripts/acceptance_review.py --repo <REPO> --reviewer gemini --dispatch --model gemini-2.5-pro
+python <SKILL_DIR>/scripts/acceptance_review.py --repo <REPO> --reviewer claude   # prints the fresh-subagent instruction
 ```
 
 **3. Read back the structured verdict.** Every reviewer must end with the machine-parsed

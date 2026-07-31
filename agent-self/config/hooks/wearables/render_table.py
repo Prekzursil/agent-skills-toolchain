@@ -10,6 +10,13 @@ PURE function (NOT the live skill wiring). Contract is PINNED:
   footer VERBATIM:
     sources hit: <list> | accessed YYYY-MM-DD | n rows, m flagged
   ``--raw`` escape -> full JSON via :func:`render_raw`.
+
+Both renderers are a WRITE/DUMP boundary, so both pass their output through
+:func:`~wearables.security.egress.scrub_secrets` — the package invariant is
+"payloads are secret-scrubbed BEFORE any write/dump" (``security/egress.py``).
+A Datum string field (``confidence`` and friends) carries provider text
+verbatim (``datum.py``), so an unscrubbed renderer emits any bearer token /
+API key it was handed.
 """
 
 from __future__ import annotations
@@ -18,6 +25,7 @@ import dataclasses
 import json
 
 from .datum import Datum
+from .security.egress import scrub_secrets
 
 HEADER: list[str] = [
     "Source",
@@ -100,9 +108,31 @@ def render_table(data, accessed: str) -> str:
     if footnotes:
         parts.append("\n".join(footnotes))
     parts.append(footer)
-    return "\n\n".join(parts)
+    # Scrub at the RETURN boundary (same chokepoint shape as ``egress_guard``):
+    # one call covers every cell, every footnote and the footer, so no field
+    # added later can silently bypass the guard.
+    return scrub_secrets("\n\n".join(parts))
+
+
+def _scrub_tree(value):
+    """Recursively scrub every string LEAF of an ``asdict`` tree.
+
+    MEASURED: scrubbing the serialized JSON instead corrupts it. Every prefix
+    pattern in ``egress.py`` ends in ``\\S+``, which is greedy over non-space —
+    so on ``"confidence": "Authorization: Bearer sk-x",`` it also eats the
+    closing quote and the comma, leaving an unterminated string literal
+    (``JSONDecodeError: Invalid control character``). Scrub before dumping.
+    """
+    if isinstance(value, str):
+        return scrub_secrets(value)
+    if isinstance(value, dict):
+        return {k: _scrub_tree(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_scrub_tree(v) for v in value]
+    return value
 
 
 def render_raw(data) -> str:
     """``--raw`` escape: full JSON dump of every Datum (nested dataclasses)."""
-    return json.dumps([dataclasses.asdict(d) for d in data], indent=2, default=str)
+    scrubbed = _scrub_tree([dataclasses.asdict(d) for d in data])
+    return json.dumps(scrubbed, indent=2, default=str)

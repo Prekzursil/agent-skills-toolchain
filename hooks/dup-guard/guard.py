@@ -69,6 +69,11 @@ _RECUR = {
     ".gitignore",
     "go.mod",
     "cargo.toml",
+    # A Swift package manifest recurs once per package, exactly like package.json /
+    # go.mod / cargo.toml. It is also matched by _SRC_EXT (".swift"), so without this
+    # entry the SECOND package in a monorepo was reported as a duplicated
+    # implementation ("extend / import the existing one") -- a false positive.
+    "package.swift",
     "pyproject.toml",
     "requirements.txt",
 }
@@ -204,23 +209,45 @@ def _primary_symbol(content: str) -> str | None:
 
 
 def _symbol_defined_elsewhere(root: str, symbol: str, target: str) -> str | None:
-    """Return a path (other than target) that DEFINES `symbol`, if any."""
+    """Return a SOURCE path (other than target) that DEFINES `symbol`, if any.
+
+    USE-vs-MENTION (L03).  The ripgrep pattern is declaration-SHAPED text, not a parse, so
+    it matches just as happily inside a Markdown code fence, a design doc, a JSON fixture or
+    a changelog as it does in real code.  Measured at 27fb388: writing a new
+    ``probe_only_data_version_control.py`` containing ``class DataVersionControl:`` was told
+    the symbol "is already defined at
+    ``.agents/skills/llm-security/rules/data-poisoning.md``" -- a documentation sample that
+    cannot be extended or imported, so the hook's own recommendation
+    ("Extend / import the existing one", main() below) was impossible to follow.
+
+    ``_SRC_EXT`` is the same source-role predicate the basename branch already uses; applying
+    it here makes the two branches agree.  The filter runs on the RESULT list rather than only
+    as an rg ``-g`` glob so the guard holds whatever ripgrep's globbing does, and the loop
+    keeps scanning: a real source definition later in rg's output is still returned.
+    """
     pat = (
         r"^\s*(?:export\s+(?:default\s+)?)?(?:async\s+)?(?:class|def|function|interface|struct|enum|trait|const|let|var|type)\s+"
         + re.escape(symbol)
         + r"\b"
     )
+    globs: list[str] = ["-g", "!.git"]
+    for ext in _SRC_EXT:
+        globs += ["-g", f"*{ext}"]
     try:
         r = subprocess.run(
-            ["rg", "-l", "--hidden", "-g", "!.git", "-m", "1", pat, root],
+            ["rg", "-l", "--hidden", *globs, "-m", "1", pat, root],
             capture_output=True,
             text=True,
             timeout=6,
         )
         if r.returncode == 0 and r.stdout:
             for ln in r.stdout.splitlines():
-                if ln.strip() and not _same(ln.strip(), target):
-                    return ln.strip()
+                cand = ln.strip()
+                if not cand or _same(cand, target):
+                    continue
+                if not cand.lower().endswith(_SRC_EXT):
+                    continue  # prose / fixture / fence -- a mention, not a definition
+                return cand
     except Exception:
         pass
     return None

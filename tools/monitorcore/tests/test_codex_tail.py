@@ -232,10 +232,15 @@ def test_tail_truncation_resets_offset(tmp_path):
     assert t.read_new() == ['{"c":3}']
 
 
-def test_tail_open_error_is_swallowed(tmp_path, monkeypatch):
+def test_tail_open_error_is_swallowed_but_recorded(tmp_path, monkeypatch):
+    """REGRESSION (D-wu-32): a swallowed read must still be DISTINGUISHABLE from an
+    empty one. ``read_new`` keeps its never-raise contract and returns ``[]``, but
+    ``read_error`` now names the failure — conflating the two is what let a
+    share-locked stream be published as a fresh, reachable measurement."""
     p = tmp_path / "s.jsonl"
     p.write_bytes(b'{"a":1}\n')
     t = ct.Tail(str(p))
+    assert t.read_error is None
 
     def boom(*args, **kwargs):
         raise OSError("share lock")
@@ -245,6 +250,29 @@ def test_tail_open_error_is_swallowed(tmp_path, monkeypatch):
         assert t.read_new() == []
     finally:
         monkeypatch.undo()
+    assert t.read_error == "share lock"
+    assert t.offset == 0  # nothing consumed — the bytes are still pending
+
+    # the next SUCCESSFUL read clears it and delivers the bytes that were withheld
+    assert t.read_new() == ['{"a":1}']
+    assert t.read_error is None
+
+
+def test_tail_empty_and_missing_reads_are_not_read_errors(tmp_path):
+    """The two legitimately-empty outcomes stay error-free.
+
+    A vanished / rotated file (the ``getsize`` branch) is deliberately NOT a read
+    error: nothing proves data was lost, and since ``prune`` keeps stream threads
+    forever it would pin a consumer permanently stale.
+    """
+    absent = ct.Tail(str(tmp_path / "absent.jsonl"))
+    assert absent.read_new() == [] and absent.read_error is None
+
+    p = tmp_path / "s.jsonl"
+    p.write_bytes(b'{"a":1}\n')
+    t = ct.Tail(str(p))
+    assert t.read_new() == ['{"a":1}']
+    assert t.read_new() == [] and t.read_error is None  # size == offset
 
 
 # ───────────────────────── load_stream_meta ─────────────────────────
@@ -909,6 +937,41 @@ def test_ingest_skips_bad_json_and_orphan_tails(tmp_path):
         '{"type":"turn.started"}\n', encoding="utf-8"
     )
     p.ingest()  # must not raise
+
+
+def test_read_errors_reports_only_the_unreadable_stream(tmp_path, monkeypatch):
+    """REGRESSION (D-wu-32): ``Poller.read_errors`` names every tail that LOST bytes.
+
+    Empty after a clean tick, populated for exactly the stream whose pending bytes
+    could not be fetched, and empty again once that stream reads.
+    """
+    p = _poller(tmp_path)
+    good = p.stream_dir / "good.jsonl"
+    locked = p.stream_dir / "locked.jsonl"
+    good.write_text('{"type":"turn.started"}\n', encoding="utf-8")
+    locked.write_text('{"type":"turn.started"}\n', encoding="utf-8")
+    p.discover()
+    p.ingest()
+    assert p.read_errors() == ()  # a clean tick reports nothing
+
+    good.write_text('{"type":"turn.started"}\n' * 2, encoding="utf-8")
+    locked.write_text('{"type":"turn.started"}\n' * 2, encoding="utf-8")
+    real_open = builtins.open
+
+    def selective(path, *args, **kwargs):
+        if str(path).endswith("locked.jsonl"):
+            raise OSError("share locked")
+        return real_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "open", selective)
+    try:
+        p.ingest()
+    finally:
+        monkeypatch.undo()
+    assert p.read_errors() == (("stream:locked.jsonl", "share locked"),)
+
+    p.ingest()  # the lock cleared — the backlog lands and the flag clears with it
+    assert p.read_errors() == ()
 
 
 def test_prune_drops_only_stale_rollouts(tmp_path):

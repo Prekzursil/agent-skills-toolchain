@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from . import artifact_store
+
 
 SCHEMA_V1 = "crcp.envelope.v1"
 SCHEMA_V1_1 = "crcp.envelope.v1.1"
@@ -50,10 +52,15 @@ def _content_address(
         path = Path(payload_ref)
         if path.is_file():
             data = path.read_bytes()
-            digest = content_hash(data)
-            return f"sha256:{digest}", digest, len(data)
+            # Persist the bytes BEFORE advertising a content address. Hashing
+            # alone produced a syntactically valid sha256: ref that the repo's
+            # own artifact_store.get could not resolve, so a consumer saw
+            # completion SUCCESS pointing at an object nobody had stored.
+            ref = artifact_store.put_bytes(data)
+            return ref, ref[len("sha256:") :], len(data)
     except (OSError, ValueError):
-        # An opaque or legacy reference remains usable by v1-era consumers.
+        # Unreadable payload, or a store that cannot accept it: fall back to the
+        # opaque/legacy reference rather than promising an unresolvable address.
         pass
     return payload_ref, None, None
 

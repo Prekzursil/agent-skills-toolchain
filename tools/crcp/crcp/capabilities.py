@@ -241,8 +241,11 @@ class CapabilityRegistry:
 
         _validate_identifier("owner", owner)
         ttl = _validate_ttl(ttl_s)
-        now = float(self._clock())
         with self._state_lock():
+            # Sample the clock AFTER acquiring the lock: waiting for a contended
+            # lock can outlast a short TTL, and a pre-lock timestamp would persist
+            # a lease that is already expired at the moment this call returns true.
+            now = float(self._clock())
             state = self._read_state()
             self._require_supported_in_state(capability, state)
             lease = state["leases"].get(capability)

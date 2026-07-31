@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import types
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -59,9 +60,19 @@ def iso(monkeypatch, tmp_path):
     return root
 
 
-def _recall_index(tmp_path, notes):
-    index = tmp_path / "recall-index.json"
-    index.write_text(json.dumps({"notes": notes}), encoding="utf-8")
+def _recall_index(tmp_path, notes, *, name="recall-index.json", **document):
+    """A document shaped like a REAL recall_index.py build: the P1C22 freshness
+    guard skips any index that does not declare a supported schema_version and a
+    fresh built_at, so a fixture without them is not a servable index."""
+    index = tmp_path / name
+    payload = {
+        "schema_version": 2,
+        "built_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "vault_hash": "0" * 64,
+        "notes": notes,
+    }
+    payload.update(document)
+    index.write_text(json.dumps(payload), encoding="utf-8")
     return index
 
 
@@ -315,6 +326,151 @@ def test_recall_stigmergic_prior_too_few_overlap(iso, tmp_path):
         )
     )
     assert out.action == "allow"
+
+
+# --------------------------------------------------------------------------- #
+# P1C22 · recall-index freshness contract
+#
+# Regression for "an obsolete index left on disk after its source notes changed
+# or were deleted is still scored and injected". Every case below shares ONE
+# prompt and ONE note, so the only variable is the index document's freshness
+# metadata; _P1C22_CONTROL is the known-positive that proves the probe can see
+# an inject at all (without it, an always-allow bug would look like a pass).
+# --------------------------------------------------------------------------- #
+_P1C22_PROMPT = "reframe shorts auto transcribe pipeline decision here now"
+_P1C22_NOTES = [
+    {
+        "title": "reframe shorts auto transcribe",
+        "permalink": "retired/alpha-beta-gamma-delta",
+        "summary": "Use the retired command; the source note has since been deleted.",
+        "keywords": ["reframe", "shorts", "auto", "transcribe"],
+    }
+]
+
+
+def _p1c22_run(tmp_path, *index_paths, session="session-1"):
+    # `session` isolates repeated calls: a successful inject records the chosen
+    # permalink in the per-session suppress set, which would mask a later run.
+    module = RecallModule(
+        index_paths=list(index_paths), max_results=2, state_root=tmp_path
+    )
+    return module.run(
+        _event(tmp_path, "UserPromptSubmit", prompt=_P1C22_PROMPT, session_id=session)
+    )
+
+
+def test_p1c22_control_fresh_index_is_still_injected(iso, tmp_path):
+    # KNOWN-POSITIVE control: the same note through a freshly-stamped document
+    # MUST inject, so a rejection below is the guard firing and not a dead probe.
+    out = _p1c22_run(tmp_path, _recall_index(tmp_path, _P1C22_NOTES))
+    assert out.action == "inject" and out.reason_code == "lexical_recall"
+    assert "retired/alpha-beta-gamma-delta" in out.additional_context[0]
+
+
+def test_p1c22_schema_v1_index_without_freshness_metadata_is_not_served(iso, tmp_path):
+    # The exact reported state: a schema-v1 document with no built_at and no
+    # vault_hash. It has no freshness guarantee, so it must not be injected.
+    index = tmp_path / "v1.json"
+    index.write_text(
+        json.dumps({"schema_version": 1, "notes": _P1C22_NOTES}), encoding="utf-8"
+    )
+    out = _p1c22_run(tmp_path, index)
+    assert out.action == "allow"
+
+
+def test_p1c22_index_older_than_the_age_limit_is_not_served(iso, tmp_path):
+    stale = datetime.now(timezone.utc) - timedelta(days=90)
+    index = _recall_index(
+        tmp_path, _P1C22_NOTES, built_at=stale.isoformat(timespec="seconds")
+    )
+    assert _p1c22_run(tmp_path, index).action == "allow"
+
+
+def test_p1c22_naive_built_at_is_read_as_utc_and_still_ages_out(iso, tmp_path):
+    # A tz-naive stamp (an older producer) is interpreted as UTC rather than
+    # crashing the comparison; a naive stamp inside the window still serves.
+    stale = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=90)
+    fresh = datetime.now(timezone.utc).replace(tzinfo=None)
+    old = _recall_index(
+        tmp_path,
+        _P1C22_NOTES,
+        name="naive-old.json",
+        built_at=stale.isoformat(timespec="seconds"),
+    )
+    new = _recall_index(
+        tmp_path,
+        _P1C22_NOTES,
+        name="naive-new.json",
+        built_at=fresh.isoformat(timespec="seconds"),
+    )
+    assert _p1c22_run(tmp_path, old, session="naive-old").action == "allow"
+    assert _p1c22_run(tmp_path, new, session="naive-new").action == "inject"
+
+
+@pytest.mark.parametrize(
+    "built_at", ["", "   ", "not-a-timestamp", 1_700_000_000, None]
+)
+def test_p1c22_unusable_built_at_is_not_served(iso, tmp_path, built_at):
+    index = _recall_index(tmp_path, _P1C22_NOTES, built_at=built_at)
+    assert _p1c22_run(tmp_path, index).action == "allow"
+
+
+@pytest.mark.parametrize("version", [0, 99, True, "2", 2.0, None])
+def test_p1c22_unsupported_schema_version_is_not_served(iso, tmp_path, version):
+    index = _recall_index(tmp_path, _P1C22_NOTES, schema_version=version)
+    assert _p1c22_run(tmp_path, index).action == "allow"
+
+
+def test_p1c22_stale_candidate_falls_through_to_a_fresh_one(iso, tmp_path):
+    # The legacy path is the second candidate: a rejected first index must not
+    # shadow a servable one (the pre-fix _notes() returned on the first hit).
+    stale = _recall_index(
+        tmp_path,
+        _P1C22_NOTES,
+        name="stale.json",
+        built_at=(datetime.now(timezone.utc) - timedelta(days=400)).isoformat(
+            timespec="seconds"
+        ),
+    )
+    fresh = _recall_index(tmp_path, _P1C22_NOTES, name="fresh.json")
+    out = _p1c22_run(tmp_path, stale, fresh)
+    assert out.action == "inject" and out.reason_code == "lexical_recall"
+
+
+def test_p1c22_age_limit_env_override(iso, tmp_path, monkeypatch):
+    ancient = (datetime.now(timezone.utc) - timedelta(days=400)).isoformat(
+        timespec="seconds"
+    )
+    index = _recall_index(tmp_path, _P1C22_NOTES, built_at=ancient)
+    monkeypatch.setenv("AGENT_HARNESS_RECALL_MAX_AGE_DAYS", "0")
+    assert _p1c22_run(tmp_path, index, session="s0").action == "inject"  # disabled
+    monkeypatch.setenv("AGENT_HARNESS_RECALL_MAX_AGE_DAYS", "500")
+    assert _p1c22_run(tmp_path, index, session="s1").action == "inject"  # widened
+    monkeypatch.setenv("AGENT_HARNESS_RECALL_MAX_AGE_DAYS", "not-a-number")
+    assert _p1c22_run(tmp_path, index, session="s2").action == "allow"  # -> default
+    monkeypatch.setenv("AGENT_HARNESS_RECALL_MAX_AGE_DAYS", "  ")
+    assert _p1c22_run(tmp_path, index, session="s3").action == "allow"  # -> default
+    monkeypatch.setenv("AGENT_HARNESS_RECALL_MAX_AGE_DAYS", "-5")
+    assert _p1c22_run(tmp_path, index, session="s4").action == "inject"  # clamp 0
+
+
+def test_p1c22_index_without_a_notes_list_is_skipped(iso, tmp_path):
+    # A fresh, well-versioned document whose `notes` is not a list is still not
+    # servable; the next candidate is used instead.
+    broken = tmp_path / "broken.json"
+    broken.write_text(
+        json.dumps({"schema_version": 2, "notes": "nope"}), encoding="utf-8"
+    )
+    fresh = _recall_index(tmp_path, _P1C22_NOTES, name="ok.json")
+    assert _p1c22_run(tmp_path, broken, fresh).action == "inject"
+
+
+def test_p1c22_consumer_schema_ceiling_tracks_the_producer():
+    # Drift gate: bumping recall_index.SCHEMA_VERSION without bumping the
+    # consumer ceiling would make every freshly built index unservable.
+    from harness import recall_index
+
+    assert m._RECALL_INDEX_SCHEMA_VERSION == recall_index.SCHEMA_VERSION
 
 
 # --------------------------------------------------------------------------- #

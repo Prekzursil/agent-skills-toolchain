@@ -100,7 +100,14 @@ For each action_required message:
 6. **Triage files** — Update LINE/Messenger draft status
 7. **Git commit & push** — Version-control all knowledge file changes
 
-This checklist is enforced by a `PostToolUse` hook that blocks completion until all steps are done. The hook intercepts `gmail send` / `conversations_add_message` and injects the checklist as a system reminder.
+**This checklist is advisory — nothing enforces it.** It is prompt-level guidance you must follow deliberately; no hook intercepts the send or blocks completion. Verified against the two dispatcher graphs this repo ships: the whole `PostToolUse` list in `hooks/_dispatch/manifest.json` is `memory-spool/flush_check`, `tool-result-sentinel` and `stub-ledger/record`, none of which matches `gmail send` / `conversations_add_message`, and the shared harness has no communications module. A `gog gmail send ...` call arrives with `tool_name` `Bash` and selects only `tool-result-sentinel`, which is silent on a successful Bash.
+
+Two things would have to change before any "enforced" claim here is true, and BOTH are open design decisions, not omissions:
+
+1. A follow-through check would have to be registered for `PostToolUse`.
+2. It could not live in `hooks/_dispatch/manifest.json` if it is meant to BLOCK — that dispatcher is inject-only and silently disarms an `exit 2` gate (`hooks/_dispatch/test_manifest_presence.py:51-53`). A blocking gate must be a standalone `settings.json` entry.
+
+Until then, treat every item above as something *you* are responsible for completing.
 
 ## Briefing Output Format
 
@@ -129,7 +136,7 @@ This checklist is enforced by a `PostToolUse` hook that blocks completion until 
 
 ## Key Design Principles
 
-- **Hooks over prompts for reliability**: LLMs forget instructions ~20% of the time. `PostToolUse` hooks enforce checklists at the tool level — the LLM physically cannot skip them.
+- **Hooks over prompts for reliability (aspirational — not yet built here)**: LLMs forget instructions, so a hook that gates at the tool level is more reliable than a prompt. That is the design goal, *not* a description of this agent: no follow-through hook is registered today (see Step 5), so every checklist in this file is prompt-level and skippable. Do not read this bullet as a guarantee.
 - **Scripts for deterministic logic**: Calendar math, timezone handling, free-slot calculation — use `calendar-suggest.js`, not the LLM.
 - **Knowledge files are memory**: `relationships.md`, `preferences.md`, `todo.md` persist across stateless sessions via git.
 - **Rules are system-injected**: `.claude/rules/*.md` files load automatically every session. Unlike prompt instructions, the LLM cannot choose to ignore them.

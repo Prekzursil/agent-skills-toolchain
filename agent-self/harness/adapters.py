@@ -105,6 +105,21 @@ def normalize_event(
             "teammate_name",
         ),
     )
+    # D17-F4 · the spawning task/agent. The child aliases above were already
+    # accepted while every parent spelling was dropped on the floor, so a host
+    # that DID report the edge still produced an unjoinable completion record.
+    # Task lineage wins over agent lineage when a host sends both.
+    agent_parent_id = _first_present(
+        data,
+        (
+            "parent_task_id",
+            "parentTaskId",
+            "parent_agent_id",
+            "parentAgentId",
+            "parent_id",
+            "parentId",
+        ),
+    )
 
     # A task summary is the closest existing analogue to an assistant message,
     # so a TaskCompleted/TeammateIdle summary maps onto last_assistant_message
@@ -163,6 +178,7 @@ def normalize_event(
             id=str(agent_id or ""),
             type=str(agent_type or ""),
             transcript_path=str(transcript or ""),
+            parent_id=str(agent_parent_id or ""),
         ),
     )
 

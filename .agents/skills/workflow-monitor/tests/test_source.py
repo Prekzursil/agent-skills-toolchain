@@ -146,6 +146,41 @@ def test_poll_does_not_swallow_baseexception():
         src.poll()  # BaseException propagates (guard is `except Exception`, not BaseException)
 
 
+def test_poll_does_not_escape_when_the_injected_clock_raises():
+    """The cardinal rule covers the CLOCK port, not only the reader.
+
+    ``clock`` is a supported constructor port and the read used to sit OUTSIDE the
+    guard, so a clock that raises escaped ``poll`` instead of degrading one board row.
+    """
+
+    def _unused_reader(wf_id, **kwargs):  # noqa: ANN001, ARG001
+        raise AssertionError("reader must not run once the clock has already failed")
+
+    def _dead_clock() -> float:
+        raise RuntimeError("clock offline")
+
+    src = WfmonSource("wf", reader=_unused_reader, clock=_dead_clock)
+    snap = src.poll()  # MUST NOT raise
+    assert snap.reachable is False
+    assert snap.stale is True
+    assert snap.state == SourceState.UNREACHABLE
+    assert snap.ts == 0.0  # the clock itself failed -- there is no time to report
+    assert snap.error == "clock offline"  # NOT the reader's AssertionError
+    assert snap.payload.model is None
+    assert "unreachable" in snap.headline
+
+
+def test_poll_does_not_swallow_baseexception_from_the_clock():
+    """Guarding the clock must not widen the guard to ``BaseException``."""
+
+    def _interrupt() -> float:
+        raise KeyboardInterrupt
+
+    src = WfmonSource("wf", clock=_interrupt)
+    with pytest.raises(KeyboardInterrupt):
+        src.poll()
+
+
 def test_poll_retains_last_good_payload_when_next_poll_fails():
     good = _model(active=True, running=1, total=1)
     calls = {"n": 0}

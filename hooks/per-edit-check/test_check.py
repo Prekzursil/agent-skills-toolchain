@@ -6,7 +6,9 @@ Run: pytest test_check.py -v
 Required scenarios (spec):
   clean-file            → silent exit 0
   file-with-lint-error  → inject (exit 0 + additionalContext JSON)
-  syntax-broken         → exit 2, reason on stderr, stdout EMPTY (no decision JSON)
+  syntax-broken         → exit 2, reason on stderr, stdout EMPTY
+                          (NOT a decision:block JSON — Claude Code ignores
+                          stdout at exit 2; asserted by the tests below)
   unknown-extension     → silent exit 0
   missing-checker-tool  → silent exit 0
   malformed stdin       → exit 0 (fail-open)
@@ -293,6 +295,61 @@ def test_unknown_or_skipped_extension_silent(tmp_path: Path, ext: str):
     assert out.strip() == ""
 
 
+def _node_unknown_extension(fp: str):
+    """The REAL `node --check <x>.jsx` failure (measured, node v24.16.0).
+
+    Node has no JSX parser, so it rejects the *extension* before ever looking at
+    the contents -- exit 1, and not a single ``SyntaxError`` line.
+    """
+    return _proc(
+        1,
+        stderr=(
+            "node:internal/modules/esm/get_format:236\n"
+            "  throw new ERR_UNKNOWN_FILE_EXTENSION(ext, filepath);\n"
+            "        ^\n\n"
+            f'TypeError [ERR_UNKNOWN_FILE_EXTENSION]: Unknown file extension ".jsx" for {fp}\n'
+            "    at Object.getFileProtocolModuleFormat [as file:] "
+            "(node:internal/modules/esm/get_format:236:9)\n"
+            "  code: 'ERR_UNKNOWN_FILE_EXTENSION'\n"
+            "}\n"
+        ),
+    )
+
+
+def test_valid_jsx_is_not_blocked_by_node_loader_error(tmp_path: Path):
+    """REGRESSION: a node ENVIRONMENT failure must never be reported as a syntax error.
+
+    `node --check valid.jsx` exits 1 with ERR_UNKNOWN_FILE_EXTENSION because node
+    cannot parse JSX at all.  Classifying every nonzero exit as a syntax break
+    hard-BLOCKED (exit 2) every ordinary, perfectly valid JSX edit.
+    """
+    f = tmp_path / "valid.jsx"
+    f.write_text("export const X = () => <div />;\n")
+    mod = load_check()
+    with (
+        mock.patch("shutil.which", return_value="/usr/bin/node"),
+        mock.patch("subprocess.run", return_value=_node_unknown_extension(str(f))),
+    ):
+        rc, out, err = run_hook(mod, make_event(str(f)))
+    assert rc == 0, "a node loader/environment failure must not block the edit"
+    assert out.strip() == ""
+    assert err.strip() == ""
+
+
+def test_jsx_with_real_syntax_error_still_blocks(tmp_path: Path):
+    """Control: when node DOES report a SyntaxError, the block is preserved."""
+    f = tmp_path / "broken.jsx"
+    f.write_text("const x = ;\n")
+    mod = load_check()
+    with (
+        mock.patch("shutil.which", return_value="/usr/bin/node"),
+        mock.patch("subprocess.run", return_value=_node_syntax_err()),
+    ):
+        rc, out, err = run_hook(mod, make_event(str(f)))
+    assert rc == 2, "a genuine SyntaxError must still block"
+    assert err.strip()
+
+
 # ── 5. missing checker tool → silent exit 0 ─────────────────────────────────
 
 
@@ -531,3 +588,155 @@ def test_docstring_promises_no_decision_json_the_exit_2_path_cannot_emit(
     assert rc == 2, "bad JSON still exits 2"
     assert out.strip() == "", "measured: stdout empty, so no decision JSON can exist"
     assert err.strip(), "the reason is on stderr, the only channel read at exit 2"
+
+
+# ── A019: C/C++ target-specific feedback (rules/cpp/security.md) ─────────────
+# Before this lane existed, `_run_check` had no C or C++ branch and every one of
+# these files fell through to the terminal `return [], False`, so an edit adding
+# raw new/delete, malloc/free or strcpy produced hook_exit=0 and ZERO output.
+
+
+def _write(path, text):
+    """Write with newline='' so Windows does not silently translate to CRLF."""
+    path.write_text(text, encoding="utf-8", newline="")
+    return str(path)
+
+
+def test_cpp_forbidden_memory_constructs_inject(tmp_path: Path):
+    fp = _write(
+        tmp_path / "qconf.cc",
+        "void f() {\n"
+        "    char *data = new char[1024];\n"
+        '    strcat(data, "$");\n'
+        "    delete[] data;\n"
+        "}\n",
+    )
+    mod = load_check()
+    rc, out, err = run_hook(mod, make_event(fp))
+    assert rc == 0, "policy findings advise, they must not block the write"
+    assert err.strip() == ""
+    ctx = json.loads(out)["hookSpecificOutput"]["additionalContext"]
+    assert "raw `new`" in ctx
+    assert "`strcat`" in ctx
+    assert "raw `delete`" in ctx
+
+
+def test_hpp_header_is_covered(tmp_path: Path):
+    """A051/A019 both named `include/foo.hpp`; headers are in the rule's scope."""
+    fp = _write(tmp_path / "foo.hpp", 'inline void g(char *d) { sprintf(d, "x"); }\n')
+    mod = load_check()
+    rc, out, _err = run_hook(mod, make_event(fp))
+    assert rc == 0
+    assert "`sprintf`" in json.loads(out)["hookSpecificOutput"]["additionalContext"]
+
+
+def test_modern_cpp_file_is_silent(tmp_path: Path):
+    """Detector control: compliant code must produce no output at all."""
+    fp = _write(
+        tmp_path / "clean.cpp",
+        "#include <memory>\n"
+        "#include <string>\n"
+        "std::string g() {\n"
+        "    auto p = std::make_unique<int>(4);\n"
+        '    return std::string("ok");\n'
+        "}\n",
+    )
+    mod = load_check()
+    rc, out, err = run_hook(mod, make_event(fp))
+    assert (rc, out.strip(), err.strip()) == (0, "", "")
+
+
+def test_cpp_mentions_in_comments_and_strings_are_not_flagged(tmp_path: Path):
+    """use-vs-mention: the rule text itself must not trip its own checker."""
+    fp = _write(
+        tmp_path / "doc.cpp",
+        "// Never use strcpy, strcat or sprintf here.\n"
+        "/* malloc and free are banned:\n"
+        "   use C++ allocation. */\n"
+        'void h() { log("do not call free() directly"); }\n',
+    )
+    mod = load_check()
+    rc, out, err = run_hook(mod, make_event(fp))
+    assert (rc, out.strip(), err.strip()) == (0, "", "")
+
+
+# ── A051: PHP formatting policy (rules/php/coding-style.md) ──────────────────
+
+
+def test_php_psr12_fallback_flags_indent_and_closing_tag(tmp_path: Path):
+    """With no PHP toolchain on PATH the stdlib subset must still speak up.
+
+    Mirrors the A051 probe fixture: two-space indentation plus a retained `?>`.
+    """
+    fp = _write(
+        tmp_path / "conf.php",
+        "<?php\nfunction foo() {\n  return 1;\n}\n?>\n",
+    )
+    mod = load_check()
+    with mock.patch("shutil.which", return_value=None):
+        rc, out, err = run_hook(mod, make_event(fp))
+    assert rc == 0
+    assert err.strip() == ""
+    ctx = json.loads(out)["hookSpecificOutput"]["additionalContext"]
+    assert "omit the closing `?>`" in ctx
+    assert "multiples of 4 spaces" in ctx
+
+
+def test_php_psr12_compliant_file_is_silent(tmp_path: Path):
+    """Detector control."""
+    fp = _write(
+        tmp_path / "clean.php",
+        "<?php\n\ndeclare(strict_types=1);\n\nfunction foo(): int\n{\n"
+        "    return 1;\n}\n",
+    )
+    mod = load_check()
+    with mock.patch("shutil.which", return_value=None):
+        rc, out, err = run_hook(mod, make_event(fp))
+    assert (rc, out.strip(), err.strip()) == (0, "", "")
+
+
+def test_php_heredoc_body_is_not_read_as_indentation(tmp_path: Path):
+    """A heredoc body is data, not PHP indentation — no false positive."""
+    fp = _write(
+        tmp_path / "hd.php",
+        "<?php\n\n$sql = <<<SQL\n  SELECT 1\nSQL;\n",
+    )
+    mod = load_check()
+    with mock.patch("shutil.which", return_value=None):
+        rc, out, err = run_hook(mod, make_event(fp))
+    assert (rc, out.strip(), err.strip()) == (0, "", "")
+
+
+def test_php_prefers_pint_when_it_is_installed(tmp_path: Path):
+    """rules/php/coding-style.md:24 names Pint, so a present Pint wins."""
+    fp = _write(tmp_path / "app.php", "<?php\n  $x = 1;\n")
+    mod = load_check()
+    with (
+        mock.patch(
+            "shutil.which",
+            side_effect=lambda e: "/usr/bin/pint" if e == "pint" else None,
+        ),
+        mock.patch("subprocess.run", return_value=_proc(1, stdout="app.php  braces\n")),
+    ):
+        rc, out, _err = run_hook(mod, make_event(fp))
+    assert rc == 0
+    assert "braces" in json.loads(out)["hookSpecificOutput"]["additionalContext"]
+
+
+def test_php_lint_syntax_error_blocks(tmp_path: Path):
+    """`php -l` is a real parse check, so it blocks like node --check does."""
+    fp = _write(tmp_path / "bad.php", "<?php\nfunction (\n")
+    mod = load_check()
+    with (
+        mock.patch(
+            "shutil.which", side_effect=lambda e: "/usr/bin/php" if e == "php" else None
+        ),
+        mock.patch(
+            "subprocess.run",
+            return_value=_proc(255, stdout="PHP Parse error: syntax error\n"),
+        ),
+    ):
+        rc, out, err = run_hook(mod, make_event(fp))
+    assert rc == 2, "a genuine PHP parse error must block"
+    assert out.strip() == ""
+    assert "Parse error" in err

@@ -250,6 +250,17 @@ picked up, and **never logs the token** (`/__broker/health` shows a masked
 preview only). This keeps the literal token in the store + the broker process
 only, never in `accounts.json`, the hub, or the model.
 
+**The broker authorizes its LOCAL client too.** Binding to `127.0.0.1` limits
+network reachability but says nothing about *which* local process opened the
+socket, so every non-health request must present a client capability —
+`X-Biomni-Broker-Client: <cap>` (or `Authorization: Bearer <cap>`) — checked
+*before* the stored session is resolved or injected; otherwise `401`. The
+capability comes from `BIOMNI_BROKER_CLIENT_TOKEN`, else the chmod-600
+`BIOMNI_BROKER_CLIENT_TOKEN_FILE` (default `~/.biomni-mcp/broker_client_token`),
+which the broker **mints on first start**. The connector reads the same default
+path, so existing wiring needs no change. It is deliberately a *different*
+credential from the upstream Biomni session and is stripped before forwarding.
+
 **Refresh-at-source (fully hands-off renewal):** `biomni-mcp/refresher.py` keeps
 the broker's store fresh so you never re-grab a token. Phylo's WorkOS refresh
 token lives in an HttpOnly cookie and rotates (one-time-use), so it can't be

@@ -278,7 +278,7 @@ def requeue_dead_letter(
         comparable = [
             key for key in left if left[key] is not None and right[key] is not None
         ]
-        if not comparable or not any(left[key] == right[key] for key in comparable):
+        if not comparable or not all(left[key] == right[key] for key in comparable):
             raise FileExistsError(
                 f"spool destination exists for a different record: {destination}"
             )

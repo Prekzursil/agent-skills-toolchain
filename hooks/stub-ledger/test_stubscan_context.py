@@ -90,6 +90,36 @@ def test_fenced_code_inside_a_doc_is_documentation_not_pending_work():
     assert len(stubscan.find_stubs(doc, "src/notes.py")) > 0
 
 
+def test_rust_incompleteness_macros_are_flagged_in_source():
+    """F003: `todo!()` / `unimplemented!()` are owed work, not prose.
+
+    Measured at 27fb388 BEFORE the `_MACRO_STUB` rule existed:
+    `find_stubs("fn validate(u: &User) -> bool {\\n    todo!()\\n}\\n", "src/auth.rs") == []`
+    while the `# TODO: implement validation` control fired — so a Write that declared an
+    auth-validation body unfinished in the language's own syntax banked NOTHING in the
+    ledger and Stop-time reporting had nothing to resurface.
+
+    Paired both-states assertions, so the rule cannot be a silent word-matcher:
+      * the macro form fires in a .rs source file,
+      * the same construct inside a fenced block of a .md doc stays a MENTION, and
+      * a bare identifier / prose use of the word does NOT fire (no `!(` -> no match).
+    """
+    rust = "fn validate(u: &User) -> bool {\n    todo!()\n}\n"
+    assert [m for m, _ln, _s in stubscan.find_stubs(rust, "src/auth.rs")] == ["TODO!"]
+    unimpl = 'fn authorize(u: &User) -> bool {\n    unimplemented!("wire it")\n}\n'
+    assert [m for m, _ln, _s in stubscan.find_stubs(unimpl, "src/auth.rs")] == [
+        "UNIMPLEMENTED!"
+    ]
+
+    doc = "# Notes\n\nRust marks a gap like this:\n\n```rust\ntodo!()\n```\n"
+    assert stubscan.find_stubs(doc, "docs/notes.md") == []
+
+    # Word-shaped, not macro-shaped -> must stay silent (this is what keeps the rule from
+    # degenerating into `_WEAK` and flagging every identifier that contains "todo").
+    benign = "let todo_list = build_todo_list();\nfn todo_count() -> usize { 3 }\n"
+    assert stubscan.find_stubs(benign, "src/todo.rs") == []
+
+
 def test_missing_discriminator_fails_open(monkeypatch=None):
     """A broken import must fall back to the previous behaviour, never to silence."""
     orig = stubscan._discriminator

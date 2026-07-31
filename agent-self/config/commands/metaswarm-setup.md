@@ -249,7 +249,7 @@ Use the AskUserQuestion tool to ask ONLY the questions that are relevant based o
    - Options: "Yes (Recommended)", "No"
    - Header: "Hooks"
 
-6. **BEADS task tracking** — Ask ONLY if the `bd` CLI is available (check via `which bd` or `command -v bd` in Bash):
+6. **BEADS task tracking** — Ask ONLY if the `bd` CLI is available (detect it with the OS-appropriate CLI-presence probe defined in §4.4; a bare Bash lookup misses Windows `.cmd` shims):
    - "Set up BEADS task tracking for knowledge management?"
    - Options: "Yes", "No"
    - Header: "BEADS"
@@ -411,9 +411,16 @@ target/
 
 If the user chose YES for external AI tools:
 
-1. Check if Codex CLI is installed: run `which codex` via Bash
-2. Check if Gemini CLI is installed: run `which gemini` via Bash
-3. For any tool NOT installed, tell the user:
+**CLI-presence probe (use this for every CLI-installed check in this command).** Pick the probe by host OS — a Git-Bash `which` MISSES `.cmd`/`.bat`/`.ps1` shims, which is how npm installs a CLI on Windows, so `which` alone reports a working tool as absent:
+
+- **Windows** — `Get-Command <tool> -ErrorAction SilentlyContinue` in PowerShell (mandated by `rules/common/windows-shell.md` §8). Only if that also misses, fall back to Bash `command -v <tool>`.
+- **macOS / Linux** — `command -v <tool>` in Bash.
+
+Treat a tool as **installed** if EITHER probe resolves it. Only classify it as absent when the OS-appropriate probe above has been run and found nothing — never on a bare `which` miss.
+
+1. Check if Codex CLI is installed: run the CLI-presence probe for `codex`
+2. Check if Gemini CLI is installed: run the CLI-presence probe for `gemini`
+3. For any tool NOT installed **by that probe**, tell the user:
    - Codex: "Codex CLI is not installed. Install it with: `npm i -g @openai/codex`"
    - Gemini: "Gemini CLI is not installed. Install it with: `npm i -g @google/gemini-cli`"
    - Ask if the user wants you to install them now. If yes, run the install commands via Bash.

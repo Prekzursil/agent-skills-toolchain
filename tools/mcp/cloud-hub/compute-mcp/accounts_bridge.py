@@ -56,6 +56,17 @@ _PROVIDER_ENV = {
 }
 
 
+class UnknownAccountError(ValueError):
+    """An explicitly-named account does not exist for that provider.
+
+    Raised instead of returning ``{}``: an empty overlay used to leave the
+    AMBIENT credentials in place, so a typo (``account="wrok"``) silently
+    provisioned -- and billed -- as the default identity the caller had just
+    explicitly steered away from. Absence of the requested identity must never
+    degrade into a different identity.
+    """
+
+
 class ComputeAccounts:
     """Resolve a compute provider's credentials (active or a named account)."""
 
@@ -67,7 +78,12 @@ class ComputeAccounts:
         )
 
     def resolve_env(self, provider: str, account: str = "") -> dict[str, str]:
-        """Env dict for ``provider``'s active (or named) account, or ``{}``."""
+        """Env dict for ``provider``'s active (or named) account, or ``{}``.
+
+        Raises :class:`UnknownAccountError` when ``account`` is given but that
+        provider defines no such account -- never falls back to the ambient
+        credentials, which would run the call as the wrong identity.
+        """
         base = {
             k: self._environ[k]
             for k in _PROVIDER_ENV.get(provider, ())
@@ -79,13 +95,25 @@ class ComputeAccounts:
     def _account_env(self, provider: str, account: str) -> dict[str, str]:
         pol = self._policies.get(provider)
         if pol is None:
+            if account:
+                raise UnknownAccountError(
+                    f"no account store for provider {provider!r}, so account "
+                    f"{account!r} cannot be resolved"
+                )
             return {}
         if not account:
             return self._store.active_env(provider)
+        known: list[str] = []
         for acct in self._record(pol).get("accounts", []):
-            if acct.get("name") == account:
+            name = acct.get("name")
+            if name == account:
                 return accounts.resolve_env(acct.get("env", {}), self._environ)
-        return {}
+            if name:
+                known.append(str(name))
+        raise UnknownAccountError(
+            f"{provider}: no account named {account!r} "
+            f"(configured: {', '.join(sorted(known)) or 'none'})"
+        )
 
     def _record(self, pol) -> dict:
         """Stored record for a named lookup, else a seeded default (local)."""

@@ -38,7 +38,10 @@ class HarnessDispatcher:
         *,
         provider: str,
         event_name: str,
+        transport_error: str | None = None,
     ) -> HookResult:
+        # D010 parity with agent-self/harness/dispatcher.py: a pre-normalization
+        # wire failure still fails open, but must not be recorded as SUCCESS/ok.
         started = time.perf_counter()
         event = normalize_event(raw, provider=provider, event_name=event_name)
 
@@ -77,8 +80,8 @@ class HarnessDispatcher:
         reason_code = "ok"
         contexts: list[str] = []
         continuation: str | None = None
-        had_error = False
-        failed_modules: list[str] = []
+        had_error = bool(transport_error)
+        failed_modules: list[str] = [transport_error] if transport_error else []
 
         for module in self.modules:
             module_name = str(getattr(module, "name", module.__class__.__name__))
@@ -168,13 +171,16 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+    transport_error: str | None = None
     try:
         raw_text = sys.stdin.read()
         raw = json.loads(raw_text or "{}")
         if not isinstance(raw, dict):
             raw = {}
+            transport_error = "_transport:non_object_payload"
     except Exception:
         raw = {}
+        transport_error = "_transport:malformed_json"
 
     try:
         dispatcher = HarnessDispatcher(state_root=args.state_root)
@@ -182,6 +188,7 @@ def main(argv: list[str] | None = None) -> int:
             raw,
             provider=args.provider,
             event_name=args.event,
+            transport_error=transport_error,
         )
         native = render_output(result, provider=args.provider, event_name=args.event)
         if native or args.event in {"Stop", "SubagentStop"}:

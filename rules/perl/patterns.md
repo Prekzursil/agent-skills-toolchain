@@ -18,8 +18,9 @@ Use **DBI** or **DBIx::Class** behind an interface:
 package MyApp::Repo::User;
 use v5.36;    # REQUIRED: without it `($self, $id)` parses as a malformed prototype
 use Moo;
+use Types::Standard qw(InstanceOf);
 
-has dbh => (is => 'ro', required => 1);
+has dbh => (is => 'ro', isa => InstanceOf['DBI::db'], required => 1);
 
 sub find_by_id ($self, $id) {
     my $sth = $self->dbh->prepare('SELECT * FROM users WHERE id = ?');

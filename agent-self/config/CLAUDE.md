@@ -33,7 +33,9 @@ parallel([
 **Setup** (one-time):
 ```bash
 claude mcp add --scope user codex -- codex mcp-server
-# Mounts the official OpenAI MCP at ~/.claude/settings.json
+# Writes the registration into the "mcpServers" object of ~/.claude.json (the user-scope
+# config), NOT ~/.claude/settings.json — settings.json only carries permissions/plugins.
+# So verify/back up ~/.claude.json; see tools/mcpctl/mcpctl/sources.py (claude_json).
 # Takes effect on Claude restart
 ```
 

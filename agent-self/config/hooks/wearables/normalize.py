@@ -21,8 +21,16 @@ _TO_NM_FACTOR: dict[str, float] = {
     "nm": 1.0,
     "pm": 1e-3,
 }
-# p-scale (negative log10 molar) metric/unit tokens.
-_P_UNITS: frozenset[str] = frozenset({"pic50", "pki", "pec50", "pkd"})
+# p-scale (negative log10 molar) metric/unit tokens -> the LINEAR endpoint each
+# one measures. ``pKi`` and ``Ki`` are the same endpoint on two scales, so once a
+# value is reconciled to nM only the linear name identifies the measurement.
+_P_METRIC_TO_LINEAR: dict[str, str] = {
+    "pic50": "IC50",
+    "pki": "Ki",
+    "pec50": "EC50",
+    "pkd": "Kd",
+}
+_P_UNITS: frozenset[str] = frozenset(_P_METRIC_TO_LINEAR)
 
 
 class NormalizationError(ValueError):
@@ -60,6 +68,17 @@ def _is_p_unit(unit: str) -> bool:
     return _canon_unit(unit) in _P_UNITS
 
 
+def canonical_metric(metric: str) -> str:
+    """Return the LINEAR endpoint name a (possibly p-scale) ``metric`` names.
+
+    ``pKi`` -> ``Ki``, ``pIC50`` -> ``IC50``; any other token is returned
+    stripped but otherwise unchanged. Callers that must decide whether two rows
+    measure the SAME endpoint have to compare this, not the raw string —
+    ``pKi`` and ``Ki`` are one endpoint reported on two scales.
+    """
+    return _P_METRIC_TO_LINEAR.get(_canon_unit(metric), str(metric).strip())
+
+
 def normalize_datum(datum: Datum) -> Datum:
     """Return a new Datum with ``value``/``unit`` on the canonical nM scale.
 
@@ -74,7 +93,18 @@ def normalize_datum(datum: Datum) -> Datum:
         datum.unit_as_reported if datum.unit_as_reported is not None else datum.unit
     )
 
-    if _is_p_unit(datum.unit):
+    # ``metric`` and ``unit`` are two independent authorities on one measurement.
+    # A SOURCE-DECLARED unit governs what the number means and always wins. But
+    # ``pipeline._datum_from_fetch`` DEFAULTS a missing unit to "nM" while leaving
+    # ``unit_as_reported`` None, and that invented concentration unit must not
+    # outrank a p-scale METRIC: otherwise a payload of {"value": 6.0,
+    # "metric": "pIC50"} normalizes to 6.0 nM instead of 1000.0 nM (~167x wrong).
+    is_p_scale = _is_p_unit(datum.unit) or (
+        datum.unit_as_reported is None
+        and _canon_unit(datum.metric) in _P_METRIC_TO_LINEAR
+    )
+
+    if is_p_scale:
         canonical = nm_from_p(datum.value_as_reported)
     else:
         canonical = to_nm(datum.value_as_reported, datum.unit)

@@ -294,13 +294,100 @@ def main():
         HERE / "sessionstart-replay.py", {"cwd": proj, "source": "resume"}
     )
     ok_json = False
+    goal_suppressed = False
     try:
         payload = json.loads(out.strip().splitlines()[-1]) if out.strip() else {}
         ctx = payload.get("hookSpecificOutput", {}).get("additionalContext", "")
-        ok_json = "Event ledger" in ctx and "ship the ledger" in ctx
+        # "upgraded 1mcp" is the milestone appended above -- a DURABLE project row that is
+        # safe to share, so it proves real content is replayed, not just the header.
+        ok_json = "Event ledger" in ctx and "upgraded 1mcp" in ctx
+        # The goal is deliberately NOT replayed: build_context() dropped "goal" from the
+        # notable filter because ledger.state(cwd) has no session dimension, so replaying
+        # it hands one session whichever OTHER session wrote a goal last in the same cwd.
+        # This check used to assert the goal WAS injected -- it pinned the leak. Asserting
+        # its ABSENCE keeps the suite honest and gates the fix against regression.
+        goal_suppressed = "ship the ledger" not in ctx
     except Exception:
         ok_json = False
+        goal_suppressed = False
     check("replay injects ground-truth context", ok_json)
+    check("replay does not leak the per-session goal", goal_suppressed)
+
+    print("== deferred open threads survive recovery ==")
+    tproj = "C:/fake/projectThreads"
+    open_cli = subprocess.run(
+        [
+            sys.executable,
+            str(HERE / "note.py"),
+            "--kind",
+            "thread",
+            "--cwd",
+            tproj,
+            "--id",
+            "T-17",
+            "revisit parser after dependency lands",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    # Known-broken before this fix: KINDS carried no "thread", so the CLI exited 2 and a
+    # direct append silently downgraded the row to "note".
+    check("thread is a first-class annotation kind", "thread" in ledger.KINDS)
+    check("note CLI records a typed thread", open_cli.returncode == 0)
+    ledger.append(tproj, "note", text="freeform aside worth keeping")
+    check(
+        "open_threads projects exactly the deferred item",
+        [t.get("id") for t in (ledger.state(tproj).get("open_threads") or [])]
+        == ["T-17"],
+    )
+
+    def replay_ctx(project):
+        _, raw = run_hook(
+            HERE / "sessionstart-replay.py", {"cwd": project, "source": "compact"}
+        )
+        try:
+            return (
+                json.loads(raw.strip().splitlines()[-1])
+                .get("hookSpecificOutput", {})
+                .get("additionalContext", "")
+            )
+        except Exception:
+            return ""
+
+    ctx_open = replay_ctx(tproj)
+    # Known-broken before this fix: build_context replayed neither an open-thread
+    # projection nor note rows, so a deferred item was dropped from recovery context
+    # even though the injected header advertised "decisions/notes".
+    check("recovery replays the open thread", "T-17" in ctx_open)
+    check("recovery replays the note rows its header promises", "aside" in ctx_open)
+
+    close_cli = subprocess.run(
+        [
+            sys.executable,
+            str(HERE / "note.py"),
+            "--kind",
+            "thread",
+            "--cwd",
+            tproj,
+            "--id",
+            "T-17",
+            "--status",
+            "closed",
+            "parser revisited",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    # A reconciled projection, not another memory source: closing retires the row instead
+    # of appending a second one, so a settled item stops being replayed forever.
+    check(
+        "closing a thread retires it from the projection and from recovery",
+        close_cli.returncode == 0
+        and (ledger.state(tproj).get("open_threads") or []) == []
+        and "T-17" not in replay_ctx(tproj),
+    )
 
     print(
         f"\nRESULT: {'PASS' if not fails else 'FAIL: ' + ', '.join(fails)}  "

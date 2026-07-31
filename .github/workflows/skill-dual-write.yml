@@ -70,6 +70,13 @@ jobs:
       # generator carries forward declared-only compatibility names.
       - name: gate-skill-surface-manifest
         run: python ci/gen_skill_index.py --check --fail-on-drift
+      # The PUBLICATION index above and the human INVENTORY below are different
+      # documents: a skill can be routed in marketplace.json and still be absent from
+      # skills/SKILLS-MANIFEST.md, which is exactly what was measured (336 tracked
+      # skills, 160 rows, 176 false negatives on exact lookup). This step keeps the
+      # "auto-generated inventory" claim in that file's header true.
+      - name: gate-skills-manifest-inventory
+        run: python ci/gen_skills_manifest.py --check
       # `actions/checkout` does not create refs/remotes/origin/main; the three-dot
       # merge-base range needs it to exist.
       - name: gate-skill-dual-write fetch base

@@ -196,4 +196,8 @@ const validated: UserInput = userSchema.parse(input)
 
 - No `console.log` statements in production code
 - Use proper logging libraries instead
-- See hooks for automatic detection
+- Enforce with the linter (ESLint `no-console`), not with a hook: this pack ships
+  NO console detector. The two nominal entries in `hooks/hooks.json`
+  (`post:edit:console-warn`, `stop:check-console-log`) both shell out to
+  `${CLAUDE_PLUGIN_ROOT}/scripts/hooks/run-with-flags.js`, and `scripts/hooks/` is not
+  part of this repository, so they cannot run.

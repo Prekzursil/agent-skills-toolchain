@@ -97,7 +97,10 @@ def run_pipeline(
     target = resolve_target(target_query, transport)  # R
 
     try:
-        fetched = fetch_bioactivity(compound, transport)  # G
+        # target_id is LOAD-BEARING: the fetch chain keys on a compound cross-ID,
+        # so without it a provider payload for a DIFFERENT protein is accepted and
+        # then stamped below with this run's requested target.
+        fetched = fetch_bioactivity(compound, transport, target_id=target.uniprot)  # G
     except FetchError as exc:
         raise PipelineError(f"fetch stage exhausted: {exc}") from exc
 

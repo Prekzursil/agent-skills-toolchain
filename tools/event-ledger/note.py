@@ -34,10 +34,27 @@ def main() -> int:
         default=None,
         help="comma-separated failure seq numbers to tombstone",
     )
+    ap.add_argument(
+        "--id",
+        default=None,
+        help="stable thread id (--kind thread); defaults to seq:<n>",
+    )
+    ap.add_argument(
+        "--status",
+        default=None,
+        help=(
+            "thread status; one of "
+            f"{', '.join(ledger.THREAD_CLOSED_STATUSES)} retires it from the projection"
+        ),
+    )
     a = ap.parse_args()
     fields = {"text": a.text}
     if a.preconditions:
         fields["preconditions"] = a.preconditions
+    if a.id:
+        fields["id"] = a.id
+    if a.status:
+        fields["status"] = a.status
     if a.supersedes:
         try:
             fields["supersedes_failures"] = [

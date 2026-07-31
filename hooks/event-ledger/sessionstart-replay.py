@@ -60,6 +60,19 @@ def build_context(cwd: str) -> str | None:
         for f in open_fail[-8:]:
             pc = f" [if: {f['preconditions']}]" if f.get("preconditions") else ""
             lines.append(f"- (#{f.get('seq')}) {f.get('text')}{pc}")
+    # Open/deferred threads. These come from the RECONCILED projection, so a thread closed
+    # with `--status closed` disappears here instead of replaying forever. Before this
+    # existed a deferred item had no typed home and had to be filed as a generic note --
+    # which the notable filter below silently excluded, so "revisit X after Y lands"
+    # vanished on every compact/resume/clear.
+    open_threads = st.get("open_threads") or []
+    if open_threads:
+        lines.append(
+            "**Open threads (deferred — still owed; retire with "
+            "`note.py --kind thread --id <id> --status closed`):**"
+        )
+        for t in open_threads[-8:]:
+            lines.append(f"- ({t.get('id')}) {t.get('text')}")
     # HEAD drift check
     rec_head = st.get("head")
     live = _live_head(cwd)
@@ -73,9 +86,18 @@ def build_context(cwd: str) -> str | None:
         e for e in events if e.get("kind") in ("decision", "failure", "milestone")
     ][-10:]
     if notable:
-        lines.append("**Recent decisions/notes:**")
+        lines.append("**Recent decisions:**")
         for e in notable:
             lines.append(f"- [{e.get('kind')}] {e.get('text', '')}")
+    # The header above used to read "decisions/notes" while the filter excluded `note` --
+    # a self-contradicting output that dropped every row written with note.py's DEFAULT
+    # kind. Notes get their own bounded line so high-volume notes cannot evict the
+    # decisions/failures above (both lists are capped independently).
+    notes = [e for e in events if e.get("kind") == "note"][-5:]
+    if notes:
+        lines.append("**Recent notes:**")
+        for e in notes:
+            lines.append(f"- [note] {e.get('text', '')}")
     turns = [e for e in events if e.get("kind") == "turn"][-MAX_TURNS:]
     if turns:
         first, last = turns[0], turns[-1]

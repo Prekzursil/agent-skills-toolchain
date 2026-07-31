@@ -1,9 +1,15 @@
 #!/usr/bin/env python
 """goal-reinject/reinject.py — PreToolUse hook: anti-tunnel-vision goal re-injection.
 
-Every N write-ops (N=8, configurable via GOAL_REINJECT_INTERVAL env var) AND only
+Every N TURNS (N=8, configurable via GOAL_REINJECT_INTERVAL env var) AND only
 when a goal has been recorded in the event ledger for this project, this hook injects
 an additionalContext message that re-anchors the agent to its stated goal.
+
+"Turn" = one PreToolUse event, whatever the tool. It deliberately does NOT mean
+"write-op": AGENTS.md §2 states the cadence as "Every N turns", and counting only
+Edit/Write/Bash left the gap unbounded — a session that reads, searches, browses or
+drives MCP tools for hundreds of turns never advanced the counter and never re-anchored,
+which is precisely the long research/monitoring lane where drift is worst.
 
 Why: "drift" causes 65% of 2025 agent failures (per research synthesis). Verbatim
 re-injection of the goal every N turns is the evidence-backed fix (ReflAct +27.7%).
@@ -70,17 +76,16 @@ def main() -> int:
     except Exception:
         return 0
 
-    # Only count write-class tools (Edit, Write, Bash). The matcher in settings.json
-    # already limits delivery, but we guard here too for defensiveness.
-    tool = data.get("tool_name", "")
-    if tool not in ("Edit", "Write", "Bash"):
+    # Count EVERY turn, not just write-class tools. A tool_name is still required so a
+    # malformed / non-tool event cannot advance the cadence.
+    if not str(data.get("tool_name") or "").strip():
         return 0
 
     # Derive a stable session identifier from the session_id field (or a fallback).
     session_id = str(data.get("session_id") or data.get("cwd") or "unknown")
     cwd = str(data.get("cwd") or ".")
 
-    # Increment the write-op counter.
+    # Increment the per-turn counter.
     count = _read_count(session_id) + 1
     _write_count(session_id, count)
 
@@ -108,7 +113,7 @@ def main() -> int:
 
     if need_falsify:
         pieces.append(
-            "FALSIFY-CHECK (many edits in — guard against a wrong anchor): state your "
+            "FALSIFY-CHECK (many turns in — guard against a wrong anchor): state your "
             "current load-bearing assumption in one line, and the single cheapest test "
             "that would PROVE IT WRONG. If you've relied on it for many steps with no "
             "INDEPENDENT check, invoke the `fresh-context-verify` skill — re-derive it in "

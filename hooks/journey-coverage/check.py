@@ -12,8 +12,16 @@ External signals (neither authored by the model in-context):
   1. the set of journey/E2E spec FILES on disk (a fact of the repo), and
   2. the claim-guard Bash-exit ledger (the ok=true commands run THIS turn).
 A journey is "covered" iff an ok=true command this turn ran it (by path/basename) or
-was a broad e2e runner (playwright/cypress/`npm run e2e`/vitest/jest e2e) that runs
+INVOKED a broad e2e runner (playwright/cypress/`npm run e2e`/vitest/jest e2e) that runs
 all specs. On a "done" claim with uncovered journeys, inject a warning naming them.
+
+SCOPE (what an ok=true command can and cannot prove): the ledger records only the
+command text, its exit code and ok — no test report, trace, screenshot or axe result.
+So this gate attests that a runner was INVOKED, never that the browser rendered, that
+the assertions passed, or anything about accessibility or visual finish (see the
+`ui-audit` / `packaged-artifact-smoke` skills for those). Within that remit it rejects
+the two ways command text lied: a runner name merely MENTIONED (`printf 'npx
+playwright test'`) and a real runner in a NON-RUNNING mode (`npx playwright install`).
 
 Modes (JOURNEY_COVERAGE_MODE): "warn" (default) | "off" | "block". Block exits 2
 ONLY for a done-claim with uncovered journeys; warn/off never block. FAIL-OPEN:
@@ -70,13 +78,74 @@ _SPEC_GLOBS = (
     "**/cypress/e2e/**/*.cy.*",
     "**/tests/e2e/**/*.py",
     "**/playwright/**/*.spec.*",
+    # Flutter: `integration_test/` is the on-device journey mechanism, and
+    # rules/dart/testing.md:26,204-207 prescribes exactly this layout
+    # (integration_test/flows/login_flow_test.dart). Without it a Flutter app
+    # reads as "no declared journeys" and the gate returns silently.
+    "**/integration_test/**/*.dart",
 )
 # A command that runs ALL specs (so it covers every journey) even without naming one.
+# Every alternative names a real RUN subcommand. A bare ``npx\s+playwright`` used to sit
+# here and matched setup/diagnostic subcommands that start no test at all.
 _BROAD_E2E = re.compile(
-    r"\b(?:playwright\s+test|cypress\s+run|npm\s+run\s+e2e|pnpm\s+e2e|yarn\s+e2e|"
-    r"npx\s+playwright|vitest\s+run.*e2e|jest.*e2e|pytest\s+-m\s+e2e|nightwatch)\b",
+    r"\b(?:playwright(?:@\S+)?\s+test|cypress\s+run|npm\s+run\s+e2e|pnpm\s+e2e|"
+    r"yarn\s+e2e|vitest\s+run.*e2e|jest.*e2e|pytest\s+-m\s+e2e|nightwatch|"
+    # Flutter device-test runners that execute the whole integration_test/ dir.
+    # A bare `flutter test` (the unit/widget suite) deliberately does NOT match.
+    r"flutter\s+test\s+integration_test|flutter\s+drive)\b",
     re.IGNORECASE,
 )
+# Runner invocations that install, inspect or report but execute NO test.
+_NON_RUN = re.compile(
+    r"\b(?:playwright|cypress)\s+"
+    r"(?:install(?:-deps)?|uninstall|codegen|open|show-report|merge-reports|"
+    r"clear-cache|info|verify|cache)\b"
+    r"|--(?:version|help|list)(?![\w-])",
+    re.IGNORECASE,
+)
+# Heads whose argv is only PRINTED or SEARCHED: a runner name there is a mention, not
+# an invocation — ``printf 'npx playwright test'`` exits 0 and runs no browser.
+_TEXT_ONLY_HEADS = frozenset(
+    {
+        "echo",
+        "printf",
+        "cat",
+        "bat",
+        "grep",
+        "egrep",
+        "fgrep",
+        "rg",
+        "ack",
+        "head",
+        "tail",
+        "sed",
+        "awk",
+        "less",
+        "more",
+        "tee",
+        "true",
+        ":",
+    }
+)
+# Heads that EXECUTE their quoted argument, so quoted text there IS a real command.
+_SHELL_WRAPPERS = frozenset(
+    {
+        "bash",
+        "sh",
+        "zsh",
+        "dash",
+        "ksh",
+        "pwsh",
+        "powershell",
+        "cmd",
+        "env",
+        "timeout",
+        "xvfb-run",
+    }
+)
+_QUOTED = re.compile(r"'[^']*'|\"[^\"]*\"")
+_SEGMENT = re.compile(r"&&|\|\||[;|\n]")
+_ASSIGNMENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=")
 # Dirs never worth scanning for journeys.
 _SKIP_DIRS = {
     "node_modules",
@@ -123,20 +192,56 @@ def _names(cmd: str, spec_rel: str) -> bool:
     return spec_rel in cmd or base in cmd or (len(stem) >= 4 and stem in cmd)
 
 
+def _head(segment: str) -> str:
+    """The executable token of one command segment, past leading ``VAR=val`` prefixes."""
+    for tok in segment.split():
+        if _ASSIGNMENT.match(tok):
+            continue
+        return tok.strip("\"'").replace("\\", "/").rsplit("/", 1)[-1].lower()
+    return ""
+
+
+def is_broad_run(cmd: str) -> bool:
+    """True iff ``cmd`` actually INVOKES an all-specs e2e runner (pure).
+
+    Closes two false-green classes the bare pattern admitted. *Mention-not-use*: the
+    runner name only printed or searched as text (``printf 'npx playwright test'``,
+    ``grep 'playwright test' notes.md``) executes nothing. *Non-running subcommand*:
+    ``npx playwright install|codegen|show-report|--version|--list`` starts no test.
+    Each shell segment is judged on its own, so ``npm ci && npx playwright test`` and
+    ``npx playwright test | tee log`` still count.
+    """
+    for seg in _SEGMENT.split(cmd):
+        if not seg.strip():
+            continue
+        head = _head(seg)
+        if head in _TEXT_ONLY_HEADS:
+            continue  # the runner name here is data, not an invocation
+        # A quoted literal is data unless the head executes it (``bash -c "..."``).
+        bare = seg if head in _SHELL_WRAPPERS else _QUOTED.sub(" ", seg)
+        if _NON_RUN.search(bare):
+            continue
+        if _BROAD_E2E.search(bare):
+            return True
+    return False
+
+
 def uncovered_journeys(specs: list[str], ok_cmds: list[str]) -> list[str]:
     """Journeys with NO ok=true run this turn (pure — the testable core).
 
     Per command: one that NAMES specific spec(s) covers only those; a BROAD e2e
     runner that names none (a bare all-specs run) covers every journey. So a
     targeted ``playwright test <spec>`` never masks the OTHER journeys, while a
-    bare ``playwright test`` / ``npm run e2e`` covers the whole set.
+    bare ``playwright test`` / ``npm run e2e`` covers the whole set. ``is_broad_run``
+    (not a raw substring match) decides the second case, so a merely-mentioned or
+    non-running runner name cannot silently cover the whole set.
     """
     covered: set[str] = set()
     for cmd in ok_cmds:
         named = [s for s in specs if _names(cmd, s)]
         if named:
             covered.update(named)
-        elif _BROAD_E2E.search(cmd):
+        elif is_broad_run(cmd):
             covered.update(specs)
     return [s for s in specs if s not in covered]
 
@@ -229,9 +334,13 @@ def main() -> int:
             "exists but was never executed is the classic green-but-broken blind spot. "
             "Run them (and show the real artifact) before calling the app done."
         )
-        if MODE == "block":
-            sys.stderr.write(msg + "\n")
-            return 2
+        # Emit the inject-only JSON in EVERY firing mode, block included. This hook is
+        # registered through _dispatch/manifest.json, and that dispatcher aggregates
+        # stdout additionalContext while discarding the return code — so a block-mode
+        # finding that only wrote stderr + `return 2` reached nobody: exit 2 was
+        # dropped and the model never saw the message. Standalone, Claude Code ignores
+        # stdout when a hook exits 2 and uses stderr, so printing here is inert there
+        # and load-bearing under the dispatcher.
         print(
             json.dumps(
                 {
@@ -242,6 +351,9 @@ def main() -> int:
                 }
             )
         )
+        if MODE == "block":
+            sys.stderr.write(msg + "\n")
+            return 2
         return 0
     except Exception:  # noqa: BLE001 - fail-open: a crashing gate is worse than none
         return 0

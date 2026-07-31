@@ -86,8 +86,17 @@ def _run(
 # ── event factories ────────────────────────────────────────────────────────────
 
 
-def _turn(seq: int, cwd: str = "/fake/proj") -> dict:
-    return {"seq": seq, "ts": "2026-01-01T00:00:00", "kind": "turn", "cwd": cwd}
+def _turn(seq: int, cwd: str = "/fake/proj", session: str | None = None) -> dict:
+    """A legacy turn row.
+
+    ``session`` mirrors what ``event-ledger/stop-hook.py:112`` really writes
+    (``str(session_id)[:12]``).  Left absent by default so the pre-existing cases
+    keep exercising unattributed rows.
+    """
+    ev = {"seq": seq, "ts": "2026-01-01T00:00:00", "kind": "turn", "cwd": cwd}
+    if session is not None:
+        ev["session"] = session
+    return ev
 
 
 def _milestone(seq: int) -> dict:
@@ -148,6 +157,41 @@ def test_stalled_injects_rederive(tmp_path):
     assert "RE-DERIVE" in ctx
     assert "assumption" in ctx.lower()
     assert "next step" in ctx.lower()
+
+
+def test_other_sessions_turns_do_not_stall_a_new_session(tmp_path):
+    """A frozen tail written by OTHER sessions must not stall a fresh session.
+
+    The event ledger is sharded per PROJECT, so ``_load_events`` returns the last k
+    events regardless of who wrote them.  Before session scoping, a new session's
+    FIRST tool call in a project whose historical tail happened to be quiet was
+    declared STALLED even though that session had churned nothing.  Measured on the
+    live ledger: 16 of 166 shards satisfied the old predicate, two of them
+    aggregating 8 and 4 DISTINCT sessions inside one window.
+    """
+    cwd = "/fake/proj"
+    events = [_turn(i, cwd, session="olddeadbeef1") for i in range(1, 6)]
+    _write_ledger(tmp_path / "ledger", cwd, events)
+    r = _run(tmp_path, "pretooluse", {"session_id": "brand-new-session", "cwd": cwd})
+    assert r.returncode == 0
+    assert r.stdout.strip() == "", (
+        "a tail written entirely by other sessions must not stall a new session; "
+        f"got: {r.stdout!r}"
+    )
+
+
+def test_own_sessions_turns_still_stall(tmp_path):
+    """Positive control: session scoping must not simply disable the stall rule."""
+    cwd = "/fake/proj"
+    session_id = "s_own_stallXYZ"  # the writer stores only the first 12 chars
+    events = [_turn(i, cwd, session=session_id[:12]) for i in range(1, 6)]
+    _write_ledger(tmp_path / "ledger", cwd, events)
+    r = _run(tmp_path, "pretooluse", {"session_id": session_id, "cwd": cwd})
+    assert r.returncode == 0
+    assert r.stdout.strip() != "", "own-session churn must still produce a stall inject"
+    ctx = json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"]
+    assert "RE-DERIVE" in ctx
+    assert "5 turns" in ctx, f"turn count must reflect only this session's turns: {ctx}"
 
 
 def test_looping_fp_injects_terminal(tmp_path):

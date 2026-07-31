@@ -221,8 +221,10 @@ def test_claude_build_hooks_folds_in_live_settings_hand_edits():
         assert (hook["timeout"], hook["statusMessage"]) == (timeout, status)
 
 
-def test_cli_malformed_input_is_fail_open_and_never_emits_suppress_output(tmp_path):
+def _run_cli(tmp_path, payload, *, event="PreToolUse", state="state"):
+    """Drive the dispatcher CLI over real stdin and return (completed, terminals)."""
     script = Path(__file__).resolve().parents[1] / "dispatcher.py"
+    root = tmp_path / state
     completed = subprocess.run(
         [
             sys.executable,
@@ -230,20 +232,85 @@ def test_cli_malformed_input_is_fail_open_and_never_emits_suppress_output(tmp_pa
             "--provider",
             "codex",
             "--event",
-            "PreToolUse",
+            event,
             "--state-root",
-            str(tmp_path / "state"),
+            str(root),
         ],
-        input="not-json",
+        input=payload,
         text=True,
         capture_output=True,
-        timeout=5,
+        timeout=15,
     )
+    log = root / "terminal.jsonl"
+    records = [
+        json.loads(line)
+        for line in (
+            log.read_text(encoding="utf-8").splitlines() if log.exists() else []
+        )
+        if line.strip()
+    ]
+    return completed, records
 
+
+def test_cli_malformed_input_is_fail_open_and_never_emits_suppress_output(tmp_path):
+    completed, records = _run_cli(tmp_path, "not-json")
+
+    # Fail-open on the wire is deliberate: the host must never be blocked or
+    # crashed by a payload the harness could not parse.
     assert completed.returncode == 0
     assert "suppressOutput" not in completed.stdout
     if completed.stdout.strip():  # pragma: no cover
         json.loads(completed.stdout)
+
+    # D010 · but exit 0 alone must NOT pass. The durable record has to say the
+    # invocation failed internally, otherwise a promotion/smoke oracle grades a
+    # silently-lost hook invocation as green.
+    assert len(records) == 1
+    record = records[0]
+    assert record["terminal"] == "FAILED:hook-pretooluse"
+    assert record["reason_code"] == "internal_error"
+    assert record["action"] == "allow"
+    assert record["failed_modules"] == ["_transport:malformed_json"]
+
+
+def test_cli_non_object_payload_is_recorded_as_an_internal_failure(tmp_path):
+    # Syntactically valid JSON that is not an object is the same class of wire
+    # failure: the modules run over {} and observe nothing the host sent.
+    completed, records = _run_cli(tmp_path, "[1, 2, 3]")
+
+    assert completed.returncode == 0
+    assert [r["terminal"] for r in records] == ["FAILED:hook-pretooluse"]
+    assert records[0]["failed_modules"] == ["_transport:non_object_payload"]
+
+
+@pytest.mark.parametrize("payload", ["", '{"tool_name": "Bash"}'])
+def test_cli_parsable_payload_still_records_success(tmp_path, payload):
+    # KNOWN-NEGATIVE control for the two assertions above: empty stdin is normal
+    # for several hosts and a well-formed object is the happy path, so neither
+    # may be demoted to FAILED by the transport guard.
+    completed, records = _run_cli(tmp_path, payload)
+
+    assert completed.returncode == 0
+    assert [r["terminal"] for r in records] == ["SUCCESS:hook-pretooluse"]
+    assert records[0]["reason_code"] == "ok"
+    assert records[0]["failed_modules"] == []
+
+
+def test_dispatch_transport_error_is_named_in_the_terminal_record(tmp_path):
+    # Unit-level twin of the CLI tests: the classification lives in dispatch(),
+    # so it is available to any embedder, not only the argv entrypoint.
+    dispatcher = HarnessDispatcher(modules=[], state_root=tmp_path / "state")
+    result = dispatcher.dispatch(
+        {},
+        provider="codex",
+        event_name="Stop",
+        transport_error="_transport:malformed_json",
+    )
+
+    assert result.action == "allow"
+    assert result.status == "FAILED:hook-stop"
+    assert result.reason_code == "internal_error"
+    assert result.additional_context == []
 
 
 def test_every_registered_provider_event_has_valid_native_wire_output(tmp_path):

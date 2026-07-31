@@ -298,7 +298,11 @@ class LedgerModule:
                 "tool_result",
                 dedupe_key=unique,
                 provider=event.provider,
-                turn_id=event.turn_id,
+                # evidence_turn_id, not the raw turn_id: a host that sends no turn_id
+                # (every Claude event -- it sends prompt_id) would otherwise store this
+                # receipt with turn_id="", which has_verification treats as "belongs to
+                # every turn", so it would substantiate a CONCURRENT session's claim.
+                turn_id=event.evidence_turn_id,
                 tool=event.tool.name,
                 result_hash=_digest(event.tool.result),
                 verified=_verified_result(event.tool.result),
@@ -611,8 +615,20 @@ class AntiDegenerationModule:
 
 class ClaimWarningModule:
     name = "claim_warning"
+    # Assertive lint-success language, kept tight (the verb must follow the noun, so
+    # "lint should pass" / "lint is not clean" do NOT match). Mirrors the same
+    # addition in agent-self/harness/modules.py: without it a lint-only completion
+    # claim reached Stop unwarned, because hooks/honest-signal/check.py:100-108
+    # DEFERS lint claims to hooks/claim-guard/claim-check.py -- which is registered
+    # in no surface at all.
+    _LINT_CLAIM = (
+        r"\blint(?:ing)?\s+(?:passes|passed|is\s+clean|is\s+green|succeeds)\b"
+        r"|\blint(?:er)?\s+(?:checks?\s+)?(?:pass(?:es|ed)?|clean)\b"
+        r"|\bno\s+lint(?:ing)?\s+(?:errors|warnings)\b"
+    )
     _CLAIM = re.compile(
-        r"(?i)\b(?:all tests pass(?:ed)?|everything (?:is )?(?:fixed|working)|fully working|complete[d]?|fixed|resolved|done)\b"
+        r"(?i)(?:\b(?:all tests pass(?:ed)?|everything (?:is )?(?:fixed|working)|fully working|complete[d]?|fixed|resolved|done)\b"
+        r"|" + _LINT_CLAIM + r")"
     )
 
     def __init__(self, ledger: EventLedger):
@@ -621,7 +637,9 @@ class ClaimWarningModule:
     def run(self, event: HookEvent) -> HookResult:
         if event.event != "Stop" or not self._CLAIM.search(event.last_assistant_message):
             return HookResult.success()
-        if self.ledger.has_verification(event.cwd, event.turn_id):
+        # evidence_turn_id so an event the host gave no turn_id still asks "did MY
+        # session prove this?" rather than "did anyone in this project prove this?".
+        if self.ledger.has_verification(event.cwd, event.evidence_turn_id):
             return HookResult.success()
         return HookResult.success(
             action="inject",

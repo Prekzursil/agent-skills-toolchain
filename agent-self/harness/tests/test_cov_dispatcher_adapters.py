@@ -300,8 +300,12 @@ class _StubDispatcher:
     def __init__(self, *, state_root=None):
         self.state_root = state_root
 
-    def dispatch(self, raw, *, provider, event_name):
-        _StubDispatcher.last = (raw, provider, event_name)
+    def dispatch(self, raw, *, provider, event_name, transport_error=None):
+        # D010 · the stub mirrors the real signature so these wiring tests also
+        # pin WHICH transport classification main() forwards. Without the
+        # parameter the real call would TypeError into main's fail-open except
+        # branch and every assertion below would silently measure nothing.
+        _StubDispatcher.last = (raw, provider, event_name, transport_error)
         return HookResult.success()
 
 
@@ -322,6 +326,7 @@ def test_main_reads_dict_stdin_and_writes_native_for_terminal_event(
     )
     assert rc == 0
     assert _StubDispatcher.last[0] == {"session_id": "s"}
+    assert _StubDispatcher.last[3] is None  # a parsable object is not a failure
     assert json.loads(capsys.readouterr().out) == {"systemMessage": "hi"}
 
 
@@ -343,6 +348,7 @@ def test_main_coerces_non_dict_stdin_to_empty(monkeypatch, capsys, tmp_path):
     )
     assert rc == 0
     assert _StubDispatcher.last[0] == {}
+    assert _StubDispatcher.last[3] == "_transport:non_object_payload"
     assert json.loads(capsys.readouterr().out) == {}
 
 
@@ -356,6 +362,7 @@ def test_main_bad_json_stdin_fails_open_to_empty(monkeypatch, capsys, tmp_path):
     )
     assert rc == 0
     assert _StubDispatcher.last[0] == {}
+    assert _StubDispatcher.last[3] == "_transport:malformed_json"
     assert capsys.readouterr().out == ""
 
 

@@ -20,6 +20,19 @@ being open — mirrors mcp_doctor's _mcp_handshake_ok so a dead-but-listening co
 is caught. We deliberately do NOT call search_notes (it triggers a ~7s embed-model
 load); `initialize` answers in well under a second.
 
+BUT a handshake alone is monitoring the PROMISE, not the capability: an init-only
+listener, or a DIFFERENT MCP server that grabbed :8765, answers `initialize` and is
+then reported "up" while the memory tools do not exist. So the initialize RESULT is
+also asserted to advertise a `tools` capability (`serves_tools`) — free, same
+request, no extra round-trip and no embed-model load. That assertion is
+one-directional: only a decoded result whose `capabilities` map lacks `tools`
+demotes the verdict to dead-listening. An undecodable body or a streamable-http
+session status (400/405/...) is INCONCLUSIVE and stays "up", so the added check can
+never manufacture a false DOWN. Per-server opt-out: `"require_tools": false`.
+NOT covered, and deliberately so: a write/read canary proving a DURABLE memory
+transaction — that has a side effect on the vault on every session start, so it is
+an owner decision, not a silent addition here.
+
 re-harness RE daemons (IDA/Ghidra/...) are checked ONLY when registered in the
 harness registry (so no noise when not doing RE) and are REPORT-ONLY (restart hint,
 never auto-killed here).
@@ -114,6 +127,17 @@ def mcp_handshake(url: str, timeout: float):
             False -> TCP answered but it is NOT MCP (dead-but-listening corpse).
             None  -> unreachable.
     """
+    return handshake_detail(url, timeout)[0]
+
+
+def handshake_detail(url: str, timeout: float):
+    """`mcp_handshake` plus the decoded JSON-RPC object, for semantic checks.
+
+    Returns ``(spoke_mcp, obj)`` where ``spoke_mcp`` is the tri-state above and
+    ``obj`` is the parsed initialize response when one could be decoded, else None.
+    A caller must treat ``obj is None`` as INCONCLUSIVE (see ``serves_tools``) —
+    a streamable-http session handshake answers 400/405 with no body at all.
+    """
     payload = json.dumps(
         {
             "jsonrpc": "2.0",
@@ -140,14 +164,14 @@ def mcp_handshake(url: str, timeout: float):
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             body = resp.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as exc:
-        return True if exc.code in _HANDSHAKE_CODES else False
+        return (True, None) if exc.code in _HANDSHAKE_CODES else (False, None)
     except (urllib.error.URLError, OSError, socket.timeout):
-        return None
+        return None, None
     except Exception:
         # Malformed/non-HTTP response from a corpse on the port -> TCP is up but
         # this does not speak MCP. Caller (TCP already confirmed up) reads None as
         # dead-but-listening, which is the correct classification.
-        return None
+        return None, None
     # Parse application/json or SSE ("data: {json}")
     try:
         obj = None
@@ -158,10 +182,44 @@ def mcp_handshake(url: str, timeout: float):
                 break
         if obj is None:
             obj = json.loads(body)
-        return isinstance(obj, dict) and ("result" in obj or "error" in obj)
+        spoke = isinstance(obj, dict) and ("result" in obj or "error" in obj)
+        return spoke, (obj if isinstance(obj, dict) else None)
     except Exception:
         # Server answered with a body but it isn't JSON-RPC — still "spoke" over MCP.
-        return True
+        return True, None
+
+
+def serves_tools(obj, spec: dict):
+    """Did the initialize RESULT prove this server actually exposes tools?
+
+    "TCP is up and it answered initialize" does NOT establish that the endpoint is
+    the tool-serving keystone: an init-only listener, or a DIFFERENT MCP server that
+    grabbed the port, answers initialize happily and then has no tool surface at all
+    — the false green this guard exists to kill.
+
+    Only a POSITIVE contradiction demotes the verdict. An absent/undecodable body,
+    or a result that carries no ``capabilities`` map, is INCONCLUSIVE and stays "up"
+    so a streamable-http session handshake can never manufacture a false DOWN.
+
+    Returns ``(ok, why_not)``.
+    """
+    if not spec.get("require_tools", True):
+        return True, ""
+    if not isinstance(obj, dict):
+        return True, ""
+    result = obj.get("result")
+    if not isinstance(result, dict):
+        return True, ""
+    caps = result.get("capabilities")
+    if not isinstance(caps, dict):
+        return True, ""
+    if "tools" in caps:
+        return True, ""
+    info = result.get("serverInfo")
+    who = ""
+    if isinstance(info, dict) and info.get("name"):
+        who = f" (serverInfo.name={str(info['name'])!r})"
+    return False, f"handshake advertises NO `tools` capability{who}"
 
 
 def probe_critical(name: str, spec: dict, cfg: dict) -> dict:
@@ -181,13 +239,16 @@ def probe_critical(name: str, spec: dict, cfg: dict) -> dict:
             "url": url,
             "why": spec.get("why", ""),
         }
-    hs = mcp_handshake(url, hs_t)
-    state = "up" if hs else "dead-listening"
+    hs, obj = handshake_detail(url, hs_t)
+    tools_ok, mismatch = serves_tools(obj, spec) if hs else (False, "")
+    state = "up" if (hs and tools_ok) else "dead-listening"
     return {
         "name": name,
         "state": state,
         "tcp": True,
         "mcp_ok": bool(hs),
+        "tools_ok": bool(hs) and tools_ok,
+        "mismatch": mismatch,
         "url": url,
         "why": spec.get("why", ""),
     }
@@ -299,11 +360,15 @@ def format_alert(down: list, reharness_down: list, restarted: bool) -> str:
     parts = []
     for d in down:
         if d["name"] == "basic-memory":
-            verb = (
-                "DOWN"
-                if d["state"] == "down"
-                else "DEAD-but-LISTENING (corpse on the port)"
-            )
+            if d["state"] == "down":
+                verb = "DOWN"
+            elif d.get("mismatch"):
+                # Handshake succeeded but the endpoint has no tool surface: the
+                # false-green case. Name it, or the operator hunts a crash that
+                # never happened.
+                verb = f"WRONG SERVER on the port - {d['mismatch']}"
+            else:
+                verb = "DEAD-but-LISTENING (corpse on the port)"
             parts.append(
                 f"WARNING: basic-memory {verb} - memory is NOT being saved and "
                 f"recall is UNRELIABLE. "

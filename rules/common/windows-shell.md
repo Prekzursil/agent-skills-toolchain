@@ -1,6 +1,13 @@
 # Windows-Shell Footguns (non-negotiables)
 
-Cross-tool rule read by Claude Code · Codex CLI · Antigravity (agy). This box is
+Cross-tool rule. Claude Code loads it automatically once `rules/common/` is installed
+under `~/.claude/rules/`. **Codex CLI and Antigravity (agy) do NOT — they read their own
+instruction files, not `~/.claude/rules/`,** so each needs the one-time pointer in
+[`rules/README.md`](../README.md#codex-cli). Do not assume Codex has read this: the
+codex-orchestrator bootstrap REPLACES `$CODEX_HOME/AGENTS.md` on every
+`cli.mjs install`/`update`
+(`tools/mcp/codex-orchestrator/integrations/codex/bootstrap.mjs:704`), so the pointer
+must be re-applied afterwards. This box is
 Windows 11 with two shells in play — **PowerShell 7** (primary) and **Git Bash / MSYS**
 (POSIX). Each has a silent-data-loss trap. All five below are LEDGER-PROVEN — every one
 cost real damage (a full save wipe, broken CI scripts, mangled release refs). Treat them

@@ -10,9 +10,12 @@ a concrete ``FakeSandbox`` for the file/exec behaviour that needs real values).
 
 from __future__ import annotations
 
+import asyncio
+import inspect
 import json
 import os
 import sys
+import threading
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -264,21 +267,96 @@ def test_run_cli_profile_resolution_error(monkeypatch):
     assert res["ok"] is False and "MODAL_TOKEN_ID_GHOST" in res["error"]
 
 
-def test_run_cli_stream_bounded(monkeypatch):
+class _FakePopen:
+    """A streaming child: finite stdout, a recorded signal log, a returncode.
+
+    ``ignore_terminate`` models a child that survives SIGTERM -- ``wait()`` then
+    raises ``TimeoutExpired`` until ``kill()`` has been called.
+    """
+
+    def __init__(self, lines, rc=0, ignore_terminate=False):
+        self.stdout = iter(lines)  # iter(): a generator must NOT be drained here
+        self._rc = rc
+        self._ignore_terminate = ignore_terminate
+        self.signals: list[str] = []
+        self.waits = 0
+
+    def terminate(self):
+        self.signals.append("terminate")
+
+    def kill(self):
+        self.signals.append("kill")
+        self._ignore_terminate = False
+
+    def wait(self, timeout=None):
+        self.waits += 1
+        if self._ignore_terminate:
+            raise _c.subprocess.TimeoutExpired("modal", timeout)
+        return self._rc
+
+    def poll(self):
+        return None if self._ignore_terminate else self._rc
+
+
+def _stream_with(monkeypatch, proc, **kwargs):
     monkeypatch.setattr(_c.shutil, "which", lambda _: "/usr/bin/modal")
+    monkeypatch.setattr(_c.subprocess, "Popen", lambda *a, **k: proc)
+    return _c.run_cli_stream("app", "logs", "x", **kwargs)
 
-    class FakePopen:
-        def __init__(self, *a, **k):
-            self.stdout = ["line-1\n", "line-2\n"]
 
-        def terminate(self):
-            pass
-
-    monkeypatch.setattr(_c.subprocess, "Popen", FakePopen)
-    res = _c.run_cli_stream("app", "logs", "x", timeout=5)
+def test_run_cli_stream_bounded(monkeypatch):
+    proc = _FakePopen(["line-1\n", "line-2\n"])
+    res = _stream_with(monkeypatch, proc, timeout=5)
     assert res["ok"] is True
     assert res["output"] == "line-1\nline-2"
     assert res["truncated"] is False
+    assert res["returncode"] == 0
+    # The child must be REAPED, not merely signalled (else it lingers as a zombie).
+    assert proc.waits >= 1
+
+
+def test_run_cli_stream_nonzero_exit_is_not_ok(monkeypatch):
+    """A child that printed an error and exited nonzero must NOT report ok=True."""
+    proc = _FakePopen(["Error: app not found\n"], rc=7)
+    res = _stream_with(monkeypatch, proc, timeout=5)
+    assert res["truncated"] is False
+    assert res["returncode"] == 7
+    assert res["ok"] is False
+    assert res["output"] == "Error: app not found"
+
+
+def test_run_cli_stream_terminate_ignored_escalates_to_kill(monkeypatch):
+    """A child that survives SIGTERM is SIGKILLed and reaped before returning."""
+    released = threading.Event()
+
+    def _never_ending():
+        yield "READY\n"
+        released.wait(30)
+
+    proc = _FakePopen(_never_ending(), rc=-9, ignore_terminate=True)
+    monkeypatch.setattr(_c, "_REAP_GRACE", 0)
+    try:
+        res = _stream_with(monkeypatch, proc, timeout=0.05)
+    finally:
+        released.set()
+    assert proc.signals == ["terminate", "kill"]
+    assert res["returncode"] == -9
+    # A window we cut short ourselves is still a success (truncated says so).
+    assert res["truncated"] is True
+    assert res["ok"] is True
+
+
+def test_run_cli_stream_reap_signal_error_is_survivable(monkeypatch):
+    """An OSError while signalling degrades to poll(), never propagates."""
+
+    class _Unsignalable(_FakePopen):
+        def terminate(self):
+            raise OSError("no such process")
+
+    proc = _Unsignalable(["line\n"], rc=3)
+    res = _stream_with(monkeypatch, proc, timeout=5)
+    assert res["returncode"] == 3
+    assert res["ok"] is False
 
 
 # --------------------------------------------------------------------------- #
@@ -582,6 +660,93 @@ def test_sandbox_wait(fake_sdk):
     out = json.loads(sandbox.modal_sandbox_wait("sb-1"))
     assert out["returncode"] == 0
     assert any(call[0] == "wait" for call in sbx.calls)
+
+
+# --------------------------------------------------------------------------- #
+# Registration: the blocking SDK tools must not run ON the event loop.          #
+# --------------------------------------------------------------------------- #
+class _RecordingMCP:
+    """Captures exactly what ``sandbox.register`` hands to ``mcp.tool()``."""
+
+    def __init__(self):
+        self.registered = {}
+
+    def tool(self):
+        def _decorator(fn):
+            self.registered[fn.__name__] = fn
+            return fn
+
+        return _decorator
+
+
+def _registered():
+    rec = _RecordingMCP()
+    sandbox.register(rec)
+    return rec.registered
+
+
+def test_every_sdk_tool_is_registered_as_an_offloaded_coroutine():
+    reg = _registered()
+    assert len(reg) == len(sandbox.SDK_TOOLS)
+    for fn in sandbox.SDK_TOOLS:
+        wrapper = reg[fn.__name__]
+        # Sync handlers are invoked INLINE by FastMCP, so a blocking SDK call on
+        # one would freeze the whole Modal child server (see the wait/terminate
+        # deadlock below). Every one must be a coroutine that offloads.
+        assert inspect.iscoroutinefunction(wrapper), fn.__name__
+        # The MCP tool schema is derived from the signature -- it must survive.
+        assert inspect.signature(wrapper) == inspect.signature(fn), fn.__name__
+        assert wrapper.__doc__ == fn.__doc__
+
+
+def test_offloading_does_not_change_the_published_tool_schema():
+    """The MCP surface is derived from the signature -- offloading must be invisible."""
+    published = {t.name: t for t in asyncio.run(server.mcp.list_tools())}
+    for fn in sandbox.SDK_TOOLS:
+        tool = published[fn.__name__]
+        expected = {
+            name
+            for name, param in inspect.signature(fn).parameters.items()
+            if param.kind is not inspect.Parameter.VAR_KEYWORD
+        }
+        assert set(tool.inputSchema.get("properties", {})) == expected, fn.__name__
+        assert tool.description == (fn.__doc__ or "").strip().split("\n")[0] or (
+            tool.description == fn.__doc__
+        )
+
+
+def test_terminate_can_run_while_wait_is_blocked(fake_sdk):
+    """The circular-teardown case: terminate is what MAKES a blocking wait return."""
+    _modal, sbx = fake_sdk
+    gate = threading.Event()
+    reg = _registered()
+
+    def _blocking_wait(**_kw):
+        gate.wait(10)
+        return 0
+
+    def _terminate():
+        sbx._poll = 0  # the sandbox is now dead -> wait() may return
+        gate.set()
+
+    sbx.wait = _blocking_wait
+    sbx.terminate = _terminate
+
+    async def _drive():
+        waiter = asyncio.create_task(reg["modal_sandbox_wait"]("sb-1"))
+        await asyncio.sleep(0)  # hand control back to the loop
+        # If the wait ran on the loop thread this line is unreachable.
+        killer = await asyncio.wait_for(
+            reg["modal_sandbox_terminate"]("sb-1", confirm=True), timeout=10
+        )
+        return json.loads(await asyncio.wait_for(waiter, timeout=10)), json.loads(
+            killer
+        )
+
+    waited, killed = asyncio.run(_drive())
+    assert killed["terminated"] is True
+    assert waited["returncode"] == 0
+    assert gate.is_set()
 
 
 def test_sandbox_terminate_gated(fake_sdk):

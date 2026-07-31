@@ -159,11 +159,21 @@ def _detect_failure_loop(
     return None, None, 0
 
 
-def _detect_stall(events: list, min_activity_turns: int) -> bool:
+def _turn_session(event: dict) -> str:
+    """The session a turn row is attributed to ('' when unattributed).
+
+    ``event-ledger/stop-hook.py:112`` writes ``session=str(session_id)[:12]`` on
+    every turn row, so the comparison is against that same 12-char prefix.
+    """
+    return str(event.get("session") or "")
+
+
+def _detect_stall(events: list, min_activity_turns: int, session_id: str = "") -> bool:
     """Return True when the window shows churn-without-progress.
 
     Stall requires ALL of the following to hold simultaneously:
-    - At least min_activity_turns 'turn' events in the window
+    - At least min_activity_turns 'turn' events in the window that are NOT
+      attributed to some OTHER session
     - Zero 'milestone' events (= nothing was completed)
     - Zero 'decision' events (= no direction was chosen)
     - Git HEAD did not change across turns (= no commits landed)
@@ -173,8 +183,33 @@ def _detect_stall(events: list, min_activity_turns: int) -> bool:
     commit code every turn but never call note.py — git HEAD changes and
     dirty-file deltas are objective progress signals that the Stop hook writes
     into every turn event, so the stall detector must honour them.
+
+    SESSION SCOPING (the first condition).  The ledger is sharded per PROJECT, not
+    per session, so ``_load_events`` returns the last k events for the project no
+    matter who wrote them.  Without this filter a brand-new session in a project
+    whose historical tail happens to be quiet is declared STALLED on its very
+    first tool call, having churned nothing.  Measured on the live
+    ``~/.claude/event-ledger`` (166 shards): 16 shards satisfied the old
+    predicate, and two of them aggregated turns from 8 and 4 DISTINCT sessions
+    inside one 8-turn window — the aggregate, not any one session, produced the
+    verdict.  The fingerprint loop check is already session-scoped
+    (``_load_fingerprint(session_id, ...)``); this brings the stall rule in line.
+
+    Rows carrying NO session id are still counted: they cannot be attributed to
+    another session either, and excluding them would silently disable the rule
+    for pre-``session``-field ledgers.  UNVERIFIED (inline): whether any ledger in
+    the wild is ENTIRELY unattributed and can therefore still bleed across
+    sessions — 2 of the 16 measured shards were, so that residual is real; settle
+    it by re-running the shard census after the next ledger rotation, or close it
+    by requiring positive attribution once no unattributed rows remain.
     """
-    turns = [e for e in events if e.get("kind") == "turn"]
+    current = str(session_id or "")[:12]
+    turns = [
+        e
+        for e in events
+        if e.get("kind") == "turn"
+        and (not _turn_session(e) or _turn_session(e) == current)
+    ]
     if len(turns) < min_activity_turns:
         return False
 
@@ -263,10 +298,16 @@ def compute_verdict(
                 fail_loop_id,
             )
 
-        # 2b. Stall (churn without progress)
-        if _detect_stall(events, min_activity_turns):
+        # 2b. Stall (churn without progress) — scoped to THIS session's turns.
+        if _detect_stall(events, min_activity_turns, str(session_id)):
             stall_id = _sha(f"stall:{session_id}")[:16]
-            turn_count = sum(1 for e in events if e.get("kind") == "turn")
+            current = str(session_id)[:12]
+            turn_count = sum(
+                1
+                for e in events
+                if e.get("kind") == "turn"
+                and (not _turn_session(e) or _turn_session(e) == current)
+            )
             return (
                 STALLED,
                 f"{turn_count} turns, zero milestones/decisions in last {k} events",

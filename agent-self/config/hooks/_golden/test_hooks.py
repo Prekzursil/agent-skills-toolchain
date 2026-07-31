@@ -5,6 +5,21 @@ Proves the wiring is NOT a silent no-op (the user's exact named failure: "report
 silently does nothing"). Uses NON-SYMMETRIC fixtures (the AXIS-GOTCHA lesson: a symmetric
 fixture can pass while the logic is inverted). Run:  python test_hooks.py
 Exit 0 = all pass.
+
+The checks live inside ``main()`` and the ``sys.exit`` is guarded by
+``if __name__ == "__main__"``.  They used to run at MODULE scope, so importing this file
+-- which is what pytest does while COLLECTING -- executed all five acceptance probes and
+then raised ``SystemExit``.  pytest reports that as ``INTERNALERROR`` and aborts the
+ENTIRE run, not just this file, so one recursive ``pytest`` over a bootstrapped
+``~/.claude/hooks`` tree took every other suite down with it (same failure mode
+``hooks/memory-guard/test_scan.py`` is --ignored for in .github/workflows/quality.yml).
+
+This snapshot resolves hooks from the DEPLOYED ``~/.claude/hooks`` on purpose -- it is the
+tree agent-self/bootstrap.ps1 copies into place -- so it is deliberately NOT exposed as a
+collectable ``test_*`` function: in a plain repo checkout that path does not exist, and in
+a deployed tree the probes would write to the live ledgers unisolated.  The
+pytest-collectable, HOME-isolated variant is the canonical top-level
+``hooks/_golden/test_hooks.py``, which quality.yml already runs.
 """
 
 import json
@@ -34,71 +49,82 @@ def check(name, cond):
     print(("PASS " if cond else "FAIL ") + name)
 
 
-# 1. recall-first FIRES on a substantial prompt
-o = run_hook(
-    H / "inquisitiveness" / "prompt-guard.py",
-    {
-        "prompt": "please reverse engineer the battle cats event scheduler and find exactly where the "
-        "date gate is verified inside the binary so events render correctly"
-    },
-)
-check("recall-first injects on a substantial prompt", "Recall-first" in o)
+def main():
+    """Run every golden check; return 0 if all passed, 1 otherwise."""
+    results.clear()
 
-# 2a. fingerprint TRIPS on 3x identical (tool,args,output) RE-tool calls
-fp = H / "anti-degen" / "fingerprint.py"
-sid = "golden-" + os.urandom(3).hex()
-pay = {
-    "session_id": sid,
-    "tool_name": "mcp__ida-pro-mcp__decompile",
-    "tool_input": {"addr": "0x1000"},
-    "tool_response": "identical output",
-}
-out3 = ""
-for _ in range(3):
-    out3 = run_hook(fp, pay)
-check("fingerprint trips on 3x identical RE-tool call", "repeated" in out3.lower())
+    # 1. recall-first FIRES on a substantial prompt
+    o = run_hook(
+        H / "inquisitiveness" / "prompt-guard.py",
+        {
+            "prompt": "please reverse engineer the battle cats event scheduler and find exactly where the "
+            "date gate is verified inside the binary so events render correctly"
+        },
+    )
+    check("recall-first injects on a substantial prompt", "Recall-first" in o)
 
-# 2b. NON-SYMMETRIC: when the OUTPUT changes (progress), it must stay SILENT
-sid2 = "golden2-" + os.urandom(3).hex()
-last = "x"
-for i in range(3):
-    last = run_hook(fp, {**pay, "session_id": sid2, "tool_response": f"different {i}"})
-check(
-    "fingerprint stays SILENT when output changes (real progress)", last.strip() == ""
-)
+    # 2a. fingerprint TRIPS on 3x identical (tool,args,output) RE-tool calls
+    fp = H / "anti-degen" / "fingerprint.py"
+    sid = "golden-" + os.urandom(3).hex()
+    pay = {
+        "session_id": sid,
+        "tool_name": "mcp__ida-pro-mcp__decompile",
+        "tool_input": {"addr": "0x1000"},
+        "tool_response": "identical output",
+    }
+    out3 = ""
+    for _ in range(3):
+        out3 = run_hook(fp, pay)
+    check("fingerprint trips on 3x identical RE-tool call", "repeated" in out3.lower())
 
-# 3. falsify-check FIRES on a write-op at the falsify cadence
-o = run_hook(
-    H / "goal-reinject" / "reinject.py",
-    {"tool_name": "Write", "session_id": "golden-fz", "cwd": "."},
-    env={
-        "GOAL_FALSIFY_INTERVAL": "1",
-        "GOAL_REINJECT_COUNTER_ROOT": tempfile.mkdtemp(),
-    },
-)
-check("falsify-check fires on a write-op", "FALSIFY-CHECK" in o)
+    # 2b. NON-SYMMETRIC: when the OUTPUT changes (progress), it must stay SILENT
+    sid2 = "golden2-" + os.urandom(3).hex()
+    last = "x"
+    for i in range(3):
+        last = run_hook(
+            fp, {**pay, "session_id": sid2, "tool_response": f"different {i}"}
+        )
+    check(
+        "fingerprint stays SILENT when output changes (real progress)",
+        last.strip() == "",
+    )
 
-# 4. capture-writer MIRRORS a milestone into .beads/knowledge (success-gated, no CI exit needed)
-tmp = tempfile.mkdtemp()
-(pathlib.Path(tmp) / ".beads" / "knowledge").mkdir(parents=True)
-env = {"EVENT_LEDGER_ROOT": os.path.join(tmp, "ledger")}
-subprocess.run(
-    [
-        sys.executable,
-        "-c",
-        "import sys;sys.path.insert(0,r'%s');import ledger;"
-        "ledger.append(r'%s','milestone',text='cracked the date gate at sub_525AB0')"
-        % (str(H / "event-ledger"), tmp),
-    ],
-    env={**os.environ, **env},
-)
-run_hook(H / "event-ledger" / "stop-hook.py", {"cwd": tmp}, env=env)
-dec = pathlib.Path(tmp) / ".beads" / "knowledge" / "decisions.jsonl"
-got = dec.read_text(encoding="utf-8") if dec.exists() else ""
-check(
-    "capture-writer mirrors a milestone into .beads/knowledge",
-    "cracked the date gate" in got,
-)
+    # 3. falsify-check FIRES on a write-op at the falsify cadence
+    o = run_hook(
+        H / "goal-reinject" / "reinject.py",
+        {"tool_name": "Write", "session_id": "golden-fz", "cwd": "."},
+        env={
+            "GOAL_FALSIFY_INTERVAL": "1",
+            "GOAL_REINJECT_COUNTER_ROOT": tempfile.mkdtemp(),
+        },
+    )
+    check("falsify-check fires on a write-op", "FALSIFY-CHECK" in o)
 
-print("\n%d/%d PASS" % (sum(results), len(results)))
-sys.exit(0 if all(results) else 1)
+    # 4. capture-writer MIRRORS a milestone into .beads/knowledge (success-gated, no CI exit needed)
+    tmp = tempfile.mkdtemp()
+    (pathlib.Path(tmp) / ".beads" / "knowledge").mkdir(parents=True)
+    env = {"EVENT_LEDGER_ROOT": os.path.join(tmp, "ledger")}
+    subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import sys;sys.path.insert(0,r'%s');import ledger;"
+            "ledger.append(r'%s','milestone',text='cracked the date gate at sub_525AB0')"
+            % (str(H / "event-ledger"), tmp),
+        ],
+        env={**os.environ, **env},
+    )
+    run_hook(H / "event-ledger" / "stop-hook.py", {"cwd": tmp}, env=env)
+    dec = pathlib.Path(tmp) / ".beads" / "knowledge" / "decisions.jsonl"
+    got = dec.read_text(encoding="utf-8") if dec.exists() else ""
+    check(
+        "capture-writer mirrors a milestone into .beads/knowledge",
+        "cracked the date gate" in got,
+    )
+
+    print("\n%d/%d PASS" % (sum(results), len(results)))
+    return 0 if all(results) else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

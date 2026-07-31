@@ -141,8 +141,13 @@ class CodexSource:
 
     # ───────────────────────── poll (never throws) ─────────────────────────
     def poll(self) -> Snapshot[CodexPayload]:
-        ts = self._clock()
+        # The clock read is INSIDE the guard: the contract's cardinal rule covers
+        # the injected clock too (it is also threaded into the Poller), so a broken
+        # clock degrades one board row instead of escaping poll. ts stays 0.0 when
+        # the clock itself is what failed -- there is no time to report.
+        ts = 0.0
         try:
+            ts = self._clock()
             self._poller.discover()
             self._poller.ingest()
             self._poller.prune()
@@ -165,16 +170,28 @@ class CodexSource:
             )
         state = self._derive_state(threads)
         newest = max((th.last_ts for th in threads if th.last_ts), default=0.0)
+        # A registered stream whose PENDING bytes could not be read makes this tick a
+        # partial measurement: those threads carry retained last-good state, so the
+        # snapshot must not claim freshness. Publishing it as reachable+fresh let a
+        # share-locked stream read as a healthy source and silently age a running thread
+        # to idle during the outage. ``reachable`` stays True while at least one tail
+        # still delivered — the source WAS touched (contract.py:80-85); every tail
+        # failing means it could not be reached at all this tick.
+        unread = self._poller.read_errors()
+        error = "; ".join(f"{key}: {err}" for key, err in unread) if unread else None
+        reachable = not unread or len(unread) < len(self._poller.tails)
+        if not reachable:
+            state = SourceState.UNREACHABLE
         snap = Snapshot(
             source_id=self.id,
             ts=ts,
-            reachable=True,
-            stale=False,
+            reachable=reachable,
+            stale=bool(unread),
             state=state,
-            headline=self._headline(threads, state, None),
+            headline=self._headline(threads, state, error, len(unread)),
             payload=CodexPayload(threads=threads),
             age_s=(ts - newest) if newest else None,
-            error=None,
+            error=error,
         )
         self._last = snap
         return snap
@@ -204,17 +221,24 @@ class CodexSource:
         threads: tuple[CodexThread, ...] | None,
         state: SourceState,
         error: str | None,
+        unread: int = 0,
     ) -> str:
-        """A redaction-safe one-line status (``unreachable`` on a failed poll)."""
+        """A redaction-safe one-line status (``unreachable`` on a failed poll).
+
+        ``unread`` is how many registered streams lost pending bytes this tick; a
+        non-zero count is printed so a partial measurement is never shown as a
+        complete one.
+        """
         if threads is None:
             return _redact(f"unreachable: {error}")
         counts = {"running": 0, "idle": 0, "done": 0, "aborted": 0}
         for th in threads:
             counts[th.status] = counts.get(th.status, 0) + 1
+        suffix = f" · {unread} unreadable" if unread else ""
         return _redact(
             f"codex [{state}] "
             f"{counts['running']} running / {counts['done']} done / "
-            f"{counts['aborted']} aborted of {len(threads)}"
+            f"{counts['aborted']} aborted of {len(threads)}{suffix}"
         )
 
     # ───────────────────────── contract surface ─────────────────────────

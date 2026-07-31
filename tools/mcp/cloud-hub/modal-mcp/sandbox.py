@@ -23,8 +23,11 @@ per second until it stops -- always ``modal_sandbox_terminate`` when done.
 from __future__ import annotations
 
 import base64
+import functools
 import json
 import os
+
+import anyio.to_thread
 
 import _modal_common as _c
 
@@ -662,7 +665,30 @@ SDK_TOOLS = (
 )
 
 
+def _offloaded(fn):
+    """Wrap a blocking SDK tool as a coroutine that runs it on a worker thread.
+
+    FastMCP invokes a SYNCHRONOUS handler inline on the server's event loop
+    (``mcp`` 1.23.x ``utilities/func_metadata.py``: ``return fn(**arguments)``),
+    so one blocking Modal call froze the whole child server. The concrete
+    circularity: ``modal_sandbox_wait`` blocks in ``sandbox.wait()`` and
+    ``modal_sandbox_terminate`` -- the very call that would make that wait return
+    -- could not be dispatched until it did, leaving a billable sandbox live.
+
+    ``functools.wraps`` keeps ``__name__``/``__doc__``/``__wrapped__``, so
+    ``inspect.signature`` still reports the original parameters and the generated
+    MCP tool schema is unchanged. The tools themselves stay plain synchronous
+    functions (directly callable and unit-testable); only registration offloads.
+    """
+
+    @functools.wraps(fn)
+    async def _async(*args, **kwargs):
+        return await anyio.to_thread.run_sync(functools.partial(fn, *args, **kwargs))
+
+    return _async
+
+
 def register(mcp) -> None:
     """Register every SDK tool onto the server's FastMCP instance."""
     for fn in SDK_TOOLS:
-        mcp.tool()(fn)
+        mcp.tool()(_offloaded(fn))

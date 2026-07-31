@@ -64,32 +64,44 @@ def _parse_events(events_file: Path, window_cutoff_ts: str | None) -> list[dict]
     return out
 
 
-def _tool_counts(events: list[dict]) -> Counter:
-    """Extract tool/skill name frequencies from events.
+def _tool_counts(events: list[dict]) -> tuple[Counter, Counter]:
+    """Extract tool/skill FIRES and SUCCESSFUL fires from events.
 
     The Stop hook records a 'tool' field on 'turn' events when a tool was the last
-    action. 'selection' events (Tier-3/OATS, future) also carry 'chosen_tool'.
-    We harvest both, plus any 'skill' field.
+    action. 'selection' events (Tier-3/OATS) also carry 'chosen_tool'. We harvest
+    both, plus any 'skill' field.
+
+    Returns ``(fires, wins)``. An attempt is only evidence of VALUE when it
+    SUCCEEDED: hooks/selection-events/emitter.py writes an explicit ``success``
+    boolean alongside ``chosen_tool``, and 99 failed attempts must not outrank one
+    rare success. Rows that carry no ``success`` field (plain Stop-hook 'turn'
+    rows) have no outcome recorded, so they count as wins — treating an unknown
+    outcome as a failure would silently zero out every capability the emitter
+    does not instrument.
     """
-    counts: Counter = Counter()
+    fires: Counter = Counter()
+    wins: Counter = Counter()
+
+    def _tally(name: object, event: dict) -> None:
+        if not name:
+            return
+        key = str(name)
+        fires[key] += 1
+        if event.get("success", True):
+            wins[key] += 1
+
     for ev in events:
         kind = ev.get("kind", "")
         # turn events from stop-hook may carry last tool used
         if kind == "turn":
-            t = ev.get("tool") or ev.get("skill")
-            if t:
-                counts[str(t)] += 1
-        # future OATS selection events
+            _tally(ev.get("tool") or ev.get("skill"), ev)
+        # OATS selection events — these DO carry an explicit outcome
         elif kind == "selection":
-            t = ev.get("chosen_tool") or ev.get("tool")
-            if t:
-                counts[str(t)] += 1
+            _tally(ev.get("chosen_tool") or ev.get("tool"), ev)
         # note/decision events sometimes tag a tool
         elif kind in ("note", "decision", "milestone"):
-            t = ev.get("tool") or ev.get("skill")
-            if t:
-                counts[str(t)] += 1
-    return counts
+            _tally(ev.get("tool") or ev.get("skill"), ev)
+    return fires, wins
 
 
 def _make_cutoff(window_days: int | None) -> str | None:
@@ -124,7 +136,7 @@ def report(
 
     total = len(all_events)
     # Total tool events — non-turn events without a tool field won't inflate this count.
-    tool_counts = _tool_counts(all_events)
+    tool_counts, tool_wins = _tool_counts(all_events)
     total_tool_events = sum(tool_counts.values())
 
     lines: list[str] = []
@@ -161,37 +173,49 @@ def report(
     lines.append("      Verify business-value before removing any capability.")
     lines.append("")
 
-    # Least-fired: prime prune candidates.
-    least = tool_counts.most_common()[: -(top + 1) : -1]  # bottom N
-    most = tool_counts.most_common(top)
+    # Rank by SUCCESSFUL fires, never by raw attempts. Attempt frequency is not
+    # value: with 99 failed `loop_tool` selections and 1 successful `rare_rescue`,
+    # a fire-count ranking recommends KEEPING the tool that never worked and
+    # PRUNING the one that did. Ties (and every uninstrumented capability, whose
+    # wins == fires) fall back to name for a deterministic order.
+    ranked = sorted(tool_counts, key=lambda name: (-tool_wins[name], name))
+    most = ranked[:top]
+    least = ranked[::-1][:top]
+
+    def _row(name: str, rank: str = "") -> str:
+        cnt = tool_counts[name]
+        won = tool_wins[name]
+        return (
+            f"  {rank:>4}  {won:>6}  {cnt:>6}  {100.0 * won / cnt:>7.1f}%  "
+            f"{100.0 * cnt / total_tool_events:>9.1f}%  {name}"
+        )
+
+    header = (
+        f"  {'Rank':>4}  {'Wins':>6}  {'Fires':>6}  {'Win rate':>8}  "
+        f"{'% of total':>10}  Capability"
+    )
 
     lines.append(f"{'─' * 70}")
     lines.append(f"LEAST-FIRED — top {top} prune candidates (low observed value)")
     lines.append(f"{'─' * 70}")
-    lines.append(f"  {'Fires':>8}  {'% of total':>10}  Capability")
-    for name, cnt in least:
-        pct = 100.0 * cnt / total_tool_events
-        lines.append(f"  {cnt:>8}  {pct:>9.1f}%  {name}")
+    lines.append(header)
+    lines.extend(_row(name) for name in least)
 
     lines.append("")
     lines.append(f"{'─' * 70}")
     lines.append(f"MOST-FIRED — top {top} proven-value capabilities (keep)")
     lines.append(f"{'─' * 70}")
-    lines.append(f"  {'Fires':>8}  {'% of total':>10}  Capability")
-    for name, cnt in most:
-        pct = 100.0 * cnt / total_tool_events
-        lines.append(f"  {cnt:>8}  {pct:>9.1f}%  {name}")
+    lines.append(header)
+    lines.extend(_row(name) for name in most)
 
     lines.append("")
     lines.append(f"{'─' * 70}")
     lines.append(
-        f"FULL RANKING ({len(tool_counts)} distinct capabilities, sorted by fires desc)"
+        f"FULL RANKING ({len(tool_counts)} distinct capabilities, sorted by wins desc)"
     )
     lines.append(f"{'─' * 70}")
-    lines.append(f"  {'Rank':>4}  {'Fires':>8}  {'% of total':>10}  Capability")
-    for rank, (name, cnt) in enumerate(tool_counts.most_common(), 1):
-        pct = 100.0 * cnt / total_tool_events
-        lines.append(f"  {rank:>4}  {cnt:>8}  {pct:>9.1f}%  {name}")
+    lines.append(header)
+    lines.extend(_row(name, str(rank)) for rank, name in enumerate(ranked, 1))
 
     lines.append("")
     lines.append("PER-PROJECT EVENT COUNTS")

@@ -3,9 +3,14 @@
 
 Builds throwaway JSONL transcripts and pipes Stop-hook stdin to prove the hook
 FIRES on certain-but-unverified technical claims and stays SILENT when hedged,
-when a verifying tool ran, or when the claim belongs to truth-verify/claim-guard.
+when a CLAIM-RELEVANT tool ran, or when the claim belongs to truth-verify/claim-guard.
 
-Run:  python test_honest_signal.py
+Two entry points, one scenario table (`collect_cases`):
+  * `pytest hooks/honest-signal/` — `test_honest_signal_scenarios` asserts it. This is
+    the one CI executes, via the `hooks/` regression-harness step in quality.yml. The
+    file previously exposed only `main()`, so pytest collected ZERO tests from it and
+    every case below was dead weight in CI (measured: "no tests collected").
+  * `python test_honest_signal.py` — prints a per-case PASS/FAIL table + samples.
 """
 
 from __future__ import annotations
@@ -34,12 +39,27 @@ def _assistant_text(text):
     }
 
 
-def _assistant_tool(name, inp=None):
+def _assistant_tool(name, inp=None, tool_id="tu1"):
     return {
         "type": "assistant",
         "message": {
             "role": "assistant",
-            "content": [{"type": "tool_use", "name": name, "input": inp or {}}],
+            "content": [
+                {"type": "tool_use", "id": tool_id, "name": name, "input": inp or {}}
+            ],
+        },
+    }
+
+
+def _tool_result(content, tool_id="tu1"):
+    """A tool_result turn. Carries role=user but is NOT a fresh human turn."""
+    return {
+        "type": "user",
+        "message": {
+            "role": "user",
+            "content": [
+                {"type": "tool_result", "tool_use_id": tool_id, "content": content}
+            ],
         },
     }
 
@@ -77,7 +97,8 @@ def fired(out: str) -> bool:
         return False
 
 
-def main() -> int:
+def collect_cases():
+    """Return [(name, fired, expected, raw_output)] for every scenario."""
     cases = []
 
     # 1. Certain technical claim + NO tool this turn -> FIRES
@@ -102,7 +123,10 @@ def main() -> int:
     )
     cases.append(("hedged certainty -> silent", fired(out), False, out))
 
-    # 3. Same claim but a verifying TOOL ran this turn -> SILENT
+    # 3. Same claim but a CLAIM-RELEVANT tool ran this turn -> SILENT.
+    #    The anchor `timeout` is in the tool INPUT. This is the mutation guard on the
+    #    D-m04 fix: deleting the suppression outright (instead of scoping it to
+    #    claim-relevant evidence) turns this case red.
     out = run(
         [
             _human("what's the timeout?"),
@@ -110,7 +134,9 @@ def main() -> int:
             _assistant_text("The `timeout` is definitely 30 seconds."),
         ]
     )
-    cases.append(("certain claim but a tool ran -> silent", fired(out), False, out))
+    cases.append(
+        ("certain claim, relevant tool INPUT -> silent", fired(out), False, out)
+    )
 
     # 4. Certain claim about an RE anchor -> DEFER to truth-verify -> SILENT
     out = run(
@@ -166,6 +192,61 @@ def main() -> int:
     )
     cases.append(("only TodoWrite + certain claim -> fires", fired(out), True, out))
 
+    # 9. REGRESSION D-m04: a substantive but UNRELATED tool ran -> still FIRES.
+    #    Before the fix, check.py returned at `if tools > 0` before find_offenders, so
+    #    one `Read README.md` silenced an unsupported claim about `timeout`. Measured
+    #    on 27fb388 pre-fix: fired=False. The claim's anchor ("timeout") appears in
+    #    neither the tool input nor its result, so nothing here is evidence for it.
+    out = run(
+        [
+            _human("what's the timeout?"),
+            _assistant_tool("Read", {"file_path": "README.md"}),
+            _tool_result("# Project readme\nSome prose about the project."),
+            _assistant_text("The `timeout` is definitely 30 seconds."),
+        ]
+    )
+    cases.append(("unrelated tool + certain claim -> fires", fired(out), True, out))
+
+    # 10. Counterpart to 9: the anchor is in the tool RESULT, not the input -> SILENT.
+    #     Reading the right file IS claim-relevant evidence even though the input is
+    #     only a path. Keeps the fix from degenerating into "fire whenever tools ran".
+    out = run(
+        [
+            _human("what's the timeout?"),
+            _assistant_tool("Read", {"file_path": "settings.py"}),
+            _tool_result("retries = 3\ntimeout = 30  # seconds\n"),
+            _assistant_text("The `timeout` is definitely 30 seconds."),
+        ]
+    )
+    cases.append(("relevant tool RESULT -> silent", fired(out), False, out))
+
+    # 11. A TodoWrite RESULT must not launder itself into evidence: it is dropped by
+    #     tool_use_id, so a matching anchor inside it cannot suppress. Still FIRES.
+    out = run(
+        [
+            _human("what's the timeout?"),
+            _assistant_tool("TodoWrite", {"todos": []}, tool_id="td1"),
+            _tool_result("timeout todo recorded", tool_id="td1"),
+            _assistant_text("The `timeout` is definitely 30 seconds."),
+        ]
+    )
+    cases.append(("TodoWrite result is not evidence -> fires", fired(out), True, out))
+
+    return cases
+
+
+def test_honest_signal_scenarios():
+    """pytest entry point — every scenario in collect_cases() must match expectation."""
+    failures = [
+        f"{name}: fired={got} expected={want} output={out!r}"
+        for name, got, want, out in collect_cases()
+        if got != want
+    ]
+    assert not failures, "\n".join(failures)
+
+
+def main() -> int:
+    cases = collect_cases()
     ok = True
     for name, got, want, out in cases:
         status = "PASS" if got == want else "FAIL"

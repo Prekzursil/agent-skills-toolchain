@@ -5,9 +5,14 @@ Folded into _dispatch/manifest.json (NOT a separate settings.json hook, so it do
 not add a 2nd raw SessionStart surface and does not touch the ~6-hook ceiling). This
 is the SURFACE half of the "background dreaming" layer: the scheduled-task PRODUCERS
 (resource-guard.ps1, world-watch.ps1, ...) append dated lines to a digest file; at
-SessionStart this reader surfaces the oldest K pending entries ONCE as
+SessionStart this reader surfaces the top-ranked K pending entries ONCE as
 "while you were away I noticed / prepared X", then TRUNCATES the consumed entries
 (archiving them first, so a consumed line is never lost).
+
+ATTENTION BUDGET (BG_DIGEST_MAX, default 3). SessionStart context is scarce, so the cap
+is small and the K slots are spent on the HIGHEST-VALUE deltas, not merely the oldest:
+identical repeated states coalesce into ONE card, and owner-blocking entries are ranked
+ahead of routine chatter. Overflow is counted and left for the next session (never lost).
 
 DIGEST FILE   ~/.claude/BACKGROUND-DIGEST.md            (override: BG_DIGEST_FILE)
   An append-only queue. An ENTRY is any line beginning with a date bracket
@@ -64,12 +69,22 @@ ARCHIVE_FILE = Path(
         "BG_DIGEST_ARCHIVE", str(HOME / ".claude" / "BACKGROUND-DIGEST.archive.log")
     )
 )
-MAX_SURFACE = int(os.environ.get("BG_DIGEST_MAX", "12"))
+MAX_SURFACE = int(os.environ.get("BG_DIGEST_MAX", "3"))
 ARCHIVE_MAX = int(os.environ.get("BG_DIGEST_ARCHIVE_MAX", "500"))
 
 # An ENTRY line begins with a date bracket: [YYYY-MM-DD ...]. Anything else is a
 # header / blank / note and is preserved (never surfaced or truncated).
 _ENTRY_RE = re.compile(r"^\[\d{4}-\d{2}-\d{2}")
+
+# The leading "[YYYY-MM-DD HH:MM:SS]" stamp. Stripping it yields the entry BODY, which
+# is what repeated observations of one unchanged state have in common.
+_STAMP_RE = re.compile(r"^\[\d{4}-\d{2}-\d{2}[^\]]*\]\s*")
+
+# Owner-blocking / irreversibility markers -> ranked ahead of routine entries.
+# UPPERCASE-only ON PURPOSE: producers emit terse machine lines ("NEEDS_YOU: disk full"),
+# so an uppercase token is a deliberate signal while a lowercase "critical path" in prose
+# is not. A false positive only reorders one card; it can never drop an entry.
+_URGENT_RE = re.compile(r"\b(NEEDS_YOU|URGENT|BLOCKED|CRITICAL|ACTION_REQUIRED)\b")
 
 
 def _disabled() -> bool:
@@ -135,18 +150,63 @@ def _atomic_write(path: Path, lines: list[str]) -> None:
     os.replace(tmp, path)
 
 
+def _entry_body(line: str) -> str:
+    """The entry text with its leading timestamp stamp removed (the coalescing key)."""
+    return _STAMP_RE.sub("", line.strip())
+
+
+def _priority(line: str) -> int:
+    """0 = owner-blocking/urgent, 1 = routine. Lower sorts first."""
+    return 0 if _URGENT_RE.search(_entry_body(line)) else 1
+
+
+def rank_entries(entries: list[str]) -> list[list[str]]:
+    """PURE: coalesce identical repeated states, then rank by actionable delta.
+
+    Returns one GROUP per card, ordered by (priority, first-seen position) - so a late
+    owner-blocking notice is surfaced ahead of older routine chatter, and ties keep queue
+    order so nothing starves. A group carries EVERY original line it represents, so a
+    coalesced repeat is still archived and truncated: collapsing a card never drops an
+    entry. Deterministic (no clock, no LLM): the same input always yields the same order.
+    """
+    order: list[str] = []
+    groups: dict[str, list[str]] = {}
+    for ln in entries:
+        key = _entry_body(ln)
+        if key not in groups:
+            groups[key] = []
+            order.append(key)
+        groups[key].append(ln)
+    ranked = sorted(range(len(order)), key=lambda i: (_priority(order[i]), i))
+    return [groups[order[i]] for i in ranked]
+
+
+def _card(group: list[str]) -> str:
+    """One card: the CURRENT state, plus an observation count when the state repeated."""
+    latest = group[-1]
+    return latest if len(group) == 1 else f"{latest}  (x{len(group)} observations)"
+
+
 def build_message(lines: list[str]) -> tuple[str | None, list[str]]:
     """PURE: given the digest's current lines, return (message_or_None, surfaced_entries).
 
-    Surfaces the oldest MAX_SURFACE entries (FIFO so nothing starves); any overflow is
-    noted and left for the next session."""
+    Spends the MAX_SURFACE attention slots on the top-RANKED entries (see rank_entries),
+    not simply the oldest ones; any overflow is noted and left for the next session."""
     entries = [ln for ln in lines if _is_entry(ln)]
     if not entries:
         return None, []
-    surfaced = entries[:MAX_SURFACE]
+    shown = rank_entries(entries)[:MAX_SURFACE]
+    # Consume every line the shown cards represent, in the file's own order (the archive
+    # stays chronological and _truncate_consumed's exact-text match still lines up).
+    pending = Counter(ln for group in shown for ln in group)
+    surfaced: list[str] = []
+    for ln in entries:
+        if pending.get(ln, 0) > 0:
+            pending[ln] -= 1
+            surfaced.append(ln)
     overflow = len(entries) - len(surfaced)
     header = "## While you were away (background digest - surfaced once)"
-    body = list(surfaced)
+    body = [_card(group) for group in shown]
     if overflow > 0:
         body.append(
             f"...(+{overflow} more pending in {DIGEST_FILE.name}; will surface next session)"

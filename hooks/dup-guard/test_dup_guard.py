@@ -9,6 +9,7 @@ Run:  python test_dup_guard.py
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import subprocess
@@ -18,6 +19,71 @@ import uuid
 from pathlib import Path
 
 HOOK = str(Path(__file__).resolve().parent / "guard.py")
+
+
+def _guard_module():
+    """Import ``guard.py`` under a unique name (several hook dirs ship a ``guard.py``)."""
+    spec = importlib.util.spec_from_file_location("dupguard_under_test", HOOK)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_symbol_lookup_treats_a_prose_declaration_as_a_mention():
+    """L03: a declaration-SHAPED line in a non-source file is a MENTION, not a definition.
+
+    ``_symbol_defined_elsewhere`` greps for declaration-shaped TEXT; it parses nothing, so a
+    Markdown code fence, a design doc or a JSON fixture matches exactly like real code.
+    Measured at 27fb388 with the production function against this repo: writing a new
+    ``probe_only_data_version_control.py`` containing ``class DataVersionControl:`` returned
+    ``.agents/skills/llm-security/rules/data-poisoning.md`` -- prose the agent was then told to
+    "extend / import", which is impossible.
+
+    ``subprocess.run`` is stubbed so the assertions are deterministic and need no ripgrep on
+    PATH.  Three directions, because a one-directional test cannot tell a working filter from
+    a blanket disarm:
+      1. a prose-only hit yields None (the defect),
+      2. a prose hit FOLLOWED by a real source hit still yields the source file -- the loop
+         must keep scanning rather than stop at the first line (the non-disarm control), and
+      3. the rg argv carries source-extension globs, so the filter is enforced twice.
+    """
+    guard = _guard_module()
+    canned = {"stdout": ""}
+    seen: list[list[str]] = []
+
+    def fake_run(argv, **_kwargs):
+        seen.append(list(argv))
+        return subprocess.CompletedProcess(list(argv), 0, canned["stdout"], "")
+
+    original = guard.subprocess.run
+    try:
+        guard.subprocess.run = fake_run
+
+        canned["stdout"] = "docs/notes.md\n"
+        assert (
+            guard._symbol_defined_elsewhere(".", "DataVersionControl", "src/dvc.py")
+            is None
+        ), "a Markdown-only hit must not be reported as an existing definition"
+
+        canned["stdout"] = "docs/notes.md\nsrc/real_dvc.py\n"
+        assert (
+            guard._symbol_defined_elsewhere(".", "DataVersionControl", "src/dvc.py")
+            == "src/real_dvc.py"
+        ), "a real source definition after a prose hit must still be found"
+
+        canned["stdout"] = "CHANGELOG\nnotes.txt\ndata.json\n"
+        assert (
+            guard._symbol_defined_elsewhere(".", "DataVersionControl", "src/dvc.py")
+            is None
+        ), "extensionless / text / data files are not definition sites either"
+    finally:
+        guard.subprocess.run = original
+
+    assert seen, "the stub must have been invoked, otherwise this test measured nothing"
+    for argv in seen:
+        assert "*.py" in argv and "*.ts" in argv, (
+            f"rg must be scoped to source extensions: {argv}"
+        )
 
 
 def run(payload, env_extra=None):
@@ -56,6 +122,37 @@ def setup_repo() -> Path:
     )
     (repo / "src" / "__init__.py").write_text("", encoding="utf-8")
     return repo
+
+
+def test_second_swift_package_manifest_is_silent() -> None:
+    """`Package.swift` recurs once per package -- a 2nd one is NOT a duplicate.
+
+    Collected by the ``pytest hooks/`` step already named in
+    ``.github/workflows/quality.yml`` (no new CI step needed).  ``.swift`` is in
+    ``_SRC_EXT``, so before ``package.swift`` joined ``_RECUR`` this fired
+    "extend / import the existing one" at every additional Swift package in a
+    monorepo.  Observed RED before the guard change, GREEN after.
+    """
+    repo = Path(tempfile.gettempdir()) / f"dg-swift-{uuid.uuid4().hex}"
+    (repo / "PackageA").mkdir(parents=True, exist_ok=True)
+    (repo / "PackageA" / "Package.swift").write_text(
+        "// swift-tools-version:5.9\nimport PackageDescription\n", encoding="utf-8"
+    )
+    out = run(
+        {
+            "session_id": "swift-pkg",
+            "tool_name": "Write",
+            "cwd": str(repo),
+            "tool_input": {
+                "file_path": str(repo / "PackageB" / "Package.swift"),
+                "content": "// swift-tools-version:5.9\nimport PackageDescription\n",
+            },
+        }
+    )
+    assert not fired(out), (
+        "a second Swift package manifest must not be reported as a duplicate; "
+        f"guard emitted: {out!r}"
+    )
 
 
 def main() -> int:

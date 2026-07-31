@@ -1275,7 +1275,12 @@ class LedgerModule:
         )
         fields: dict[str, Any] = dict(
             provider=event.provider,
-            turn_id=event.turn_id,
+            # evidence_turn_id, not the raw turn_id: a host that sends no turn_id
+            # (every Claude event — it sends prompt_id) would otherwise store this
+            # receipt with turn_id="" , which the ledger's evidence queries treat as
+            # "belongs to every turn", so it would substantiate a CONCURRENT session's
+            # completion claim. The session-derived fallback keeps it attributable.
+            turn_id=event.evidence_turn_id,
             tool=event.tool.name,
             result_hash=_digest(event.tool.result),
             verified=_verified_result(event.tool.result),
@@ -1353,7 +1358,10 @@ class LedgerModule:
             "mutation",
             dedupe_key=unique,
             provider=event.provider,
-            turn_id=event.turn_id,
+            # Attributable turn key, same reason as _append_tool_result: the mutation
+            # seq is the freshness FLOOR a receipt must beat, so an unattributable
+            # mutation would raise (or fail to raise) every other session's floor.
+            turn_id=event.evidence_turn_id,
             path=path,
             tool=event.tool.name,
             **({"canonical_tree": canonical} if canonical else {}),
@@ -1433,6 +1441,18 @@ class LedgerModule:
             summary=_digest([event.prompt, event.source], 16),
         )
 
+    @staticmethod
+    def _provenance(event: HookEvent) -> dict[str, str]:
+        # D17-F4 · carry the parent-child edge into the durable record so a
+        # completion fact can be joined back to what spawned it. Omitted rather
+        # than written empty (no cost on hosts that do not report lineage), and
+        # redacted with redact_paths so a host that stuffs a transcript path into
+        # a parent field cannot turn this into a path-persisting sidechannel.
+        parent = str(event.agent.parent_id or "").strip()
+        if not parent:
+            return {}
+        return {"parent_id": redact_text(parent, redact_paths=True, max_chars=200)}
+
     def _append_task(self, event: HookEvent) -> None:
         # native-taskcompleted (module half): record the task close so the claim
         # gate can enforce verification per-task; the gate itself is in ClaimWarning.
@@ -1453,6 +1473,7 @@ class LedgerModule:
             turn_id=event.turn_id,
             agent_type=event.agent.type,
             output_hash=_digest(event.last_assistant_message),
+            **self._provenance(event),
         )
 
     def _append_turn(self, event: HookEvent) -> None:
@@ -1491,6 +1512,7 @@ class LedgerModule:
             turn_id=event.turn_id,
             agent_type=event.agent.type,
             output_hash=_digest(event.last_assistant_message),
+            **self._provenance(event),
         )
 
 
@@ -1787,6 +1809,56 @@ def _clamp01(value: Any, default: float = 0.5) -> float:
         return default
 
 
+# --- recall-index freshness contract (P1C22) ---------------------------------
+# recall_index.py stamps every document it writes with `schema_version`,
+# `built_at` and `vault_hash`. The consumer used to read NONE of them, so an
+# obsolete index left on disk after its source notes changed or were deleted was
+# still scored and injected - "UNTRUSTED historical context" is a label, not a
+# freshness guard. The consumer now refuses to serve a document it cannot date:
+#   * `schema_version` must be an int this consumer understands, and
+#   * `built_at` must parse and be within the age limit.
+# A rejected candidate falls through to the next configured index path, and when
+# every candidate is rejected recall simply stays quiet (fail-safe, never stale).
+# Keep _RECALL_INDEX_SCHEMA_VERSION == recall_index.SCHEMA_VERSION; the drift is
+# asserted by test_p1c22_consumer_schema_ceiling_tracks_the_producer. Set
+# AGENT_HARNESS_RECALL_MAX_AGE_DAYS=0 to disable the age check (out-of-band
+# rebuild loops); any unparseable value falls back to the default.
+_RECALL_INDEX_SCHEMA_VERSION = 2
+_RECALL_INDEX_MAX_AGE_DAYS = 30.0
+
+
+def _recall_index_age_limit_days() -> float:
+    raw = os.environ.get("AGENT_HARNESS_RECALL_MAX_AGE_DAYS", "").strip()
+    if not raw:
+        return _RECALL_INDEX_MAX_AGE_DAYS
+    try:
+        return max(0.0, float(raw))
+    except ValueError:
+        return _RECALL_INDEX_MAX_AGE_DAYS
+
+
+def _recall_index_is_servable(data: dict[str, Any]) -> bool:
+    version = data.get("schema_version")
+    if isinstance(version, bool) or not isinstance(version, int):
+        return False
+    if not 1 <= version <= _RECALL_INDEX_SCHEMA_VERSION:
+        return False
+    limit = _recall_index_age_limit_days()
+    if limit <= 0:
+        return True
+    built_at = data.get("built_at")
+    if not isinstance(built_at, str) or not built_at.strip():
+        return False
+    try:
+        stamp = datetime.fromisoformat(built_at.strip())
+    except ValueError:
+        return False
+    if stamp.tzinfo is None:
+        stamp = stamp.replace(tzinfo=timezone.utc)
+    age_days = (datetime.now(timezone.utc) - stamp).total_seconds() / 86400.0
+    return age_days <= limit
+
+
 class RecallModule:
     name = "bounded_recall"
 
@@ -1819,8 +1891,13 @@ class RecallModule:
         for path in self.index_paths:
             data = read_json(path, {})
             notes = data.get("notes") if isinstance(data, dict) else None
-            if isinstance(notes, list):
-                return [item for item in notes if isinstance(item, dict)]
+            if not isinstance(notes, list):
+                continue
+            if not _recall_index_is_servable(cast(dict[str, Any], data)):
+                # P1C22 · undatable or expired artifact: skip it instead of
+                # silently injecting obsolete notes, and try the next candidate.
+                continue
+            return [item for item in notes if isinstance(item, dict)]
         return []
 
     def run(self, event: HookEvent) -> HookResult:
@@ -2220,8 +2297,19 @@ class ClaimWarningModule:
     # Base completion-language trigger (existing, enforced). The A1 v2 hardening
     # (typed receipts, freshness, zero-diff, repro-fingerprint, compchem, WEP) rides
     # on top as SHADOW-first sub-gates so the base honesty loop is unchanged.
+    # Assertive lint-success language, kept deliberately tight (the verb must follow
+    # the noun, so "lint should pass" / "lint is not clean" do NOT match). It appears
+    # in BOTH _CLAIM and the lint_clean family below, the same way "fixed" and "all
+    # tests pass" already do -- the base trigger decides whether the gate runs, the
+    # family decides which receipt class would substantiate it.
+    _LINT_CLAIM = (
+        r"\blint(?:ing)?\s+(?:passes|passed|is\s+clean|is\s+green|succeeds)\b"
+        r"|\blint(?:er)?\s+(?:checks?\s+)?(?:pass(?:es|ed)?|clean)\b"
+        r"|\bno\s+lint(?:ing)?\s+(?:errors|warnings)\b"
+    )
     _CLAIM = re.compile(
-        r"(?i)\b(?:all tests pass(?:ed)?|everything (?:is )?(?:fixed|working)|fully working|complete[d]?|fixed|resolved|done)\b"
+        r"(?i)(?:\b(?:all tests pass(?:ed)?|everything (?:is )?(?:fixed|working)|fully working|complete[d]?|fixed|resolved|done)\b"
+        r"|" + _LINT_CLAIM + r")"
     )
     _FAMILIES = (
         (
@@ -2243,6 +2331,12 @@ class ClaimWarningModule:
                 r"(?i)\b(?:type[- ]?clean|no type errors|typecheck(?:s)?\b[^.\n]{0,20}\bpass|mypy\b[^.\n]{0,20}\bclean|basedpyright\b[^.\n]{0,20}\bclean)\b"
             ),
         ),
+        # ledger.py's CLAIM_RECEIPT_MAP already declares lint_clean -> ("lint",), but
+        # no detector ever emitted the name, so the class was unreachable and a
+        # lint-only completion returned allow. hooks/honest-signal/check.py:100-108
+        # DEFERS lint claims to hooks/claim-guard/claim-check.py, which is registered
+        # in no surface, so this module is the only checker that sees the input.
+        ("lint_clean", re.compile(r"(?i)" + _LINT_CLAIM)),
         (
             "coverage",
             re.compile(
@@ -2311,6 +2405,11 @@ class ClaimWarningModule:
         # Prefer the SI-1 fresh-receipt signal (a status=="pass" receipt of the
         # required class whose seq post-dates the last mutation) when the ledger
         # lane has landed; else fall back to the legacy any-green has_verification.
+        # Both queries use evidence_turn_id so an event the host did not give a
+        # turn_id still asks "did MY session prove this?" rather than "did anyone
+        # in this project prove this?" — the latter let a sibling session's green
+        # pytest receipt silence this gate.
+        turn = event.evidence_turn_id
         fresh = getattr(self.ledger, "has_fresh_receipt", None)
         if callable(fresh) and CLAIM_RECEIPT_MAP and families:
             classes = tuple(
@@ -2318,11 +2417,11 @@ class ClaimWarningModule:
             )
             if classes:
                 try:
-                    return bool(fresh(event.cwd, event.turn_id, classes))
+                    return bool(fresh(event.cwd, turn, classes))
                 except Exception:
                     pass
         try:
-            return bool(self.ledger.has_verification(event.cwd, event.turn_id))
+            return bool(self.ledger.has_verification(event.cwd, turn))
         except Exception:
             return False
 
@@ -2359,7 +2458,7 @@ class ClaimWarningModule:
         if not callable(last):
             return None
         try:
-            return int(cast(int, last(event.cwd, event.turn_id)))
+            return int(cast(int, last(event.cwd, event.evidence_turn_id)))
         except Exception:
             return None
 
@@ -2395,7 +2494,7 @@ class ClaimWarningModule:
         if not callable(finder) or not callable(last_fp):
             return HookResult.success()
         try:
-            fingerprint = last_fp(event.cwd, event.turn_id)
+            fingerprint = last_fp(event.cwd, event.evidence_turn_id)
             receipt = finder(event.cwd, fingerprint) if fingerprint else None
         except Exception:
             return HookResult.success()
@@ -2427,7 +2526,7 @@ class ClaimWarningModule:
         if not classes:
             return HookResult.success()
         try:
-            if fresh(event.cwd, event.turn_id, classes):
+            if fresh(event.cwd, event.evidence_turn_id, classes):
                 return HookResult.success()
         except Exception:
             return HookResult.success()

@@ -66,9 +66,47 @@ cp -r rules/php ~/.claude/rules/php
 # Attention ! ! ! Configure according to your actual project requirements; the configuration here is for reference only.
 ```
 
+### Codex CLI
+
+Both install routes above target `~/.claude/rules/` only, which **Codex CLI never
+reads** — it discovers its own instruction files under `$CODEX_HOME` (default
+`~/.codex`). So a rule that calls itself cross-tool (for example
+[`common/windows-shell.md`](common/windows-shell.md)) is NOT in Codex's instruction
+chain until you add a pointer yourself:
+
+```bash
+# Point Codex at the installed rules (Codex does not read ~/.claude/rules).
+cp -r rules/common "${CODEX_HOME:-$HOME/.codex}/rules/common"
+# ...then reference them from $CODEX_HOME/AGENTS.md, e.g.
+#   Read ~/.codex/rules/common/windows-shell.md before any shell op.
+```
+
+> **Re-apply this after every Codex bootstrap.** `cli.mjs install` / `cli.mjs update`
+> **replaces `$CODEX_HOME/AGENTS.md` wholesale** with the generated PromptBridge
+> contract — `writeManagedFile(files.agentsPath, rendered.agents)` at
+> `tools/mcp/codex-orchestrator/integrations/codex/bootstrap.mjs:704`, whose rendered
+> body (`:326`) contains no rules pointer. It backs the old file up first, but the
+> pointer is gone from the live file until you put it back. Note the asymmetry:
+> `config.toml` next to it IS merged via a managed block (`:667-668`); only
+> `AGENTS.md` is clobbered.
+>
+> UNVERIFIED: whether a sibling `AGENTS.override.md` would survive that overwrite and
+> still be discovered — it is not written by `applyBootstrapToHome`
+> (`bootstrap.mjs:649-655`), so it plausibly would, but nothing in this repo
+> documents Codex's discovery order. Settle it by running `cli.mjs install` against a
+> throwaway `CODEX_HOME` containing both files and checking which survives and which
+> Codex actually loads. Until then, treat `$CODEX_HOME/AGENTS.md` as the only route
+> and re-apply after each bootstrap.
+
+Note `agent-self/config/codex/config.toml` is **not** an install source for this — it
+is an inbound, redacted snapshot of the live config written *into* the repo by
+`scripts/build-codespace-mirror.py:187-198`, and nothing deploys it back out
+(`agent-self/bootstrap.ps1:28` copies `config/*` to `~/.claude` only). Editing it
+changes no Codex behaviour and is overwritten on the next mirror run.
+
 ## Rules vs Skills
 
-- **Rules** define standards, conventions, and checklists that apply broadly (e.g., "80% test coverage", "no hardcoded secrets").
+- **Rules** define standards, conventions, and checklists that apply broadly (e.g., "test coverage meets `.coverage-thresholds.json`", "no hardcoded secrets").
 - **Skills** (`skills/` directory) provide deep, actionable reference material for specific tasks (e.g., `python-patterns`, `golang-testing`).
 
 Language-specific rule files reference relevant skills where appropriate. Rules tell you *what* to do; skills tell you *how* to do it.
@@ -117,12 +155,28 @@ When language-specific rules and common rules conflict, **language-specific rule
 
 ### Example
 
-`common/coding-style.md` recommends immutability as a default principle. A language-specific `golang/coding-style.md` can override this:
+`common/coding-style.md` recommends immutability as a default principle.
+[`golang/coding-style.md`](golang/coding-style.md) overrides it for Go. That file carries
+the note below verbatim — the `../common/` prefix is correct **from `rules/golang/`**, which
+is why it is shown here as a snippet rather than as a link rendered from this README:
 
-> Idiomatic Go uses pointer receivers for struct mutation — see [common/coding-style.md](../common/coding-style.md) for the general principle, but Go-idiomatic mutation is preferred here.
+```
+> **Language note**: this section overrides the "Immutability (CRITICAL)" rule in
+> [common/coding-style.md](../common/coding-style.md) for Go.
+```
+
+An override is only real when the language-specific file actually states it. A README example
+is not an override — `ci/tests/test_rules_integrity.py` fails if a language override named here
+is missing from the file it names.
 
 ### Common rules with override notes
 
 Rules in `rules/common/` that may be overridden by language-specific files are marked with:
 
 > **Language note**: This rule may be overridden by language-specific rules for languages where this pattern is not idiomatic.
+
+**This marker is the only precedence signal that actually loads.** This README is scoped to
+`**/*.__never_load__` (see the frontmatter), so the "Rule Priority" section above is
+documentation for humans and never enters a model's context. The common rule does load — for
+every extension in its own `paths:` list — so the override must be recorded *in the common
+rule*, next to the text it qualifies, or the conflict is unresolvable at the point of use.

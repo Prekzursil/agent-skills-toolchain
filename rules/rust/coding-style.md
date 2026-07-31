@@ -15,11 +15,20 @@ paths:
 
 ## Immutability
 
+> **Language note**: this section overrides the "Immutability (CRITICAL)" rule in
+> [common/coding-style.md](../common/coding-style.md) for Rust. The common rule's absolute
+> "NEVER mutate existing ones" is narrowed here to "mutate only where the compiler makes it
+> explicit"; `mut` is the opt-in, and the borrow checker — not a style rule — is what prevents
+> the hidden side effects the common rule is aiming at.
+
 Rust variables are immutable by default — embrace this:
 
 - Use `let` by default; only use `let mut` when mutation is required
 - Prefer returning new values over mutating in place
 - Use `Cow<'_, T>` when a function may or may not need to allocate
+- A consuming builder setter — `fn max_connections(mut self, n: usize) -> Self` in
+  [patterns.md](patterns.md) — takes `mut self` by value and assigns a field. That is
+  idiomatic and compliant: the mutation is on a moved-in value nobody else can observe.
 
 ```rust
 use std::borrow::Cow;

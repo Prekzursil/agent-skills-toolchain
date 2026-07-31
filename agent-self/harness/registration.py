@@ -6,7 +6,11 @@ from typing import Any
 
 # Native lifecycle events registered on both providers. The Agent-Teams and
 # failure-channel names (TaskCreated/TaskCompleted/TeammateIdle,
-# PostToolUseFailure/PermissionDenied) and the config-drift name (ConfigChange)
+# PostToolUseFailure/PermissionDenied), the config-drift name (ConfigChange) and
+# the instruction-activation name (InstructionsLoaded, whose LedgerModule handler
+# — modules.py `_append_instructions` — was reachable ONLY from a direct unit
+# call until it was registered here, so its RULES activation telemetry could
+# never actually be emitted in production)
 # are POST-CUTOFF Claude Code features: they are registered fail-open (an
 # unknown event name is simply never fired by a host that does not emit it) so
 # the shared harness observes them the moment the host starts emitting them,
@@ -25,6 +29,7 @@ EVENTS = (
     "PreCompact",
     "PostCompact",
     "ConfigChange",
+    "InstructionsLoaded",
     "SubagentStart",
     "SubagentStop",
     "TaskCreated",
@@ -44,6 +49,7 @@ _TIMEOUTS = {
     "PreCompact": 5,
     "PostCompact": 3,
     "ConfigChange": 3,
+    "InstructionsLoaded": 3,
     "SubagentStart": 3,
     "SubagentStop": 3,
     "TaskCreated": 3,

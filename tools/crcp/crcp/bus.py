@@ -95,7 +95,13 @@ def _tool_text(rpc_result: dict | None) -> str:
             parts.append(c["text"])
     if result.get("structuredContent") is not None:
         parts.append(json.dumps(result["structuredContent"]))
-    return "\n".join(parts)
+    text = "\n".join(parts)
+    if result.get("isError"):
+        # An MCP tool reports EXECUTION failure inside a transport-level success.
+        # Returning its text as an ordinary value would make a failed send look
+        # like a delivered one (scripts/prove_agent_mail_bus.py raises here too).
+        raise RuntimeError(f"tool execution error: {text[:500]}")
+    return text
 
 
 def tool_call(rpc: AgentMailRpc, name: str, arguments: dict) -> Any:
@@ -140,7 +146,12 @@ def load_or_register_bridge_agent(
     db: Path = DEFAULT_DB,
 ) -> tuple[str, str]:
     """Reuse existing crcp-bridge agent for project or register a new one."""
-    tool_call(rpc, "ensure_project", {"human_key": project})
+    try:
+        tool_call(rpc, "ensure_project", {"human_key": project})
+    except RuntimeError:
+        # Best-effort, as before _tool_text learned to raise on isError: an
+        # already-registered project reports a tool error we must not abort on.
+        pass
     if db.is_file():
         con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
         row = con.execute(
@@ -156,11 +167,16 @@ def load_or_register_bridge_agent(
         if row and row[0] and row[1]:
             return row[0], row[1]
 
-    reg = tool_call(
-        rpc,
-        "register_agent",
-        {"project_key": project, "program": program, "model": model},
-    )
+    try:
+        reg: Any = tool_call(
+            rpc,
+            "register_agent",
+            {"project_key": project, "program": program, "model": model},
+        )
+    except RuntimeError as exc:
+        # Keep the post-register sqlite recovery below reachable: a rejected
+        # registration does not prove the agent is absent from the bus database.
+        reg = str(exc)
     name, tok = extract_agent(reg)
     if not name or not tok:
         # try sqlite again after register

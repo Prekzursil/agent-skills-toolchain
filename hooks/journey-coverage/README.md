@@ -17,10 +17,33 @@ executed is the classic green-but-broken blind spot — the golden-journey nobod
    (`%TEMP%\claude-claim-ledger\<session>.ndjson`; override `CLAIM_GUARD_LEDGER_ROOT`).
 
 A journey is **covered** iff an `ok=true` command this turn **named** it (full path /
-basename / stem) **or** was a **bare broad e2e runner** (`playwright test`, `cypress run`,
-`npm run e2e`, `pytest -m e2e`, …) that runs all specs. A *targeted* `playwright test
-<spec>` covers only that spec — it never masks the other journeys. A plain `pytest` /
-`jest` (unit run) does **not** count.
+basename / stem) **or** **invoked** a **bare broad e2e runner** (`playwright test`,
+`cypress run`, `npm run e2e`, `pytest -m e2e`, …) that runs all specs. A *targeted*
+`playwright test <spec>` covers only that spec — it never masks the other journeys. A
+plain `pytest` / `jest` (unit run) does **not** count.
+
+"Invoked" is judged per shell segment, not by substring, so these do **not** cover
+anything (each exits 0 while running no test):
+- **mention, not use** — `printf 'npx playwright test'`, `echo …`, `grep 'playwright
+  test' notes.md`, `sed -i 's/npm run e2e/…/'`, a runner name inside a quoted literal.
+- **non-running mode** — `npx playwright install|install-deps|codegen|open|show-report`,
+  `--version`, `--help`, `--list`.
+
+Real runs still count through `&&`, a pipe, a leading `CI=1`, a version pin
+(`npx playwright@1.61.1 test`) and a shell wrapper (`bash -c "npm run e2e"`).
+
+## Scope — what this gate does **not** attest
+The ledger stores only `{ts, cmd, exit, ok}`. **No test report, JUnit/JSON result, trace,
+screenshot or axe result is parsed**, so a green here means *"a journey runner was
+invoked and exited 0"* — never that the browser rendered, that the assertions passed,
+or anything about **accessibility** or **visual finish**. Those need separate evidence:
+the `ui-audit` skill (a11y / contrast / dead-button / screenshot) and
+`packaged-artifact-smoke` (golden journeys against the built artifact). Two known
+residual gaps, both **fail-safe** (they over-warn, never silently pass):
+- A *named-spec* command is still matched by text, so `playwright test <spec> --list`
+  counts as covering `<spec>`. Only the broad-runner path is mode-checked.
+- A runner invoked through a non-shell interpreter that we cannot see into
+  (`python -c "subprocess.run(['npx','playwright','test'])"`) reads as un-run.
 
 ## Behavior
 - Fires only on an assertive, **non-hedged** app-is-done claim (same hedge suppression as

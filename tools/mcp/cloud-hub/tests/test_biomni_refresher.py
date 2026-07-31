@@ -170,6 +170,185 @@ def test_capture_routes_cookie_when_cdp_set(monkeypatch):
     assert tok == "CK" and seen["route"] == ("cookie", "session_id")
 
 
+# --------------------------------------------------------------------------- #
+# Session-validity gate: a NON-EMPTY cookie is not proof of a live session.     #
+# --------------------------------------------------------------------------- #
+class _FakeCtx:
+    """A CDP browser context whose cookie jar can be refreshed by opening a page."""
+
+    def __init__(self, value, on_open=None):
+        self._value = value
+        self._on_open = on_open
+        self.pages_opened = 0
+
+    def cookies(self, _urls):
+        return [{"name": "session_id", "value": self._value}] if self._value else []
+
+    def new_page(self):
+        self.pages_opened += 1
+        if self._on_open is not None:
+            self._value = self._on_open()
+        return _FakePage()
+
+
+class _FakePage:
+    def goto(self, _url, timeout=None):
+        return None
+
+    def wait_for_timeout(self, _ms):
+        return None
+
+    def close(self):
+        return None
+
+
+def _install_fake_cdp(monkeypatch, ctx):
+    """Point ``_playwright`` at a fake ``sync_playwright`` exposing ``ctx``."""
+
+    class _Browser:
+        contexts = [ctx]
+
+    class _P:
+        class chromium:  # noqa: N801  (mirrors the playwright attribute name)
+            @staticmethod
+            def connect_over_cdp(_url):
+                return _Browser()
+
+    class _Sync:
+        def __enter__(self):
+            return _P()
+
+        def __exit__(self, *_exc):
+            return False
+
+    monkeypatch.setattr(
+        biomni_refresher, "_playwright", lambda: (lambda: _Sync(), None)
+    )
+
+
+def _stub_validity(monkeypatch, verdicts):
+    """Serve ``verdicts`` (one per call) from ``check_session_cookie``."""
+    calls = []
+    seq = list(verdicts)
+
+    def _check(value, *_a, **_k):
+        calls.append(value)
+        return seq.pop(0) if seq else "valid"
+
+    monkeypatch.setattr(biomni_refresher, "check_session_cookie", _check)
+    return calls
+
+
+def test_revoked_cookie_is_not_reported_as_a_successful_refresh(monkeypatch):
+    """A server-revoked (but non-empty) cookie must FAIL, not be stored as fresh."""
+    ctx = _FakeCtx("server-revoked-cookie")
+    _install_fake_cdp(monkeypatch, ctx)
+    _stub_validity(monkeypatch, ["revoked", "revoked"])
+    value, err = biomni_refresher._capture_cookie(
+        "http://127.0.0.1:9222", "u", "session_id", 10
+    )
+    assert value == ""
+    assert "rejected" in err.lower()
+    # It must have tried to re-establish the session before giving up.
+    assert ctx.pages_opened == 1
+
+
+def test_revoked_cookie_is_re_established_by_opening_the_app(monkeypatch):
+    """If opening the app mints a NEW accepted cookie, that one is returned."""
+    ctx = _FakeCtx("server-revoked-cookie", on_open=lambda: "fresh-cookie")
+    _install_fake_cdp(monkeypatch, ctx)
+    seen = _stub_validity(monkeypatch, ["revoked", "valid"])
+    value, err = biomni_refresher._capture_cookie(
+        "http://127.0.0.1:9222", "u", "session_id", 10
+    )
+    assert (value, err) == ("fresh-cookie", "")
+    assert seen == ["server-revoked-cookie", "fresh-cookie"]
+
+
+def test_valid_cookie_is_accepted_without_opening_a_page(monkeypatch):
+    ctx = _FakeCtx("live-cookie")
+    _install_fake_cdp(monkeypatch, ctx)
+    _stub_validity(monkeypatch, ["valid"])
+    assert biomni_refresher._capture_cookie("cdp", "u", "session_id", 10) == (
+        "live-cookie",
+        "",
+    )
+    assert ctx.pages_opened == 0
+
+
+def test_unknown_validity_does_not_discard_a_possibly_good_cookie(monkeypatch):
+    """A transport blip / 5xx must NOT be treated as revocation."""
+    ctx = _FakeCtx("maybe-good")
+    _install_fake_cdp(monkeypatch, ctx)
+    _stub_validity(monkeypatch, ["unknown"])
+    assert biomni_refresher._capture_cookie("cdp", "u", "session_id", 10) == (
+        "maybe-good",
+        "",
+    )
+    assert ctx.pages_opened == 0
+
+
+def _fake_urlopen(status=None, http_error=None, exc=None):
+    class _Resp:
+        def __init__(self):
+            self.status = status
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_a):
+            return False
+
+    def _open(_req, timeout=None):
+        if exc is not None:
+            raise exc
+        if http_error is not None:
+            raise biomni_refresher.urllib.error.HTTPError(
+                "u", http_error, "err", None, None
+            )
+        return _Resp()
+
+    return _open
+
+
+def test_check_session_cookie_classifies_upstream_answers(monkeypatch):
+    urlopen = biomni_refresher.urllib.request.urlopen
+    try:
+        for stub, expected in (
+            (_fake_urlopen(status=200), "valid"),
+            (_fake_urlopen(http_error=401), "revoked"),
+            (_fake_urlopen(http_error=403), "revoked"),
+            (_fake_urlopen(http_error=503), "unknown"),
+            (_fake_urlopen(exc=OSError("boom")), "unknown"),
+        ):
+            monkeypatch.setattr(biomni_refresher.urllib.request, "urlopen", stub)
+            assert biomni_refresher.check_session_cookie("v") == expected
+    finally:
+        monkeypatch.setattr(biomni_refresher.urllib.request, "urlopen", urlopen)
+    assert biomni_refresher.check_session_cookie("") == "revoked"
+
+
+def test_refresh_returns_nonzero_for_a_revoked_cookie(monkeypatch, tmp_path):
+    """``cmd_refresh`` must exit 1 and write NOTHING when the session is dead."""
+    store_file = tmp_path / "broker_token"
+    monkeypatch.setattr(
+        biomni_refresher,
+        "_capture",
+        lambda _args: ("", "the 'session_id' cookie ... is REJECTED"),
+    )
+    args = argparse.Namespace(
+        cdp="cdp",
+        url="u",
+        cookie_name="session_id",
+        timeout_ms=10,
+        profile="p",
+        out_file=str(store_file),
+        out_keyring="",
+    )
+    assert biomni_refresher.cmd_refresh(args) == 1
+    assert not store_file.exists()
+
+
 def test_capture_routes_bearer_without_cdp(monkeypatch):
     seen = {}
     monkeypatch.setattr(

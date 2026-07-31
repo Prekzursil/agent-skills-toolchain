@@ -448,10 +448,23 @@ def cmd_chatgpt_send(args: argparse.Namespace) -> int:
         auto_sentinel=not args.no_sentinel,
     )
     _print_json(result)
+    # The remote POST is already committed here. Decide the exit status from the
+    # send result BEFORE the local diagnostic write, and never let that write
+    # turn a committed success into a failure — a caller that reads the nonzero
+    # status as "not sent" would resend an already-delivered message.
+    exit_code = 0 if result.get("success") else 1
     out = _crcp_root() / "reports" / "chatgpt_send_last.json"
-    out.write_text(json.dumps(result, indent=2, default=str), encoding="utf-8")
-    print(f"# wrote {out}", file=sys.stderr)
-    return 0 if result.get("success") else 1
+    try:
+        out.write_text(json.dumps(result, indent=2, default=str), encoding="utf-8")
+    except OSError as exc:
+        print(
+            f"# WARNING: send already committed; report write failed: "
+            f"{type(exc).__name__}",
+            file=sys.stderr,
+        )
+    else:
+        print(f"# wrote {out}", file=sys.stderr)
+    return exit_code
 
 
 def cmd_auth_watch(args: argparse.Namespace) -> int:

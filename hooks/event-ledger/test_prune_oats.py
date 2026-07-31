@@ -105,7 +105,17 @@ def main() -> int:
     check("full report says no INSUFFICIENT DATA", "INSUFFICIENT DATA" not in r_full)
     check("full report has LEAST-FIRED section", "LEAST-FIRED" in r_full)
     check("full report has MOST-FIRED section", "MOST-FIRED" in r_full)
-    check("full report has FULL RANKING section", "FULL RANKING" in r_full)
+    # No --installed inventory was passed here, so the universe is observation-only and
+    # the ranking must NOT claim to be "FULL" — a never-fired capability cannot appear
+    # in it (D-n01). The inventory-aware behaviour is covered by test_prune_zero_blind.py.
+    check(
+        "no-inventory report has OBSERVED-ONLY RANKING section",
+        "OBSERVED-ONLY RANKING" in r_full,
+    )
+    check(
+        "no-inventory report does NOT claim a FULL RANKING",
+        "FULL RANKING" not in r_full,
+    )
     # tool_alpha (60) is most fired
     check("most-fired section contains tool_alpha", "tool_alpha" in r_full)
     # tool_delta (1) is least fired — should be the top prune candidate
@@ -118,7 +128,7 @@ def main() -> int:
 
     # Verify ranking order in the FULL RANKING section:
     # alpha(60) > gamma(30) > beta_new(7) > beta(2) > delta(1)
-    full_start = r_full.find("FULL RANKING")
+    full_start = r_full.find("OBSERVED-ONLY RANKING")
     full_section = r_full[full_start:] if full_start >= 0 else ""
     pos_alpha = full_section.find("tool_alpha")
     pos_gamma = full_section.find("tool_gamma")

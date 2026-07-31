@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import concurrent.futures
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -750,34 +751,29 @@ def test_checkpoint_is_redacted_bounded_and_contains_no_raw_paths_or_session(tmp
 
 
 def test_recall_uses_local_lexical_index_and_requires_high_precision(tmp_path):
-    index = tmp_path / "recall-index.json"
-    index.write_text(
-        json.dumps(
+    index = _recall_index(
+        tmp_path,
+        [
             {
-                "notes": [
-                    {
-                        "title": "Reframe Make Shorts auto transcribe decision",
-                        "permalink": "projects/reframe/make-shorts-auto-transcribe",
-                        "summary": "Auto transcribe before selecting clips when transcript is absent.",
-                        "keywords": [
-                            "reframe",
-                            "make",
-                            "shorts",
-                            "auto",
-                            "transcribe",
-                            "transcript",
-                        ],
-                    },
-                    {
-                        "title": "Unrelated note",
-                        "permalink": "notes/unrelated",
-                        "summary": "Other work.",
-                        "keywords": ["other"],
-                    },
-                ]
-            }
-        ),
-        encoding="utf-8",
+                "title": "Reframe Make Shorts auto transcribe decision",
+                "permalink": "projects/reframe/make-shorts-auto-transcribe",
+                "summary": "Auto transcribe before selecting clips when transcript is absent.",
+                "keywords": [
+                    "reframe",
+                    "make",
+                    "shorts",
+                    "auto",
+                    "transcribe",
+                    "transcript",
+                ],
+            },
+            {
+                "title": "Unrelated note",
+                "permalink": "notes/unrelated",
+                "summary": "Other work.",
+                "keywords": ["other"],
+            },
+        ],
     )
     module = RecallModule(index_paths=[index], max_results=2, state_root=tmp_path)
 
@@ -849,6 +845,91 @@ def test_claim_warning_requires_recent_verification_evidence(tmp_path):
         )
     )
     assert module.run(stop).action == "allow"
+
+
+def test_claim_warning_flags_an_unsupported_lint_success_claim(tmp_path):
+    """An assertive lint-success claim with no lint receipt must not pass silently.
+
+    ``hooks/honest-signal/check.py`` (the wired Stop checker) DEFERS every
+    lint/test/build/coverage claim to ``hooks/claim-guard/claim-check.py``
+    (check.py:100-108 defines the domain, find_offenders at :193-204 returns no
+    offender for it) -- and claim-check.py is registered in no surface at all, so
+    this harness module is the only checker that sees the input.  ``lint_clean`` is
+    the receipt family ``CLAIM_RECEIPT_MAP`` already declares (ledger.py:117 ->
+    ``("lint",)``) but that no detector ever emitted, so the declared class was
+    unreachable and a lint-only completion returned ``allow``.
+    """
+
+    ledger = EventLedger(tmp_path / "state")
+    module = ClaimWarningModule(ledger)
+    stop = event(tmp_path, "Stop", last_assistant_message="Lint passes, definitely.")
+
+    warning = module.run(stop)
+    assert warning.action == "inject"
+    assert any("verification" in text.lower() for text in warning.additional_context)
+
+    # NON-SYMMETRIC control: the hedged / future-tense form must stay silent, so a
+    # green result here cannot come from an over-broad "any sentence with lint" match.
+    hedged = event(
+        tmp_path,
+        "Stop",
+        last_assistant_message="Lint should pass once ruff is installed.",
+    )
+    assert module.run(hedged).action == "allow"
+
+    # A green lint command classifies as a "lint" receipt (see
+    # test_ledger_receipts_and_taint.py: "ruff check ." -> "lint"), which is exactly
+    # the class CLAIM_RECEIPT_MAP maps lint_clean to, so the gate must go silent.
+    LedgerModule(ledger).run(
+        event(
+            tmp_path,
+            "PostToolUse",
+            tool_name="Bash",
+            tool_use_id="verify-lint-1",
+            tool_input={"command": "ruff check ."},
+            tool_response={"exit_code": 0, "output": "All checks passed!"},
+        )
+    )
+    assert module.run(stop).action == "allow"
+
+
+@pytest.mark.parametrize(
+    "message,is_claim",
+    [
+        ("Lint passes, definitely.", True),
+        ("Linting passes now.", True),
+        ("lint is clean", True),
+        ("The linter checks pass.", True),
+        ("No lint errors remain.", True),
+        # Hedged / negated / merely-mentions-lint -> NOT a claim.
+        ("Lint should pass once ruff is installed.", False),
+        ("Lint is not clean yet.", False),
+        ("I have not run lint.", False),
+        ("Rewrote the linter config.", False),
+        # Pre-existing trigger behaviour, pinned so the lint alternative cannot
+        # widen or narrow it.
+        ("Everything is fixed and all tests pass.", True),
+        ("Investigating the parser now.", False),
+    ],
+)
+def test_claim_warning_lint_trigger_is_assertive_only(message, is_claim):
+    """The lint trigger must fire on assertive success language only.
+
+    A direct-probe pass over these phrasings caught the first draft of the family
+    regex missing "the linter checks pass", so the breadth is pinned here rather
+    than left to the single end-to-end case above.
+    """
+
+    assert bool(ClaimWarningModule._CLAIM.search(message)) is is_claim
+    families = [
+        name
+        for name, pattern in ClaimWarningModule._FAMILIES
+        if pattern.search(message)
+    ]
+    if is_claim and "lint" in message.lower():
+        assert "lint_clean" in families
+    else:
+        assert "lint_clean" not in families
 
 
 def test_active_goal_is_isolated_per_session_in_shared_cwd(tmp_path):
@@ -1286,6 +1367,141 @@ def test_ledger_records_instructions_and_task_events(iso, tmp_path):
     assert "instructions" in kinds and "task" in kinds
 
 
+def test_instructions_activation_telemetry_is_reachable_from_a_real_host(iso, tmp_path):
+    # B9 · the direct LedgerModule.run() call above keeps _append_instructions
+    # COVERED, but coverage is not reachability: the handler only ever runs if a
+    # provider is actually registered for InstructionsLoaded. It was not, so the
+    # RULES activation telemetry could never be emitted in production while the
+    # unit test stayed green. Assert the registration surface, then drive the
+    # event through the dispatcher (the path a host takes) rather than the module.
+    from harness.dispatcher import HarnessDispatcher
+    from harness.registration import EVENTS as _EVENTS, build_hooks as _build_hooks
+
+    assert "InstructionsLoaded" in _EVENTS
+    for provider in ("claude", "codex"):
+        groups = _build_hooks(provider)["InstructionsLoaded"]
+        command = groups[0]["hooks"][0]["command"].replace("\\", "/")
+        assert command.endswith(
+            f'/dispatcher.py" --provider {provider} --event InstructionsLoaded'
+        )
+
+    ledger = EventLedger(tmp_path / "state")
+    result = HarnessDispatcher(
+        modules=[LedgerModule(ledger)], state_root=tmp_path / "state"
+    ).dispatch(
+        {
+            "session_id": "session-1",
+            "turn_id": "turn-1",
+            "cwd": str(tmp_path),
+            "hook_event_name": "InstructionsLoaded",
+            "source": "AGENTS.md",
+        },
+        provider="claude",
+        event_name="InstructionsLoaded",
+    )
+
+    assert result.status == "SUCCESS:hook-instructionsloaded"
+    records = [
+        e for e in ledger.replay(str(tmp_path), limit=20) if e["kind"] == "instructions"
+    ]
+    assert len(records) == 1 and records[0]["source"] == "AGENTS.md"
+
+
+# =============================================================================
+# D17-F4 · parent -> child task/subagent provenance (envelope + ledger)
+# =============================================================================
+def _lineage_record(tmp_path, name, kind, **overrides):
+    ledger = EventLedger(tmp_path / "state")
+    LedgerModule(ledger).run(event(tmp_path, name, **overrides))
+    records = [e for e in ledger.replay(str(tmp_path), limit=20) if e["kind"] == kind]
+    assert len(records) == 1
+    return records[0]
+
+
+@pytest.mark.parametrize(
+    ("parent_key", "expected"),
+    [
+        ("parent_task_id", "parent-7"),
+        ("parentTaskId", "parent-7"),
+        ("parent_agent_id", "parent-7"),
+        ("parentAgentId", "parent-7"),
+        ("parent_id", "parent-7"),
+        ("parentId", "parent-7"),
+    ],
+)
+def test_task_completion_records_the_spawning_task(iso, tmp_path, parent_key, expected):
+    # A provider that supplies BOTH the child and its parent used to lose the
+    # parent during normalization, so the completion fact could not be joined
+    # back to what spawned it. Every spelling a host may use is accepted.
+    record = _lineage_record(
+        tmp_path,
+        "TaskCompleted",
+        "task",
+        task_id="child-9",
+        task_type="reviewer",
+        last_assistant_message="SUCCESS:review",
+        **{parent_key: expected},
+    )
+    assert record["parent_id"] == expected
+
+
+def test_task_lineage_prefers_the_task_edge_over_the_agent_edge(iso, tmp_path):
+    record = _lineage_record(
+        tmp_path,
+        "TaskCompleted",
+        "task",
+        task_id="child-9",
+        parent_task_id="parent-task",
+        parent_agent_id="parent-agent",
+        last_assistant_message="SUCCESS:review",
+    )
+    assert record["parent_id"] == "parent-task"
+
+
+def test_subagent_lifecycle_records_the_spawning_agent(iso, tmp_path):
+    record = _lineage_record(
+        tmp_path,
+        "SubagentStop",
+        "subagentstop",
+        agent_id="child-9",
+        agent_type="reviewer",
+        parent_agent_id="agent-parent",
+        last_assistant_message="SUCCESS:review",
+    )
+    assert record["parent_id"] == "agent-parent"
+
+
+@pytest.mark.parametrize("absent", [{}, {"parent_task_id": ""}, {"parent_id": "   "}])
+def test_lineage_field_is_omitted_when_no_parent_is_reported(iso, tmp_path, absent):
+    # KNOWN-NEGATIVE control: hosts that report no lineage must not start paying
+    # for an always-empty column, and the assertions above must be able to fail.
+    record = _lineage_record(
+        tmp_path,
+        "TaskCompleted",
+        "task",
+        task_id="child-9",
+        last_assistant_message="SUCCESS:review",
+        **absent,
+    )
+    assert "parent_id" not in record
+
+
+def test_lineage_never_persists_a_transcript_path(iso, tmp_path):
+    # The claim is explicitly "provenance WITHOUT persisting transcript paths":
+    # a host that stuffs one into a parent field must not turn the ledger into a
+    # path sidechannel.
+    record = _lineage_record(
+        tmp_path,
+        "TaskCompleted",
+        "task",
+        task_id="child-9",
+        parent_task_id="C:/Users/someone/.claude/projects/p/abc.jsonl",
+        last_assistant_message="SUCCESS:review",
+    )
+    assert "abc.jsonl" not in record["parent_id"]
+    assert "Users" not in record["parent_id"]
+
+
 # =============================================================================
 # D2 · injection tripwire (shadow default; enforce-on-demand)
 # =============================================================================
@@ -1651,9 +1867,19 @@ def test_budget_pacing_injects_on_change_only(iso, tmp_path, monkeypatch):
 # =============================================================================
 # B1/B3 · composite recall scoring, session-suppress, poison-gate, stigmergic
 # =============================================================================
-def _recall_index(tmp_path, notes):
-    index = tmp_path / "recall-index.json"
-    index.write_text(json.dumps({"notes": notes}), encoding="utf-8")
+def _recall_index(tmp_path, notes, *, name="recall-index.json", **document):
+    """A document shaped like a REAL recall_index.py build. The P1C22 freshness
+    guard skips any index that does not declare a supported schema_version and a
+    fresh built_at, so a bare {"notes": [...]} fixture is not a servable index."""
+    index = tmp_path / name
+    payload = {
+        "schema_version": 2,
+        "built_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "vault_hash": "0" * 64,
+        "notes": notes,
+    }
+    payload.update(document)
+    index.write_text(json.dumps(payload), encoding="utf-8")
     return index
 
 

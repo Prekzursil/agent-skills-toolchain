@@ -120,3 +120,69 @@ def test_core_result_schema_is_closed_and_contains_no_provider_wire_fields():
     }
     forbidden = {"hookSpecificOutput", "decision", "systemMessage", "suppressOutput"}
     assert forbidden.isdisjoint(schema["properties"])
+
+
+def _event_schema():
+    path = Path(__file__).resolve().parents[1] / "schemas" / "hook-event.schema.json"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def test_event_schema_admits_exactly_the_normalized_envelope(tmp_path):
+    # hook-event.schema.json is `additionalProperties: false` at both levels, so
+    # a field added to HookEvent/AgentEnvelope without a matching schema entry
+    # makes every real event invalid — and a schema entry with no dataclass
+    # field is a promise the normalizer never keeps. Checked structurally
+    # (no jsonschema dependency: CI installs only pytest/pytest-cov/pyyaml).
+    schema = _event_schema()
+    document = normalize_event(
+        {"session_id": "s", "cwd": str(tmp_path)},
+        provider="codex",
+        event_name="TaskCompleted",
+    ).to_dict()
+
+    assert schema["additionalProperties"] is False
+    assert set(schema["properties"]) == set(document)
+    assert set(schema["required"]) == set(document)
+
+    agent_schema = schema["properties"]["agent"]
+    assert agent_schema["additionalProperties"] is False
+    assert set(agent_schema["properties"]) == set(document["agent"])
+    assert set(agent_schema["required"]) == set(document["agent"])
+
+
+def test_event_schema_carries_the_parent_lineage_field_as_an_opaque_id(tmp_path):
+    # D17-F4 · the agent envelope must be able to express the parent-child edge.
+    agent_schema = _event_schema()["properties"]["agent"]
+    assert agent_schema["properties"]["parent_id"]["type"] == "string"
+    assert "parent_id" in agent_schema["required"]
+
+    event = normalize_event(
+        {
+            "session_id": "s",
+            "cwd": str(tmp_path),
+            "task_id": "child-9",
+            "parent_task_id": "parent-7",
+        },
+        provider="claude",
+        event_name="TaskCompleted",
+    )
+    assert event.agent.id == "child-9"
+    assert event.agent.parent_id == "parent-7"
+    # An opaque id, NOT a second transcript channel.
+    assert event.agent.transcript_path == ""
+
+
+def test_package_initializer_publishes_the_core_model_contract():
+    """``harness/__init__.py`` re-exports HookEvent/HookResult, but EVERY in-tree
+    consumer imports them from ``harness.models`` directly -- so nothing else in
+    the suite notices if the package's advertised public surface disappears.
+    Measured: deleting the two names from the initializer leaves the whole
+    harness suite green while ``from harness import HookEvent`` raises
+    ImportError. This test is that missing guard."""
+    import harness
+
+    from harness.models import HookEvent, HookResult
+
+    assert harness.__all__ == ["HookEvent", "HookResult"]
+    assert harness.HookEvent is HookEvent
+    assert harness.HookResult is HookResult

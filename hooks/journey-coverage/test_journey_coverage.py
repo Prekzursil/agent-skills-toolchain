@@ -71,6 +71,45 @@ def test_find_journey_specs_empty_when_none(tmp_path):
     assert jc.find_journey_specs(str(tmp_path)) == []
 
 
+def test_find_journey_specs_discovers_flutter_integration_tests(tmp_path):
+    """REGRESSION (C33 D-a030, re-derived onto the landed dispatcher).
+
+    Flutter's ``integration_test/`` is the on-device journey mechanism that
+    ``rules/dart/testing.md:26,204-207`` itself prescribes
+    (``integration_test/flows/login_flow_test.dart``). While it was absent from
+    ``_SPEC_GLOBS`` a Flutter repo read as "no declared journeys", so ``main()``
+    took its early-success branch and an unexecuted critical flow was never flagged.
+    """
+    _mk(tmp_path, "integration_test/flows/login_flow_test.dart")
+    _mk(tmp_path, "integration_test/flows/checkout_flow_test.dart")
+    _mk(tmp_path, "test/widget_test.dart")  # a unit/widget test, NOT a journey
+    found = jc.find_journey_specs(str(tmp_path))
+    assert "integration_test/flows/login_flow_test.dart" in found
+    assert "integration_test/flows/checkout_flow_test.dart" in found
+    assert not any("widget_test" in f for f in found)
+
+
+def test_covered_by_broad_flutter_runner():
+    """REGRESSION (second half of the Flutter gap): once discovery works, a
+    successful whole-suite ``flutter test integration_test`` must COUNT as a broad
+    journey run, or every Flutter repo is permanently reported uncovered.
+    """
+    specs = [
+        "integration_test/flows/login_flow_test.dart",
+        "integration_test/flows/checkout_flow_test.dart",
+    ]
+    assert jc.uncovered_journeys(specs, ["flutter test integration_test"]) == []
+    assert jc.uncovered_journeys(specs, ["flutter drive --target=x"]) == []
+    # A named single flow still leaves the other uncovered.
+    assert jc.uncovered_journeys(specs, ["flutter test login_flow_test.dart"]) == [
+        "integration_test/flows/checkout_flow_test.dart"
+    ]
+    # A plain `flutter test` (the unit/widget suite) is NOT a journey run.
+    assert jc.uncovered_journeys(specs, ["flutter test"]) == specs
+    # Mention-not-use must not count either (the is_broad_run contract).
+    assert jc.uncovered_journeys(specs, ["echo flutter test integration_test"]) == specs
+
+
 # --------------------------------------------------------------------------- #
 # uncovered_journeys / _ran (the gate's core)
 # --------------------------------------------------------------------------- #
@@ -101,6 +140,57 @@ def test_plain_unit_test_run_does_not_cover_journeys():
     # A generic `pytest` / `jest` (NOT an e2e runner) must NOT count as coverage.
     specs = ["app/e2e/golden-journey.spec.ts"]
     assert jc.uncovered_journeys(specs, ["pytest tests/", "jest src/"]) == specs
+
+
+# --------------------------------------------------------------------------- #
+# broad-runner false greens (D-l04 mention-not-use, D-l05 non-running subcmd)
+# --------------------------------------------------------------------------- #
+_TWO = ["app/e2e/login.spec.ts", "app/e2e/checkout.spec.ts"]
+
+
+def test_playwright_setup_and_diagnostic_commands_do_not_cover():
+    # A playwright invocation that starts NO test must not cover any journey.
+    for cmd in (
+        "npx playwright install chromium",
+        "npx playwright install-deps",
+        "npx playwright --version",
+        "npx playwright codegen https://example.com",
+        "npx playwright show-report",
+        "npx playwright open https://example.com",
+        "npx playwright test --list",
+        "npx playwright test --help",
+        "npx cypress install",
+    ):
+        assert jc.uncovered_journeys(_TWO, [cmd]) == _TWO, cmd
+
+
+def test_runner_name_merely_mentioned_does_not_cover():
+    # The runner NAME printed or searched as text executed no browser.
+    for cmd in (
+        "printf 'npx playwright test'",
+        "echo npx playwright test",
+        "cat notes.md | grep 'playwright test'",
+        "python -c \"print('npx playwright test')\"",
+        "sed -i 's/npm run e2e/npm run unit/' package.json",
+    ):
+        assert jc.uncovered_journeys(_TWO, [cmd]) == _TWO, cmd
+
+
+def test_genuine_broad_runners_still_cover_every_journey():
+    # Regression guard: the guards above must not break real all-specs runs.
+    for cmd in (
+        "npx playwright test",
+        "npx playwright test --workers=1",
+        "npx playwright@1.61.1 test",
+        "pnpm exec playwright test --reporter=list",
+        "npm run e2e",
+        "cypress run",
+        "npm ci && npx playwright test",
+        "npx playwright test 2>&1 | tee e2e.log",
+        'bash -c "npm run e2e"',
+        "CI=1 npx playwright test",
+    ):
+        assert jc.uncovered_journeys(_TWO, [cmd]) == [], cmd
 
 
 # --------------------------------------------------------------------------- #
@@ -178,12 +268,64 @@ def test_block_mode_exits_2_on_uncovered(tmp_path):
     assert "JOURNEY-COVERAGE" in r.stderr
 
 
+def test_block_mode_also_emits_context_so_the_dispatcher_cannot_swallow_it(tmp_path):
+    """This hook's ONLY registration is _dispatch/manifest.json:144-152, and that
+    dispatcher aggregates stdout additionalContext while DISCARDING the return code.
+    So block mode -- which wrote only stderr and returned 2 -- produced no
+    host-readable output at all on its live route: the exit 2 was dropped and the
+    finding reached nobody. Emitting the inject-only JSON in block mode too is what
+    makes the message survive; standalone, Claude Code ignores stdout on an exit-2
+    hook, so this costs nothing there.
+    """
+
+    payload, env = _seed(tmp_path, done=True, specs=True, ledger_cmds=["pytest tests/"])
+    r = _run_hook(payload, {**env, "JOURNEY_COVERAGE_MODE": "block"})
+
+    assert r.returncode == 2, "block mode must still block when run standalone"
+    emitted = json.loads(r.stdout.strip())
+    hso = emitted["hookSpecificOutput"]
+    assert hso["hookEventName"] == "Stop"
+    assert "golden-journey.spec.ts" in hso["additionalContext"]
+
+
+def test_block_mode_emits_nothing_when_every_journey_ran(tmp_path):
+    """CONTROL for the test above: the new print must stay inside the SAME firing
+    condition, not turn block mode into an unconditional emitter."""
+
+    payload, env = _seed(
+        tmp_path, done=True, specs=True, ledger_cmds=["npx playwright test"]
+    )
+    r = _run_hook(payload, {**env, "JOURNEY_COVERAGE_MODE": "block"})
+    assert r.returncode == 0 and r.stdout.strip() == ""
+
+
 def test_block_mode_silent_when_covered(tmp_path):
     payload, env = _seed(
         tmp_path, done=True, specs=True, ledger_cmds=["npx playwright test"]
     )
     r = _run_hook(payload, {**env, "JOURNEY_COVERAGE_MODE": "block"})
     assert r.returncode == 0
+
+
+def test_block_mode_exits_2_when_only_a_setup_command_ran(tmp_path):
+    # End-to-end: `npx playwright install` installed a browser and ran no journey.
+    payload, env = _seed(
+        tmp_path, done=True, specs=True, ledger_cmds=["npx playwright install chromium"]
+    )
+    r = _run_hook(payload, {**env, "JOURNEY_COVERAGE_MODE": "block"})
+    assert r.returncode == 2
+    assert "golden-journey.spec.ts" in r.stderr
+
+
+def test_warn_mode_fires_when_runner_name_was_only_printed(tmp_path):
+    # End-to-end: the ledger's only ok=true command merely PRINTS the runner name.
+    payload, env = _seed(
+        tmp_path, done=True, specs=True, ledger_cmds=["printf 'npx playwright test'"]
+    )
+    r = _run_hook(payload, env)
+    assert r.returncode == 0
+    assert "JOURNEY-COVERAGE" in r.stdout
+    assert "golden-journey.spec.ts" in r.stdout
 
 
 def test_off_mode_never_fires(tmp_path):

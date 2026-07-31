@@ -6,7 +6,9 @@ runtime, NO new MCP. A low-frequency (weekly) Windows Scheduled Task named
 `ClaudeHarnessBench` runs this script; it:
 
   1. runs `python eval.py --json` (the shipped HYBRID router eval, SEMROUTER_NO_RECORD=1),
-  2. compares HYBRID skill/mcp recall against a stored baseline,
+  2. compares HYBRID skill recall, mcp recall AND negative-control false-positives against a
+     stored baseline (a NEW fire on a negative control is a regression the same way a lost
+     hit is - eval.py records it and baseline.json freezes it),
   3. on a DROP, appends ONE `[YYYY-MM-DD HH:MM:SS] [harness-bench] ... | PROPOSE: ...` line
      to the background digest. That is LOG + PROPOSE only - it NEVER auto-acts. The existing
      background-digest reader surfaces the line once at the next SessionStart.
@@ -38,6 +40,15 @@ PROPOSE_CMD = "python C:/Users/Prekzursil/.claude/hooks/semantic-router/eval.py"
 
 # A variant object needs these int keys for a comparison to be valid.
 _REQUIRED = ("skill_hit", "skill_total", "mcp_hit", "mcp_total")
+
+# The negative-control counters. eval.py always emits them and baseline.json freezes them,
+# but they are deliberately NOT in _REQUIRED: promoting them would make a legacy baseline
+# that lacks them fail _valid_variant, and since the file EXISTS main() would then return 0
+# forever without reseeding - silencing the producer entirely. Instead the negative-control
+# comparison engages only when BOTH sides carry them (see _neg_pair), which is strictly
+# additive: no previously-reported case changes. gate.py stays the strict surface that
+# hard-requires all six (gate.py COUNT_KEYS).
+_NEG_REQUIRED = ("neg_fire", "neg_total")
 
 # How long to let the (weekly, offline) eval run before giving up - fail-open on timeout.
 _EVAL_TIMEOUT_S = 1200
@@ -92,6 +103,22 @@ def _valid_variant(obj) -> bool:
     return isinstance(obj, dict) and all(isinstance(obj.get(k), int) for k in _REQUIRED)
 
 
+def _neg_pair(base: dict, cur: dict) -> tuple[int, int] | None:
+    """(base_fire, cur_fire) when BOTH sides carry int negative-control counters, else None.
+
+    A False-Positive on a negative control is a routing regression the producer used to
+    ignore: eval.py records it and baseline.json freezes it, but neither the validity check
+    nor the comparison looked at it. bools are excluded (bool is an int subclass) so a
+    malformed `true` cannot be compared as 1.
+    """
+    for obj in (base, cur):
+        if not isinstance(obj, dict):
+            return None
+        if not all(type(obj.get(k)) is int for k in _NEG_REQUIRED):
+            return None
+    return base["neg_fire"], cur["neg_fire"]
+
+
 def _parse_hybrid(raw: str | None) -> dict | None:
     """Extract the validated HYBRID variant from eval --json stdout. None on any problem."""
     if not raw:
@@ -137,6 +164,12 @@ def _regression_desc(base: dict, cur: dict) -> str:
             f"mcp recall {base['mcp_hit']}/{base['mcp_total']} "
             f"-> {cur['mcp_hit']}/{cur['mcp_total']}"
         )
+    neg = _neg_pair(base, cur)
+    if neg is not None and neg[1] > neg[0]:
+        parts.append(
+            f"negative-control fires {base['neg_fire']}/{base['neg_total']} "
+            f"-> {cur['neg_fire']}/{cur['neg_total']}"
+        )
     return "HYBRID router " + "; ".join(parts)
 
 
@@ -180,8 +213,19 @@ def main(argv=None, eval_runner=None) -> int:
             _write_baseline(cur)  # first run: seed the bar silently
             return 0
 
-        # Regression takes priority: a drop on EITHER axis logs + keeps the higher bar.
-        if cur["skill_hit"] < base["skill_hit"] or cur["mcp_hit"] < base["mcp_hit"]:
+        neg = _neg_pair(base, cur)
+        neg_regressed = neg is not None and neg[1] > neg[0]
+
+        # Regression takes priority: a drop on ANY axis - skill recall, mcp recall, or a NEW
+        # false positive on a negative control - logs + keeps the higher bar. Keeping the
+        # negative axis inside this branch (rather than reporting it unconditionally) also
+        # blocks the ratchet below from persisting the worse neg_fire, which would silently
+        # lower the frozen bar and permanently disarm gate.py's negative-fire check.
+        if (
+            cur["skill_hit"] < base["skill_hit"]
+            or cur["mcp_hit"] < base["mcp_hit"]
+            or neg_regressed
+        ):
             # A drop is a ROUTER regression only if the semantic backend was actually up;
             # an Ollama-down run craters recall for infra reasons -> do not cry wolf.
             if _semantic_backend_down():
@@ -189,8 +233,14 @@ def main(argv=None, eval_runner=None) -> int:
             _append_digest(_regression_desc(base, cur))
             return 0
 
-        # No regression here: ratchet up iff strictly better on at least one axis.
-        if cur["skill_hit"] > base["skill_hit"] or cur["mcp_hit"] > base["mcp_hit"]:
+        # No regression here: ratchet up iff strictly better on at least one axis. Fewer
+        # negative-control fires is an improvement too, so the bar tightens on that axis
+        # as well instead of staying stuck at the looser frozen value.
+        if (
+            cur["skill_hit"] > base["skill_hit"]
+            or cur["mcp_hit"] > base["mcp_hit"]
+            or (neg is not None and neg[1] < neg[0])
+        ):
             _write_baseline(cur)
         return 0  # otherwise unchanged -> silent
     except Exception as exc:  # fail-open: never crash the scheduler

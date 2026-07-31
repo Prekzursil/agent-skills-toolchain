@@ -8,9 +8,9 @@ paths:
 
 ## Hook Types
 
-The provider emits far more than three events. Registering only the three below is how a
-working hook silently never runs — always check the event you need against the generator
-before assuming it is wired.
+The provider emits far more than three events. Registering only the three you reach for most
+— `PreToolUse`, `PostToolUse`, `Stop` — is how a working hook silently never runs; always
+check the event you need against the generator before assuming it is wired.
 
 - **SessionStart** / **UserPromptSubmit**: session bootstrap, prompt-time context injection
 - **PreToolUse**: before tool execution (validation, parameter modification) — the only
@@ -19,14 +19,15 @@ before assuming it is wired.
 - **PostToolUse** / **PostToolUseFailure**: after tool execution (auto-format, checks)
 - **PreCompact** / **PostCompact**: context-compaction checkpoints
 - **ConfigChange**: settings/config mutation
+- **InstructionsLoaded**: instruction/RULES activation telemetry
 - **SubagentStart** / **SubagentStop**: subagent lifecycle
 - **TaskCreated** / **TaskCompleted** / **TeammateIdle**: task + teammate lifecycle
 - **Stop**: when the turn ends (final verification)
 - **Notification**: attention alerts (`idle_prompt|permission_prompt`)
 
 **Registration is generated, so an event missing from the generator cannot be reached.**
-`agent-self/harness/registration.py:17-34` defines the `EVENTS` tuple and `build_hooks()`
-(`:151-183`) emits registrations by iterating **only** that tuple. `Notification` is not in
+`agent-self/harness/registration.py:21-39` defines the `EVENTS` tuple and `build_hooks()`
+(`:157-189`) emits registrations by iterating **only** that tuple. `Notification` is not in
 it, so `hooks/notify-idle/notify.py` — whose module docstring at `:24` explicitly requires
 registration under `Notification` with matcher `idle_prompt|permission_prompt`, and whose
 desktop/BEL handler at `:118-129` is fully implemented — is never invoked. An unattended
@@ -39,6 +40,14 @@ strict JSON round-tripping. It does **not** validate event names, matcher-group 
 typed handler fields — so a malformed registration (a matcher group with no nested `hooks`
 array, or a command handler missing `type`/`command`) passes CI unchanged. Verify a new
 registration by observing the hook actually fire, not by a green manifest gate.
+
+**The list above is a summary; `EVENTS` is the authority.** The shared harness registers
+**seventeen** events — every bullet above except `Notification` — and the Claude provider
+additionally gets `WorktreeCreate` / `WorktreeRemove`, hand-added outside that loop in
+`_apply_claude_hand_edits` (`agent-self/harness/registration.py:137-154`). Read `EVENTS`
+rather than this prose, which is a summary and can lag: an earlier revision of this file
+said *sixteen*, written before `InstructionsLoaded` was registered. Entry shape (three
+nesting levels, no `$FILE_PATH`): see [web/hooks.md](../web/hooks.md).
 
 ## Auto-Accept Permissions
 
@@ -73,7 +82,7 @@ zero evidence for a claim like *"the payload schema is guaranteed to be valid JS
 gate that counts "the agent used a tool" as corroboration must exclude the whole Task family
 alongside the legacy Todo names, or an unsupported certainty claim slips through unflagged
 the moment the only tool call in the turn is progress bookkeeping. Measured on the current
-`hooks/honest-signal/check.py` (`_NON_VERIFYING = {"TodoWrite", "TodoRead"}` at `:54-55`):
+`hooks/honest-signal/check.py` (`_NON_VERIFYING = {"TodoWrite", "TodoRead"}` at `:62-63`):
 the `TodoWrite` control emits the warning, while `TaskCreate`, `TaskUpdate`, `TaskList` and
 `TaskGet` each suppress it against the identical offending transcript. When a tool family is
 renamed, the exclusion sets that reference it are part of the rename.

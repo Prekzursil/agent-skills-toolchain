@@ -73,6 +73,17 @@ jobs:
           diff -r --exclude=__pycache__ \
             tools/monitorcore/monitorcore \
             skills/workflow-monitor/monitorcore
+      # D-wu-19: the codex-runner installs ci/skills-allowlist/* VERBATIM into
+      # $HOME/.agents/skills (codex-runner.yml:163) and skill_surface_census.py then
+      # merkle-compares the two roots, so the acceptance-review helper must live IN the
+      # allowlist -- copying it in after the census would fail the census. That makes it
+      # a second copy of the canonical script; this is its drift guard. Deliberately NOT
+      # a `gate-<slug>` step name, same rationale as the monitorcore step above.
+      - name: acceptance-review helper drift (canonical == CI projection)
+        run: |
+          diff \
+            .agents/skills/acceptance-review/scripts/acceptance_review.py \
+            ci/skills-allowlist/acceptance-review/scripts/acceptance_review.py
 
   types:
     name: gate-types (basedpyright)
@@ -263,6 +274,19 @@ jobs:
         run: |
           pip install -e ".[dev]"
           pytest --cov=monitorcore --cov-branch --cov-report=term-missing --cov-fail-under=100
+      # skills/workflow-monitor holds the ONLY copy of the WfmonSource adapter
+      # (wfmon_export/), and no step named its suite -- with no repo-wide pytest
+      # autodiscovery, a regression there could not be caught (this is how the D-p1c10
+      # escaping-clock case stayed uncovered). Scoped to the adapter-contract file: it
+      # imports stdlib plus in-tree modules only (no textual), and conftest.py puts the
+      # skill root on sys.path, so bare pytest is the whole install. Reuses the declared
+      # `tests-coverage` slug without a --cov-fail-under threshold, same as the
+      # harness-corpus step further down.
+      - name: gate-tests-coverage wfmon adapter contract (skills/workflow-monitor)
+        working-directory: skills/workflow-monitor
+        run: |
+          pip install pytest
+          pytest tests/test_source.py -q
       # tools/mcpctl -- read-only MCP inventory core, stdlib-only runtime (its dev extra
       # is just pytest + pytest-cov). The editable install is LOAD-BEARING here even
       # though the runtime deps are empty: `tests/` is a subdirectory, so bare `pytest`
@@ -483,6 +507,17 @@ jobs:
           pytest --cov=rank_fusion --cov=searxng_config --cov=query_plan --cov-branch \
             --cov-report=term-missing --cov-fail-under=100
 
+      # C46: ci/tests/ has NO tree-wide step, so a suite added there runs only if it is
+      # named here (quality.yml is the source of truth for what executes). Pins the
+      # deployable ~/.claude docs against the code that resolves the paths they name —
+      # agent-self/config/CLAUDE.md is copied verbatim to ~/.claude by bootstrap.ps1, so a
+      # wrong path in it is an operator instruction, not prose. Reuses the existing
+      # `gate-tests-coverage` charter slug on purpose: .quality/charter_check.sh matches on
+      # `gate-<slug>` markers, so inventing a new one would need a charter.yml edit and
+      # would otherwise turn the EXISTING lint job red.
+      - name: gate-tests-coverage deployable-doc/code path consistency
+        run: python -m pytest ci/tests/test_deploy_doc_consistency.py -q
+
       # tools/plugin-cache-reaper — the sweep for abandoned plugin-install staging
       # clones under ~/.claude/plugins/cache. Named explicitly for the usual reason:
       # there is no repo-wide pytest autodiscovery here, so an unnamed suite is dead
@@ -516,6 +551,75 @@ jobs:
           python -m pytest ci/tests/test_emit_hook_manifest.py -q
           python ci/emit_hook_manifest.py --source hooks/hooks.json --target codex-plugin --check
           python ci/emit_hook_manifest.py --source agent-self/config/hooks/hooks.json --target codex-plugin --check
+
+      # rules/ had NO gate of any kind before this step: ruff, basedpyright, npm and
+      # opengrep all ignore markdown, so nothing read the rule tree. Five defects were
+      # live at 27fb388 -- a 404 relative link in rules/README.md, the "Language note"
+      # override marker the README promises appearing 0 times under rules/common/, a Go
+      # override the README advertises that golang/coding-style.md never states, a
+      # coverage SSOT that agents/tdd-guide.md's flat 80% silently outranked, and an
+      # awaited >60s cross-vendor dispatch with no compliant launch mode (AGENTS.md 4a
+      # demands background, cross-vendor-dispatch rule 1 forbade it). Named explicitly
+      # like the suites around it -- there is no repo-wide pytest autodiscovery, so an
+      # unnamed suite cannot catch a regression. Reuses the gate-tests-coverage charter
+      # slug on purpose (not a new gate), so .quality/charter_check.sh needs no edit.
+      # The link test is a pure filesystem walk; the other four are text-contract
+      # assertions over prose and each ships a known-broken control, so a green run is
+      # not a silent detector. Measured: 5 red before the fixes, 9 green after.
+      - name: gate-tests-coverage rules tree integrity
+        run: python -m pytest ci/tests/test_rules_integrity.py -q
+      # D-a016: the coverage-authority contract between agents/tdd-guide.md and
+      # rules/common/testing.md. The rules make .coverage-thresholds.json the SSOT and keep
+      # 80%+ only as the no-threshold-file fallback; the TDD specialist those rules route
+      # coverage verification TO used to assert a flat 80%+ in four places and never named
+      # the SSOT, so on a repo whose threshold file sets a higher floor the one agent whose
+      # job is verifying coverage was the one that could report a false sufficient. The suite
+      # forbids a coverage percentage on any line of those two documents that does not name
+      # the threshold file, in BOTH directions, and carries a both-states probe that re-runs
+      # the predicate over the verbatim pre-fix wording, per the both-states discipline in
+      # rules/common/single-signal-verification.md, so a green run here is evidence about
+      # the two documents and not merely evidence that the detector stopped working.
+      # ci/tests is already collected as a DIRECTORY by skill-dual-write.yml; naming it here
+      # too puts it in the required lane. Reuses the existing gate-tests-coverage charter
+      # slug on purpose — it is not a new gate, so .quality/charter_check.sh stays consistent
+      # with no charter.yml edit. Measured: 9 passed after the fix, 2 failed before it.
+      - name: gate-tests-coverage coverage-authority consistency
+        run: python -m pytest ci/tests/test_coverage_authority_consistency.py -q
+      # D-a010: a rule whose BODY claims global reach ("ALL substantive subagents")
+      # must not carry source-code-only `paths:` frontmatter -- a path-scoped rule is
+      # selected only when a matching file is touched, so the policy went missing in
+      # exactly the research/orchestration state it governs. Stdlib-only. Reuses the
+      # existing gate-tests-coverage charter slug on purpose -- it is not a new gate,
+      # so .quality/charter_check.sh stays consistent with no charter.yml edit.
+      - name: gate-tests-coverage rules scope (globally-worded rules stay reachable)
+        run: |
+          python -m pytest ci/tests/test_rules_scope.py -q
+
+      # D-a050: rules/common is the UNIVERSAL layer every rules/<lang>/ dir declares it
+      # extends, but Claude Code realises that only through the `paths:` frontmatter --
+      # a universal rule whose selector omits a language's extensions is simply absent
+      # for that language's work (measured: Perl and Dart loaded zero common rules).
+      # skill-dual-write.yml already collects all of ci/tests, but quality.yml is the
+      # source of truth for what runs and there is NO repo-wide pytest autodiscovery,
+      # so the suite is named here too. Reuses the existing gate-tests-coverage charter
+      # slug on purpose -- not a new gate, so .quality/charter_check.sh stays consistent
+      # with no charter.yml edit.
+      #
+      # A043: a language rule whose prose says "extends common/xxx.md" is only actually
+      # composable with that base if the base's `paths:` frontmatter selects the same file
+      # kinds -- a path-scoped rule loads ONLY on a selector match, so a glob the base omits
+      # loads the extension ALONE and the base guidance silently never arrives. Measured:
+      # rules/kotlin/patterns.md selected **/*.kts while rules/common/patterns.md did not, so
+      # editing app/build.gradle.kts lost the whole common base. Stdlib-only (pytest already
+      # installed by an earlier step) and named explicitly for the reason the steps below give:
+      # there is no repo-wide pytest autodiscovery, so an unnamed suite cannot catch a
+      # regression. Reuses the existing `gate-tests-coverage` charter slug on purpose -- it is
+      # not a new gate, so .quality/charter_check.sh stays consistent with no charter.yml edit.
+      # Includes its own both-states control (rules/common/single-signal-verification.md:44):
+      # the gap detector is asserted to FIRE on a synthetic broken pair, so a green run is
+      # evidence rather than a silent no-op. Measured: 2 failed -> 4 passed across the fix.
+      - name: gate-tests-coverage rules selector inheritance
+        run: python -m pytest ci/tests/test_rules_selector_inheritance.py -q
 
       # agent-self/config/harness-meta/plan_lint_stage0.py -- the mechanical stage-0 plan
       # linter + cross-session resume manifest that skills/workflow-authoring/SKILL.md:404 and
@@ -565,22 +669,6 @@ jobs:
       # defect probe.)
       - name: gate-tests-coverage rules/common rule-vs-code contracts
         run: pytest ci/tests/test_rules_common_contracts.py -q
-      # A043: a language rule whose prose says "extends common/xxx.md" is only actually
-      # composable with that base if the base's `paths:` frontmatter selects the same file
-      # kinds -- a path-scoped rule loads ONLY on a selector match, so a glob the base omits
-      # loads the extension ALONE and the base guidance silently never arrives. Measured:
-      # rules/kotlin/patterns.md selected **/*.kts while rules/common/patterns.md did not, so
-      # editing app/build.gradle.kts lost the whole common base. Stdlib-only (pytest already
-      # installed by an earlier step) and named explicitly for the reason the steps below give:
-      # there is no repo-wide pytest autodiscovery, so an unnamed suite cannot catch a
-      # regression. Reuses the existing `gate-tests-coverage` charter slug on purpose -- it is
-      # not a new gate, so .quality/charter_check.sh stays consistent with no charter.yml edit.
-      # Includes its own both-states control (rules/common/single-signal-verification.md:44):
-      # the gap detector is asserted to FIRE on a synthetic broken pair, so a green run is
-      # evidence rather than a silent no-op. Measured: 2 failed -> 4 passed across the fix.
-      - name: gate-tests-coverage rules selector inheritance
-        run: python -m pytest ci/tests/test_rules_selector_inheritance.py -q
-
       # C26: doc-vs-code contracts for the rule/command surface. Prose has no compiler, so
       # the adjudicated findings (a rule promising coverage the shipped hook does not give,
       # an exit-2 recipe AGENTS.md §6 forbids, a perl example that will not parse, a
@@ -597,6 +685,24 @@ jobs:
       # (not a new gate), so .quality/charter_check.sh stays consistent with no charter edit.
       - name: gate-tests-coverage rules/commands doc contracts
         run: python -m pytest ci/tests/test_rules_doc_contracts.py -q
+      # A023 + A048: rules/ documentation coherence. Two first-party contradictions
+      # shipped on main because no gate reads two documents side by side — the review
+      # Block boundary (rules/common/code-review.md grades HIGH -> WARN while the Python
+      # and TypeScript surfaces block on HIGH, so one HIGH-only result had two terminal
+      # decisions), and the Perl repository example that violated its own all-attributes
+      # Types::Standard mandate. The A023 check is LAYERED, not flat: every GENERAL
+      # surface must agree with the rule, and any language-specific surface that is
+      # stricter must declare the override AND be named in the rule's inline Language
+      # note (rules/README.md is scoped '**/*.__never_load__', so an override recorded
+      # only there never reaches a model). Named explicitly because there is no repo-wide
+      # pytest autodiscovery — an unnamed suite cannot catch a regression. Reuses the
+      # existing gate-tests-coverage charter slug on purpose (not a new gate), so
+      # .quality/charter_check.sh stays consistent with no charter.yml edit.
+      # Mutation-measured: rule flipped to HIGH-blocks 8 failed/21 passed; Language note
+      # deleted 1 failed; override declaration deleted 1 failed; A048 fix reverted
+      # 1 failed; unmutated 29 passed.
+      - name: gate-tests-coverage rules doc coherence (review boundary + perl examples)
+        run: python -m pytest ci/tests/test_rules_doc_coherence.py -q
 
       # L13 adoption: the checked-in adversarial corpus plus its miner regressions.
       - name: gate-tests-coverage adversarial harness corpus
@@ -605,6 +711,27 @@ jobs:
             ci/tests/test_harness_corpus_wiring.py \
             tools/harness-corpus/test_hook_telemetry.py \
             hooks/git-hygiene/test_docs_hygiene.py -q
+      # D-p1b03: the copy-pasteable hook JSON in rules/**/hooks.md must use the
+      # three-level event -> matcher-group -> typed-handler shape that
+      # agent-self/harness/registration.py emits. A flat "command" on the matcher
+      # group is invalid and the hook NEVER FIRES -- silently, so only a mechanical
+      # gate catches it. Covers BOTH roots (rules/ and agent-self/config/rules/).
+      - name: gate-tests-coverage rules hook-example shape
+        run: python -m pytest ci/tests/test_rules_hook_examples.py -q
+      # D-wu-25: prune-report/oats is a standalone runner with its own __main__, so
+      # pytest DISCOVERY would not execute it -- and there is no repo-wide
+      # autodiscovery. Named explicitly. Stdlib-only, no install needed.
+      - name: gate-tests-coverage event-ledger prune-report + oats
+        run: python agent-self/config/hooks/event-ledger/test_prune_oats.py
+      # D-a002: a HIGH-only review must not get two mutually exclusive merge outcomes
+      # (rules/common/code-review.md grades HIGH as WARN; the two specialised reviewers and
+      # /code-review block on CRITICAL *or* HIGH). There is no repo-wide pytest
+      # autodiscovery, so ci/tests/ needs this NAMED step or the suite never runs. The step
+      # name keeps the existing `gate-tests-coverage` marker (a space follows the slug), so
+      # .quality/charter_check.sh's reverse check still maps it to the `tests-coverage`
+      # charter gate and no new charter slug is required.
+      - name: gate-tests-coverage review-severity coherence
+        run: python -m pytest ci/tests/test_review_severity_coherence.py -q
       # G-10: hooks/_shared suites are standalone scripts with their own __main__, so pytest
       # DISCOVERY is not evidence that they ran — call this one explicitly.
       - name: gate-tests-coverage hook-manifest provenance
@@ -615,6 +742,15 @@ jobs:
       # them, so a suite that is not named here is dead weight that cannot catch a regression.
       - name: gate-tests-coverage bounded hook launcher
         run: python hooks/_shared/test_hookrun.py
+      # event-ledger is the post-compaction recovery keystone (SessionStart replays it as
+      # ground truth instead of the lossy auto-summary), and its suite is a standalone
+      # __main__ runner too -- MEASURED: `python -m pytest hooks/event-ledger -q
+      # --import-mode=importlib` reports "no tests ran", so the broad `pytest hooks/` net
+      # below collects NOTHING from it and "event-ledger" appeared nowhere in this file.
+      # The whole surface (ledger core, note CLI, stop-hook, SessionStart replay) therefore
+      # ran in NO gate, which is how the open/deferred-thread continuity gap reached HEAD.
+      - name: gate-tests-coverage event-ledger recovery keystone
+        run: python hooks/event-ledger/test_ledger.py
       # tools/mcp/closed-batch — the apply-when-closed ~/.claude.json batch editor.
       # Stdlib-only, so no install step; named explicitly for the same reason as the
       # suites above (there is no repo-wide pytest autodiscovery, so an unnamed suite
@@ -626,6 +762,42 @@ jobs:
       # (guard disabled, scope widened, backup skipped, fail-open, CRLF writer, ...).
       - name: gate-tests-coverage closed-batch config editor
         run: python -m pytest tools/mcp/closed-batch/tests -q
+      # tools/crcp — the Cross-Rail Control Plane. MEASURED when this step landed:
+      # `grep -in crcp .github/workflows/*.yml` matched NOTHING, so all TEN
+      # pre-existing suites under tools/crcp/tests were inert and could not catch a
+      # regression. Naming the directory here turns them into a real gate alongside
+      # test_reliability_regressions.py, which pins eight false-success / credential
+      # defects (MCP isError swallowed, CDP port adoption, bearer replayed across a
+      # redirect, dead-letter identity merge, report-write inverting a committed
+      # send, credential-free SSO completion, lease expired at grant, and a sha256:
+      # ref published without storing the bytes). Each of those 14 assertions was
+      # observed RED against the parent commit and green after it.
+      # NOT a --cov-fail-under lane: like the harness and cmd-rewrite steps above,
+      # this is a pre-existing runtime being brought under test, not a TDD-built
+      # package, so a hard 100% bar would pin main red rather than measure anything.
+      # The four --ignore'd modules fail at COLLECTION on their own: they carry
+      # stale pre-merge bare imports (`from redact import ...`) that need
+      # tools/crcp/crcp on sys.path rather than tools/crcp. Repairing that import
+      # split is tracked follow-up; ignoring them keeps the other 34 executing
+      # instead of leaving the whole directory dark.
+      # crcp itself is stdlib-only and needs NO editable install: tests/ is a
+      # package, so pytest prepends tools/crcp (the first ancestor without an
+      # __init__.py) and `import crcp` resolves from the repo tree. Verified with
+      # the pytest CONSOLE SCRIPT, never `python -m pytest` — the `-m` form also
+      # prepends the CWD, so it passes in BOTH the working and the broken state
+      # and would not have measured this. pytest is installed explicitly rather
+      # than inherited from an earlier step in this job.
+      # Measured on ubuntu-equivalent WSL2 python 3.12.3 / pytest 8.3.3, against
+      # the LF blob export (`git archive`), not the CRLF working tree: 56 passed.
+      - name: gate-tests-coverage crcp control plane
+        working-directory: tools/crcp
+        run: |
+          pip install pytest
+          pytest tests -q \
+            --ignore=tests/test_envelope_v11.py \
+            --ignore=tests/test_event_key_idempotent.py \
+            --ignore=tests/test_redact.py \
+            --ignore=tests/test_sse_classify.py
       # tools/repomap — the fan-out grounding-pack builder that
       # rules/common/fan-out-contract.md §A11 prescribes. Stdlib-only unittest
       # suite with its own __main__ runner, so pytest DISCOVERY would not execute
@@ -723,7 +895,8 @@ jobs:
           pip install pytest pytest-cov
           pytest --cov=workflow_lint --cov-branch --cov-report=term-missing --cov-fail-under=100
 
-      # ================================ VENDORED TOOL TREES =========================      # PR #185 vendored two whole tool trees into the toolkit -- tools/abbyy-finereader-ocr-mcp
+      # ================================ VENDORED TOOL TREES ================================
+      # PR #185 vendored two whole tool trees into the toolkit -- tools/abbyy-finereader-ocr-mcp
       # (89 tests) and tools/omniaudit-mcp (149 tests) -- and NEITHER was named in ANY of the 7
       # workflows, so both suites ran in ZERO gates. By this job's own doctrine (see the hookrun
       # step above) "a suite that is not named here is dead weight that cannot catch a
@@ -1008,15 +1181,30 @@ jobs:
           pip install pytest
           python -m pytest -q
 
-      # abbyy declares `requires-python = ">=3.12"`, so pip REFUSES to install it on this job's
-      # 3.11 ("requires a different Python"). It gets its own pinned interpreter, referenced
-      # through `outputs.python-path` rather than PATH so nothing above is affected. KEEP THE
-      # abbyy STEP LAST in this job -- this action repoints the default `python` to 3.12.
-      - name: setup python 3.12 for the vendored abbyy tree
+      # abbyy and the wearables package both declare `requires-python = ">=3.12"`, so pip
+      # REFUSES to install on this job's 3.11 ("requires a different Python"). They get their
+      # own pinned interpreter, referenced through `outputs.python-path` rather than PATH so
+      # nothing above is affected. KEEP THE py3.12 STEPS LAST in this job -- this action
+      # repoints the default `python` to 3.12, so no 3.11 step may follow them.
+      - name: setup python 3.12 for the py312-only trees
         id: py312
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
+      # D-wu-38/42/51/57: agent-self/config/hooks/wearables ships its OWN 100% line+branch
+      # gate (its pyproject addopts) and 207 tests -- but it was named NOWHERE in this file,
+      # so none of it ran. Four HIGH findings (a renderer that emitted bearer tokens
+      # unscrubbed, a target-blind fetch that mis-attributed measurements, a ~167x
+      # normalization error, and a grouping bug that dropped cross-source disagreements)
+      # landed with zero CI protection. Isolated venv: rdkit is the only real dep, and
+      # `pytest` runs from inside the package dir so the pyproject gate + conftest apply.
+      - name: gate-tests-coverage wearables (py3.12; isolated venv)
+        working-directory: agent-self/config/hooks/wearables
+        run: |
+          "${{ steps.py312.outputs.python-path }}" -m venv "$RUNNER_TEMP/venv-wearables"
+          "$RUNNER_TEMP/venv-wearables/bin/python" -m pip install pytest pytest-cov rdkit
+          "$RUNNER_TEMP/venv-wearables/bin/python" -m pytest \
+            --cov=wearables --cov-branch --cov-report=term-missing --cov-fail-under=100
       - name: gate-tests-coverage abbyy-finereader-ocr-mcp (vendored; isolated venv)
         working-directory: tools/abbyy-finereader-ocr-mcp
         run: |

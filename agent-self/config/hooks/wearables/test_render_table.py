@@ -168,3 +168,42 @@ def test_raw_escape_returns_full_json():
     assert parsed[0]["value_as_reported"] == 12000.0
     assert parsed[0]["provenance"]["db"] == "ChEMBL"
     assert parsed[0]["flags"] == []
+
+
+# --- D-wu-51: the renderers are a write/dump boundary and MUST scrub ---------
+
+_SECRET = "Authorization: Bearer sk-probe-secret-12345"
+
+
+def test_render_table_redacts_a_bearer_token_in_a_string_field():
+    """The value security/egress.py declares scrubbed must not reach the table."""
+    out = render_table([_datum(confidence=_SECRET)], accessed="2026-06-16")
+    assert "sk-probe-secret-12345" not in out
+    assert "Authorization: Bearer [REDACTED]" in out
+
+
+def test_render_raw_redacts_and_stays_parseable_json():
+    """Scrubbing the SERIALIZED dump would break it -- \\S+ eats the quote."""
+    out = render_raw([_datum(confidence=_SECRET, flags=("disagreement: spread 5x",))])
+    assert "sk-probe-secret-12345" not in out
+    parsed = json.loads(out)
+    assert parsed[0]["confidence"] == "Authorization: Bearer [REDACTED]"
+    assert parsed[0]["flags"] == ["disagreement: spread 5x"]
+
+
+def test_render_raw_redacts_a_secret_nested_in_provenance():
+    out = render_raw([_datum(provenance=_prov(acc="hf_abcdefghij1234"))])
+    assert "hf_abcdefghij1234" not in out
+    assert json.loads(out)[0]["provenance"]["accession"] == "[REDACTED]"
+
+
+def test_render_table_redacts_a_secret_carried_in_a_disagreement_footnote():
+    out = render_table(
+        [
+            _datum(source="ChEMBL", flags=("disagreement: spread 5x",)),
+            _datum(source="GtoPdb", confidence="api_key=sk-live-abcdef"),
+        ],
+        accessed="2026-06-16",
+    )
+    assert "sk-live-abcdef" not in out
+    assert "api_key=[REDACTED]" in out

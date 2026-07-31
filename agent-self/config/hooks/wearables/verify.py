@@ -28,7 +28,7 @@ import dataclasses
 from collections import defaultdict
 
 from .datum import Datum
-from .normalize import NormalizationError, normalize_datum
+from .normalize import NormalizationError, canonical_metric, normalize_datum
 
 # Relative tolerance: flag when max/min ratio of normalized values exceeds 3x.
 RATIO_TOLERANCE: float = 3.0
@@ -42,8 +42,20 @@ DISAGREEMENT_PREFIX = "disagreement"
 
 
 def _group_key(datum: Datum) -> tuple[str, str, str, str]:
-    """The identity over which independent sources are cross-compared."""
-    return (datum.compound_id, datum.target_id, datum.metric, datum.target_context)
+    """The identity over which independent sources are cross-compared.
+
+    The metric is CANONICALIZED (``pKi`` -> ``Ki``) before it enters the key.
+    Grouping runs BEFORE :func:`verify_group` reconciles units, so keying on the
+    raw string would put a GtoPdb ``pKi`` row and a ChEMBL ``Ki`` row in two
+    single-source groups — each below the >=2-source bar — and a real
+    cross-source disagreement between the same endpoint would never be flagged.
+    """
+    return (
+        datum.compound_id,
+        datum.target_id,
+        canonical_metric(datum.metric),
+        datum.target_context,
+    )
 
 
 def _normalized(datum: Datum) -> Datum:

@@ -266,9 +266,23 @@ class Tail:
     path: str
     offset: int = 0
     remainder: bytes = b""
+    #: Text of the last KNOWN-LOSSY read — bytes were measured as pending and could
+    #: not be fetched (a share lock / permission denial on ``open``). Reset at the top
+    #: of every :meth:`read_new`, so it always describes the LAST attempt only. A
+    #: vanished file (the ``getsize`` branch) is deliberately NOT recorded here:
+    #: nothing proves data was lost, and a rotated-away stream would otherwise pin its
+    #: consumer permanently stale.
+    read_error: str | None = None
 
     def read_new(self) -> list[str]:
-        """The complete, non-blank lines appended since the last call (never raises)."""
+        """The complete, non-blank lines appended since the last call (never raises).
+
+        An unreadable file still yields ``[]`` — callers never see an exception — but
+        :attr:`read_error` is set, so "read succeeded with nothing appended" stays
+        distinguishable from "the read FAILED". Collapsing the two is what let a
+        share-locked stream be published as a fresh, healthy measurement.
+        """
+        self.read_error = None
         try:
             size = os.path.getsize(self.path)
         except OSError:
@@ -283,7 +297,8 @@ class Tail:
                 fh.seek(self.offset)
                 chunk = fh.read()
                 self.offset = fh.tell()
-        except OSError:
+        except OSError as exc:
+            self.read_error = str(exc)
             return []
         *lines, self.remainder = (self.remainder + chunk).split(b"\n")
         out: list[str] = []
@@ -619,6 +634,21 @@ class Poller:
                     th.last_ts = now  # stream lines carry no ts; arrival == activity
                 else:
                     parse_rollout_line(th, obj, scrub=self._scrub)
+
+    def read_errors(self) -> tuple[tuple[str, str], ...]:
+        """``(thread key, error text)`` for every tail whose LAST drain lost bytes.
+
+        Empty when the last :meth:`ingest` reached every registered source. A non-empty
+        result means the tick could not read known-pending bytes, so whatever the caller
+        publishes is a PARTIAL measurement carrying retained last-good state for those
+        threads — never a fresh one.
+        """
+        out: list[tuple[str, str]] = []
+        for key, tail in self.tails.items():
+            err = tail.read_error
+            if err is not None:
+                out.append((key, err))
+        return tuple(out)
 
     # ---- prune -----------------------------------------------------------
     def prune(self) -> None:

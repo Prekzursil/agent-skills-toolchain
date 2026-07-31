@@ -146,6 +146,59 @@ def load_json(p: Path) -> dict:
         return {}
 
 
+_ERROR_PREFIXES = (
+    "error",
+    "mcp error",
+    "tool execution failed",
+    "exception",
+    "traceback",
+    "failed",
+)
+
+
+def response_failed(tr) -> bool:
+    """Did the store REPORT an error, as opposed to returning nothing at all?
+
+    ``response_ok`` answers exactly one question -- "may I drop the spool?" --
+    and rightly says no for BOTH an error envelope and an absent/empty result.
+    That single bit is not enough to word an alert, because the two shapes are
+    different observations:
+
+      * an error envelope  -> we OBSERVED a failure  (confirmed)
+      * nothing / empty    -> we failed to observe a success (unconfirmed);
+        the note may well have committed and only the transport dropped the
+        receipt.
+
+    ``rules/common/single-signal-verification.md`` §1 forbids reporting the
+    second as the first ("Absence/failure needs corroboration ... each is a
+    claim, not an observation"). This predicate is the narrow question the
+    wording depends on, so an unknown shape is UNCONFIRMED (``False``), never
+    an accusation.
+    """
+    if tr is None:
+        return False
+    if isinstance(tr, bool):
+        return tr is False  # an explicit boolean negative IS a report
+    if isinstance(tr, str):
+        s = tr.strip().lower()
+        return bool(s) and s.startswith(_ERROR_PREFIXES)
+    if isinstance(tr, dict):
+        if tr.get("isError") is True or tr.get("is_error") is True:
+            return True
+        if tr.get("error"):
+            return True
+        if str(tr.get("status", "")).lower() in ("error", "failed"):
+            return True
+        # Unwrap the same single nesting level response_ok does, so a wrapped
+        # error envelope is still recognised as a report.
+        for k in ("result", "output", "response"):
+            inner = tr.get(k)
+            if isinstance(inner, (dict, list, str)):
+                return response_failed(inner)
+        return False
+    return False  # empty list, unknown type -> no error was reported
+
+
 def response_ok(tr) -> bool:
     """Did the basic-memory write actually land?
 

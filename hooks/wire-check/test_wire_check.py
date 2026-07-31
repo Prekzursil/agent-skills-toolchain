@@ -17,6 +17,7 @@ import sys
 import tempfile
 import uuid
 from pathlib import Path
+from unittest import mock
 
 HOOK = str(Path(__file__).resolve().parent / "check.py")
 
@@ -68,6 +69,72 @@ def fired(out: str) -> bool:
         return "additionalContext" in json.loads(out).get("hookSpecificOutput", {})
     except Exception:
         return False
+
+
+# ── pytest-collected regressions (A033-C04) ──────────────────────────────────
+# These are `test_`-prefixed on purpose: `main()` below is a standalone runner that
+# pytest does NOT collect, so before these were added `pytest hooks/wire-check/`
+# collected ZERO tests and the CI step at quality.yml:702 exercised nothing here.
+
+
+def _load_check():
+    """Exec check.py fresh so the real regexes under test are the shipped ones."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("wire_check_mod", HOOK)
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_go_func_is_extracted_as_a_definition():
+    """`.go` is declared in SRC_EXT, so a top-level `func` must yield a symbol.
+
+    Before the fix `_DEF_TOPLEVEL` knew def/class/function/interface/type/enum/
+    struct/trait but not Go's `func`, so an added, never-referenced exported Go
+    function was silently skipped by the zero-reference lane.
+    """
+    mod = _load_check()
+    assert ".go" in mod.SRC_EXT
+    syms, _routes = mod._extract("func NewServer(opts ...Option) *Server {\n")
+    assert "NewServer" in syms
+
+
+def test_go_func_definition_line_is_not_counted_as_a_reference():
+    """`_ref_count` must treat the `func X` line as the DEFINITION, not a use.
+
+    Without this the symbol extracted above self-references from its own
+    declaration, `_ref_count` returns 1, and `analyze` still never fires.
+    """
+    mod = _load_check()
+    mod_lines = ["server.go:1:func NewServer(opts ...Option) *Server {"]
+    with mock.patch.object(mod, "_rg_lines", return_value=mod_lines):
+        assert mod._ref_count(".", "NewServer") == 0
+
+
+def test_go_func_call_site_still_counts_as_a_reference():
+    """Detector control: a real call site must NOT be swallowed by the def regex."""
+    mod = _load_check()
+    with mock.patch.object(
+        mod, "_rg_lines", return_value=["main.go:9:\ts := NewServer()"]
+    ):
+        assert mod._ref_count(".", "NewServer") == 1
+
+
+def test_js_function_keyword_still_extracted():
+    """Alternation-order guard: adding `func` must not shadow `function`."""
+    mod = _load_check()
+    syms, _routes = mod._extract("export function NewServer() {}\n")
+    assert "NewServer" in syms
+
+
+def test_go_method_with_receiver_is_not_extracted():
+    """`func (s *Server) Handle()` is a method, reached via its receiver -> not a
+    top-level orphan candidate. Keeps the fix from widening into false positives."""
+    mod = _load_check()
+    syms, _routes = mod._extract("func (s *Server) Handle() error { return nil }\n")
+    assert "Handle" not in syms
 
 
 def main() -> int:

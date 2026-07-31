@@ -34,14 +34,41 @@ Language dispatch
   .ts/.tsx      skipped  — tsc --noEmit too slow; node --check won't parse TS
   .json         pure-Python json.load  (always available)
   .yaml/.yml    yaml.safe_load  (skip silently if pyyaml absent)
+  .java         pure-Python delimiter-balance heuristic, ADVISORY only
+  .c/.cc/.cpp/.cxx/.h/.hh/.hpp
+                pure-Python scan for the constructs rules/cpp/security.md
+                forbids (raw new/delete, malloc/free, strcpy/strcat/sprintf,
+                reinterpret_cast).  Advisory inject, never a block.  clang-tidy
+                and cppcheck are NOT invoked — both need a compile database and
+                blow the ~8 s budget.
+  .php          pint --test, else php-cs-fixer --dry-run, else php -l (the two
+                formatters rules/php/coding-style.md:24 names); when none is on
+                PATH, a stdlib PSR-12 subset so a toolless box is not silently
+                green.
   .rs           skipped  — cargo check too heavy for a per-edit hook
+  everything    skipped, SILENTLY — the catch-all in ``_run_check``.  ``.kt``,
+  else          ``.kts``, ``.swift``, ``.dart``, ``.go``, ``.java``, ``.php``,
+                ``.pl`` … all return the same ``([], False)`` as the three
+                deliberate skips above and as a genuinely clean file.  This
+                hook covers the five families listed here and NOTHING else.
+                In particular it does NOT implement ``rules/<lang>/hooks.md``:
+                those files open with "Configure in ``~/.claude/settings.json``"
+                and are portable guidance for whoever operates a project in
+                that language, not a specification for this hook.  Adding a
+                language means adding a fast, always-available checker here —
+                a per-edit hook cannot shell out to tsc / ktlint / swiftlint.
+                The write-path secret gate above is the one check that DOES
+                run for every extension.
+
+Every other extension (.go, .rb, .cs, .kt, .swift, ...) is a deliberate silent
+skip: no checker for it is both always-available and cheap enough here.
 
 Exit protocol (AGENTS.md §6)
 ─────────────────────────────
   ruff lint issues             → exit 0 + additionalContext inject (soft nudge)
+  hardcoded credential         → exit 2 + reason on stderr, stdout clean
   py_compile / node / JSON
     syntax errors              → exit 2, reason on STDERR, stdout clean
-  secret gate match            → exit 2, reason on STDERR, stdout clean
 
   No block-decision JSON is ever emitted on the exit-2 path and none can be:
   Claude Code ignores stdout at exit 2, which is why the reason goes to stderr
@@ -235,6 +262,13 @@ def _check_js(fp: str) -> tuple[list[str], bool]:
         )
         if r.returncode != 0:
             lines = [ln for ln in (r.stderr or "").splitlines() if ln.strip()]
+            # Trust node's OWN error marker, exactly as _check_python trusts ruff's
+            # E999. node has no JSX parser, so `node --check x.jsx` exits 1 with
+            # `TypeError [ERR_UNKNOWN_FILE_EXTENSION]` and NOT a single SyntaxError
+            # line -- an environment/loader failure, not a defect in the file. Classing
+            # every nonzero exit as a syntax break hard-BLOCKED every valid JSX edit.
+            if not any("SyntaxError" in ln for ln in lines):
+                return [], False  # fail-open: loader/environment failure -> silent skip
             return (lines or ["parse error"]), True
         return [], False
     except Exception:
@@ -273,6 +307,273 @@ def _check_yaml(fp: str) -> tuple[list[str], bool]:
         return [str(exc)], True
 
 
+# Java has no checker that is both always-available and cheap enough for a
+# per-edit hook: google-java-format, Checkstyle, Maven and Gradle are JVM
+# launches that blow the TIMEOUT budget, and `javac` on one file without the
+# project classpath false-flags anything importing a sibling class.  What IS
+# always available is the structural invariant every valid Java compilation
+# unit satisfies -- (), [] and {} balance once comments and literals are
+# removed.  A violation means the file cannot compile, so it is worth saying;
+# but this is a scanner, not a parser, so it is reported as an ADVISORY
+# (exit 0 + inject) and can never reject an edit.
+_JAVA_PAIRS = {")": "(", "]": "[", "}": "{"}
+
+
+def _java_delimiter_error(src: str) -> str | None:
+    """Return a message when *src* has unbalanced ``()``/``[]``/``{}``, else None.
+
+    Conservative by construction: any state this scanner cannot resolve
+    unambiguously returns ``None`` rather than guessing -- an unterminated
+    comment or literal, or the presence of a ``\\u`` escape (Java expands
+    unicode escapes *before* lexing, so ``\\u007B`` really is an opening brace).
+    """
+    if "\\u" in src:
+        return None  # a unicode escape can encode a delimiter -- refuse to guess
+    stack: list[tuple[str, int]] = []
+    i, line, n = 0, 1, len(src)
+    while i < n:
+        ch = src[i]
+        if ch == "\n":
+            line += 1
+            i += 1
+        elif src.startswith("//", i):
+            j = src.find("\n", i)
+            i = n if j == -1 else j
+        elif src.startswith("/*", i):
+            j = src.find("*/", i + 2)
+            if j == -1:
+                return None  # unterminated block comment
+            line += src.count("\n", i, j)
+            i = j + 2
+        elif src.startswith('"""', i):
+            j = src.find('"""', i + 3)
+            if j == -1:
+                return None  # unterminated text block
+            line += src.count("\n", i, j)
+            i = j + 3
+        elif ch in ('"', "'"):
+            j = i + 1
+            while j < n and src[j] != ch:
+                if src[j] == "\\":
+                    j += 1
+                elif src[j] == "\n":
+                    return None  # unterminated string / char literal
+                j += 1
+            if j >= n:
+                return None
+            i = j + 1
+        elif ch in ("(", "[", "{"):
+            stack.append((ch, line))
+            i += 1
+        elif ch in _JAVA_PAIRS:
+            if not stack or stack[-1][0] != _JAVA_PAIRS[ch]:
+                return f"unmatched closing '{ch}' on line {line}"
+            stack.pop()
+            i += 1
+        else:
+            i += 1
+    if stack:
+        opener, opened_at = stack[0]
+        return f"unclosed '{opener}' opened on line {opened_at}"
+    return None
+
+
+def _check_java(fp: str) -> tuple[list[str], bool]:
+    """Structural sanity check for *fp* (delimiter balance only).
+
+    Returns ``(issues, is_syntax_error)``.  ``is_syntax_error`` is always
+    ``False``: a heuristic must nudge, never block.
+    Fail-open: ``([], False)`` on any unexpected error.
+    """
+    try:
+        with open(fp, encoding="utf-8", errors="replace") as fh:
+            src = fh.read()
+        msg = _java_delimiter_error(src)
+        if msg:
+            return [f"{msg} - this file cannot compile"], False
+        return [], False
+    except Exception:
+        return [], False
+
+
+# ── C / C++ memory + buffer policy (rules/cpp/security.md) ───────────────────
+
+C_EXT = (".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp")
+
+# Each entry: (compiled pattern, message).  Every rule below is a verbatim
+# "Never use ..." demand from rules/cpp/security.md:15-32, so a hit is a stated
+# policy violation, not a taste call.  clang-tidy/cppcheck are deliberately NOT
+# invoked: both need the compile database and blow the ~8 s per-edit budget.
+_C_RULES = (
+    (re.compile(r"\bnew\s+[A-Za-z_:][\w:<>]*"), "raw `new` — use a smart pointer"),
+    (
+        re.compile(r"\bdelete\s*(?:\[\s*\])?\s+[A-Za-z_]"),
+        "raw `delete` — use a smart pointer",
+    ),
+    (
+        re.compile(r"\b(?:m|c|re)alloc\s*\("),
+        "`malloc`/`calloc`/`realloc` — use C++ allocation",
+    ),
+    (re.compile(r"\bfree\s*\("), "`free` — use C++ allocation"),
+    (re.compile(r"\bstrcpy\s*\("), "`strcpy` — use std::string or fmt::format"),
+    (re.compile(r"\bstrcat\s*\("), "`strcat` — use std::string or fmt::format"),
+    (re.compile(r"\bsprintf\s*\("), "`sprintf` — use std::string or fmt::format"),
+    (
+        re.compile(r"\breinterpret_cast\s*<"),
+        "`reinterpret_cast` — avoid unless unavoidable",
+    ),
+)
+
+_C_LINE_COMMENT = re.compile(r"//.*$", re.MULTILINE)
+_C_BLOCK_COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
+_C_STRING = re.compile(r"\"(?:\\.|[^\"\\])*\"|'(?:\\.|[^'\\])*'")
+
+
+def _strip_c_noise(line: str) -> str:
+    """Blank out string literals and line comments so a mention is not a use.
+
+    `printf("call free() here")` and `// never call strcpy` must not be flagged;
+    only real code is scanned.
+    """
+    return _C_STRING.sub('""', _C_LINE_COMMENT.sub("", line))
+
+
+def _check_c(fp: str) -> tuple[list[str], bool]:
+    """Flag constructs rules/cpp/security.md forbids.  Advisory, never blocking.
+
+    Returns ``(issues, is_syntax_error)`` — ``is_syntax_error`` is always False:
+    these are policy findings, so they inject rather than block the write.
+    """
+    try:
+        with open(fp, encoding="utf-8", errors="replace") as fh:
+            src = fh.read()
+        # Block comments can span lines, so strip them before splitting.
+        src = _C_BLOCK_COMMENT.sub("", src)
+        issues: list[str] = []
+        for lineno, raw in enumerate(src.splitlines(), 1):
+            code = _strip_c_noise(raw)
+            if not code.strip():
+                continue
+            for rx, msg in _C_RULES:
+                if rx.search(code):
+                    issues.append(f"{os.path.basename(fp)}:{lineno}: {msg}")
+        return issues, False
+    except Exception:
+        return [], False
+
+
+# ── PHP formatting policy (rules/php/coding-style.md, rules/php/hooks.md) ─────
+
+_PHP_HEREDOC_OPEN = re.compile(r"<<<[~'\"]?\s*([A-Za-z_]\w*)")
+_PHP_OPEN_TAG = re.compile(r"<\?(?!php\b|=)")
+
+
+def _check_php_tool(fp: str) -> tuple[list[str], bool] | None:
+    """Run Pint / PHP-CS-Fixer / ``php -l`` if present; None when none is.
+
+    rules/php/coding-style.md:24 names Pint and PHP-CS-Fixer by name, so they are
+    preferred over the built-in subset check whenever they are actually on PATH.
+    """
+    for exe, args, hard in (
+        ("pint", ["--test", fp], False),
+        ("php-cs-fixer", ["fix", "--dry-run", "--diff", fp], False),
+        ("php", ["-l", fp], True),
+    ):
+        found = shutil.which(exe)
+        if not found:
+            continue
+        try:
+            r = subprocess.run(
+                [found, *args],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=TIMEOUT,
+            )
+        except Exception:
+            return [], False
+        if r.returncode == 0:
+            return [], False
+        out = (r.stdout or "") + (r.stderr or "")
+        lines = [ln for ln in out.splitlines() if ln.strip()]
+        return (lines[:20] or [f"{exe} reported a problem"]), hard
+    return None
+
+
+def _check_php_psr12(fp: str) -> tuple[list[str], bool]:
+    """Stdlib-only PSR-12 subset, so a toolless box is not silently green.
+
+    Only high-confidence, deterministic rules are implemented; heredoc/nowdoc
+    bodies and inline-HTML regions are excluded so their formatting is not
+    misread as PHP indentation.
+    """
+    try:
+        with open(fp, encoding="utf-8", errors="replace", newline="") as fh:
+            raw = fh.read()
+    except Exception:
+        return [], False
+
+    issues: list[str] = []
+    text = raw.replace("\r\n", "\n")
+    stripped = text.rstrip()
+
+    if stripped.endswith("?>"):
+        issues.append("PSR-12 §2.2: omit the closing `?>` in a PHP-only file")
+    if _PHP_OPEN_TAG.search(text):
+        issues.append("PSR-12 §2.2: use the long `<?php` open tag, not `<?`")
+    # PSR-12 §2.1 (LF line endings) is deliberately NOT checked here: this repo is
+    # Windows-primary and .php is not normalised in .gitattributes, so the rule
+    # would fire on essentially every local edit. That is noise in an advisory
+    # hook, and a real Pint / PHP-CS-Fixer run (preferred above) reports it anyway.
+
+    in_php = False
+    heredoc: str | None = None
+    bad_indent = 0
+    tabbed = 0
+    for line in text.split("\n"):
+        if heredoc is not None:
+            if line.strip().rstrip(";,").strip() == heredoc:
+                heredoc = None
+            continue
+        if not in_php:
+            if "<?php" in line or "<?=" in line:
+                in_php = True
+            else:
+                continue
+        elif "?>" in line:
+            in_php = False
+        m = _PHP_HEREDOC_OPEN.search(line)
+        if m:
+            heredoc = m.group(1)
+            continue
+        if not line.strip():
+            continue
+        indent = line[: len(line) - len(line.lstrip())]
+        if "\t" in indent:
+            tabbed += 1
+        elif len(indent) % 4:
+            bad_indent += 1
+    if tabbed:
+        issues.append(f"PSR-12 §2.4: {tabbed} line(s) indent with tabs, not 4 spaces")
+    if bad_indent:
+        issues.append(
+            f"PSR-12 §2.4: {bad_indent} line(s) not indented in multiples of 4 spaces"
+        )
+    return issues, False
+
+
+def _check_php(fp: str) -> tuple[list[str], bool]:
+    """Prefer the real formatter; fall back to the built-in PSR-12 subset."""
+    try:
+        via_tool = _check_php_tool(fp)
+        if via_tool is not None:
+            return via_tool
+        return _check_php_psr12(fp)
+    except Exception:
+        return [], False
+
+
 def _run_check(fp: str) -> tuple[list[str], bool]:
     """Dispatch to the right checker by extension.
 
@@ -290,8 +591,24 @@ def _run_check(fp: str) -> tuple[list[str], bool]:
         return _check_json(fp)
     if ext in (".yaml", ".yml"):
         return _check_yaml(fp)
+    if ext == ".java":
+        return _check_java(fp)
+    if ext in C_EXT:
+        return _check_c(fp)
+    if ext == ".php":
+        return _check_php(fp)
     if ext == ".rs":
         return [], False  # cargo check too heavy for per-edit
+    # .swift lands here (C33 D-a068, rescoped from "Swift is unvalidated" -- the code
+    # is correct and intentional, the original sentence was wider than its evidence).
+    # It is a DELIBERATE skip on the same grounds as .ts and .rs above: swiftc is not
+    # on this Windows-primary box, so a check would be untestable here, and
+    # test_check.py:286-293 already pins .swift as a skipped extension. rules/swift/
+    # hooks.md is user-facing advice for a CONSUMING project's own settings.json --
+    # structurally identical to rules/python/hooks.md's black/mypy advice, which this
+    # hook likewise does not implement -- not a contract per-edit-check enforces.
+    # Recorded here because Swift previously fell into this anonymous fallthrough, so
+    # a reader could not tell "deliberate" from "forgotten".
     return [], False
 
 

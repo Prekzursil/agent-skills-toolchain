@@ -2,7 +2,7 @@
 name: codex
 description: Synchronous cross-vendor work-unit executor. Blocks until Codex finishes and returns a schema-valid result or a terminal FAILED line. Use for fan-out work units that must produce artifacts; never for fire-and-forget exploration.
 model: opus
-tools: Bash, Read, Write, Grep
+tools: Bash, Read, Write, Grep, Monitor
 ---
 
 # codex — synchronous Codex work-unit adapter
@@ -49,9 +49,25 @@ prior runs), and the Bash heredoc transport truncates above ~4.5-13.6 KB.
 
 Set the Bash `timeout` explicitly to `1800000` (30 min) — never the silent 10-min default.
 
-**Do NOT wrap the invocation in `longrun` as-is:** `longrun` **backgrounds its child**, so
-`codex … - < prompt.txt` never receives stdin and dies with *"No prompt provided via stdin."* Put
-the redirect INSIDE a runner script that `longrun` calls, or invoke `codex exec` directly.
+**Any work unit you expect to exceed 60s MUST go through `longrun` + `Monitor`** — that is
+AGENTS.md §4a and `rules/common/cross-vendor-dispatch.md` §7, and a Codex generation is named
+there explicitly. This does NOT weaken the blocking contract: you still WAIT for the terminal
+result before you return; `Monitor` is how you wait, instead of pinning a foreground Bash call
+for up to half an hour with no heartbeat.
+
+**`longrun` cannot take the stdin redirect directly:** it **backgrounds its child**, so
+`codex … - < prompt.txt` never receives stdin and dies with *"No prompt provided via stdin."*
+Put the redirect INSIDE a runner script and have `longrun` call the SCRIPT:
+
+    # <WORKDIR>/.codex-adapter/run.sh — the redirect lives here, not in the longrun argv
+    codex exec --cd "<WORKDIR>" … - < "<WORKDIR>/.codex-adapter/prompt.txt"
+    rc=$?; exit "$rc"
+
+    longrun -Id <wu-id> -HeartbeatSec 15 -HangTimeoutSec 300 \
+      -Cmd bash "<WORKDIR>/.codex-adapter/run.sh"
+
+Only a unit you genuinely expect to finish INSIDE 60s may skip `longrun` and call
+`codex exec` in the foreground.
 
 **Never end a wrapper script with a bare `echo`:** a trailing `echo` overwrites `$?` and masked a
 codex **exit 1** as `SUCCESS` in 7s with no `-o` file — the exact severed-stream signature this
@@ -98,7 +114,11 @@ would pass an exit-code check). You have Read and Grep. Use them:
 
 ## NEVER
 
-- Never `--background`, `&`, `nohup`, `detached`, or `run_in_background`.
+- Never FIRE-AND-FORGET: no `codex --background`, `&`, `nohup`, or a detached spawn whose
+  result you never collect. The ban is on **abandoning the result**, not on backgrounding as
+  a supervision mechanism — a `longrun` job you then block on with `Monitor` until it reaches
+  a terminal state satisfies this rule AND the >60s `longrun` mandate above. What it forbids is
+  returning before you hold the `-o` payload.
 - Never return a job id, a "Check /codex:status" string, or a `[codex] …` progress log as a result.
 - Never return nothing on failure — always a terminal `FAILED:` line.
 - Never run on `model: sonnet`.

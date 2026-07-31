@@ -104,6 +104,13 @@ jest --ci                           # Tests (Jest)
 - **Approve**: No CRITICAL or HIGH issues
 - **Warning**: MEDIUM issues only (can merge with caution)
 - **Block**: CRITICAL or HIGH issues found
+- **Precedence (a HIGH-only review is a BLOCK)**: this gate is authoritative for a
+  TypeScript/JavaScript review and is deliberately STRICTER than the general default in
+  [`rules/common/code-review.md`](../rules/common/code-review.md), whose severity table
+  grades HIGH as `WARN` and whose Approval Criteria allow "Only HIGH issues (merge with
+  caution)". Language-specific rules take precedence over common ones (`rules/README.md`
+  -> Rule Priority), so do NOT read that WARN row as permission to merge a HIGH finding
+  from this reviewer.
 
 ## Reference
 

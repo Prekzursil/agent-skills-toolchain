@@ -27,7 +27,8 @@ recognized handler list, so the entry is structurally invalid and the command ne
 fails SILENTLY — no error, just a hook that never fires. Two in-repo confirmations, read from
 the source rather than inherited: the builder that writes the live config emits exactly the
 nested form (`agent-self/harness/registration.py:82-102` `_command_group`, `:151-169`
-`build_hooks`), and the hooks this repo actually ships use it too (`hooks/hooks.json`).
+`build_hooks`), and the configs this repo actually ships use it too — both `hooks/hooks.json`
+and the deployed `agent-self/config/settings.json`.
 
 `Stop` and the other no-matcher events take **no** `matcher` key — omit it entirely rather than
 passing an empty string (`registration.py:99-101` omits the key when `matcher is None`).

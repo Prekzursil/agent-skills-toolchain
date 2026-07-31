@@ -28,6 +28,20 @@ Auto-analyze project and generate PM2 service commands.
 
 **Port Detection Priority**: User specified > .env > config file > scripts args > default port
 
+**The `.env` step can be refused — never let it fail silently.** This harness denies
+`Read(./.env)` and `Read(**/.env)` (`agent-self/config/settings.json` → `permissions.deny`),
+a deny rule outranks allow/ask, and it still applies under
+`defaultMode: "bypassPermissions"`. So the highest-priority source after an explicit
+argument is normally unreadable. When that read is denied — or the file is simply absent:
+
+1. Read `.env.example` (or `.env.template` / `.env.sample`) instead. Those names are not
+   covered by the denies above and usually carry the same `PORT` keys.
+2. If that yields no port, **ask the user** for it and name the source you could not read.
+   Do not quietly fall through to the config file or the default port: a wrong port writes
+   an `ecosystem.config.cjs` that starts the service where nothing else expects it.
+3. Do not route around the deny with `cat` / `head` / `sed` / `python` on `.env`. That
+   bypasses an owner policy instead of satisfying it.
+
 ---
 
 ## Generated Files
