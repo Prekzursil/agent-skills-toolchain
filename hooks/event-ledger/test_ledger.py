@@ -294,13 +294,24 @@ def main():
         HERE / "sessionstart-replay.py", {"cwd": proj, "source": "resume"}
     )
     ok_json = False
+    goal_suppressed = False
     try:
         payload = json.loads(out.strip().splitlines()[-1]) if out.strip() else {}
         ctx = payload.get("hookSpecificOutput", {}).get("additionalContext", "")
-        ok_json = "Event ledger" in ctx and "ship the ledger" in ctx
+        # "upgraded 1mcp" is the milestone appended above -- a DURABLE project row that is
+        # safe to share, so it proves real content is replayed, not just the header.
+        ok_json = "Event ledger" in ctx and "upgraded 1mcp" in ctx
+        # The goal is deliberately NOT replayed: build_context() dropped "goal" from the
+        # notable filter because ledger.state(cwd) has no session dimension, so replaying
+        # it hands one session whichever OTHER session wrote a goal last in the same cwd.
+        # This check used to assert the goal WAS injected -- it pinned the leak. Asserting
+        # its ABSENCE keeps the suite honest and gates the fix against regression.
+        goal_suppressed = "ship the ledger" not in ctx
     except Exception:
         ok_json = False
+        goal_suppressed = False
     check("replay injects ground-truth context", ok_json)
+    check("replay does not leak the per-session goal", goal_suppressed)
 
     print("== deferred open threads survive recovery ==")
     tproj = "C:/fake/projectThreads"
