@@ -6,7 +6,9 @@
 // heuristic (tests > auth/security > config > code > docs) and the hard maxChars budget are the
 // hard-won parts: they are what stop a review prompt from blowing its context window.
 //
-// Carried over VERBATIM (no behaviour change).
+// Carried over with ONE change, and no behaviour change: scorePath was module-private and is now
+// exported, so the ranking contract the packet depends on can be asserted directly by the tests.
+// Every other byte of the logic is identical to the origin (verified by diff).
 
 import { spawn } from 'node:child_process';
 import path from 'node:path';
