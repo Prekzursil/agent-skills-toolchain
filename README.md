@@ -308,6 +308,14 @@ The `codex_local_*` / `codex_orchestrator_*` Codex lane and the browser-mediated
 lane are both gone; so are the `agent-lanes-*` skills that chose between them. `codex-consult`
 remains only as a redirect tombstone.
 
+The ChatGPT web side keeps one consolidated skill name — the six per-mode aliases it replaced
+stay retired:
+
+- skills: `chatgpt5-web` (modes: query / discuss / curate)
+
+but its `chatgpt5_web_*` bridge tools are supplied by an external bridge, not by this repo,
+so verify they are mounted in your session before relying on it.
+
 ## Working rules
 
 - `skills/` only contains tested, installable skills.
