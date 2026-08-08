@@ -30,13 +30,19 @@ spec.loader.exec_module(mod)
 
 count = getattr(mod, "_real_marker_count", None)
 if count is None:  # unfixed hook: emulate the raw path so the control is meaningful
+
     def count(text):
         return len(list(mod._PATTERN.finditer(text)))
+
 
 # MUST FIRE. These are real leftover work. Silencing any of these is a REGRESSION and is
 # strictly worse than the false positives this fix targets.
 FIRE_CASES = [
-    ("spec.json fire_example", "Remaining: TODO wire the API; FIXME handle empty. - [ ] ship it", 3),
+    (
+        "spec.json fire_example",
+        "Remaining: TODO wire the API; FIXME handle empty. - [ ] ship it",
+        3,
+    ),
     ("bare todo in prose", "TODO: wire this up before merging.", 1),
     ("fixme in a sentence", "FIXME the empty-input path throws.", 1),
     ("unchecked box", "- [ ] ship it", 1),
@@ -46,10 +52,22 @@ FIRE_CASES = [
 # MUST STAY SILENT. Each is a MENTION -- the text discusses a marker rather than leaving one.
 SILENT_CASES = [
     ("spec.json silent_example", "All done. Everything shipped and verified."),
-    ("the hook's own name", "I patched todo-surfacer and the todo-surfacer defect is closed."),
-    ("hyphenated identifier", "See todo-surfacer/hook.py and the fixme-scanner module."),
-    ("inline code span", "The fixture is `# TODO` inside a string literal, not a comment."),
-    ("quoted marker in prose", "It matched a quoted `TODO` while explaining use-vs-mention."),
+    (
+        "the hook's own name",
+        "I patched todo-surfacer and the todo-surfacer defect is closed.",
+    ),
+    (
+        "hyphenated identifier",
+        "See todo-surfacer/hook.py and the fixme-scanner module.",
+    ),
+    (
+        "inline code span",
+        "The fixture is `# TODO` inside a string literal, not a comment.",
+    ),
+    (
+        "quoted marker in prose",
+        "It matched a quoted `TODO` while explaining use-vs-mention.",
+    ),
 ]
 
 fails = []
@@ -57,7 +75,9 @@ print("=== MUST FIRE (regression guard) ===")
 for name, text, want in FIRE_CASES:
     got = count(text)
     ok = got >= 1
-    print(f"  {'PASS' if ok else 'FAIL'}  {name:26s} count={got} (want >=1, ideally {want})")
+    print(
+        f"  {'PASS' if ok else 'FAIL'}  {name:26s} count={got} (want >=1, ideally {want})"
+    )
     if not ok:
         fails.append(f"REGRESSION: '{name}' went silent -- the guard was disarmed")
 
@@ -75,4 +95,6 @@ if fails:
         print(f"  {f}")
     print(f"\nFAILED:todo-surfacer-discrimination {len(fails)} case(s)")
     raise SystemExit(1)
-print("SUCCESS:todo-surfacer-discrimination real markers still fire, mentions stay silent")
+print(
+    "SUCCESS:todo-surfacer-discrimination real markers still fire, mentions stay silent"
+)

@@ -2789,7 +2789,12 @@ def test_sensitive_artifact_ignores_a_reentrant_subagent_stop(tmp_path):
     # events, or the next refactor silently reopens the gap.
     target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
     result = SensitiveArtifactModule().run(
-        event(tmp_path, "SubagentStop", transcript_path=str(target), stop_hook_active="true")
+        event(
+            tmp_path,
+            "SubagentStop",
+            transcript_path=str(target),
+            stop_hook_active="true",
+        )
     )
     assert result.action == "allow"
     assert not result.additional_context
