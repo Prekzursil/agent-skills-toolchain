@@ -1331,8 +1331,19 @@ jobs:
       # unless --config is passed. Passing it applies the one root config to every parsed
       # file (and ignores any per-directory osv-scanner.toml). Keep it whenever a non-root
       # --lockfile is added below.
+      #
+      # The second --lockfile restores the slot the agentify-desktop retirement vacated. That
+      # retirement DELETED the second entry instead of repointing it, which left
+      # tools/mcp/hacktricks-mcp-server scanned by nothing at all — and it was the tree actually
+      # carrying findings (8 at the time, including ip-address GHSA-mwp4-54f8-5fhr at CVSS 7.7
+      # and fast-uri GHSA-7p8r-x3mc-p8w7 at CVSS 7.5). It is not a vendored tree: it is our own
+      # hardened server, and its tests already run as a required context in gate-tests-coverage
+      # (node workspaces) above. Scanning it here is what makes the auto-merge path safe for it —
+      # Dependabot opens SECURITY PRs against it regardless of dependabot.yml, so before this
+      # line such a PR could auto-merge with no CVE gate on that tree.
       - uses: google/osv-scanner-action/osv-scanner-action@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2.3.8
         with:
           scan-args: |-
             --config=osv-scanner.toml
             --lockfile=package-lock.json
+            --lockfile=tools/mcp/hacktricks-mcp-server/package-lock.json
