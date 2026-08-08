@@ -172,9 +172,70 @@ def _shadow_log(
 
 
 def _final_text(transcript_path: str) -> str:
+    """Text of the last TEXT-BEARING assistant message — read from the END, not the top.
+
+    Was a forward full scan, which made this the LAST O(session-length) term in the Stop battery
+    after the 2026-08-08 conversion of journey-coverage, stub-ledger/report and todo-surfacer.
+    Measured then: 9.89 s against this check's 10 s budget on a 616 MB transcript (5.74 s at
+    227 MB) — it DISARMED, and the battery only passed because its three siblings had stopped
+    competing with it for the GIL. One larger transcript trips it.
+
+    THE PREDICATE BELOW IS UNCHANGED, DELIBERATELY. Five `_final_text` implementations exist across
+    the hook tree and they differ MATERIALLY — join character, role detection, bare-string handling,
+    and whether a text-less assistant record terminates the search. A wholesale swap to the shared
+    `final_assistant_text` would silently change what this gate reads: that helper joins with "",
+    does not accept the flat `role=="assistant"` record shape, and does not apply the extra
+    `msg["role"]` check this one requires. So only the READ EXTENT changes here.
+
+    Forward-scanning kept the LAST text-bearing match (`if parts:` never resets on a text-less
+    record), so scanning backwards the FIRST match is the same answer. Equivalence is proven on the
+    real transcript by `harness-restore-20260806/_prove_darksurface_tail.py`.
+    Fail-open throughout: any failure yields "" exactly as before.
+    """
     p = Path(transcript_path)
     if not p.exists():
         return ""
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "_shared"))
+        from transcript_tail import tail_events
+    except Exception:
+        tail_events = None  # type: ignore[assignment]
+
+    def _extract(ev) -> str:
+        """Verbatim from the pre-2026-08-08 forward scan. Do not 'simplify' — see the docstring."""
+        msg = (
+            ev.get("message")
+            if ev.get("type") == "assistant"
+            else (ev if ev.get("role") == "assistant" else None)
+        )
+        if isinstance(msg, dict) and msg.get("role") == "assistant":
+            c = msg.get("content") or []
+            if isinstance(c, list):
+                parts = [
+                    str(b.get("text") or "")
+                    for b in c
+                    if isinstance(b, dict) and b.get("type") == "text"
+                ]
+            elif isinstance(c, str):
+                parts = [c]
+            else:
+                parts = []
+            if parts:
+                return " ".join(parts)
+        return ""
+
+    if tail_events is not None:
+        try:
+            # newest-first; the first text-bearing hit IS the forward scan's `last`
+            for ev in tail_events(p, limit=4000):
+                if isinstance(ev, dict):
+                    t = _extract(ev)
+                    if t:
+                        return t
+            return ""
+        except Exception:
+            pass  # fall through to the original scan rather than lose the check
+
     last = ""
     try:
         with p.open("r", encoding="utf-8", errors="replace") as fh:
@@ -186,25 +247,9 @@ def _final_text(transcript_path: str) -> str:
                     ev = json.loads(line)
                 except Exception:
                     continue
-                msg = (
-                    ev.get("message")
-                    if ev.get("type") == "assistant"
-                    else (ev if ev.get("role") == "assistant" else None)
-                )
-                if isinstance(msg, dict) and msg.get("role") == "assistant":
-                    c = msg.get("content") or []
-                    if isinstance(c, list):
-                        parts = [
-                            str(b.get("text") or "")
-                            for b in c
-                            if isinstance(b, dict) and b.get("type") == "text"
-                        ]
-                    elif isinstance(c, str):
-                        parts = [c]
-                    else:
-                        parts = []
-                    if parts:
-                        last = " ".join(parts)
+                t = _extract(ev)
+                if t:
+                    last = t
     except Exception:
         return ""
     return last
