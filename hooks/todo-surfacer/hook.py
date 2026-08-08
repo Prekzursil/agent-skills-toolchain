@@ -34,6 +34,60 @@ ACTION = "You left {count} open TODO/FIXME marker(s) in your final message. Capt
 NEEDS_STATE = False
 _PATTERN = re.compile("\\b(TODO|FIXME)\\b|- \\[ \\]", re.IGNORECASE)
 
+_FENCE = re.compile(r"```.*?```", re.DOTALL)
+
+
+def _real_marker_count(text: str) -> int:
+    """Count LEFTOVER markers, not markers being TALKED ABOUT (use-vs-mention).
+
+    The raw `_PATTERN.finditer` count fired on any message that so much as named a marker. The
+    terminal case, measured live 2026-08-08: it fires on this hook's OWN NAME, because
+    "todo-surfacer" contains "todo" followed by a word boundary -- so the defect could not be
+    described without triggering it. Two messages in a row fired 2x on exactly that.
+
+    DELIBERATELY NOT routed through _shared/use_vs_mention with kind="marker". That rule's prose
+    polarity counts a marker ONLY inside a fenced block and treats bare paragraph text as a
+    MENTION, which would silence this hook's own documented fire_example
+    ("Remaining: TODO wire the API; FIXME handle empty"). Trading a false positive for a false
+    NEGATIVE disarms the guard, and a disarmed guard is worse than a noisy one. So the
+    suppression here is deliberately NARROW -- two rules, each provably unable to silence a bare
+    prose marker:
+
+      1. HYPHENATED IDENTIFIER. `todo-surfacer`, `fixme-scanner` are names, not work. A real
+         marker is followed by whitespace, a colon, or end-of-text -- never by `-<alnum>`.
+      2. INLINE CODE SPAN. A single-backtick `TODO` in prose is a token being NAMED. A FENCED
+         block is the opposite and still counts: that is code left behind, which is exactly the
+         thing worth surfacing. The polarity difference between the two is the whole point.
+
+    Both-states control: test_marker_discrimination.py. It was run against the UNFIXED hook first
+    and failed 4/4 mention cases while passing 5/5 fire cases, so its silence now means something.
+
+    Fail-open: any error returns the raw count, so a bug here can never silently disarm the hook.
+    """
+    try:
+        fenced = [(m.start(), m.end()) for m in _FENCE.finditer(text)]
+        real = 0
+        for m in _PATTERN.finditer(text):
+            s, e = m.start(), m.end()
+            if any(fs <= s < fe for fs, fe in fenced):
+                real += 1  # inside a fenced block: left-behind code, always real
+                continue
+            after = text[e : e + 2]
+            if after[:1] == "-" and after[1:2].isalnum():
+                continue  # rule 1: part of a hyphenated identifier
+            before = text[max(0, s - 1) : s]
+            if before.isalnum() or before == "-":
+                continue  # rule 1: tail of a hyphenated/compound identifier
+            line_start = text.rfind("\n", 0, s) + 1
+            prefix = text[line_start:s]
+            if prefix.count("`") % 2 == 1:
+                continue  # rule 2: inside an unclosed inline code span on this line
+            real += 1
+        return real
+    except Exception:
+        return len(list(_PATTERN.finditer(text)))
+
+
 _STATE_ROOT = Path(
     os.environ.get("FORGE_STATE_ROOT") or (Path.home() / ".claude" / "forge-state")
 )
@@ -209,7 +263,7 @@ def build_message(payload: dict):
         )
     if not src:
         return None
-    count = len(list(_PATTERN.finditer(src)))
+    count = _real_marker_count(src)
     if count == 0:
         return None
     if NEEDS_STATE:
