@@ -274,8 +274,57 @@ def _safe(session_id: str) -> str:
     )
 
 
-def _final_text(transcript_path: str) -> str:
-    """Concatenated text of the final assistant message in the transcript JSONL."""
+# Bytes of transcript tail read before falling back to the full forward scan.
+# MEASURED, not guessed (2026-08-08, three live transcripts): the record this check settles
+# on sits 6,436 bytes from EOF in a 114 MB / 48,818-line transcript, and the TURN-size
+# distribution -- the quantity that actually bounds the walk -- is p50 28-63 KB, p90 ~450 KB.
+# 8 MB covers 100% of the 599 turns in that transcript and 99.25% of the 1,594 turns in the
+# largest one on disk (616 MB, MAX turn 79.6 MB). The remaining fraction is not WRONG, only
+# slow: it falls through to `_final_text_forward` below.
+_TAIL_BYTES = 8 * 1024 * 1024
+
+
+def _tail_lines(transcript_path: str):
+    """Backward (newest-first) line iterator from the shared bounded reader, or None.
+
+    None means the shared reader could not be imported, which routes the caller to the
+    forward scan -- a broken import can never silently disarm this gate.
+    """
+    try:
+        shared = str(Path(__file__).resolve().parent.parent / "_shared")
+        if shared not in sys.path:
+            sys.path.insert(0, shared)
+        from transcript_tail import iter_tail_lines
+    except Exception:
+        return None
+    return iter_tail_lines(transcript_path, max_bytes=_TAIL_BYTES)
+
+
+def _parts(rec: dict) -> list[str]:
+    """Text parts of ONE record — the unchanged per-record body of the original scan.
+
+    Kept verbatim (including the bare-string-block branch, which `transcript_tail`'s own
+    `final_assistant_text` does not have, and the `rec.get("message", rec)` fallback) so the
+    tail path and the forward path cannot drift apart.
+    """
+    if not (rec.get("type") == "assistant" or rec.get("role") == "assistant"):
+        return []
+    msg = rec.get("message", rec)
+    content = msg.get("content") if isinstance(msg, dict) else None
+    parts: list[str] = []
+    if isinstance(content, str):
+        parts.append(content)
+    elif isinstance(content, list):
+        for block in content:
+            if isinstance(block, dict) and block.get("type") == "text":
+                parts.append(str(block.get("text") or ""))
+            elif isinstance(block, str):
+                parts.append(block)
+    return parts
+
+
+def _final_text_forward(transcript_path: str) -> tuple[str, bool]:
+    """The original O(session-length) scan. Retained as the EXACTNESS fallback."""
     try:
         last = ""
         with open(transcript_path, encoding="utf-8", errors="replace") as fh:
@@ -287,23 +336,45 @@ def _final_text(transcript_path: str) -> str:
                     rec = json.loads(line)
                 except ValueError:
                     continue
-                if rec.get("type") == "assistant" or rec.get("role") == "assistant":
-                    msg = rec.get("message", rec)
-                    content = msg.get("content") if isinstance(msg, dict) else None
-                    parts: list[str] = []
-                    if isinstance(content, str):
-                        parts.append(content)
-                    elif isinstance(content, list):
-                        for block in content:
-                            if isinstance(block, dict) and block.get("type") == "text":
-                                parts.append(str(block.get("text") or ""))
-                            elif isinstance(block, str):
-                                parts.append(block)
-                    if parts:
-                        last = "\n".join(parts)
-        return last
+                if not isinstance(rec, dict):
+                    continue
+                parts = _parts(rec)
+                if parts:
+                    last = "\n".join(parts)
+        return last, True
     except OSError:
-        return ""
+        return "", False
+
+
+def _final_text(transcript_path: str) -> tuple[str, bool]:
+    """(text, ok) — final assistant message. O(tail), not O(session length).
+
+    WHY BACKWARDS IS EXACT. The forward scan keeps overwriting `last` and therefore settles
+    on the LAST record with text parts; walking from EOF, the FIRST record with text parts is
+    that same record. Identical output by CONSTRUCTION, for every transcript — not a property
+    that happened to hold on the one that was measured. (It did also hold there: all four of
+    this repo's `_final_text` variants produced the same 425-char string, sha1 c5c18eb7….)
+
+    `ok=False` means the transcript could NOT BE READ — distinct from a successful read that
+    found no assistant message (`("", True)`). Under P2-01 the caller surfaces the first as
+    NOT-CHECKED instead of folding an unreadable transcript into "no done-claim".
+
+    Falling through to the forward scan when the tail window holds no assistant text is what
+    makes the equivalence total rather than probabilistic. Measured: never taken on a normal
+    transcript (the answer is 6,436 bytes from EOF in a 114 MB file); taken only for the
+    <1% of turns larger than `_TAIL_BYTES`, where it is slow but still correct.
+    """
+    for line in _tail_lines(transcript_path) or ():
+        try:
+            rec = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(rec, dict):
+            continue
+        parts = _parts(rec)
+        if parts:
+            return "\n".join(parts), True
+    return _final_text_forward(transcript_path)
 
 
 def main() -> int:
@@ -317,7 +388,28 @@ def main() -> int:
         if payload.get("stop_hook_active"):
             return 0
         cwd = payload.get("cwd") or os.getcwd()
-        text = _final_text(payload.get("transcript_path", ""))
+        tp = str(payload.get("transcript_path") or "")
+        text, ok = _final_text(tp)
+        if tp and not ok:
+            # TYPED SILENCE (P2-01): a path was supplied and could not be read, so no
+            # done-claim could be evaluated. Previously this returned "" and exited 0 —
+            # byte-identical to "checked, nothing found". Say which one it was.
+            print(
+                json.dumps(
+                    {
+                        "hookSpecificOutput": {
+                            "hookEventName": "Stop",
+                            "additionalContext": (
+                                "JOURNEY-COVERAGE NOT-CHECKED: the transcript could not be "
+                                "read, so no app-is-done claim could be evaluated and no "
+                                "journey coverage was assessed this turn. This silence is "
+                                "NOT a pass."
+                            ),
+                        }
+                    }
+                )
+            )
+            return 0
         if not is_done_claim(text):
             return 0
         specs = find_journey_specs(cwd)

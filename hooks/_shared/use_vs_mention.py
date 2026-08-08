@@ -41,21 +41,55 @@ THREE RULES, matching the D1 fix direction:
       word — inside a field NAME, inside a CLOSED fenced example or an inline
       `code span` in a returned document, or in a negated sentence. Closes the
       corpus GAP recorded as RES-FP-fieldname / RES-TP-failvalue.
+  (e) `kind="secret"` / `kind="pathword"` — the AUDIT-SUBJECT ALLOWLIST, the fourth
+      rule of the original design and the last one to be built. A file whose JOB is
+      to test or to guard a thing legitimately carries that thing's shape: a fixture
+      holds secret-shaped literals, and a hook named `deny-credential-reads` holds
+      the word `credential` in its own path. Both are MENTIONS. Closes the corpus
+      GAPs recorded as SEC-FP-faketoken / SEC-FP-declared / PATH-FP-guardfile.
+  (f) THE RECURSION TERMINATOR (`stub` + `marker`) — a marker spelled inside a
+      STRING LITERAL is data, not pending work. Measured live 2026-08-08: a script
+      that ENUMERATES the needles it wants deferred necessarily CONTAINS them, so
+      per-needle deferral produced 13 NEW fires and a script deferring THOSE would
+      produce more. Only a rule about ROLE terminates it, and this one does so
+      structurally at depth 1. See `_string_literal_spans` for why `ast` and not
+      the quote scanner.
 
-FAIL-OPEN BY DESIGN: any malformed input or internal error returns True
-("treat as real"). A crashing or over-eager discriminator would silently disarm
-a guard, which is strictly worse than the false positives it replaces.
+FAIL-OPEN BY DESIGN: any malformed input or internal error yields UNKNOWN, and
+`is_real_occurrence` maps UNKNOWN to True ("treat as real"). A crashing or
+over-eager discriminator would silently disarm a guard, which is strictly worse
+than the false positives it replaces.
+
+TYPED VERDICT (P2-01). `classify()` is the primary API and returns a `Judgement`
+carrying one of three verdicts — USE / MENTION / UNKNOWN. The third is the point:
+a detector that cannot tell must be able to SAY so and surface, rather than
+silently picking a side. That is the closing principle of the design note this
+module implements: *"When a detector cannot distinguish use from mention, it must
+surface, not block."* A bare bool cannot express it, so a bare bool was the wrong
+return type. `is_real_occurrence` is retained as a thin bool wrapper so every
+existing caller keeps its exact prior behaviour (UNKNOWN -> True).
 
 Stdlib only. No I/O. Pure functions — safe to call from any hook event.
 """
 
 from __future__ import annotations
 
+import ast
 import os
 import re
 from dataclasses import dataclass
+from enum import Enum
+from functools import lru_cache
 
-__all__ = ["Context", "is_real_occurrence", "find_real"]
+__all__ = [
+    "Context",
+    "Judgement",
+    "Verdict",
+    "audit_subject_rule",
+    "classify",
+    "is_real_occurrence",
+    "find_real",
+]
 
 # Tools whose input is EXECUTED (a destructive token here can really run).
 _SHELL_TOOLS = {
@@ -105,6 +139,59 @@ class Context:
     tool_name: str = ""
     file_path: str = ""
     source: str = "file"
+
+
+class Verdict(str, Enum):
+    """The three answers a use-vs-mention judge can honestly give (P2-01).
+
+    USE      the match is a real occurrence -- the guard may act on it.
+    MENTION  the text talks ABOUT the thing -- the guard must stay silent.
+    UNKNOWN  the judge could not tell. NOT a synonym for either other value: it is
+             the state a caller is expected to SURFACE (emit NOT-CHECKED, log,
+             degrade to advisory) rather than resolve by guessing. Every caller
+             that maps UNKNOWN onto an action must map it to the FAIL-OPEN side,
+             because a missed hard-ban action is worse than a false alarm.
+
+    `str` mixin so an UNKNOWN can be written straight into a JSON receipt.
+    """
+
+    USE = "USE"
+    MENTION = "MENTION"
+    UNKNOWN = "UNKNOWN"
+
+
+@dataclass(frozen=True)
+class Judgement:
+    """A typed verdict plus the identity of the rule that produced it.
+
+    `rule` is what makes a verdict auditable after the fact -- "MENTION" alone does
+    not tell a reader whether the text was fenced, negated, or sitting in a fixture,
+    and those are very different reasons to have stayed silent.
+    """
+
+    verdict: Verdict
+    rule: str = ""
+    kind: str = ""
+
+    @property
+    def is_real(self) -> bool:
+        """Fail-open projection onto a bool: UNKNOWN counts as real."""
+        return self.verdict is not Verdict.MENTION
+
+    def __bool__(self) -> bool:  # so `if classify(...)` reads naturally
+        return self.is_real
+
+
+def _use(rule: str, kind: str) -> Judgement:
+    return Judgement(Verdict.USE, rule, kind)
+
+
+def _mention(rule: str, kind: str) -> Judgement:
+    return Judgement(Verdict.MENTION, rule, kind)
+
+
+def _unknown(rule: str, kind: str) -> Judgement:
+    return Judgement(Verdict.UNKNOWN, rule, kind)
 
 
 def _is_prose(ctx: Context) -> bool:
@@ -330,6 +417,175 @@ def _closed_fenced_spans(text: str) -> list[tuple[int, int]]:
     return spans
 
 
+# ------------------------------------- kind="secret" / kind="pathword" support
+# THE AUDIT-SUBJECT ALLOWLIST -- design rule 4, and the only one of the original four
+# that was never built. Measured 2026-08-07: with no implementation, `kind="secret"` and
+# `kind="pathword"` fell THROUGH to the marker branch and silently inherited marker
+# semantics, which is why SEC-FP-faketoken, SEC-FP-declared and PATH-FP-guardfile were the
+# three corpus cases still failing against the live module.
+#
+# The principle: a file whose JOB is to test or to guard a thing legitimately carries that
+# thing's shape. A fixture holds secret-shaped literals BECAUSE it proves the redactor
+# works; a hook directory named `deny-credential-reads` holds the word `credential`
+# BECAUSE that is what it denies. Flagging either is the guard reading a NAME as a VALUE.
+_TEST_SEGMENT = re.compile(
+    r"^(?:tests?|testing|__tests__|spec|specs|fixtures?|testdata|test-data|mocks?|"
+    r"stubs?|examples?|samples?|corpus|FAILURE-REPLAY-CORPUS)$",
+    re.IGNORECASE,
+)
+_TEST_BASENAME = re.compile(
+    r"^(?:test[_-].+|.+[_-]test|.+\.test|.+\.spec|conftest|.+_fixtures?)\.[A-Za-z0-9]+$",
+    re.IGNORECASE,
+)
+# A path segment that names a DETECTOR rather than the thing detected. Anchored to a
+# leading verb + hyphen so it cannot swallow an ordinary directory: `deny-credential-reads`
+# matches, `credentials` does not, and neither does `no_sql` (hyphen required).
+_GUARD_SEGMENT = re.compile(
+    r"^(?:deny|allow|block|check|guard|scan|scanner|detect|detector|redact|reject|"
+    r"forbid|no|anti)-",
+    re.IGNORECASE,
+)
+# DELIBERATELY ABSENT: a "the material declares itself fake" heuristic.
+#
+# One was written here first (matching `fake` / `EXAMPLE` / a zero-run inside the literal,
+# plus a `# synthetic, non-functional` comment above it) and then REMOVED, because a
+# mutation test refuted it. Neutering it left the corpus fully GREEN at 35/35: every
+# recorded secret fire on this box -- the 5 bundle-verifier fixtures and the two SEC-FP
+# corpus rows -- is already silenced by the audit-subject PATH rule, so the heuristic
+# decided nothing that the path did not already decide.
+#
+# Unpinned code on a security-relevant judge is not free. The rule is SUBTRACTIVE and
+# trivially spoofable: a genuinely leaked key with `# synthetic, for tests` written above
+# it would have been silenced at a production path. Keeping it would have meant either
+# shipping untested subtraction or inventing a corpus case to justify code that no
+# measured fire needs. Both are worse than deleting it.
+#
+# If a real fire ever appears that ONLY a fake-declaration rule can silence -- a fixture
+# literal at a non-test, non-guard path -- that fire is the evidence to add it back, and
+# it must arrive with a case that goes red without it.
+
+
+def _path_segments(path: str) -> list[str]:
+    return [seg for seg in re.split(r"[\\/]+", str(path or "")) if seg]
+
+
+def _is_audit_subject_path(path: str) -> str:
+    """Name the audit-subject rule matching `path`, or "" when none does.
+
+    Returns the RULE NAME rather than a bool so the Judgement can say WHY it stayed
+    silent -- "this is a fixture" and "this is a guard's own source" are different
+    exemptions and a reader auditing a silence needs to tell them apart.
+    """
+    segments = _path_segments(path)
+    if not segments:
+        return ""
+    for seg in segments[:-1]:
+        if _TEST_SEGMENT.match(seg):
+            return "audit-subject:test-dir"
+    basename = segments[-1]
+    if _TEST_SEGMENT.match(basename) or _TEST_BASENAME.match(basename):
+        return "audit-subject:test-file"
+    for seg in segments[:-1]:
+        if _GUARD_SEGMENT.match(seg):
+            return "audit-subject:guard-dir"
+    return ""
+
+
+# ------------------------------- a marker inside a STRING LITERAL is data, not a marker
+# THE RECURSION TERMINATOR. Measured live 2026-08-08: `_defer_stub_fixtures.py` -- a one-shot
+# script whose only job is to list the needles that should stop firing -- produced 13 NEW stub
+# fires, because a file that ENUMERATES needles necessarily CONTAINS them. Deferring those would
+# produce a third file containing them again. Per-needle deferral cannot terminate; only a rule
+# about ROLE can.
+#
+# The role distinction is exact: `raise NotImplementedError` is a raise, `# TODO: x` is a comment,
+# but `"_stubscan_proof.py::# todo: wire this up"` is a STRING whose CONTENTS happen to spell a
+# comment. Data, not pending work.
+#
+# Implemented with `ast`, NOT with the quote-scanner `_quoted_spans` used by kind="command".
+# That was tried first and REFUTED by measurement: `_quoted_spans` is apostrophe-naive, so one
+# unbalanced `'` swallows the rest of the file, and it blinded ALL FIVE genuine
+# `raise NotImplementedError` sites in `fb-messenger-mcp/fbmcp/dm_e2ee.py:155-167`. A rule that
+# silences real pending work to silence a fixture is the failure mode, not the fix.
+#
+# FAIL-OPEN in three ways, each deliberate: a non-Python path, a file that does not parse, and an
+# oversized file all yield NO spans and therefore NO filtering. The rule can only ever REMOVE a
+# false positive from a file whose structure it fully understands.
+_PY_EXT = {".py", ".pyi"}
+# Above this, skip parsing rather than pay for it in a per-keystroke hook. A file this large is
+# vanishingly unlikely to be a needle-enumerating script.
+_AST_MAX_BYTES = 400_000
+
+
+def _line_start_offsets(text: str) -> list[int]:
+    offsets, pos = [0], 0
+    for line in text.splitlines(keepends=True):
+        pos += len(line)
+        offsets.append(pos)
+    return offsets
+
+
+@lru_cache(maxsize=16)
+def _string_literal_spans(text: str, file_path: str) -> tuple[tuple[int, int], ...]:
+    """Exact absolute spans of every str/bytes literal in `text`, or () when not judgeable.
+
+    Cached because `find_real` judges one match at a time and would otherwise re-parse the
+    whole file per match.
+    """
+    if os.path.splitext(str(file_path or ""))[1].lower() not in _PY_EXT:
+        return ()
+    if not text or len(text) > _AST_MAX_BYTES:
+        return ()
+    try:
+        tree = ast.parse(text)
+    except (SyntaxError, ValueError, RecursionError, MemoryError):
+        return ()  # a fragment or broken source -> judge nothing
+    starts = _line_start_offsets(text)
+    spans: list[tuple[int, int]] = []
+    for node in ast.walk(tree):
+        if not (
+            isinstance(node, ast.Constant) and isinstance(node.value, (str, bytes))
+        ):
+            continue
+        if node.end_lineno is None:
+            continue
+        try:
+            lo = starts[node.lineno - 1] + node.col_offset
+            hi = starts[node.end_lineno - 1] + node.end_col_offset
+        except IndexError:
+            continue
+        if 0 <= lo < hi <= len(text):
+            spans.append((lo, hi))
+    return tuple(spans)
+
+
+def _in_string_literal(text: str, start: int, end: int, ctx: Context) -> bool:
+    try:
+        return _within(
+            _string_literal_spans(text, str(ctx.file_path or "")), start, end
+        )
+    except Exception:
+        return False  # fail-open: never silence on an internal error
+
+
+def audit_subject_rule(path: str) -> str:
+    """PUBLIC: name the audit-subject exemption matching `path`, or "" when none does.
+
+    Exported so a guard that needs design rule 4 outside `classify()` calls the ONE
+    implementation instead of growing a fifth private copy -- the whole point of a
+    shared discriminator.
+
+    NOT a drop-in for `stubscan.py`'s own `_TEST_FILE` (`stubscan.py:264-275`), which
+    is applied caller-side and already covers the stub scanner correctly. The two sets
+    DIVERGE and that is deliberate, not drift: stubscan additionally exempts
+    `scratchpad/` and `stub-ledger/`, which are specific to that guard, while this one
+    additionally covers spec/testdata/mocks/examples/samples and guard-named directories.
+    Unifying them would mean editing a live, working guard for no measured defect, so it
+    is deliberately NOT done here.
+    """
+    return _is_audit_subject_path(path)
+
+
 def _result_negation_window(text: str, start: int) -> int:
     """Offset from which to scan for a negation cue, for `kind="result"`."""
     lo = 0
@@ -338,23 +594,82 @@ def _result_negation_window(text: str, start: int) -> int:
     return max(lo, start - _RESULT_NEG_LOOKBACK, 0)
 
 
-def is_real_occurrence(text: str, span, context: Context, kind: str = "marker") -> bool:
-    """True if the match at `span` is a real OCCURRENCE, False if a MENTION.
+_KNOWN_KINDS = frozenset(
+    {"command", "result", "doclink", "claim", "stub", "secret", "pathword", "marker"}
+)
 
-    Fail-open: returns True on any malformed input or internal error.
+
+def classify(text: str, span, context: Context, kind: str = "marker") -> Judgement:
+    """Judge the match at `span`: USE, MENTION, or UNKNOWN (P2-01 typed verdict).
+
+    This is the primary API. `is_real_occurrence` is the bool projection of it.
+    Fail-open: any malformed input, unrecognised kind, or internal error yields
+    UNKNOWN, which `.is_real` reports as True so no guard is ever silently disarmed.
     """
     try:
         start, end = int(span[0]), int(span[1])
         if not text or not (0 <= start < end <= len(text)):
-            return True  # fail-open: cannot judge -> treat as real
+            return _unknown("bad-span", kind)  # cannot judge -> surface
+        if kind not in _KNOWN_KINDS:
+            # An unrecognised kind used to fall THROUGH to the marker branch and get
+            # marker semantics in silence -- which could return MENTION and disarm a
+            # guard that had merely misspelled its kind. Surfacing UNKNOWN instead can
+            # only make a caller fire MORE, never less: the safe direction.
+            return _unknown("unknown-kind", kind)
 
         if kind == "command":
             tool = str(context.tool_name or "").strip().lower()
             if tool in _DATA_TOOLS:
-                return False  # the verb writes a file; the body cannot execute
+                # the verb writes a file; the body cannot execute
+                return _mention("command:data-tool-verb", kind)
             if tool and tool not in _SHELL_TOOLS:
-                return True  # unknown verb -> fail-open
-            return not _within(_quoted_spans(text), start, end)
+                return _unknown("command:unrecognised-verb", kind)
+            if _within(_quoted_spans(text), start, end):
+                return _mention("command:quoted-literal", kind)
+            return _use("command:executable-position", kind)
+
+        if kind == "secret":
+            # A secret-SHAPED literal in a file whose job is to test or guard secrets is
+            # a fixture, not a leak. Two independent exemptions, either sufficient:
+            # the audit-subject PATH, and material that declares its own fakeness.
+            #
+            # NOT WIRED TO ANY LIVE BLOCKING GUARD -- deliberately. This kind adds a
+            # capability; adopting it anywhere that currently BLOCKS would subtract
+            # restriction from a security guard, which is out of scope by owner
+            # constraint. (Both live secret paths -- `contains_secret` and
+            # `_CREDENTIAL_READ` in the harness SecretGuardModule -- are opt-in and OFF
+            # by default, so nothing today is weakened or strengthened by its presence.)
+            rule = _is_audit_subject_path(context.file_path)
+            if rule:
+                return _mention(rule, kind)
+            if _within(_inline_code_spans(text, start), start, end) and _is_prose(
+                context
+            ):
+                return _mention("secret:prose-code-span", kind)
+            return _use("secret:live-shaped-literal", kind)
+
+        if kind == "pathword":
+            # The TEXT here IS a path, and the question is whether the matched word
+            # describes the file's SUBJECT or its own NAME. `deny-credential-reads/deny.py`
+            # contains `credential` because it denies credential reads -- the guard is
+            # reading its own name as its own violation.
+            rule = _is_audit_subject_path(text)
+            if rule:
+                return _mention(rule, kind)
+            segments = _path_segments(text)
+            # Locate the segment holding the match by walking the same separators.
+            offset, holder = 0, ""
+            for seg in segments:
+                idx = text.find(seg, offset)
+                if idx < 0:
+                    break
+                if idx <= start and end <= idx + len(seg):
+                    holder = seg
+                    break
+                offset = idx + len(seg)
+            if holder and _GUARD_SEGMENT.match(holder):
+                return _mention("pathword:guard-named-segment", kind)
+            return _use("pathword:subject-path", kind)
 
         if kind == "result":
             # A TOOL RESULT is judged on whether the payload REPORTS the condition or
@@ -370,7 +685,7 @@ def is_real_occurrence(text: str, span, context: Context, kind: str = "marker") 
             # prose-marker mode silenced ALL FOUR positive controls plus the existing
             # suite's "could not connect" case, trading false alarms for blindness.
             if _in_json_key(text, start, end):
-                return False
+                return _mention("result:json-field-name", kind)
             # RESIDUAL FALSE NEGATIVE, disclosed. The line above once asserted as FACT
             # that a genuine transport error is unfenced prose; that was an ASSUMPTION
             # with no measurement behind it, and this rule is what it justified. A
@@ -386,12 +701,12 @@ def is_real_occurrence(text: str, span, context: Context, kind: str = "marker") 
             # (uncertain 30-55%) -- settling experiment is a sweep of recorded MCP
             # failure bodies for fenced error text.
             if _within(_closed_fenced_spans(text), start, end):
-                return False
+                return _mention("result:closed-fence", kind)
             if _within(_inline_code_spans(text, start), start, end):
-                return False
-            return not _NEGATION.search(
-                text[_result_negation_window(text, start) : start]
-            )
+                return _mention("result:inline-code-span", kind)
+            if _NEGATION.search(text[_result_negation_window(text, start) : start]):
+                return _mention("result:negated", kind)
+            return _use("result:reported-value", kind)
 
         if kind in ("doclink", "claim"):
             # Inverted polarity (see the module docstring): a link is real UNLESS it
@@ -406,8 +721,10 @@ def is_real_occurrence(text: str, span, context: Context, kind: str = "marker") 
             # kind="marker" inverts this and suppresses every genuine claim, because
             # marker polarity treats prose as mention.
             if _within(_fenced_spans(text), start, end):
-                return False
-            return not _within(_inline_code_spans(text, start), start, end)
+                return _mention("doclink:fenced-example", kind)
+            if _within(_inline_code_spans(text, start), start, end):
+                return _mention("doclink:inline-code-span", kind)
+            return _use("doclink:asserted-in-prose", kind)
 
         if kind == "stub":
             # STRICTER THAN "marker", and deliberately so. The stub-ledger's contract is
@@ -429,30 +746,54 @@ def is_real_occurrence(text: str, span, context: Context, kind: str = "marker") 
             #     inside a source file -- a docstring can hold a compliance table about another
             #     product's gaps, and `~~...~~` marks an ABANDONED idea, not pending work.
             if _is_prose(context):
-                return False
+                return _mention("stub:prose-document", kind)
+            if _in_string_literal(text, start, end, context):
+                return _mention("stub:string-literal", kind)
             if _within(_inline_code_spans(text, start), start, end):
-                return False
-            if (
-                _in_table_cell(text, start, end)
-                or _in_blockquote(text, start)
-                or _within(_strike_spans(text, start), start, end)
-            ):
-                return False
-            return not _NEGATION.search(
-                text[_stub_negation_window(text, start) : start]
-            )
+                return _mention("stub:inline-code-span", kind)
+            if _in_table_cell(text, start, end):
+                return _mention("stub:table-cell", kind)
+            if _in_blockquote(text, start):
+                return _mention("stub:blockquote", kind)
+            if _within(_strike_spans(text, start), start, end):
+                return _mention("stub:struck-through", kind)
+            if _NEGATION.search(text[_stub_negation_window(text, start) : start]):
+                return _mention("stub:negated", kind)
+            return _use("stub:pending-work-in-code", kind)
 
         # kind == "marker"
         if _is_prose(context):
             if not _within(_fenced_spans(text), start, end):
-                return False  # paragraph / table cell / blockquote / inline span
-            return not _is_negated(text, start)
+                # paragraph / table cell / blockquote / inline span
+                return _mention("marker:unfenced-prose", kind)
+            if _is_negated(text, start):
+                return _mention("marker:negated", kind)
+            return _use("marker:fenced-code-in-prose", kind)
 
+        if _in_string_literal(text, start, end, context):
+            # a marker spelled inside a string literal is data, not pending work
+            return _mention("marker:string-literal", kind)
         if _within(_inline_code_spans(text, start), start, end):
-            return False  # named in backticks even inside a source file
-        return not _is_negated(text, start)
+            # named in backticks even inside a source file
+            return _mention("marker:inline-code-span", kind)
+        if _is_negated(text, start):
+            return _mention("marker:negated", kind)
+        return _use("marker:source-file", kind)
     except Exception:
-        return True  # fail-open: never silently disarm a guard
+        # fail-open: never silently disarm a guard. UNKNOWN, not USE, so a caller that
+        # keeps receipts can tell a judged verdict apart from a crash.
+        return _unknown("internal-error", kind)
+
+
+def is_real_occurrence(text: str, span, context: Context, kind: str = "marker") -> bool:
+    """True if the match at `span` is a real OCCURRENCE, False if a MENTION.
+
+    The bool projection of `classify()`, kept as the stable API for the four guards
+    already wired to it. UNKNOWN projects to True, preserving fail-open exactly.
+    Prefer `classify()` in new callers: it can report "I could not tell", which this
+    signature structurally cannot.
+    """
+    return classify(text, span, context, kind=kind).is_real
 
 
 def json_value_text(text: str, _depth: int = 0):

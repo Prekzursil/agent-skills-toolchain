@@ -25,6 +25,23 @@ This is the most expensive recurring failure mode. SIX live instances in ONE ses
 | "the vendored constant drifted to 0" (2026-07-19b) | regex `[<>=]{1,2}` "comparison" match | it also matches a bare `=`, so the `size = 0` **initialiser** read as a threshold. Use `(?:<=\|>=\|<\|>\|==\|!=)`. |
 | "CI has no checks / can't tell" (2026-07-19b) | `gh pr checks` errored on PAT scope | `gh run list --branch` → `quality` + `no-runtime-junk` both **success**. A tool's auth failure is a DETECTOR failure, never a verdict. |
 | "the test suite protects this constant" (2026-07-19b) | 15/15 green | **mutation test**: reverting `DEFAULT_MIN_BYTES` 1024→512 still passed, because every case passed `min_bytes` explicitly and the default was never exercised |
+| "a rule with no `paths:` frontmatter is never loaded" (2026-08-07) | an assumption, never probed — then acted on by "arming" files | the **inverse** is true: the 8 files with NO frontmatter are exactly the 8 injected at turn 0; the 12 WITH `paths:` load lazily on a matching touch. Adding `paths: ["**/*"]` DEMOTES an always-on rule. `check_no_regression.py` INV-6 had been printing `frontmatter={owner-ops-authorization.md: True, ci-hygiene.md: True}` all session — a list that never contained the two files believed to be armed |
+
+**Read your own instrument — the dominant failure is RECALL, not detection.** Measured 2026-08-07/08:
+**seven** load-bearing claims in ONE session were confidently wrong, and not one was a detector
+failure. In every case the correct answer was already available and simply unread: the gate's own
+output printed on every run; a three-week-old basic-memory DECISION note carrying the complete fix
+design; `ci-hygiene.md` §4 (squash-merge makes a MERGED branch report as `ahead` — the fix was
+merged and pushing it would have **reverted 74 lines** of hardening); a 24 KB
+`hooks/_shared/use_vs_mention.py` declared "unbuilt"; two benchmarks that measured EMPTY inputs and
+returned a clean, meaningless green; and an inference about which files a tool loads, taken over a
+direct measurement (`grok inspect --json`) that was available the whole time.
+
+So: before asserting a thing is absent, broken, novel, or unbuilt, **search for it**. Run recall
+(`basic-memory`), read the gate output you just produced instead of skimming it, and `grep` the tree
+for the thing you are about to declare missing. A green gate you did not read is a signal you did
+not take, and a documented defect class does not protect you if recall is never run. When a claim
+and an instrument you are already running disagree, **the instrument wins**.
 
 ## The rule
 

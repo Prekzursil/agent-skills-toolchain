@@ -16,6 +16,29 @@ A6 SHADOW GATE (DARK_SURFACE_MODE env var): "shadow" (default) | anything else.
 
 Reuses edit-validate's per-session {sid}.edits list + claim-check's transcript-parse pattern.
 Opt-out:  DARK_SURFACE=off  in env, or  hooks/dark-surface/.disabled
+
+USE-vs-MENTION (wired 2026-08-08). Both regexes are payload matchers, so both false-fired.
+They are now routed through ``hooks/_shared/use_vs_mention.py`` with DIFFERENT kinds,
+because they ask opposite questions and share a kind would invert one of them:
+
+  * ``STUB_RE`` over an edited file body -> ``kind="stub"``. Identical contract to
+    ``stub-ledger`` ("built-but-incomplete CODE must not be silently forgotten"), which is
+    already wired to that kind. All SIX recorded fires (2026-08-08:
+    ``_bp_data_4.py`` / ``use_vs_mention.py`` `placeholder`,
+    ``_defer_stub_fixtures.py`` `NotImplementedError`, and ``_uvm_corpus_extend.py`` /
+    ``_uvm_append_tests.py`` / ``_uvm_bothstates_bool.py`` `# TODO`) are markers spelled
+    inside STRING LITERALS -- corpus data and code templates, not pending work. Measured
+    35 raw matches -> 0 survivors, every one ``stub:string-literal`` bar one
+    ``stub:inline-code-span``.
+  * ``COMPLETION_RE`` over the final assistant message -> ``kind="claim"``, NOT ``marker``.
+    This is the polarity trap the ``doclink`` inversion already proves is easy to get
+    backwards: ``_is_prose()`` returns True for ``source="assistant_message"``, so marker
+    semantics would return MENTION for every claim written in ordinary prose and DISARM
+    the gate entirely. ``claim`` inverts that -- a claim asserted in prose is REAL, and is
+    a MENTION only when fenced or in an inline code span (i.e. when the message is quoting
+    the phrase, such as this docstring being pasted into a report).
+
+FAIL-OPEN: a missing or raising discriminator leaves behaviour EXACTLY as before.
 """
 
 from __future__ import annotations
@@ -202,6 +225,47 @@ def _edited_files(session_id: str) -> list[str]:
         return []
 
 
+def _load_discriminator():
+    """``hooks/_shared/use_vs_mention.py``, imported lazily and best-effort.
+
+    Returns ``(Context, classify)`` or ``(None, None)``. Never raises: a missing shared
+    module must leave this gate behaving EXACTLY as it did before it was wired, because a
+    crashing discriminator would silently disarm a gate -- strictly worse than the false
+    positives it replaces.
+    """
+    try:
+        shared = str(THIS.parent / "_shared")
+        if shared not in sys.path:
+            sys.path.insert(0, shared)
+        from use_vs_mention import Context, classify  # noqa: PLC0415
+
+        return Context, classify
+    except Exception:  # noqa: BLE001 - no discriminator -> unchanged prior behaviour
+        return None, None
+
+
+# Bound the added cost. dark-surface is a Stop hook and the Stop battery already runs
+# hot (measured 2026-08-07: 63.7s against a 35s host wall), so the wiring must not be
+# able to grow without limit. The AST string-literal parse is the only non-trivial cost
+# and it is paid at most once per FILE (`_string_literal_spans` is memoised upstream);
+# these caps bound the per-file match count and the total scan.
+_MAX_MARKERS_PER_FILE = 200
+_MAX_HITS = 6  # == the number the message shows; scanning past it changes nothing
+
+
+def _real_occurrence(discrim, text, span, *, kind, file_path="", source="file") -> bool:
+    """True when the match at `span` is a real occurrence (fail-open on any failure)."""
+    Context, classify = discrim
+    if Context is None or classify is None:
+        return True  # no discriminator -> exactly the pre-wiring behaviour
+    try:
+        return classify(
+            text, span, Context(file_path=file_path, source=source), kind=kind
+        ).is_real
+    except Exception:  # noqa: BLE001 - never silence a gate on an internal error
+        return True
+
+
 def main() -> int:
     try:
         if (THIS / ".disabled").exists() or os.environ.get(
@@ -212,10 +276,29 @@ def main() -> int:
         if data.get("stop_hook_active"):
             return 0  # anti-loop
         text = _final_text(str(data.get("transcript_path") or ""))
-        if not text or not COMPLETION_RE.search(text):
+        if not text:
+            return 0
+        discrim = _load_discriminator()
+        # kind="claim", NOT "marker" -- see the module docstring. A claim ASSERTED in
+        # prose is real; it is a mention only when the message is quoting the phrase
+        # (fenced block / inline code span), e.g. a report that pastes this hook's own
+        # COMPLETION_RE, which contains the literal word "implemented".
+        claimed = False
+        for i, cm in enumerate(COMPLETION_RE.finditer(text)):
+            if i >= _MAX_MARKERS_PER_FILE:
+                claimed = True  # too many to judge -> fail-open, treat as a claim
+                break
+            if _real_occurrence(
+                discrim, text, cm.span(), kind="claim", source="assistant_message"
+            ):
+                claimed = True
+                break
+        if not claimed:
             return 0  # no completion claim -> silent
         hits = []
         for fp in _edited_files(str(data.get("session_id") or "unknown")):
+            if len(hits) >= _MAX_HITS:
+                break  # the message only ever shows _MAX_HITS; scanning on is dead work
             if not fp.endswith(SRC_EXT) or TEST_HINT.search(fp):
                 continue
             try:
@@ -224,9 +307,15 @@ def main() -> int:
                 body = Path(fp).read_text(encoding="utf-8", errors="replace")
             except Exception:
                 continue
-            m = STUB_RE.search(body)
-            if m:
-                hits.append((os.path.basename(fp), m.group(0).strip()[:30]))
+            # kind="stub": the evidence bar is a marker in CODE. A marker spelled inside
+            # a string literal is corpus data or a code template, not pending work --
+            # all six recorded fires were exactly that.
+            for i, m in enumerate(STUB_RE.finditer(body)):
+                if i >= _MAX_MARKERS_PER_FILE:
+                    break
+                if _real_occurrence(discrim, body, m.span(), kind="stub", file_path=fp):
+                    hits.append((os.path.basename(fp), m.group(0).strip()[:30]))
+                    break
         if hits:
             shown = "; ".join(f"{n} ({mk})" for n, mk in hits[:6])
 

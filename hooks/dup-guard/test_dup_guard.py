@@ -12,6 +12,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -84,6 +85,138 @@ def test_symbol_lookup_treats_a_prose_declaration_as_a_mention():
         assert "*.py" in argv and "*.ts" in argv, (
             f"rg must be scoped to source extensions: {argv}"
         )
+
+
+_TEMPLATE_MENTION = '''"""A migration script: it INJECTS this block into other files."""
+
+BLOCK = \'\'\'
+def is_real_occurrence(*_a, **_kw):
+    return True
+\'\'\'
+'''
+_REAL_DECL = "def is_real_occurrence(text, span, ctx):\n    return True\n"
+
+
+def _decl_repo(files: dict) -> Path:
+    """A temp dir holding REAL files, so the discriminator has bytes to judge."""
+    root = Path(tempfile.gettempdir()) / f"dg-decl-{uuid.uuid4().hex[:10]}"
+    for rel, body in files.items():
+        p = root / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(body, encoding="utf-8")
+    return root
+
+
+def _canned_rg(guard, stdout: str):
+    """Replace guard.subprocess.run with a stub returning `stdout` (restore via .close())."""
+    original = guard.subprocess.run
+
+    def fake_run(argv, **_kwargs):
+        return subprocess.CompletedProcess(list(argv), 0, stdout, "")
+
+    guard.subprocess.run = fake_run
+    return original
+
+
+def test_symbol_lookup_is_wired_to_the_shared_discriminator():
+    """2026-08-08: rg reports declaration-SHAPED text; only the discriminator judges role.
+
+    Recorded fire: writing ``run_uvm_gate.py`` was told the symbol ``is_real_occurrence``
+    "is already defined at build/B1/proofs/make_migrations.py" -- line 42 of that file,
+    inside a triple-quoted CODE TEMPLATE the script injects elsewhere. Not importable, so
+    the hook's own "extend / import the existing one" was impossible to follow.
+
+    Four directions, because a one-directional test cannot tell a working filter from a
+    blanket disarm:
+      1. a string-literal-only hit yields None,
+      2. a genuine declaration is still reported (the non-disarm control),
+      3. a mention FOLLOWED by a real definition still yields the real one, and
+      4. exceeding the candidate cap sets ``_SCAN_TRUNCATED`` so the NOT-CHECKED banner
+         fires -- a truncated scan must never be byte-identical to a clean pass.
+    """
+    guard = _guard_module()
+    repo = _decl_repo(
+        {
+            "a_template.py": _TEMPLATE_MENTION,
+            "z_real_impl.py": _REAL_DECL,
+            **{
+                f"m{i}/t.py": _TEMPLATE_MENTION
+                for i in range(guard._DISCRIM_MAX_CANDIDATES + 2)
+            },
+        }
+    )
+    target = str(repo / "brand_new.py")
+    mention = str(repo / "a_template.py")
+    real = str(repo / "z_real_impl.py")
+
+    original = _canned_rg(guard, mention + "\n")
+    try:
+        guard._SCAN_TRUNCATED = False
+        assert (
+            guard._symbol_defined_elsewhere(str(repo), "is_real_occurrence", target)
+            is None
+        ), "a declaration inside a string-literal code template is a MENTION"
+        assert guard._SCAN_TRUNCATED is False, "one candidate is not a truncated scan"
+
+        guard.subprocess.run = lambda argv, **kw: subprocess.CompletedProcess(
+            list(argv), 0, real + "\n", ""
+        )
+        guard._SCAN_TRUNCATED = False
+        assert (
+            guard._symbol_defined_elsewhere(str(repo), "is_real_occurrence", target)
+            == real
+        ), "a GENUINE declaration must still be reported -- otherwise this is a disarm"
+
+        guard.subprocess.run = lambda argv, **kw: subprocess.CompletedProcess(
+            list(argv), 0, mention + "\n" + real + "\n", ""
+        )
+        guard._SCAN_TRUNCATED = False
+        assert (
+            guard._symbol_defined_elsewhere(str(repo), "is_real_occurrence", target)
+            == real
+        ), "the loop must skip the mention and keep scanning"
+
+        overflow = "\n".join(
+            str(repo / f"m{i}" / "t.py")
+            for i in range(guard._DISCRIM_MAX_CANDIDATES + 2)
+        )
+        guard.subprocess.run = lambda argv, **kw: subprocess.CompletedProcess(
+            list(argv), 0, overflow + "\n", ""
+        )
+        guard._SCAN_TRUNCATED = False
+        assert (
+            guard._symbol_defined_elsewhere(str(repo), "is_real_occurrence", target)
+            is None
+        )
+        assert guard._SCAN_TRUNCATED is True, (
+            "hitting the candidate cap must set _SCAN_TRUNCATED so main() emits "
+            "NOT CHECKED -- silence here would read as a pass"
+        )
+    finally:
+        guard.subprocess.run = original
+        shutil.rmtree(repo, ignore_errors=True)
+
+
+def test_missing_discriminator_leaves_behaviour_unchanged():
+    """FAIL-OPEN: no shared module -> exactly the pre-wiring answer, never a disarm."""
+    guard = _guard_module()
+    repo = _decl_repo({"a_template.py": _TEMPLATE_MENTION})
+    target = str(repo / "brand_new.py")
+    mention = str(repo / "a_template.py")
+
+    original = _canned_rg(guard, mention + "\n")
+    original_loader = guard._load_discriminator
+    try:
+        guard._load_discriminator = lambda: (None, None)
+        guard._SCAN_TRUNCATED = False
+        assert (
+            guard._symbol_defined_elsewhere(str(repo), "is_real_occurrence", target)
+            == mention
+        ), "without a discriminator the guard must keep its old (noisier) answer"
+    finally:
+        guard._load_discriminator = original_loader
+        guard.subprocess.run = original
+        shutil.rmtree(repo, ignore_errors=True)
 
 
 def run(payload, env_extra=None):

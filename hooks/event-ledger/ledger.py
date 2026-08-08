@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-"""event-ledger â€” the N2 keystone: an append-only typed event ledger per project.
+"""event-ledger — the N2 keystone: an append-only typed event ledger per project.
 
 Why it exists (research-backed): post-compaction agents re-act on the lossy auto-summary
 as ground truth and loop ("echo chamber"). The fix is to recover by REPLAYING an
-append-only, failure-aware ground-truth log â€” not a self-narrative summary. Compaction
+append-only, failure-aware ground-truth log — not a self-narrative summary. Compaction
 keeps *what happened* but destroys *why* (decisions / failures / rationale); this stores
 exactly that, written continuously by hooks (the agent is an annotator, not the writer).
 
@@ -41,7 +41,7 @@ APPEND_LOCK_TIMEOUT = _env_float("EVENT_LEDGER_LOCK_TIMEOUT", 3.0, 0.1, 15.0)
 APPEND_LOCK_POLL = 0.01
 
 # Shared repo-identity resolver (hooks/_shared/projid.py). Imported best-effort and lazily
-# so the ledger keeps working even if it is missing/broken â€” identity resolution must never
+# so the ledger keeps working even if it is missing/broken — identity resolution must never
 # crash a session (FAIL-OPEN).
 _projid_mod = None
 _projid_tried = False
@@ -131,7 +131,7 @@ def _slug(project_path: str) -> str:
     path of one repo collapses to ONE shard (fixes the cwd-hash fragmentation that split e.g.
     Reframe across many shards). For a non-git directory projid reproduces the exact legacy
     formula, so those shards are unchanged (zero churn). Falls back to the legacy slug if
-    projid is unavailable â€” never breaks a session.
+    projid is unavailable — never breaks a session.
     """
     p = str(project_path or os.getcwd())
     mod = _get_projid()
@@ -143,7 +143,7 @@ def _slug(project_path: str) -> str:
             # for THIS exact cwd still lives directly under ROOT, keep writing to it so no prior
             # history is silently abandoned. Once `projid migrate --apply` folds that shard into
             # the canonical one (moving it under ROOT/.migrated/), this check fails and the
-            # canonical slug takes over automatically â€” and from then on all worktrees unify.
+            # canonical slug takes over automatically — and from then on all worktrees unify.
             if candidate != legacy and (ROOT / legacy).is_dir():
                 return legacy
             return candidate
@@ -382,7 +382,7 @@ def append(project_path: str, kind: str, **fields) -> dict:
 
 
 def replay(project_path: str, n: int = 40) -> list[dict]:
-    """Return the last n events (ground truth), oldestâ†’newest."""
+    """Return the last n events (ground truth), oldest→newest."""
     f = _events_file(project_path)
     if not f.exists():
         return []
