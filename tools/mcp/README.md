@@ -6,7 +6,6 @@ Put a project here only when it is runnable or clearly bounded enough that its r
 
 Current bounded projects:
 
-- [`agent-lanes-codex/`](agent-lanes-codex/README.md) - Codex-side orchestration lane with explicit profiles, aliases, and bounded fallback behavior.
 - [`workstation-codex-bundle/`](workstation-codex-bundle/README.md) - curated Windows-first MCP bundle with explicit self-made vs curated provenance and validation notes.
 - [`cheatengine-mcp-bridge/`](cheatengine-mcp-bridge/README.md) - thin Windows-first wrapper around the upstream Cheat Engine MCP Bridge with install and validation helpers.
 - [`hexstrike-ai/`](hexstrike-ai/README.md) - Windows-first wrapper around the upstream HexStrike AI runtime with localhost bootstrap and Codex / Claude / Gemini registration helpers.
@@ -15,3 +14,7 @@ Current bounded projects:
 - [`proxy-mcp/`](proxy-mcp/README.md) - HTTP(S) traffic inspection over MCP: list/filter flows, read request+response headers and bodies, replay or modify a request, export HAR. Adopts snapspecter/mitmproxy-mcp (MIT) as the engine and adds credential redaction (ON by default) plus `export_har`. mitmproxy rail verified working here; Fiddler is not installed on this box. Registered disabled-by-default; HTTPS interception needs an owner-installed CA.
 
 Current incubation notes for this surface live under `docs/incubating/tools/`.
+
+Retired 2026-08-09: `codex-orchestrator/` and `agent-lanes-codex/` were deleted with the rest
+of the ChatGPT-web lane. Codex is now reached directly through the official `codex mcp-server`
+(`mcp__codex__codex` / `mcp__codex__codex-reply`); see the `codex-orchestrate` skill.
