@@ -1,34 +1,34 @@
 ---
 name: codex-consult
-description: Use when the user explicitly wants a Codex-side orchestration pass — consultation, curation, or review — instead of direct ChatGPT web automation. Triggers include "consult/analyze this with Codex", "curate these options with Codex", "review/critique this with Codex", or explicit mentions of codex_local_consult, codex_local_curate, codex_local_review, or the codex_orchestrator_* tools. One skill, three modes.
+description: RETIRED 2026-08-09 - redirect tombstone. The PromptBridge/Agentify Codex-side consultation lane this skill drove was deleted from the repo; its codex_local_consult / codex_local_curate / codex_local_review and codex_orchestrator_* tools do not exist and cannot be mounted. Kept only so in-flight invocations of the old name resolve. For a Codex consult / curate / review pass use codex-orchestrate (MCP rail) or codex-invoke (exec rail, per-call scoping); both ride mcp__codex__codex / mcp__codex__codex-reply.
+license: MIT
 ---
 
-> ⚠️ **DEPRECATED (2026-07-18): this skill routes to tools that do not exist.** The mounted Codex MCP
-> exposes only `mcp__codex__codex` (start a thread) and `mcp__codex__codex-reply` (continue by threadId).
-> The `codex_local_consult/curate/review` and `codex_orchestrator_*` tools referenced below were never
-> mounted (no PromptBridge server). Use `mcp__codex__codex` directly (frame the mode in the prompt) or the
-> `codex-invoke` exec-rail until this skill is rebased onto the real two-tool surface.
+# Codex Consult - RETIRED (redirect tombstone)
 
-# Codex Consult
+**Do not follow the old procedure. There is nothing to route to.**
 
-One skill for the local Codex orchestration lanes. Read the mode from the user's intent — the procedure is the same: dispatch a single scoped prompt to Codex and return its synthesis. There is no need for a separate skill per interaction; the prompt plus the chosen mode determines the behavior.
+This skill routed to a local PromptBridge-backed Codex bridge. On 2026-08-09 the five trees
+that implemented it were deleted from this repo - `tools/mcp/codex-orchestrator`,
+`tools/mcp/agent-lanes-codex`, `tools/web/agentify-desktop`,
+`tools/web/promptbridge-talk-lane`, `tools/web/agent-lanes-chatgpt-web`. The tools it named
+(`codex_local_consult` / `codex_local_curate` / `codex_local_review`, with
+`codex_orchestrator_*` as fallback) were already unmounted before that; now the code behind
+them is gone too.
 
-## Modes
+## Use instead
 
-| Mode | Use when | Preferred tool (fallback) |
-|---|---|---|
-| `consult` | structured analysis, tradeoff review, decision or architecture support | `codex_local_consult` (`codex_orchestrator_consult`) |
-| `curate` | compare options and select or synthesize the best one | `codex_local_curate` (`codex_orchestrator_curate`) |
-| `review` | critique, audit, or pressure-test a plan or patch | `codex_local_review` (`codex_orchestrator_review`) |
+| You wanted | Use |
+|---|---|
+| a consult / curate / review pass on the MCP rail | **`codex-orchestrate`** - one `mcp__codex__codex` call, mode framed in the prompt |
+| the same, but scoped (model, sandbox, MCP allowlist, `--output-schema`) | **`codex-invoke`** - the exec rail; never hand-roll `codex exec` argv |
+| the beginner mental model for choosing | **`multi-agent-quickstart`** |
 
-## Behavior
+The rail is the official `codex mcp-server`: `mcp__codex__codex` starts a thread,
+`mcp__codex__codex-reply` continues one by `threadId` (hyphenated - the underscore form does
+not resolve). There is no per-mode tool; parallel calls replace the retired fan-out server.
 
-- Keep the task scoped and decision-oriented; pass one clear prompt.
-- Prefer the `codex_local_*` tool for the chosen mode; fall back to the matching `codex_orchestrator_*` tool if the local lane is unavailable.
-- Surface in the result whether ChatGPT-web curation was used secondarily and whether final synthesis stayed on Codex.
-- If the user explicitly wants direct ChatGPT-web behavior, do not use this skill — use the `chatgpt-web-*` / `agent-lanes-chatgpt-web-*` lanes instead.
-- PromptBridge setup (Windows-only canonical CODEX_HOME): if `codex_local_*` tools are missing, the PromptBridge-backed Codex bridge likely needs installing or probing. Check `CODEX_HOME`, the PromptBridge MCP registration, and the codex-orchestrator MCP before falling back to web lanes.
+## Why a tombstone and not a deletion
 
-## Replaces
-
-Supersedes the redundant per-mode lane skills: `codex-local-consult`, `codex-local-curate`, `codex-local-review`, `agent-lanes-codex-consult`, `agent-lanes-codex-curate`, `agent-lanes-codex-review`, and `promptbridge-codex-consult`. The dedicated codex-as-MCP orchestration modes (brainstorm / discuss / coordinate / review / audit / curate / governance / triage) now live in the `codex-orchestrate` skill — a separate tool family (`codex_*` MCP tools) from these local PromptBridge lanes.
+The name is deployed to the live harness and may still be invoked. A tombstone resolves and
+redirects; a missing skill fails opaquely. Same pattern as `design-review-loop`.

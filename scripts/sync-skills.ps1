@@ -7,7 +7,10 @@
   under skills/ (and optionally skills-claude-only/) into the live agents skills dir,
   overwriting existing copies. Optionally prunes live skill dirs that no longer exist
   in the repo (e.g. consolidated or deleted skills such as the former codex-local-*
-  and agent-lanes-codex-* lanes).
+  and agent-lanes-codex-* lanes). Run with -Prune after the 2026-08-09 retirement: it
+  deleted nine per-mode wrappers (codex-audit, codex-brainstorm, codex-coordinate,
+  codex-curate, codex-discuss, codex-fix, codex-governance, codex-review, codex-triage)
+  whose live copies would otherwise linger.
 
   This is the imperative-copy bridge for the current ~/.agents/skills setup. The
   declarative alternative is the plugin marketplace shipped in .claude-plugin/ —

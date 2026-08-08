@@ -1348,7 +1348,7 @@ pip install basedpyright==1.39.8
 # Gate 3, Node 22
 npm ci
 npm test
-(cd tools/web/agentify-desktop && npm install --omit=dev --no-audit && npm test)
+# The agentify-desktop lane was removed from quality.yml on 2026-08-09 (tree deleted).
 
 # Strict Python line+branch lanes (run affected lane locally; CI runs all)
 (cd tools/mcp-manager && pip install -e ".[dev]" && \
@@ -1392,8 +1392,10 @@ with exactly:
 ```yaml
 scan-args: |-
   --lockfile=package-lock.json
-  --lockfile=tools/web/agentify-desktop/package-lock.json
 ```
+
+(The second `--lockfile=tools/web/agentify-desktop/package-lock.json` argument was removed
+on 2026-08-09 together with the tree that owned that lockfile.)
 
 The Python job also names harness regression/coverage (measured, no 100% floor), triage-router, cmd-rewrite, hook-manifest, adversarial-corpus, manifest-provenance, hookrun, closed-batch, repomap, claim-gate self/mutation, fanout-schema production lint, hook conformance, browser-rail pure logic, and:
 
@@ -2874,7 +2876,7 @@ The Workflow’s separate diagnostic return envelope may also expose `status`, `
 - Curated Opengrep clean is not general security proof.
 - `.quality/charter_check.sh` checks gate-slug markers, not semantic command/version/scope parity.
 - `QUALITY-CHARTER.md`, workflow header, and executable workflow may disagree; executable final-head steps win and drift is disclosed.
-- Not every tool is pinned: pytest/pytest-cov/PyYAML and installed dependencies float; Python 3.11, Node 22, `ubuntu-latest`, and pip upgrade float patch/image; agentify uses `npm install`, not `npm ci`.
+- Not every tool is pinned: pytest/pytest-cov/PyYAML and installed dependencies float; Python 3.11, Node 22, `ubuntu-latest`, and pip upgrade float patch/image. (The `agentify uses npm install, not npm ci` caveat was dropped on 2026-08-09 — that lane no longer exists.)
 - `.coverage-thresholds.json` was absent at grounding commit; never cite it without live proof.
 - Shadow design/plan logs are not enforcement. Existence of a test/template/schema/tool/config is not proof of invocation/load.
 - Multiple agents sharing one premise are one fault domain.

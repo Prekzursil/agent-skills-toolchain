@@ -1,6 +1,6 @@
 # Local Consultation Lane
 
-Use this reference when the design includes PromptBridge, local Codex app automations, or a local-only scheduler and sidecar flow.
+Use this reference when the design includes a local agent sidecar, local Codex app automations, or a local-only scheduler flow.
 
 ## When the local lane is useful
 
@@ -16,13 +16,22 @@ Use this reference when the design includes PromptBridge, local Codex app automa
 - State drift is more likely across Windows, WSL, VS Code, and mirrored Codex homes than in a hosted CI path.
 - A local lane is strong at analysis and iteration, but weaker as the primary unattended executor for PR rescue.
 
-## PromptBridge rules to preserve
+## Sidecar rules to preserve
 
-- `.codex-vscode` is the canonical managed Codex profile.
-- `.codex` is a compatibility mirror only.
-- CLI proof must work from canonical and mirror profiles.
-- VS Code support is not "done" until a fresh chat can surface the sidecar tool.
-- If the sidecar is unavailable, the design should explicitly fall back to the primary non-sidecar lane.
+These were written for the PromptBridge sidecar, which was deleted from this repo on
+2026-08-09. Two of the original five were specific to that lane's profile layout and are
+dropped as obsolete: they claimed `.codex-vscode` was the canonical managed Codex profile
+and `.codex` only a mirror. That is no longer true here — `tools/mcp/workstation-codex-bundle`
+records `C:\Users\Prekzursil\.codex` as canonical and `.codex-vscode` as migration input
+only. The transferable rules:
+
+- Name ONE canonical agent-home profile and treat every other as read-only migration input;
+  say which is which in the design.
+- Proof must be reproducible from the canonical profile, not only from a developer's box.
+- IDE support is not "done" until a fresh chat in that IDE can actually surface the sidecar
+  tool — a registered server is not a mounted tool.
+- If the sidecar is unavailable, the design must explicitly fall back to the primary
+  non-sidecar lane, and the fallback must be observable rather than silent.
 
 ## Good uses for the local lane
 
@@ -40,5 +49,5 @@ Use this reference when the design includes PromptBridge, local Codex app automa
 ## Design default
 
 - Keep GitHub or another remote control plane primary for unattended repair.
-- Keep local automation and PromptBridge as consultation or backlog-maintenance lanes.
+- Keep local automation and any local sidecar as consultation or backlog-maintenance lanes.
 - State the uptime and state-drift tradeoff clearly when recommending a local-first design.
