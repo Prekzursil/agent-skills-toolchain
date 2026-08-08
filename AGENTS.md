@@ -63,7 +63,10 @@ tooling. Notes below cover only non-obvious caveats; standard commands live in
   *resolves* a Codex binary path; it does not spawn one, and its tests do not require the
   binary to exist.
 - **Node tests:** `npm test` runs the root workspaces (`tools/fanout-schema`,
-  `tools/agentspec-js`) via `npm run test --workspaces --if-present`.
+  `tools/agentspec-js`, `tools/lib`) via `npm run test --workspaces --if-present`.
+  `tools/lib` was added to the workspace list on 2026-08-09: its 6 suites (72 tests) were
+  extracted out of `tools/web/agentify-desktop`, whose CI step went away with the tree, so
+  until then nothing ran them.
 - **Python tooling lives in `~/.local/bin`** (ruff, pytest). Add it to `PATH`
   (`export PATH="$HOME/.local/bin:$PATH"`) before running `ruff`/`pytest`. Repo-wide lint is
   `ruff check .` + `ruff format --check .`, and the gate pins **ruff 0.15.17** (honors
