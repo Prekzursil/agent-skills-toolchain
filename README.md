@@ -1,6 +1,6 @@
 # agent-skills-toolchain
 
-Full configuration and toolchain repo for all my AI agents: Codex CLI, Claude Code, and Gemini CLI. Contains 169+ skills, 40+ MCP server configs, the codex_consult orchestration engine, Agentify Desktop, and platform config snapshots - all plug-and-play.
+Full configuration and toolchain repo for all my AI agents: Codex CLI, Claude Code, and Gemini CLI. Contains 169+ skills, 40+ MCP server configs, shared tool libraries, and platform config snapshots - all plug-and-play.
 
 ## Quick Start
 
@@ -20,15 +20,12 @@ git-crypt unlock /path/to/agent-skills-toolchain.gitcrypt.key
 # Install dependencies
 npm install
 
-# Bootstrap codex_consult into your CODEX_HOME
-node tools/mcp/codex-orchestrator/integrations/codex/cli.mjs install
+# Verify the node workspaces
+npm test
 
-# Verify the stack
-node tools/mcp/codex-orchestrator/integrations/codex/cli.mjs probe
-node tools/mcp/codex-orchestrator/integrations/codex/cli.mjs self-test
-
-# Start Agentify Desktop (for PromptBridge/ChatGPT web lane)
-cd tools/web/agentify-desktop && npm install && npm start
+# Mount Codex as an MCP server (replaces the retired in-repo orchestrator)
+claude mcp add --scope user codex -- codex mcp-server
+claude mcp get codex          # expect: Connected
 ```
 
 ## What This Repo Contains
@@ -37,8 +34,9 @@ cd tools/web/agentify-desktop && npm install && npm start
 |---------|-------|-------------|
 | `skills/` | 158 | Shared skills for Codex + Claude (see `SKILLS-MANIFEST.md`); incl. game-RE (`game-re-binary`, `game-frida-trace`, `game-find-anticheat`, `game-unpack-pe`) + SWFOC + Battle Cats |
 | `skills-claude-only/` | 35 | Claude Code exclusive skills (Azure, metaswarm, Ralph, etc.) |
-| `tools/mcp/` | 6 | MCP server projects (codex-orchestrator, agent-lanes, workstation bundle, etc.) |
-| `tools/web/` | 2 | Agentify Desktop + PromptBridge talk lane |
+| `tools/mcp/` | 24 | MCP server projects (workstation bundle, cloud-hub, search-hub, hexstrike-ai, etc.) |
+| `tools/web/` | 0 | Empty since the 2026-08-09 ChatGPT-web retirement; reserved surface |
+| `tools/lib/` | 6 | Dependency-free shared ES modules extracted from the retired trees |
 | `tools/editor/` | 2 | Metaswarm + Ralph Orchestrator |
 | `release/platforms/windows/` | 8 | Config snapshots: Codex (41 MCPs), Claude (40 MCPs), Gemini (25+ MCPs) |
 | `docs/` | — | Architecture docs, codex-consult analysis, plans, dated session reconciliations |
@@ -121,65 +119,37 @@ bash .quality/charter_check.sh
 **Security policy** — how to report a vulnerability (private), scope, and disclosure
 expectations: [`SECURITY.md`](SECURITY.md).
 
-## codex_consult: Plug-and-Play Consultation
+## Codex consultation
 
-The codex_consult system provides AI consultation via two lanes:
+**Retired 2026-08-09.** This section used to document `codex_consult`: a two-lane
+consultation stack where Lane B drove the ChatGPT web UI through a local Electron app
+(Agentify Desktop) and Lane A fell back to `codex exec`. Five trees implemented it and all
+five were deleted — `tools/mcp/codex-orchestrator`, `tools/mcp/agent-lanes-codex`,
+`tools/web/agentify-desktop`, `tools/web/promptbridge-talk-lane`,
+`tools/web/agent-lanes-chatgpt-web` — together with the root `mcp-server.mjs` shim, the
+`npm run mcp:serve` / `talk:serve` / `orchestration:*` scripts, and the two npm workspaces.
 
-- **Lane B (PromptBridge/Agentify)**: Routes queries through Agentify Desktop to ChatGPT web UI with your logged-in subscription. Supports extended thinking, web search, and all ChatGPT Pro models.
-- **Lane A (Codex CLI)**: Falls back to `codex exec` with session reuse. Automatic fallback when Lane B is unavailable.
+Why: the orchestration half is delivered natively by OpenAI's own `codex mcp-server`, and
+the web half had already stopped working — the runtime directory it deployed
+(`CODEX_HOME/promptbridge-runtime/`), its config (`~/.codex/promptbridge-orchestration.toml`)
+and its state directory (`~/.promptbridge-desktop`) were all absent, and no live agent config
+registered the server.
 
-### Architecture
-
-```
-codex_consult MCP tool
-    |
-    v
-codex-orchestrator (tools/mcp/codex-orchestrator/)
-    |-- reads profiles from promptbridge-orchestration.toml
-    |-- resolves model, timeout, capabilities per profile
-    |
-    +-- Lane B: PromptBridge talk lane (tools/web/promptbridge-talk-lane/)
-    |       |-- connects to Agentify Desktop
-    |       |-- workspace-aware session keys (pb-{project})
-    |       |-- extended thinking + web search support
-    |       |-- 480s query timeout for long responses
-    |       +-- auto-detects and launches desktop app
-    |
-    +-- Lane A fallback: Codex CLI exec
-            |-- session reuse via SQLite routes table
-            |-- per-profile model selection
-            +-- health events recorded on fallback
-```
-
-### Profiles
-
-| Profile | Model | Thinking | Web Search | Timeout |
-|---------|-------|----------|------------|---------|
-| consult | chatgpt-5-latest-pro | max (extended) | yes | 480s |
-| brainstorm | gpt-5.4 | high (extended) | yes | 480s |
-| review | chatgpt-5-latest-pro | high (extended) | no | default |
-| discuss | gpt-5.4 (default) | high | no | default |
-| coordinate | gpt-5.4 (default) | high | no | default |
-| curate | gpt-5.4 (default) | high | no | default |
-
-### Install Flow
-
-The entire stack is self-installing:
-
-1. **`cli.mjs install`** — copies the orchestration runtime into `CODEX_HOME/promptbridge-runtime/`, registers the `codex_consult` MCP server in `config.toml`, and writes `promptbridge-orchestration.toml`
-2. **`cli.mjs probe`** — validates MCP server connectivity, PromptBridge desktop state, and session store
-3. **`cli.mjs self-test`** — runs a live consultation round-trip and verifies the response schema
-4. **Agentify Desktop** — standalone Electron app in `tools/web/agentify-desktop/` that provides the ChatGPT web automation layer
-
-### Management Commands
+**Use instead:**
 
 ```bash
-node tools/mcp/codex-orchestrator/integrations/codex/cli.mjs status     # Check bootstrap state
-node tools/mcp/codex-orchestrator/integrations/codex/cli.mjs probe      # Probe consultation stack
-node tools/mcp/codex-orchestrator/integrations/codex/cli.mjs self-test  # Live round-trip test
-node tools/mcp/codex-orchestrator/integrations/codex/cli.mjs update     # Update to latest
-node tools/mcp/codex-orchestrator/integrations/codex/cli.mjs uninstall  # Remove bootstrap
+claude mcp add --scope user codex -- codex mcp-server
 ```
+
+Then call `mcp__codex__codex` to start a Codex thread and `mcp__codex__codex-reply` to
+continue one by `threadId`. There is no per-mode tool — consult / brainstorm / review /
+discuss / coordinate / curate are framings inside the prompt, and parallel calls replace the
+orchestration server's fan-out. See [`docs/multi-agent-quickstart.md`](docs/multi-agent-quickstart.md)
+for the mapping from each retired tool to its replacement.
+
+The pre-retirement architecture is recorded, unedited, in
+[`docs/codex-consult-analysis.md`](docs/codex-consult-analysis.md) (dated 2026-04-04).
+Reusable code extracted before the delete lives in [`tools/lib/`](tools/lib/README.md).
 
 ## Purpose
 
@@ -226,21 +196,13 @@ The split matters because these surfaces have different runtime models, auth exp
 
 These are the host, VM, repo-quality, and session-repair skills already shipping from `skills/`.
 
-### 2. Agent Lanes
+### 2. Agent Lanes — RETIRED 2026-08-09
 
-**Agent Lanes** is the replacement name for the older PromptBridge-style label.
-
-The old name implied one vague bridge. The actual system is clearer than that: it is a set of explicit lanes with explicit routing.
-
-- a Codex-side orchestration lane
-- a direct ChatGPT web lane
-- installable skills that explicitly choose the intended lane
-
-That stack spans both live tool surfaces plus explicit routing skills:
-
-- [`tools/mcp/agent-lanes-codex/`](tools/mcp/agent-lanes-codex/README.md)
-- [`tools/web/agent-lanes-chatgpt-web/`](tools/web/agent-lanes-chatgpt-web/README.md)
-- `skills/agent-lanes-*`
+**Agent Lanes** was the replacement name for the older PromptBridge-style label: a Codex-side
+orchestration lane, a direct ChatGPT web lane, and skills that chose between them. All of it
+was deleted — `tools/mcp/agent-lanes-codex/`, `tools/web/agent-lanes-chatgpt-web/` and the
+`agent-lanes-*` skills. The lane concept is gone, not renamed: there is one rail now, the
+official `codex mcp-server`.
 
 ### 3. Windows-first workstation bundle
 
@@ -275,10 +237,11 @@ Live installable skills currently ship from the authoritative `.agents/skills/` 
 - `windows-virtualization-conflict-triage` - classify Hyper-V, VBS, VMware, and `vmrun` conflict patterns safely.
 - `codex-vscode-host-routing` - keep VS Code Codex hosted on Windows by default.
 - `reboot-safe-ops-continuation` - capture resumable machine state before forced reboots.
-- `codex-consult` - one skill, three modes (consult / review / curate) for the Codex-side orchestration lane; replaces the former `codex-local-*` and `agent-lanes-codex-*` per-mode skills.
-- `chatgpt5-web` - one direct ChatGPT web lane with query / discuss / curate modes; replaces the former `agent-lanes-chatgpt-web-*` and `chatgpt5-web-*` per-mode skills.
 - `using-superpowers`, `brainstorming`, `writing-plans`, `executing-plans`, `systematic-debugging`, `test-driven-development`, `verification-before-completion`, `dispatching-parallel-agents`, `subagent-driven-development`, `requesting-code-review`, `receiving-code-review`, and `using-git-worktrees` - general-purpose workflow skills promoted from the current local Codex skill set.
-- `codex-orchestrate` (one skill for all codex-as-MCP modes — brainstorm/discuss/coordinate/review/audit/curate/governance/triage), `codex-consult` (the local PromptBridge consult/curate/review lanes), and `multi-agent-quickstart` - orchestration and lane-helper skills promoted from the current local Codex skill set. The former per-mode wrappers (`codex-audit`, `codex-brainstorm`, `codex-coordinate`, `codex-curate`, `codex-discuss`, `codex-fix`, `codex-governance`, `codex-review`, `codex-triage`) are consolidated into `codex-orchestrate`.
+- `codex-orchestrate` - the one skill for reaching Codex on the MCP rail (`mcp__codex__codex` / `mcp__codex__codex-reply`); the mode (brainstorm / discuss / coordinate / review / audit / curate / governance / triage) is a prompt framing, not a tool name.
+- `codex-invoke` - the exec rail, and the only way to scope a Codex run (model, sandbox, MCP allowlist, skills allowlist, `--output-schema`).
+- `multi-agent-quickstart` - the beginner mental model for those two.
+- **Retired 2026-08-09:** the nine one-line per-mode wrappers (`codex-audit`, `codex-brainstorm`, `codex-coordinate`, `codex-curate`, `codex-discuss`, `codex-fix`, `codex-governance`, `codex-review`, `codex-triage`) were deleted — each pointed at a `codex_*` MCP tool that no longer exists, and `codex-orchestrate` already superseded all of them. `codex-consult` is kept as a redirect tombstone because the name is deployed live. `chatgpt5-web` survives but carries a warning: its `chatgpt5_web_*` bridge tools have no in-repo implementation.
 
 ### Tools
 
@@ -296,12 +259,11 @@ Browser userscripts (Tampermonkey/Violentmonkey) live in [`userscripts/`](usersc
 
 Current bounded projects:
 
-- [`tools/mcp/agent-lanes-codex/`](tools/mcp/agent-lanes-codex/README.md)
 - [`tools/mcp/workstation-codex-bundle/`](tools/mcp/workstation-codex-bundle/README.md)
 - [`tools/mcp/cheatengine-mcp-bridge/`](tools/mcp/cheatengine-mcp-bridge/README.md) - thin wrapper around the upstream Cheat Engine MCP Bridge with local install and validation helpers.
 - [`tools/mcp/hexstrike-ai/`](tools/mcp/hexstrike-ai/README.md) - thin wrapper around the upstream HexStrike AI runtime with localhost bootstrap and client registration helpers.
 - [`tools/editor/metaswarm/`](tools/editor/metaswarm/README.md) - vendored upstream metaswarm workspace.
-- [`tools/web/agent-lanes-chatgpt-web/`](tools/web/agent-lanes-chatgpt-web/README.md)
+- [`tools/lib/`](tools/lib/README.md) - dependency-free shared ES modules (path containment, workspace detection, git-diff review packets, an idempotency ledger, a loopback-only address allowlist, Windows Codex-binary resolution).
 
 Speculative tool ideas do not live here. They stay under `docs/incubating/tools/` until they become clearly bounded enough to promote.
 
@@ -321,34 +283,29 @@ python .\scripts\test-live-skill-helpers.py
 
 The validator covers the live `skills/` surface only. The smoke test covers the current live scripted skills, including the formatter regression fixture. MCP, editor, and web-tool validation should be added per tool as those surfaces become more runnable in-repo.
 
-## Agent Lanes at a glance
+## Reaching Codex at a glance
 
-Use `Agent Lanes` when you need one of these explicit paths:
+There is one rail, and one choice on it: MCP or exec.
 
-### Codex lane
+### MCP rail — `codex-orchestrate`
 
-Use this when you want MCP-side orchestration, structured analysis, review, or curation with bounded fallback behavior.
+Use for intent-routed orchestration: analysis, review, audit, curation, triage. Tools:
+`mcp__codex__codex` (start a thread) and `mcp__codex__codex-reply` (continue by `threadId` —
+hyphenated). The mode lives in the prompt; there is no per-mode tool. Multi-peer modes are
+parallel calls you synthesize yourself.
 
-Recommended explicit names:
+### Exec rail — `codex-invoke`
 
-- skills: `codex-consult` (modes: consult / review / curate)
-- tools: `codex_local_consult`, `codex_local_review`, `codex_local_curate`
+Use whenever the run must be **scoped**: a specific model or reasoning effort, a sandbox or
+approval policy, an MCP allowlist or sealed base, a skills allowlist, or structured
+`--output-schema` output. The MCP rail inherits the full base and cannot scope. Never
+hand-roll `codex exec` argv.
 
-### ChatGPT web lane
+### Retired 2026-08-09 — the two-lane "Agent Lanes" model
 
-Use this when you want direct browser-mediated ChatGPT interaction, session-aware operations, or an explicit ChatGPT-web-side response.
-
-Recommended explicit names:
-
-- skills: `chatgpt5-web` (modes: query / discuss / curate)
-- tools: `chatgpt5_web_query`, `chatgpt5_web_discuss`, `chatgpt5_web_curate`
-
-### Routing rule
-
-The naming rule is intentional:
-
-- `agent-lanes-codex-*` means "prefer the Codex-side lane"
-- `chatgpt5-web` means "prefer the direct ChatGPT web lane"; its mode selects query, discussion, or curation
+The `codex_local_*` / `codex_orchestrator_*` Codex lane and the browser-mediated ChatGPT web
+lane are both gone; so are the `agent-lanes-*` skills that chose between them. `codex-consult`
+remains only as a redirect tombstone.
 
 ## Working rules
 

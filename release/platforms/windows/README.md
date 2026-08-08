@@ -2,6 +2,21 @@
 
 Snapshot date: 2026-04-04
 
+> **Addendum 2026-08-09 — three files in this set capture a lane that has since been
+> retired.** `codex-AGENTS.md`, `CONSULTATION_WORKFLOW.md` and
+> `promptbridge-orchestration.toml` were generated into `~/.codex/` by
+> `tools/mcp/codex-orchestrator/integrations/codex/bootstrap.mjs` (note the
+> `<!-- promptbridge-managed -->` marker on the first two). That orchestrator, the
+> PromptBridge/Agentify desktop lane it drove, and the `~/.codex/promptbridge-runtime/`
+> directory it deployed were all deleted on 2026-08-09, and the `[mcp_servers]` entry for
+> `codex_consult` inside `codex-config.toml` points at an entrypoint that no longer exists.
+>
+> **These files are NOT being edited, on purpose.** They are a dated capture of the live
+> configuration as it stood on 2026-04-04; rewriting them to drop the retired lane would
+> make them a snapshot of a state that never existed. Treat the set as a historical record,
+> not as an install source — and in particular do not replay `codex-config.toml` into a live
+> `~/.codex/config.toml`. Codex is now reached through the official `codex mcp-server`.
+
 Live MCP and agent configuration snapshots from the Windows development workstation. All secrets, tokens, API keys, and PII have been redacted (replaced with `<REDACTED>`). Environment variable references (e.g. `${CODECOV_TOKEN}`, `$GH_TOKEN`) are preserved as-is since they contain no actual secret values.
 
 ## Files
