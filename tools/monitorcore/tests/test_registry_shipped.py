@@ -29,8 +29,13 @@ from monitorcore import monitors as m
 #: tests/ -> monitorcore/ -> tools/ -> repo root
 REPO = Path(__file__).resolve().parents[3]
 
-#: The two committed copies of the registry. `skills/` is the deploy source that
-#: `scripts/sync-skills.ps1` copies to ~/.agents/skills; `.agents/` is the in-repo mirror.
+#: The two committed copies of the registry. `.agents/skills/` is the CANONICAL repo-published
+#: skill root and `skills/` the compatibility projection (AGENTS.md:7-8); `sync-skills.ps1`
+#: then deploys `skills/` to the live ~/.agents/skills.
+#:
+#: The `skill-dual-write` workflow already enforces strict parity between the two roots, but
+#: only for paths CHANGED in the PR. `test_registry_mirrors_are_byte_identical` below re-checks
+#: this pair on every run, so drift that predates a PR cannot ride along unnoticed.
 REGISTRIES = (
     REPO / "skills" / "monitor-launcher" / "monitors.toml",
     REPO / ".agents" / "skills" / "monitor-launcher" / "monitors.toml",
