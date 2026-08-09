@@ -519,6 +519,106 @@ def test_strict_parity_keeps_distinct_invalid_utf8_path_bytes_distinct(
     assert set(reasons(proc)) == {projection_name, canonical_name}
 
 
+def _canonical_only_baseline(repo: Repo, name: str, *rels: str) -> None:
+    """Put a CANONICAL-ONLY skill on ``main`` and return to a fresh ``feature``."""
+    repo.git("checkout", "-q", "main")
+    for rel in rels:
+        repo.write(f".agents/skills/{name}/{rel}", NEW_SKILL)
+    repo.add(f".agents/skills/{name}")
+    repo.commit(f"canonical-only baseline for {name}")
+    repo.git("branch", "-D", "feature")
+    repo.git("checkout", "-q", "-b", "feature")
+
+
+def test_strict_parity_allows_retiring_a_canonical_only_skill(repo: Repo) -> None:
+    """KNOWN-BROKEN: `counterpart not in deleted` was UNSATISFIABLE here.
+
+    A canonical-only skill has no generated projection, so the counterpart can
+    never appear as a deletion and the skill could not be retired at all.
+    """
+    _canonical_only_baseline(repo, "canon-only", "SKILL.md")
+    repo.remove(".agents/skills/canon-only/SKILL.md")
+    repo.commit("retire a canonical-only skill")
+
+    proc = run_range(repo, "--strict-parity")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "final-tree counterparts" in proc.stdout
+
+
+def test_strict_parity_allows_retiring_a_multi_file_canonical_only_skill(
+    repo: Repo,
+) -> None:
+    """Every relative path inside the skill is adjudicated, not just SKILL.md."""
+    _canonical_only_baseline(
+        repo, "canon-multi", "SKILL.md", "scripts/run.py", "reference/notes.md"
+    )
+    for rel in ("SKILL.md", "scripts/run.py", "reference/notes.md"):
+        repo.remove(f".agents/skills/canon-multi/{rel}")
+    repo.commit("retire a multi-file canonical-only skill")
+
+    proc = run_range(repo, "--strict-parity")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+
+
+def test_strict_parity_still_refuses_a_canonical_edit_when_the_projection_exists(
+    repo: Repo,
+) -> None:
+    """ANTI-FALSE-NEGATIVE: the relaxation must not buy a false green here.
+
+    ``existing-skill`` is in parity across both roots in the fixture, so editing
+    only the canonical copy is exactly the drift ``--strict-parity`` exists to
+    stop.  A fix that traded the false positive above for silence here would be
+    strictly worse than the defect it replaced.
+    """
+    repo.write(".agents/skills/existing-skill/SKILL.md", EDIT)
+    repo.add(".agents/skills/existing-skill/SKILL.md")
+    repo.commit("canonical edit while the projection exists")
+
+    proc = run_range(repo, "--strict-parity", "--json")
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert reasons(proc) == {"existing-skill": "canonical-divergent"}
+
+
+def test_strict_parity_still_refuses_canonical_deletion_when_projection_survives(
+    repo: Repo,
+) -> None:
+    """ANTI-FALSE-NEGATIVE: a counterpart that DID exist still owes a pairing."""
+    repo.remove(".agents/skills/existing-skill/SKILL.md")
+    repo.commit("delete canonical, keep the generated projection")
+
+    proc = run_range(repo, "--strict-parity", "--json")
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert reasons(proc) == {"existing-skill": "canonical-divergent"}
+
+
+def test_strict_parity_refuses_retiring_canonical_while_adding_a_projection(
+    repo: Repo,
+) -> None:
+    """ANTI-FALSE-NEGATIVE: deleting canonical and ADDING the projection inverts D-001."""
+    _canonical_only_baseline(repo, "canon-flip", "SKILL.md")
+    repo.remove(".agents/skills/canon-flip/SKILL.md")
+    repo.write("skills/canon-flip/SKILL.md", NEW_SKILL)
+    repo.add("skills/canon-flip/SKILL.md")
+    repo.commit("move a canonical-only skill into the generated projection")
+
+    proc = run_range(repo, "--strict-parity", "--json")
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert reasons(proc) == {"canon-flip": "canonical-divergent"}
+
+
+def test_staged_strict_parity_allows_retiring_a_canonical_only_skill(
+    repo: Repo,
+) -> None:
+    """The pre-commit form must agree with the CI form on the same change."""
+    repo.write(".agents/skills/canon-staged/SKILL.md", NEW_SKILL)
+    repo.add(".agents/skills/canon-staged/SKILL.md")
+    repo.commit("canonical-only baseline")
+    repo.remove(".agents/skills/canon-staged/SKILL.md")
+
+    proc = run_guard(repo, "--staged", "--strict-parity")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+
+
 def test_staged_strict_parity_fires_on_a_canonical_only_edit(repo: Repo) -> None:
     """KNOWN-BROKEN: staged strict mode ignored canonical-only index changes."""
     repo.write(".agents/skills/existing-skill/SKILL.md", EDIT)
