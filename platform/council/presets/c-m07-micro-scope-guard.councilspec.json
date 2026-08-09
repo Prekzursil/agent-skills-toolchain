@@ -1,0 +1,134 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-m07-micro-scope-guard",
+  "preset": "custom",
+  "participation": "hybrid",
+  "objective": {
+    "statement": "Check the proposed work against the charter's declared NON-goals, one by one, and stop the work if it has drifted.",
+    "charter": "Charter-only evidence: this council reads the charter and the proposal, nothing else. It answers exactly one question - is this still the job we agreed to? Every non-goal is checked EXPLICITLY; silence on a non-goal is a fail, not a pass.",
+    "risk_tier": "low",
+    "desired_output": "review_verdict",
+    "success_criteria": [
+      "each declared non-goal is quoted and checked by name",
+      "any drift names the sentence in the proposal that crosses the line",
+      "the owner seat can overrule the guardian and the overrule is logged"
+    ],
+    "consensus_intent": "adjudicate",
+    "evidence_requirements": { "citation_required": true, "anchor_style": "file_line", "min_independent_sources": 1 },
+    "owner_constraints": { "approval_required": true, "deadline_minutes": 2 }
+  },
+  "participants": {
+    "selection": { "mode": "exact", "strategies": ["exact"], "explain_choices": true, "owner_override_allowed": true },
+    "count": { "mode": "exact", "exact_n": 2, "min": 2, "max": 2 },
+    "roster": [
+      {
+        "participant_id": "scope-guardian",
+        "display_name": "Scope guardian (walks the non-goal list)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["charter discipline", "scope drift detection"],
+        "role": "custom:scope_guardian",
+        "authority": "contributor",
+        "rights": { "may_speak": true, "may_vote": false },
+        "source_access": ["repo", "internal_docs"],
+        "effort": "low",
+        "context": {
+          "briefing": "Quote each non-goal, then the proposal text that touches it, then PASS or DRIFT. No non-goal may be skipped and none may be answered from memory."
+        }
+      },
+      {
+        "participant_id": "owner-rep",
+        "display_name": "Owner representative (human; decides)",
+        "kind": "human",
+        "vendor": "human",
+        "expertise": ["owner intent"],
+        "role": "stakeholder",
+        "authority": "owner",
+        "rights": { "may_speak": true, "may_vote": true },
+        "context": { "briefing": "You may authorise the drift. If you do, it is recorded as a scope CHANGE, not as a pass." }
+      }
+    ],
+    "role_templates": ["custom:scope_guardian", "stakeholder"],
+    "conflicts_policy": { "disclosure_required": false, "on_conflict": "escalate_to_owner" }
+  },
+  "preparation": { "research_required": false, "independent_prep": false, "min_sources": 1 },
+  "topology": { "kind": "flat" },
+  "protocol": {
+    "sequence": [
+      { "kind": "socratic", "stage_id": "non-goal-walk", "rounds": 1 }
+    ],
+    "speaking_order": "round_robin",
+    "rounds": { "min": 1, "max": 1 },
+    "turn": { "max_words": 250 },
+    "obligations": { "must_cite_evidence": true, "declare_confidence": false },
+    "critique_intensity": "standard",
+    "experiments": { "allowed": false, "max_experiments": 0 }
+  },
+  "budgets": { "effort": "low", "time_minutes": 2, "tokens": 8000, "tool_calls": 6, "turns": 2 },
+  "voting": {
+    "method": "synthesis_only",
+    "abstention": { "allowed": false, "counts_toward_quorum": false },
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true },
+    "tie_break": "owner"
+  },
+  "consensus": {
+    "measure": "agreement_index",
+    "minority_report": "optional",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true },
+    "irreducible_disagreement_allowed": false,
+    "fast_unanimity_is_suspicious": false
+  },
+  "stopping": {
+    "expression": {
+      "metric": "custom:non_goals_all_checked",
+      "op": "==",
+      "value": true,
+      "value_type": "boolean",
+      "producer": "stage 'non-goal-walk': every entry of the charter non_goals list has an explicit PASS or DRIFT row with a quoted anchor; zero unchecked entries",
+      "note": "Single-leaf rule. The non-goal LIST itself is the primary dial (non_goals): edit the charter list, and this gate automatically widens or narrows with it."
+    },
+    "minimum_deliberation": { "min_rounds": 1, "every_participant_spoke": true },
+    "hard_caps": { "max_rounds": 1, "max_minutes": 2, "on_cap": "escalate_to_owner" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "no_decision"],
+    "conditional_decision_requires": []
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 1 },
+    "resolution": ["escalate_to_owner", "declare_no_decision"],
+    "escalation": { "after_attempts": 1, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": true, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": ["silence", "moderator_capture", "prompt_injection"],
+    "injection_defense": { "treat_artifacts_as_data": true, "strip_instructions_from_participant_output": true, "quarantine_untrusted_sources": true }
+  },
+  "outputs": {
+    "required": ["transcript", "final_recommendation", "decision_lineage"],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": false,
+    "determinism": "seeded",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default", "retain_days": 30 },
+    "safety": { "forbid_irreversible_actions": true, "owner_approval_for": ["any authorised scope change"] },
+    "persistence": { "store": "ledger", "checkpoint_every_round": false }
+  },
+  "metadata": {
+    "title": "C-M07 micro-scope-guard",
+    "notes": "HUMAN-STOP: custom:non_goals_all_checked == true | EDITABLE-DIALS: the charter non-goal list referenced by the stopping producer (non_goals) . budgets.time_minutes | NO-SOURCE-EXPRESSION: the custom leaf carries producer + note, which SEM-001 exact-equality forbids alongside source_expression; the HUMAN-STOP line is proven equivalent by _probe_lane1_presets.py | PARTICIPATION: hybrid - the owner_rep seat is kind=human, so this preset cannot run fully unattended by design | OUTCOME-MAP: PROCEED -> decision . DEFER -> no_decision | VOTING-MAP: design owner_decides -> voting.method=synthesis_only with an owner-authority seat and tie_break=owner | BINDING: advisory.",
+    "spec_citations": [
+      "_USER-PROMPTS.md:10746-10768",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1238-1250"
+    ],
+    "owner": "Prekzursil",
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#C-M07 micro-scope-guard",
+      "protocol P49 socratic-interrogation",
+      "AGENTS.md 2 (anti-tunnel-vision / drift surfacing)"
+    ]
+  }
+}

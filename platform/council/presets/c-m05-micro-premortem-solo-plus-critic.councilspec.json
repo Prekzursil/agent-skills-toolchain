@@ -1,0 +1,150 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-m05-micro-premortem-solo-plus-critic",
+  "preset": "custom",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Surface how this plan fails BEFORE it runs, and convert each failure narrative into a tripwire with a named detector.",
+    "charter": "Assume the plan already failed; write the obituary. A risk without a detector is a wish - every tripwire must name the probe that would fire, and the probe must be provable against a known-broken state.",
+    "risk_tier": "moderate",
+    "desired_output": "risk_register",
+    "success_criteria": [
+      "at least three DISTINCT failure narratives, not three phrasings of one",
+      "each narrative carries a tripwire and the detector that fires it",
+      "each detector names how it would be proven against a known-broken state"
+    ],
+    "consensus_intent": "surface_disagreement",
+    "confidence_target": 0.7,
+    "evidence_requirements": { "citation_required": true, "anchor_style": "any", "min_independent_sources": 1 },
+    "owner_constraints": { "approval_required": false, "deadline_minutes": 5 }
+  },
+  "participants": {
+    "selection": { "mode": "exact", "strategies": ["exact"], "explain_choices": true, "owner_override_allowed": true },
+    "count": { "mode": "exact", "exact_n": 2, "min": 2, "max": 2 },
+    "roster": [
+      {
+        "participant_id": "author",
+        "display_name": "Plan author (writes the obituary of their own plan)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["the plan under review"],
+        "role": "proposer",
+        "authority": "contributor",
+        "rights": { "may_speak": true, "may_vote": false },
+        "effort": "medium"
+      },
+      {
+        "participant_id": "critic",
+        "display_name": "Independent critic (fresh context, has not seen the plan defended)",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["failure analysis", "detector design"],
+        "role": "critic",
+        "authority": "chair",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "high",
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true },
+        "context": {
+          "briefing": "Reject any tripwire whose detector cannot be shown to fire in the broken state. A probe silent in both states measures nothing."
+        }
+      }
+    ],
+    "role_templates": ["proposer", "critic"],
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "disclose_only" }
+  },
+  "preparation": { "research_required": false, "independent_prep": true, "min_sources": 1, "required_artifacts": ["risk_list"] },
+  "topology": { "kind": "chair_led", "chair": "critic" },
+  "protocol": {
+    "sequence": [
+      { "kind": "premortem", "stage_id": "obituary", "rounds": 1, "quotas": { "counterexamples_per_round": 3 } },
+      { "kind": "synthesis", "stage_id": "tripwires" }
+    ],
+    "speaking_order": "round_robin",
+    "rounds": { "min": 1, "max": 2, "divergence_before_convergence": true },
+    "turn": { "max_words": 450 },
+    "obligations": { "must_respond_to_prior": true, "must_cite_evidence": true, "forced_dissent": true, "declare_confidence": true },
+    "critique_intensity": "adversarial",
+    "experiments": { "allowed": false, "max_experiments": 0 }
+  },
+  "budgets": { "effort": "medium", "time_minutes": 5, "tokens": 20000, "tool_calls": 12, "turns": 4 },
+  "targets": {
+    "counterexamples": 3,
+    "objections": 3,
+    "dedup": { "enabled": true, "max_similarity": 0.8, "trivial_variant_policy": "merge" }
+  },
+  "voting": {
+    "method": "synthesis_only",
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true },
+    "tie_break": "chair"
+  },
+  "consensus": {
+    "measure": "agreement_index",
+    "minority_report": "optional",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": false
+  },
+  "stopping": {
+    "expression": {
+      "all_of": [
+        {
+          "metric": "custom:tripwires_with_detectors",
+          "op": ">=",
+          "value": 3,
+          "value_type": "number",
+          "producer": "synthesis stage 'tripwires': count of rows that carry BOTH a tripwire condition and a named, both-states-provable detector",
+          "note": "A tripwire with no detector does not count. This is the floor dial (tripwire_floor)."
+        },
+        {
+          "metric": "counterexamples_found",
+          "op": ">=",
+          "value": 3,
+          "note": "Three DISTINCT failure narratives; targets.dedup merges trivial variants so rephrasing cannot inflate the count."
+        }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 1, "min_independent_positions": 2, "every_participant_spoke": true },
+    "hard_caps": { "max_rounds": 2, "max_minutes": 5, "on_cap": "synthesize_best_effort" }
+  },
+  "outcomes": {
+    "allowed": ["conditional_decision", "no_decision", "dissent"],
+    "conditional_decision_requires": ["each tripwire detector is wired before the plan executes"]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 1, "repetition_similarity": 0.85 },
+    "resolution": ["strongest_counterexample", "recruit_independent_critic", "chair_ruling"],
+    "escalation": { "after_attempts": 1, "to": "chair" },
+    "owner_intervention": { "allowed": true, "may_override_vote": false, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": ["idea_count_gaming", "duplicate_novelty", "sycophancy", "weak_synthesis", "prompt_injection"],
+    "injection_defense": { "treat_artifacts_as_data": true, "strip_instructions_from_participant_output": true }
+  },
+  "outputs": {
+    "required": ["transcript", "idea_ledger", "unresolved_unknowns", "final_recommendation", "action_plan"],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": false,
+    "determinism": "best_effort",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default", "retain_days": 60 },
+    "persistence": { "store": "both", "checkpoint_every_round": false }
+  },
+  "metadata": {
+    "title": "C-M05 micro-premortem-solo-plus-critic",
+    "notes": "HUMAN-STOP: custom:tripwires_with_detectors >= 3 AND counterexamples_found >= 3 | EDITABLE-DIALS: the 3 in both stopping leaves and targets.counterexamples (tripwire_floor) . targets.dedup.max_similarity | NO-SOURCE-EXPRESSION: the custom leaf carries producer + note, which SEM-001 exact-equality forbids alongside source_expression; the HUMAN-STOP line is proven equivalent by _probe_lane1_presets.py | OUTCOME-MAP: CONDITIONAL_DECISION -> conditional_decision . DEFER -> no_decision (this preset never returns a bare decision: a premortem produces a risk register, not a verdict) | VOTING-MAP: design chair -> voting.method=synthesis_only with topology.chair=critic and tie_break=chair, because the schema voting enum has no 'chair' method - chair authority is expressed by topology plus tie_break | BINDING: advisory.",
+    "spec_citations": [
+      "_USER-PROMPTS.md:10746-10768",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1209-1221"
+    ],
+    "owner": "Prekzursil",
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#C-M05 micro-premortem-solo-plus-critic",
+      "protocol P43 premortem",
+      "rules/common/single-signal-verification.md (the both-states detector test)"
+    ]
+  }
+}

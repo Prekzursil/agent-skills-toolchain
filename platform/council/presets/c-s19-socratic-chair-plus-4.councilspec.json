@@ -1,0 +1,311 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-s19-socratic-chair-plus-4",
+  "preset": "requirements_council",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Examine every stated premise or requirement until each is grounded in an artifact or explicitly flagged as ungrounded.",
+    "charter": "Socratic premise examination. The questioner emits ZERO declarative claims; it only asks. Nothing is decided here - the output is a grounded/flagged premise ledger.",
+    "risk_tier": "moderate",
+    "desired_output": "specification",
+    "success_criteria": [
+      "every premise is either grounded at a file:line anchor or carries an explicit ungrounded flag",
+      "the questioner made no declarative claim of its own",
+      "each ungrounded premise names the experiment that would settle it"
+    ],
+    "consensus_intent": "surface_disagreement",
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "file_line",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 5,
+      "min": 5,
+      "max": 5
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_expertise": 3
+    },
+    "roster": [
+      {
+        "participant_id": "questioner",
+        "display_name": "Questioner (asks only, never asserts)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "custom:socratic_questioner",
+        "authority": "chair",
+        "effort": "xhigh",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      },
+      {
+        "participant_id": "respondent",
+        "display_name": "Respondent (defends the premises)",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "custom:respondent",
+        "authority": "contributor",
+        "effort": "high",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      },
+      {
+        "participant_id": "assumption-auditor",
+        "display_name": "Assumption auditor (rates each premise high/medium/low)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "custom:assumption_auditor",
+        "authority": "contributor",
+        "effort": "high",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        },
+        "independence": {
+          "fresh_context": true
+        }
+      },
+      {
+        "participant_id": "evidence-clerk",
+        "display_name": "Evidence clerk (holds the anchors)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "custom:evidence_clerk",
+        "authority": "contributor",
+        "effort": "high",
+        "source_access": [
+          "repo",
+          "internal_docs"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      },
+      {
+        "participant_id": "scribe",
+        "display_name": "Scribe (premise ledger)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "scribe",
+        "authority": "observer",
+        "effort": "medium",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      }
+    ],
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "disclose_only"
+    }
+  },
+  "preparation": {
+    "research_required": false,
+    "independent_prep": true,
+    "required_artifacts": [
+      "position_memo"
+    ]
+  },
+  "topology": {
+    "kind": "chair_led",
+    "chair": "questioner"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "socratic",
+        "stage_id": "interrogate",
+        "rounds": 3
+      },
+      {
+        "kind": "custom",
+        "stage_id": "assumption-ledger",
+        "custom_name": "assumption ledger with high/medium/low confidence per premise",
+        "participants": [
+          "assumption-auditor",
+          "evidence-clerk"
+        ]
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "premise-ledger",
+        "participants": [
+          "scribe"
+        ]
+      }
+    ],
+    "speaking_order": "chair_directed",
+    "rounds": {
+      "min": 3,
+      "max": 5
+    },
+    "turn": {
+      "max_words": 400
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "declare_confidence": true
+    },
+    "critique_intensity": "standard"
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 30,
+    "tool_calls": 80,
+    "turns": 24
+  },
+  "targets": {
+    "evidence_items": 8,
+    "coverage_score": 0.9
+  },
+  "voting": {
+    "method": "synthesis_only",
+    "tie_break": "no_decision"
+  },
+  "consensus": {
+    "measure": "agreement_index",
+    "minority_report": "optional",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true
+    },
+    "irreducible_disagreement_allowed": true
+  },
+  "stopping": {
+    "source_expression": "every_objection_addressed == true AND evidence_items >= 8",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "every_objection_addressed",
+          "op": "==",
+          "value": true
+        },
+        {
+          "metric": "evidence_items",
+          "op": ">=",
+          "value": 8
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 3,
+      "min_evidence_items": 8,
+      "every_participant_spoke": true
+    },
+    "hard_caps": {
+      "max_rounds": 5,
+      "max_minutes": 30,
+      "on_cap": "synthesize_best_effort"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "no_decision",
+      "conditional_decision"
+    ],
+    "conditional_decision_requires": [
+      "every ungrounded premise names its settling experiment"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "circular_citation_check": true
+    },
+    "resolution": [
+      "split_question",
+      "narrow_scope",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "circular_citation",
+      "role_collapse",
+      "sycophancy",
+      "weak_synthesis",
+      "prompt_injection"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "claim_evidence_contradiction_graph",
+      "evidence_map",
+      "transcript",
+      "unresolved_unknowns",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "pii_policy": "redact",
+      "retain_days": 60
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge",
+        "release"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    }
+  },
+  "metadata": {
+    "title": "Socratic premise examination (chair + 4)",
+    "owner": "Prekzursil",
+    "lineage": [
+      "C-S19 socratic-chair-plus-4",
+      "P49 socratic-interrogation",
+      "P39 key-assumptions-check"
+    ],
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1415-1428"
+    ],
+    "notes": "DESIGN LINEAGE: C-S19 socratic-chair-plus-4 in 12-COUNCIL-PROTOCOLS-AND-PRESETS.md (seats: 5; roles: questioner,respondent,assumption_auditor,evidence_clerk,scribe).\nPRESET LABEL: requirements_council - NEAREST archetype in the schema's preset_name enum, not an exact match. The card's decision_type is premise_examination; a requirements council is the archetype that interrogates stated requirements until each is grounded. If another lane builds a closer requirements_council, this label should yield to it and become 'custom'.\nOUTCOME MAPPING (card vocabulary -> schema outcomes.allowed): INSUFFICIENT_EVIDENCE->no_decision, CONDITIONAL_DECISION->conditional_decision, DEFER->no_decision.\nEDITABLE DIALS (pointer -> what it changes):\n  - $.protocol.rounds.max + $.stopping.hard_caps.max_rounds : depth_cap dial from the card\n  - $.stopping.expression : raise evidence_items to demand more anchors per premise\n  - $.voting.method : synthesis_only by design - this council decides NOTHING; switching it to a voting method changes the council's kind, not just a dial\noutcomes.allowed deliberately EXCLUDES 'decision': the card's outcome list is INSUFFICIENT_EVIDENCE|CONDITIONAL_DECISION|DEFER only. A premise examination that returns a decision has exceeded its charter.\nEVERY field in this file is a dial; the ones above are the ones the owner is expected to change first. See README.md in this directory for the full table."
+  }
+}

@@ -1,0 +1,292 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "gap-auto-general-purpose-auto-composed",
+  "preset": "general_purpose_auto_composed",
+  "participation": "hybrid",
+  "objective": {
+    "statement": "Convene a general-purpose council that selects its own roles, size and protocol from the task, explains every choice it makes, and lets the owner override any of them.",
+    "charter": "MANDATE. This is the default council for a task that does not match a specialised preset. Nothing here is fixed except the obligations: (1) SELECT - infer the roles, the seat count and the protocol sequence from the task itself, scaling seats up on disagreement, missing expertise, low confidence or deadlock rather than guessing a number up front; (2) EXPLAIN - every choice must come with its reason, so 'why is there a security seat and not a statistician' has a written answer before deliberation starts; (3) DEFER - the owner may override any selection, and an override is recorded rather than argued with. The stopping rule has two independent routes: either the council reaches a confident position with every objection addressed, or the owner approves after at least one round. The second route exists because a general-purpose council must be able to terminate on owner judgement rather than grinding toward a confidence number it will never reach on an under-determined question.",
+    "risk_tier": "moderate",
+    "desired_output": "recommendation",
+    "success_criteria": [
+      "the role set, seat count and protocol are each justified in writing against the task",
+      "the owner can override any selection and the override is logged",
+      "seats scale on a declared trigger rather than an arbitrary initial guess",
+      "either confidence with objections addressed, or explicit owner approval, terminates the run"
+    ],
+    "consensus_intent": "seek_consensus",
+    "confidence_target": 0.8,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": false,
+      "forbidden_actions": [
+        "select a role set without explaining the selection",
+        "refuse an owner override",
+        "pick a seat count with no scaling trigger declared"
+      ]
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "automatic",
+      "strategies": [
+        "automatic",
+        "expertise_ranked",
+        "stakeholder_balanced",
+        "model_diverse",
+        "vendor_diverse",
+        "adversarial"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "elastic",
+      "min": 3,
+      "max": 12,
+      "elastic": {
+        "scale_on": ["disagreement", "missing_expertise", "low_confidence", "deadlock", "risk_tier"],
+        "step": 2,
+        "cooldown_rounds": 1
+      }
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_models": 2,
+      "min_distinct_expertise": 3,
+      "max_share_per_vendor": 0.7
+    },
+    "role_templates": [
+      "chair",
+      "proposer",
+      "critic",
+      "devils_advocate",
+      "steelman",
+      "domain_expert",
+      "security_reviewer",
+      "architect",
+      "product_manager",
+      "risk_officer",
+      "user_advocate",
+      "statistician",
+      "legal_ethics",
+      "synthesizer",
+      "verifier",
+      "scribe"
+    ],
+    "recruitment": {
+      "dynamic": true,
+      "triggers": ["missing_expertise", "deadlock", "fast_unanimity", "low_novelty", "owner_request"],
+      "max_recruits": 6
+    },
+    "replacement": {
+      "enabled": true,
+      "triggers": ["inactivity", "role_collapse", "hallucinated_expertise", "dominance", "conflict_of_interest"],
+      "preserve_prior_positions": true
+    },
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "recuse_from_vote" },
+    "duplicate_detection": {
+      "enabled": true,
+      "dimensions": ["model", "vendor", "prompt", "expertise", "position_similarity"],
+      "max_similarity": 0.85
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": ["prior_art_scan", "position_memo"]
+  },
+  "topology": { "kind": "flat" },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "custom",
+        "stage_id": "auto-compose",
+        "custom_name": "select roles, seat count and protocol from the task, and explain every choice",
+        "rounds": 1
+      },
+      { "kind": "blind_independent_first_pass", "stage_id": "independent-positions", "rounds": 1, "independent": true },
+      { "kind": "round_robin", "stage_id": "deliberate", "rounds": 2 },
+      { "kind": "socratic", "stage_id": "examine-premises", "rounds": 1 },
+      { "kind": "synthesis", "stage_id": "recommend", "rounds": 1 }
+    ],
+    "speaking_order": "lowest_confidence_first",
+    "rounds": { "min": 1, "max": 6, "divergence_before_convergence": true },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "declare_confidence": true,
+      "declare_conflicts": true
+    },
+    "critique_intensity": "standard",
+    "experiments": { "allowed": true, "required_before_decision": false, "max_experiments": 8, "runner": "local" }
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 90,
+    "turns": 40,
+    "speaking_quota_per_participant": 6,
+    "max_inactivity_rounds": 2
+  },
+  "targets": { "evidence_items": 6, "objections": 2 },
+  "voting": {
+    "method": "majority",
+    "quorum": { "min_voters": 3, "min_fraction": 0.6, "on_failure": "recruit" },
+    "abstention": { "allowed": true, "counts_toward_quorum": false, "must_justify": true, "strategic_abstention_check": true },
+    "belief_aggregation": { "method": "median", "require_confidence_per_vote": true },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "extend_rounds"
+  },
+  "consensus": {
+    "threshold": 0.7,
+    "measure": "agreement_index",
+    "minority_report": "optional",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true, "suppression_check": true },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "(confidence >= 0.8 AND every_objection_addressed == true) OR (owner_approved == true AND rounds_elapsed >= 1)",
+    "expression": {
+      "any_of": [
+        {
+          "all_of": [
+            { "metric": "confidence", "op": ">=", "value": 0.8 },
+            { "metric": "every_objection_addressed", "op": "==", "value": true }
+          ]
+        },
+        {
+          "all_of": [
+            { "metric": "owner_approved", "op": "==", "value": true },
+            { "metric": "rounds_elapsed", "op": ">=", "value": 1 }
+          ]
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 1,
+      "min_independent_positions": 3,
+      "every_participant_spoke": true,
+      "min_evidence_items": 4,
+      "min_objections_addressed": 1
+    },
+    "hard_caps": { "max_rounds": 6, "max_minutes": 90, "on_cap": "synthesize_best_effort" }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "irreducible_disagreement",
+      "proof_of_impossibility",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "the owner ratifies the auto-composed role set before the recommendation is acted on"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.9,
+      "circular_citation_check": true,
+      "vote_oscillation_rounds": 2
+    },
+    "resolution": [
+      "recruit_independent_critic",
+      "rotate_roles",
+      "run_experiment",
+      "forced_dissent",
+      "split_question",
+      "narrow_scope",
+      "escalate_to_owner",
+      "declare_no_decision"
+    ],
+    "escalation": { "after_attempts": 3, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": true, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": [
+      "echo_chamber",
+      "instant_unanimity",
+      "sycophancy",
+      "participant_dominance",
+      "silence",
+      "circular_debate",
+      "role_collapse",
+      "missing_expertise",
+      "evidence_free_majority",
+      "premature_convergence",
+      "endless_debate",
+      "lost_dissent",
+      "moderator_capture",
+      "weak_synthesis",
+      "hallucinated_expertise",
+      "hidden_conflict_of_interest",
+      "prompt_injection"
+    ],
+    "fast_unanimity_response": [
+      "blind_re_evaluation",
+      "forced_dissent",
+      "strongest_counterexample",
+      "role_rotation",
+      "recruit_independent_critic"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "transcript",
+      "argument_ledger",
+      "evidence_map",
+      "votes_by_round",
+      "confidence_trajectory",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "decision_lineage",
+      "resumable_state"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "best_effort",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default", "pii_policy": "redact" },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": ["acting on the recommendation", "overriding an auto-selected role"]
+    },
+    "persistence": { "store": "both", "path": "platform/council/runs/gap-auto", "checkpoint_every_round": true },
+    "calibration": { "post_run": true, "score": "brier" }
+  },
+  "metadata": {
+    "title": "General-purpose auto-composed council (the default when no specialised preset fits)",
+    "owner": "Prekzursil",
+    "lineage": [
+      "GAP-AUTO",
+      "NOT DERIVED FROM 12-COUNCIL-PROTOCOLS-AND-PRESETS.md - no design entry exists",
+      "spec-required preset name general_purpose_auto_composed"
+    ],
+    "spec_citations": ["_USER-PROMPTS.md:10765", "_USER-PROMPTS.md:11200-11225"],
+    "notes": "SOURCE DESIGN: NONE - and that is the finding. This preset is REQUIRED by the spec (the schema's preset_name enum carries `general_purpose_auto_composed`, and the brief names 'a general-purpose AUTO-COMPOSED council that selects roles and protocol from the task, explains every choice, and allows owner override'), but a grep of all 72 preset designs in 12-COUNCIL-PROTOCOLS-AND-PRESETS.md for auto.composed / auto_composed / autocompose returns ZERO hits. No lane's doc-derived slice contains it, so without this file the required set could not be covered by any lane. It is authored here as an explicit GAP-CLOSER rather than assigned an ordinal in the 49-64 range, and the orchestrator should dedupe if a sibling lane also built one. || EDITABLE DIALS: everything in this preset is a dial by construction - that is what auto-composed means - but the ones an owner changes FIRST are: (1) participants.count.min/max (3..12) and count.elastic.scale_on, which decide how large the council may grow and what grows it; (2) participants.role_templates, the palette the selector may draw from - narrowing it is the strongest form of owner override; (3) protocol.sequence, the default stage order; (4) voting.method (`majority` is the declared DEFAULT, not a fixed policy - for a high-risk task an owner should raise it to supermajority or consent_no_objection); (5) stopping.expression's confidence threshold (0.8) and stopping.hard_caps (6 rounds / 90 minutes). || VOCABULARY MAP: there is no design row to map, so the mapping here is spec-to-schema. 'selects roles and protocol from the task' -> participants.selection.mode `automatic` with six strategies and NO pinned roster (a roster under automatic selection raises SEM-004 as a WARN, so the roster is deliberately absent and the palette is expressed through role_templates instead), plus count.mode `elastic`. 'explains every choice' -> participants.selection.explain_choices true, and the auto-compose protocol stage exists precisely to produce that written justification before deliberation starts. 'allows owner override' -> selection.owner_override_allowed true, deadlock.owner_intervention.may_override_vote true, and audit.safety.owner_approval_for naming role override. || WHY THE STOPPING RULE IS A DISJUNCTION AND NOT A CONJUNCTION: a general-purpose council meets under-determined questions where a confidence target may be unreachable in principle. One route stops on substance (confidence with every objection addressed); the other stops on authority (owner approval after at least one round, so the owner cannot rubber-stamp a council that never deliberated). A conjunction would let an under-determined question run to the hard cap every time. || NO WEIGHTED CLAUSE, DELIBERATELY: the schema also offers a `weighted` stop_expression, which looks ideal for an auto-composed council balancing several sufficient conditions. It is unusable in a documented preset - `unparse` emits WEIGHTED[...] >= t but the parser has no WEIGHTED production, so any weighted spec fails SEM-001 the moment it declares a source_expression and fails a parse(unparse(tree)) idempotence check. Confirmed with a control at platform/council/_probe_weighted_roundtrip.py. The disjunction above is the expressible equivalent. || NO CUSTOM METRICS: every clause uses a registry metric (confidence, every_objection_addressed, owner_approved, rounds_elapsed), so this is the one preset in the lane with ZERO SEM-012 warnings - a deliberate demonstration that the registry is sufficient for a general council and extensions are only needed for domain-specific gates."
+  }
+}

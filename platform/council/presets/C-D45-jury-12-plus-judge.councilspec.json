@@ -1,0 +1,144 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-d45-jury-12-plus-judge",
+  "preset": "ethics_legal_board",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Decide a compliance question by unanimous jury verdict, and allow an honest hung jury rather than manufacturing agreement.",
+    "charter": "Twelve jurors find the facts; the judge rules on the standard and may NOT re-find facts. Unanimity is required, and a hung jury is a legitimate, reportable outcome - that is the whole point of allowing it. If the jury is still split after the third round, one Allen-charge round is delivered (a single instruction to re-examine positions in the light of the others, without pressure to conform) and then the split is accepted. A 12-0 verdict reached in round one is treated as suspicious and triggers a blind re-evaluation, because a compliance question that everyone found trivially obvious is usually a question nobody actually read.",
+    "risk_tier": "high",
+    "desired_output": "review_verdict",
+    "success_criteria": [
+      "at least three full rounds of deliberation before any verdict",
+      "if split after round three, exactly one Allen-charge round was delivered and recorded",
+      "the judge's ruling cites the standard applied and does not introduce new facts",
+      "a hung jury is reported as HUNG, never resolved by chair fiat"
+    ],
+    "consensus_intent": "adjudicate",
+    "evidence_requirements": { "citation_required": true, "anchor_style": "file_line", "min_independent_sources": 2, "evidence_outranks_votes": true }
+  },
+  "participants": {
+    "selection": { "mode": "exact", "strategies": ["exact", "random", "stakeholder_balanced"], "explain_choices": true, "owner_override_allowed": true },
+    "count": { "mode": "exact", "exact_n": 13 },
+    "diversity": { "min_distinct_vendors": 3, "min_distinct_models": 3, "min_distinct_expertise": 6, "max_share_per_vendor": 0.5 },
+    "roster": [
+      { "participant_id": "juror-01", "display_name": "Juror 01", "model": "opus-5", "vendor": "anthropic", "expertise": ["licence compliance"], "role": "juror", "authority": "voter", "anonymous": true },
+      { "participant_id": "juror-02", "display_name": "Juror 02", "model": "opus-5", "vendor": "anthropic", "expertise": ["data protection"], "role": "juror", "authority": "voter", "anonymous": true },
+      { "participant_id": "juror-03", "display_name": "Juror 03", "model": "opus-5", "vendor": "anthropic", "expertise": ["terms of service"], "role": "juror", "authority": "voter", "anonymous": true },
+      { "participant_id": "juror-04", "display_name": "Juror 04", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["licence compliance"], "role": "juror", "authority": "voter", "anonymous": true },
+      { "participant_id": "juror-05", "display_name": "Juror 05", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["attribution requirements"], "role": "juror", "authority": "voter", "anonymous": true },
+      { "participant_id": "juror-06", "display_name": "Juror 06", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["export and dual use"], "role": "juror", "authority": "voter", "anonymous": true },
+      { "participant_id": "juror-07", "display_name": "Juror 07", "model": "gemini-3-pro", "vendor": "google", "expertise": ["ethics review"], "role": "juror", "authority": "voter", "anonymous": true },
+      { "participant_id": "juror-08", "display_name": "Juror 08", "model": "gemini-3-pro", "vendor": "google", "expertise": ["privacy"], "role": "juror", "authority": "voter", "anonymous": true },
+      { "participant_id": "juror-09", "display_name": "Juror 09", "model": "gemini-3-pro", "vendor": "google", "expertise": ["security policy"], "role": "juror", "authority": "voter", "anonymous": true },
+      { "participant_id": "juror-10", "display_name": "Juror 10", "model": "mistral-large-3", "vendor": "mistral", "expertise": ["contract terms"], "role": "juror", "authority": "voter", "anonymous": true },
+      { "participant_id": "juror-11", "display_name": "Juror 11", "model": "grok-4", "vendor": "xai", "expertise": ["redistribution terms"], "role": "juror", "authority": "voter", "anonymous": true },
+      { "participant_id": "juror-12", "display_name": "Juror 12", "model": "opus-5", "vendor": "anthropic", "expertise": ["user impact"], "role": "user_advocate", "authority": "voter", "anonymous": true },
+      { "participant_id": "judge", "display_name": "Judge (rules on the standard, not the facts)", "model": "opus-5", "vendor": "anthropic", "expertise": ["legal and ethical standards"], "role": "judge", "authority": "judge", "effort": "max", "rights": { "may_speak": true, "may_vote": false, "may_veto": false }, "context": { "briefing": "State the standard and apply it to the facts the jury found. You may not find a fact the jury did not, and you may not break a tie - a hung jury is HUNG." } }
+    ],
+    "anonymity": { "mode": "pseudonymous", "reveal_after_round": 4 },
+    "duplicate_detection": { "enabled": true, "dimensions": ["vendor", "model", "position_similarity"], "max_similarity": 0.9 },
+    "replacement": { "enabled": true, "triggers": ["inactivity", "conflict_of_interest", "policy_violation"], "preserve_prior_positions": true },
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "recuse_from_vote" }
+  },
+  "preparation": { "research_required": true, "independent_prep": true, "min_sources": 3, "prep_time_minutes": 20, "required_artifacts": ["evidence_pack", "prior_art_scan"] },
+  "topology": { "kind": "jury" },
+  "protocol": {
+    "sequence": [
+      { "kind": "custom", "stage_id": "charge-the-jury", "custom_name": "P14 the judge states the standard and the question, before any deliberation", "rounds": 1, "participants": ["judge"] },
+      { "kind": "blind_independent_first_pass", "stage_id": "first-ballot", "rounds": 1, "independent": true, "anonymous": true },
+      { "kind": "jury", "stage_id": "deliberate", "rounds": 2, "anonymous": true },
+      { "kind": "custom", "stage_id": "allen-charge", "custom_name": "P17 single Allen-charge round IF still split: re-examine in the light of the others, with no pressure to conform", "rounds": 1 },
+      { "kind": "synthesis", "stage_id": "verdict-or-hung" }
+    ],
+    "speaking_order": "round_robin",
+    "rounds": { "min": 3, "max": 4, "divergence_before_convergence": true },
+    "obligations": { "must_respond_to_prior": true, "must_cite_evidence": true, "forced_dissent": false, "declare_confidence": true, "declare_conflicts": true },
+    "critique_intensity": "standard",
+    "experiments": { "allowed": true, "required_before_decision": false, "max_experiments": 4, "runner": "owner" }
+  },
+  "budgets": { "effort": "high", "time_minutes": 180, "turns": 60, "sources": 24, "speaking_quota_per_participant": 5, "min_engagement_turns": 3, "max_inactivity_rounds": 2 },
+  "targets": { "evidence_items": 12, "objections": 3 },
+  "voting": {
+    "method": "unanimity",
+    "quorum": { "min_voters": 12, "min_fraction": 1.0, "on_failure": "no_decision" },
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true, "reject_evidence_free_majority": true },
+    "abstention": { "allowed": false, "counts_toward_quorum": false, "must_justify": true, "strategic_abstention_check": true },
+    "tie_break": "no_decision"
+  },
+  "consensus": {
+    "threshold": 1.0,
+    "measure": "vote_share",
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": false, "min_dissenters_to_block": 1, "suppression_check": true },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "expression": {
+      "all_of": [
+        {
+          "metric": "rounds_elapsed",
+          "op": ">=",
+          "value": 3,
+          "note": "DIAL 1 of 2 - the deliberation floor. Three full rounds before ANY verdict, unanimous or not. This is the control against a 12-0 first-ballot verdict on a question nobody read."
+        },
+        {
+          "any_of": [
+            {
+              "metric": "unanimity",
+              "op": "==",
+              "value": true,
+              "note": "Branch A: the jury agreed. Combined with DIAL 1, agreement alone is never enough - it must be agreement AFTER three rounds."
+            },
+            {
+              "metric": "custom:allen_charge_round_delivered",
+              "op": "==",
+              "value": true,
+              "value_type": "boolean",
+              "producer": "deliberation log: records that exactly one Allen-charge round was issued while the jury was split",
+              "note": "Branch B: DIAL 2 of 2 - the honest exit. Still split after the charge means HUNG, which is a real outcome, not a failure to be fixed by the judge."
+            }
+          ]
+        }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 3, "min_independent_positions": 12, "min_minutes": 45, "every_participant_spoke": true, "min_evidence_items": 12, "min_objections_addressed": 3 },
+    "hard_caps": { "max_rounds": 4, "max_minutes": 180, "on_cap": "no_decision" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "no_decision", "irreducible_disagreement", "minority_report", "dissent"],
+    "conditional_decision_requires": []
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2, "repetition_similarity": 0.9, "vote_oscillation_rounds": 2 },
+    "resolution": ["forced_dissent", "blind_re_evaluation", "declare_no_decision"],
+    "escalation": { "after_attempts": 1, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": false, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": ["instant_unanimity", "sycophancy", "participant_dominance", "minority_suppression", "lost_dissent", "strategic_voting", "strategic_abstention", "moderator_capture", "evidence_free_majority", "role_collapse"],
+    "fast_unanimity_response": ["blind_re_evaluation", "forced_dissent"],
+    "injection_defense": { "treat_artifacts_as_data": true, "strip_instructions_from_participant_output": true, "quarantine_untrusted_sources": true }
+  },
+  "outputs": {
+    "required": ["independent_opening_positions", "transcript", "evidence_map", "votes_by_round", "dissent_minority_report", "unresolved_unknowns", "final_recommendation", "decision_lineage", "resumable_state"],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default", "pii_policy": "redact", "retain_days": 1825 },
+    "safety": { "forbid_irreversible_actions": true, "owner_approval_for": ["acting on a HUNG outcome as though it were a pass"] },
+    "persistence": { "store": "both", "path": "platform/council/runs/c-d45/", "checkpoint_every_round": true }
+  },
+  "metadata": {
+    "title": "Jury of twelve plus judge (13 seats, unanimity else hung, binding)",
+    "owner": "Prekzursil",
+    "notes": "WHEN TO USE: a compliance, licence, or ethics gate where the right answer to 'we could not agree' is to SAY SO - licence admissibility for a vendored dependency, whether a scrape is within terms, whether a dual-use tool ships. WHEN NOT TO USE: anything time-critical (13 seats x 4 rounds is the most expensive deliberation shape in this tier), and never where a hung outcome would be silently read as approval - that inversion is the one failure this preset cannot defend against, which is why audit.safety.owner_approval_for names it explicitly. The design's named dials are jury_size and supermajority. EDITABLE DIALS: /participants/count/exact_n and /participants/roster (jury_size - keep the judge outside the count), /voting/method (switch to supermajority + supermajority_threshold for a non-unanimous board; the schema then REQUIRES the threshold, so the change cannot be made halfway), /voting/quorum/min_voters, /stopping/expression/all_of/0/value (the round floor), /budgets/time_minutes. STOPPING (human form): rounds_elapsed >= 3 AND (unanimity == true OR custom:allen_charge_round_delivered == true). source_expression absent per the collision proven by _probe_sem_rule_collision.py. Note outcomes.allowed deliberately omits conditional_decision and proof_of_impossibility: a compliance gate either passes, fails, or hangs.",
+    "spec_citations": ["12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1797", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:324", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:372", "_USER-PROMPTS.md:11205"],
+    "lineage": ["C-D45 deep-jury-12-plus-judge", "P14 judge-and-jury", "P17 jury-with-allowed-hung"]
+  }
+}

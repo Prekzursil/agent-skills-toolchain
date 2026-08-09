@@ -1,0 +1,127 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-x47-discovery-swarm-64",
+  "preset": "hundred_idea_brainstorm",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Brainstorm until 100 unique ideas exist AND coverage of the declared category space reaches 90 percent - the spec's named stopping rule, implemented verbatim.",
+    "charter": "Sixty-four lens seats generate in parallel with NO critique during generation, because critique during divergence suppresses exactly the low-confidence ideas the sweep exists to surface. Convergence is a separate, later phase. The stopping rule is a conjunction on purpose: 100 ideas that all sit in three categories is not discovery, it is one idea repeated, so the count alone cannot stop the run. If saturation is reached without both conditions, the honest outcome is no_decision (INSUFFICIENT_EVIDENCE) - a swarm that cannot reach coverage should say so rather than pad the count with trivial variants. Every seat cites an EXTERNAL source; this is an ideation cohort and is explicitly told not to ground its output in the repository.",
+    "risk_tier": "low",
+    "desired_output": "idea_set",
+    "success_criteria": [
+      "100 unique ideas after mechanical deduplication",
+      "completeness score at or above 0.90 against the declared category space",
+      "no critique was issued during the generation phase",
+      "every idea cites an external source rather than a repository path"
+    ],
+    "consensus_intent": "surface_disagreement",
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "url",
+      "min_independent_sources": 1,
+      "evidence_outranks_votes": false
+    },
+    "owner_constraints": { "deadline_minutes": 480 }
+  },
+  "participants": {
+    "selection": {
+      "mode": "automatic",
+      "strategies": ["automatic", "stratified", "model_diverse", "vendor_diverse"],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": { "mode": "exact", "exact_n": 64 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_expertise": 32, "max_share_per_vendor": 0.75 },
+    "role_templates": ["custom:lens_seat"],
+    "recruitment": { "dynamic": true, "triggers": ["low_novelty"], "max_recruits": 16 },
+    "anonymity": { "mode": "pseudonymous", "reveal_after_round": 1 },
+    "duplicate_detection": { "enabled": true, "dimensions": ["prompt", "expertise", "position_similarity"], "max_similarity": 0.8 }
+  },
+  "preparation": { "research_required": true, "independent_prep": true, "min_sources": 2, "prep_time_minutes": 15, "required_artifacts": ["prior_art_scan"] },
+  "topology": { "kind": "flat" },
+  "protocol": {
+    "sequence": [
+      { "kind": "brainstorm", "stage_id": "divergence-no-critique", "rounds": 1, "independent": true, "quotas": { "ideas_per_participant": 4, "novel_ideas_per_round": 2 } },
+      { "kind": "nominal_group", "stage_id": "category-coverage-sweep", "rounds": 1 },
+      { "kind": "synthesis", "stage_id": "dedup-and-catalog" }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": { "min": 1, "max": 1, "divergence_before_convergence": true },
+    "obligations": { "must_cite_evidence": true, "must_respond_to_prior": false, "declare_confidence": false },
+    "critique_intensity": "gentle",
+    "experiments": { "allowed": false, "required_before_decision": false, "max_experiments": 0 }
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 480,
+    "tool_calls": 1600,
+    "sources": 200,
+    "speaking_quota_per_participant": 2,
+    "max_inactivity_rounds": 1
+  },
+  "targets": {
+    "unique_ideas": 100,
+    "raw_ideas": 256,
+    "categories": 32,
+    "novelty_ratio": 0.5,
+    "coverage_score": 0.9,
+    "diversity_index": 0.7,
+    "dedup": { "enabled": true, "max_similarity": 0.8, "trivial_variant_policy": "reject" }
+  },
+  "voting": {
+    "method": "synthesis_only",
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": false },
+    "tie_break": "no_decision"
+  },
+  "consensus": {
+    "measure": "vote_share",
+    "minority_report": "optional",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": false },
+    "irreducible_disagreement_allowed": false,
+    "fast_unanimity_is_suspicious": false
+  },
+  "stopping": {
+    "source_expression": "unique_ideas >= 100 AND completeness_score >= 0.9",
+    "expression": {
+      "all_of": [
+        { "metric": "unique_ideas", "op": ">=", "value": 100 },
+        { "metric": "completeness_score", "op": ">=", "value": 0.9 }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 1, "min_independent_positions": 64, "min_minutes": 60 },
+    "hard_caps": { "max_rounds": 1, "max_minutes": 480, "on_cap": "no_decision" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "no_decision"],
+    "conditional_decision_requires": []
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 1, "repetition_similarity": 0.8 },
+    "resolution": ["recruit_independent_critic", "narrow_scope", "declare_no_decision"],
+    "escalation": { "after_attempts": 1, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": false, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": ["idea_count_gaming", "duplicate_novelty", "echo_chamber", "role_collapse", "premature_convergence", "weak_synthesis", "prompt_injection"],
+    "injection_defense": { "treat_artifacts_as_data": true, "strip_instructions_from_participant_output": true, "quarantine_untrusted_sources": true }
+  },
+  "outputs": {
+    "required": ["idea_catalog", "idea_ledger", "option_cards", "evidence_map", "transcript", "unresolved_unknowns", "final_recommendation", "resumable_state"],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "best_effort",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default" },
+    "persistence": { "store": "both", "path": "platform/council/runs/c-x47/", "checkpoint_every_round": true }
+  },
+  "metadata": {
+    "title": "Discovery swarm (64 lens seats) - the spec's 100-idea brainstorm, verbatim",
+    "owner": "Prekzursil",
+    "notes": "WHEN TO USE: the canonical 100-idea brainstorm. This is the one preset in this slice whose stopping rule is the spec's own worked example word for word. WHEN NOT TO USE: when the option space is enumerable - a morphological grid (C-D37) proves completeness, whereas a swarm only estimates it - and never as a decision council: outcomes.allowed is decision-over-a-catalog or no_decision, nothing else. The design's named dials are lens_list and saturation_target. EDITABLE DIALS: /stopping/source_expression TOGETHER WITH /stopping/expression (see the note below - they must be edited as a pair), /participants/count/exact_n (lens count), /targets/categories (the category space completeness_score is measured against - moving this silently changes what 0.9 MEANS, so move it deliberately), /budgets/time_minutes. AUTHORING NOTE - this spec is the deliberate exception in the slice: it is the only one carrying stopping.source_expression, and therefore the only one whose stop leaves have NO per-dial `note`. SEM-001 requires source_expression to parse to a byte-identical tree, and the reference parser emits neither `note` nor `producer`, so the two documentation styles are mutually exclusive (proven in both states by _probe_sem_rule_collision.py, cases A/D with controls B/E). It is kept here because the human form is quoted directly in the spec and because SEM-001 then acts as a LIVE cross-check that the tree and the prose agree - the other fifteen presets take the opposite trade and keep per-dial notes instead. Consequence for editors: change the string and the tree together, or the validator will reject the file - which is the intended behaviour, not a bug.",
+    "spec_citations": ["12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1829", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:522", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:190", "_USER-PROMPTS.md:11197", "_USER-PROMPTS.md:11201"],
+    "lineage": ["C-X47 mega-discovery-swarm-64", "P26 brainstorming-swarm", "P06 nominal-group-technique"]
+  }
+}

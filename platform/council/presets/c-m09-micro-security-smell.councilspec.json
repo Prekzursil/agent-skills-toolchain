@@ -1,0 +1,204 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-m09-micro-security-smell",
+  "preset": "security_red_blue_council",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Screen a proposed change or command against the hard-ban list; ANY red finding blocks until it is answered.",
+    "charter": "Fast, binding security screen - not a threat model. Three seats walk the hard-ban list item by item. Classification is by the tool VERB, never by the payload text: a document that QUOTES a destructive command is not a destructive command, and two measured false positives came from reading the payload instead of the verb.",
+    "risk_tier": "high",
+    "desired_output": "review_verdict",
+    "success_criteria": [
+      "every hard-ban item is walked and marked, none skipped",
+      "each finding names the tool verb and the argument that triggered it, with file:line",
+      "a use-vs-mention check is recorded for any finding whose evidence is document text",
+      "no credential value is reproduced anywhere in the output"
+    ],
+    "consensus_intent": "adjudicate",
+    "confidence_target": 0.9,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "file_line",
+      "min_independent_sources": 1,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": false,
+      "forbidden_actions": [
+        "print, rotate, revoke or modify any credential",
+        "force-push to main without explicit approval",
+        "commit a live secret"
+      ],
+      "deadline_minutes": 6
+    }
+  },
+  "participants": {
+    "selection": { "mode": "exact", "strategies": ["exact", "adversarial"], "explain_choices": true, "owner_override_allowed": true },
+    "count": { "mode": "exact", "exact_n": 3, "min": 3, "max": 3 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_expertise": 3 },
+    "roster": [
+      {
+        "participant_id": "security",
+        "display_name": "Security reviewer (walks the hard-ban list, holds a block)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["application security", "secret handling"],
+        "role": "security_reviewer",
+        "authority": "veto_holder",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true, "may_veto": true },
+        "tools": ["Read", "Grep"],
+        "source_access": ["repo"],
+        "effort": "high"
+      },
+      {
+        "participant_id": "red-team",
+        "display_name": "Red team (tries to abuse the change, holds a block)",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["offensive review", "abuse cases"],
+        "role": "red_team",
+        "authority": "veto_holder",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true, "may_veto": true },
+        "effort": "high",
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true }
+      },
+      {
+        "participant_id": "privacy",
+        "display_name": "Privacy reviewer (egress, PII, redaction posture)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["privacy", "data egress"],
+        "role": "custom:privacy_reviewer",
+        "authority": "voter",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "medium"
+      }
+    ],
+    "role_templates": ["security_reviewer", "red_team", "custom:privacy_reviewer"],
+    "replacement": { "enabled": true, "triggers": ["prompt_injection_detected", "conflict_of_interest"], "preserve_prior_positions": true },
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "recuse_from_vote" }
+  },
+  "preparation": { "research_required": true, "independent_prep": true, "min_sources": 1, "required_artifacts": ["risk_list"] },
+  "topology": { "kind": "red_blue" },
+  "protocol": {
+    "sequence": [
+      { "kind": "custom", "custom_name": "hard-ban-list-walk", "stage_id": "ban-walk", "rounds": 1 },
+      { "kind": "war_game", "stage_id": "abuse-cases", "rounds": 1, "participants": ["red-team", "security"] },
+      { "kind": "synthesis", "stage_id": "verdict" }
+    ],
+    "speaking_order": "round_robin",
+    "rounds": { "min": 1, "max": 2 },
+    "turn": { "max_words": 400 },
+    "obligations": { "must_respond_to_prior": true, "must_cite_evidence": true, "declare_confidence": true, "declare_conflicts": true },
+    "critique_intensity": "adversarial",
+    "experiments": { "allowed": true, "required_before_decision": false, "max_experiments": 2, "runner": "sandbox" }
+  },
+  "budgets": { "effort": "high", "time_minutes": 6, "tokens": 30000, "tool_calls": 25, "turns": 6, "rebuttal_depth": 2 },
+  "targets": { "objections": 1, "evidence_items": 1 },
+  "voting": {
+    "method": "veto",
+    "veto": {
+      "holders": ["security", "red-team"],
+      "scope": "safety_only",
+      "must_justify": true,
+      "overridable_by_owner": true
+    },
+    "abstention": { "allowed": false, "counts_toward_quorum": false, "must_justify": true },
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true, "reject_evidence_free_majority": true },
+    "tie_break": "owner"
+  },
+  "consensus": {
+    "measure": "vote_share",
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true, "min_dissenters_to_block": 1, "suppression_check": true },
+    "irreducible_disagreement_allowed": false,
+    "fast_unanimity_is_suspicious": false
+  },
+  "stopping": {
+    "expression": {
+      "all_of": [
+        {
+          "metric": "custom:hard_ban_list_walked",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean",
+          "producer": "stage 'ban-walk': every entry of the configured hard-ban list has an explicit CLEAR or FINDING row; zero unwalked entries",
+          "note": "The hard-ban list is the primary dial (hard_ban_list). Default source: AGENTS.md section 9 plus rules/common/owner-ops-authorization.md H1-H9."
+        },
+        {
+          "metric": "evidence_items",
+          "op": ">=",
+          "value": 1,
+          "note": "At least one anchor. A verdict of CLEAR with no anchor is an assertion, not a screen."
+        }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 1, "min_independent_positions": 3, "every_participant_spoke": true, "min_evidence_items": 1 },
+    "hard_caps": { "max_rounds": 2, "max_minutes": 6, "on_cap": "escalate_to_owner" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "conditional_decision", "minority_report", "dissent"],
+    "conditional_decision_requires": ["every red finding is answered or the owner records an explicit override"]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 1, "circular_citation_check": true },
+    "resolution": ["run_experiment", "strongest_counterexample", "escalate_to_owner"],
+    "escalation": { "after_attempts": 1, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": true, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": [
+      "evidence_free_majority",
+      "hidden_conflict_of_interest",
+      "prompt_injection",
+      "hallucinated_expertise",
+      "lost_dissent",
+      "minority_suppression"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": ["transcript", "evidence_map", "votes_by_round", "dissent_minority_report", "final_recommendation", "decision_lineage"],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 180,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": ["any credential lifecycle action", "force-push", "history rewrite"]
+    },
+    "persistence": { "store": "both", "checkpoint_every_round": true }
+  },
+  "metadata": {
+    "title": "C-M09 micro-security-smell",
+    "notes": "HUMAN-STOP: custom:hard_ban_list_walked == true AND evidence_items >= 1 | EDITABLE-DIALS: the producer text on the first stopping leaf and objective.owner_constraints.forbidden_actions (hard_ban_list) . voting.veto.holders | NO-SOURCE-EXPRESSION: the custom leaf carries producer + note, which SEM-001 exact-equality forbids alongside source_expression; the HUMAN-STOP line is proven equivalent by _probe_lane1_presets.py | USE-VS-MENTION: the design note is load-bearing - classify by the tool VERB, not the payload text. A markdown body quoting a destructive command produced 2 of 2 false positives on this estate. | REDACTION: audit.privacy.redaction_policy is deny_by_default, never allowlist; an allowlist redactor leaked real values on this estate. | OUTCOME-MAP: PROCEED and BLOCK both map to decision (a block IS a decision) . CONDITIONAL_DECISION -> conditional_decision | VOTING-MAP: design any_red_blocks -> voting.method=veto with two holders and safety_only scope | BINDING: binding.",
+    "spec_citations": [
+      "_USER-PROMPTS.md:10746-10768",
+      "_USER-PROMPTS.md:11195",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1267-1280"
+    ],
+    "owner": "Prekzursil",
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#C-M09 micro-security-smell",
+      "protocol P08 red-blue-team",
+      "protocol P41 deception-detection",
+      "AGENTS.md 9 (security non-negotiables)"
+    ]
+  }
+}

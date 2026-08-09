@@ -1,0 +1,242 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "e6-council-of-councils-impossibility",
+  "preset": "general_purpose_auto_composed",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Establish whether a deterministic replay of cross-vendor council runs is achievable, or prove it impossible.",
+    "risk_tier": "high",
+    "desired_output": "impossibility_proof",
+    "success_criteria": ["a machine-checked impossibility argument", "or a working deterministic replay design"],
+    "consensus_intent": "adjudicate",
+    "evidence_requirements": { "citation_required": true, "anchor_style": "any", "evidence_outranks_votes": true }
+  },
+  "participants": {
+    "selection": {
+      "mode": "automatic",
+      "strategies": ["automatic", "expertise_ranked", "adversarial"],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": { "mode": "range", "min": 2, "max": 8 },
+    "recruitment": { "dynamic": true, "triggers": ["missing_expertise", "deadlock"], "max_recruits": 2 }
+  },
+  "topology": {
+    "kind": "council_of_councils",
+    "fan_in": { "reducer": "meta_jury", "require_all_subcouncils_complete": true },
+    "subcouncils": [
+      {
+        "schema_version": "1.0.0",
+        "council_id": "e6-sub-a-counterexample-tournament",
+        "objective": {
+          "statement": "Search for a counterexample that defeats every proposed determinism mechanism.",
+          "risk_tier": "moderate",
+          "desired_output": "ranked_options",
+          "success_criteria": ["three independent counterexamples, or an unsat core"]
+        },
+        "participants": {
+          "selection": { "mode": "exact", "strategies": ["exact"] },
+          "count": { "mode": "exact", "exact_n": 2 },
+          "roster": [
+            {
+              "participant_id": "hunter-a",
+              "model": "opus-5",
+              "vendor": "anthropic",
+              "expertise": ["formal methods"],
+              "role": "critic",
+              "authority": "voter"
+            },
+            {
+              "participant_id": "hunter-b",
+              "model": "gpt-5-codex",
+              "vendor": "openai",
+              "expertise": ["nondeterminism", "scheduling"],
+              "role": "critic",
+              "authority": "voter"
+            }
+          ]
+        },
+        "topology": {
+          "kind": "pairwise_tournament",
+          "tournament": { "pairing": "round_robin", "comparisons_per_pair": 3, "aggregation": "bradley_terry" }
+        },
+        "protocol": {
+          "sequence": [
+            { "kind": "war_game", "stage_id": "attack", "rounds": 3 },
+            { "kind": "scenario", "stage_id": "scenarios", "rounds": 2 }
+          ],
+          "rounds": { "min": 2, "max": 5 },
+          "critique_intensity": "maximally_adversarial",
+          "experiments": { "allowed": true, "required_before_decision": true, "runner": "sandbox" }
+        },
+        "targets": { "counterexamples": 3 },
+        "voting": {
+          "method": "condorcet",
+          "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true }
+        },
+        "stopping": {
+          "expression": {
+            "weighted": {
+              "threshold": 0.7,
+              "clauses": [
+                {
+                  "weight": 0.5,
+                  "when": { "metric": "counterexamples_found", "op": ">=", "value": 3 }
+                },
+                {
+                  "weight": 0.3,
+                  "when": { "not": { "metric": "novelty_target_met", "op": "==", "value": true } }
+                },
+                {
+                  "weight": 0.4,
+                  "when": {
+                    "metric": "custom:smt_unsat_core_found",
+                    "op": "==",
+                    "value": true,
+                    "value_type": "boolean",
+                    "producer": "z3-runner",
+                    "note": "Set by the sandboxed solver run, not by a participant assertion."
+                  }
+                }
+              ]
+            }
+          },
+          "minimum_deliberation": { "min_rounds": 2 },
+          "hard_caps": { "max_rounds": 5, "on_cap": "conditional_decision" }
+        },
+        "outcomes": { "allowed": ["decision", "no_decision", "proof_of_impossibility"] },
+        "outputs": { "required": ["evidence_map", "experiments", "unresolved_unknowns"] },
+        "metadata": {
+          "title": "Counterexample tournament",
+          "notes": "Exercises weighted stopping logic, NOT, a custom typed metric, and pairwise_tournament."
+        }
+      },
+      {
+        "schema_version": "1.0.0",
+        "council_id": "e6-sub-b-mechanism-design",
+        "objective": {
+          "statement": "Design the strongest deterministic-replay mechanism that survives the counterexample tournament.",
+          "risk_tier": "moderate",
+          "desired_output": "specification",
+          "success_criteria": ["a mechanism no surviving counterexample defeats"]
+        },
+        "participants": {
+          "selection": { "mode": "exact", "strategies": ["exact"] },
+          "count": { "mode": "exact", "exact_n": 2 },
+          "roster": [
+            {
+              "participant_id": "designer-a",
+              "model": "opus-5",
+              "vendor": "anthropic",
+              "expertise": ["replay systems"],
+              "role": "proposer",
+              "authority": "voter"
+            },
+            {
+              "participant_id": "designer-b",
+              "model": "gemini-3-pro",
+              "vendor": "google",
+              "expertise": ["event sourcing"],
+              "role": "architect",
+              "authority": "voter"
+            }
+          ]
+        },
+        "topology": { "kind": "proposer_critic_judge" },
+        "protocol": {
+          "sequence": [
+            { "kind": "brainstorm", "stage_id": "options", "rounds": 2, "quotas": { "ideas_per_participant": 6 } },
+            { "kind": "cross_examination", "stage_id": "grill", "rounds": 2 },
+            { "kind": "synthesis", "stage_id": "spec" }
+          ],
+          "rounds": { "min": 2, "max": 4 },
+          "obligations": { "steelman_before_rebuttal": true, "must_cite_evidence": true }
+        },
+        "targets": { "unique_ideas": 12 },
+        "voting": { "method": "consent_no_objection", "tie_break": "judge" },
+        "consensus": { "minority_report": "optional" },
+        "stopping": {
+          "source_expression": "unique_ideas >= 12 AND NOT deadlock_detected == true",
+          "expression": {
+            "all_of": [
+              { "metric": "unique_ideas", "op": ">=", "value": 12 },
+              { "not": { "metric": "deadlock_detected", "op": "==", "value": true } }
+            ]
+          },
+          "hard_caps": { "max_rounds": 4, "on_cap": "no_decision" }
+        },
+        "outcomes": { "allowed": ["decision", "conditional_decision", "no_decision"] },
+        "outputs": { "required": ["option_cards", "argument_graph", "final_recommendation"] },
+        "metadata": { "title": "Mechanism design subcouncil", "notes": "Exercises NOT inside an AND." }
+      }
+    ]
+  },
+  "protocol": {
+    "sequence": [
+      { "kind": "blind_independent_first_pass", "stage_id": "frame", "independent": true },
+      { "kind": "fishbowl", "stage_id": "subcouncil-readout" },
+      { "kind": "jury", "stage_id": "meta-jury", "rounds": 2 },
+      { "kind": "synthesis", "stage_id": "verdict" }
+    ],
+    "speaking_order": "chair_directed",
+    "rounds": { "min": 2, "max": 6 },
+    "obligations": { "must_cite_evidence": true, "declare_confidence": true },
+    "critique_intensity": "adversarial",
+    "experiments": { "allowed": true, "required_before_decision": true, "runner": "sandbox" }
+  },
+  "budgets": { "effort": "max", "time_minutes": 300, "turns": 40 },
+  "voting": {
+    "method": "judge",
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true },
+    "tie_break": "no_decision"
+  },
+  "consensus": {
+    "threshold": 0.75,
+    "minority_report": "required",
+    "irreducible_disagreement_allowed": true
+  },
+  "stopping": {
+    "source_expression": "proof_of_impossibility == true",
+    "expression": { "metric": "proof_of_impossibility", "op": "==", "value": true },
+    "minimum_deliberation": { "min_rounds": 2, "min_independent_positions": 2 },
+    "hard_caps": { "max_rounds": 6, "max_minutes": 300, "on_cap": "no_decision" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "no_decision", "irreducible_disagreement", "proof_of_impossibility", "minority_report", "dissent"]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2 },
+    "resolution": ["run_experiment", "split_question", "escalate_to_owner", "declare_no_decision"],
+    "escalation": { "after_attempts": 2, "to": "owner" }
+  },
+  "anti_failure": {
+    "controls": ["weak_synthesis", "consensus_failing_executable_tests", "endless_debate", "premature_convergence"],
+    "fast_unanimity_response": ["strongest_counterexample", "blind_re_evaluation"]
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "argument_graph",
+      "evidence_map",
+      "experiments",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "decision_lineage",
+      "resumable_state"
+    ]
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default" },
+    "persistence": { "store": "both", "checkpoint_every_round": true }
+  },
+  "metadata": {
+    "title": "Council-of-councils impossibility proof",
+    "spec_citations": ["_USER-PROMPTS.md:10942", "_USER-PROMPTS.md:10926", "_USER-PROMPTS.md:11193"],
+    "notes": "Spec example 6 of 6: proof_of_impossibility == true. Recursion: each subcouncil IS a CouncilSpec, validated by the same schema."
+  }
+}

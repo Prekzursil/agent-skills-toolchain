@@ -1,0 +1,382 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-s26-postmortem-5-blameless",
+  "preset": "postmortem_council",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Reconstruct a blameless causal chain for a closed incident and enumerate the full blast radius.",
+    "charter": "Blameless postmortem. Every causal link must cite a TIMESTAMPED artifact. A link asserted from memory is not a link. Blast radius means every file, commit, index entry and downstream consumer the bad change touched - not just the first symptom.",
+    "risk_tier": "high",
+    "desired_output": "root_cause",
+    "success_criteria": [
+      "every causal link cites a timestamped artifact",
+      "the blast radius is enumerated, not summarised",
+      "no seat is named as a cause; only mechanisms are"
+    ],
+    "consensus_intent": "seek_consensus",
+    "confidence_target": 0.8,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "file_line",
+      "min_independent_sources": 3,
+      "evidence_outranks_votes": true
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 5,
+      "min": 5,
+      "max": 5
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_expertise": 4
+    },
+    "roster": [
+      {
+        "participant_id": "methodologist",
+        "display_name": "Methodologist (owns the 5-whys causal chain)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "custom:methodologist",
+        "authority": "chair",
+        "effort": "xhigh",
+        "expertise": [
+          "causal analysis",
+          "5-whys"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "sre",
+        "display_name": "SRE (timeline and telemetry)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "custom:sre",
+        "authority": "voter",
+        "effort": "high",
+        "expertise": [
+          "telemetry",
+          "timeline reconstruction"
+        ],
+        "source_access": [
+          "repo",
+          "transcripts"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "implementer",
+        "display_name": "Implementer (what the change actually did)",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "custom:implementer",
+        "authority": "voter",
+        "effort": "high",
+        "expertise": [
+          "the changed subsystem"
+        ],
+        "source_access": [
+          "repo"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "security",
+        "display_name": "Security (blast radius and exposure)",
+        "kind": "agent",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "role": "security_reviewer",
+        "authority": "voter",
+        "effort": "high",
+        "expertise": [
+          "blast radius",
+          "exposure"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "scribe",
+        "display_name": "Scribe (blameless write-up)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "scribe",
+        "authority": "observer",
+        "effort": "medium",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      }
+    ],
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "disclose_only"
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 3,
+    "required_artifacts": [
+      "evidence_pack",
+      "risk_list"
+    ]
+  },
+  "topology": {
+    "kind": "chair_led",
+    "chair": "methodologist"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "custom",
+        "stage_id": "timeline",
+        "custom_name": "timestamped timeline reconstruction",
+        "participants": [
+          "sre",
+          "scribe"
+        ]
+      },
+      {
+        "kind": "custom",
+        "stage_id": "five-whys",
+        "custom_name": "5-whys causal chain, each link artifact-backed"
+      },
+      {
+        "kind": "custom",
+        "stage_id": "blast-radius",
+        "custom_name": "enumerate every touched file, commit, index entry and consumer",
+        "participants": [
+          "security",
+          "implementer"
+        ]
+      },
+      {
+        "kind": "premortem",
+        "stage_id": "recurrence-check"
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "write-up"
+      }
+    ],
+    "speaking_order": "chair_directed",
+    "rounds": {
+      "min": 3,
+      "max": 6
+    },
+    "turn": {
+      "max_words": 700
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "declare_confidence": true
+    },
+    "critique_intensity": "standard",
+    "experiments": {
+      "allowed": true,
+      "max_experiments": 4,
+      "runner": "local"
+    }
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 60,
+    "tool_calls": 200,
+    "sources": 30,
+    "turns": 30,
+    "experiments": 4
+  },
+  "targets": {
+    "evidence_items": 20,
+    "coverage_score": 0.9,
+    "objections": 6
+  },
+  "voting": {
+    "method": "consent_no_objection",
+    "quorum": {
+      "min_voters": 4,
+      "on_failure": "extend_rounds"
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "abstention": {
+      "allowed": true,
+      "counts_toward_quorum": true,
+      "must_justify": true
+    },
+    "tie_break": "chair"
+  },
+  "consensus": {
+    "threshold": 0.9,
+    "measure": "agreement_index",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": false
+  },
+  "stopping": {
+    "source_expression": "evidence_items >= 10 AND coverage_score >= 0.9 AND every_objection_addressed == true",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "evidence_items",
+          "op": ">=",
+          "value": 10
+        },
+        {
+          "metric": "coverage_score",
+          "op": ">=",
+          "value": 0.9
+        },
+        {
+          "metric": "every_objection_addressed",
+          "op": "==",
+          "value": true
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 3,
+      "min_evidence_items": 10,
+      "min_objections_addressed": 4,
+      "every_participant_spoke": true
+    },
+    "hard_caps": {
+      "max_rounds": 6,
+      "max_minutes": 60,
+      "on_cap": "synthesize_best_effort"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "dissent",
+      "irreducible_disagreement",
+      "no_decision",
+      "conditional_decision",
+      "proof_of_impossibility",
+      "minority_report"
+    ],
+    "conditional_decision_requires": [
+      "every remediation item has a named owner and a falsifiable check"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "circular_citation_check": true
+    },
+    "resolution": [
+      "run_experiment",
+      "split_question",
+      "chair_ruling",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "evidence_free_majority",
+      "weak_synthesis",
+      "lost_dissent",
+      "circular_citation",
+      "premature_convergence",
+      "prompt_injection"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "claim_evidence_contradiction_graph",
+      "evidence_map",
+      "transcript",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "action_plan",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "pii_policy": "redact",
+      "retain_days": 365
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    }
+  },
+  "metadata": {
+    "title": "Blameless postmortem council (5 seats)",
+    "owner": "Prekzursil",
+    "lineage": [
+      "C-S26 postmortem-5-blameless",
+      "P44 postmortem-5whys-causal"
+    ],
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1515-1528"
+    ],
+    "notes": "DESIGN LINEAGE: C-S26 postmortem-5-blameless in 12-COUNCIL-PROTOCOLS-AND-PRESETS.md (seats: 5; roles: methodologist,sre,implementer,security,scribe).\nPRESET LABEL: postmortem_council - exact archetype match.\nOUTCOME MAPPING (card vocabulary -> schema outcomes.allowed): CONSENSUS->decision, MAJORITY_WITH_DISSENT->dissent, IRREDUCIBLE_DISAGREEMENT->irreducible_disagreement, INSUFFICIENT_EVIDENCE->no_decision, CONDITIONAL_DECISION->conditional_decision, DEFER->no_decision, PROOF_OF_IMPOSSIBILITY->proof_of_impossibility, MINORITY_REPORT->minority_report.\nEDITABLE DIALS (pointer -> what it changes):\n  - $.protocol.sequence[1] : why_depth dial - the 5-whys stage; deepen by raising $.protocol.rounds.min\n  - $.protocol.sequence[2] + $.targets.coverage_score : blast_radius_scope dial\n  - $.stopping.expression evidence_items : how many timestamped artifacts the causal chain must cite before the council may close\nfast_unanimity_is_suspicious is FALSE here on purpose: the card records anti-sycophancy as off, because a postmortem reconstructing a settled fact SHOULD converge fast. Arming it would manufacture disagreement about a known timeline.\nEVERY field in this file is a dial; the ones above are the ones the owner is expected to change first. See README.md in this directory for the full table."
+  }
+}

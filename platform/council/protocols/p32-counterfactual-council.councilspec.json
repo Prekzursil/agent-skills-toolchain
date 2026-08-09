@@ -1,0 +1,526 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p32-counterfactual-council",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Run both prospective-hindsight directions at once: half the seats are told the decision ALREADY FAILED and must explain how, half are told it ALREADY SUCCEEDED and must explain why, and the chair merges the two causal sets.",
+    "charter": "A premortem runs only the failure direction. This protocol refuses to lose the success mechanisms, and it refuses to accept them without falsifiability.",
+    "risk_tier": "moderate",
+    "desired_output": "risk_register",
+    "success_criteria": [
+      "each half named at least one mechanism the other half did not - otherwise the split added nothing",
+      "every success cause is falsifiable and anchored",
+      "the merged causal set is preserved as a register, not collapsed into a verdict"
+    ],
+    "consensus_intent": "surface_disagreement",
+    "confidence_target": 0.8,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "adversarial",
+        "vendor_diverse",
+        "model_diverse"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 6
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_expertise": 4,
+      "max_share_per_vendor": 0.7
+    },
+    "roster": [
+      {
+        "participant_id": "counterfactual-chair",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "moderator",
+        "authority": "chair",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "causal merge"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        },
+        "context": {
+          "briefing": "You alone see both briefings. Merge the two causal sets; do not average them."
+        }
+      },
+      {
+        "participant_id": "hindsight-failed-a",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "critic",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": false
+        },
+        "expertise": [
+          "failure analysis"
+        ],
+        "context": {
+          "briefing": "The decision ALREADY FAILED. Explain how. Do not hedge.",
+          "partition_id": "already-failed"
+        }
+      },
+      {
+        "participant_id": "hindsight-failed-b",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "critic",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": false
+        },
+        "expertise": [
+          "operational risk"
+        ],
+        "context": {
+          "briefing": "The decision ALREADY FAILED. Explain how. Do not hedge.",
+          "partition_id": "already-failed"
+        }
+      },
+      {
+        "participant_id": "hindsight-succeeded-a",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "proposer",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": false
+        },
+        "expertise": [
+          "mechanism design"
+        ],
+        "context": {
+          "briefing": "The decision ALREADY SUCCEEDED. Explain why. Every cause must be FALSIFIABLE and anchored - cheerleading is rejected.",
+          "partition_id": "already-succeeded"
+        }
+      },
+      {
+        "participant_id": "hindsight-succeeded-b",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "proposer",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": false
+        },
+        "expertise": [
+          "adoption and incentives"
+        ],
+        "context": {
+          "briefing": "The decision ALREADY SUCCEEDED. Explain why. Every cause must be FALSIFIABLE and anchored - cheerleading is rejected.",
+          "partition_id": "already-succeeded"
+        }
+      },
+      {
+        "participant_id": "falsifiability-verifier",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "verifier",
+        "authority": "judge",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "falsifiability",
+          "evidence anchoring"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        },
+        "context": {
+          "briefing": "Reject any success cause that cannot be stated as a falsifiable claim with an anchor."
+        }
+      }
+    ],
+    "role_templates": [
+      "critic",
+      "proposer",
+      "verifier",
+      "moderator"
+    ],
+    "anonymity": {
+      "mode": "pseudonymous",
+      "reveal_after_round": 2
+    },
+    "information_partition": {
+      "enabled": true,
+      "strategy": "role_scoped",
+      "partitions": [
+        {
+          "partition_id": "already-failed",
+          "visible_to": [
+            "hindsight-failed-a",
+            "hindsight-failed-b"
+          ],
+          "sources": [
+            "the plan",
+            "the failure briefing"
+          ]
+        },
+        {
+          "partition_id": "already-succeeded",
+          "visible_to": [
+            "hindsight-succeeded-a",
+            "hindsight-succeeded-b"
+          ],
+          "sources": [
+            "the plan",
+            "the success briefing"
+          ]
+        }
+      ]
+    },
+    "duplicate_detection": {
+      "enabled": true,
+      "dimensions": [
+        "position_similarity",
+        "prompt"
+      ],
+      "max_similarity": 0.8
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": [
+      "risk_list",
+      "position_memo"
+    ]
+  },
+  "topology": {
+    "kind": "caucus",
+    "caucuses": [
+      {
+        "caucus_id": "already-failed",
+        "members": [
+          "hindsight-failed-a",
+          "hindsight-failed-b"
+        ],
+        "private_rounds": 1
+      },
+      {
+        "caucus_id": "already-succeeded",
+        "members": [
+          "hindsight-succeeded-a",
+          "hindsight-succeeded-b"
+        ],
+        "private_rounds": 1
+      }
+    ]
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "premortem",
+        "stage_id": "failure-half",
+        "rounds": 1,
+        "participants": [
+          "hindsight-failed-a",
+          "hindsight-failed-b"
+        ],
+        "independent": true,
+        "quotas": {
+          "counterexamples_per_round": 3,
+          "objections_per_participant": 3
+        }
+      },
+      {
+        "kind": "custom",
+        "custom_name": "prospective_hindsight_success_half",
+        "stage_id": "success-half",
+        "rounds": 1,
+        "participants": [
+          "hindsight-succeeded-a",
+          "hindsight-succeeded-b"
+        ],
+        "independent": true,
+        "quotas": {
+          "ideas_per_participant": 3,
+          "novel_ideas_per_round": 3
+        },
+        "exit_when": {
+          "metric": "custom:unfalsifiable_success_causes",
+          "op": "<=",
+          "value": 0,
+          "value_type": "number"
+        }
+      },
+      {
+        "kind": "cross_examination",
+        "stage_id": "merge-challenge",
+        "rounds": 2,
+        "quotas": {
+          "objections_per_participant": 2
+        },
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "custom:failure_only_mechanisms",
+              "op": ">=",
+              "value": 1,
+              "value_type": "number"
+            },
+            {
+              "metric": "custom:success_only_mechanisms",
+              "op": ">=",
+              "value": 1,
+              "value_type": "number"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "causal-merge"
+      }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": {
+      "min": 2,
+      "max": 5,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 800
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "steelman_before_rebuttal": true,
+      "rebuttal_required": true,
+      "cross_examination": true,
+      "declare_confidence": true,
+      "declare_conflicts": false
+    },
+    "critique_intensity": "adversarial"
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 60,
+    "turns": 30,
+    "min_engagement_turns": 2,
+    "max_inactivity_rounds": 1,
+    "rebuttal_depth": 2
+  },
+  "targets": {
+    "unique_ideas": 16,
+    "categories": 4,
+    "novelty_ratio": 0.6,
+    "objections": 10,
+    "counterexamples": 8,
+    "evidence_items": 8,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.8,
+      "trivial_variant_policy": "merge"
+    }
+  },
+  "voting": {
+    "method": "majority",
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "abstention": {
+      "allowed": true,
+      "counts_toward_quorum": false,
+      "must_justify": true
+    },
+    "tie_break": "extend_rounds"
+  },
+  "consensus": {
+    "threshold": 0.6,
+    "measure": "agreement_index",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "ALL[custom:failure_only_mechanisms >= 1, custom:success_only_mechanisms >= 1, every_objection_addressed == true, custom:unfalsifiable_success_causes <= 0]",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "custom:failure_only_mechanisms",
+          "op": ">=",
+          "value": 1,
+          "value_type": "number"
+        },
+        {
+          "metric": "custom:success_only_mechanisms",
+          "op": ">=",
+          "value": 1,
+          "value_type": "number"
+        },
+        {
+          "metric": "every_objection_addressed",
+          "op": "==",
+          "value": true
+        },
+        {
+          "metric": "custom:unfalsifiable_success_causes",
+          "op": "<=",
+          "value": 0,
+          "value_type": "number"
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "min_independent_positions": 4,
+      "every_participant_spoke": true,
+      "min_evidence_items": 6,
+      "min_objections_addressed": 6
+    },
+    "hard_caps": {
+      "max_rounds": 5,
+      "max_minutes": 80,
+      "on_cap": "synthesize_best_effort"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "any success cause that stayed unfalsifiable is listed as an assumption, not a mechanism"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.85,
+      "circular_citation_check": true
+    },
+    "resolution": [
+      "strongest_counterexample",
+      "recruit_independent_critic",
+      "rotate_roles",
+      "chair_ruling"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "chair"
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "echo_chamber",
+      "sycophancy",
+      "evidence_free_majority",
+      "premature_convergence",
+      "weak_synthesis",
+      "role_collapse",
+      "lost_dissent"
+    ],
+    "fast_unanimity_response": [
+      "strongest_counterexample",
+      "forced_dissent",
+      "role_rotation"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "argument_graph",
+      "evidence_map",
+      "unresolved_unknowns",
+      "dissent_minority_report",
+      "transcript",
+      "final_recommendation"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "seeded",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 90,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "any action outside the council transcript",
+        "any write to a shared branch"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "path": "platform/council/state/p32-counterfactual-council",
+      "checkpoint_every_round": true
+    }
+  },
+  "metadata": {
+    "title": "P32 counterfactual council (GENERATIVE)",
+    "owner": "Prekzursil",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:618",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:623",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:629",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:630"
+    ],
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#P32 counterfactual-council"
+    ],
+    "notes": "ANTI-FAILURE DEFENCES (7 declared): (1) sycophancy is the card's named failure mode - 'the success half produces cheerleading' - and it is answered by custom:unfalsifiable_success_causes <= 0 as the success-half stage exit AND a stopping leaf, with a dedicated falsifiability-verifier who cannot vote; (2) echo_chamber is cut by two caucuses with private_rounds=1, disjoint role-scoped briefings and sees_peers_before_first_position=false; (3) evidence_free_majority is blocked by reject_evidence_free_majority plus evidence_outranks_majority; (4) premature_convergence is blocked by the two 'only' leaves - the council cannot stop until EACH half has produced at least one mechanism the other did not, which is the card's own test that the split added something; (5) weak_synthesis is answered by a required argument_graph and a chair whose job is to MERGE rather than average; (6) role_collapse - the failure half hedging into balance, or the success half admitting failure - is what the private caucus rounds exist to prevent; (7) lost_dissent is met by minority_report=required with suppression_check. FAST UNANIMITY across two halves given OPPOSITE briefings is the strongest possible signal of briefing leakage, so the response is strongest_counterexample + forced_dissent + role_rotation. UNVERIFIED: the card's adoption proof - both halves must produce at least one mechanism the other did not name - is encoded as a stopping leaf but has never been measured on a real run; custom:failure_only_mechanisms and custom:success_only_mechanisms are set-difference counts named in the lane's PRODUCERS map (platform/lib/council_protocols/_shared.py, republished in PROTOCOL-EXPECTATIONS-25-36.json) and NOT implemented. They are MECHANICAL by construction (set difference over named mechanisms), which is the correct shape - LLM judgement on a set-membership question measured 86% accurate on this estate with every error pointing at data loss."
+  }
+}

@@ -1,0 +1,166 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-m08-micro-cost-sanity",
+  "preset": "custom",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Produce an outside-view effort estimate as a median plus a range, anchored on a NAMED reference class of real prior runs.",
+    "charter": "Reference-class planning poker. Three seats estimate independently, then the median and the spread are reported - never a single confident number. An estimate with no named reference class is a guess wearing a number, and this council refuses to stop until the base rate cites a real prior run.",
+    "risk_tier": "low",
+    "desired_output": "forecast",
+    "success_criteria": [
+      "a reference class is named and points at real prior run records, not a recollection",
+      "three independent estimates were made before any were shared",
+      "the output is a median plus a range, and the range is not narrower than the observed spread"
+    ],
+    "consensus_intent": "elicit_distribution",
+    "confidence_target": 0.6,
+    "evidence_requirements": { "citation_required": true, "anchor_style": "command_output", "min_independent_sources": 1 },
+    "owner_constraints": { "approval_required": false, "deadline_minutes": 4 }
+  },
+  "participants": {
+    "selection": { "mode": "exact", "strategies": ["exact", "expertise_ranked"], "explain_choices": true, "owner_override_allowed": true },
+    "count": { "mode": "exact", "exact_n": 3, "min": 3, "max": 3 },
+    "diversity": { "min_distinct_expertise": 3 },
+    "roster": [
+      {
+        "participant_id": "cost-analyst",
+        "display_name": "Cost analyst (owns the reference class)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["estimation", "base rates"],
+        "role": "custom:cost_analyst",
+        "authority": "voter",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true },
+        "tools": ["Read", "Bash"],
+        "source_access": ["repo", "transcripts"],
+        "effort": "medium",
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true }
+      },
+      {
+        "participant_id": "implementer",
+        "display_name": "Implementer (inside view, deliberately counter-weighted)",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["implementation"],
+        "role": "custom:implementer",
+        "authority": "voter",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "medium",
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true }
+      },
+      {
+        "participant_id": "sre",
+        "display_name": "SRE (operational tail: retries, flakes, rollback)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["operations", "failure tails"],
+        "role": "custom:sre",
+        "authority": "voter",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "medium",
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true }
+      }
+    ],
+    "role_templates": ["custom:cost_analyst", "custom:implementer", "custom:sre"],
+    "anonymity": { "mode": "blind_to_peers", "reveal_after_round": 1 },
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "disclose_only" }
+  },
+  "preparation": { "research_required": true, "independent_prep": true, "min_sources": 1, "required_artifacts": ["benchmark_baseline"] },
+  "topology": { "kind": "delphi" },
+  "protocol": {
+    "sequence": [
+      { "kind": "prediction_confidence", "stage_id": "blind-estimates", "rounds": 1, "independent": true, "anonymous": true },
+      { "kind": "synthesis", "stage_id": "median-and-range" }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": { "min": 1, "max": 2, "divergence_before_convergence": true },
+    "turn": { "max_words": 250 },
+    "obligations": { "must_cite_evidence": true, "declare_confidence": true },
+    "critique_intensity": "gentle",
+    "experiments": { "allowed": false, "max_experiments": 0 }
+  },
+  "budgets": { "effort": "medium", "time_minutes": 4, "tokens": 15000, "tool_calls": 10, "sources": 4, "turns": 4 },
+  "targets": { "evidence_items": 1 },
+  "voting": {
+    "method": "score",
+    "score_scale": { "min": 0, "max": 1000 },
+    "abstention": { "allowed": false, "counts_toward_quorum": false },
+    "belief_aggregation": { "method": "median", "require_confidence_per_vote": true },
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true },
+    "tie_break": "no_decision"
+  },
+  "consensus": {
+    "measure": "confidence_overlap",
+    "minority_report": "optional",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "expression": {
+      "all_of": [
+        {
+          "metric": "custom:reference_class_named",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean",
+          "producer": "stage 'blind-estimates': the cost analyst cites a reference class resolving to real prior run records (command output or file:line), not a recollection",
+          "note": "This is the dial named reference_class_source in the design. Point it at whatever run archive you trust; the gate only requires that it be citable."
+        },
+        {
+          "metric": "sources_gathered",
+          "op": ">=",
+          "value": 1,
+          "note": "At least one real prior-run source actually read. Zero sources means the base rate was invented."
+        }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 1, "min_independent_positions": 3, "every_participant_spoke": true, "min_evidence_items": 1 },
+    "hard_caps": { "max_rounds": 2, "max_minutes": 4, "on_cap": "no_decision" }
+  },
+  "outcomes": {
+    "allowed": ["conditional_decision", "no_decision"],
+    "conditional_decision_requires": ["the estimate is re-run against the reference class if scope changes"]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 1, "vote_oscillation_rounds": 2 },
+    "resolution": ["blind_re_evaluation", "narrow_scope", "declare_no_decision"],
+    "escalation": { "after_attempts": 1, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": false, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": ["echo_chamber", "instant_unanimity", "premature_convergence", "prompt_injection"],
+    "fast_unanimity_response": ["blind_re_evaluation"],
+    "injection_defense": { "treat_artifacts_as_data": true, "strip_instructions_from_participant_output": true }
+  },
+  "outputs": {
+    "required": ["independent_opening_positions", "transcript", "confidence_trajectory", "final_recommendation", "calibration_report"],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": false,
+    "determinism": "seeded",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default", "retain_days": 90 },
+    "persistence": { "store": "both", "checkpoint_every_round": false },
+    "calibration": { "post_run": true, "score": "crps" }
+  },
+  "metadata": {
+    "title": "C-M08 micro-cost-sanity",
+    "notes": "HUMAN-STOP: custom:reference_class_named == true AND sources_gathered >= 1 | EDITABLE-DIALS: the producer text on the first stopping leaf (reference_class_source) . voting.score_scale . participants.count.exact_n | NO-SOURCE-EXPRESSION: the custom leaf carries producer + note, which SEM-001 exact-equality forbids alongside source_expression; the HUMAN-STOP line is proven equivalent by _probe_lane1_presets.py | OUTCOME-MAP: CONDITIONAL_DECISION -> conditional_decision . INSUFFICIENT_EVIDENCE -> no_decision | VOTING-MAP: design median_with_range -> voting.method=score with score_scale plus belief_aggregation.method=median; the range comes from the three blind estimates, so anonymity.mode=blind_to_peers is load-bearing, not decoration | BASE-RATE CAVEAT: the design note points the reference class at 'the estate 708 workflow run records'. That count is NOT verified by this unit (NOT-CHECKED) and is deliberately left out of the spec: the gate requires a citable class, not a specific number. | BINDING: advisory.",
+    "spec_citations": [
+      "_USER-PROMPTS.md:10746-10768",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1252-1265"
+    ],
+    "owner": "Prekzursil",
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#C-M08 micro-cost-sanity",
+      "protocol P35 reference-class-planning-poker"
+    ]
+  }
+}

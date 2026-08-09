@@ -1,0 +1,775 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.invalid/platform/schema/receipt.schema.json",
+  "title": "Work-unit receipt",
+  "description": "The output substrate 674 of the 2,007 work units in command-center/WORK-UNIT-CATALOG.json declare as output_schema (428 plain, 128 by #/$defs/... pointer, 118 profile= decorated). A receipt carries the EVIDENCE for the 12-condition unit-completion predicate (command-center/COMPLETION-GATES.json gate_a_unit_completion_predicate, spec lines 10631-10644). It does NOT carry a self-asserted verdict on those conditions: storing 12 booleans would be self-certification, and the predicate is computed from this evidence by an independent reducer (platform/lib/receipt_gate.py).",
+  "x-measured-conformance": {
+    "measured": "2026-08-09",
+    "catalog": "command-center/WORK-UNIT-CATALOG.json work_units (2007 units)",
+    "units_declaring_this_schema": 674,
+    "unit_id_pattern": "2007/2007 catalogued ids match",
+    "sentinel_pattern": "2007/2007 catalogued sentinels match, across BOTH families (1911 SUCCESS:<ID>, 96 SENTINEL:<ID>:<TOKEN>)",
+    "failure_classification_pattern": "699/699 distinct catalogued values match",
+    "defs_fragments_referenced_and_present": 14,
+    "tests": "platform/lib/test_receipt_gate.py, 59 passed",
+    "mutation_battery": "platform/lib/_probe_mutation_battery.py, 22 mutations: 21 killed, 1 proved equivalent, 0 unexplained survivors",
+    "KNOWN PATH DIVERGENCE": "All 674 units declare 'command-center/schema/receipt.schema.json'. This file is at platform/schema/receipt.schema.json and NO deploy mechanism maps between them (grep over scripts/, ci/, .github/workflows/ found none). Until the orchestrator either copies it to the declared path or rewrites output_schema across the catalog, those 674 units still cannot resolve their schema.",
+    "NOT-CHECKED": "No independent reviewer has audited this schema. No real work-unit receipt produced by another unit has been validated against it - only the two example fixtures under platform/schema/examples/."
+  },
+  "$comment": "DESIGN NOTES, all load-bearing. (1) NO gate_a boolean block: a unit that writes {condition_1: true, ...} certifies itself. Conditions are DERIVED from artifacts[], evidence[], tests[], negative_controls[], reviewer, defects[], manifest_registration and downstream_consumers[] by the reducer. (2) additionalProperties is false at the receipt level so a MISSPELLED field is a hard error rather than a silently dropped one; forward-compatible drift has a sanctioned channel in `extensions`. (3) JSON Schema validates STRUCTURE only. Eight predicate obligations are cross-field or filesystem facts a schema provably cannot express and which the reducer MUST evaluate: sentinel-contains-unit_id, artifact bytes >= min_bytes_threshold, sha256 matches bytes on disk, artifact path exists, source/verifier probe fingerprints mechanically differ, started_at <= ended_at, duration consistency, and whether a downstream consumer actually EXECUTED rather than merely being claimed. Treating schema-valid as predicate-satisfied is the exact defect ADV-0001 attacks (condition 12 decorative). (4) failure.classification is an OPEN vocabulary by measurement: 699 distinct values occur across the 2,007 catalogued units, several compound (e.g. 'P1-blocking / classes: a, b') - a closed enum would reject valid units, so it is pattern-constrained instead.",
+  "$ref": "#/$defs/receipt_core",
+  "$defs": {
+    "unit_id": {
+      "type": "string",
+      "description": "Work-unit id. Pattern verified against all 2,007 catalogued ids (2,007/2,007 match).",
+      "pattern": "^[A-Z][A-Z0-9]*-[0-9]{4}$",
+      "examples": ["ADV-0001", "IMP-0385", "TST-0042"]
+    },
+    "sha256": {
+      "type": "string",
+      "description": "Lowercase hex SHA-256 of the artifact bytes as they exist on disk.",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "iso_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC3339/ISO-8601 instant with an explicit offset or trailing Z. A naive local timestamp is rejected: it is unorderable across the fan-out.",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
+    },
+    "verdict": {
+      "type": "string",
+      "description": "The honesty verdict vocabulary. NOT-CHECKED is required when no probe was run and must never be folded into a pass.",
+      "enum": ["CONFIRMED", "REFUTED", "PARTIAL", "NOT-CHECKED", "BLOCKED"]
+    },
+    "confidence_band": {
+      "type": "string",
+      "description": "Sherman-Kent / WEP band. A bare hedge with no band is a defect.",
+      "enum": ["almost-certain", "likely", "roughly-even", "unlikely", "remote"]
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["P0", "P1", "P2", "P3", "INFO"]
+    },
+    "terminal_state": {
+      "type": "string",
+      "description": "The PROCESS terminal state. Distinct from `disposition`, which is the CATALOG row outcome; COMPLETION-GATES.json warns these are routinely conflated. Exit code zero alone is never SUCCESS (spec line 10646).",
+      "enum": ["SUCCESS", "FAILED", "BLOCKED", "SEVERED", "TIMEOUT", "SUPERSEDED", "DROPPED-BY-OWNER"]
+    },
+    "disposition": {
+      "type": "string",
+      "description": "Catalog-level disposition, taken verbatim from WORK-UNIT-CATALOG.json terminal_dispositions.",
+      "enum": ["DONE-VERIFIED", "DROPPED-BY-OWNER", "SUPERSEDED"]
+    },
+    "sentinel": {
+      "type": "string",
+      "description": "The unit's completion sentinel. TWO families occur in the catalog and both are accepted by measurement: 'SUCCESS:<ID>' / 'FAILED:<ID> <reason>' (1,911 units) and 'SENTINEL:<ID>:<TOKEN>' (96 units). A pattern cannot check that the embedded id equals unit_id - the reducer does that.",
+      "minLength": 8,
+      "maxLength": 4096,
+      "pattern": "^(?:(?:SUCCESS|FAILED):[A-Z][A-Z0-9]*-[0-9]{4}(?:[\\s:].*)?|SENTINEL:[A-Z][A-Z0-9]*-[0-9]{4}:[A-Z0-9][A-Z0-9-]*(?:[\\s].*)?)$"
+    },
+    "failure_classification_code": {
+      "type": "string",
+      "description": "Open vocabulary. Measured: 699 distinct values across 2,007 units, including compound forms such as 'P1-blocking / classes: x, y' and placeholder forms such as 'timeout-<n>s'. Constrained to a non-blank trimmed token rather than an enum so that a valid unit is never rejected.",
+      "minLength": 3,
+      "maxLength": 400,
+      "pattern": "^\\S(?:.*\\S)?$",
+      "examples": ["overclaim", "detector-failure", "green-not-live", "dependency-blocked", "owner-blocked", "uncontrolled-silence", "schema-invalid", "severed-stream", "win-arg-limit", "timeout-<n>s"]
+    },
+    "artifact": {
+      "type": "object",
+      "description": "One produced artifact. Evidence for predicate conditions 2 (exists) and 3 (non-empty, exceeds a meaningful minimum). A file path in text is not proof the file exists (spec line 10646): bytes and sha256 must be measured off disk, and the reducer re-hashes to confirm.",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Repo-relative POSIX path. Backslashes are rejected: a Windows-style path is not a valid git pathspec and breaks the manifest join.",
+          "minLength": 1,
+          "maxLength": 1024,
+          "pattern": "^[^\\\\]+$"
+        },
+        "bytes": {
+          "type": "integer",
+          "description": "Size on disk. Zero is never acceptable: a 0-byte artifact is the signature of the MSYS redirect-truncation defect.",
+          "minimum": 1
+        },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "exists": {
+          "type": "boolean",
+          "description": "Measured by stat at receipt time, not asserted.",
+          "const": true
+        },
+        "eol": {
+          "type": "string",
+          "description": "Line-ending form of the bytes that were hashed. A working-tree CRLF file and its LF blob hash differently; declaring which was measured prevents a false drift verdict.",
+          "enum": ["LF", "CRLF", "MIXED", "BINARY", "NOT-CHECKED"]
+        },
+        "role": {
+          "type": "string",
+          "enum": ["primary", "supporting", "log", "fixture", "control"]
+        }
+      },
+      "required": ["path", "bytes", "sha256", "exists"],
+      "additionalProperties": false
+    },
+    "probe": {
+      "type": "object",
+      "description": "One measurement. A verdict needs a pair: the SOURCE probe that PRODUCED the claim and a mechanically DIFFERENT VERIFIER probe that CHECKED it. An undeclared source is zero signals, not one.",
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": ["source", "verifier"]
+        },
+        "method": {
+          "type": "string",
+          "description": "The mechanism class. Two probes sharing a method are NOT independent - re-running the same query is not a second signal.",
+          "enum": ["command", "file-read", "http", "process-table", "byte-compare", "schema-validate", "static-analysis", "manual-inspection", "test-run", "other"]
+        },
+        "command": {
+          "type": "string",
+          "description": "Exact command or an anchor of the form path:line. Required so a third party can re-run it.",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "raw_output": {
+          "type": "string",
+          "description": "Verbatim output, credential-redacted. A paraphrase is not raw output.",
+          "maxLength": 65536
+        },
+        "fingerprint": {
+          "type": "string",
+          "description": "Stable digest of (method, command). The reducer compares source vs verifier fingerprints; equality is a same-probe-rerun violation.",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "exit_code": { "type": "integer" }
+      },
+      "required": ["role", "method", "command", "raw_output", "fingerprint"],
+      "additionalProperties": false
+    },
+    "evidence_item": {
+      "type": "object",
+      "description": "Evidence for predicate condition 6 (required evidence anchors exist).",
+      "properties": {
+        "claim": {
+          "type": "string",
+          "description": "The single sentence this evidence supports, scoped to what was actually measured.",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "verdict": { "$ref": "#/$defs/verdict" },
+        "confidence": { "$ref": "#/$defs/confidence_band" },
+        "anchor": {
+          "type": "string",
+          "description": "file:line, a URL, or a reproducible command.",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "probes": {
+          "type": "array",
+          "description": "At least the SOURCE probe. A CONFIRMED or REFUTED verdict additionally requires a VERIFIER; the reducer enforces the role pair and fingerprint difference.",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": { "$ref": "#/$defs/probe" }
+        },
+        "unverified": {
+          "type": "boolean",
+          "description": "Set when this evidence is UNVERIFIED. If true, settling_experiment is required - an UNVERIFIED tag with no named experiment is a hedge, not a caveat."
+        },
+        "settling_experiment": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      },
+      "required": ["claim", "verdict", "anchor", "probes"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": { "properties": { "unverified": { "const": true } }, "required": ["unverified"] },
+          "then": { "required": ["settling_experiment"] }
+        },
+        {
+          "if": { "properties": { "verdict": { "enum": ["CONFIRMED", "REFUTED"] } }, "required": ["verdict"] },
+          "then": {
+            "properties": {
+              "probes": {
+                "minItems": 2,
+                "allOf": [
+                  { "contains": { "properties": { "role": { "const": "source" } }, "required": ["role"] } },
+                  { "contains": { "properties": { "role": { "const": "verifier" } }, "required": ["role"] } }
+                ]
+              }
+            },
+            "required": ["confidence"]
+          }
+        }
+      ]
+    },
+    "test_result": {
+      "type": "object",
+      "description": "Evidence for predicate condition 7 (required tests ran and passed).",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "command": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "result": {
+          "type": "string",
+          "description": "SKIP and NOT-RUN are recorded, never folded into a pass. The reducer treats either as condition 7 unsatisfied.",
+          "enum": ["PASS", "FAIL", "ERROR", "SKIP", "NOT-RUN"]
+        },
+        "assertions": { "type": "integer", "minimum": 0 },
+        "duration_seconds": { "type": "number", "minimum": 0 },
+        "output_tail": { "type": "string", "maxLength": 16384 }
+      },
+      "required": ["id", "command", "result"],
+      "additionalProperties": false
+    },
+    "negative_control": {
+      "type": "object",
+      "description": "Evidence for predicate condition 8 (negative controls or mutations fail as expected) and for the both-states rule: a probe that is silent in BOTH states measures nothing. Both booleans must be true for the control to count.",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "kind": {
+          "type": "string",
+          "enum": ["mutation", "malformed-input", "known-broken-fixture", "absent-input", "adversarial-payload", "other"]
+        },
+        "description": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "fired_on_bad_state": {
+          "type": "boolean",
+          "description": "The detector FIRED against the known-broken state. False means the detector is inert."
+        },
+        "silent_on_good_state": {
+          "type": "boolean",
+          "description": "The detector was SILENT against the known-good state. False means it over-fires."
+        },
+        "bad_state_output": { "type": "string", "maxLength": 16384 },
+        "good_state_output": { "type": "string", "maxLength": 16384 }
+      },
+      "required": ["id", "kind", "description", "fired_on_bad_state", "silent_on_good_state"],
+      "additionalProperties": false
+    },
+    "reviewer": {
+      "type": "object",
+      "description": "Evidence for predicate condition 9 (independent reviewer status is PASS). Self-review is not review: independent must be true and reviewer_id must differ from the author.",
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "verdict": {
+          "type": "string",
+          "enum": ["PASS", "FAIL", "CHANGES-REQUESTED", "NOT-REVIEWED"]
+        },
+        "independent": { "type": "boolean" },
+        "fresh_context": { "type": "boolean" },
+        "vendor": { "type": "string", "maxLength": 64 },
+        "notes": { "type": "string", "maxLength": 8192 },
+        "reviewed_at": { "$ref": "#/$defs/iso_timestamp" }
+      },
+      "required": ["reviewer_id", "verdict", "independent"],
+      "additionalProperties": false
+    },
+    "defect": {
+      "type": "object",
+      "description": "Evidence for predicate condition 10 (no unresolved P0/P1 defect is attached).",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "severity": { "$ref": "#/$defs/severity" },
+        "status": {
+          "type": "string",
+          "enum": ["open", "resolved", "waived-by-owner", "superseded"]
+        },
+        "summary": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "waiver_reference": {
+          "type": "string",
+          "description": "Required when status is waived-by-owner: an unattributed waiver is a gate bypass.",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "required": ["id", "severity", "status", "summary"],
+      "additionalProperties": false,
+      "if": { "properties": { "status": { "const": "waived-by-owner" } }, "required": ["status"] },
+      "then": { "required": ["waiver_reference"] }
+    },
+    "manifest_registration": {
+      "type": "object",
+      "description": "Evidence for predicate condition 11 (output was registered in the artifact manifest).",
+      "properties": {
+        "registered": { "type": "boolean" },
+        "manifest_path": { "type": "string", "minLength": 1, "maxLength": 1024 },
+        "entry_id": { "type": "string", "maxLength": 256 },
+        "registered_at": { "$ref": "#/$defs/iso_timestamp" }
+      },
+      "required": ["registered", "manifest_path"],
+      "additionalProperties": false
+    },
+    "downstream_consumer": {
+      "type": "object",
+      "description": "Evidence for predicate condition 12 (downstream consumers can read it) - the condition ADV-0001 attacks as decorative. A claim is not enough: the consumer must have been EXECUTED against this artifact, and `probe` records how.",
+      "properties": {
+        "consumer": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "artifact_path": { "type": "string", "minLength": 1, "maxLength": 1024 },
+        "executed": {
+          "type": "boolean",
+          "description": "The consumer was actually run. False makes condition 12 NOT-CHECKED, never a pass."
+        },
+        "read_ok": { "type": "boolean" },
+        "exit_code": { "type": "integer" },
+        "probe": { "$ref": "#/$defs/probe" }
+      },
+      "required": ["consumer", "artifact_path", "executed", "read_ok", "probe"],
+      "additionalProperties": false
+    },
+    "retry": {
+      "type": "object",
+      "description": "Two-strikes accounting. After the second failure on the same error fingerprint the unit must pivot, so count is capped at 2 unless a pivot is recorded.",
+      "properties": {
+        "count": {
+          "type": "integer",
+          "description": "Number of retries already consumed (0 on a first-attempt success).",
+          "minimum": 0,
+          "maximum": 32
+        },
+        "policy": { "type": "string", "minLength": 1, "maxLength": 1024 },
+        "attempts": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "properties": {
+              "attempt": { "type": "integer", "minimum": 1 },
+              "error_fingerprint": { "type": "string", "minLength": 1, "maxLength": 256 },
+              "outcome": { "$ref": "#/$defs/terminal_state" },
+              "started_at": { "$ref": "#/$defs/iso_timestamp" }
+            },
+            "required": ["attempt", "outcome"],
+            "additionalProperties": false
+          }
+        },
+        "pivot_alternatives": {
+          "type": "array",
+          "description": "Required by the reducer once two attempts share an error fingerprint: at least 2 enumerated alternatives before a third attempt.",
+          "maxItems": 16,
+          "items": { "type": "string", "minLength": 1, "maxLength": 1024 }
+        }
+      },
+      "required": ["count", "policy"],
+      "additionalProperties": false
+    },
+    "failure": {
+      "type": "object",
+      "description": "Required for every non-SUCCESS terminal state. An unclassified failure silently becomes a success at the fan-in barrier.",
+      "properties": {
+        "classification": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": { "$ref": "#/$defs/failure_classification_code" }
+        },
+        "reason": { "type": "string", "minLength": 1, "maxLength": 8192 },
+        "diagnostic_tail": { "type": "string", "maxLength": 65536 },
+        "blocked_on": { "type": "string", "maxLength": 2048 },
+        "two_signal_proof": {
+          "type": "array",
+          "description": "The failure protocol forbids hand-waving: a TWO-SIGNAL proof of the blocker.",
+          "maxItems": 8,
+          "items": { "$ref": "#/$defs/probe" }
+        }
+      },
+      "required": ["classification", "reason"],
+      "additionalProperties": false
+    },
+    "timestamps": {
+      "type": "object",
+      "properties": {
+        "started_at": { "$ref": "#/$defs/iso_timestamp" },
+        "ended_at": { "$ref": "#/$defs/iso_timestamp" },
+        "duration_seconds": { "type": "number", "minimum": 0 }
+      },
+      "required": ["started_at", "ended_at"],
+      "additionalProperties": false
+    },
+    "residual_unknown": {
+      "type": "object",
+      "description": "An honestly-scoped residual. A residual that is disclosed with a named settling experiment is NOT a refuted item and must not block; an undisclosed one is a defect.",
+      "properties": {
+        "claim": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "verdict": { "$ref": "#/$defs/verdict" },
+        "settling_experiment": { "type": "string", "minLength": 1, "maxLength": 2000 }
+      },
+      "required": ["claim", "verdict", "settling_experiment"],
+      "additionalProperties": false
+    },
+    "receipt_core": {
+      "type": "object",
+      "properties": {
+        "schema_version": { "type": "integer", "const": 1 },
+        "unit_id": { "$ref": "#/$defs/unit_id" },
+        "state": { "$ref": "#/$defs/terminal_state" },
+        "disposition": { "$ref": "#/$defs/disposition" },
+        "sentinel": { "$ref": "#/$defs/sentinel" },
+        "profile": {
+          "type": "string",
+          "description": "Optional receipt profile, e.g. council-runtime-module. 30 profile= variants occur in the catalog; all declare the same required core, so a profile narrows nothing structurally and is carried for routing only.",
+          "maxLength": 128,
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "spec_anchor": {
+          "type": "string",
+          "description": "Anchor into the governing spec, e.g. _USER-PROMPTS.md:10631-10644.",
+          "minLength": 3,
+          "maxLength": 1024
+        },
+        "min_bytes_threshold": {
+          "type": "integer",
+          "description": "The DECLARED meaningful minimum size for condition 3. It must be declared, not implied: an undeclared threshold makes 'exceeds a meaningful minimum' unfalsifiable. The reducer compares every primary artifact against it.",
+          "minimum": 1
+        },
+        "artifacts": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 512,
+          "items": { "$ref": "#/$defs/artifact" }
+        },
+        "evidence": {
+          "type": "array",
+          "description": "Two mechanically independent signals are the estate default; minItems is 1 here because a BLOCKED unit may only have the blocker probe, and the reducer requires the pair for SUCCESS.",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": { "$ref": "#/$defs/evidence_item" }
+        },
+        "tests": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": { "$ref": "#/$defs/test_result" }
+        },
+        "negative_controls": {
+          "type": "array",
+          "maxItems": 512,
+          "items": { "$ref": "#/$defs/negative_control" }
+        },
+        "reviewer": { "$ref": "#/$defs/reviewer" },
+        "defects": {
+          "type": "array",
+          "maxItems": 512,
+          "items": { "$ref": "#/$defs/defect" }
+        },
+        "manifest_registration": { "$ref": "#/$defs/manifest_registration" },
+        "downstream_consumers": {
+          "type": "array",
+          "maxItems": 128,
+          "items": { "$ref": "#/$defs/downstream_consumer" }
+        },
+        "timestamps": { "$ref": "#/$defs/timestamps" },
+        "retry": { "$ref": "#/$defs/retry" },
+        "failure": { "$ref": "#/$defs/failure" },
+        "residual_unknowns": {
+          "type": "array",
+          "maxItems": 256,
+          "items": { "$ref": "#/$defs/residual_unknown" }
+        },
+        "produced_by": {
+          "type": "object",
+          "properties": {
+            "vendor": { "type": "string", "maxLength": 64 },
+            "model": { "type": "string", "maxLength": 128 },
+            "role": { "type": "string", "maxLength": 128 },
+            "execution_substrate": { "type": "string", "maxLength": 128 }
+          },
+          "required": ["vendor", "model"],
+          "additionalProperties": false
+        },
+        "report": {
+          "type": "object",
+          "description": "Domain payload. Narrowed by the profile subschemas in $defs (security_report, benchmark_result, ...) which 128 units reference directly by JSON pointer.",
+          "minProperties": 1
+        },
+        "extensions": {
+          "type": "object",
+          "description": "The sanctioned forward-compatibility channel. additionalProperties is false everywhere else so a misspelled core field is a hard error instead of a silently dropped one; genuinely new data goes here."
+        }
+      },
+      "required": [
+        "schema_version",
+        "unit_id",
+        "state",
+        "sentinel",
+        "spec_anchor",
+        "min_bytes_threshold",
+        "artifacts",
+        "evidence",
+        "timestamps",
+        "retry"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "$comment": "Condition 10 for every state: an OPEN P0/P1 defect can never be attached to a receipt that is being offered as complete.",
+          "if": { "properties": { "state": { "const": "SUCCESS" } }, "required": ["state"] },
+          "then": {
+            "required": [
+              "tests",
+              "negative_controls",
+              "reviewer",
+              "manifest_registration",
+              "downstream_consumers",
+              "residual_unknowns"
+            ],
+            "properties": {
+              "sentinel": {
+                "$comment": "A SUCCESS receipt may not carry a FAILED sentinel.",
+                "pattern": "^(?:SUCCESS:|SENTINEL:)"
+              },
+              "evidence": {
+                "$comment": "Two mechanically independent signals (source + verifier) are mandatory for a SUCCESS.",
+                "minItems": 2
+              },
+              "tests": {
+                "minItems": 1,
+                "not": {
+                  "contains": {
+                    "properties": { "result": { "enum": ["FAIL", "ERROR", "SKIP", "NOT-RUN"] } },
+                    "required": ["result"]
+                  }
+                }
+              },
+              "negative_controls": {
+                "$comment": "Condition 8 plus the both-states rule. A control that did not fire on the bad state, or was not silent on the good state, measures nothing.",
+                "minItems": 1,
+                "allOf": [
+                  { "not": { "contains": { "properties": { "fired_on_bad_state": { "const": false } }, "required": ["fired_on_bad_state"] } } },
+                  { "not": { "contains": { "properties": { "silent_on_good_state": { "const": false } }, "required": ["silent_on_good_state"] } } }
+                ]
+              },
+              "reviewer": {
+                "properties": {
+                  "verdict": { "const": "PASS" },
+                  "independent": { "const": true }
+                },
+                "required": ["verdict", "independent"]
+              },
+              "manifest_registration": {
+                "properties": { "registered": { "const": true } },
+                "required": ["registered"]
+              },
+              "downstream_consumers": {
+                "$comment": "Condition 12 made non-decorative: at least one consumer must have been executed and read the artifact.",
+                "minItems": 1,
+                "allOf": [
+                  { "not": { "contains": { "properties": { "executed": { "const": false } }, "required": ["executed"] } } },
+                  { "not": { "contains": { "properties": { "read_ok": { "const": false } }, "required": ["read_ok"] } } }
+                ]
+              },
+              "defects": {
+                "not": {
+                  "contains": {
+                    "allOf": [
+                      { "properties": { "severity": { "enum": ["P0", "P1"] } }, "required": ["severity"] },
+                      { "properties": { "status": { "const": "open" } }, "required": ["status"] }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "$comment": "Every non-SUCCESS terminal state must classify itself. An unclassified failure becomes a silent success at the fan-in barrier.",
+          "if": {
+            "properties": { "state": { "enum": ["FAILED", "BLOCKED", "SEVERED", "TIMEOUT"] } },
+            "required": ["state"]
+          },
+          "then": { "required": ["failure"] }
+        },
+        {
+          "$comment": "A FAILED sentinel and a SUCCESS state are mutually exclusive.",
+          "if": {
+            "properties": { "sentinel": { "pattern": "^FAILED:" } },
+            "required": ["sentinel"]
+          },
+          "then": {
+            "properties": { "state": { "not": { "const": "SUCCESS" } } }
+          }
+        },
+        {
+          "$comment": "SUPERSEDED and DROPPED-BY-OWNER must say by what, so a dead end is retired rather than re-walked.",
+          "if": {
+            "properties": { "state": { "enum": ["SUPERSEDED", "DROPPED-BY-OWNER"] } },
+            "required": ["state"]
+          },
+          "then": { "required": ["disposition"] }
+        }
+      ]
+    },
+    "security_report": {
+      "$comment": "Referenced directly by 24 units as receipt.schema.json#/$defs/security_report. Validating against this fragment enforces the full receipt discipline PLUS the domain payload, so those units are not exempt from the predicate.",
+      "allOf": [
+        { "$ref": "#/$defs/receipt_core" },
+        {
+          "required": ["report"],
+          "properties": {
+            "report": {
+              "type": "object",
+              "properties": {
+                "kind": { "const": "security_report" },
+                "findings": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string", "minLength": 1 },
+                      "severity": { "$ref": "#/$defs/severity" },
+                      "cwe": { "type": "string", "maxLength": 32 },
+                      "summary": { "type": "string", "minLength": 1 },
+                      "anchor": { "type": "string", "minLength": 1 },
+                      "exploit_proven": { "type": "boolean" },
+                      "credential_redacted": {
+                        "type": "boolean",
+                        "description": "A security artifact must assert it carries no live credential value. Redaction denies by default.",
+                        "const": true
+                      }
+                    },
+                    "required": ["id", "severity", "summary", "anchor", "exploit_proven", "credential_redacted"]
+                  }
+                },
+                "scanners": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": { "type": "string", "minLength": 1 },
+                      "version": { "type": "string", "minLength": 1 },
+                      "installed": { "type": "boolean" }
+                    },
+                    "required": ["name", "version", "installed"]
+                  }
+                }
+              },
+              "required": ["kind", "findings", "scanners"]
+            }
+          }
+        }
+      ]
+    },
+    "benchmark_result": {
+      "$comment": "Referenced by 15 units. A benchmark number with no variance band and no null model is a gameable metric.",
+      "allOf": [
+        { "$ref": "#/$defs/receipt_core" },
+        {
+          "required": ["report"],
+          "properties": {
+            "report": {
+              "type": "object",
+              "properties": {
+                "kind": { "const": "benchmark_result" },
+                "metrics": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": { "type": "string", "minLength": 1 },
+                      "value": { "type": "number" },
+                      "unit": { "type": "string", "minLength": 1 },
+                      "n": { "type": "integer", "minimum": 1 },
+                      "variance_band": { "type": "string", "minLength": 1 },
+                      "baseline_value": { "type": "number" },
+                      "null_model": { "type": "string", "minLength": 1 }
+                    },
+                    "required": ["name", "value", "unit", "n", "variance_band", "null_model"]
+                  }
+                },
+                "input_non_empty": {
+                  "type": "boolean",
+                  "description": "A benchmark over an EMPTY input returns a clean, meaningless green. Must be measured true.",
+                  "const": true
+                }
+              },
+              "required": ["kind", "metrics", "input_non_empty"]
+            }
+          }
+        }
+      ]
+    },
+    "predicate_report": {
+      "$comment": "Referenced by 7 units. Reports how the 12-condition predicate evaluated, per condition, with the reducer identity that computed it.",
+      "allOf": [
+        { "$ref": "#/$defs/receipt_core" },
+        {
+          "required": ["report"],
+          "properties": {
+            "report": {
+              "type": "object",
+              "properties": {
+                "kind": { "const": "predicate_report" },
+                "reducer_id": { "type": "string", "minLength": 1 },
+                "conditions": {
+                  "type": "array",
+                  "minItems": 12,
+                  "maxItems": 12,
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "n": { "type": "integer", "minimum": 1, "maximum": 12 },
+                      "text": { "type": "string", "minLength": 1 },
+                      "outcome": { "type": "string", "enum": ["SATISFIED", "UNSATISFIED", "NOT-APPLICABLE", "NOT-CHECKED"] },
+                      "basis": { "type": "string", "minLength": 1 }
+                    },
+                    "required": ["n", "text", "outcome", "basis"]
+                  }
+                }
+              },
+              "required": ["kind", "reducer_id", "conditions"]
+            }
+          }
+        }
+      ]
+    },
+    "generic_report": {
+      "$comment": "Shared shape for the remaining referenced fragments. Each requires kind, at least one measured observation, and an explicit both-states control reference so none of them can be a green that measures nothing.",
+      "allOf": [
+        { "$ref": "#/$defs/receipt_core" },
+        {
+          "required": ["report"],
+          "properties": {
+            "report": {
+              "type": "object",
+              "properties": {
+                "kind": { "type": "string", "minLength": 1 },
+                "observations": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": { "type": "string", "minLength": 1 },
+                      "measured": { "type": ["string", "number", "boolean"] },
+                      "method": { "type": "string", "minLength": 1 },
+                      "anchor": { "type": "string", "minLength": 1 }
+                    },
+                    "required": ["name", "measured", "method", "anchor"]
+                  }
+                },
+                "control_ids": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": { "type": "string", "minLength": 1 }
+                }
+              },
+              "required": ["kind", "observations", "control_ids"]
+            }
+          }
+        }
+      ]
+    },
+    "cache_report": { "$ref": "#/$defs/generic_report" },
+    "concurrency_report": { "$ref": "#/$defs/generic_report" },
+    "docs_conformance_report": { "$ref": "#/$defs/generic_report" },
+    "fault_injection_report": { "$ref": "#/$defs/generic_report" },
+    "monitor_report": { "$ref": "#/$defs/generic_report" },
+    "parser_report": { "$ref": "#/$defs/generic_report" },
+    "portability_report": { "$ref": "#/$defs/generic_report" },
+    "resume_report": { "$ref": "#/$defs/generic_report" },
+    "scheduler_report": { "$ref": "#/$defs/generic_report" },
+    "shell_report": { "$ref": "#/$defs/generic_report" },
+    "ux_report": { "$ref": "#/$defs/generic_report" }
+  }
+}

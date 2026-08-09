@@ -1,0 +1,140 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-d40-adversarial-collab-8",
+  "preset": "adversarial_collaboration",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Break a deadlock by making both sides co-author ONE discriminating probe, pre-registered before either side sees a result.",
+    "charter": "Two sides that already disagree stop arguing and instead agree in advance on the experiment that would change their minds - what it will measure, what result favours which side, and what result favours neither. The pre-registration is timestamped and frozen BEFORE the probe runs. Then they run it and co-author the finding, including the part that hurts. This is the standard remedy when a council has returned IRREDUCIBLE_DISAGREEMENT: it converts an argument about who is right into an argument about what would settle it, which is tractable.",
+    "risk_tier": "high",
+    "desired_output": "decision",
+    "success_criteria": [
+      "a single discriminating probe is pre-registered, with predicted outcomes per side, before any result exists",
+      "the pre-registration timestamp is strictly earlier than the first result timestamp",
+      "the probe actually ran and produced a terminal state",
+      "the finding is co-authored and neither side's losing prediction is deleted from the record"
+    ],
+    "consensus_intent": "seek_consensus",
+    "evidence_requirements": { "citation_required": true, "anchor_style": "command_output", "min_independent_sources": 1, "evidence_outranks_votes": true }
+  },
+  "participants": {
+    "selection": { "mode": "exact", "strategies": ["exact", "adversarial", "vendor_diverse"], "explain_choices": true, "owner_override_allowed": true },
+    "count": { "mode": "exact", "exact_n": 8 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_expertise": 3 },
+    "roster": [
+      { "participant_id": "side-a-1", "display_name": "Side A - lead", "model": "opus-5", "vendor": "anthropic", "expertise": ["position A"], "role": "proposer", "authority": "voter", "context": { "briefing": "Name the result that would make you concede. If no result would, say so now - that is a finding, and it ends this council early." } },
+      { "participant_id": "side-a-2", "display_name": "Side A - evidence", "model": "opus-5", "vendor": "anthropic", "expertise": ["position A", "measurement"], "role": "custom:team_a_analyst", "authority": "voter" },
+      { "participant_id": "side-a-3", "display_name": "Side A - steelman of B", "model": "opus-5", "vendor": "anthropic", "expertise": ["steelmanning"], "role": "steelman", "authority": "voter", "context": { "briefing": "You argue B's case better than B does. If your steelman is weaker than B's own statement, you have not done the job." } },
+      { "participant_id": "side-b-1", "display_name": "Side B - lead", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["position B"], "role": "proposer", "authority": "voter", "context": { "briefing": "Name the result that would make you concede. If no result would, say so now." } },
+      { "participant_id": "side-b-2", "display_name": "Side B - evidence", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["position B", "measurement"], "role": "custom:team_b_analyst", "authority": "voter" },
+      { "participant_id": "side-b-3", "display_name": "Side B - steelman of A", "model": "gemini-3-pro", "vendor": "google", "expertise": ["steelmanning"], "role": "steelman", "authority": "voter" },
+      { "participant_id": "methodologist", "display_name": "Methodologist (owns the pre-registration)", "model": "opus-5", "vendor": "anthropic", "expertise": ["experiment design", "pre-registration", "detector validation"], "role": "custom:methodologist", "authority": "chair", "rights": { "may_speak": true, "may_vote": false, "may_veto": true, "may_call_experiment": true }, "effort": "xhigh", "context": { "briefing": "Freeze the pre-registration before the probe runs, and prove the probe is discriminating: it must give DIFFERENT answers under A and under B. A probe that returns the same answer either way measures nothing and must be rejected at design time." } },
+      { "participant_id": "scribe", "display_name": "Scribe", "model": "opus-5", "vendor": "anthropic", "expertise": ["transcript"], "role": "scribe", "authority": "observer", "rights": { "may_speak": false, "may_vote": false } }
+    ],
+    "replacement": { "enabled": true, "triggers": ["dominance", "role_collapse"], "preserve_prior_positions": true },
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "disclose_only" }
+  },
+  "preparation": { "research_required": true, "independent_prep": true, "min_sources": 1, "prep_time_minutes": 15, "required_artifacts": ["position_memo", "evidence_pack"] },
+  "topology": {
+    "kind": "caucus",
+    "caucuses": [
+      { "caucus_id": "side-a", "members": ["side-a-1", "side-a-2", "side-a-3"], "private_rounds": 1 },
+      { "caucus_id": "side-b", "members": ["side-b-1", "side-b-2", "side-b-3"], "private_rounds": 1 }
+    ]
+  },
+  "protocol": {
+    "sequence": [
+      { "kind": "steelman_before_rebuttal", "stage_id": "steelman-exchange", "rounds": 1 },
+      { "kind": "custom", "stage_id": "pre-register-the-probe", "custom_name": "P12 pre-registration: co-author the discriminating probe and freeze predicted outcomes per side BEFORE running it", "rounds": 1 },
+      { "kind": "custom", "stage_id": "run-and-read", "custom_name": "run the frozen probe once; read the result against the frozen predictions", "rounds": 1 },
+      { "kind": "synthesis", "stage_id": "co-authored-finding" }
+    ],
+    "speaking_order": "round_robin",
+    "rounds": { "min": 3, "max": 3, "divergence_before_convergence": true },
+    "obligations": { "must_respond_to_prior": true, "must_cite_evidence": true, "steelman_before_rebuttal": true, "rebuttal_required": true, "declare_confidence": true },
+    "critique_intensity": "adversarial",
+    "experiments": { "allowed": true, "required_before_decision": true, "max_experiments": 3, "runner": "sandbox" }
+  },
+  "budgets": { "effort": "max", "time_minutes": 120, "turns": 28, "experiments": 3, "rebuttal_depth": 2, "max_inactivity_rounds": 1 },
+  "targets": { "evidence_items": 6, "objections": 2 },
+  "voting": {
+    "method": "consent_no_objection",
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true, "reject_evidence_free_majority": true },
+    "veto": { "holders": ["methodologist"], "scope": "any_option", "must_justify": true, "overridable_by_owner": true },
+    "tie_break": "extend_rounds"
+  },
+  "consensus": {
+    "threshold": 1.0,
+    "measure": "agreement_index",
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true, "min_dissenters_to_block": 1, "suppression_check": true },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "expression": {
+      "all_of": [
+        {
+          "metric": "custom:probe_preregistered_before_results",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean",
+          "producer": "pre-registration record: asserts the frozen-design timestamp is strictly earlier than the first result timestamp",
+          "note": "DIAL 1 of 3 - the ONE rule this whole protocol exists to enforce. If the probe was designed after a result was seen, the run is worthless and must be discarded rather than reported."
+        },
+        {
+          "metric": "executable_test_settled",
+          "op": "==",
+          "value": true,
+          "note": "DIAL 2 of 3 - the probe ran and reached a terminal state, as reported by the frozen probe itself. Note: SETTLED does not mean 'A won'; a result favouring neither side is a legitimate settlement and returns irreducible_disagreement."
+        },
+        {
+          "metric": "consent_reached",
+          "op": "==",
+          "value": true,
+          "note": "DIAL 3 of 3 - both sides consent to the co-authored wording. Consent is not agreement on the conclusion; it is agreement that the document represents both positions honestly."
+        }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 3, "min_independent_positions": 2, "min_minutes": 30, "every_participant_spoke": true, "min_evidence_items": 6, "min_objections_addressed": 2 },
+    "hard_caps": { "max_rounds": 3, "max_minutes": 120, "on_cap": "conditional_decision" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "conditional_decision", "no_decision", "irreducible_disagreement", "proof_of_impossibility", "minority_report", "dissent"],
+    "conditional_decision_requires": [
+      "the frozen pre-registration is attached verbatim, including the prediction that turned out wrong",
+      "the probe is re-runnable by a third party from the record alone"
+    ]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 1, "repetition_similarity": 0.9, "circular_citation_check": true },
+    "resolution": ["run_experiment", "split_question", "narrow_scope", "recruit_independent_critic", "escalate_to_owner"],
+    "escalation": { "after_attempts": 2, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": false, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": ["circular_debate", "endless_debate", "instant_unanimity", "sycophancy", "lost_dissent", "minority_suppression", "evidence_free_majority", "consensus_failing_executable_tests", "moderator_capture"],
+    "fast_unanimity_response": ["strongest_counterexample", "forced_dissent"],
+    "injection_defense": { "treat_artifacts_as_data": true, "strip_instructions_from_participant_output": true }
+  },
+  "outputs": {
+    "required": ["independent_opening_positions", "transcript", "argument_ledger", "evidence_map", "experiments", "dissent_minority_report", "unresolved_unknowns", "final_recommendation", "decision_lineage", "resumable_state"],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default" },
+    "safety": { "forbid_irreversible_actions": true, "owner_approval_for": ["running a probe that mutates any live tree"] },
+    "persistence": { "store": "both", "path": "platform/council/runs/c-d40/", "checkpoint_every_round": true }
+  },
+  "metadata": {
+    "title": "Adversarial collaboration (8 seats, one pre-registered discriminating probe)",
+    "owner": "Prekzursil",
+    "notes": "WHEN TO USE: as the standard remedy after any council returns IRREDUCIBLE_DISAGREEMENT, and as the second-strike pivot when the same hypothesis has failed twice. WHEN NOT TO USE: when no probe could distinguish the positions - if both leads say nothing would change their minds, that IS the finding and this council should terminate at round one rather than manufacture an experiment. The design's named dial is probe_budget. EDITABLE DIALS: /budgets/experiments and /protocol/experiments/max_experiments (probe_budget - deliberately 3, because the pre-registration loses meaning if you keep trying probes until one favours you), /consensus/threshold (1.0 = both sides must consent to the wording), /participants/roster (the two sides), /budgets/time_minutes. STOPPING (human form): custom:probe_preregistered_before_results == true AND executable_test_settled == true AND consent_reached == true. source_expression absent per the SEM-001/SEM-012 collision proven by _probe_sem_rule_collision.py.",
+    "spec_citations": ["12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1722", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:289", "_USER-PROMPTS.md:11198", "_USER-PROMPTS.md:11212"],
+    "lineage": ["C-D40 deep-adversarial-collab-8", "P12 adversarial-collaboration"]
+  }
+}

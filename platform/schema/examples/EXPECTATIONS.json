@@ -1,0 +1,151 @@
+{
+  "about": "Machine-checked conformance manifest for the CouncilSpec contract. Every .json under examples/ must appear here or the runner fails - an unlisted file would be an untested file. Positive cases must validate AND their stopping rule must round-trip and evaluate TRUE on metrics_satisfying and FALSE on metrics_not_satisfying (the both-states control: a rule that is true in both states measures nothing). Negative cases must be REJECTED by the named detector with the named substring in the message.",
+  "runner": "python -m councilspec.validate --conformance",
+  "spec_examples": {
+    "source": "_USER-PROMPTS.md lines 10937-10942 (Read-tool numbering)",
+    "mapping": {
+      "unique_ideas >= 100 AND completeness_score >= 0.90": "valid/E1-hundred-idea-brainstorm.councilspec.json",
+      "consensus >= 0.95 AND no_new_objection_rounds >= 2": "valid/E2-architecture-review-board.councilspec.json",
+      "unanimity == true OR max_rounds == 12": "valid/E3-oxford-debate-unanimity-or-12-rounds.councilspec.json",
+      "quality_gate == PASS AND unresolved_load_bearing_counterexample == 0": "valid/E4-release-readiness-board.councilspec.json",
+      "evidence_saturation == true OR time_minutes >= 180": "valid/E5-delphi-evidence-saturation.councilspec.json",
+      "proof_of_impossibility == true": "valid/E6-council-of-councils-impossibility.councilspec.json"
+    }
+  },
+  "cases": [
+    {
+      "file": "valid/E1-hundred-idea-brainstorm.councilspec.json",
+      "expect": "pass",
+      "spec_expression": "unique_ideas >= 100 AND completeness_score >= 0.90",
+      "metrics_satisfying": { "unique_ideas": 104, "completeness_score": 0.93 },
+      "metrics_not_satisfying": { "unique_ideas": 104, "completeness_score": 0.8 }
+    },
+    {
+      "file": "valid/E2-architecture-review-board.councilspec.json",
+      "expect": "pass",
+      "spec_expression": "consensus >= 0.95 AND no_new_objection_rounds >= 2",
+      "metrics_satisfying": { "consensus": 0.96, "no_new_objection_rounds": 2 },
+      "metrics_not_satisfying": { "consensus": 0.96, "no_new_objection_rounds": 1 }
+    },
+    {
+      "file": "valid/E3-oxford-debate-unanimity-or-12-rounds.councilspec.json",
+      "expect": "pass",
+      "spec_expression": "unanimity == true OR max_rounds == 12",
+      "metrics_satisfying": { "unanimity": false, "max_rounds": 12 },
+      "metrics_not_satisfying": { "unanimity": false, "max_rounds": 11 }
+    },
+    {
+      "file": "valid/E4-release-readiness-board.councilspec.json",
+      "expect": "pass",
+      "spec_expression": "quality_gate == PASS AND unresolved_load_bearing_counterexample == 0",
+      "metrics_satisfying": { "quality_gate": "PASS", "unresolved_load_bearing_counterexample": 0 },
+      "metrics_not_satisfying": { "quality_gate": "PASS", "unresolved_load_bearing_counterexample": 1 }
+    },
+    {
+      "file": "valid/E5-delphi-evidence-saturation.councilspec.json",
+      "expect": "pass",
+      "spec_expression": "evidence_saturation == true OR time_minutes >= 180",
+      "metrics_satisfying": { "evidence_saturation": false, "time_minutes": 181 },
+      "metrics_not_satisfying": { "evidence_saturation": false, "time_minutes": 179 },
+      "expected_warnings": ["SEM-004"]
+    },
+    {
+      "file": "valid/E6-council-of-councils-impossibility.councilspec.json",
+      "expect": "pass",
+      "spec_expression": "proof_of_impossibility == true",
+      "metrics_satisfying": { "proof_of_impossibility": true },
+      "metrics_not_satisfying": { "proof_of_impossibility": false }
+    },
+
+    {
+      "file": "invalid/N1-typed-leaf-violation.councilspec.json",
+      "expect": "fail",
+      "detector": "schema",
+      "contains": "is not valid under any of the given schemas",
+      "mutation_of": "valid/E2-architecture-review-board.councilspec.json",
+      "mutation_site": "$.stopping.expression.all_of[0]",
+      "reason": "unanimity is a BOOLEAN metric; `>= 0.95` is not a legal comparison for it. THE headline must-fail case: it proves the leaf is typed by metric domain, not merely shaped."
+    },
+    {
+      "file": "invalid/N2-unknown-metric.councilspec.json",
+      "expect": "fail",
+      "detector": "schema",
+      "contains": "is not valid under any of the given schemas",
+      "mutation_of": "valid/E1-hundred-idea-brainstorm.councilspec.json",
+      "mutation_site": "$.stopping.expression.all_of[0].metric",
+      "reason": "vibes_score is not in the registry and is not a custom:<name> extension."
+    },
+    {
+      "file": "invalid/N3-count-min-gt-max.councilspec.json",
+      "expect": "fail",
+      "detector": "semantic",
+      "contains": "SEM-002",
+      "mutation_of": "valid/E1-hundred-idea-brainstorm.councilspec.json",
+      "mutation_site": "$.participants.count.min",
+      "reason": "min 13 > max 12; two sibling fields, which JSON Schema cannot compare."
+    },
+    {
+      "file": "invalid/N4-supermajority-without-threshold.councilspec.json",
+      "expect": "fail",
+      "detector": "schema",
+      "contains": "'supermajority_threshold' is a required property",
+      "mutation_of": "valid/E2-architecture-review-board.councilspec.json",
+      "mutation_site": "$.voting.supermajority_threshold (deleted)",
+      "reason": "A supermajority with no declared threshold is undecidable at runtime."
+    },
+    {
+      "file": "invalid/N5-source-expression-drift.councilspec.json",
+      "expect": "fail",
+      "detector": "semantic",
+      "contains": "SEM-001",
+      "mutation_of": "valid/E2-architecture-review-board.councilspec.json",
+      "mutation_site": "$.stopping.source_expression",
+      "reason": "The readable string says 0.75 while the executed tree says 0.95 - the documentation-lies failure mode."
+    },
+    {
+      "file": "invalid/N6-unknown-top-level-key.councilspec.json",
+      "expect": "fail",
+      "detector": "schema",
+      "contains": "Additional properties are not allowed",
+      "mutation_of": "valid/E3-oxford-debate-unanimity-or-12-rounds.councilspec.json",
+      "mutation_site": "$.stopping_rules (added)",
+      "reason": "A typo key must be rejected, not silently ignored while the author believes the rule is live."
+    },
+    {
+      "file": "invalid/N7-delegation-cycle.councilspec.json",
+      "expect": "fail",
+      "detector": "semantic",
+      "contains": "SEM-008",
+      "mutation_of": "valid/E2-architecture-review-board.councilspec.json",
+      "mutation_site": "$.voting.delegation",
+      "reason": "Mutual delegation never resolves to a voter."
+    },
+    {
+      "file": "invalid/N8-round-cap-incoherence.councilspec.json",
+      "expect": "fail",
+      "detector": "semantic",
+      "contains": "SEM-011",
+      "mutation_of": "valid/E3-oxford-debate-unanimity-or-12-rounds.councilspec.json",
+      "mutation_site": "$.stopping.expression",
+      "reason": "Fires at max_rounds == 20 while every configured cap is 12, so the disjunct is dead code."
+    },
+    {
+      "file": "invalid/N9-council-of-councils-without-subcouncils.councilspec.json",
+      "expect": "fail",
+      "detector": "schema",
+      "contains": "'subcouncils' is a required property",
+      "mutation_of": "valid/E6-council-of-councils-impossibility.councilspec.json",
+      "mutation_site": "$.topology.subcouncils (deleted)",
+      "reason": "council_of_councils with no subcouncils is not a council of councils."
+    },
+    {
+      "file": "invalid/N10-idea-gate-without-brainstorm.councilspec.json",
+      "expect": "fail",
+      "detector": "semantic",
+      "contains": "SEM-007",
+      "mutation_of": "valid/E1-hundred-idea-brainstorm.councilspec.json",
+      "mutation_site": "$.protocol.sequence",
+      "reason": "Gates on unique_ideas >= 100 with no idea-generating stage, so the council can never stop."
+    }
+  ]
+}

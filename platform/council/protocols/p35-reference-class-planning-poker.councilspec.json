@@ -1,0 +1,482 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p35-reference-class-planning-poker",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Force an OUTSIDE view before any inside-view number: seats name a reference class of comparable past cases and its base rate, then estimate simultaneously with no anchoring, extremes justify, and everyone re-estimates.",
+    "charter": "Inside-view estimates are systematically optimistic. No estimate is accepted until the reference class it came from resolves to a real prior artifact.",
+    "risk_tier": "moderate",
+    "desired_output": "forecast",
+    "success_criteria": [
+      "every seat named a reference class BEFORE producing a number",
+      "every cited reference class resolved to a real artifact - a fabricated class voids the estimate",
+      "the spread between the extreme estimates closed to the declared ratio after re-estimation"
+    ],
+    "consensus_intent": "elicit_distribution",
+    "confidence_target": 0.75,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "expertise_ranked",
+        "vendor_diverse",
+        "model_diverse"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 6
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_expertise": 4,
+      "max_share_per_vendor": 0.6
+    },
+    "roster": [
+      {
+        "participant_id": "reference-class-clerk",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "scribe",
+        "authority": "contributor",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "estate ledger",
+          "base rates"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        },
+        "source_access": [
+          "repo",
+          "transcripts",
+          "internal_docs"
+        ],
+        "context": {
+          "briefing": "Every reference class must resolve to a REAL prior artifact - an event-ledger entry, a PR, or a workflow run record. An invented class fails the anchor check."
+        }
+      },
+      {
+        "participant_id": "estimator-a",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "forecaster",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": false
+        },
+        "expertise": [
+          "effort estimation"
+        ],
+        "anonymous": true
+      },
+      {
+        "participant_id": "estimator-b",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "forecaster",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": false
+        },
+        "expertise": [
+          "implementation effort"
+        ],
+        "anonymous": true
+      },
+      {
+        "participant_id": "estimator-c",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "domain_expert",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": false
+        },
+        "expertise": [
+          "the work being estimated"
+        ],
+        "anonymous": true
+      },
+      {
+        "participant_id": "estimator-d",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "domain_expert",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": false
+        },
+        "expertise": [
+          "integration and test effort"
+        ],
+        "anonymous": true
+      },
+      {
+        "participant_id": "anchor-auditor",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "verifier",
+        "authority": "judge",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "citation resolution"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        },
+        "context": {
+          "briefing": "Resolve every cited reference class to a real artifact. Unresolvable means the estimate is void."
+        }
+      }
+    ],
+    "role_templates": [
+      "forecaster",
+      "domain_expert",
+      "verifier",
+      "scribe"
+    ],
+    "anonymity": {
+      "mode": "blind_to_peers",
+      "reveal_after_round": 1
+    },
+    "duplicate_detection": {
+      "enabled": true,
+      "dimensions": [
+        "position_similarity"
+      ],
+      "max_similarity": 0.9
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": [
+      "benchmark_baseline",
+      "prior_art_scan"
+    ]
+  },
+  "topology": {
+    "kind": "flat"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "custom",
+        "custom_name": "reference_class_sourcing_outside_view_first",
+        "stage_id": "outside-view",
+        "rounds": 1,
+        "independent": true,
+        "quotas": {
+          "ideas_per_participant": 1,
+          "novel_ideas_per_round": 1
+        },
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "custom:reference_classes_named",
+              "op": ">=",
+              "value": 1,
+              "value_type": "number"
+            },
+            {
+              "metric": "custom:unresolvable_reference_class_citations",
+              "op": "<=",
+              "value": 0,
+              "value_type": "number"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "blind_independent_first_pass",
+        "stage_id": "estimate-1",
+        "participants": [
+          "estimator-a",
+          "estimator-b",
+          "estimator-c",
+          "estimator-d"
+        ],
+        "independent": true,
+        "anonymous": true
+      },
+      {
+        "kind": "custom",
+        "custom_name": "extremes_justify_then_reestimate",
+        "stage_id": "extremes-justify",
+        "rounds": 1,
+        "quotas": {
+          "objections_per_participant": 1
+        }
+      },
+      {
+        "kind": "blind_independent_first_pass",
+        "stage_id": "estimate-2",
+        "participants": [
+          "estimator-a",
+          "estimator-b",
+          "estimator-c",
+          "estimator-d"
+        ],
+        "independent": true,
+        "anonymous": true,
+        "exit_when": {
+          "metric": "custom:estimate_spread_ratio",
+          "op": "<=",
+          "value": 2,
+          "value_type": "number"
+        }
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "estimate-final"
+      }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": {
+      "min": 2,
+      "max": 4
+    },
+    "turn": {
+      "max_words": 500
+    },
+    "obligations": {
+      "must_respond_to_prior": false,
+      "must_cite_evidence": true,
+      "steelman_before_rebuttal": true,
+      "rebuttal_required": true,
+      "cross_examination": true,
+      "declare_confidence": true,
+      "declare_conflicts": false
+    },
+    "critique_intensity": "standard"
+  },
+  "budgets": {
+    "effort": "medium",
+    "time_minutes": 40,
+    "turns": 18,
+    "sources": 6,
+    "min_engagement_turns": 2,
+    "max_inactivity_rounds": 1,
+    "rebuttal_depth": 1
+  },
+  "targets": {
+    "unique_ideas": 4,
+    "categories": 2,
+    "novelty_ratio": 0.25,
+    "evidence_items": 6,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.9,
+      "trivial_variant_policy": "flag_for_review"
+    }
+  },
+  "voting": {
+    "method": "score",
+    "score_scale": {
+      "min": 1,
+      "max": 21
+    },
+    "belief_aggregation": {
+      "method": "median",
+      "require_confidence_per_vote": true
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "reject_evidence_free_majority": true
+    },
+    "abstention": {
+      "allowed": false,
+      "must_justify": true
+    },
+    "tie_break": "extend_rounds"
+  },
+  "consensus": {
+    "threshold": 0.6,
+    "measure": "confidence_overlap",
+    "minority_report": "optional",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": false
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "ALL[custom:unresolvable_reference_class_citations <= 0, custom:reference_classes_named >= 1, custom:estimate_spread_ratio <= 2, rounds_elapsed >= 2]",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "custom:unresolvable_reference_class_citations",
+          "op": "<=",
+          "value": 0,
+          "value_type": "number"
+        },
+        {
+          "metric": "custom:reference_classes_named",
+          "op": ">=",
+          "value": 1,
+          "value_type": "number"
+        },
+        {
+          "metric": "custom:estimate_spread_ratio",
+          "op": "<=",
+          "value": 2,
+          "value_type": "number"
+        },
+        {
+          "metric": "rounds_elapsed",
+          "op": ">=",
+          "value": 2
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "min_independent_positions": 4,
+      "every_participant_spoke": true,
+      "min_evidence_items": 4
+    },
+    "hard_caps": {
+      "max_rounds": 4,
+      "max_minutes": 60,
+      "on_cap": "conditional_decision"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "the estimate is labelled INSIDE-VIEW-ONLY if no reference class resolved"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.9,
+      "vote_oscillation_rounds": 2
+    },
+    "resolution": [
+      "split_question",
+      "narrow_scope",
+      "recruit_independent_critic",
+      "run_experiment"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "judge"
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "sycophancy",
+      "participant_dominance",
+      "hallucinated_expertise",
+      "evidence_free_majority",
+      "premature_convergence",
+      "echo_chamber"
+    ],
+    "fast_unanimity_response": [
+      "blind_re_evaluation",
+      "forced_dissent",
+      "strongest_counterexample"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "confidence_trajectory",
+      "evidence_map",
+      "votes_by_round",
+      "transcript",
+      "final_recommendation"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "seeded",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 90,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "any action outside the council transcript",
+        "any write to a shared branch"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "path": "platform/council/state/p35-reference-class-planning-poker",
+      "checkpoint_every_round": true
+    },
+    "calibration": {
+      "post_run": true,
+      "score": "crps"
+    }
+  },
+  "metadata": {
+    "title": "P35 reference-class planning poker (FORECASTING)",
+    "owner": "Prekzursil",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:669",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:674",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:680",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:681"
+    ],
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#P35 reference-class-planning-poker"
+    ],
+    "notes": "ANTI-FAILURE DEFENCES (6 declared): (1) the card's failure mode is 'reference class is invented', so custom:unresolvable_reference_class_citations <= 0 is both the outside-view stage exit and a stopping leaf, with a dedicated anchor-auditor who cannot vote - an unresolvable class voids the estimate rather than lowering confidence in it; (2) hallucinated_expertise is the same defence seen from the seat side; (3) sycophancy and (4) echo_chamber - anchoring on the first or loudest number - are cut structurally by blind_to_peers estimation with reveal_after_round=1, must_respond_to_prior=false before the reveal, and a MEDIAN aggregate so one extreme cannot drag the estimate; (5) participant_dominance is further limited by abstention.allowed=false, so no seat can sit out and then criticise; (6) premature_convergence is blocked by rounds.min=2 and the custom:estimate_spread_ratio <= 2 leaf, which requires the SECOND estimate to have actually converged. FAST UNANIMITY on a first blind estimate is the classic sign of a leaked anchor: response is blind_re_evaluation. UNVERIFIED: the spread ratio of 2 is a placeholder, and the card's claim that this estate has 708 run records usable as a base-rate source is inherited from the design doc and NOT re-measured here; the settling experiment is to resolve one named reference class to a real artifact and count what the ledger actually holds."
+  }
+}

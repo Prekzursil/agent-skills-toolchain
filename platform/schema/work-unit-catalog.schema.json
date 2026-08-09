@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.ast-integrate.local/work-unit-catalog/1.0.0",
+  "title": "Work Unit Catalog (command-center/WORK-UNIT-CATALOG.json)",
+  "description": "Container contract for the program catalog. Two independent arrays coexist ON PURPOSE and must never be merged: `work_units` (the 19-field Prompt-Two decomposition) and `items` (the 33-field pre-existing backlog register). `defaults` is OPTIONAL: every unit in `work_units` carries all 19 fields itself, so removing `defaults` entirely cannot invalidate a single unit. That property is asserted mechanically by platform/lib/wfdsl/test_work_unit_schema.py::test_defaults_block_is_optional_not_load_bearing.",
+  "type": "object",
+  "required": ["schema_version", "work_units"],
+  "properties": {
+    "schema_version": { "type": "integer", "minimum": 1 },
+    "work_units": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "https://schema.ast-integrate.local/work-unit/1.0.0" }
+    },
+    "defaults": {
+      "$ref": "#/$defs/defaults_block",
+      "$comment": "OPTIONAL authoring convenience only. A field present here does NOT satisfy that field's per-unit requirement; the resolver in platform/lib/wfdsl/resolve.py fills a MISSING field from here only in explicit 'resolved' mode, and the raw catalog contract still requires all 19 per unit."
+    },
+    "items": {
+      "type": "array",
+      "$comment": "the 33-field backlog register - a DIFFERENT schema; validated by its own contract, not by this one",
+      "items": { "type": "object" }
+    },
+    "contract": { "type": "object" },
+    "provenance": { "type": "object" },
+    "owner_questions": { "type": ["array", "object"] },
+    "terminal_dispositions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "work_units_meta": { "type": "object" }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "defaults_block": {
+      "type": "object",
+      "description": "Every property mirrors a work-unit field and is optional. No property is required, because a catalog with NO defaults block at all must still validate.",
+      "properties": {
+        "assignment": { "type": ["object", "string"] },
+        "assigned_model_vendor_role": { "type": ["object", "string"] },
+        "tool_permissions": { "type": "array", "items": { "type": "string" } },
+        "execution_substrate": { "type": "string" },
+        "timeout_seconds": { "type": "integer", "minimum": 60, "maximum": 86400 },
+        "output_schema": { "type": "string" },
+        "evidence_requirement": { "type": "string" },
+        "tests_required": { "type": ["array", "string"] },
+        "reviewer_requirement": { "type": "string" },
+        "retry_policy": { "type": "string" },
+        "failure_classification": { "type": ["array", "string"] },
+        "owner_approval_required": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

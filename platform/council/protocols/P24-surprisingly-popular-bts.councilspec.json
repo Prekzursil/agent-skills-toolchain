@@ -1,0 +1,500 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p24-surprisingly-popular-bts",
+  "preset": "custom",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Let a knowledgeable minority win a factual question by scoring answers on actual support minus predicted support, not on raw majority.",
+    "charter": "ANONYMOUS family, Prelec surprisingly-popular / Bayesian truth serum. Each seat submits (a) its own answer and (b) its prediction of the panel distribution. The winner is the answer whose actual support most exceeds its predicted support. Mandated dissent is forbidden here because it destroys honest reporting.",
+    "risk_tier": "moderate",
+    "desired_output": "decision",
+    "success_criteria": [
+      "every seat submitted both an answer and a panel-distribution prediction",
+      "the surprise margin is computed and published per answer",
+      "a round whose meta-predictions are uniform across seats is discarded, not aggregated"
+    ],
+    "consensus_intent": "elicit_distribution",
+    "confidence_target": 0.7,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any",
+      "min_independent_sources": 1,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": false,
+      "deadline_minutes": 60
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "expertise_ranked",
+        "model_diverse"
+      ],
+      "explain_choices": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 8,
+      "min": 8,
+      "max": 8
+    },
+    "diversity": {
+      "min_distinct_vendors": 3,
+      "min_distinct_expertise": 5,
+      "max_share_per_vendor": 0.6
+    },
+    "roster": [
+      {
+        "participant_id": "bts-1",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "domain knowledge"
+        ],
+        "role": "forecaster",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "anonymous": true,
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": true
+        }
+      },
+      {
+        "participant_id": "bts-2",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "domain knowledge",
+          "reproduction"
+        ],
+        "role": "forecaster",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "anonymous": true,
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": true
+        }
+      },
+      {
+        "participant_id": "bts-3",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": [
+          "statistics"
+        ],
+        "role": "forecaster",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "anonymous": true,
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": true
+        }
+      },
+      {
+        "participant_id": "bts-4",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "adjacent expertise"
+        ],
+        "role": "forecaster",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "anonymous": true,
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": true
+        }
+      },
+      {
+        "participant_id": "bts-5",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "adjacent expertise"
+        ],
+        "role": "forecaster",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "anonymous": true,
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": true
+        }
+      },
+      {
+        "participant_id": "bts-6",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": [
+          "general reasoning"
+        ],
+        "role": "forecaster",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "anonymous": true,
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": true
+        }
+      },
+      {
+        "participant_id": "bts-7",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "expert minority candidate"
+        ],
+        "role": "forecaster",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "anonymous": true,
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": true
+        }
+      },
+      {
+        "participant_id": "sp-aggregator",
+        "display_name": "Aggregator (computes actual support minus predicted support)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "surprisingly-popular scoring",
+          "aggregation"
+        ],
+        "role": "calibrator",
+        "authority": "contributor",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      }
+    ],
+    "anonymity": {
+      "mode": "double_blind"
+    },
+    "duplicate_detection": {
+      "enabled": true,
+      "dimensions": [
+        "position_similarity",
+        "prompt",
+        "model"
+      ],
+      "max_similarity": 0.8
+    },
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "disclose_only"
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 1,
+    "required_artifacts": [
+      "evidence_pack"
+    ]
+  },
+  "topology": {
+    "kind": "flat"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "blind_independent_first_pass",
+        "stage_id": "own-answer",
+        "independent": true,
+        "anonymous": true,
+        "rounds": 1,
+        "quotas": {
+          "ideas_per_participant": 1,
+          "objections_per_participant": 1
+        }
+      },
+      {
+        "kind": "custom",
+        "custom_name": "meta_prediction_of_panel_distribution",
+        "stage_id": "meta-prediction",
+        "rounds": 1,
+        "anonymous": true,
+        "quotas": {
+          "objections_per_participant": 1
+        },
+        "exit_when": {
+          "metric": "custom:seats_with_meta_prediction",
+          "op": ">=",
+          "value": 7,
+          "value_type": "number",
+          "producer": "meta_prediction_collector",
+          "note": "the aggregation key is the meta-prediction; a seat without one cannot be scored"
+        }
+      },
+      {
+        "kind": "custom",
+        "custom_name": "surprisingly_popular_aggregation",
+        "stage_id": "sp-aggregation",
+        "rounds": 1,
+        "participants": [
+          "sp-aggregator"
+        ],
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "custom:surprise_margin",
+              "op": ">=",
+              "value": 0.1,
+              "value_type": "number",
+              "producer": "sp_aggregator",
+              "note": "actual support minus predicted support must be decisive, not noise"
+            },
+            {
+              "metric": "custom:meta_prediction_dispersion",
+              "op": ">=",
+              "value": 0.15,
+              "value_type": "number",
+              "producer": "meta_dispersion_detector",
+              "note": "uniform meta-predictions mean the seats did not model the panel; discard the round"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "sp-answer",
+        "rounds": 1
+      }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": {
+      "min": 2,
+      "max": 3,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 400
+    },
+    "obligations": {
+      "must_respond_to_prior": false,
+      "must_cite_evidence": true,
+      "cross_examination": false,
+      "rebuttal_required": false,
+      "steelman_before_rebuttal": false,
+      "declare_confidence": true,
+      "declare_conflicts": true,
+      "forced_dissent": false
+    },
+    "critique_intensity": "gentle",
+    "experiments": {
+      "allowed": true,
+      "max_experiments": 1,
+      "runner": "sandbox"
+    }
+  },
+  "budgets": {
+    "effort": "medium",
+    "time_minutes": 60,
+    "tool_calls": 70,
+    "sources": 12,
+    "turns": 20,
+    "speaking_quota_per_participant": 3,
+    "min_engagement_turns": 2,
+    "max_inactivity_rounds": 1,
+    "rebuttal_depth": 0
+  },
+  "targets": {
+    "objections": 3,
+    "evidence_items": 8,
+    "novelty_ratio": 0.3,
+    "diversity_index": 0.6,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.8,
+      "trivial_variant_policy": "merge"
+    }
+  },
+  "voting": {
+    "method": "bayesian",
+    "quorum": {
+      "min_voters": 7,
+      "min_fraction": 0.85,
+      "on_failure": "no_decision"
+    },
+    "abstention": {
+      "allowed": false,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "belief_aggregation": {
+      "method": "bayesian_update",
+      "require_confidence_per_vote": true
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "no_decision"
+  },
+  "consensus": {
+    "threshold": 0.5,
+    "measure": "vote_share",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": false,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "independent_positions >= 7 AND all_participants_spoke == true AND (confidence >= 0.7 OR rounds_elapsed >= 2)",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "independent_positions",
+          "op": ">=",
+          "value": 7
+        },
+        {
+          "metric": "all_participants_spoke",
+          "op": "==",
+          "value": true
+        },
+        {
+          "any_of": [
+            {
+              "metric": "confidence",
+              "op": ">=",
+              "value": 0.7
+            },
+            {
+              "metric": "rounds_elapsed",
+              "op": ">=",
+              "value": 2
+            }
+          ]
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "min_independent_positions": 7,
+      "every_participant_spoke": true,
+      "min_evidence_items": 6
+    },
+    "hard_caps": {
+      "max_rounds": 3,
+      "max_minutes": 60,
+      "on_cap": "no_decision"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "irreducible_disagreement",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "the published answer is the surprisingly-popular one, with its surprise margin",
+      "the majority answer is recorded alongside it so the divergence is visible"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 1,
+      "vote_oscillation_rounds": 2
+    },
+    "resolution": [
+      "recruit_independent_critic",
+      "blind_re_evaluation",
+      "declare_no_decision"
+    ],
+    "escalation": {
+      "after_attempts": 1,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": false,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "echo_chamber",
+      "strategic_voting",
+      "sycophancy",
+      "silence",
+      "evidence_free_majority",
+      "collusion"
+    ],
+    "fast_unanimity_response": [
+      "blind_re_evaluation",
+      "recruit_independent_critic"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "votes_by_round",
+      "confidence_trajectory",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "calibration_report",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 90,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge",
+        "release"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    },
+    "calibration": {
+      "post_run": true,
+      "score": "brier"
+    }
+  },
+  "metadata": {
+    "title": "P24 surprisingly popular / Bayesian truth serum",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:487-502"
+    ],
+    "notes": "SUBSTRATE GAP, reported not hidden: the card's stated dependency is voting.method=surprisingly_popular, and the CouncilSpec voting.method enum has no such value (17 values, none of them surprisingly_popular). The nearest faithful encoding is method=bayesian with belief_aggregation=bayesian_update plus a dedicated sp-aggregation stage whose exit_when carries custom:surprise_margin (producer sp_aggregator). forced_dissent is FALSE on purpose - the card marks P10 mandated-dissent as incompatible because it destroys honest meta-reporting. The Philadelphia-capital control the card requires before adoption needs a live executor: NOT-CHECKED here. Quota semantics here: ideas_per_participant 1 is one candidate answer per seat, and objections_per_participant 1 forces each seat to name one reason its OWN answer could be wrong, which is what keeps a confident majority from arriving unexamined."
+  }
+}

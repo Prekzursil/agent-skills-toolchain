@@ -1,0 +1,178 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-x51-mega-calibration-tournament-30",
+  "preset": "forecasting_council",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Calibrate seat weights by running a scored forecasting tournament, holding every weight at 1.0 until the calibration signal is strong enough to move it.",
+    "charter": "MANDATE. This council exists to EARN the right to weight a seat, not to assert it. Each forecaster states a resolvable prediction with a probability; a resolver settles it against reality; a scorer computes a proper score (Brier by default). Weights stay pinned at 1.0 until a seat has at least 20 resolved forecasts AND inter-rater agreement reaches kappa >= 0.6. Below that floor the sample is too small to distinguish skill from luck, and a weight moved early is a superstition compounded across every later council. The preset ships SHADOW by design: it observes and logs, and its weights bind nothing until the owner promotes it.",
+    "risk_tier": "low",
+    "desired_output": "forecast",
+    "success_criteria": [
+      "at least 20 resolved forecasts per seat before any weight moves",
+      "kappa >= 0.6 before weights leave 1.0",
+      "every forecast resolved against an external outcome, not a peer opinion",
+      "a seat whose score decays is demoted automatically"
+    ],
+    "consensus_intent": "elicit_distribution",
+    "confidence_target": 0.7,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any",
+      "min_independent_sources": 1,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": true,
+      "forbidden_actions": [
+        "move a seat weight before the resolution floor is met",
+        "let a shadow-mode weight gate a live decision"
+      ]
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "mixed",
+      "strategies": ["automatic", "calibration_ranked", "model_diverse", "vendor_diverse"],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": { "mode": "exact", "exact_n": 30 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_models": 3, "min_distinct_expertise": 5 },
+    "role_templates": ["forecaster", "custom:resolver", "custom:scorer"],
+    "roster": [
+      {
+        "participant_id": "resolver",
+        "display_name": "Resolver - settles each forecast against reality",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["resolution criteria", "outcome adjudication"],
+        "role": "custom:resolver",
+        "authority": "judge",
+        "rights": { "may_speak": true, "may_vote": false, "may_call_experiment": true },
+        "source_access": ["repo", "web", "transcripts"],
+        "context": {
+          "briefing": "A forecast is only resolvable if its resolution criterion was written BEFORE the outcome was known. Reject any question you cannot settle from an external signal; an unresolvable question scores nothing and must not be silently counted as a resolution."
+        }
+      },
+      {
+        "participant_id": "scorer",
+        "display_name": "Scorer - computes the proper score and the kappa floor",
+        "model": "deterministic-scorer",
+        "vendor": "local",
+        "expertise": ["proper scoring rules", "inter-rater agreement"],
+        "role": "custom:scorer",
+        "authority": "contributor",
+        "rights": { "may_speak": true, "may_vote": false },
+        "tools": ["brier", "cohen_kappa"],
+        "context": {
+          "briefing": "Compute Brier per seat and kappa across seats. Report n_resolutions per seat explicitly: a score computed on fewer than 20 resolutions is not a calibration, and reporting it without n is how a weight gets moved on noise."
+        }
+      }
+    ],
+    "anonymity": { "mode": "pseudonymous", "reveal_after_round": 2 },
+    "replacement": { "enabled": true, "triggers": ["inactivity"], "preserve_prior_positions": true },
+    "duplicate_detection": { "enabled": true, "dimensions": ["model", "vendor", "prompt"], "max_similarity": 0.95 }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 1,
+    "required_artifacts": ["benchmark_baseline", "position_memo"]
+  },
+  "topology": {
+    "kind": "pairwise_tournament",
+    "tournament": { "pairing": "round_robin", "comparisons_per_pair": 1, "aggregation": "bradley_terry" }
+  },
+  "protocol": {
+    "sequence": [
+      { "kind": "prediction_confidence", "stage_id": "forecast-round", "rounds": 1, "independent": true, "anonymous": true },
+      { "kind": "custom", "stage_id": "resolution", "custom_name": "resolve each forecast against an external outcome", "rounds": 1, "participants": ["resolver"] },
+      { "kind": "custom", "stage_id": "scoring", "custom_name": "proper-score and kappa computation", "rounds": 1, "participants": ["scorer"] }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": { "min": 1, "max": 2 },
+    "obligations": { "must_cite_evidence": true, "declare_confidence": true, "declare_conflicts": true },
+    "critique_intensity": "gentle",
+    "experiments": { "allowed": true, "required_before_decision": false, "max_experiments": 30, "runner": "local" }
+  },
+  "budgets": { "effort": "medium", "time_minutes": 20160, "turns": 120, "min_engagement_turns": 1 },
+  "targets": { "evidence_items": 30 },
+  "voting": {
+    "method": "bayesian",
+    "belief_aggregation": {
+      "method": "calibration_weighted",
+      "require_confidence_per_vote": true,
+      "calibration_source": "platform/council/runs/c-x51/brier-ledger.json"
+    },
+    "abstention": { "allowed": true, "counts_toward_quorum": false, "must_justify": true, "strategic_abstention_check": true },
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true },
+    "tie_break": "no_decision"
+  },
+  "consensus": {
+    "measure": "confidence_overlap",
+    "minority_report": "optional",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": false },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": false
+  },
+  "stopping": {
+    "source_expression": "custom:min_resolutions_per_seat >= 20 AND custom:inter_rater_kappa >= 0.6 AND calibration_error <= 0.25",
+    "expression": {
+      "all_of": [
+        { "metric": "custom:min_resolutions_per_seat", "op": ">=", "value": 20, "value_type": "number" },
+        { "metric": "custom:inter_rater_kappa", "op": ">=", "value": 0.6, "value_type": "number" },
+        { "metric": "calibration_error", "op": "<=", "value": 0.25 }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 1, "min_independent_positions": 28, "min_evidence_items": 20 },
+    "hard_caps": { "max_rounds": 2, "max_minutes": 20160, "on_cap": "conditional_decision" }
+  },
+  "outcomes": {
+    "allowed": ["conditional_decision"],
+    "conditional_decision_requires": [
+      "owner promotes the council out of SHADOW mode before any weight binds a decision",
+      "each promoted seat has at least 20 resolved forecasts",
+      "kappa >= 0.6 held for two consecutive scoring windows"
+    ]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2 },
+    "resolution": ["run_experiment", "narrow_scope", "declare_no_decision"],
+    "escalation": { "after_attempts": 2, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": false, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": ["strategic_voting", "strategic_abstention", "collusion", "echo_chamber", "premature_convergence"],
+    "injection_defense": { "treat_artifacts_as_data": true, "quarantine_untrusted_sources": true }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "confidence_trajectory",
+      "votes_by_round",
+      "calibration_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "resumable_state"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "seeded",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default", "retain_days": 365 },
+    "safety": { "forbid_irreversible_actions": true, "owner_approval_for": ["promoting a seat weight above 1.0"] },
+    "persistence": { "store": "ledger", "path": "platform/council/runs/c-x51", "checkpoint_every_round": true },
+    "calibration": { "post_run": true, "score": "brier" }
+  },
+  "metadata": {
+    "title": "Mega calibration tournament, 30 seats (SHADOW - weights bind nothing until promoted)",
+    "owner": "Prekzursil",
+    "lineage": ["C-X51", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#preset-index", "protocols P36,P33"],
+    "spec_citations": ["12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1888", "_USER-PROMPTS.md:11200-11225"],
+    "notes": "SOURCE DESIGN: C-X51 `mega-calibration-tournament-30`, global ordinal 51, tier mega, protocols P36/P33, 30 seats, 2 rounds, default binding SHADOW, OWNER-DECISION YES. || EDITABLE DIALS (change these first): (1) scoring_rule -> audit.calibration.score plus the scorer seat's tools; brier is the default, log_score and crps are the schema's alternatives. (2) demotion_floor -> the calibration_error clause in stopping.expression (0.25) and custom:inter_rater_kappa (0.6). Secondary dials: custom:min_resolutions_per_seat (20), participants.count.exact_n (30), budgets.time_minutes (20160 = 14 days, the design's wall<=weeks), participants.anonymity.reveal_after_round. || VOCABULARY MAP (design term -> CouncilSpec enum): voting `brier_scored` -> voting.method `bayesian` with belief_aggregation.method `calibration_weighted` and require_confidence_per_vote true; the schema has no `brier_scored` ballot, and audit.calibration.score `brier` is where the scoring rule itself lives. roles `forecaster_x28` -> forecaster (auto-selected, 28 of 30 seats); `resolver` -> custom:resolver holding authority judge; `scorer` -> custom:scorer, a deterministic non-model participant (vendor `local`). Default binding `shadow` has NO enum in this schema: it is encoded as outcomes.allowed containing ONLY conditional_decision, plus outcomes.conditional_decision_requires naming owner promotion - so the council structurally CANNOT emit a binding decision. That is the strongest available encoding of shadow mode and is worth knowing about, because a reader looking for a `binding` field will not find one. The design's `anti-sycophancy: off` maps to fast_unanimity_is_suspicious false: forecasters answer independently and anonymously, so agreement is a signal rather than a symptom. || CUSTOM METRICS AND THEIR PRODUCERS: custom:min_resolutions_per_seat (number; produced by the scorer as the MINIMUM over seats, not the mean - a mean lets one heavily-resolved seat carry 29 unresolved ones past the floor) and custom:inter_rater_kappa (number; produced by the scorer via cohen_kappa). Producers cannot live on the leaf: SEM-001 compares parse(source_expression) with the tree by dict equality and parse() emits no `producer` key, so a leaf producer fails SEM-001 - both-states probe at platform/council/_probe_note_vs_source_expression.py. The two SEM-012 WARNs are expected and non-blocking. || WHY calibration_error <= 0.25 IS A THIRD CLAUSE: n>=20 and kappa>=0.6 prove the sample is big enough and the raters agree, but neither proves the forecasts are any GOOD. calibration_error is the registry metric that does."
+  }
+}

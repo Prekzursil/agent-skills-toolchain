@@ -1,0 +1,140 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-d36-prediction-tournament-12",
+  "preset": "forecasting_council",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Elicit a calibrated probability distribution over a set of resolvable questions, and admit no question that cannot be resolved.",
+    "charter": "Ten forecasters answer independently and blind; a resolver owns the resolution criteria; a scorer owns the calibration ledger. The gate is not agreement - it is RESOLVABILITY. A question without a resolution date and a named source is not a forecast, it is an opinion, and it is refused at admission. This council deliberately stops BEFORE it knows whether it was right: scoring happens later, at resolution, which is why the binding mode is shadow.",
+    "risk_tier": "moderate",
+    "desired_output": "forecast",
+    "success_criteria": [
+      "every admitted question has a resolution date",
+      "every admitted question names the source that will settle it",
+      "every forecaster's answer carries an explicit probability and its own confidence",
+      "the calibration ledger is filed with the run so a later Brier score can be attached"
+    ],
+    "consensus_intent": "elicit_distribution",
+    "evidence_requirements": { "citation_required": true, "anchor_style": "url", "min_independent_sources": 1, "evidence_outranks_votes": true },
+    "owner_constraints": { "approval_required": true }
+  },
+  "participants": {
+    "selection": { "mode": "mixed", "strategies": ["calibration_ranked", "model_diverse", "vendor_diverse"], "explain_choices": true, "owner_override_allowed": true },
+    "count": { "mode": "exact", "exact_n": 12 },
+    "diversity": { "min_distinct_vendors": 3, "min_distinct_models": 3, "max_share_per_vendor": 0.5 },
+    "roster": [
+      { "participant_id": "forecaster-01", "display_name": "Forecaster 01", "model": "opus-5", "vendor": "anthropic", "expertise": ["base rates"], "role": "forecaster", "authority": "voter", "anonymous": true, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "forecaster-02", "display_name": "Forecaster 02", "model": "opus-5", "vendor": "anthropic", "expertise": ["reference-class reasoning"], "role": "forecaster", "authority": "voter", "anonymous": true, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "forecaster-03", "display_name": "Forecaster 03", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["base rates"], "role": "forecaster", "authority": "voter", "anonymous": true, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "forecaster-04", "display_name": "Forecaster 04", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["trend extrapolation"], "role": "forecaster", "authority": "voter", "anonymous": true, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "forecaster-05", "display_name": "Forecaster 05", "model": "gemini-3-pro", "vendor": "google", "expertise": ["base rates"], "role": "forecaster", "authority": "voter", "anonymous": true, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "forecaster-06", "display_name": "Forecaster 06", "model": "gemini-3-pro", "vendor": "google", "expertise": ["market signals"], "role": "forecaster", "authority": "voter", "anonymous": true, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "forecaster-07", "display_name": "Forecaster 07", "model": "opus-5", "vendor": "anthropic", "expertise": ["technology adoption"], "role": "forecaster", "authority": "voter", "anonymous": true, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "forecaster-08", "display_name": "Forecaster 08", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["schedule estimation"], "role": "forecaster", "authority": "voter", "anonymous": true, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "forecaster-09", "display_name": "Forecaster 09", "model": "mistral-large-3", "vendor": "mistral", "expertise": ["contrarian base rates"], "role": "forecaster", "authority": "voter", "anonymous": true, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "forecaster-10", "display_name": "Forecaster 10", "model": "grok-4", "vendor": "xai", "expertise": ["news velocity"], "role": "forecaster", "authority": "voter", "anonymous": true, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "resolver", "display_name": "Resolver (owns the resolution criteria)", "model": "opus-5", "vendor": "anthropic", "expertise": ["question design", "resolution criteria"], "role": "verifier", "authority": "chair", "rights": { "may_speak": true, "may_vote": false, "may_veto": true }, "context": { "briefing": "Refuse any question you cannot settle. Name the date and the source, or the question does not enter the tournament." } },
+      { "participant_id": "scorer", "display_name": "Scorer (owns the calibration ledger)", "model": "opus-5", "vendor": "anthropic", "expertise": ["proper scoring rules", "Brier and log score"], "role": "calibrator", "authority": "contributor", "rights": { "may_speak": true, "may_vote": false } }
+    ],
+    "anonymity": { "mode": "double_blind", "reveal_after_round": 2 },
+    "duplicate_detection": { "enabled": true, "dimensions": ["model", "vendor", "position_similarity"], "max_similarity": 0.9 },
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "disclose_only" }
+  },
+  "preparation": { "research_required": true, "independent_prep": true, "min_sources": 2, "prep_time_minutes": 15, "required_artifacts": ["prior_art_scan", "benchmark_baseline"] },
+  "topology": { "kind": "chair_led", "chair": "resolver" },
+  "protocol": {
+    "sequence": [
+      { "kind": "custom", "stage_id": "admit-questions", "custom_name": "resolver gate: refuse every question lacking a resolution date AND a named settling source", "rounds": 1, "participants": ["resolver"] },
+      { "kind": "prediction_confidence", "stage_id": "round-1-blind", "rounds": 1, "anonymous": true, "independent": true },
+      { "kind": "prediction_confidence", "stage_id": "round-2-after-reveal", "rounds": 1, "anonymous": true },
+      { "kind": "synthesis", "stage_id": "aggregate-and-file" }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": { "min": 2, "max": 2, "divergence_before_convergence": false },
+    "obligations": { "must_cite_evidence": true, "declare_confidence": true, "declare_conflicts": true, "must_respond_to_prior": false },
+    "critique_intensity": "standard",
+    "experiments": { "allowed": false, "required_before_decision": false, "max_experiments": 0 }
+  },
+  "budgets": { "effort": "medium", "time_minutes": 90, "turns": 26, "sources": 20, "speaking_quota_per_participant": 2, "max_inactivity_rounds": 1 },
+  "targets": { "evidence_items": 10 },
+  "voting": {
+    "method": "bayesian",
+    "belief_aggregation": {
+      "method": "calibration_weighted",
+      "require_confidence_per_vote": true,
+      "calibration_source": "platform/council/calibration/forecaster-brier-history.json"
+    },
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true, "reject_evidence_free_majority": true },
+    "abstention": { "allowed": true, "counts_toward_quorum": false, "must_justify": true, "strategic_abstention_check": true },
+    "tie_break": "no_decision"
+  },
+  "consensus": {
+    "measure": "confidence_overlap",
+    "minority_report": "optional",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": false },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": false
+  },
+  "stopping": {
+    "expression": {
+      "all_of": [
+        {
+          "metric": "custom:every_question_has_resolver",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean",
+          "producer": "question-set linter: asserts a named settling source on every row of the question set",
+          "note": "DIAL 1 of 2. The design's admission rule - 'no question admitted without a resolver'. This is the whole gate; a tournament of unresolvable questions is unfalsifiable."
+        },
+        {
+          "metric": "custom:every_question_has_resolution_date",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean",
+          "producer": "the same question-set linter, date column",
+          "note": "DIAL 2 of 2. A forecast without a date cannot be scored, so it cannot be wrong, so it is not a forecast."
+        }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 2, "min_independent_positions": 10, "every_participant_spoke": true, "min_evidence_items": 10 },
+    "hard_caps": { "max_rounds": 2, "max_minutes": 90, "on_cap": "conditional_decision" }
+  },
+  "outcomes": {
+    "allowed": ["conditional_decision", "no_decision"],
+    "conditional_decision_requires": [
+      "each question resolves on its stated date against its stated source",
+      "a Brier (or log) score is computed at resolution and appended to the calibration ledger",
+      "the forecast is NOT treated as a decision until at least one resolution cycle has scored these seats"
+    ]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2, "vote_oscillation_rounds": 2 },
+    "resolution": ["split_question", "narrow_scope", "declare_no_decision"],
+    "escalation": { "after_attempts": 1, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": false, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": ["strategic_voting", "strategic_abstention", "collusion", "hallucinated_expertise", "echo_chamber", "duplicate_novelty", "evidence_free_majority"],
+    "injection_defense": { "treat_artifacts_as_data": true, "quarantine_untrusted_sources": true }
+  },
+  "outputs": {
+    "required": ["independent_opening_positions", "transcript", "confidence_trajectory", "votes_by_round", "calibration_report", "evidence_map", "unresolved_unknowns", "final_recommendation", "decision_lineage", "resumable_state"],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "seeded",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default", "retain_days": 730 },
+    "persistence": { "store": "both", "path": "platform/council/runs/c-d36/", "checkpoint_every_round": true },
+    "calibration": { "post_run": true, "score": "brier" }
+  },
+  "metadata": {
+    "title": "Prediction tournament (12 seats, shadow-binding, resolution-gated)",
+    "owner": "Prekzursil",
+    "notes": "WHEN TO USE: only as a STANDING practice. The design card is explicit that a single run has near-zero immediate value and this is worth it only if the owner runs it for >= 8 weeks, because the payoff is the calibration history, not any one forecast. WHEN NOT TO USE: as a decision gate - binding is 'shadow' and outcomes.allowed deliberately excludes 'decision', so this council structurally CANNOT decide anything. anti_failure.fast_unanimity_response is intentionally absent (the design says anti-sycophancy off) and consensus.fast_unanimity_is_suspicious is false: well-calibrated forecasters SHOULD converge, so treating agreement as suspicious here would be a false positive. EDITABLE DIALS (design names question_set and scoring_rule): /audit/calibration/score (brier | log_score | crps), /voting/belief_aggregation/calibration_source (the Brier history file - until it exists, calibration_ranked selection degrades to model_diverse), /participants/count/exact_n, /budgets/time_minutes, /stopping/hard_caps. STOPPING (human form): custom:every_question_has_resolver == true AND custom:every_question_has_resolution_date == true. source_expression absent per the SEM-001/SEM-012 collision proven by _probe_sem_rule_collision.py.",
+    "spec_citations": ["12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1663", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:637", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:685", "_USER-PROMPTS.md:11208"],
+    "lineage": ["C-D36 deep-prediction-tournament-12", "P33 prediction-tournament", "P36 calibration-tournament"]
+  }
+}

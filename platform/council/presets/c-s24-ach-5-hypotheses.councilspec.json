@@ -1,0 +1,424 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-s24-ach-5-hypotheses",
+  "preset": "root_cause_council",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Find the root cause by Analysis of Competing Hypotheses: enumerate at least four hypotheses including one measurement-error hypothesis, then keep the one with the fewest inconsistencies.",
+    "charter": "ACH root-cause council. Evidence that does not DISCRIMINATE between hypotheses is explicitly discarded as non-diagnostic. The hypothesis with the fewest inconsistencies wins - not the one with the most supporting evidence.",
+    "risk_tier": "high",
+    "desired_output": "root_cause",
+    "success_criteria": [
+      "at least four hypotheses were carried, one of which is a measurement-error hypothesis",
+      "non-diagnostic evidence was explicitly discarded, not quietly counted as support",
+      "the surviving hypothesis is the one with the fewest inconsistencies"
+    ],
+    "consensus_intent": "adjudicate",
+    "confidence_target": 0.8,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "file_line",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "adversarial",
+        "vendor_diverse"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 5,
+      "min": 5,
+      "max": 5
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_expertise": 4
+    },
+    "roster": [
+      {
+        "participant_id": "methodologist",
+        "display_name": "Methodologist (owns the ACH matrix)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "custom:methodologist",
+        "authority": "chair",
+        "effort": "xhigh",
+        "expertise": [
+          "ACH",
+          "diagnosticity"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true,
+          "may_call_experiment": true
+        }
+      },
+      {
+        "participant_id": "expert-system",
+        "display_name": "Domain expert (the system under investigation)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "domain_expert",
+        "authority": "voter",
+        "effort": "high",
+        "expertise": [
+          "the failing system"
+        ],
+        "source_access": [
+          "repo",
+          "transcripts"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "expert-detector",
+        "display_name": "Domain expert (the DETECTOR that produced the signal)",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "domain_expert",
+        "authority": "voter",
+        "effort": "high",
+        "expertise": [
+          "measurement",
+          "detector validation"
+        ],
+        "source_access": [
+          "repo",
+          "transcripts"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        },
+        "independence": {
+          "fresh_context": true
+        }
+      },
+      {
+        "participant_id": "expert-environment",
+        "display_name": "Domain expert (environment and shell)",
+        "kind": "agent",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "role": "domain_expert",
+        "authority": "voter",
+        "effort": "high",
+        "expertise": [
+          "windows shell",
+          "path and encoding"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "evidence-clerk",
+        "display_name": "Evidence clerk (holds the diagnosticity table)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "custom:evidence_clerk",
+        "authority": "voter",
+        "effort": "high",
+        "expertise": [
+          "evidence custody"
+        ],
+        "source_access": [
+          "repo",
+          "internal_docs"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      }
+    ],
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "recuse_from_vote"
+    },
+    "duplicate_detection": {
+      "enabled": true,
+      "dimensions": [
+        "position_similarity"
+      ],
+      "max_similarity": 0.8
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 3,
+    "required_artifacts": [
+      "evidence_pack",
+      "position_memo"
+    ]
+  },
+  "topology": {
+    "kind": "chair_led",
+    "chair": "methodologist"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "blind_independent_first_pass",
+        "stage_id": "hypotheses",
+        "independent": true,
+        "quotas": {
+          "ideas_per_participant": 2
+        }
+      },
+      {
+        "kind": "custom",
+        "stage_id": "diagnosticity",
+        "custom_name": "score each evidence item for diagnosticity; discard non-diagnostic",
+        "participants": [
+          "evidence-clerk",
+          "methodologist"
+        ]
+      },
+      {
+        "kind": "cross_examination",
+        "stage_id": "inconsistency-hunt",
+        "rounds": 2
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "surviving-hypothesis"
+      }
+    ],
+    "speaking_order": "lowest_confidence_first",
+    "rounds": {
+      "min": 3,
+      "max": 6,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 600
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "cross_examination": true,
+      "declare_confidence": true,
+      "steelman_before_rebuttal": true
+    },
+    "critique_intensity": "adversarial",
+    "experiments": {
+      "allowed": true,
+      "max_experiments": 6,
+      "runner": "local"
+    }
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 45,
+    "tool_calls": 180,
+    "sources": 25,
+    "turns": 30,
+    "experiments": 6,
+    "rebuttal_depth": 3
+  },
+  "targets": {
+    "evidence_items": 12,
+    "counterexamples": 4,
+    "coverage_score": 0.9
+  },
+  "voting": {
+    "method": "score",
+    "score_scale": {
+      "min": 0,
+      "max": 10
+    },
+    "quorum": {
+      "min_voters": 4,
+      "on_failure": "extend_rounds"
+    },
+    "belief_aggregation": {
+      "method": "calibration_weighted",
+      "require_confidence_per_vote": true
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "abstention": {
+      "allowed": true,
+      "counts_toward_quorum": false,
+      "must_justify": true
+    },
+    "tie_break": "chair"
+  },
+  "consensus": {
+    "threshold": 0.8,
+    "measure": "agreement_index",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "independent_positions >= 4 AND evidence_items >= 12 AND coverage_score >= 0.9",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "independent_positions",
+          "op": ">=",
+          "value": 4
+        },
+        {
+          "metric": "evidence_items",
+          "op": ">=",
+          "value": 12
+        },
+        {
+          "metric": "coverage_score",
+          "op": ">=",
+          "value": 0.9
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 3,
+      "min_independent_positions": 4,
+      "min_evidence_items": 12,
+      "min_objections_addressed": 4
+    },
+    "hard_caps": {
+      "max_rounds": 6,
+      "max_minutes": 45,
+      "on_cap": "escalate_to_owner"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "dissent",
+      "irreducible_disagreement",
+      "no_decision",
+      "conditional_decision",
+      "proof_of_impossibility",
+      "minority_report"
+    ],
+    "conditional_decision_requires": [
+      "the surviving hypothesis names the probe that would refute it"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "circular_citation_check": true,
+      "vote_oscillation_rounds": 2
+    },
+    "resolution": [
+      "run_experiment",
+      "strongest_counterexample",
+      "blind_re_evaluation",
+      "chair_ruling",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": true,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "evidence_free_majority",
+      "premature_convergence",
+      "instant_unanimity",
+      "circular_citation",
+      "lost_dissent",
+      "hallucinated_expertise",
+      "prompt_injection"
+    ],
+    "fast_unanimity_response": [
+      "blind_re_evaluation",
+      "strongest_counterexample"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "claim_evidence_contradiction_graph",
+      "evidence_map",
+      "experiments",
+      "votes_by_round",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "pii_policy": "redact",
+      "retain_days": 180
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    },
+    "calibration": {
+      "post_run": true,
+      "score": "brier"
+    }
+  },
+  "metadata": {
+    "title": "ACH root-cause council (5 seats, >=4 hypotheses)",
+    "owner": "Prekzursil",
+    "lineage": [
+      "C-S24 ach-5-hypotheses",
+      "P38 analysis-of-competing-hypotheses",
+      "P40 quality-of-information-check"
+    ],
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1485-1499"
+    ],
+    "notes": "DESIGN LINEAGE: C-S24 ach-5-hypotheses in 12-COUNCIL-PROTOCOLS-AND-PRESETS.md (seats: 5; roles: methodologist,domain_expert_x3,evidence_clerk).\nPRESET LABEL: root_cause_council - exact archetype match.\nOUTCOME MAPPING (card vocabulary -> schema outcomes.allowed): CONSENSUS->decision, MAJORITY_WITH_DISSENT->dissent, IRREDUCIBLE_DISAGREEMENT->irreducible_disagreement, INSUFFICIENT_EVIDENCE->no_decision, CONDITIONAL_DECISION->conditional_decision, DEFER->no_decision, PROOF_OF_IMPOSSIBILITY->proof_of_impossibility, MINORITY_REPORT->minority_report.\nEDITABLE DIALS (pointer -> what it changes):\n  - $.stopping.expression independent_positions : hypothesis_floor dial (card default 4)\n  - $.stopping.expression coverage_score + $.targets.coverage_score : diagnosticity_threshold dial\n  - $.protocol.speaking_order : lowest_confidence_first is deliberate - it stops the most confident seat from anchoring the matrix\nCALIBRATION CASE from the card: this council must rank 'the machine was powered off' ABOVE 'the feed is broken' on R-01. That is why one of the three domain experts is scoped to the DETECTOR rather than the system - a measurement-error hypothesis has no advocate unless a seat owns it.\nEVERY field in this file is a dial; the ones above are the ones the owner is expected to change first. See README.md in this directory for the full table."
+  }
+}

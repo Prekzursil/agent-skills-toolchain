@@ -1,0 +1,145 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-x48-brainwriting-36",
+  "preset": "custom",
+  "extends_preset": "hundred_idea_brainstorm",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Generate ideas by 6-3-5 brainwriting: 36 writers in 6 groups of 6, each adding 3 ideas per pass, sheets rotating for 5 passes - with a mechanical check that later entries BUILD ON the earlier ones rather than restating them.",
+    "charter": "Brainwriting is silent and written: each writer adds three ideas to a sheet, then the sheet rotates. The value is cumulative - pass 4 should be building on what passes 1 to 3 put on that sheet. That is also the failure mode, because a writer can trivially satisfy the quota by rephrasing the entry above. So the build-on relation is checked MECHANICALLY: an n-gram overlap test between successive entries on the same sheet, with a floor (it must overlap enough to be building on) and a ceiling (not so much that it is a restatement). No evidence citation is required here - this is pure generation, and requiring anchors at this stage would collapse the idea rate for no gain.",
+    "risk_tier": "low",
+    "desired_output": "idea_set",
+    "success_criteria": [
+      "all 5 passes completed on every sheet",
+      "the n-gram overlap check ran between every pair of successive entries",
+      "entries flagged as restatements rather than build-ons are merged or rejected, not counted as novel",
+      "the surviving unique-idea count is reported after deduplication, not before"
+    ],
+    "consensus_intent": "surface_disagreement",
+    "evidence_requirements": { "citation_required": false, "min_independent_sources": 0, "evidence_outranks_votes": false }
+  },
+  "participants": {
+    "selection": {
+      "mode": "automatic",
+      "strategies": ["automatic", "stratified", "model_diverse"],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": { "mode": "exact", "exact_n": 36 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_expertise": 12, "max_share_per_vendor": 0.75 },
+    "role_templates": ["custom:brainwriter", "synthesizer"],
+    "anonymity": { "mode": "blind_to_peers", "reveal_after_round": 5 },
+    "information_partition": { "enabled": true, "strategy": "role_scoped" },
+    "duplicate_detection": { "enabled": true, "dimensions": ["prompt", "position_similarity"], "max_similarity": 0.75 },
+    "replacement": { "enabled": true, "triggers": ["inactivity"], "preserve_prior_positions": true }
+  },
+  "preparation": { "research_required": false, "independent_prep": true, "min_sources": 0, "prep_time_minutes": 5 },
+  "topology": { "kind": "flat" },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "custom",
+        "stage_id": "brainwriting-635",
+        "custom_name": "P22 brainwriting 6-3-5: 6 groups of 6 writers, 3 ideas per writer per pass, sheets rotate, 5 passes, silent throughout",
+        "rounds": 5,
+        "anonymous": true,
+        "independent": true,
+        "quotas": { "ideas_per_participant": 3, "novel_ideas_per_round": 1 }
+      },
+      { "kind": "custom", "stage_id": "build-on-overlap-check", "custom_name": "n-gram overlap test between successive entries on each sheet: floor proves building-on, ceiling rejects restatement", "rounds": 1 },
+      { "kind": "synthesis", "stage_id": "pooled-ranking" }
+    ],
+    "speaking_order": "round_robin",
+    "rounds": { "min": 5, "max": 5, "divergence_before_convergence": true },
+    "obligations": { "must_respond_to_prior": true, "must_cite_evidence": false, "declare_confidence": false },
+    "critique_intensity": "gentle",
+    "experiments": { "allowed": false, "required_before_decision": false, "max_experiments": 0 }
+  },
+  "budgets": {
+    "effort": "medium",
+    "time_minutes": 180,
+    "turns": 40,
+    "speaking_quota_per_participant": 5,
+    "min_engagement_turns": 5,
+    "max_inactivity_rounds": 1
+  },
+  "targets": {
+    "raw_ideas": 540,
+    "unique_ideas": 100,
+    "categories": 12,
+    "novelty_ratio": 0.4,
+    "diversity_index": 0.6,
+    "dedup": { "enabled": true, "max_similarity": 0.75, "trivial_variant_policy": "merge" }
+  },
+  "voting": {
+    "method": "ranked_choice",
+    "evidence_gate": { "votes_require_evidence": false, "evidence_outranks_majority": false },
+    "abstention": { "allowed": false, "must_justify": false },
+    "tie_break": "no_decision"
+  },
+  "consensus": {
+    "threshold": 0.5,
+    "measure": "vote_share",
+    "minority_report": "optional",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": false },
+    "irreducible_disagreement_allowed": false,
+    "fast_unanimity_is_suspicious": false
+  },
+  "stopping": {
+    "expression": {
+      "all_of": [
+        {
+          "metric": "custom:passes_complete",
+          "op": ">=",
+          "value": 5,
+          "value_type": "number",
+          "producer": "sheet ledger: counts completed rotation passes per sheet and reports the minimum across all 6 sheets",
+          "note": "DIAL 1 of 2 - the 6-3-5 pass count. Reported as the MINIMUM across sheets, not the mean: a mean would let one finished sheet mask an abandoned one."
+        },
+        {
+          "metric": "custom:build_on_overlap_checked",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean",
+          "producer": "n-gram overlap test between successive entries on the same sheet, with a build-on floor and a restatement ceiling",
+          "note": "DIAL 2 of 2 - the design's minimum-deliberation floor, and the only thing separating real brainwriting from 540 paraphrases. The thresholds live in the producer; targets.dedup.max_similarity (0.75) is the restatement ceiling."
+        }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 5, "min_independent_positions": 36, "min_minutes": 45, "every_participant_spoke": true },
+    "hard_caps": { "max_rounds": 5, "max_minutes": 180, "on_cap": "synthesize_best_effort" }
+  },
+  "outcomes": {
+    "allowed": ["decision"],
+    "conditional_decision_requires": []
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2, "repetition_similarity": 0.75 },
+    "resolution": ["rotate_roles", "narrow_scope"],
+    "escalation": { "after_attempts": 2, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": false, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": ["idea_count_gaming", "duplicate_novelty", "echo_chamber", "role_collapse", "silence", "participant_dominance", "weak_synthesis", "prompt_injection"],
+    "injection_defense": { "treat_artifacts_as_data": true, "strip_instructions_from_participant_output": true }
+  },
+  "outputs": {
+    "required": ["idea_ledger", "idea_catalog", "option_cards", "transcript", "resumable_state"],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "seeded",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default" },
+    "persistence": { "store": "filesystem", "path": "platform/council/runs/c-x48/", "checkpoint_every_round": true }
+  },
+  "metadata": {
+    "title": "Brainwriting 6-3-5 (36 writers, 6 sheets, 5 passes)",
+    "owner": "Prekzursil",
+    "notes": "WHEN TO USE: when you want CUMULATIVE ideas - each pass building on the last - and when spoken deliberation would let one loud seat set the frame. The silence is the feature. WHEN NOT TO USE: when you need breadth rather than depth (C-X47's independent fan-out beats it) or when ideas must be anchored - citation is off here by design. The design's named dials are group_size and passes. EDITABLE DIALS: /participants/count/exact_n and /protocol/sequence/0/rounds (group_size x groups, and passes - 6 groups x 6 writers x 3 ideas x 5 passes = 540 raw, which is targets.raw_ideas; changing either number means changing raw_ideas too), /targets/dedup/max_similarity (the restatement ceiling), /budgets/time_minutes. STOPPING (human form): custom:passes_complete >= 5 AND custom:build_on_overlap_checked == true. source_expression absent per the collision proven by _probe_sem_rule_collision.py. SCHEMA LIMITATION worth knowing: the 6-groups-of-6 structure is expressed in the protocol stage rather than in topology.committees, because topology.committees requires named participant_ids and this council auto-composes its 36 seats. The schema can therefore only express group structure over an EXPLICIT roster - an auto-composed swarm must carry its grouping in the protocol, where no validator checks it. Note also that outcomes.allowed is a single value (decision), faithfully following the design card, which means this council has no vocabulary for 'the sweep failed' - if that matters to you, add no_decision.",
+    "spec_citations": ["12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1844", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:455", "_USER-PROMPTS.md:11197"],
+    "lineage": ["C-X48 mega-brainwriting-36", "P22 brainwriting-635"]
+  }
+}

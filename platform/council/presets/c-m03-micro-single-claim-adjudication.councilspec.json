@@ -1,0 +1,169 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-m03-micro-single-claim-adjudication",
+  "preset": "evidence_adjudication_jury",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Adjudicate ONE load-bearing claim to CONFIRMED, REFUTED, PARTIAL or NOT-CHECKED, and refuse CONFIRMED unless a source probe AND a mechanically different verifier are both named.",
+    "charter": "Two seats: an evidence clerk who may only quote, and a judge who may only rule on what was quoted. Binding. The single hole this preset exists to close: a CONFIRMED verdict that declares a verifier but no SOURCE probe has zero corroborating pairs, not one - the shipped claim_gate accepted exactly that.",
+    "risk_tier": "moderate",
+    "desired_output": "review_verdict",
+    "success_criteria": [
+      "the claim is restated in one falsifiable sentence before any verdict",
+      "both a source probe and an independent verifier are named, with file:line or command output",
+      "the two probes are mechanically different (different shell, field, or measurement) - a re-run of the same probe is not a second signal",
+      "CONFIRMED is refused when either probe is absent"
+    ],
+    "consensus_intent": "adjudicate",
+    "confidence_target": 0.9,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "file_line",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": { "approval_required": false, "deadline_minutes": 3 }
+  },
+  "participants": {
+    "selection": { "mode": "exact", "strategies": ["exact"], "explain_choices": true, "owner_override_allowed": true },
+    "count": { "mode": "exact", "exact_n": 2, "min": 2, "max": 2 },
+    "roster": [
+      {
+        "participant_id": "evidence-clerk",
+        "display_name": "Evidence clerk (quotes only, never argues)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["evidence handling", "citation verification"],
+        "role": "custom:evidence_clerk",
+        "authority": "contributor",
+        "rights": { "may_speak": true, "may_vote": false },
+        "tools": ["Read", "Grep", "Bash"],
+        "source_access": ["repo", "transcripts"],
+        "effort": "medium",
+        "context": {
+          "briefing": "Produce the evidence table: for each side of the claim, the exact anchor and the measurement that produced it. Label which probe is the SOURCE (produced the claim) and which is the VERIFIER (checked it). An undeclared source is zero signals, not one."
+        }
+      },
+      {
+        "participant_id": "judge",
+        "display_name": "Judge (rules only on the clerk's table)",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["adjudication", "verification discipline"],
+        "role": "judge",
+        "authority": "judge",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "high",
+        "independence": { "sees_peers_before_first_position": true, "fresh_context": true }
+      }
+    ],
+    "role_templates": ["custom:evidence_clerk", "judge"],
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "recuse_from_vote" }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": false,
+    "min_sources": 2,
+    "required_artifacts": ["evidence_pack"]
+  },
+  "topology": { "kind": "proposer_critic_judge" },
+  "protocol": {
+    "sequence": [
+      { "kind": "custom", "custom_name": "evidence-table-assembly", "stage_id": "table", "participants": ["evidence-clerk"] },
+      { "kind": "jury", "stage_id": "ruling", "participants": ["judge"] }
+    ],
+    "speaking_order": "chair_directed",
+    "rounds": { "min": 1, "max": 2 },
+    "turn": { "max_words": 400 },
+    "obligations": { "must_cite_evidence": true, "declare_confidence": true, "declare_conflicts": true },
+    "critique_intensity": "standard",
+    "experiments": { "allowed": true, "required_before_decision": false, "max_experiments": 2, "runner": "local" }
+  },
+  "budgets": { "effort": "medium", "time_minutes": 3, "tool_calls": 10, "turns": 4, "sources": 6 },
+  "targets": { "evidence_items": 2 },
+  "voting": {
+    "method": "judge",
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true, "reject_evidence_free_majority": true },
+    "tie_break": "judge"
+  },
+  "consensus": {
+    "measure": "confidence_overlap",
+    "minority_report": "optional",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true },
+    "irreducible_disagreement_allowed": false,
+    "fast_unanimity_is_suspicious": false
+  },
+  "stopping": {
+    "expression": {
+      "all_of": [
+        {
+          "metric": "custom:claim_source_probe_present",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean",
+          "producer": "evidence clerk stage 'table': non-empty source_probe field naming the measurement that PRODUCED the claim",
+          "note": "A CONFIRMED verdict with no source probe declares no producing measurement, so there is no pair to compare and nothing to certify."
+        },
+        {
+          "metric": "custom:claim_independent_verifier_present",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean",
+          "producer": "evidence clerk stage 'table': non-empty verifier field whose probe fingerprint DIFFERS from the source probe",
+          "note": "Re-running the source probe is not a second signal; the fingerprints must differ in shell, field, or measurement."
+        },
+        {
+          "metric": "evidence_items",
+          "op": ">=",
+          "value": 2,
+          "note": "Two mechanically independent anchors minimum - the numeric floor behind the two boolean gates."
+        }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 1, "min_evidence_items": 2, "every_participant_spoke": true },
+    "hard_caps": { "max_rounds": 2, "max_minutes": 3, "on_cap": "no_decision" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "conditional_decision", "no_decision"],
+    "conditional_decision_requires": ["the missing probe is run and its anchor recorded"]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 1, "circular_citation_check": true },
+    "resolution": ["run_experiment", "narrow_scope", "judge_ruling", "declare_no_decision"],
+    "escalation": { "after_attempts": 1, "to": "judge" },
+    "owner_intervention": { "allowed": true, "may_override_vote": false, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": ["circular_citation", "evidence_free_majority", "hallucinated_expertise", "prompt_injection"],
+    "injection_defense": { "treat_artifacts_as_data": true, "strip_instructions_from_participant_output": true, "quarantine_untrusted_sources": true }
+  },
+  "outputs": {
+    "required": ["transcript", "evidence_map", "claim_evidence_contradiction_graph", "final_recommendation", "decision_lineage"],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": false,
+    "determinism": "deterministic_where_possible",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default", "retain_days": 90 },
+    "persistence": { "store": "both", "checkpoint_every_round": false }
+  },
+  "metadata": {
+    "title": "C-M03 micro-single-claim-adjudication",
+    "notes": "HUMAN-STOP: custom:claim_source_probe_present == true AND custom:claim_independent_verifier_present == true AND evidence_items >= 2 | EDITABLE-DIALS: the two custom leaves in stopping.expression (verifier_independence_test) . objective.evidence_requirements.min_independent_sources | NO-SOURCE-EXPRESSION: this preset uses custom: metrics that carry a producer and a note, and SEM-001 compares source_expression to the tree by EXACT equality, so a tree with note/producer keys can never equal the parsed string. The human form above is the HUMAN-STOP line and _probe_lane1_presets.py proves it parses to this tree after stripping note/producer. | OUTCOME-MAP: CONFIRMED and REFUTED -> decision . SCOPED -> conditional_decision . UNVERIFIED -> no_decision | VOTING-MAP: design judge -> voting.method=judge | BINDING: binding.",
+    "spec_citations": [
+      "_USER-PROMPTS.md:10746-10768",
+      "_USER-PROMPTS.md:11198",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1179-1192"
+    ],
+    "owner": "Prekzursil",
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#C-M03 micro-single-claim-adjudication",
+      "protocol P15 claim-by-claim-adjudication",
+      "protocol P40 quality-of-information-check",
+      "rules/common/single-signal-verification.md (the source_probe hole this preset closes)"
+    ]
+  }
+}

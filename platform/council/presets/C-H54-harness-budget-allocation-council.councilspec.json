@@ -1,0 +1,230 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-h54-harness-budget-allocation-council",
+  "preset": "custom",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Allocate a shared per-turn budget across competing harness checks, on measured per-check cost, computed headroom, and an explicitly stated DISARMED baseline.",
+    "charter": "MANDATE. A shared budget can only be allocated once it is measured. Three things must be on the table before any check is admitted: (1) the per-check cost, measured on this machine rather than estimated from the code's shape; (2) the remaining headroom, computed as budget minus the sum of admitted costs; (3) the DISARMED baseline - which checks are currently inert, because a battery that is disarmed costs nothing and an allocation computed against it is fiction the moment it is armed. No check may be added on an uncosted budget. Candidate checks are compared pairwise so that 'this one is worth more than that one' is an explicit ranking rather than an implicit survival of whatever was added last, and the methodologist rules when the pairwise graph has no clear winner.",
+    "risk_tier": "high",
+    "desired_output": "ranked_options",
+    "success_criteria": [
+      "every candidate check has a measured per-turn cost",
+      "headroom is computed and stated as a number, not asserted as sufficient",
+      "the DISARMED baseline is named, so the allocation is honest about what is inert",
+      "the pairwise ranking is complete before any admission decision"
+    ],
+    "consensus_intent": "seek_consensus",
+    "confidence_target": 0.8,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "command_output",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": false,
+      "forbidden_actions": [
+        "admit a check whose cost has not been measured",
+        "compute headroom against a disarmed battery without saying so"
+      ],
+      "deadline_minutes": 60
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": ["exact", "expertise_ranked"],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": { "mode": "exact", "exact_n": 5, "min": 5, "max": 5 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_expertise": 4 },
+    "roster": [
+      {
+        "participant_id": "sre",
+        "display_name": "SRE - owns the per-turn budget and the arming state",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["hook batteries", "latency budgets"],
+        "role": "custom:sre",
+        "authority": "voter",
+        "rights": { "may_speak": true, "may_vote": true, "may_call_experiment": true },
+        "context": {
+          "briefing": "State the DISARMED baseline first, in writing. An allocation computed against inert checks is the failure this preset exists to prevent."
+        }
+      },
+      {
+        "participant_id": "implementer",
+        "display_name": "Implementer - proposes the candidate checks",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["hook authoring", "instrumentation"],
+        "role": "custom:implementer",
+        "authority": "voter",
+        "rights": { "may_speak": true, "may_vote": true, "may_call_experiment": true }
+      },
+      {
+        "participant_id": "cost-analyst",
+        "display_name": "Cost analyst - measures per-check cost on this machine",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["profiling", "spawn accounting"],
+        "role": "custom:cost_analyst",
+        "authority": "voter",
+        "rights": { "may_speak": true, "may_vote": true, "may_call_experiment": true },
+        "context": {
+          "briefing": "Measure, do not read the code and guess. Spawn count dominates on this box; a single interpreter start can cost more than the logic it runs. Report cost per turn with the measurement command attached."
+        }
+      },
+      {
+        "participant_id": "methodologist",
+        "display_name": "Methodologist - rules when the pairwise graph is inconclusive",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["measurement design", "ranking methods"],
+        "role": "custom:methodologist",
+        "authority": "judge",
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "max"
+      },
+      {
+        "participant_id": "dissent-guardian",
+        "display_name": "Dissent guardian - keeps the losing case on the record",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": ["minority reporting", "suppression detection"],
+        "role": "custom:dissent_guardian",
+        "authority": "voter",
+        "rights": { "may_speak": true, "may_vote": true },
+        "context": {
+          "briefing": "A check that loses the allocation is not thereby worthless. Preserve the losing argument verbatim and attributed, so a later budget increase can revisit it instead of re-deriving it."
+        }
+      }
+    ],
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "disclose_only" },
+    "replacement": { "enabled": true, "triggers": ["inactivity", "dominance"], "preserve_prior_positions": true }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": ["benchmark_baseline", "evidence_pack"]
+  },
+  "topology": {
+    "kind": "pairwise_tournament",
+    "tournament": { "pairing": "round_robin", "comparisons_per_pair": 1, "aggregation": "copeland" }
+  },
+  "protocol": {
+    "sequence": [
+      { "kind": "custom", "stage_id": "disarmed-baseline", "custom_name": "state which checks are currently inert", "rounds": 1, "participants": ["sre"] },
+      { "kind": "custom", "stage_id": "cost-measurement", "custom_name": "measure per-check cost per turn on this machine", "rounds": 1, "participants": ["cost-analyst"] },
+      { "kind": "custom", "stage_id": "pairwise-ranking", "custom_name": "pairwise comparison of candidate checks", "rounds": 2 },
+      { "kind": "synthesis", "stage_id": "allocation", "rounds": 1 }
+    ],
+    "speaking_order": "round_robin",
+    "rounds": { "min": 2, "max": 3 },
+    "obligations": { "must_respond_to_prior": true, "must_cite_evidence": true, "declare_confidence": true },
+    "critique_intensity": "standard",
+    "experiments": { "allowed": true, "required_before_decision": true, "max_experiments": 12, "runner": "local" }
+  },
+  "budgets": { "effort": "high", "time_minutes": 60, "turns": 24, "experiments": 12 },
+  "targets": { "evidence_items": 8, "objections": 2 },
+  "voting": {
+    "method": "condorcet",
+    "quorum": { "min_voters": 4, "min_fraction": 0.8, "on_failure": "extend_rounds" },
+    "abstention": { "allowed": true, "counts_toward_quorum": false, "must_justify": true },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "judge"
+  },
+  "consensus": {
+    "threshold": 0.8,
+    "measure": "pairwise_agreement",
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true, "suppression_check": true },
+    "fast_unanimity_is_suspicious": false
+  },
+  "stopping": {
+    "source_expression": "custom:per_check_cost_measured == true AND custom:headroom_computed == true AND custom:disarmed_baseline_stated == true",
+    "expression": {
+      "all_of": [
+        { "metric": "custom:per_check_cost_measured", "op": "==", "value": true, "value_type": "boolean" },
+        { "metric": "custom:headroom_computed", "op": "==", "value": true, "value_type": "boolean" },
+        { "metric": "custom:disarmed_baseline_stated", "op": "==", "value": true, "value_type": "boolean" }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "every_participant_spoke": true,
+      "min_evidence_items": 6,
+      "min_objections_addressed": 2
+    },
+    "hard_caps": { "max_rounds": 3, "max_minutes": 60, "on_cap": "conditional_decision" }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "irreducible_disagreement",
+      "proof_of_impossibility",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "the allocation is re-computed against the ARMED battery before any check goes live"
+    ]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2, "vote_oscillation_rounds": 2, "repetition_similarity": 0.9 },
+    "resolution": ["run_experiment", "narrow_scope", "split_question", "judge_ruling", "escalate_to_owner"],
+    "escalation": { "after_attempts": 2, "to": "judge" },
+    "owner_intervention": { "allowed": true, "may_override_vote": true, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": [
+      "evidence_free_majority",
+      "participant_dominance",
+      "lost_dissent",
+      "minority_suppression",
+      "weak_synthesis",
+      "premature_convergence"
+    ],
+    "injection_defense": { "treat_artifacts_as_data": true, "quarantine_untrusted_sources": true }
+  },
+  "outputs": {
+    "required": [
+      "option_cards",
+      "evidence_map",
+      "votes_by_round",
+      "experiments",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "action_plan",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default" },
+    "safety": { "forbid_irreversible_actions": true, "owner_approval_for": ["arming a newly admitted check"] },
+    "persistence": { "store": "both", "path": "platform/council/runs/c-h54", "checkpoint_every_round": true },
+    "calibration": { "post_run": true, "score": "brier" }
+  },
+  "metadata": {
+    "title": "Harness budget-allocation council (binding)",
+    "owner": "Prekzursil",
+    "lineage": ["C-H54", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#preset-index", "protocols P51,P37"],
+    "spec_citations": ["12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1935", "_USER-PROMPTS.md:11200-11225"],
+    "notes": "SOURCE DESIGN: C-H54 `harness-budget-allocation-council`, global ordinal 54, tier standard, protocols P51/P37, 5 seats, 3 rounds, default binding BINDING, OWNER-DECISION NO. || EDITABLE DIALS: (1) budget_sec -> the headroom computation in the cost-measurement and allocation stages, and objective.owner_constraints.deadline_minutes for the council itself; the per-turn budget number is the single most consequential dial. (2) check_costs -> the cost-analyst seat's measurements; replace them with fresh numbers whenever the machine, the interpreter or the check set changes. Secondary dials: protocol.rounds.max (3), topology.tournament.aggregation (copeland), voting.quorum.min_voters, consensus.threshold. || VOCABULARY MAP (design term -> CouncilSpec enum): voting `pairwise_then_judge` -> topology.kind `pairwise_tournament` (round_robin, copeland) plus voting.method `condorcet` and tie_break `judge`; the pairwise half is topology, the judge half is the tie-break, and neither alone captures the design. consensus.measure `pairwise_agreement` matches. roles `sre` -> custom:sre, `implementer` -> custom:implementer, `cost_analyst` -> custom:cost_analyst, `methodologist` -> custom:methodologist holding authority `judge` so tie_break `judge` resolves to a real seat, `dissent_guardian` -> custom:dissent_guardian. Outcomes map CONSENSUS->decision, MAJORITY_WITH_DISSENT->dissent, INSUFFICIENT_EVIDENCE->no_decision, DEFER->no_decision. `default binding: binding` has no schema field; it is encoded as outcomes.allowed containing `decision`. `evidence standard: executable_receipt` -> anchor_style `command_output` plus outputs.receipt_schema. `anti-sycophancy: off` -> fast_unanimity_is_suspicious false; the anti-failure controls here target dominance and lost dissent instead, which is where an allocation argument actually goes wrong. || CUSTOM METRICS AND THEIR PRODUCERS: custom:per_check_cost_measured (boolean; produced by the cost-analyst seat in the cost-measurement stage, with the measuring command attached), custom:headroom_computed (boolean; produced by the allocation stage as budget minus the sum of admitted per-check costs), custom:disarmed_baseline_stated (boolean; produced by the SRE seat in the disarmed-baseline stage). Producers cannot live on the leaves: SEM-001 compares parse(source_expression) with stopping.expression by dict equality and parse() emits no `producer` key - both-states probe at platform/council/_probe_note_vs_source_expression.py. The SEM-012 WARN is expected and non-blocking. || WHY THE THIRD CLAUSE IS SEPARATE FROM THE FIRST TWO: costs can be measured and headroom computed while the battery is inert, which yields a perfectly arithmetic allocation that collapses the moment the checks are armed. Naming the disarmed baseline is what makes the other two numbers interpretable."
+  }
+}

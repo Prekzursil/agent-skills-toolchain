@@ -1,0 +1,71 @@
+{
+  "unit": "contracts/councilspec",
+  "artifact": "platform/schema/councilspec.schema.json",
+  "state": "MEASURED",
+  "measured_at_utc": "2026-08-09",
+  "honesty_notice": "Every claim below was produced by running the named command. Numbers were read off disk, not recalled. Claims that were NOT measured say so.",
+  "spec_source": {
+    "file": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md",
+    "ranges_read_tool_numbering": ["10746-10768", "10915-10946", "11172-11244"],
+    "numbering_caveat": "The file has 29273 CRLF and 166 BARE CR. Python text-mode (universal newlines) numbering runs ~112-166 lines HIGHER than Read-tool numbering for the same content. All citations use Read-tool numbering, which matches the pinned ranges. A citation copied from a `grep` run in text mode will be off by ~112 lines in this region."
+  },
+  "commands": {
+    "conformance": "cd platform/lib && python -m councilspec --conformance",
+    "tests": "cd platform/lib && python -m pytest councilspec/test_councilspec.py -q",
+    "fixture_integrity": "cd platform/lib && python -m councilspec.make_negatives --check",
+    "cross_implementation": "cd platform/lib && python councilspec/_probe_cross_impl_agreement.py",
+    "prior_design_coverage": "cd platform/lib && python councilspec/_probe_prior_design_coverage.py",
+    "lint": "python -m ruff check platform/lib/councilspec/   (run from the REPO ROOT; a relative path from platform/lib makes ruff report a path error that reads like a lint failure)"
+  },
+  "counts": {
+    "schema_bytes": 52597,
+    "schema_defs": 26,
+    "schema_top_level_properties": 21,
+    "schema_required_top_level": 8,
+    "metrics_total": 52,
+    "metrics_numeric": 34,
+    "metrics_boolean": 14,
+    "metrics_enum": 4,
+    "enum_value_tokens": 15,
+    "topologies": 11,
+    "protocol_stage_kinds": 20,
+    "voting_methods": 17,
+    "presets_named": 25,
+    "role_templates": 30,
+    "output_artifact_kinds": 19,
+    "anti_failure_controls": 25,
+    "semantic_rules": 12,
+    "valid_examples": 6,
+    "invalid_examples": 10,
+    "conformance_cases": 16,
+    "tests_passing": 112,
+    "tests_failing": 0,
+    "library_python_lines": 2152
+  },
+  "claims": {
+    "schema_is_valid_2020_12": "CONFIRMED - jsonschema 4.25.1 validator_for() resolves Draft202012Validator and check_schema() passes (test_schema_is_a_valid_draft_2020_12_schema).",
+    "six_required_examples_validate": "CONFIRMED - all 6 spec stopping expressions from lines 10937-10942 are encoded as full CouncilSpec instances under examples/valid/ and every one reports 0 schema errors and 0 semantic errors.",
+    "must_fail_instance_rejected": "CONFIRMED - invalid/N1-typed-leaf-violation.councilspec.json (`unanimity >= 0.95`, a boolean metric with a numeric operator) is rejected by the SCHEMA: \"$['stopping']['expression']: ... is not valid under any of the given schemas\". CLI exits 1 with FAILED:councilspec-validate.",
+    "leaf_is_typed_not_merely_shaped": "CONFIRMED - the metric-name enum sets for the numeric/boolean/enum leaf branches are disjoint (asserted), so the oneOf can match at most one branch and a domain/operator/value mismatch has nowhere to land.",
+    "expression_string_roundtrip": "CONFIRMED AT TREE LEVEL ONLY - parse(unparse(tree)) == tree for all six. Byte-level text round-trip is explicitly NOT claimed and a test asserts it is FALSE (0.90 normalises to 0.9).",
+    "expression_evaluator_executes": "CONFIRMED - each of the six evaluates True on its satisfying snapshot and False on its non-satisfying snapshot (both-states control). A missing metric raises MissingMetricError rather than reading as false; a wrongly-typed snapshot value raises MetricTypeError.",
+    "any_all_sugar": "CONFIRMED - ANY[a, b] / ALL[a, b] (the surface form used by the preset catalogue and named at spec line 10760) parse to the same trees as `a OR b` / `a AND b`. Sugar is INPUT ONLY; unparse always emits the AND/OR form.",
+    "weighted_stopping_logic": "CONFIRMED - the weighted node (clauses with weights plus a threshold) is schema-typed, exercised by E6 subcouncil A, and unit-tested at the threshold boundary (0.7 sum vs 0.7 threshold fires).",
+    "recursion_nested_and_council_of_councils": "CONFIRMED - topology.subcouncils items are `$ref: '#'`; a defect planted in E6's SECOND subcouncil fails the PARENT, at both the schema layer and the semantic layer (path reported as $.topology.subcouncils[1]...).",
+    "semantic_rules_enforced": "CONFIRMED - 12 rules; 5 distinct rules (SEM-001/002/007/008/011) are each proven to fire by a dedicated fixture, and SEM-005/006/009/012 by unit tests. A clean spec produces ZERO findings (detector control, test_a_healthy_spec_produces_no_findings_at_all).",
+    "mutation_control_ran": "CONFIRMED - every invalid fixture is generated as exactly ONE mutation of a named PASSING base (make_negatives.py); tests assert the base still validates, that the on-disk fixture matches the declared mutation byte-for-byte, and that no fixture changed more than its declared top-level key.",
+    "runner_is_not_vacuous": "CONFIRMED - four both-states tests break a copy of the examples tree (a positive made invalid, a negative repaired, an unlisted file added, a manifest file deleted) and the runner goes RED in all four.",
+    "cross_implementation_agreement": "CONFIRMED - the independently authored sibling parser platform/lib/wfdsl/expr.py agrees with this one on all 6 spec expressions in both states (agree=6 disagree=0 errored=0).",
+    "prior_design_section_coverage": "PARTIAL - 8 of the prior 13 section NAMES in 11-COUNCIL-SPECIFICATION.schema.json are absent as top-level keys here (artifacts, charter, engagement, evidence, integrity, meta, roles are RENAMED/nested; `execution` has NO counterpart). Field-NAME overlap is only 44/199 (22%), but that probe counts property names only and therefore under-counts semantics that this schema expresses as enum members instead of fields. A field-by-field semantic reconciliation was NOT performed.",
+    "presets_validate_unchanged": "REFUTED AS A REQUIREMENT - 0 of the 72 preset rows in 12-COUNCIL-PROTOCOLS-AND-PRESETS.json validate against this schema, AND 0 of 72 validate against the prior 11-COUNCIL-SPECIFICATION.schema.json either. Doc 12 states in its own `schema_relationship` field that NO schema governs it and that it is a CATALOGUE. The rows carry compact string dials (\"stopping\": \"ANY[rounds>=1, chair_confident]\", \"budgets\": \"wall<=90s tokens<=8k tools<=4\"), so requiring them to validate as CouncilSpec instances is a category error. WORK-UNIT-CATALOG IMP-3's falsifiable question is therefore UNSATISFIABLE AS WRITTEN for any CouncilSpec schema; the missing contract is a preset-row schema plus a row-to-CouncilSpec compiler.",
+    "preset_metric_vocabulary": "NOT-CHECKED as satisfiable - preset rows reference metric names outside this registry (`rounds`, `chair_confident`). Settling experiment: write the preset-row compiler and either add an alias map (rounds -> rounds_elapsed) or extend the registry, then re-run this probe over all 72 rows.",
+    "48_protocol_blueprints_and_64_presets": "NOT-CHECKED - out of scope for this unit. This unit ships the SCHEMA that can express them (25 preset names, 20 stage kinds, 11 topologies); it does not ship 48 blueprint instances or 64 editable preset files.",
+    "receipt_schema_reference": "UNRESOLVED BY DESIGN - platform/schema/receipt.schema.json now EXISTS (sibling unit), while every output_schema in command-center/WORK-UNIT-CATALOG.json still points at command-center/schema/receipt.schema.json, which does NOT. outputs.receipt_schema is therefore a documented reference string, not a resolved $ref."
+  },
+  "known_gaps": [
+    "No `execution` section (runner, concurrency, heartbeat, config hash, provenance) - the one prior-design section with no counterpart here.",
+    "The 21 top-level sections do not use the prior design's 13 section names; a reconciliation decision is owed (rename this schema, or record the mapping as normative).",
+    "$id conventions across the 8 platform/schema/*.schema.json files are split two ways, measured 2026-08-09: 6 use https://schema.ast-integrate.local/<name>/<ver> (work-unit x4, workflow-dsl, and councilspec after aligning it to the majority) and 2 use https://ast-integrate.invalid/platform/schema/<file> (receipt, completion-predicate-result). Neither is wrong on its own - .invalid is the RFC-2606 reserved choice, .local is mDNS - but one convention should be picked before anything resolves a $ref across contracts."
+  ],
+  "coverage": "MEASURED: schema validity, all six required examples, the must-fail instance, typed-leaf enforcement, tree round-trip, both-states evaluation, recursion, 12 semantic rules, fixture-mutation integrity, runner non-vacuity, cross-implementation agreement, prior-design section coverage, and preset validity. NOT MEASURED: field-by-field semantic reconciliation against the prior schema, preset-row compilation, and the 48-blueprint / 64-preset population."
+}

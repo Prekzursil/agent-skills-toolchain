@@ -1,0 +1,447 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p21-wideband-delphi-estimation",
+  "preset": "forecasting_council",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Produce an effort estimate that is a defensible RANGE, discussing only the assumptions behind the extremes.",
+    "charter": "ANONYMOUS family, Boehm wideband Delphi. Anonymous individual estimates, then a nameless range plot, then discussion restricted to the assumptions of the highest and lowest estimate, then re-estimate. Reporting the mean when the honest answer is the range is a failure.",
+    "risk_tier": "moderate",
+    "desired_output": "forecast",
+    "success_criteria": [
+      "discussion touched only the extremes' assumptions",
+      "the recorded answer is a range, or a point with the range attached",
+      "on a task with a known actual, the recorded range contains the actual"
+    ],
+    "consensus_intent": "elicit_distribution",
+    "confidence_target": 0.75,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": false,
+      "deadline_minutes": 75
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "calibration_ranked"
+      ],
+      "explain_choices": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 6,
+      "min": 6,
+      "max": 6
+    },
+    "diversity": {
+      "min_distinct_vendors": 3,
+      "min_distinct_expertise": 5
+    },
+    "roster": [
+      {
+        "participant_id": "estimator-1",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "effort estimation",
+          "this codebase"
+        ],
+        "role": "forecaster",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "anonymous": true,
+        "independence": {
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "estimator-2",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "effort estimation",
+          "test cost"
+        ],
+        "role": "forecaster",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "anonymous": true,
+        "independence": {
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "estimator-3",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": [
+          "reference classes",
+          "statistics"
+        ],
+        "role": "forecaster",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "anonymous": true,
+        "independence": {
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "estimator-4",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "integration cost",
+          "CI"
+        ],
+        "role": "forecaster",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "anonymous": true,
+        "independence": {
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "estimator-5",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "review and rework cost"
+        ],
+        "role": "forecaster",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "anonymous": true,
+        "independence": {
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "plot-facilitator",
+        "display_name": "Facilitator (plots the range without names; restricts discussion to the extremes)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "wideband delphi facilitation"
+        ],
+        "role": "facilitator",
+        "authority": "contributor",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      }
+    ],
+    "anonymity": {
+      "mode": "double_blind"
+    },
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "disclose_only"
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": [
+      "benchmark_baseline",
+      "prior_art_scan"
+    ]
+  },
+  "topology": {
+    "kind": "delphi"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "blind_independent_first_pass",
+        "stage_id": "anonymous-estimates",
+        "independent": true,
+        "anonymous": true,
+        "rounds": 1
+      },
+      {
+        "kind": "delphi_round",
+        "stage_id": "range-plot",
+        "rounds": 1,
+        "anonymous": true,
+        "participants": [
+          "plot-facilitator"
+        ]
+      },
+      {
+        "kind": "custom",
+        "custom_name": "extremes_assumptions_only_review",
+        "stage_id": "extremes-review",
+        "rounds": 1,
+        "quotas": {
+          "objections_per_participant": 2
+        },
+        "exit_when": {
+          "metric": "custom:non_extreme_discussion_turns",
+          "op": "==",
+          "value": 0,
+          "value_type": "number",
+          "producer": "extremes_scope_guard",
+          "note": "only the assumptions behind the highest and lowest estimate are in scope; anything else is out of protocol"
+        }
+      },
+      {
+        "kind": "delphi_round",
+        "stage_id": "re-estimate",
+        "rounds": 1,
+        "anonymous": true,
+        "exit_when": {
+          "metric": "custom:range_contains_reference_actual",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean",
+          "producer": "reference_class_backtest",
+          "note": "backtest gate: on a task with a known actual cost, the recorded range must contain it"
+        }
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "range-or-point",
+        "rounds": 1
+      }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": {
+      "min": 2,
+      "max": 4,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 400
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "cross_examination": true,
+      "rebuttal_required": true,
+      "steelman_before_rebuttal": true,
+      "declare_confidence": true,
+      "declare_conflicts": false,
+      "forced_dissent": false
+    },
+    "critique_intensity": "standard",
+    "experiments": {
+      "allowed": false,
+      "max_experiments": 0,
+      "runner": "local"
+    }
+  },
+  "budgets": {
+    "effort": "medium",
+    "time_minutes": 75,
+    "tool_calls": 60,
+    "sources": 15,
+    "turns": 20,
+    "speaking_quota_per_participant": 4,
+    "min_engagement_turns": 2,
+    "max_inactivity_rounds": 1,
+    "rebuttal_depth": 1
+  },
+  "targets": {
+    "objections": 4,
+    "evidence_items": 10,
+    "novelty_ratio": 0.35,
+    "diversity_index": 0.5,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.85,
+      "trivial_variant_policy": "merge"
+    }
+  },
+  "voting": {
+    "method": "score",
+    "score_scale": {
+      "min": 0,
+      "max": 400
+    },
+    "quorum": {
+      "min_voters": 5,
+      "on_failure": "extend_rounds"
+    },
+    "abstention": {
+      "allowed": false,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "belief_aggregation": {
+      "method": "trimmed_mean",
+      "require_confidence_per_vote": true
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": false,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "extend_rounds"
+  },
+  "consensus": {
+    "threshold": 0.7,
+    "measure": "confidence_overlap",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": false,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "rounds_elapsed >= 2 AND (consensus >= 0.7 OR calibration_error <= 0.15 OR rounds_elapsed >= 4)",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "rounds_elapsed",
+          "op": ">=",
+          "value": 2
+        },
+        {
+          "any_of": [
+            {
+              "metric": "consensus",
+              "op": ">=",
+              "value": 0.7
+            },
+            {
+              "metric": "calibration_error",
+              "op": "<=",
+              "value": 0.15
+            },
+            {
+              "metric": "rounds_elapsed",
+              "op": ">=",
+              "value": 4
+            }
+          ]
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "min_independent_positions": 5,
+      "every_participant_spoke": true,
+      "min_evidence_items": 6
+    },
+    "hard_caps": {
+      "max_rounds": 4,
+      "max_minutes": 75,
+      "on_cap": "synthesize_best_effort"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "irreducible_disagreement",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "the range is reported as the answer, not replaced by its mean",
+      "each extreme's load-bearing assumption is written down"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "vote_oscillation_rounds": 2
+    },
+    "resolution": [
+      "narrow_scope",
+      "recruit_independent_critic",
+      "declare_no_decision"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": false,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "premature_convergence",
+      "echo_chamber",
+      "sycophancy",
+      "participant_dominance",
+      "strategic_voting",
+      "weak_synthesis"
+    ],
+    "fast_unanimity_response": [
+      "forced_dissent",
+      "blind_re_evaluation"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "votes_by_round",
+      "confidence_trajectory",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "calibration_report",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 90,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge",
+        "release"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    },
+    "calibration": {
+      "post_run": true,
+      "score": "brier"
+    }
+  },
+  "metadata": {
+    "title": "P21 wideband Delphi estimation",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:439-454"
+    ],
+    "notes": "Range-as-outcome is encoded in outcomes.conditional_decision_requires plus belief_aggregation trimmed_mean; the extremes-only scope restriction that distinguishes this from plain Delphi is the extremes-review stage exit_when custom:non_extreme_discussion_turns == 0. rounds_elapsed >= 4 in the OR branch equals hard_caps.max_rounds so the cap and the rule agree."
+  }
+}
