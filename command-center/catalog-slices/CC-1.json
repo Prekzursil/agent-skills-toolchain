@@ -1,0 +1,1134 @@
+[
+  {
+    "id": "CC-0001",
+    "title": "Make all 19 contract fields per-unit expressible, and arm the completeness gate that proves it",
+    "phase": "0",
+    "question_or_target": "Implementation target: add per-item override resolution to WORK-UNIT-CATALOG.json for the 9 fields that today exist ONLY in the global `defaults` block (assignment, tool_permissions, execution_substrate, timeout_seconds, output_schema, tests_required, reviewer_requirement, retry_policy, failure_classification) and are overridden by 0 of 103 items, then arm the gate that detects their absence. Ship (a) a resolver where an item value wins over the default and records provenance=item|default per field, and (b) CI invoking tools/command-center/validate.py with --require-complete, because require_complete defaults to False and CI invokes the tool bare, so deleting the ENTIRE defaults block currently exits 0.",
+    "inputs": [
+      "command-center/WORK-UNIT-CATALOG.json (contract.work_unit_fields, defaults, items[103])",
+      "tools/command-center/validate.py (V-FIELDS check, require_complete default)",
+      "the CI workflow that invokes validate.py",
+      "_USER-PROMPTS.md:10605-10625 (the 19 mandatory per-unit fields)"
+    ],
+    "dependencies": [],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "implementer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/receipts/CC-0001.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "The resolver source file and the CI invocation line must exist on disk and be cited by path:line in the receipt. Report the measured per-field override count BEFORE and AFTER (today: 0/103 for all 9). A claim that the gate is armed must cite the exit code of the mutation run, not the presence of the flag in a config file.",
+    "tests_required": [
+      "Mutation control: delete the entire `defaults` block -> validate.py must exit non-zero (today it exits 0).",
+      "Mutation control: delete a single field from `defaults` with no item override -> gate red.",
+      "Resolver unit test: an item that sets timeout_seconds must resolve to the item value with provenance=item; an item that omits it must resolve to the default with provenance=default.",
+      "Both-states: the armed gate must be SILENT on the unmutated catalog (no false positive on 103 real items)."
+    ],
+    "reviewer_requirement": "One independent adversarial reviewer in a fresh context who must attempt to pass the gate with an incomplete catalog before signing off.",
+    "completion_sentinel": "SUCCESS:CC-0001",
+    "retry_policy": "Two strikes then pivot; a second failure on the same resolver design requires enumerating >=2 alternatives (schema-level required-fields vs. resolver-level provenance) before a third attempt.",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "CC-0002",
+    "title": "Create the receipt substrate every work unit is contracted to write to",
+    "phase": "0",
+    "question_or_target": "Question: can any work unit currently emit a schema-validated receipt? Measured answer today is no - defaults.output_schema points at command-center/schema/receipt.schema.json which is ABSENT, all 103 output_path values point into command-center/receipts/ which is ABSENT, and 0 receipts exist on disk. Implementation target: author receipt.schema.json (id, unit id, sentinel, terminal state, evidence anchors, artifact list with sha256, test results, reviewer verdict, timestamps, generating commit), create the receipts directory with a committed .gitkeep, and ship an emitter plus a validator.",
+    "inputs": [
+      "command-center/WORK-UNIT-CATALOG.json (defaults.output_schema, items[].output_path)",
+      "_USER-PROMPTS.md:10627-10648 (the 12 completion conditions the receipt must carry evidence for)",
+      "the existing receipt-shaped fields in command-center/COMPLETION-GATES.json"
+    ],
+    "dependencies": [],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "schema-author"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/CC-0002.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "This unit's own receipt, validating against the schema it authors, is the primary evidence - a self-demonstrating artifact. Cite the absolute paths of receipt.schema.json and the receipts directory and the output of a directory listing, not a claim that they were created.",
+    "tests_required": [
+      "A golden receipt validates.",
+      "Four mutants each fail: missing completion_sentinel; empty evidence anchor array; unit id not present in the catalog; syntactically unparseable JSON.",
+      "Detector control: the validator must accept the golden receipt (known-good) and reject each mutant (known-broken) - a validator silent on both measures nothing."
+    ],
+    "reviewer_requirement": "One independent reviewer who writes a fifth mutant the author did not anticipate and confirms it is rejected.",
+    "completion_sentinel": "SUCCESS:CC-0002",
+    "retry_policy": "Two strikes then pivot; prefer narrowing the schema over adding permissive optional fields on retry.",
+    "failure_classification": [
+      "dependency-blocked",
+      "overclaim",
+      "detector-failure"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "CC-0003",
+    "title": "Implement the ONE shared completion predicate reducer used at every fan-in",
+    "phase": "0",
+    "question_or_target": "Implementation target: one reducer implementing spec conditions 1-10 (_USER-PROMPTS.md:10631-10645) that returns a typed verdict plus a per-condition evidence pointer, and is imported by local runners, cloud dispatchers, monitors, harvesters, workflow fan-in, cross-vendor adapters and final synthesis. It must enforce the three explicit anti-patterns at 10646: exit code zero alone is never success, a plausible digest is not a receipt, and a file path in text is not proof the file exists.",
+    "inputs": [
+      "_USER-PROMPTS.md:10627-10648 (the completion predicate)",
+      "command-center/COMPLETION-GATES.json",
+      "command-center/schema/receipt.schema.json (from CC-0002)",
+      "rules/common/single-signal-verification.md"
+    ],
+    "dependencies": [
+      "CC-0002"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "implementer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 7200,
+    "output_path": "command-center/receipts/CC-0003.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "The reducer module path:line plus the verbatim output of the table-driven test run. Every condition must be individually falsifiable: the receipt must show one input that makes each of the 10 conditions return FALSE.",
+    "tests_required": [
+      "Table-driven: exactly one falsifying case per condition, 10 cases, each proving the reducer returns INCOMPLETE for the right reason.",
+      "Exit-zero-with-missing-artifact must return INCOMPLETE, not COMPLETE.",
+      "A well-formed but fabricated digest with no artifact on disk must return INCOMPLETE.",
+      "NOT-CHECKED must be a distinct return value from PASS - a condition that was not evaluated may never fold into a pass."
+    ],
+    "reviewer_requirement": "Two independent reviewers, one of them cross-vendor (Codex), because a same-vendor reviewer shares the author's blind spots on exactly this class.",
+    "completion_sentinel": "SUCCESS:CC-0003",
+    "retry_policy": "No blind retry: a second failure requires a fresh-context re-derivation of the condition list directly from _USER-PROMPTS.md:10631-10645 rather than from the failing implementation.",
+    "failure_classification": [
+      "overclaim",
+      "detector-failure",
+      "green-not-live"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "CC-0004",
+    "title": "Detect any fan-in site that computes completion locally instead of importing the shared reducer",
+    "phase": "0",
+    "question_or_target": "Question: does any dispatcher, monitor, harvester, adapter or synthesis site compute its own completion verdict instead of importing the CC-0003 reducer? Seeds the 'two completion predicates disagree' failure class (_USER-PROMPTS.md:11314). Build an import-graph and AST scan that enumerates every site producing a done/complete/pass verdict and asserts it resolves to the single shared symbol.",
+    "inputs": [
+      "the CC-0003 reducer module and its export surface",
+      "tools/ and scripts/ trees of ast-integrate",
+      "_USER-PROMPTS.md:10648 (same shared reducer everywhere), :11314 (failure class)"
+    ],
+    "dependencies": [
+      "CC-0003"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "gpt-5.x-codex",
+      "vendor": "openai",
+      "role": "independent-detector-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "mcp__codex__codex"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/CC-0004.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Detector control is mandatory before any 'no forks found' conclusion: plant a second divergent predicate in a scratch copy, prove the scan FIRES on it, then prove it is SILENT on the clean tree. A scan that reports zero without the planted-control run is zero signals, not one.",
+    "tests_required": [
+      "Known-broken control: a planted local predicate must be reported with its file:line.",
+      "Known-present control: the legitimate single import site must be found (proves the matcher works at all).",
+      "Use-vs-mention: a file that merely documents the fork defect in prose must NOT be reported - match the semantic role, not the payload text."
+    ],
+    "reviewer_requirement": "One independent reviewer who re-runs the planted-control experiment themselves rather than reading the author's transcript.",
+    "completion_sentinel": "SUCCESS:CC-0004",
+    "retry_policy": "Two strikes then pivot from regex matching to AST/import-graph resolution; a third regex attempt is banned.",
+    "failure_classification": [
+      "detector-failure",
+      "uncontrolled-silence",
+      "overclaim"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "CC-0005",
+    "title": "Make the manifest provenance gate hash the git blob, not the Windows working tree",
+    "phase": "0",
+    "question_or_target": "Implementation target: REACH-6 in tools/command-center/validate.py hashes WORKING-TREE bytes. With core.autocrlf=true and no '*.md eol=lf' rule in .gitattributes, the committed blob hashes to 8b3e44cc3813 while the CRLF working copy hashes to 1a404a91d819, so both command-center gates exit non-zero on every Windows checkout while being genuinely green on Linux CI - the primary dev box cannot run its own gates and 3 local test failures masquerade as real breakage. Switch provenance hashing to `git cat-file -p <rev>:<path>`, and make the .gitattributes EOL policy an explicit recorded decision rather than an accident.",
+    "inputs": [
+      "tools/command-center/validate.py (REACH-6)",
+      ".gitattributes",
+      "the measured pair 8b3e44cc3813 (blob) vs 1a404a91d819 (CRLF worktree)",
+      "rules/common/windows-shell.md section 8b"
+    ],
+    "dependencies": [],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "platform-portability-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Edit",
+      "PowerShell",
+      "Bash"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/receipts/CC-0005.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Every hash cited must be produced by `git cat-file -p <rev>:<path>`, never from the working tree and never from `git archive` - measured on this repo, `git archive | tar -x` returns CRLF (3,837 bytes / 100 CRLF) while `git cat-file -p` and `git show` return the blob (3,737 bytes / 0 CRLF). Cite the gate's exit code on Windows before and after.",
+    "tests_required": [
+      "Both-states: the fixed gate must still FIRE when a file's content genuinely changes.",
+      "Both-states: the fixed gate must be SILENT on a pure line-ending difference.",
+      "Byte-delta control: assert every pre-fix delta equals that file's line count exactly, confirming EOL and not content as the cause.",
+      "Platform parity: the same gate must return the same verdict on Windows and on Linux CI for the same commit."
+    ],
+    "reviewer_requirement": "One independent reviewer who reproduces the gate on a Windows checkout, plus a Linux CI run of the identical commit for parity.",
+    "completion_sentinel": "SUCCESS:CC-0005",
+    "retry_policy": "Two strikes then pivot; if a .gitattributes change alone does not achieve parity, do not iterate on it a third time - move the fix into the hashing routine.",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "CC-0006",
+    "title": "Gate command-center prose against verification recipes that are measurably wrong on this platform",
+    "phase": "0",
+    "question_or_target": "Question: does any command-center document instruct a reader to verify something using a recipe that returns the wrong bytes on this box? One is CONFIRMED: RELEASE-CHECKLIST.md prescribes verifying formatting 'against the LF blob (git archive)', and git archive returns the CRLF worktree bytes here - the checklist prescribes the wrong recipe for the very trap that makes its own gates red. Implementation target: fix that line and ship a gate that flags prescriptive recipes known to be platform-wrong, carrying a use-vs-mention discriminator so a document that DOCUMENTS the defect is not flagged for containing its text.",
+    "inputs": [
+      "command-center/RELEASE-CHECKLIST.md",
+      "command-center/RUNBOOK.md, ROLLBACK-MANIFEST.md, PROGRAM-CHARTER.md",
+      "rules/common/windows-shell.md section 8b (the corrected recipe table)",
+      "the CC-0005 measurement of git archive vs git cat-file"
+    ],
+    "dependencies": [
+      "CC-0005"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "detector-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/CC-0006.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "The use-vs-mention discriminator must be demonstrated, not asserted: show one PRESCRIPTIVE hit that fires and one DOCUMENTARY mention of the identical string that does not. This defect class has bitten this estate roughly eight times in one session, mostly inside the verification probes themselves.",
+    "tests_required": [
+      "Known-present: the live RELEASE-CHECKLIST.md 'git archive' line must fire before the fix.",
+      "Known-absent sentinel: a scratch document with no recipe must score 0 hits.",
+      "Use-vs-mention: rules/common/windows-shell.md, which quotes the wrong recipe in order to forbid it, must NOT fire.",
+      "Post-fix: the corrected checklist line must be silent while a planted regression re-fires."
+    ],
+    "reviewer_requirement": "One independent reviewer who supplies a new documentary mention and confirms the discriminator holds on text the author never saw.",
+    "completion_sentinel": "SUCCESS:CC-0006",
+    "retry_policy": "Two strikes then pivot from string matching to sentence-role classification with a labelled control set.",
+    "failure_classification": [
+      "detector-failure",
+      "overclaim",
+      "green-not-live"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "CC-0007",
+    "title": "Make the append-only event log survive concurrent Windows writers and torn tails",
+    "phase": "0",
+    "question_or_target": "Question: can several agents append to command-center/events/EVENTS.jsonl simultaneously on Windows without interleaved or torn records, and is a truncated tail detected rather than silently accepted? Implementation target: hash-chained records (each carrying the previous record's digest), an atomic append path that does not rely on POSIX fcntl, and a repair routine that truncates to the last valid chain link and reports the loss instead of hiding it.",
+    "inputs": [
+      "command-center/events/EVENTS.jsonl",
+      "_USER-PROMPTS.md:10603 (append-only event logs), :11313 (partial artifact without sentinel)",
+      "rules/common/windows-shell.md (Windows file semantics)"
+    ],
+    "dependencies": [],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "implementer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "PowerShell",
+      "Bash"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/receipts/CC-0007.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "The concurrency result must be a measured count from an executed run (records written vs records parsed vs chain links verified), not a design argument. State the exact writer count, record count and wall-clock of the run.",
+    "tests_required": [
+      "8 concurrent writers x 500 records -> 4000 parseable records, 4000 intact chain links, zero interleaved lines.",
+      "Torn-write control: truncate the final record mid-line -> the reader must report a broken tail and the repair must report how many records were lost.",
+      "Tamper control: alter one record in the middle -> the chain must break at that record and name it.",
+      "Idempotence: replaying the log twice must not double-count events."
+    ],
+    "reviewer_requirement": "One independent reviewer who re-runs the concurrency test on a cold machine state and confirms the counts.",
+    "completion_sentinel": "SUCCESS:CC-0007",
+    "retry_policy": "Two strikes then pivot; if in-process locking fails twice, move to a single-writer queue process rather than attempting a third locking scheme.",
+    "failure_classification": [
+      "detector-failure",
+      "uncontrolled-silence",
+      "green-not-live"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "CC-0008",
+    "title": "Scale the catalog to the 2,048-unit program: id allocation, slice merge, and a collision gate",
+    "phase": "0",
+    "question_or_target": "Implementation target: the catalog holds 103 items and the program floor is 2,048 across 13 buckets. Ship (a) an id-namespace allocation table binding one prefix to each bucket B01-B13, (b) a merge tool that folds command-center/catalog-slices/*.json into WORK-UNIT-CATALOG.json deterministically, and (c) a gate for the 'duplicate units from colliding catalogs' failure class (_USER-PROMPTS.md:11320). Merge must be order-independent so two orchestrator runs over the same slices produce byte-identical output.",
+    "inputs": [
+      "command-center/catalog-slices/*.json (13 bucket slices, this file is B01)",
+      "command-center/WORK-UNIT-CATALOG.json",
+      "command-center/PHASE-GRAPH.json allocation_buckets (B01-B13, measured sum 2048)",
+      "_USER-PROMPTS.md:10550-10568 (the floor and the allocation)"
+    ],
+    "dependencies": [
+      "CC-0001"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "implementer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 7200,
+    "output_path": "command-center/receipts/CC-0008.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Report the merged unit count read back off disk after the merge, never the count the merger believed it wrote. State per-bucket counts and the sum, and whether the sum meets the 2,048 floor or falls short - a shortfall is a first-class result, not a failure to hide.",
+    "tests_required": [
+      "Collision control: two slices both claiming CC-0007 must fail the merge with both source paths named.",
+      "Order-independence: merging the same slice set in permuted order must produce byte-identical output.",
+      "Field-completeness: every merged item must satisfy the CC-0001 armed gate.",
+      "Idempotence: re-merging an already-merged catalog must be a no-op, not a duplication."
+    ],
+    "reviewer_requirement": "One independent reviewer who merges a deliberately malformed slice and confirms the merge fails loudly rather than dropping the slice.",
+    "completion_sentinel": "SUCCESS:CC-0008",
+    "retry_policy": "Two strikes then pivot; the merger must never resolve a collision by renaming - escalate to the slice author instead.",
+    "failure_classification": [
+      "detector-failure",
+      "dependency-blocked",
+      "overclaim"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "CC-0009",
+    "title": "Enforce artifact-manifest registration and prove a downstream consumer can actually read each entry",
+    "phase": "0",
+    "question_or_target": "Implementation target: completion conditions 11 and 12 (_USER-PROMPTS.md:10643-10644) require that an output was registered in the artifact manifest and that downstream consumers can read it. Ship register-on-write into ARTIFACT-MANIFEST.json plus a reader probe that opens every manifest entry with the consumer that claims to read it, so a registered-but-unreadable or registered-but-absent artifact fails the predicate instead of passing on the strength of its path string.",
+    "inputs": [
+      "command-center/ARTIFACT-MANIFEST.json",
+      "the CC-0003 reducer (conditions 11 and 12)",
+      "_USER-PROMPTS.md:10643-10646, :11098 (final synthesis must verify the manifest on disk)"
+    ],
+    "dependencies": [
+      "CC-0003"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "implementer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/CC-0009.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "For each manifest entry, cite the reader that opened it and the first parsed key or record count. 'The file exists' is insufficient for condition 12 - readability by the declared consumer is the claim.",
+    "tests_required": [
+      "An artifact written without registration must fail the predicate.",
+      "A manifest entry whose path does not exist must fail (a file path in text is not proof the file exists).",
+      "A manifest entry that exists but does not parse with its declared consumer must fail.",
+      "Both-states: all currently-valid entries must pass, so the gate is not simply always-red."
+    ],
+    "reviewer_requirement": "One independent reviewer who adds a phantom manifest entry and confirms it is rejected.",
+    "completion_sentinel": "SUCCESS:CC-0009",
+    "retry_policy": "Two strikes then pivot; do not weaken condition 12 to an existence check on a third attempt.",
+    "failure_classification": [
+      "overclaim",
+      "detector-failure",
+      "green-not-live"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "CC-0010",
+    "title": "Define a freeze that is actually a freeze, and forbid a baseline verdict from a mutating tree",
+    "phase": "0",
+    "question_or_target": "Question: what exactly is frozen at Phase 0? The baseline lane's snapshot ran while concurrent sibling agents mutated the tree - a sibling's transient red phase was captured as 4 test failures and then self-resolved - so every working-tree number in that snapshot is a timestamped sample and only SHA 53c37c6c is a valid rollback anchor. Implementation target: a freeze protocol that pins the SHA as the anchor, snapshots branches, worktrees, live deployments, caches, plugin settings, marketplaces, hooks, skills and MCPs, labels every working-tree measurement as SAMPLE, and refuses to emit BASELINE while the tree is being written.",
+    "inputs": [
+      "command-center/BASELINE-SNAPSHOT.json and BASELINE-SNAPSHOT.md",
+      "_USER-PROMPTS.md:10652-10660 (Phase 0)",
+      "the working checkout plus the 5 remaining worktrees graded NEEDS-OWNER-DECISION",
+      "SHA 53c37c6c"
+    ],
+    "dependencies": [],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "baseline-custodian"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "PowerShell",
+      "Bash"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/receipts/CC-0010.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Two mechanically independent signals that the tree was quiescent during the freeze window - for example a `git status` digest taken before and after AND a filesystem mtime scan over the tracked set - and the anchor SHA. A single quiescence check is one signal, not proof.",
+    "tests_required": [
+      "Adversarial control: run the freeze while a writer touches a tracked file -> must emit SAMPLE, never BASELINE.",
+      "Positive control: run against a quiesced scratch clone -> must emit BASELINE.",
+      "Rollback rehearsal: restore the anchor SHA into a scratch clone and confirm the recorded artifact digests reproduce.",
+      "The snapshot must enumerate all nine snapshot classes named at :10654 and mark any it could not read as NOT-CHECKED rather than empty."
+    ],
+    "reviewer_requirement": "One independent reviewer who verifies the SAMPLE-vs-BASELINE discrimination by racing the freeze themselves.",
+    "completion_sentinel": "SUCCESS:CC-0010",
+    "retry_policy": "Two strikes then pivot to a scratch-clone freeze; do not attempt a third in-place freeze on a shared working tree.",
+    "failure_classification": [
+      "uncontrolled-silence",
+      "overclaim",
+      "detector-failure"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "CC-0011",
+    "title": "Prove no credential entered the program corpus or the rollback backups",
+    "phase": "0",
+    "question_or_target": "Question: has any credential, token, cookie, private key or decrypted secret entered the program corpus, the command-center tree, or the rollback backups? Spec requires rollback backups be created without copying secrets into the program corpus (:10659) and seeds 'credentials or decrypted secrets enter an artifact bundle' as a regression class (:11345). READ-ONLY diagnosis only: report variable name, scope, byte length and whether a whoami probe still authenticates. Never print a value beyond a zero-entropy prefix. Never rotate, revoke or unset anything - the owner handles credential lifecycle personally.",
+    "inputs": [
+      "command-center/ (all artifacts, events, sources, receipts)",
+      "the rollback backup set named in command-center/ROLLBACK-MANIFEST.md",
+      "the 1.49 MB harness-restore corpus at ~/.claude/harness-restore-20260806",
+      "AGENTS.md section 9 (credential non-negotiables)"
+    ],
+    "dependencies": [],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "security-reviewer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/receipts/CC-0011.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "A zero-finding result is only publishable with a detector control attached. On any real finding, quantify the blast radius (which commits, which index entries, which downstream consumers), recommend rotation explicitly, and hand it back to the owner - performing the rotation is the banned action, saying it is needed is not.",
+    "tests_required": [
+      "Detector control: a planted synthetic token in a scratch file must be found.",
+      "False-positive control: a bare zero-entropy prefix with no secret body must NOT fire.",
+      "Known-clean sentinel: a file with no secrets must score 0 hits.",
+      "Historical scope: the scan must cover committed history for the command-center tree, not only the working tree - deleting a leaked value is not sufficient."
+    ],
+    "reviewer_requirement": "One independent security reviewer plus explicit confirmation in the receipt that no credential was modified, rotated or unset by this unit.",
+    "completion_sentinel": "SUCCESS:CC-0011",
+    "retry_policy": "Two strikes then pivot to a different scanner engine; never widen the pattern set to force a hit.",
+    "failure_classification": [
+      "detector-failure",
+      "uncontrolled-silence",
+      "owner-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "CC-0012",
+    "title": "Freeze the schemas and launchers, and require a versioned migration for every later change",
+    "phase": "0",
+    "question_or_target": "Implementation target: spec :10660 requires the launchers and schemas be frozen once the first implementation wave starts, with changes admitted only through a versioned migration. Ship (a) a freeze flag with a recorded activation commit, (b) schema_version bump rules, (c) a migration script contract with a forward-and-back round-trip test, and (d) a gate that rejects an edit to a frozen schema that carries no version bump and no migration. This also closes the observed anti-pattern of editing a launcher mid-run, which leaves contradictory instructions live for units already in flight.",
+    "inputs": [
+      "command-center/schema/ (receipt.schema.json and successors)",
+      "command-center/WORK-UNIT-CATALOG.json schema_version",
+      "_USER-PROMPTS.md:10660",
+      "rules/common/fan-out-contract.md section A10 (freeze the preamble once the first unit launches)"
+    ],
+    "dependencies": [
+      "CC-0002",
+      "CC-0003"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "implementer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/receipts/CC-0012.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Cite the freeze activation commit SHA and timestamp. A migration is only proven by executing it on real pre-freeze data and reading the post-migration artifact back off disk.",
+    "tests_required": [
+      "Mutation: change a frozen schema without a version bump -> gate red.",
+      "Positive: change it with a bump plus a migration plus a passing round-trip -> gate green.",
+      "Round-trip: migrate forward then back on real data -> byte-identical to the original.",
+      "Both-states: the gate must be silent on a non-frozen file, so it does not freeze the whole repo."
+    ],
+    "reviewer_requirement": "One independent reviewer who attempts an unversioned schema edit and confirms it is rejected.",
+    "completion_sentinel": "SUCCESS:CC-0012",
+    "retry_policy": "Two strikes then pivot; if the gate produces false positives twice, narrow its path scope rather than loosening its rule.",
+    "failure_classification": [
+      "green-not-live",
+      "detector-failure",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "CC-0013",
+    "title": "Make STATUS.md a derived measurement instead of a hand-written claim",
+    "phase": "0",
+    "question_or_target": "Question: is STATUS.md a measurement or an assertion? Implementation target: generate it deterministically from EVENTS.jsonl plus the receipts plus the shared predicate, stamp it with the generating commit and generation time, and make a hand-edit fail a gate. A hand-maintained status board is exactly the 'plausible digest is not a receipt' failure the spec forbids at :10646.",
+    "inputs": [
+      "command-center/STATUS.md",
+      "command-center/events/EVENTS.jsonl (hash-chained after CC-0007)",
+      "command-center/receipts/",
+      "the CC-0003 reducer"
+    ],
+    "dependencies": [
+      "CC-0003",
+      "CC-0007"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "implementer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/CC-0013.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Every number in the generated STATUS.md must carry the query that produced it. A count with no query is a claim; the generator must refuse to emit one.",
+    "tests_required": [
+      "Hand-edit a counter -> gate must fire and name the drifted line.",
+      "Regenerate -> gate silent.",
+      "Determinism: two runs over an unchanged event log must produce byte-identical output, so the file does not churn the diff.",
+      "Empty-input control: with zero events the generator must emit an explicit NOT-STARTED status, never a green one."
+    ],
+    "reviewer_requirement": "One independent reviewer who hand-edits a different field than the author tested and confirms the gate fires.",
+    "completion_sentinel": "SUCCESS:CC-0013",
+    "retry_policy": "Two strikes then pivot; do not add exemptions to the hand-edit gate on a third attempt.",
+    "failure_classification": [
+      "overclaim",
+      "detector-failure",
+      "green-not-live"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "CC-0014",
+    "title": "Bind tests to claims to units, and refuse to record a test as coverage until a mutation proved it fires",
+    "phase": "0",
+    "question_or_target": "Implementation target: a TEST-REGISTRY where an entry may reach status PROTECTING only when a recorded mutation of the behaviour under test made that test FAIL. A test with no mutation record is registered UNPROVEN and may never be counted as coverage; a mutation that SURVIVED must be surfaced as a hole (_USER-PROMPTS.md:11325-11326, :11382). This exists because a green suite is not evidence: reverting a real constant on this estate left the suite green because every case passed the value explicitly and the default was never exercised.",
+    "inputs": [
+      "command-center/TEST-REGISTRY.json",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11026 (negative controls), :11325, :11382",
+      "rules/common/single-signal-verification.md section 3b (the both-states test)"
+    ],
+    "dependencies": [
+      "CC-0003"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "implementer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/receipts/CC-0014.json",
+    "output_schema": "command-center/schema/test-registry-entry.schema.json",
+    "evidence_requirement": "Each PROTECTING entry must cite the mutation diff and the failing test output that mutation produced. A passing test run alone is never evidence of protection.",
+    "tests_required": [
+      "Register a test with no mutation record -> status must be UNPROVEN, and UNPROVEN must not count toward any coverage total.",
+      "Supply a mutation that made the test fail -> status PROTECTING.",
+      "Supply a mutation that SURVIVED -> the registry must report a hole, not silently downgrade.",
+      "Aggregation control: a coverage summary computed over a registry of all-UNPROVEN entries must report 0 protected claims, not 100 percent."
+    ],
+    "reviewer_requirement": "One independent reviewer who authors a mutation the implementer did not write and checks the registry classifies it correctly.",
+    "completion_sentinel": "SUCCESS:CC-0014",
+    "retry_policy": "Two strikes then pivot; never relax the mutation requirement to make the registry green.",
+    "failure_classification": [
+      "overclaim",
+      "detector-failure",
+      "green-not-live"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "CC-0015",
+    "title": "Encode the 21 program stopping conditions as machine-checkable predicates and resolve the PR-ONLY contradiction",
+    "phase": "0",
+    "question_or_target": "Implementation target: encode all 21 conditions at _USER-PROMPTS.md:11376-11398 as individually evaluable predicates that each return TRUE, FALSE or NOT-CHECKED with an evidence pointer, and resolve condition 13 ('release/canary succeeds'), which is permanently unsatisfiable as written because the owner's binding release mode is PR-ONLY and there is no canary channel. Question for the owner: amend condition 13 to a PR-merge-plus-rollback-rehearsal equivalent, or accept the program can never satisfy its own stopping rule?",
+    "inputs": [
+      "_USER-PROMPTS.md:11372-11400 (the stopping rule)",
+      "command-center/OWNER-DECISIONS.md (release mode = PR-ONLY, binding)",
+      "command-center/PHASE-GRAPH.json program_preconditions (0 of 21 currently TRUE, 7 NOT-CHECKED)"
+    ],
+    "dependencies": [
+      "CC-0003"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "owner-liaison"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "AskUserQuestion"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/CC-0015.json",
+    "output_schema": "command-center/schema/stopping-condition.schema.json",
+    "evidence_requirement": "NOT-CHECKED must be reported as its own count and must never be folded into a pass. The receipt must state, per condition, which probe would settle it and roughly what that probe costs.",
+    "tests_required": [
+      "All 21 conditions return one of exactly three values; no condition may return an empty or absent verdict.",
+      "Aggregation control: a program state with 20 TRUE and 1 NOT-CHECKED must NOT report the program complete.",
+      "Condition 13 must be flagged unsatisfiable-as-written until the owner ruling is recorded.",
+      "Regression: the amended condition 13, once recorded, must be evaluable by the same evaluator without a special case."
+    ],
+    "reviewer_requirement": "Owner sign-off on the condition-13 amendment plus one independent reviewer on the encoding of the other 20.",
+    "completion_sentinel": "SUCCESS:CC-0015",
+    "retry_policy": "No retry on the owner question; ask once, record the default-if-unanswered, and proceed with the other 20 conditions.",
+    "failure_classification": [
+      "owner-blocked",
+      "overclaim",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": true
+  },
+  {
+    "id": "CC-0016",
+    "title": "Decide where the phase-level graph lives and extend the parity gate to cover it",
+    "phase": "0",
+    "question_or_target": "Question: which artifact is the canonical phase-level dependency graph? DEPENDENCY-GRAPH.json is machine-derived over 103 work-unit nodes and 21 edges and sits behind a CI byte-parity gate that turns red if ANY top-level key is added, so the dep-graph lane correctly refused to extend it and wrote a sidecar PHASE-GRAPH.json (21 phases, 46 authored edges, critical path 0-1-2-3-4-7-7A-10-11-14-15) that no gate covers at all. Implementation target: record the canonical home, register the sidecar in ARTIFACT-MANIFEST.json, and extend the parity or regeneration gate so a silent edit to the phase graph is caught.",
+    "inputs": [
+      "command-center/DEPENDENCY-GRAPH.json and its CI parity gate",
+      "command-center/PHASE-GRAPH.json (status MEASURED, generated by lane ground/dep-graph)",
+      "command-center/ARTIFACT-MANIFEST.json"
+    ],
+    "dependencies": [
+      "CC-0009"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "implementer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/CC-0016.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Show the gate exit code on an unmodified sidecar and on a mutated one. The 46 phase edges are authored from spec prose by a single agent and each carries a stated reason - the receipt must preserve that provenance rather than presenting them as derived facts.",
+    "tests_required": [
+      "Mutation: alter one edge in the sidecar -> the extended gate must fire (today it does not).",
+      "Regeneration: regenerate the sidecar from its source -> gate silent.",
+      "Non-interference: the existing DEPENDENCY-GRAPH.json parity gate must still pass unchanged.",
+      "Acyclicity: the phase graph must be re-verified acyclic after any edge edit."
+    ],
+    "reviewer_requirement": "One independent reviewer who re-derives the critical path from the edge list and confirms it matches the recorded 11-node path.",
+    "completion_sentinel": "SUCCESS:CC-0016",
+    "retry_policy": "Two strikes then pivot; do not add a top-level key to DEPENDENCY-GRAPH.json on a third attempt - that is the known red-gate path.",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "CC-0017",
+    "title": "Pull the canonical claim-record schema forward from Phase 4 as a provisional Phase-1 contract",
+    "phase": "1",
+    "question_or_target": "Implementation target: implement the Phase-1 canonical claim record (stable claim id, canonical mechanism, duplicate-of edges, support edges, contradiction edges, source lineage, confidence, verification status, implementation impact, exact settling probe) as an explicitly PROVISIONAL schema versioned for later Phase-4 formalization. This is the single highest-value schedule lever identified in the phase graph: the 1->2 edge is HARD only because the claim-record schema currently sits in Phase 4, and pulling it forward makes that edge SOFT, releasing bucket B03's 224 research units to start immediately and shortening the critical path from 11 nodes to 10.",
+    "inputs": [
+      "_USER-PROMPTS.md:10662-10679 (Phase 1 record fields)",
+      "command-center/CLAIM-REGISTRY.json (existing records to migrate)",
+      "command-center/PHASE-GRAPH.json CONTESTED-1 (the 1->2 edge)",
+      "the CC-0012 freeze and migration rules"
+    ],
+    "dependencies": [
+      "CC-0012"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "schema-author"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 7200,
+    "output_path": "command-center/receipts/CC-0017.json",
+    "output_schema": "command-center/schema/claim-record.schema.json",
+    "evidence_requirement": "State explicitly that this schema is PROVISIONAL and name the Phase-4 unit that supersedes it. The schedule claim (224 units released, critical path 11 -> 10) must be recomputed from the edge list after the change, not restated from the phase graph's prior text.",
+    "tests_required": [
+      "A claim record with no settling probe must be rejected - the spec makes the exact settling probe mandatory.",
+      "A duplicate-of cycle must be rejected.",
+      "A contradiction edge pointing at a nonexistent claim id must be rejected.",
+      "Round-trip: migrate three real records from the existing CLAIM-REGISTRY.json and read them back with no field loss."
+    ],
+    "reviewer_requirement": "Two reviewers: one cross-vendor on the schema, and one who independently re-derives whether the 1->2 edge really becomes SOFT rather than accepting the author's schedule claim.",
+    "completion_sentinel": "SUCCESS:CC-0017",
+    "retry_policy": "Two strikes then pivot to a minimal record with explicit extension points; do not grow the schema a third time to accommodate an outlier record.",
+    "failure_classification": [
+      "overclaim",
+      "dependency-blocked",
+      "detector-failure"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "CC-0018",
+    "title": "Rank claims by independent evidence, and prove repetition cannot raise a rank",
+    "phase": "1",
+    "question_or_target": "Implementation target: spec :10679 forbids ranking by how many agents repeated an idea and requires ranking by independent evidence, cross-domain convergence, severity and decision impact. Implement that ranking function and prove the anti-repetition property adversarially. This is load-bearing because N subagents asserting the same thing from the same stale input is one lens, not N signals, and this estate has already shipped a wrong 'ground truth' carried forward by three agents from a single stale premise.",
+    "inputs": [
+      "the CC-0017 claim records (confidence, lineage, verification status, impact)",
+      "_USER-PROMPTS.md:10679",
+      "rules/common/single-signal-verification.md section 5"
+    ],
+    "dependencies": [
+      "CC-0017"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "implementer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/receipts/CC-0018.json",
+    "output_schema": "command-center/schema/claim-record.schema.json",
+    "evidence_requirement": "The anti-repetition property must be demonstrated by an executed adversarial run with before-and-after ranks printed, not argued from the formula's shape.",
+    "tests_required": [
+      "Adversarial control: duplicate one claim across N synthetic agents sharing one source - its rank must not rise with N.",
+      "One claim backed by a single strong independent probe must outrank ten echoes of a weaker claim.",
+      "Lineage collapse: two claims whose lineages resolve to the same source document must count as one independent signal.",
+      "Monotonicity: adding a genuinely independent corroborating probe must raise the rank, so the function is not simply insensitive."
+    ],
+    "reviewer_requirement": "One independent adversarial reviewer whose explicit brief is to construct an input that games the ranking upward through repetition.",
+    "completion_sentinel": "SUCCESS:CC-0018",
+    "retry_policy": "Two strikes then pivot; if weighting cannot defeat the gaming input twice, switch to source-set cardinality rather than tuning weights a third time.",
+    "failure_classification": [
+      "overclaim",
+      "detector-failure",
+      "green-not-live"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "CC-0019",
+    "title": "Run the corpus normalization: turn prior findings, option cards, claims, failures and incidents into canonical records",
+    "phase": "1",
+    "question_or_target": "Implementation target: execute Phase 1 normalization over the real corpus - the 1.49 MB harness-restore corpus with 375 messages, the 29 contracted Prompt One artifacts (283 platform options, 284 workflow candidates, 108 blueprints, 58 council protocols, 72 presets, 11 architectures), prior test failures and incident notes - emitting canonical claim records with resolvable source lineage. Report the count of inputs DROPPED as a first-class number; a normalization that reports zero drops by construction has not measured anything.",
+    "inputs": [
+      "~/.claude/harness-restore-20260806/ (Prompt One artifacts and _USER-PROMPTS.md)",
+      "07-OPTION-UNIVERSE, 08-WORKFLOW-ARCHAEOLOGY-AND-SOURCE-CATALOG, 13-ARCHITECTURE-CANDIDATES, 17-DECISION-LOG",
+      "command-center/sources/REGISTER.md and sources/overlay.json",
+      "the CC-0017 schema and the CC-0018 ranking function"
+    ],
+    "dependencies": [
+      "CC-0017",
+      "CC-0018"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "corpus-normalizer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Bash"
+    ],
+    "execution_substrate": "cloud-batch",
+    "timeout_seconds": 10800,
+    "output_path": "command-center/receipts/CC-0019.json",
+    "output_schema": "command-center/schema/claim-record.schema.json",
+    "evidence_requirement": "Every emitted record must carry a source anchor that re-resolves. Sample 20 records at random and re-open each cited file:line; report the resolve rate as a fraction, not as a pass. Report input count, emitted count and dropped count so the three reconcile.",
+    "tests_required": [
+      "Random 20-record sample: every cited anchor must re-resolve to the quoted text.",
+      "Conservation: inputs = emitted + merged + dropped, with the dropped set enumerated and reasoned.",
+      "Detector control: a planted synthetic finding must appear in the output; if it does not, the ingester is silently skipping inputs.",
+      "Idempotence: a second run over an unchanged corpus must emit the same record ids."
+    ],
+    "reviewer_requirement": "One independent reviewer who samples a different 20 records than the author and independently checks the anchors.",
+    "completion_sentinel": "SUCCESS:CC-0019",
+    "retry_policy": "Two strikes then pivot to per-artifact ingestion with per-artifact receipts, so a single malformed source cannot fail the whole run a third time.",
+    "failure_classification": [
+      "uncontrolled-silence",
+      "overclaim",
+      "detector-failure"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "CC-0020",
+    "title": "Build the two-detector mechanism-level dedup gate for work units, with planted mutants as the control",
+    "phase": "1",
+    "question_or_target": "Question: are two work units the same mechanism in different wording? Lexical similarity alone cannot answer it - measured on this corpus, token-Jaccard fires at 0.93 to 1.00 on exact renames, paraphrases and one-parameter forks, but a full rewrite of the same mechanism lands in the same 0.05 to 0.24 band as a genuinely distinct entry. Implementation target: an AND-gated two-detector gate (lexical plus embedding) whose sensitivity is calibrated against deliberately planted mutants, so the 2,048-unit catalog cannot manufacture false coverage through near-duplicates, which the spec explicitly forbids.",
+    "inputs": [
+      "command-center/catalog-slices/*.json and the merged catalog from CC-0008",
+      "the planted-mutant control set (exact rename, paraphrase, one-parameter fork, full rewrite of one mechanism)",
+      "_USER-PROMPTS.md:10568 (merge work when two units are the same mechanism in different wording), :10725 (do not count trivial forks or renamed copies)"
+    ],
+    "dependencies": [
+      "CC-0008"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "gpt-5.x-codex",
+      "vendor": "openai",
+      "role": "independent-detector-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Bash",
+      "mcp__codex__codex"
+    ],
+    "execution_substrate": "cloud-batch",
+    "timeout_seconds": 7200,
+    "output_path": "command-center/receipts/CC-0020.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Report the measured detection rate against each planted mutant class separately, and the false-merge count against a hand-verified distinct set. A single aggregate accuracy number hides the failure direction, and on this estate 100 percent of a comparable classifier's errors pointed at data loss.",
+    "tests_required": [
+      "All four planted mutant classes must be caught, including the full-rewrite case that defeats lexical similarity.",
+      "Zero false merges across a hand-verified distinct set of at least 24 units.",
+      "Error-direction report: every disagreement must be classified as over-merge or under-merge, because over-merge destroys a unit and under-merge only costs review time.",
+      "Determinism: the same input pair must produce the same verdict across runs, or the threshold must be recorded with its variance."
+    ],
+    "reviewer_requirement": "One independent reviewer who authors a fifth mutant class the detector was not tuned against.",
+    "completion_sentinel": "SUCCESS:CC-0020",
+    "retry_policy": "Two strikes then pivot; if embedding thresholds fail twice, fall back to requiring human adjudication for the ambiguous band rather than tuning a third threshold.",
+    "failure_classification": [
+      "detector-failure",
+      "overclaim",
+      "uncontrolled-silence"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "CC-0021",
+    "title": "Build the cross-tree option-id namespace registry and a gate that fails on an ambiguous bare token",
+    "phase": "1",
+    "question_or_target": "Question: how many distinct things does an M-NN token mean on this estate, and can a resolver disambiguate them mechanically? At least four namespaces share the prefix: 07-OPTION-UNIVERSE family M (33 ids), 13-ARCHITECTURE-CANDIDATES mechanisms (38 ids, re-prefixed to MECH-NN on 2026-08-07 by 107 substitutions), wave3 deep-research SKILL.md:16 'Research Harness (M-16)' baked into 20 references across 16 files in two duplicated deployed trees, and wave1/REGISTER.md:304 single-digit M-1/M-3. Implementation target: enumerate every namespace, assign disjoint prefixes, ship a resolver, and gate on any remaining bare ambiguous token.",
+    "inputs": [
+      "07-OPTION-UNIVERSE.md and its JSON twin",
+      "13-ARCHITECTURE-CANDIDATES.md (38 MECH-NN cards, 0 bare M-NN today)",
+      "wave3/ast-cc/skills/deep-research/SKILL.md:16 and its 20 references across 16 files",
+      "wave1/REGISTER.md:304",
+      "command-center/OPTION-ID-RESOLUTION.json"
+    ],
+    "dependencies": [],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "detector-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/receipts/CC-0021.json",
+    "output_schema": "command-center/schema/option-id-namespace.schema.json",
+    "evidence_requirement": "Counts must come from an executed extractor with its regex printed, not from prior prose. The prior finding's own arithmetic was exact (33/38/31/7/2) but its live-blocker conclusion was already stale by two days, so re-measure rather than inherit.",
+    "tests_required": [
+      "Known-present: all 20 deep-research M-16 references must be found across both duplicated deployed trees.",
+      "False-positive control: a MECH-NN token must NOT be reported as a bare ambiguous M-NN.",
+      "Known-broken control: a planted bare M-16 in a scratch file must make the gate fire.",
+      "Use-vs-mention: a document quoting the collision in order to describe it must not be flagged as carrying an unresolved id."
+    ],
+    "reviewer_requirement": "One independent reviewer who re-runs the extractor with a different regex construction and confirms the counts agree.",
+    "completion_sentinel": "SUCCESS:CC-0021",
+    "retry_policy": "Two strikes then pivot from prefix heuristics to an explicit per-file namespace declaration; never guess a token's namespace from surrounding prose.",
+    "failure_classification": [
+      "detector-failure",
+      "overclaim",
+      "owner-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "CC-0022",
+    "title": "Reconcile the decision log and add a sentinel that fires when a log entry contradicts a live probe",
+    "phase": "1",
+    "question_or_target": "Implementation target: 17-DECISION-LOG.md contains ZERO 'MECH' tokens across 44 KB, and line 175 still states the 31-way option-id collision in the present tense and marks it 'Queued as P2-09', although the re-prefix was applied on 2026-08-07 at 18:41 and the literal collision count is now 0. Any agent pinning ground truth from the decision log therefore inherits a fixed problem as an open one - which is exactly what happened to this program's own pinned brief. Reconcile the log to the MECH-NN namespace and ship a staleness sentinel that fails when a log entry asserts a state a live probe contradicts.",
+    "inputs": [
+      "17-DECISION-LOG.md (44 KB, line 175, zero MECH tokens)",
+      "_fb02_apply.py and its 2026-08-07 18:41 substitution record",
+      "the CC-0021 namespace resolver",
+      "this program's pinned brief, which inherited the stale statement"
+    ],
+    "dependencies": [
+      "CC-0021"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "corpus-normalizer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash",
+      "mcp__basic-memory__write_note"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/receipts/CC-0022.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Record the superseded wording rather than deleting it - a retired claim that vanishes cannot be audited, and on this estate a superseded note must carry a superseded_by pointer while the replacement carries valid_as_of.",
+    "tests_required": [
+      "The sentinel must FIRE on today's line 175 before the fix and be SILENT after - a probe silent in both states measures nothing.",
+      "A second planted stale entry must also fire, proving the sentinel is not hardcoded to line 175.",
+      "A currently-true entry must not fire.",
+      "The reconcile must not change any decision's meaning: a diff review must show only namespace and tense edits."
+    ],
+    "reviewer_requirement": "One independent reviewer who confirms no decision content was altered, only its id namespace and its stale tense.",
+    "completion_sentinel": "SUCCESS:CC-0022",
+    "retry_policy": "Two strikes then pivot; if automated tense detection misfires twice, restrict the sentinel to entries carrying an explicit machine-checkable assertion.",
+    "failure_classification": [
+      "overclaim",
+      "detector-failure",
+      "uncontrolled-silence"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "CC-0023",
+    "title": "Put the 58 algorithmically unresolvable option-id references to the owner, one question at a time",
+    "phase": "1",
+    "question_or_target": "Implementation target: 58 M-NN references cannot be resolved by any algorithm - both namespaces hold a card for each of those numbers and the surrounding prose carries no discriminating token, so only the authors of documents 16, 18 and 19 can decide. Produce an owner adjudication packet that asks one foundation-level question at a time, each with a recommendation, the strongest tradeoff, and the default if unanswered, and records every answer durably (_USER-PROMPTS.md:11364-11370). Do NOT guess: LLM classification of a mechanical comparison measured 86 percent accurate on this estate with 100 percent of the errors pointing at data loss.",
+    "inputs": [
+      "the 58 unresolved references enumerated by CC-0021",
+      "documents 16, 18 and 19 that contain them",
+      "command-center/OWNER-QUESTION-PACKET.md and OWNER-DECISIONS.md",
+      "_USER-PROMPTS.md:11349-11370 (owner interaction rules)"
+    ],
+    "dependencies": [
+      "CC-0021",
+      "CC-0022"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "owner-liaison"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "AskUserQuestion"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/receipts/CC-0023.json",
+    "output_schema": "command-center/schema/option-id-namespace.schema.json",
+    "evidence_requirement": "Only a recorded owner answer with a timestamp counts. An inferred answer, a majority-of-agents answer, or a most-likely-meaning answer is not evidence and must be recorded as DEFERRED with its impact statement instead.",
+    "tests_required": [
+      "All 58 references end in exactly one of two states: an owner answer, or an explicit DEFERRED carrying an impact statement.",
+      "Zero references are silently rewritten - a diff must show no unattributed id change.",
+      "Grouping control: references that share a single underlying decision must be batched into one question, so the owner is not asked 58 times for 12 decisions.",
+      "Durability: re-reading OWNER-DECISIONS.md after the session must return every recorded answer."
+    ],
+    "reviewer_requirement": "Owner is the decision authority; one independent reviewer checks that no reference was resolved without an owner answer.",
+    "completion_sentinel": "SUCCESS:CC-0023",
+    "retry_policy": "No retry loop on the owner. Ask once per decision, record the stated default if unanswered, and continue the independent work that remains possible.",
+    "failure_classification": [
+      "owner-blocked",
+      "dependency-blocked",
+      "overclaim"
+    ],
+    "owner_approval_required": true
+  },
+  {
+    "id": "CC-0024",
+    "title": "Extract every owner requirement and numeric floor from the spec and bind each to the units that satisfy it",
+    "phase": "1",
+    "question_or_target": "Question, asked by Phase 13 at _USER-PROMPTS.md:11073 but only answerable if Phase 1 makes it mechanical: which owner requirements silently disappeared? Implementation target: extract every imperative and every numeric floor from _USER-PROMPTS.md:10473-11437 into machine-readable requirement records, and bind each to the work unit or units that satisfy it, so an unbound requirement surfaces as a measured gap rather than an omission nobody notices. The nine numeric floors that must be extracted before any coverage number is reported are 2048 work units, 160 workflow candidates, 96 blueprints, 40 flagship workflows, 48 council protocols, 64 presets, 100-idea brainstorm targets, 36 test layers and 21 stopping conditions.",
+    "inputs": [
+      "_USER-PROMPTS.md:10473-11437 (the Prompt Two spec)",
+      "the merged catalog produced by CC-0008",
+      "command-center/PROMPT-ONE-FLOOR-AUDIT.json (the Prompt One floor precedent)",
+      "_USER-PROMPTS.md:11066-11082 (Phase 13 blind-spot questions)"
+    ],
+    "dependencies": [
+      "CC-0008",
+      "CC-0019"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "requirements-analyst"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Bash"
+    ],
+    "execution_substrate": "cloud-batch",
+    "timeout_seconds": 10800,
+    "output_path": "command-center/receipts/CC-0024.json",
+    "output_schema": "command-center/schema/requirement-record.schema.json",
+    "evidence_requirement": "Every requirement record must cite its spec line. Coverage may only be reported after the extractor has passed its floor-recall control, because a coverage percentage computed by a detector that missed requirements is a confident wrong number, not a partial one.",
+    "tests_required": [
+      "Floor-recall control: all nine named numeric floors must be extracted before any coverage percentage is emitted.",
+      "Deletion control: remove one known requirement from a scratch copy of the spec and confirm the matrix reports it unbound.",
+      "Binding validity: every bound unit id must exist in the merged catalog.",
+      "Unbound reporting: unbound requirements must be listed individually with their spec line, never summarised as a count."
+    ],
+    "reviewer_requirement": "One independent reviewer who extracts the numeric floors by hand from the spec text and compares against the extractor's set.",
+    "completion_sentinel": "SUCCESS:CC-0024",
+    "retry_policy": "Two strikes then pivot from imperative-verb matching to sentence-level classification with a labelled control set; never lower the floor-recall bar to make the extractor pass.",
+    "failure_classification": [
+      "detector-failure",
+      "overclaim",
+      "uncontrolled-silence"
+    ],
+    "owner_approval_required": false
+  }
+]
