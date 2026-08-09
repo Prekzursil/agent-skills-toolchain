@@ -544,6 +544,29 @@ jobs:
       - name: gate-tests-coverage deployable-doc/code path consistency
         run: python -m pytest ci/tests/test_deploy_doc_consistency.py -q
 
+      # docs/program-b -- the Program B (workflow_design) register. This step IS the
+      # remediation for register row R-B05 ("zero consumers reach any Program-B
+      # artifact"): four detector-controlled probes found nothing in the repo, hooks,
+      # skills, workflows, agents or commands tree that ever reads a Program-B
+      # artifact, and a backlog nobody reads is a backlog that gets dropped -- it was
+      # dropped three times. Naming the suite here makes CI the consumer, so the
+      # register cannot silently drift, lose an item, or be deleted.
+      # Stdlib-only, no install (pytest is already present from earlier steps).
+      # The mutation probe is the both-states half
+      # (rules/common/single-signal-verification.md rule 3b), following the
+      # plugin-cache-reaper precedent above: it mutates a temp COPY of the receipt --
+      # never the committed file -- and requires the suite to go RED for each defect,
+      # so a green gate here is evidence about the register rather than evidence that
+      # the checker stopped working. Measured: 27 passed, 10/10 mutations killed, and
+      # the probe verifies the committed receipt is byte-unchanged afterwards.
+      # Reuses the existing `gate-tests-coverage` charter slug on purpose -- it is not
+      # a new gate, so .quality/charter_check.sh stays consistent with no charter.yml
+      # edit.
+      - name: gate-tests-coverage program-b register (suite + mutation probe)
+        run: |
+          python -m pytest ci/tests/test_program_b_register.py -q
+          python docs/program-b/mutation_probe.py
+
       # tools/plugin-cache-reaper — the sweep for abandoned plugin-install staging
       # clones under ~/.claude/plugins/cache. Named explicitly for the usual reason:
       # there is no repo-wide pytest autodiscovery here, so an unnamed suite is dead
