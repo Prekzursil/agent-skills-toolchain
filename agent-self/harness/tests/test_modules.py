@@ -64,6 +64,10 @@ def test_fixed_module_order_is_security_then_continuity_then_quality():
         "subagent_lifecycle",
         "bc_offset_guard",
         "enforcement_scaffold",
+        # Quality tier, last: inject-only, never blocks, and reads a JSON file.
+        # Ordering it after every security and continuity gate keeps a slow or
+        # missing catalog from delaying anything that matters.
+        "register_gate",
     )
 
 

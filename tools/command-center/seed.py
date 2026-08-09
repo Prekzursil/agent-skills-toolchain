@@ -58,7 +58,9 @@ DEFAULTS: dict[str, Any] = {
         "dependency-blocked",
         "owner-blocked",
     ],
-    "tests_required": ["a both-states control: the check must fire on the bad state and be silent on the good one"],
+    "tests_required": [
+        "a both-states control: the check must fire on the bad state and be silent on the good one"
+    ],
     "owner_approval_required": False,
 }
 
@@ -154,7 +156,8 @@ def build_catalog(register_path: Path, overlay_path: Path) -> dict[str, Any]:
         items.append(item)
 
     owner_questions = [
-        {"id": qid, "text": text, "state": "OPEN"} for qid, text in parsed.owner_questions
+        {"id": qid, "text": text, "state": "OPEN"}
+        for qid, text in parsed.owner_questions
     ]
     return {
         "schema_version": cat.SCHEMA_VERSION,
@@ -180,8 +183,12 @@ def build_catalog(register_path: Path, overlay_path: Path) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--register", default=str(cat.command_center_dir() / "sources" / "REGISTER.md"))
-    parser.add_argument("--overlay", default=str(cat.command_center_dir() / "sources" / "overlay.json"))
+    parser.add_argument(
+        "--register", default=str(cat.command_center_dir() / "sources" / "REGISTER.md")
+    )
+    parser.add_argument(
+        "--overlay", default=str(cat.command_center_dir() / "sources" / "overlay.json")
+    )
     parser.add_argument("--out", default=str(cat.catalog_path()))
     parser.add_argument("--graph", default=str(cat.graph_path()))
     parser.add_argument(
@@ -193,12 +200,16 @@ def main(argv: list[str] | None = None) -> int:
 
     out = Path(args.out)
     if out.exists() and not args.force:
-        print(f"FAILED:seed {out} exists; re-seeding discards history. Pass --force if that is intended.")
+        print(
+            f"FAILED:seed {out} exists; re-seeding discards history. Pass --force if that is intended."
+        )
         return 1
     built = build_catalog(Path(args.register), Path(args.overlay))
     cat.save(built, out)
     cat.save(cat.build_graph(built), Path(args.graph))
-    print(f"SUCCESS:seed items={len(built['items'])} open={len(cat.open_items(built))} -> {out}")
+    print(
+        f"SUCCESS:seed items={len(built['items'])} open={len(cat.open_items(built))} -> {out}"
+    )
     return 0
 
 

@@ -87,17 +87,27 @@ def validate(
     """Run every check. Returns (violations, stats). Never raises on bad data."""
     violations: list[Violation] = []
     items = cat.items(catalog)
-    defaults = catalog.get("defaults", {}) if isinstance(catalog.get("defaults"), dict) else {}
+    defaults = (
+        catalog.get("defaults", {}) if isinstance(catalog.get("defaults"), dict) else {}
+    )
 
     if not items:
-        violations.append(Violation("V-EMPTY", "-", "catalog holds zero items (fail closed)"))
+        violations.append(
+            Violation("V-EMPTY", "-", "catalog holds zero items (fail closed)")
+        )
         return violations, {"items": 0}
 
     index: dict[str, dict[str, Any]] = {}
     for item in items:
         item_id = str(item.get("id", "")).strip()
         if not _ID_RE.match(item_id):
-            violations.append(Violation("V-ID", item_id or "<blank>", "id does not match ^(R|D|S|T)-[A-Z]?[0-9]+$"))
+            violations.append(
+                Violation(
+                    "V-ID",
+                    item_id or "<blank>",
+                    "id does not match ^(R|D|S|T)-[A-Z]?[0-9]+$",
+                )
+            )
             continue
         if item_id in index:
             violations.append(Violation("V-ID", item_id, "duplicate id"))
@@ -116,15 +126,27 @@ def validate(
         item = index[node]
         for dep in cat.dependencies(item):
             if dep not in index:
-                violations.append(Violation("REACH-1", node, f"dependency {dep!r} does not exist"))
+                violations.append(
+                    Violation("REACH-1", node, f"dependency {dep!r} does not exist")
+                )
             elif not cat.is_open(item) and dep in open_ids:
                 violations.append(
-                    Violation("REACH-1", node, f"item is closed but depends on still-open {dep}")
+                    Violation(
+                        "REACH-1",
+                        node,
+                        f"item is closed but depends on still-open {dep}",
+                    )
                 )
 
     # REACH-2
     for node in cat.find_cycle_nodes(catalog):
-        violations.append(Violation("REACH-2", node, "lies on a dependency cycle; can never reach a disposition"))
+        violations.append(
+            Violation(
+                "REACH-2",
+                node,
+                "lies on a dependency cycle; can never reach a disposition",
+            )
+        )
 
     # REACH-3 + REACH-4
     for node in sorted(open_ids):
@@ -137,9 +159,19 @@ def validate(
         for gate in gates:
             entry = questions.get(gate)
             if entry is None:
-                violations.append(Violation("REACH-4", node, f"owner_gate {gate!r} names no known question"))
+                violations.append(
+                    Violation(
+                        "REACH-4", node, f"owner_gate {gate!r} names no known question"
+                    )
+                )
             elif str(entry.get("state", "")).upper() != "OPEN":
-                violations.append(Violation("REACH-4", node, f"owner_gate {gate} is already {entry.get('state')}"))
+                violations.append(
+                    Violation(
+                        "REACH-4",
+                        node,
+                        f"owner_gate {gate} is already {entry.get('state')}",
+                    )
+                )
             else:
                 live_gates.append(gate)
         if not (has_action or live_gates or open_deps):
@@ -158,32 +190,60 @@ def validate(
         if disposition is None:
             continue
         if disposition not in cat.TERMINAL_DISPOSITIONS:
-            violations.append(Violation("REACH-5", node, f"disposition {disposition!r} is not terminal"))
+            violations.append(
+                Violation(
+                    "REACH-5", node, f"disposition {disposition!r} is not terminal"
+                )
+            )
         if not str(item.get("disposition_evidence", "") or "").strip():
-            violations.append(Violation("REACH-5", node, f"{disposition} with no disposition_evidence"))
+            violations.append(
+                Violation(
+                    "REACH-5", node, f"{disposition} with no disposition_evidence"
+                )
+            )
 
     # REACH-6
-    provenance = catalog.get("provenance", {}) if isinstance(catalog.get("provenance"), dict) else {}
+    provenance = (
+        catalog.get("provenance", {})
+        if isinstance(catalog.get("provenance"), dict)
+        else {}
+    )
     snapshot = register_path or (cat.repo_root() / str(provenance.get("register", "")))
     if not snapshot.is_file():
-        violations.append(Violation("REACH-6", "-", f"register snapshot missing at {snapshot}"))
+        violations.append(
+            Violation("REACH-6", "-", f"register snapshot missing at {snapshot}")
+        )
     else:
         raw = snapshot.read_bytes()
         digest = hashlib.sha256(raw).hexdigest()
         recorded = str(provenance.get("register_sha256", ""))
         if recorded and digest != recorded:
             violations.append(
-                Violation("REACH-6", "-", f"register snapshot sha256 {digest[:12]} != recorded {recorded[:12]}")
+                Violation(
+                    "REACH-6",
+                    "-",
+                    f"register snapshot sha256 {digest[:12]} != recorded {recorded[:12]}",
+                )
             )
         for row in rp.parse_text(raw.decode("utf-8")).rows:
             if row.row_id not in index:
-                violations.append(Violation("REACH-6", row.row_id, "present in the register snapshot, dropped from the catalog"))
+                violations.append(
+                    Violation(
+                        "REACH-6",
+                        row.row_id,
+                        "present in the register snapshot, dropped from the catalog",
+                    )
+                )
 
     # V-GRAPH
     expected = cat.build_graph(catalog)
     if graph is not None and graph != expected:
         violations.append(
-            Violation("V-GRAPH", "-", "committed DEPENDENCY-GRAPH.json != build_graph(catalog); re-run seed/close")
+            Violation(
+                "V-GRAPH",
+                "-",
+                "committed DEPENDENCY-GRAPH.json != build_graph(catalog); re-run seed/close",
+            )
         )
 
     # V-FIELDS
@@ -201,7 +261,9 @@ def validate(
     if unresolved and require_complete:
         for entry in unresolved:
             node, _, field = entry.partition(".")
-            violations.append(Violation("V-FIELDS", node, f"work-unit field {field!r} unresolved"))
+            violations.append(
+                Violation("V-FIELDS", node, f"work-unit field {field!r} unresolved")
+            )
 
     stats = {
         "items": len(index),
@@ -209,7 +271,9 @@ def validate(
         "closed": len(index) - len(open_ids),
         "edges": expected["edge_count"],
         "acyclic": expected["acyclic"],
-        "owner_questions_open": sum(1 for q in questions.values() if str(q.get("state", "")).upper() == "OPEN"),
+        "owner_questions_open": sum(
+            1 for q in questions.values() if str(q.get("state", "")).upper() == "OPEN"
+        ),
         "work_unit_fields_unresolved": len(unresolved),
         "work_unit_fields_from_defaults": default_only,
         "by_program": _count(index, "program"),
@@ -232,7 +296,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--graph", default=str(cat.graph_path()))
     parser.add_argument("--register", default=None)
     parser.add_argument("--require-complete", action="store_true")
-    parser.add_argument("--json", action="store_true", help="emit the machine-readable report")
+    parser.add_argument(
+        "--json", action="store_true", help="emit the machine-readable report"
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -259,18 +325,28 @@ def main(argv: list[str] | None = None) -> int:
         require_complete=args.require_complete,
     )
     if args.json:
-        print(json.dumps({"violations": violations, "stats": stats}, indent=2, sort_keys=True))
+        print(
+            json.dumps(
+                {"violations": violations, "stats": stats}, indent=2, sort_keys=True
+            )
+        )
     else:
         for violation in violations:
             print(f"  {violation}")
         print(
             "cc-validate "
-            + " ".join(f"{key}={value}" for key, value in stats.items() if not isinstance(value, dict))
+            + " ".join(
+                f"{key}={value}"
+                for key, value in stats.items()
+                if not isinstance(value, dict)
+            )
         )
     if violations:
         print(f"FAILED:cc-validate violations={len(violations)}")
         return 1
-    print(f"SUCCESS:cc-validate items={stats['items']} open={stats['open']} reachable=all")
+    print(
+        f"SUCCESS:cc-validate items={stats['items']} open={stats['open']} reachable=all"
+    )
     return 0
 
 

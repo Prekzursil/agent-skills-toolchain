@@ -239,7 +239,9 @@ def find_cycle_nodes(catalog: dict[str, Any]) -> list[str]:
     _, residual = topological_order(catalog)
     alive = set(residual)
     blocked_by = {
-        node: set(deps) & alive for node, deps in _edge_map(catalog).items() if node in alive
+        node: set(deps) & alive
+        for node, deps in _edge_map(catalog).items()
+        if node in alive
     }
     while True:
         blockers = {dep for deps in blocked_by.values() for dep in deps}

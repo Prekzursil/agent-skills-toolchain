@@ -83,7 +83,8 @@ def test_detects_closed_item_depending_on_open_item(real):
     _find(bad, "T-01")["dependencies"] = ["R-M01"]
     violations, _ = val.validate(bad)
     assert any(
-        entry["check"] == "REACH-1" and "closed but depends" in entry["detail"] for entry in violations
+        entry["check"] == "REACH-1" and "closed but depends" in entry["detail"]
+        for entry in violations
     )
 
 
@@ -110,23 +111,31 @@ def test_detects_dead_end_open_item(real):
     item = _find(bad, "R-M08")  # no deps, no gate in the real catalog
     item["next_smallest_action"] = cat.UNKNOWN
     violations, _ = val.validate(bad)
-    assert any(entry["check"] == "REACH-3" and entry["id"] == "R-M08" for entry in violations)
+    assert any(
+        entry["check"] == "REACH-3" and entry["id"] == "R-M08" for entry in violations
+    )
 
 
 def test_an_open_dependency_is_a_legal_reason_to_have_no_action(real):
     """REACH-3 must not fire on a legitimately waiting item, or the whole check
     becomes noise and gets ignored."""
     bad = copy.deepcopy(real)
-    _find(bad, "R-A32")["next_smallest_action"] = cat.UNKNOWN  # still depends on open R-A01
+    _find(bad, "R-A32")["next_smallest_action"] = (
+        cat.UNKNOWN
+    )  # still depends on open R-A01
     violations, _ = val.validate(bad)
-    assert not any(entry["check"] == "REACH-3" and entry["id"] == "R-A32" for entry in violations)
+    assert not any(
+        entry["check"] == "REACH-3" and entry["id"] == "R-A32" for entry in violations
+    )
 
 
 def test_detects_owner_gate_pointing_at_nothing(real):
     bad = copy.deepcopy(real)
     _find(bad, "R-B08")["owner_gate"] = ["OQ-999"]
     violations, _ = val.validate(bad)
-    assert any(entry["check"] == "REACH-4" and entry["id"] == "R-B08" for entry in violations)
+    assert any(
+        entry["check"] == "REACH-4" and entry["id"] == "R-B08" for entry in violations
+    )
 
 
 def test_a_gate_that_is_already_answered_stops_counting_as_a_blocker(real):
@@ -145,14 +154,19 @@ def test_detects_disposition_without_evidence(real):
     bad = copy.deepcopy(real)
     _find(bad, "T-05")["disposition_evidence"] = "   "
     violations, _ = val.validate(bad)
-    assert any(entry["check"] == "REACH-5" and entry["id"] == "T-05" for entry in violations)
+    assert any(
+        entry["check"] == "REACH-5" and entry["id"] == "T-05" for entry in violations
+    )
 
 
 def test_detects_non_terminal_disposition(real):
     bad = copy.deepcopy(real)
     _find(bad, "T-05")["disposition"] = "PROBABLY-FINE"
     violations, _ = val.validate(bad)
-    assert any(entry["check"] == "REACH-5" and "not terminal" in entry["detail"] for entry in violations)
+    assert any(
+        entry["check"] == "REACH-5" and "not terminal" in entry["detail"]
+        for entry in violations
+    )
 
 
 def test_detects_a_silently_dropped_item(real):
@@ -161,19 +175,27 @@ def test_detects_a_silently_dropped_item(real):
     bad = copy.deepcopy(real)
     bad["items"] = [item for item in bad["items"] if item["id"] != "R-B06"]
     violations, _ = val.validate(bad)
-    assert any(entry["check"] == "REACH-6" and entry["id"] == "R-B06" for entry in violations)
+    assert any(
+        entry["check"] == "REACH-6" and entry["id"] == "R-B06" for entry in violations
+    )
 
 
 def test_detects_a_tampered_register_snapshot(real, tmp_path: Path):
     bad_snapshot = tmp_path / "REGISTER.md"
     bad_snapshot.write_text("# not the register\n", encoding="utf-8")
     violations, _ = val.validate(real, register_path=bad_snapshot)
-    assert any(entry["check"] == "REACH-6" and "sha256" in entry["detail"] for entry in violations)
+    assert any(
+        entry["check"] == "REACH-6" and "sha256" in entry["detail"]
+        for entry in violations
+    )
 
 
 def test_detects_a_missing_register_snapshot(real, tmp_path: Path):
     violations, _ = val.validate(real, register_path=tmp_path / "nope.md")
-    assert any(entry["check"] == "REACH-6" and "missing" in entry["detail"] for entry in violations)
+    assert any(
+        entry["check"] == "REACH-6" and "missing" in entry["detail"]
+        for entry in violations
+    )
 
 
 def test_detects_a_stale_dependency_graph(real, real_graph):
@@ -225,7 +247,9 @@ def test_cli_exit_one_on_a_mutated_catalog(tmp_path: Path, real, real_graph, cap
     graph_file = tmp_path / "graph.json"
     cat.save(bad, catalog_file)
     cat.save(cat.build_graph(bad), graph_file)
-    code = val.main(["--catalog", str(catalog_file), "--graph", str(graph_file), "--json"])
+    code = val.main(
+        ["--catalog", str(catalog_file), "--graph", str(graph_file), "--json"]
+    )
     assert code == 1
     assert "FAILED:cc-validate" in capsys.readouterr().out
 
@@ -234,7 +258,12 @@ def test_cli_fails_closed_on_unreadable_inputs(tmp_path: Path, capsys):
     assert val.main(["--catalog", str(tmp_path / "missing.json")]) == 1
     catalog_file = tmp_path / "cat.json"
     cat.save({"items": []}, catalog_file)
-    assert val.main(["--catalog", str(catalog_file), "--graph", str(tmp_path / "missing.json")]) == 1
+    assert (
+        val.main(
+            ["--catalog", str(catalog_file), "--graph", str(tmp_path / "missing.json")]
+        )
+        == 1
+    )
     broken = tmp_path / "graph.json"
     broken.write_text("{not json", encoding="utf-8")
     assert val.main(["--catalog", str(catalog_file), "--graph", str(broken)]) == 1
