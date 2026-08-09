@@ -49,6 +49,19 @@ and each is pinned by a test in ``ci/tests``:
     non-empty.  A canonical row now discharges only if its post-image is a
     REGULAR file (mode 100644/100755).
 
+One FALSE POSITIVE is closed here, in the opposite direction from the list
+above, and is likewise pinned by tests in ``ci/tests``:
+
+  * ``unsatisfiable-pairing`` -- ``--strict-parity`` refused any deletion whose
+    counterpart was absent from the set of deleted paths.  For a CANONICAL-ONLY
+    skill (no ``skills/`` projection) that precondition can never be met, because
+    a path that never existed cannot appear as a deletion, so such a skill could
+    not be retired at all.  The pairing obligation now applies only when the
+    counterpart actually existed in the tree the change is measured against.  The
+    relaxation is canonical-side only: deleting a projection-only path is still a
+    violation, since ``skills/`` is generated and its D-001 repair is to create
+    the missing canonical copy rather than to prune the projection.
+
 KNOWN RESIDUAL, stated rather than hidden, and NOT claimed to be exhaustive:
 the default rule is non-empty-content-level, NOT equivalence-level.  A one-byte
 canonical placeholder still discharges the obligation, and two copies that are
@@ -424,6 +437,19 @@ def evaluate_strict(
     """
     bad: dict[str, list[tuple[str, str]]] = {}
     deleted = {path for status, path in rows if status == "D"}
+    added = {path for status, path in rows if status == "A"}
+    prior = {path for status, path in rows if status in {"D", "M", "T"}}
+
+    def existed_in_base(path: str) -> bool:
+        """Was ``path`` present in the tree this change is measured AGAINST?
+
+        Derived from the SAME diff that produced ``rows`` rather than from a
+        second ``merge-base`` read, so the two can never disagree: a D/M/T row
+        implies a pre-image, an A row implies none, and a path with no row is
+        in the base exactly when it survives into the final tree.
+        """
+        return path in prior or (path in final and path not in added)
+
     for status, path in rows:
         if status not in STRICT_CHANGES:
             continue
@@ -441,7 +467,23 @@ def evaluate_strict(
         right = final.get(counterpart)
         regular = left is None or left[0] in REGULAR_MODES
         counterpart_regular = right is None or right[0] in REGULAR_MODES
-        unpaired_deletion = status == "D" and counterpart not in deleted
+        # A deletion is UNPAIRED only when there was a counterpart to delete
+        # alongside it.  `counterpart not in deleted` alone is unsatisfiable for
+        # a canonical-only skill -- a path that never existed cannot appear as a
+        # deletion -- so no skill lacking a generated projection could ever be
+        # retired.  The relaxation is CANONICAL-SIDE ONLY and deliberately
+        # asymmetric, because the two roots are not peers under D-001:
+        # `.agents/skills` is authoritative, so removing it with no projection to
+        # match is a complete retirement, whereas `skills/` is generated, so a
+        # projection-only path is legacy debt whose D-001 repair is to CREATE the
+        # canonical copy, not to prune the evidence.  That direction stays a
+        # violation and is pinned by
+        # test_strict_parity_refuses_unpaired_projection_only_deletion.
+        unpaired_deletion = (
+            status == "D"
+            and counterpart not in deleted
+            and (root == PROJECTION_ROOT or existed_in_base(counterpart))
+        )
         if left != right or not regular or not counterpart_regular or unpaired_deletion:
             bad.setdefault(name, []).append((path, counterpart))
 
