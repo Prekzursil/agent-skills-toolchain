@@ -109,7 +109,33 @@ LIVE_HARNESS_DIR = HOME / ".agents" / "harness"
 # source); backups/, __pycache__/, .venv/ are generated trees; .deploy.lock is
 # the single-writer lock; .deploy-stage-* are the atomic staging temp dirs.
 # The CAS-lite deploy machinery (ONE target per call).
-DEPLOY_TARGETS = ("harness", "skills", "hooks")
+DEPLOY_TARGETS = ("harness", "skills", "hooks", "command-center")
+# Targets whose repo tree is NOT a clean managed tree, mapped to the EXACT set of
+# relative paths that may deploy. Absent from this map = deploy the whole tree
+# (the harness/skills/hooks contract, unchanged).
+#
+# "command-center" needs one because, unlike the other three, its repo directory
+# is a live working surface that concurrent agents write scratch into -- measured
+# 2026-08-09, 10 untracked files totalling ~1.4 MB, the largest a 1.37 MB
+# `_baseline_probe_out.json`. A whole-tree copy would ship that scratch to the box.
+#
+# The allowlist is exactly what a LIVE consumer READS, and nothing else:
+# `WORK-UNIT-CATALOG.json` is loaded by modules.RegisterGateModule._load_catalog,
+# whose candidate list names `~/.agents/command-center/WORK-UNIT-CATALOG.json` and
+# `~/.claude/command-center/WORK-UNIT-CATALOG.json`. The register's other files
+# (STATUS.md, OWNER-DECISIONS.md, the sources/ tree, ...) are repo-side
+# documentation and generated views -- no live code opens them, so copying them
+# would be cargo-cult. Add a path here only when a live consumer reads it.
+#
+# DIRECTIONALITY, disclosed rather than hidden: this is a one-way repo -> live
+# snapshot of a MUTABLE file. `tools/command-center/close.py` writes the REPO
+# copy; the deployed copy is read-only state that goes stale between deploys, so
+# an item closed after the last deploy keeps resurfacing until the next one.
+# Re-deploy after a close, and never hand-edit the live copy (invisible to git,
+# overwritten by the next deploy).
+DEPLOY_INCLUDE: dict[str, frozenset[str]] = {
+    "command-center": frozenset({"WORK-UNIT-CATALOG.json"}),
+}
 # Targets whose managed .py files are PYTHON IMPORT SURFACES, so a candidate that
 # does not even compile must never reach the live tree: "harness" is imported as a
 # package by every consumer, and each hooks/<name>/*.py is imported in-process by
@@ -538,7 +564,7 @@ def install(*, check: bool = False) -> int:
 
 
 # --------------------------------------------------------------------------- #
-# Deploy (--deploy): repo tree (ci/harness | skills | hooks) -> its live target.
+# Deploy (--deploy): repo tree (harness | skills | hooks | command-center) -> live.
 #
 # CAS-LITE deploy: a right-sized, staged/atomic copy with optimistic-concurrency
 # integrity (NOT an 11-state journal, a compensating-transaction engine, or a
@@ -596,12 +622,20 @@ def _hash_file(path: Path) -> str:
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def _managed_files(root: Path) -> dict[str, Path]:
+def _managed_files(
+    root: Path, include: frozenset[str] | None = None
+) -> dict[str, Path]:
     """The deterministic managed-file set under ``root`` -> {relpath: abspath}.
 
     Excludes runtime state (installed.json, backups/, __pycache__, .venv,
     .deploy.lock, *.bak/*.bak-*, staging dirs). Deterministic: dirs and files are
-    walked sorted so ``copied`` order is stable across runs."""
+    walked sorted so ``copied`` order is stable across runs.
+
+    ``include`` (DEPLOY_INCLUDE for the target, None for a whole-tree target)
+    narrows the result to an exact relative-path allowlist. It must be applied
+    IDENTICALLY to the candidate scan and the live scans, or the pre-write CAS
+    would compare an allowlisted plan against an unfiltered live tree and abort
+    every second deploy on a file it was never asked to manage."""
     result: dict[str, Path] = {}
     if not root.exists():
         return result
@@ -616,13 +650,19 @@ def _managed_files(root: Path) -> dict[str, Path]:
             if _is_excluded_name(name):
                 continue
             rel = os.path.normpath(os.path.join(rel_root, name))
+            if include is not None and rel not in include:
+                continue
             result[rel] = Path(dirpath) / name
     return result
 
 
-def _managed_hashes(root: Path) -> dict[str, str]:
+def _managed_hashes(
+    root: Path, include: frozenset[str] | None = None
+) -> dict[str, str]:
     """Plan-time content hashes of every managed file currently under ``root``."""
-    return {rel: _hash_file(path) for rel, path in _managed_files(root).items()}
+    return {
+        rel: _hash_file(path) for rel, path in _managed_files(root, include).items()
+    }
 
 
 def _uncompilable_python(candidate: dict[str, Path]) -> list[dict[str, str]]:
@@ -657,22 +697,33 @@ def _uncompilable_python(candidate: dict[str, Path]) -> list[dict[str, str]]:
 
 
 def _default_source(target: str) -> Path:
-    """Repo-side source tree for a deploy target (module globals => monkeypatchable)."""
+    """Repo-side source tree for a deploy target (module globals => monkeypatchable).
+
+    Every non-harness target names its repo directory EXPLICITLY. The previous
+    `"skills" if target == "skills" else "hooks"` form made "hooks" the silent
+    default for anything unrecognized, so a target added to DEPLOY_TARGETS without
+    a row here would have deployed the hooks tree under another target's name."""
     if target == "harness":
         return HERE
-    repo_root = HERE.resolve().parents[1]  # ci/harness -> ci -> <repo root>
-    return repo_root / ("skills" if target == "skills" else "hooks")
+    repo_root = HERE.resolve().parents[1]  # agent-self/harness -> agent-self -> <repo>
+    subdir = {"skills": "skills", "hooks": "hooks", "command-center": "command-center"}
+    return repo_root / subdir[target]
 
 
 def _default_live(target: str) -> Path:
     """Live target dir. Honors the HARNESS_LIVE_* env overrides (tests), else the
-    module globals (so an existing LIVE_HARNESS_DIR monkeypatch keeps working)."""
+    module globals (so an existing LIVE_HARNESS_DIR monkeypatch keeps working).
+
+    `command-center` sits beside harness/ and skills/ under ~/.agents because that
+    is one of the two deployed layouts modules.RegisterGateModule already probes
+    for WORK-UNIT-CATALOG.json; the other (~/.claude/command-center) is left as a
+    read fallback so an operator may place the file there by hand."""
     if target == "harness":
         env = os.environ.get("HARNESS_LIVE_AGENTS_DIR")
         return (Path(env) / "harness") if env else LIVE_HARNESS_DIR
-    if target == "skills":
+    if target in {"skills", "command-center"}:
         agents = os.environ.get("HARNESS_LIVE_AGENTS_DIR") or str(HOME / ".agents")
-        return Path(agents) / "skills"
+        return Path(agents) / target
     return Path(
         os.environ.get("HARNESS_LIVE_HOOKS_DIR") or (HOME / ".claude" / "hooks")
     )
@@ -802,7 +853,9 @@ def deploy(
 
     Returns 0 on success; 1 on any integrity/contention failure (lock held, CAS
     conflict, or a post-write parity mismatch -- fail-CLOSED, restoring the backup).
-    ``target`` selects the tree (harness | skills | hooks); deploy ONE per call.
+    ``target`` selects the tree (harness | skills | hooks | command-center); deploy
+    ONE per call. A target listed in DEPLOY_INCLUDE deploys only its allowlisted
+    relative paths instead of its whole tree.
     ``_after_reconcile`` / ``_after_stage`` / ``_after_write`` are internal
     lifecycle probes (default None) used by tests to inject a concurrent live
     change at the reconciliation / CAS / parity seams; production callers leave
@@ -811,6 +864,10 @@ def deploy(
         raise ValueError(f"unsupported deploy target: {target!r}")
     src = (source_dir or _default_source(target)).absolute()
     dst = live_dir or _default_live(target)
+    # One filter, threaded through EVERY scan (candidate, live-plan, stage,
+    # pre-write CAS). Splitting it across the plan and the CAS is the bug this
+    # single binding exists to make impossible.
+    include = DEPLOY_INCLUDE.get(target)
 
     # Pre-bound for definite assignment. Each is read only on the
     # ``target == "skills"`` path, where it is reassigned before use, but the
@@ -866,11 +923,11 @@ def deploy(
         # Enumeration errors are fatal; an incomplete plan cannot authorize a
         # zero-file or partial deployment.
         try:
-            candidate = _managed_files(src)
+            candidate = _managed_files(src, include)
             candidate_hashes = {
                 rel: _hash_file(path) for rel, path in candidate.items()
             }
-            live_plan_hashes = _managed_hashes(dst)
+            live_plan_hashes = _managed_hashes(dst, include)
             receipt_paths = sorted(candidate)
             # VALIDITY (fail-CLOSED, before ANY write): on a Python import surface
             # a candidate that does not compile must not be deployed. Byte parity
@@ -996,7 +1053,7 @@ def deploy(
 
             # The source can change after PLAN. Verify the completed stage against
             # the approved raw-byte plan before the first live write.
-            staged_hashes = _managed_hashes(stage)
+            staged_hashes = _managed_hashes(stage, include)
             if staged_hashes != candidate_hashes:
                 _emit(
                     {
@@ -1037,7 +1094,7 @@ def deploy(
             # since PLAN -> abort the WHOLE deploy with NO writes (optimistic
             # concurrency). The full-map check catches new live-only paths too;
             # per-file replacement is not a tree-atomic transaction.
-            current_live_hashes = _managed_hashes(dst)
+            current_live_hashes = _managed_hashes(dst, include)
             if current_live_hashes != live_plan_hashes:
                 changed = sorted(set(current_live_hashes) | set(live_plan_hashes))
                 rel = next(
