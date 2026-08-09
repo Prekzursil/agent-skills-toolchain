@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "purpose": "Which test protects which invariant, and -- for each -- the KNOWN-BAD input that proves the test can go red. A suite that has never failed is indistinguishable from a no-op (rules/common/ci-hygiene.md section 1).",
+  "counts_are_asserted_by": "tools/command-center/tests/test_registry.py -- if a suite grows or shrinks and this file is not updated, that test fails. Recorded counts that nobody checks are the same rot one layer down.",
+  "suites": [
+    {
+      "path": "tools/command-center/tests/test_validate.py",
+      "tests": 23,
+      "ci_step": "gate-tests-coverage command-center",
+      "protects": "the reachability contract: every item reaches a final disposition",
+      "red_proof": "14 of the 23 mutate the catalog first (dangling dependency, cycle, closed-item-depends-on-open, dead end, phantom owner gate, already-answered gate, evidence-free disposition, non-terminal disposition, dropped item, tampered register snapshot, missing snapshot, stale graph, duplicate id, malformed id, empty catalog) and assert the specific check fires."
+    },
+    {
+      "path": "tools/command-center/tests/test_close.py",
+      "tests": 21,
+      "ci_step": "gate-tests-coverage command-center",
+      "protects": "close-path symmetry, evidence enforcement, and the deadlock guard",
+      "red_proof": "refusal paths are asserted explicitly: blank evidence, unknown item, unknown supersede target, no verb, --open without --program, and a close whose declared blocker is still open. The deadlock guard is proved by planting an unrelated violation and asserting the close still succeeds."
+    },
+    {
+      "path": "agent-self/harness/tests/test_register_gate.py",
+      "tests": 47,
+      "ci_step": "gate-tests-coverage harness (enshrined runtime)",
+      "protects": "the gate cannot loop, cannot block, cannot become wallpaper, and is actually wired",
+      "red_proof": "both-states control: fires on the real (stale) catalog for MONITOR / Program B / a vague harness prompt, and is silent on clean-full AND on clean-partial (only the 19 MONITOR items closed). The clean-partial row is the sharp one -- it proves the gate tracks THESE items rather than 'the file is non-empty'."
+    },
+    {
+      "path": "tools/command-center/tests/test_registry.py",
+      "tests": 4,
+      "ci_step": "gate-tests-coverage command-center",
+      "protects": "the two registries themselves -- counts, named tests, and the two-probe rule for every claim",
+      "red_proof": "test_the_counting_guard_can_go_red controls the static counter against a synthetic file. It earned its keep immediately: the first version under-counted a parametrize over a module-level constant (46 vs 47 collected) and this assertion is what found it."
+    }
+  ],
+  "invariants": [
+    {
+      "id": "TI-1",
+      "invariant": "The gate never runs on Stop, StopFailure or SubagentStop.",
+      "why": "A Stop-time inject re-triggers the host re-entrancy counter. Measured 2026-08-08: two trivial probes cost 62,155 and 63,222 tokens with zero tool uses.",
+      "tests": [
+        "test_never_runs_on_the_stop_family",
+        "test_subagent_stop_with_stop_hook_active_is_allowed",
+        "test_reentrant_trigger_is_allowed_on_accepted_events_too"
+      ]
+    },
+    {
+      "id": "TI-2",
+      "invariant": "The gate does not amplify itself.",
+      "why": "A keyword gate on UserPromptSubmit can uniquely match its OWN injected text when that text is echoed back. No prior harness test covered this.",
+      "tests": [
+        "test_fixed_point_the_gate_does_not_match_its_own_output",
+        "test_fifty_identical_prompts_produce_exactly_one_injection"
+      ]
+    },
+    {
+      "id": "TI-3",
+      "invariant": "Every injection leaves a legal next move.",
+      "why": "The other half of the 2026-08-08 bug: an advisory whose only satisfying action is forbidden by AGENTS.md section 9 is a deadlock, so the model loops instead of stopping.",
+      "tests": [
+        "test_the_injection_always_leaves_a_legal_next_move",
+        "test_the_injection_never_uses_coercive_words"
+      ]
+    },
+    {
+      "id": "TI-4",
+      "invariant": "The gate cannot become wallpaper.",
+      "why": "module-modes.json:32 holds ipass_readback in shadow at 19.0 fires/session for exactly this reason.",
+      "tests": [
+        "test_a_huge_paste_matching_everything_stays_silent",
+        "test_at_most_three_items_are_shown",
+        "test_the_contract_records_a_measured_fire_rate"
+      ],
+      "measured": "3.16 fires per 20-prompt session on the real 375-prompt corpus with the shipped cooldown; 0.00 on a clean catalog"
+    },
+    {
+      "id": "TI-5",
+      "invariant": "The gate is reachable by something.",
+      "why": "GREEN-NOT-LIVE is the defect this lane exists to catch. The prior art (~/.claude/hooks/open-loops/trigger_match.py) is fully written, needs a UserPromptSubmit entry, and never got one -- 44 items sat unfired for up to 21 days.",
+      "tests": [
+        "test_the_module_is_actually_wired",
+        "test_fixed_module_order_is_security_then_continuity_then_quality"
+      ]
+    },
+    {
+      "id": "TI-6",
+      "invariant": "The gate never surfaces the evidence column.",
+      "why": "That column holds long paths and credential-adjacent prose; R-B08's evidence names a file of live tokens.",
+      "tests": [
+        "test_the_injection_never_quotes_the_evidence_column"
+      ]
+    },
+    {
+      "id": "TI-7",
+      "invariant": "No register item can be silently dropped.",
+      "why": "The whole failure being fixed. 69 items were lost once already.",
+      "tests": [
+        "test_detects_a_silently_dropped_item",
+        "test_detects_a_tampered_register_snapshot"
+      ]
+    },
+    {
+      "id": "TI-8",
+      "invariant": "The end state is legal: closing everything leaves a valid catalog.",
+      "why": "A register you cannot finish is a register that gets abandoned.",
+      "tests": [
+        "test_closing_every_open_item_leaves_a_valid_catalog"
+      ]
+    }
+  ],
+  "failure_classes": {
+    "note": "Prompt Two names 46 failure classes to seed as regressions (_USER-PROMPTS.md:11302-11347). This registry covers the ones this PR actually exercises. The remainder are tracked as R-A19 and are NOT-CHECKED, not absent-therefore-fine.",
+    "covered_here": [
+      "detector silent in both states -> every check has a matching known-bad probe",
+      "green-not-live -> TI-5 asserts wiring, not just behaviour",
+      "two sources of truth drift -> the graph is derived and parity-checked",
+      "an advisory with no legal move -> TI-3",
+      "a Stop-time inject loop -> TI-1",
+      "wallpaper by over-firing -> TI-4, measured not estimated",
+      "overclaim -> CLAIM-REGISTRY.json CC-9 records this PR's own two partials as REFUTED closes"
+    ],
+    "not_covered": "the other 39 classes; see R-A19"
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "purpose": "Every load-bearing claim this command center makes, with the SOURCE probe that produced it and the mechanically independent VERIFIER that checked it. A claim with no source probe is zero signals, not one (rules/common/single-signal-verification.md, rule 6).",
+  "verdict_vocabulary": ["CONFIRMED", "REFUTED", "NOT-CHECKED", "PARTIAL"],
+  "band_vocabulary": {
+    "almost-certain": "90-99%",
+    "likely": "55-80%",
+    "uncertain": "30-55%"
+  },
+  "claims": [
+    {
+      "id": "CC-1",
+      "claim": "The catalog holds every row of the register snapshot: 103 items, 69 open, split A-toolchain 32 / HARNESS 10 / MONITOR 19 / B-workflow_design 8.",
+      "verdict": "CONFIRMED",
+      "band": "almost-certain",
+      "source_probe": "tools/command-center/seed.py parsing command-center/sources/REGISTER.md by section and id prefix",
+      "verifier_probe": "register_parse.counts_by_prefix() reproduces the register's own header sentence ('OUTSTANDING 69 / DELIBERATELY-SKIPPED 3 / SUPERSEDED 5 / SETTLED 26') from the table rows WITHOUT reading that sentence -- tests/test_validate.py::test_parser_reproduces_the_registers_own_header_counts",
+      "evidence": "command-center/WORK-UNIT-CATALOG.json; validate.py stats items=103 open=69"
+    },
+    {
+      "id": "CC-2",
+      "claim": "Every item in the catalog is reachable from a final disposition: no dangling dependency, no cycle, no dead end, no phantom owner gate.",
+      "verdict": "CONFIRMED",
+      "band": "almost-certain",
+      "source_probe": "python tools/command-center/validate.py -> SUCCESS:cc-validate items=103 open=69 reachable=all",
+      "verifier_probe": "Fourteen mutated-catalog tests prove each check can go RED (dangling dep, cycle, closed-depends-on-open, dead end, phantom gate, evidence-free disposition, dropped item, tampered snapshot, stale graph, duplicate id, malformed id, empty catalog). A green detector never shown red measures nothing.",
+      "evidence": "tools/command-center/tests/test_validate.py, 23 tests"
+    },
+    {
+      "id": "CC-3",
+      "claim": "The dependency graph cannot drift from the catalog.",
+      "verdict": "CONFIRMED",
+      "band": "almost-certain",
+      "source_probe": "catalog.build_graph is the only producer; every close.py verb regenerates it",
+      "verifier_probe": "validate.py V-GRAPH compares the committed file against a fresh derivation and is proved to fire on a hand-mutated edge_count",
+      "evidence": "tests/test_validate.py::test_detects_a_stale_dependency_graph, ::test_every_mutation_regenerates_the_graph_and_logs_an_event"
+    },
+    {
+      "id": "CC-4",
+      "claim": "Closing an item costs the same one command as opening one.",
+      "verdict": "CONFIRMED",
+      "band": "almost-certain",
+      "source_probe": "close.py exposes --open and a bare close as single argv forms of the same shape",
+      "verifier_probe": "tests/test_close.py::test_close_is_one_command_like_open opens a new item and closes it, each in one call, asserting the end disposition",
+      "evidence": "tools/command-center/tests/test_close.py, 21 tests"
+    },
+    {
+      "id": "CC-5",
+      "claim": "The register gate can never loop: it returns allow for every Stop-family event and for any re-entrant trigger.",
+      "verdict": "CONFIRMED",
+      "band": "almost-certain",
+      "source_probe": "RegisterGateModule._run early-returns unless event is UserPromptSubmit or SessionStart (agent-self/harness/modules.py)",
+      "verifier_probe": "test_register_gate.py drives Stop / StopFailure / SubagentStop, a stop_hook_active trigger on both accepted events, a fixed-point test feeding the gate its own injected text back as a prompt, and a 50-event loop-bound test asserting exactly one injection",
+      "evidence": "agent-self/harness/tests/test_register_gate.py"
+    },
+    {
+      "id": "CC-6",
+      "claim": "The gate fires on a stale catalog and is silent on a clean one, including the clean-partial case where only the matching program's items are closed.",
+      "verdict": "CONFIRMED",
+      "band": "almost-certain",
+      "source_probe": "both-states table executed in test_register_gate.py against the real catalog and two mutated copies",
+      "verifier_probe": "clean-partial is the sharp control: closing ONLY the 19 MONITOR items must silence the monitor prompt while 50 other items stay open, which proves the gate tracks these items rather than 'the file is non-empty'",
+      "evidence": "agent-self/harness/tests/test_register_gate.py both-states section"
+    },
+    {
+      "id": "CC-7",
+      "claim": "The gate's firing rate is 2.4 fires per 20-prompt session -- at the calibration peer and far under the wallpaper line.",
+      "verdict": "PARTIAL",
+      "band": "likely",
+      "source_probe": "corpus replay of all 375 owner prompts in _USER-PROMPTS.md through the real predicate (tools/command-center/measure_rate.py)",
+      "verifier_probe": "NOT YET RUN in a live session. The replay applies no per-item session cooldown and no calibrated-silence gating, both of which only subtract, so the measured number is an UPPER bound on the real rate.",
+      "evidence": "see MEASURED-RATE in the PR body; stage-2 of the ladder requires >=20 real sessions in the shadow sink before promotion",
+      "settling_experiment": "collect 20 distinct session_hash values in ~/.agents/state/harness/shadow/ and recompute fires / distinct sessions"
+    },
+    {
+      "id": "CC-8",
+      "claim": "The gate's advice is useful -- it surfaces the RIGHT item.",
+      "verdict": "NOT-CHECKED",
+      "band": null,
+      "source_probe": null,
+      "verifier_probe": null,
+      "evidence": "The shadow sink records {ts, gate, tier, event, reason_code, session_hash} and NO payload (module-modes.json:3), so no measurement of advice quality exists or can exist today.",
+      "settling_experiment": "Add truncated+redacted injected text to shadow_log() (module-modes.json:41 _next_experiment), then score fires against subsequent close.py --evidence calls via register_item_closed_after_fire. Until then the gate may not be promoted past advise."
+    },
+    {
+      "id": "CC-9",
+      "claim": "R-A02 (the 13-file command-center ledger) and R-H03 (reachability computable) are fully closed by this PR.",
+      "verdict": "REFUTED",
+      "band": "almost-certain",
+      "source_probe": "the 13 files exist under command-center/ and validate.py answers the reachability question",
+      "verifier_probe": "reading each item's full text: R-A02 also requires the freeze/snapshot clean-room baseline, which is NOT built; R-H03 also requires 11-CAPABILITY-PRESERVATION-GRAPH.json and the 10-DEPENDENCY-GRAPH.* names under the continuation root, which are NOT written",
+      "evidence": "Both stay OPEN with a --note recording the partial. Claiming either as closed would be the overclaim failure class, which measured 5 of 8 refutations on this estate."
+    },
+    {
+      "id": "CC-10",
+      "claim": "The live ~/.agents/harness tree now carries this gate.",
+      "verdict": "NOT-CHECKED",
+      "band": null,
+      "source_probe": null,
+      "verifier_probe": null,
+      "evidence": "This lane wrote only to the repo, which is the source of truth. No deploy was run: sync-from-live.ps1 is forbidden here and install.py was not run in deploy mode.",
+      "settling_experiment": "install.py --check, or a sha256 compare of agent-self/harness against ~/.agents/harness"
+    }
+  ]
+}
