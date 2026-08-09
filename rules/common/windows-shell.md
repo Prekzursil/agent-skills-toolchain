@@ -98,9 +98,26 @@ CI reported *"Would reformat"* for the SAME commit — on the LF form ruff wante
 indentation inside a subscript (`hooks/stopfailure-notify/notify.py`). The local green was measured
 against the wrong bytes, so it verified nothing.
 
-- **Fix — verify against the BLOB, not the working tree:** `git archive <rev> | tar -x -C <tmp>`
-  emits blob content (LF) = exactly what CI checks out. Run the gate there. Equivalent:
-  `git cat-file -p <rev>:<path>` for a single file.
+- **Fix — verify against the BLOB, not the working tree:** use `git cat-file -p <rev>:<path>`
+  (or `git show <rev>:<path>`). Those emit the raw blob = exactly what CI checks out.
+- **DO NOT USE `git archive` FOR THIS — it returns the OPPOSITE of the blob on this box.**
+  This rule prescribed `git archive <rev> | tar -x -C <tmp>` until 2026-08-09 and was WRONG:
+  `git archive` applies export-time EOL conversion, so on Windows it hands back **CRLF**. Measured
+  on `hooks/todo-surfacer/test_marker_discrimination.py` @ HEAD, one file, three routes, with a
+  control proving all three are byte-identical after LF-normalisation (so the difference is purely
+  line endings, not content):
+
+  | route | bytes | CRLF |
+  |---|---|---|
+  | `git archive` + `tar -x` | 3,837 | **100** |
+  | `git cat-file -p` | 3,737 | 0 |
+  | `git show <rev>:<path>` | 3,737 | 0 |
+
+  A rule that tells you to verify against the wrong bytes is worse than no rule: it manufactures
+  false confidence in exactly the check meant to catch this class. THREE independent agents hit it
+  in a single wave on 2026-08-09 and each re-derived the fix separately; a fourth (this author)
+  had already used it to clear a ruff gate, where the verdict happened to be right for unrelated
+  reasons. Probe: `~/.claude/harness-restore-20260806/_probe_blob_recipe.py`.
 - **Same trap bites your own edit scripts:** reading with `newline=""` preserves `\r\n`, so a
   pattern written with `\n` silently matches 0 times. Split on the file's detected EOL, or read
   with universal newlines. (This produced a false `anchor 0` in the very commit that fixed it.)

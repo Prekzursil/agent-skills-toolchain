@@ -447,7 +447,14 @@ def test_adoption_wiring() -> list[bool]:
             in body
             for body in start_task_bodies.values()
         )
-        and "[`tools/mcp/agent-lanes-codex`](mcp/README.md)" in tools_registry_body
+        # Repointed 2026-08-09: the previous anchor was
+        # "[`tools/mcp/agent-lanes-codex`](mcp/README.md)", a tree deleted by the
+        # ChatGPT-web/orchestrator retirement. The anchor's only job is to prove
+        # tools/README.md was read before a missing adoption token is trusted, so any
+        # still-present registry entry serves; workstation-codex-bundle is not part of
+        # the retirement.
+        and "[`tools/mcp/workstation-codex-bundle`](mcp/README.md)"
+        in tools_registry_body
         and "gate-tests-coverage harness (enshrined runtime; measured, not 100%-gated)"
         in quality_workflow_body
     )

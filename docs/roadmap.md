@@ -11,7 +11,8 @@
 - Keep `skills/` only as a temporary compatibility layer until the migration is complete.
 - Retain `tools/editor/` as a bounded editor-local surface.
 - Keep the root install path warning-free.
-- Keep the Codex orchestration lane and PromptBridge talk-only lane separate.
+- Reach Codex through the official `codex mcp-server` rail (`mcp__codex__codex` /
+  `mcp__codex__codex-reply`) rather than a repo-local orchestration server.
 
 ## Active deliverables
 
@@ -21,24 +22,20 @@
 - `quality-zero-platform-control-plane`
 - `format-codex-sessions`
 - the existing Windows / WSL / VMware / Codex recovery skill wave
-- the explicit `agent-lanes-*` lane-selection skills
 
-### `codex-orchestrator`
+### Retired 2026-08-09 — the ChatGPT-web lane
 
-- Windows-first Codex bootstrap, status, probe, and self-test flow
-- multi-agent orchestration tools with one shared result schema
-- profile defaults plus per-call overrides
-
-### `promptbridge-talk-lane`
-
-- PromptBridge/Agentify talk-only tools
-- session status and configuration APIs
-- explicit curation/discussion boundary
+`codex-orchestrator`, `promptbridge-talk-lane`, `agent-lanes-codex`,
+`agent-lanes-chatgpt-web` and `agentify-desktop` were deleted. They were a repo-local MCP
+server plus an Electron app that drove the ChatGPT web UI; the official `codex mcp-server`
+covers the orchestration half natively, and the web half is not being rebuilt. The
+`agent-lanes-*` lane-selection skills went with them. Reusable pieces (path containment,
+workspace detection, review-packet building, an idempotency ledger, a loopback-only address
+allowlist, Windows Codex-binary resolution) survive in [`tools/lib/`](../tools/lib/README.md).
 
 ### New skill pack
 
 - beginner quickstart
-- PromptBridge consultation setup and diagnostics
 - core orchestration wrappers
 - workflow wrappers for audit, triage, fix, and governance
 - explicit post-plan execution choice (subagent-driven recommended, inline allowed)
@@ -53,7 +50,7 @@
 
 ## Non-goals
 
-- turning PromptBridge into the execution authority
+- rebuilding a browser-mediated ChatGPT lane, or giving any talk-only lane execution authority
 - hiding MCP, editor, and web tooling under one generic bucket
 - keeping two active Codex homes in normal operation
 - reintroducing WSL-first assumptions into the main workflow

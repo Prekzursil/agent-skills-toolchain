@@ -84,10 +84,56 @@ def _ledger_file(session_id: str) -> Path:
     return LEDGER_ROOT / f"{safe or 'unknown'}.ndjson"
 
 
-def _final_text(transcript_path: str) -> str:
+# See journey-coverage/check.py for the measurement that fixes this budget (turn-size p50
+# 28-63 KB, p90 ~450 KB; this check's target record sat 6,436 bytes from EOF in a 114 MB file).
+_TAIL_BYTES = 8 * 1024 * 1024
+
+
+def _tail_lines(transcript_path: str):
+    """Backward (newest-first) line iterator from the shared bounded reader, or None."""
+    try:
+        shared = str(Path(__file__).resolve().parent.parent / "_shared")
+        if shared not in sys.path:
+            sys.path.insert(0, shared)
+        from transcript_tail import iter_tail_lines
+    except Exception:
+        return None
+    return iter_tail_lines(transcript_path, max_bytes=_TAIL_BYTES)
+
+
+def _parts(ev: dict) -> list[str]:
+    """Text parts of ONE record — the unchanged per-record body of the original scan.
+
+    NOTE this predicate is NOT interchangeable with journey-coverage's or with
+    `transcript_tail.final_assistant_text`: it requires `msg["role"] == "assistant"` (the
+    others do not), ignores bare-string content blocks (journey-coverage keeps them), and
+    joins with " " (journey-coverage "\\n", `final_assistant_text` ""). Swapping in the shared
+    helper wholesale would silently change what this gate reads, so only the IO is shared.
+    """
+    msg = (
+        ev.get("message")
+        if ev.get("type") == "assistant"
+        else (ev if ev.get("role") == "assistant" else None)
+    )
+    if not (isinstance(msg, dict) and msg.get("role") == "assistant"):
+        return []
+    c = msg.get("content") or []
+    if isinstance(c, list):
+        return [
+            str(b.get("text") or "")
+            for b in c
+            if isinstance(b, dict) and b.get("type") == "text"
+        ]
+    if isinstance(c, str):
+        return [c]
+    return []
+
+
+def _final_text_forward(transcript_path: str) -> tuple[str, bool]:
+    """The original O(session-length) scan. Retained as the EXACTNESS fallback."""
     p = Path(transcript_path)
     if not p.exists():
-        return ""
+        return "", False
     last = ""
     try:
         with p.open("r", encoding="utf-8", errors="replace") as fh:
@@ -99,28 +145,36 @@ def _final_text(transcript_path: str) -> str:
                     ev = json.loads(line)
                 except Exception:
                     continue
-                msg = (
-                    ev.get("message")
-                    if ev.get("type") == "assistant"
-                    else (ev if ev.get("role") == "assistant" else None)
-                )
-                if isinstance(msg, dict) and msg.get("role") == "assistant":
-                    c = msg.get("content") or []
-                    if isinstance(c, list):
-                        parts = [
-                            str(b.get("text") or "")
-                            for b in c
-                            if isinstance(b, dict) and b.get("type") == "text"
-                        ]
-                    elif isinstance(c, str):
-                        parts = [c]
-                    else:
-                        parts = []
-                    if parts:
-                        last = " ".join(parts)
+                if not isinstance(ev, dict):
+                    continue
+                parts = _parts(ev)
+                if parts:
+                    last = " ".join(parts)
     except Exception:
-        return ""
-    return last
+        return "", False
+    return last, True
+
+
+def _final_text(transcript_path: str) -> tuple[str, bool]:
+    """(text, ok) — final assistant message. O(tail), not O(session length).
+
+    The forward scan settles on the LAST record with text parts; from EOF the FIRST such
+    record is that same record, so the result is byte-identical BY CONSTRUCTION rather than
+    by luck. `ok=False` means the transcript could not be read at all — under P2-01 that is
+    NOT-CHECKED, not "no completion claim", because the two used to be indistinguishable and
+    the second silently SUPPRESSES this gate (main() defers to dark-surface on a claim).
+    """
+    for line in _tail_lines(transcript_path) or ():
+        try:
+            ev = json.loads(line)
+        except Exception:
+            continue
+        if not isinstance(ev, dict):
+            continue
+        parts = _parts(ev)
+        if parts:
+            return " ".join(parts), True
+    return _final_text_forward(transcript_path)
 
 
 def _norm(s: str) -> str:
@@ -253,7 +307,29 @@ def main() -> int:
         session_id = str(data.get("session_id") or "unknown")
         always = os.environ.get("STUB_LEDGER_ALWAYS", "").lower() in ("1", "true", "on")
         if not always:
-            text = _final_text(str(data.get("transcript_path") or ""))
+            tp = str(data.get("transcript_path") or "")
+            text, ok = _final_text(tp)
+            if tp and not ok:
+                # TYPED SILENCE (P2-01). An unreadable transcript used to read as "no
+                # completion claim", which does NOT suppress this gate — so it would go on
+                # to report stubs while unable to check whether dark-surface owns the turn.
+                # Say so instead of pretending the claim surface was examined.
+                print(
+                    json.dumps(
+                        {
+                            "hookSpecificOutput": {
+                                "hookEventName": "Stop",
+                                "additionalContext": (
+                                    "[stub-ledger] NOT-CHECKED: the transcript could not be "
+                                    "read, so the completion-claim surface that decides "
+                                    "whether this gate defers to dark-surface was not "
+                                    "examined. This silence is NOT a pass."
+                                ),
+                            }
+                        }
+                    )
+                )
+                return 0
             if text and _real_completion_claim(text):
                 return 0  # completion claim present -> defer to dark-surface
 

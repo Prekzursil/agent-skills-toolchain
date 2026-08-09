@@ -1,40 +1,25 @@
 # Web Tools
 
-`tools/web/` is the live home for browser- or session-mediated tooling.
+`tools/web/` is the bounded home for browser- or session-mediated tooling.
 
 ## Current bounded projects
 
-### `agentify-desktop`
+None. This surface is currently empty and is kept as the reserved home for future
+browser- or session-mediated tool projects.
 
-- vendored Electron desktop control center source for the installed Agentify Desktop app
-- includes the local HTTP/MCP bridge entrypoints, UI, orchestrator helpers, and tests
-- excludes bundled build output and `node_modules`
+## Retired 2026-08-09 — the ChatGPT-web lane
 
-### `agent-lanes-chatgpt-web`
+`agentify-desktop`, `promptbridge-talk-lane` and `agent-lanes-chatgpt-web` were deleted
+together with their Codex-side drivers (`tools/mcp/codex-orchestrator`,
+`tools/mcp/agent-lanes-codex`). The lane drove the ChatGPT web UI through a local Electron
+desktop app; the app, its runtime directory (`CODEX_HOME/promptbridge-runtime`) and its state
+directory (`~/.promptbridge-desktop`) no longer exist on any target, and no live config
+registered the server.
 
-- direct ChatGPT web lane with explicit session, readiness, and lane-routing behavior
+Reusable, transport-independent survivors were extracted into
+[`tools/lib/`](../lib/README.md) before the delete (path containment, workspace detection,
+git-diff review packets, a handled-ledger with atomic JSON writes, a loopback-only remote-address
+allowlist, and Windows Codex-binary resolution). Nothing else was preserved.
 
-### `promptbridge-talk-lane`
-
-Location:
-
-```text
-tools/web/promptbridge-talk-lane
-```
-
-Purpose:
-
-- expose PromptBridge/Agentify as a talk-only lane
-- support discussion and curation roles without turning the web lane into the execution authority
-- keep session inspection and configuration explicit and fail-closed when confirmation is missing
-
-Primary tools:
-
-- `promptbridge_discuss`
-- `promptbridge_curate`
-- readiness/status/session tools
-- `agentify_*` aliases for compatibility during `0.1.x`
-
-## Boundary
-
-PromptBridge can discuss and curate. It does not own repo execution.
+Replacement for the capability itself: call Codex directly through the official
+`codex mcp-server` rail (`mcp__codex__codex` / `mcp__codex__codex-reply`).

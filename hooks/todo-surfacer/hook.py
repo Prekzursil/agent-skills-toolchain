@@ -34,6 +34,60 @@ ACTION = "You left {count} open TODO/FIXME marker(s) in your final message. Capt
 NEEDS_STATE = False
 _PATTERN = re.compile("\\b(TODO|FIXME)\\b|- \\[ \\]", re.IGNORECASE)
 
+_FENCE = re.compile(r"```.*?```", re.DOTALL)
+
+
+def _real_marker_count(text: str) -> int:
+    """Count LEFTOVER markers, not markers being TALKED ABOUT (use-vs-mention).
+
+    The raw `_PATTERN.finditer` count fired on any message that so much as named a marker. The
+    terminal case, measured live 2026-08-08: it fires on this hook's OWN NAME, because
+    "todo-surfacer" contains "todo" followed by a word boundary -- so the defect could not be
+    described without triggering it. Two messages in a row fired 2x on exactly that.
+
+    DELIBERATELY NOT routed through _shared/use_vs_mention with kind="marker". That rule's prose
+    polarity counts a marker ONLY inside a fenced block and treats bare paragraph text as a
+    MENTION, which would silence this hook's own documented fire_example
+    ("Remaining: TODO wire the API; FIXME handle empty"). Trading a false positive for a false
+    NEGATIVE disarms the guard, and a disarmed guard is worse than a noisy one. So the
+    suppression here is deliberately NARROW -- two rules, each provably unable to silence a bare
+    prose marker:
+
+      1. HYPHENATED IDENTIFIER. `todo-surfacer`, `fixme-scanner` are names, not work. A real
+         marker is followed by whitespace, a colon, or end-of-text -- never by `-<alnum>`.
+      2. INLINE CODE SPAN. A single-backtick `TODO` in prose is a token being NAMED. A FENCED
+         block is the opposite and still counts: that is code left behind, which is exactly the
+         thing worth surfacing. The polarity difference between the two is the whole point.
+
+    Both-states control: test_marker_discrimination.py. It was run against the UNFIXED hook first
+    and failed 4/4 mention cases while passing 5/5 fire cases, so its silence now means something.
+
+    Fail-open: any error returns the raw count, so a bug here can never silently disarm the hook.
+    """
+    try:
+        fenced = [(m.start(), m.end()) for m in _FENCE.finditer(text)]
+        real = 0
+        for m in _PATTERN.finditer(text):
+            s, e = m.start(), m.end()
+            if any(fs <= s < fe for fs, fe in fenced):
+                real += 1  # inside a fenced block: left-behind code, always real
+                continue
+            after = text[e : e + 2]
+            if after[:1] == "-" and after[1:2].isalnum():
+                continue  # rule 1: part of a hyphenated identifier
+            before = text[max(0, s - 1) : s]
+            if before.isalnum() or before == "-":
+                continue  # rule 1: tail of a hyphenated/compound identifier
+            line_start = text.rfind("\n", 0, s) + 1
+            prefix = text[line_start:s]
+            if prefix.count("`") % 2 == 1:
+                continue  # rule 2: inside an unclosed inline code span on this line
+            real += 1
+        return real
+    except Exception:
+        return len(list(_PATTERN.finditer(text)))
+
+
 _STATE_ROOT = Path(
     os.environ.get("FORGE_STATE_ROOT") or (Path.home() / ".claude" / "forge-state")
 )
@@ -60,13 +114,51 @@ def _dig(payload: dict, path):
     return cur
 
 
-def _final_assistant_text(transcript_path) -> str:
-    """Return the text of the last assistant message in a JSONL transcript."""
-    if not transcript_path:
-        return ""
+# See journey-coverage/check.py for the measurement behind this budget.
+_TAIL_BYTES = 8 * 1024 * 1024
+
+
+def _tail_lines(transcript_path):
+    """Backward (newest-first) line iterator from the shared bounded reader, or None."""
+    try:
+        shared = str(Path(__file__).resolve().parent.parent / "_shared")
+        if shared not in sys.path:
+            sys.path.insert(0, shared)
+        from transcript_tail import iter_tail_lines
+    except Exception:
+        return None
+    return iter_tail_lines(transcript_path, max_bytes=_TAIL_BYTES)
+
+
+def _parts(ev) -> list:
+    """Text parts of ONE record — the unchanged per-record body of the original scan.
+
+    A THIRD distinct variant in this repo: role is taken from `message` when that is a dict
+    and from the record otherwise, content falls back to the record, bare-string blocks are
+    kept, and the join is " ". Only the IO is shared; this predicate stays verbatim.
+    """
+    msg = ev.get("message") if isinstance(ev, dict) else None
+    role = (msg or {}).get("role") if isinstance(msg, dict) else ev.get("role")
+    if role != "assistant":
+        return []
+    content = (msg or ev).get("content")
+    parts = []
+    if isinstance(content, list):
+        for block in content:
+            if isinstance(block, dict) and block.get("type") == "text":
+                parts.append(str(block.get("text") or ""))
+            elif isinstance(block, str):
+                parts.append(block)
+    elif isinstance(content, str):
+        parts.append(content)
+    return parts
+
+
+def _final_assistant_text_forward(transcript_path) -> tuple:
+    """The original O(session-length) scan. Retained as the EXACTNESS fallback."""
     path = Path(transcript_path)
     if not path.exists():
-        return ""
+        return "", False
     last = ""
     try:
         with path.open("r", encoding="utf-8", errors="replace") as fh:
@@ -78,35 +170,46 @@ def _final_assistant_text(transcript_path) -> str:
                     ev = json.loads(line)
                 except Exception:
                     continue
-                msg = ev.get("message") if isinstance(ev, dict) else None
-                role = (
-                    (msg or {}).get("role") if isinstance(msg, dict) else ev.get("role")
-                )
-                if role != "assistant":
+                if not isinstance(ev, dict):
                     continue
-                content = (msg or ev).get("content")
-                parts = []
-                if isinstance(content, list):
-                    for block in content:
-                        if isinstance(block, dict) and block.get("type") == "text":
-                            parts.append(str(block.get("text") or ""))
-                        elif isinstance(block, str):
-                            parts.append(block)
-                elif isinstance(content, str):
-                    parts.append(content)
+                parts = _parts(ev)
                 if parts:
                     last = " ".join(parts)
     except Exception:
-        return ""
-    return last
+        return "", False
+    return last, True
 
 
-def _source(payload: dict) -> str:
+def _final_assistant_text(transcript_path) -> tuple:
+    """(text, ok) — last assistant message. O(tail), not O(session length).
+
+    The forward scan settles on the LAST record with text parts; from EOF the FIRST such
+    record is that same record, so the output is byte-identical by construction.
+    `ok=False` means the transcript could not be READ (P2-01 NOT-CHECKED); an absent path is
+    a separate state and returns `("", True)` — there is nothing to fail to read.
+    """
+    if not transcript_path:
+        return "", True
+    for line in _tail_lines(transcript_path) or ():
+        try:
+            ev = json.loads(line)
+        except Exception:
+            continue
+        if not isinstance(ev, dict):
+            continue
+        parts = _parts(ev)
+        if parts:
+            return " ".join(parts), True
+    return _final_assistant_text_forward(transcript_path)
+
+
+def _source(payload: dict) -> tuple:
+    """(source_text, ok). ok=False only when a transcript was named but unreadable."""
     if KIND == "always":
-        return ""
+        return "", True
     if KIND == "response":
         return _final_assistant_text(payload.get("transcript_path"))
-    return str(_dig(payload, FIELD) or "")
+    return str(_dig(payload, FIELD) or ""), True
 
 
 def _seen(key: str, session: str) -> bool:
@@ -149,10 +252,18 @@ def build_message(payload: dict):
         return None
     if KIND == "always":
         return ACTION.replace("{count}", "0")
-    src = _source(payload)
+    src, ok = _source(payload)
+    if not ok:
+        # TYPED SILENCE (P2-01): a transcript was named and could not be read, so the final
+        # message was never scanned for open markers. Previously indistinguishable from
+        # "scanned it, found none" — both produced zero bytes.
+        return (
+            "NOT-CHECKED: your final message could not be read (transcript unreadable), so "
+            "it was NOT scanned for open TODO/FIXME markers. This silence is not a pass."
+        )
     if not src:
         return None
-    count = len(list(_PATTERN.finditer(src)))
+    count = _real_marker_count(src)
     if count == 0:
         return None
     if NEEDS_STATE:

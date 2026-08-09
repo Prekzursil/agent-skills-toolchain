@@ -23,9 +23,20 @@ if str(THIS) not in sys.path:
 
 from use_vs_mention import (  # noqa: E402
     Context,
+    Judgement,
+    Verdict,
+    audit_subject_rule,
+    classify,
     find_real,
     is_real_occurrence,
 )
+
+
+# Synthetic, non-functional fixture. Assembled from fragments ON PURPOSE: this repo is
+# PUBLIC, and a whole `ghp_`-shaped literal is indistinguishable from a live token to
+# GitHub secret scanning (and to any credential-shape linter). The runtime value is
+# byte-identical to the single literal it replaces, so every assertion below is unchanged.
+_FAKE_PAT = "ghp" + "_" + "9f2Ab7Qz1LmNpR4sT6uV8wX0yZ3cD5eF7gH"
 
 
 def _span(text: str, needle: str) -> tuple[int, int]:
@@ -373,3 +384,250 @@ class TestFindReal:
         (return True = 'treat as real') so a guard is never silently disarmed."""
         ctx = Context(tool_name="Write", file_path="x.py", source="tool_input")
         assert is_real_occurrence("short", (900, 950), ctx, kind="marker") is True
+
+
+# --------------------------------------------------------------------------
+# P2-01 TYPED VERDICT. The discriminator must be able to say "I could not tell"
+# and have the caller surface it, rather than silently picking a side. A bare
+# bool structurally cannot express that, which is why classify() exists.
+# --------------------------------------------------------------------------
+class TestTypedVerdict:
+    def test_a_mention_is_typed_MENTION_and_names_its_rule(self):
+        text = "The doc says do not add a TODO here.\n"
+        ctx = Context(tool_name="Write", file_path="notes.md", source="tool_input")
+        j = classify(text, _span(text, "TODO"), ctx, kind="marker")
+        assert isinstance(j, Judgement)
+        assert j.verdict is Verdict.MENTION
+        assert j.rule, "a verdict with no rule is unauditable"
+        assert j.is_real is False
+
+    def test_a_real_occurrence_is_typed_USE(self):
+        text = "# TODO: wire the retry path\n"
+        ctx = Context(tool_name="Write", file_path="src/router.py", source="tool_input")
+        j = classify(text, _span(text, "TODO"), ctx, kind="marker")
+        assert j.verdict is Verdict.USE
+        assert j.is_real is True
+
+    def test_a_malformed_span_is_UNKNOWN_not_a_guess(self):
+        """The third state is the point of P2-01: a check that cannot prove it ran
+        must be able to report NOT-CHECKED rather than silently returning a side."""
+        ctx = Context(tool_name="Write", file_path="x.py", source="tool_input")
+        j = classify("short", (900, 950), ctx, kind="marker")
+        assert j.verdict is Verdict.UNKNOWN
+        assert j.rule == "bad-span"
+
+    def test_an_unrecognised_kind_is_UNKNOWN_and_fails_OPEN(self):
+        """Regression: an unknown kind used to fall through to the marker branch and
+        inherit marker semantics in silence, so a guard that merely MISSPELLED its
+        kind could be silently disarmed in prose. Surfacing UNKNOWN can only make a
+        caller fire more, never less."""
+        text = "A TODO left in the design note still needs an owner.\n"
+        ctx = Context(tool_name="Write", file_path="docs/plan.md", source="tool_input")
+        j = classify(text, _span(text, "TODO"), ctx, kind="markr")
+        assert j.verdict is Verdict.UNKNOWN
+        assert j.rule == "unknown-kind"
+        # and the bool projection must be True (fail-open), NOT the marker answer
+        assert is_real_occurrence(text, _span(text, "TODO"), ctx, kind="markr") is True
+
+    def test_UNKNOWN_projects_to_True_so_no_guard_is_disarmed(self):
+        assert Judgement(Verdict.UNKNOWN, "x", "y").is_real is True
+        assert bool(Judgement(Verdict.UNKNOWN, "x", "y")) is True
+        assert bool(Judgement(Verdict.MENTION, "x", "y")) is False
+        assert bool(Judgement(Verdict.USE, "x", "y")) is True
+
+    def test_verdict_serialises_as_a_plain_string_for_a_receipt(self):
+        import json
+
+        assert json.dumps({"v": Verdict.UNKNOWN}) == '{"v": "UNKNOWN"}'
+
+    def test_is_real_occurrence_still_returns_a_plain_bool(self):
+        """The four already-wired guards call the bool API; it must not start
+        returning a Judgement at them."""
+        text = "# TODO: x\n"
+        ctx = Context(tool_name="Write", file_path="a.py", source="tool_input")
+        out = is_real_occurrence(text, _span(text, "TODO"), ctx, kind="marker")
+        assert out is True and isinstance(out, bool)
+
+
+# --------------------------------------------------------------------------
+# DESIGN RULE 4 -- the audit-subject allowlist. A file whose JOB is to test or
+# guard a thing legitimately carries that thing's shape.
+# --------------------------------------------------------------------------
+class TestAuditSubjectAllowlist:
+    def test_a_fixture_path_silences_a_secret_shaped_literal(self):
+        text = 'LEAKED = "AKIAIOSFODNN7REALLOOK"'
+        ctx = Context(
+            tool_name="Write",
+            file_path="hooks/deny-credential-reads/fixtures/leaked_key.py",
+            source="tool_input",
+        )
+        assert (
+            classify(
+                text, _span(text, "AKIAIOSFODNN7REALLOOK"), ctx, kind="secret"
+            ).verdict
+            is Verdict.MENTION
+        )
+
+    def test_a_test_basename_outside_a_tests_dir_is_still_an_audit_subject(self):
+        text = 'EXPECTED = "AKIAIOSFODNN7REALLOOK"'
+        ctx = Context(
+            tool_name="Write",
+            file_path="src/redact/test_redaction.py",
+            source="tool_input",
+        )
+        assert (
+            classify(
+                text, _span(text, "AKIAIOSFODNN7REALLOOK"), ctx, kind="secret"
+            ).verdict
+            is Verdict.MENTION
+        )
+
+    def test_a_production_path_still_FIRES(self):
+        """The control that stops the allowlist from being a blinding shortcut."""
+        text = f'TOKEN = "{_FAKE_PAT}"'
+        ctx = Context(
+            tool_name="Write", file_path="services/api/settings.py", source="tool_input"
+        )
+        assert (
+            classify(text, _span(text, _FAKE_PAT), ctx, kind="secret").verdict
+            is Verdict.USE
+        )
+
+    def test_a_guard_named_directory_is_not_its_own_violation(self):
+        """A hook named after what it blocks contains the word it blocks."""
+        text = "claude/hooks/deny-credential-reads/deny.py"
+        ctx = Context(source="file", file_path=text)
+        assert (
+            classify(text, _span(text, "credential"), ctx, kind="pathword").verdict
+            is Verdict.MENTION
+        )
+
+    def test_a_real_credential_path_still_FIRES(self):
+        text = "home/miky/.aws/credentials"
+        ctx = Context(source="file", file_path=text)
+        assert (
+            classify(text, _span(text, "credentials"), ctx, kind="pathword").verdict
+            is Verdict.USE
+        )
+
+    def test_audit_subject_rule_is_exported_and_names_the_exemption(self):
+        assert audit_subject_rule("tests/conftest.py").startswith("audit-subject:")
+        assert audit_subject_rule("hooks/deny-credential-reads/deny.py") == (
+            "audit-subject:guard-dir"
+        )
+        assert audit_subject_rule("services/api/settings.py") == ""
+        assert audit_subject_rule("") == ""
+
+    def test_no_fake_declaration_heuristic_silences_a_production_key(self):
+        """A self-declared-fake rule was written, refuted by mutation, and REMOVED.
+        This pins its absence: a comment must NOT be able to talk a real key at a
+        production path into silence."""
+        text = f'# synthetic key, non-functional\nTOKEN = "{_FAKE_PAT}"'
+        ctx = Context(
+            tool_name="Write", file_path="services/api/settings.py", source="tool_input"
+        )
+        assert (
+            classify(text, _span(text, _FAKE_PAT), ctx, kind="secret").verdict
+            is Verdict.USE
+        )
+
+
+# --------------------------------------------------------------------------
+# THE RECURSION TERMINATOR (measured live 2026-08-08). A script that enumerates
+# the needles it wants deferred necessarily CONTAINS those needles, so per-needle
+# deferral produced 13 NEW fires and a script deferring THOSE would produce more.
+# Only a rule about ROLE terminates it: a marker spelled inside a string literal
+# is data, not pending work.
+# --------------------------------------------------------------------------
+class TestStringLiteralRule:
+    RULES = (
+        "RULES = [\n"
+        '    "_stubscan_proof.py::# todo: wire this up",\n'
+        '    "_stubscan_proof.py::raise notimplementederror",\n'
+        "]\n"
+    )
+
+    def test_a_needle_inside_a_string_literal_is_a_mention(self):
+        ctx = Context(file_path="_defer_stub_fixtures.py", source="file")
+        j = classify(
+            self.RULES, _span(self.RULES, "# todo: wire this up"), ctx, kind="stub"
+        )
+        assert j.verdict is Verdict.MENTION
+        assert j.rule == "stub:string-literal"
+
+    def test_the_rule_is_structural_not_a_filename_accident(self):
+        """Identical content under a name matching NO fixture/test pattern must also be
+        silent. If this fails, the silence came from `_fixtures.py` matching the
+        audit-subject basename rule rather than from the string-literal rule."""
+        ctx = Context(file_path="_defer_stub_needles.py", source="file")
+        assert audit_subject_rule("_defer_stub_needles.py") == ""
+        j = classify(
+            self.RULES, _span(self.RULES, "# todo: wire this up"), ctx, kind="stub"
+        )
+        assert j.verdict is Verdict.MENTION
+
+    def test_a_real_raise_NotImplementedError_still_FIRES(self):
+        """The control that killed the first attempt. An apostrophe-naive quote scanner
+        blinded all five genuine sites in fbmcp/dm_e2ee.py:155-167."""
+        text = (
+            "class S:\n    def encrypt(self, p):\n        raise NotImplementedError\n"
+        )
+        ctx = Context(file_path="fbmcp/dm_e2ee.py", source="file")
+        assert (
+            classify(text, _span(text, "NotImplementedError"), ctx, kind="stub").verdict
+            is Verdict.USE
+        )
+
+    def test_a_real_comment_still_FIRES(self):
+        text = "def handler():\n    # TODO: wire the retry path\n    return None\n"
+        ctx = Context(file_path="src/handler.py", source="file")
+        assert (
+            classify(text, _span(text, "# TODO"), ctx, kind="stub").verdict
+            is Verdict.USE
+        )
+
+    def test_a_docstring_is_a_string_literal(self):
+        text = '"""Doc that quotes raise NotImplementedError as an example."""\nX = 1\n'
+        ctx = Context(file_path="mod.py", source="file")
+        assert (
+            classify(text, _span(text, "NotImplementedError"), ctx, kind="stub").verdict
+            is Verdict.MENTION
+        )
+
+    def test_non_python_is_UNFILTERED_fail_open(self):
+        text = "function Invoke-Thing {\n    # stub scope\n}\n"
+        ctx = Context(file_path="tools/harness.ps1", source="file")
+        assert (
+            classify(text, _span(text, "# stub scope"), ctx, kind="stub").verdict
+            is Verdict.USE
+        )
+
+    def test_non_python_that_PARSES_as_python_is_still_unfiltered(self):
+        """A bare quoted line is valid PowerShell AND a valid Python expression. Without
+        the extension guard, ast would silence a real marker in a shell script."""
+        text = '"# stub scope"\n'
+        ctx = Context(file_path="tools/harness.ps1", source="file")
+        assert (
+            classify(text, _span(text, "# stub scope"), ctx, kind="stub").verdict
+            is Verdict.USE
+        )
+
+    def test_unparseable_python_is_UNFILTERED_fail_open(self):
+        text = "def broken(:\n    # TODO: fix the syntax\n"
+        ctx = Context(file_path="src/broken.py", source="file")
+        assert (
+            classify(text, _span(text, "# TODO"), ctx, kind="stub").verdict
+            is Verdict.USE
+        )
+
+    def test_the_recursion_terminates_at_depth_two(self):
+        """A script that defers THIS script's needles is itself silent, without anyone
+        adding a new path or a new needle."""
+        depth2 = 'RULES = [\n    "_defer_stub_fixtures.py::# todo: wire this up",\n]\n'
+        ctx = Context(file_path="_defer_the_deferrer.py", source="file")
+        assert (
+            classify(
+                depth2, _span(depth2, "# todo: wire this up"), ctx, kind="stub"
+            ).verdict
+            is Verdict.MENTION
+        )

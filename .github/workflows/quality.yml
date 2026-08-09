@@ -207,11 +207,6 @@ jobs:
           node-version: "22"
       - run: npm ci
       - run: npm test
-      - name: gate-tests-coverage agentify-desktop
-        working-directory: tools/web/agentify-desktop
-        run: |
-          npm install --omit=dev --no-audit
-          npm test
       - name: gate-tests-coverage hacktricks-mcp-server
         working-directory: tools/mcp/hacktricks-mcp-server
         run: |
@@ -1331,13 +1326,13 @@ jobs:
       #
       # --config is REQUIRED, not cosmetic. osv-scanner auto-loads osv-scanner.toml only
       # from the SCANNED FILE's own directory and "does not propagate to child
-      # directories", so the root config governed package-lock.json alone and was NEVER
-      # consulted for tools/web/agentify-desktop/package-lock.json — an ignore added at the
-      # root silently had no effect on the agentify tree. Passing --config applies the one
-      # root config to every parsed file (and ignores any per-directory osv-scanner.toml).
+      # directories", so the root config governs package-lock.json alone; a lockfile
+      # scanned from any SUBDIRECTORY silently ignores every root-level ignore entry
+      # unless --config is passed. Passing it applies the one root config to every parsed
+      # file (and ignores any per-directory osv-scanner.toml). Keep it whenever a non-root
+      # --lockfile is added below.
       - uses: google/osv-scanner-action/osv-scanner-action@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2.3.8
         with:
           scan-args: |-
             --config=osv-scanner.toml
             --lockfile=package-lock.json
-            --lockfile=tools/web/agentify-desktop/package-lock.json

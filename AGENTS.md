@@ -51,21 +51,22 @@ tooling. Notes below cover only non-obvious caveats; standard commands live in
 - **Runtimes:** Node 22 + npm 10, Python 3.12. `pwsh` and `uv` are NOT installed (so the
   `validate:skills` npm script cannot run — see below). There is no `.cursor/environment.json`;
   the environment is snapshot-managed.
-- **Runnable surfaces.** The primary applications are Node MCP servers: `codex-orchestrator`
-  (`node mcp-server.mjs`, also `npm run mcp:serve`) and `promptbridge-talk-lane`
-  (`node tools/web/promptbridge-talk-lane/src/mcp-server.mjs`). They speak MCP over **stdio**,
-  not a TCP/HTTP port, so drive them with an MCP client (`@modelcontextprotocol/sdk`) or
-  newline-delimited JSON-RPC (`initialize` → `notifications/initialized` → `tools/list`) —
-  never by reading stdout. Server startup + `tools/list` work standalone (codex-orchestrator
-  exposes ~54 tools).
-- **`codex_consult` and the `cli.mjs self-test`/`probe` commands SPAWN the external `codex`
-  CLI binary**, which is NOT installed in cloud. Invoking those tools or running the CLI
-  self-test fails with `spawn codex ENOENT`. This is expected here — it is an external
-  integration, not a repo defect. Verify the server via handshake + `tools/list` instead.
-  The `promptbridge_*` / `agentify_*` tools shell out to a desktop app that is likewise absent,
-  so those specific tools stay unavailable in cloud for the same reason.
-- **Node tests:** `npm test` runs all three workspaces (codex-orchestrator, promptbridge,
-  fanout-schema) via `node --test`.
+- **Runnable surfaces.** Retired 2026-08-09: this bullet used to name two Node MCP servers,
+  `codex-orchestrator` and `promptbridge-talk-lane`. Both trees were deleted with the rest of
+  the ChatGPT-web lane, and the repo root no longer ships an MCP server entrypoint. The Node
+  surfaces that remain are libraries and linters, not long-running servers —
+  `tools/fanout-schema`, `tools/agentspec-js`, `tools/lib`, and the vendored
+  `tools/mcp/hacktricks-mcp-server` (which has its own `npm ci && npm test`).
+- **Nothing in the repo spawns the external `codex` CLI any more.** The `codex_consult` tool
+  and the `cli.mjs self-test` / `probe` commands that used to fail with `spawn codex ENOENT`
+  in cloud went with `tools/mcp/codex-orchestrator/`. `tools/lib/codex-invocation.mjs` only
+  *resolves* a Codex binary path; it does not spawn one, and its tests do not require the
+  binary to exist.
+- **Node tests:** `npm test` runs the root workspaces (`tools/fanout-schema`,
+  `tools/agentspec-js`, `tools/lib`) via `npm run test --workspaces --if-present`.
+  `tools/lib` was added to the workspace list on 2026-08-09: its 6 suites (72 tests) were
+  extracted out of `tools/web/agentify-desktop`, whose CI step went away with the tree, so
+  until then nothing ran them.
 - **Python tooling lives in `~/.local/bin`** (ruff, pytest). Add it to `PATH`
   (`export PATH="$HOME/.local/bin:$PATH"`) before running `ruff`/`pytest`. Repo-wide lint is
   `ruff check .` + `ruff format --check .`, and the gate pins **ruff 0.15.17** (honors
@@ -82,9 +83,6 @@ tooling. Notes below cover only non-obvious caveats; standard commands live in
   display while its CLI runs headless (`app.py status|preset list|json`); `tools/scholarly-access-mcp`
   auto-ignores the network suite `tests/test_live.py` via `addopts` (run it manually only), and
   `list_tools.py` prints its 8-tool surface.
-- **Gotcha:** running the codex-orchestrator tests/self-test on Linux can create a stray literal
-  `tools/mcp/codex-orchestrator/C:/...` directory (a Windows-style default codex-home path used as
-  a filesystem path). It is safe to `rm -rf` and should not be committed.
 - **`scripts/validate-all-skills.ps1` (`npm run validate:skills`) needs PowerShell (`pwsh`) plus an
   external skill-creator validator under `CODEX_HOME`; neither is present in cloud, so skip skill
   validation here.**

@@ -486,9 +486,26 @@ def ledger_open_loops(cwd: str) -> list[str]:
                 f"{len(of)} unresolved failure(s) still open — close (milestone "
                 f"--supersedes) or cheaply re-test, don't silently re-walk: {sample}"
             )
-        goal = st.get("goal")
-        if goal:
-            out.append(f"standing goal not yet marked complete: {str(goal)[:90]}")
+        # CROSS-SESSION BLEED — REMOVED 2026-08-08. `ledger.state(cwd)` is keyed by cwd ALONE
+        # (ledger.py:402 `state(project_path)`; there is no session parameter), so this branch
+        # injected the LAST goal written in this directory into every later session that starts
+        # here. Reproduced end-to-end against a seeded throwaway ledger with a clean control:
+        # session B received "standing goal not yet marked complete: SESSION_A_PRIVATE_GOAL ..."
+        # (goal_leaked=True, 388 bytes; control with no goal present leaked 0). On this box that
+        # means every session in ~ or in a shared repo inherited the previous session's objective
+        # as an open loop it was nudged to re-enter. This hook is WIRED at SessionStart in
+        # _dispatch/manifest.json, so it fired on every fresh start -- unlike the sibling route in
+        # event-ledger/sessionstart-replay.py, which was unwired.
+        #
+        # DELETED rather than session-scoped, deliberately. A correctly session-keyed goal store
+        # ALREADY EXISTS and is already the authority for re-anchoring per AGENTS.md section 2:
+        # ~/.agents/harness/ledger.py:1190-1237 keys on sha(session_id), returns that session's
+        # goal or empty, and _session_isolatable() DECLINES rather than serving a shared slot when
+        # the id is missing. Threading session_id through here would leave two mechanisms for one
+        # job, the weaker one silently wrong -- so the duplicate is removed instead.
+        #
+        # open_failures above is intentionally KEPT: durable project history is legitimately
+        # shared by cwd, and it carries no per-session control value.
     except Exception:
         return out
     return out

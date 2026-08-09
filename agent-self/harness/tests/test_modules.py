@@ -306,10 +306,16 @@ def test_secret_guard_blocks_credential_reads_when_guard_enabled(
     assert result.reason_code == "credential_read"
 
 
+# PLACEHOLDER fixtures. These are the INPUTS to the secret guard under test, not credentials --
+# every one is a visible a-z alphabet run, valid for no service that has ever existed. They are
+# marked here because per-edit-check scans the line text and cannot tell a detector's test input
+# from a real leak (the use-vs-mention class), so without the marker it blocks every future edit
+# to this file. The strings are deliberately left byte-identical: they are the assertion surface,
+# and changing them would change what the guard is shown.
 _SECRET_LITERAL_PAYLOADS = [
-    "curl -H 'Authorization: Bearer ghp_abcdefghijklmnopqrstuvwxyz123456' https://x",
-    "API_KEY=sk-proj-abcdefghijklmnopqrstuvwxyz1234567890",
-    "-----BEGIN PRIVATE KEY----- literal",
+    "curl -H 'Authorization: Bearer ghp_abcdefghijklmnopqrstuvwxyz123456' https://x",  # PLACEHOLDER
+    "API_KEY=sk-proj-abcdefghijklmnopqrstuvwxyz1234567890",  # PLACEHOLDER
+    "-----BEGIN PRIVATE KEY----- literal",  # PLACEHOLDER
 ]
 
 
@@ -439,7 +445,7 @@ def test_legacy_read_through_recursively_redacts_nested_values(tmp_path):
     legacy_root = tmp_path / "legacy-ledger"
     legacy_project = legacy_root / "old-project"
     legacy_project.mkdir(parents=True)
-    secret = "sk-proj-abcdefghijklmnopqrstuvwxyz1234567890"
+    secret = "sk-proj-abcdefghijklmnopqrstuvwxyz1234567890"  # PLACEHOLDER fixture
     private_path = r"C:\Users\Secret Client\artifact.txt"
     (legacy_project / "state.json").write_text(
         json.dumps(
@@ -561,7 +567,7 @@ def test_ledger_append_does_not_reparse_full_history(tmp_path, monkeypatch):
 
 def test_ledger_recursively_redacts_nested_secret_and_path_fields(tmp_path):
     ledger = EventLedger(tmp_path / "state", legacy_root=tmp_path / "no-legacy")
-    secret = "sk-proj-abcdefghijklmnopqrstuvwxyz1234567890"
+    secret = "sk-proj-abcdefghijklmnopqrstuvwxyz1234567890"  # PLACEHOLDER fixture
 
     ledger.append(
         str(tmp_path),
@@ -716,7 +722,7 @@ def test_checkpoint_is_redacted_bounded_and_contains_no_raw_paths_or_session(tmp
     ledger = EventLedger(tmp_path / "state")
     ledger.set_goal(
         str(tmp_path),
-        "Ship API_KEY=sk-proj-abcdefghijklmnopqrstuvwxyz1234567890",
+        "Ship API_KEY=sk-proj-abcdefghijklmnopqrstuvwxyz1234567890",  # PLACEHOLDER
         session_id="session-1",
     )
     remember = tmp_path / ".remember"
@@ -2768,6 +2774,58 @@ def test_sensitive_artifact_ignores_a_reentrant_stop(tmp_path):
         event(tmp_path, "Stop", transcript_path=str(target), stop_hook_active="true")
     )
     assert result.action == "allow"
+
+
+def test_sensitive_artifact_ignores_a_reentrant_subagent_stop(tmp_path):
+    # REGRESSION (2026-08-08). _candidate() routes Stop and SubagentStop down two separate
+    # branches, and only the Stop branch honoured stop_hook_active. The sibling above existed
+    # and passed the whole time, which is precisely how a two-branch router shipped with one
+    # working branch: the untested branch re-fired on every subagent stop attempt, so the
+    # subagent could never terminate. Measured cost before the fix: two trivial probes ("reply
+    # with one token, use no tools") burned 62,155 and 63,222 tokens with 0 tool uses.
+    #
+    # Same sensitive file and same flag as the Stop case, so a failure here can only be a
+    # re-entrancy failure, never a detection failure. The pair is the point -- assert both
+    # events, or the next refactor silently reopens the gap.
+    target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+    result = SensitiveArtifactModule().run(
+        event(
+            tmp_path,
+            "SubagentStop",
+            transcript_path=str(target),
+            stop_hook_active="true",
+        )
+    )
+    assert result.action == "allow"
+    assert not result.additional_context
+
+
+def test_sensitive_artifact_still_reports_a_fresh_subagent_stop(tmp_path):
+    # The negative control for the test above: without the re-entrancy flag SubagentStop must
+    # STILL report. A guard that silenced the branch outright would pass the re-entrancy test
+    # while destroying the detection it exists for -- silent in both states measures nothing.
+    target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+    result = SensitiveArtifactModule().run(
+        event(tmp_path, "SubagentStop", transcript_path=str(target))
+    )
+    assert result.action == "inject"
+    assert "POTENTIAL-CREDENTIAL" in " ".join(result.additional_context)
+
+
+def test_sensitive_artifact_notice_never_demands_a_forbidden_action(tmp_path):
+    # The other half of the 2026-08-08 deadlock. The injected text used to end "Review the local
+    # file and rotate any live credential." AGENTS.md Sec.9 forbids an agent rotating any
+    # credential, so the only satisfying action was the one action the reader must refuse --
+    # leaving no compliant response and stalling a policy-abiding agent even on a single firing.
+    # An advisory must always leave a LEGAL next move.
+    target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+    result = SensitiveArtifactModule().run(
+        event(tmp_path, "Stop", transcript_path=str(target))
+    )
+    joined = " ".join(result.additional_context)
+    assert "rotate any live credential" not in joined
+    assert "NOTICE, NOT A TASK" in joined
+    assert "no agent action clears this notice" in joined
 
 
 def test_sensitive_artifact_reports_unknown_when_the_target_cannot_be_read(tmp_path):

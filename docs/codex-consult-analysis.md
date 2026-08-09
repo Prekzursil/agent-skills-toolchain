@@ -1,5 +1,19 @@
 # codex_consult MCP Server & PromptBridge Consultation System -- Analysis Report
 
+> **SUPERSEDED 2026-08-09 — the system analysed below no longer exists.** Every tree this
+> report describes (`tools/mcp/codex-orchestrator`, `tools/web/promptbridge-talk-lane`,
+> `tools/web/agentify-desktop`, `tools/mcp/agent-lanes-codex`,
+> `tools/web/agent-lanes-chatgpt-web`) was deleted from this repo, along with the
+> `~/.codex/promptbridge-runtime/` deployment it targets. None of the `codex_*`,
+> `promptbridge_*` or `agentify_*` tools it inventories are callable. Codex is now reached
+> through the official `codex mcp-server` (`mcp__codex__codex` / `mcp__codex__codex-reply`).
+>
+> **The body below is a dated record and is deliberately left byte-for-byte as written.** It
+> was accurate on 2026-04-04 and its file/line citations were true then; do not read it as a
+> description of the current tree, and do not edit it to make it look current. Successors:
+> [`docs/multi-agent-quickstart.md`](multi-agent-quickstart.md) for the replacement rail,
+> [`tools/lib/README.md`](../tools/lib/README.md) for what was salvaged out of these trees.
+
 **Date**: 2026-04-04
 **Scope**: Full investigation of the codex-orchestrator MCP server, PromptBridge talk lane, session management, model selection, and Agentify integration.
 

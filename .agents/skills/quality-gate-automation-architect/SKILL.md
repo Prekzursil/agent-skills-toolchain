@@ -14,7 +14,7 @@ Design safe, bounded automation systems for repo quality work. Prefer short, aud
 - Read [references/github-control-plane.md](references/github-control-plane.md) when GitHub is or should be the control plane.
 - Read [references/openai-codex-workers.md](references/openai-codex-workers.md) when Codex is a candidate worker or the user mentions Codex app, Codex Cloud, `codex exec`, or `openai/codex-action`.
 - Read [references/analyzers-and-gates.md](references/analyzers-and-gates.md) when coverage, SonarQube Cloud, Codacy, Codecov, or branch-protection quality gates are involved.
-- Read [references/local-consult-lane.md](references/local-consult-lane.md) when PromptBridge, local schedulers, VS Code sidecars, or Codex app automations are part of the design.
+- Read [references/local-consult-lane.md](references/local-consult-lane.md) when a local agent sidecar, local schedulers, VS Code sidecars, or Codex app automations are part of the design.
 - Read [references/evidence-refresh.md](references/evidence-refresh.md) when the user wants the skill or references to absorb recurring lessons from prior sessions or repos.
 
 ## Workflow Decision
@@ -28,7 +28,7 @@ digraph automation_decision {
     codex [label="Need custom prompts and worker behavior?", shape=diamond];
     codex_primary [label="Use Codex as repair worker", shape=box];
     github_primary [label="Use GitHub-native agent", shape=box];
-    hybrid [label="Keep local app / PromptBridge as consultation lane", shape=box];
+    hybrid [label="Keep local app / sidecar as consultation lane", shape=box];
 
     ask -> github [label="yes"];
     ask -> local [label="no"];
@@ -74,7 +74,7 @@ Use when the worker needs tighter prompt control, custom repair policies, or con
 
 ### 3. Local-first hybrid
 
-Use when the user needs rich local context, PromptBridge consultation, or local-only tools. Keep it secondary unless the user explicitly accepts machine-uptime dependency and sidecar fragility.
+Use when the user needs rich local context, local sidecar consultation, or local-only tools. Keep it secondary unless the user explicitly accepts machine-uptime dependency and sidecar fragility.
 
 State which lane is primary, which lanes are secondary, and why.
 

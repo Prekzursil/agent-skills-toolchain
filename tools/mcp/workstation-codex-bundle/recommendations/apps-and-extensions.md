@@ -30,7 +30,6 @@ These fit the current workstation and active workflows best:
 - `using-superpowers`
 - `verification-before-completion`
 - `systematic-debugging`
-- `promptbridge-codex-consult`
 - `read-github`
 - `playwright` and `playwright-interactive`
 - `writing-skills`

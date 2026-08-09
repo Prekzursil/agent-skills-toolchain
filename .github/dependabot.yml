@@ -4,12 +4,11 @@
 # dependabot.yml — so nothing ever generated the PRs that workflow was written to merge. CVEs
 # accumulated silently in the committed lockfiles until `gate-deps` (osv-scanner) went red on
 # every branch at once, blocking unrelated work. Observed 2026-07-21: 7 known vulnerabilities
-# (1 critical `tar` 9.2, 4 high, 1 medium, 1 low) in tools/web/agentify-desktop/package-lock.json,
-# all fixable by non-breaking upgrades, none introduced by any open PR.
+# (1 critical `tar` 9.2, 4 high, 1 medium, 1 low) in the agentify-desktop lockfile — that tree has
+# since been RETIRED — all fixable by non-breaking upgrades, none introduced by any open PR.
 #
 # SCOPE deliberately matches what `gate-deps` actually scans (see quality.yml):
 #     --lockfile=package-lock.json
-#     --lockfile=tools/web/agentify-desktop/package-lock.json
 # tools/editor/ralph-orchestrator/vendor/package-lock.json is EXCLUDED on purpose — it is a
 # vendored third-party tree and the gate does not scan it. Adding it here would generate PRs for
 # a tree we do not gate, and dependabot-auto-merge.yml would then squash-merge them unreviewed.
@@ -36,28 +35,6 @@ updates:
       npm-root-minor-patch:
         update-types: [minor, patch]
     labels: [dependencies]
-
-  # --- agentify-desktop npm tree (scanned by gate-deps; source of the 2026-07-21 CVE wave) ----
-  - package-ecosystem: npm
-    directory: /tools/web/agentify-desktop
-    schedule:
-      interval: weekly
-      day: monday
-      time: "06:00"
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: "fix(deps)"
-      prefix-development: "chore(deps-dev)"
-    groups:
-      agentify-minor-patch:
-        update-types: [minor, patch]
-    labels: [dependencies]
-    ignore:
-      # electron major bumps are a deliberate, tested migration — never auto-merge one.
-      - dependency-name: electron
-        update-types: [version-update:semver-major]
-      - dependency-name: electron-builder
-        update-types: [version-update:semver-major]
 
   # --- GitHub Actions (all 5 workflows pin by SHA; keep them current) --------------------------
   - package-ecosystem: github-actions

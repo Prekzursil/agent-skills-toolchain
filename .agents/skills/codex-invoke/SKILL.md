@@ -226,10 +226,11 @@ in the base, in `captured_mcp_defs`, or in any materialized ephemeral config.
 
 ## Reconciliation — how this skill relates to the others
 
-**NEW skill (the canonical exec-rail entry point). It does not overlap the existing
-three** — `codex-orchestrate` (MCP-rail intent routing), `codex-consult` (PromptBridge
-lanes), and `codex-vscode-host-routing` (IDE transport) are orthogonal axes; there is
-no 4th overlapping skill.
+**The canonical exec-rail entry point. It does not overlap the others** —
+`codex-orchestrate` (MCP-rail intent routing) and `codex-vscode-host-routing` (IDE
+transport) are orthogonal axes. `codex-consult` used to be a third axis (the PromptBridge
+lanes); those lanes were deleted on 2026-08-09 and that skill is now a redirect tombstone
+pointing at `codex-orchestrate` and this skill.
 
 - **Leverages (cites, does not rebuild):** `codex-runtime-recovery` (fast-exit /
   detached-run / CODEX_HOME-drift recovery), `run-taskwatch_monitor` (detached-exec
@@ -237,9 +238,10 @@ no 4th overlapping skill.
   `codex-fleet-github` (shares the skill-allowlist file format).
 - **Session hygiene continuation:** `codex-session-reunion` / `format-codex-sessions`.
 - **Integration owed by the design (scoped work, not a free cross-link):**
-  `codex-orchestrate` and `codex-consult` each gain an **exec-rail delegation branch**
-  that fires on any scoping request and delegates to this skill, each with its own test.
-  Until those edits ship they remain MCP/PromptBridge-only.
+  `codex-orchestrate` gains an **exec-rail delegation branch** that fires on any scoping
+  request and delegates to this skill, with its own test. Until that edit ships it remains
+  MCP-rail-only. (The same item previously covered `codex-consult`; that skill is retired,
+  so its half of the work is cancelled, not outstanding.)
 
 ## Ground Truth (verified live, codex-cli 0.144.1)
 

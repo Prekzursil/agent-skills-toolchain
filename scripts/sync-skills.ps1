@@ -7,7 +7,9 @@
   under skills/ (and optionally skills-claude-only/) into the live agents skills dir,
   overwriting existing copies. Optionally prunes live skill dirs that no longer exist
   in the repo (e.g. consolidated or deleted skills such as the former codex-local-*
-  and agent-lanes-codex-* lanes).
+  and agent-lanes-codex-* lanes). Worth a -Prune pass after the 2026-08-09 Codex-lane
+  retirement, which rewrote codex-consult into a redirect tombstone and rebased
+  codex-orchestrate and multi-agent-quickstart onto the codex mcp-server rail.
 
   This is the imperative-copy bridge for the current ~/.agents/skills setup. The
   declarative alternative is the plugin marketplace shipped in .claude-plugin/ —

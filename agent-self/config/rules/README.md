@@ -81,22 +81,18 @@ cp -r rules/common "${CODEX_HOME:-$HOME/.codex}/rules/common"
 #   Read ~/.codex/rules/common/windows-shell.md before any shell op.
 ```
 
-> **Re-apply this after every Codex bootstrap.** `cli.mjs install` / `cli.mjs update`
-> **replaces `$CODEX_HOME/AGENTS.md` wholesale** with the generated PromptBridge
-> contract — `writeManagedFile(files.agentsPath, rendered.agents)` at
-> `tools/mcp/codex-orchestrator/integrations/codex/bootstrap.mjs:704`, whose rendered
-> body (`:326`) contains no rules pointer. It backs the old file up first, but the
-> pointer is gone from the live file until you put it back. Note the asymmetry:
-> `config.toml` next to it IS merged via a managed block (`:667-668`); only
-> `AGENTS.md` is clobbered.
+> **Retired 2026-08-09 — the clobbering bootstrap is gone.** This paragraph used to warn
+> that `cli.mjs install` / `cli.mjs update` replaced `$CODEX_HOME/AGENTS.md` wholesale with
+> a generated PromptBridge contract, so the pointer had to be re-applied after every Codex
+> bootstrap. That CLI lived in `tools/mcp/codex-orchestrator/`, which was deleted with the
+> rest of the ChatGPT-web lane, and nothing in this repo writes `$CODEX_HOME/AGENTS.md` any
+> more. Add the pointer once; no in-repo tool overwrites it.
 >
-> UNVERIFIED: whether a sibling `AGENTS.override.md` would survive that overwrite and
-> still be discovered — it is not written by `applyBootstrapToHome`
-> (`bootstrap.mjs:649-655`), so it plausibly would, but nothing in this repo
-> documents Codex's discovery order. Settle it by running `cli.mjs install` against a
-> throwaway `CODEX_HOME` containing both files and checking which survives and which
-> Codex actually loads. Until then, treat `$CODEX_HOME/AGENTS.md` as the only route
-> and re-apply after each bootstrap.
+> The companion UNVERIFIED note (whether a sibling `AGENTS.override.md` survived that
+> overwrite) is dropped rather than carried forward: its settling experiment was
+> "run `cli.mjs install` against a throwaway `CODEX_HOME`", and that command no longer
+> exists, so the question is moot rather than open. If some future tool starts managing
+> `$CODEX_HOME/AGENTS.md`, re-open it then.
 
 Note `agent-self/config/codex/config.toml` is **not** an install source for this — it
 is an inbound, redacted snapshot of the live config written *into* the repo by

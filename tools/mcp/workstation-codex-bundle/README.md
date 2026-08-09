@@ -1,10 +1,21 @@
 # Workstation Codex MCP Bundle
 
-Curated Windows-first workstation bundle for the canonical Codex profile at `C:\Users\Prekzursil\.codex\config.toml`. This folder preserves the exact MCP, editor, env, and lane setup needed to rebuild the current Codex + VS Code + PromptBridge environment without rediscovery.
+Curated Windows-first workstation bundle for the canonical Codex profile at `C:\Users\Prekzursil\.codex\config.toml`. This folder preserves the exact MCP, editor, and env setup needed to rebuild the current Codex + VS Code environment without rediscovery.
+
+> **Retired 2026-08-09 — the `codex_consult` lane is gone.** This bundle is a *snapshot*, so
+> its dated sections below still describe the lane as it stood when they were written; that
+> is deliberate and they are not edited. What is no longer true going forward: the self-made
+> `codex_consult` server, its `promptbridge_*` / `agentify_*` talk tools, and the local forks
+> under `tools/mcp/agent-lanes-codex/` and `tools/web/agent-lanes-chatgpt-web/` were all
+> deleted. The live `~/.codex/config.toml` had already dropped the registration before the
+> delete, so nothing in the running profile changed. Codex is now reached through the
+> official `codex mcp-server`. The managed block that still appears in
+> `config/codex-config-curated.toml` is a captured artifact of the retired lane, not a
+> reinstall target.
 
 ## Provenance split
-- **Self-made**: `codex_consult`, which now exposes both codex_* orchestration tools and promptbridge_* / agentify_* talk tools from one managed server.
-- **Modified local fork**: PromptBridge runtime overrides captured under `tools/mcp/agent-lanes-codex/local-overrides/` and `tools/web/agent-lanes-chatgpt-web/local-overrides/`.
+- **Self-made**: `codex_consult` (RETIRED 2026-08-09, see the note above) exposed both codex_* orchestration tools and promptbridge_* / agentify_* talk tools from one managed server.
+- **Modified local fork**: PromptBridge runtime overrides were captured under `tools/mcp/agent-lanes-codex/local-overrides/` and `tools/web/agent-lanes-chatgpt-web/local-overrides/`; both paths were deleted with the lane.
 - **Curated upstream picks**: GitHub, GitHub CLI, Notion, Linear, Playwright, Chrome DevTools, Figma, Sentry, SonarQube, Semgrep, Docker, Memory, Context7, PostgreSQL, and selected optional extras including the upstream Cheat Engine bridge wrapper and HexStrike AI runtime.
 - **Curated community MCP picks**: Codecov is promoted into the active MCP bundle via `@egulatee/mcp-codecov`.
 - **Curated non-MCP integrations**: Chromatic remains intentionally outside the MCP set; Qlty stays on CLI + provider workflows.
@@ -14,7 +25,7 @@ Curated Windows-first workstation bundle for the canonical Codex profile at `C:\
 - VS Code is secondary: no duplicated raw `mcpServers` block in `settings.json`
 - `chatgpt.runCodexInWindowsSubsystemForLinux = false`
 - `chatgpt.openOnStartup = false`
-- PromptBridge desktop autostart is disabled by default to stop constant browser and Electron noise
+- PromptBridge desktop autostart was disabled by default to stop constant browser and Electron noise; moot since the 2026-08-09 retirement (no desktop app remains to autostart)
 - Windows remains the canonical Codex home; `.codex-vscode` is migration/comparison input only
 - Serena, Nuxt, Netlify, Terraform, MindsDB, Ghidra, and desktop-commander are not part of the current canonical config-owned MCP bundle
 - Stage 1 in this repo is workstation-only: project-specific web UI setup for Momentstudio, Webcoder, and Reframe is intentionally deferred

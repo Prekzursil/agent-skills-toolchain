@@ -1062,8 +1062,11 @@ class SensitiveArtifactModule:
                 message = (
                     "SENSITIVE ARTIFACT REPORT: classification=POTENTIAL-CREDENTIAL "
                     f"kind={kind} id=sha256:{path_id}; the report-only sweep changed "
-                    "nothing and emitted no matched value. Review the local file and "
-                    "rotate any live credential."
+                    "nothing and emitted no matched value. NOTICE, NOT A TASK: do not "
+                    "rotate, revoke, regenerate or edit any credential -- AGENTS.md "
+                    "Sec.9 reserves credential lifecycle to the owner. Surface the id "
+                    "above to the owner and carry on; no agent action clears this "
+                    "notice, so do not retry or block on it."
                 )
             else:
                 message = (
@@ -1090,6 +1093,19 @@ class SensitiveArtifactModule:
                 return event.transcript_path, "transcript", True
             return None
         if event.event == "SubagentStop":
+            # SubagentStop needs the SAME re-entrancy contract as Stop above. Without it
+            # this module re-fires on every subagent stop attempt and the subagent can
+            # never terminate. Measured 2026-08-08: two trivial probes ("reply with one
+            # token, use no tools") cost 62,155 and 63,222 tokens with 0 tool uses,
+            # looping on this one injection and returning garbage instead of an answer.
+            # modules.py:3079 already states the rule this branch was breaking -- gates
+            # "NEVER run on Stop/StopFailure/SubagentStop -- the A1 loop origin (a
+            # Stop-time inject re-triggers the host re-entrancy counter)".
+            # A test existed for exactly this, but only for the Stop branch
+            # (test_sensitive_artifact_ignores_a_reentrant_stop) -- which is how a
+            # two-branch router shipped with one working branch.
+            if str(event.trigger or "").lower() in cls._REENTRANT_STOP:
+                return None
             path = event.transcript_path or event.agent.transcript_path
             return (path, "transcript", True) if path else None
         if event.event != "PostToolUse" or event.tool.name not in cls._WRITE_TOOLS:

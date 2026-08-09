@@ -2,6 +2,16 @@
 
 **Last curated:** 2026-06-11 · **Backup of pre-cleanup config:** `~/.claude/_config-backups/cleanup_2026-06-11_045014/`
 
+> **Addendum 2026-08-09 — one dated item below is now unblocked.** The `SOTA pass
+> (2026-06-11)` section is a dated record and its body is left exactly as written. For
+> current work, note only this: item **A5** left two junctions in place on purpose,
+> `agent-lanes-codex-consult` and `promptbridge-codex-consult`, and made retiring the
+> `work-re` checkout conditional on migrating them. Both skills have since been retired —
+> the ChatGPT-web / Codex-orchestrator lane they belonged to was deleted from this repo on
+> 2026-08-09 — so there is nothing left to migrate and that condition no longer holds.
+> Whether the `work-re` checkout itself still exists is **NOT-CHECKED** here; settle it with
+> `Test-Path ~/work/agent-skills-toolchain-re` before acting.
+
 This file documents the deliberately-curated plugin/MCP state and the **rule that keeps it from re-bloating**. Read this before installing plugins or "fixing" context overhead again.
 
 ---
