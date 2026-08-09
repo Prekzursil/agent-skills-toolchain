@@ -84,9 +84,55 @@ def _ev(prompt: str) -> dict:
     return {"prompt": prompt, "session_id": "recall-gate-test"}
 
 
-# ── 1. FIXED state: the gate FIRES on a real tree artifact ───────────────────
+def _fixture_index() -> dict:
+    """A deterministic one-entry index, shaped exactly like tree_index.get_or_build().
+
+    These two tests originally ran against the REAL vault. That is not testable on a CI runner:
+    there is no vault there, so `ti.get_or_build()` returns no entries, `gate.run` correctly
+    reports `index-unavailable` -> NOT-CHECKED, and both assertions fail. Measured on run
+    31311292280: "expected FINDING, got NOT-CHECKED" and "expected CLEAN, got NOT-CHECKED", while
+    both pass locally where a vault exists.
+
+    The honest fix is a fixture, not a weaker assertion. Asserting the machine's contents tests
+    the machine; asserting against a known index tests the GATE, which is the thing under test.
+    Same monkeypatch seam the exception test below already uses.
+
+    The real-vault path is not left unexercised — it is what the gate does every session — but it
+    is deliberately not asserted in CI, because a test whose verdict depends on ambient state
+    cannot distinguish a broken gate from an empty machine.
+    """
+    return {
+        "schema_version": getattr(ti, "SCHEMA_VERSION", 1),
+        "built_at": 0.0,
+        "tree_hash": "fixture",
+        "ok": True,
+        "truncated": False,
+        "entries": [
+            {
+                "path": "/fixture/transcript_tail.py",
+                "rel": "hooks/_shared/transcript_tail.py",
+                "stem": "transcript_tail",
+                "keys": ["eof", "jsonl", "tail", "transcript", "transcript_tail"],
+                "summary": "Read a JSONL transcript backwards from EOF in bounded blocks.",
+                "size": 4096,
+            }
+        ],
+    }
+
+
+def _with_fixture_index(prompt: str):
+    """Run the gate against the fixture index, restoring the real one afterwards."""
+    real = ti.get_or_build
+    try:
+        ti.get_or_build = lambda **_kw: _fixture_index()  # type: ignore[assignment]
+        return gate.run(_ev(prompt))
+    finally:
+        ti.get_or_build = real  # type: ignore[assignment]
+
+
+# ── 1. FIXED state: the gate FIRES on a tree artifact that IS in the index ───
 def test_fires_on_tree_prior_art() -> None:
-    state, msg = gate.run(_ev(GAP_QUERY))
+    state, msg = _with_fixture_index(GAP_QUERY)
     assert state == gate.STATE_FINDING, f"expected FINDING, got {state}"
     assert msg and "transcript_tail" in msg, msg
     assert "PRIOR ART" in msg
@@ -94,7 +140,9 @@ def test_fires_on_tree_prior_art() -> None:
 
 # ── 2. Negative control: NO false digest when there is no prior art ──────────
 def test_negative_control_no_digest() -> None:
-    state, msg = gate.run(_ev(NEGATIVE_QUERY))
+    # SAME fixture index as the firing case, so a difference can only be the query, never the
+    # environment. NEGATIVE_QUERY names nothing the index contains.
+    state, msg = _with_fixture_index(NEGATIVE_QUERY)
     assert state == gate.STATE_CLEAN, f"expected CLEAN, got {state}"
     assert msg is None, f"CLEAN must not manufacture a digest, got: {msg}"
 
