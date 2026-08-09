@@ -28,13 +28,44 @@ name: quality
 on:
   push:
     branches: [main]
+  # DELIBERATELY NO `branches:` FILTER on pull_request.
+  #
+  # This key used to read `branches: [main]`, which meant a STACKED pull request -- one whose
+  # base is another open PR's head rather than main -- matched no trigger at all and ran ZERO
+  # gates. Measured 2026-08-09 on this repo with two mechanically independent signals:
+  #   * CONFIG: this key read `branches: [main]`.
+  #   * RUN HISTORY (`gh run list`): PR #275 (base `main`) drew four pull_request-event runs --
+  #     quality, routing-benchmark, skill-dual-write, no-runtime-junk -- while PR #274, stacked
+  #     on #275's head `chore/harness-reconcile-20260808`, drew ZERO pull_request runs and had
+  #     to be gated by hand with `gh workflow run quality.yml`.
+  # The PR UI renders "no checks" the same way it renders "checks not required", so the failure
+  # mode is a stacked PR that reads as UNCHECKED-BUT-FINE rather than as UNGATED.
+  #
+  # An allow-list (`branches: [main, 'chore/**', 'feat/**', 'fix/**']`) was considered and
+  # REJECTED: it silently reintroduces the identical hole for any base outside the enumerated
+  # prefixes (the wave-3 lanes that found this branch as `wave3/*`, and the historical stack
+  # here based on `fix/derive-167-settlement`). A gate that is only correct for branch names
+  # someone remembered to list is the defect, not the fix.
+  #
+  # COST: `pull_request` fires only when a PR exists, so the added volume is exactly the stacked
+  # PRs that previously ran nothing -- 3 of the last 60 PRs on this repo (5%). Part of that is
+  # already being paid as manual `workflow_dispatch` runs (4 of the last 100 quality runs), which
+  # this change removes the need for. `push:` stays pinned to main, so no branch push gains a run.
   pull_request:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
+# `github.ref` is `refs/pull/<N>/merge` for a pull_request event, so this group key is already
+# unique per PR NUMBER and is entirely independent of the PR's BASE branch -- widening the
+# trigger above therefore cannot make two PRs share a group, and needs no change here.
+# Deliberately NOT switched to `github.head_ref || github.ref`: `head_ref` is the SOURCE branch,
+# so two PRs opened from one head (exactly what a stack plus an auto-retarget produces) would
+# collide and cancel each other -- the over-broad-group trap. A manual `workflow_dispatch` on a
+# branch lands in `quality-refs/heads/<branch>`, a different group from that branch's PR run, so
+# the two can run concurrently; that is ACCEPTED rather than merged, because every key that would
+# merge those two also merges runs that must not cancel each other.
 concurrency:
   group: quality-${{ github.ref }}
   cancel-in-progress: true
