@@ -9,9 +9,17 @@
 #
 # SCOPE deliberately matches what `gate-deps` actually scans (see quality.yml):
 #     --lockfile=package-lock.json
+#     --lockfile=tools/mcp/hacktricks-mcp-server/package-lock.json
 # tools/editor/ralph-orchestrator/vendor/package-lock.json is EXCLUDED on purpose — it is a
 # vendored third-party tree and the gate does not scan it. Adding it here would generate PRs for
 # a tree we do not gate, and dependabot-auto-merge.yml would then squash-merge them unreviewed.
+#
+# NOTE on why the hacktricks entry is not optional. Omitting a directory here does NOT stop
+# Dependabot opening PRs against it — SECURITY updates are repo-wide and ignore this file (PR #267
+# bumped ip-address in the hacktricks tree while that directory was unlisted). So the unlisted
+# state never bought safety; it only withheld routine minor/patch bumps while still letting
+# security PRs through to auto-merge. The tree is now covered by BOTH gate-deps (osv-scanner) and
+# gate-tests-coverage (node workspaces), so listing it here is strictly the safer configuration.
 #
 # Python manifests are intentionally NOT covered yet: `gate-deps` does not scan them, so a pip
 # ecosystem here would produce auto-merging PRs against an ungated surface. Add them in the same
@@ -33,6 +41,22 @@ updates:
     groups:
       # One PR per weekly run for routine bumps keeps auto-merge volume sane.
       npm-root-minor-patch:
+        update-types: [minor, patch]
+    labels: [dependencies]
+
+  # --- hacktricks MCP server npm tree (scanned by gate-deps as of 2026-08-09) ------------------
+  - package-ecosystem: npm
+    directory: /tools/mcp/hacktricks-mcp-server
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "fix(deps)"
+      prefix-development: "chore(deps-dev)"
+    groups:
+      npm-hacktricks-minor-patch:
         update-types: [minor, patch]
     labels: [dependencies]
 
