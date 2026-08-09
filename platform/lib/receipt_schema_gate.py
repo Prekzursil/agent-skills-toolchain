@@ -48,7 +48,7 @@ try:
     from referencing.jsonschema import DRAFT202012
 except ImportError as exc:  # pragma: no cover - dependency presence is a setup fact
     raise SystemExit(
-        "receipt_gate requires the 'jsonschema' package (>=4.18 for the "
+        "receipt_schema_gate requires the 'jsonschema' package (>=4.18 for the "
         f"referencing API). Import failed: {exc}"
     ) from exc
 

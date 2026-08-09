@@ -28,7 +28,7 @@ from pathlib import Path
 
 import pytest
 
-import receipt_gate as rg
+import receipt_schema_gate as rg
 
 REPO = Path(__file__).resolve().parents[2]
 CATALOG = REPO / "command-center" / "WORK-UNIT-CATALOG.json"
@@ -81,19 +81,19 @@ def good_receipt(live_repo: Path) -> dict:
                 "claim": "The reducer rejects a receipt whose sentinel names another unit.",
                 "verdict": "CONFIRMED",
                 "confidence": "almost-certain",
-                "anchor": "platform/lib/receipt_gate.py:311",
+                "anchor": "platform/lib/receipt_schema_gate.py:311",
                 "probes": [
                     {
                         "role": "source",
                         "method": "test-run",
-                        "command": "python -m pytest platform/lib/test_receipt_gate.py -k sentinel",
+                        "command": "python -m pytest platform/lib/test_receipt_schema_gate.py -k sentinel",
                         "raw_output": "1 passed",
                         "fingerprint": "pytest:sentinel",
                     },
                     {
                         "role": "verifier",
                         "method": "command",
-                        "command": "python platform/lib/receipt_gate.py fixtures/wrong-sentinel.json",
+                        "command": "python platform/lib/receipt_schema_gate.py fixtures/wrong-sentinel.json",
                         "raw_output": "FAILED:ADV-0001 predicate-unsatisfied c5=UNSATISFIED",
                         "fingerprint": "cli:wrong-sentinel",
                     },
@@ -126,7 +126,7 @@ def good_receipt(live_repo: Path) -> dict:
             {
                 "id": "T-001",
                 "name": "good receipt passes 12/12",
-                "command": "python -m pytest platform/lib/test_receipt_gate.py",
+                "command": "python -m pytest platform/lib/test_receipt_schema_gate.py",
                 "result": "PASS",
                 "assertions": 12,
             }

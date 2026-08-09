@@ -65,7 +65,7 @@ unit. It is consumed, not duplicated.
 `platform/lib/` now holds two independent implementations of gate A:
 
 * `platform/lib/completion_predicate.py::evaluate` (this unit)
-* `platform/lib/receipt_gate.py::evaluate_gate_a` (the receipt-envelope lane)
+* `platform/lib/receipt_schema_gate.py::evaluate_gate_a` (the receipt-envelope lane)
 
 plus the partial `hooks/_shared/completion.py`. Run
 `python platform/lib/_predicate_twin_differential.py` — both accept the identical baseline (control
@@ -77,7 +77,7 @@ completeness_disagreements=[4, 5, 9, 11]   blamed_condition_disagreements=[1, 2,
 
 Root causes, each confirmed by quoting the other reducer's own `basis` string, not inferred:
 
-| n | `receipt_gate` basis | Divergence | Which reading the spec supports |
+| n | `receipt_schema_gate` basis | Divergence | Which reading the spec supports |
 |---|---|---|---|
 | 4 | `validates against receipt.schema.json` | it validates the **receipt**; this unit validates the **artifact** against its declared `output_schema` | line 10636 says "**artifact** parses against its schema", in a list whose 2/3/5 are all about the artifact → the artifact reading. But its receipt check is a real gate this unit lacks (see gap below). |
 | 5 | `sentinel embeds IMP-0415` | it never opens the artifact, so a receipt whose artifact does **not** carry the sentinel passes | spec failure class line 11313: "an artifact that exists but carries no sentinel is INCOMPLETE" → this unit's reading |
