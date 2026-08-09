@@ -19,9 +19,14 @@ for p in files:
 print(f"{'file':34s} {'entries':>7s} {'skeleton?':>10s} {'idx-range':>12s}")
 for n, rows in data.items():
     sk = any(
-        "not yet measured" in json.dumps(r).lower() or "SKELETON" in json.dumps(r) for r in rows
+        "not yet measured" in json.dumps(r).lower() or "SKELETON" in json.dumps(r)
+        for r in rows
     )
-    idxs = [r.get("registry_index") for r in rows if isinstance(r.get("registry_index"), int)]
+    idxs = [
+        r.get("registry_index")
+        for r in rows
+        if isinstance(r.get("registry_index"), int)
+    ]
     rng = f"{min(idxs)}-{max(idxs)}" if idxs else "none"
     print(f"{n:34s} {len(rows):7d} {str(sk):>10s} {rng:>12s}")
 
@@ -37,7 +42,11 @@ def keyset(rows):
                 sid.add(r["source_registry_id"])
             n = r.get("name")
             if isinstance(n, str) and "not yet measured" not in n.lower():
-                nm.add(re.sub(r"^(skills?/|\.agents/skills/|exec-|wf-saved-)", "", n).strip())
+                nm.add(
+                    re.sub(
+                        r"^(skills?/|\.agents/skills/|exec-|wf-saved-)", "", n
+                    ).strip()
+                )
     return idx, sid, nm
 
 
@@ -52,7 +61,9 @@ for i in range(len(names)):
         oi, os_, on = ia & ib, sa & sb, na & nb
         if oi or os_ or on:
             clean = False
-            print(f"  {a} x {b}: idx={sorted(oi)} sid={sorted(os_)[:6]} name={sorted(on)[:6]}")
+            print(
+                f"  {a} x {b}: idx={sorted(oi)} sid={sorted(os_)[:6]} name={sorted(on)[:6]}"
+            )
         else:
             print(f"  {a} x {b}: NONE")
 
@@ -61,11 +72,22 @@ ctl_a = [{"registry_index": 999, "name": "collision-probe", "source_registry_id"
 ctl_b = [{"registry_index": 999, "name": "collision-probe", "source_registry_id": "x"}]
 ia, sa, na = keyset(ctl_a)
 ib, sb, nb = keyset(ctl_b)
-assert (ia & ib) and (sa & sb) and (na & nb), "overlap detector cannot see a known collision"
+assert (ia & ib) and (sa & sb) and (na & nb), (
+    "overlap detector cannot see a known collision"
+)
 print("\nCONTROL: injected collision detected on all three keys = True")
 
 total_md = sum(
-    1 for rows in data.values() for r in rows if isinstance(r, dict) and r.get("materially_distinct")
+    1
+    for rows in data.values()
+    for r in rows
+    if isinstance(r, dict) and r.get("materially_distinct")
 )
-print(f"\nprogram-wide materially_distinct across the five files = {total_md} (floor is 160)")
-print("SUCCESS:wfa4-crossfile-overlap" if clean else "PARTIAL:wfa4-crossfile-overlap collisions found")
+print(
+    f"\nprogram-wide materially_distinct across the five files = {total_md} (floor is 160)"
+)
+print(
+    "SUCCESS:wfa4-crossfile-overlap"
+    if clean
+    else "PARTIAL:wfa4-crossfile-overlap collisions found"
+)

@@ -113,7 +113,9 @@ def _tokenize(src: str) -> list[_Tok]:
     while i < n:
         m = _TOKEN_RE.match(src, i)
         if not m or m.end() == i:
-            raise ParseError(f"unexpected character {src[i]!r} at offset {i} in {src!r}")
+            raise ParseError(
+                f"unexpected character {src[i]!r} at offset {i} in {src!r}"
+            )
         i = m.end()
         if m.lastgroup == "ws":
             continue
@@ -134,7 +136,9 @@ def _tokenize(src: str) -> list[_Tok]:
 class Node:
     """Base AST node."""
 
-    def evaluate(self, ctx: Mapping[str, Any], strict: bool = True) -> Any:  # pragma: no cover - abstract
+    def evaluate(
+        self, ctx: Mapping[str, Any], strict: bool = True
+    ) -> Any:  # pragma: no cover - abstract
         raise NotImplementedError
 
     def identifiers(self) -> set[str]:  # pragma: no cover - abstract
@@ -170,7 +174,9 @@ class Ident(Node):
         cur = self.lookup(ctx)
         if cur is _MISSING:
             if strict:
-                raise UnknownIdentifier(f"identifier {self.name!r} is not in the evaluation context")
+                raise UnknownIdentifier(
+                    f"identifier {self.name!r} is not in the evaluation context"
+                )
             return None
         return cur
 
@@ -198,7 +204,9 @@ class Cmp(Node):
             lhs = self.left.lookup(ctx)
             if lhs is _MISSING:
                 if strict:
-                    raise UnknownIdentifier(f"identifier {self.left.name!r} is not in the evaluation context")
+                    raise UnknownIdentifier(
+                        f"identifier {self.left.name!r} is not in the evaluation context"
+                    )
                 missing, lhs = True, None
         else:
             lhs = self.left.evaluate(ctx, strict=strict)
@@ -210,7 +218,9 @@ class Cmp(Node):
             rhs = self.right.lookup(ctx)
             if rhs is _MISSING:
                 if strict:
-                    raise UnknownIdentifier(f"identifier {self.right.name!r} is not in the evaluation context")
+                    raise UnknownIdentifier(
+                        f"identifier {self.right.name!r} is not in the evaluation context"
+                    )
                 missing, rhs = True, None
         else:
             rhs = self.right.evaluate(ctx, strict=strict)
@@ -224,8 +234,15 @@ class Cmp(Node):
             # is unreachable - the raise above fires instead, so an unmeasured metric can never
             # silently read False.
             return False
-        if not isinstance(lhs, (int, float)) or not isinstance(rhs, (int, float)) or isinstance(lhs, bool) or isinstance(rhs, bool):
-            raise ExpressionError(f"ordering comparison needs numbers, got {lhs!r} {self.op} {rhs!r}")
+        if (
+            not isinstance(lhs, (int, float))
+            or not isinstance(rhs, (int, float))
+            or isinstance(lhs, bool)
+            or isinstance(rhs, bool)
+        ):
+            raise ExpressionError(
+                f"ordering comparison needs numbers, got {lhs!r} {self.op} {rhs!r}"
+            )
         if self.op == ">":
             return lhs > rhs
         if self.op == ">=":
@@ -297,7 +314,11 @@ class Weighted(Node):
         return total >= self.threshold
 
     def identifiers(self) -> set[str]:
-        return set().union(*(n.identifiers() for n, _ in self.terms)) if self.terms else set()
+        return (
+            set().union(*(n.identifiers() for n, _ in self.terms))
+            if self.terms
+            else set()
+        )
 
 
 def _truthy(v: Any) -> bool:
@@ -337,14 +358,19 @@ class _Parser:
         node = self.parse_or()
         if self.i != len(self.toks):
             tok = self.toks[self.i]
-            raise ParseError(f"trailing token {tok.text!r} at offset {tok.pos} in {self.src!r}")
+            raise ParseError(
+                f"trailing token {tok.text!r} at offset {tok.pos} in {self.src!r}"
+            )
         return node
 
     def parse_or(self) -> Node:
         parts = [self.parse_and()]
         while True:
             tok = self.peek()
-            if tok and ((tok.kind == "kw" and tok.text == "OR") or (tok.kind == "op" and tok.text == "||")):
+            if tok and (
+                (tok.kind == "kw" and tok.text == "OR")
+                or (tok.kind == "op" and tok.text == "||")
+            ):
                 self.take()
                 parts.append(self.parse_and())
             else:
@@ -355,7 +381,10 @@ class _Parser:
         parts = [self.parse_not()]
         while True:
             tok = self.peek()
-            if tok and ((tok.kind == "kw" and tok.text == "AND") or (tok.kind == "op" and tok.text == "&&")):
+            if tok and (
+                (tok.kind == "kw" and tok.text == "AND")
+                or (tok.kind == "op" and tok.text == "&&")
+            ):
                 self.take()
                 parts.append(self.parse_not())
             else:
@@ -364,7 +393,10 @@ class _Parser:
 
     def parse_not(self) -> Node:
         tok = self.peek()
-        if tok and ((tok.kind == "kw" and tok.text == "NOT") or (tok.kind == "op" and tok.text == "!")):
+        if tok and (
+            (tok.kind == "kw" and tok.text == "NOT")
+            or (tok.kind == "op" and tok.text == "!")
+        ):
             self.take()
             return Not(self.parse_not())
         return self.parse_primary()
@@ -378,7 +410,9 @@ class _Parser:
             node = self.parse_or()
             closing = self.take()
             if not (closing.kind == "op" and closing.text == ")"):
-                raise ParseError(f"expected ')' at offset {closing.pos} in {self.src!r}")
+                raise ParseError(
+                    f"expected ')' at offset {closing.pos} in {self.src!r}"
+                )
             return node
         left = self.parse_value()
         nxt = self.peek()
@@ -401,13 +435,17 @@ class _Parser:
             if low == "false":
                 return Lit(False)
             return Ident(tok.text)
-        raise ParseError(f"expected a value at offset {tok.pos}, got {tok.text!r} in {self.src!r}")
+        raise ParseError(
+            f"expected a value at offset {tok.pos}, got {tok.text!r} in {self.src!r}"
+        )
 
 
 def parse(expression: str) -> Node:
     """Parse the string form into an AST. Raises :class:`ParseError` on bad syntax."""
     if not isinstance(expression, str):
-        raise ParseError(f"expression must be a string, got {type(expression).__name__}")
+        raise ParseError(
+            f"expression must be a string, got {type(expression).__name__}"
+        )
     if not expression.strip():
         raise ParseError("empty expression")
     return _Parser(_tokenize(expression), expression).parse()
@@ -418,7 +456,9 @@ def _from_structured(node: Any) -> Node:
     if isinstance(node, str):
         return parse(node)
     if not isinstance(node, Mapping):
-        raise ParseError(f"structured expression must be an object or string, got {type(node).__name__}")
+        raise ParseError(
+            f"structured expression must be an object or string, got {type(node).__name__}"
+        )
     keys = set(node)
     if keys == {"all"}:
         return And(tuple(_from_structured(x) for x in node["all"]))
@@ -434,7 +474,9 @@ def _from_structured(node: Any) -> Node:
         return Cmp(Ident(str(c["left"])), str(c["op"]), Lit(c["right"]))
     if keys == {"weighted"}:
         w = node["weighted"]
-        terms = tuple((_from_structured(t["expr"]), float(t["weight"])) for t in w["terms"])
+        terms = tuple(
+            (_from_structured(t["expr"]), float(t["weight"])) for t in w["terms"]
+        )
         return Weighted(terms, float(w["threshold"]))
     raise ParseError(f"unrecognised structured expression keys: {sorted(keys)}")
 
@@ -449,7 +491,9 @@ def evaluate(expression: Any, ctx: Mapping[str, Any], strict: bool = True) -> bo
     return _truthy(to_ast(expression).evaluate(ctx, strict=strict))
 
 
-def evaluate_structured(expression: Any, ctx: Mapping[str, Any], strict: bool = True) -> bool:
+def evaluate_structured(
+    expression: Any, ctx: Mapping[str, Any], strict: bool = True
+) -> bool:
     """Backwards-compatible alias for :func:`evaluate`."""
     return evaluate(expression, ctx, strict=strict)
 

@@ -46,17 +46,24 @@ def _validator(schema_path: str = SCHEMA_PATH):
     return cls(schema)
 
 
-def schema_errors(instance: Mapping[str, Any], schema_path: str = SCHEMA_PATH) -> List[str]:
+def schema_errors(
+    instance: Mapping[str, Any], schema_path: str = SCHEMA_PATH
+) -> List[str]:
     validator = _validator(schema_path)
     out = []
-    for err in sorted(validator.iter_errors(instance), key=lambda e: list(e.absolute_path)):
-        loc = "$" + "".join(f"[{p!r}]" if isinstance(p, str) else f"[{p}]"
-                            for p in err.absolute_path)
+    for err in sorted(
+        validator.iter_errors(instance), key=lambda e: list(e.absolute_path)
+    ):
+        loc = "$" + "".join(
+            f"[{p!r}]" if isinstance(p, str) else f"[{p}]" for p in err.absolute_path
+        )
         out.append(f"{loc}: {err.message}")
     return out
 
 
-def validate_spec(instance: Mapping[str, Any], schema_path: str = SCHEMA_PATH) -> Dict[str, Any]:
+def validate_spec(
+    instance: Mapping[str, Any], schema_path: str = SCHEMA_PATH
+) -> Dict[str, Any]:
     serr = schema_errors(instance, schema_path)
     findings: List[Finding] = [] if serr else check(instance)
     serious = errors(findings)
@@ -75,8 +82,14 @@ def validate_file(path: str, schema_path: str = SCHEMA_PATH) -> Dict[str, Any]:
         with open(path, "r", encoding="utf-8") as fh:
             instance = json.load(fh)
     except json.JSONDecodeError as exc:
-        return {"schema_ok": False, "schema_errors": [f"invalid JSON: {exc}"], "findings": [],
-                "semantic_errors": [], "warnings": [], "ok": False}
+        return {
+            "schema_ok": False,
+            "schema_errors": [f"invalid JSON: {exc}"],
+            "findings": [],
+            "semantic_errors": [],
+            "warnings": [],
+            "ok": False,
+        }
     result = validate_spec(instance, schema_path)
     result["file"] = path
     return result
@@ -86,12 +99,15 @@ def validate_file(path: str, schema_path: str = SCHEMA_PATH) -> Dict[str, Any]:
 
 
 def _load_expectations(examples_dir: str) -> Dict[str, Any]:
-    with open(os.path.join(examples_dir, "EXPECTATIONS.json"), "r", encoding="utf-8") as fh:
+    with open(
+        os.path.join(examples_dir, "EXPECTATIONS.json"), "r", encoding="utf-8"
+    ) as fh:
         return json.load(fh)
 
 
-def run_conformance(examples_dir: str = EXAMPLES_DIR,
-                    schema_path: str = SCHEMA_PATH) -> Tuple[bool, List[str]]:
+def run_conformance(
+    examples_dir: str = EXAMPLES_DIR, schema_path: str = SCHEMA_PATH
+) -> Tuple[bool, List[str]]:
     """Assert every declared example lands on its declared side of the gate."""
     manifest = _load_expectations(examples_dir)
     lines: List[str] = []
@@ -115,22 +131,30 @@ def run_conformance(examples_dir: str = EXAMPLES_DIR,
             ok = False
             continue
         if not expect_pass and res["ok"]:
-            lines.append(f"FAIL     {rel}: expected REJECTION ({entry.get('reason')}) but it validated")
+            lines.append(
+                f"FAIL     {rel}: expected REJECTION ({entry.get('reason')}) but it validated"
+            )
             ok = False
             continue
         if not expect_pass:
             detector = entry.get("detector")
             if detector == "schema" and not res["schema_errors"]:
-                lines.append(f"FAIL     {rel}: expected a SCHEMA rejection, got semantic only")
+                lines.append(
+                    f"FAIL     {rel}: expected a SCHEMA rejection, got semantic only"
+                )
                 ok = False
                 continue
             if detector == "semantic" and not res["semantic_errors"]:
-                lines.append(f"FAIL     {rel}: expected a SEMANTIC rejection, got schema only")
+                lines.append(
+                    f"FAIL     {rel}: expected a SEMANTIC rejection, got schema only"
+                )
                 ok = False
                 continue
             needle = entry.get("contains")
             if needle and needle not in blob:
-                lines.append(f"FAIL     {rel}: rejection message lacks {needle!r}; got -> {blob}")
+                lines.append(
+                    f"FAIL     {rel}: rejection message lacks {needle!r}; got -> {blob}"
+                )
                 ok = False
                 continue
             lines.append(f"REJECTED {rel}  <- {blob[:150]}")
@@ -144,7 +168,9 @@ def run_conformance(examples_dir: str = EXAMPLES_DIR,
         tree = spec.get("stopping", {}).get("expression")
         if src:
             if parse(src) != tree:
-                lines.append(f"FAIL     {rel}: source_expression does not parse to expression")
+                lines.append(
+                    f"FAIL     {rel}: source_expression does not parse to expression"
+                )
                 ok = False
                 continue
             if parse(unparse(tree)) != tree:
@@ -159,7 +185,9 @@ def run_conformance(examples_dir: str = EXAMPLES_DIR,
             want = probe_name == "metrics_satisfying"
             got = evaluate(tree, probe)
             if got is not want:
-                lines.append(f"FAIL     {rel}: {probe_name} evaluated {got}, expected {want}")
+                lines.append(
+                    f"FAIL     {rel}: {probe_name} evaluated {got}, expected {want}"
+                )
                 ok = False
                 break
         else:
@@ -173,7 +201,9 @@ def run_conformance(examples_dir: str = EXAMPLES_DIR,
     # Scope: only the subdirectories this manifest claims (valid/, invalid/). The examples
     # root is shared with sibling Phase-4 contracts (e.g. receipt.*.example.json), and those
     # files are not ours to gate.
-    owned_dirs = {os.path.dirname(c["file"].replace("/", os.sep)) for c in manifest["cases"]}
+    owned_dirs = {
+        os.path.dirname(c["file"].replace("/", os.sep)) for c in manifest["cases"]
+    }
     owned_dirs.discard("")
     on_disk = set()
     for sub in sorted(owned_dirs):
@@ -184,7 +214,9 @@ def run_conformance(examples_dir: str = EXAMPLES_DIR,
                     on_disk.add(os.path.normcase(rel))
     unlisted = sorted(on_disk - seen)
     if unlisted:
-        lines.append(f"FAIL     example files present but not in EXPECTATIONS.json: {unlisted}")
+        lines.append(
+            f"FAIL     example files present but not in EXPECTATIONS.json: {unlisted}"
+        )
         ok = False
 
     return ok, lines
@@ -205,8 +237,13 @@ def main(argv: List[str] | None = None) -> int:
             print(line)
         total = len(lines)
         print(f"-- {total} conformance cases checked")
-        print(("SUCCESS:councilspec-conformance" if ok
-               else "FAILED:councilspec-conformance one or more cases landed on the wrong side"))
+        print(
+            (
+                "SUCCESS:councilspec-conformance"
+                if ok
+                else "FAILED:councilspec-conformance one or more cases landed on the wrong side"
+            )
+        )
         return 0 if ok else 1
 
     if not args.files:
@@ -233,8 +270,11 @@ def main(argv: List[str] | None = None) -> int:
             print(f"   stop?    {evaluate(tree, metrics)}")
         all_ok &= res["ok"]
 
-    print("SUCCESS:councilspec-validate" if all_ok
-          else "FAILED:councilspec-validate at least one instance was rejected")
+    print(
+        "SUCCESS:councilspec-validate"
+        if all_ok
+        else "FAILED:councilspec-validate at least one instance was rejected"
+    )
     return 0 if all_ok else 1
 
 

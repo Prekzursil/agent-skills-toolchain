@@ -46,9 +46,9 @@ def test_spec_expression_false_on_falsifying_context(text: str) -> None:
 
 def test_precedence_not_binds_tighter_than_and_which_binds_tighter_than_or() -> None:
     ctx = {"a": True, "b": False, "c": True}
-    assert expr.evaluate("a AND b OR c", ctx) is True          # (a AND b) OR c
+    assert expr.evaluate("a AND b OR c", ctx) is True  # (a AND b) OR c
     assert expr.evaluate("a AND (b OR c)", ctx) is True
-    assert expr.evaluate("NOT b AND a", ctx) is True           # (NOT b) AND a
+    assert expr.evaluate("NOT b AND a", ctx) is True  # (NOT b) AND a
     assert expr.evaluate("NOT (b AND a)", ctx) is True
     assert expr.evaluate("b OR (a AND b)", ctx) is False
 
@@ -95,20 +95,49 @@ def test_malformed_expressions_are_rejected(bad: str) -> None:
 
 def test_structured_forms_evaluate() -> None:
     ctx = {"unique_ideas": 120, "completeness_score": 0.95, "flag": False}
-    assert expr.evaluate({"all": ["unique_ideas >= 100", "completeness_score >= 0.9"]}, ctx) is True
-    assert expr.evaluate({"any": ["unique_ideas >= 500", "completeness_score >= 0.9"]}, ctx) is True
-    assert expr.evaluate({"not": "flag"}, ctx) is True
-    assert expr.evaluate({"cmp": {"left": "unique_ideas", "op": ">=", "right": 100}}, ctx) is True
     assert (
         expr.evaluate(
-            {"weighted": {"terms": [{"expr": "unique_ideas >= 100", "weight": 0.5}, {"expr": "flag", "weight": 0.5}], "threshold": 0.8}},
+            {"all": ["unique_ideas >= 100", "completeness_score >= 0.9"]}, ctx
+        )
+        is True
+    )
+    assert (
+        expr.evaluate(
+            {"any": ["unique_ideas >= 500", "completeness_score >= 0.9"]}, ctx
+        )
+        is True
+    )
+    assert expr.evaluate({"not": "flag"}, ctx) is True
+    assert (
+        expr.evaluate({"cmp": {"left": "unique_ideas", "op": ">=", "right": 100}}, ctx)
+        is True
+    )
+    assert (
+        expr.evaluate(
+            {
+                "weighted": {
+                    "terms": [
+                        {"expr": "unique_ideas >= 100", "weight": 0.5},
+                        {"expr": "flag", "weight": 0.5},
+                    ],
+                    "threshold": 0.8,
+                }
+            },
             ctx,
         )
         is False
     )
     assert (
         expr.evaluate(
-            {"weighted": {"terms": [{"expr": "unique_ideas >= 100", "weight": 0.6}, {"expr": "completeness_score >= 0.9", "weight": 0.4}], "threshold": 0.8}},
+            {
+                "weighted": {
+                    "terms": [
+                        {"expr": "unique_ideas >= 100", "weight": 0.6},
+                        {"expr": "completeness_score >= 0.9", "weight": 0.4},
+                    ],
+                    "threshold": 0.8,
+                }
+            },
             ctx,
         )
         is True
@@ -145,7 +174,9 @@ def test_agrees_with_councilspec_on_spec_examples() -> None:
     Where it rejects one (because a metric is not in its registry), that is a scope
     difference, reported here rather than silently ignored.
     """
-    council_expr = pytest.importorskip("councilspec.expression", reason="sibling councilspec unit not present")
+    council_expr = pytest.importorskip(
+        "councilspec.expression", reason="sibling councilspec unit not present"
+    )
     agreed, scope_diff = [], []
     for text in SPEC_STOPPING_EXPRESSIONS:
         try:
@@ -155,7 +186,11 @@ def test_agrees_with_councilspec_on_spec_examples() -> None:
             scope_diff.append((text, type(exc).__name__))
             continue
         ours = expr.evaluate(text, SPEC_STOPPING_CONTEXT)
-        assert ours == theirs, f"parsers disagree on {text!r}: wfdsl={ours} councilspec={theirs}"
+        assert ours == theirs, (
+            f"parsers disagree on {text!r}: wfdsl={ours} councilspec={theirs}"
+        )
         agreed.append(text)
     assert agreed or scope_diff, "no expression was compared at all"
-    print(f"councilspec agreement: {len(agreed)}/{len(SPEC_STOPPING_EXPRESSIONS)} compared; scope differences: {scope_diff}")
+    print(
+        f"councilspec agreement: {len(agreed)}/{len(SPEC_STOPPING_EXPRESSIONS)} compared; scope differences: {scope_diff}"
+    )

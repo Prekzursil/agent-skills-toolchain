@@ -14,7 +14,9 @@ for r in R:
     print(f"     prov        : {r['provenance_claim']}")
     print(f"     lines       : {r['measured_lines']}  chars={r.get('measured_chars')}")
     if r.get("tree_file_count"):
-        print(f"     tree        : {r['tree_file_count']} files / {r['tree_total_bytes']} bytes")
+        print(
+            f"     tree        : {r['tree_file_count']} files / {r['tree_total_bytes']} bytes"
+        )
         print(f"     paths       : {r.get('tree_paths')}")
     if r.get("phase_names"):
         print(f"     phases      : {r['phase_names']}")

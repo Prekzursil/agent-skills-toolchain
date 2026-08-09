@@ -37,13 +37,19 @@ def resolve_pointer(doc: Any, pointer: str) -> Any:
             cur = cur[token]
         elif isinstance(cur, list):
             if not token.lstrip("-").isdigit():
-                raise PointerError(f"array index expected, got {token!r} in {pointer!r}")
+                raise PointerError(
+                    f"array index expected, got {token!r} in {pointer!r}"
+                )
             idx = int(token)
             if idx >= len(cur):
-                raise PointerError(f"index {idx} out of range while resolving {pointer!r}")
+                raise PointerError(
+                    f"index {idx} out of range while resolving {pointer!r}"
+                )
             cur = cur[idx]
         else:
-            raise PointerError(f"cannot descend into {type(cur).__name__} at {token!r} in {pointer!r}")
+            raise PointerError(
+                f"cannot descend into {type(cur).__name__} at {token!r} in {pointer!r}"
+            )
     return cur
 
 
@@ -88,13 +94,17 @@ def check_coverage() -> dict[str, Any]:
             else:
                 doc = json.loads(path.read_text(encoding="utf-8"))
                 example_cache[name] = doc
-                example_valid[name] = schemas.error_summary(wf_validator.iter_errors(doc))
+                example_valid[name] = schemas.error_summary(
+                    wf_validator.iter_errors(doc)
+                )
         doc = example_cache[name]
         if doc is None:
             row["gaps"].append(f"example {name} missing")
         else:
             if example_valid[name]:
-                row["gaps"].append(f"example {name} does not validate: {example_valid[name][0]}")
+                row["gaps"].append(
+                    f"example {name} does not validate: {example_valid[name][0]}"
+                )
             try:
                 value = resolve_pointer(doc, cap["example_pointer"])
                 if value in (None, {}, [], ""):
@@ -118,6 +128,8 @@ def check_coverage() -> dict[str, Any]:
         "mandated": len(mandated),
         "mandated_covered": sum(1 for r in mandated if r["covered"]),
         "all_covered": sum(1 for r in rows if r["covered"]),
-        "uncovered": [{"id": r["id"], "gaps": r["gaps"]} for r in rows if not r["covered"]],
+        "uncovered": [
+            {"id": r["id"], "gaps": r["gaps"]} for r in rows if not r["covered"]
+        ],
         "rows": rows,
     }

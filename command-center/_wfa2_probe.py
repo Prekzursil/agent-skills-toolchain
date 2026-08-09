@@ -19,7 +19,9 @@ CORPUS = Path(r"C:/Users/Prekzursil/.claude/harness-restore-20260806")
 out: dict[str, object] = {}
 
 # ---- 08 candidate registry -------------------------------------------------
-reg = json.loads((CORPUS / "08-WORKFLOW-CANDIDATE-REGISTRY.json").read_text(encoding="utf-8"))
+reg = json.loads(
+    (CORPUS / "08-WORKFLOW-CANDIDATE-REGISTRY.json").read_text(encoding="utf-8")
+)
 cands = reg["candidates"]
 vocab = reg["classification_vocabulary"]
 cls = Counter(c["classification"] for c in cands)
@@ -33,7 +35,11 @@ out["unknown_needs_probe_recounted"] = cls.get("UNKNOWN-NEEDS-PROBE", 0)
 out["candidate_ids_unique"] = len({c["id"] for c in cands}) == len(cands)
 
 # ---- 08 provenance / license graph ----------------------------------------
-prov = json.loads((CORPUS / "08-WORKFLOW-PROVENANCE-AND-LICENSE-GRAPH.json").read_text(encoding="utf-8"))
+prov = json.loads(
+    (CORPUS / "08-WORKFLOW-PROVENANCE-AND-LICENSE-GRAPH.json").read_text(
+        encoding="utf-8"
+    )
+)
 out["prov_nodes_recounted"] = len(prov["nodes"])
 out["prov_edges_recounted"] = len(prov["edges"])
 out["license_risk_rows_recounted"] = len(prov["license_risk_register"])
@@ -42,7 +48,9 @@ out["prov_finding_keys"] = list(prov["FINDING_unresolved_provenance"].keys())
 out["prov_discovery_only"] = prov.get("discovery_only")
 
 # ---- 09 blueprint library --------------------------------------------------
-bp = json.loads((CORPUS / "09-WORKFLOW-BLUEPRINT-LIBRARY.json").read_text(encoding="utf-8"))
+bp = json.loads(
+    (CORPUS / "09-WORKFLOW-BLUEPRINT-LIBRARY.json").read_text(encoding="utf-8")
+)
 bps = bp["blueprints"]
 out["blueprints_recounted"] = len(bps)
 out["blueprint_families_recounted"] = len({b["fam"] for b in bps})
@@ -52,7 +60,9 @@ out["blueprint_discovery_only"] = bp.get("discovery_only")
 out["blueprint_states_recounted"] = dict(Counter(b.get("state") for b in bps))
 
 # ---- 10 merge / composition maps ------------------------------------------
-mg = json.loads((CORPUS / "10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json").read_text(encoding="utf-8"))
+mg = json.loads(
+    (CORPUS / "10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json").read_text(encoding="utf-8")
+)
 out["merge_units_recounted"] = len(mg["merge_units"])
 out["conflict_rows_recounted"] = len(mg["conflict_map"])
 out["external_deps_recounted"] = len(mg["external_dependency_map"])

@@ -43,7 +43,9 @@ def control():
     hits = SPDX.findall(decoys)
     known = "license: MIT\nHypoFuzz is AGPL-3.0 now.\nCC BY-SA 4.0 applies."
     fires = SPDX.findall(known)
-    print(f"CONTROL decoys(commit/limit/submit/permit/transmit/summit) -> {hits} (must be [])")
+    print(
+        f"CONTROL decoys(commit/limit/submit/permit/transmit/summit) -> {hits} (must be [])"
+    )
     print(f"CONTROL known-license string -> {fires} (must be non-empty)")
     assert hits == [], "detector still matches 'mit' inside words"
     assert fires, "detector fails on a known-present license"
@@ -106,7 +108,9 @@ def main():
                 root_lic = {"path": f"{REF[:12]}:{n}", "head": first}
                 print(f"  ROOT LICENSE {n}: {first}")
     if root_lic is None:
-        print("  ROOT LICENSE: ABSENT at this ref (no top-level LICENSE/COPYING/NOTICE)")
+        print(
+            "  ROOT LICENSE: ABSENT at this ref (no top-level LICENSE/COPYING/NOTICE)"
+        )
 
     recs = json.loads(PROV.read_text(encoding="utf-8"))
     results = []
@@ -161,7 +165,11 @@ def main():
         r"C:/Users/Prekzursil/source/ast-integrate/command-center/_wfa4_license.json"
     )
     dest.write_text(
-        json.dumps({"root_license": root_lic, "candidates": results}, indent=1, ensure_ascii=False),
+        json.dumps(
+            {"root_license": root_lic, "candidates": results},
+            indent=1,
+            ensure_ascii=False,
+        ),
         encoding="utf-8",
     )
     print(f"\nwrote {dest}")

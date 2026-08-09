@@ -61,11 +61,15 @@ def load_all() -> dict[str, dict[str, Any]]:
             raise SchemaLoadError(f"missing schema document: {path}")
         try:
             doc = json.loads(path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError as exc:  # pragma: no cover - exercised by a test fixture
+        except (
+            json.JSONDecodeError
+        ) as exc:  # pragma: no cover - exercised by a test fixture
             raise SchemaLoadError(f"{path} is not valid JSON: {exc}") from exc
         got = doc.get("$id")
         if got != expected_id:
-            raise SchemaLoadError(f"{path} declares $id={got!r}, expected {expected_id!r}")
+            raise SchemaLoadError(
+                f"{path} declares $id={got!r}, expected {expected_id!r}"
+            )
         out[expected_id] = doc
     return out
 
@@ -81,7 +85,9 @@ def registry() -> Registry:
     """A fully offline :class:`referencing.Registry` over the local schema set."""
     resources: list[tuple[str, Resource]] = []
     for schema_id, doc in load_all().items():
-        resources.append((schema_id, Resource.from_contents(doc, default_specification=DRAFT202012)))
+        resources.append(
+            (schema_id, Resource.from_contents(doc, default_specification=DRAFT202012))
+        )
     return Registry(retrieve=_forbid_retrieve).with_resources(resources)
 
 
@@ -90,13 +96,17 @@ def validator_for(schema_id: str) -> Draft202012Validator:
     """Return a cached validator for a schema ``$id``."""
     docs = load_all()
     if schema_id not in docs:
-        raise SchemaLoadError(f"unknown schema $id {schema_id!r}; known: {sorted(docs)}")
+        raise SchemaLoadError(
+            f"unknown schema $id {schema_id!r}; known: {sorted(docs)}"
+        )
     return Draft202012Validator(docs[schema_id], registry=registry())
 
 
 def work_unit_validator(profile: str = "normative") -> Draft202012Validator:
     if profile not in WORK_UNIT_PROFILES:
-        raise SchemaLoadError(f"unknown work-unit profile {profile!r}; known: {sorted(WORK_UNIT_PROFILES)}")
+        raise SchemaLoadError(
+            f"unknown work-unit profile {profile!r}; known: {sorted(WORK_UNIT_PROFILES)}"
+        )
     return validator_for(WORK_UNIT_PROFILES[profile])
 
 

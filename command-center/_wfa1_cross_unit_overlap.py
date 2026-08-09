@@ -30,7 +30,9 @@ print(f"{'file':<34} {'rows':>6} {'unique ids':>11} {'None ids':>9}")
 total = 0
 for name, ids in sets.items():
     nn = sum(1 for i in ids if i is None)
-    print(f"{name:<34} {rows_by_file[name]:>6} {len(set(i for i in ids if i)):>11} {nn:>9}")
+    print(
+        f"{name:<34} {rows_by_file[name]:>6} {len(set(i for i in ids if i)):>11} {nn:>9}"
+    )
     total += rows_by_file[name]
 print(f"{'SUM OF ROWS':<34} {total:>6}")
 
@@ -54,7 +56,9 @@ print("\npairwise intersections:")
 names = list(sets)
 for a in range(len(names)):
     for b in range(a + 1, len(names)):
-        inter = set(x for x in sets[names[a]] if x) & set(x for x in sets[names[b]] if x)
+        inter = set(x for x in sets[names[a]] if x) & set(
+            x for x in sets[names[b]] if x
+        )
         flag = "  <-- OVERLAP" if inter else ""
         print(f"  {names[a]} ^ {names[b]}: {len(inter)}{flag}")
         if inter:

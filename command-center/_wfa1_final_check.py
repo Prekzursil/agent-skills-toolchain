@@ -41,7 +41,11 @@ if not m:
     fails.append("could not find the trees/files/bytes claim in the sidecar")
     print("\nTREE CLAIM: NOT FOUND in sidecar")
 else:
-    ct, cf, cb = int(m.group(1)), int(m.group(2).replace(",", "")), int(m.group(3).replace(",", ""))
+    ct, cf, cb = (
+        int(m.group(1)),
+        int(m.group(2).replace(",", "")),
+        int(m.group(3).replace(",", "")),
+    )
     print(f"\nsidecar tree claim      : {ct} trees / {cf} files / {cb} bytes")
     print(f"measured                : {len(trees)} trees / {tf} files / {tb} bytes")
     ok = (ct, cf, cb) == (len(trees), tf, tb)
@@ -87,7 +91,9 @@ changed = {r["id"] for r in R if r.get("classification_changed")}
 print(f"\nre-classified rows      : {len(changed)} {sorted(changed)}")
 for cid in ("tool-harness-drift", "tool-mcpctl", "tool-mcpapply", "tool-otel-traces"):
     if cid not in changed:
-        fails.append(f"{cid} claimed as re-classified but is not flagged in the registry")
+        fails.append(
+            f"{cid} claimed as re-classified but is not flagged in the registry"
+        )
 
 # ---- distinctness restated from the artifact, not from memory ----
 h = [r["provenance"]["body_sha256_16"] for r in R]
@@ -99,4 +105,6 @@ print()
 if fails:
     print("FAILED:wfa-1-selfaudit " + "; ".join(fails))
     sys.exit(1)
-print("SUCCESS:wfa-1-selfaudit every numeric claim in the sidecar matches its measurement")
+print(
+    "SUCCESS:wfa-1-selfaudit every numeric claim in the sidecar matches its measurement"
+)

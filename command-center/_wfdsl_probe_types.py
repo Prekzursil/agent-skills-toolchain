@@ -3,6 +3,7 @@
 
 Read-only probe. Emits JSON to stdout. No mutation of any catalog file.
 """
+
 from __future__ import annotations
 
 import json
@@ -137,13 +138,20 @@ def main() -> int:
     out["value_domains"]["roles_top"] = dict(roles.most_common(40))
 
     # numeric ranges
-    ts = [u["timeout_seconds"] for u in wu if isinstance(u.get("timeout_seconds"), (int, float)) and not isinstance(u.get("timeout_seconds"), bool)]
+    ts = [
+        u["timeout_seconds"]
+        for u in wu
+        if isinstance(u.get("timeout_seconds"), (int, float))
+        and not isinstance(u.get("timeout_seconds"), bool)
+    ]
     out["numeric_ranges"]["timeout_seconds"] = {
         "n": len(ts),
         "min": min(ts) if ts else None,
         "max": max(ts) if ts else None,
         "distinct": sorted(set(ts))[:40],
-        "nonint": [u["id"] for u in wu if isinstance(u.get("timeout_seconds"), str)][:10],
+        "nonint": [u["id"] for u in wu if isinstance(u.get("timeout_seconds"), str)][
+            :10
+        ],
     }
 
     # id forms
@@ -159,7 +167,11 @@ def main() -> int:
             forms[m.group(1)] += 1
         else:
             bad.append(i)
-    out["id_forms"] = {"prefix_counts": dict(forms.most_common()), "nonconforming": bad[:40], "n_nonconforming": len(bad)}
+    out["id_forms"] = {
+        "prefix_counts": dict(forms.most_common()),
+        "nonconforming": bad[:40],
+        "n_nonconforming": len(bad),
+    }
 
     # dependency token forms
     dep_forms = Counter()
@@ -189,7 +201,10 @@ def main() -> int:
             oschemas[v.split("#")[0]] += 1
     out["value_domains"]["output_schema_files"] = dict(oschemas.most_common(40))
 
-    out["examples"] = {k: {t: (str(x["value"])[:220], x["unit"]) for t, x in v.items()} for k, v in examples.items()}
+    out["examples"] = {
+        k: {t: (str(x["value"])[:220], x["unit"]) for t, x in v.items()}
+        for k, v in examples.items()
+    }
     json.dump(out, sys.stdout, indent=1, sort_keys=False)
     print()
     return 0

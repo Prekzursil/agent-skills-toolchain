@@ -28,8 +28,8 @@ SENTINEL = object()
 class Mutation(NamedTuple):
     out: str
     base: str
-    path: List[Any]                       # the ONE site that changes
-    value: Any                            # SENTINEL means delete the key
+    path: List[Any]  # the ONE site that changes
+    value: Any  # SENTINEL means delete the key
     drop_source_expression: bool
     defect: str
 
@@ -62,7 +62,7 @@ MUTATIONS: List[Mutation] = [
         value={"metric": "unanimity", "op": ">=", "value": 0.95},
         drop_source_expression=True,
         defect="`unanimity` is a BOOLEAN metric; >= and a numeric value are illegal for it. "
-               "This is the headline proof that the leaf is typed, not merely structural.",
+        "This is the headline proof that the leaf is typed, not merely structural.",
     ),
     Mutation(
         out="N2-unknown-metric.councilspec.json",
@@ -71,7 +71,7 @@ MUTATIONS: List[Mutation] = [
         value="vibes_score",
         drop_source_expression=True,
         defect="`vibes_score` is not in the schema metric registry, and it is not a "
-               "custom:<name> extension either.",
+        "custom:<name> extension either.",
     ),
     Mutation(
         out="N3-count-min-gt-max.councilspec.json",
@@ -80,7 +80,7 @@ MUTATIONS: List[Mutation] = [
         value=13,
         drop_source_expression=False,
         defect="participants.count.min (13) exceeds max (12). JSON Schema cannot compare two "
-               "sibling fields; SEM-002 does.",
+        "sibling fields; SEM-002 does.",
     ),
     Mutation(
         out="N4-supermajority-without-threshold.councilspec.json",
@@ -89,7 +89,7 @@ MUTATIONS: List[Mutation] = [
         value=SENTINEL,
         drop_source_expression=False,
         defect="voting.method == supermajority with no supermajority_threshold: the schema "
-               "if/then makes the threshold mandatory for that method.",
+        "if/then makes the threshold mandatory for that method.",
     ),
     Mutation(
         out="N5-source-expression-drift.councilspec.json",
@@ -98,7 +98,7 @@ MUTATIONS: List[Mutation] = [
         value="consensus >= 0.75 AND no_new_objection_rounds >= 2",
         drop_source_expression=False,
         defect="The human string says 0.75 while the structured tree says 0.95. SEM-001 "
-               "catches doc/tree drift, the failure mode where the readable form lies.",
+        "catches doc/tree drift, the failure mode where the readable form lies.",
     ),
     Mutation(
         out="N6-unknown-top-level-key.councilspec.json",
@@ -107,7 +107,7 @@ MUTATIONS: List[Mutation] = [
         value={"max_rounds": 12},
         drop_source_expression=False,
         defect="`stopping_rules` is a plausible typo for `stopping`; additionalProperties:false "
-               "rejects it instead of silently ignoring a rule the author thought was live.",
+        "rejects it instead of silently ignoring a rule the author thought was live.",
     ),
     Mutation(
         out="N7-delegation-cycle.councilspec.json",
@@ -121,7 +121,7 @@ MUTATIONS: List[Mutation] = [
         },
         drop_source_expression=False,
         defect="Two participants delegate to each other, so the vote never resolves. SEM-008 "
-               "walks the chain.",
+        "walks the chain.",
     ),
     Mutation(
         out="N8-round-cap-incoherence.councilspec.json",
@@ -135,7 +135,7 @@ MUTATIONS: List[Mutation] = [
         },
         drop_source_expression=True,
         defect="The rule fires at max_rounds == 20 while the configured caps are 12, so the "
-               "second disjunct is unreachable. SEM-011 refuses the dead clause.",
+        "second disjunct is unreachable. SEM-011 refuses the dead clause.",
     ),
     Mutation(
         out="N9-council-of-councils-without-subcouncils.councilspec.json",
@@ -144,7 +144,7 @@ MUTATIONS: List[Mutation] = [
         value=SENTINEL,
         drop_source_expression=False,
         defect="topology.kind == council_of_councils with no subcouncils: the schema if/then "
-               "requires them.",
+        "requires them.",
     ),
     Mutation(
         out="N10-idea-gate-without-brainstorm.councilspec.json",
@@ -156,7 +156,7 @@ MUTATIONS: List[Mutation] = [
         ],
         drop_source_expression=False,
         defect="The rule gates on unique_ideas >= 100 but no stage generates ideas, so the "
-               "council can never stop. SEM-007 catches the unreachable target.",
+        "council can never stop. SEM-007 catches the unreachable target.",
     ),
 ]
 
@@ -196,9 +196,13 @@ def main(argv: List[str] | None = None) -> int:
     if args.check:
         if drift:
             print("\n".join(drift))
-            print("FAILED:councilspec-negatives fixtures do not match the declared mutations")
+            print(
+                "FAILED:councilspec-negatives fixtures do not match the declared mutations"
+            )
             return 1
-        print(f"-- {len(built)} generated fixtures match their declared single mutation")
+        print(
+            f"-- {len(built)} generated fixtures match their declared single mutation"
+        )
         print("SUCCESS:councilspec-negatives")
         return 0
     print(f"-- {len(built)} fixtures written to {INVALID}")

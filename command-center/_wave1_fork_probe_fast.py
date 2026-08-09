@@ -31,7 +31,8 @@ THRESH = 0.80
 def rows_from_registry() -> list[dict]:
     out = []
     for f in sorted(
-        p for p in (PLATFORM / "registry").glob("workflow-candidates-*.json")
+        p
+        for p in (PLATFORM / "registry").glob("workflow-candidates-*.json")
         if ".COVERAGE." not in p.name and ".METHOD." not in p.name
     ):
         raw = json.loads(f.read_text(encoding="utf-8"))
@@ -66,9 +67,7 @@ def shingles(text: str) -> frozenset[int]:
     w = WORD.findall(text.lower())
     if len(w) < K:
         return frozenset({hash(" ".join(w))})
-    return frozenset(
-        hash(" ".join(w[i:i + K])) for i in range(len(w) - K + 1)
-    )
+    return frozenset(hash(" ".join(w[i : i + K])) for i in range(len(w) - K + 1))
 
 
 rows = rows_from_registry()
@@ -79,12 +78,18 @@ for r in rows:
         unresolved.append({"id": r["id"], "name": str(r["name"])[:70]})
         continue
     txt = body.decode("utf-8", "replace")
-    resolved.append({
-        "id": r["id"], "file": r["file"], "name": str(r["name"])[:70],
-        "body_path": path, "bytes": len(body),
-        "sha256": hashlib.sha256(body).hexdigest(),
-        "sh": shingles(txt), "text": txt,
-    })
+    resolved.append(
+        {
+            "id": r["id"],
+            "file": r["file"],
+            "name": str(r["name"])[:70],
+            "body_path": path,
+            "bytes": len(body),
+            "sha256": hashlib.sha256(body).hexdigest(),
+            "sh": shingles(txt),
+            "text": txt,
+        }
+    )
 
 # 1. byte-identical
 bysha: dict = collections.defaultdict(list)
@@ -92,7 +97,8 @@ for r in resolved:
     bysha[r["sha256"]].append(r)
 exact = {
     k[:16]: [{"id": x["id"], "file": x["file"], "body_path": x["body_path"]} for x in v]
-    for k, v in bysha.items() if len(v) > 1
+    for k, v in bysha.items()
+    if len(v) > 1
 }
 
 # 2. same resolved path
@@ -101,7 +107,8 @@ for r in resolved:
     bypath[r["body_path"]].append(r)
 samepath = {
     k: [{"id": x["id"], "file": x["file"], "name": x["name"]} for x in v]
-    for k, v in bypath.items() if len(v) > 1
+    for k, v in bypath.items()
+    if len(v) > 1
 }
 
 # 3. near-copies via inverted shingle index over DISTINCT paths
@@ -128,32 +135,45 @@ for (i, j), _shared in cand_pairs.items():
         continue
     jac = inter / len(A | B)
     if jac >= THRESH:
-        near.append({
-            "a_id": items[i]["id"], "b_id": items[j]["id"],
-            "jaccard": round(jac, 4),
-            "a_path": items[i]["body_path"], "b_path": items[j]["body_path"],
-            "a_bytes": items[i]["bytes"], "b_bytes": items[j]["bytes"],
-        })
+        near.append(
+            {
+                "a_id": items[i]["id"],
+                "b_id": items[j]["id"],
+                "jaccard": round(jac, 4),
+                "a_path": items[i]["body_path"],
+                "b_path": items[j]["body_path"],
+                "a_bytes": items[i]["bytes"],
+                "b_bytes": items[j]["bytes"],
+            }
+        )
 near.sort(key=lambda r: -r["jaccard"])
 
 # the 3 same-name pairs, body-to-body
 byid = {r["id"]: r for r in resolved}
 pair_rows = []
-for x, y in (("agent-agent-as-judge", "WFA3-094"),
-             ("agent-codex", "WFA3-072"),
-             ("WFA3-067", "WFC-0105")):
+for x, y in (
+    ("agent-agent-as-judge", "WFA3-094"),
+    ("agent-codex", "WFA3-072"),
+    ("WFA3-067", "WFC-0105"),
+):
     a, b = byid.get(x), byid.get(y)
     rec = {"a_id": x, "b_id": y, "a_resolved": bool(a), "b_resolved": bool(b)}
     if a and b:
         inter = len(a["sh"] & b["sh"])
         rec.update(
-            a_path=a["body_path"], b_path=b["body_path"],
-            a_bytes=a["bytes"], b_bytes=b["bytes"],
+            a_path=a["body_path"],
+            b_path=b["body_path"],
+            a_bytes=a["bytes"],
+            b_bytes=b["bytes"],
             byte_identical=a["sha256"] == b["sha256"],
             jaccard=round(inter / len(a["sh"] | b["sh"]), 4),
-            verdict=("TRIVIAL-FORK" if a["sha256"] == b["sha256"]
-                     else "NEAR-COPY" if inter / len(a["sh"] | b["sh"]) >= THRESH
-                     else "MATERIALLY-DISTINCT"),
+            verdict=(
+                "TRIVIAL-FORK"
+                if a["sha256"] == b["sha256"]
+                else "NEAR-COPY"
+                if inter / len(a["sh"] | b["sh"]) >= THRESH
+                else "MATERIALLY-DISTINCT"
+            ),
         )
     pair_rows.append(rec)
 
@@ -171,23 +191,30 @@ if items:
     ctl["seeded_byte_identical_duplicate_detected"] = any(
         "SEEDED-DUPLICATE-CONTROL" in v for v in grew.values()
     )
-    ctl["groups_with_seed"] = {k: v for k, v in grew.items()
-                               if "SEEDED-DUPLICATE-CONTROL" in v}
+    ctl["groups_with_seed"] = {
+        k: v for k, v in grew.items() if "SEEDED-DUPLICATE-CONTROL" in v
+    }
 
-print(json.dumps({
-    "candidates_total": len(rows),
-    "bodies_resolved": len(resolved),
-    "bodies_unresolved": len(unresolved),
-    "unresolved_sample": unresolved[:20],
-    "distinct_body_paths": len(uniq),
-    "byte_identical_group_count": len(exact),
-    "byte_identical_groups": exact,
-    "candidates_sharing_one_body_path_count": len(samepath),
-    "candidates_sharing_one_body_path": samepath,
-    "near_copy_threshold_jaccard": THRESH,
-    "shingle_k": K,
-    "near_copy_pair_count": len(near),
-    "near_copy_pairs": near[:40],
-    "same_name_pairs_by_body": pair_rows,
-    "detector_control": ctl,
-}, indent=2, default=str))
+print(
+    json.dumps(
+        {
+            "candidates_total": len(rows),
+            "bodies_resolved": len(resolved),
+            "bodies_unresolved": len(unresolved),
+            "unresolved_sample": unresolved[:20],
+            "distinct_body_paths": len(uniq),
+            "byte_identical_group_count": len(exact),
+            "byte_identical_groups": exact,
+            "candidates_sharing_one_body_path_count": len(samepath),
+            "candidates_sharing_one_body_path": samepath,
+            "near_copy_threshold_jaccard": THRESH,
+            "shingle_k": K,
+            "near_copy_pair_count": len(near),
+            "near_copy_pairs": near[:40],
+            "same_name_pairs_by_body": pair_rows,
+            "detector_control": ctl,
+        },
+        indent=2,
+        default=str,
+    )
+)

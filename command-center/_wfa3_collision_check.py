@@ -19,7 +19,9 @@ def ids_of(path: Path):
         data = json.loads(path.read_text(encoding="utf-8"))
     except Exception as e:  # noqa: BLE001
         return {"__parse_error__": str(e)}, None, 0
-    rows = data if isinstance(data, list) else data.get("candidates", data.get("rows", []))
+    rows = (
+        data if isinstance(data, list) else data.get("candidates", data.get("rows", []))
+    )
     if not isinstance(rows, list):
         return set(), None, 0
     out = set()
@@ -33,7 +35,10 @@ def ids_of(path: Path):
             v = r.get(key)
             if isinstance(v, str) and v:
                 # prior-registry ids look like fam-slug (wf-saved-*, tool-*, skill-*, plugin-*, ...)
-                if re.match(r"^(wf-|tool-|harness-|agent-|plugin-|marketplace-|skill-|exec-|cmd-|vault-)", v):
+                if re.match(
+                    r"^(wf-|tool-|harness-|agent-|plugin-|marketplace-|skill-|exec-|cmd-|vault-)",
+                    v,
+                ):
                     out.add(v)
                 break
     return out, rng, len(rows)
@@ -44,7 +49,9 @@ info = {}
 for p in files:
     s, rng, n = ids_of(p)
     info[p.name] = {"prior_ids": s, "range": rng, "rows": n}
-    print(f"{p.name:<28} rows={n:<4} range={rng!s:<28} prior_ids_extracted={len(s) if isinstance(s, set) else s}")
+    print(
+        f"{p.name:<28} rows={n:<4} range={rng!s:<28} prior_ids_extracted={len(s) if isinstance(s, set) else s}"
+    )
 
 mine = info[MINE]["prior_ids"]
 print(f"\nmy prior_ids: {len(mine)}")
@@ -59,7 +66,9 @@ for name, d in info.items():
         continue
     inter = mine & other
     total_collisions += len(inter)
-    print(f"  {name:<28} their_ids={len(other):<4} OVERLAP={len(inter)} {sorted(inter)[:10]}")
+    print(
+        f"  {name:<28} their_ids={len(other):<4} OVERLAP={len(inter)} {sorted(inter)[:10]}"
+    )
 
 # detector control: my file must overlap 100% with ITSELF
 self_inter = mine & info[MINE]["prior_ids"]
@@ -67,7 +76,11 @@ print(f"\ndetector control (self-overlap must equal {len(mine)}): {len(self_inte
 
 print()
 if total_collisions == 0 and len(self_inter) == len(mine) and len(mine) > 0:
-    print(f"SUCCESS:wfa3-collision-check 0 prior-candidate collisions across {len(files) - 1} sibling files; "
-          f"detector proven by a {len(self_inter)}/{len(mine)} self-overlap")
+    print(
+        f"SUCCESS:wfa3-collision-check 0 prior-candidate collisions across {len(files) - 1} sibling files; "
+        f"detector proven by a {len(self_inter)}/{len(mine)} self-overlap"
+    )
 else:
-    print(f"FAILED:wfa3-collision-check collisions={total_collisions} self_overlap={len(self_inter)}/{len(mine)}")
+    print(
+        f"FAILED:wfa3-collision-check collisions={total_collisions} self_overlap={len(self_inter)}/{len(mine)}"
+    )

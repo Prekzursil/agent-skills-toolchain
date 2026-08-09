@@ -133,8 +133,11 @@ def m_evidence_single_ok(s: dict[str, Any]) -> str:
 def m_failure_not_required(s: dict[str, Any]) -> str:
     core = s["$defs"]["receipt_core"]
     core["allOf"] = [
-        b for b in core["allOf"]
-        if not (isinstance(b.get("then"), dict) and b["then"].get("required") == ["failure"])
+        b
+        for b in core["allOf"]
+        if not (
+            isinstance(b.get("then"), dict) and b["then"].get("required") == ["failure"]
+        )
     ]
     return "non-SUCCESS states no longer need a failure block"
 
@@ -182,7 +185,7 @@ REDUCER_MUTATIONS: list[tuple[str, str, str]] = [
         "sha256 no longer re-hashed off disk",
         "                digest = _sha256_file(p)",
         "                digest = a.get('sha256')",
-        ),
+    ),
     (
         "same-probe-rerun check removed",
         "                if srcs & vers:",
@@ -231,7 +234,16 @@ def build_tree(dst: Path) -> Path:
 
 def run_suite(lib: Path) -> tuple[int, str]:
     proc = subprocess.run(
-        [sys.executable, "-m", "pytest", "test_receipt_schema_gate.py", "-q", "-x", "-p", "no:cacheprovider"],
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "test_receipt_schema_gate.py",
+            "-q",
+            "-x",
+            "-p",
+            "no:cacheprovider",
+        ],
         cwd=lib,
         capture_output=True,
         text=True,
@@ -256,7 +268,9 @@ def main() -> int:
         tail = out.strip().splitlines()[-1] if out.strip() else "<no output>"
         print(f"[CONTROL] unmutated suite rc={rc} :: {tail}")
         if rc != 0:
-            print("CONTROL-BROKEN: baseline suite is not green; mutation results are uncitable.")
+            print(
+                "CONTROL-BROKEN: baseline suite is not green; mutation results are uncitable."
+            )
             print(out[-3000:])
             return 1
 
@@ -283,7 +297,9 @@ def main() -> int:
             gpath = wlib / "receipt_schema_gate.py"
             text = gpath.read_text(encoding="utf-8")
             if old not in text:
-                print(f"  [BROKEN-MUTANT] reducer: {label} :: anchor not found, mutation not applied")
+                print(
+                    f"  [BROKEN-MUTANT] reducer: {label} :: anchor not found, mutation not applied"
+                )
                 survivors.append(f"[reducer-anchor-missing] {label}")
                 continue
             gpath.write_text(text.replace(old, new, 1), encoding="utf-8")

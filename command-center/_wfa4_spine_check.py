@@ -97,4 +97,8 @@ out.write_text(
     encoding="utf-8",
 )
 print(f"\nwrote {out}")
-print("SUCCESS:wfa4-spine-check" if identical else "PARTIAL:wfa4-spine-check orders differ")
+print(
+    "SUCCESS:wfa4-spine-check"
+    if identical
+    else "PARTIAL:wfa4-spine-check orders differ"
+)

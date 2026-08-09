@@ -51,7 +51,9 @@ def live_repo(tmp_path: Path) -> Path:
     art.parent.mkdir(parents=True, exist_ok=True)
     art.write_text(json.dumps({"finding": "x" * 4000}), encoding="utf-8")
     man = tmp_path / "command-center" / "ARTIFACT-MANIFEST.json"
-    man.write_text(json.dumps({"artifacts": ["command-center/out/unit.json"]}), encoding="utf-8")
+    man.write_text(
+        json.dumps({"artifacts": ["command-center/out/unit.json"]}), encoding="utf-8"
+    )
     return tmp_path
 
 
@@ -150,7 +152,12 @@ def good_receipt(live_repo: Path) -> dict:
             "vendor": "openai",
         },
         "defects": [
-            {"id": "D-1", "severity": "P2", "status": "open", "summary": "docstring typo"}
+            {
+                "id": "D-1",
+                "severity": "P2",
+                "status": "open",
+                "summary": "docstring typo",
+            }
         ],
         "manifest_registration": {
             "registered": True,
@@ -207,7 +214,9 @@ def test_all_catalog_referenced_fragments_exist(schema: dict) -> None:
     cat = json.loads(CATALOG.read_bytes().decode("utf-8"))
     frags = set()
     for u in cat["work_units"]:
-        m = re.search(r"receipt\.schema\.json#/\$defs/(\w+)", u.get("output_schema") or "")
+        m = re.search(
+            r"receipt\.schema\.json#/\$defs/(\w+)", u.get("output_schema") or ""
+        )
         if m:
             frags.add(m.group(1))
     assert frags, "detector control: found no fragments at all, the regex is broken"
@@ -233,14 +242,20 @@ def test_good_receipt_is_schema_valid(good_receipt: dict) -> None:
 
 def test_good_receipt_satisfies_all_twelve(good_receipt: dict, live_repo: Path) -> None:
     result = rg.evaluate_gate_a(good_receipt, repo_root=live_repo)
-    unsat = [(c.n, c.outcome, c.basis) for c in result.conditions if c.outcome != rg.SATISFIED]
+    unsat = [
+        (c.n, c.outcome, c.basis)
+        for c in result.conditions
+        if c.outcome != rg.SATISFIED
+    ]
     assert unsat == [], f"conditions not satisfied: {unsat}"
     assert len(result.conditions) == 12
     assert result.complete is True
     assert result.marker() == "SUCCESS:ADV-0001"
 
 
-def test_good_receipt_has_no_coherence_problems(good_receipt: dict, live_repo: Path) -> None:
+def test_good_receipt_has_no_coherence_problems(
+    good_receipt: dict, live_repo: Path
+) -> None:
     _, extra = rg.evaluate_full(good_receipt, repo_root=live_repo)
     assert extra == [], f"coherence problems: {extra}"
 
@@ -303,7 +318,9 @@ MALFORMED: dict[str, object] = {
 @pytest.mark.parametrize("name", sorted(MALFORMED))
 def test_structurally_malformed_is_rejected(name: str) -> None:
     errors = rg.validate_receipt(MALFORMED[name])
-    assert errors, f"{name!r} was ACCEPTED; a schema that accepts everything is worse than none"
+    assert errors, (
+        f"{name!r} was ACCEPTED; a schema that accepts everything is worse than none"
+    )
 
 
 def _mutate(base: dict, **changes) -> dict:
@@ -345,9 +362,18 @@ def test_omitting_a_required_field_is_rejected(field: str, good_receipt: dict) -
 
 @pytest.mark.parametrize(
     "field",
-    ["tests", "negative_controls", "reviewer", "manifest_registration", "downstream_consumers", "residual_unknowns"],
+    [
+        "tests",
+        "negative_controls",
+        "reviewer",
+        "manifest_registration",
+        "downstream_consumers",
+        "residual_unknowns",
+    ],
 )
-def test_omitting_a_success_only_required_field_is_rejected(field: str, good_receipt: dict) -> None:
+def test_omitting_a_success_only_required_field_is_rejected(
+    field: str, good_receipt: dict
+) -> None:
     """These are required only when state==SUCCESS (the conditional branch)."""
     doc = copy.deepcopy(good_receipt)
     del doc[field]
@@ -355,7 +381,9 @@ def test_omitting_a_success_only_required_field_is_rejected(field: str, good_rec
     assert errors, f"SUCCESS receipt with {field!r} omitted was ACCEPTED"
 
 
-def test_schema_invalidity_is_caught_by_condition_4_alone(good_receipt: dict, live_repo: Path) -> None:
+def test_schema_invalidity_is_caught_by_condition_4_alone(
+    good_receipt: dict, live_repo: Path
+) -> None:
     """Equivalence proof for a surviving mutant.
 
     GateResult.complete short-circuits on schema_errors AND condition 4 goes
@@ -376,7 +404,10 @@ def test_field_level_malformations_are_rejected(good_receipt: dict) -> None:
     """Each row must produce at least one schema error. Reported as a table."""
     cases: list[tuple[str, dict]] = [
         ("unknown top-level field", _mutate(good_receipt, totally_new_field="x")),
-        ("misspelled core field", {k if k != "sentinel" else "sentinal": v for k, v in good_receipt.items()}),
+        (
+            "misspelled core field",
+            {k if k != "sentinel" else "sentinal": v for k, v in good_receipt.items()},
+        ),
         ("unit_id lowercase", _mutate(good_receipt, unit_id="adv-0001")),
         ("unit_id wrong shape", _mutate(good_receipt, unit_id="ADV-1")),
         ("state not terminal", _mutate(good_receipt, state="RUNNING")),
@@ -385,34 +416,220 @@ def test_field_level_malformations_are_rejected(good_receipt: dict) -> None:
         ("sentinel wrong prefix", _mutate(good_receipt, sentinel="OK:ADV-0001")),
         ("min_bytes_threshold zero", _mutate(good_receipt, min_bytes_threshold=0)),
         ("artifacts empty", _mutate(good_receipt, artifacts=[])),
-        ("artifact 0 bytes", _mutate(good_receipt, artifacts=[{**good_receipt["artifacts"][0], "bytes": 0}])),
-        ("artifact sha256 truncated", _mutate(good_receipt, artifacts=[{**good_receipt["artifacts"][0], "sha256": "abc123"}])),
-        ("artifact sha256 uppercase", _mutate(good_receipt, artifacts=[{**good_receipt["artifacts"][0], "sha256": "A" * 64}])),
-        ("artifact exists=false", _mutate(good_receipt, artifacts=[{**good_receipt["artifacts"][0], "exists": False}])),
-        ("artifact windows path", _mutate(good_receipt, artifacts=[{**good_receipt["artifacts"][0], "path": "command-center\\out\\unit.json"}])),
-        ("naive timestamp (no offset)", _mutate(good_receipt, timestamps={"started_at": "2026-08-09T20:00:00", "ended_at": "2026-08-09T20:30:00Z"})),
-        ("evidence single item on SUCCESS", _mutate(good_receipt, evidence=good_receipt["evidence"][:1])),
-        ("test result SKIP on SUCCESS", _mutate(good_receipt, tests=[{**good_receipt["tests"][0], "result": "SKIP"}])),
-        ("test result invalid enum", _mutate(good_receipt, tests=[{**good_receipt["tests"][0], "result": "probably fine"}])),
-        ("control inert on bad state", _mutate(good_receipt, negative_controls=[{**good_receipt["negative_controls"][0], "fired_on_bad_state": False}])),
-        ("control over-fires", _mutate(good_receipt, negative_controls=[{**good_receipt["negative_controls"][0], "silent_on_good_state": False}])),
-        ("reviewer FAIL on SUCCESS", _mutate(good_receipt, reviewer={**good_receipt["reviewer"], "verdict": "FAIL"})),
-        ("reviewer not independent", _mutate(good_receipt, reviewer={**good_receipt["reviewer"], "independent": False})),
-        ("open P0 defect", _mutate(good_receipt, defects=[{"id": "D-9", "severity": "P0", "status": "open", "summary": "rce"}])),
-        ("waiver with no reference", _mutate(good_receipt, defects=[{"id": "D-9", "severity": "P1", "status": "waived-by-owner", "summary": "x"}])),
-        ("manifest not registered", _mutate(good_receipt, manifest_registration={**good_receipt["manifest_registration"], "registered": False})),
-        ("consumer not executed", _mutate(good_receipt, downstream_consumers=[{**good_receipt["downstream_consumers"][0], "executed": False}])),
-        ("consumer read_ok false", _mutate(good_receipt, downstream_consumers=[{**good_receipt["downstream_consumers"][0], "read_ok": False}])),
+        (
+            "artifact 0 bytes",
+            _mutate(
+                good_receipt, artifacts=[{**good_receipt["artifacts"][0], "bytes": 0}]
+            ),
+        ),
+        (
+            "artifact sha256 truncated",
+            _mutate(
+                good_receipt,
+                artifacts=[{**good_receipt["artifacts"][0], "sha256": "abc123"}],
+            ),
+        ),
+        (
+            "artifact sha256 uppercase",
+            _mutate(
+                good_receipt,
+                artifacts=[{**good_receipt["artifacts"][0], "sha256": "A" * 64}],
+            ),
+        ),
+        (
+            "artifact exists=false",
+            _mutate(
+                good_receipt,
+                artifacts=[{**good_receipt["artifacts"][0], "exists": False}],
+            ),
+        ),
+        (
+            "artifact windows path",
+            _mutate(
+                good_receipt,
+                artifacts=[
+                    {
+                        **good_receipt["artifacts"][0],
+                        "path": "command-center\\out\\unit.json",
+                    }
+                ],
+            ),
+        ),
+        (
+            "naive timestamp (no offset)",
+            _mutate(
+                good_receipt,
+                timestamps={
+                    "started_at": "2026-08-09T20:00:00",
+                    "ended_at": "2026-08-09T20:30:00Z",
+                },
+            ),
+        ),
+        (
+            "evidence single item on SUCCESS",
+            _mutate(good_receipt, evidence=good_receipt["evidence"][:1]),
+        ),
+        (
+            "test result SKIP on SUCCESS",
+            _mutate(
+                good_receipt, tests=[{**good_receipt["tests"][0], "result": "SKIP"}]
+            ),
+        ),
+        (
+            "test result invalid enum",
+            _mutate(
+                good_receipt,
+                tests=[{**good_receipt["tests"][0], "result": "probably fine"}],
+            ),
+        ),
+        (
+            "control inert on bad state",
+            _mutate(
+                good_receipt,
+                negative_controls=[
+                    {
+                        **good_receipt["negative_controls"][0],
+                        "fired_on_bad_state": False,
+                    }
+                ],
+            ),
+        ),
+        (
+            "control over-fires",
+            _mutate(
+                good_receipt,
+                negative_controls=[
+                    {
+                        **good_receipt["negative_controls"][0],
+                        "silent_on_good_state": False,
+                    }
+                ],
+            ),
+        ),
+        (
+            "reviewer FAIL on SUCCESS",
+            _mutate(
+                good_receipt, reviewer={**good_receipt["reviewer"], "verdict": "FAIL"}
+            ),
+        ),
+        (
+            "reviewer not independent",
+            _mutate(
+                good_receipt,
+                reviewer={**good_receipt["reviewer"], "independent": False},
+            ),
+        ),
+        (
+            "open P0 defect",
+            _mutate(
+                good_receipt,
+                defects=[
+                    {"id": "D-9", "severity": "P0", "status": "open", "summary": "rce"}
+                ],
+            ),
+        ),
+        (
+            "waiver with no reference",
+            _mutate(
+                good_receipt,
+                defects=[
+                    {
+                        "id": "D-9",
+                        "severity": "P1",
+                        "status": "waived-by-owner",
+                        "summary": "x",
+                    }
+                ],
+            ),
+        ),
+        (
+            "manifest not registered",
+            _mutate(
+                good_receipt,
+                manifest_registration={
+                    **good_receipt["manifest_registration"],
+                    "registered": False,
+                },
+            ),
+        ),
+        (
+            "consumer not executed",
+            _mutate(
+                good_receipt,
+                downstream_consumers=[
+                    {**good_receipt["downstream_consumers"][0], "executed": False}
+                ],
+            ),
+        ),
+        (
+            "consumer read_ok false",
+            _mutate(
+                good_receipt,
+                downstream_consumers=[
+                    {**good_receipt["downstream_consumers"][0], "read_ok": False}
+                ],
+            ),
+        ),
         ("FAILED state without failure block", _mutate(good_receipt, state="FAILED")),
-        ("FAILED sentinel with SUCCESS state", _mutate(good_receipt, sentinel="FAILED:ADV-0001 boom")),
-        ("failure classification empty", _mutate(good_receipt, state="FAILED", failure={"classification": [], "reason": "x"})),
-        ("failure classification blank string", _mutate(good_receipt, state="FAILED", failure={"classification": ["  "], "reason": "x"})),
-        ("UNVERIFIED with no settling experiment", _mutate(good_receipt, evidence=[{**good_receipt["evidence"][0], "unverified": True}, good_receipt["evidence"][1]])),
-        ("CONFIRMED with a single probe", _mutate(good_receipt, evidence=[{**good_receipt["evidence"][0], "probes": good_receipt["evidence"][0]["probes"][:1]}, good_receipt["evidence"][1]])),
-        ("retry count negative", _mutate(good_receipt, retry={"count": -1, "policy": "p"})),
+        (
+            "FAILED sentinel with SUCCESS state",
+            _mutate(good_receipt, sentinel="FAILED:ADV-0001 boom"),
+        ),
+        (
+            "failure classification empty",
+            _mutate(
+                good_receipt,
+                state="FAILED",
+                failure={"classification": [], "reason": "x"},
+            ),
+        ),
+        (
+            "failure classification blank string",
+            _mutate(
+                good_receipt,
+                state="FAILED",
+                failure={"classification": ["  "], "reason": "x"},
+            ),
+        ),
+        (
+            "UNVERIFIED with no settling experiment",
+            _mutate(
+                good_receipt,
+                evidence=[
+                    {**good_receipt["evidence"][0], "unverified": True},
+                    good_receipt["evidence"][1],
+                ],
+            ),
+        ),
+        (
+            "CONFIRMED with a single probe",
+            _mutate(
+                good_receipt,
+                evidence=[
+                    {
+                        **good_receipt["evidence"][0],
+                        "probes": good_receipt["evidence"][0]["probes"][:1],
+                    },
+                    good_receipt["evidence"][1],
+                ],
+            ),
+        ),
+        (
+            "retry count negative",
+            _mutate(good_receipt, retry={"count": -1, "policy": "p"}),
+        ),
         ("SUPERSEDED without disposition", _mutate(good_receipt, state="SUPERSEDED")),
-        ("residual unknown missing experiment", _mutate(good_receipt, residual_unknowns=[{"claim": "c", "verdict": "NOT-CHECKED"}])),
-        ("extensions wrong type", _mutate(good_receipt, extensions=["not", "an", "object"])),
+        (
+            "residual unknown missing experiment",
+            _mutate(
+                good_receipt,
+                residual_unknowns=[{"claim": "c", "verdict": "NOT-CHECKED"}],
+            ),
+        ),
+        (
+            "extensions wrong type",
+            _mutate(good_receipt, extensions=["not", "an", "object"]),
+        ),
     ]
     accepted = [name for name, doc in cases if not rg.validate_receipt(doc)]
     print(f"\nmalformed cases: {len(cases)}, rejected: {len(cases) - len(accepted)}")
@@ -428,25 +645,75 @@ def _battery(good: dict, live_repo: Path) -> list[tuple[int, dict]]:
     """One mutation per condition. Returns (condition_number, mutated receipt)."""
     art0 = good["artifacts"][0]
     ev = copy.deepcopy(good["evidence"])
-    ev[0]["probes"][1]["fingerprint"] = ev[0]["probes"][0]["fingerprint"]  # same-probe-rerun
+    ev[0]["probes"][1]["fingerprint"] = ev[0]["probes"][0][
+        "fingerprint"
+    ]  # same-probe-rerun
     return [
-        (1, _mutate(good, state="FAILED", failure={"classification": ["overclaim"], "reason": "n/a"})),
-        (2, _mutate(good, artifacts=[{**art0, "path": "command-center/out/DOES-NOT-EXIST.json"}])),
+        (
+            1,
+            _mutate(
+                good,
+                state="FAILED",
+                failure={"classification": ["overclaim"], "reason": "n/a"},
+            ),
+        ),
+        (
+            2,
+            _mutate(
+                good,
+                artifacts=[{**art0, "path": "command-center/out/DOES-NOT-EXIST.json"}],
+            ),
+        ),
         (3, _mutate(good, min_bytes_threshold=10_000_000)),
         (4, _mutate(good, unexpected_field="breaks the schema")),
         (5, _mutate(good, sentinel="SUCCESS:ZZZ-9999")),
         (6, _mutate(good, evidence=ev)),
         (7, _mutate(good, tests=[{**good["tests"][0], "result": "SKIP"}])),
-        (8, _mutate(good, negative_controls=[{**good["negative_controls"][0], "fired_on_bad_state": False}])),
+        (
+            8,
+            _mutate(
+                good,
+                negative_controls=[
+                    {**good["negative_controls"][0], "fired_on_bad_state": False}
+                ],
+            ),
+        ),
         (9, _mutate(good, reviewer={**good["reviewer"], "verdict": "FAIL"})),
-        (10, _mutate(good, defects=[{"id": "D-0", "severity": "P0", "status": "open", "summary": "rce"}])),
-        (11, _mutate(good, manifest_registration={**good["manifest_registration"], "registered": False})),
-        (12, _mutate(good, downstream_consumers=[{**good["downstream_consumers"][0], "executed": False}])),
+        (
+            10,
+            _mutate(
+                good,
+                defects=[
+                    {"id": "D-0", "severity": "P0", "status": "open", "summary": "rce"}
+                ],
+            ),
+        ),
+        (
+            11,
+            _mutate(
+                good,
+                manifest_registration={
+                    **good["manifest_registration"],
+                    "registered": False,
+                },
+            ),
+        ),
+        (
+            12,
+            _mutate(
+                good,
+                downstream_consumers=[
+                    {**good["downstream_consumers"][0], "executed": False}
+                ],
+            ),
+        ),
     ]
 
 
 @pytest.mark.parametrize("target", list(range(1, 13)))
-def test_mutation_battery_catches_each_condition(target: int, good_receipt: dict, live_repo: Path) -> None:
+def test_mutation_battery_catches_each_condition(
+    target: int, good_receipt: dict, live_repo: Path
+) -> None:
     cases = dict(_battery(good_receipt, live_repo))
     result = rg.evaluate_gate_a(cases[target], repo_root=live_repo)
     blocking = {c.n for c in result.blocking_conditions}
@@ -496,9 +763,13 @@ def test_noop_gate_fails_the_battery(good_receipt: dict, live_repo: Path) -> Non
     assert caught_noop == 0, "no-op control unexpectedly caught something"
 
 
-def test_filesystem_disabled_reports_not_checked_not_pass(good_receipt: dict, live_repo: Path) -> None:
+def test_filesystem_disabled_reports_not_checked_not_pass(
+    good_receipt: dict, live_repo: Path
+) -> None:
     """An unrunnable probe is NOT-CHECKED, never a silent pass."""
-    result = rg.evaluate_gate_a(good_receipt, repo_root=live_repo, verify_filesystem=False)
+    result = rg.evaluate_gate_a(
+        good_receipt, repo_root=live_repo, verify_filesystem=False
+    )
     outcomes = {c.n: c.outcome for c in result.conditions}
     assert outcomes[2] == rg.NOT_CHECKED
     assert result.complete is False, "NOT-CHECKED must not be folded into a pass"
@@ -510,10 +781,14 @@ def test_sha256_mismatch_is_caught(good_receipt: dict, live_repo: Path) -> None:
     doc["artifacts"][0]["sha256"] = "0" * 64
     result = rg.evaluate_gate_a(doc, repo_root=live_repo)
     assert 3 in {c.n for c in result.blocking_conditions}
-    assert rg.validate_receipt(doc) == [], "control: this doc must stay schema-valid, only the reducer catches it"
+    assert rg.validate_receipt(doc) == [], (
+        "control: this doc must stay schema-valid, only the reducer catches it"
+    )
 
 
-def test_declared_size_disagreeing_with_disk_is_caught(good_receipt: dict, live_repo: Path) -> None:
+def test_declared_size_disagreeing_with_disk_is_caught(
+    good_receipt: dict, live_repo: Path
+) -> None:
     doc = copy.deepcopy(good_receipt)
     doc["artifacts"][0]["bytes"] = doc["artifacts"][0]["bytes"] + 1
     result = rg.evaluate_gate_a(doc, repo_root=live_repo)
@@ -527,7 +802,9 @@ def test_timestamp_inversion_is_caught(good_receipt: dict) -> None:
         "ended_at": "2026-08-09T20:00:00Z",
     }
     assert rg.check_timestamps(doc), "inverted timestamps must be flagged"
-    assert rg.validate_receipt(doc) == [], "control: schema alone cannot compare two fields"
+    assert rg.validate_receipt(doc) == [], (
+        "control: schema alone cannot compare two fields"
+    )
 
 
 def test_duration_disagreement_is_caught(good_receipt: dict) -> None:
@@ -546,7 +823,9 @@ def test_two_strikes_without_pivot_is_caught(good_receipt: dict) -> None:
             {"attempt": 2, "error_fingerprint": "win-arg-limit", "outcome": "FAILED"},
         ],
     }
-    assert rg.check_retry_policy(doc), "two strikes on one fingerprint needs >=2 alternatives"
+    assert rg.check_retry_policy(doc), (
+        "two strikes on one fingerprint needs >=2 alternatives"
+    )
     doc["retry"]["pivot_alternatives"] = ["use --prompt-file", "route via stdin"]
     assert rg.check_retry_policy(doc) == []
 
@@ -561,10 +840,14 @@ def catalog() -> dict:
     return json.loads(CATALOG.read_bytes().decode("utf-8"))
 
 
-def test_every_catalog_unit_id_matches_the_schema_pattern(schema: dict, catalog: dict) -> None:
+def test_every_catalog_unit_id_matches_the_schema_pattern(
+    schema: dict, catalog: dict
+) -> None:
     pat = re.compile(schema["$defs"]["unit_id"]["pattern"])
     bad = [u["id"] for u in catalog["work_units"] if not pat.match(u["id"])]
-    assert not bad, f"{len(bad)} catalogued ids rejected by the schema pattern: {bad[:10]}"
+    assert not bad, (
+        f"{len(bad)} catalogued ids rejected by the schema pattern: {bad[:10]}"
+    )
 
 
 def test_unit_id_pattern_rejects_known_bad(schema: dict) -> None:
@@ -574,7 +857,9 @@ def test_unit_id_pattern_rejects_known_bad(schema: dict) -> None:
         assert not pat.match(bad), f"id pattern wrongly accepted {bad!r}"
 
 
-def test_every_catalog_sentinel_matches_the_schema_pattern(schema: dict, catalog: dict) -> None:
+def test_every_catalog_sentinel_matches_the_schema_pattern(
+    schema: dict, catalog: dict
+) -> None:
     pat = re.compile(schema["$defs"]["sentinel"]["pattern"], re.DOTALL)
     bad = [
         (u["id"], u["completion_sentinel"][:70])
@@ -586,11 +871,20 @@ def test_every_catalog_sentinel_matches_the_schema_pattern(schema: dict, catalog
 
 def test_sentinel_pattern_rejects_known_bad(schema: dict) -> None:
     pat = re.compile(schema["$defs"]["sentinel"]["pattern"], re.DOTALL)
-    for bad in ("done", "SUCCESS", "SUCCESS:", "OK:ADV-0001", "started in the background", ""):
+    for bad in (
+        "done",
+        "SUCCESS",
+        "SUCCESS:",
+        "OK:ADV-0001",
+        "started in the background",
+        "",
+    ):
         assert not pat.match(bad), f"sentinel pattern wrongly accepted {bad!r}"
 
 
-def test_every_catalog_failure_class_matches_the_schema_pattern(schema: dict, catalog: dict) -> None:
+def test_every_catalog_failure_class_matches_the_schema_pattern(
+    schema: dict, catalog: dict
+) -> None:
     """699 distinct values occur; a closed enum would reject valid units."""
     spec = schema["$defs"]["failure_classification_code"]
     pat = re.compile(spec["pattern"], re.DOTALL)
@@ -601,7 +895,9 @@ def test_every_catalog_failure_class_matches_the_schema_pattern(schema: dict, ca
             values.update(fc)
         elif fc:
             values.add(fc)
-    assert len(values) > 500, f"detector control: expected the open vocabulary, saw {len(values)}"
+    assert len(values) > 500, (
+        f"detector control: expected the open vocabulary, saw {len(values)}"
+    )
     bad = [
         v
         for v in values
@@ -620,11 +916,15 @@ def test_parse_schema_ref_handles_every_catalog_form(catalog: dict) -> None:
     """The catalog decorates output_schema; the parser must recover the real ref."""
     forms = {u.get("output_schema") or "" for u in catalog["work_units"]}
     receipt_forms = {f for f in forms if "schema/receipt.schema.json" in f}
-    assert len(receipt_forms) > 50, f"detector control: only {len(receipt_forms)} forms found"
+    assert len(receipt_forms) > 50, (
+        f"detector control: only {len(receipt_forms)} forms found"
+    )
     frags, plain = set(), 0
     for f in receipt_forms:
         base, frag = rg.parse_schema_ref(f)
-        assert base == "command-center/schema/receipt.schema.json", f"bad base {base!r} from {f!r}"
+        assert base == "command-center/schema/receipt.schema.json", (
+            f"bad base {base!r} from {f!r}"
+        )
         if frag:
             frags.add(frag)
         else:

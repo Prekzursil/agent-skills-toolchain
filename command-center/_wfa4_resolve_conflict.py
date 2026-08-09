@@ -7,7 +7,9 @@ import re
 CORPUS = pathlib.Path(r"C:/Users/Prekzursil/.claude/harness-restore-20260806")
 REGDIR = pathlib.Path(r"C:/Users/Prekzursil/source/ast-integrate/platform/registry")
 
-reg = json.loads((CORPUS / "08-WORKFLOW-CANDIDATE-REGISTRY.json").read_text(encoding="utf-8"))
+reg = json.loads(
+    (CORPUS / "08-WORKFLOW-CANDIDATE-REGISTRY.json").read_text(encoding="utf-8")
+)
 cands = reg["candidates"]
 DARK = [
     "codex-audit",
@@ -30,7 +32,9 @@ for d in DARK:
     ]
     print(f"  {d:20s} -> {hits}")
 
-print("\n=== so where did the earlier substring detector fire? (re-run its exact regex) ===")
+print(
+    "\n=== so where did the earlier substring detector fire? (re-run its exact regex) ==="
+)
 blob = json.dumps(cands)
 for d in DARK:
     m = re.search(rf'"(?:id|name)"\s*:\s*"[^"]*\b{re.escape(d)}\b[^"]*"', blob)

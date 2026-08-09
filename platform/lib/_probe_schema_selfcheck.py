@@ -39,7 +39,9 @@ def main() -> int:
 
     # 1. the schema must itself be a valid JSON Schema (metaschema validation)
     cls = validator_for(schema)
-    check("validator_for resolves Draft202012", cls is Draft202012Validator, cls.__name__)
+    check(
+        "validator_for resolves Draft202012", cls is Draft202012Validator, cls.__name__
+    )
     try:
         cls.check_schema(schema)
         check("schema is metaschema-valid", True)
@@ -102,7 +104,11 @@ def main() -> int:
             Draft202012Validator(sub, registry=registry).is_valid({})
         except Exception as exc:  # noqa: BLE001
             unusable.append((frag, f"{type(exc).__name__}: {exc}"[:160]))
-    check("every fragment is usable as a standalone validator", not unusable, json.dumps(unusable)[:600])
+    check(
+        "every fragment is usable as a standalone validator",
+        not unusable,
+        json.dumps(unusable)[:600],
+    )
 
     print()
     print(f"FAILURES: {len(FAIL)} {FAIL}")

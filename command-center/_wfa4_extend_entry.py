@@ -31,7 +31,9 @@ src = p.read_text("utf-8", errors="replace")
 rel = str(p).replace("\\", "/")
 lines = src.count("\n") + 1
 print(f"reading {rel}  ({len(src)} chars / {lines} lines)")
-print(f"prior classification = {prior['classification']}  prior evidence = {prior['evidence'][:180]}")
+print(
+    f"prior classification = {prior['classification']}  prior evidence = {prior['evidence'][:180]}"
+)
 
 
 def hits(pat, flags=0, limit=8):
@@ -57,7 +59,9 @@ barriers = count(r"filter\s*\(\s*Boolean\s*\)")
 worktree = count(r"worktree")
 longrun = count(r"longrun")
 codexrefs = count(r"codex", re.I)
-models = sorted(set(re.findall(r"model\s*:\s*[\"']([a-z0-9\-\[\]\.]+)[\"']", src, re.I)))
+models = sorted(
+    set(re.findall(r"model\s*:\s*[\"']([a-z0-9\-\[\]\.]+)[\"']", src, re.I))
+)
 stopish = hits(
     r"^[^\n]{0,150}(?:UNIT-COMPLETE|AND-gate|resume|checkpoint|retry|maxAttempts|"
     r"stop|abort|timeout|budget|cap\b)[^\n]{0,150}$",
@@ -122,12 +126,16 @@ entry = {
         "the empirical baseline for what a real large wave on this estate looks like."
     ),
     "stages": phases
-    or ["NOT-EXTRACTED - no phase() call sites matched; the script may name phases differently"],
+    or [
+        "NOT-EXTRACTED - no phase() call sites matched; the script may name phases differently"
+    ],
     "roles": ["orchestrator", "fan-out worker", "synthesiser"],
     "tools": ["claude-code Workflow globals: agent(), parallel(), phase()"]
     + ([f"codex refs x{codexrefs}"] if codexrefs else []),
     "stop_rules": stopish
-    or ["NONE DECLARED - no UNIT-COMPLETE / AND-gate / retry / timeout / budget token matched"],
+    or [
+        "NONE DECLARED - no UNIT-COMPLETE / AND-gate / retry / timeout / budget token matched"
+    ],
     "failure_behaviour": failish
     or ["NOT-EXTRACTED - no catch/try/null-tolerant barrier construct matched"],
     "benchmark_evidence": [

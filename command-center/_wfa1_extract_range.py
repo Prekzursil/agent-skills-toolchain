@@ -44,8 +44,12 @@ if mirror_ok:
     r = git("cat-file", "-t", REF)
     print(f"[CTRL] ref {REF[:12]} type={r.stdout.strip()!r} rc={r.returncode}")
     r_present = git("ls-tree", "-r", "--name-only", REF, "--", "workflows/")
-    print(f"[CTRL] known-present probe ls-tree workflows/ -> {r_present.stdout.strip()!r}")
-    r_absent = git("ls-tree", "-r", "--name-only", REF, "--", "definitely-not-a-real-dir-xyz/")
+    print(
+        f"[CTRL] known-present probe ls-tree workflows/ -> {r_present.stdout.strip()!r}"
+    )
+    r_absent = git(
+        "ls-tree", "-r", "--name-only", REF, "--", "definitely-not-a-real-dir-xyz/"
+    )
     print(
         f"[CTRL] known-absent probe -> stdout={r_absent.stdout.strip()!r} "
         f"(must be empty for the detector to be trusted)"
@@ -86,9 +90,11 @@ for i, c in enumerate(mine, start=1):
         if rec["fs_exists"] and os.path.isfile(p):
             st = os.stat(p)
             rec["fs_bytes"] = st.st_size
-            rec["fs_mtime"] = __import__("datetime").datetime.fromtimestamp(
-                st.st_mtime
-            ).strftime("%Y-%m-%d")
+            rec["fs_mtime"] = (
+                __import__("datetime")
+                .datetime.fromtimestamp(st.st_mtime)
+                .strftime("%Y-%m-%d")
+            )
             rec["fs_sha256"] = sha(p)[:16]
     # mirror probe for "<sha>:path" or "repo path" shapes
     if ":" in prov and prov.startswith(("07f465f3", "repo ")):

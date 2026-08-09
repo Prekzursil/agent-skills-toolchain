@@ -18,7 +18,18 @@ from collections import defaultdict
 
 MIRROR = r"C:\Users\Prekzursil\.claude\harness-restore-20260806\main-mirror.git"
 REF = "07f465f37d49710f7060dcc7b567d6c58213177b"
-READ_EXT = (".md", ".py", ".mjs", ".js", ".ps1", ".sh", ".json", ".yaml", ".yml", ".txt")
+READ_EXT = (
+    ".md",
+    ".py",
+    ".mjs",
+    ".js",
+    ".ps1",
+    ".sh",
+    ".json",
+    ".yaml",
+    ".yml",
+    ".txt",
+)
 MAX_FILES_PER_TREE = 12
 MAX_BYTES_PER_FILE = 200_000
 
@@ -69,9 +80,14 @@ for i, row in enumerate(rows):
                     {"path": path, "bytes": int(parts[3]) if parts[3].isdigit() else 0}
                 )
             # pick READMEs first, then largest readable files
-            readable = [t2 for t2 in tree_files if t2["path"].lower().endswith(READ_EXT)]
+            readable = [
+                t2 for t2 in tree_files if t2["path"].lower().endswith(READ_EXT)
+            ]
             readable.sort(
-                key=lambda t2: (0 if "readme" in t2["path"].lower() else 1, -t2["bytes"])
+                key=lambda t2: (
+                    0 if "readme" in t2["path"].lower() else 1,
+                    -t2["bytes"],
+                )
             )
             for t2 in readable[:MAX_FILES_PER_TREE]:
                 if t2["bytes"] <= MAX_BYTES_PER_FILE:
@@ -102,7 +118,10 @@ if keys:
         body = buf[nl + 1 : nl + 1 + size]
         wanted_blobs[k] = body.decode("utf-8", "replace")
         pos = nl + 1 + size + 1  # trailing newline
-print("batched read complete; resolved:", sum(1 for v in wanted_blobs.values() if v is not None))
+print(
+    "batched read complete; resolved:",
+    sum(1 for v in wanted_blobs.values() if v is not None),
+)
 
 PATTERNS = {
     "phase_sites": r"\bphase\s*\(",
@@ -151,16 +170,22 @@ for (i, kind, tree_files), row, rawc in zip(plan, rows, raw):
         text = "\n".join(chunks) if chunks else None
     out["tree_files"] = tree_files
     out["tree_file_count"] = len(tree_files) if tree_files else None
-    out["tree_total_bytes"] = sum(t["bytes"] for t in tree_files) if tree_files else None
+    out["tree_total_bytes"] = (
+        sum(t["bytes"] for t in tree_files) if tree_files else None
+    )
     out["tree_paths"] = [t["path"] for t in tree_files][:40] if tree_files else None
     if text:
         out["measured_lines"] = text.count("\n") + (0 if text.endswith("\n") else 1)
         out["measured_chars"] = len(text)
-        out["body_sha256"] = hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()[:16]
+        out["body_sha256"] = hashlib.sha256(
+            text.encode("utf-8", "replace")
+        ).hexdigest()[:16]
         norm = re.sub(r"\s+", " ", text).strip().lower()
         out["norm_sha256"] = hashlib.sha256(norm.encode()).hexdigest()[:16]
         out["scan"] = {k: len(re.findall(p, text, re.I)) for k, p in PATTERNS.items()}
-        out["phase_names"] = re.findall(r"phase\s*\(\s*['\"]([^'\"]{2,70})['\"]", text)[:14]
+        out["phase_names"] = re.findall(r"phase\s*\(\s*['\"]([^'\"]{2,70})['\"]", text)[
+            :14
+        ]
         m = re.search(r"description\s*:\s*['\"]([^'\"]{5,300})['\"]", text)
         out["description_in_body"] = m.group(1) if m else None
         out["body_head"] = text[:1400]
@@ -168,7 +193,16 @@ for (i, kind, tree_files), row, rawc in zip(plan, rows, raw):
         out["measured_lines"] = None
         out["scan"] = None
         out["body_head"] = None
-    for f in ("evidence", "mechanisms", "does", "license", "maintenance", "runtime", "origin", "notes"):
+    for f in (
+        "evidence",
+        "mechanisms",
+        "does",
+        "license",
+        "maintenance",
+        "runtime",
+        "origin",
+        "notes",
+    ):
         out["prior_" + f] = rawc.get(f, "")
     results.append(out)
 
@@ -183,7 +217,9 @@ for r in results:
             print(f"DIFF {r['id']:<44} claimed={claimed:<6} measured={measured}")
         else:
             print(f"OK   {r['id']:<44} claimed={claimed:<6} measured={measured}")
-print(f"-> {mism} mismatches of {sum(1 for r in results if re.search(r'(\\d+) lines', r['prior_evidence'] or '') and r['measured_lines'])} comparable")
+print(
+    f"-> {mism} mismatches of {sum(1 for r in results if re.search(r'(\\d+) lines', r['prior_evidence'] or '') and r['measured_lines'])} comparable"
+)
 
 print("\n=== MATERIAL DISTINCTNESS ===")
 by_body, by_norm = defaultdict(list), defaultdict(list)
@@ -202,7 +238,9 @@ print(f"anchors with NO readable body   : {len(results) - scanned}")
 print("\n=== TREES ===")
 for r in results:
     if r["tree_file_count"]:
-        print(f"{r['id']:<28} files={r['tree_file_count']:<4} bytes={r['tree_total_bytes']:<9} read={len(r.get('_selected') or [])}")
+        print(
+            f"{r['id']:<28} files={r['tree_file_count']:<4} bytes={r['tree_total_bytes']:<9} read={len(r.get('_selected') or [])}"
+        )
 
 with open("command-center/_wfa1_deep_scan.json", "w", encoding="utf-8") as fh:
     json.dump(results, fh, indent=2, ensure_ascii=False)

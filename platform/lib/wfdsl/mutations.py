@@ -79,14 +79,18 @@ MUTATIONS: list[Mutation] = [
         "tools",
         "schema",
         "two MCP tool ids packed into one array element, which a per-token permission check would treat as one unknown tool",
-        lambda d: d["tool_policy"]["allow"].append("mcp__context7__query-docs,mcp__context7__resolve-library-id"),
+        lambda d: d["tool_policy"]["allow"].append(
+            "mcp__context7__query-docs,mcp__context7__resolve-library-id"
+        ),
     ),
     Mutation(
         "MUT-TOOL-NOT-ALLOWED",
         "tools",
         "semantic:DSL-SEM-011",
         "a role requests a tool the deny-by-default policy never allowed",
-        lambda d: d["roles"]["researcher"]["tool_permissions"].append("mcp__cloud-hub__modal_sandbox_exec"),
+        lambda d: d["roles"]["researcher"]["tool_permissions"].append(
+            "mcp__cloud-hub__modal_sandbox_exec"
+        ),
     ),
     # ---------------------------------------------------------------- params
     Mutation(
@@ -108,7 +112,9 @@ MUTATIONS: list[Mutation] = [
         "typed_params",
         "semantic:DSL-SEM-010",
         "the inline JSON Schema escape hatch is not a valid schema",
-        lambda d: d["params"]["custom_filter"].__setitem__("schema", {"type": "not-a-json-type"}),
+        lambda d: d["params"]["custom_filter"].__setitem__(
+            "schema", {"type": "not-a-json-type"}
+        ),
     ),
     # ---------------------------------------------------------------- subworkflows
     Mutation(
@@ -116,7 +122,9 @@ MUTATIONS: list[Mutation] = [
         "subworkflows",
         "semantic:DSL-SEM-006",
         "a subworkflow stage references a child workflow that is not declared",
-        lambda d: d["stages"][3]["workflow"].__setitem__("workflow_id", "not-declared-anywhere"),
+        lambda d: d["stages"][3]["workflow"].__setitem__(
+            "workflow_id", "not-declared-anywhere"
+        ),
     ),
     # ---------------------------------------------------------------- fan-out
     Mutation(
@@ -255,7 +263,9 @@ MUTATIONS: list[Mutation] = [
         "cost_estimate",
         "schema",
         "an irreversible workflow that does not require owner approval",
-        lambda d: d["estimate"]["impact"].update({"reversibility": "irreversible", "requires_owner_approval": False}),
+        lambda d: d["estimate"]["impact"].update(
+            {"reversibility": "irreversible", "requires_owner_approval": False}
+        ),
     ),
     # ---------------------------------------------------------------- model routing
     Mutation(
@@ -309,7 +319,9 @@ MUTATIONS: list[Mutation] = [
         "stopping_rules",
         "semantic:DSL-SEM-007",
         "a stopping rule that cannot parse can never fire, yet a schema sees a non-empty string",
-        lambda d: d["stopping_rules"][0].__setitem__("expression", "unique_ideas >>>= AND"),
+        lambda d: d["stopping_rules"][0].__setitem__(
+            "expression", "unique_ideas >>>= AND"
+        ),
     ),
     # ---------------------------------------------------------------- source policy
     Mutation(
@@ -317,7 +329,9 @@ MUTATIONS: list[Mutation] = [
         "source_policy",
         "schema",
         "a workflow that opts out of treating fetched content as untrusted data",
-        lambda d: d["tool_policy"]["source_policy"].__setitem__("treat_fetched_content_as_data", False),
+        lambda d: d["tool_policy"]["source_policy"].__setitem__(
+            "treat_fetched_content_as_data", False
+        ),
     ),
     # ---------------------------------------------------------------- lineage
     Mutation(
@@ -325,7 +339,9 @@ MUTATIONS: list[Mutation] = [
         "lineage",
         "schema",
         "a lineage edge using a disposition outside the spec's vocabulary",
-        lambda d: d["lineage"]["derived_from"][0].__setitem__("relation", "BORROWED-VIBES"),
+        lambda d: d["lineage"]["derived_from"][0].__setitem__(
+            "relation", "BORROWED-VIBES"
+        ),
     ),
 ]
 
@@ -346,7 +362,9 @@ def _semantic_violations(doc: dict[str, Any]) -> dict[str, int]:
 def run_battery(base: dict[str, Any]) -> dict[str, Any]:
     """Apply every mutation and report, per mutation, whether the declared layer caught it."""
     validator = schemas.workflow_validator()
-    base_schema_errors = sorted(validator.iter_errors(base), key=lambda e: list(e.absolute_path))
+    base_schema_errors = sorted(
+        validator.iter_errors(base), key=lambda e: list(e.absolute_path)
+    )
     base_sem = _semantic_violations(base)
 
     results: list[dict[str, Any]] = []
@@ -354,9 +372,13 @@ def run_battery(base: dict[str, Any]) -> dict[str, Any]:
     wrong_layer: list[str] = []
     for mut in MUTATIONS:
         doc = mutate(base, mut)
-        schema_errors = schemas.error_summary(sorted(validator.iter_errors(doc), key=lambda e: list(e.absolute_path)))
+        schema_errors = schemas.error_summary(
+            sorted(validator.iter_errors(doc), key=lambda e: list(e.absolute_path))
+        )
         sem = _semantic_violations(doc)
-        new_sem = {rule: count for rule, count in sem.items() if count > base_sem.get(rule, 0)}
+        new_sem = {
+            rule: count for rule, count in sem.items() if count > base_sem.get(rule, 0)
+        }
         if mut.layer == "schema":
             caught_by_declared = bool(schema_errors)
         else:
@@ -385,7 +407,9 @@ def run_battery(base: dict[str, Any]) -> dict[str, Any]:
         "base_schema_errors": schemas.error_summary(base_schema_errors),
         "base_semantic_violations": {k: v for k, v in base_sem.items() if v},
         "mutations": len(MUTATIONS),
-        "caught_by_declared_layer": sum(1 for r in results if r["caught_by_declared_layer"]),
+        "caught_by_declared_layer": sum(
+            1 for r in results if r["caught_by_declared_layer"]
+        ),
         "caught_at_all": sum(1 for r in results if r["caught_at_all"]),
         "survivors": survivors,
         "caught_but_wrong_layer": wrong_layer,

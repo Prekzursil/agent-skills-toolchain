@@ -28,12 +28,17 @@ v = blob("tools/agentspec/agentspec/validate.py") or ""
 ids_ast = None
 tree = ast.parse(v)
 for node in ast.walk(tree):
-    if isinstance(node, ast.AnnAssign) and getattr(node.target, "id", None) == "VIOLATIONS":
+    if (
+        isinstance(node, ast.AnnAssign)
+        and getattr(node.target, "id", None) == "VIOLATIONS"
+    ):
         ids_ast = [e.value for e in node.value.elts if isinstance(e, ast.Constant)]
     elif isinstance(node, ast.Assign):
         for t in node.targets:
             if getattr(t, "id", None) == "VIOLATIONS":
-                ids_ast = [e.value for e in node.value.elts if isinstance(e, ast.Constant)]
+                ids_ast = [
+                    e.value for e in node.value.elts if isinstance(e, ast.Constant)
+                ]
 
 # --- signal B: raw text block slice ---
 m = re.search(r"VIOLATIONS[^=]*=\s*\((.*?)\)\s*\n", v, re.S)
@@ -48,7 +53,9 @@ for i, x in enumerate(ids_ast or [], 1):
 
 rd = blob("tools/agentspec/README.md") or ""
 claim = re.search(r"closed\s+(\d+)-id", rd)
-print(f"\nREADME claim = {claim.group(1) if claim else '?'}   measured = {len(ids_ast or [])}")
+print(
+    f"\nREADME claim = {claim.group(1) if claim else '?'}   measured = {len(ids_ast or [])}"
+)
 print(
     "VERDICT: CONFIRMED"
     if claim and int(claim.group(1)) == len(ids_ast or [])
@@ -62,11 +69,17 @@ for node in ast.walk(tree):
     if isinstance(node, (ast.Assign, ast.AnnAssign)):
         tgt = node.targets[0] if isinstance(node, ast.Assign) else node.target
         nm = getattr(tgt, "id", None)
-        if nm and nm != "VIOLATIONS" and isinstance(getattr(node, "value", None), (ast.Tuple, ast.List)):
+        if (
+            nm
+            and nm != "VIOLATIONS"
+            and isinstance(getattr(node, "value", None), (ast.Tuple, ast.List))
+        ):
             print(f"[CTRL] walker also finds tuple/list '{nm}' -> walker works")
             found_other = True
             break
-print(f"[CTRL] known-absent name 'NOPE_VIOLATIONS' found = "
-      f"{any(getattr(getattr(n, 'target', None), 'id', None) == 'NOPE_VIOLATIONS' for n in ast.walk(tree))} (must be False)")
+print(
+    f"[CTRL] known-absent name 'NOPE_VIOLATIONS' found = "
+    f"{any(getattr(getattr(n, 'target', None), 'id', None) == 'NOPE_VIOLATIONS' for n in ast.walk(tree))} (must be False)"
+)
 if not found_other:
     print("[CTRL] no second tuple in this module (control inconclusive on that leg)")

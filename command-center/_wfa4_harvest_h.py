@@ -27,7 +27,9 @@ for pos, c in H:
             resolvable.append((pos, c, p))
             break
 
-print(f"H entries whose provenance path resolves to a real file on disk: {len(resolvable)}")
+print(
+    f"H entries whose provenance path resolves to a real file on disk: {len(resolvable)}"
+)
 for pos, c, p in resolvable[:12]:
     print(f"  {pos:3d} {c['id'][:56]:56s} {p.stat().st_size:7d}B  {p.name}")
 

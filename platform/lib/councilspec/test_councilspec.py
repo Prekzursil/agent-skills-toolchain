@@ -38,7 +38,9 @@ from councilspec.validate import (
 VALID_DIR = os.path.join(EXAMPLES_DIR, "valid")
 INVALID_DIR = os.path.join(EXAMPLES_DIR, "invalid")
 
-with open(os.path.join(EXAMPLES_DIR, "EXPECTATIONS.json"), "r", encoding="utf-8") as _fh:
+with open(
+    os.path.join(EXAMPLES_DIR, "EXPECTATIONS.json"), "r", encoding="utf-8"
+) as _fh:
     MANIFEST = json.load(_fh)
 
 POSITIVE_CASES = [c for c in MANIFEST["cases"] if c["expect"] == "pass"]
@@ -88,9 +90,17 @@ def test_metric_domains_are_disjoint():
 
 def test_every_spec_required_metric_is_registered():
     required = {
-        "unique_ideas", "completeness_score", "consensus", "no_new_objection_rounds",
-        "unanimity", "max_rounds", "quality_gate", "unresolved_load_bearing_counterexample",
-        "evidence_saturation", "time_minutes", "proof_of_impossibility",
+        "unique_ideas",
+        "completeness_score",
+        "consensus",
+        "no_new_objection_rounds",
+        "unanimity",
+        "max_rounds",
+        "quality_gate",
+        "unresolved_load_bearing_counterexample",
+        "evidence_saturation",
+        "time_minutes",
+        "proof_of_impossibility",
     }
     assert required <= all_metric_names()
 
@@ -100,21 +110,58 @@ def test_schema_covers_the_spec_vocabulary():
     schema = load_schema()
     topologies = set(schema["$defs"]["topology"]["properties"]["kind"]["enum"])
     assert {
-        "flat", "chair_led", "committee", "caucus", "proposer_critic_judge", "red_blue",
-        "jury", "delphi", "pairwise_tournament", "nested_subcouncil", "council_of_councils",
+        "flat",
+        "chair_led",
+        "committee",
+        "caucus",
+        "proposer_critic_judge",
+        "red_blue",
+        "jury",
+        "delphi",
+        "pairwise_tournament",
+        "nested_subcouncil",
+        "council_of_councils",
     } == topologies
     protocols = set(schema["$defs"]["protocol_stage"]["properties"]["kind"]["enum"])
     assert {
-        "blind_independent_first_pass", "brainstorm", "round_robin", "nominal_group",
-        "socratic", "oxford", "cross_examination", "steelman_before_rebuttal", "premortem",
-        "scenario", "war_game", "six_hats", "fishbowl", "prediction_confidence",
-        "negotiation", "mediation", "jury", "custom",
+        "blind_independent_first_pass",
+        "brainstorm",
+        "round_robin",
+        "nominal_group",
+        "socratic",
+        "oxford",
+        "cross_examination",
+        "steelman_before_rebuttal",
+        "premortem",
+        "scenario",
+        "war_game",
+        "six_hats",
+        "fishbowl",
+        "prediction_confidence",
+        "negotiation",
+        "mediation",
+        "jury",
+        "custom",
     } <= protocols
     methods = set(schema["$defs"]["voting"]["properties"]["method"]["enum"])
     assert {
-        "synthesis_only", "majority", "supermajority", "unanimity", "consent_no_objection",
-        "ranked_choice", "score", "approval", "condorcet", "juror", "judge", "weighted",
-        "bayesian", "veto", "quorum", "abstention", "delegation",
+        "synthesis_only",
+        "majority",
+        "supermajority",
+        "unanimity",
+        "consent_no_objection",
+        "ranked_choice",
+        "score",
+        "approval",
+        "condorcet",
+        "juror",
+        "judge",
+        "weighted",
+        "bayesian",
+        "veto",
+        "quorum",
+        "abstention",
+        "delegation",
     } == methods
     presets = set(schema["$defs"]["preset_name"]["enum"])
     assert len(presets) >= 24 and "general_purpose_auto_composed" in presets
@@ -146,11 +193,17 @@ def test_spec_expression_trees_are_exactly_as_expected():
     assert expr.parse(SPEC_EXPRESSIONS[3]) == {
         "all_of": [
             {"metric": "quality_gate", "op": "==", "value": "PASS"},
-            {"metric": "unresolved_load_bearing_counterexample", "op": "==", "value": 0},
+            {
+                "metric": "unresolved_load_bearing_counterexample",
+                "op": "==",
+                "value": 0,
+            },
         ]
     }
     assert expr.parse(SPEC_EXPRESSIONS[5]) == {
-        "metric": "proof_of_impossibility", "op": "==", "value": True
+        "metric": "proof_of_impossibility",
+        "op": "==",
+        "value": True,
     }
 
 
@@ -179,7 +232,9 @@ def test_byte_level_roundtrip_is_NOT_claimed():
 
 
 def test_precedence_not_binds_tighter_than_and_which_binds_tighter_than_or():
-    tree = expr.parse("unanimity == true OR NOT deadlock_detected == true AND consensus >= 0.5")
+    tree = expr.parse(
+        "unanimity == true OR NOT deadlock_detected == true AND consensus >= 0.5"
+    )
     assert tree == {
         "any_of": [
             {"metric": "unanimity", "op": "==", "value": True},
@@ -195,7 +250,9 @@ def test_precedence_not_binds_tighter_than_and_which_binds_tighter_than_or():
 
 def test_parentheses_override_precedence():
     flat = expr.parse("unanimity == true OR quorum_met == true AND consensus >= 0.9")
-    grouped = expr.parse("(unanimity == true OR quorum_met == true) AND consensus >= 0.9")
+    grouped = expr.parse(
+        "(unanimity == true OR quorum_met == true) AND consensus >= 0.9"
+    )
     assert flat != grouped
     assert "all_of" in grouped and "any_of" in flat
     assert expr.parse(expr.unparse(grouped)) == grouped  # parens survive the round trip
@@ -206,10 +263,12 @@ def test_any_all_sugar_normalises_to_any_of_and_all_of():
     assert expr.parse("ANY[unanimity == true, max_rounds == 12]") == expr.parse(
         "unanimity == true OR max_rounds == 12"
     )
-    assert expr.parse("ALL[consensus >= 0.95, no_new_objection_rounds >= 2]") == expr.parse(
-        "consensus >= 0.95 AND no_new_objection_rounds >= 2"
+    assert expr.parse(
+        "ALL[consensus >= 0.95, no_new_objection_rounds >= 2]"
+    ) == expr.parse("consensus >= 0.95 AND no_new_objection_rounds >= 2")
+    nested = expr.parse(
+        "ALL[ANY[unanimity == true, quorum_met == true], consensus >= 0.9]"
     )
-    nested = expr.parse("ALL[ANY[unanimity == true, quorum_met == true], consensus >= 0.9]")
     assert nested["all_of"][0] == {
         "any_of": [
             {"metric": "unanimity", "op": "==", "value": True},
@@ -243,7 +302,10 @@ def test_any_all_sugar_rejects_malformed_forms(bad, needle):
 def test_custom_metric_parse_declares_its_value_type():
     tree = expr.parse("custom:solver_unsat == true")
     assert tree == {
-        "metric": "custom:solver_unsat", "op": "==", "value": True, "value_type": "boolean"
+        "metric": "custom:solver_unsat",
+        "op": "==",
+        "value": True,
+        "value_type": "boolean",
     }
     assert expr.parse("custom:budget_burn >= 0.75")["value_type"] == "number"
 
@@ -273,7 +335,9 @@ def test_parser_rejects_ill_typed_expressions(bad, needle):
 def test_parser_accepts_the_control_case_it_almost_rejected():
     """Detector control for the test above: a legal expression must still parse."""
     assert expr.parse("unanimity == true") == {
-        "metric": "unanimity", "op": "==", "value": True
+        "metric": "unanimity",
+        "op": "==",
+        "value": True,
     }
     assert expr.parse("quality_gate != FAIL")["value"] == "FAIL"
 
@@ -284,7 +348,9 @@ def test_parser_accepts_the_control_case_it_almost_rejected():
 def test_evaluate_all_of_any_of_not():
     tree = expr.parse(SPEC_EXPRESSIONS[0])
     assert expr.evaluate(tree, {"unique_ideas": 100, "completeness_score": 0.9}) is True
-    assert expr.evaluate(tree, {"unique_ideas": 99, "completeness_score": 0.99}) is False
+    assert (
+        expr.evaluate(tree, {"unique_ideas": 99, "completeness_score": 0.99}) is False
+    )
     or_tree = expr.parse(SPEC_EXPRESSIONS[2])
     assert expr.evaluate(or_tree, {"unanimity": True, "max_rounds": 3}) is True
     assert expr.evaluate(or_tree, {"unanimity": False, "max_rounds": 12}) is True
@@ -299,17 +365,40 @@ def test_evaluate_weighted_threshold_boundary():
         "weighted": {
             "threshold": 0.7,
             "clauses": [
-                {"weight": 0.5, "when": {"metric": "counterexamples_found", "op": ">=", "value": 3}},
-                {"weight": 0.3, "when": {"metric": "quorum_met", "op": "==", "value": True}},
-                {"weight": 0.4, "when": {"metric": "evidence_saturation", "op": "==", "value": True}},
+                {
+                    "weight": 0.5,
+                    "when": {"metric": "counterexamples_found", "op": ">=", "value": 3},
+                },
+                {
+                    "weight": 0.3,
+                    "when": {"metric": "quorum_met", "op": "==", "value": True},
+                },
+                {
+                    "weight": 0.4,
+                    "when": {
+                        "metric": "evidence_saturation",
+                        "op": "==",
+                        "value": True,
+                    },
+                },
             ],
         }
     }
-    base = {"counterexamples_found": 0, "quorum_met": False, "evidence_saturation": False}
+    base = {
+        "counterexamples_found": 0,
+        "quorum_met": False,
+        "evidence_saturation": False,
+    }
     assert expr.evaluate(tree, base) is False
-    assert expr.evaluate(tree, {**base, "counterexamples_found": 3}) is False        # 0.5
-    assert expr.evaluate(tree, {**base, "counterexamples_found": 3, "quorum_met": True}) is True  # 0.8
-    assert expr.evaluate(tree, {**base, "quorum_met": True, "evidence_saturation": True}) is True  # 0.7 == threshold
+    assert expr.evaluate(tree, {**base, "counterexamples_found": 3}) is False  # 0.5
+    assert (
+        expr.evaluate(tree, {**base, "counterexamples_found": 3, "quorum_met": True})
+        is True
+    )  # 0.8
+    assert (
+        expr.evaluate(tree, {**base, "quorum_met": True, "evidence_saturation": True})
+        is True
+    )  # 0.7 == threshold
 
 
 def test_missing_metric_is_not_false():
@@ -320,9 +409,12 @@ def test_missing_metric_is_not_false():
 @pytest.mark.parametrize(
     "text, snapshot",
     [
-        ("unanimity == true", {"unanimity": 1}),          # int masquerading as bool
-        ("unique_ideas >= 100", {"unique_ideas": True}),   # bool masquerading as number
-        ("unique_ideas >= 100", {"unique_ideas": "100"}),  # string masquerading as number
+        ("unanimity == true", {"unanimity": 1}),  # int masquerading as bool
+        ("unique_ideas >= 100", {"unique_ideas": True}),  # bool masquerading as number
+        (
+            "unique_ideas >= 100",
+            {"unique_ideas": "100"},
+        ),  # string masquerading as number
         ("quality_gate == PASS", {"quality_gate": 1}),
     ],
 )
@@ -333,8 +425,13 @@ def test_evaluate_rejects_wrongly_typed_snapshot_values(text, snapshot):
 
 def test_evaluate_accepts_the_correctly_typed_control():
     assert expr.evaluate(expr.parse("unanimity == true"), {"unanimity": True}) is True
-    assert expr.evaluate(expr.parse("unique_ideas >= 100"), {"unique_ideas": 100}) is True
-    assert expr.evaluate(expr.parse("quality_gate == PASS"), {"quality_gate": "PASS"}) is True
+    assert (
+        expr.evaluate(expr.parse("unique_ideas >= 100"), {"unique_ideas": 100}) is True
+    )
+    assert (
+        expr.evaluate(expr.parse("quality_gate == PASS"), {"quality_gate": "PASS"})
+        is True
+    )
 
 
 def test_referenced_metrics_walks_every_node_kind():
@@ -344,24 +441,36 @@ def test_referenced_metrics_walks_every_node_kind():
             {
                 "weighted": {
                     "threshold": 1,
-                    "clauses": [{"weight": 1, "when": {"metric": "consensus", "op": ">=", "value": 0.9}}],
+                    "clauses": [
+                        {
+                            "weight": 1,
+                            "when": {"metric": "consensus", "op": ">=", "value": 0.9},
+                        }
+                    ],
                 }
             },
-            {"any_of": [
-                {"metric": "unanimity", "op": "==", "value": True},
-                {"metric": "time_minutes", "op": ">=", "value": 5},
-            ]},
+            {
+                "any_of": [
+                    {"metric": "unanimity", "op": "==", "value": True},
+                    {"metric": "time_minutes", "op": ">=", "value": 5},
+                ]
+            },
         ]
     }
     assert expr.referenced_metrics(tree) == {
-        "deadlock_detected", "consensus", "unanimity", "time_minutes"
+        "deadlock_detected",
+        "consensus",
+        "unanimity",
+        "time_minutes",
     }
 
 
 # -------------------------------------------------------------------- the 6 examples
 
 
-@pytest.mark.parametrize("case", POSITIVE_CASES, ids=lambda c: os.path.basename(c["file"]))
+@pytest.mark.parametrize(
+    "case", POSITIVE_CASES, ids=lambda c: os.path.basename(c["file"])
+)
 def test_required_example_validates(case):
     path = os.path.join(EXAMPLES_DIR, case["file"].replace("/", os.sep))
     result = validate_file(path)
@@ -370,7 +479,9 @@ def test_required_example_validates(case):
     assert result["ok"] is True
 
 
-@pytest.mark.parametrize("case", POSITIVE_CASES, ids=lambda c: os.path.basename(c["file"]))
+@pytest.mark.parametrize(
+    "case", POSITIVE_CASES, ids=lambda c: os.path.basename(c["file"])
+)
 def test_required_example_encodes_its_spec_string(case):
     path = os.path.join(EXAMPLES_DIR, case["file"].replace("/", os.sep))
     with open(path, "r", encoding="utf-8") as fh:
@@ -379,7 +490,9 @@ def test_required_example_encodes_its_spec_string(case):
     assert expr.parse(case["spec_expression"]) == spec["stopping"]["expression"]
 
 
-@pytest.mark.parametrize("case", POSITIVE_CASES, ids=lambda c: os.path.basename(c["file"]))
+@pytest.mark.parametrize(
+    "case", POSITIVE_CASES, ids=lambda c: os.path.basename(c["file"])
+)
 def test_required_example_stopping_rule_executes_both_states(case):
     path = os.path.join(EXAMPLES_DIR, case["file"].replace("/", os.sep))
     with open(path, "r", encoding="utf-8") as fh:
@@ -397,7 +510,9 @@ def test_all_six_spec_expressions_are_covered_by_an_example():
 # ------------------------------------------------------------------ the must-fail set
 
 
-@pytest.mark.parametrize("case", NEGATIVE_CASES, ids=lambda c: os.path.basename(c["file"]))
+@pytest.mark.parametrize(
+    "case", NEGATIVE_CASES, ids=lambda c: os.path.basename(c["file"])
+)
 def test_negative_fixture_is_rejected_by_the_named_detector(case):
     path = os.path.join(EXAMPLES_DIR, case["file"].replace("/", os.sep))
     result = validate_file(path)
@@ -415,11 +530,15 @@ def test_headline_must_fail_case_is_the_typed_leaf_violation():
     path = os.path.join(INVALID_DIR, "N1-typed-leaf-violation.councilspec.json")
     result = validate_file(path)
     assert result["ok"] is False
-    assert any("stopping" in msg and "not valid under any of the given schemas" in msg
-               for msg in result["schema_errors"])
+    assert any(
+        "stopping" in msg and "not valid under any of the given schemas" in msg
+        for msg in result["schema_errors"]
+    )
 
 
-@pytest.mark.parametrize("case", NEGATIVE_CASES, ids=lambda c: os.path.basename(c["file"]))
+@pytest.mark.parametrize(
+    "case", NEGATIVE_CASES, ids=lambda c: os.path.basename(c["file"])
+)
 def test_negative_fixture_base_still_passes(case):
     """Both-states control: the fixture differs from a PASSING base by one mutation."""
     base = os.path.join(EXAMPLES_DIR, case["mutation_of"].replace("/", os.sep))
@@ -454,13 +573,17 @@ def test_semantic_rules_have_real_fixture_coverage():
 
 def test_semantic_recursion_reaches_subcouncils():
     """topology.subcouncils uses `$ref: '#'`; prove a broken CHILD fails the PARENT."""
-    path = os.path.join(VALID_DIR, "E6-council-of-councils-impossibility.councilspec.json")
+    path = os.path.join(
+        VALID_DIR, "E6-council-of-councils-impossibility.councilspec.json"
+    )
     with open(path, "r", encoding="utf-8") as fh:
         spec = json.load(fh)
-    assert validate_spec(spec)["ok"] is True                       # control: healthy
+    assert validate_spec(spec)["ok"] is True  # control: healthy
     broken = copy.deepcopy(spec)
     broken["topology"]["subcouncils"][1]["stopping"]["expression"] = {
-        "metric": "unanimity", "op": ">=", "value": 0.5           # boolean metric, numeric op
+        "metric": "unanimity",
+        "op": ">=",
+        "value": 0.5,  # boolean metric, numeric op
     }
     result = validate_spec(broken)
     assert result["ok"] is False
@@ -472,7 +595,9 @@ def test_semantic_recursion_reaches_subcouncils():
     )
     sem = validate_spec(drifted)
     assert sem["ok"] is False
-    assert any("subcouncils[1]" in msg and "SEM-001" in msg for msg in sem["semantic_errors"])
+    assert any(
+        "subcouncils[1]" in msg and "SEM-001" in msg for msg in sem["semantic_errors"]
+    )
 
 
 def test_sem006_unknown_participant_reference():
@@ -505,8 +630,12 @@ def test_sem012_custom_metric_without_producer_only_warns():
     spec["stopping"]["expression"] = {
         "any_of": [
             {"metric": "unanimity", "op": "==", "value": True},
-            {"metric": "custom:owner_says_stop", "op": "==", "value": True,
-             "value_type": "boolean"},
+            {
+                "metric": "custom:owner_says_stop",
+                "op": "==",
+                "value": True,
+                "value_type": "boolean",
+            },
         ]
     }
     result = validate_spec(spec)
@@ -556,7 +685,7 @@ def test_conformance_runner_fires_when_a_negative_starts_passing(tmp_path):
     target = os.path.join(dest, "invalid", "N3-count-min-gt-max.councilspec.json")
     with open(target, "r", encoding="utf-8") as fh:
         spec = json.load(fh)
-    spec["participants"]["count"]["min"] = 4          # repair the planted defect
+    spec["participants"]["count"]["min"] = 4  # repair the planted defect
     with open(target, "w", encoding="utf-8") as fh:
         json.dump(spec, fh)
     ok, lines = run_conformance(dest)
@@ -620,7 +749,10 @@ def _minimal_spec(stop_tree):
             "risk_tier": "low",
             "desired_output": "decision",
         },
-        "participants": {"selection": {"mode": "automatic"}, "count": {"mode": "exact", "exact_n": 3}},
+        "participants": {
+            "selection": {"mode": "automatic"},
+            "count": {"mode": "exact", "exact_n": 3},
+        },
         "topology": {"kind": "flat"},
         "protocol": {"sequence": [{"kind": "brainstorm"}, {"kind": "synthesis"}]},
         "voting": {"method": "majority"},
@@ -632,7 +764,10 @@ def _minimal_spec(stop_tree):
 
 def test_minimal_spec_helper_is_itself_valid():
     """If this helper drifted invalid, the parametrised legality test above would lie."""
-    assert schema_errors(_minimal_spec({"metric": "unanimity", "op": "==", "value": True})) == []
+    assert (
+        schema_errors(_minimal_spec({"metric": "unanimity", "op": "==", "value": True}))
+        == []
+    )
 
 
 def test_schema_path_points_at_the_shipped_contract():

@@ -60,12 +60,18 @@ def test_all_units_pass_the_structural_profile(report: dict) -> None:
 
 def test_normative_failures_do_not_regress(report: dict) -> None:
     prof = report["profiles"]["normative"]
-    assert prof["fail"] <= CEILINGS["normative_fail"], (prof["fail"], prof["reason_histogram"])
+    assert prof["fail"] <= CEILINGS["normative_fail"], (
+        prof["fail"],
+        prof["reason_histogram"],
+    )
 
 
 def test_strict_failures_do_not_regress(report: dict) -> None:
     prof = report["profiles"]["strict"]
-    assert prof["fail"] <= CEILINGS["strict_fail"], (prof["fail"], prof["reason_histogram"])
+    assert prof["fail"] <= CEILINGS["strict_fail"], (
+        prof["fail"],
+        prof["reason_histogram"],
+    )
 
 
 def test_semantic_rules_do_not_regress(report: dict) -> None:
@@ -87,7 +93,10 @@ def test_semantic_detectors_fire_on_injected_defects(catalog: dict) -> None:
     assert len(semantics.check_work_units(dup)[2].violations) > clean.get("SEM-003", 0)
 
     same_path = [dict(units[0]), {**units[1], "output_path": units[0]["output_path"]}]
-    assert any(r.rule == "SEM-004" and r.violations for r in semantics.check_work_units(same_path))
+    assert any(
+        r.rule == "SEM-004" and r.violations
+        for r in semantics.check_work_units(same_path)
+    )
 
     selfdep = [{**units[0], "dependencies": [units[0]["id"]]}]
     fired = {r.rule for r in semantics.check_work_units(selfdep) if r.violations}

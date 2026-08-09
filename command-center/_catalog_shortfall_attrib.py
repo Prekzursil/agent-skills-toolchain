@@ -7,6 +7,7 @@ families whose count is below their bucket quota. The test is exact-arithmetic, 
 judgement: if the per-family deficits do not sum to the global shortfall, the hypothesis
 is REFUTED and the mapping is wrong.
 """
+
 import json
 import os
 import sys
@@ -37,18 +38,35 @@ for u in units:
 
 max_id = {}
 for p in sorted(pref):
-    ns = [int(ci.ID_RE.match(str(u["id"])).group(2)) for u in units
-          if ci.ID_RE.match(str(u["id"])) and ci.ID_RE.match(str(u["id"])).group(1) == p]
+    ns = [
+        int(ci.ID_RE.match(str(u["id"])).group(2))
+        for u in units
+        if ci.ID_RE.match(str(u["id"])) and ci.ID_RE.match(str(u["id"])).group(1) == p
+    ]
     max_id[p] = max(ns) if ns else 0
 
 # Semantic hint from the bucket NAME, used only as corroboration / tie-break.
-NAME_HINT = {"CC": "command-center", "REL": "release", "IMP": "implementation",
-             "RES": "research", "ADV": "adversarial", "TST": "testing", "CNF": "confirmation",
-             "ARC": "architecture", "AUD": "audit", "BLD": "blind-spot", "CNL": "council",
-             "SYN": "synthesis", "WFA": "workflow"}
-bucket_name = {b["id"]: b["name"] for b in json.load(
-    open(os.path.join(HERE, "PHASE-GRAPH.json"), encoding="utf-8")
-)["allocation_buckets"]["buckets"]}
+NAME_HINT = {
+    "CC": "command-center",
+    "REL": "release",
+    "IMP": "implementation",
+    "RES": "research",
+    "ADV": "adversarial",
+    "TST": "testing",
+    "CNF": "confirmation",
+    "ARC": "architecture",
+    "AUD": "audit",
+    "BLD": "blind-spot",
+    "CNL": "council",
+    "SYN": "synthesis",
+    "WFA": "workflow",
+}
+bucket_name = {
+    b["id"]: b["name"]
+    for b in json.load(open(os.path.join(HERE, "PHASE-GRAPH.json"), encoding="utf-8"))[
+        "allocation_buckets"
+    ]["buckets"]
+}
 
 mapping = {}
 basis = {}
@@ -81,16 +99,20 @@ for p, n in sorted(pref.items()):
     if len(bymax) == 1:
         mapping[p] = bymax[0]
         taken.add(bymax[0])
-        basis[p] = (f"max authored id {p}-{max_id[p]:04d} == bucket quota "
-                    f"{quota[bymax[0]]}; family numbered itself to the quota")
+        basis[p] = (
+            f"max authored id {p}-{max_id[p]:04d} == bucket quota "
+            f"{quota[bymax[0]]}; family numbered itself to the quota"
+        )
         continue
     hint = NAME_HINT.get(p, "")
     byname = [b for b in free if hint and hint in bucket_name[b].lower()]
     if len(byname) == 1:
         mapping[p] = byname[0]
         taken.add(byname[0])
-        basis[p] = (f'bucket name "{bucket_name[byname[0]]}" matches family hint '
-                    f'"{hint}" (quota {quota[byname[0]]})')
+        basis[p] = (
+            f'bucket name "{bucket_name[byname[0]]}" matches family hint '
+            f'"{hint}" (quota {quota[byname[0]]})'
+        )
         continue
     if len(free) == 1:
         mapping[p] = free[0]
@@ -108,9 +130,16 @@ rows = []
 for p, n in sorted(pref.items()):
     b = mapping[p]
     q = quota.get(b) if b else None
-    rows.append({"family": p, "units": n, "bucket": b, "quota": q,
-                 "deficit": (q - n) if q is not None else None,
-                 "mapping_basis": basis[p]})
+    rows.append(
+        {
+            "family": p,
+            "units": n,
+            "bucket": b,
+            "quota": q,
+            "deficit": (q - n) if q is not None else None,
+            "mapping_basis": basis[p],
+        }
+    )
 
 deficit_sum = sum(r["deficit"] for r in rows if r["deficit"])
 global_short = ci.TARGET_UNITS - len(units)
@@ -118,12 +147,18 @@ global_short = ci.TARGET_UNITS - len(units)
 # per-family numbering holes (a family can be short by never authoring mid-range ids)
 holes = {}
 for p in sorted(pref):
-    ns = sorted(int(ci.ID_RE.match(str(u["id"])).group(2)) for u in units
-                if ci.ID_RE.match(str(u["id"])) and ci.ID_RE.match(str(u["id"])).group(1) == p)
+    ns = sorted(
+        int(ci.ID_RE.match(str(u["id"])).group(2))
+        for u in units
+        if ci.ID_RE.match(str(u["id"])) and ci.ID_RE.match(str(u["id"])).group(1) == p
+    )
     gaps = sorted(set(range(1, max(ns) + 1)) - set(ns))
     if gaps:
-        holes[p] = {"max_id": max(ns), "count": len(ns), "missing_ids":
-                    [f"{p}-{g:04d}" for g in gaps]}
+        holes[p] = {
+            "max_id": max(ns),
+            "count": len(ns),
+            "missing_ids": [f"{p}-{g:04d}" for g in gaps],
+        }
 
 out = {
     "total_units": len(units),
@@ -133,25 +168,34 @@ out = {
     "family_rows": rows,
     "sum_of_family_deficits": deficit_sum,
     "deficits_explain_shortfall_exactly": deficit_sum == global_short,
-    "verdict": ("CONFIRMED: per-family deficits sum exactly to the global shortfall"
-                if deficit_sum == global_short else
-                f"REFUTED: deficits sum to {deficit_sum}, shortfall is {global_short}"),
+    "verdict": (
+        "CONFIRMED: per-family deficits sum exactly to the global shortfall"
+        if deficit_sum == global_short
+        else f"REFUTED: deficits sum to {deficit_sum}, shortfall is {global_short}"
+    ),
     "bucket_mapping_collisions": collisions,
     "buckets_with_no_family": unclaimed,
     "numbering_holes": holes,
 }
-with open(os.path.join(HERE, "_catalog_shortfall_attrib_out.json"), "w",
-          encoding="utf-8") as fh:
+with open(
+    os.path.join(HERE, "_catalog_shortfall_attrib_out.json"), "w", encoding="utf-8"
+) as fh:
     json.dump(out, fh, ensure_ascii=False, indent=1)
 
-print(f"total={out['total_units']} target={out['target']} "
-      f"shortfall={out['global_shortfall']}")
+print(
+    f"total={out['total_units']} target={out['target']} "
+    f"shortfall={out['global_shortfall']}"
+)
 print(f"spec quota sum={out['spec_quota_sum']}")
 print()
-print(f"{'family':8s} {'units':>6s} {'bucket':>7s} {'quota':>6s} {'deficit':>8s}  basis")
+print(
+    f"{'family':8s} {'units':>6s} {'bucket':>7s} {'quota':>6s} {'deficit':>8s}  basis"
+)
 for r in rows:
-    print(f"{r['family']:8s} {r['units']:6d} {str(r['bucket']):>7s} "
-          f"{str(r['quota']):>6s} {str(r['deficit']):>8s}  {r['mapping_basis']}")
+    print(
+        f"{r['family']:8s} {r['units']:6d} {str(r['bucket']):>7s} "
+        f"{str(r['quota']):>6s} {str(r['deficit']):>8s}  {r['mapping_basis']}"
+    )
 print()
 print("sum of family deficits =", deficit_sum, "| global shortfall =", global_short)
 print("VERDICT:", out["verdict"])
@@ -161,7 +205,9 @@ print()
 print("NUMBERING HOLES (ids the family skipped):")
 for p, h in holes.items():
     ids = h["missing_ids"]
-    print(f"  {p}: count={h['count']} max={p}-{h['max_id']:04d} "
-          f"missing {len(ids)}: {ids[:12]}{'...' if len(ids) > 12 else ''}")
+    print(
+        f"  {p}: count={h['count']} max={p}-{h['max_id']:04d} "
+        f"missing {len(ids)}: {ids[:12]}{'...' if len(ids) > 12 else ''}"
+    )
 if not holes:
     print("  none")

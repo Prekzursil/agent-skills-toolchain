@@ -9,6 +9,7 @@ algorithm here, not by judgement. The seeded-defect control (mutate a scratch co
 require every detector to FIRE there and be SILENT on the same defect in the real
 corpus) is the both-states test from rules/common/single-signal-verification.md 3b.
 """
+
 from __future__ import annotations
 
 import json
@@ -53,24 +54,65 @@ SPEC_19_FIELDS = [
 # one cannot be checked against its bucket quota.
 REQUIRED_20 = SPEC_19_FIELDS + ["bucket"]
 # Auxiliary fields some slices carry. Reported but NOT counted as required.
-AUX_FIELDS = ["slice", "mechanism", "not_a_duplicate_because", "spec_anchor", "dependency_anchors"]
+AUX_FIELDS = [
+    "slice",
+    "mechanism",
+    "not_a_duplicate_because",
+    "spec_anchor",
+    "dependency_anchors",
+]
 
-CANONICAL_PHASES = ["0", "1", "2", "2A", "2B", "2C", "3", "4", "5", "6", "7", "7A",
-                    "8", "9", "10", "11", "12", "13", "14", "15", "16"]
-BUCKET_QUOTA = {"B01": 24, "B02": 96, "B03": 224, "B04": 160, "B05": 128, "B06": 112,
-                "B07": 480, "B08": 352, "B09": 192, "B10": 144, "B11": 64, "B12": 48,
-                "B13": 24}
+CANONICAL_PHASES = [
+    "0",
+    "1",
+    "2",
+    "2A",
+    "2B",
+    "2C",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "7A",
+    "8",
+    "9",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15",
+    "16",
+]
+BUCKET_QUOTA = {
+    "B01": 24,
+    "B02": 96,
+    "B03": 224,
+    "B04": 160,
+    "B05": 128,
+    "B06": 112,
+    "B07": 480,
+    "B08": 352,
+    "B09": 192,
+    "B10": 144,
+    "B11": 64,
+    "B12": 48,
+    "B13": 24,
+}
 LEGAL_BUCKETS = set(BUCKET_QUOTA)
 
 ID_RE = re.compile(r"^([A-Z]{2,4})-(\d{4})$")
 
-STOPWORDS = set("""a an the and or but if then than that this these those of in on at to for from by with
+STOPWORDS = set(
+    """a an the and or but if then than that this these those of in on at to for from by with
 without into onto over under between across through during before after above below up down out off again
 further once here there when where why how all any both each few more most other some such no nor not only
 own same so too very can will just should now is are was were be been being do does did doing have has had
 having it its it's as about against upon per via vs versus i we you they he she them us our your their my me
 which who whom what whose whether while because since until unless also may might must shall would could
-one two three four five six seven eight nine ten does not""".split())
+one two three four five six seven eight nine ten does not""".split()
+)
 KEEP_SHORT = {"ci", "db", "os", "io", "ui", "ux", "pr", "id", "wu", "mcp", "api", "cli"}
 
 
@@ -99,9 +141,15 @@ def load_dir(slice_dir: str):
     per_file = []
     for fn in files:
         path = os.path.join(slice_dir, fn)
-        rec = {"file": fn, "exists": os.path.isfile(path),
-               "bytes": os.path.getsize(path) if os.path.isfile(path) else 0,
-               "parses": False, "unit_count": 0, "top_level_type": None, "error": None}
+        rec = {
+            "file": fn,
+            "exists": os.path.isfile(path),
+            "bytes": os.path.getsize(path) if os.path.isfile(path) else 0,
+            "parses": False,
+            "unit_count": 0,
+            "top_level_type": None,
+            "error": None,
+        }
         try:
             with open(path, encoding="utf-8") as fh:
                 data = json.load(fh)
@@ -125,7 +173,9 @@ def load_dir(slice_dir: str):
                     u["__idx"] = i
                     units.append(u)
             else:
-                rec["error"] = f"top level is {type(data).__name__}; expected list of units"
+                rec["error"] = (
+                    f"top level is {type(data).__name__}; expected list of units"
+                )
         except Exception as exc:  # noqa: BLE001 - report any parse failure by name
             rec["error"] = f"{type(exc).__name__}: {exc}"
         per_file.append(rec)
@@ -146,7 +196,7 @@ def is_empty(v) -> bool:
 def check_ids(units):
     by_id = collections.defaultdict(list)
     for u in units:
-        by_id[str(u.get("id"))].append(f'{u["__file"]}[{u["__idx"]}]')
+        by_id[str(u.get("id"))].append(f"{u['__file']}[{u['__idx']}]")
     duplicates = {k: v for k, v in by_id.items() if len(v) > 1}
 
     bad_format = []
@@ -155,7 +205,7 @@ def check_ids(units):
         uid = str(u.get("id"))
         m = ID_RE.match(uid)
         if not m:
-            bad_format.append({"id": uid, "at": f'{u["__file"]}[{u["__idx"]}]'})
+            bad_format.append({"id": uid, "at": f"{u['__file']}[{u['__idx']}]"})
         else:
             nums[m.group(1)].append(int(m.group(2)))
 
@@ -170,16 +220,23 @@ def check_ids(units):
             "distinct": len(present),
             "min": min(s) if s else None,
             "max": max(s) if s else None,
-            "repeated_numbers": sorted(n for n, c in collections.Counter(s).items() if c > 1),
+            "repeated_numbers": sorted(
+                n for n, c in collections.Counter(s).items() if c > 1
+            ),
             "gaps_in_1_to_max": gaps,
             "contiguous_from_1": present == expected and not gaps,
         }
-    return {"duplicate_ids": duplicates, "duplicate_id_count": len(duplicates),
-            "bad_format_ids": bad_format, "sequence_by_prefix": sequence}
+    return {
+        "duplicate_ids": duplicates,
+        "duplicate_id_count": len(duplicates),
+        "bad_format_ids": bad_format,
+        "sequence_by_prefix": sequence,
+    }
 
 
 def check_fields(units):
     """Absent-key AND present-but-empty, per required field, per bucket."""
+
     def bucket_of(u):
         b = u.get("bucket")
         if isinstance(b, str) and b in LEGAL_BUCKETS:
@@ -187,7 +244,7 @@ def check_fields(units):
         m = ID_RE.match(str(u.get("id")))
         return f"prefix:{m.group(1)}" if m else "prefix:UNKNOWN"
 
-    absent = collections.defaultdict(collections.Counter)   # field -> bucket -> n
+    absent = collections.defaultdict(collections.Counter)  # field -> bucket -> n
     empty = collections.defaultdict(collections.Counter)
     tot_absent = collections.Counter()
     tot_empty = collections.Counter()
@@ -203,9 +260,11 @@ def check_fields(units):
     aux_present = {f: sum(1 for u in units if f in u) for f in AUX_FIELDS}
     return {
         "required_field_set": REQUIRED_20,
-        "required_field_set_note": ("19 spec-mandated fields (_USER-PROMPTS.md:10607-10625) "
-                                    "+ 'bucket' (allocation authority: PHASE-GRAPH.json "
-                                    "allocation_buckets) = 20"),
+        "required_field_set_note": (
+            "19 spec-mandated fields (_USER-PROMPTS.md:10607-10625) "
+            "+ 'bucket' (allocation authority: PHASE-GRAPH.json "
+            "allocation_buckets) = 20"
+        ),
         "missing_absent_key_total": dict(tot_absent),
         "missing_absent_key_by_bucket": {f: dict(c) for f, c in absent.items()},
         "present_but_empty_total": dict(tot_empty),
@@ -217,7 +276,9 @@ def check_fields(units):
 def check_near_duplicates(units, jaccard_threshold=0.80, worst_n=20):
     ids = [str(u.get("id")) for u in units]
     titles = [str(u.get("title") or "") for u in units]
-    combined = [f'{u.get("title") or ""} {u.get("question_or_target") or ""}' for u in units]
+    combined = [
+        f"{u.get('title') or ''} {u.get('question_or_target') or ''}" for u in units
+    ]
     norm_comb = [norm_string(c) for c in combined]
     norm_title = [norm_string(t) for t in titles]
     tok_sets = [frozenset(norm_tokens(c)) for c in combined]
@@ -273,13 +334,21 @@ def check_near_duplicates(units, jaccard_threshold=0.80, worst_n=20):
     max_pair = None
     if top_pairs:
         j, ia, ib = top_pairs[0]
-        max_pair = {"jaccard": j, "ids": [ids[ia], ids[ib]],
-                    "titles": [titles[ia], titles[ib]],
-                    "files": [units[ia]["__file"], units[ib]["__file"]]}
-    top20_pairs = [{"jaccard": j, "ids": [ids[x], ids[y]],
-                    "titles": [titles[x], titles[y]],
-                    "files": [units[x]["__file"], units[y]["__file"]]}
-                   for j, x, y in top_pairs[:20]]
+        max_pair = {
+            "jaccard": j,
+            "ids": [ids[ia], ids[ib]],
+            "titles": [titles[ia], titles[ib]],
+            "files": [units[ia]["__file"], units[ib]["__file"]],
+        }
+    top20_pairs = [
+        {
+            "jaccard": j,
+            "ids": [ids[x], ids[y]],
+            "titles": [titles[x], titles[y]],
+            "files": [units[x]["__file"], units[y]["__file"]],
+        }
+        for j, x, y in top_pairs[:20]
+    ]
 
     parent = list(range(len(units)))
 
@@ -308,24 +377,31 @@ def check_near_duplicates(units, jaccard_threshold=0.80, worst_n=20):
     cl = []
     for root, members in comp.items():
         js = pair_by_comp.get(root, [])
-        cl.append({
-            "size": len(members),
-            "mean_jaccard": round(sum(js) / len(js), 4) if js else None,
-            "max_jaccard": max(js) if js else None,
-            "ids": [ids[i] for i in sorted(members)],
-            "files": sorted({units[i]["__file"] for i in members}),
-            "titles": [titles[i] for i in sorted(members)],
-        })
+        cl.append(
+            {
+                "size": len(members),
+                "mean_jaccard": round(sum(js) / len(js), 4) if js else None,
+                "max_jaccard": max(js) if js else None,
+                "ids": [ids[i] for i in sorted(members)],
+                "files": sorted({units[i]["__file"] for i in members}),
+                "titles": [titles[i] for i in sorted(members)],
+            }
+        )
     cl.sort(key=lambda c: (-c["size"], -(c["mean_jaccard"] or 0)))
 
     def render(cd, kind):
         out = []
         for key, idxs in cd.items():
-            out.append({"kind": kind, "size": len(idxs),
-                        "normalised_key": key[:240],
-                        "ids": [ids[i] for i in idxs],
-                        "files": sorted({units[i]["__file"] for i in idxs}),
-                        "titles": [titles[i] for i in idxs]})
+            out.append(
+                {
+                    "kind": kind,
+                    "size": len(idxs),
+                    "normalised_key": key[:240],
+                    "ids": [ids[i] for i in idxs],
+                    "files": sorted({units[i]["__file"] for i in idxs}),
+                    "titles": [titles[i] for i in idxs],
+                }
+            )
         out.sort(key=lambda c: -c["size"])
         return out
 
@@ -333,10 +409,14 @@ def check_near_duplicates(units, jaccard_threshold=0.80, worst_n=20):
         "jaccard_threshold": jaccard_threshold,
         "scan_floor": scan,
         "pair_count_at_threshold": len(pairs),
-        "pair_count_by_threshold": {str(k): v for k, v in sorted(hist.items(), reverse=True)},
+        "pair_count_by_threshold": {
+            str(k): v for k, v in sorted(hist.items(), reverse=True)
+        },
         "max_pairwise_jaccard": max_pair,
         "top_20_most_similar_pairs": top20_pairs,
-        "exact_normalised_title_plus_target_clusters": render(exact_comb, "exact-title+target"),
+        "exact_normalised_title_plus_target_clusters": render(
+            exact_comb, "exact-title+target"
+        ),
         "exact_normalised_title_clusters": render(exact_title, "exact-title"),
         "bag_of_words_identical_clusters": render(bag, "same-token-bag"),
         "units_in_high_overlap_cluster": len(involved),
@@ -369,7 +449,9 @@ def check_dependencies(units):
                 continue
             if ID_RE.match(d):
                 if d not in ids:
-                    unresolved.append({"id": uid, "dep": d, "at": f'{u["__file"]}[{u["__idx"]}]'})
+                    unresolved.append(
+                        {"id": uid, "dep": d, "at": f"{u['__file']}[{u['__idx']}]"}
+                    )
                 elif d == uid:
                     self_dep.append(uid)
                 else:
@@ -379,7 +461,9 @@ def check_dependencies(units):
                 if d not in LEGAL_BUCKETS:
                     illegal_bucket.append({"id": uid, "dep": d})
             else:
-                unknown_form.append({"id": uid, "dep": d, "at": f'{u["__file"]}[{u["__idx"]}]'})
+                unknown_form.append(
+                    {"id": uid, "dep": d, "at": f"{u['__file']}[{u['__idx']}]"}
+                )
 
     # cycle detection (iterative Tarjan) over unit-id edges only
     index = {}
@@ -426,8 +510,11 @@ def check_dependencies(units):
                 if len(comp) > 1:
                     sccs.append(sorted(comp))
     return {
-        "total_dependency_refs": sum(len(u.get("dependencies") or []) for u in units
-                                     if isinstance(u.get("dependencies"), list)),
+        "total_dependency_refs": sum(
+            len(u.get("dependencies") or [])
+            for u in units
+            if isinstance(u.get("dependencies"), list)
+        ),
         "unresolved_unit_id_refs": unresolved,
         "unresolved_unit_id_ref_count": len(unresolved),
         "bucket_refs": dict(bucket_refs),
@@ -447,9 +534,13 @@ def check_phases(units):
     table = {p: counts.get(p, 0) for p in CANONICAL_PHASES}
     zero = [p for p, n in table.items() if n == 0]
     unknown = {p: n for p, n in counts.items() if p not in CANONICAL_PHASES}
-    return {"canonical_phase_ids": CANONICAL_PHASES, "units_per_phase": table,
-            "phases_with_zero_units": zero, "phases_with_zero_units_count": len(zero),
-            "non_canonical_phase_values": unknown}
+    return {
+        "canonical_phase_ids": CANONICAL_PHASES,
+        "units_per_phase": table,
+        "phases_with_zero_units": zero,
+        "phases_with_zero_units_count": len(zero),
+        "non_canonical_phase_values": unknown,
+    }
 
 
 def check_buckets(units):
@@ -462,11 +553,13 @@ def check_buckets(units):
     for u in units:
         m = ID_RE.match(str(u.get("id")))
         inferred[m.group(1) if m else "UNKNOWN"] += 1
-    return {"declared_bucket_counts": dict(declared),
-            "declared_bucket_coverage": f"{sum(declared.values())}/{len(units)}",
-            "id_prefix_counts": dict(inferred),
-            "spec_bucket_quota": BUCKET_QUOTA,
-            "spec_bucket_quota_sum": sum(BUCKET_QUOTA.values())}
+    return {
+        "declared_bucket_counts": dict(declared),
+        "declared_bucket_coverage": f"{sum(declared.values())}/{len(units)}",
+        "id_prefix_counts": dict(inferred),
+        "spec_bucket_quota": BUCKET_QUOTA,
+        "spec_bucket_quota_sum": sum(BUCKET_QUOTA.values()),
+    }
 
 
 def audit(slice_dir: str, jaccard_threshold=0.80):
@@ -477,8 +570,9 @@ def audit(slice_dir: str, jaccard_threshold=0.80):
         "files": per_file,
         "file_count": len(per_file),
         "files_that_failed_to_parse": [f["file"] for f in per_file if not f["parses"]],
-        "files_with_structural_error": [{"file": f["file"], "error": f["error"]}
-                                        for f in per_file if f["error"]],
+        "files_with_structural_error": [
+            {"file": f["file"], "error": f["error"]} for f in per_file if f["error"]
+        ],
         "unit_count_total": total,
         "unit_count_per_file": {f["file"]: f["unit_count"] for f in per_file},
         "target_units": TARGET_UNITS,
@@ -572,10 +666,14 @@ def seed_defects(src: str, dst: str):
     seeded["zero_phase"] = {"phase": "16", "units_removed": removed}
     # self-check the seeder: the strip must actually have landed on disk.
     left = 0
-    for fn in sorted(f for f in os.listdir(dst) if f.endswith(".json") and f != "BROKEN-SEED.json"):
+    for fn in sorted(
+        f for f in os.listdir(dst) if f.endswith(".json") and f != "BROKEN-SEED.json"
+    ):
         left += sum(1 for u in load(fn) if str(u.get("phase")) == "16")
     seeded["zero_phase"]["phase16_units_remaining_after_strip"] = left
-    seeded["zero_phase"]["seeder_self_check"] = "OK" if left == 0 else "SEEDER-BUG: strip reverted"
+    seeded["zero_phase"]["seeder_self_check"] = (
+        "OK" if left == 0 else "SEEDER-BUG: strip reverted"
+    )
 
     # 9. unparseable file (truncate a copy)
     with open(os.path.join(dst, "BROKEN-SEED.json"), "w", encoding="utf-8") as fh:
@@ -589,59 +687,82 @@ def control(real_report, seeded_dir, seeded, real_units=None):
     res = []
 
     def add(name, fired_on_bad, silent_on_good, detail):
-        res.append({"detector": name, "fires_on_seeded_defect": bool(fired_on_bad),
-                    "silent_on_real_corpus_for_that_defect": bool(silent_on_good),
-                    "both_states_pass": bool(fired_on_bad and silent_on_good),
-                    "detail": detail})
+        res.append(
+            {
+                "detector": name,
+                "fires_on_seeded_defect": bool(fired_on_bad),
+                "silent_on_real_corpus_for_that_defect": bool(silent_on_good),
+                "both_states_pass": bool(fired_on_bad and silent_on_good),
+                "detail": detail,
+            }
+        )
 
     dup = seeded["duplicate_id"]
-    add("duplicate_id",
+    add(
+        "duplicate_id",
         dup in bad["ids"]["duplicate_ids"],
         dup not in real_report["ids"]["duplicate_ids"],
-        f'seeded id {dup}; bad-state dup entries={len(bad["ids"]["duplicate_ids"])}, '
-        f'real-state dup entries={len(real_report["ids"]["duplicate_ids"])}')
+        f"seeded id {dup}; bad-state dup entries={len(bad['ids']['duplicate_ids'])}, "
+        f"real-state dup entries={len(real_report['ids']['duplicate_ids'])}",
+    )
 
     f = seeded["absent_field"]["field"]
-    add("missing_required_field",
-        bad["fields"]["missing_absent_key_total"].get(f, 0) >
-        real_report["fields"]["missing_absent_key_total"].get(f, 0),
+    add(
+        "missing_required_field",
+        bad["fields"]["missing_absent_key_total"].get(f, 0)
+        > real_report["fields"]["missing_absent_key_total"].get(f, 0),
         real_report["fields"]["missing_absent_key_total"].get(f, 0) == 0,
-        f'field {f}: bad={bad["fields"]["missing_absent_key_total"].get(f, 0)} '
-        f'real={real_report["fields"]["missing_absent_key_total"].get(f, 0)}')
+        f"field {f}: bad={bad['fields']['missing_absent_key_total'].get(f, 0)} "
+        f"real={real_report['fields']['missing_absent_key_total'].get(f, 0)}",
+    )
 
     ef = seeded["empty_field"]["field"]
-    add("present_but_empty_field",
-        bad["fields"]["present_but_empty_total"].get(ef, 0) >
-        real_report["fields"]["present_but_empty_total"].get(ef, 0),
+    add(
+        "present_but_empty_field",
+        bad["fields"]["present_but_empty_total"].get(ef, 0)
+        > real_report["fields"]["present_but_empty_total"].get(ef, 0),
         real_report["fields"]["present_but_empty_total"].get(ef, 0) == 0,
-        f'field {ef}: bad={bad["fields"]["present_but_empty_total"].get(ef, 0)} '
-        f'real={real_report["fields"]["present_but_empty_total"].get(ef, 0)}')
+        f"field {ef}: bad={bad['fields']['present_but_empty_total'].get(ef, 0)} "
+        f"real={real_report['fields']['present_but_empty_total'].get(ef, 0)}",
+    )
 
     badids = {x["id"] for x in bad["ids"]["bad_format_ids"]}
-    add("id_format",
+    add(
+        "id_format",
         seeded["bad_format_id"] in badids,
         len(real_report["ids"]["bad_format_ids"]) == 0,
-        f'bad-state bad-format={sorted(badids)}, real-state bad-format='
-        f'{[x["id"] for x in real_report["ids"]["bad_format_ids"]]}')
+        f"bad-state bad-format={sorted(badids)}, real-state bad-format="
+        f"{[x['id'] for x in real_report['ids']['bad_format_ids']]}",
+    )
 
     dd = {x["dep"] for x in bad["dependencies"]["unresolved_unit_id_refs"]}
-    add("dangling_dependency",
+    add(
+        "dangling_dependency",
         seeded["dangling_dep"]["dep"] in dd,
         real_report["dependencies"]["unresolved_unit_id_ref_count"] == 0,
-        f'bad-state unresolved={sorted(dd)}, real-state unresolved='
-        f'{real_report["dependencies"]["unresolved_unit_id_ref_count"]}')
+        f"bad-state unresolved={sorted(dd)}, real-state unresolved="
+        f"{real_report['dependencies']['unresolved_unit_id_ref_count']}",
+    )
 
     # Control predicate is "the SEEDED cycle is absent from the real corpus", NOT "the real
     # corpus has zero cycles". The real corpus contains a genuine cycle; conflating the two
     # would report a working detector as broken and bury a real defect as a control artifact.
-    cyc_hit = any(set(seeded["cycle"]).issubset(set(c)) for c in bad["dependencies"]["cycles"])
-    cyc_silent = not any(set(seeded["cycle"]).issubset(set(c))
-                         for c in real_report["dependencies"]["cycles"])
-    add("dependency_cycle", cyc_hit, cyc_silent,
-        f'seeded cycle {seeded["cycle"]}; bad-state cycles={bad["dependencies"]["cycles"]}, '
-        f'real-state cycles={real_report["dependencies"]["cycles"]} '
-        f'(count={real_report["dependencies"]["cycle_count"]} - these are GENUINE catalog '
-        f'defects, not control artifacts)')
+    cyc_hit = any(
+        set(seeded["cycle"]).issubset(set(c)) for c in bad["dependencies"]["cycles"]
+    )
+    cyc_silent = not any(
+        set(seeded["cycle"]).issubset(set(c))
+        for c in real_report["dependencies"]["cycles"]
+    )
+    add(
+        "dependency_cycle",
+        cyc_hit,
+        cyc_silent,
+        f"seeded cycle {seeded['cycle']}; bad-state cycles={bad['dependencies']['cycles']}, "
+        f"real-state cycles={real_report['dependencies']['cycles']} "
+        f"(count={real_report['dependencies']['cycle_count']} - these are GENUINE catalog "
+        f"defects, not control artifacts)",
+    )
 
     rid = seeded["exact_dup_content"]["recipient"]
     did = seeded["exact_dup_content"]["donor"]
@@ -652,23 +773,31 @@ def control(real_report, seeded_dir, seeded, real_units=None):
                 return True
         return False
 
-    add("exact_duplicate_content", pair_in(bad), not pair_in(real_report),
-        f'seeded pair {did}=={rid}; bad-state exact clusters='
-        f'{len(bad["near_duplicates"]["exact_normalised_title_plus_target_clusters"])}, '
-        f'real-state exact clusters='
-        f'{len(real_report["near_duplicates"]["exact_normalised_title_plus_target_clusters"])}')
+    add(
+        "exact_duplicate_content",
+        pair_in(bad),
+        not pair_in(real_report),
+        f"seeded pair {did}=={rid}; bad-state exact clusters="
+        f"{len(bad['near_duplicates']['exact_normalised_title_plus_target_clusters'])}, "
+        f"real-state exact clusters="
+        f"{len(real_report['near_duplicates']['exact_normalised_title_plus_target_clusters'])}",
+    )
 
-    add("zero_coverage_phase",
+    add(
+        "zero_coverage_phase",
         "16" in bad["phases"]["phases_with_zero_units"],
         "16" not in real_report["phases"]["phases_with_zero_units"],
-        f'bad-state zero phases={bad["phases"]["phases_with_zero_units"]}, real-state zero '
-        f'phases={real_report["phases"]["phases_with_zero_units"]}')
+        f"bad-state zero phases={bad['phases']['phases_with_zero_units']}, real-state zero "
+        f"phases={real_report['phases']['phases_with_zero_units']}",
+    )
 
-    add("unparseable_file",
+    add(
+        "unparseable_file",
         seeded["parse_failure_file"] in bad["files_that_failed_to_parse"],
         len(real_report["files_that_failed_to_parse"]) == 0,
-        f'bad-state parse failures={bad["files_that_failed_to_parse"]}, real-state parse '
-        f'failures={real_report["files_that_failed_to_parse"]}')
+        f"bad-state parse failures={bad['files_that_failed_to_parse']}, real-state parse "
+        f"failures={real_report['files_that_failed_to_parse']}",
+    )
 
     # The JACCARD path needs its own control. The exact-string detector above cannot
     # exercise it, and it reported ZERO high-overlap pairs on the real corpus - a number
@@ -682,23 +811,33 @@ def control(real_report, seeded_dir, seeded, real_units=None):
         clone = dict(donor)
         clone["id"] = "ZZZ-0001"
         clone["__file"] = "synthetic-clone.json"
-        cl = check_near_duplicates(list(real_units) + [clone],
-                                  real_report["near_duplicates"]["jaccard_threshold"])
-        clone_fires = any("ZZZ-0001" in c["ids"] and donor["id"] in c["ids"]
-                          for c in cl["high_overlap_clusters_worst"])
+        cl = check_near_duplicates(
+            list(real_units) + [clone],
+            real_report["near_duplicates"]["jaccard_threshold"],
+        )
+        clone_fires = any(
+            "ZZZ-0001" in c["ids"] and donor["id"] in c["ids"]
+            for c in cl["high_overlap_clusters_worst"]
+        )
         clone_detail = (
-            f'injected an exact clone of {donor["id"]} as ZZZ-0001 into the real corpus: '
-            f'pairs>=threshold={cl["pair_count_at_threshold"]}, clustered={clone_fires}. '
-            f'Un-injected real corpus: pairs>=threshold='
-            f'{real_report["near_duplicates"]["pair_count_at_threshold"]}, '
-            f'max pairwise J={real_report["near_duplicates"]["max_pairwise_jaccard"]}')
+            f"injected an exact clone of {donor['id']} as ZZZ-0001 into the real corpus: "
+            f"pairs>=threshold={cl['pair_count_at_threshold']}, clustered={clone_fires}. "
+            f"Un-injected real corpus: pairs>=threshold="
+            f"{real_report['near_duplicates']['pair_count_at_threshold']}, "
+            f"max pairwise J={real_report['near_duplicates']['max_pairwise_jaccard']}"
+        )
     add("jaccard_near_duplicate", clone_fires, clone_silent, clone_detail)
 
-    return {"seeded": seeded, "results": res,
-            "detectors_total": len(res),
-            "detectors_both_states_pass": sum(1 for r in res if r["both_states_pass"]),
-            "verdict": "CONFIRMED" if all(r["both_states_pass"] for r in res) else "REFUTED",
-            "seeded_corpus_unit_count": bad["unit_count_total"]}
+    return {
+        "seeded": seeded,
+        "results": res,
+        "detectors_total": len(res),
+        "detectors_both_states_pass": sum(1 for r in res if r["both_states_pass"]),
+        "verdict": "CONFIRMED"
+        if all(r["both_states_pass"] for r in res)
+        else "REFUTED",
+        "seeded_corpus_unit_count": bad["unit_count_total"],
+    }
 
 
 # ---------------------------------------------------------------- md renderer
@@ -708,31 +847,47 @@ def render_md(rep):
     c = rep["detector_control"]
     L.append("# CATALOG-INTEGRITY - mechanical audit of command-center/catalog-slices/")
     L.append("")
-    L.append(f'Generated: {rep["generated_utc"]} by `command-center/_catalog_integrity.py`')
+    L.append(
+        f"Generated: {rep['generated_utc']} by `command-center/_catalog_integrity.py`"
+    )
     L.append("")
     L.append("## Headline")
     L.append("")
-    L.append(f'- **{a["unit_count_total"]} units** across {a["file_count"]} slice files, '
-             f'target {a["target_units"]} -> **shortfall {a["shortfall_vs_target"]}**')
-    L.append(f'- files that failed to parse: **{len(a["files_that_failed_to_parse"])}** '
-             f'{a["files_that_failed_to_parse"] or ""}')
-    L.append(f'- duplicate ids: **{a["ids"]["duplicate_id_count"]}**')
-    L.append(f'- malformed ids (not CODE-NNNN): **{len(a["ids"]["bad_format_ids"])}**')
-    L.append(f'- phases with ZERO units: **{a["phases"]["phases_with_zero_units_count"]}** '
-             f'{a["phases"]["phases_with_zero_units"] or ""}')
-    L.append(f'- unresolved dependency refs: **{a["dependencies"]["unresolved_unit_id_ref_count"]}** '
-             f'unit-id + **{a["dependencies"]["unknown_form_ref_count"]}** unknown-form')
-    L.append(f'- dependency cycles: **{a["dependencies"]["cycle_count"]}**')
+    L.append(
+        f"- **{a['unit_count_total']} units** across {a['file_count']} slice files, "
+        f"target {a['target_units']} -> **shortfall {a['shortfall_vs_target']}**"
+    )
+    L.append(
+        f"- files that failed to parse: **{len(a['files_that_failed_to_parse'])}** "
+        f"{a['files_that_failed_to_parse'] or ''}"
+    )
+    L.append(f"- duplicate ids: **{a['ids']['duplicate_id_count']}**")
+    L.append(f"- malformed ids (not CODE-NNNN): **{len(a['ids']['bad_format_ids'])}**")
+    L.append(
+        f"- phases with ZERO units: **{a['phases']['phases_with_zero_units_count']}** "
+        f"{a['phases']['phases_with_zero_units'] or ''}"
+    )
+    L.append(
+        f"- unresolved dependency refs: **{a['dependencies']['unresolved_unit_id_ref_count']}** "
+        f"unit-id + **{a['dependencies']['unknown_form_ref_count']}** unknown-form"
+    )
+    L.append(f"- dependency cycles: **{a['dependencies']['cycle_count']}**")
     nd = a["near_duplicates"]
-    L.append(f'- exact normalised title+target duplicate clusters: '
-             f'**{len(nd["exact_normalised_title_plus_target_clusters"])}**; '
-             f'exact title-only clusters: **{len(nd["exact_normalised_title_clusters"])}**')
-    L.append(f'- units inside a Jaccard>={nd["jaccard_threshold"]} overlap cluster: '
-             f'**{nd["units_in_high_overlap_cluster"]}** in '
-             f'**{nd["high_overlap_cluster_count"]}** clusters')
-    L.append(f'- detector control: **{c["verdict"]}** '
-             f'({c["detectors_both_states_pass"]}/{c["detectors_total"]} detectors fire on a '
-             f'seeded defect AND stay silent on the real corpus)')
+    L.append(
+        f"- exact normalised title+target duplicate clusters: "
+        f"**{len(nd['exact_normalised_title_plus_target_clusters'])}**; "
+        f"exact title-only clusters: **{len(nd['exact_normalised_title_clusters'])}**"
+    )
+    L.append(
+        f"- units inside a Jaccard>={nd['jaccard_threshold']} overlap cluster: "
+        f"**{nd['units_in_high_overlap_cluster']}** in "
+        f"**{nd['high_overlap_cluster_count']}** clusters"
+    )
+    L.append(
+        f"- detector control: **{c['verdict']}** "
+        f"({c['detectors_both_states_pass']}/{c['detectors_total']} detectors fire on a "
+        f"seeded defect AND stay silent on the real corpus)"
+    )
     L.append("")
 
     L.append("## 1. File existence and parse")
@@ -740,72 +895,98 @@ def render_md(rep):
     L.append("| file | bytes | parses | units | error |")
     L.append("|---|---:|---|---:|---|")
     for f in a["files"]:
-        L.append(f'| {f["file"]} | {f["bytes"]} | {"yes" if f["parses"] else "**NO**"} | '
-                 f'{f["unit_count"]} | {f["error"] or ""} |')
+        L.append(
+            f"| {f['file']} | {f['bytes']} | {'yes' if f['parses'] else '**NO**'} | "
+            f"{f['unit_count']} | {f['error'] or ''} |"
+        )
     L.append("")
 
     L.append("## 2. Unit counts and where the shortfall lives")
     L.append("")
-    L.append(f'Total **{a["unit_count_total"]}** / target **{a["target_units"]}** '
-             f'= shortfall **{a["shortfall_vs_target"]}**.')
+    L.append(
+        f"Total **{a['unit_count_total']}** / target **{a['target_units']}** "
+        f"= shortfall **{a['shortfall_vs_target']}**."
+    )
     L.append("")
     at = rep.get("shortfall_attribution")
     if at and not at.get("stale"):
-        L.append(f'Attribution verdict: **{at["verdict"]}**')
+        L.append(f"Attribution verdict: **{at['verdict']}**")
         L.append("")
         L.append("| id family | units | bucket | quota | deficit | mapping basis |")
         L.append("|---|---:|---|---:|---:|---|")
         for r in at["family_rows"]:
             d = r["deficit"]
-            L.append(f'| {r["family"]} | {r["units"]} | {r["bucket"]} | {r["quota"]} | '
-                     f'{"**" + str(d) + "**" if d else d} | {r["mapping_basis"]} |')
+            L.append(
+                f"| {r['family']} | {r['units']} | {r['bucket']} | {r['quota']} | "
+                f"{'**' + str(d) + '**' if d else d} | {r['mapping_basis']} |"
+            )
         L.append("")
-        L.append(f'Sum of per-family deficits = **{at["sum_of_family_deficits"]}**, global '
-                 f'shortfall = **{at["global_shortfall"]}**, exact match = '
-                 f'**{at["deficits_explain_shortfall_exactly"]}**. Bucket-mapping collisions: '
-                 f'{at["bucket_mapping_collisions"] or "none"}. Buckets with no id family: '
-                 f'{at["buckets_with_no_family"] or "none"}.')
+        L.append(
+            f"Sum of per-family deficits = **{at['sum_of_family_deficits']}**, global "
+            f"shortfall = **{at['global_shortfall']}**, exact match = "
+            f"**{at['deficits_explain_shortfall_exactly']}**. Bucket-mapping collisions: "
+            f"{at['bucket_mapping_collisions'] or 'none'}. Buckets with no id family: "
+            f"{at['buckets_with_no_family'] or 'none'}."
+        )
         L.append("")
-        L.append("Ids the slice authors skipped (never written, not merely renumbered):")
+        L.append(
+            "Ids the slice authors skipped (never written, not merely renumbered):"
+        )
         L.append("")
         for p, h in (at["numbering_holes"] or {}).items():
-            L.append(f'- **{p}**: {h["count"]} units, highest id `{p}-{h["max_id"]:04d}`, '
-                     f'**{len(h["missing_ids"])} missing**: {h["missing_ids"]}')
+            L.append(
+                f"- **{p}**: {h['count']} units, highest id `{p}-{h['max_id']:04d}`, "
+                f"**{len(h['missing_ids'])} missing**: {h['missing_ids']}"
+            )
         if not at["numbering_holes"]:
             L.append("- none")
         L.append("")
     elif at:
-        L.append(f'Shortfall attribution: {at.get("note")}')
+        L.append(f"Shortfall attribution: {at.get('note')}")
         L.append("")
     else:
-        L.append('Shortfall attribution: NOT-CHECKED (run `_catalog_shortfall_attrib.py`).')
+        L.append(
+            "Shortfall attribution: NOT-CHECKED (run `_catalog_shortfall_attrib.py`)."
+        )
         L.append("")
 
     L.append("## 3. Duplicate ids across all files")
     L.append("")
     if not a["ids"]["duplicate_ids"]:
-        L.append(f'None. {a["unit_count_total"]} units carry '
-                 f'{a["unit_count_total"] - a["ids"]["duplicate_id_count"]} distinct ids.')
+        L.append(
+            f"None. {a['unit_count_total']} units carry "
+            f"{a['unit_count_total'] - a['ids']['duplicate_id_count']} distinct ids."
+        )
     else:
         L.append("| id | occurrences |")
         L.append("|---|---|")
         for k, v in sorted(a["ids"]["duplicate_ids"].items()):
-            L.append(f'| {k} | {", ".join(v)} |')
+            L.append(f"| {k} | {', '.join(v)} |")
     L.append("")
 
     L.append("## 4. ID format and sequence")
     L.append("")
-    L.append(f'Malformed (not `CODE-NNNN`): {len(a["ids"]["bad_format_ids"])} '
-             f'{a["ids"]["bad_format_ids"] or ""}')
+    L.append(
+        f"Malformed (not `CODE-NNNN`): {len(a['ids']['bad_format_ids'])} "
+        f"{a['ids']['bad_format_ids'] or ''}"
+    )
     L.append("")
-    L.append("| prefix | count | distinct | min | max | contiguous 1..N | gaps | repeated |")
+    L.append(
+        "| prefix | count | distinct | min | max | contiguous 1..N | gaps | repeated |"
+    )
     L.append("|---|---:|---:|---:|---:|---|---|---|")
     for p, s in a["ids"]["sequence_by_prefix"].items():
         gaps = s["gaps_in_1_to_max"]
-        gs = "none" if not gaps else (f'{len(gaps)}: {gaps[:12]}{"..." if len(gaps) > 12 else ""}')
-        L.append(f'| {p} | {s["count"]} | {s["distinct"]} | {s["min"]} | {s["max"]} | '
-                 f'{"yes" if s["contiguous_from_1"] else "**NO**"} | {gs} | '
-                 f'{s["repeated_numbers"] or "none"} |')
+        gs = (
+            "none"
+            if not gaps
+            else (f"{len(gaps)}: {gaps[:12]}{'...' if len(gaps) > 12 else ''}")
+        )
+        L.append(
+            f"| {p} | {s['count']} | {s['distinct']} | {s['min']} | {s['max']} | "
+            f"{'yes' if s['contiguous_from_1'] else '**NO**'} | {gs} | "
+            f"{s['repeated_numbers'] or 'none'} |"
+        )
     L.append("")
 
     L.append("## 5. Required-field coverage")
@@ -815,114 +996,148 @@ def render_md(rep):
     L.append("| field | absent key | present-but-empty |")
     L.append("|---|---:|---:|")
     for f in a["fields"]["required_field_set"]:
-        L.append(f'| {f} | {a["fields"]["missing_absent_key_total"].get(f, 0)} | '
-                 f'{a["fields"]["present_but_empty_total"].get(f, 0)} |')
+        L.append(
+            f"| {f} | {a['fields']['missing_absent_key_total'].get(f, 0)} | "
+            f"{a['fields']['present_but_empty_total'].get(f, 0)} |"
+        )
     L.append("")
     for f, bybk in sorted(a["fields"]["missing_absent_key_by_bucket"].items()):
-        L.append(f'- absent `{f}` by bucket: {dict(sorted(bybk.items()))}')
+        L.append(f"- absent `{f}` by bucket: {dict(sorted(bybk.items()))}")
     for f, bybk in sorted(a["fields"]["present_but_empty_by_bucket"].items()):
-        L.append(f'- empty `{f}` by bucket: {dict(sorted(bybk.items()))}')
+        L.append(f"- empty `{f}` by bucket: {dict(sorted(bybk.items()))}")
     L.append("")
-    L.append(f'Auxiliary (non-required) field presence out of {a["unit_count_total"]}: '
-             f'{a["fields"]["auxiliary_field_presence"]}')
+    L.append(
+        f"Auxiliary (non-required) field presence out of {a['unit_count_total']}: "
+        f"{a['fields']['auxiliary_field_presence']}"
+    )
     L.append("")
 
     L.append("## 6. Near-duplicate / padding analysis (the substantive check)")
     L.append("")
-    L.append(f'Normalisation: lowercase `title + question_or_target`, strip non-alphanumerics, '
-             f'drop {len(STOPWORDS)} stopwords and <=2-char tokens (keeping {sorted(KEEP_SHORT)}).')
+    L.append(
+        f"Normalisation: lowercase `title + question_or_target`, strip non-alphanumerics, "
+        f"drop {len(STOPWORDS)} stopwords and <=2-char tokens (keeping {sorted(KEEP_SHORT)})."
+    )
     L.append("")
-    L.append(f'- scan floor {nd["scan_floor"]} (pairs are enumerated down to this Jaccard, so '
-             f'the buckets below the reporting threshold are real counts, not prune artifacts)')
+    L.append(
+        f"- scan floor {nd['scan_floor']} (pairs are enumerated down to this Jaccard, so "
+        f"the buckets below the reporting threshold are real counts, not prune artifacts)"
+    )
     _hist = nd["pair_count_by_threshold"] or "none - no pair in the corpus reaches 0.30"
-    L.append(f'- pairs by Jaccard threshold: {_hist}')
+    L.append(f"- pairs by Jaccard threshold: {_hist}")
     mp = nd["max_pairwise_jaccard"]
     if mp:
-        L.append(f'- **maximum pairwise Jaccard in the whole catalog = {mp["jaccard"]}** '
-                 f'({mp["ids"][0]} vs {mp["ids"][1]})')
-        L.append(f'  - `{mp["titles"][0]}`')
-        L.append(f'  - `{mp["titles"][1]}`')
+        L.append(
+            f"- **maximum pairwise Jaccard in the whole catalog = {mp['jaccard']}** "
+            f"({mp['ids'][0]} vs {mp['ids'][1]})"
+        )
+        L.append(f"  - `{mp['titles'][0]}`")
+        L.append(f"  - `{mp['titles'][1]}`")
     else:
-        L.append('- maximum pairwise Jaccard: no pair reached the scan floor')
-    L.append(f'- exact normalised title+target clusters: '
-             f'{len(nd["exact_normalised_title_plus_target_clusters"])}')
-    L.append(f'- exact normalised title-only clusters: '
-             f'{len(nd["exact_normalised_title_clusters"])}')
-    L.append(f'- identical token-bag clusters: {len(nd["bag_of_words_identical_clusters"])}')
-    L.append(f'- Jaccard>={nd["jaccard_threshold"]} clusters: {nd["high_overlap_cluster_count"]} '
-             f'covering {nd["units_in_high_overlap_cluster"]} units; '
-             f'sizes={nd["high_overlap_clusters_all_sizes"][:40]}')
+        L.append("- maximum pairwise Jaccard: no pair reached the scan floor")
+    L.append(
+        f"- exact normalised title+target clusters: "
+        f"{len(nd['exact_normalised_title_plus_target_clusters'])}"
+    )
+    L.append(
+        f"- exact normalised title-only clusters: "
+        f"{len(nd['exact_normalised_title_clusters'])}"
+    )
+    L.append(
+        f"- identical token-bag clusters: {len(nd['bag_of_words_identical_clusters'])}"
+    )
+    L.append(
+        f"- Jaccard>={nd['jaccard_threshold']} clusters: {nd['high_overlap_cluster_count']} "
+        f"covering {nd['units_in_high_overlap_cluster']} units; "
+        f"sizes={nd['high_overlap_clusters_all_sizes'][:40]}"
+    )
     L.append("")
     if nd["exact_normalised_title_plus_target_clusters"]:
         L.append("### Exact normalised title+target collisions")
         L.append("")
         for cl in nd["exact_normalised_title_plus_target_clusters"][:20]:
-            L.append(f'- **{cl["size"]}x** {cl["ids"]} in {cl["files"]}')
+            L.append(f"- **{cl['size']}x** {cl['ids']} in {cl['files']}")
             for t in cl["titles"][:4]:
-                L.append(f'  - `{t}`')
+                L.append(f"  - `{t}`")
         L.append("")
     if nd["exact_normalised_title_clusters"]:
         L.append("### Exact normalised title-only collisions (top 20)")
         L.append("")
         for cl in nd["exact_normalised_title_clusters"][:20]:
-            L.append(f'- **{cl["size"]}x** {cl["ids"]} in {cl["files"]}')
-            L.append(f'  - `{cl["titles"][0]}`')
+            L.append(f"- **{cl['size']}x** {cl['ids']} in {cl['files']}")
+            L.append(f"  - `{cl['titles'][0]}`")
         L.append("")
-    L.append(f'### 20 worst high-overlap clusters (Jaccard>={nd["jaccard_threshold"]})')
+    L.append(f"### 20 worst high-overlap clusters (Jaccard>={nd['jaccard_threshold']})")
     L.append("")
     if not nd["high_overlap_clusters_worst"]:
-        L.append(f'**None.** Zero clusters exist at Jaccard>={nd["jaccard_threshold"]} - the '
-                 f'whole-catalog maximum is '
-                 f'{(nd["max_pairwise_jaccard"] or {}).get("jaccard")}, so no pair comes '
-                 f'close to the padding threshold. The detector is proved able to find a '
-                 f'planted clone in this same corpus (see the detector-control section), so '
-                 f'this zero is a measurement, not a silent detector.')
+        L.append(
+            f"**None.** Zero clusters exist at Jaccard>={nd['jaccard_threshold']} - the "
+            f"whole-catalog maximum is "
+            f"{(nd['max_pairwise_jaccard'] or {}).get('jaccard')}, so no pair comes "
+            f"close to the padding threshold. The detector is proved able to find a "
+            f"planted clone in this same corpus (see the detector-control section), so "
+            f"this zero is a measurement, not a silent detector."
+        )
     for i, cl in enumerate(nd["high_overlap_clusters_worst"], 1):
-        L.append(f'{i}. **size {cl["size"]}**, mean J={cl["mean_jaccard"]}, '
-                 f'max J={cl["max_jaccard"]}, files={cl["files"]}')
+        L.append(
+            f"{i}. **size {cl['size']}**, mean J={cl['mean_jaccard']}, "
+            f"max J={cl['max_jaccard']}, files={cl['files']}"
+        )
         for uid, t in zip(cl["ids"], cl["titles"]):
-            L.append(f'   - `{uid}` {t}')
+            L.append(f"   - `{uid}` {t}")
     L.append("")
     L.append("### 20 most-similar pairs in the catalog (ranked, no threshold)")
     L.append("")
     for i, p in enumerate(nd["top_20_most_similar_pairs"], 1):
-        L.append(f'{i}. J={p["jaccard"]} `{p["ids"][0]}` ({p["files"][0]}) vs '
-                 f'`{p["ids"][1]}` ({p["files"][1]})')
-        L.append(f'   - {p["titles"][0]}')
-        L.append(f'   - {p["titles"][1]}')
+        L.append(
+            f"{i}. J={p['jaccard']} `{p['ids'][0]}` ({p['files'][0]}) vs "
+            f"`{p['ids'][1]}` ({p['files'][1]})"
+        )
+        L.append(f"   - {p['titles'][0]}")
+        L.append(f"   - {p['titles'][1]}")
     L.append("")
     ex = rep["audit"].get("near_duplicates_exploratory_0_35")
     if ex:
         L.append("### 20 worst clusters at the exploratory Jaccard>=0.35 threshold")
         L.append("")
-        L.append(f'{ex["high_overlap_cluster_count"]} clusters covering '
-                 f'{ex["units_in_high_overlap_cluster"]} of {a["unit_count_total"]} units '
-                 f'({100.0 * ex["units_in_high_overlap_cluster"] / a["unit_count_total"]:.1f}%). '
-                 f'0.35 is a LOOSE threshold - these are thematic neighbours, not duplicates. '
-                 f'Listed so the "where is the overlap" question has a concrete answer.')
+        L.append(
+            f"{ex['high_overlap_cluster_count']} clusters covering "
+            f"{ex['units_in_high_overlap_cluster']} of {a['unit_count_total']} units "
+            f"({100.0 * ex['units_in_high_overlap_cluster'] / a['unit_count_total']:.1f}%). "
+            f"0.35 is a LOOSE threshold - these are thematic neighbours, not duplicates. "
+            f'Listed so the "where is the overlap" question has a concrete answer.'
+        )
         L.append("")
         for i, cl in enumerate(ex["high_overlap_clusters_worst"], 1):
-            L.append(f'{i}. **size {cl["size"]}**, mean J={cl["mean_jaccard"]}, '
-                     f'max J={cl["max_jaccard"]}, files={cl["files"]}')
+            L.append(
+                f"{i}. **size {cl['size']}**, mean J={cl['mean_jaccard']}, "
+                f"max J={cl['max_jaccard']}, files={cl['files']}"
+            )
             for uid, t in zip(cl["ids"], cl["titles"]):
-                L.append(f'   - `{uid}` {t}')
+                L.append(f"   - `{uid}` {t}")
         L.append("")
 
     L.append("## 7. Dependency resolution and cycles")
     L.append("")
     d = a["dependencies"]
-    L.append(f'- total dependency refs: {d["total_dependency_refs"]}')
-    L.append(f'- unresolved unit-id refs: **{d["unresolved_unit_id_ref_count"]}** '
-             f'{d["unresolved_unit_id_refs"][:10] or ""}')
-    L.append(f'- bucket-code refs: {d["bucket_refs"]} (legal set B01..B13 from '
-             f'PHASE-GRAPH.json allocation_buckets)')
-    L.append(f'- illegal bucket refs: {d["illegal_bucket_refs"] or "none"}')
-    L.append(f'- **unknown-form refs: {d["unknown_form_ref_count"]}** distinct '
-             f'{d["unknown_form_distinct"]}')
+    L.append(f"- total dependency refs: {d['total_dependency_refs']}")
+    L.append(
+        f"- unresolved unit-id refs: **{d['unresolved_unit_id_ref_count']}** "
+        f"{d['unresolved_unit_id_refs'][:10] or ''}"
+    )
+    L.append(
+        f"- bucket-code refs: {d['bucket_refs']} (legal set B01..B13 from "
+        f"PHASE-GRAPH.json allocation_buckets)"
+    )
+    L.append(f"- illegal bucket refs: {d['illegal_bucket_refs'] or 'none'}")
+    L.append(
+        f"- **unknown-form refs: {d['unknown_form_ref_count']}** distinct "
+        f"{d['unknown_form_distinct']}"
+    )
     for x in d["unknown_form_refs"][:40]:
-        L.append(f'  - `{x["id"]}` -> `{x["dep"]}` at {x["at"]}')
-    L.append(f'- self-dependencies: {d["self_dependencies"] or "none"}')
-    L.append(f'- **cycles: {d["cycle_count"]}** {d["cycles"][:10] or ""}')
+        L.append(f"  - `{x['id']}` -> `{x['dep']}` at {x['at']}")
+    L.append(f"- self-dependencies: {d['self_dependencies'] or 'none'}")
+    L.append(f"- **cycles: {d['cycle_count']}** {d['cycles'][:10] or ''}")
     L.append("")
 
     L.append("## 8. Units per phase (all 21 canonical phase ids)")
@@ -930,47 +1145,61 @@ def render_md(rep):
     L.append("| phase | units |")
     L.append("|---|---:|")
     for p, n in a["phases"]["units_per_phase"].items():
-        L.append(f'| {p} | {n}{"  **ZERO**" if n == 0 else ""} |')
+        L.append(f"| {p} | {n}{'  **ZERO**' if n == 0 else ''} |")
     L.append("")
-    L.append(f'Non-canonical phase values: {a["phases"]["non_canonical_phase_values"] or "none"}')
+    L.append(
+        f"Non-canonical phase values: {a['phases']['non_canonical_phase_values'] or 'none'}"
+    )
     L.append("")
 
     L.append("## 9. Bucket allocation")
     L.append("")
     b = a["buckets"]
-    L.append(f'- `bucket` field declared on {b["declared_bucket_coverage"]} units: '
-             f'{b["declared_bucket_counts"]}')
-    L.append(f'- id-prefix distribution: {b["id_prefix_counts"]}')
-    L.append(f'- spec quota (PHASE-GRAPH.json allocation_buckets, sum '
-             f'{b["spec_bucket_quota_sum"]}): {b["spec_bucket_quota"]}')
+    L.append(
+        f"- `bucket` field declared on {b['declared_bucket_coverage']} units: "
+        f"{b['declared_bucket_counts']}"
+    )
+    L.append(f"- id-prefix distribution: {b['id_prefix_counts']}")
+    L.append(
+        f"- spec quota (PHASE-GRAPH.json allocation_buckets, sum "
+        f"{b['spec_bucket_quota_sum']}): {b['spec_bucket_quota']}"
+    )
     L.append("")
 
     L.append("## 10. Detector control (seeded-defect / both-states test)")
     L.append("")
-    L.append(f'Verdict: **{c["verdict"]}** - {c["detectors_both_states_pass"]}/'
-             f'{c["detectors_total"]} detectors fire on a seeded defect in a scratch copy AND '
-             f'are silent on that same defect in the real corpus. A detector silent in both '
-             f'states measures nothing.')
+    L.append(
+        f"Verdict: **{c['verdict']}** - {c['detectors_both_states_pass']}/"
+        f"{c['detectors_total']} detectors fire on a seeded defect in a scratch copy AND "
+        f"are silent on that same defect in the real corpus. A detector silent in both "
+        f"states measures nothing."
+    )
     L.append("")
-    L.append("| detector | fires on seeded defect | silent on real corpus | both-states |")
+    L.append(
+        "| detector | fires on seeded defect | silent on real corpus | both-states |"
+    )
     L.append("|---|---|---|---|")
     for r in c["results"]:
-        L.append(f'| {r["detector"]} | {"YES" if r["fires_on_seeded_defect"] else "**NO**"} | '
-                 f'{"YES" if r["silent_on_real_corpus_for_that_defect"] else "**NO**"} | '
-                 f'{"PASS" if r["both_states_pass"] else "**FAIL**"} |')
+        L.append(
+            f"| {r['detector']} | {'YES' if r['fires_on_seeded_defect'] else '**NO**'} | "
+            f"{'YES' if r['silent_on_real_corpus_for_that_defect'] else '**NO**'} | "
+            f"{'PASS' if r['both_states_pass'] else '**FAIL**'} |"
+        )
     L.append("")
     for r in c["results"]:
-        L.append(f'- `{r["detector"]}`: {r["detail"]}')
+        L.append(f"- `{r['detector']}`: {r['detail']}")
     L.append("")
-    L.append(f'Seeded corpus unit count: {c["seeded_corpus_unit_count"]} '
-             f'(real {a["unit_count_total"]} minus the {c["seeded"]["zero_phase"]["units_removed"]} '
-             f'phase-16 units removed to seed the zero-coverage case, plus 0 added).')
+    L.append(
+        f"Seeded corpus unit count: {c['seeded_corpus_unit_count']} "
+        f"(real {a['unit_count_total']} minus the {c['seeded']['zero_phase']['units_removed']} "
+        f"phase-16 units removed to seed the zero-coverage case, plus 0 added)."
+    )
     L.append("")
     L.append("## 11. Merge into WORK-UNIT-CATALOG.json")
     L.append("")
     m = rep["merge"]
     for k, v in m.items():
-        L.append(f'- **{k}**: {v}')
+        L.append(f"- **{k}**: {v}")
     L.append("")
     return "\n".join(L)
 
@@ -992,17 +1221,19 @@ def do_merge(units, audit_rep):
 
     out = dict(existing)
     out["schema_version"] = 2
-    out["items"] = existing.get("items")          # PRESERVED byte-for-byte semantics
+    out["items"] = existing.get("items")  # PRESERVED byte-for-byte semantics
     out["work_units"] = clean
     out["work_units_meta"] = {
         "status": "MERGED from command-center/catalog-slices/*.json",
-        "preserved": ("The pre-existing PR #280 content is PRESERVED, not superseded: keys "
-                      "contract/defaults/provenance/terminal_dispositions/owner_questions and "
-                      f"the {before_items}-row `items` backlog are carried through unmodified. "
-                      "The 2,048-unit Prompt-Two decomposition is ADDED under the new "
-                      "`work_units` key because it uses a different (19-field Prompt-Two) "
-                      "schema than `items` (33-field backlog schema); merging them into one "
-                      "array would have destroyed both schemas."),
+        "preserved": (
+            "The pre-existing PR #280 content is PRESERVED, not superseded: keys "
+            "contract/defaults/provenance/terminal_dispositions/owner_questions and "
+            f"the {before_items}-row `items` backlog are carried through unmodified. "
+            "The 2,048-unit Prompt-Two decomposition is ADDED under the new "
+            "`work_units` key because it uses a different (19-field Prompt-Two) "
+            "schema than `items` (33-field backlog schema); merging them into one "
+            "array would have destroyed both schemas."
+        ),
         "pre_merge_sha256": before_sha,
         "pre_merge_items": before_items,
         "work_unit_count": len(clean),
@@ -1013,19 +1244,32 @@ def do_merge(units, audit_rep):
         "known_defects_at_merge": {
             "duplicate_ids": audit_rep["ids"]["duplicate_id_count"],
             "malformed_ids": len(audit_rep["ids"]["bad_format_ids"]),
-            "dangling_unit_id_refs": audit_rep["dependencies"]["unresolved_unit_id_ref_count"],
-            "unknown_form_dependency_refs": audit_rep["dependencies"]["unknown_form_ref_count"],
-            "unknown_form_dependency_tokens": audit_rep["dependencies"]["unknown_form_distinct"],
+            "dangling_unit_id_refs": audit_rep["dependencies"][
+                "unresolved_unit_id_ref_count"
+            ],
+            "unknown_form_dependency_refs": audit_rep["dependencies"][
+                "unknown_form_ref_count"
+            ],
+            "unknown_form_dependency_tokens": audit_rep["dependencies"][
+                "unknown_form_distinct"
+            ],
             "dependency_cycles": audit_rep["dependencies"]["cycle_count"],
             "self_dependencies": audit_rep["dependencies"]["self_dependencies"],
             "units_with_empty_dependencies": audit_rep["fields"][
-                "present_but_empty_total"].get("dependencies", 0),
+                "present_but_empty_total"
+            ].get("dependencies", 0),
             "units_missing_bucket_field": audit_rep["fields"][
-                "missing_absent_key_total"].get("bucket", 0),
+                "missing_absent_key_total"
+            ].get("bucket", 0),
             "phases_with_zero_units": audit_rep["phases"]["phases_with_zero_units"],
             "exact_duplicate_content_clusters": len(
-                audit_rep["near_duplicates"]["exact_normalised_title_plus_target_clusters"]),
-            "high_overlap_clusters": audit_rep["near_duplicates"]["high_overlap_cluster_count"],
+                audit_rep["near_duplicates"][
+                    "exact_normalised_title_plus_target_clusters"
+                ]
+            ),
+            "high_overlap_clusters": audit_rep["near_duplicates"][
+                "high_overlap_cluster_count"
+            ],
         },
     }
     tmp = cat_path + ".tmp"
@@ -1038,15 +1282,19 @@ def do_merge(units, audit_rep):
 
     # Preservation is proved against the PRISTINE PR #280 backup, not against whatever was
     # on disk a moment ago - this makes the claim hold even on a re-run of this script.
-    pristine_path = os.path.join(HERE, "WORK-UNIT-CATALOG.register-backup-20260809.json")
+    pristine_path = os.path.join(
+        HERE, "WORK-UNIT-CATALOG.register-backup-20260809.json"
+    )
     pristine_cmp = {"backup_present": os.path.isfile(pristine_path)}
     if pristine_cmp["backup_present"]:
         with open(pristine_path, encoding="utf-8") as fh:
             pristine = json.load(fh)
         pristine_cmp["backup_sha256"] = hashlib.sha256(
-            open(pristine_path, "rb").read()).hexdigest()
-        pristine_cmp["items_identical_to_pristine_backup"] = (
-            back.get("items") == pristine.get("items"))
+            open(pristine_path, "rb").read()
+        ).hexdigest()
+        pristine_cmp["items_identical_to_pristine_backup"] = back.get(
+            "items"
+        ) == pristine.get("items")
         pristine_cmp["pristine_items"] = len(pristine.get("items") or [])
         pristine_cmp["all_pristine_keys_preserved"] = {
             k: (back.get(k) == pristine.get(k)) for k in pristine
@@ -1062,8 +1310,14 @@ def do_merge(units, audit_rep):
         "items_identical": back.get("items") == existing.get("items"),
         "other_preexisting_keys_identical": all(
             back.get(k) == existing.get(k)
-            for k in ("contract", "defaults", "provenance", "terminal_dispositions",
-                      "owner_questions")),
+            for k in (
+                "contract",
+                "defaults",
+                "provenance",
+                "terminal_dispositions",
+                "owner_questions",
+            )
+        ),
         "work_units_after": len(back.get("work_units") or []),
         "roundtrip_parses": True,
     }
@@ -1077,13 +1331,19 @@ def main():
 
     print("[1/4] auditing real corpus ...", flush=True)
     a, units = audit(SLICES)
-    print(f'      {a["unit_count_total"]} units, {a["file_count"]} files', flush=True)
+    print(f"      {a['unit_count_total']} units, {a['file_count']} files", flush=True)
 
-    print("[2/4] seeding defects into scratch copy and running detector control ...", flush=True)
+    print(
+        "[2/4] seeding defects into scratch copy and running detector control ...",
+        flush=True,
+    )
     seeded = seed_defects(SLICES, SCRATCH)
     ctl = control(a, SCRATCH, seeded, real_units=units)
-    print(f'      control verdict={ctl["verdict"]} '
-          f'({ctl["detectors_both_states_pass"]}/{ctl["detectors_total"]})', flush=True)
+    print(
+        f"      control verdict={ctl['verdict']} "
+        f"({ctl['detectors_both_states_pass']}/{ctl['detectors_total']})",
+        flush=True,
+    )
 
     attrib = None
     attrib_path = os.path.join(HERE, "_catalog_shortfall_attrib_out.json")
@@ -1091,30 +1351,39 @@ def main():
         with open(attrib_path, encoding="utf-8") as fh:
             attrib = json.load(fh)
         if attrib.get("total_units") != a["unit_count_total"]:
-            attrib = {"stale": True,
-                      "note": (f'attribution ran against {attrib.get("total_units")} units but '
-                               f'the corpus now has {a["unit_count_total"]} - re-run '
-                               f'_catalog_shortfall_attrib.py')}
+            attrib = {
+                "stale": True,
+                "note": (
+                    f"attribution ran against {attrib.get('total_units')} units but "
+                    f"the corpus now has {a['unit_count_total']} - re-run "
+                    f"_catalog_shortfall_attrib.py"
+                ),
+            }
 
     print("[3/4] merging into WORK-UNIT-CATALOG.json ...", flush=True)
     merge = do_merge(units, a)
-    print(f'      {merge}', flush=True)
+    print(f"      {merge}", flush=True)
 
     rep = {
         "artifact": "CATALOG-INTEGRITY",
-        "generated_utc": datetime.datetime.now(datetime.timezone.utc)
-                                  .strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "generated_utc": datetime.datetime.now(datetime.timezone.utc).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        ),
         "generated_by": "command-center/_catalog_integrity.py",
-        "method": ("Mechanical. Every number is computed by this script over the raw slice "
-                   "JSON; nothing is eyeballed. Detector control = seeded-defect both-states "
-                   "test (rules/common/single-signal-verification.md 3b)."),
+        "method": (
+            "Mechanical. Every number is computed by this script over the raw slice "
+            "JSON; nothing is eyeballed. Detector control = seeded-defect both-states "
+            "test (rules/common/single-signal-verification.md 3b)."
+        ),
         "audit": a,
         "shortfall_attribution": attrib,
         "detector_control": ctl,
         "merge": merge,
     }
     print("[4/4] writing report ...", flush=True)
-    with open(os.path.join(HERE, "CATALOG-INTEGRITY.json"), "w", encoding="utf-8") as fh:
+    with open(
+        os.path.join(HERE, "CATALOG-INTEGRITY.json"), "w", encoding="utf-8"
+    ) as fh:
         json.dump(rep, fh, ensure_ascii=False, indent=1)
     with open(os.path.join(HERE, "CATALOG-INTEGRITY.md"), "w", encoding="utf-8") as fh:
         fh.write(render_md(rep))

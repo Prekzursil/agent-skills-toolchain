@@ -19,16 +19,22 @@ PROV = pathlib.Path(
 AGENTS_VAULT = pathlib.Path(r"C:/Users/Prekzursil/.agents/skills")
 recs = json.loads(PROV.read_text(encoding="utf-8"))
 
-TOMB = re.compile(r"\b(tombstone|MOVED\b|renamed to|is a redirect|redirect tombstone)\b", re.I)
+TOMB = re.compile(
+    r"\b(tombstone|MOVED\b|renamed to|is a redirect|redirect tombstone)\b", re.I
+)
 
 
 def read_primary(rec):
     for loc in rec["locations"]:
         if loc["kind"] == "agents-live":
-            return pathlib.Path(loc["path"]).read_text(encoding="utf-8", errors="replace")
+            return pathlib.Path(loc["path"]).read_text(
+                encoding="utf-8", errors="replace"
+            )
     for loc in rec["locations"]:
         if loc["kind"] == "claude-live":
-            return pathlib.Path(loc["path"]).read_text(encoding="utf-8", errors="replace")
+            return pathlib.Path(loc["path"]).read_text(
+                encoding="utf-8", errors="replace"
+            )
     return None
 
 
@@ -68,7 +74,10 @@ for d in AGENTS_VAULT.iterdir():
         except OSError:
             pass
 print(f"vault skills readable: {len(vault_texts)}")
-digests = {n: hashlib.sha256(t.encode("utf-8", "replace")).hexdigest() for n, t in vault_texts.items()}
+digests = {
+    n: hashlib.sha256(t.encode("utf-8", "replace")).hexdigest()
+    for n, t in vault_texts.items()
+}
 by_digest = {}
 for n, h in digests.items():
     by_digest.setdefault(h, []).append(n)
@@ -98,7 +107,9 @@ for n in slice_names:
         real = difflib.SequenceMatcher(None, t, vault_texts[best]).ratio()
     else:
         real = 0.0
-    sim_rows.append({"skill": n, "nearest": best, "quick": round(bestr, 3), "ratio": round(real, 3)})
+    sim_rows.append(
+        {"skill": n, "nearest": best, "quick": round(bestr, 3), "ratio": round(real, 3)}
+    )
     flag = "  <-- REVIEW near-dup" if real >= 0.70 else ""
     print(f"  {n:34s} nearest={str(best):34s} ratio={real:.3f}{flag}")
 

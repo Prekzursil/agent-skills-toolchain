@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import copy
 import json
-import os
 import re
 import shutil
 import subprocess
@@ -378,16 +377,17 @@ def parse_pytest_tail(out: str) -> dict:
         if re.search(r"\b(passed|failed|error|errors|no tests ran)\b", ln):
             line = ln.strip()
             break
-    for n, w in re.findall(r"(\d+)\s+(passed|failed|errors?|skipped|xfailed|xpassed|warnings?|deselected)", line):
+    for n, w in re.findall(
+        r"(\d+)\s+(passed|failed|errors?|skipped|xfailed|xpassed|warnings?|deselected)",
+        line,
+    ):
         counts[w.rstrip("s") if w.startswith("error") else w] = int(n)
     return {"summary_line": line, "counts": counts}
 
 
 def audit_lib_tests() -> dict:
     test_files = sorted(
-        p
-        for p in (PLATFORM / "lib").rglob("test_*.py")
-        if "__pycache__" not in p.parts
+        p for p in (PLATFORM / "lib").rglob("test_*.py") if "__pycache__" not in p.parts
     )
     rows = []
     for tf in test_files:
@@ -509,7 +509,9 @@ def detector_control() -> dict:
                     "validator_FIRED": not r["ok"],
                     "schema_ok": r["schema_ok"],
                     "sem_ok": r["sem_ok"],
-                    "first_errors": (r["schema_errors"] or r["sem_errors"] or r.get("errors")),
+                    "first_errors": (
+                        r["schema_errors"] or r["sem_errors"] or r.get("errors")
+                    ),
                 }
                 for why, r in seeds
             ],
@@ -597,6 +599,7 @@ def detector_control() -> dict:
 
 
 # --------------------------------------------------------------------------- #
+
 
 def main() -> int:
     OUT["detector_control"] = detector_control()

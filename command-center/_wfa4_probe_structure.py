@@ -14,7 +14,9 @@ print("top-level type:", type(doc).__name__)
 if isinstance(doc, dict):
     print("top-level keys:", list(doc.keys()))
     for k, v in doc.items():
-        print(f"  {k}: {type(v).__name__} len={len(v) if hasattr(v, '__len__') else 'n/a'}")
+        print(
+            f"  {k}: {type(v).__name__} len={len(v) if hasattr(v, '__len__') else 'n/a'}"
+        )
     # find the candidate array
     for k, v in doc.items():
         if isinstance(v, list) and v and isinstance(v[0], dict):

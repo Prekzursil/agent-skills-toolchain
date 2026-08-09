@@ -30,7 +30,8 @@ WINPATH = re.compile(r"[A-Za-z]:[\\/][^\"',;:|\s]*")
 def load_rows() -> list[dict]:
     rows = []
     for f in sorted(
-        p for p in (PLATFORM / "registry").glob("workflow-candidates-*.json")
+        p
+        for p in (PLATFORM / "registry").glob("workflow-candidates-*.json")
         if ".COVERAGE." not in p.name and ".METHOD." not in p.name
     ):
         raw = json.loads(f.read_text(encoding="utf-8"))
@@ -75,12 +76,17 @@ for r in rows:
     if body is None:
         unresolved.append({"id": r["id"], "name": str(r["name"])[:70]})
         continue
-    resolved.append({
-        "id": r["id"], "file": r["file"], "name": str(r["name"])[:70],
-        "body_path": path, "bytes": len(body),
-        "sha256": hashlib.sha256(body).hexdigest(),
-        "text": body.decode("utf-8", "replace"),
-    })
+    resolved.append(
+        {
+            "id": r["id"],
+            "file": r["file"],
+            "name": str(r["name"])[:70],
+            "body_path": path,
+            "bytes": len(body),
+            "sha256": hashlib.sha256(body).hexdigest(),
+            "text": body.decode("utf-8", "replace"),
+        }
+    )
 
 # exact byte-identical groups
 bysha: dict = {}
@@ -88,7 +94,8 @@ for r in resolved:
     bysha.setdefault(r["sha256"], []).append(r)
 exact = {
     k[:16]: [{"id": x["id"], "file": x["file"], "body_path": x["body_path"]} for x in v]
-    for k, v in bysha.items() if len(v) > 1
+    for k, v in bysha.items()
+    if len(v) > 1
 }
 
 # same-path groups (two candidates pointing at the SAME file = same artifact twice)
@@ -97,7 +104,8 @@ for r in resolved:
     bypath.setdefault(r["body_path"], []).append(r)
 samepath = {
     k: [{"id": x["id"], "file": x["file"], "name": x["name"]} for x in v]
-    for k, v in bypath.items() if len(v) > 1
+    for k, v in bypath.items()
+    if len(v) > 1
 }
 
 # near-copies: pairwise within a size band, only on DISTINCT paths
@@ -115,10 +123,15 @@ for a, b in itertools.combinations(items, 2):
         continue
     real = difflib.SequenceMatcher(None, a["text"], b["text"]).ratio()
     if real >= 0.90:
-        near.append({
-            "a_id": a["id"], "b_id": b["id"], "similarity": round(real, 4),
-            "a_path": a["body_path"], "b_path": b["body_path"],
-        })
+        near.append(
+            {
+                "a_id": a["id"],
+                "b_id": b["id"],
+                "similarity": round(real, 4),
+                "a_path": a["body_path"],
+                "b_path": b["body_path"],
+            }
+        )
 
 # the three same-name pairs, compared by BODY
 pairs = [
@@ -130,14 +143,17 @@ byid = {r["id"]: r for r in resolved}
 pair_rows = []
 for x, y in pairs:
     ra, rb = byid.get(x), byid.get(y)
-    rec = {"a_id": x, "b_id": y,
-           "a_resolved": bool(ra), "b_resolved": bool(rb)}
+    rec = {"a_id": x, "b_id": y, "a_resolved": bool(ra), "b_resolved": bool(rb)}
     if ra and rb:
         rec.update(
-            a_path=ra["body_path"], b_path=rb["body_path"],
-            a_bytes=ra["bytes"], b_bytes=rb["bytes"],
+            a_path=ra["body_path"],
+            b_path=rb["body_path"],
+            a_bytes=ra["bytes"],
+            b_bytes=rb["bytes"],
             byte_identical=ra["sha256"] == rb["sha256"],
-            similarity=round(difflib.SequenceMatcher(None, ra["text"], rb["text"]).ratio(), 4),
+            similarity=round(
+                difflib.SequenceMatcher(None, ra["text"], rb["text"]).ratio(), 4
+            ),
         )
     pair_rows.append(rec)
 

@@ -77,9 +77,19 @@ def inject(work: Path, n: int, template: str) -> bool:
 def run_node(work: Path, n: int) -> tuple[int, str]:
     tf = work / "lib" / "test_completion_predicate.py"
     pr = subprocess.run(
-        [sys.executable, "-m", "pytest", f"{tf}::{NODE}[{n}]", "-q",
-         "-p", "no:cacheprovider"],
-        capture_output=True, text=True, check=False, cwd=str(work.parent),
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            f"{tf}::{NODE}[{n}]",
+            "-q",
+            "-p",
+            "no:cacheprovider",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=str(work.parent),
     )
     tail = ((pr.stdout or "") + (pr.stderr or "")).strip().splitlines()
     return pr.returncode, (tail[-1] if tail else "")
@@ -95,7 +105,9 @@ with tempfile.TemporaryDirectory() as td:
     rows = []
     for n in range(1, 13):
         rc, tail = run_node(bl, n)
-        rows.append({"condition": n, "exit": rc, "passes_unmutated": rc == 0, "tail": tail})
+        rows.append(
+            {"condition": n, "exit": rc, "passes_unmutated": rc == 0, "tail": tail}
+        )
     out["baseline"] = {
         "all_12_nodes_collected_and_green": all(r["passes_unmutated"] for r in rows),
         "green": sum(1 for r in rows if r["passes_unmutated"]),
@@ -108,10 +120,15 @@ with tempfile.TemporaryDirectory() as td:
         w = stage(base / f"noop{n}")
         built = inject(w, n, NOOP)
         rc, tail = run_node(w, n)
-        noop_rows.append({
-            "condition": n, "injected": built, "exit": rc,
-            "still_passes_as_it_must": rc == 0, "tail": tail,
-        })
+        noop_rows.append(
+            {
+                "condition": n,
+                "injected": built,
+                "exit": rc,
+                "still_passes_as_it_must": rc == 0,
+                "tail": tail,
+            }
+        )
     out["noop_control"] = {
         "claim": "an inert edit must NOT kill the battery case",
         "all_noops_survived": all(r["still_passes_as_it_must"] for r in noop_rows),
@@ -125,12 +142,19 @@ with tempfile.TemporaryDirectory() as td:
         built = inject(w, n, STUB)
         rc_n, tail_n = run_node(w, n)
         rc_m, tail_m = run_node(w, m)
-        cross_rows.append({
-            "stubbed_condition": n, "observed_condition": m, "injected": built,
-            "stubbed_node_exit": rc_n, "stubbed_node_killed": rc_n == 1,
-            "other_node_exit": rc_m, "other_node_unaffected": rc_m == 0,
-            "stubbed_tail": tail_n, "other_tail": tail_m,
-        })
+        cross_rows.append(
+            {
+                "stubbed_condition": n,
+                "observed_condition": m,
+                "injected": built,
+                "stubbed_node_exit": rc_n,
+                "stubbed_node_killed": rc_n == 1,
+                "other_node_exit": rc_m,
+                "other_node_unaffected": rc_m == 0,
+                "stubbed_tail": tail_n,
+                "other_tail": tail_m,
+            }
+        )
     out["cross_isolation_control"] = {
         "claim": "stubbing N kills N's node (exit 1) and leaves M's node green",
         "all_pairs_behaved": all(

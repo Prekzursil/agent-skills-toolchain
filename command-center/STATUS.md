@@ -2,7 +2,7 @@
 
 # STATUS
 
-**69 open / 103 total.** Reachability: ALL items reach a final disposition. Graph: 21 edges, acyclic=True.
+**69 open / 103 total.** Reachability: 1 VIOLATIONS. Graph: 21 edges, acyclic=True.
 
 Regenerate: `python tools/command-center/render.py`. Verify: `python tools/command-center/validate.py`.
 
@@ -42,3 +42,7 @@ _none_
 7. `R-A28` + `R-A29` → `R-A30` → `R-A31` → `R-A01` — newly unblocked chain to Prompt Two.
 8. `R-H06` write honest PARTIAL receipts.
 9. `R-M18` enrol the monitor program.
+
+## VIOLATIONS
+
+- REACH-6 -: register snapshot sha256 1a404a91d819 != recorded 8b3e44cc3813

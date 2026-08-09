@@ -208,7 +208,12 @@ malformed = {
     "spec_anchor": "",
     "min_bytes_threshold": 0,
     "artifacts": [
-        {"path": "platform\\schema\\does-not-exist.json", "bytes": 0, "sha256": "deadbeef", "exists": False}
+        {
+            "path": "platform\\schema\\does-not-exist.json",
+            "bytes": 0,
+            "sha256": "deadbeef",
+            "exists": False,
+        }
     ],
     "evidence": [
         {
@@ -221,7 +226,14 @@ malformed = {
     "tests": [{"id": "t", "command": "pytest", "result": "mostly passing"}],
     "negative_controls": [],
     "reviewer": {"reviewer_id": "self", "verdict": "PASS", "independent": False},
-    "defects": [{"id": "D-0", "severity": "P0", "status": "open", "summary": "rce in the loader"}],
+    "defects": [
+        {
+            "id": "D-0",
+            "severity": "P0",
+            "status": "open",
+            "summary": "rce in the loader",
+        }
+    ],
     "manifest_registration": {"registered": False, "manifest_path": "nope.json"},
     "downstream_consumers": [],
     "timestamps": {"started_at": "yesterday", "ended_at": "2026-08-09T20:00:00"},
@@ -229,8 +241,14 @@ malformed = {
     "surprise_field": "additionalProperties must reject this",
 }
 
-(EX / "receipt.valid.example.json").write_text(json.dumps(valid, indent=2) + "\n", encoding="utf-8")
-(EX / "receipt.malformed.example.json").write_text(json.dumps(malformed, indent=2) + "\n", encoding="utf-8")
-print(f"wrote {ART_REL} ({len(raw)} B, sha256={hashlib.sha256(raw).hexdigest()[:16]}...)")
+(EX / "receipt.valid.example.json").write_text(
+    json.dumps(valid, indent=2) + "\n", encoding="utf-8"
+)
+(EX / "receipt.malformed.example.json").write_text(
+    json.dumps(malformed, indent=2) + "\n", encoding="utf-8"
+)
+print(
+    f"wrote {ART_REL} ({len(raw)} B, sha256={hashlib.sha256(raw).hexdigest()[:16]}...)"
+)
 print("wrote platform/schema/examples/receipt.valid.example.json")
 print("wrote platform/schema/examples/receipt.malformed.example.json")

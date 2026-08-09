@@ -74,43 +74,74 @@ def test_work_unit_schema_requires_all_nineteen_spec_fields() -> None:
 @pytest.mark.parametrize("field", list(resolve.MANDATED_FIELDS))
 def test_removing_any_single_mandated_field_fails_validation(field: str) -> None:
     """19 mutations: the schema must notice EACH missing field, not just the first."""
-    unit = json.loads((EXAMPLES / "catalog-no-defaults.json").read_text(encoding="utf-8"))["work_units"][0]
-    assert not list(schemas.work_unit_validator("strict").iter_errors(unit)), "fixture must start valid"
+    unit = json.loads(
+        (EXAMPLES / "catalog-no-defaults.json").read_text(encoding="utf-8")
+    )["work_units"][0]
+    assert not list(schemas.work_unit_validator("strict").iter_errors(unit)), (
+        "fixture must start valid"
+    )
     broken = {k: v for k, v in unit.items() if k != field}
     errors = list(schemas.work_unit_validator("structural").iter_errors(broken))
     assert errors, f"removing {field} was not detected"
-    assert any(field in e.message for e in errors), f"error does not name {field}: {[e.message for e in errors][:2]}"
+    assert any(field in e.message for e in errors), (
+        f"error does not name {field}: {[e.message for e in errors][:2]}"
+    )
 
 
 def test_reference_unit_passes_all_three_profiles() -> None:
     """The strict profile must be SATISFIABLE - an unsatisfiable contract is not a contract."""
-    unit = json.loads((EXAMPLES / "catalog-no-defaults.json").read_text(encoding="utf-8"))["work_units"][0]
+    unit = json.loads(
+        (EXAMPLES / "catalog-no-defaults.json").read_text(encoding="utf-8")
+    )["work_units"][0]
     for profile in ("structural", "normative", "strict"):
-        errs = schemas.error_summary(schemas.work_unit_validator(profile).iter_errors(unit))
+        errs = schemas.error_summary(
+            schemas.work_unit_validator(profile).iter_errors(unit)
+        )
         assert not errs, f"{profile}: {errs}"
 
 
 def test_profiles_are_strictly_ordered() -> None:
     """A document rejected by a looser profile must also be rejected by a stricter one."""
-    unit = json.loads((EXAMPLES / "catalog-no-defaults.json").read_text(encoding="utf-8"))["work_units"][0]
+    unit = json.loads(
+        (EXAMPLES / "catalog-no-defaults.json").read_text(encoding="utf-8")
+    )["work_units"][0]
     cases = [
         ("normative", {**unit, "id": "bad_id"}),
-        ("normative", {**unit, "output_schema": "receipt.schema.json profile=x (required: y)"}),
+        (
+            "normative",
+            {**unit, "output_schema": "receipt.schema.json profile=x (required: y)"},
+        ),
         ("normative", {**unit, "dependencies": ["ARC"]}),
-        ("strict", {**unit, "assigned_model_vendor_role": "opus/anthropic/implementer"}),
+        (
+            "strict",
+            {**unit, "assigned_model_vendor_role": "opus/anthropic/implementer"},
+        ),
         ("strict", {**unit, "tests_required": "just a prose sentence about tests"}),
-        ("strict", {**unit, "failure_classification": "P1-blocking / classes: whatever"}),
+        (
+            "strict",
+            {**unit, "failure_classification": "P1-blocking / classes: whatever"},
+        ),
         ("strict", {**unit, "typo_field": 1}),
     ]
     for first_rejecting, doc in cases:
-        rejected_by = [p for p in ("structural", "normative", "strict") if list(schemas.work_unit_validator(p).iter_errors(doc))]
-        assert first_rejecting in rejected_by, f"{first_rejecting} accepted {doc.get('id')} / keys={sorted(set(doc) - set(unit))}"
+        rejected_by = [
+            p
+            for p in ("structural", "normative", "strict")
+            if list(schemas.work_unit_validator(p).iter_errors(doc))
+        ]
+        assert first_rejecting in rejected_by, (
+            f"{first_rejecting} accepted {doc.get('id')} / keys={sorted(set(doc) - set(unit))}"
+        )
         order = ["structural", "normative", "strict"]
         idx = order.index(first_rejecting)
-        assert all(p in rejected_by for p in order[idx:]), f"stricter profile accepted what {first_rejecting} rejected: {rejected_by}"
+        assert all(p in rejected_by for p in order[idx:]), (
+            f"stricter profile accepted what {first_rejecting} rejected: {rejected_by}"
+        )
 
 
-def test_strict_profile_rejects_an_unknown_property_while_structural_allows_it() -> None:
+def test_strict_profile_rejects_an_unknown_property_while_structural_allows_it() -> (
+    None
+):
     """Regression guard for a draft-2020-12 annotation trap that was measured LIVE here.
 
     ``additionalProperties: true`` in the structural profile annotates unknown properties as
@@ -118,13 +149,21 @@ def test_strict_profile_rejects_an_unknown_property_while_structural_allows_it()
     profile. Before the fix, a unit carrying ``typo_field`` passed strict. Omitting the keyword
     is validation-equivalent but annotation-different, so this test is the both-states control.
     """
-    unit = json.loads((EXAMPLES / "catalog-no-defaults.json").read_text(encoding="utf-8"))["work_units"][0]
+    unit = json.loads(
+        (EXAMPLES / "catalog-no-defaults.json").read_text(encoding="utf-8")
+    )["work_units"][0]
     typo = {**unit, "dependencie": ["CC-0002"]}
-    assert not list(schemas.work_unit_validator("structural").iter_errors(typo)), "structural must stay permissive"
-    assert not list(schemas.work_unit_validator("normative").iter_errors(typo)), "normative must stay permissive"
+    assert not list(schemas.work_unit_validator("structural").iter_errors(typo)), (
+        "structural must stay permissive"
+    )
+    assert not list(schemas.work_unit_validator("normative").iter_errors(typo)), (
+        "normative must stay permissive"
+    )
     strict_errors = list(schemas.work_unit_validator("strict").iter_errors(typo))
     assert strict_errors, "strict profile did not reject an unknown property"
-    assert any(e.validator == "unevaluatedProperties" for e in strict_errors), [e.validator for e in strict_errors]
+    assert any(e.validator == "unevaluatedProperties" for e in strict_errors), [
+        e.validator for e in strict_errors
+    ]
 
 
 def test_structural_profile_must_not_declare_additional_properties() -> None:
@@ -138,19 +177,31 @@ def test_structural_profile_must_not_declare_additional_properties() -> None:
 
 def test_tool_token_pattern_rejects_comma_packed_and_accepts_hyphenated_mcp() -> None:
     """Detector control: the pattern must FIRE on the bad token and be SILENT on real ones."""
-    unit = json.loads((EXAMPLES / "catalog-no-defaults.json").read_text(encoding="utf-8"))["work_units"][0]
+    unit = json.loads(
+        (EXAMPLES / "catalog-no-defaults.json").read_text(encoding="utf-8")
+    )["work_units"][0]
     v = schemas.work_unit_validator("normative")
     bad = {**unit, "tool_permissions": ["mcp__a__b,mcp__c__d"]}
     assert list(v.iter_errors(bad)), "comma-packed tool token was accepted"
-    for good in ("mcp__codex__codex-reply", "mcp__search-hub__* (read-only retrieval)", "Bash:python", "Write(command-center/research/**)", "Read"):
-        assert not list(v.iter_errors({**unit, "tool_permissions": [good]})), f"rejected a real token: {good}"
+    for good in (
+        "mcp__codex__codex-reply",
+        "mcp__search-hub__* (read-only retrieval)",
+        "Bash:python",
+        "Write(command-center/research/**)",
+        "Read",
+    ):
+        assert not list(v.iter_errors({**unit, "tool_permissions": [good]})), (
+            f"rejected a real token: {good}"
+        )
 
 
 # ------------------------------------------------------------- defaults semantics
 
 
 def test_defaults_block_is_optional_not_load_bearing() -> None:
-    doc = json.loads((EXAMPLES / "catalog-no-defaults.json").read_text(encoding="utf-8"))
+    doc = json.loads(
+        (EXAMPLES / "catalog-no-defaults.json").read_text(encoding="utf-8")
+    )
     assert "defaults" not in doc
     assert not list(schemas.catalog_validator().iter_errors(doc))
     audit = resolve.defaults_are_load_bearing(doc)
@@ -168,17 +219,25 @@ def test_real_catalog_defaults_block_is_not_load_bearing() -> None:
 
 
 def test_defaults_leaning_unit_is_rejected_raw_and_completed_when_resolved() -> None:
-    doc = json.loads((EXAMPLES / "catalog-defaults-only.json").read_text(encoding="utf-8"))
+    doc = json.loads(
+        (EXAMPLES / "catalog-defaults-only.json").read_text(encoding="utf-8")
+    )
     lean = doc["work_units"][0]
     v = schemas.work_unit_validator("structural")
-    assert list(v.iter_errors(lean)), "raw contract accepted a unit that leans on defaults"
+    assert list(v.iter_errors(lean)), (
+        "raw contract accepted a unit that leans on defaults"
+    )
     res = resolve.resolve_unit(lean, doc["defaults"])
     assert res.used_defaults
-    assert not list(v.iter_errors(res.unit)), schemas.error_summary(v.iter_errors(res.unit))
+    assert not list(v.iter_errors(res.unit)), schemas.error_summary(
+        v.iter_errors(res.unit)
+    )
 
 
 def test_resolver_refuses_to_default_identity_and_intent_fields() -> None:
-    doc = json.loads((EXAMPLES / "catalog-defaults-only.json").read_text(encoding="utf-8"))
+    doc = json.loads(
+        (EXAMPLES / "catalog-defaults-only.json").read_text(encoding="utf-8")
+    )
     res = resolve.resolve_unit(doc["work_units"][1], doc["defaults"])
     assert res.refused == ["output_path"]
     assert "output_path" not in res.unit
@@ -188,14 +247,18 @@ def test_resolver_refuses_to_default_identity_and_intent_fields() -> None:
 # ------------------------------------------------------------------- the DSL examples
 
 
-@pytest.mark.parametrize("name", ["wf-minimal.json", "wf-full-coverage.json", "wf-spec-stopping-rules.json"])
+@pytest.mark.parametrize(
+    "name", ["wf-minimal.json", "wf-full-coverage.json", "wf-spec-stopping-rules.json"]
+)
 def test_example_workflow_is_schema_valid(name: str) -> None:
     doc = json.loads((EXAMPLES / name).read_text(encoding="utf-8"))
     errs = schemas.error_summary(schemas.workflow_validator().iter_errors(doc), limit=8)
     assert not errs, errs
 
 
-@pytest.mark.parametrize("name", ["wf-minimal.json", "wf-full-coverage.json", "wf-spec-stopping-rules.json"])
+@pytest.mark.parametrize(
+    "name", ["wf-minimal.json", "wf-full-coverage.json", "wf-spec-stopping-rules.json"]
+)
 def test_example_workflow_has_no_semantic_violations(name: str) -> None:
     doc = json.loads((EXAMPLES / name).read_text(encoding="utf-8"))
     results = semantics.check_workflow(doc)
@@ -207,7 +270,9 @@ def test_inline_work_unit_in_the_dsl_uses_the_same_contract_as_the_catalog() -> 
     doc = json.loads((EXAMPLES / "wf-full-coverage.json").read_text(encoding="utf-8"))
     unit = doc["stages"][0]["work_unit"]
     for profile in ("structural", "normative", "strict"):
-        errs = schemas.error_summary(schemas.work_unit_validator(profile).iter_errors(unit))
+        errs = schemas.error_summary(
+            schemas.work_unit_validator(profile).iter_errors(unit)
+        )
         assert not errs, f"{profile}: {errs}"
 
 
@@ -280,12 +345,19 @@ def test_no_mutation_survives() -> None:
 def test_every_mutation_is_caught_by_its_declared_layer() -> None:
     report = _battery()
     wrong = [r for r in report["results"] if not r["caught_by_declared_layer"]]
-    assert not wrong, [(r["id"], r["declared_layer"], r["schema_errors"], r["new_semantic_violations"]) for r in wrong]
+    assert not wrong, [
+        (r["id"], r["declared_layer"], r["schema_errors"], r["new_semantic_violations"])
+        for r in wrong
+    ]
 
 
 def test_mutation_battery_covers_every_mandated_capability() -> None:
     covered = {m.capability for m in mutations.MUTATIONS}
-    mandated = {c["id"] for c in capabilities.load_capability_map()["capabilities"] if c.get("mandated")}
+    mandated = {
+        c["id"]
+        for c in capabilities.load_capability_map()["capabilities"]
+        if c.get("mandated")
+    }
     assert mandated <= covered, sorted(mandated - covered)
 
 
@@ -305,5 +377,9 @@ def test_stage_graph_cycle_is_detected() -> None:
     doc = json.loads((EXAMPLES / "wf-full-coverage.json").read_text(encoding="utf-8"))
     broken = json.loads(json.dumps(doc))
     broken["stages"][0]["depends_on"] = ["owner-review"]
-    fired = {r.rule: len(r.violations) for r in semantics.check_workflow(broken) if r.violations}
+    fired = {
+        r.rule: len(r.violations)
+        for r in semantics.check_workflow(broken)
+        if r.violations
+    }
     assert fired.get("DSL-SEM-003", 0) > 0, fired

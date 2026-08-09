@@ -36,7 +36,8 @@ out: dict = {}
 # ---------------------------------------------------------------- CORRECTION 1
 rows = []
 for f in sorted(
-    p for p in (PLATFORM / "registry").glob("workflow-candidates-*.json")
+    p
+    for p in (PLATFORM / "registry").glob("workflow-candidates-*.json")
     if ".COVERAGE." not in p.name and ".METHOD." not in p.name
 ):
     raw = json.loads(f.read_text(encoding="utf-8"))
@@ -49,7 +50,13 @@ for f in sorted(
             continue
         rows.append({"file": f.name, "id": cid, "name": e.get("name"), "raw": e})
 
-SHARED_DOC_MARKERS = ("harness-restore-20260806", "08-WORKFLOW-", "07-OPTION-", "09-WORKFLOW-", "13-ARCHITECTURE")
+SHARED_DOC_MARKERS = (
+    "harness-restore-20260806",
+    "08-WORKFLOW-",
+    "07-OPTION-",
+    "09-WORKFLOW-",
+    "13-ARCHITECTURE",
+)
 first_path, first_is_shared_doc = {}, {}
 for r in rows:
     paths = WINPATH.findall(json.dumps(r["raw"], default=str))
@@ -65,7 +72,9 @@ collisions = {k: v for k, v in byfp.items() if len(v) > 1}
 out["correction_1_resolver_artifact"] = {
     "claim": "the 5 byte-identical groups reported by _wave1_fork_probe_fast.py are resolver artifacts, not duplicate candidates",
     "candidates": len(rows),
-    "candidates_whose_first_path_is_a_SHARED_PROGRAM_DOC": sum(first_is_shared_doc.values()),
+    "candidates_whose_first_path_is_a_SHARED_PROGRAM_DOC": sum(
+        first_is_shared_doc.values()
+    ),
     "colliding_first_path_groups": len(collisions),
     "largest_collision_size": max((len(v) for v in collisions.values()), default=0),
     "self_contradiction_tell": "32 distinct candidate ids cannot all BE one file (08-WORKFLOW-CANDIDATE-REGISTRY.json); a probe that says so is broken, so its duplicate verdicts are void",
@@ -76,12 +85,13 @@ out["correction_1_resolver_artifact"] = {
     },
 }
 
+
 # ---------------------------------------------------------------- CORRECTION 2
 def shingles(text: str) -> frozenset[int]:
     w = WORD.findall(text.lower())
     if len(w) < K:
         return frozenset({hash(" ".join(w))})
-    return frozenset(hash(" ".join(w[i:i + K])) for i in range(len(w) - K + 1))
+    return frozenset(hash(" ".join(w[i : i + K])) for i in range(len(w) - K + 1))
 
 
 donor = Path("C:/Users/Prekzursil/.agents/skills/ralph-loop/SKILL.md")
@@ -97,11 +107,13 @@ for pct in (0.01, 0.05, 0.15, 0.50):
         w2[rng.randrange(len(w2))] = "ZZAUDITPERTURBZZ"
     s2 = shingles(" ".join(w2))
     jac = len(ds & s2) / len(ds | s2)
-    ctl_rows.append({
-        "words_perturbed_pct": pct,
-        "jaccard_vs_original": round(jac, 4),
-        "would_be_flagged_at_0_80": jac >= 0.80,
-    })
+    ctl_rows.append(
+        {
+            "words_perturbed_pct": pct,
+            "jaccard_vs_original": round(jac, 4),
+            "would_be_flagged_at_0_80": jac >= 0.80,
+        }
+    )
 out["correction_2_near_copy_control"] = {
     "claim": "the near-copy arm must FIRE on a seeded near-copy before its 0 counts as evidence",
     "donor": str(donor),
@@ -112,6 +124,7 @@ out["correction_2_near_copy_control"] = {
     "arm_is_controlled": any(r["would_be_flagged_at_0_80"] for r in ctl_rows),
     "note": "a 5-gram shingle set decays fast under scattered substitution; the band where the detector fires is what this table establishes",
 }
+
 
 # ---------------------------------------------------------------- MEASUREMENT
 def upstream(e: dict):
@@ -127,7 +140,9 @@ byup: dict = collections.defaultdict(list)
 for r in rows:
     k, v = upstream(r["raw"])
     if v:
-        byup[v.lower().rstrip("/")].append({"id": r["id"], "name": str(r["name"])[:80], "file": r["file"], "field": k})
+        byup[v.lower().rstrip("/")].append(
+            {"id": r["id"], "name": str(r["name"])[:80], "file": r["file"], "field": k}
+        )
 shared_up = {k: v for k, v in byup.items() if len(v) > 1}
 out["measurement_shared_upstream_groups"] = {
     "question": "do any candidates share ONE upstream repo / verified body, i.e. is a plugin and the marketplace that ships it counted twice?",
@@ -135,7 +150,8 @@ out["measurement_shared_upstream_groups"] = {
     "candidates_involved": sum(len(v) for v in shared_up.values()),
     "collapse_if_each_group_counted_once": sum(len(v) - 1 for v in shared_up.values()),
     "registry_total": len(rows),
-    "registry_total_after_that_collapse": len(rows) - sum(len(v) - 1 for v in shared_up.values()),
+    "registry_total_after_that_collapse": len(rows)
+    - sum(len(v) - 1 for v in shared_up.values()),
     "detail": {k: v for k, v in sorted(shared_up.items(), key=lambda kv: -len(kv[1]))},
 }
 

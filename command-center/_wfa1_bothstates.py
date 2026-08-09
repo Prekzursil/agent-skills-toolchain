@@ -19,9 +19,16 @@ CHECK = "command-center/_wfa1_final_check.py"
 def run(sidecar):
     r = subprocess.run(
         [sys.executable, CHECK, str(sidecar)],
-        capture_output=True, text=True, encoding="utf-8", errors="replace",
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
     )
-    tail = [ln for ln in (r.stdout or "").splitlines() if ln.startswith(("SUCCESS", "FAILED"))]
+    tail = [
+        ln
+        for ln in (r.stdout or "").splitlines()
+        if ln.startswith(("SUCCESS", "FAILED"))
+    ]
     return r.returncode, (tail[-1] if tail else "(no terminal marker)")
 
 

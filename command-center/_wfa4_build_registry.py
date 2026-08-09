@@ -20,7 +20,10 @@ MIRROR = pathlib.Path(
 )
 REF = "07f465f37d49710f7060dcc7b567d6c58213177b"
 
-prov = {r["skill_dir"]: r for r in json.loads((CC / "_wfa4_provenance.json").read_text("utf-8"))}
+prov = {
+    r["skill_dir"]: r
+    for r in json.loads((CC / "_wfa4_provenance.json").read_text("utf-8"))
+}
 lic = json.loads((CC / "_wfa4_license.json").read_text("utf-8"))
 lic_by = {r["skill_dir"]: r for r in lic["candidates"] if "skill_dir" in r}
 dupe = json.loads((CC / "_wfa4_dupescan.json").read_text("utf-8"))
@@ -51,7 +54,9 @@ def body(rec):
     for want in ("agents-live", "claude-live"):
         for loc in rec["locations"]:
             if loc["kind"] == want:
-                return pathlib.Path(loc["path"]).read_text("utf-8", errors="replace"), loc["path"]
+                return pathlib.Path(loc["path"]).read_text(
+                    "utf-8", errors="replace"
+                ), loc["path"]
     for loc in rec["locations"]:
         if loc["kind"].startswith("mirror:"):
             mp = loc["path"].split(":", 1)[1]
@@ -367,7 +372,11 @@ for pos in range(spine["slice_lo"], spine["slice_hi"] + 1):
     if lrow.get("fm_license"):
         license_val = lrow["fm_license"]
         lsrc = next(
-            (a["at"] for a in lrow.get("license_lines", []) if "license" in a["v"].lower()),
+            (
+                a["at"]
+                for a in lrow.get("license_lines", [])
+                if "license" in a["v"].lower()
+            ),
             f"{rel}:frontmatter",
         )
         license_source = f"declared in SKILL.md frontmatter ({lsrc})"
@@ -401,8 +410,10 @@ for pos in range(spine["slice_lo"], spine["slice_hi"] + 1):
     if not stop_list:
         stop_list = anch(txt, STOP2, rel, 4)
     if not stop_list:
-        stop_list = ["NONE DECLARED - full-text regex over the SKILL.md found 0 stop/cap/until/"
-                     "escalate/exit-code matches; absence of a stop rule is itself the finding"]
+        stop_list = [
+            "NONE DECLARED - full-text regex over the SKILL.md found 0 stop/cap/until/"
+            "escalate/exit-code matches; absence of a stop rule is itself the finding"
+        ]
 
     fail_list = [f"{a['v']}  [{a['at']}]" for a in (rec.get("failure_anchors") or [])]
     if not fail_list:
@@ -414,7 +425,9 @@ for pos in range(spine["slice_lo"], spine["slice_hi"] + 1):
     if rec.get("arxiv_ids"):
         bench_list = [f"arXiv {i}" for i in rec["arxiv_ids"]] + bench_list
     if not bench_list:
-        bench_list = ["NONE - no arXiv id, DOI, percentage, pass@k or N/N figure in the SKILL.md"]
+        bench_list = [
+            "NONE - no arXiv id, DOI, percentage, pass@k or N/N figure in the SKILL.md"
+        ]
     stages = [f"{a['v']}  [{a['at']}]" for a in (rec.get("stage_anchors") or [])]
     if not stages:
         stages = [
@@ -443,14 +456,20 @@ for pos in range(spine["slice_lo"], spine["slice_hi"] + 1):
             "registry_slice": "candidates 97-128 of 160",
             "registry_index": pos,
             "source_registry_id": sid,
-            "family": rec["prior_name"].split("/")[0] if "/" in rec["prior_name"] else "G-skill",
+            "family": rec["prior_name"].split("/")[0]
+            if "/" in rec["prior_name"]
+            else "G-skill",
             "kind": "agent-skill workflow mechanism (SKILL.md)",
             "runtime": rec["prior_runtime"],
             "what_it_does": (rec.get("fm_description") or rec["prior_does"])[:700],
             "provenance": [
                 (
                     f"{x['kind']} :: {x['path']}"
-                    + (f" :: last commit {x.get('last_commit')}" if x.get("last_commit") else "")
+                    + (
+                        f" :: last commit {x.get('last_commit')}"
+                        if x.get("last_commit")
+                        else ""
+                    )
                 )
                 for x in rec["locations"]
             ],
@@ -472,8 +491,10 @@ for pos in range(spine["slice_lo"], spine["slice_hi"] + 1):
             "copy_consistency": drift,
             "task_fit": fit,
             "stages": stages,
-            "roles": rec.get("role_terms") or ["NOT-EXTRACTED - no role/persona vocabulary matched"],
-            "tools": rec.get("tool_terms") or ["NOT-EXTRACTED - no known tool token matched"],
+            "roles": rec.get("role_terms")
+            or ["NOT-EXTRACTED - no role/persona vocabulary matched"],
+            "tools": rec.get("tool_terms")
+            or ["NOT-EXTRACTED - no known tool token matched"],
             "stop_rules": stop_list,
             "failure_behaviour": fail_list,
             "benchmark_evidence": bench_list,
@@ -499,4 +520,6 @@ for pos in range(spine["slice_lo"], spine["slice_hi"] + 1):
 
 OUT.write_text(json.dumps(rows, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
 print(f"wrote {OUT}  entries={len(rows)}")
-print("SUCCESS:wfa4-build-registry" if len(rows) == 32 else "FAILED:wfa4-build-registry")
+print(
+    "SUCCESS:wfa4-build-registry" if len(rows) == 32 else "FAILED:wfa4-build-registry"
+)

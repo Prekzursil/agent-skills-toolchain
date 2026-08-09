@@ -31,7 +31,10 @@ if isinstance(data, dict):
             print("classification counts:", dict(cls))
 elif isinstance(data, list):
     print("n=", len(data))
-    print("field union:", sorted({f for row in data for f in row if isinstance(row, dict)}))
+    print(
+        "field union:",
+        sorted({f for row in data for f in row if isinstance(row, dict)}),
+    )
     print(json.dumps(data[0], indent=2, ensure_ascii=False)[:3000])
 
 sys.stdout.flush()

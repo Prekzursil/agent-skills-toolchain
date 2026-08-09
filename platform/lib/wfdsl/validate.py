@@ -61,11 +61,15 @@ SPEC_STOPPING_CONTEXT: dict[str, Any] = {
 # --------------------------------------------------------------------------- catalog
 
 
-def validate_catalog(path: Path, profiles: tuple[str, ...] = ("structural", "normative", "strict")) -> dict[str, Any]:
+def validate_catalog(
+    path: Path, profiles: tuple[str, ...] = ("structural", "normative", "strict")
+) -> dict[str, Any]:
     catalog = schemas.load_json(path)
     units = catalog.get("work_units") or []
 
-    container_errors = schemas.error_summary(schemas.catalog_validator().iter_errors(catalog), limit=8)
+    container_errors = schemas.error_summary(
+        schemas.catalog_validator().iter_errors(catalog), limit=8
+    )
 
     out: dict[str, Any] = {
         "catalog": str(path),
@@ -93,11 +97,21 @@ def validate_catalog(path: Path, profiles: tuple[str, ...] = ("structural", "nor
             if not errs:
                 continue
             failing_ids.append(str(u.get("id")))
-            keys = sorted({(("/".join(str(p) for p in e.absolute_path) or "<root>"), e.validator) for e in errs})
+            keys = sorted(
+                {
+                    (
+                        ("/".join(str(p) for p in e.absolute_path) or "<root>"),
+                        e.validator,
+                    )
+                    for e in errs
+                }
+            )
             for loc, kw in keys:
                 reasons[f"{loc} [{kw}]"] += 1
             if len(failing) < 25:
-                failing.append({"id": u.get("id"), "errors": schemas.error_summary(errs, limit=3)})
+                failing.append(
+                    {"id": u.get("id"), "errors": schemas.error_summary(errs, limit=3)}
+                )
         out["profiles"][profile] = {
             "pass": len(units) - len(failing_ids),
             "fail": len(failing_ids),
@@ -114,7 +128,9 @@ def validate_catalog(path: Path, profiles: tuple[str, ...] = ("structural", "nor
     if "strict" in out["profiles"] and "normative" in out["profiles"]:
         norm_fail = set(out["profiles"]["normative"]["_failing_ids"])
         strict_fail = set(out["profiles"]["strict"]["_failing_ids"])
-        out["profiles"]["strict"]["cascade_from_normative"] = len(strict_fail & norm_fail)
+        out["profiles"]["strict"]["cascade_from_normative"] = len(
+            strict_fail & norm_fail
+        )
         out["profiles"]["strict"]["strict_only"] = sorted(strict_fail - norm_fail)[:40]
         out["profiles"]["strict"]["strict_only_count"] = len(strict_fail - norm_fail)
     for prof in out["profiles"].values():
@@ -129,7 +145,10 @@ def validate_catalog(path: Path, profiles: tuple[str, ...] = ("structural", "nor
 
 def validate_workflow(path: Path) -> dict[str, Any]:
     doc = schemas.load_json(path)
-    errs = sorted(schemas.workflow_validator().iter_errors(doc), key=lambda e: list(e.absolute_path))
+    errs = sorted(
+        schemas.workflow_validator().iter_errors(doc),
+        key=lambda e: list(e.absolute_path),
+    )
     sem = semantics.check_workflow(doc)
     return {
         "workflow": str(path),
@@ -137,8 +156,12 @@ def validate_workflow(path: Path) -> dict[str, Any]:
         "schema_valid": not errs,
         "schema_errors": schemas.error_summary(errs, limit=8),
         "semantic_rules": [r.to_json() for r in sem],
-        "semantic_violations": sum(len(r.violations) for r in sem if r.severity == "violation"),
-        "semantic_advisories": sum(len(r.violations) for r in sem if r.severity == "advisory"),
+        "semantic_violations": sum(
+            len(r.violations) for r in sem if r.severity == "violation"
+        ),
+        "semantic_advisories": sum(
+            len(r.violations) for r in sem if r.severity == "advisory"
+        ),
     }
 
 
@@ -157,7 +180,9 @@ def check_spec_expressions() -> dict[str, Any]:
             ast = _expr.parse(text)
             row["parsed"] = True
             row["identifiers"] = sorted(ast.identifiers())
-            row["evaluates_true_on_reference_context"] = bool(ast.evaluate(SPEC_STOPPING_CONTEXT))
+            row["evaluates_true_on_reference_context"] = bool(
+                ast.evaluate(SPEC_STOPPING_CONTEXT)
+            )
         except _expr.ExpressionError as exc:
             row["parsed"] = False
             row["error"] = str(exc)
@@ -165,7 +190,9 @@ def check_spec_expressions() -> dict[str, Any]:
     return {
         "count": len(rows),
         "parsed": sum(1 for r in rows if r.get("parsed")),
-        "all_true_on_reference_context": all(r.get("evaluates_true_on_reference_context") for r in rows),
+        "all_true_on_reference_context": all(
+            r.get("evaluates_true_on_reference_context") for r in rows
+        ),
         "results": rows,
     }
 
@@ -194,12 +221,20 @@ def run_all(catalog_path: Path) -> dict[str, Any]:
     cat_v = schemas.catalog_validator()
     unit_v = schemas.work_unit_validator("strict")
     struct_v = schemas.work_unit_validator("structural")
-    lean_raw_fail = [u.get("id") for u in lean["work_units"] if list(struct_v.iter_errors(u))]
-    resolved = [resolve.resolve_unit(u, lean.get("defaults")) for u in lean["work_units"]]
-    lean_resolved_fail = [r.unit.get("id") for r in resolved if list(struct_v.iter_errors(r.unit))]
+    lean_raw_fail = [
+        u.get("id") for u in lean["work_units"] if list(struct_v.iter_errors(u))
+    ]
+    resolved = [
+        resolve.resolve_unit(u, lean.get("defaults")) for u in lean["work_units"]
+    ]
+    lean_resolved_fail = [
+        r.unit.get("id") for r in resolved if list(struct_v.iter_errors(r.unit))
+    ]
     report["defaults_block_semantics"] = {
         "catalog_without_defaults_validates": not list(cat_v.iter_errors(no_def)),
-        "its_unit_passes_strict_profile": not list(unit_v.iter_errors(no_def["work_units"][0])),
+        "its_unit_passes_strict_profile": not list(
+            unit_v.iter_errors(no_def["work_units"][0])
+        ),
         "lean_catalog_units_failing_raw": lean_raw_fail,
         "lean_catalog_units_failing_after_resolution": lean_resolved_fail,
         "resolver_filled": {r.unit.get("id"): r.filled for r in resolved},
@@ -211,23 +246,52 @@ def run_all(catalog_path: Path) -> dict[str, Any]:
     cov = report["capability_coverage"]
     bat = report["mutation_battery"]
     dbs = report["defaults_block_semantics"]
-    examples_ok = all(r["schema_valid"] and r["semantic_violations"] == 0 for r in report["examples"]["results"])
+    examples_ok = all(
+        r["schema_valid"] and r["semantic_violations"] == 0
+        for r in report["examples"]["results"]
+    )
     assertions = {
-        "every schema validates against the draft 2020-12 metaschema": len(report["metaschema"]) == len(schemas.SCHEMA_FILES),
+        "every schema validates against the draft 2020-12 metaschema": len(
+            report["metaschema"]
+        )
+        == len(schemas.SCHEMA_FILES),
         "catalog container validates": cat["container_valid"],
-        "no catalog unit is missing a mandated field": not cat["missing_mandated_fields"],
-        "all catalog units pass the structural profile": cat["profiles"]["structural"]["fail"] == 0,
-        "defaults block is not load-bearing in the real catalog": not cat["defaults_audit"]["load_bearing"],
-        "a catalog with NO defaults block validates": dbs["catalog_without_defaults_validates"],
-        "the strict profile is satisfiable by a real unit": dbs["its_unit_passes_strict_profile"],
-        "a defaults-leaning unit is rejected raw": "WU-0001" in dbs["lean_catalog_units_failing_raw"],
-        "the resolver completes it in resolved mode": "WU-0001" not in dbs["lean_catalog_units_failing_after_resolution"],
-        "the resolver refuses to default output_path": dbs["resolver_refused"].get("WU-0002") == ["output_path"],
+        "no catalog unit is missing a mandated field": not cat[
+            "missing_mandated_fields"
+        ],
+        "all catalog units pass the structural profile": cat["profiles"]["structural"][
+            "fail"
+        ]
+        == 0,
+        "defaults block is not load-bearing in the real catalog": not cat[
+            "defaults_audit"
+        ]["load_bearing"],
+        "a catalog with NO defaults block validates": dbs[
+            "catalog_without_defaults_validates"
+        ],
+        "the strict profile is satisfiable by a real unit": dbs[
+            "its_unit_passes_strict_profile"
+        ],
+        "a defaults-leaning unit is rejected raw": "WU-0001"
+        in dbs["lean_catalog_units_failing_raw"],
+        "the resolver completes it in resolved mode": "WU-0001"
+        not in dbs["lean_catalog_units_failing_after_resolution"],
+        "the resolver refuses to default output_path": dbs["resolver_refused"].get(
+            "WU-0002"
+        )
+        == ["output_path"],
         "every DSL example is schema-valid with zero semantic violations": examples_ok,
-        "every mandated capability is covered": cov["mandated"] == cov["mandated_covered"],
-        "every mutation is caught by its declared layer": bat["caught_by_declared_layer"] == bat["mutations"],
+        "every mandated capability is covered": cov["mandated"]
+        == cov["mandated_covered"],
+        "every mutation is caught by its declared layer": bat[
+            "caught_by_declared_layer"
+        ]
+        == bat["mutations"],
         "no mutation survives": not bat["survivors"],
-        "all six spec stopping expressions parse and evaluate true on the reference context": report["spec_stopping_expressions"]["parsed"] == 6
+        "all six spec stopping expressions parse and evaluate true on the reference context": report[
+            "spec_stopping_expressions"
+        ]["parsed"]
+        == 6
         and report["spec_stopping_expressions"]["all_true_on_reference_context"],
     }
     report["assertions"] = assertions
@@ -246,58 +310,100 @@ def _print_summary(report: dict[str, Any]) -> None:
             print(f"      {count:>5} x {reason}")
     print("semantic rules (work units):")
     for r in cat["semantic_rules"]:
-        print(f"  {r['rule']} {r['severity']:<9} violations={r['violations']:<5} {r['description'][:78]}")
+        print(
+            f"  {r['rule']} {r['severity']:<9} violations={r['violations']:<5} {r['description'][:78]}"
+        )
     cov = report["capability_coverage"]
-    print(f"capabilities       : {cov['mandated_covered']}/{cov['mandated']} mandated covered, {cov['all_covered']}/{cov['capabilities']} total")
+    print(
+        f"capabilities       : {cov['mandated_covered']}/{cov['mandated']} mandated covered, {cov['all_covered']}/{cov['capabilities']} total"
+    )
     for row in cov["uncovered"]:
         print(f"  UNCOVERED {row['id']}: {row['gaps']}")
     bat = report["mutation_battery"]
-    print(f"mutation battery   : {bat['caught_by_declared_layer']}/{bat['mutations']} caught by declared layer; survivors={bat['survivors']}")
-    print(f"spec expressions   : {report['spec_stopping_expressions']['parsed']}/6 parsed")
+    print(
+        f"mutation battery   : {bat['caught_by_declared_layer']}/{bat['mutations']} caught by declared layer; survivors={bat['survivors']}"
+    )
+    print(
+        f"spec expressions   : {report['spec_stopping_expressions']['parsed']}/6 parsed"
+    )
     print(f"examples           : {report['examples']['count']} validated")
     for k, v in report["assertions"].items():
         print(f"  [{'PASS' if v else 'FAIL'}] {k}")
-    print("RESULT:", "SUCCESS:contracts/workflow-dsl" if report["ok"] else "FAILED:contracts/workflow-dsl " + ", ".join(report["assertions_failed"]))
+    print(
+        "RESULT:",
+        "SUCCESS:contracts/workflow-dsl"
+        if report["ok"]
+        else "FAILED:contracts/workflow-dsl " + ", ".join(report["assertions_failed"]),
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(prog="wfdsl.validate", description="Workflow DSL / work-unit contract validator")
+    ap = argparse.ArgumentParser(
+        prog="wfdsl.validate", description="Workflow DSL / work-unit contract validator"
+    )
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     p_cat = sub.add_parser("catalog", help="validate a work-unit catalog")
     p_cat.add_argument("path", nargs="?", default=str(DEFAULT_CATALOG))
-    p_cat.add_argument("--profile", action="append", choices=sorted(schemas.WORK_UNIT_PROFILES))
+    p_cat.add_argument(
+        "--profile", action="append", choices=sorted(schemas.WORK_UNIT_PROFILES)
+    )
     p_cat.add_argument("--json")
 
     p_wf = sub.add_parser("workflow", help="validate one or more workflow documents")
     p_wf.add_argument("paths", nargs="+")
     p_wf.add_argument("--json")
 
-    p_all = sub.add_parser("all", help="run every contract check and emit the validation artifact")
+    p_all = sub.add_parser(
+        "all", help="run every contract check and emit the validation artifact"
+    )
     p_all.add_argument("--catalog", default=str(DEFAULT_CATALOG))
     p_all.add_argument("--json")
 
     args = ap.parse_args(argv)
 
     if args.cmd == "catalog":
-        profiles = tuple(args.profile) if args.profile else ("structural", "normative", "strict")
+        profiles = (
+            tuple(args.profile)
+            if args.profile
+            else ("structural", "normative", "strict")
+        )
         report = validate_catalog(Path(args.path), profiles)
         if args.json:
             Path(args.json).write_text(json.dumps(report, indent=1), encoding="utf-8")
-        print(json.dumps({k: v for k, v in report.items() if k != "semantic_rules"}, indent=1)[:4000])
+        print(
+            json.dumps(
+                {k: v for k, v in report.items() if k != "semantic_rules"}, indent=1
+            )[:4000]
+        )
         for r in report["semantic_rules"]:
-            print(f"{r['rule']} {r['severity']:<9} violations={r['violations']:<5} {r['description'][:80]}")
-        return 0 if report["container_valid"] and report["profiles"].get("structural", {}).get("fail", 1) == 0 else 1
+            print(
+                f"{r['rule']} {r['severity']:<9} violations={r['violations']:<5} {r['description'][:80]}"
+            )
+        return (
+            0
+            if report["container_valid"]
+            and report["profiles"].get("structural", {}).get("fail", 1) == 0
+            else 1
+        )
 
     if args.cmd == "workflow":
         rows = [validate_workflow(Path(p)) for p in args.paths]
         if args.json:
             Path(args.json).write_text(json.dumps(rows, indent=1), encoding="utf-8")
         print(json.dumps(rows, indent=1)[:6000])
-        return 0 if all(r["schema_valid"] and r["semantic_violations"] == 0 for r in rows) else 1
+        return (
+            0
+            if all(r["schema_valid"] and r["semantic_violations"] == 0 for r in rows)
+            else 1
+        )
 
     report = run_all(Path(args.catalog))
-    target = Path(args.json) if args.json else schemas.SCHEMA_DIR / "WORKFLOW-DSL-VALIDATION.json"
+    target = (
+        Path(args.json)
+        if args.json
+        else schemas.SCHEMA_DIR / "WORKFLOW-DSL-VALIDATION.json"
+    )
     target.write_text(json.dumps(report, indent=1), encoding="utf-8")
     _print_summary(report)
     print(f"(artifact written: {target})")

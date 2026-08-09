@@ -48,7 +48,16 @@ MANDATED_FIELDS: tuple[str, ...] = (
 
 #: fields that may NEVER be defaulted: they identify the unit or state its specific intent
 NEVER_DEFAULTABLE: frozenset[str] = frozenset(
-    {"id", "title", "phase", "question_or_target", "inputs", "dependencies", "output_path", "completion_sentinel"}
+    {
+        "id",
+        "title",
+        "phase",
+        "question_or_target",
+        "inputs",
+        "dependencies",
+        "output_path",
+        "completion_sentinel",
+    }
 )
 
 
@@ -73,7 +82,9 @@ def normalise_defaults(defaults: Mapping[str, Any] | None) -> dict[str, Any]:
     return out
 
 
-def resolve_unit(unit: Mapping[str, Any], defaults: Mapping[str, Any] | None) -> Resolution:
+def resolve_unit(
+    unit: Mapping[str, Any], defaults: Mapping[str, Any] | None
+) -> Resolution:
     """Fill only MISSING, defaultable fields. Never overwrite a per-unit value."""
     merged = dict(unit)
     res = Resolution(unit=merged)

@@ -38,7 +38,10 @@ rj = blob("tools/memory-bench/results.json")
 if rj:
     try:
         data = json.loads(rj)
-        print("  results.json top-level keys:", list(data)[:12] if isinstance(data, dict) else type(data))
+        print(
+            "  results.json top-level keys:",
+            list(data)[:12] if isinstance(data, dict) else type(data),
+        )
         txt = json.dumps(data)
         # try to find explicit pass/total
         for k in ("overall", "summary", "score", "passed", "total", "results"):
@@ -47,9 +50,17 @@ if rj:
         # count boolean pass fields if a probe list exists
         rows = data.get("results") if isinstance(data, dict) else None
         if isinstance(rows, list):
-            passes = sum(1 for r in rows if r.get("pass") is True or r.get("passed") is True)
-            print(f"  RECOUNT from rows: {passes}/{len(rows)} = {passes / len(rows) * 100:.2f}%")
-            out["C1"] = {"passes": passes, "total": len(rows), "pct": round(passes / len(rows) * 100, 2)}
+            passes = sum(
+                1 for r in rows if r.get("pass") is True or r.get("passed") is True
+            )
+            print(
+                f"  RECOUNT from rows: {passes}/{len(rows)} = {passes / len(rows) * 100:.2f}%"
+            )
+            out["C1"] = {
+                "passes": passes,
+                "total": len(rows),
+                "pct": round(passes / len(rows) * 100, 2),
+            }
         else:
             print("  no 'results' row list; raw head:", txt[:400])
     except Exception as e:
@@ -81,18 +92,31 @@ else:
 # ---- C3 fanout-schema arithmetic ---------------------------------------
 print("\n=== C3  fanout-schema 22.7% arithmetic ===")
 rd = blob("tools/fanout-schema/README.md") or ""
-m = re.search(r"\|\s*StructuredOutput,\s*all\s*\|\s*([\d,]+)\s*\|\s*([\d,]+)\s*\|\s*\*\*([\d.]+)%", rd)
+m = re.search(
+    r"\|\s*StructuredOutput,\s*all\s*\|\s*([\d,]+)\s*\|\s*([\d,]+)\s*\|\s*\*\*([\d.]+)%",
+    rd,
+)
 if m:
     calls = int(m.group(1).replace(",", ""))
     errs = int(m.group(2).replace(",", ""))
     claimed = float(m.group(3))
     computed = errs / calls * 100
     print(f"  calls={calls} errors={errs} claimed={claimed}% computed={computed:.2f}%")
-    print(f"  arithmetic {'CONSISTENT' if abs(computed - claimed) < 0.1 else 'INCONSISTENT'}")
-    out["C3"] = {"calls": calls, "errors": errs, "claimed_pct": claimed, "computed_pct": round(computed, 2)}
+    print(
+        f"  arithmetic {'CONSISTENT' if abs(computed - claimed) < 0.1 else 'INCONSISTENT'}"
+    )
+    out["C3"] = {
+        "calls": calls,
+        "errors": errs,
+        "claimed_pct": claimed,
+        "computed_pct": round(computed, 2),
+    }
 else:
     print("  table row not matched")
-m2 = re.search(r"(\d[\d,]*)\s*/\s*(\d[\d,]*)\s*/\s*([\d.]+)%\s*from an independent implementation", rd)
+m2 = re.search(
+    r"(\d[\d,]*)\s*/\s*(\d[\d,]*)\s*/\s*([\d.]+)%\s*from an independent implementation",
+    rd,
+)
 if m2:
     print(f"  second implementation: {m2.group(1)} / {m2.group(2)} / {m2.group(3)}%")
     out["C3_second"] = m2.groups()
@@ -104,8 +128,12 @@ thr = re.findall(r"^([A-Z_]{3,40})\s*=\s*([0-9.]+)", eg, re.M)
 print(f"  module-level numeric constants: {thr[:12]}")
 funcs = re.findall(r"^def\s+(\w+)", eg, re.M)
 print(f"  functions: {funcs[:20]}")
-print(f"  mentions 'escalate': {len(re.findall('escalate', eg))}  'entropy': {len(re.findall('entropy', eg, re.I))}")
-print(f"  uses random/time on the decision path: random={'random' in eg} time.time={'time.time' in eg}")
+print(
+    f"  mentions 'escalate': {len(re.findall('escalate', eg))}  'entropy': {len(re.findall('entropy', eg, re.I))}"
+)
+print(
+    f"  uses random/time on the decision path: random={'random' in eg} time.time={'time.time' in eg}"
+)
 out["C4"] = {"constants": thr[:12], "functions": funcs[:20]}
 
 # ---- C5 arXiv ids verbatim ---------------------------------------------

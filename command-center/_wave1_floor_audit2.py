@@ -81,7 +81,9 @@ out["A_schema_resolution"] = {
 }
 
 # --------------------------------------------------------------------------- B
-cat = json.loads((REPO / "command-center" / "WORK-UNIT-CATALOG.json").read_text(encoding="utf-8"))
+cat = json.loads(
+    (REPO / "command-center" / "WORK-UNIT-CATALOG.json").read_text(encoding="utf-8")
+)
 wus = cat["work_units"]
 pathpat = re.compile(r"([A-Za-z0-9_./\-]+\.schema\.json)")
 counter: collections.Counter = collections.Counter()
@@ -123,8 +125,12 @@ out["B_output_schema_paths"] = {
 # --------------------------------------------------------------------------- C
 vault = Path("C:/Users/Prekzursil/.agents/skills/ralph-loop/SKILL.md")
 plugin_roots = [
-    Path("C:/Users/Prekzursil/.claude/plugins/marketplaces/claude-plugins-official/plugins/ralph-loop"),
-    Path("C:/Users/Prekzursil/.claude/plugins/cache/claude-plugins-official/ralph-loop"),
+    Path(
+        "C:/Users/Prekzursil/.claude/plugins/marketplaces/claude-plugins-official/plugins/ralph-loop"
+    ),
+    Path(
+        "C:/Users/Prekzursil/.claude/plugins/cache/claude-plugins-official/ralph-loop"
+    ),
 ]
 vb = vault.read_bytes() if vault.exists() else b""
 vt = vb.decode("utf-8", "replace")
@@ -144,7 +150,10 @@ for root in plugin_roots:
                 "sha256_16": hashlib.sha256(b).hexdigest()[:16],
                 "byte_identical_to_vault": b == vb,
                 "similarity_to_vault": round(
-                    difflib.SequenceMatcher(None, vt, b.decode("utf-8", "replace")).ratio(), 4
+                    difflib.SequenceMatcher(
+                        None, vt, b.decode("utf-8", "replace")
+                    ).ratio(),
+                    4,
                 ),
             }
         )
@@ -159,7 +168,9 @@ out["C_ralph_loop_collision"] = {
         c.get("file", "").lower().endswith("skill.md") for c in comp
     ),
     "plugin_markdown_files_compared": len([c for c in comp if "file" in c]),
-    "max_similarity_found": max([c["similarity_to_vault"] for c in comp if "file" in c] or [0]),
+    "max_similarity_found": max(
+        [c["similarity_to_vault"] for c in comp if "file" in c] or [0]
+    ),
     "any_byte_identical": any(c.get("byte_identical_to_vault") for c in comp),
     "detector_control_self_similarity_must_be_1_0": ctl,
     "comparisons": comp,

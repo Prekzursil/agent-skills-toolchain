@@ -195,7 +195,9 @@ class _Parser:
                 f"<metric> == {ident} instead"
             )
         if kind != "ident":
-            raise ExpressionError(f"expected a metric name at offset {offset}, found {ident!r}")
+            raise ExpressionError(
+                f"expected a metric name at offset {offset}, found {ident!r}"
+            )
         try:
             domain = domain_of(ident)
         except KeyError:
@@ -335,20 +337,32 @@ _COMPARATORS = {
 }
 
 
-def _check_snapshot_type(metric: str, domain: str, value: Any, declared: str | None) -> None:
+def _check_snapshot_type(
+    metric: str, domain: str, value: Any, declared: str | None
+) -> None:
     if domain == "numeric":
         if isinstance(value, bool) or not isinstance(value, (int, float)):
-            raise MetricTypeError(f"metric {metric!r} is numeric; snapshot gave {type(value).__name__}")
+            raise MetricTypeError(
+                f"metric {metric!r} is numeric; snapshot gave {type(value).__name__}"
+            )
     elif domain == "boolean":
         if not isinstance(value, bool):
-            raise MetricTypeError(f"metric {metric!r} is boolean; snapshot gave {type(value).__name__}")
+            raise MetricTypeError(
+                f"metric {metric!r} is boolean; snapshot gave {type(value).__name__}"
+            )
     elif domain == "enum":
         if not isinstance(value, str):
-            raise MetricTypeError(f"metric {metric!r} is enum; snapshot gave {type(value).__name__}")
+            raise MetricTypeError(
+                f"metric {metric!r} is enum; snapshot gave {type(value).__name__}"
+            )
     else:  # custom, typed by the leaf itself
-        expect = {"number": (int, float), "boolean": (bool,), "string": (str,)}[declared or "number"]
+        expect = {"number": (int, float), "boolean": (bool,), "string": (str,)}[
+            declared or "number"
+        ]
         if declared == "number" and isinstance(value, bool):
-            raise MetricTypeError(f"metric {metric!r} declared number; snapshot gave bool")
+            raise MetricTypeError(
+                f"metric {metric!r} declared number; snapshot gave bool"
+            )
         if not isinstance(value, expect):
             raise MetricTypeError(
                 f"metric {metric!r} declared {declared}; snapshot gave {type(value).__name__}"

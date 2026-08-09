@@ -183,13 +183,17 @@ def scan(name):
     rec["fm_paths"] = fm.get("paths", "")
     rec["license_anchors"] = anchors(best_text, LICENSE_PAT, best_rel, 6)
     rec["stage_anchors"] = anchors(best_text, STAGE_PAT, best_rel, 10)
-    rec["role_terms"] = sorted({m.group(1).lower() for m in ROLE_PAT.finditer(best_text)})[:16]
+    rec["role_terms"] = sorted(
+        {m.group(1).lower() for m in ROLE_PAT.finditer(best_text)}
+    )[:16]
     rec["tool_terms"] = sorted({m.group(1) for m in TOOL_PAT.finditer(best_text)})[:20]
     rec["stop_anchors"] = anchors(best_text, STOP_PAT, best_rel, 5)
     rec["failure_anchors"] = anchors(best_text, FAIL_PAT, best_rel, 5)
     rec["bench_anchors"] = anchors(best_text, BENCH_PAT, best_rel, 6)
     rec["arxiv_ids"] = sorted({m.group(1) for m in ARXIV_PAT.finditer(best_text)})
-    rec["urls"] = sorted({m.group(0).rstrip(".,") for m in URL_PAT.finditer(best_text)})[:10]
+    rec["urls"] = sorted(
+        {m.group(0).rstrip(".,") for m in URL_PAT.finditer(best_text)}
+    )[:10]
     low = best_text.lower()
     rec["signals"] = {
         "is_tombstone": bool(
@@ -223,7 +227,9 @@ def main():
             len(ctl_absent["locations"]),
         )
     )
-    assert not ctl_present["absent_everywhere"], "detector cannot find a known-present skill"
+    assert not ctl_present["absent_everywhere"], (
+        "detector cannot find a known-present skill"
+    )
     assert ctl_absent["absent_everywhere"], "detector hallucinates a known-absent skill"
 
     out = []
@@ -256,7 +262,11 @@ def main():
     dest.write_text(json.dumps(out, indent=1, ensure_ascii=False), encoding="utf-8")
     n_abs = sum(1 for r in out if r["absent_everywhere"])
     print(f"\nwrote {dest} entries={len(out)} absent_everywhere={n_abs}")
-    print("SUCCESS:wfa4-provenance-probe" if len(out) == 32 else "FAILED:wfa4-provenance-probe")
+    print(
+        "SUCCESS:wfa4-provenance-probe"
+        if len(out) == 32
+        else "FAILED:wfa4-provenance-probe"
+    )
 
 
 if __name__ == "__main__":

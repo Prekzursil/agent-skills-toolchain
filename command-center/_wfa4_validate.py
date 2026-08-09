@@ -14,7 +14,9 @@ import sys
 OUT = pathlib.Path(
     r"C:/Users/Prekzursil/source/ast-integrate/platform/registry/workflow-candidates-4.json"
 )
-MIRROR = pathlib.Path(r"C:/Users/Prekzursil/.claude/harness-restore-20260806/main-mirror.git")
+MIRROR = pathlib.Path(
+    r"C:/Users/Prekzursil/.claude/harness-restore-20260806/main-mirror.git"
+)
 REF = "07f465f37d49710f7060dcc7b567d6c58213177b"
 
 VOCAB = {
@@ -114,7 +116,9 @@ def check(rows):
         v.append(f"IDS: duplicates present ({len(ids) - len(set(ids))})")
     idx = [r.get("registry_index") for r in slice_rows]
     if sorted(idx) != list(range(97, 129)):
-        v.append(f"INDEX: slice registry_index set is not 97..128 -> {sorted(idx)[:5]}...")
+        v.append(
+            f"INDEX: slice registry_index set is not 97..128 -> {sorted(idx)[:5]}..."
+        )
     for r in ext_rows:
         if r.get("registry_index") in range(97, 129):
             v.append(
@@ -175,7 +179,10 @@ print(
     "  reclassified vs prior registry:",
     sum(1 for r in rows if r.get("classification_changed")),
 )
-print("  undeployed (mirror-only):", [r["name"] for r in rows if "MIRROR-ONLY" in r["deployment_state"]])
+print(
+    "  undeployed (mirror-only):",
+    [r["name"] for r in rows if "MIRROR-ONLY" in r["deployment_state"]],
+)
 print("  UNDECLARED license:", sum(1 for r in rows if r["license"] == "UNDECLARED"))
 cits = sum(
     len(re.findall(r"\[([^\]]+:\d+)\]", item))
@@ -195,7 +202,9 @@ bad.pop(4)  # remove a SPINE-slice entry so the COUNT and INDEX checks are exerc
 bad[-1]["registry_index"] = 100  # push the extension into the slice range
 bv = check(bad)
 for must in ("COUNT", "INDEX", "MATERIALLY-DISTINCT"):
-    assert any(x.startswith(must) for x in bv), f"control did not exercise the {must} check"
+    assert any(x.startswith(must) for x in bv), (
+        f"control did not exercise the {must} check"
+    )
 print(f"  violations on the corrupted copy = {len(bv)} (must be > 0)")
 for x in bv[:6]:
     print("   -", x)
@@ -205,4 +214,6 @@ print()
 if viol:
     print(f"FAILED:wfa4-validate {len(viol)} violation(s)")
     sys.exit(1)
-print("SUCCESS:wfa4-validate 32/32 entries, 0 violations, control fired on the broken copy")
+print(
+    "SUCCESS:wfa4-validate 32/32 entries, 0 violations, control fired on the broken copy"
+)

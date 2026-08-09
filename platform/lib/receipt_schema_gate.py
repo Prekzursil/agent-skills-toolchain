@@ -260,7 +260,11 @@ def evaluate_gate_a(
     """
     schema_errors = validate_receipt(receipt, schema=schema, fragment=fragment)
     if not isinstance(receipt, dict):
-        return GateResult(unit_id="<unparseable>", state="<none>", schema_errors=schema_errors or ["root: not an object"])
+        return GateResult(
+            unit_id="<unparseable>",
+            state="<none>",
+            schema_errors=schema_errors or ["root: not an object"],
+        )
 
     unit_id = str(receipt.get("unit_id", "<missing>"))
     state = str(receipt.get("state", "<missing>"))
@@ -285,9 +289,17 @@ def evaluate_gate_a(
     if not arts:
         add(2, UNSATISFIED, "no artifacts recorded")
     elif not verify_filesystem:
-        add(2, NOT_CHECKED, "filesystem verification disabled; a path in text is not proof")
+        add(
+            2,
+            NOT_CHECKED,
+            "filesystem verification disabled; a path in text is not proof",
+        )
     elif root is None:
-        add(2, NOT_CHECKED, "no repo_root supplied, cannot resolve relative artifact paths")
+        add(
+            2,
+            NOT_CHECKED,
+            "no repo_root supplied, cannot resolve relative artifact paths",
+        )
     else:
         missing = [a["path"] for a in arts if not (root / a["path"]).is_file()]
         if missing:
@@ -298,7 +310,11 @@ def evaluate_gate_a(
     # --- 3. non-empty AND exceeds the declared minimum --------------------- #
     threshold = receipt.get("min_bytes_threshold")
     if not isinstance(threshold, int) or threshold < 1:
-        add(3, UNSATISFIED, "min_bytes_threshold absent or < 1; 'meaningful minimum' is unfalsifiable")
+        add(
+            3,
+            UNSATISFIED,
+            "min_bytes_threshold absent or < 1; 'meaningful minimum' is unfalsifiable",
+        )
     elif not arts:
         add(3, UNSATISFIED, "no artifacts recorded")
     else:
@@ -320,28 +336,53 @@ def evaluate_gate_a(
                     continue
                 actual = p.stat().st_size
                 if actual != a["bytes"]:
-                    mismatched.append(f"{a['path']}: declared {a['bytes']} != on-disk {actual}")
+                    mismatched.append(
+                        f"{a['path']}: declared {a['bytes']} != on-disk {actual}"
+                    )
                     continue
                 digest = _sha256_file(p)
                 if digest != a.get("sha256"):
-                    mismatched.append(f"{a['path']}: sha256 mismatch (on-disk {digest[:12]}...)")
+                    mismatched.append(
+                        f"{a['path']}: sha256 mismatch (on-disk {digest[:12]}...)"
+                    )
             if mismatched:
-                add(3, UNSATISFIED, f"declared bytes/sha256 disagree with disk: {mismatched}")
+                add(
+                    3,
+                    UNSATISFIED,
+                    f"declared bytes/sha256 disagree with disk: {mismatched}",
+                )
             else:
-                add(3, SATISFIED, f"all primary artifacts >= {threshold} B, sizes and sha256 re-measured")
+                add(
+                    3,
+                    SATISFIED,
+                    f"all primary artifacts >= {threshold} B, sizes and sha256 re-measured",
+                )
 
     # --- 4. parses against its schema -------------------------------------- #
     if schema_errors:
-        add(4, UNSATISFIED, f"{len(schema_errors)} schema error(s); first: {schema_errors[0][:200]}")
+        add(
+            4,
+            UNSATISFIED,
+            f"{len(schema_errors)} schema error(s); first: {schema_errors[0][:200]}",
+        )
     else:
-        add(4, SATISFIED, f"validates against {SCHEMA_PATH.name}" + (f"{fragment}" if fragment else ""))
+        add(
+            4,
+            SATISFIED,
+            f"validates against {SCHEMA_PATH.name}"
+            + (f"{fragment}" if fragment else ""),
+        )
 
     # --- 5. sentinel present AND names this unit --------------------------- #
     sentinel = receipt.get("sentinel")
     if not isinstance(sentinel, str) or not sentinel:
         add(5, UNSATISFIED, "sentinel absent")
     elif unit_id not in sentinel:
-        add(5, UNSATISFIED, f"sentinel does not embed unit_id {unit_id!r}: {sentinel[:80]!r}")
+        add(
+            5,
+            UNSATISFIED,
+            f"sentinel does not embed unit_id {unit_id!r}: {sentinel[:80]!r}",
+        )
     elif sentinel.startswith("FAILED:"):
         add(5, UNSATISFIED, "sentinel is a FAILED marker")
     else:
@@ -350,7 +391,11 @@ def evaluate_gate_a(
     # --- 6. evidence anchors, with an independent probe pair --------------- #
     ev = [e for e in receipt.get("evidence", []) if isinstance(e, dict)]
     if len(ev) < 2:
-        add(6, UNSATISFIED, f"{len(ev)} evidence item(s); two mechanically independent signals required")
+        add(
+            6,
+            UNSATISFIED,
+            f"{len(ev)} evidence item(s); two mechanically independent signals required",
+        )
     else:
         problems: list[str] = []
         for i, item in enumerate(ev):
@@ -358,43 +403,73 @@ def evaluate_gate_a(
             roles = {p.get("role") for p in probes}
             if item.get("verdict") in ("CONFIRMED", "REFUTED"):
                 if "source" not in roles:
-                    problems.append(f"evidence[{i}]: no source probe (undeclared source = zero signals)")
+                    problems.append(
+                        f"evidence[{i}]: no source probe (undeclared source = zero signals)"
+                    )
                 if "verifier" not in roles:
                     problems.append(f"evidence[{i}]: no verifier probe")
-                srcs = {p.get("fingerprint") for p in probes if p.get("role") == "source"}
-                vers = {p.get("fingerprint") for p in probes if p.get("role") == "verifier"}
+                srcs = {
+                    p.get("fingerprint") for p in probes if p.get("role") == "source"
+                }
+                vers = {
+                    p.get("fingerprint") for p in probes if p.get("role") == "verifier"
+                }
                 if srcs & vers:
-                    problems.append(f"evidence[{i}]: same-probe-rerun, fingerprints overlap {sorted(srcs & vers)}")
-                methods_s = {p.get("method") for p in probes if p.get("role") == "source"}
-                methods_v = {p.get("method") for p in probes if p.get("role") == "verifier"}
+                    problems.append(
+                        f"evidence[{i}]: same-probe-rerun, fingerprints overlap {sorted(srcs & vers)}"
+                    )
+                methods_s = {
+                    p.get("method") for p in probes if p.get("role") == "source"
+                }
+                methods_v = {
+                    p.get("method") for p in probes if p.get("role") == "verifier"
+                }
                 if methods_s and methods_v and methods_s == methods_v:
                     problems.append(
                         f"evidence[{i}]: source and verifier share method {sorted(methods_s)}; not mechanically independent"
                     )
             if item.get("unverified") and not item.get("settling_experiment"):
-                problems.append(f"evidence[{i}]: UNVERIFIED with no settling experiment")
+                problems.append(
+                    f"evidence[{i}]: UNVERIFIED with no settling experiment"
+                )
             if not item.get("anchor"):
                 problems.append(f"evidence[{i}]: no anchor")
         if problems:
             add(6, UNSATISFIED, "; ".join(problems[:6]))
         else:
-            add(6, SATISFIED, f"{len(ev)} anchored evidence item(s), source/verifier pairs independent")
+            add(
+                6,
+                SATISFIED,
+                f"{len(ev)} anchored evidence item(s), source/verifier pairs independent",
+            )
 
     # --- 7. required tests ran and passed ---------------------------------- #
     tests = [t for t in receipt.get("tests", []) if isinstance(t, dict)]
     if not tests:
         add(7, UNSATISFIED, "no tests recorded")
     else:
-        bad = [f"{t.get('id')}={t.get('result')}" for t in tests if t.get("result") != "PASS"]
+        bad = [
+            f"{t.get('id')}={t.get('result')}"
+            for t in tests
+            if t.get("result") != "PASS"
+        ]
         if bad:
-            add(7, UNSATISFIED, f"non-PASS results (SKIP/NOT-RUN are not passes): {bad[:8]}")
+            add(
+                7,
+                UNSATISFIED,
+                f"non-PASS results (SKIP/NOT-RUN are not passes): {bad[:8]}",
+            )
         else:
             add(7, SATISFIED, f"{len(tests)} test(s) PASS")
 
     # --- 8. negative controls fail as expected (both-states) --------------- #
     ctrls = [c for c in receipt.get("negative_controls", []) if isinstance(c, dict)]
     if not ctrls:
-        add(8, UNSATISFIED, "no negative control; a detector unproven against a known-broken state measures nothing")
+        add(
+            8,
+            UNSATISFIED,
+            "no negative control; a detector unproven against a known-broken state measures nothing",
+        )
     else:
         bad = []
         for c in ctrls:
@@ -405,7 +480,11 @@ def evaluate_gate_a(
         if bad:
             add(8, UNSATISFIED, "; ".join(bad[:6]))
         else:
-            add(8, SATISFIED, f"{len(ctrls)} both-states control(s) fired on bad and silent on good")
+            add(
+                8,
+                SATISFIED,
+                f"{len(ctrls)} both-states control(s) fired on bad and silent on good",
+            )
 
     # --- 9. independent reviewer PASS -------------------------------------- #
     rev = receipt.get("reviewer")
@@ -415,7 +494,9 @@ def evaluate_gate_a(
         add(9, UNSATISFIED, f"reviewer verdict={rev.get('verdict')!r}")
     elif rev.get("independent") is not True:
         add(9, UNSATISFIED, "reviewer not independent (self-review is not review)")
-    elif rev.get("reviewer_id") and rev.get("reviewer_id") == (receipt.get("produced_by") or {}).get("role"):
+    elif rev.get("reviewer_id") and rev.get("reviewer_id") == (
+        receipt.get("produced_by") or {}
+    ).get("role"):
         add(9, UNSATISFIED, "reviewer_id equals the producing role")
     else:
         add(9, SATISFIED, f"independent reviewer {rev.get('reviewer_id')} PASS")
@@ -438,7 +519,11 @@ def evaluate_gate_a(
         add(11, UNSATISFIED, "no manifest_registration block")
     elif reg.get("registered") is not True:
         add(11, UNSATISFIED, "manifest_registration.registered is not true")
-    elif verify_filesystem and root is not None and not (root / str(reg.get("manifest_path"))).is_file():
+    elif (
+        verify_filesystem
+        and root is not None
+        and not (root / str(reg.get("manifest_path"))).is_file()
+    ):
         add(11, UNSATISFIED, f"manifest absent on disk: {reg.get('manifest_path')}")
     else:
         add(11, SATISFIED, f"registered in {reg.get('manifest_path')}")
@@ -446,7 +531,11 @@ def evaluate_gate_a(
     # --- 12. downstream consumers can read it ----------------------------- #
     cons = [c for c in receipt.get("downstream_consumers", []) if isinstance(c, dict)]
     if not cons:
-        add(12, UNSATISFIED, "no downstream consumer probe; condition 12 would be decorative")
+        add(
+            12,
+            UNSATISFIED,
+            "no downstream consumer probe; condition 12 would be decorative",
+        )
     else:
         bad = []
         for c in cons:
@@ -454,19 +543,29 @@ def evaluate_gate_a(
                 bad.append(f"{c.get('consumer')}: not executed (claim only)")
             elif c.get("read_ok") is not True:
                 bad.append(f"{c.get('consumer')}: read_ok false")
-            elif not isinstance(c.get("probe"), dict) or not c["probe"].get("raw_output"):
+            elif not isinstance(c.get("probe"), dict) or not c["probe"].get(
+                "raw_output"
+            ):
                 bad.append(f"{c.get('consumer')}: no raw probe output")
-        art_paths = {a.get("path") for a in receipt.get("artifacts", []) if isinstance(a, dict)}
+        art_paths = {
+            a.get("path") for a in receipt.get("artifacts", []) if isinstance(a, dict)
+        }
         unconsumed = {c.get("artifact_path") for c in cons} - art_paths
         if unconsumed:
-            bad.append(f"consumer references artifact(s) not in this receipt: {sorted(unconsumed)}")
+            bad.append(
+                f"consumer references artifact(s) not in this receipt: {sorted(unconsumed)}"
+            )
         if bad:
             add(12, UNSATISFIED, "; ".join(bad[:6]))
         else:
-            add(12, SATISFIED, f"{len(cons)} consumer(s) executed and read the artifact")
+            add(
+                12, SATISFIED, f"{len(cons)} consumer(s) executed and read the artifact"
+            )
 
     cond.sort(key=lambda c: c.n)
-    return GateResult(unit_id=unit_id, state=state, conditions=cond, schema_errors=schema_errors)
+    return GateResult(
+        unit_id=unit_id, state=state, conditions=cond, schema_errors=schema_errors
+    )
 
 
 def check_timestamps(receipt: dict[str, Any]) -> list[str]:
@@ -482,12 +581,16 @@ def check_timestamps(receipt: dict[str, Any]) -> list[str]:
         problems.append("ended_at unparseable")
     if start and end:
         if end < start:
-            problems.append(f"ended_at {ts['ended_at']} precedes started_at {ts['started_at']}")
+            problems.append(
+                f"ended_at {ts['ended_at']} precedes started_at {ts['started_at']}"
+            )
         declared = ts.get("duration_seconds")
         if isinstance(declared, (int, float)):
             actual = (end - start).total_seconds()
             if abs(actual - declared) > max(1.0, 0.02 * actual):
-                problems.append(f"duration_seconds={declared} disagrees with delta {actual:.1f}s")
+                problems.append(
+                    f"duration_seconds={declared} disagrees with delta {actual:.1f}s"
+                )
     return problems
 
 
@@ -506,7 +609,9 @@ def check_retry_policy(receipt: dict[str, Any]) -> list[str]:
         )
     count = retry.get("count")
     if isinstance(count, int) and attempts and count > len(attempts):
-        problems.append(f"retry.count={count} exceeds recorded attempts={len(attempts)}")
+        problems.append(
+            f"retry.count={count} exceeds recorded attempts={len(attempts)}"
+        )
     return problems
 
 
@@ -518,7 +623,10 @@ def evaluate_full(
 ) -> tuple[GateResult, list[str]]:
     """Gate A plus the coherence checks that are not numbered conditions."""
     result = evaluate_gate_a(
-        receipt, repo_root=repo_root, verify_filesystem=verify_filesystem, fragment=fragment
+        receipt,
+        repo_root=repo_root,
+        verify_filesystem=verify_filesystem,
+        fragment=fragment,
     )
     extra: list[str] = []
     if isinstance(receipt, dict):
@@ -537,10 +645,24 @@ def _main(argv: Sequence[str] | None = None) -> int:
         description="Validate a work-unit receipt and evaluate the 12-condition completion predicate."
     )
     ap.add_argument("receipt", nargs="+", help="path(s) to receipt JSON")
-    ap.add_argument("--repo-root", default=None, help="root for resolving artifact paths")
-    ap.add_argument("--no-fs", action="store_true", help="skip filesystem checks (conditions 2/3 -> NOT-CHECKED)")
-    ap.add_argument("--fragment", default=None, help="validate against a $defs fragment, e.g. security_report")
-    ap.add_argument("--schema-only", action="store_true", help="layer 1 only; does NOT imply completion")
+    ap.add_argument(
+        "--repo-root", default=None, help="root for resolving artifact paths"
+    )
+    ap.add_argument(
+        "--no-fs",
+        action="store_true",
+        help="skip filesystem checks (conditions 2/3 -> NOT-CHECKED)",
+    )
+    ap.add_argument(
+        "--fragment",
+        default=None,
+        help="validate against a $defs fragment, e.g. security_report",
+    )
+    ap.add_argument(
+        "--schema-only",
+        action="store_true",
+        help="layer 1 only; does NOT imply completion",
+    )
     ap.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     args = ap.parse_args(argv)
 
@@ -557,14 +679,20 @@ def _main(argv: Sequence[str] | None = None) -> int:
 
         if args.schema_only:
             errs = validate_receipt(receipt, fragment=args.fragment)
-            uid = receipt.get("unit_id", "<missing>") if isinstance(receipt, dict) else "<missing>"
+            uid = (
+                receipt.get("unit_id", "<missing>")
+                if isinstance(receipt, dict)
+                else "<missing>"
+            )
             if errs:
                 print(f"FAILED:{uid} schema-invalid ({len(errs)} error(s))")
                 for e in errs[:20]:
                     print(f"    - {e}")
                 worst = 1
             else:
-                print(f"SCHEMA-VALID:{uid} (layer 1 only - this is NOT a completion verdict)")
+                print(
+                    f"SCHEMA-VALID:{uid} (layer 1 only - this is NOT a completion verdict)"
+                )
             payloads.append({"unit_id": uid, "schema_errors": errs})
             continue
 
@@ -581,7 +709,12 @@ def _main(argv: Sequence[str] | None = None) -> int:
         if not args.json:
             print(result.marker())
             for c in result.conditions:
-                mark = {SATISFIED: "  ok", UNSATISFIED: "FAIL", NOT_CHECKED: "  ??", NOT_APPLICABLE: "  na"}[c.outcome]
+                mark = {
+                    SATISFIED: "  ok",
+                    UNSATISFIED: "FAIL",
+                    NOT_CHECKED: "  ??",
+                    NOT_APPLICABLE: "  na",
+                }[c.outcome]
                 print(f"  [{mark}] {c.n:2d}. {c.text}")
                 if c.outcome != SATISFIED:
                     print(f"           -> {c.basis}")

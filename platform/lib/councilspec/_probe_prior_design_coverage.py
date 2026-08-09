@@ -49,18 +49,22 @@ def main() -> int:
     my_sections = sorted((mine.get("properties") or {}).keys())
     print(f"prior top-level sections ({len(prior_sections)}): {prior_sections}")
     print(f"new   top-level sections ({len(my_sections)}): {my_sections}")
-    print(f"prior sections MISSING as a top-level key in the new schema: "
-          f"{sorted(set(prior_sections) - set(my_sections))}")
+    print(
+        f"prior sections MISSING as a top-level key in the new schema: "
+        f"{sorted(set(prior_sections) - set(my_sections))}"
+    )
 
     pf = field_names(prior, set())
     mf = field_names(mine, set())
     covered = pf & mf
-    print(f"\nprior field names: {len(pf)}; new field names: {len(mf)}; "
-          f"name-level overlap: {len(covered)} ({100*len(covered)//max(len(pf),1)}% of prior)")
+    print(
+        f"\nprior field names: {len(pf)}; new field names: {len(mf)}; "
+        f"name-level overlap: {len(covered)} ({100 * len(covered) // max(len(pf), 1)}% of prior)"
+    )
     missing = sorted(pf - mf)
     print(f"prior field names absent from the new schema ({len(missing)}):")
     for i in range(0, min(len(missing), 120), 8):
-        print("   ", ", ".join(missing[i:i + 8]))
+        print("   ", ", ".join(missing[i : i + 8]))
     if len(missing) > 120:
         print(f"    ... and {len(missing) - 120} more")
 
@@ -70,8 +74,11 @@ def main() -> int:
         return 0
     with open(PRESETS, "r", encoding="utf-8") as fh:
         data = json.load(fh)
-    print("presets doc top-level keys:", list(data)[:12] if isinstance(data, dict) else type(data))
-    for key in (data if isinstance(data, dict) else {}):
+    print(
+        "presets doc top-level keys:",
+        list(data)[:12] if isinstance(data, dict) else type(data),
+    )
+    for key in data if isinstance(data, dict) else {}:
         value = data[key]
         if isinstance(value, list):
             print(f"  {key}: list[{len(value)}]")
@@ -96,7 +103,9 @@ def main() -> int:
             ok += 1
         elif first_err is None:
             first_err = (preset.get("id") or preset.get("preset_id") or "?", errs[:3])
-    print(f"presets validating UNCHANGED against the new schema: {ok}/{len(candidates)}")
+    print(
+        f"presets validating UNCHANGED against the new schema: {ok}/{len(candidates)}"
+    )
     if first_err:
         print(f"first failure: id={first_err[0]}")
         for msg in first_err[1]:

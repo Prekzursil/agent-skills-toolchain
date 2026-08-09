@@ -14,7 +14,9 @@ from functools import lru_cache
 from typing import Any, Dict, FrozenSet, Tuple
 
 SCHEMA_PATH = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "schema", "councilspec.schema.json")
+    os.path.join(
+        os.path.dirname(__file__), "..", "..", "schema", "councilspec.schema.json"
+    )
 )
 
 NUMERIC_OPS: Tuple[str, ...] = (">=", ">", "<=", "<", "==", "!=")
@@ -36,8 +38,12 @@ def load_schema(path: str = SCHEMA_PATH) -> Dict[str, Any]:
 def _leaf_enum(schema: Dict[str, Any], def_name: str) -> FrozenSet[str]:
     try:
         values = schema["$defs"][def_name]["properties"]["metric"]["enum"]
-    except KeyError as exc:  # pragma: no cover - guarded by test_registry_detector_control
-        raise RegistryError(f"{def_name}.properties.metric.enum missing from schema") from exc
+    except (
+        KeyError
+    ) as exc:  # pragma: no cover - guarded by test_registry_detector_control
+        raise RegistryError(
+            f"{def_name}.properties.metric.enum missing from schema"
+        ) from exc
     if not values:
         raise RegistryError(f"{def_name} metric enum is empty")
     return frozenset(values)
@@ -60,7 +66,9 @@ def metric_domains(path: str = SCHEMA_PATH) -> Dict[str, FrozenSet[str]]:
     if overlap:
         # The schema relies on `oneOf` over disjoint metric-name sets; an overlap would make
         # a leaf match two branches and fail validation for the wrong reason.
-        raise RegistryError(f"metric name sets must be disjoint; overlapping: {sorted(overlap)}")
+        raise RegistryError(
+            f"metric name sets must be disjoint; overlapping: {sorted(overlap)}"
+        )
     return domains
 
 
@@ -70,7 +78,9 @@ def enum_tokens(path: str = SCHEMA_PATH) -> FrozenSet[str]:
     try:
         values = schema["$defs"]["stop_leaf_enum"]["properties"]["value"]["enum"]
     except KeyError as exc:  # pragma: no cover
-        raise RegistryError("stop_leaf_enum.properties.value.enum missing from schema") from exc
+        raise RegistryError(
+            "stop_leaf_enum.properties.value.enum missing from schema"
+        ) from exc
     return frozenset(values)
 
 

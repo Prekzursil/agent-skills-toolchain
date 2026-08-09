@@ -3,6 +3,7 @@
 Read-only. Writes nothing outside a system temp scratch dir (used ONLY for the
 detector-control 'fires on known-present sentinel' test, then removed).
 """
+
 import hashlib
 import json
 import os
@@ -26,7 +27,10 @@ EXCLUDE_DIRS = {"__pycache__", ".git", ".pytest_cache", ".ruff_cache", "node_mod
 
 
 RESERVED = {
-    "NUL", "CON", "AUX", "PRN",
+    "NUL",
+    "CON",
+    "AUX",
+    "PRN",
     *("COM%d" % i for i in range(1, 10)),
     *("LPT%d" % i for i in range(1, 10)),
 }
@@ -52,7 +56,9 @@ def enumerate_tree(root):
             # relpath from the DIRECTORY (a normal path) + the filename. Never
             # abspath() the full path: Windows collapses a reserved stem such as
             # NUL to the device \\.\NUL, which yields an empty/garbage relpath.
-            reldir = os.path.abspath(dirpath)[len(base):].strip("\\/").replace("\\", "/")
+            reldir = (
+                os.path.abspath(dirpath)[len(base) :].strip("\\/").replace("\\", "/")
+            )
             rel = ("%s/%s" % (reldir, fn)) if reldir else fn
             stem = fn.split(".")[0].upper()
             if stem in RESERVED:
@@ -94,8 +100,9 @@ def main():
     hooks_live = os.path.join(HOME, ".claude", "hooks")
     hooks_map = enumerate_tree(hooks_live)
     known_present_rel = "_dispatch/manifest.json"
-    dc["known_present_probe"] = (
-        "enumerate_tree(%s) must contain %r" % (hooks_live, known_present_rel)
+    dc["known_present_probe"] = "enumerate_tree(%s) must contain %r" % (
+        hooks_live,
+        known_present_rel,
     )
     dc["known_present_found"] = known_present_rel in hooks_map
     dc["known_present_size"] = hooks_map.get(known_present_rel)
@@ -131,7 +138,11 @@ def main():
 
     dc["verdict"] = (
         "PASS"
-        if (dc["known_present_found"] and dc["known_absent_ok"] and dc["both_states_fired"])
+        if (
+            dc["known_present_found"]
+            and dc["known_absent_ok"]
+            and dc["both_states_fired"]
+        )
         else "FAIL"
     )
 
@@ -220,18 +231,22 @@ def main():
         man["error"] = "%s: %s" % (type(exc).__name__, exc)
         man["registration_count"] = "NOT-CHECKED"
     result["hook_dispatch_manifest"] = man
-    seen=set(); uniq=[]
+    seen = set()
+    uniq = []
     for h in RESERVED_HITS:
-        k=(h["root"],h["rel"])
-        if k not in seen: seen.add(k); uniq.append(h)
+        k = (h["root"], h["rel"])
+        if k not in seen:
+            seen.add(k)
+            uniq.append(h)
     result["reserved_device_name_files"] = uniq
     # Characterise the live-only surface by top-level skill directory.
     from collections import Counter
+
     for lbl in result["live_vs_repo"]:
-        c=Counter(p.split("/")[0] for p in result["live_vs_repo"][lbl]["live_only"])
-        result["live_vs_repo"][lbl]["live_only_top_dirs"]=c.most_common(15)
-        c2=Counter(p.split("/")[0] for p in result["live_vs_repo"][lbl]["repo_only"])
-        result["live_vs_repo"][lbl]["repo_only_top_dirs"]=c2.most_common(15)
+        c = Counter(p.split("/")[0] for p in result["live_vs_repo"][lbl]["live_only"])
+        result["live_vs_repo"][lbl]["live_only_top_dirs"] = c.most_common(15)
+        c2 = Counter(p.split("/")[0] for p in result["live_vs_repo"][lbl]["repo_only"])
+        result["live_vs_repo"][lbl]["repo_only_top_dirs"] = c2.most_common(15)
 
     json.dump(result, sys.stdout, indent=2)
     print()
