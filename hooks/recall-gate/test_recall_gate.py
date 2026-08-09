@@ -20,7 +20,48 @@ from pathlib import Path
 THIS = Path(__file__).resolve().parent
 sys.path.insert(0, str(THIS))
 
-import gate  # noqa: E402
+
+def _load(name: str):
+    """Load a sibling module under a UNIQUE sys.modules key.
+
+    FOUR hooks/*/gate.py exist in this repo -- compute-confidence-gate, harness-bench, iatrogenics
+    and recall-gate. Under a whole-tree pytest run a bare `import gate` returns whichever was
+    imported FIRST, so this file received a different hook's module and every test here failed with
+    `AttributeError: module 'gate' has no attribute 'run'`. Measured on CI run 31283423031, job
+    gate-tests-coverage (python packages).
+
+    This was NOT pre-existing: hooks/recall-gate/ has 0 files on origin/main and 4 on this branch
+    (added by f49f8362), so recall-gate is the newcomer that made the basename collide. The three
+    older siblings never collided with each other because no two of their test files import `gate`
+    in the same session.
+
+    Loading by PATH under a namespaced key makes import order irrelevant, and is preferred over
+    renaming gate.py: the filename is referenced by the deployed hook layout, so a rename would
+    reach beyond this test.
+    """
+    import importlib.util  # noqa: PLC0415
+
+    key = f"recall_gate__{name}"
+    cached = sys.modules.get(key)
+    if cached is not None:
+        return cached
+    spec = importlib.util.spec_from_file_location(key, THIS / f"{name}.py")
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[key] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+gate = _load("gate")
+
+# `tree_index` is deliberately a PLAIN import, not _load(). It is unique in this repo (only
+# hooks/recall-gate defines one), so it cannot collide and needs no namespacing -- but more
+# importantly, gate.py itself does a bare `import tree_index`, which resolves under the ORDINARY
+# sys.modules key. Loading it here under a namespaced key would hand the test a SECOND, separate
+# module object, so tests that monkeypatch ti.get_or_build would patch a copy gate never consults.
+# Measured: doing exactly that turned test_exception_is_raised_state_not_crash and
+# test_unavailable_index_is_not_checked from passing into RAISED-expected/FINDING-got failures.
+# Namespace only the name that actually collides.
 import tree_index as ti  # noqa: E402
 
 HOME = Path.home()
