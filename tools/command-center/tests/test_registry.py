@@ -37,7 +37,9 @@ def _module_sequences(tree: ast.Module) -> dict[str, int]:
     collected, caught only because the count is asserted against reality."""
     sizes: dict[str, int] = {}
     for node in tree.body:
-        if not isinstance(node, ast.Assign) or not isinstance(node.value, (ast.List, ast.Tuple)):
+        if not isinstance(node, ast.Assign) or not isinstance(
+            node.value, (ast.List, ast.Tuple)
+        ):
             continue
         for target in node.targets:
             if isinstance(target, ast.Name):
@@ -90,7 +92,9 @@ def test_every_named_invariant_test_actually_exists():
     known: set[str] = set()
     for suite in registry["suites"]:
         known |= _test_functions(REPO / suite["path"])
-    known |= _test_functions(REPO / "agent-self" / "harness" / "tests" / "test_modules.py")
+    known |= _test_functions(
+        REPO / "agent-self" / "harness" / "tests" / "test_modules.py"
+    )
     for invariant in registry["invariants"]:
         for name in invariant["tests"]:
             assert name in known, f"{invariant['id']} names a missing test: {name}"
