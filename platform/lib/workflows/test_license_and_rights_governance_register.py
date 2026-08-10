@@ -44,7 +44,9 @@ def test_worked_example_checker_fires_on_a_dropped_binding(doc: dict) -> None:
 
 def test_worked_example_checker_fires_on_an_illegal_enum_item(doc: dict) -> None:
     def bend(d: dict) -> None:
-        d["x_extensions"]["worked_example"]["params"]["intended_use"].append("world-domination")
+        d["x_extensions"]["worked_example"]["params"]["intended_use"].append(
+            "world-domination"
+        )
 
     fails = H.worked_example_failures(H.mutated(doc, bend))
     assert any("outside the item enum" in f for f in fails), fails
@@ -90,13 +92,17 @@ def test_weakening_the_verbatim_gate_is_detectable(doc: dict) -> None:
 
     mutant = H.mutated(doc, bend)
     assert H.conformance_failures(mutant) == []
-    assert "byte_identical" not in H.gate_expressions(mutant)["riders-preserved-verbatim"]
+    assert (
+        "byte_identical" not in H.gate_expressions(mutant)["riders-preserved-verbatim"]
+    )
 
 
 # ------------------------------------------------------------ mechanism: block on absence
 
 
-def test_absence_of_a_licence_blocks_adoption_and_is_a_measured_finding(doc: dict) -> None:
+def test_absence_of_a_licence_blocks_adoption_and_is_a_measured_finding(
+    doc: dict,
+) -> None:
     locate = H.stage(doc, "locate-license")["work_unit"]
     assert "ABSENT" in locate["question_or_target"]
     assert "searched-paths list" in " ".join(locate["tests_required"])
@@ -116,7 +122,9 @@ def test_the_locator_covers_more_than_one_licence_format(doc: dict) -> None:
     target = locate["question_or_target"]
     for fmt in ("LICENSE", "COPYING", "SPDX", "package metadata"):
         assert fmt in target, fmt
-    assert "SPDX-header-only artifact must be located" in " ".join(locate["tests_required"])
+    assert "SPDX-header-only artifact must be located" in " ".join(
+        locate["tests_required"]
+    )
 
 
 # ------------------------------------------------------- mechanism: ambiguity defers to owner
@@ -140,7 +148,10 @@ def test_not_legal_advice_is_stated_in_the_document(doc: dict) -> None:
 
 
 def test_every_registered_artifact_must_carry_an_immutable_ref(doc: dict) -> None:
-    assert H.gate_expressions(doc)["every-artifact-pinned"] == "artifacts_without_pinned_ref == 0"
+    assert (
+        H.gate_expressions(doc)["every-artifact-pinned"]
+        == "artifacts_without_pinned_ref == 0"
+    )
     unit = H.stage(doc, "pin-and-register")["work_unit"]
     assert "commit sha" in unit["question_or_target"]
     assert "floating ref" in " ".join(unit["tests_required"])
@@ -153,4 +164,6 @@ def test_removing_the_pin_gate_leaves_a_dangling_reference(doc: dict) -> None:
         del d["gates"]["every-artifact-pinned"]
 
     violations = H.semantic_violations(H.mutated(doc, bend))
-    assert any("DSL-SEM-005" in v and "every-artifact-pinned" in v for v in violations), violations
+    assert any(
+        "DSL-SEM-005" in v and "every-artifact-pinned" in v for v in violations
+    ), violations

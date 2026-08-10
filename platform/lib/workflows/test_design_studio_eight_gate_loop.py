@@ -30,7 +30,9 @@ BP = "design-studio-eight-gate-loop"
 def test_schema_valid_and_semantically_clean() -> None:
     doc = K.load(BP)
     errs = list(schemas.workflow_validator().iter_errors(doc))
-    assert errs == [], [f"{'/'.join(str(p) for p in e.absolute_path)} [{e.validator}]" for e in errs[:5]]
+    assert errs == [], [
+        f"{'/'.join(str(p) for p in e.absolute_path)} [{e.validator}]" for e in errs[:5]
+    ]
     assert [r.to_json() for r in semantics.check_workflow(doc) if r.violations] == []
 
 
@@ -41,8 +43,14 @@ def test_it_is_a_meta_workflow_that_delegates_two_gates_to_sibling_blueprints() 
     doc = K.load(BP)
     assert doc["kind"] == "meta-workflow"
     declared = set(doc["subworkflows"])
-    assert declared == {"code-to-canvas-mirror-round-trip", "two-track-ui-audit-rubric-verdict"}
-    for sid, wf in (("g2-transpose", "code-to-canvas-mirror-round-trip"), ("g3-critique", "two-track-ui-audit-rubric-verdict")):
+    assert declared == {
+        "code-to-canvas-mirror-round-trip",
+        "two-track-ui-audit-rubric-verdict",
+    }
+    for sid, wf in (
+        ("g2-transpose", "code-to-canvas-mirror-round-trip"),
+        ("g3-critique", "two-track-ui-audit-rubric-verdict"),
+    ):
         st = C.stage(doc, sid)
         assert st is not None and st["kind"] == "subworkflow"
         assert st["workflow"]["workflow_id"] == wf
@@ -70,23 +78,37 @@ def test_control_granting_a_second_role_source_write_access_is_caught() -> None:
     """Both-states control: if the driver can also edit source, 'the implement gate is the only
     stage that writes app source' stops being true and the revert record no longer covers every
     change."""
-    mutated = K.mutate(K.load(BP), K.grant_role_write_paths("driver", ["app/**", "src/**"]))
+    mutated = K.mutate(
+        K.load(BP), K.grant_role_write_paths("driver", ["app/**", "src/**"])
+    )
     K.assert_still_schema_valid(mutated)
     result = C.exactly_one_source_write_stage_with_revert(mutated)
-    assert not result.ok, "the predicate accepted two roles with app-source write access"
-    assert any("exactly one authoring role" in r for r in result.reasons), result.reasons
+    assert not result.ok, (
+        "the predicate accepted two roles with app-source write access"
+    )
+    assert any("exactly one authoring role" in r for r in result.reasons), (
+        result.reasons
+    )
 
 
-def test_control_retargeting_the_revert_loop_away_from_the_implement_stage_is_caught() -> None:
+def test_control_retargeting_the_revert_loop_away_from_the_implement_stage_is_caught() -> (
+    None
+):
     """Both-states control: a revert loop pointed at the wrong stage reverts nothing that matters."""
     mutated = K.mutate(K.load(BP), K.retarget_repair_loop("revert-gate", ["g6-drive"]))
     K.assert_still_schema_valid(mutated)
     result = C.exactly_one_source_write_stage_with_revert(mutated)
-    assert not result.ok, "the predicate accepted a revert loop that does not target the writer"
-    assert any("not the source-write stage" in r for r in result.reasons), result.reasons
+    assert not result.ok, (
+        "the predicate accepted a revert loop that does not target the writer"
+    )
+    assert any("not the source-write stage" in r for r in result.reasons), (
+        result.reasons
+    )
 
 
-def test_control_making_the_reverter_the_same_role_as_the_implementer_is_caught() -> None:
+def test_control_making_the_reverter_the_same_role_as_the_implementer_is_caught() -> (
+    None
+):
     """Both-states control: an author certifying its own undo is the failure the separate reverter
     role exists to prevent."""
 
@@ -96,8 +118,12 @@ def test_control_making_the_reverter_the_same_role_as_the_implementer_is_caught(
     mutated = K.mutate(K.load(BP), apply)
     K.assert_still_schema_valid(mutated)
     result = C.exactly_one_source_write_stage_with_revert(mutated)
-    assert not result.ok, "the predicate accepted the implementer reverting its own change"
-    assert any("same role as the implementer" in r for r in result.reasons), result.reasons
+    assert not result.ok, (
+        "the predicate accepted the implementer reverting its own change"
+    )
+    assert any("same role as the implementer" in r for r in result.reasons), (
+        result.reasons
+    )
 
 
 # ------------------------------------------------ property 2: the router is declarative
@@ -146,6 +172,9 @@ def test_the_worked_example_shows_a_partial_revert_not_a_clean_win() -> None:
     example = ext["worked_example"]
     trace = " ".join(example["expected_trace"])
     assert "REGRESSED" in trace
-    assert "byte-restores that line only" in trace or "partial revert" in example["expected_terminal_state"]
+    assert (
+        "byte-restores that line only" in trace
+        or "partial revert" in example["expected_terminal_state"]
+    )
     assert "UNVERIFIED gate-skip correctness" in ext["unverified"]
     assert "settling experiment" in ext["unverified"].lower()

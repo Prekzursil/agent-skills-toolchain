@@ -106,7 +106,9 @@ def find_stage(doc: dict[str, Any], stage_id: str) -> dict[str, Any]:
     for _, st in _semantics.iter_stages(doc):
         if st.get("id") == stage_id:
             return st  # type: ignore[return-value]
-    raise AssertionError(f"stage {stage_id!r} not found; have {[s.get('id') for _, s in _semantics.iter_stages(doc)]}")
+    raise AssertionError(
+        f"stage {stage_id!r} not found; have {[s.get('id') for _, s in _semantics.iter_stages(doc)]}"
+    )
 
 
 # ------------------------------------------------------------------ validation layers
@@ -210,7 +212,9 @@ def _compile_param(spec: dict[str, Any]) -> dict[str, Any]:
 
 def param_schema(doc: dict[str, Any]) -> dict[str, Any]:
     params = doc.get("params", {}) or {}
-    required = [n for n, s in params.items() if isinstance(s, dict) and s.get("required")]
+    required = [
+        n for n, s in params.items() if isinstance(s, dict) and s.get("required")
+    ]
     schema: dict[str, Any] = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -238,7 +242,9 @@ def worked_example_errors(doc: dict[str, Any]) -> list[str]:
         schema = param_schema(doc)
         Draft202012Validator.check_schema(schema)
     except Exception as exc:  # noqa: BLE001 - report, do not propagate
-        return [f"param contract does not compile: {type(exc).__name__}: {str(exc)[:200]}"]
+        return [
+            f"param contract does not compile: {type(exc).__name__}: {str(exc)[:200]}"
+        ]
     validator = Draft202012Validator(schema)
     problems: list[str] = []
     examples = worked_examples(doc)
@@ -253,7 +259,9 @@ def worked_example_errors(doc: dict[str, Any]) -> list[str]:
             validator.iter_errors(ex["params"]), key=lambda e: list(e.absolute_path)
         ):
             loc = "/".join(str(p) for p in err.absolute_path) or "<root>"
-            problems.append(f"{name}: params/{loc}: [{err.validator}] {err.message[:160]}")
+            problems.append(
+                f"{name}: params/{loc}: [{err.validator}] {err.message[:160]}"
+            )
         for field in ("expected_terminal_state", "walkthrough"):
             if not str(ex.get(field, "")).strip():
                 problems.append(f"{name}: missing {field}")
@@ -298,7 +306,11 @@ def fingerprint(doc: dict[str, Any]) -> dict[str, Any]:
         if st.get("kind") == "loop":
             conv = st.get("convergence") or {}
             body_kinds = ",".join(
-                sorted(str(b.get("kind")) for b in (st.get("body") or []) if isinstance(b, dict))
+                sorted(
+                    str(b.get("kind"))
+                    for b in (st.get("body") or [])
+                    if isinstance(b, dict)
+                )
             )
             loop_shape.append(
                 f"max={conv.get('max_iterations')}:nprog={conv.get('no_progress_rounds')}"
@@ -331,7 +343,9 @@ def fingerprint(doc: dict[str, Any]) -> dict[str, Any]:
         ),
         "replay_deterministic": bool(replay.get("deterministic")),
         "replay_verify": replay.get("verify"),
-        "resume_granularity": resume.get("granularity") if resume.get("enabled") else "disabled",
+        "resume_granularity": resume.get("granularity")
+        if resume.get("enabled")
+        else "disabled",
         "retry_strategy": retry.get("strategy"),
         "on_failure": failure.get("on_failure"),
         "routing_strategy": routing.get("strategy"),
@@ -371,7 +385,9 @@ def assert_mutation_caught(
     arm 1 could be an always-passing one. Both are required for the check to mean anything.
     """
     if expect_layer not in LAYERS:
-        raise AssertionError(f"expect_layer must be one of {LAYERS}, got {expect_layer!r}")
+        raise AssertionError(
+            f"expect_layer must be one of {LAYERS}, got {expect_layer!r}"
+        )
 
     good = load(bp_id)
     good_failures = all_layer_failures(good)

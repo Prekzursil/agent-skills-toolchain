@@ -99,7 +99,9 @@ def test_an_unverifiable_requirement_needs_explicit_owner_acceptance():
     assert st["kind"] == "human_checkpoint"
     assert st["when"] == "untestable_requirements > 0"
     assert st["owner_approval_required"] is True
-    assert st["on_timeout"] == "fail", "an unanswered acceptance must not silently proceed"
+    assert st["on_timeout"] == "fail", (
+        "an unanswered acceptance must not silently proceed"
+    )
 
 
 def test_an_open_decision_log_escalates_rather_than_producing_fiction():
@@ -133,6 +135,8 @@ def test_mutation_control_weakening_the_traceability_lint_breaks_the_invariant()
     both_states_control(
         blueprint(),
         _invariant_orphans_block,
-        lambda x: x["gates"]["traceability-lint"].__setitem__("expression", "orphan_requirements >= 0"),
+        lambda x: x["gates"]["traceability-lint"].__setitem__(
+            "expression", "orphan_requirements >= 0"
+        ),
         "traceability lint made vacuously true",
     )

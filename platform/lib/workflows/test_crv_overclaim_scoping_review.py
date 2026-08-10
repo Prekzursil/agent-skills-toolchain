@@ -26,7 +26,9 @@ def test_validates_on_disk() -> None:
     kit.assert_accepted(doc())
 
 
-def test_asserted_scope_is_measured_before_evidence_scope_and_both_before_the_verdict() -> None:
+def test_asserted_scope_is_measured_before_evidence_scope_and_both_before_the_verdict() -> (
+    None
+):
     """Order is the mechanism: you cannot compare two widths until both are measured."""
     d = doc()
     kit.assert_precedes(d, "extract-asserted-scope", "measure-evidence-scope")
@@ -37,10 +39,15 @@ def test_asserted_scope_is_measured_before_evidence_scope_and_both_before_the_ve
 def test_the_rewrite_stage_only_runs_when_an_overclaim_was_found() -> None:
     d = doc()
     stage = next(s for s in d["stages"] if s["id"] == "rescope-sentence")
-    assert "overclaims_found" in str(stage["when"]), "the rewrite is not conditional on a finding"
+    assert "overclaims_found" in str(stage["when"]), (
+        "the rewrite is not conditional on a finding"
+    )
     ctx = kit.worked_context(d)
     assert _expr.evaluate(stage["when"], ctx, strict=True) is True
-    assert _expr.evaluate(stage["when"], {**ctx, "overclaims_found": 0}, strict=True) is False
+    assert (
+        _expr.evaluate(stage["when"], {**ctx, "overclaims_found": 0}, strict=True)
+        is False
+    )
 
 
 def test_inline_adjacency_rejects_a_trailing_limitations_section() -> None:
@@ -51,13 +58,20 @@ def test_inline_adjacency_rejects_a_trailing_limitations_section() -> None:
         kit.evaluate_gate(
             d,
             "inline-adjacency",
-            {"residual_disclosed_inline": False, "trailing_limitations_section_used_as_substitute": True},
+            {
+                "residual_disclosed_inline": False,
+                "trailing_limitations_section_used_as_substitute": True,
+            },
         )
         is False
     )
     # a trailing section is not merely insufficient on its own - it is rejected as a SUBSTITUTE
     assert (
-        kit.evaluate_gate(d, "inline-adjacency", {"trailing_limitations_section_used_as_substitute": True})
+        kit.evaluate_gate(
+            d,
+            "inline-adjacency",
+            {"trailing_limitations_section_used_as_substitute": True},
+        )
         is False
     )
 
@@ -69,7 +83,12 @@ def test_defect_not_softened_is_a_veto_gate_not_advisory() -> None:
     assert gate["blocking"] is True
     assert gate["on_fail"] == "fail"
     assert kit.evaluate_gate(d, "defect-not-softened") is True
-    assert kit.evaluate_gate(d, "defect-not-softened", {"genuine_defects_classed_as_overclaim": 1}) is False
+    assert (
+        kit.evaluate_gate(
+            d, "defect-not-softened", {"genuine_defects_classed_as_overclaim": 1}
+        )
+        is False
+    )
     assert d["roles"]["defect-police"]["authority"] == "veto"
     assert d["roles"]["defect-police"]["independence"] == "cross-examining"
 
@@ -78,16 +97,24 @@ def test_every_refuted_overclaim_must_carry_a_replacement_sentence() -> None:
     d = doc()
     assert kit.evaluate_gate(d, "rescoped-sentence-supplied") is True
     assert (
-        kit.evaluate_gate(d, "rescoped-sentence-supplied", {"refuted_overclaims_without_rescoped_sentence": 2})
+        kit.evaluate_gate(
+            d,
+            "rescoped-sentence-supplied",
+            {"refuted_overclaims_without_rescoped_sentence": 2},
+        )
         is False
-    ), "a refuted overclaim with no rewritten sentence is an incomplete review, not a pass"
+    ), (
+        "a refuted overclaim with no rewritten sentence is an incomplete review, not a pass"
+    )
 
 
 def test_every_residual_names_its_settling_experiment() -> None:
     d = doc()
     assert kit.evaluate_gate(d, "settling-experiment-named") is True
     assert (
-        kit.evaluate_gate(d, "settling-experiment-named", {"residuals_without_settling_experiment": 1})
+        kit.evaluate_gate(
+            d, "settling-experiment-named", {"residuals_without_settling_experiment": 1}
+        )
         is False
     )
 
@@ -95,7 +122,9 @@ def test_every_residual_names_its_settling_experiment() -> None:
 def test_the_stopping_rule_cannot_fire_before_any_claim_is_reviewed() -> None:
     """A cheap stopping rule with no floor lets a workflow stop having done nothing."""
     d = doc()
-    rule = next(r for r in d["stopping_rules"] if r["id"] == "every-claim-has-a-verdict")
+    rule = next(
+        r for r in d["stopping_rules"] if r["id"] == "every-claim-has-a-verdict"
+    )
     floor = rule["minimum_conditions"]
     ctx = kit.worked_context(d)
     assert _expr.evaluate(floor, ctx, strict=True) is True
@@ -104,34 +133,52 @@ def test_the_stopping_rule_cannot_fire_before_any_claim_is_reviewed() -> None:
     )
 
 
-def test_the_document_records_its_measured_basis_rather_than_asserting_a_ratio() -> None:
+def test_the_document_records_its_measured_basis_rather_than_asserting_a_ratio() -> (
+    None
+):
     x = doc()["x_extensions"]
-    assert "5 of 8" in x["measured_basis"], "the 5-of-8 measurement is the reason this blueprint exists"
+    assert "5 of 8" in x["measured_basis"], (
+        "the 5-of-8 measurement is the reason this blueprint exists"
+    )
     assert "UNVERIFIED" in x["unverified"]
-    assert "settling experiment" in x["unverified"], "no named experiment for the residual"
+    assert "settling experiment" in x["unverified"], (
+        "no named experiment for the residual"
+    )
 
 
 def test_MUTATION_weakening_inline_adjacency_removes_its_power() -> None:
     d = doc()
-    bad = {"residual_disclosed_inline": False, "trailing_limitations_section_used_as_substitute": True}
+    bad = {
+        "residual_disclosed_inline": False,
+        "trailing_limitations_section_used_as_substitute": True,
+    }
     assert kit.evaluate_gate(d, "inline-adjacency", bad) is False
 
     weakened = kit.mutated(d)
     weakened["gates"]["inline-adjacency"]["expression"] = "claims_reviewed >= 1"
     ctx = kit.worked_context(weakened)
     ctx.update(bad)
-    assert _expr.evaluate(weakened["gates"]["inline-adjacency"]["expression"], ctx, strict=True) is True
+    assert (
+        _expr.evaluate(
+            weakened["gates"]["inline-adjacency"]["expression"], ctx, strict=True
+        )
+        is True
+    )
 
 
 def test_MUTATION_dropping_the_defect_police_gate_is_rejected() -> None:
-    kit.assert_rejected(kit.drop_stage(doc(), "defect-not-softened"), "defect-police gate removed")
+    kit.assert_rejected(
+        kit.drop_stage(doc(), "defect-not-softened"), "defect-police gate removed"
+    )
 
 
 def test_MUTATION_removing_the_stopping_floor_is_visible_to_the_slice_test() -> None:
     """A floor deleted from the document is not a schema error - minimum_conditions is optional -
     so it must be caught behaviourally. This asserts the floor is what blocks an empty run."""
     d = kit.mutated(doc())
-    rule = next(r for r in d["stopping_rules"] if r["id"] == "every-claim-has-a-verdict")
+    rule = next(
+        r for r in d["stopping_rules"] if r["id"] == "every-claim-has-a-verdict"
+    )
     del rule["minimum_conditions"]
     assert not kit.schema_errors(d), "removing an optional floor is legal to the schema"
     assert "minimum_conditions" not in rule

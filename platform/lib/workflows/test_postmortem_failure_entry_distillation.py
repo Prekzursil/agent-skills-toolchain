@@ -70,9 +70,13 @@ def test_preconditions_must_carry_a_testable_observation(doc: dict) -> None:
 
 def test_an_unknown_root_cause_is_recorded_rather_than_guessed(doc: dict) -> None:
     spec = doc["params"]["root_cause"]
-    assert spec.get("required") is not True, "an unknown root cause must be a legal state"
+    assert spec.get("required") is not True, (
+        "an unknown root cause must be a legal state"
+    )
     unit = H.stage(doc, "state-failure-with-preconditions")["work_unit"]
-    assert "mark the entry unresolved rather than guessing" in unit["question_or_target"]
+    assert (
+        "mark the entry unresolved rather than guessing" in unit["question_or_target"]
+    )
     tests = " ".join(unit["tests_required"])
     assert "root_cause unset must still be accepted" in tests
     rules = {r["id"]: r for r in doc["stopping_rules"]}
@@ -95,7 +99,9 @@ def test_the_script_first_gate_forbids_a_mechanisable_rule(doc: dict) -> None:
     assert order.index("script-first-gate") < order.index("write-ledger-and-memory")
 
 
-def test_the_arbiter_is_cross_vendor_from_the_rule_author_and_holds_veto(doc: dict) -> None:
+def test_the_arbiter_is_cross_vendor_from_the_rule_author_and_holds_veto(
+    doc: dict,
+) -> None:
     distiller = doc["roles"]["distiller"]
     arbiter = doc["roles"]["script-first-arbiter"]
     assert arbiter["vendor"] != distiller["vendor"]
@@ -127,7 +133,9 @@ def test_removing_the_script_first_gate_is_detected(doc: dict) -> None:
         del d["gates"]["script-first"]
 
     violations = H.semantic_violations(H.mutated(doc, bend))
-    assert any("DSL-SEM-005" in v and "script-first" in v for v in violations), violations
+    assert any("DSL-SEM-005" in v and "script-first" in v for v in violations), (
+        violations
+    )
 
 
 # ------------------------------------------- mechanism: the supersede link goes BOTH directions
@@ -141,7 +149,9 @@ def test_a_contradiction_without_a_supersede_edge_fails(doc: dict) -> None:
     assert "never deleted" in unit["question_or_target"]
     assert "re-walked" in unit["question_or_target"]
     ev = unit["evidence_requirement"]
-    assert "refuting measurement" in ev, "a supersede with no refuting measurement is an opinion"
+    assert "refuting measurement" in ev, (
+        "a supersede with no refuting measurement is an opinion"
+    )
     tests = " ".join(unit["tests_required"])
     assert "explicit empty edge set, not silence" in tests
 
@@ -166,9 +176,10 @@ def test_dropping_the_superseded_by_half_is_detectable(doc: dict) -> None:
 
     mutant = H.mutated(doc, bend)
     assert H.conformance_failures(mutant) == []
-    assert "superseded_by" not in H.gate_expressions(mutant)[
-        "memory-note-carries-temporal-validity"
-    ]
+    assert (
+        "superseded_by"
+        not in H.gate_expressions(mutant)["memory-note-carries-temporal-validity"]
+    )
 
 
 def test_the_durable_writes_are_the_declared_outputs(doc: dict) -> None:
@@ -189,7 +200,9 @@ def test_the_durable_writes_are_the_declared_outputs(doc: dict) -> None:
 def test_a_promised_migration_must_be_declared(doc: dict) -> None:
     imp = doc["portability"]["import"]
     assert imp["on_version_mismatch"] == "migrate"
-    assert imp["migrations"], "promising to migrate without a migration is an empty promise"
+    assert imp["migrations"], (
+        "promising to migrate without a migration is an empty promise"
+    )
 
     def bend(d: dict) -> None:
         del d["portability"]["import"]["migrations"]

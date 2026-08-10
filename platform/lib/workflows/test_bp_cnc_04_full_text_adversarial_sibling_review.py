@@ -93,7 +93,9 @@ def test_the_review_artifact_has_a_real_minimum_size_and_named_consumers() -> No
     assert review["register_in_manifest"] is True
     assert review["consumers"], "condition 12 needs named consumers to be checkable"
     wu = C.find_stage(doc, "write-review")["work_unit"]
-    assert any("transcript-only review counts as NOT-RUN" in t for t in wu["tests_required"])
+    assert any(
+        "transcript-only review counts as NOT-RUN" in t for t in wu["tests_required"]
+    )
 
 
 def test_mutation_control_dropping_the_predicate_conditions_is_caught() -> None:
@@ -125,7 +127,9 @@ def test_the_repair_loop_targets_the_attack_stage_and_shards_by_premise() -> Non
 def test_this_is_the_only_repair_loop_in_the_bp2_range() -> None:
     """Distinctness is structural: exactly one of the twelve carries a repair_loop."""
     with_repair = [
-        bid for bid in C.BP2_IDS if "repair_loop" in C.fingerprint(C.load(bid))["stage_kinds"]
+        bid
+        for bid in C.BP2_IDS
+        if "repair_loop" in C.fingerprint(C.load(bid))["stage_kinds"]
     ]
     assert with_repair == [BP], with_repair
 
@@ -154,10 +158,14 @@ def test_mutation_control_a_repair_loop_without_a_verify_is_caught() -> None:
     )
 
 
-def test_mutation_control_a_repair_loop_targeting_a_nonexistent_stage_is_caught() -> None:
+def test_mutation_control_a_repair_loop_targeting_a_nonexistent_stage_is_caught() -> (
+    None
+):
     C.assert_mutation_caught(
         BP,
-        lambda d: C.find_stage(d, "shard-repair").__setitem__("target", ["no-such-stage"]),
+        lambda d: C.find_stage(d, "shard-repair").__setitem__(
+            "target", ["no-such-stage"]
+        ),
         "semantic",
         what="target a stage that does not exist (DSL-SEM-009)",
     )

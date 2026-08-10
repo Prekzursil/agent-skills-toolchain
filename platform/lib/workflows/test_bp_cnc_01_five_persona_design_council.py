@@ -94,13 +94,17 @@ def test_the_enumeration_gate_is_blocking() -> None:
 def test_mutation_control_undeclared_stage_role_is_caught() -> None:
     C.assert_mutation_caught(
         BP,
-        lambda d: C.find_stage(d, "persona-verdict").__setitem__("role", "not-a-declared-role"),
+        lambda d: C.find_stage(d, "persona-verdict").__setitem__(
+            "role", "not-a-declared-role"
+        ),
         "semantic",
         what="point the persona stage at a role that is not in the roles block (DSL-SEM-004)",
     )
 
 
-def test_removing_a_persona_role_is_NOT_caught_by_the_schema_and_that_is_documented() -> None:
+def test_removing_a_persona_role_is_NOT_caught_by_the_schema_and_that_is_documented() -> (
+    None
+):
     """Documented LIMIT, verified rather than assumed.
 
     The five personas are dispatched as fan-out ITEMS (``over.ref == "personas"``), not via a
@@ -136,7 +140,9 @@ def test_each_persona_retries_exactly_once_then_records_a_null_lens() -> None:
     assert "artifact-missing" in retry["no_retry_on"]
     wu = body["work_unit"]
     assert "null-lens" in wu["failure_classification"]
-    assert "22.7%" in wu["retry_policy"], "the measured rejection rate is the reason for the rule"
+    assert "22.7%" in wu["retry_policy"], (
+        "the measured rejection rate is the reason for the rule"
+    )
 
 
 def test_mutation_control_unbounded_persona_retry_is_caught() -> None:
@@ -151,17 +157,24 @@ def test_mutation_control_unbounded_persona_retry_is_caught() -> None:
 # ------------------------------------------------ mechanism 4: null lenses never approve
 
 
-def test_null_lens_accounting_must_reconcile_and_uses_no_arithmetic_in_the_expression() -> None:
+def test_null_lens_accounting_must_reconcile_and_uses_no_arithmetic_in_the_expression() -> (
+    None
+):
     doc = C.load(BP)
     rule = next(r for r in doc["stopping_rules"] if r["id"] == "all-personas-terminal")
-    assert rule["expression"] == "unaccounted_personas == 0 AND reconciliation_ok == true"
+    assert (
+        rule["expression"] == "unaccounted_personas == 0 AND reconciliation_ok == true"
+    )
     assert "+" not in rule["expression"], (
         "the wfdsl expression grammar has NO arithmetic operators - a '+' here is a DSL-SEM-007 "
         "violation, so the runner computes the difference and the DSL asserts on the result"
     )
     wu = _stage(doc, "aggregate")["work_unit"]
     assert "unaccounted_personas == 0" in wu["completion_sentinel"]
-    assert any("null lens must never increment the approval count" in t for t in wu["tests_required"])
+    assert any(
+        "null lens must never increment the approval count" in t
+        for t in wu["tests_required"]
+    )
 
 
 def test_mutation_control_arithmetic_in_an_expression_is_caught() -> None:
@@ -228,7 +241,9 @@ def test_the_positive_arm_is_the_seeded_hole_benchmark() -> None:
     ex = C.worked_examples(C.load(BP))[0]
     assert "auth hole" in ex["name"]
     assert "blocking_findings == 1" in ex["expected_terminal_state"]
-    assert ex["expected_gate_outcomes"]["shadow-aggregate"].startswith("RECORDED-NOT-BLOCKED")
+    assert ex["expected_gate_outcomes"]["shadow-aggregate"].startswith(
+        "RECORDED-NOT-BLOCKED"
+    )
 
 
 def test_the_negative_arm_shows_a_null_lens_not_an_approval() -> None:

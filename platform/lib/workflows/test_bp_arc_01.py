@@ -48,7 +48,10 @@ def test_the_rubric_is_frozen_before_generation():
     ids = stage_ids(d)
     assert ids.index("s0-freeze-rubric") < ids.index("s1-generate")
     assert stage(d, "s1-generate")["depends_on"] == ["s0-freeze-rubric"]
-    assert "rubric_changed_after_generation == false" in gate_expressions(d)["rubric-frozen"]
+    assert (
+        "rubric_changed_after_generation == false"
+        in gate_expressions(d)["rubric-frozen"]
+    )
 
 
 def test_architects_generate_in_isolation():
@@ -62,7 +65,10 @@ def test_architects_generate_in_isolation():
 def test_a_second_judge_is_cross_vendor_so_a_shared_blind_spot_cannot_decide():
     d = blueprint()
     assert d["roles"]["cross_vendor_judge"]["cross_vendor_required"] is True
-    assert d["roles"]["cross_vendor_judge"]["vendor"] != d["roles"]["bracket_judge"]["vendor"]
+    assert (
+        d["roles"]["cross_vendor_judge"]["vendor"]
+        != d["roles"]["bracket_judge"]["vendor"]
+    )
 
 
 def test_worked_example_eliminates_the_fatal_candidate_in_round_one():
@@ -81,7 +87,9 @@ def test_worked_example_flags_the_near_duplicate_pair():
 
 def test_worked_example_champion_and_minority_report_match_the_declared_expectations():
     ex = worked_example(blueprint())
-    champ, rounds = m.bracket(_cands(ex["input"]["architectures"]), ex["input"]["weights"])
+    champ, rounds = m.bracket(
+        _cands(ex["input"]["architectures"]), ex["input"]["weights"]
+    )
     assert champ == ex["expected"]["champion"]
     for dim in ex["expected"]["minority_report_contains"]:
         assert dim in m.minority_report(rounds)
@@ -137,27 +145,37 @@ def test_bracket_loop_is_bounded():
 def _invariant_rubric_frozen_first(d):
     ids = stage_ids(d)
     assert ids.index("s0-freeze-rubric") < ids.index("s1-generate")
-    assert "rubric_changed_after_generation == false" in gate_expressions(d)["rubric-frozen"]
+    assert (
+        "rubric_changed_after_generation == false"
+        in gate_expressions(d)["rubric-frozen"]
+    )
 
 
 def test_mutation_control_unfreezing_the_rubric_breaks_the_invariant():
     both_states_control(
         blueprint(),
         _invariant_rubric_frozen_first,
-        lambda x: x["gates"]["rubric-frozen"].__setitem__("expression", "rubric_hash_recorded == true"),
+        lambda x: x["gates"]["rubric-frozen"].__setitem__(
+            "expression", "rubric_hash_recorded == true"
+        ),
         "rubric may now change after generation",
     )
 
 
 def _invariant_minority_report_mandatory(d):
     assert d["gates"]["minority-mandatory"]["on_fail"] == "fail"
-    assert "fold_in_decisions_recorded == true" in gate_expressions(d)["minority-mandatory"]
+    assert (
+        "fold_in_decisions_recorded == true"
+        in gate_expressions(d)["minority-mandatory"]
+    )
 
 
 def test_mutation_control_making_the_minority_report_advisory_breaks_the_invariant():
     both_states_control(
         blueprint(),
         _invariant_minority_report_mandatory,
-        lambda x: x["gates"]["minority-mandatory"].__setitem__("on_fail", "record-and-continue"),
+        lambda x: x["gates"]["minority-mandatory"].__setitem__(
+            "on_fail", "record-and-continue"
+        ),
         "minority report downgraded to advisory",
     )

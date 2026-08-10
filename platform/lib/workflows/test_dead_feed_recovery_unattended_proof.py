@@ -69,7 +69,9 @@ def test_staleness_is_measured_against_a_declared_cadence(doc: dict) -> None:
 # -------------------------------------------- mechanism: delegation, not re-implementation
 
 
-def test_environmental_separation_is_delegated_to_the_triage_blueprint(doc: dict) -> None:
+def test_environmental_separation_is_delegated_to_the_triage_blueprint(
+    doc: dict,
+) -> None:
     st = H.stage(doc, "separate-environmental-cause")
     assert st["kind"] == "subworkflow"
     ref = st["workflow"]["workflow_id"]
@@ -139,7 +141,9 @@ def test_the_convergence_metric_must_stay_declared(doc: dict) -> None:
     def bend(d: dict) -> None:
         for s in d["stages"]:
             if s["id"] == "await-unattended-hit":
-                s["convergence"]["metrics"] = [{"name": "something_else", "direction": "increase"}]
+                s["convergence"]["metrics"] = [
+                    {"name": "something_else", "direction": "increase"}
+                ]
 
     violations = H.semantic_violations(H.mutated(doc, bend))
     assert any("DSL-SEM-008" in v for v in violations), violations
@@ -152,10 +156,12 @@ def test_flipping_on_no_convergence_to_emit_partial_is_detectable(doc: dict) -> 
                 s["convergence"]["on_no_convergence"] = "emit-partial"
 
     mutant = H.mutated(doc, bend)
-    assert H.conformance_failures(mutant) == [], "still schema-valid; the loss is semantic"
-    assert H.stage(mutant, "await-unattended-hit")["convergence"]["on_no_convergence"] == (
-        "emit-partial"
+    assert H.conformance_failures(mutant) == [], (
+        "still schema-valid; the loss is semantic"
     )
+    assert H.stage(mutant, "await-unattended-hit")["convergence"][
+        "on_no_convergence"
+    ] == ("emit-partial")
 
 
 # ------------------------------------------------------- mechanism: leave a self-report behind
@@ -165,10 +171,15 @@ def test_a_freshness_postcondition_is_left_behind_by_default(doc: dict) -> None:
     assert doc["params"]["add_freshness_postcondition"]["default"] is True
     st = H.stage(doc, "leave-freshness-postcondition")
     assert st["when"] == "add_freshness_postcondition == true"
-    assert "command-center/incident/feed/freshness-postcondition.json" in H.declared_paths(doc)
+    assert (
+        "command-center/incident/feed/freshness-postcondition.json"
+        in H.declared_paths(doc)
+    )
 
 
-def test_the_producer_is_fixed_at_its_repo_source_not_a_deployed_copy(doc: dict) -> None:
+def test_the_producer_is_fixed_at_its_repo_source_not_a_deployed_copy(
+    doc: dict,
+) -> None:
     unit = H.stage(doc, "fix-producer")["work_unit"]
     assert "REPO source" in unit["question_or_target"]
     assert "deployed-copy-edit" in unit["failure_classification"]

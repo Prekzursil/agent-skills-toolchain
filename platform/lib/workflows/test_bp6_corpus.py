@@ -50,7 +50,9 @@ def test_every_blueprint_is_schema_valid_with_zero_semantic_violations(
 ) -> None:
     """Same check the unit reports, run through the same validator the CLI uses."""
     failures = {
-        name: H.conformance_failures(doc) for name, doc in docs.items() if H.conformance_failures(doc)
+        name: H.conformance_failures(doc)
+        for name, doc in docs.items()
+        if H.conformance_failures(doc)
     }
     assert failures == {}
 
@@ -76,9 +78,13 @@ def test_the_driver_can_fail(capsys: pytest.CaptureFixture[str]) -> None:
 # --------------------------------------------------------------------------- identity
 
 
-def test_ids_names_and_versions_are_unique_and_well_formed(docs: dict[str, dict]) -> None:
+def test_ids_names_and_versions_are_unique_and_well_formed(
+    docs: dict[str, dict],
+) -> None:
     ids = [doc["id"] for doc in docs.values()]
-    assert len(set(ids)) == len(ids), "a duplicate workflow id would make two files one workflow"
+    assert len(set(ids)) == len(ids), (
+        "a duplicate workflow id would make two files one workflow"
+    )
     names = [doc["name"] for doc in docs.values()]
     assert len(set(names)) == len(names)
     for name, doc in docs.items():
@@ -96,7 +102,9 @@ def test_no_two_blueprints_claim_the_same_artifact_path(docs: dict[str, dict]) -
         for path in H.declared_paths(doc):
             owner.setdefault(path, []).append(name)
     collisions = {p: sorted(v) for p, v in owner.items() if len(v) > 1}
-    assert collisions == {}, f"two workflows writing one path race and lose work: {collisions}"
+    assert collisions == {}, (
+        f"two workflows writing one path race and lose work: {collisions}"
+    )
 
 
 def test_every_inline_work_unit_id_is_globally_unique(docs: dict[str, dict]) -> None:
@@ -115,7 +123,9 @@ def test_every_inline_work_unit_id_is_globally_unique(docs: dict[str, dict]) -> 
 # ------------------------------------------------------------------------ distinctness
 
 
-def test_no_two_blueprints_are_near_duplicates_by_mechanism(docs: dict[str, dict]) -> None:
+def test_no_two_blueprints_are_near_duplicates_by_mechanism(
+    docs: dict[str, dict],
+) -> None:
     fps = {name: D.fingerprint(doc) for name, doc in docs.items()}
     worst = (0.0, "", "")
     for a, b in ((a, b) for a in fps for b in fps if a < b):
@@ -129,7 +139,9 @@ def test_no_two_blueprints_are_near_duplicates_by_mechanism(docs: dict[str, dict
     assert worst[0] < 0.5, f"unexpectedly close pair: {worst}"
 
 
-def test_the_distinctness_detector_fires_on_a_known_duplicate(docs: dict[str, dict]) -> None:
+def test_the_distinctness_detector_fires_on_a_known_duplicate(
+    docs: dict[str, dict],
+) -> None:
     """Both-states control: without this, a similarity of 0 could mean a broken fingerprint."""
     victim = sorted(docs)[0]
     clone = json.loads(json.dumps(docs[victim]))
@@ -143,7 +155,9 @@ def test_the_distinctness_detector_fires_on_a_known_duplicate(docs: dict[str, di
     )
 
 
-def test_the_fingerprint_is_sensitive_to_a_mechanism_change(docs: dict[str, dict]) -> None:
+def test_the_fingerprint_is_sensitive_to_a_mechanism_change(
+    docs: dict[str, dict],
+) -> None:
     """The other half of the control: a real mechanism edit MUST move the fingerprint."""
     victim = sorted(docs)[0]
     doc = docs[victim]
@@ -156,7 +170,9 @@ def test_the_fingerprint_is_sensitive_to_a_mechanism_change(docs: dict[str, dict
         d["retry_policy"].pop("pivot", None)
 
     after = D.fingerprint(H.mutated(doc, bend))
-    assert after != before, "a fingerprint blind to the failure policy would flag nothing"
+    assert after != before, (
+        "a fingerprint blind to the failure policy would flag nothing"
+    )
 
 
 def test_every_declared_mechanism_primary_is_unique(docs: dict[str, dict]) -> None:
@@ -164,8 +180,12 @@ def test_every_declared_mechanism_primary_is_unique(docs: dict[str, dict]) -> No
     for name, doc in docs.items():
         fp = doc["x_extensions"]["mechanism_fingerprint"]
         primaries.setdefault(fp["primary"], []).append(name)
-        assert fp["distinguishing_stage"] in H.stage_ids(doc), fp["distinguishing_stage"]
-        assert fp["distinguishing_gate"] in (doc.get("gates") or {}), fp["distinguishing_gate"]
+        assert fp["distinguishing_stage"] in H.stage_ids(doc), fp[
+            "distinguishing_stage"
+        ]
+        assert fp["distinguishing_gate"] in (doc.get("gates") or {}), fp[
+            "distinguishing_gate"
+        ]
         assert fp["not_a_duplicate_because"].strip()
     dupes = {k: v for k, v in primaries.items() if len(v) > 1}
     assert dupes == {}, dupes
@@ -179,13 +199,17 @@ def test_the_one_split_is_disclosed_and_wired_to_its_parent() -> None:
     parent = H.load("security-review-scanner-fix-loop")
     assert child["id"] in parent["subworkflows"]
     assert parent["stages"][0]["workflow"]["workflow_id"] == child["id"]
-    assert EXPECTED_FILES - EXPECTED_CARDS == 1, "13 files from 12 cards = exactly one split"
+    assert EXPECTED_FILES - EXPECTED_CARDS == 1, (
+        "13 files from 12 cards = exactly one split"
+    )
 
 
 # -------------------------------------------------------------------------- coverage
 
 
-def test_every_blueprint_is_flagship_and_has_a_test_module(docs: dict[str, dict]) -> None:
+def test_every_blueprint_is_flagship_and_has_a_test_module(
+    docs: dict[str, dict],
+) -> None:
     here = Path(__file__).resolve().parent
     for name, doc in docs.items():
         assert doc["flagship"] is True, name
@@ -198,7 +222,9 @@ def test_category_coverage_is_stated_honestly(docs: dict[str, dict]) -> None:
     for doc in docs.values():
         assert doc["categories"], doc["id"]
         used |= set(doc["categories"])
-    assert used <= SPEC_CATEGORIES, f"category outside the spec vocabulary: {used - SPEC_CATEGORIES}"
+    assert used <= SPEC_CATEGORIES, (
+        f"category outside the spec vocabulary: {used - SPEC_CATEGORIES}"
+    )
     # This range is cards 61-72: six security/governance, five incident/reliability, one data.
     assert {
         "security-governance-and-risk",
@@ -214,7 +240,9 @@ def test_category_coverage_is_stated_honestly(docs: dict[str, dict]) -> None:
     )
 
 
-def test_no_blueprint_declares_a_council_and_that_is_deliberate(docs: dict[str, dict]) -> None:
+def test_no_blueprint_declares_a_council_and_that_is_deliberate(
+    docs: dict[str, dict],
+) -> None:
     """Honest negative: not one card in 61-72 specifies a deliberative council topology.
 
     Cards 61-72 are six security/governance reviews, five incident procedures and one data
@@ -227,9 +255,15 @@ def test_no_blueprint_declares_a_council_and_that_is_deliberate(docs: dict[str, 
     for doc in docs.values():
         kinds |= {str(s.get("kind")) for s in H.stages(doc)}
     assert "council" not in kinds
-    assert {"task", "gate", "fanout", "loop", "human_checkpoint", "subworkflow", "repair_loop"} <= (
-        kinds
-    ), sorted(kinds)
+    assert {
+        "task",
+        "gate",
+        "fanout",
+        "loop",
+        "human_checkpoint",
+        "subworkflow",
+        "repair_loop",
+    } <= (kinds), sorted(kinds)
     assert "barrier" not in kinds, (
         "barriers here are attached to their fan-out (the barrier_spec form) rather than declared "
         "as standalone join stages; asserting it keeps the claim measured"
@@ -252,7 +286,9 @@ def test_the_declared_mechanisms_span_distinct_gate_predicate_shapes(
 # ---------------------------------------------------------------- schema references load
 
 
-def test_every_schema_reference_resolves_on_disk_and_compiles(docs: dict[str, dict]) -> None:
+def test_every_schema_reference_resolves_on_disk_and_compiles(
+    docs: dict[str, dict],
+) -> None:
     """A blueprint pointing at a schema that does not load cannot emit a valid receipt."""
     refs: dict[str, set[str]] = {}
     for name, doc in docs.items():
@@ -270,7 +306,9 @@ def test_every_schema_reference_resolves_on_disk_and_compiles(docs: dict[str, di
             if isinstance(spec, dict) and spec.get("schema_ref"):
                 refs.setdefault(str(spec["schema_ref"]), set()).add(name)
 
-    assert len(refs) >= 20, f"only {len(refs)} distinct schema references - suspiciously few"
+    assert len(refs) >= 20, (
+        f"only {len(refs)} distinct schema references - suspiciously few"
+    )
     missing: dict[str, list[str]] = {}
     broken: dict[str, str] = {}
     for ref, users in refs.items():
@@ -280,7 +318,9 @@ def test_every_schema_reference_resolves_on_disk_and_compiles(docs: dict[str, di
             missing[ref] = sorted(users)
             continue
         try:
-            Draft202012Validator.check_schema(json.loads(path.read_text(encoding="utf-8")))
+            Draft202012Validator.check_schema(
+                json.loads(path.read_text(encoding="utf-8"))
+            )
         except Exception as exc:  # noqa: BLE001
             broken[ref] = f"{type(exc).__name__}: {exc}"[:200]
     assert missing == {}, f"schema references that do not resolve on disk: {missing}"
@@ -306,7 +346,9 @@ def test_every_blueprint_denies_tools_by_default_and_closes_over_its_requests(
         assert missing == [], f"{name}: requested but not allowed: {missing}"
 
 
-def test_every_blueprint_is_dry_runnable_and_side_effect_free(docs: dict[str, dict]) -> None:
+def test_every_blueprint_is_dry_runnable_and_side_effect_free(
+    docs: dict[str, dict],
+) -> None:
     for name, doc in docs.items():
         dry = doc["dry_run"]
         assert dry["supported"] is True, name
@@ -314,7 +356,9 @@ def test_every_blueprint_is_dry_runnable_and_side_effect_free(docs: dict[str, di
         assert dry["forbid_tools"], name
         writes = {t for t in H.all_tool_tokens(doc) if t.startswith("Write(")}
         forbidden = set(dry["forbid_tools"])
-        assert writes <= forbidden, f"{name}: dry run would still write via {writes - forbidden}"
+        assert writes <= forbidden, (
+            f"{name}: dry run would still write via {writes - forbidden}"
+        )
 
 
 def test_every_blueprint_ends_in_a_terminal_state_and_never_silently(

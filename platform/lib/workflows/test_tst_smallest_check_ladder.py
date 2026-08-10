@@ -31,14 +31,20 @@ def test_ml_predictive_selection_is_refused_not_merely_discouraged() -> None:
     assert gate["on_fail"] == "fail" and gate["blocking"] is True
     assert kit.evaluate_gate(d, "deterministic-selection-only") is True
     assert (
-        kit.evaluate_gate(d, "deterministic-selection-only", {"ml_predictive_selection_used": True})
+        kit.evaluate_gate(
+            d, "deterministic-selection-only", {"ml_predictive_selection_used": True}
+        )
         is False
     )
     assert (
-        kit.evaluate_gate(d, "deterministic-selection-only", {"selector_family": "PREDICTIVE"})
+        kit.evaluate_gate(
+            d, "deterministic-selection-only", {"selector_family": "PREDICTIVE"}
+        )
         is False
     )
-    assert "none" in d["params"]["selector"]["enum"], "the no-selector case must be expressible"
+    assert "none" in d["params"]["selector"]["enum"], (
+        "the no-selector case must be expressible"
+    )
 
 
 def test_a_cross_cutting_change_cannot_be_certified_by_l1() -> None:
@@ -46,12 +52,16 @@ def test_a_cross_cutting_change_cannot_be_certified_by_l1() -> None:
     d = doc()
     assert kit.evaluate_gate(d, "level-is-sufficient") is True
     assert (
-        kit.evaluate_gate(d, "level-is-sufficient", {"cross_cutting_change": True, "level_index": 1})
+        kit.evaluate_gate(
+            d, "level-is-sufficient", {"cross_cutting_change": True, "level_index": 1}
+        )
         is False
     )
     # a NON cross-cutting change is still allowed to stop at L1 - the gate discriminates
     assert (
-        kit.evaluate_gate(d, "level-is-sufficient", {"cross_cutting_change": False, "level_index": 1})
+        kit.evaluate_gate(
+            d, "level-is-sufficient", {"cross_cutting_change": False, "level_index": 1}
+        )
         is True
     )
 
@@ -59,16 +69,31 @@ def test_a_cross_cutting_change_cannot_be_certified_by_l1() -> None:
 def test_a_missing_selector_escalates_and_never_skips() -> None:
     d = doc()
     assert kit.evaluate_gate(d, "escalate-not-skip") is True
-    assert kit.evaluate_gate(d, "escalate-not-skip", {"levels_skipped_due_to_missing_selector": 1}) is False
+    assert (
+        kit.evaluate_gate(
+            d, "escalate-not-skip", {"levels_skipped_due_to_missing_selector": 1}
+        )
+        is False
+    )
 
 
 def test_a_long_level_must_run_under_longrun_not_in_the_foreground() -> None:
     """AGENTS.md 4a: a blocking foreground call is what the heartbeat rule exists to prevent."""
     d = doc()
     assert kit.evaluate_gate(d, "longrun-wrapped") is True
-    assert kit.evaluate_gate(d, "longrun-wrapped", {"blocking_foreground_call_used": True}) is False
-    assert kit.evaluate_gate(d, "longrun-wrapped", {"runs_over_threshold_wrapped_in_longrun": False}) is False
-    assert "Bash:longrun" in d["tool_policy"]["allow"], "longrun is mandated but not permitted"
+    assert (
+        kit.evaluate_gate(d, "longrun-wrapped", {"blocking_foreground_call_used": True})
+        is False
+    )
+    assert (
+        kit.evaluate_gate(
+            d, "longrun-wrapped", {"runs_over_threshold_wrapped_in_longrun": False}
+        )
+        is False
+    )
+    assert "Bash:longrun" in d["tool_policy"]["allow"], (
+        "longrun is mandated but not permitted"
+    )
 
 
 def test_the_escalation_loop_is_bounded_to_the_four_ladder_levels() -> None:
@@ -76,25 +101,46 @@ def test_the_escalation_loop_is_bounded_to_the_four_ladder_levels() -> None:
     loop = next(s for s in d["stages"] if s["id"] == "run-ladder")
     conv = loop["convergence"]
     assert conv["max_iterations"] == 4, "the ladder has exactly four levels L0-L3"
-    assert conv["on_no_convergence"] == "fail", "an exhausted ladder must not report success"
-    assert "level_passed" in conv["converged_when"] and "level_index" in conv["converged_when"]
+    assert conv["on_no_convergence"] == "fail", (
+        "an exhausted ladder must not report success"
+    )
+    assert (
+        "level_passed" in conv["converged_when"]
+        and "level_index" in conv["converged_when"]
+    )
 
 
 def test_the_classifier_fails_safe_upward() -> None:
     """A wrong classification must err toward MORE testing, never less."""
     d = doc()
     unit = next(
-        u for s in d["stages"] if s["id"] == "classify-blast-radius" for u in [s["work_unit"]]
+        u
+        for s in d["stages"]
+        if s["id"] == "classify-blast-radius"
+        for u in [s["work_unit"]]
     )
-    assert "fail safe upward" in unit["retry_policy"] or "CROSS-CUTTING" in unit["retry_policy"]
-    assert any("CROSS-CUTTING" in t or "cross-cutting" in t for t in unit["tests_required"])
+    assert (
+        "fail safe upward" in unit["retry_policy"]
+        or "CROSS-CUTTING" in unit["retry_policy"]
+    )
+    assert any(
+        "CROSS-CUTTING" in t or "cross-cutting" in t for t in unit["tests_required"]
+    )
 
 
 def test_the_receipt_discloses_what_the_level_does_not_cover() -> None:
     """Anti-overclaim: an L1 green must not be readable as a full-suite green."""
     d = doc()
-    unit = next(u for s in d["stages"] if s["id"] == "emit-level-receipt" for u in [s["work_unit"]])
-    assert "not-covered" in unit["question_or_target"] or "does NOT cover" in unit["question_or_target"]
+    unit = next(
+        u
+        for s in d["stages"]
+        if s["id"] == "emit-level-receipt"
+        for u in [s["work_unit"]]
+    )
+    assert (
+        "not-covered" in unit["question_or_target"]
+        or "does NOT cover" in unit["question_or_target"]
+    )
     assert unit["output_schema"].endswith("test-receipt.schema.json")
 
 
@@ -107,12 +153,18 @@ def test_MUTATION_weakening_the_cross_cutting_gate_removes_its_power() -> None:
     weakened["gates"]["level-is-sufficient"]["expression"] = "level_index >= 0"
     ctx = kit.worked_context(weakened)
     ctx.update(bad)
-    assert _expr.evaluate(weakened["gates"]["level-is-sufficient"]["expression"], ctx, strict=True) is True
+    assert (
+        _expr.evaluate(
+            weakened["gates"]["level-is-sufficient"]["expression"], ctx, strict=True
+        )
+        is True
+    )
 
 
 def test_MUTATION_dropping_the_selection_gate_is_rejected() -> None:
     kit.assert_rejected(
-        kit.drop_stage(doc(), "deterministic-selection-only"), "selection-discipline gate removed"
+        kit.drop_stage(doc(), "deterministic-selection-only"),
+        "selection-discipline gate removed",
     )
 
 

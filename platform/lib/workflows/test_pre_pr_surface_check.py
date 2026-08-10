@@ -91,7 +91,9 @@ def check_there_is_no_model_in_the_measurement_path(doc: Mapping[str, Any]) -> N
     for name, role in doc["roles"].items():
         if role.get("vendor") == "human":
             continue
-        assert "model" not in role, f"role {name!r} pins a model inside the measurement path"
+        assert "model" not in role, (
+            f"role {name!r} pins a model inside the measurement path"
+        )
 
 
 def check_the_surface_is_never_served_from_cache(doc: Mapping[str, Any]) -> None:
@@ -116,7 +118,9 @@ def check_the_measurement_is_byte_reproducible(doc: Mapping[str, Any]) -> None:
     )
 
 
-def check_the_workflow_cannot_mutate_the_repo_it_measures(doc: Mapping[str, Any]) -> None:
+def check_the_workflow_cannot_mutate_the_repo_it_measures(
+    doc: Mapping[str, Any],
+) -> None:
     policy = doc["tool_policy"]
     assert policy["default"] == "deny"
     assert policy["network"] == "none"
@@ -127,7 +131,9 @@ def check_the_workflow_cannot_mutate_the_repo_it_measures(doc: Mapping[str, Any]
     assert policy["write_paths"] == ["command-center/release/**"]
 
 
-def check_the_verdict_is_a_typed_artifact_for_the_shepherd(doc: Mapping[str, Any]) -> None:
+def check_the_verdict_is_a_typed_artifact_for_the_shepherd(
+    doc: Mapping[str, Any],
+) -> None:
     out = doc["outputs"]["verdict"]
     assert out["sentinel"].startswith("SUCCESS:"), "a terminal-state marker is required"
     assert "pr-shepherd-to-merge" in out["consumers"], (
@@ -137,10 +143,14 @@ def check_the_verdict_is_a_typed_artifact_for_the_shepherd(doc: Mapping[str, Any
     assert resolved is not None and resolved.is_file(), (
         f"the declared output schema does not exist on disk: {out['schema_ref']}"
     )
-    assert out["min_bytes"] >= 1, "an empty artifact must not satisfy the output contract"
+    assert out["min_bytes"] >= 1, (
+        "an empty artifact must not satisfy the output contract"
+    )
 
 
-def check_the_worked_example_carries_the_recorded_numbers(doc: Mapping[str, Any]) -> None:
+def check_the_worked_example_carries_the_recorded_numbers(
+    doc: Mapping[str, Any],
+) -> None:
     example = K.worked_examples(doc)[0]
     measured = example["measured_surface"]
     assert measured["diff_mode"] == "THREE_DOT"
@@ -152,7 +162,9 @@ def check_the_worked_example_carries_the_recorded_numbers(doc: Mapping[str, Any]
     assert alt["deletions"] < measured["deletions"], (
         "the proposed alternative must actually reduce the surface"
     )
-    assert measured["deletion_ratio"] > doc["params"]["deletion_ratio_stop"]["default"], (
+    assert (
+        measured["deletion_ratio"] > doc["params"]["deletion_ratio_stop"]["default"]
+    ), (
         "the example would not trip the shipped default threshold, so it proves nothing about it"
     )
 
@@ -210,7 +222,9 @@ def _empty_the_credential_patterns(doc: dict) -> None:
 
 
 def _let_the_verdict_stand_without_an_alternative(doc: dict) -> None:
-    doc["gates"]["deletion-ratio-verdict"]["expression"] = "verdict == SAFE OR verdict == REVIEW"
+    doc["gates"]["deletion-ratio-verdict"]["expression"] = (
+        "verdict == SAFE OR verdict == REVIEW"
+    )
 
 
 def _add_a_model_router(doc: dict) -> None:
@@ -238,26 +252,42 @@ def _drop_the_output_sentinel(doc: dict) -> None:
 
 
 def _flatten_the_worked_example_surface(doc: dict) -> None:
-    doc["x_extensions"]["worked_examples"][0]["measured_surface"]["deletion_ratio"] = 0.01
+    doc["x_extensions"]["worked_examples"][0]["measured_surface"]["deletion_ratio"] = (
+        0.01
+    )
 
 
 MUTATIONS = (
     (check_three_dots_only_and_no_working_tree_noise, _allow_a_two_dot_surface),
     (check_the_base_must_be_freshly_resolved, _drop_the_base_freshness_bound),
     (check_the_gates_precede_every_classification, _classify_before_the_three_dot_gate),
-    (check_the_verdict_needs_both_halves_of_the_surface, _emit_the_verdict_without_the_untracked_walk),
+    (
+        check_the_verdict_needs_both_halves_of_the_surface,
+        _emit_the_verdict_without_the_untracked_walk,
+    ),
     (check_untracked_credentials_are_named_by_pattern, _empty_the_credential_patterns),
-    (check_the_deletion_verdict_cannot_pass_silently, _let_the_verdict_stand_without_an_alternative),
+    (
+        check_the_deletion_verdict_cannot_pass_silently,
+        _let_the_verdict_stand_without_an_alternative,
+    ),
     (check_there_is_no_model_in_the_measurement_path, _add_a_model_router),
     (check_the_surface_is_never_served_from_cache, _enable_the_cache),
-    (check_the_measurement_is_byte_reproducible, _allow_filesystem_order_nondeterminism),
+    (
+        check_the_measurement_is_byte_reproducible,
+        _allow_filesystem_order_nondeterminism,
+    ),
     (check_the_workflow_cannot_mutate_the_repo_it_measures, _allow_writes_into_dot_git),
     (check_the_verdict_is_a_typed_artifact_for_the_shepherd, _drop_the_output_sentinel),
-    (check_the_worked_example_carries_the_recorded_numbers, _flatten_the_worked_example_surface),
+    (
+        check_the_worked_example_carries_the_recorded_numbers,
+        _flatten_the_worked_example_surface,
+    ),
 )
 
 
-@pytest.mark.parametrize("check,mutate", MUTATIONS, ids=lambda v: getattr(v, "__name__", ""))
+@pytest.mark.parametrize(
+    "check,mutate", MUTATIONS, ids=lambda v: getattr(v, "__name__", "")
+)
 def test_each_check_fails_on_its_mutated_blueprint(check: Any, mutate: Any) -> None:
     broken = K.mutant(DOC, mutate)
     assert K.raises_assertion(check, broken), (

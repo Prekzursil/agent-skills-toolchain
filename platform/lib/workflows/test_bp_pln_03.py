@@ -63,7 +63,10 @@ def test_worked_example_differing_bytes_on_the_same_path_are_a_true_conflict():
 def test_worked_example_superset_relation_is_detected_directionally():
     ex = worked_example(blueprint())
     commits = ex["input"]["commits"]
-    assert m.is_superset(commits["pr1"], commits["pr2"]) is ex["expected"]["pr2_supersets_pr1"]
+    assert (
+        m.is_superset(commits["pr1"], commits["pr2"])
+        is ex["expected"]["pr2_supersets_pr1"]
+    )
     assert m.is_superset(commits["pr2"], commits["pr1"]) is False
 
 
@@ -121,13 +124,17 @@ def test_changed_files_use_a_three_dot_diff_not_a_two_dot_one():
 def test_digests_are_taken_from_the_committed_blob_not_the_working_tree():
     """Line endings differ between the two on this platform, so the source matters."""
     unit = stage(blueprint(), "s2-byte-identity")["work_unit"]
-    assert any("committed blob" in t and "line endings" in t for t in unit["tests_required"])
+    assert any(
+        "committed blob" in t and "line endings" in t for t in unit["tests_required"]
+    )
 
 
 def test_the_order_is_stable_and_a_superseded_pr_is_dropped_from_it():
     unit = stage(blueprint(), "s5-order")["work_unit"]
     assert any("stable across two runs" in t for t in unit["tests_required"])
-    assert any("must not appear in the order at all" in t for t in unit["tests_required"])
+    assert any(
+        "must not appear in the order at all" in t for t in unit["tests_required"]
+    )
 
 
 def test_the_byte_identity_bound_is_disclosed():
@@ -155,7 +162,9 @@ def test_the_forge_credential_is_declared_as_a_secret_ref_and_never_travels():
     assert spec["secret"] is True
     assert "default" not in spec, "a secret_ref can never carry a literal default value"
     assert d["portability"]["export"]["redact_secrets"] is True
-    assert "Bash:gh" in d["tool_policy"]["allow"], "the credential exists because gh is allowed"
+    assert "Bash:gh" in d["tool_policy"]["allow"], (
+        "the credential exists because gh is allowed"
+    )
     # the description must promise reference-only travel, not merely mention a secret
     assert "only this reference name travels" in spec["description"]
     assert "never reads, prints or rotates" in spec["description"]
@@ -195,8 +204,8 @@ def test_mutation_control_changing_the_example_bytes_breaks_the_invariant():
     both_states_control(
         blueprint(),
         _invariant_byte_identity_decides_stackability,
-        lambda x: x["x_extensions"]["worked_example"]["input"]["pr2_content"].__setitem__(
-            "ci.yml", "on: schedule\n"
-        ),
+        lambda x: x["x_extensions"]["worked_example"]["input"][
+            "pr2_content"
+        ].__setitem__("ci.yml", "on: schedule\n"),
         "the example's shared file is no longer byte-identical",
     )

@@ -108,9 +108,13 @@ def assert_tools_permitted(doc: dict[str, Any]) -> list[str]:
     problems: list[str] = []
     for where, tok in iter_tool_requests(doc):
         if tok in deny:
-            problems.append(f"{doc['id']}: {where} requests {tok!r} which tool_policy.deny forbids")
+            problems.append(
+                f"{doc['id']}: {where} requests {tok!r} which tool_policy.deny forbids"
+            )
         elif default_deny and tok not in allow:
-            problems.append(f"{doc['id']}: {where} requests {tok!r} absent from tool_policy.allow")
+            problems.append(
+                f"{doc['id']}: {where} requests {tok!r} absent from tool_policy.allow"
+            )
     return problems
 
 
@@ -124,7 +128,13 @@ def assert_dry_run_forbids_every_mutating_tool(doc: dict[str, Any]) -> list[str]
     if dry.get("side_effect_free") is not True:
         return []
     forbidden = set(dry.get("forbid_tools") or [])
-    mutating_prefixes = ("Write(", "Edit", "Bash:git", "mcp__figma__generate", "mcp__figma__create")
+    mutating_prefixes = (
+        "Write(",
+        "Edit",
+        "Bash:git",
+        "mcp__figma__generate",
+        "mcp__figma__create",
+    )
     problems: list[str] = []
     for tok in set(doc.get("tool_policy", {}).get("allow") or []):
         if tok.startswith(mutating_prefixes) and tok not in forbidden:
@@ -147,13 +157,19 @@ def build_all() -> list[dict[str, Any]]:
         problems += assert_tools_permitted(d)
         problems += assert_dry_run_forbids_every_mutating_tool(d)
     if problems:
-        raise SystemExit("FAILED:bp7-build tool-policy guard\n  " + "\n  ".join(problems))
+        raise SystemExit(
+            "FAILED:bp7-build tool-policy guard\n  " + "\n  ".join(problems)
+        )
     return docs
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="bp7_build")
-    ap.add_argument("--check", action="store_true", help="assert the committed JSON is byte-identical")
+    ap.add_argument(
+        "--check",
+        action="store_true",
+        help="assert the committed JSON is byte-identical",
+    )
     args = ap.parse_args(argv)
 
     docs = build_all()
@@ -175,7 +191,9 @@ def main(argv: list[str] | None = None) -> int:
     for d in docs:
         path = write_blueprint(d)
         stages = len(d["stages"])
-        print(f"wrote {path.name:<48} kind={d['kind']:<14} stages={stages:<3} flagship={d['flagship']}")
+        print(
+            f"wrote {path.name:<48} kind={d['kind']:<14} stages={stages:<3} flagship={d['flagship']}"
+        )
     print(f"documents={len(docs)}")
     print("SUCCESS:bp7-build")
     return 0

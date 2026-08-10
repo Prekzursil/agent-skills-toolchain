@@ -81,7 +81,13 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
         "version": "1.0.0",
         "kind": "meta-workflow",
         "categories": [CAT_PRODUCT],
-        "tags": ["bp-ux-01", "design-studio", "revert-gate", "mode-router", "eight-gate"],
+        "tags": [
+            "bp-ux-01",
+            "design-studio",
+            "revert-gate",
+            "mode-router",
+            "eight-gate",
+        ],
         "flagship": True,
         "params": {
             "app_target": {
@@ -92,7 +98,17 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
             },
             "mode": {
                 "type": "enum",
-                "enum": ["loop", "direct", "audit", "mirror", "critique", "iterate", "implement", "drive", "verify"],
+                "enum": [
+                    "loop",
+                    "direct",
+                    "audit",
+                    "mirror",
+                    "critique",
+                    "iterate",
+                    "implement",
+                    "drive",
+                    "verify",
+                ],
                 "default": "loop",
                 "description": "Router selector. 'loop' runs every gate; any other value enters at that gate.",
             },
@@ -130,7 +146,12 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
                 "effort": "medium",
                 "authority": "advisory",
                 "independence": "independent",
-                "tool_permissions": ["Read", "Bash:python", "mcp__playwright__browser_snapshot", "mcp__playwright__browser_take_screenshot"],
+                "tool_permissions": [
+                    "Read",
+                    "Bash:python",
+                    "mcp__playwright__browser_snapshot",
+                    "mcp__playwright__browser_take_screenshot",
+                ],
             },
             "director": {
                 "description": "G1: fixes the design direction - style, palette, typography - before anything is changed.",
@@ -158,7 +179,11 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
                 "effort": "medium",
                 "authority": "advisory",
                 "independence": "independent",
-                "tool_permissions": ["mcp__playwright__browser_click", "mcp__playwright__browser_snapshot", "mcp__playwright__browser_take_screenshot"],
+                "tool_permissions": [
+                    "mcp__playwright__browser_click",
+                    "mcp__playwright__browser_snapshot",
+                    "mcp__playwright__browser_take_screenshot",
+                ],
             },
             "verifier": {
                 "description": "G7: measures the delta against the recorded intent and the G0 baseline. Holds the revert veto and never edits source.",
@@ -197,7 +222,10 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
             deny=["Bash", "WebFetch", "mcp__figma__use_figma"],
             network="none",
             write_paths=["app/**", "src/**", f"{root}/**"],
-            forbid_write_paths=["command-center/WORK-UNIT-CATALOG.json", ".github/workflows/**"],
+            forbid_write_paths=[
+                "command-center/WORK-UNIT-CATALOG.json",
+                ".github/workflows/**",
+            ],
             source_policy={"offline_only": True, "require_provenance": True},
         ),
         "model_routing": {
@@ -206,7 +234,11 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
             "routes": [
                 {
                     "when": "stage_role == verifier",
-                    "target": {"model": "gpt-5-codex", "vendor": "openai", "effort": "high"},
+                    "target": {
+                        "model": "gpt-5-codex",
+                        "vendor": "openai",
+                        "effort": "high",
+                    },
                     "reason": "the revert veto must not be held by the vendor that authored the change",
                 }
             ],
@@ -234,7 +266,9 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
                 "intended_delta_present == true AND regression_count == 0",
                 "repair",
             ),
-            "pass-complete": gate_predicate_v1([1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12], "escalate-to-human"),
+            "pass-complete": gate_predicate_v1(
+                [1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12], "escalate-to-human"
+            ),
         },
         "subworkflows": {
             "code-to-canvas-mirror-round-trip": {
@@ -257,7 +291,12 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
                 "when": "entry_gate <= 0",
                 "timeout_seconds": 1800,
                 "checkpoint": True,
-                "tool_permissions": ["Read", "Bash:python", "mcp__playwright__browser_snapshot", "mcp__playwright__browser_take_screenshot"],
+                "tool_permissions": [
+                    "Read",
+                    "Bash:python",
+                    "mcp__playwright__browser_snapshot",
+                    "mcp__playwright__browser_take_screenshot",
+                ],
                 "work_unit": work_unit(
                     uid=u(1),
                     title="Attach to the running app and record the pre-change baseline",
@@ -268,7 +307,12 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
                     vendor="anthropic",
                     role="primer",
                     basis="substantive subagents default to Opus; deciding what constitutes a surface is judgement",
-                    tools=["Read", "Bash:python", "mcp__playwright__browser_snapshot", "mcp__playwright__browser_take_screenshot"],
+                    tools=[
+                        "Read",
+                        "Bash:python",
+                        "mcp__playwright__browser_snapshot",
+                        "mcp__playwright__browser_take_screenshot",
+                    ],
                     substrate="local-serialized",
                     timeout_seconds=1800,
                     output_path=f"{root}/g0-baseline.json",
@@ -281,7 +325,11 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
                     reviewer="the verifier, who must be able to recompute the delta from this baseline alone",
                     sentinel_condition="the app is attached and a per-surface baseline exists on disk",
                     retry="two strikes then pivot: relaunch the app once, then report app-unreachable rather than continuing blind",
-                    failure_classes=["app-unreachable", "surface-enumeration-gap", "partial-artifact"],
+                    failure_classes=[
+                        "app-unreachable",
+                        "surface-enumeration-gap",
+                        "partial-artifact",
+                    ],
                     owner_approval=False,
                     mechanism="attach-and-baseline capture that makes every later delta measurable",
                 ),
@@ -335,7 +383,11 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
                     reviewer="the verifier, cross-examining whether the direction is falsifiable",
                     sentinel_condition="a direction with style, palette, type pairing and rationale is on disk",
                     retry="two strikes then pivot to a narrower scope: one surface rather than the app",
-                    failure_classes=["direction-unrecorded", "overclaim", "partial-artifact"],
+                    failure_classes=[
+                        "direction-unrecorded",
+                        "overclaim",
+                        "partial-artifact",
+                    ],
                     owner_approval=False,
                     mechanism="explicit recorded direction that converts G7 from taste into measurement",
                 ),
@@ -398,7 +450,10 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
                             uid=u(3),
                             title="Propose one candidate change and preview it as an injected style overlay",
                             target="Produce one candidate delta against the recorded direction and preview it as an ephemeral overlay, so a candidate can be rejected before any source file is edited.",
-                            inputs=[f"{root}/g1-direction.json", f"{root}/g3-critique-verdict.json"],
+                            inputs=[
+                                f"{root}/g1-direction.json",
+                                f"{root}/g3-critique-verdict.json",
+                            ],
                             dependencies=[u(2)],
                             model="opus",
                             vendor="anthropic",
@@ -417,7 +472,11 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
                             reviewer="the verifier, who scores the candidate before it is allowed to become an edit",
                             sentinel_condition="at least one candidate with a targeted dimension and a predicted movement exists",
                             retry="two strikes then pivot: enumerate at least two structurally different candidates before a third attempt at the same one",
-                            failure_classes=["candidate-untestable", "no-progress", "partial-artifact"],
+                            failure_classes=[
+                                "candidate-untestable",
+                                "no-progress",
+                                "partial-artifact",
+                            ],
                             owner_approval=False,
                             mechanism="overlay-previewed candidate generation with a targeted rubric dimension",
                         ),
@@ -438,8 +497,16 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
                     "converged_when": "composite_score >= target_composite AND critical_errors == 0",
                     "no_progress_rounds": 2,
                     "metrics": [
-                        {"name": "composite_score", "direction": "increase", "epsilon": 0.05},
-                        {"name": "critical_errors", "direction": "decrease", "target": 0},
+                        {
+                            "name": "composite_score",
+                            "direction": "increase",
+                            "epsilon": 0.05,
+                        },
+                        {
+                            "name": "critical_errors",
+                            "direction": "decrease",
+                            "target": 0,
+                        },
                     ],
                     "on_no_convergence": "emit-partial",
                 },
@@ -484,7 +551,11 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
                     reviewer="the verifier, who did not author the change and holds the revert veto",
                     sentinel_condition="the change is applied and every touched file:line is recorded with before/after text",
                     retry="two strikes then pivot: revert and propose a structurally different candidate rather than re-editing",
-                    failure_classes=["scope-escape", "change-irreversible", "partial-artifact"],
+                    failure_classes=[
+                        "scope-escape",
+                        "change-irreversible",
+                        "partial-artifact",
+                    ],
                     owner_approval=True,
                     mechanism="single scoped source edit with a byte-reversible file:line record",
                 ),
@@ -506,7 +577,11 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
                 "role": "driver",
                 "when": "entry_gate <= 6",
                 "timeout_seconds": 1800,
-                "tool_permissions": ["mcp__playwright__browser_click", "mcp__playwright__browser_snapshot", "mcp__playwright__browser_take_screenshot"],
+                "tool_permissions": [
+                    "mcp__playwright__browser_click",
+                    "mcp__playwright__browser_snapshot",
+                    "mcp__playwright__browser_take_screenshot",
+                ],
                 "work_unit": work_unit(
                     uid=u(5),
                     title="Drive the changed surfaces and capture the post-change evidence",
@@ -517,7 +592,11 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
                     vendor="anthropic",
                     role="driver",
                     basis="choosing which interactions exercise the change is judgement; the clicks are mechanical",
-                    tools=["mcp__playwright__browser_click", "mcp__playwright__browser_snapshot", "mcp__playwright__browser_take_screenshot"],
+                    tools=[
+                        "mcp__playwright__browser_click",
+                        "mcp__playwright__browser_snapshot",
+                        "mcp__playwright__browser_take_screenshot",
+                    ],
                     substrate="local-serialized",
                     timeout_seconds=1800,
                     output_path=f"{root}/g6-post-change.json",
@@ -530,7 +609,11 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
                     reviewer="the verifier",
                     sentinel_condition="every touched surface is either driven with captured evidence or listed UNDRIVEN",
                     retry="two strikes then pivot to a different rail (accessibility reference, then CSS selector, then coordinates)",
-                    failure_classes=["surface-unreachable", "capture-parameter-mismatch", "partial-artifact"],
+                    failure_classes=[
+                        "surface-unreachable",
+                        "capture-parameter-mismatch",
+                        "partial-artifact",
+                    ],
                     owner_approval=False,
                     mechanism="post-change driving with baseline-matched capture parameters",
                 ),
@@ -581,7 +664,11 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
                     reviewer="the primer, cross-examining whether the baseline used is the one it captured",
                     sentinel_condition="an intended-delta verdict and a regression count are both recorded with per-metric evidence",
                     retry="two strikes then escalate: a verifier that cannot decide twice is a measurement problem, not a design one",
-                    failure_classes=["overclaim", "detector-failure", "regression-detected"],
+                    failure_classes=[
+                        "overclaim",
+                        "detector-failure",
+                        "regression-detected",
+                    ],
                     owner_approval=False,
                     mechanism="baseline-anchored intended-versus-observed delta with an independent regression count",
                 ),
@@ -610,7 +697,11 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
                 "depends_on": ["g7-gate"],
                 "target": ["g5-implement"],
                 "max_attempts": 2,
-                "classification_filter": ["regression-detected", "scope-escape", "detector-failure"],
+                "classification_filter": [
+                    "regression-detected",
+                    "scope-escape",
+                    "detector-failure",
+                ],
                 "escalate_to": "router-coherence",
                 "require_root_cause": True,
                 "diagnose": {
@@ -624,7 +715,10 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
                         uid=u(7),
                         title="Attribute the regression to the exact change that caused it",
                         target="Name which recorded file:line edit produced the regression, because reverting the whole pass when one edit is at fault discards work that was correct.",
-                        inputs=[f"{root}/g7-verify-delta.json", f"{root}/g5-applied-change.json"],
+                        inputs=[
+                            f"{root}/g7-verify-delta.json",
+                            f"{root}/g5-applied-change.json",
+                        ],
                         dependencies=[u(4), u(6)],
                         model="gpt-5-codex",
                         vendor="openai",
@@ -643,7 +737,11 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
                         reviewer="the reverter, who refuses to act on an unattributed diagnosis",
                         sentinel_condition="a specific file:line subset is named, or the diagnosis is explicitly UNATTRIBUTED",
                         retry="two strikes then escalate to the owner rather than guessing at attribution",
-                        failure_classes=["attribution-failed", "detector-failure", "regression-detected"],
+                        failure_classes=[
+                            "attribution-failed",
+                            "detector-failure",
+                            "regression-detected",
+                        ],
                         owner_approval=False,
                         mechanism="per-edit regression attribution before any revert is authorised",
                     ),
@@ -659,7 +757,10 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
                         uid=u(8),
                         title="Restore the attributed file:line edits to their recorded before-text",
                         target="Revert only the attributed edits using the before-text recorded at G5, and prove byte-equality with the pre-change state for those regions.",
-                        inputs=[f"{root}/revert-diagnosis.json", f"{root}/g5-applied-change.json"],
+                        inputs=[
+                            f"{root}/revert-diagnosis.json",
+                            f"{root}/g5-applied-change.json",
+                        ],
                         dependencies=[u(7)],
                         model="opus",
                         vendor="anthropic",
@@ -678,7 +779,11 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
                         reviewer="the verifier, which re-runs its own measurement after the revert",
                         sentinel_condition="every attributed region is byte-restored and unattributed edits are untouched",
                         retry="two strikes then escalate: a failing revert is an irreversibility finding and must reach the owner",
-                        failure_classes=["revert-failed", "change-irreversible", "scope-escape"],
+                        failure_classes=[
+                            "revert-failed",
+                            "change-irreversible",
+                            "scope-escape",
+                        ],
                         owner_approval=True,
                         mechanism="attributed-subset byte-restore performed by a role other than the author",
                     ),
@@ -736,11 +841,20 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
             "jitter": True,
             "retry_on": ["surface-unreachable", "capture-parameter-mismatch"],
             "no_retry_on": ["change-irreversible", "scope-escape", "app-unreachable"],
-            "pivot": {"after_attempts": 2, "enumerate_alternatives_min": 2, "escalate_to": "router-coherence"},
+            "pivot": {
+                "after_attempts": 2,
+                "enumerate_alternatives_min": 2,
+                "escalate_to": "router-coherence",
+            },
         },
         "failure_policy": failure_policy(
             "degrade-loudly",
-            ["app-unreachable", "regression-detected", "scope-escape", "change-irreversible"],
+            [
+                "app-unreachable",
+                "regression-detected",
+                "scope-escape",
+                "change-irreversible",
+            ],
             escalate_to="revert-gate",
             quarantine_path=f"{root}/quarantine",
         ),
@@ -761,7 +875,12 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
         ),
         "dry_run": dry_run(
             f"{root}/dry-run-plan.json",
-            ["Edit", "Bash:git", "mcp__playwright__browser_click", "Write(command-center/design/**)"],
+            [
+                "Edit",
+                "Bash:git",
+                "mcp__playwright__browser_click",
+                "Write(command-center/design/**)",
+            ],
             emits=["plan", "estimate", "permission-report", "graph", "artifact-diff"],
         ),
         "estimate": estimate(
@@ -777,7 +896,9 @@ def design_studio_eight_gate_loop() -> dict[str, Any]:
             blast_radius="edits app source under the declared write paths at G5 only; every edit is byte-reversible from the G5 record and the revert gate exercises that path",
             owner_approval=True,
         ),
-        "portability": portability(f"{root}/export/design-studio-eight-gate-loop.bundle.json"),
+        "portability": portability(
+            f"{root}/export/design-studio-eight-gate-loop.bundle.json"
+        ),
         "lineage": lineage(
             [
                 card(f"{LIBRARY}#BP-UX-01", "ADOPT-AS-IS"),
@@ -873,7 +994,14 @@ def two_track_ui_audit_rubric_verdict() -> dict[str, Any]:
         "version": "1.0.0",
         "kind": "workflow",
         "categories": [CAT_PRODUCT],
-        "tags": ["bp-ux-02", "ui-audit", "rubric", "critical-error-cap", "read-only", "cross-vendor"],
+        "tags": [
+            "bp-ux-02",
+            "ui-audit",
+            "rubric",
+            "critical-error-cap",
+            "read-only",
+            "cross-vendor",
+        ],
         "flagship": True,
         "params": {
             "app_target": {
@@ -951,7 +1079,11 @@ def two_track_ui_audit_rubric_verdict() -> dict[str, Any]:
                 "effort": "high",
                 "authority": "veto",
                 "independence": "independent",
-                "tool_permissions": ["Read", "Bash:python", "Write(command-center/design/**)"],
+                "tool_permissions": [
+                    "Read",
+                    "Bash:python",
+                    "Write(command-center/design/**)",
+                ],
             },
             "codex-critic": {
                 "description": "The fifth persona: an independent cross-vendor critic scoring the same dimensions from the same numbers.",
@@ -976,7 +1108,14 @@ def two_track_ui_audit_rubric_verdict() -> dict[str, Any]:
                 "mcp__chrome-devtools__lighthouse_audit",
                 "mcp__codex__codex",
             ],
-            deny=["Edit", "Bash", "Bash:git", "WebFetch", "Write(app/**)", "Write(src/**)"],
+            deny=[
+                "Edit",
+                "Bash",
+                "Bash:git",
+                "WebFetch",
+                "Write(app/**)",
+                "Write(src/**)",
+            ],
             network="none",
             write_paths=[f"{root}/**"],
             forbid_write_paths=["app/**", "src/**"],
@@ -993,7 +1132,11 @@ def two_track_ui_audit_rubric_verdict() -> dict[str, Any]:
                 },
                 {
                     "when": "stage_role == codex-critic",
-                    "target": {"model": "gpt-5-codex", "vendor": "openai", "effort": "high"},
+                    "target": {
+                        "model": "gpt-5-codex",
+                        "vendor": "openai",
+                        "effort": "high",
+                    },
                     "reason": "the fifth persona is only worth having if it fails differently",
                 },
             ],
@@ -1066,7 +1209,11 @@ def two_track_ui_audit_rubric_verdict() -> dict[str, Any]:
                             uid=u(1),
                             title="Run one deterministic UI collector and emit measurements without judgement",
                             target="Measure one property across every surface and emit raw numbers with their measurement parameters - and when the engine is unavailable, emit UNAVAILABLE with the reason instead of an empty pass.",
-                            inputs=["item.collector_name", "params.app_target", "params.optional_engines"],
+                            inputs=[
+                                "item.collector_name",
+                                "params.app_target",
+                                "params.optional_engines",
+                            ],
                             dependencies=[],
                             model="opus",
                             vendor="anthropic",
@@ -1092,7 +1239,11 @@ def two_track_ui_audit_rubric_verdict() -> dict[str, Any]:
                             reviewer="the override-auditor, which needs the raw numbers to compute the cap",
                             sentinel_condition="every surface has a value or an explicit UNAVAILABLE with a reason",
                             retry="fixed, two attempts: a browser engine can fail to attach transiently",
-                            failure_classes=["engine-unavailable", "surface-unreachable", "partial-artifact"],
+                            failure_classes=[
+                                "engine-unavailable",
+                                "surface-unreachable",
+                                "partial-artifact",
+                            ],
                             owner_approval=False,
                             mechanism="single-property deterministic measurement with explicit UNAVAILABLE accounting",
                         ),
@@ -1102,7 +1253,11 @@ def two_track_ui_audit_rubric_verdict() -> dict[str, Any]:
                                 _sch("audit-metric-baseline"),
                                 min_bytes=64,
                                 sentinel=f"SUCCESS:{u(1)}",
-                                consumers=["track-a-join", "score-track-b", "apply-critical-override"],
+                                consumers=[
+                                    "track-a-join",
+                                    "score-track-b",
+                                    "apply-critical-override",
+                                ],
                             )
                         ],
                     }
@@ -1161,7 +1316,11 @@ def two_track_ui_audit_rubric_verdict() -> dict[str, Any]:
                             uid=u(2),
                             title="Score one rubric dimension 0-4 against the measured numbers",
                             target="Score ONE dimension on the pinned rubric, citing the Track A measurement that justifies the score, and never referencing another dimension - so the call cannot trade dimensions off against each other.",
-                            inputs=["item.dimension", f"{root}/track-a/measurements.jsonl", "params.rubric_version"],
+                            inputs=[
+                                "item.dimension",
+                                f"{root}/track-a/measurements.jsonl",
+                                "params.rubric_version",
+                            ],
                             dependencies=[u(1)],
                             model="opus",
                             vendor="anthropic",
@@ -1181,7 +1340,11 @@ def two_track_ui_audit_rubric_verdict() -> dict[str, Any]:
                             reviewer="the codex-critic, scoring the same dimension independently from the same numbers",
                             sentinel_condition="one dimension carries one score with a cited measurement, or UNKNOWN with the exclusion",
                             retry="fixed, two attempts: a scoring call is cheap and a transient truncation is recoverable",
-                            failure_classes=["score-contradicts-measurement", "multi-dimension-call", "partial-artifact"],
+                            failure_classes=[
+                                "score-contradicts-measurement",
+                                "multi-dimension-call",
+                                "partial-artifact",
+                            ],
                             owner_approval=False,
                             mechanism="one-call-per-dimension scoring bound to a cited measurement",
                         ),
@@ -1191,7 +1354,11 @@ def two_track_ui_audit_rubric_verdict() -> dict[str, Any]:
                                 "platform/schema/artifact-class-profiles.schema.json#/$defs/ux_report",
                                 min_bytes=64,
                                 sentinel=f"SUCCESS:{u(2)}",
-                                consumers=["consistency-gate", "apply-critical-override", "reconcile-with-critic"],
+                                consumers=[
+                                    "consistency-gate",
+                                    "apply-critical-override",
+                                    "reconcile-with-critic",
+                                ],
                             )
                         ],
                     }
@@ -1223,12 +1390,19 @@ def two_track_ui_audit_rubric_verdict() -> dict[str, Any]:
                 "depends_on": ["consistency-gate"],
                 "role": "override-auditor",
                 "timeout_seconds": 1200,
-                "tool_permissions": ["Read", "Bash:python", "Write(command-center/design/**)"],
+                "tool_permissions": [
+                    "Read",
+                    "Bash:python",
+                    "Write(command-center/design/**)",
+                ],
                 "work_unit": work_unit(
                     uid=u(3),
                     title="Compute the weighted composite and apply the critical-error cap",
                     target="Compute the weighted composite with colour-contrast weighted highest, then CAP it at the ceiling implied by any measured critical error, so a single hard failure cannot be diluted by eight good dimensions.",
-                    inputs=[f"{root}/track-a/measurements.jsonl", f"{root}/track-b/dimension-scores.jsonl"],
+                    inputs=[
+                        f"{root}/track-a/measurements.jsonl",
+                        f"{root}/track-b/dimension-scores.jsonl",
+                    ],
                     dependencies=[u(1), u(2)],
                     model="opus",
                     vendor="anthropic",
@@ -1248,7 +1422,11 @@ def two_track_ui_audit_rubric_verdict() -> dict[str, Any]:
                     reviewer="the codex-critic, recomputing the composite from the same inputs",
                     sentinel_condition="raw mean, cap, capped composite and the critical-error list are all present",
                     retry="none: the composite is arithmetic over recorded inputs, so a retry cannot change it",
-                    failure_classes=["cap-not-applied", "overclaim", "detector-failure"],
+                    failure_classes=[
+                        "cap-not-applied",
+                        "overclaim",
+                        "detector-failure",
+                    ],
                     owner_approval=False,
                     mechanism="weighted composite with a hard critical-error ceiling and UNKNOWN exclusion from the denominator",
                 ),
@@ -1299,7 +1477,10 @@ def two_track_ui_audit_rubric_verdict() -> dict[str, Any]:
                         f"{root}/reconciled-verdict.json",
                         _sch("severity-reconciliation"),
                         min_bytes=256,
-                        consumers=["command-center/MANIFEST.json", "design-studio-eight-gate-loop"],
+                        consumers=[
+                            "command-center/MANIFEST.json",
+                            "design-studio-eight-gate-loop",
+                        ],
                     )
                 ],
             },
@@ -1350,7 +1531,14 @@ def two_track_ui_audit_rubric_verdict() -> dict[str, Any]:
         ),
         "cache": cache(
             f"{root}/cache",
-            ["workflow_version", "stage_id", "item_key", "prompt_hash", "model_id", "tool_versions"],
+            [
+                "workflow_version",
+                "stage_id",
+                "item_key",
+                "prompt_hash",
+                "model_id",
+                "tool_versions",
+            ],
             scope="workflow",
             ttl=3600,
         ),
@@ -1378,7 +1566,9 @@ def two_track_ui_audit_rubric_verdict() -> dict[str, Any]:
             blast_radius="READ-ONLY by construction: Edit and every app-source write path are denied, so the audit cannot change what it measures",
             owner_approval=False,
         ),
-        "portability": portability(f"{root}/export/two-track-ui-audit-rubric-verdict.bundle.json"),
+        "portability": portability(
+            f"{root}/export/two-track-ui-audit-rubric-verdict.bundle.json"
+        ),
         "lineage": lineage(
             [
                 card(f"{LIBRARY}#BP-UX-02", "ADOPT-AS-IS"),
@@ -1393,7 +1583,10 @@ def two_track_ui_audit_rubric_verdict() -> dict[str, Any]:
                 f"{root}/composite-verdict.json",
                 _sch("adjudication-record"),
                 min_bytes=256,
-                consumers=["command-center/MANIFEST.json", "design-studio-eight-gate-loop"],
+                consumers=[
+                    "command-center/MANIFEST.json",
+                    "design-studio-eight-gate-loop",
+                ],
             ),
             "reconciled": artifact(
                 f"{root}/reconciled-verdict.json",
@@ -1473,7 +1666,13 @@ def per_surface_usability_source_audit() -> dict[str, Any]:
         "version": "1.0.0",
         "kind": "workflow",
         "categories": [CAT_PRODUCT, CAT_ENGINEERING],
-        "tags": ["bp-ux-03", "source-audit", "per-surface", "adversarial-verification", "fix-queue"],
+        "tags": [
+            "bp-ux-03",
+            "source-audit",
+            "per-surface",
+            "adversarial-verification",
+            "fix-queue",
+        ],
         "flagship": False,
         "params": {
             "source_root": {
@@ -1508,7 +1707,12 @@ def per_surface_usability_source_audit() -> dict[str, Any]:
                 "effort": "medium",
                 "authority": "advisory",
                 "independence": "independent",
-                "tool_permissions": ["Read", "Grep", "Glob", "Write(command-center/design/**)"],
+                "tool_permissions": [
+                    "Read",
+                    "Grep",
+                    "Glob",
+                    "Write(command-center/design/**)",
+                ],
             },
             "surface-auditor": {
                 "description": "Audits one surface's controls at source level for broken or unusable affordances.",
@@ -1541,8 +1745,21 @@ def per_surface_usability_source_audit() -> dict[str, Any]:
             },
         },
         "tool_policy": tool_policy(
-            allow=["Read", "Grep", "Glob", "Write(command-center/design/**)", "mcp__codex__codex"],
-            deny=["Edit", "Bash", "Bash:git", "WebFetch", "Write(app/**)", "Write(src/**)"],
+            allow=[
+                "Read",
+                "Grep",
+                "Glob",
+                "Write(command-center/design/**)",
+                "mcp__codex__codex",
+            ],
+            deny=[
+                "Edit",
+                "Bash",
+                "Bash:git",
+                "WebFetch",
+                "Write(app/**)",
+                "Write(src/**)",
+            ],
             network="none",
             write_paths=[f"{root}/**"],
             forbid_write_paths=["app/**", "src/**"],
@@ -1554,7 +1771,11 @@ def per_surface_usability_source_audit() -> dict[str, Any]:
             "routes": [
                 {
                     "when": "stage_role == finding-verifier",
-                    "target": {"model": "gpt-5-codex", "vendor": "openai", "effort": "high"},
+                    "target": {
+                        "model": "gpt-5-codex",
+                        "vendor": "openai",
+                        "effort": "high",
+                    },
                     "reason": "the verifier must fail differently from the auditor that raised the finding",
                 }
             ],
@@ -1573,7 +1794,9 @@ def per_surface_usability_source_audit() -> dict[str, Any]:
                 "unverified_findings_in_queue == 0 AND dropped_findings_recorded == true",
                 "fail",
             ),
-            "queue-complete": gate_predicate_v1([1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12], "repair"),
+            "queue-complete": gate_predicate_v1(
+                [1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12], "repair"
+            ),
         },
         "stages": [
             {
@@ -1583,7 +1806,12 @@ def per_surface_usability_source_audit() -> dict[str, Any]:
                 "role": "surface-enumerator",
                 "timeout_seconds": 1800,
                 "checkpoint": True,
-                "tool_permissions": ["Read", "Grep", "Glob", "Write(command-center/design/**)"],
+                "tool_permissions": [
+                    "Read",
+                    "Grep",
+                    "Glob",
+                    "Write(command-center/design/**)",
+                ],
                 "work_unit": work_unit(
                     uid=u(1),
                     title="Derive the complete surface inventory from the router source of truth",
@@ -1608,7 +1836,11 @@ def per_surface_usability_source_audit() -> dict[str, Any]:
                     reviewer="the finding-verifier, which will reject findings on surfaces the inventory never declared",
                     sentinel_condition="every router entry maps to an inventory row carrying an analysable flag",
                     retry="two strikes then pivot to a second enumeration route (a build manifest) rather than re-parsing the same router",
-                    failure_classes=["surface-enumeration-gap", "router-unparseable", "partial-artifact"],
+                    failure_classes=[
+                        "surface-enumeration-gap",
+                        "router-unparseable",
+                        "partial-artifact",
+                    ],
                     owner_approval=False,
                     mechanism="router-derived enumeration that reaches conditionally-rendered surfaces",
                 ),
@@ -1618,7 +1850,11 @@ def per_surface_usability_source_audit() -> dict[str, Any]:
                         _sch("audit-inventory"),
                         min_bytes=256,
                         sentinel=f"SUCCESS:{u(1)}",
-                        consumers=["enumeration-gate", "audit-surfaces", "rank-fix-queue"],
+                        consumers=[
+                            "enumeration-gate",
+                            "audit-surfaces",
+                            "rank-fix-queue",
+                        ],
                     )
                 ],
             },
@@ -1651,7 +1887,11 @@ def per_surface_usability_source_audit() -> dict[str, Any]:
                         "kind": "task",
                         "role": "surface-auditor",
                         "timeout_seconds": 2400,
-                        "tool_permissions": ["Read", "Grep", "Write(command-center/design/**)"],
+                        "tool_permissions": [
+                            "Read",
+                            "Grep",
+                            "Write(command-center/design/**)",
+                        ],
                         "cache": cache(
                             f"{root}/cache/surfaces",
                             ["stage_id", "item_key", "inputs_hash", "tool_versions"],
@@ -1681,7 +1921,11 @@ def per_surface_usability_source_audit() -> dict[str, Any]:
                             reviewer="the finding-verifier, adversarially, per finding",
                             sentinel_condition="the surface has a finding list (possibly empty) or an explicit UNAUDITED reason",
                             retry="two strikes then quarantine the surface as UNAUDITED rather than reporting it clean",
-                            failure_classes=["surface-unanalysable", "anchor-missing", "partial-artifact"],
+                            failure_classes=[
+                                "surface-unanalysable",
+                                "anchor-missing",
+                                "partial-artifact",
+                            ],
                             owner_approval=False,
                             mechanism="per-surface source-level control audit with UNAUDITED rather than clean-by-default",
                         ),
@@ -1700,7 +1944,10 @@ def per_surface_usability_source_audit() -> dict[str, Any]:
                     "mode": "quorum",
                     "quorum": 0.9,
                     "on_partial": "proceed-with-quarantine",
-                    "reject_result_matching": ["started in the background", "Check /codex:status"],
+                    "reject_result_matching": [
+                        "started in the background",
+                        "Check /codex:status",
+                    ],
                     "verify_artifact_exists": True,
                 },
             },
@@ -1737,7 +1984,11 @@ def per_surface_usability_source_audit() -> dict[str, Any]:
                             uid=u(3),
                             title="Independently confirm or refute one finding from the cited source",
                             target="Open the cited file:line and decide, without reading the auditor's reasoning, whether the defect is real - and when it is not, record a DROP with the reason so the queue's shrinkage is visible.",
-                            inputs=["item.finding", "params.source_root", "params.verification_standard"],
+                            inputs=[
+                                "item.finding",
+                                "params.source_root",
+                                "params.verification_standard",
+                            ],
                             dependencies=[u(2)],
                             model="gpt-5-codex",
                             vendor="openai",
@@ -1757,7 +2008,11 @@ def per_surface_usability_source_audit() -> dict[str, Any]:
                             reviewer="the surface-auditor, which may contest a drop with new evidence but not with repetition",
                             sentinel_condition="the finding is CONFIRMED or DROPPED with a reason, never left unadjudicated",
                             retry="two strikes then escalate the finding as CONTESTED rather than letting the verifier decide by fatigue",
-                            failure_classes=["finding-unverifiable", "anchor-missing", "detector-failure"],
+                            failure_classes=[
+                                "finding-unverifiable",
+                                "anchor-missing",
+                                "detector-failure",
+                            ],
                             owner_approval=False,
                             mechanism="per-finding adversarial re-derivation with recorded drops",
                             not_a_duplicate_because="the surface audit RAISES findings from a whole surface; this adjudicates ONE finding from its anchor with no access to the raising argument",
@@ -1831,7 +2086,11 @@ def per_surface_usability_source_audit() -> dict[str, Any]:
                     reviewer="one independent adversarial reviewer in a fresh context who samples five queue entries and re-checks their anchors",
                     sentinel_condition="the queue is ordered, every entry is anchored, and the survival rate plus the UNAUDITED list are both present",
                     retry="two strikes then emit the unranked confirmed set rather than an invented ordering",
-                    failure_classes=["overclaim", "coverage-unreconciled", "partial-artifact"],
+                    failure_classes=[
+                        "overclaim",
+                        "coverage-unreconciled",
+                        "partial-artifact",
+                    ],
                     owner_approval=False,
                     mechanism="severity-times-reach ranking published together with the verification survival rate",
                 ),
@@ -1841,7 +2100,10 @@ def per_surface_usability_source_audit() -> dict[str, Any]:
                         _sch("intervention-ranking"),
                         min_bytes=512,
                         sentinel=f"SUCCESS:{u(4)}",
-                        consumers=["queue-complete-gate", "command-center/MANIFEST.json"],
+                        consumers=[
+                            "queue-complete-gate",
+                            "command-center/MANIFEST.json",
+                        ],
                     )
                 ],
             },
@@ -1881,11 +2143,20 @@ def per_surface_usability_source_audit() -> dict[str, Any]:
             "jitter": True,
             "retry_on": ["surface-unanalysable", "finding-unverifiable"],
             "no_retry_on": ["router-unparseable", "anchor-missing"],
-            "pivot": {"after_attempts": 2, "enumerate_alternatives_min": 2, "escalate_to": "rank-fix-queue"},
+            "pivot": {
+                "after_attempts": 2,
+                "enumerate_alternatives_min": 2,
+                "escalate_to": "rank-fix-queue",
+            },
         },
         "failure_policy": failure_policy(
             "quarantine",
-            ["surface-unanalysable", "finding-unverifiable", "router-unparseable", "coverage-unreconciled"],
+            [
+                "surface-unanalysable",
+                "finding-unverifiable",
+                "router-unparseable",
+                "coverage-unreconciled",
+            ],
             escalate_to="rank-fix-queue",
             quarantine_path=f"{root}/quarantine",
         ),
@@ -1904,7 +2175,13 @@ def per_surface_usability_source_audit() -> dict[str, Any]:
         ),
         "cache": cache(
             f"{root}/cache",
-            ["workflow_version", "stage_id", "item_key", "inputs_hash", "tool_versions"],
+            [
+                "workflow_version",
+                "stage_id",
+                "item_key",
+                "inputs_hash",
+                "tool_versions",
+            ],
             scope="workflow",
             ttl=604800,
         ),
@@ -1926,7 +2203,9 @@ def per_surface_usability_source_audit() -> dict[str, Any]:
             blast_radius="read-only over app source; Edit and every app write path are denied, so a 300-agent sweep cannot modify what it audits",
             owner_approval=False,
         ),
-        "portability": portability(f"{root}/export/per-surface-usability-source-audit.bundle.json"),
+        "portability": portability(
+            f"{root}/export/per-surface-usability-source-audit.bundle.json"
+        ),
         "lineage": lineage(
             [
                 card(f"{LIBRARY}#BP-UX-03", "DISTILL"),
@@ -2018,7 +2297,13 @@ def code_to_canvas_mirror_round_trip() -> dict[str, Any]:
         "version": "1.0.0",
         "kind": "subworkflow",
         "categories": [CAT_PRODUCT],
-        "tags": ["bp-ux-04", "figma", "lossy-boundary", "egress-checkpoint", "transpose"],
+        "tags": [
+            "bp-ux-04",
+            "figma",
+            "lossy-boundary",
+            "egress-checkpoint",
+            "transpose",
+        ],
         "flagship": False,
         "params": {
             "app_target": {
@@ -2068,7 +2353,11 @@ def code_to_canvas_mirror_round_trip() -> dict[str, Any]:
                 "effort": "high",
                 "authority": "veto",
                 "independence": "independent",
-                "tool_permissions": ["Read", "mcp__playwright__browser_take_screenshot", "Write(command-center/design/**)"],
+                "tool_permissions": [
+                    "Read",
+                    "mcp__playwright__browser_take_screenshot",
+                    "Write(command-center/design/**)",
+                ],
                 "speaking_rights": "always",
             },
             "transposer": {
@@ -2093,7 +2382,12 @@ def code_to_canvas_mirror_round_trip() -> dict[str, Any]:
                 "effort": "high",
                 "authority": "voting",
                 "independence": "independent",
-                "tool_permissions": ["Read", "mcp__figma__get_screenshot", "mcp__playwright__browser_take_screenshot", "Write(command-center/design/**)"],
+                "tool_permissions": [
+                    "Read",
+                    "mcp__figma__get_screenshot",
+                    "mcp__playwright__browser_take_screenshot",
+                    "Write(command-center/design/**)",
+                ],
             },
             "owner": {
                 "description": "The human owner - the only role that may authorise pushing UI content to a third-party service.",
@@ -2185,7 +2479,12 @@ def code_to_canvas_mirror_round_trip() -> dict[str, Any]:
                         _sch("decision-record"),
                         min_bytes=128,
                         sentinel=f"SUCCESS:{u(1)}",
-                        consumers=["quota-precheck", "transpose-story", "transpose-mcp", "transpose-html"],
+                        consumers=[
+                            "quota-precheck",
+                            "transpose-story",
+                            "transpose-mcp",
+                            "transpose-html",
+                        ],
                     )
                 ],
             },
@@ -2203,7 +2502,11 @@ def code_to_canvas_mirror_round_trip() -> dict[str, Any]:
                 "depends_on": ["quota-precheck"],
                 "role": "egress-screener",
                 "timeout_seconds": 1200,
-                "tool_permissions": ["Read", "mcp__playwright__browser_take_screenshot", "Write(command-center/design/**)"],
+                "tool_permissions": [
+                    "Read",
+                    "mcp__playwright__browser_take_screenshot",
+                    "Write(command-center/design/**)",
+                ],
                 "work_unit": work_unit(
                     uid=u(2),
                     title="Screen every surface to be transposed for sensitive on-screen content",
@@ -2214,7 +2517,11 @@ def code_to_canvas_mirror_round_trip() -> dict[str, Any]:
                     vendor="anthropic",
                     role="egress-screener",
                     basis="recognising a secret rendered in a UI is judgement; a pattern match over a screenshot is not enough",
-                    tools=["Read", "mcp__playwright__browser_take_screenshot", "Write(command-center/design/**)"],
+                    tools=[
+                        "Read",
+                        "mcp__playwright__browser_take_screenshot",
+                        "Write(command-center/design/**)",
+                    ],
                     substrate="local-serialized",
                     timeout_seconds=1200,
                     output_path=f"{root}/egress-screen.json",
@@ -2227,7 +2534,11 @@ def code_to_canvas_mirror_round_trip() -> dict[str, Any]:
                     reviewer="the owner at the egress checkpoint, who sees the classes found and not the values",
                     sentinel_condition="every surface has a screening verdict and no artifact contains a detected secret value",
                     retry="two strikes then veto: an unscreenable surface must not be transposed",
-                    failure_classes=["sensitive-content-detected", "surface-unreachable", "partial-artifact"],
+                    failure_classes=[
+                        "sensitive-content-detected",
+                        "surface-unreachable",
+                        "partial-artifact",
+                    ],
                     owner_approval=False,
                     mechanism="pre-egress on-screen sensitive-content screen that records classes, never values",
                 ),
@@ -2285,7 +2596,11 @@ def code_to_canvas_mirror_round_trip() -> dict[str, Any]:
                     uid=u(3),
                     title="Transpose the component system onto the canvas and map DTCG tokens",
                     target="Mirror the component library with its DTCG token bindings intact, and record which components arrived code-connected, because a code-connected component is the other thing that survives.",
-                    inputs=["params.token_source", f"{root}/path-selection.json", f"{root}/egress-decision.json"],
+                    inputs=[
+                        "params.token_source",
+                        f"{root}/path-selection.json",
+                        f"{root}/egress-decision.json",
+                    ],
                     dependencies=[u(1), u(2)],
                     model="opus",
                     vendor="anthropic",
@@ -2309,7 +2624,11 @@ def code_to_canvas_mirror_round_trip() -> dict[str, Any]:
                     reviewer="the fidelity-checker",
                     sentinel_condition="every requested component has a canvas node or an explicit failure row",
                     retry="two strikes then reduce scope to the components that fit the remaining quota",
-                    failure_classes=["quota-exhausted", "transpose-partial", "binding-lost"],
+                    failure_classes=[
+                        "quota-exhausted",
+                        "transpose-partial",
+                        "binding-lost",
+                    ],
                     owner_approval=True,
                     mechanism="component-system transpose preserving DTCG token bindings",
                 ),
@@ -2341,7 +2660,11 @@ def code_to_canvas_mirror_round_trip() -> dict[str, Any]:
                     uid=u(4),
                     title="Transpose live or localhost screens onto the canvas",
                     target="Mirror the rendered screens as canvas frames and record which layout decisions were heuristic, because a heuristic layout is not a faithful record and the fidelity check must know where to look.",
-                    inputs=["params.app_target", f"{root}/path-selection.json", f"{root}/egress-decision.json"],
+                    inputs=[
+                        "params.app_target",
+                        f"{root}/path-selection.json",
+                        f"{root}/egress-decision.json",
+                    ],
                     dependencies=[u(1), u(2)],
                     model="opus",
                     vendor="anthropic",
@@ -2365,7 +2688,11 @@ def code_to_canvas_mirror_round_trip() -> dict[str, Any]:
                     reviewer="the fidelity-checker",
                     sentinel_condition="every requested screen has a canvas node or an explicit failure row",
                     retry="two strikes then reduce scope to the screens that fit the remaining quota",
-                    failure_classes=["quota-exhausted", "transpose-partial", "layout-heuristic-unmarked"],
+                    failure_classes=[
+                        "quota-exhausted",
+                        "transpose-partial",
+                        "layout-heuristic-unmarked",
+                    ],
                     owner_approval=True,
                     mechanism="live-screen transpose with heuristic-region marking",
                     not_a_duplicate_because="the story path mirrors a COMPONENT SYSTEM and preserves token bindings; this mirrors RENDERED SCREENS and loses the component identity entirely",
@@ -2388,18 +2715,30 @@ def code_to_canvas_mirror_round_trip() -> dict[str, Any]:
                 "role": "transposer",
                 "when": "path == html",
                 "timeout_seconds": 2400,
-                "tool_permissions": ["Read", "Write(command-center/design/**)", "mcp__figma__whoami"],
+                "tool_permissions": [
+                    "Read",
+                    "Write(command-center/design/**)",
+                    "mcp__figma__whoami",
+                ],
                 "work_unit": work_unit(
                     uid=u(5),
                     title="Produce an audit-only DOM record on the canvas",
                     target="Capture a DOM-faithful record intended for audit rather than for editing, and mark it explicitly as non-editable so nobody iterates on a record that cannot round-trip back.",
-                    inputs=["params.app_target", f"{root}/path-selection.json", f"{root}/egress-decision.json"],
+                    inputs=[
+                        "params.app_target",
+                        f"{root}/path-selection.json",
+                        f"{root}/egress-decision.json",
+                    ],
                     dependencies=[u(1), u(2)],
                     model="opus",
                     vendor="anthropic",
                     role="transposer",
                     basis="marking the artifact's intended use is the whole point of this path",
-                    tools=["Read", "Write(command-center/design/**)", "mcp__figma__whoami"],
+                    tools=[
+                        "Read",
+                        "Write(command-center/design/**)",
+                        "mcp__figma__whoami",
+                    ],
                     substrate="local-serialized",
                     timeout_seconds=2400,
                     output_path=f"{root}/transpose-html.json",
@@ -2483,7 +2822,11 @@ def code_to_canvas_mirror_round_trip() -> dict[str, Any]:
                     reviewer="one independent reviewer in a fresh context who re-renders both images",
                     sentinel_condition="a bounded fidelity score exists with heuristic regions separated",
                     retry="two strikes then report fidelity as NOT-CHECKED rather than as a number nobody measured",
-                    failure_classes=["capture-parameter-mismatch", "overclaim", "partial-artifact"],
+                    failure_classes=[
+                        "capture-parameter-mismatch",
+                        "overclaim",
+                        "partial-artifact",
+                    ],
                     owner_approval=False,
                     mechanism="matched-dimension screenshot comparison with heuristic regions scored separately",
                 ),
@@ -2493,7 +2836,10 @@ def code_to_canvas_mirror_round_trip() -> dict[str, Any]:
                         _sch("similarity-report"),
                         min_bytes=256,
                         sentinel=f"SUCCESS:{u(6)}",
-                        consumers=["command-center/MANIFEST.json", "design-studio-eight-gate-loop"],
+                        consumers=[
+                            "command-center/MANIFEST.json",
+                            "design-studio-eight-gate-loop",
+                        ],
                     )
                 ],
             },
@@ -2526,11 +2872,20 @@ def code_to_canvas_mirror_round_trip() -> dict[str, Any]:
             "jitter": True,
             "retry_on": ["transpose-partial", "capture-parameter-mismatch"],
             "no_retry_on": ["quota-exhausted", "sensitive-content-detected"],
-            "pivot": {"after_attempts": 2, "enumerate_alternatives_min": 2, "escalate_to": "egress-approval"},
+            "pivot": {
+                "after_attempts": 2,
+                "enumerate_alternatives_min": 2,
+                "escalate_to": "egress-approval",
+            },
         },
         "failure_policy": failure_policy(
             "degrade-loudly",
-            ["quota-exhausted", "sensitive-content-detected", "transpose-partial", "overclaim"],
+            [
+                "quota-exhausted",
+                "sensitive-content-detected",
+                "transpose-partial",
+                "overclaim",
+            ],
             escalate_to="egress-approval",
             quarantine_path=f"{root}/quarantine",
         ),
@@ -2567,7 +2922,9 @@ def code_to_canvas_mirror_round_trip() -> dict[str, Any]:
             blast_radius="pushes UI content to Figma, a third-party service; reversal means deleting the Figma file, and the content has already left the machine, which is why the egress checkpoint is blocking",
             owner_approval=True,
         ),
-        "portability": portability(f"{root}/export/code-to-canvas-mirror-round-trip.bundle.json"),
+        "portability": portability(
+            f"{root}/export/code-to-canvas-mirror-round-trip.bundle.json"
+        ),
         "lineage": lineage(
             [
                 card(f"{LIBRARY}#BP-UX-04", "ADOPT-AS-IS"),
@@ -2661,7 +3018,13 @@ def design_first_ui_intake() -> dict[str, Any]:
         "version": "1.0.0",
         "kind": "workflow",
         "categories": [CAT_PRODUCT],
-        "tags": ["bp-ux-05", "intake", "admission-gate", "routing", "false-routing-control"],
+        "tags": [
+            "bp-ux-05",
+            "intake",
+            "admission-gate",
+            "routing",
+            "false-routing-control",
+        ],
         "flagship": True,
         "params": {
             "ui_request": {
@@ -2727,7 +3090,11 @@ def design_first_ui_intake() -> dict[str, Any]:
                 "effort": "medium",
                 "authority": "advisory",
                 "independence": "informed",
-                "tool_permissions": ["Read", "Write(command-center/design/**)", "mcp__figma__create_new_file"],
+                "tool_permissions": [
+                    "Read",
+                    "Write(command-center/design/**)",
+                    "mcp__figma__create_new_file",
+                ],
             },
             "implementer": {
                 "description": "Writes the code - and is structurally unreachable until the admission gate passes.",
@@ -2811,7 +3178,11 @@ def design_first_ui_intake() -> dict[str, Any]:
                     reviewer="the direction-recommender, which refuses to run on a request the router misclassified",
                     sentinel_condition="a UI-or-not verdict is recorded with the driving phrase cited",
                     retry="two strikes then classify as NOT UI and record the ambiguity, since over-capturing is the worse failure",
-                    failure_classes=["false-routing", "classification-ambiguous", "partial-artifact"],
+                    failure_classes=[
+                        "false-routing",
+                        "classification-ambiguous",
+                        "partial-artifact",
+                    ],
                     owner_approval=False,
                     mechanism="request classification with the driving phrase recorded for misfire diagnosis",
                 ),
@@ -2821,7 +3192,11 @@ def design_first_ui_intake() -> dict[str, Any]:
                         _sch("router-explanation"),
                         min_bytes=128,
                         sentinel=f"SUCCESS:{u(1)}",
-                        consumers=["routing-control", "recommend-direction", "admission-gate"],
+                        consumers=[
+                            "routing-control",
+                            "recommend-direction",
+                            "admission-gate",
+                        ],
                     )
                 ],
             },
@@ -2845,7 +3220,11 @@ def design_first_ui_intake() -> dict[str, Any]:
                     uid=u(2),
                     title="Produce a ranked design direction with a rationale",
                     target="Recommend a style, a palette and a type pairing ranked against the stack and any brand constraints, with a rationale, so a later audit can score against the INTENDED design rather than against taste.",
-                    inputs=["params.ui_request", "params.stack", "params.brand_constraints"],
+                    inputs=[
+                        "params.ui_request",
+                        "params.stack",
+                        "params.brand_constraints",
+                    ],
                     dependencies=[u(1)],
                     model="opus",
                     vendor="anthropic",
@@ -2864,7 +3243,11 @@ def design_first_ui_intake() -> dict[str, Any]:
                     reviewer="the intake-router, chairing, which checks the direction actually answers the classified request",
                     sentinel_condition="a direction with concrete values and a rationale is on disk",
                     retry="two strikes then narrow to one surface and record the reduced scope",
-                    failure_classes=["direction-unrecorded", "brand-constraint-violated", "partial-artifact"],
+                    failure_classes=[
+                        "direction-unrecorded",
+                        "brand-constraint-violated",
+                        "partial-artifact",
+                    ],
                     owner_approval=False,
                     mechanism="ranked style/palette/type recommendation recorded as a scoreable artifact",
                 ),
@@ -2940,7 +3323,11 @@ def design_first_ui_intake() -> dict[str, Any]:
                 "role": "canvas-producer",
                 "when": "request_is_ui == true AND skip_canvas == false",
                 "timeout_seconds": 2400,
-                "tool_permissions": ["Read", "Write(command-center/design/**)", "mcp__figma__create_new_file"],
+                "tool_permissions": [
+                    "Read",
+                    "Write(command-center/design/**)",
+                    "mcp__figma__create_new_file",
+                ],
                 "work_unit": work_unit(
                     uid=u(4),
                     title="Turn the direction into a canvas artifact or a .design record",
@@ -2951,7 +3338,11 @@ def design_first_ui_intake() -> dict[str, Any]:
                     vendor="anthropic",
                     role="canvas-producer",
                     basis="translating a direction into a concrete layout is design work",
-                    tools=["Read", "Write(command-center/design/**)", "mcp__figma__create_new_file"],
+                    tools=[
+                        "Read",
+                        "Write(command-center/design/**)",
+                        "mcp__figma__create_new_file",
+                    ],
                     substrate="local-serialized",
                     timeout_seconds=2400,
                     output_path=f"{root}/canvas-artifact.json",
@@ -3028,7 +3419,11 @@ def design_first_ui_intake() -> dict[str, Any]:
                 "id": "admission-gate",
                 "title": "THE gate - no implementation agent may be spawned before a direction exists",
                 "kind": "gate",
-                "depends_on": ["produce-canvas", "record-canvas-skip", "degradation-gate"],
+                "depends_on": [
+                    "produce-canvas",
+                    "record-canvas-skip",
+                    "degradation-gate",
+                ],
                 "gate_ref": "direction-admitted",
                 "checkpoint": True,
             },
@@ -3045,7 +3440,11 @@ def design_first_ui_intake() -> dict[str, Any]:
                     uid=u(6),
                     title="Implement the request against the recorded direction",
                     target="Write the code, citing the recorded direction for every visual decision, so a later audit scores the result against the INTENDED design rather than against the reviewer's preference.",
-                    inputs=[f"{root}/design-direction.json", f"{root}/canvas-artifact.json", "params.stack"],
+                    inputs=[
+                        f"{root}/design-direction.json",
+                        f"{root}/canvas-artifact.json",
+                        "params.stack",
+                    ],
                     dependencies=[u(2), u(4)],
                     model="opus",
                     vendor="anthropic",
@@ -3064,7 +3463,11 @@ def design_first_ui_intake() -> dict[str, Any]:
                     reviewer="one independent reviewer in a fresh context who scores the implementation against the recorded direction, not against taste",
                     sentinel_condition="the implementation exists and every visual value traces to the direction or a recorded deviation",
                     retry="two strikes then return to the direction rather than improvising a third visual approach",
-                    failure_classes=["direction-deviation-unrecorded", "scope-escape", "partial-artifact"],
+                    failure_classes=[
+                        "direction-deviation-unrecorded",
+                        "scope-escape",
+                        "partial-artifact",
+                    ],
                     owner_approval=False,
                     mechanism="direction-bound implementation reachable only through the admission gate",
                 ),
@@ -3089,7 +3492,11 @@ def design_first_ui_intake() -> dict[str, Any]:
                 "timeout_seconds": 86400,
                 "on_timeout": "proceed",
                 "owner_approval_required": False,
-                "options": ["enforce-with-hook", "documented-default", "revisit-after-more-data"],
+                "options": [
+                    "enforce-with-hook",
+                    "documented-default",
+                    "revisit-after-more-data",
+                ],
                 "decision_artifact": artifact(
                     f"{root}/enforcement-decision.json",
                     _sch("owner-decision-packet"),
@@ -3126,7 +3533,11 @@ def design_first_ui_intake() -> dict[str, Any]:
             "jitter": True,
             "retry_on": ["canvas-unavailable", "classification-ambiguous"],
             "no_retry_on": ["false-routing", "design-gap-unrecorded"],
-            "pivot": {"after_attempts": 2, "enumerate_alternatives_min": 2, "escalate_to": "enforcement-decision"},
+            "pivot": {
+                "after_attempts": 2,
+                "enumerate_alternatives_min": 2,
+                "escalate_to": "enforcement-decision",
+            },
         },
         "failure_policy": failure_policy(
             "escalate-to-human",
@@ -3180,7 +3591,10 @@ def design_first_ui_intake() -> dict[str, Any]:
                 f"{root}/design-direction.json",
                 _sch("design-spec"),
                 min_bytes=256,
-                consumers=["command-center/MANIFEST.json", "two-track-ui-audit-rubric-verdict"],
+                consumers=[
+                    "command-center/MANIFEST.json",
+                    "two-track-ui-audit-rubric-verdict",
+                ],
             ),
             "design_gap": artifact(
                 f"{root}/design-gap.json",

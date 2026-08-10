@@ -71,7 +71,13 @@ def pre_pr_knowledge_capture() -> dict[str, Any]:
         "version": "1.0.0",
         "kind": "workflow",
         "categories": [CAT_DATA, CAT_ENGINEERING],
-        "tags": ["bp-doc-01", "knowledge-capture", "atomic-commit", "pre-pr", "honest-empty"],
+        "tags": [
+            "bp-doc-01",
+            "knowledge-capture",
+            "atomic-commit",
+            "pre-pr",
+            "honest-empty",
+        ],
         "flagship": False,
         "params": {
             "branch": {
@@ -110,7 +116,12 @@ def pre_pr_knowledge_capture() -> dict[str, Any]:
                 "effort": "high",
                 "authority": "advisory",
                 "independence": "informed",
-                "tool_permissions": ["Read", "Grep", "Bash:git", "Write(command-center/knowledge/**)"],
+                "tool_permissions": [
+                    "Read",
+                    "Grep",
+                    "Bash:git",
+                    "Write(command-center/knowledge/**)",
+                ],
             },
             "restatement-auditor": {
                 "description": "Rejects a 'learning' that is a restatement of the diff. Holds the veto that keeps the knowledge base from filling with changelog.",
@@ -130,7 +141,11 @@ def pre_pr_knowledge_capture() -> dict[str, Any]:
                 "effort": "high",
                 "authority": "veto",
                 "independence": "independent",
-                "tool_permissions": ["Read", "Bash:python", "Write(command-center/knowledge/**)"],
+                "tool_permissions": [
+                    "Read",
+                    "Bash:python",
+                    "Write(command-center/knowledge/**)",
+                ],
             },
             "committer": {
                 "description": "Stages the knowledge alongside the code so both land in ONE commit. Never uses --no-verify.",
@@ -139,7 +154,11 @@ def pre_pr_knowledge_capture() -> dict[str, Any]:
                 "effort": "medium",
                 "authority": "advisory",
                 "independence": "informed",
-                "tool_permissions": ["Read", "Bash:git", "Write(command-center/knowledge/**)"],
+                "tool_permissions": [
+                    "Read",
+                    "Bash:git",
+                    "Write(command-center/knowledge/**)",
+                ],
             },
         },
         "tool_policy": tool_policy(
@@ -164,7 +183,11 @@ def pre_pr_knowledge_capture() -> dict[str, Any]:
             "routes": [
                 {
                     "when": "stage_role == restatement-auditor",
-                    "target": {"model": "gpt-5-codex", "vendor": "openai", "effort": "high"},
+                    "target": {
+                        "model": "gpt-5-codex",
+                        "vendor": "openai",
+                        "effort": "high",
+                    },
                     "reason": "the author of a learning is the worst judge of whether it restates its own diff",
                 }
             ],
@@ -203,18 +226,32 @@ def pre_pr_knowledge_capture() -> dict[str, Any]:
                 "role": "reflector",
                 "timeout_seconds": 1800,
                 "checkpoint": True,
-                "tool_permissions": ["Read", "Grep", "Bash:git", "Write(command-center/knowledge/**)"],
+                "tool_permissions": [
+                    "Read",
+                    "Grep",
+                    "Bash:git",
+                    "Write(command-center/knowledge/**)",
+                ],
                 "work_unit": work_unit(
                     uid=u(1),
                     title="Scan the branch for the material a durable learning could come from",
                     target="Collect this branch's review verdicts, refuted premises, retries and dead ends into one structured record, so extraction reads evidence rather than memory.",
-                    inputs=["params.branch", "params.review_outcomes", "params.session_transcript_scope"],
+                    inputs=[
+                        "params.branch",
+                        "params.review_outcomes",
+                        "params.session_transcript_scope",
+                    ],
                     dependencies=[],
                     model="opus",
                     vendor="anthropic",
                     role="reflector",
                     basis="recognising which review comment carries a generalisable lesson is judgement, not retrieval",
-                    tools=["Read", "Grep", "Bash:git", "Write(command-center/knowledge/**)"],
+                    tools=[
+                        "Read",
+                        "Grep",
+                        "Bash:git",
+                        "Write(command-center/knowledge/**)",
+                    ],
                     substrate="local-serialized",
                     timeout_seconds=1800,
                     output_path=f"{root}/branch-scan.json",
@@ -227,7 +264,11 @@ def pre_pr_knowledge_capture() -> dict[str, Any]:
                     reviewer="the restatement-auditor, which will reject candidates with no anchor",
                     sentinel_condition="the scan record exists and every candidate carries an anchor",
                     retry="two strikes then narrow the transcript scope rather than re-scanning the same range",
-                    failure_classes=["scan-scope-too-wide", "anchor-missing", "partial-artifact"],
+                    failure_classes=[
+                        "scan-scope-too-wide",
+                        "anchor-missing",
+                        "partial-artifact",
+                    ],
                     owner_approval=False,
                     mechanism="branch-scoped evidence collection anchored to review comments and history",
                 ),
@@ -248,7 +289,11 @@ def pre_pr_knowledge_capture() -> dict[str, Any]:
                 "depends_on": ["scan-branch"],
                 "role": "reflector",
                 "timeout_seconds": 2400,
-                "tool_permissions": ["Read", "Bash:git", "Write(command-center/knowledge/**)"],
+                "tool_permissions": [
+                    "Read",
+                    "Bash:git",
+                    "Write(command-center/knowledge/**)",
+                ],
                 "work_unit": work_unit(
                     uid=u(2),
                     title="Turn scan candidates into durable, generalisable learnings",
@@ -273,7 +318,11 @@ def pre_pr_knowledge_capture() -> dict[str, Any]:
                     reviewer="the restatement-auditor, cross-vendor, which decides whether each learning generalises",
                     sentinel_condition="learnings exist with preconditions, or an explicit honest-empty record does",
                     retry="two strikes then record the honest empty capture rather than lowering the bar a third time",
-                    failure_classes=["learning-is-restatement", "manufactured-lesson", "partial-artifact"],
+                    failure_classes=[
+                        "learning-is-restatement",
+                        "manufactured-lesson",
+                        "partial-artifact",
+                    ],
                     owner_approval=False,
                     mechanism="generalisation with a falsifiable precondition per learning, and an honest-empty escape",
                 ),
@@ -283,7 +332,11 @@ def pre_pr_knowledge_capture() -> dict[str, Any]:
                         _sch("novelty-ledger"),
                         min_bytes=64,
                         sentinel=f"SUCCESS:{u(2)}",
-                        consumers=["audit-restatement", "screen-redaction", "write-knowledge"],
+                        consumers=[
+                            "audit-restatement",
+                            "screen-redaction",
+                            "write-knowledge",
+                        ],
                     )
                 ],
             },
@@ -318,7 +371,11 @@ def pre_pr_knowledge_capture() -> dict[str, Any]:
                     reviewer="the reflector, which may contest a rejection with a generalisation argument but not by repetition",
                     sentinel_condition="every learning is accepted or rejected with the paraphrased hunk cited for each rejection",
                     retry="two strikes then escalate the contested learning rather than letting either side win by persistence",
-                    failure_classes=["learning-is-restatement", "detector-failure", "partial-artifact"],
+                    failure_classes=[
+                        "learning-is-restatement",
+                        "detector-failure",
+                        "partial-artifact",
+                    ],
                     owner_approval=False,
                     mechanism="cross-vendor diff-paraphrase detection with the hunk cited per rejection",
                 ),
@@ -346,12 +403,19 @@ def pre_pr_knowledge_capture() -> dict[str, Any]:
                 "depends_on": ["restatement-gate"],
                 "role": "redaction-screener",
                 "timeout_seconds": 1200,
-                "tool_permissions": ["Read", "Bash:python", "Write(command-center/knowledge/**)"],
+                "tool_permissions": [
+                    "Read",
+                    "Bash:python",
+                    "Write(command-center/knowledge/**)",
+                ],
                 "work_unit": work_unit(
                     uid=u(4),
                     title="Screen the capture for secrets carried in from the session transcript",
                     target="Deny by default: scan every learning for credential-shaped content and redact it, recording the CLASS and location only, because a transcript can carry a token into a committed file.",
-                    inputs=[f"{root}/learnings.json", "params.session_transcript_scope"],
+                    inputs=[
+                        f"{root}/learnings.json",
+                        "params.session_transcript_scope",
+                    ],
                     dependencies=[u(2)],
                     model="opus",
                     vendor="anthropic",
@@ -371,7 +435,11 @@ def pre_pr_knowledge_capture() -> dict[str, Any]:
                     reviewer="the committer, which refuses to stage a capture with an unresolved redaction",
                     sentinel_condition="every learning is screened and no artifact contains a detected secret value",
                     retry="two strikes then drop the affected learning rather than committing an unscreened one",
-                    failure_classes=["secret-in-capture", "redactor-allowlist-leak", "partial-artifact"],
+                    failure_classes=[
+                        "secret-in-capture",
+                        "redactor-allowlist-leak",
+                        "partial-artifact",
+                    ],
                     owner_approval=False,
                     mechanism="deny-by-default redaction screen recording classes and locations, never values",
                 ),
@@ -399,7 +467,11 @@ def pre_pr_knowledge_capture() -> dict[str, Any]:
                 "depends_on": ["redaction-gate"],
                 "role": "reflector",
                 "timeout_seconds": 1800,
-                "tool_permissions": ["Read", "Write(command-center/knowledge/**)", "mcp__basic-memory__write_note"],
+                "tool_permissions": [
+                    "Read",
+                    "Write(command-center/knowledge/**)",
+                    "mcp__basic-memory__write_note",
+                ],
                 "work_unit": work_unit(
                     uid=u(5),
                     title="Write the accepted learnings into the knowledge base and the semantic store",
@@ -414,7 +486,11 @@ def pre_pr_knowledge_capture() -> dict[str, Any]:
                     vendor="anthropic",
                     role="reflector",
                     basis="deciding what an entry supersedes requires knowing the prior belief, which is judgement",
-                    tools=["Read", "Write(command-center/knowledge/**)", "mcp__basic-memory__write_note"],
+                    tools=[
+                        "Read",
+                        "Write(command-center/knowledge/**)",
+                        "mcp__basic-memory__write_note",
+                    ],
                     substrate="local-serialized",
                     timeout_seconds=1800,
                     output_path=f"{root}/knowledge-diff.json",
@@ -437,7 +513,11 @@ def pre_pr_knowledge_capture() -> dict[str, Any]:
                         _sch("improvement-ledger"),
                         min_bytes=128,
                         sentinel=f"SUCCESS:{u(5)}",
-                        consumers=["honesty-gate", "commit-with-code", "promote-to-rule"],
+                        consumers=[
+                            "honesty-gate",
+                            "commit-with-code",
+                            "promote-to-rule",
+                        ],
                     )
                 ],
             },
@@ -470,7 +550,11 @@ def pre_pr_knowledge_capture() -> dict[str, Any]:
                 "depends_on": ["honesty-gate"],
                 "role": "committer",
                 "timeout_seconds": 1200,
-                "tool_permissions": ["Read", "Bash:git", "Write(command-center/knowledge/**)"],
+                "tool_permissions": [
+                    "Read",
+                    "Bash:git",
+                    "Write(command-center/knowledge/**)",
+                ],
                 "work_unit": work_unit(
                     uid=u(6),
                     title="Stage the knowledge alongside the code and commit both in one commit",
@@ -495,7 +579,11 @@ def pre_pr_knowledge_capture() -> dict[str, Any]:
                     reviewer="one independent reviewer in a fresh context who re-reads the commit's path list",
                     sentinel_condition="one commit id is recorded whose path list contains both a code and a knowledge path",
                     retry="two strikes then stop and hand the staging decision to the owner rather than force a commit",
-                    failure_classes=["commit-not-atomic", "staging-scope-escape", "hook-bypassed"],
+                    failure_classes=[
+                        "commit-not-atomic",
+                        "staging-scope-escape",
+                        "hook-bypassed",
+                    ],
                     owner_approval=True,
                     mechanism="single scoped commit carrying both code and knowledge, with the path list as the proof",
                 ),
@@ -545,11 +633,20 @@ def pre_pr_knowledge_capture() -> dict[str, Any]:
             "jitter": True,
             "retry_on": ["scan-scope-too-wide", "supersession-dangling"],
             "no_retry_on": ["secret-in-capture", "commit-not-atomic", "hook-bypassed"],
-            "pivot": {"after_attempts": 2, "enumerate_alternatives_min": 2, "escalate_to": "atomicity-gate"},
+            "pivot": {
+                "after_attempts": 2,
+                "enumerate_alternatives_min": 2,
+                "escalate_to": "atomicity-gate",
+            },
         },
         "failure_policy": failure_policy(
             "escalate-to-human",
-            ["learning-is-restatement", "secret-in-capture", "commit-not-atomic", "staging-scope-escape"],
+            [
+                "learning-is-restatement",
+                "secret-in-capture",
+                "commit-not-atomic",
+                "staging-scope-escape",
+            ],
             escalate_to="atomicity-gate",
             quarantine_path=f"{root}/quarantine",
         ),
@@ -565,7 +662,12 @@ def pre_pr_knowledge_capture() -> dict[str, Any]:
         "cache": {"enabled": False},
         "dry_run": dry_run(
             f"{root}/dry-run-plan.json",
-            ["Bash:git", "Write(command-center/knowledge/**)", "mcp__basic-memory__write_note", "mcp__codex__codex"],
+            [
+                "Bash:git",
+                "Write(command-center/knowledge/**)",
+                "mcp__basic-memory__write_note",
+                "mcp__codex__codex",
+            ],
             emits=["plan", "artifact-diff", "permission-report"],
         ),
         "estimate": estimate(
@@ -581,7 +683,9 @@ def pre_pr_knowledge_capture() -> dict[str, Any]:
             blast_radius="writes the knowledge base and creates ONE commit on the named branch; the staging list is explicit so a shared git index cannot sweep a sibling's files",
             owner_approval=True,
         ),
-        "portability": portability(f"{root}/export/pre-pr-knowledge-capture.bundle.json"),
+        "portability": portability(
+            f"{root}/export/pre-pr-knowledge-capture.bundle.json"
+        ),
         "lineage": lineage(
             [
                 card(f"{LIBRARY}#BP-DOC-01", "ADOPT-AS-IS"),
@@ -720,7 +824,12 @@ def rules_distill_sweep() -> dict[str, Any]:
                 "effort": "medium",
                 "authority": "advisory",
                 "independence": "independent",
-                "tool_permissions": ["Read", "Grep", "Glob", "Write(command-center/knowledge/**)"],
+                "tool_permissions": [
+                    "Read",
+                    "Grep",
+                    "Glob",
+                    "Write(command-center/knowledge/**)",
+                ],
             },
             "cluster-synthesiser": {
                 "description": "Clusters occurrences into candidate principles. This is the subjective step and is labelled as such.",
@@ -738,7 +847,11 @@ def rules_distill_sweep() -> dict[str, Any]:
                 "effort": "high",
                 "authority": "veto",
                 "independence": "independent",
-                "tool_permissions": ["Read", "Bash:python", "Write(command-center/knowledge/**)"],
+                "tool_permissions": [
+                    "Read",
+                    "Bash:python",
+                    "Write(command-center/knowledge/**)",
+                ],
                 "speaking_rights": "always",
             },
             "dedupe-auditor": {
@@ -773,12 +886,20 @@ def rules_distill_sweep() -> dict[str, Any]:
             "routes": [
                 {
                     "when": "stage_role == dedupe-auditor",
-                    "target": {"model": "gpt-5-codex", "vendor": "openai", "effort": "high"},
+                    "target": {
+                        "model": "gpt-5-codex",
+                        "vendor": "openai",
+                        "effort": "high",
+                    },
                     "reason": "the synthesiser that clustered a principle will not see that it already exists as a rule",
                 },
                 {
                     "when": "stage_role == corpus-scanner",
-                    "target": {"model": "opus", "vendor": "anthropic", "effort": "medium"},
+                    "target": {
+                        "model": "opus",
+                        "vendor": "anthropic",
+                        "effort": "medium",
+                    },
                     "reason": "scanning is bounded pattern work; the judgement is in the clustering",
                 },
             ],
@@ -824,7 +945,12 @@ def rules_distill_sweep() -> dict[str, Any]:
                         "kind": "task",
                         "role": "corpus-scanner",
                         "timeout_seconds": 1800,
-                        "tool_permissions": ["Read", "Grep", "Glob", "Write(command-center/knowledge/**)"],
+                        "tool_permissions": [
+                            "Read",
+                            "Grep",
+                            "Glob",
+                            "Write(command-center/knowledge/**)",
+                        ],
                         "cache": cache(
                             f"{root}/cache/shards",
                             ["stage_id", "item_key", "inputs_hash", "tool_versions"],
@@ -834,13 +960,21 @@ def rules_distill_sweep() -> dict[str, Any]:
                             uid=u(1),
                             title="Extract every caveat, gotcha and warning from one corpus shard with its location",
                             target="Record each caveat verbatim with the skill and file:line it came from, so a later cluster can count HOW MANY DISTINCT SKILLS exhibit it rather than how many times it was written.",
-                            inputs=["item.corpus_shard", "params.min_skills_for_promotion"],
+                            inputs=[
+                                "item.corpus_shard",
+                                "params.min_skills_for_promotion",
+                            ],
                             dependencies=[],
                             model="opus",
                             vendor="anthropic",
                             role="corpus-scanner",
                             basis="recognising a caveat that is phrased differently in two skills is judgement a grep cannot do",
-                            tools=["Read", "Grep", "Glob", "Write(command-center/knowledge/**)"],
+                            tools=[
+                                "Read",
+                                "Grep",
+                                "Glob",
+                                "Write(command-center/knowledge/**)",
+                            ],
                             substrate="local-parallel",
                             timeout_seconds=1800,
                             output_path=f"{root}/caveats/shard-caveats.jsonl",
@@ -853,7 +987,11 @@ def rules_distill_sweep() -> dict[str, Any]:
                             reviewer="the cluster-synthesiser, which needs per-skill attribution to count correctly",
                             sentinel_condition="every caveat carries a skill id and a file:line anchor",
                             retry="two strikes then narrow the shard rather than re-scanning the same tree",
-                            failure_classes=["shard-unreadable", "anchor-missing", "partial-artifact"],
+                            failure_classes=[
+                                "shard-unreadable",
+                                "anchor-missing",
+                                "partial-artifact",
+                            ],
                             owner_approval=False,
                             mechanism="per-skill caveat extraction with skill-level attribution for the promotion count",
                         ),
@@ -901,7 +1039,10 @@ def rules_distill_sweep() -> dict[str, Any]:
                     uid=u(2),
                     title="Cluster caveats into principles and count the DISTINCT skills exhibiting each",
                     target="Group semantically equivalent caveats into candidate principles, and for each record the distinct skills that exhibit it, so the promotion threshold is a count rather than an impression.",
-                    inputs=[f"{root}/caveats/shard-caveats.jsonl", "params.min_skills_for_promotion"],
+                    inputs=[
+                        f"{root}/caveats/shard-caveats.jsonl",
+                        "params.min_skills_for_promotion",
+                    ],
                     dependencies=[u(1)],
                     model="opus",
                     vendor="anthropic",
@@ -921,7 +1062,11 @@ def rules_distill_sweep() -> dict[str, Any]:
                     reviewer="the dedupe-auditor, cross-vendor, which checks the clusters are not already rules",
                     sentinel_condition="every candidate carries a distinct-skill count with per-skill anchors",
                     retry="two strikes then emit the raw caveat groups unclustered rather than forcing a cluster",
-                    failure_classes=["clustering-unstable", "single-skill-promotion", "partial-artifact"],
+                    failure_classes=[
+                        "clustering-unstable",
+                        "single-skill-promotion",
+                        "partial-artifact",
+                    ],
                     owner_approval=False,
                     mechanism="semantic clustering with a distinct-SKILL count as the promotion threshold",
                 ),
@@ -931,7 +1076,11 @@ def rules_distill_sweep() -> dict[str, Any]:
                         _sch("dedup-report"),
                         min_bytes=256,
                         sentinel=f"SUCCESS:{u(2)}",
-                        consumers=["cross-cutting-gate", "check-script-enforceable", "dedupe-against-existing"],
+                        consumers=[
+                            "cross-cutting-gate",
+                            "check-script-enforceable",
+                            "dedupe-against-existing",
+                        ],
                     )
                 ],
             },
@@ -949,7 +1098,11 @@ def rules_distill_sweep() -> dict[str, Any]:
                 "depends_on": ["cross-cutting-gate"],
                 "role": "script-first-auditor",
                 "timeout_seconds": 1800,
-                "tool_permissions": ["Read", "Bash:python", "Write(command-center/knowledge/**)"],
+                "tool_permissions": [
+                    "Read",
+                    "Bash:python",
+                    "Write(command-center/knowledge/**)",
+                ],
                 "work_unit": work_unit(
                     uid=u(3),
                     title="Decide for each principle whether a script could enforce it mechanically",
@@ -974,7 +1127,11 @@ def rules_distill_sweep() -> dict[str, Any]:
                     reviewer="the dedupe-auditor, which checks a script proposal does not duplicate an existing gate",
                     sentinel_condition="every candidate carries a script-enforceable verdict and, when enforceable, the concrete check",
                     retry="two strikes then mark the principle judgement-only and record the undecided enforceability",
-                    failure_classes=["enforceability-undecided", "rule-bloat", "partial-artifact"],
+                    failure_classes=[
+                        "enforceability-undecided",
+                        "rule-bloat",
+                        "partial-artifact",
+                    ],
                     owner_approval=False,
                     mechanism="script-first veto that removes mechanically-decidable principles from the rule surface",
                 ),
@@ -984,7 +1141,11 @@ def rules_distill_sweep() -> dict[str, Any]:
                         _sch("capability-record"),
                         min_bytes=256,
                         sentinel=f"SUCCESS:{u(3)}",
-                        consumers=["script-first-gate", "emit-script-spec", "propose-rules"],
+                        consumers=[
+                            "script-first-gate",
+                            "emit-script-spec",
+                            "propose-rules",
+                        ],
                     )
                 ],
             },
@@ -1003,7 +1164,11 @@ def rules_distill_sweep() -> dict[str, Any]:
                 "role": "script-first-auditor",
                 "when": "enforceable_principles > 0",
                 "timeout_seconds": 1800,
-                "tool_permissions": ["Read", "Bash:python", "Write(command-center/knowledge/**)"],
+                "tool_permissions": [
+                    "Read",
+                    "Bash:python",
+                    "Write(command-center/knowledge/**)",
+                ],
                 "work_unit": work_unit(
                     uid=u(4),
                     title="Specify the script that enforces each mechanically-decidable principle",
@@ -1027,7 +1192,11 @@ def rules_distill_sweep() -> dict[str, Any]:
                     reviewer="the dedupe-auditor, checking the script does not duplicate an existing gate",
                     sentinel_condition="every enforceable principle has a spec with a fail-closed rule and a known-bad input",
                     retry="two strikes then downgrade the principle to judgement-only rather than shipping an unfalsifiable gate spec",
-                    failure_classes=["gate-spec-unfalsifiable", "no-op-gate", "partial-artifact"],
+                    failure_classes=[
+                        "gate-spec-unfalsifiable",
+                        "no-op-gate",
+                        "partial-artifact",
+                    ],
                     owner_approval=False,
                     mechanism="script specification carrying its own fail-closed rule and a known-bad input",
                     not_a_duplicate_because="the enforceability audit DECIDES whether a script is possible; this writes the spec that makes it falsifiable, which is where a no-op gate would otherwise be born",
@@ -1054,7 +1223,10 @@ def rules_distill_sweep() -> dict[str, Any]:
                     uid=u(5),
                     title="Refute any proposal that already exists as a rule, and separate updates from additions",
                     target="For each surviving principle, decide NEW, RESTATES-EXISTING or EXISTING-NEEDS-UPDATE by searching the rules tree, so the sweep cannot rediscover a rule it already wrote.",
-                    inputs=[f"{root}/script-enforceability.json", "params.existing_rules"],
+                    inputs=[
+                        f"{root}/script-enforceability.json",
+                        "params.existing_rules",
+                    ],
                     dependencies=[u(3)],
                     model="gpt-5-codex",
                     vendor="openai",
@@ -1074,7 +1246,11 @@ def rules_distill_sweep() -> dict[str, Any]:
                     reviewer="the cluster-synthesiser, which may contest a RESTATES verdict with a distinguishing mechanism",
                     sentinel_condition="every surviving principle carries one of the three verdicts with a citation where applicable",
                     retry="two strikes then mark the principle CONTESTED and let the owner decide rather than double-adding",
-                    failure_classes=["duplicate-rule-proposed", "detector-failure", "partial-artifact"],
+                    failure_classes=[
+                        "duplicate-rule-proposed",
+                        "detector-failure",
+                        "partial-artifact",
+                    ],
                     owner_approval=False,
                     mechanism="cross-vendor dedupe with a three-way NEW / RESTATES / NEEDS-UPDATE verdict",
                 ),
@@ -1084,7 +1260,11 @@ def rules_distill_sweep() -> dict[str, Any]:
                         _sch("dedup-audit"),
                         min_bytes=256,
                         sentinel=f"SUCCESS:{u(5)}",
-                        consumers=["dedupe-gate", "update-existing-rule", "propose-rules"],
+                        consumers=[
+                            "dedupe-gate",
+                            "update-existing-rule",
+                            "propose-rules",
+                        ],
                     )
                 ],
             },
@@ -1127,7 +1307,11 @@ def rules_distill_sweep() -> dict[str, Any]:
                     reviewer="the dedupe-auditor, which verifies the update targets the rule it cited",
                     sentinel_condition="every NEEDS-UPDATE verdict has a proposed replacement plus the old clause recorded",
                     retry="two strikes then propose the correction as a comment on the rule rather than a rewrite",
-                    failure_classes=["supersession-dangling", "rule-bloat", "partial-artifact"],
+                    failure_classes=[
+                        "supersession-dangling",
+                        "rule-bloat",
+                        "partial-artifact",
+                    ],
                     owner_approval=False,
                     mechanism="in-place rule correction with the superseded clause recorded verbatim",
                 ),
@@ -1176,7 +1360,11 @@ def rules_distill_sweep() -> dict[str, Any]:
                     reviewer="one independent adversarial reviewer in a fresh context who recomputes the projected line count",
                     sentinel_condition="the projected line count is recorded and any overage carries a named displacement",
                     retry="two strikes then propose the highest-value rule alone rather than the whole set",
-                    failure_classes=["rule-bloat", "budget-exceeded", "partial-artifact"],
+                    failure_classes=[
+                        "rule-bloat",
+                        "budget-exceeded",
+                        "partial-artifact",
+                    ],
                     owner_approval=False,
                     mechanism="budget-aware rule proposal with an explicit displacement plan",
                 ),
@@ -1226,11 +1414,20 @@ def rules_distill_sweep() -> dict[str, Any]:
             "jitter": True,
             "retry_on": ["shard-unreadable", "clustering-unstable"],
             "no_retry_on": ["rule-bloat", "duplicate-rule-proposed", "budget-exceeded"],
-            "pivot": {"after_attempts": 2, "enumerate_alternatives_min": 2, "escalate_to": "budget-gate"},
+            "pivot": {
+                "after_attempts": 2,
+                "enumerate_alternatives_min": 2,
+                "escalate_to": "budget-gate",
+            },
         },
         "failure_policy": failure_policy(
             "degrade-loudly",
-            ["shard-unreadable", "rule-bloat", "duplicate-rule-proposed", "budget-exceeded"],
+            [
+                "shard-unreadable",
+                "rule-bloat",
+                "duplicate-rule-proposed",
+                "budget-exceeded",
+            ],
             escalate_to="budget-gate",
             quarantine_path=f"{root}/quarantine",
         ),
@@ -1249,7 +1446,13 @@ def rules_distill_sweep() -> dict[str, Any]:
         ),
         "cache": cache(
             f"{root}/cache",
-            ["workflow_version", "stage_id", "item_key", "inputs_hash", "tool_versions"],
+            [
+                "workflow_version",
+                "stage_id",
+                "item_key",
+                "inputs_hash",
+                "tool_versions",
+            ],
             scope="workflow",
             ttl=604800,
         ),
@@ -1372,7 +1575,13 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
         "version": "1.0.0",
         "kind": "workflow",
         "categories": [CAT_DATA, CAT_META],
-        "tags": ["bp-doc-03", "ssot", "contradiction", "superseded-register", "pointer-rewrite"],
+        "tags": [
+            "bp-doc-03",
+            "ssot",
+            "contradiction",
+            "superseded-register",
+            "pointer-rewrite",
+        ],
         "flagship": True,
         "params": {
             "fact_or_topic": {
@@ -1415,7 +1624,12 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                 "effort": "medium",
                 "authority": "advisory",
                 "independence": "independent",
-                "tool_permissions": ["Read", "Grep", "Glob", "Write(command-center/knowledge/**)"],
+                "tool_permissions": [
+                    "Read",
+                    "Grep",
+                    "Glob",
+                    "Write(command-center/knowledge/**)",
+                ],
             },
             "authority-adjudicator": {
                 "description": "Runs the measurability probe and assigns authority to the statement it agrees with. Holds the veto over an unmeasurable blessing.",
@@ -1424,7 +1638,12 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                 "effort": "high",
                 "authority": "judge",
                 "independence": "independent",
-                "tool_permissions": ["Read", "Grep", "Bash:python", "Write(command-center/knowledge/**)"],
+                "tool_permissions": [
+                    "Read",
+                    "Grep",
+                    "Bash:python",
+                    "Write(command-center/knowledge/**)",
+                ],
                 "speaking_rights": "always",
             },
             "false-positive-auditor": {
@@ -1444,7 +1663,11 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                 "effort": "medium",
                 "authority": "advisory",
                 "independence": "informed",
-                "tool_permissions": ["Read", "Edit", "Write(command-center/knowledge/**)"],
+                "tool_permissions": [
+                    "Read",
+                    "Edit",
+                    "Write(command-center/knowledge/**)",
+                ],
                 "write_paths": ["docs/**", "command-center/**"],
             },
         },
@@ -1461,7 +1684,10 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
             deny=["Bash", "Bash:git", "WebFetch"],
             network="none",
             write_paths=["docs/**", f"{root}/**"],
-            forbid_write_paths=["command-center/WORK-UNIT-CATALOG.json", "platform/schema/**"],
+            forbid_write_paths=[
+                "command-center/WORK-UNIT-CATALOG.json",
+                "platform/schema/**",
+            ],
             source_policy={"offline_only": True, "require_provenance": True},
         ),
         "model_routing": {
@@ -1470,7 +1696,11 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
             "routes": [
                 {
                     "when": "stage_role == false-positive-auditor",
-                    "target": {"model": "gpt-5-codex", "vendor": "openai", "effort": "high"},
+                    "target": {
+                        "model": "gpt-5-codex",
+                        "vendor": "openai",
+                        "effort": "high",
+                    },
                     "reason": "the finder that flagged a sentence is the least able to see that the repetition was deliberate",
                 }
             ],
@@ -1513,7 +1743,12 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                         "kind": "task",
                         "role": "statement-finder",
                         "timeout_seconds": 1200,
-                        "tool_permissions": ["Read", "Grep", "Glob", "Write(command-center/knowledge/**)"],
+                        "tool_permissions": [
+                            "Read",
+                            "Grep",
+                            "Glob",
+                            "Write(command-center/knowledge/**)",
+                        ],
                         "cache": cache(
                             f"{root}/cache/search",
                             ["stage_id", "item_key", "inputs_hash", "tool_versions"],
@@ -1523,13 +1758,22 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                             uid=u(1),
                             title="Find every statement of the fact in one documentation root",
                             target="Search one root for every declared term and paraphrase, recording each hit with its file:line and the VALUE it asserts, so the comparison step operates on values rather than on prose.",
-                            inputs=["item.doc_root", "params.search_terms", "params.fact_or_topic"],
+                            inputs=[
+                                "item.doc_root",
+                                "params.search_terms",
+                                "params.fact_or_topic",
+                            ],
                             dependencies=[],
                             model="opus",
                             vendor="anthropic",
                             role="statement-finder",
                             basis="extracting the asserted VALUE from a sentence is judgement; finding the sentence is not",
-                            tools=["Read", "Grep", "Glob", "Write(command-center/knowledge/**)"],
+                            tools=[
+                                "Read",
+                                "Grep",
+                                "Glob",
+                                "Write(command-center/knowledge/**)",
+                            ],
                             substrate="local-parallel",
                             timeout_seconds=1200,
                             output_path=f"{root}/statements/found-statements.jsonl",
@@ -1543,7 +1787,11 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                             reviewer="the false-positive-auditor, which reads the verbatim sentences",
                             sentinel_condition="every hit carries file:line, the sentence and an extracted value or an explicit no-value marker",
                             retry="two strikes then widen the term list once and record the widening",
-                            failure_classes=["paraphrase-missed", "root-unreadable", "partial-artifact"],
+                            failure_classes=[
+                                "paraphrase-missed",
+                                "root-unreadable",
+                                "partial-artifact",
+                            ],
                             owner_approval=False,
                             mechanism="deterministic multi-term search with per-hit value extraction and a recorded term list",
                         ),
@@ -1553,7 +1801,11 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                                 _sch("contradiction-pairs"),
                                 min_bytes=32,
                                 sentinel=f"SUCCESS:{u(1)}",
-                                consumers=["search-join", "compare-values", "audit-false-positives"],
+                                consumers=[
+                                    "search-join",
+                                    "compare-values",
+                                    "audit-false-positives",
+                                ],
                             )
                         ],
                     }
@@ -1561,7 +1813,10 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                 "barrier": {
                     "mode": "all",
                     "on_partial": "fail",
-                    "reject_result_matching": ["started in the background", "no files found"],
+                    "reject_result_matching": [
+                        "started in the background",
+                        "no files found",
+                    ],
                     "verify_artifact_exists": True,
                 },
             },
@@ -1586,12 +1841,19 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                 "role": "statement-finder",
                 "timeout_seconds": 1200,
                 "checkpoint": True,
-                "tool_permissions": ["Read", "Bash:python", "Write(command-center/knowledge/**)"],
+                "tool_permissions": [
+                    "Read",
+                    "Bash:python",
+                    "Write(command-center/knowledge/**)",
+                ],
                 "work_unit": work_unit(
                     uid=u(2),
                     title="Group the statements by asserted value and enumerate the disagreements",
                     target="Partition the found statements by the value they assert and list every distinct value with its locations, so the size of the disagreement is a count rather than an impression.",
-                    inputs=[f"{root}/statements/found-statements.jsonl", "params.fact_or_topic"],
+                    inputs=[
+                        f"{root}/statements/found-statements.jsonl",
+                        "params.fact_or_topic",
+                    ],
                     dependencies=[u(1)],
                     model="opus",
                     vendor="anthropic",
@@ -1610,7 +1872,11 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                     reviewer="the authority-adjudicator, which needs the value groups to compare against the probe",
                     sentinel_condition="every found statement is assigned to exactly one value group and the distinct-value count is recorded",
                     retry="two strikes then emit the ungrouped statement list rather than forcing a partition",
-                    failure_classes=["value-unextractable", "coverage-unreconciled", "partial-artifact"],
+                    failure_classes=[
+                        "value-unextractable",
+                        "coverage-unreconciled",
+                        "partial-artifact",
+                    ],
                     owner_approval=False,
                     mechanism="exact value partition over found statements with a distinct-value count",
                 ),
@@ -1636,7 +1902,10 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                     uid=u(3),
                     title="Separate real contradictions from deliberate context repetition",
                     target="For each flagged statement decide whether it CONTRADICTS the others or merely repeats agreed context for readability, because flagging a legitimate repeat turns a reconcile into vandalism.",
-                    inputs=[f"{root}/value-comparison.json", f"{root}/statements/found-statements.jsonl"],
+                    inputs=[
+                        f"{root}/value-comparison.json",
+                        f"{root}/statements/found-statements.jsonl",
+                    ],
                     dependencies=[u(1), u(2)],
                     model="gpt-5-codex",
                     vendor="openai",
@@ -1656,7 +1925,11 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                     reviewer="the statement-finder, which may contest a LEGITIMATE-REPEAT verdict by citing the differing value",
                     sentinel_condition="every statement carries one of the two verdicts with its justifying context",
                     retry="two strikes then classify as LEGITIMATE-REPEAT, since a missed reconcile is recoverable and a wrong rewrite is not",
-                    failure_classes=["false-positive-contradiction", "detector-failure", "partial-artifact"],
+                    failure_classes=[
+                        "false-positive-contradiction",
+                        "detector-failure",
+                        "partial-artifact",
+                    ],
                     owner_approval=False,
                     mechanism="cross-vendor contradiction-versus-legitimate-repeat discrimination",
                     not_a_duplicate_because="the value comparison partitions by VALUE mechanically; this decides whether a same-or-similar sentence was MEANT to restate, which no partition can answer",
@@ -1667,7 +1940,11 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                         _sch("confirmation-audit"),
                         min_bytes=256,
                         sentinel=f"SUCCESS:{u(3)}",
-                        consumers=["false-positive-gate", "designate-authority", "rewrite-as-pointers"],
+                        consumers=[
+                            "false-positive-gate",
+                            "designate-authority",
+                            "rewrite-as-pointers",
+                        ],
                     )
                 ],
             },
@@ -1685,7 +1962,12 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                 "depends_on": ["false-positive-gate"],
                 "role": "authority-adjudicator",
                 "timeout_seconds": 1800,
-                "tool_permissions": ["Read", "Grep", "Bash:python", "Write(command-center/knowledge/**)"],
+                "tool_permissions": [
+                    "Read",
+                    "Grep",
+                    "Bash:python",
+                    "Write(command-center/knowledge/**)",
+                ],
                 "work_unit": work_unit(
                     uid=u(4),
                     title="Run the measurability probe and assign authority to the statement it agrees with",
@@ -1701,7 +1983,12 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                     vendor="anthropic",
                     role="authority-adjudicator",
                     basis="the judge authority is where the anti-convenience rule is enforced and cannot be delegated to the finder",
-                    tools=["Read", "Grep", "Bash:python", "Write(command-center/knowledge/**)"],
+                    tools=[
+                        "Read",
+                        "Grep",
+                        "Bash:python",
+                        "Write(command-center/knowledge/**)",
+                    ],
                     substrate="local-serialized",
                     timeout_seconds=1800,
                     output_path=f"{root}/authority-designation.json",
@@ -1715,7 +2002,11 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                     reviewer="the false-positive-auditor, cross-examining whether the probe actually measures the fact in question",
                     sentinel_condition="one value group is designated authoritative with the probe output recorded, or the fact is marked UNVERIFIED everywhere",
                     retry="two strikes then mark UNVERIFIED everywhere rather than designating on a third attempt at the same probe",
-                    failure_classes=["no-measurable-source", "probe-measures-wrong-thing", "detector-failure"],
+                    failure_classes=[
+                        "no-measurable-source",
+                        "probe-measures-wrong-thing",
+                        "detector-failure",
+                    ],
                     owner_approval=False,
                     mechanism="probe-driven authority designation with UNVERIFIED-everywhere as the honest fallback",
                 ),
@@ -1725,7 +2016,11 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                         _sch("decision-record"),
                         min_bytes=256,
                         sentinel=f"SUCCESS:{u(4)}",
-                        consumers=["measurability-gate", "rewrite-as-pointers", "register-superseded"],
+                        consumers=[
+                            "measurability-gate",
+                            "rewrite-as-pointers",
+                            "register-superseded",
+                        ],
                     )
                 ],
             },
@@ -1749,7 +2044,11 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                         "kind": "task",
                         "role": "rewriter",
                         "timeout_seconds": 1800,
-                        "tool_permissions": ["Read", "Edit", "Write(command-center/knowledge/**)"],
+                        "tool_permissions": [
+                            "Read",
+                            "Edit",
+                            "Write(command-center/knowledge/**)",
+                        ],
                         "work_unit": work_unit(
                             uid=u(5),
                             title="Replace a batch of restatements with pointers to the authoritative source",
@@ -1763,7 +2062,11 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                             vendor="anthropic",
                             role="rewriter",
                             basis="writing a pointer that still reads well in its surrounding prose is authoring work, not substitution",
-                            tools=["Read", "Edit", "Write(command-center/knowledge/**)"],
+                            tools=[
+                                "Read",
+                                "Edit",
+                                "Write(command-center/knowledge/**)",
+                            ],
                             substrate="local-serialized",
                             timeout_seconds=1800,
                             output_path=f"{root}/pointer-rewrites.json",
@@ -1777,7 +2080,11 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                             reviewer="the authority-adjudicator, which re-reads a sample of rewrites against the designation",
                             sentinel_condition="every CONTRADICTS statement is either rewritten as a pointer or listed as unrewritable with a reason",
                             retry="two strikes then leave the statement in place and list it as an unresolved restatement",
-                            failure_classes=["rewrite-broke-prose", "pointer-dangling", "partial-artifact"],
+                            failure_classes=[
+                                "rewrite-broke-prose",
+                                "pointer-dangling",
+                                "partial-artifact",
+                            ],
                             owner_approval=False,
                             mechanism="reversible pointer rewrite that spares legitimate repeats",
                         ),
@@ -1798,7 +2105,11 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                     "converged_when": "unresolved_restatements == 0",
                     "no_progress_rounds": 2,
                     "metrics": [
-                        {"name": "unresolved_restatements", "direction": "decrease", "target": 0}
+                        {
+                            "name": "unresolved_restatements",
+                            "direction": "decrease",
+                            "target": 0,
+                        }
                     ],
                     "on_no_convergence": "emit-partial",
                 },
@@ -1815,7 +2126,10 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                     uid=u(6),
                     title="Write the superseded-guidance register: what each location used to claim, and the correction",
                     target="Record every superseded statement with its old value, its new pointer and the correction, so a corrected fact cannot be re-learned wrong from a cached copy or an old branch.",
-                    inputs=[f"{root}/pointer-rewrites.json", f"{root}/authority-designation.json"],
+                    inputs=[
+                        f"{root}/pointer-rewrites.json",
+                        f"{root}/authority-designation.json",
+                    ],
                     dependencies=[u(4), u(5)],
                     model="opus",
                     vendor="anthropic",
@@ -1834,7 +2148,11 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                     reviewer="one independent adversarial reviewer in a fresh context who samples entries and re-runs the probe",
                     sentinel_condition="the register covers every rewritten location with old value, new value and the settling probe",
                     retry="two strikes then fail: an unregistered supersession defeats the purpose of the pass",
-                    failure_classes=["silent-resolution", "supersession-dangling", "partial-artifact"],
+                    failure_classes=[
+                        "silent-resolution",
+                        "supersession-dangling",
+                        "partial-artifact",
+                    ],
                     owner_approval=False,
                     mechanism="superseded-guidance register carrying the old value and the settling probe",
                 ),
@@ -1862,7 +2180,11 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                 "depends_on": ["superseded-gate"],
                 "role": "authority-adjudicator",
                 "timeout_seconds": 1200,
-                "tool_permissions": ["Read", "Bash:python", "Write(command-center/knowledge/**)"],
+                "tool_permissions": [
+                    "Read",
+                    "Bash:python",
+                    "Write(command-center/knowledge/**)",
+                ],
                 "work_unit": work_unit(
                     uid=u(7),
                     title="Emit a drift check that fails when the fact is re-stated away from the authoritative source",
@@ -1890,7 +2212,11 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                     reviewer="the false-positive-auditor, checking the drift check would not fire on a legitimate repeat",
                     sentinel_condition="the spec carries a fail-closed rule, a terminal marker and a named known-bad state",
                     retry="two strikes then emit the check as advisory-only and say so, rather than shipping an unfalsifiable gate",
-                    failure_classes=["no-op-gate", "gate-spec-unfalsifiable", "partial-artifact"],
+                    failure_classes=[
+                        "no-op-gate",
+                        "gate-spec-unfalsifiable",
+                        "partial-artifact",
+                    ],
                     owner_approval=False,
                     mechanism="fail-closed drift-check specification with a named known-bad state",
                 ),
@@ -1900,7 +2226,10 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                         _sch("drift-report"),
                         min_bytes=128,
                         sentinel=f"SUCCESS:{u(7)}",
-                        consumers=["reconcile-complete-gate", "command-center/MANIFEST.json"],
+                        consumers=[
+                            "reconcile-complete-gate",
+                            "command-center/MANIFEST.json",
+                        ],
                     )
                 ],
             },
@@ -1939,12 +2268,25 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
             "backoff_seconds": 15,
             "jitter": True,
             "retry_on": ["paraphrase-missed", "value-unextractable"],
-            "no_retry_on": ["silent-resolution", "false-positive-contradiction", "no-measurable-source"],
-            "pivot": {"after_attempts": 2, "enumerate_alternatives_min": 2, "escalate_to": "measurability-gate"},
+            "no_retry_on": [
+                "silent-resolution",
+                "false-positive-contradiction",
+                "no-measurable-source",
+            ],
+            "pivot": {
+                "after_attempts": 2,
+                "enumerate_alternatives_min": 2,
+                "escalate_to": "measurability-gate",
+            },
         },
         "failure_policy": failure_policy(
             "degrade-loudly",
-            ["paraphrase-missed", "no-measurable-source", "silent-resolution", "false-positive-contradiction"],
+            [
+                "paraphrase-missed",
+                "no-measurable-source",
+                "silent-resolution",
+                "false-positive-contradiction",
+            ],
             escalate_to="measurability-gate",
             quarantine_path=f"{root}/quarantine",
         ),
@@ -1963,13 +2305,24 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
         ),
         "cache": cache(
             f"{root}/cache",
-            ["workflow_version", "stage_id", "item_key", "inputs_hash", "tool_versions"],
+            [
+                "workflow_version",
+                "stage_id",
+                "item_key",
+                "inputs_hash",
+                "tool_versions",
+            ],
             scope="workflow",
             ttl=86400,
         ),
         "dry_run": dry_run(
             f"{root}/dry-run-plan.json",
-            ["Edit", "Write(command-center/knowledge/**)", "mcp__codex__codex", "Bash:python"],
+            [
+                "Edit",
+                "Write(command-center/knowledge/**)",
+                "mcp__codex__codex",
+                "Bash:python",
+            ],
             emits=["plan", "artifact-diff", "permission-report", "graph"],
         ),
         "estimate": estimate(
@@ -1985,7 +2338,9 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
             blast_radius="edits documentation under docs/** and command-center/**; every edit records its before-text so the whole pass is revertible, and the schema tree is in forbid_write_paths",
             owner_approval=False,
         ),
-        "portability": portability(f"{root}/export/ssot-documentation-reconcile.bundle.json"),
+        "portability": portability(
+            f"{root}/export/ssot-documentation-reconcile.bundle.json"
+        ),
         "lineage": lineage(
             [
                 card(f"{LIBRARY}#BP-DOC-03", "DISTILL"),
@@ -2032,7 +2387,11 @@ def ssot_documentation_reconcile() -> dict[str, Any]:
                     "params": {
                         "fact_or_topic": "how many coverage thresholds does the gate enforce",
                         "doc_roots": ["docs", "command-center", "rules"],
-                        "search_terms": ["coverage threshold", "thresholds enforced", "coverage-thresholds.json"],
+                        "search_terms": [
+                            "coverage threshold",
+                            "thresholds enforced",
+                            "coverage-thresholds.json",
+                        ],
                         "measurability_probe": "jq '.thresholds | length' .coverage-thresholds.json",
                         "allow_unverified_everywhere": True,
                     },

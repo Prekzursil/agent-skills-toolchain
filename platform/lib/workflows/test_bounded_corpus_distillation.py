@@ -47,7 +47,10 @@ def test_every_inline_work_unit_passes_the_strict_profile() -> None:
     units = C.work_units(doc)
     assert len(units) == 5, f"expected 5 inline units, found {len(units)}"
     failures = {
-        u["id"]: [f"{'/'.join(str(p) for p in e.absolute_path) or '<root>'}:{e.validator}" for e in errs]
+        u["id"]: [
+            f"{'/'.join(str(p) for p in e.absolute_path) or '<root>'}:{e.validator}"
+            for e in errs
+        ]
         for u in units
         if (errs := list(validator.iter_errors(u)))
     }
@@ -66,17 +69,24 @@ def test_control_removing_the_agreement_gate_edge_is_caught() -> None:
     """Both-states control: if streaming no longer waits on the agreement gate, the predicate
     must fire. This is the exact failure a naive glob returning 11,335 for a 708-file population
     would have produced."""
-    mutated = K.mutate(K.load(BP), K.drop_dependency("stream-extract", "probe-agreement"))
+    mutated = K.mutate(
+        K.load(BP), K.drop_dependency("stream-extract", "probe-agreement")
+    )
     K.assert_still_schema_valid(mutated)
     result = C.two_probe_agreement_gates_streaming(mutated)
     assert not result.ok, "the predicate stayed True with the agreement gate bypassed"
-    assert any("does not transitively depend on the agreement gate" in r for r in result.reasons), result.reasons
+    assert any(
+        "does not transitively depend on the agreement gate" in r
+        for r in result.reasons
+    ), result.reasons
 
 
 def test_control_making_both_probes_use_one_role_is_caught() -> None:
     """Both-states control: two probes sharing a role are one instrument run twice, which is not
     a second signal. The predicate must reject it even though the graph is unchanged."""
-    mutated = K.mutate(K.load(BP), K.set_stage_role("enumerate-independent", "enumerator"))
+    mutated = K.mutate(
+        K.load(BP), K.set_stage_role("enumerate-independent", "enumerator")
+    )
     K.assert_still_schema_valid(mutated)
     result = C.two_probe_agreement_gates_streaming(mutated)
     assert not result.ok, "the predicate accepted two probes with the same role"
@@ -88,7 +98,9 @@ def test_control_dropping_the_count_comparison_is_caught() -> None:
     K.assert_still_schema_valid(mutated)
     result = C.two_probe_agreement_gates_streaming(mutated)
     assert not result.ok, "a gate that compares nothing was accepted"
-    assert any("does not compare the two probe counts" in r for r in result.reasons), result.reasons
+    assert any("does not compare the two probe counts" in r for r in result.reasons), (
+        result.reasons
+    )
 
 
 # --------------------------------------------- property 2: coverage honesty accounting
@@ -104,11 +116,16 @@ def test_control_dropping_the_tail_ledger_condition_is_caught() -> None:
     from the gate must be detected, or the workflow could report coverage while hiding the tail."""
     mutated = K.mutate(
         K.load(BP),
-        K.weaken_gate("coverage-honest", "malformed_records_counted == true AND coverage_reported == true"),
+        K.weaken_gate(
+            "coverage-honest",
+            "malformed_records_counted == true AND coverage_reported == true",
+        ),
     )
     K.assert_still_schema_valid(mutated)
     result = C.malformed_and_dropped_tail_are_accounted(mutated)
-    assert not result.ok, "the predicate accepted a coverage gate that ignores the dropped tail"
+    assert not result.ok, (
+        "the predicate accepted a coverage gate that ignores the dropped tail"
+    )
     assert any("dropped_tail_recorded" in r for r in result.reasons), result.reasons
 
 
@@ -128,14 +145,18 @@ def test_the_truncation_loop_is_bounded_and_has_a_no_progress_exit() -> None:
     assert "tokens_selected" in metrics
 
 
-def test_fanout_concurrency_is_bounded_and_the_barrier_declares_a_partial_policy() -> None:
+def test_fanout_concurrency_is_bounded_and_the_barrier_declares_a_partial_policy() -> (
+    None
+):
     fan = C.stage(K.load(BP), "stream-extract")
     assert fan is not None
     assert 1 <= fan["max_concurrency"] <= 1024, fan["max_concurrency"]
     barrier = fan["barrier"]
     assert barrier["on_partial"] == "fail", barrier
     assert barrier["verify_artifact_exists"] is True
-    assert any("started in the background" in p for p in barrier["reject_result_matching"]), barrier
+    assert any(
+        "started in the background" in p for p in barrier["reject_result_matching"]
+    ), barrier
 
 
 # --------------------------------------------------------- property 4: worked example
@@ -147,8 +168,12 @@ def test_the_worked_example_names_the_halt_case_not_only_the_happy_path() -> Non
     ext = K.load(BP)["x_extensions"]["bp7"]
     example = ext["worked_example"]
     trace = " ".join(example["expected_trace"])
-    assert "11335" in trace or "11,335" in trace, "the example does not cite the measured probe disagreement"
-    assert "HALT" in trace, "the example does not state what the agreement gate does on disagreement"
+    assert "11335" in trace or "11,335" in trace, (
+        "the example does not cite the measured probe disagreement"
+    )
+    assert "HALT" in trace, (
+        "the example does not state what the agreement gate does on disagreement"
+    )
     assert example["expected_terminal_state"].startswith("SUCCESS:DAT-73")
     assert "UNVERIFIED" in ext["unverified"]
     assert "settling experiment" in ext["unverified"].lower()

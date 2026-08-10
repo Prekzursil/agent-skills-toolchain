@@ -53,10 +53,25 @@ raises_assertion = _K.raises_assertion
 
 #: Every generic symbol this module leans on. ``test_bp8_testkit_dependency`` walks it.
 DELEGATED = (
-    "path_for", "load", "schema_errors", "semantic_violations", "stages", "stage",
-    "stage_ids", "top_level_stage_ids", "assert_precedes", "gate", "inline_work_units",
-    "schema_references", "resolve_schema_reference", "mechanism_tokens", "jaccard",
-    "pairwise_similarity", "mutant", "find_stage_mut", "raises_assertion",
+    "path_for",
+    "load",
+    "schema_errors",
+    "semantic_violations",
+    "stages",
+    "stage",
+    "stage_ids",
+    "top_level_stage_ids",
+    "assert_precedes",
+    "gate",
+    "inline_work_units",
+    "schema_references",
+    "resolve_schema_reference",
+    "mechanism_tokens",
+    "jaccard",
+    "pairwise_similarity",
+    "mutant",
+    "find_stage_mut",
+    "raises_assertion",
 )
 
 # ------------------------------------------------------------------------------ the range
@@ -99,6 +114,7 @@ def canonical_categories(doc: Mapping[str, Any]) -> set[str]:
     """A document's categories with the measured spelling drift folded onto the six domains."""
     return {CATEGORY_ALIASES.get(c, c) for c in (doc.get("categories") or [])}
 
+
 BP8_IDS: tuple[str, ...] = tuple(row[2] for row in BP8_RANGE)
 BP8_FLAGSHIP: tuple[str, ...] = tuple(row[2] for row in BP8_RANGE if row[3])
 BP8_SLOTS: tuple[int, ...] = tuple(row[0] for row in BP8_RANGE)
@@ -120,13 +136,17 @@ def blueprint_meta(doc: Mapping[str, Any]) -> Mapping[str, Any]:
 def ext(doc: Mapping[str, Any], key: str) -> Any:
     """One ``x_extensions`` block, asserted present - an absent block is a defect, not None."""
     blocks = doc.get("x_extensions") or {}
-    assert key in blocks, f"{doc.get('id')!r} has no x_extensions.{key}; have {sorted(blocks)}"
+    assert key in blocks, (
+        f"{doc.get('id')!r} has no x_extensions.{key}; have {sorted(blocks)}"
+    )
     return blocks[key]
 
 
 def worked_examples(doc: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     examples = ext(doc, "worked_examples")
-    assert isinstance(examples, list) and examples, "at least one worked example is required"
+    assert isinstance(examples, list) and examples, (
+        "at least one worked example is required"
+    )
     return examples
 
 
@@ -138,7 +158,9 @@ def benchmark_cases(doc: Mapping[str, Any]) -> list[Mapping[str, Any]]:
 
 def fanout(doc: Mapping[str, Any], stage_id: str) -> Mapping[str, Any]:
     st = stage(doc, stage_id)
-    assert st.get("kind") == "fanout", f"{stage_id!r} is kind={st.get('kind')!r}, not a fanout"
+    assert st.get("kind") == "fanout", (
+        f"{stage_id!r} is kind={st.get('kind')!r}, not a fanout"
+    )
     return st
 
 
@@ -161,12 +183,16 @@ def gate_for_stage(doc: Mapping[str, Any], stage_id: str) -> Mapping[str, Any]:
     stage blocks nothing, and reading the map alone cannot tell the two apart.
     """
     st = stage(doc, stage_id)
-    assert st.get("kind") == "gate", f"{stage_id!r} is kind={st.get('kind')!r}, not a gate"
+    assert st.get("kind") == "gate", (
+        f"{stage_id!r} is kind={st.get('kind')!r}, not a gate"
+    )
     inline = st.get("gate")
     if isinstance(inline, Mapping):
         return inline
     ref = st.get("gate_ref")
-    assert isinstance(ref, str) and ref, f"gate stage {stage_id!r} has neither gate nor gate_ref"
+    assert isinstance(ref, str) and ref, (
+        f"gate stage {stage_id!r} has neither gate nor gate_ref"
+    )
     return gate(doc, ref)
 
 
@@ -174,13 +200,19 @@ def stopping_rule(doc: Mapping[str, Any], rule_id: str) -> Mapping[str, Any]:
     for rule in doc.get("stopping_rules") or []:
         if isinstance(rule, Mapping) and rule.get("id") == rule_id:
             return rule
-    have = [r.get("id") for r in (doc.get("stopping_rules") or []) if isinstance(r, Mapping)]
-    raise AssertionError(f"stopping rule {rule_id!r} not declared in {doc.get('id')!r}; have {have}")
+    have = [
+        r.get("id") for r in (doc.get("stopping_rules") or []) if isinstance(r, Mapping)
+    ]
+    raise AssertionError(
+        f"stopping rule {rule_id!r} not declared in {doc.get('id')!r}; have {have}"
+    )
 
 
 def routes_for(doc: Mapping[str, Any], when_substring: str) -> list[Mapping[str, Any]]:
     routing = doc.get("model_routing") or {}
-    return [r for r in (routing.get("routes") or []) if when_substring in str(r.get("when"))]
+    return [
+        r for r in (routing.get("routes") or []) if when_substring in str(r.get("when"))
+    ]
 
 
 def assert_rejects_fire_and_forget(spec: Mapping[str, Any]) -> None:

@@ -54,7 +54,9 @@ def test_worked_example_the_unknown_marker_alone_keeps_a_unit_out_of_skip():
     ex = worked_example(blueprint())
     u2 = ex["input"]["artifacts"]["u2"]
     assert m.UNKNOWN_MARKER in u2
-    assert len(u2.encode("utf-8")) >= ex["input"]["min_bytes"], "u2 is above the floor on purpose"
+    assert len(u2.encode("utf-8")) >= ex["input"]["min_bytes"], (
+        "u2 is above the floor on purpose"
+    )
     assert m.unit_complete(u2, ex["input"]["min_bytes"]) is False
 
 
@@ -68,7 +70,9 @@ def test_worked_example_the_size_floor_alone_keeps_a_unit_out_of_skip():
 def test_declared_control_measuring_u2s_rows_moves_it_into_skip():
     ex = worked_example(blueprint())
     control = ex["controls"][0]
-    measured = ex["input"]["artifacts"]["u2"].replace(m.UNKNOWN_MARKER, "3 groups, worktree")
+    measured = ex["input"]["artifacts"]["u2"].replace(
+        m.UNKNOWN_MARKER, "3 groups, worktree"
+    )
     artifacts = dict(ex["input"]["artifacts"])
     artifacts["u2"] = measured
     plan = m.resume_plan(artifacts, min_bytes=ex["input"]["min_bytes"])
@@ -91,7 +95,9 @@ def test_completion_is_never_self_report():
     keeper = d["roles"]["checkpoint_keeper"]
     assert "never asks a unit whether it finished" in keeper["description"]
     unit = stage(d, "s0-define-predicates")["work_unit"]
-    assert any("that is self-report, not a postcondition" in t for t in unit["tests_required"])
+    assert any(
+        "that is self-report, not a postcondition" in t for t in unit["tests_required"]
+    )
     assert any("no size floor must be rejected" in t for t in unit["tests_required"])
 
 
@@ -112,7 +118,10 @@ def test_no_resumable_boundary_may_be_wrapped_in_a_pipeline():
         "resumable_boundaries_wrapped_in_pipeline == 0"
     )
     assert stage(d, "s4-pipeline-carveout")["kind"] == "gate"
-    assert "pipeline-first-stage-rerun" in stage(d, "s3-resume")["work_unit"]["failure_classification"]
+    assert (
+        "pipeline-first-stage-rerun"
+        in stage(d, "s3-resume")["work_unit"]["failure_classification"]
+    )
 
 
 def test_the_pipeline_defect_is_marked_unverified_inline_with_a_settling_experiment():
@@ -170,7 +179,10 @@ def _invariant_unknown_marker_blocks_completion(d):
         "units_complete_with_unknown_markers == 0"
     )
     ex = worked_example(d)
-    assert m.unit_complete(ex["input"]["artifacts"]["u2"], ex["input"]["min_bytes"]) is False
+    assert (
+        m.unit_complete(ex["input"]["artifacts"]["u2"], ex["input"]["min_bytes"])
+        is False
+    )
 
 
 def test_mutation_control_removing_the_marker_from_the_example_breaks_the_invariant():
@@ -178,7 +190,8 @@ def test_mutation_control_removing_the_marker_from_the_example_breaks_the_invari
         blueprint(),
         _invariant_unknown_marker_blocks_completion,
         lambda x: x["x_extensions"]["worked_example"]["input"]["artifacts"].__setitem__(
-            "u2", "pairs=12; groups=3; isolation=worktree; every row measured and cited."
+            "u2",
+            "pairs=12; groups=3; isolation=worktree; every row measured and cited.",
         ),
         "the example no longer contains an unmeasured row, so the marker rule is untested",
     )

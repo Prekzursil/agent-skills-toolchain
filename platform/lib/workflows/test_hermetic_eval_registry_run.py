@@ -27,7 +27,9 @@ BP = "hermetic-eval-registry-run"
 def test_document_is_schema_valid_and_semantically_clean() -> None:
     doc = K.load(BP)
     errs = list(schemas.workflow_validator().iter_errors(doc))
-    assert errs == [], [f"{'/'.join(str(p) for p in e.absolute_path)} [{e.validator}]" for e in errs[:5]]
+    assert errs == [], [
+        f"{'/'.join(str(p) for p in e.absolute_path)} [{e.validator}]" for e in errs[:5]
+    ]
     assert [r.to_json() for r in semantics.check_workflow(doc) if r.violations] == []
 
 
@@ -51,12 +53,18 @@ def test_control_dropping_the_degraded_control_condition_is_caught() -> None:
     regression could still report an improvement. That is a green suite protecting nothing."""
     mutated = K.mutate(
         K.load(BP),
-        K.weaken_gate("delta-exceeds-variance", "delta_vs_baseline > rerun_variance_band"),
+        K.weaken_gate(
+            "delta-exceeds-variance", "delta_vs_baseline > rerun_variance_band"
+        ),
     )
     K.assert_still_schema_valid(mutated)
     result = C.delta_gated_on_variance_and_degraded_control(mutated)
-    assert not result.ok, "the predicate accepted a delta gate with no sensitivity control"
-    assert any("degraded_control_scored_lower" in r for r in result.reasons), result.reasons
+    assert not result.ok, (
+        "the predicate accepted a delta gate with no sensitivity control"
+    )
+    assert any("degraded_control_scored_lower" in r for r in result.reasons), (
+        result.reasons
+    )
 
 
 def test_control_dropping_the_variance_band_condition_is_caught() -> None:
@@ -64,20 +72,31 @@ def test_control_dropping_the_variance_band_condition_is_caught() -> None:
     would be reported as an improvement."""
     mutated = K.mutate(
         K.load(BP),
-        K.weaken_gate("delta-exceeds-variance", "delta_vs_baseline > 0 AND degraded_control_scored_lower == true"),
+        K.weaken_gate(
+            "delta-exceeds-variance",
+            "delta_vs_baseline > 0 AND degraded_control_scored_lower == true",
+        ),
     )
     K.assert_still_schema_valid(mutated)
     result = C.delta_gated_on_variance_and_degraded_control(mutated)
-    assert not result.ok, "the predicate accepted a delta gate with no variance threshold"
+    assert not result.ok, (
+        "the predicate accepted a delta gate with no variance threshold"
+    )
     assert any("rerun_variance_band" in r for r in result.reasons), result.reasons
 
 
-def test_control_letting_the_comparison_run_without_the_degraded_arm_is_caught() -> None:
-    mutated = K.mutate(K.load(BP), K.drop_dependency("compare-to-baseline", "degraded-control"))
+def test_control_letting_the_comparison_run_without_the_degraded_arm_is_caught() -> (
+    None
+):
+    mutated = K.mutate(
+        K.load(BP), K.drop_dependency("compare-to-baseline", "degraded-control")
+    )
     K.assert_still_schema_valid(mutated)
     result = C.delta_gated_on_variance_and_degraded_control(mutated)
     assert not result.ok, "the comparison could run before the sensitivity arm"
-    assert any("does not depend on 'degraded-control'" in r for r in result.reasons), result.reasons
+    assert any("does not depend on 'degraded-control'" in r for r in result.reasons), (
+        result.reasons
+    )
 
 
 # ----------------------------------------------------- property 2: the run is hermetic
@@ -94,7 +113,9 @@ def test_control_permitting_unseeded_randomness_in_replay_is_caught() -> None:
     mutated = K.mutate(K.load(BP), K.drop_replay_forbidden_source("random"))
     K.assert_still_schema_valid(mutated)
     result = C.run_is_hermetic(mutated)
-    assert not result.ok, "the predicate accepted a replay policy that permits unseeded entropy"
+    assert not result.ok, (
+        "the predicate accepted a replay policy that permits unseeded entropy"
+    )
     assert any("'random'" in r for r in result.reasons), result.reasons
 
 
@@ -138,6 +159,8 @@ def test_the_worked_example_states_the_counterfactual_verdict() -> None:
     """A worked example that only shows the passing case does not demonstrate the band."""
     example = K.load(BP)["x_extensions"]["bp7"]["worked_example"]
     trace = " ".join(example["expected_trace"])
-    assert "UNCHANGED-WITHIN-BAND" in trace, "the example never shows the sub-band verdict"
+    assert "UNCHANGED-WITHIN-BAND" in trace, (
+        "the example never shows the sub-band verdict"
+    )
     assert "CAN see a regression" in trace or "can see a regression" in trace
     assert example["expected_terminal_state"].startswith("SUCCESS:DAT-76")

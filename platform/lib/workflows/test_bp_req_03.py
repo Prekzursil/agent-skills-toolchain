@@ -53,7 +53,10 @@ def test_the_cap_is_three_and_the_gate_expression_says_so():
 
 def _run_example(d, *, star=None, elapsed=None):
     ex = worked_example(d)
-    cands = [m.Question(text=c["text"], options=c["options"]) for c in ex["input"]["candidates"]]
+    cands = [
+        m.Question(text=c["text"], options=c["options"])
+        for c in ex["input"]["candidates"]
+    ]
     return m.evpi_questions(
         cands,
         star_prefixed=ex["input"]["star_prefixed"] if star is None else star,

@@ -27,7 +27,12 @@ for _p in (str(_HERE), str(_HERE.parent)):
 import bp7_checks as C  # noqa: E402
 import bp7_schema_ref_check as R  # noqa: E402
 import bp7_testkit as K  # noqa: E402
-from bp7_build import EXPECTED_IDS, assert_dry_run_forbids_every_mutating_tool, assert_tools_permitted, build_all  # noqa: E402
+from bp7_build import (  # noqa: E402 - same sys.path plumbing as the three imports above
+    EXPECTED_IDS,
+    assert_dry_run_forbids_every_mutating_tool,
+    assert_tools_permitted,
+    build_all,
+)  # noqa: E402
 from bp7_common import ALL_CATEGORIES, UNIT_PREFIXES  # noqa: E402
 from wfdsl import schemas, semantics  # noqa: E402
 
@@ -93,7 +98,9 @@ def test_every_blueprint_carries_the_mandated_sections() -> None:
     assert {k: v for k, v in missing.items() if v} == {}, missing
 
 
-def test_every_blueprint_has_at_least_one_typed_param_role_gate_and_stopping_rule() -> None:
+def test_every_blueprint_has_at_least_one_typed_param_role_gate_and_stopping_rule() -> (
+    None
+):
     thin = {}
     for d in docs():
         counts = {
@@ -112,7 +119,9 @@ def test_the_tool_policy_allowlist_is_authored_not_derived() -> None:
     """Every tool a role, stage or work unit requests must appear in the hand-authored allowlist.
     A policy computed from its own requests could never deny anything."""
     problems = [p for d in docs() for p in assert_tools_permitted(d)]
-    problems += [p for d in docs() for p in assert_dry_run_forbids_every_mutating_tool(d)]
+    problems += [
+        p for d in docs() for p in assert_dry_run_forbids_every_mutating_tool(d)
+    ]
     assert problems == [], problems
 
 
@@ -133,12 +142,16 @@ def test_inline_unit_ids_are_unique_and_well_formed_across_the_slice() -> None:
             if prefix not in UNIT_PREFIXES:
                 bad.append(f"{uid} uses prefix {prefix!r} outside {UNIT_PREFIXES}")
             if not 73 <= card <= 84:
-                bad.append(f"{uid} encodes card {card}, outside this unit's range 73-84")
+                bad.append(
+                    f"{uid} encodes card {card}, outside this unit's range 73-84"
+                )
             if uid in seen:
                 bad.append(f"{uid} appears in both {seen[uid]} and {d['id']}")
             seen[uid] = d["id"]
     assert bad == [], bad
-    assert len(seen) == 71, f"expected 71 inline units across the slice, found {len(seen)}"
+    assert len(seen) == 71, (
+        f"expected 71 inline units across the slice, found {len(seen)}"
+    )
 
 
 def test_no_inline_unit_id_collides_with_the_real_catalog() -> None:
@@ -190,7 +203,9 @@ def test_the_reference_resolver_fires_on_known_broken_input() -> None:
 
 
 def test_every_category_is_one_of_the_six_spec_spans() -> None:
-    unknown = {d["id"]: [c for c in d["categories"] if c not in ALL_CATEGORIES] for d in docs()}
+    unknown = {
+        d["id"]: [c for c in d["categories"] if c not in ALL_CATEGORIES] for d in docs()
+    }
     assert {k: v for k, v in unknown.items() if v} == {}, unknown
 
 
@@ -205,7 +220,9 @@ def test_the_slice_spans_the_three_axes_it_claims_and_says_which() -> None:
         "collective-intelligence-and-meta": 1,
     }, counts
     # engineering-and-reliability appears as a SECONDARY axis on the reliability-bearing cards
-    secondary = {d["id"] for d in docs() if "engineering-and-reliability" in d["categories"]}
+    secondary = {
+        d["id"] for d in docs() if "engineering-and-reliability" in d["categories"]
+    }
     assert secondary == {
         "measurement-instrument-validation",
         "hermetic-eval-registry-run",
@@ -245,18 +262,24 @@ def test_every_flagship_declares_a_test_file_that_exists() -> None:
     assert missing == [], missing
 
 
-def test_every_blueprint_carries_a_worked_example_and_an_inline_unverified_with_a_probe() -> None:
+def test_every_blueprint_carries_a_worked_example_and_an_inline_unverified_with_a_probe() -> (
+    None
+):
     bad = []
     for d in docs():
         ext = d["x_extensions"]["bp7"]
         ex = ext.get("worked_example") or {}
         if not ex.get("params") or len(ex.get("expected_trace") or []) < 4:
             bad.append(f"{d['id']}: worked example is too thin to be a walkthrough")
-        if not ex.get("expected_terminal_state", "").startswith(("SUCCESS:", "FAILED:")):
+        if not ex.get("expected_terminal_state", "").startswith(
+            ("SUCCESS:", "FAILED:")
+        ):
             bad.append(f"{d['id']}: worked example has no terminal state")
         unv = ext.get("unverified") or ""
         if "UNVERIFIED" not in unv or "settling experiment" not in unv.lower():
-            bad.append(f"{d['id']}: UNVERIFIED tag missing or names no settling experiment")
+            bad.append(
+                f"{d['id']}: UNVERIFIED tag missing or names no settling experiment"
+            )
     assert bad == [], bad
 
 
@@ -271,7 +294,12 @@ def structural_fingerprint(doc: dict[str, Any]) -> tuple[Any, ...]:
     """Stage-kind multiset plus the set of gate expressions - what the workflow DOES, not what it
     is called. Two renamed copies would collide here even with different prose."""
     kinds = tuple(sorted(s["kind"] for s in C.all_stages(doc)))
-    gate_exprs = tuple(sorted(str((g or {}).get("expression") or "") for g in (doc.get("gates") or {}).values()))
+    gate_exprs = tuple(
+        sorted(
+            str((g or {}).get("expression") or "")
+            for g in (doc.get("gates") or {}).values()
+        )
+    )
     return (kinds, gate_exprs)
 
 
@@ -282,7 +310,9 @@ def jaccard(a: set[str], b: set[str]) -> float:
 def pairwise_overlaps(documents: list[dict[str, Any]]) -> list[tuple[str, str, float]]:
     out = []
     for x, y in itertools.combinations(documents, 2):
-        out.append((x["id"], y["id"], jaccard(mechanism_signature(x), mechanism_signature(y))))
+        out.append(
+            (x["id"], y["id"], jaccard(mechanism_signature(x), mechanism_signature(y)))
+        )
     return out
 
 
@@ -291,7 +321,9 @@ def test_no_two_blueprints_share_a_mechanism_signature() -> None:
     for d in docs():
         key = frozenset(mechanism_signature(d))
         assert len(key) >= 4, f"{d['id']} declares only {len(key)} mechanism tokens"
-        assert key not in seen, f"{d['id']} has the same mechanism signature as {seen[key]}"
+        assert key not in seen, (
+            f"{d['id']} has the same mechanism signature as {seen[key]}"
+        )
         seen[key] = d["id"]
 
 
@@ -326,10 +358,14 @@ def test_every_blueprint_states_what_it_is_not_a_duplicate_of() -> None:
     for d in docs():
         distinct = d["x_extensions"]["bp7"].get("distinct_from") or {}
         if len(distinct) < 2:
-            bad.append(f"{d['id']} distinguishes itself from only {len(distinct)} neighbours")
+            bad.append(
+                f"{d['id']} distinguishes itself from only {len(distinct)} neighbours"
+            )
         for other, reason in distinct.items():
             if len(reason) < 25:
-                bad.append(f"{d['id']} vs {other}: the distinction is too thin to check")
+                bad.append(
+                    f"{d['id']} vs {other}: the distinction is too thin to check"
+                )
     assert bad == [], bad
 
 
@@ -349,7 +385,9 @@ def test_control_the_distinctness_detector_fires_on_a_planted_duplicate() -> Non
     # 2. the overlap check sees a Jaccard of 1.0, far above the 0.34 bar
     overlaps = pairwise_overlaps(planted)
     assert overlaps and overlaps[0][2] == 1.0, overlaps
-    assert overlaps[0][2] >= 0.34, "the overlap threshold would not have caught a verbatim clone"
+    assert overlaps[0][2] >= 0.34, (
+        "the overlap threshold would not have caught a verbatim clone"
+    )
     # 3. the structural fingerprint collides
     assert structural_fingerprint(original) == structural_fingerprint(clone)
 
@@ -383,20 +421,28 @@ def test_the_status_artifacts_counts_match_the_measured_reality() -> None:
     test is the drift check that keeps every number in its counts block honest - the same
     discipline blueprint 84 prescribes for a fact stated in more than one place.
     """
-    status = json.loads((K.WORKFLOW_DIR / "BLUEPRINTS-73-84-STATUS.json").read_text(encoding="utf-8"))
+    status = json.loads(
+        (K.WORKFLOW_DIR / "BLUEPRINTS-73-84-STATUS.json").read_text(encoding="utf-8")
+    )
     counts = status["counts"]
     documents = docs()
 
     mine = sorted(_HERE.glob("test_*.py"))
-    my_files = [p for p in mine if p.name == "test_bp7_slice.py" or p.stem.replace("test_", "") in {
-        "bounded_corpus_distillation",
-        "measurement_instrument_validation",
-        "hermetic_eval_registry_run",
-        "design_studio_eight_gate_loop",
-        "two_track_ui_audit",
-        "design_first_ui_intake",
-        "ssot_documentation_reconcile",
-    }]
+    my_files = [
+        p
+        for p in mine
+        if p.name == "test_bp7_slice.py"
+        or p.stem.replace("test_", "")
+        in {
+            "bounded_corpus_distillation",
+            "measurement_instrument_validation",
+            "hermetic_eval_registry_run",
+            "design_studio_eight_gate_loop",
+            "two_track_ui_audit",
+            "design_first_ui_intake",
+            "ssot_documentation_reconcile",
+        }
+    ]
     test_fns = controls = 0
     for path in my_files:
         text = path.read_text(encoding="utf-8")
@@ -407,13 +453,19 @@ def test_the_status_artifacts_counts_match_the_measured_reality() -> None:
         "blueprints": len(documents),
         "flagship": sum(1 for d in documents if d["flagship"]),
         "stages_total": sum(len(d["stages"]) for d in documents),
-        "stages_total_including_fanout_loop_and_repair_bodies": sum(len(C.all_stages(d)) for d in documents),
+        "stages_total_including_fanout_loop_and_repair_bodies": sum(
+            len(C.all_stages(d)) for d in documents
+        ),
         "inline_work_units": sum(len(C.work_units(d)) for d in documents),
         "my_tests": test_fns,
         "mutation_controls": controls,
         "distinctness_pairs_measured": len(pairwise_overlaps(documents)),
     }
-    mismatches = {k: {"claimed": counts.get(k), "measured": v} for k, v in measured.items() if counts.get(k) != v}
+    mismatches = {
+        k: {"claimed": counts.get(k), "measured": v}
+        for k, v in measured.items()
+        if counts.get(k) != v
+    }
     assert mismatches == {}, mismatches
     assert len(my_files) == 8, [p.name for p in my_files]
 
@@ -425,8 +477,12 @@ def test_no_secret_value_travels_in_any_document() -> None:
         for name, spec in d["params"].items():
             if spec.get("type") == "secret_ref" or spec.get("secret"):
                 assert spec.get("secret") is True, f"{d['id']}:{name}"
-                assert "default" not in spec, f"{d['id']}:{name} carries a literal default"
+                assert "default" not in spec, (
+                    f"{d['id']}:{name} carries a literal default"
+                )
                 assert d["portability"]["export"]["redact_secrets"] is True, d["id"]
         blob = json.dumps(d)
         for marker in ("sk-", "ghp_", "hf_", "-----BEGIN"):
-            assert marker not in blob, f"{d['id']} contains a credential-shaped literal {marker!r}"
+            assert marker not in blob, (
+                f"{d['id']} contains a credential-shaped literal {marker!r}"
+            )

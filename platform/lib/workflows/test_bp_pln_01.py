@@ -93,15 +93,25 @@ def test_three_independent_lenses_run_in_parallel_each_with_veto():
 
 def test_a_null_lens_cannot_be_counted_as_a_pass():
     d = blueprint()
-    assert gate_expressions(d)["trio-unanimous"] == "lenses_passed == lenses_run AND lenses_run >= 3"
+    assert (
+        gate_expressions(d)["trio-unanimous"]
+        == "lenses_passed == lenses_run AND lenses_run >= 3"
+    )
     unit = stage(d, "s2-aggregate")["work_unit"]
-    assert any("two PASS plus one null lens must NOT aggregate" in t for t in unit["tests_required"])
-    assert "lenses_run and lenses_passed are both recorded" in unit["completion_sentinel"]
+    assert any(
+        "two PASS plus one null lens must NOT aggregate" in t
+        for t in unit["tests_required"]
+    )
+    assert (
+        "lenses_run and lenses_passed are both recorded" in unit["completion_sentinel"]
+    )
 
 
 def test_a_lint_over_an_empty_input_set_fails_closed():
     unit = stage(blueprint(), "s0-lint")["work_unit"]
-    assert any("found zero inputs must FAIL closed" in t for t in unit["tests_required"])
+    assert any(
+        "found zero inputs must FAIL closed" in t for t in unit["tests_required"]
+    )
     assert any("known-bad plan" in t for t in unit["tests_required"])
     assert "non-empty input set" in unit["completion_sentinel"]
 
@@ -144,13 +154,18 @@ def test_mutation_control_letting_reviewers_run_on_a_malformed_plan_breaks_the_i
 
 
 def _invariant_null_lens_is_not_a_pass(d):
-    assert gate_expressions(d)["trio-unanimous"] == "lenses_passed == lenses_run AND lenses_run >= 3"
+    assert (
+        gate_expressions(d)["trio-unanimous"]
+        == "lenses_passed == lenses_run AND lenses_run >= 3"
+    )
 
 
 def test_mutation_control_dropping_the_lenses_run_floor_breaks_the_invariant():
     both_states_control(
         blueprint(),
         _invariant_null_lens_is_not_a_pass,
-        lambda x: x["gates"]["trio-unanimous"].__setitem__("expression", "lenses_passed >= 2"),
+        lambda x: x["gates"]["trio-unanimous"].__setitem__(
+            "expression", "lenses_passed >= 2"
+        ),
         "two lenses plus a null lens would now pass the gate",
     )

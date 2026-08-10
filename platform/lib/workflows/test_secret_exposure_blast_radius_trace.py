@@ -127,7 +127,9 @@ def test_rotation_is_an_owner_checkpoint_not_a_task(doc: dict) -> None:
     # no stage may hold a tool that could rotate a credential
     tokens = H.all_tool_tokens(doc)
     for banned in ("Bash", "Bash:curl", "Bash:gh", "WebFetch"):
-        assert banned not in tokens, f"{banned} would put rotation inside the workflow's reach"
+        assert banned not in tokens, (
+            f"{banned} would put rotation inside the workflow's reach"
+        )
     assert doc["tool_policy"]["network"] == "none"
 
 
@@ -152,7 +154,9 @@ def test_guard_gap_repair_loop_has_a_separate_verify_arm(doc: dict) -> None:
         "repair-guard",
         "verify-guard-fires",
     }
-    assert ver["kind"] == "gate", "a repair loop without an independent verify is a retry"
+    assert ver["kind"] == "gate", (
+        "a repair loop without an independent verify is a retry"
+    )
     expr = ver["gate"]["expression"]
     assert "guard_fires_on_exposing_input == true" in expr
     assert "guard_silent_on_benign_twin == true" in expr, (

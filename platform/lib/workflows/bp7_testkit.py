@@ -55,14 +55,18 @@ def find_stage(doc: dict[str, Any], stage_id: str) -> dict[str, Any]:
 
     walk(doc.get("stages"))
     if not found:
-        raise AssertionError(f"stage {stage_id!r} not found - the mutation targets a stage that moved")
+        raise AssertionError(
+            f"stage {stage_id!r} not found - the mutation targets a stage that moved"
+        )
     return found[0]
 
 
 # ----------------------------------------------------------------------------- mutators
 
 
-def mutate(doc: dict[str, Any], mutator: Callable[[dict[str, Any]], None]) -> dict[str, Any]:
+def mutate(
+    doc: dict[str, Any], mutator: Callable[[dict[str, Any]], None]
+) -> dict[str, Any]:
     """Deep-copy then apply one mutator, so the caller's document is never damaged."""
     clone = copy.deepcopy(doc)
     mutator(clone)
@@ -90,7 +94,9 @@ def weaken_gate(gate_name: str, expression: str) -> Callable[[dict[str, Any]], N
     def apply(doc: dict[str, Any]) -> None:
         gates = doc.get("gates") or {}
         if gate_name not in gates:
-            raise AssertionError(f"mutation is stale: no gate {gate_name!r} in the gate library")
+            raise AssertionError(
+                f"mutation is stale: no gate {gate_name!r} in the gate library"
+            )
         gates[gate_name]["expression"] = expression
 
     return apply
@@ -113,7 +119,9 @@ def set_stage_role(stage_id: str, role: str) -> Callable[[dict[str, Any]], None]
     return apply
 
 
-def grant_role_write_paths(role: str, paths: list[str]) -> Callable[[dict[str, Any]], None]:
+def grant_role_write_paths(
+    role: str, paths: list[str]
+) -> Callable[[dict[str, Any]], None]:
     """Give a second role app-source write access - the 'two authors' mutation."""
 
     def apply(doc: dict[str, Any]) -> None:
@@ -131,13 +139,17 @@ def drop_stage_when(stage_id: str) -> Callable[[dict[str, Any]], None]:
     def apply(doc: dict[str, Any]) -> None:
         st = find_stage(doc, stage_id)
         if "when" not in st:
-            raise AssertionError(f"mutation is stale: {stage_id!r} has no `when` to remove")
+            raise AssertionError(
+                f"mutation is stale: {stage_id!r} has no `when` to remove"
+            )
         del st["when"]
 
     return apply
 
 
-def duplicate_fanout_body_task(stage_id: str, new_id: str) -> Callable[[dict[str, Any]], None]:
+def duplicate_fanout_body_task(
+    stage_id: str, new_id: str
+) -> Callable[[dict[str, Any]], None]:
     """Add a SECOND scoring task to a fan-out body - breaks one-call-per-item."""
 
     def apply(doc: dict[str, Any]) -> None:
@@ -154,17 +166,23 @@ def duplicate_fanout_body_task(stage_id: str, new_id: str) -> Callable[[dict[str
     return apply
 
 
-def drop_work_unit_input(stage_id: str, needle: str) -> Callable[[dict[str, Any]], None]:
+def drop_work_unit_input(
+    stage_id: str, needle: str
+) -> Callable[[dict[str, Any]], None]:
     """Remove an input from a stage's embedded work unit."""
 
     def apply(doc: dict[str, Any]) -> None:
         wu = find_stage(doc, stage_id).get("work_unit")
         if not isinstance(wu, dict):
-            raise AssertionError(f"mutation is stale: {stage_id!r} carries no inline work unit")
+            raise AssertionError(
+                f"mutation is stale: {stage_id!r} carries no inline work unit"
+            )
         before = list(wu.get("inputs") or [])
         after = [i for i in before if needle not in str(i)]
         if after == before:
-            raise AssertionError(f"mutation is stale: no input matching {needle!r} on {stage_id!r}")
+            raise AssertionError(
+                f"mutation is stale: no input matching {needle!r} on {stage_id!r}"
+            )
         wu["inputs"] = after or ["params.placeholder"]
 
     return apply
@@ -175,13 +193,17 @@ def drop_replay_forbidden_source(source: str) -> Callable[[dict[str, Any]], None
         replay = doc.get("replay") or {}
         before = list(replay.get("forbid_nondeterministic_sources") or [])
         if source not in before:
-            raise AssertionError(f"mutation is stale: replay does not forbid {source!r}")
+            raise AssertionError(
+                f"mutation is stale: replay does not forbid {source!r}"
+            )
         replay["forbid_nondeterministic_sources"] = [s for s in before if s != source]
 
     return apply
 
 
-def retarget_repair_loop(stage_id: str, target: list[str]) -> Callable[[dict[str, Any]], None]:
+def retarget_repair_loop(
+    stage_id: str, target: list[str]
+) -> Callable[[dict[str, Any]], None]:
     def apply(doc: dict[str, Any]) -> None:
         find_stage(doc, stage_id)["target"] = target
 
@@ -197,7 +219,9 @@ def assert_still_schema_valid(doc: dict[str, Any]) -> None:
     If the schema already rejects the mutation, the predicate was never exercised and a passing
     negative test would be measuring the schema, not the check under test.
     """
-    from wfdsl import schemas  # imported lazily so this module stays importable standalone
+    from wfdsl import (
+        schemas,
+    )  # imported lazily so this module stays importable standalone
 
     errs = list(schemas.workflow_validator().iter_errors(doc))
     if errs:

@@ -49,13 +49,18 @@ def test_brn02_the_barrier_is_hard_and_precedes_all_judgement() -> None:
     assert stages.index("freeze") < stages.index("converge")
     assert stages.index("barrier-gate") < stages.index("converge")
     assert doc["gates"]["barrier-integrity"]["blocking"] is True
-    assert "ideas_added_after_barrier == 0" in doc["gates"]["barrier-integrity"]["expression"]
+    assert (
+        "ideas_added_after_barrier == 0"
+        in doc["gates"]["barrier-integrity"]["expression"]
+    )
 
 
 def test_brn02_the_divergers_never_see_the_scoring_criteria() -> None:
     doc = C.load("bp-brn-02-diverge-then-converge")
     assert doc["roles"]["diverger"]["independence"] == "independent"
-    assert "NOT shown to the divergers" in doc["params"]["constraints"]["description"], (
+    assert (
+        "NOT shown to the divergers" in doc["params"]["constraints"]["description"]
+    ), (
         "a constraint list IS a judgement criterion; leaking it into generation defeats the "
         "temporal separation"
     )
@@ -68,10 +73,14 @@ def test_brn02_mutation_control_a_soft_barrier_is_structurally_visible() -> None
     C.find_stage(doc, "freeze")["barrier"]["on_partial"] = "proceed-degraded"
     assert C.fingerprint_key(doc) != C.fingerprint_key(
         C.load("bp-brn-02-diverge-then-converge")
-    ), "barrier mode/on_partial is part of the fingerprint, so softening the freeze is visible"
+    ), (
+        "barrier mode/on_partial is part of the fingerprint, so softening the freeze is visible"
+    )
 
 
-def test_brn02_mutation_control_a_council_rule_outside_the_metric_registry_is_caught() -> None:
+def test_brn02_mutation_control_a_council_rule_outside_the_metric_registry_is_caught() -> (
+    None
+):
     C.assert_mutation_caught(
         "bp-brn-02-diverge-then-converge",
         lambda d: C.find_stage(d, "converge")["stopping_rules"][0].__setitem__(
@@ -100,7 +109,9 @@ def test_brn03_the_safety_gate_blocks_before_any_inversion_runs() -> None:
     assert stages.index("safety-gate") == 1
 
 
-def test_brn03_a_hard_ban_refusal_is_a_correct_terminal_state_not_a_retryable_error() -> None:
+def test_brn03_a_hard_ban_refusal_is_a_correct_terminal_state_not_a_retryable_error() -> (
+    None
+):
     doc = C.load("bp-brn-03-constraint-inversion")
     assert "hard-ban-refused" in doc["retry_policy"]["no_retry_on"]
     wu = C.find_stage(doc, "invert-one")["work_unit"]
@@ -112,9 +123,13 @@ def test_brn03_a_hard_ban_refusal_is_a_correct_terminal_state_not_a_retryable_er
     )
 
 
-def test_brn03_mutation_control_dropping_the_agent_authorship_clause_is_visible() -> None:
+def test_brn03_mutation_control_dropping_the_agent_authorship_clause_is_visible() -> (
+    None
+):
     doc = C.load("bp-brn-03-constraint-inversion")
-    doc["gates"]["hard-ban-tagging-integrity"]["expression"] = "untagged_constraints == 0"
+    doc["gates"]["hard-ban-tagging-integrity"]["expression"] = (
+        "untagged_constraints == 0"
+    )
     assert not any(C.all_layer_failures(doc).values()), (
         "the schema cannot know this safety clause is required; it is pinned by the test above"
     )
@@ -251,7 +266,9 @@ def test_cnc05_an_unfalsifiable_decision_is_rejected() -> None:
 def test_cnc05_an_owner_evidence_class_is_marked_not_independently_verifiable() -> None:
     doc = C.load("bp-cnc-05-governance-decision-gate")
     gate = doc["gates"]["evidence-class-declared"]
-    assert "owner_class_marked_not_independently_verifiable == true" in gate["expression"]
+    assert (
+        "owner_class_marked_not_independently_verifiable == true" in gate["expression"]
+    )
     vocab = doc["x_extensions"]["evidence_class_vocabulary"]
     assert set(vocab) == {"CMD", "FILE", "DOC", "OWNER"}
     assert "NOT independently verifiable" in vocab["OWNER"]
@@ -261,7 +278,9 @@ def test_cnc05_the_owner_checkpoint_is_conditional_and_owner_only() -> None:
     doc = C.load("bp-cnc-05-governance-decision-gate")
     cp = C.find_stage(doc, "owner-escalation")
     assert cp["kind"] == "human_checkpoint"
-    assert cp["when"] == "owner_decision_required == true OR reversibility == IRREVERSIBLE"
+    assert (
+        cp["when"] == "owner_decision_required == true OR reversibility == IRREVERSIBLE"
+    )
     assert cp["approval_mode"] == "owner-only"
     assert cp["on_timeout"] == "escalate"
     assert isinstance(cp["timeout_seconds"], int)
@@ -280,7 +299,9 @@ def test_cnc05_the_ledger_is_append_only_and_that_is_gated() -> None:
     assert wu["retry_policy"].startswith("no retry on an overwrite")
 
 
-def test_cnc05_mutation_control_a_human_checkpoint_without_a_timeout_is_caught() -> None:
+def test_cnc05_mutation_control_a_human_checkpoint_without_a_timeout_is_caught() -> (
+    None
+):
     C.assert_mutation_caught(
         "bp-cnc-05-governance-decision-gate",
         lambda d: C.find_stage(d, "owner-escalation").pop("timeout_seconds"),
@@ -307,7 +328,11 @@ def test_req02_the_frontier_size_is_the_convergence_metric() -> None:
 def test_req02_every_node_write_is_a_checkpoint_and_the_body_has_three_stages() -> None:
     doc = C.load("bp-req-02-recursive-decision-ledger-walk")
     body = C.find_stage(doc, "walk")["body"]
-    assert [b["id"] for b in body] == ["ask-frontier-node", "expand-children", "checkpoint-node"]
+    assert [b["id"] for b in body] == [
+        "ask-frontier-node",
+        "expand-children",
+        "checkpoint-node",
+    ]
     assert body[2]["checkpoint"] is True
     assert body[1]["depends_on"] == ["ask-frontier-node"]
     assert body[2]["depends_on"] == ["expand-children"]
@@ -341,7 +366,9 @@ def test_req02_resume_is_drilled_with_a_both_states_arm_not_asserted() -> None:
     assert "corrupt one checkpoint and confirm the drill FAILS" in tests
     assert "passes in both states measures nothing" in tests
     assert "re-asked - which must be zero" in wu["evidence_requirement"]
-    assert doc["gates"]["resume-lands-on-the-frontier"]["on_fail"] == "escalate-to-human"
+    assert (
+        doc["gates"]["resume-lands-on-the-frontier"]["on_fail"] == "escalate-to-human"
+    )
     assert doc["resume"]["enabled"] is True
     assert doc["resume"]["granularity"] == "work-unit"
 
@@ -358,9 +385,9 @@ def test_req02_has_no_council_and_no_fanout_at_all() -> None:
 def test_req02_mutation_control_a_prune_rule_that_deletes_is_visible() -> None:
     C.assert_mutation_caught(
         "bp-req-02-recursive-decision-ledger-walk",
-        lambda d: d["params"]["dependency_rules"]["schema"]["properties"]["rules"]["items"][
-            "properties"
-        ].pop("prune"),
+        lambda d: d["params"]["dependency_rules"]["schema"]["properties"]["rules"][
+            "items"
+        ]["properties"].pop("prune"),
         "worked_examples",
         what="remove prune from the dependency-rule contract while the worked example still "
         "uses it, which the additionalProperties:false inline schema must reject",

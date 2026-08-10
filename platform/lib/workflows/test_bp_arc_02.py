@@ -106,19 +106,33 @@ def test_a_background_receipt_is_rejected_as_a_result():
 def test_the_editor_unit_demands_all_three_completion_signals_not_exit_code_alone():
     unit = stage(blueprint(), "editor-apply")["work_unit"]
     ev = unit["evidence_requirement"]
-    assert "exit code 0" in ev and "parseable output artifact" in ev and "validates against" in ev
+    assert (
+        "exit code 0" in ev
+        and "parseable output artifact" in ev
+        and "validates against" in ev
+    )
     assert "never exit code alone" in ev
 
 
 def test_the_documented_cross_vendor_dispatch_constraints_are_all_present():
-    constraints = " ".join(blueprint()["x_extensions"]["cross_vendor_dispatch_constraints"]).lower()
-    for needle in ("must block", "by file", "32,767", "ignore-user-config", "30-minute"):
+    constraints = " ".join(
+        blueprint()["x_extensions"]["cross_vendor_dispatch_constraints"]
+    ).lower()
+    for needle in (
+        "must block",
+        "by file",
+        "32,767",
+        "ignore-user-config",
+        "30-minute",
+    ):
         assert needle in constraints, f"missing dispatch constraint: {needle}"
 
 
 def test_the_lint_examines_only_changed_files_and_fails_closed_on_an_empty_set():
     unit = stage(blueprint(), "lint-changed-only")["work_unit"]
-    assert any("EMPTY changed-file set must FAIL closed" in t for t in unit["tests_required"])
+    assert any(
+        "EMPTY changed-file set must FAIL closed" in t for t in unit["tests_required"]
+    )
     assert any("known-bad file" in t for t in unit["tests_required"])
 
 
@@ -130,7 +144,10 @@ def test_the_escalation_must_enumerate_two_alternatives_not_retry():
     assert st["escalate_to"] == "lead"
     verify_expr = st["verify"]["gate"]["expression"]
     assert "alternatives_enumerated >= 2" in verify_expr
-    assert any("fewer than two alternatives" in t for t in st["diagnose"]["work_unit"]["tests_required"])
+    assert any(
+        "fewer than two alternatives" in t
+        for t in st["diagnose"]["work_unit"]["tests_required"]
+    )
 
 
 def test_a_severed_editor_rail_escalates_after_two_attempts():
@@ -166,7 +183,10 @@ def test_mutation_control_raising_the_cap_reaches_the_fourth_attempt():
 
 
 def _invariant_dispatch_must_block(d):
-    assert "background_receipt_returned == false" in gate_expressions(d)["dispatch-was-blocking"]
+    assert (
+        "background_receipt_returned == false"
+        in gate_expressions(d)["dispatch-was-blocking"]
+    )
     assert d["gates"]["dispatch-was-blocking"]["on_fail"] == "fail"
 
 

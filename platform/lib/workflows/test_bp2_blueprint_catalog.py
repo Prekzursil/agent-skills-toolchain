@@ -92,7 +92,9 @@ def test_every_schema_ref_resolves_and_compiles(bp_id: str) -> None:
 @pytest.mark.parametrize("bp_id", ALL_IDS)
 def test_declares_at_least_one_schema_ref(bp_id: str) -> None:
     refs = set(C.iter_schema_refs(C.load(bp_id)))
-    assert refs, f"{bp_id} declares no schema_ref at all, so nothing it emits is checkable"
+    assert refs, (
+        f"{bp_id} declares no schema_ref at all, so nothing it emits is checkable"
+    )
 
 
 # ------------------------------------------------------------------- required DSL blocks
@@ -149,9 +151,13 @@ def test_every_fanout_bounds_its_concurrency_and_item_count(bp_id: str) -> None:
     for path, st in S.iter_stages(doc):
         if st.get("kind") != "fanout":
             continue
-        assert isinstance(st.get("max_concurrency"), int), f"{path} unbounded concurrency"
+        assert isinstance(st.get("max_concurrency"), int), (
+            f"{path} unbounded concurrency"
+        )
         assert isinstance(st.get("max_items"), int), f"{path} unbounded item count"
-        assert st.get("barrier"), f"{path} has no barrier, so stragglers are dropped silently"
+        assert st.get("barrier"), (
+            f"{path} has no barrier, so stragglers are dropped silently"
+        )
 
 
 @pytest.mark.parametrize("bp_id", ALL_IDS)
@@ -172,7 +178,9 @@ def test_dry_run_is_supported_and_side_effect_free(bp_id: str) -> None:
     dr = C.load(bp_id).get("dry_run") or {}
     assert dr.get("supported") is True, "every workflow must be dry-runnable"
     if dr.get("side_effect_free", True):
-        assert dr.get("forbid_tools"), "a side-effect-free dry run must name the forbidden tools"
+        assert dr.get("forbid_tools"), (
+            "a side-effect-free dry run must name the forbidden tools"
+        )
 
 
 @pytest.mark.parametrize("bp_id", ALL_IDS)
@@ -184,7 +192,9 @@ def test_export_never_carries_a_secret_value(bp_id: str) -> None:
 @pytest.mark.parametrize("bp_id", ALL_IDS)
 def test_lineage_is_declared_and_decomposable(bp_id: str) -> None:
     lineage = C.load(bp_id).get("lineage") or {}
-    assert lineage.get("derived_from"), "a blueprint with no lineage cannot be credited or rolled back"
+    assert lineage.get("derived_from"), (
+        "a blueprint with no lineage cannot be credited or rolled back"
+    )
     assert lineage.get("decomposable_back_to_sources") is True
 
 
@@ -209,10 +219,14 @@ def test_has_a_positive_and_a_negative_control_worked_example(bp_id: str) -> Non
     should not be answered by a heuristic.
     """
     examples = C.worked_examples(C.load(bp_id))
-    assert len(examples) >= 2, f"{bp_id} has {len(examples)} worked example(s), expected >= 2"
+    assert len(examples) >= 2, (
+        f"{bp_id} has {len(examples)} worked example(s), expected >= 2"
+    )
     arms = [str(e.get("arm", "")) for e in examples]
     assert "positive" in arms, f"{bp_id} declares no positive arm: {arms}"
-    assert "negative-control" in arms, f"{bp_id} declares no negative-control arm: {arms}"
+    assert "negative-control" in arms, (
+        f"{bp_id} declares no negative-control arm: {arms}"
+    )
     assert all(a in {"positive", "negative-control"} for a in arms), arms
     terminals = [str(e.get("expected_terminal_state", "")) for e in examples]
     assert all(terminals), f"{bp_id} has a worked example with no terminal state"
@@ -292,15 +306,18 @@ def test_all_twelve_are_structurally_distinct() -> None:
 def test_each_blueprint_states_why_it_is_not_a_duplicate() -> None:
     for bp_id in ALL_IDS:
         x = C.load(bp_id).get("x_extensions") or {}
-        assert str(x.get("distinct_mechanism", "")).strip(), f"{bp_id}: no distinct_mechanism"
-        assert (
-            len(str(x.get("not_a_duplicate_because", "")).strip()) >= 60
-        ), f"{bp_id}: not_a_duplicate_because is missing or too thin to be checkable"
+        assert str(x.get("distinct_mechanism", "")).strip(), (
+            f"{bp_id}: no distinct_mechanism"
+        )
+        assert len(str(x.get("not_a_duplicate_because", "")).strip()) >= 60, (
+            f"{bp_id}: not_a_duplicate_because is missing or too thin to be checkable"
+        )
 
 
 def test_blueprint_indices_are_exactly_thirteen_through_twenty_four() -> None:
     indices = sorted(
-        int((C.load(bp_id).get("x_extensions") or {})["blueprint_index"]) for bp_id in ALL_IDS
+        int((C.load(bp_id).get("x_extensions") or {})["blueprint_index"])
+        for bp_id in ALL_IDS
     )
     assert indices == list(range(13, 25)), indices
 
@@ -311,7 +328,9 @@ def test_each_blueprint_anchors_its_design_card() -> None:
         card = str(x.get("design_card", ""))
         anchor = str(x.get("design_card_anchor", ""))
         assert card.startswith("BP-"), f"{bp_id}: design_card={card!r}"
-        assert "09-WORKFLOW-BLUEPRINT-LIBRARY.md:" in anchor, f"{bp_id}: anchor={anchor!r}"
+        assert "09-WORKFLOW-BLUEPRINT-LIBRARY.md:" in anchor, (
+            f"{bp_id}: anchor={anchor!r}"
+        )
 
 
 def test_each_blueprint_records_its_unverified_residual() -> None:
@@ -319,7 +338,9 @@ def test_each_blueprint_records_its_unverified_residual() -> None:
     would be an overclaim even though the code is fine."""
     for bp_id in ALL_IDS:
         x = C.load(bp_id).get("x_extensions") or {}
-        assert "UNVERIFIED" in str(x.get("unverified", "")), f"{bp_id}: no UNVERIFIED residual"
+        assert "UNVERIFIED" in str(x.get("unverified", "")), (
+            f"{bp_id}: no UNVERIFIED residual"
+        )
 
 
 def test_each_blueprint_states_its_contraindications() -> None:

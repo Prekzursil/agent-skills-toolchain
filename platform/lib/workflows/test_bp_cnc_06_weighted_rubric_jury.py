@@ -167,7 +167,10 @@ def test_a_critical_zero_must_cap_the_composite() -> None:
     gate = doc["gates"]["critical-override-applied"]
     assert gate["blocking"] is True
     assert gate["on_fail"] == "fail"
-    assert gate["expression"] == "critical_zero_present == false OR composite_capped == true", (
+    assert (
+        gate["expression"]
+        == "critical_zero_present == false OR composite_capped == true"
+    ), (
         "the implication form matters: it permits an uncapped composite ONLY when no critical "
         "dimension scored zero"
     )
@@ -192,7 +195,9 @@ def test_the_stability_gate_is_advisory_while_the_cap_gate_blocks() -> None:
 
 def test_mutation_control_inverting_the_override_expression_is_visible() -> None:
     doc = C.load(BP)
-    doc["gates"]["critical-override-applied"]["expression"] = "composite_capped == false"
+    doc["gates"]["critical-override-applied"]["expression"] = (
+        "composite_capped == false"
+    )
     assert C.fingerprint_key(doc) == C.fingerprint_key(C.load(BP)), (
         "the fingerprint keys on gate PREDICATE and blocking/on_fail, not on expression text, "
         "so an inverted expression is NOT structurally visible - which is exactly why this "

@@ -31,9 +31,13 @@ def test_it_is_a_fanout_panel_and_deliberately_not_a_council() -> None:
     d = doc()
     kinds = {s["kind"] for s in d["stages"]}
     assert "fanout" in kinds
-    assert "council" not in kinds, "a panel with no deliberation must not be encoded as a council"
+    assert "council" not in kinds, (
+        "a panel with no deliberation must not be encoded as a council"
+    )
     panel = next(s for s in d["stages"] if s["id"] == "review-panel")
-    assert len(panel["over"]["items"]) >= 3, "fewer than three roles is not a split-role panel"
+    assert len(panel["over"]["items"]) >= 3, (
+        "fewer than three roles is not a split-role panel"
+    )
     assert panel["max_concurrency"] >= 3
 
 
@@ -41,14 +45,24 @@ def test_security_role_is_present_by_construction_not_by_hope() -> None:
     d = doc()
     assert "security-reviewer" in d["roles"]
     assert d["roles"]["security-reviewer"]["authority"] == "veto"
-    assert "SECURITY" in next(s for s in d["stages"] if s["id"] == "review-panel")["over"]["items"]
+    assert (
+        "SECURITY"
+        in next(s for s in d["stages"] if s["id"] == "review-panel")["over"]["items"]
+    )
 
 
 def test_reviewers_are_independent_and_the_reconciler_authors_nothing() -> None:
     """AGENTS.md 5: an independent role must not receive a sibling's raw output as prefix context."""
     d = doc()
-    for name in ("senior-reviewer", "security-reviewer", "consistency-reviewer", "cross-vendor-reviewer"):
-        assert d["roles"][name]["independence"] == "independent", f"{name} is not independent"
+    for name in (
+        "senior-reviewer",
+        "security-reviewer",
+        "consistency-reviewer",
+        "cross-vendor-reviewer",
+    ):
+        assert d["roles"][name]["independence"] == "independent", (
+            f"{name} is not independent"
+        )
     assert d["roles"]["cross-vendor-reviewer"]["cross_vendor_required"] is True
     assert d["roles"]["cross-vendor-reviewer"]["vendor"] == "openai"
     assert d["roles"]["reconciler"]["authority"] == "chair"
@@ -68,7 +82,9 @@ def test_reviewers_cannot_write_to_the_repo() -> None:
 def test_author_exclusion_gate_rejects_the_author_reviewing_their_own_diff() -> None:
     d = doc()
     assert kit.evaluate_gate(d, "author-exclusion") is True
-    assert kit.evaluate_gate(d, "author-exclusion", {"author_is_reviewer": True}) is False
+    assert (
+        kit.evaluate_gate(d, "author-exclusion", {"author_is_reviewer": True}) is False
+    )
     assert kit.evaluate_gate(d, "author-exclusion", {"roles_dispatched": 2}) is False
 
 
@@ -104,14 +120,21 @@ def test_MUTATION_weakening_author_exclusion_removes_its_power() -> None:
     weakened["gates"]["author-exclusion"]["expression"] = "roles_dispatched >= 3"
     ctx = kit.worked_context(weakened)
     ctx.update(bad)
-    assert _expr.evaluate(weakened["gates"]["author-exclusion"]["expression"], ctx, strict=True) is True, (
+    assert (
+        _expr.evaluate(
+            weakened["gates"]["author-exclusion"]["expression"], ctx, strict=True
+        )
+        is True
+    ), (
         "removing the author conjunct should have stopped the rejection; if not, this test was "
         "not measuring that conjunct"
     )
 
 
 def test_MUTATION_dropping_the_author_exclusion_stage_is_rejected() -> None:
-    kit.assert_rejected(kit.drop_stage(doc(), "author-exclusion"), "author-exclusion gate removed")
+    kit.assert_rejected(
+        kit.drop_stage(doc(), "author-exclusion"), "author-exclusion gate removed"
+    )
 
 
 def test_MUTATION_a_role_requesting_a_denied_tool_is_rejected() -> None:

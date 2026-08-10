@@ -45,7 +45,9 @@ def test_worked_example_checker_fires_on_a_dropped_binding(doc: dict) -> None:
 
 def test_worked_example_checker_fires_on_a_wrong_typed_value(doc: dict) -> None:
     def bend(d: dict) -> None:
-        d["x_extensions"]["worked_example"]["params"]["dispatched_agent_count"] = "one thousand"
+        d["x_extensions"]["worked_example"]["params"]["dispatched_agent_count"] = (
+            "one thousand"
+        )
 
     fails = H.worked_example_failures(H.mutated(doc, bend))
     assert any("example value is str" in f for f in fails), fails
@@ -64,7 +66,9 @@ def test_the_denominator_is_a_required_param(doc: dict) -> None:
     )
 
 
-def test_the_accounting_gate_compares_a_computed_total_to_the_denominator(doc: dict) -> None:
+def test_the_accounting_gate_compares_a_computed_total_to_the_denominator(
+    doc: dict,
+) -> None:
     expr = H.gate_expressions(doc)["accounting-closes"]
     assert "accounted_agents == dispatched_agent_count" in expr
     assert "unaccounted_agents == 0" in expr
@@ -74,7 +78,9 @@ def test_the_accounting_gate_compares_a_computed_total_to_the_denominator(doc: d
     assert "accounting-does-not-close" in unit["failure_classification"]
 
 
-def test_an_arithmetic_expression_would_not_parse_and_is_therefore_not_used(doc: dict) -> None:
+def test_an_arithmetic_expression_would_not_parse_and_is_therefore_not_used(
+    doc: dict,
+) -> None:
     """Documents the measured constraint: the grammar has no `+`, so a gate cannot compute a sum."""
 
     def bend(d: dict) -> None:
@@ -148,7 +154,9 @@ def test_dropping_one_direction_of_the_tri_state_check_is_detectable(doc: dict) 
 # -------------------------------------- mechanism: agents read only after the arithmetic closes
 
 
-def test_the_only_judgement_stage_runs_last_and_depends_on_both_gates(doc: dict) -> None:
+def test_the_only_judgement_stage_runs_last_and_depends_on_both_gates(
+    doc: dict,
+) -> None:
     order = H.top_level_stage_ids(doc)
     assert order[-1] == "summarise-recovered-work"
     assert order.index("accounting-gate") < order.index("tri-state-gate")
@@ -165,7 +173,9 @@ def test_the_recovery_is_read_only_over_the_session_root(doc: dict) -> None:
     assert "platform/**" in policy["forbid_write_paths"]
     assert "command-center/WORK-UNIT-CATALOG.json" in policy["forbid_write_paths"]
     writes = [t for t in H.all_tool_tokens(doc) if t.startswith("Write(")]
-    assert writes and all(t.startswith("Write(command-center/recovery/") for t in writes), writes
+    assert writes and all(
+        t.startswith("Write(command-center/recovery/") for t in writes
+    ), writes
 
 
 def test_absent_journals_are_a_runtime_finding_not_zero_work(doc: dict) -> None:
@@ -173,13 +183,19 @@ def test_absent_journals_are_a_runtime_finding_not_zero_work(doc: dict) -> None:
     assert "finding about the RUNTIME, not about the work" in unit["question_or_target"]
     assert "walk-too-narrow" in unit["failure_classification"]
     tests = " ".join(unit["tests_required"])
-    assert "widest plausible root" in tests, "a depth-limited walk under-counts the denominator"
+    assert "widest plausible root" in tests, (
+        "a depth-limited walk under-counts the denominator"
+    )
     rules = {r["id"]: r for r in doc["stopping_rules"]}
-    assert rules["runtime-left-nothing-to-recover"]["expression"] == "journals_found == 0"
+    assert (
+        rules["runtime-left-nothing-to-recover"]["expression"] == "journals_found == 0"
+    )
     assert rules["runtime-left-nothing-to-recover"]["on_stop"] == "emit-partial"
 
 
-def test_replay_is_fully_deterministic_because_the_inputs_are_on_disk(doc: dict) -> None:
+def test_replay_is_fully_deterministic_because_the_inputs_are_on_disk(
+    doc: dict,
+) -> None:
     replay = doc["replay"]
     assert replay["deterministic"] is True
     assert replay["verify"] == "hash-equal"

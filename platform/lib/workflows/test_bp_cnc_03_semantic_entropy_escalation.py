@@ -58,7 +58,9 @@ def test_the_threshold_is_precommitted_and_the_gate_blocks() -> None:
 def test_mutation_control_reordering_the_precommit_after_collect_is_caught() -> None:
     C.assert_mutation_caught(
         BP,
-        lambda d: C.find_stage(d, "precommit-threshold").__setitem__("depends_on", ["collect"]),
+        lambda d: C.find_stage(d, "precommit-threshold").__setitem__(
+            "depends_on", ["collect"]
+        ),
         "semantic",
         what="make the threshold commit depend on the collect stage, creating a cycle through "
         "collect -> threshold-gate -> precommit-threshold (DSL-SEM-003)",
@@ -172,12 +174,16 @@ def test_the_blindspot_warning_stage_exists_and_is_both_states_specified() -> No
     )
 
 
-def test_council_stopping_metrics_are_absent_because_there_is_no_council_stage() -> None:
+def test_council_stopping_metrics_are_absent_because_there_is_no_council_stage() -> (
+    None
+):
     doc = C.load(BP)
     kinds = C.fingerprint(doc)["stage_kinds"]
     assert "council" not in kinds
     _, advisories = C.semantic(doc)
-    assert not advisories, "no council stage means DSL-SEM-014 has nothing to complain about"
+    assert not advisories, (
+        "no council stage means DSL-SEM-014 has nothing to complain about"
+    )
 
 
 # ------------------------------------------------------------------------ worked examples
@@ -198,7 +204,10 @@ def test_worked_examples_cover_the_escalate_and_the_refusal_paths() -> None:
 
 def test_the_positive_arm_declines_to_pick_the_numerically_closer_answer() -> None:
     pos = C.worked_examples(C.load(BP))[0]
-    assert "does not pick 234 because two answers are numerically closer" in pos["walkthrough"], (
+    assert (
+        "does not pick 234 because two answers are numerically closer"
+        in pos["walkthrough"]
+    ), (
         "routing rather than judging is the whole point; if the walkthrough silently picked a "
         "winner the blueprint would be a correctness oracle, which the card forbids"
     )

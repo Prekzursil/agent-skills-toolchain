@@ -39,7 +39,9 @@ def declared_values():
 
 @pytest.fixture(scope="module")
 def valid_receipt():
-    return json.loads((EXAMPLES / "RES-0005.receipt.valid.json").read_bytes().decode("utf-8"))
+    return json.loads(
+        (EXAMPLES / "RES-0005.receipt.valid.json").read_bytes().decode("utf-8")
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -88,7 +90,9 @@ def test_decorated_forms_all_resolve_to_the_same_file():
         "command-center/schema/receipt.schema.json profile=council-runtime-module "
         "(required: unit_id, artifact_paths[], spec_anchor)"
     )
-    pointer = sr.resolve("command-center/schema/receipt.schema.json#/$defs/security_report")
+    pointer = sr.resolve(
+        "command-center/schema/receipt.schema.json#/$defs/security_report"
+    )
     assert bare.logical_id == annotated.logical_id == pointer.logical_id
     assert annotated.physical_fragment == bare.physical_fragment
     assert pointer.physical_fragment == "#/$defs/security_report"
@@ -117,7 +121,9 @@ def test_unknown_id_raises_and_never_degrades(bad):
 
 def test_unknown_fragment_raises():
     with pytest.raises(sr.UnknownSchemaError):
-        sr.validator_for("command-center/schema/receipt.schema.json#/$defs/no_such_fragment")
+        sr.validator_for(
+            "command-center/schema/receipt.schema.json#/$defs/no_such_fragment"
+        )
 
 
 def test_non_string_declaration_raises():
@@ -168,7 +174,9 @@ def test_preexisting_alias_fragments_are_pinned(valid_receipt):
     r["report"]["kind"] = "fault_injection_report"
     assert sr.validate_artifact(r, decl) == []
     r["report"]["kind"] = "shell_report"
-    assert sr.validate_artifact(r, decl) != [], "a shell_report must not pass as fault_injection"
+    assert sr.validate_artifact(r, decl) != [], (
+        "a shell_report must not pass as fault_injection"
+    )
 
 
 def test_every_pinned_class_rejects_a_foreign_kind(registry, valid_receipt):
@@ -176,7 +184,9 @@ def test_every_pinned_class_rejects_a_foreign_kind(registry, valid_receipt):
     probe = json.loads(json.dumps(valid_receipt))
     probe["report"] = {
         "kind": "__foreign_kind_no_class_uses__",
-        "observations": [{"name": "n", "measured": 1, "method": "count", "anchor": "x:1"}],
+        "observations": [
+            {"name": "n", "measured": 1, "method": "count", "anchor": "x:1"}
+        ],
         "control_ids": ["NC-1"],
     }
     accepted = []
@@ -188,7 +198,9 @@ def test_every_pinned_class_rejects_a_foreign_kind(registry, valid_receipt):
         if not sr.validate_artifact(probe, logical):
             accepted.append(logical)
     assert checked > 200, f"census too small to mean anything: {checked}"
-    assert accepted == [], f"{len(accepted)} classes accept a foreign kind: {accepted[:5]}"
+    assert accepted == [], (
+        f"{len(accepted)} classes accept a foreign kind: {accepted[:5]}"
+    )
 
 
 def test_canonical_receipt_is_deliberately_not_pinned(valid_receipt):
@@ -209,10 +221,19 @@ def test_canonical_receipt_is_deliberately_not_pinned(valid_receipt):
 def test_shims_carry_no_constraints(registry):
     """A shim may only $ref. A constraint in a shim is a second control plane."""
     allowed = {
-        "$schema", "$id", "title", "$comment", "$ref", "$defs",
-        "x-generated-by", "x-artifact-class", "x-catalog-reference-count",
-        "x-catalog-sample-units", "x-catalog-routing-profiles",
-        "x-physical-definition", "x-alias-of",
+        "$schema",
+        "$id",
+        "title",
+        "$comment",
+        "$ref",
+        "$defs",
+        "x-generated-by",
+        "x-artifact-class",
+        "x-catalog-reference-count",
+        "x-catalog-sample-units",
+        "x-catalog-routing-profiles",
+        "x-physical-definition",
+        "x-alias-of",
     }
     offenders = {}
     for rel, entry in registry["entries"].items():
@@ -243,13 +264,16 @@ def test_wave1_files_are_untouched():
     ):
         p = subprocess.run(
             ["git", "cat-file", "-p", f"HEAD:{rel}"],
-            capture_output=True, cwd=str(REPO),
+            capture_output=True,
+            cwd=str(REPO),
         )
         if p.returncode != 0:  # not committed here -> the claim is unverifiable, say so
             pytest.skip(f"{rel} is not in HEAD; cannot verify untouched (NOT-CHECKED)")
         committed = p.stdout.replace(b"\r\n", b"\n")
         working = (REPO / rel).read_bytes().replace(b"\r\n", b"\n")
-        assert committed == working, f"{rel} DIFFERS from HEAD; this unit must not modify it"
+        assert committed == working, (
+            f"{rel} DIFFERS from HEAD; this unit must not modify it"
+        )
 
 
 # --------------------------------------------------------------------------- #
@@ -261,12 +285,16 @@ def test_wave1_files_are_untouched():
 def test_example_receipts_pass_layer1_and_layer2(unit):
     wus = json.loads(CATALOG.read_bytes().decode("utf-8"))["work_units"]
     declared = next(w["output_schema"] for w in wus if w["id"] == unit)
-    receipt = json.loads((EXAMPLES / f"{unit}.receipt.valid.json").read_bytes().decode("utf-8"))
+    receipt = json.loads(
+        (EXAMPLES / f"{unit}.receipt.valid.json").read_bytes().decode("utf-8")
+    )
     assert sr.validate_artifact(receipt, declared) == []
     gd = evaluate_gate_a(receipt, repo_root=REPO, verify_filesystem=True).to_dict()
     conds = gd["conditions"]
     assert len(conds) == 12
-    blocking = [(c["n"], c["outcome"], c["basis"]) for c in conds if c["outcome"] != "SATISFIED"]
+    blocking = [
+        (c["n"], c["outcome"], c["basis"]) for c in conds if c["outcome"] != "SATISFIED"
+    ]
     assert blocking == [], f"{unit}: {blocking}"
 
 
@@ -274,8 +302,12 @@ def test_example_receipts_pass_layer1_and_layer2(unit):
 def test_example_malformed_receipts_are_rejected(unit):
     wus = json.loads(CATALOG.read_bytes().decode("utf-8"))["work_units"]
     declared = next(w["output_schema"] for w in wus if w["id"] == unit)
-    bad = json.loads((EXAMPLES / f"{unit}.receipt.malformed.json").read_bytes().decode("utf-8"))
-    assert sr.validate_artifact(bad, declared) != [], f"{unit} malformed receipt was ACCEPTED"
+    bad = json.loads(
+        (EXAMPLES / f"{unit}.receipt.malformed.json").read_bytes().decode("utf-8")
+    )
+    assert sr.validate_artifact(bad, declared) != [], (
+        f"{unit} malformed receipt was ACCEPTED"
+    )
 
 
 def test_generator_is_deterministic(tmp_path):
@@ -294,7 +326,9 @@ def test_generator_is_deterministic(tmp_path):
     }
     p = subprocess.run(
         [sys.executable, str(REPO / "platform" / "lib" / "_gen_schema_substrate.py")],
-        capture_output=True, text=True, cwd=str(REPO),
+        capture_output=True,
+        text=True,
+        cwd=str(REPO),
     )
     assert p.returncode == 0, p.stderr
     changed = [rel for rel, b in before.items() if (REPO / rel).read_bytes() != b]

@@ -129,9 +129,13 @@ def work_unit(
         # cascades into an unevaluatedProperties error at the STAGE level - which reads as an
         # unknown-property finding and sends you looking for a typo that does not exist.
         # Measured: ten bare "none" strings produced 22 errors, 12 of them cascades.
-        raise ValueError(f"{uid}: retry_policy must say WHY, not just 'none' (minLength 10)")
+        raise ValueError(
+            f"{uid}: retry_policy must say WHY, not just 'none' (minLength 10)"
+        )
     if len(reviewer) < 10:
-        raise ValueError(f"{uid}: reviewer_requirement must name a reviewer (minLength 10)")
+        raise ValueError(
+            f"{uid}: reviewer_requirement must name a reviewer (minLength 10)"
+        )
     unit: dict[str, Any] = {
         "id": uid,
         "title": title,
@@ -284,7 +288,13 @@ def replay_deterministic(
     journal: str,
     *,
     verify: str,
-    record: Sequence[str] = ("params", "inputs", "tool_calls", "tool_results", "env_fingerprint"),
+    record: Sequence[str] = (
+        "params",
+        "inputs",
+        "tool_calls",
+        "tool_results",
+        "env_fingerprint",
+    ),
     forbid: Sequence[str] = ("clock", "random", "filesystem-order", "process-id"),
     on_divergence: str = "record-discrepancy",
 ) -> dict[str, Any]:
@@ -321,7 +331,9 @@ def replay_nondeterministic(journal: str, record: Sequence[str]) -> dict[str, An
     }
 
 
-def cache(store: str, key_from: Sequence[str], *, scope: str = "stage", ttl: int = 86400) -> dict[str, Any]:
+def cache(
+    store: str, key_from: Sequence[str], *, scope: str = "stage", ttl: int = 86400
+) -> dict[str, Any]:
     return {
         "enabled": True,
         "scope": scope,
@@ -332,7 +344,11 @@ def cache(store: str, key_from: Sequence[str], *, scope: str = "stage", ttl: int
     }
 
 
-def dry_run(plan: str, forbid_tools: Sequence[str], emits: Sequence[str] = ("plan", "estimate", "permission-report")) -> dict[str, Any]:
+def dry_run(
+    plan: str,
+    forbid_tools: Sequence[str],
+    emits: Sequence[str] = ("plan", "estimate", "permission-report"),
+) -> dict[str, Any]:
     return {
         "supported": True,
         "side_effect_free": True,
@@ -372,7 +388,9 @@ def estimate(
     }
     if basis in ("historical-measured", "hybrid"):
         if not measurement_source:
-            raise ValueError("a measured estimate must name the measurement it came from")
+            raise ValueError(
+                "a measured estimate must name the measurement it came from"
+            )
         est["measurement_source"] = measurement_source
     return est
 
@@ -392,8 +410,19 @@ def lineage(
     return out
 
 
-def card(source: str, relation: str, *, credit: str = "owner", license_: str = "owner-proprietary") -> dict[str, Any]:
-    return {"source": source, "relation": relation, "license": license_, "credit": credit}
+def card(
+    source: str,
+    relation: str,
+    *,
+    credit: str = "owner",
+    license_: str = "owner-proprietary",
+) -> dict[str, Any]:
+    return {
+        "source": source,
+        "relation": relation,
+        "license": license_,
+        "credit": credit,
+    }
 
 
 def gate_predicate_v1(conditions: Sequence[int], on_fail: str) -> dict[str, Any]:
@@ -407,7 +436,9 @@ def gate_predicate_v1(conditions: Sequence[int], on_fail: str) -> dict[str, Any]
     }
 
 
-def gate_expr(expression: str, on_fail: str, *, blocking: bool = True, evidence: bool = True) -> dict[str, Any]:
+def gate_expr(
+    expression: str, on_fail: str, *, blocking: bool = True, evidence: bool = True
+) -> dict[str, Any]:
     return {
         "predicate": "custom-expression",
         "expression": expression,
@@ -421,5 +452,7 @@ def write_blueprint(doc: dict[str, Any]) -> Path:
     """Write ``platform/workflows/<id>.json`` with a stable, byte-reproducible encoding."""
     WORKFLOW_DIR.mkdir(parents=True, exist_ok=True)
     path = WORKFLOW_DIR / f"{doc['id']}.json"
-    path.write_text(json.dumps(doc, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(doc, indent=2, ensure_ascii=True) + "\n", encoding="utf-8"
+    )
     return path

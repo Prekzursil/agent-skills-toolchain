@@ -30,16 +30,25 @@ def test_whole_repo_mutation_is_refused_before_any_mutant_runs() -> None:
     kit.assert_precedes(d, "bounded-to-the-diff", "run-mutants")
     assert d["gates"]["bounded-to-the-diff"]["on_fail"] == "fail"
     assert kit.evaluate_gate(d, "bounded-to-the-diff") is True
-    assert kit.evaluate_gate(d, "bounded-to-the-diff", {"mutants_outside_diff": 1}) is False
-    assert kit.evaluate_gate(d, "bounded-to-the-diff", {"mutants_generated": 999}) is False
+    assert (
+        kit.evaluate_gate(d, "bounded-to-the-diff", {"mutants_outside_diff": 1})
+        is False
+    )
+    assert (
+        kit.evaluate_gate(d, "bounded-to-the-diff", {"mutants_generated": 999}) is False
+    )
 
 
-def test_the_default_argument_operator_that_caught_the_measured_hole_is_present() -> None:
+def test_the_default_argument_operator_that_caught_the_measured_hole_is_present() -> (
+    None
+):
     """The recorded case: reverting a default from 1024 to 512 still passed 15/15 because every
     test passed the value explicitly. Without this operator the gate cannot see that class."""
     d = doc()
     ops = d["params"]["mutation_operators"]["default"]
-    assert "default-argument-change" in ops, "the operator that found the measured hole is missing"
+    assert "default-argument-change" in ops, (
+        "the operator that found the measured hole is missing"
+    )
     assert d["params"]["mutation_operators"]["min_items"] >= 1
 
 
@@ -47,7 +56,9 @@ def test_an_unstable_mutant_is_indeterminate_not_killed() -> None:
     d = doc()
     assert kit.evaluate_gate(d, "indeterminate-not-killed") is True
     assert (
-        kit.evaluate_gate(d, "indeterminate-not-killed", {"unstable_mutants_reported_as_killed": 1})
+        kit.evaluate_gate(
+            d, "indeterminate-not-killed", {"unstable_mutants_reported_as_killed": 1}
+        )
         is False
     ), "counting a flaky mutant as killed inflates the score and hides a gap"
     assert d["params"]["flake_reruns"]["minimum"] >= 1
@@ -57,7 +68,9 @@ def test_the_flake_repair_loop_has_an_independent_verify() -> None:
     d = doc()
     rl = next(s for s in d["stages"] if s["id"] == "reclassify-flakes")
     assert rl["kind"] == "repair_loop"
-    assert rl["classification_filter"] == ["runner-flake"], "the loop must not absorb real failures"
+    assert rl["classification_filter"] == ["runner-flake"], (
+        "the loop must not absorb real failures"
+    )
     assert rl["verify"]["kind"] == "gate"
     assert rl["verify"]["gate"]["on_fail"] == "fail"
 
@@ -66,11 +79,17 @@ def test_coverage_may_not_be_presented_as_protection() -> None:
     d = doc()
     assert kit.evaluate_gate(d, "coverage-is-not-protection") is True
     assert (
-        kit.evaluate_gate(d, "coverage-is-not-protection", {"coverage_used_as_protection_claim": True})
+        kit.evaluate_gate(
+            d, "coverage-is-not-protection", {"coverage_used_as_protection_claim": True}
+        )
         is False
     )
     assert (
-        kit.evaluate_gate(d, "coverage-is-not-protection", {"surviving_mutants_reported_as_gaps": False})
+        kit.evaluate_gate(
+            d,
+            "coverage-is-not-protection",
+            {"surviving_mutants_reported_as_gaps": False},
+        )
         is False
     ), "a survivor that is not reported as a gap is a silently swallowed test hole"
 
@@ -81,15 +100,28 @@ def test_no_mutated_source_may_survive_the_run() -> None:
     gate = d["gates"]["mutation-source-restored"]
     assert gate["on_fail"] == "escalate-to-human"
     assert kit.evaluate_gate(d, "mutation-source-restored") is True
-    assert kit.evaluate_gate(d, "mutation-source-restored", {"working_tree_clean_after_run": False}) is False
+    assert (
+        kit.evaluate_gate(
+            d, "mutation-source-restored", {"working_tree_clean_after_run": False}
+        )
+        is False
+    )
     assert "platform/lib/**" in d["tool_policy"]["forbid_write_paths"]
 
 
 def test_the_survival_rate_is_labelled_diff_scoped_not_repository_wide() -> None:
     d = doc()
-    unit = next(u for s in d["stages"] if s["id"] == "report-survivors" for u in [s["work_unit"]])
+    unit = next(
+        u
+        for s in d["stages"]
+        if s["id"] == "report-survivors"
+        for u in [s["work_unit"]]
+    )
     assert "diff-scoped" in unit["question_or_target"]
-    assert "not a repository mutation score" in unit["question_or_target"] or "must not be presented" in unit["question_or_target"]
+    assert (
+        "not a repository mutation score" in unit["question_or_target"]
+        or "must not be presented" in unit["question_or_target"]
+    )
     assert "overclaim" in unit["failure_classification"]
 
 
@@ -107,14 +139,23 @@ def test_MUTATION_weakening_the_diff_bound_removes_its_power() -> None:
     assert kit.evaluate_gate(d, "bounded-to-the-diff", bad) is False
 
     weakened = kit.mutated(d)
-    weakened["gates"]["bounded-to-the-diff"]["expression"] = "mutants_generated <= max_mutants"
+    weakened["gates"]["bounded-to-the-diff"]["expression"] = (
+        "mutants_generated <= max_mutants"
+    )
     ctx = kit.worked_context(weakened)
     ctx.update(bad)
-    assert _expr.evaluate(weakened["gates"]["bounded-to-the-diff"]["expression"], ctx, strict=True) is True
+    assert (
+        _expr.evaluate(
+            weakened["gates"]["bounded-to-the-diff"]["expression"], ctx, strict=True
+        )
+        is True
+    )
 
 
 def test_MUTATION_dropping_the_indeterminate_gate_is_rejected() -> None:
-    kit.assert_rejected(kit.drop_stage(doc(), "indeterminate-not-killed"), "indeterminate gate removed")
+    kit.assert_rejected(
+        kit.drop_stage(doc(), "indeterminate-not-killed"), "indeterminate gate removed"
+    )
 
 
 def test_MUTATION_unbounding_the_mutant_fanout_is_rejected() -> None:

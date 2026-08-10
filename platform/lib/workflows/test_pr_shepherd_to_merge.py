@@ -32,9 +32,13 @@ def check_blocked_is_decoded_as_ran_and_failed(doc: Mapping[str, Any]) -> None:
         "blocked_decoded_as_ran_and_failed == true",
         "detector_error == false",
     ):
-        assert clause in spec["expression"], f"the decode gate does not assert {clause!r}"
+        assert clause in spec["expression"], (
+            f"the decode gate does not assert {clause!r}"
+        )
     assert spec["blocking"] is True and spec["on_fail"] == "fail"
-    assert spec.get("evidence_required") is True, "a decoded status must carry its evidence"
+    assert spec.get("evidence_required") is True, (
+        "a decoded status must carry its evidence"
+    )
 
 
 def check_a_detector_error_is_never_a_verdict(doc: Mapping[str, Any]) -> None:
@@ -71,7 +75,9 @@ def check_progress_is_the_failure_text_changing(doc: Mapping[str, Any]) -> None:
     assert "required_contexts_failing == 0" in conv["converged_when"]
 
 
-def check_the_loop_cannot_converge_by_exhausting_its_budget(doc: Mapping[str, Any]) -> None:
+def check_the_loop_cannot_converge_by_exhausting_its_budget(
+    doc: Mapping[str, Any],
+) -> None:
     conv = K.stage(doc, "fix-rounds")["convergence"]
     assert conv["on_no_convergence"] == "escalate", (
         "running out of rounds is not convergence"
@@ -84,14 +90,18 @@ def check_the_loop_cannot_converge_by_exhausting_its_budget(doc: Mapping[str, An
     assert rule["applies_to"] == "loop" and rule["on_stop"] == "escalate"
 
 
-def check_only_required_contexts_gate_and_unknown_is_not_mergeable(doc: Mapping[str, Any]) -> None:
+def check_only_required_contexts_gate_and_unknown_is_not_mergeable(
+    doc: Mapping[str, Any],
+) -> None:
     spec = K.gate_for_stage(doc, "gate-required-green")
     for clause in (
         "required_contexts_failing == 0",
         "required_contexts_pending == 0",
         "merge_state_status != UNKNOWN",
     ):
-        assert clause in spec["expression"], f"the merge gate does not assert {clause!r}"
+        assert clause in spec["expression"], (
+            f"the merge gate does not assert {clause!r}"
+        )
     assert doc["params"]["required_contexts"]["min_items"] >= 1, (
         "with no required contexts declared the gate is vacuous"
     )
@@ -109,14 +119,18 @@ def check_the_merge_is_an_owner_only_checkpoint(doc: Mapping[str, Any]) -> None:
     )
 
 
-def check_the_shepherd_cannot_rewrite_the_gate_judging_it(doc: Mapping[str, Any]) -> None:
+def check_the_shepherd_cannot_rewrite_the_gate_judging_it(
+    doc: Mapping[str, Any],
+) -> None:
     policy = doc["tool_policy"]
     assert policy["default"] == "deny"
     assert ".github/workflows/**" in policy["forbid_write_paths"], (
         "editing the CI definition is how a red gate is made to pass without a fix"
     )
     assert "Bash:gh" in policy["require_owner_approval"]
-    assert "Bash" in policy["deny"], "unrestricted shell would bypass every allow-listed verb"
+    assert "Bash" in policy["deny"], (
+        "unrestricted shell would bypass every allow-listed verb"
+    )
 
 
 def check_the_reviewer_is_cross_vendor(doc: Mapping[str, Any]) -> None:
@@ -136,7 +150,9 @@ def check_ci_status_is_never_served_from_cache(doc: Mapping[str, Any]) -> None:
         "a cached CI status certifies a run that has since changed"
     )
     forbidden = set(doc["dry_run"]["forbid_tools"])
-    assert {"Bash:gh", "Bash:git"} <= forbidden, "a dry run must not touch the hosted PR"
+    assert {"Bash:gh", "Bash:git"} <= forbidden, (
+        "a dry run must not touch the hosted PR"
+    )
     assert doc["dry_run"]["side_effect_free"] is True
 
 
@@ -156,12 +172,16 @@ def check_failure_is_always_terminal_and_named(doc: Mapping[str, Any]) -> None:
 def check_the_worked_example_shows_stacked_failures(doc: Mapping[str, Any]) -> None:
     example = K.worked_examples(doc)[0]
     rounds = example["rounds"]
-    assert len(rounds) >= 3, "the measured incident was FOUR stacked failures in one red job"
+    assert len(rounds) >= 3, (
+        "the measured incident was FOUR stacked failures in one red job"
+    )
     texts = [r["failure_text"] for r in rounds]
     assert len(set(texts)) == len(texts), (
         "each round must surface a DIFFERENT failure text, or the example contradicts the mechanism"
     )
-    assert example["params"]["required_contexts"], "a worked example must bind every required param"
+    assert example["params"]["required_contexts"], (
+        "a worked example must bind every required param"
+    )
     ids = {c["id"] for c in K.benchmark_cases(doc)}
     assert "blocked-is-not-pending" in ids
     assert "auth-error-is-a-detector-failure" in ids
@@ -217,7 +237,9 @@ def _let_the_loop_run_before_the_gates(doc: dict) -> None:
 
 def _drop_the_failure_text_metric(doc: dict) -> None:
     conv = K.find_stage_mut(doc, "fix-rounds")["convergence"]
-    conv["metrics"] = [m for m in conv["metrics"] if m["name"] != "distinct_failure_texts_this_round"]
+    conv["metrics"] = [
+        m for m in conv["metrics"] if m["name"] != "distinct_failure_texts_this_round"
+    ]
     conv["converged_when"] = "required_contexts_failing == 0"
 
 
@@ -263,20 +285,37 @@ def _collapse_the_worked_example_to_one_repeated_text(doc: dict) -> None:
 MUTATIONS = (
     (check_blocked_is_decoded_as_ran_and_failed, _treat_blocked_as_pending),
     (check_a_detector_error_is_never_a_verdict, _let_an_auth_error_pass),
-    (check_the_detector_gate_runs_before_any_fixing, _let_the_loop_run_before_the_gates),
+    (
+        check_the_detector_gate_runs_before_any_fixing,
+        _let_the_loop_run_before_the_gates,
+    ),
     (check_progress_is_the_failure_text_changing, _drop_the_failure_text_metric),
-    (check_the_loop_cannot_converge_by_exhausting_its_budget, _let_budget_exhaustion_count_as_convergence),
-    (check_only_required_contexts_gate_and_unknown_is_not_mergeable, _accept_unknown_as_mergeable),
+    (
+        check_the_loop_cannot_converge_by_exhausting_its_budget,
+        _let_budget_exhaustion_count_as_convergence,
+    ),
+    (
+        check_only_required_contexts_gate_and_unknown_is_not_mergeable,
+        _accept_unknown_as_mergeable,
+    ),
     (check_the_merge_is_an_owner_only_checkpoint, _let_the_merge_proceed_on_timeout),
-    (check_the_shepherd_cannot_rewrite_the_gate_judging_it, _allow_workflow_file_writes),
+    (
+        check_the_shepherd_cannot_rewrite_the_gate_judging_it,
+        _allow_workflow_file_writes,
+    ),
     (check_the_reviewer_is_cross_vendor, _make_the_critic_same_vendor),
     (check_ci_status_is_never_served_from_cache, _enable_the_cache),
     (check_failure_is_always_terminal_and_named, _allow_a_silent_failure),
-    (check_the_worked_example_shows_stacked_failures, _collapse_the_worked_example_to_one_repeated_text),
+    (
+        check_the_worked_example_shows_stacked_failures,
+        _collapse_the_worked_example_to_one_repeated_text,
+    ),
 )
 
 
-@pytest.mark.parametrize("check,mutate", MUTATIONS, ids=lambda v: getattr(v, "__name__", ""))
+@pytest.mark.parametrize(
+    "check,mutate", MUTATIONS, ids=lambda v: getattr(v, "__name__", "")
+)
 def test_each_check_fails_on_its_mutated_blueprint(check: Any, mutate: Any) -> None:
     broken = K.mutant(DOC, mutate)
     assert K.raises_assertion(check, broken), (

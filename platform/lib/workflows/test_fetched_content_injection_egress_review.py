@@ -43,7 +43,9 @@ def test_worked_example_checker_fires_on_a_dropped_binding(doc: dict) -> None:
     assert any("has no value in the worked example" in f for f in fails), fails
 
 
-def test_worked_example_checker_fires_on_an_unaccounted_top_level_stage(doc: dict) -> None:
+def test_worked_example_checker_fires_on_an_unaccounted_top_level_stage(
+    doc: dict,
+) -> None:
     def bend(d: dict) -> None:
         ex = d["x_extensions"]["worked_example"]
         ex["expected_stage_path"] = [
@@ -101,7 +103,9 @@ def test_the_probe_records_both_facts_from_independent_observations(doc: dict) -
     assert "must be shown able to detect a real failure" in tests, (
         "a probe that can only report success is not a detector"
     )
-    assert "removing the guard must flip" in tests, "the second defence needs its own control"
+    assert "removing the guard must flip" in tests, (
+        "the second defence needs its own control"
+    )
     assert "probe-single-signal" in unit["failure_classification"]
 
 
@@ -111,7 +115,9 @@ def test_reducing_the_gate_to_one_defence_is_detectable(doc: dict) -> None:
 
     mutant = H.mutated(doc, bend)
     assert H.conformance_failures(mutant) == []
-    assert "guard_would_have_blocked" not in H.gate_expressions(mutant)["defence-in-depth"]
+    assert (
+        "guard_would_have_blocked" not in H.gate_expressions(mutant)["defence-in-depth"]
+    )
 
 
 def test_the_probe_runs_in_a_container_with_no_network(doc: dict) -> None:
@@ -135,7 +141,9 @@ def test_behavioural_excuses_are_counted_and_must_be_zero(doc: dict) -> None:
     assert "behavioural-excuse" in unit["failure_classification"]
     assert "behavioural-excuse" in doc["retry_policy"]["no_retry_on"]
     tests = " ".join(unit["tests_required"])
-    assert "coverage control" in tests, "every unsevered path needs exactly one mitigation"
+    assert "coverage control" in tests, (
+        "every unsevered path needs exactly one mitigation"
+    )
 
 
 def test_the_reviewer_is_cross_vendor_from_the_tracer(doc: dict) -> None:

@@ -73,8 +73,14 @@ def test_worked_example_removability_matches_and_only_the_unregistered_one_is_el
 def test_declared_controls_security_bearing_and_untraced_removals_are_both_refused():
     controls = worked_example(blueprint())["controls"]
     assert len(controls) == 2
-    assert m.removable("unregistered", blast_radius_traced=True, security_bearing=True) is False
-    assert m.removable("unregistered", blast_radius_traced=False, security_bearing=False) is False
+    assert (
+        m.removable("unregistered", blast_radius_traced=True, security_bearing=True)
+        is False
+    )
+    assert (
+        m.removable("unregistered", blast_radius_traced=False, security_bearing=False)
+        is False
+    )
 
 
 def test_the_both_states_probe_gates_every_classification():
@@ -103,7 +109,10 @@ def test_absent_telemetry_emits_partial_rather_than_declaring_components_dead():
 
 def test_no_removal_proposal_without_a_traced_blast_radius():
     d = blueprint()
-    assert gate_expressions(d)["no-untraced-removal"] == "removal_proposals_without_blast_radius == 0"
+    assert (
+        gate_expressions(d)["no-untraced-removal"]
+        == "removal_proposals_without_blast_radius == 0"
+    )
     assert d["gates"]["no-untraced-removal"]["on_fail"] == "fail"
 
 
@@ -126,7 +135,9 @@ def test_the_removal_critic_argues_the_opposite_case_and_is_cross_vendor():
     assert critic["independence"] == "cross-examining"
     assert critic["vendor"] != d["roles"]["component_auditor"]["vendor"]
     unit = stage(d, "s4-critic")["work_unit"]
-    assert any("dormant security guard must survive" in t for t in unit["tests_required"])
+    assert any(
+        "dormant security guard must survive" in t for t in unit["tests_required"]
+    )
 
 
 def test_the_inventory_declares_its_search_scope_so_a_floor_is_not_read_as_a_total():
@@ -160,7 +171,9 @@ def test_mutation_control_dropping_the_both_states_requirement_breaks_the_invari
     both_states_control(
         blueprint(),
         _invariant_both_states_probe_required,
-        lambda x: x["gates"]["disarmed-distinguished"].__setitem__("on_fail", "record-and-continue"),
+        lambda x: x["gates"]["disarmed-distinguished"].__setitem__(
+            "on_fail", "record-and-continue"
+        ),
         "classification without a both-states probe merely recorded",
     )
 

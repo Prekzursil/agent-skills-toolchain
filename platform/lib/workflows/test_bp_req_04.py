@@ -33,7 +33,15 @@ def test_contract_layers():
 
 def test_stage_graph_covers_the_cards_s0_to_s4():
     ids = stage_ids(blueprint())
-    for expected in ("s0-extract", "s0b-blanks", "s1-mark", "s2-rate", "s3-probe", "s3-gate", "s4-recheck"):
+    for expected in (
+        "s0-extract",
+        "s0b-blanks",
+        "s1-mark",
+        "s2-rate",
+        "s3-probe",
+        "s3-gate",
+        "s4-recheck",
+    ):
         assert expected in ids, f"{expected} missing from {ids}"
 
 
@@ -92,19 +100,27 @@ def test_worked_example_flags_only_the_unprobed_load_bearing_low_row():
 def test_worked_example_blank_required_field_resolves_to_the_worst_case():
     ex = worked_example(blueprint())
     blank = ex["input"]["blank_field"]
-    assert m.blank_field_default(blank["declared"], blank["worst_case"]) == ex["expected"]["blank_resolves_to"]
+    assert (
+        m.blank_field_default(blank["declared"], blank["worst_case"])
+        == ex["expected"]["blank_resolves_to"]
+    )
 
 
 def test_declared_control_probing_the_row_clears_the_gate():
     ex = worked_example(blueprint())
     rows = _rows(ex)
-    rows[0] = m.Assumption(rows[0].text, True, "low", verification_probe="re-resolve the ref out of band")
+    rows[0] = m.Assumption(
+        rows[0].text, True, "low", verification_probe="re-resolve the ref out of band"
+    )
     assert m.unhandled_assumptions(rows) == []
 
 
 def test_gate_and_stopping_rule_both_forbid_carrying_a_silent_bet():
     d = blueprint()
-    assert gate_expressions(d)["no-silent-bet"] == "low_confidence_load_bearing_unhandled == 0"
+    assert (
+        gate_expressions(d)["no-silent-bet"]
+        == "low_confidence_load_bearing_unhandled == 0"
+    )
     rule = declared_stopping_rule(d, "ledger-clean")
     assert rule["expression"] == "low_confidence_load_bearing_unhandled == 0"
     assert rule["minimum_conditions"] == "rows_rated >= 1"
@@ -128,7 +144,9 @@ def test_mutation_control_making_the_prober_same_vendor_breaks_the_invariant():
     both_states_control(
         blueprint(),
         _invariant_prober_is_cross_vendor,
-        lambda x: x["roles"]["prober"].update({"vendor": "anthropic", "cross_vendor_required": False}),
+        lambda x: x["roles"]["prober"].update(
+            {"vendor": "anthropic", "cross_vendor_required": False}
+        ),
         "prober collapsed onto the extractor's vendor",
     )
 

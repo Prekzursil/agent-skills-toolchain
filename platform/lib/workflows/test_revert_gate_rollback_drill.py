@@ -54,7 +54,9 @@ def test_worked_example_checker_fires_on_a_bad_terminal_sentinel(doc: dict) -> N
 # --------------------------------------------------- mechanism: the baseline is bytes, with a negative
 
 
-def test_the_baseline_records_a_digest_per_path_and_a_manifest_digest(doc: dict) -> None:
+def test_the_baseline_records_a_digest_per_path_and_a_manifest_digest(
+    doc: dict,
+) -> None:
     unit = H.stage(doc, "capture-baseline")["work_unit"]
     target = unit["question_or_target"]
     assert "digest" in target and "manifest digest" in target
@@ -64,7 +66,9 @@ def test_the_baseline_records_a_digest_per_path_and_a_manifest_digest(doc: dict)
     )
     tests = " ".join(unit["tests_required"])
     assert "existence false" in tests
-    assert "sorted-rows control" in tests, "a walk-order-dependent digest is not a digest"
+    assert "sorted-rows control" in tests, (
+        "a walk-order-dependent digest is not a digest"
+    )
     assert "baseline-uncapturable" in unit["failure_classification"]
 
 
@@ -90,13 +94,16 @@ def test_the_postcondition_gate_rejects_a_no_op_change(doc: dict) -> None:
 
 def test_dropping_the_no_op_clause_weakens_the_gate_detectably(doc: dict) -> None:
     def bend(d: dict) -> None:
-        d["gates"]["change-actually-did-something"]["expression"] = "postcondition_result == PASS"
+        d["gates"]["change-actually-did-something"]["expression"] = (
+            "postcondition_result == PASS"
+        )
 
     mutant = H.mutated(doc, bend)
     assert H.conformance_failures(mutant) == []
-    assert "applied_manifest_differs_from_baseline" not in H.gate_expressions(mutant)[
-        "change-actually-did-something"
-    ]
+    assert (
+        "applied_manifest_differs_from_baseline"
+        not in H.gate_expressions(mutant)["change-actually-did-something"]
+    )
 
 
 # --------------------------------------------- mechanism: byte equality plus a residual list
@@ -131,7 +138,9 @@ def test_the_drill_order_is_baseline_apply_check_revert_compare(doc: dict) -> No
     assert H.stage(doc, "residue-gate")["depends_on"] == ["compare-to-baseline"]
 
 
-def test_reordering_the_drill_so_the_comparison_precedes_the_revert_is_caught(doc: dict) -> None:
+def test_reordering_the_drill_so_the_comparison_precedes_the_revert_is_caught(
+    doc: dict,
+) -> None:
     """A comparison that no longer waits on the revert is a real defect; DSL-SEM-003 catches the
     cycle produced by making the revert wait on the comparison instead."""
 
@@ -147,7 +156,9 @@ def test_reordering_the_drill_so_the_comparison_precedes_the_revert_is_caught(do
 # ------------------------------------------------------- mechanism: drills are serialized
 
 
-def test_drills_are_strictly_serialized_and_abort_on_the_first_failure(doc: dict) -> None:
+def test_drills_are_strictly_serialized_and_abort_on_the_first_failure(
+    doc: dict,
+) -> None:
     fan = H.stage(doc, "drill-each-change")
     assert fan["max_concurrency"] == 1, (
         "two drills against one tree would each be the other's residue"

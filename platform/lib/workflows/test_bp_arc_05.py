@@ -57,7 +57,10 @@ def test_max_depth_is_pinned_at_one_level_of_nesting():
 def test_worked_example_identical_topology_round_trips():
     ex = worked_example(blueprint())
     src = {"stages": ex["input"]["source_stages"]}
-    assert m.roundtrip_equal(src, {"stages": ex["input"]["source_stages"]}) is ex["expected"]["identical_roundtrip"]
+    assert (
+        m.roundtrip_equal(src, {"stages": ex["input"]["source_stages"]})
+        is ex["expected"]["identical_roundtrip"]
+    )
     assert len(m.topology(src)) == ex["expected"]["topology_length"] == 4
 
 
@@ -70,8 +73,11 @@ def test_worked_example_a_flattened_nested_stage_fails_the_round_trip():
         if "body" in copy_st:
             copy_st["body"] = []
         flattened.append(copy_st)
-    assert m.roundtrip_equal({"stages": ex["input"]["source_stages"]}, {"stages": flattened}) is (
-        control["expected_roundtrip"]
+    assert (
+        m.roundtrip_equal(
+            {"stages": ex["input"]["source_stages"]}, {"stages": flattened}
+        )
+        is (control["expected_roundtrip"])
     )
     assert control["expected_roundtrip"] is False
 
@@ -90,7 +96,10 @@ def test_a_round_trip_mismatch_rejects_the_spec_rather_than_patching_it():
     assert d["gates"]["roundtrip-equal"]["on_fail"] == "fail"
     unit = stage(d, "s4-roundtrip")["work_unit"]
     assert "rejects the spec rather than retrying" in unit["retry_policy"]
-    assert any("Dropping one stage" in t or "dropping one stage" in t.lower() for t in unit["tests_required"])
+    assert any(
+        "Dropping one stage" in t or "dropping one stage" in t.lower()
+        for t in unit["tests_required"]
+    )
 
 
 def test_no_stage_is_silently_dropped_for_a_vendor():
@@ -158,6 +167,8 @@ def test_mutation_control_downgrading_the_roundtrip_gate_breaks_the_invariant():
     both_states_control(
         blueprint(),
         _invariant_roundtrip_rejects,
-        lambda x: x["gates"]["roundtrip-equal"].__setitem__("on_fail", "record-and-continue"),
+        lambda x: x["gates"]["roundtrip-equal"].__setitem__(
+            "on_fail", "record-and-continue"
+        ),
         "a topology mismatch would be recorded and shipped instead of rejected",
     )

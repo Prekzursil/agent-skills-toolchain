@@ -41,20 +41,34 @@ def test_a_test_that_passes_pre_change_is_refused_as_a_proof() -> None:
     d = doc()
     assert d["gates"]["red-before"]["on_fail"] == "fail"
     assert kit.evaluate_gate(d, "red-before") is True
-    assert kit.evaluate_gate(d, "red-before", {"tests_passing_at_pre_change_ref": 1}) is False
+    assert (
+        kit.evaluate_gate(d, "red-before", {"tests_passing_at_pre_change_ref": 1})
+        is False
+    )
 
 
 def test_a_test_still_failing_after_the_change_certifies_nothing() -> None:
     d = doc()
     assert kit.evaluate_gate(d, "green-after") is True
-    assert kit.evaluate_gate(d, "green-after", {"tests_failing_at_post_change_ref": 1}) is False
+    assert (
+        kit.evaluate_gate(d, "green-after", {"tests_failing_at_post_change_ref": 1})
+        is False
+    )
 
 
 def test_the_red_capture_must_be_stored_runner_output_not_an_assertion() -> None:
     d = doc()
     assert kit.evaluate_gate(d, "capture-is-real-output") is True
-    assert kit.evaluate_gate(d, "capture-is-real-output", {"red_capture_source": "AGENT_CLAIM"}) is False
-    assert kit.evaluate_gate(d, "capture-is-real-output", {"asserted_without_capture": 1}) is False
+    assert (
+        kit.evaluate_gate(
+            d, "capture-is-real-output", {"red_capture_source": "AGENT_CLAIM"}
+        )
+        is False
+    )
+    assert (
+        kit.evaluate_gate(d, "capture-is-real-output", {"asserted_without_capture": 1})
+        is False
+    )
     assert d["params"]["evidence_store"]["default"].startswith("command-center/")
 
 
@@ -66,14 +80,18 @@ def test_an_unbuildable_pre_tree_yields_unavailable_and_is_never_assumed() -> No
     # unbuildable AND not marked unavailable -> the gate must not hold
     assert (
         kit.evaluate_gate(
-            d, "pre-tree-buildable", {"pre_change_tree_built": False, "certification_marked_unavailable": False}
+            d,
+            "pre-tree-buildable",
+            {"pre_change_tree_built": False, "certification_marked_unavailable": False},
         )
         is False
     )
     # unbuildable BUT honestly marked -> acceptable, degraded
     assert (
         kit.evaluate_gate(
-            d, "pre-tree-buildable", {"pre_change_tree_built": False, "certification_marked_unavailable": True}
+            d,
+            "pre-tree-buildable",
+            {"pre_change_tree_built": False, "certification_marked_unavailable": True},
         )
         is True
     )
@@ -85,13 +103,18 @@ def test_a_pure_addition_routes_to_a_mutation_substitute_not_a_fake_red() -> Non
     stage = next(s for s in d["stages"] if s["id"] == "mutation-substitute")
     assert stage["kind"] == "subworkflow"
     assert stage["workflow"]["workflow_id"] == "tst.diff-scoped-mutation-gate"
-    assert stage["isolation"] == "worktree", "a mutating child must not share this tree's index"
+    assert stage["isolation"] == "worktree", (
+        "a mutating child must not share this tree's index"
+    )
     assert stage["propagate_failure"] is True
     ctx = kit.worked_context(d)
     assert _expr.evaluate(stage["when"], ctx, strict=True) is False, (
         "the worked example has no pure additions, so the substitute must not run"
     )
-    assert _expr.evaluate(stage["when"], {**ctx, "pure_addition_count": 2}, strict=True) is True
+    assert (
+        _expr.evaluate(stage["when"], {**ctx, "pure_addition_count": 2}, strict=True)
+        is True
+    )
 
 
 def test_the_subworkflow_reference_resolves_to_a_real_sibling_blueprint() -> None:
@@ -107,8 +130,16 @@ def test_the_subworkflow_reference_resolves_to_a_real_sibling_blueprint() -> Non
 
 def test_the_aggregate_cannot_be_better_than_the_worst_per_test_outcome() -> None:
     d = doc()
-    unit = next(u for s in d["stages"] if s["id"] == "certify-or-refuse" for u in [s["work_unit"]])
-    assert "no better than the worst" in unit["completion_sentinel"] or "worst per-test" in unit["question_or_target"]
+    unit = next(
+        u
+        for s in d["stages"]
+        if s["id"] == "certify-or-refuse"
+        for u in [s["work_unit"]]
+    )
+    assert (
+        "no better than the worst" in unit["completion_sentinel"]
+        or "worst per-test" in unit["question_or_target"]
+    )
     assert any("REFUSED" in t for t in unit["tests_required"])
 
 
@@ -129,7 +160,10 @@ def test_MUTATION_weakening_the_red_before_gate_removes_its_power() -> None:
     weakened["gates"]["red-before"]["expression"] = "claimed_tests >= 1"
     ctx = kit.worked_context(weakened)
     ctx.update(bad)
-    assert _expr.evaluate(weakened["gates"]["red-before"]["expression"], ctx, strict=True) is True
+    assert (
+        _expr.evaluate(weakened["gates"]["red-before"]["expression"], ctx, strict=True)
+        is True
+    )
 
 
 def test_MUTATION_dropping_the_red_before_gate_is_rejected() -> None:

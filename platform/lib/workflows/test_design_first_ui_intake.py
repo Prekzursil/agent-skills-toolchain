@@ -29,7 +29,9 @@ BP = "design-first-ui-intake"
 def test_schema_valid_and_semantically_clean() -> None:
     doc = K.load(BP)
     errs = list(schemas.workflow_validator().iter_errors(doc))
-    assert errs == [], [f"{'/'.join(str(p) for p in e.absolute_path)} [{e.validator}]" for e in errs[:5]]
+    assert errs == [], [
+        f"{'/'.join(str(p) for p in e.absolute_path)} [{e.validator}]" for e in errs[:5]
+    ]
     assert [r.to_json() for r in semantics.check_workflow(doc) if r.violations] == []
 
 
@@ -54,21 +56,32 @@ def test_control_letting_implement_bypass_the_admission_gate_is_caught() -> None
     mutated = K.mutate(K.load(BP), K.drop_dependency("implement", "admission-gate"))
     K.assert_still_schema_valid(mutated)
     result = C.implementation_unreachable_without_a_direction(mutated)
-    assert not result.ok, "the predicate accepted an implement stage that bypasses the admission gate"
-    assert any("does not transitively depend on the admission gate" in r for r in result.reasons), result.reasons
+    assert not result.ok, (
+        "the predicate accepted an implement stage that bypasses the admission gate"
+    )
+    assert any(
+        "does not transitively depend on the admission gate" in r
+        for r in result.reasons
+    ), result.reasons
 
 
 def test_control_weakening_the_admission_gate_expression_is_caught() -> None:
     """Both-states control: a gate that no longer checks for a recorded direction admits everything."""
-    mutated = K.mutate(K.load(BP), K.weaken_gate("direction-admitted", "request_is_ui == true"))
+    mutated = K.mutate(
+        K.load(BP), K.weaken_gate("direction-admitted", "request_is_ui == true")
+    )
     K.assert_still_schema_valid(mutated)
     result = C.implementation_unreachable_without_a_direction(mutated)
     assert not result.ok, "an admission gate that ignores the direction was accepted"
-    assert any("does not require a recorded direction" in r for r in result.reasons), result.reasons
+    assert any("does not require a recorded direction" in r for r in result.reasons), (
+        result.reasons
+    )
 
 
 def test_control_downgrading_the_admission_gate_to_non_blocking_is_caught() -> None:
-    mutated = K.mutate(K.load(BP), K.set_gate_on_fail("direction-admitted", "record-and-continue"))
+    mutated = K.mutate(
+        K.load(BP), K.set_gate_on_fail("direction-admitted", "record-and-continue")
+    )
     K.assert_still_schema_valid(mutated)
     result = C.implementation_unreachable_without_a_direction(mutated)
     assert not result.ok, "a non-blocking admission gate was accepted"
@@ -89,22 +102,30 @@ def test_control_removing_the_ui_guard_from_the_implement_stage_is_caught() -> N
     mutated = K.mutate(K.load(BP), K.drop_stage_when("implement"))
     K.assert_still_schema_valid(mutated)
     result = C.non_ui_request_passes_through(mutated)
-    assert not result.ok, "a stage that runs unconditionally on a non-UI request was accepted"
+    assert not result.ok, (
+        "a stage that runs unconditionally on a non-UI request was accepted"
+    )
     assert any("runs unconditionally" in r for r in result.reasons), result.reasons
 
 
 def test_control_weakening_the_false_routing_control_is_caught() -> None:
-    mutated = K.mutate(K.load(BP), K.weaken_gate("no-false-routing", "request_is_ui == true"))
+    mutated = K.mutate(
+        K.load(BP), K.weaken_gate("no-false-routing", "request_is_ui == true")
+    )
     K.assert_still_schema_valid(mutated)
     result = C.non_ui_request_passes_through(mutated)
-    assert not result.ok, "a routing control that cannot detect a false capture was accepted"
+    assert not result.ok, (
+        "a routing control that cannot detect a false capture was accepted"
+    )
     assert any("false_routing_detected" in r for r in result.reasons), result.reasons
 
 
 # ------------------------------------- property 3: a degraded run records the gap loudly
 
 
-def test_a_degraded_run_records_the_gap_instead_of_reverting_silently_to_code_first() -> None:
+def test_a_degraded_run_records_the_gap_instead_of_reverting_silently_to_code_first() -> (
+    None
+):
     doc = K.load(BP)
     ids = C.identifiers(C.gate_expression(doc, "degradation-gate"))
     assert {"design_tools_available", "design_gap_recorded"} <= ids, ids
@@ -112,9 +133,9 @@ def test_a_degraded_run_records_the_gap_instead_of_reverting_silently_to_code_fi
     assert gap is not None
     assert "design_tools_available == false" in gap["when"], gap["when"]
     unit = gap["work_unit"]
-    assert any("NOT written when the tools were available" in t for t in unit["tests_required"]), (
-        "the gap counter must be provably conditional, or the count means nothing"
-    )
+    assert any(
+        "NOT written when the tools were available" in t for t in unit["tests_required"]
+    ), "the gap counter must be provably conditional, or the count means nothing"
 
 
 def test_a_skipped_canvas_is_recorded_rather_than_assumed() -> None:
@@ -123,7 +144,9 @@ def test_a_skipped_canvas_is_recorded_rather_than_assumed() -> None:
     assert skip is not None
     assert "skip_canvas == true" in skip["when"]
     canvas = C.stage(doc, "produce-canvas")
-    assert "skip_canvas == false" in canvas["when"], "the two branches are not mutually exclusive"
+    assert "skip_canvas == false" in canvas["when"], (
+        "the two branches are not mutually exclusive"
+    )
     # the admission gate still runs after either branch, so the shortcut cannot bypass it
     deps = set(C.stage(doc, "admission-gate")["depends_on"])
     assert {"produce-canvas", "record-canvas-skip"} <= deps, deps
@@ -136,8 +159,14 @@ def test_the_owner_decision_is_carried_as_a_checkpoint_not_buried_in_prose() -> 
     assert cp is not None and cp["kind"] == "human_checkpoint"
     assert cp["approval_mode"] == "owner-only"
     assert cp["on_timeout"] in ("fail", "escalate", "proceed")
-    assert "timeout_seconds" in cp, "an unanswered checkpoint must resolve to a declared state, never hang"
-    assert set(cp["options"]) == {"enforce-with-hook", "documented-default", "revisit-after-more-data"}
+    assert "timeout_seconds" in cp, (
+        "an unanswered checkpoint must resolve to a declared state, never hang"
+    )
+    assert set(cp["options"]) == {
+        "enforce-with-hook",
+        "documented-default",
+        "revisit-after-more-data",
+    }
 
 
 def test_the_worked_example_covers_both_the_ui_and_the_non_ui_request() -> None:
@@ -145,4 +174,6 @@ def test_the_worked_example_covers_both_the_ui_and_the_non_ui_request() -> None:
     trace = " ".join(ext["worked_example"]["expected_trace"])
     assert "NOT UI" in trace, "the example never exercises the pass-through path"
     assert "passes through untouched" in trace
-    assert "likely (55-80%)" in ext["unverified"], "the routing-suffices claim must carry its band"
+    assert "likely (55-80%)" in ext["unverified"], (
+        "the routing-suffices claim must carry its band"
+    )

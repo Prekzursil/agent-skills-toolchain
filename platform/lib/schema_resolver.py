@@ -142,14 +142,17 @@ def _retrieve(uri: str) -> Resource:
         raise SchemaResolutionError(
             f"refusing to retrieve a non-local schema uri (no network): {uri!r}"
         )
-    rel = uri[len(BASE_URI):]
+    rel = uri[len(BASE_URI) :]
     target = (REPO_ROOT / rel).resolve()
     if not str(target).startswith(str(REPO_ROOT.resolve()) + os.sep):
         raise SchemaResolutionError(f"schema uri escapes the repo root: {uri!r}")
     if not target.is_file():
-        raise SchemaResolutionError(f"schema uri has no file on disk: {uri!r} -> {target}")
+        raise SchemaResolutionError(
+            f"schema uri has no file on disk: {uri!r} -> {target}"
+        )
     return Resource.from_contents(
-        json.loads(target.read_bytes().decode("utf-8")), default_specification=DRAFT202012
+        json.loads(target.read_bytes().decode("utf-8")),
+        default_specification=DRAFT202012,
     )
 
 
@@ -158,7 +161,9 @@ def build_registry() -> Registry:
     return Registry(retrieve=_retrieve)
 
 
-def resolve(output_schema: str, registry_data: dict[str, Any] | None = None) -> ResolvedSchema:
+def resolve(
+    output_schema: str, registry_data: dict[str, Any] | None = None
+) -> ResolvedSchema:
     """Map a declared ``output_schema`` string to its physical schema.
 
     Accepts every encoding the catalog uses: a bare path, a path plus a
@@ -177,10 +182,15 @@ def resolve(output_schema: str, registry_data: dict[str, Any] | None = None) -> 
     meta_alias = reg["meta_schema_url_alias"]
     if logical == meta_alias["id"]:
         return ResolvedSchema(
-            declared=output_schema, logical_id=logical, fragment=fragment,
-            kind="meta-schema-url", shim_path=None,
-            physical_path=meta_alias["physical_path"], physical_fragment=None,
-            artifact_class=None, report_kind_pinned=False,
+            declared=output_schema,
+            logical_id=logical,
+            fragment=fragment,
+            kind="meta-schema-url",
+            shim_path=None,
+            physical_path=meta_alias["physical_path"],
+            physical_fragment=None,
+            artifact_class=None,
+            report_kind_pinned=False,
         )
 
     entry = reg["entries"].get(logical)
@@ -192,10 +202,15 @@ def resolve(output_schema: str, registry_data: dict[str, Any] | None = None) -> 
 
     if entry["kind"] == "meta-schema-mirror":
         return ResolvedSchema(
-            declared=output_schema, logical_id=logical, fragment=fragment,
-            kind="meta-schema-mirror", shim_path=logical,
-            physical_path=entry["physical_path"], physical_fragment=None,
-            artifact_class=None, report_kind_pinned=False,
+            declared=output_schema,
+            logical_id=logical,
+            fragment=fragment,
+            kind="meta-schema-mirror",
+            shim_path=logical,
+            physical_path=entry["physical_path"],
+            physical_fragment=None,
+            artifact_class=None,
+            report_kind_pinned=False,
         )
 
     phys_path = entry["physical_path"]
@@ -216,9 +231,13 @@ def resolve(output_schema: str, registry_data: dict[str, Any] | None = None) -> 
         phys_frag = known[name]["physical_fragment"]
         artifact_class = name
     return ResolvedSchema(
-        declared=output_schema, logical_id=logical, fragment=fragment,
-        kind=entry["kind"], shim_path=entry["shim_path"],
-        physical_path=phys_path, physical_fragment=phys_frag,
+        declared=output_schema,
+        logical_id=logical,
+        fragment=fragment,
+        kind=entry["kind"],
+        shim_path=entry["shim_path"],
+        physical_path=phys_path,
+        physical_fragment=phys_frag,
         artifact_class=artifact_class,
         report_kind_pinned=bool(entry.get("report_kind_pinned")) or bool(fragment),
     )
@@ -256,7 +275,11 @@ def validate_artifact(artifact: Any, output_schema: str) -> list[str]:
 
 def audit(catalog: Path | str | None = None) -> dict[str, Any]:
     """Resolve every ``output_schema`` in the catalog and count what resolves."""
-    cat = Path(catalog) if catalog else REPO_ROOT / "command-center" / "WORK-UNIT-CATALOG.json"
+    cat = (
+        Path(catalog)
+        if catalog
+        else REPO_ROOT / "command-center" / "WORK-UNIT-CATALOG.json"
+    )
     wus = json.loads(cat.read_bytes().decode("utf-8"))["work_units"]
     reg = load_registry()
 
@@ -268,7 +291,9 @@ def audit(catalog: Path | str | None = None) -> dict[str, Any]:
         try:
             res = resolve(declared, reg)
         except SchemaResolutionError as exc:
-            unresolved.append({"unit": wu.get("id", "?"), "declared": str(declared), "why": str(exc)})
+            unresolved.append(
+                {"unit": wu.get("id", "?"), "declared": str(declared), "why": str(exc)}
+            )
             continue
         if res.kind == "meta-schema-url" or res.resolves:
             refs_ok += 1
@@ -281,11 +306,14 @@ def audit(catalog: Path | str | None = None) -> dict[str, Any]:
         "references_resolving": refs_ok,
         "references_unresolved": len(wus) - refs_ok,
         "distinct_logical_files": len(files),
-        "distinct_logical_files_resolving": sum(1 for v in files.values() if v["resolves"]),
+        "distinct_logical_files_resolving": sum(
+            1 for v in files.values() if v["resolves"]
+        ),
         "distinct_logical_files_NOT_resolving": sorted(
             k for k, v in files.items() if not v["resolves"]
         ),
-        "meta_schema_url_alias_present": "meta-schema-url" in {v["kind"] for v in distinct.values()},
+        "meta_schema_url_alias_present": "meta-schema-url"
+        in {v["kind"] for v in distinct.values()},
         "unresolved_examples": unresolved[:10],
         "physical_control_plane": sorted(
             {v["physical_path"] for v in distinct.values()}
@@ -311,10 +339,16 @@ def main(argv: list[str] | None = None) -> int:
         )
         for e in errors:
             print(e)
-        print("SUCCESS:schema-valid" if not errors else f"FAILED:schema-invalid errors={len(errors)}")
+        print(
+            "SUCCESS:schema-valid"
+            if not errors
+            else f"FAILED:schema-invalid errors={len(errors)}"
+        )
         return 0 if not errors else 1
     print(__doc__)
-    print("usage: schema_resolver.py --audit | <artifact.json> <output_schema-declaration>")
+    print(
+        "usage: schema_resolver.py --audit | <artifact.json> <output_schema-declaration>"
+    )
     return 2
 
 

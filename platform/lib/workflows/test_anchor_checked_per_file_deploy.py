@@ -25,7 +25,12 @@ import pytest
 
 WORKFLOW_ID = "anchor-checked-per-file-deploy"
 DOC = K.load(WORKFLOW_ID)
-BODY_ORDER = ("capture-baseline", "gate-anchor", "check-anchor-and-write", "assert-symbol")
+BODY_ORDER = (
+    "capture-baseline",
+    "gate-anchor",
+    "check-anchor-and-write",
+    "assert-symbol",
+)
 
 
 # ------------------------------------------------------------------------------- the checks
@@ -39,7 +44,9 @@ def check_apply_order_is_serial_and_aborts_on_failure(doc: Mapping[str, Any]) ->
     assert fan["on_item_failure"] == "abort", (
         "continuing past a failed item applies later files on top of a known-bad state"
     )
-    assert fan["over"]["key_field"] == "order", "the item key must be the declared apply order"
+    assert fan["over"]["key_field"] == "order", (
+        "the item key must be the declared apply order"
+    )
     assert fan["over"]["ref"] == "apply_plan"
 
 
@@ -75,7 +82,9 @@ def check_no_gate_is_declared_but_unenforced(doc: Mapping[str, Any]) -> None:
     )
 
 
-def check_the_postcondition_is_a_symbol_not_a_green_suite(doc: Mapping[str, Any]) -> None:
+def check_the_postcondition_is_a_symbol_not_a_green_suite(
+    doc: Mapping[str, Any],
+) -> None:
     spec = K.gate_for_stage(doc, "gate-symbol")
     assert "asserted_symbol_present == true" in spec["expression"]
     assert "symbol_assertion_is_independent_of_suite == true" in spec["expression"], (
@@ -86,14 +95,18 @@ def check_the_postcondition_is_a_symbol_not_a_green_suite(doc: Mapping[str, Any]
     assert "symbol-assertion-catches-what-the-suite-misses" in ids
 
 
-def check_the_postcondition_auditor_is_cross_vendor_with_a_veto(doc: Mapping[str, Any]) -> None:
+def check_the_postcondition_auditor_is_cross_vendor_with_a_veto(
+    doc: Mapping[str, Any],
+) -> None:
     auditor = doc["roles"]["postcondition-auditor"]
     operator = doc["roles"]["deploy-operator"]
     assert auditor["vendor"] != operator["vendor"], (
         "the operator wrote the bytes; a same-vendor auditor shares its blind spot"
     )
     assert auditor.get("cross_vendor_required") is True
-    assert auditor["authority"] == "veto", "an advisory postcondition is not a postcondition"
+    assert auditor["authority"] == "veto", (
+        "an advisory postcondition is not a postcondition"
+    )
     routes = K.routes_for(doc, "postcondition-auditor")
     assert routes and routes[0]["target"]["vendor"] != operator["vendor"]
     assert K.stage(doc, "assert-symbol")["role"] == "postcondition-auditor"
@@ -119,7 +132,9 @@ def check_the_fail_open_installer_shape_is_detected(doc: Mapping[str, Any]) -> N
     assert "fail-open-zero-count" in doc["failure_policy"]["classify_as"]
 
 
-def check_the_installer_ban_is_enforced_by_code_not_memory(doc: Mapping[str, Any]) -> None:
+def check_the_installer_ban_is_enforced_by_code_not_memory(
+    doc: Mapping[str, Any],
+) -> None:
     spec = doc["params"]["installer_transport_banned"]
     assert spec["type"] == "boolean" and spec["default"] is True
     gate_spec = K.gate_for_stage(doc, "gate-preservation")
@@ -144,7 +159,12 @@ def check_the_owner_checkpoint_fails_on_timeout(doc: Mapping[str, Any]) -> None:
 
 def check_an_anchor_or_symbol_failure_is_never_retried(doc: Mapping[str, Any]) -> None:
     no_retry = set(doc["retry_policy"]["no_retry_on"])
-    assert {"anchor-mismatch", "symbol-absent", "restore-hash-mismatch", "missing-preimage"} <= no_retry, (
+    assert {
+        "anchor-mismatch",
+        "symbol-absent",
+        "restore-hash-mismatch",
+        "missing-preimage",
+    } <= no_retry, (
         "retrying a refused write is how a precondition gets worn down into a warning"
     )
     assert doc["retry_policy"]["pivot"]["enumerate_alternatives_min"] >= 2
@@ -167,17 +187,24 @@ def check_the_peer_owned_trees_are_unwritable(doc: Mapping[str, Any]) -> None:
     assert ".claude/agent-worktrees/**" in forbidden
     assert doc["tool_policy"]["default"] == "deny"
     assert "Bash" in doc["tool_policy"]["deny"]
-    assert "Write(command-center/deploy/**)" in doc["tool_policy"]["require_owner_approval"]
+    assert (
+        "Write(command-center/deploy/**)"
+        in doc["tool_policy"]["require_owner_approval"]
+    )
 
 
 def check_the_worked_example_applies_in_declared_order(doc: Mapping[str, Any]) -> None:
     example = K.worked_examples(doc)[0]
     plan = example["params"]["apply_plan"]
     orders = [item["order"] for item in plan]
-    assert orders == sorted(orders), "the worked example must apply in ascending declared order"
+    assert orders == sorted(orders), (
+        "the worked example must apply in ascending declared order"
+    )
     for item in plan:
         assert item["expected_anchor"], "every planned file needs an anchor"
-        assert item["asserted_symbol"], "every planned file needs a postcondition symbol"
+        assert item["asserted_symbol"], (
+            "every planned file needs a postcondition symbol"
+        )
     trace = example["apply_trace"]
     assert len(trace) == len(plan), "the trace must cover every planned file"
     for row in trace:
@@ -250,19 +277,27 @@ def _declare_an_extra_orphan_gate(doc: dict) -> None:
 
 
 def _accept_a_green_suite_as_the_postcondition(doc: dict) -> None:
-    doc["gates"]["symbol-asserted-not-suite-green"]["expression"] = "asserted_symbol_present == true"
+    doc["gates"]["symbol-asserted-not-suite-green"]["expression"] = (
+        "asserted_symbol_present == true"
+    )
 
 
 def _make_the_auditor_same_vendor(doc: dict) -> None:
-    doc["roles"]["postcondition-auditor"]["vendor"] = doc["roles"]["deploy-operator"]["vendor"]
+    doc["roles"]["postcondition-auditor"]["vendor"] = doc["roles"]["deploy-operator"][
+        "vendor"
+    ]
 
 
 def _accept_a_background_receipt(doc: dict) -> None:
-    K.find_stage_mut(doc, "apply-serially")["barrier"]["reject_result_matching"] = ["ERROR"]
+    K.find_stage_mut(doc, "apply-serially")["barrier"]["reject_result_matching"] = [
+        "ERROR"
+    ]
 
 
 def _drop_the_fail_open_rule(doc: dict) -> None:
-    doc["stopping_rules"] = [r for r in doc["stopping_rules"] if r["id"] != "fail-open-detected"]
+    doc["stopping_rules"] = [
+        r for r in doc["stopping_rules"] if r["id"] != "fail-open-detected"
+    ]
 
 
 def _default_the_installer_ban_off(doc: dict) -> None:
@@ -294,20 +329,37 @@ MUTATIONS = (
     (check_apply_order_is_serial_and_aborts_on_failure, _parallelise_the_apply),
     (check_the_anchor_gate_is_actually_wired_to_a_stage, _unwire_the_anchor_gate),
     (check_no_gate_is_declared_but_unenforced, _declare_an_extra_orphan_gate),
-    (check_the_postcondition_is_a_symbol_not_a_green_suite, _accept_a_green_suite_as_the_postcondition),
-    (check_the_postcondition_auditor_is_cross_vendor_with_a_veto, _make_the_auditor_same_vendor),
+    (
+        check_the_postcondition_is_a_symbol_not_a_green_suite,
+        _accept_a_green_suite_as_the_postcondition,
+    ),
+    (
+        check_the_postcondition_auditor_is_cross_vendor_with_a_veto,
+        _make_the_auditor_same_vendor,
+    ),
     (check_the_barrier_rejects_a_receipt_as_a_result, _accept_a_background_receipt),
     (check_the_fail_open_installer_shape_is_detected, _drop_the_fail_open_rule),
-    (check_the_installer_ban_is_enforced_by_code_not_memory, _default_the_installer_ban_off),
-    (check_the_owner_checkpoint_fails_on_timeout, _let_the_deploy_authorise_itself_on_timeout),
+    (
+        check_the_installer_ban_is_enforced_by_code_not_memory,
+        _default_the_installer_ban_off,
+    ),
+    (
+        check_the_owner_checkpoint_fails_on_timeout,
+        _let_the_deploy_authorise_itself_on_timeout,
+    ),
     (check_an_anchor_or_symbol_failure_is_never_retried, _retry_an_anchor_mismatch),
     (check_a_resume_cannot_reorder_the_apply, _resume_without_the_item_key),
     (check_the_peer_owned_trees_are_unwritable, _allow_writes_into_a_peer_tree),
-    (check_the_worked_example_applies_in_declared_order, _scramble_the_worked_example_order),
+    (
+        check_the_worked_example_applies_in_declared_order,
+        _scramble_the_worked_example_order,
+    ),
 )
 
 
-@pytest.mark.parametrize("check,mutate", MUTATIONS, ids=lambda v: getattr(v, "__name__", ""))
+@pytest.mark.parametrize(
+    "check,mutate", MUTATIONS, ids=lambda v: getattr(v, "__name__", "")
+)
 def test_each_check_fails_on_its_mutated_blueprint(check: Any, mutate: Any) -> None:
     broken = K.mutant(DOC, mutate)
     assert K.raises_assertion(check, broken), (
@@ -326,5 +378,7 @@ def test_the_unwired_gate_mutant_is_schema_legal_and_violation_free() -> None:
     broken = K.mutant(DOC, _unwire_the_anchor_gate)
     assert K.schema_errors(broken) == []
     assert K.semantic_violations(broken) == []
-    assert K.raises_assertion(check_the_anchor_gate_is_actually_wired_to_a_stage, broken)
+    assert K.raises_assertion(
+        check_the_anchor_gate_is_actually_wired_to_a_stage, broken
+    )
     assert K.raises_assertion(check_no_gate_is_declared_but_unenforced, broken)

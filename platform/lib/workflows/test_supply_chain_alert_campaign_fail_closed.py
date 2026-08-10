@@ -120,7 +120,10 @@ def test_a_non_finding_exit_code_is_classified_as_a_tool_error(doc: dict) -> Non
     assert "127" in collector["question_or_target"]
     assert "TOOL-ERROR" in collector["question_or_target"]
     assert "tool-error-read-as-zero" in collector["failure_classification"]
-    assert "advisory_source_reachable == true" in H.gate_expressions(doc)["advisory-source-live"]
+    assert (
+        "advisory_source_reachable == true"
+        in H.gate_expressions(doc)["advisory-source-live"]
+    )
     assert "tool-error-read-as-zero" in doc["retry_policy"]["no_retry_on"]
 
 
@@ -145,7 +148,9 @@ def test_the_fork_check_is_two_directional(doc: dict) -> None:
 # --------------------------------------------------------- honesty: replay is NOT deterministic
 
 
-def test_replay_is_declared_non_deterministic_because_advisories_move(doc: dict) -> None:
+def test_replay_is_declared_non_deterministic_because_advisories_move(
+    doc: dict,
+) -> None:
     assert doc["replay"]["deterministic"] is False
     assert doc["params"]["snapshot_date"]["required"] is True
     assert doc["cache"]["invalidate_on"] == ["snapshot-date-change"]

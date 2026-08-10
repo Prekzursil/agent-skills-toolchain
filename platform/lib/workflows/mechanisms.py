@@ -74,7 +74,9 @@ def serial_groups(
     return [sorted(v) for _, v in sorted(groups.items())]
 
 
-def assign_isolation(sets: Mapping[str, Iterable[str] | None], mutating: Iterable[str]) -> dict[str, str]:
+def assign_isolation(
+    sets: Mapping[str, Iterable[str] | None], mutating: Iterable[str]
+) -> dict[str, str]:
     """worktree for mutating units, scoped-add otherwise, serial for an UNKNOWN file set.
 
     Worktree isolation appears in 9 of 329 executed workflows (2.7%); making it the DEFAULT
@@ -202,7 +204,9 @@ _COMPARATOR = re.compile(
     re.I,
 )
 _QUANTITY = re.compile(r"(\d|\btrue\b|\bfalse\b|\bPASS\b|\bFAIL\b)")
-_VAGUE = re.compile(r"\b(fast|nice|clean|intuitive|robust|scalable|good|smooth|modern)\b", re.I)
+_VAGUE = re.compile(
+    r"\b(fast|nice|clean|intuitive|robust|scalable|good|smooth|modern)\b", re.I
+)
 
 
 def is_testable(criterion: str) -> bool:
@@ -223,7 +227,9 @@ def orphan_requirements(
 ) -> list[str]:
     """A requirement with no decision-log ancestor is scope creep, not a requirement."""
     known = set(decision_ids)
-    return sorted(r for r, anc in requirements.items() if anc is None or anc not in known)
+    return sorted(
+        r for r, anc in requirements.items() if anc is None or anc not in known
+    )
 
 
 # ------------------------------------------------------------------ tournament with override
@@ -238,7 +244,9 @@ class Architecture:
     fingerprint: str = ""
 
 
-def eliminate_critical(cands: Sequence[Architecture]) -> tuple[list[Architecture], list[str]]:
+def eliminate_critical(
+    cands: Sequence[Architecture],
+) -> tuple[list[Architecture], list[str]]:
     """A critical error forces elimination in round 1 - it is never averaged away."""
     live = [c for c in cands if not c.critical_errors]
     return live, [c.name for c in cands if c.critical_errors]
@@ -283,7 +291,9 @@ def bracket(
                     "winner": win.name,
                     "deciding_dimension": deciding,
                     "loser_better_at": sorted(
-                        d for d in weights if lose.scores.get(d, 0) > win.scores.get(d, 0)
+                        d
+                        for d in weights
+                        if lose.scores.get(d, 0) > win.scores.get(d, 0)
                     ),
                 }
             )
@@ -346,7 +356,8 @@ class Domain:
 
     def __post_init__(self) -> None:
         self.unmonitored = bool(self.applies) and (
-            not self.detection_probe or self.who_notices.strip().lower() in {"", "nobody"}
+            not self.detection_probe
+            or self.who_notices.strip().lower() in {"", "nobody"}
         )
 
 
@@ -364,7 +375,9 @@ def failure_domain_walk(
                 failure_class=cls,
                 applies=applies,
                 symptom=f"{cls} manifests via {trigger}" if applies else "",
-                who_notices=("owner" if probes.get(cls) else "nobody") if applies else "",
+                who_notices=("owner" if probes.get(cls) else "nobody")
+                if applies
+                else "",
                 blast_radius="declared-by-mapper" if applies else "",
                 detection_probe=probes.get(cls),
             )
@@ -427,7 +440,9 @@ def topology(doc: Mapping[str, object]) -> list[tuple[str, str, tuple[str, ...]]
     return out
 
 
-def roundtrip_equal(source: Mapping[str, object], emitted: Mapping[str, object]) -> bool:
+def roundtrip_equal(
+    source: Mapping[str, object], emitted: Mapping[str, object]
+) -> bool:
     """A spec that loses a stage or an edge is REJECTED, never patched to look right."""
     return topology(source) == topology(emitted)
 
@@ -459,7 +474,9 @@ def classify_component(
     return "live-exercised" if fired_recently else "live-dormant"
 
 
-def removable(classification: str, blast_radius_traced: bool, security_bearing: bool) -> bool:
+def removable(
+    classification: str, blast_radius_traced: bool, security_bearing: bool
+) -> bool:
     """No removal without a traced blast radius; a security-bearing removal is owner-only."""
     if not blast_radius_traced or security_bearing:
         return False

@@ -65,8 +65,12 @@ def test_superset_detection_is_directional():
 
 def test_merge_order_ranks_by_measured_surface_not_by_size():
     order = m.merge_order(["big", "small"], {}, {"big": 1, "small": 3})
-    assert order == ["big", "small"], "a large diff with a small conflict surface must not be last"
-    assert m.merge_order(["b", "a"], {}, {"a": 0, "b": 0}) == ["a", "b"], "ties break deterministically"
+    assert order == ["big", "small"], (
+        "a large diff with a small conflict surface must not be last"
+    )
+    assert m.merge_order(["b", "a"], {}, {"a": 0, "b": 0}) == ["a", "b"], (
+        "ties break deterministically"
+    )
 
 
 # ----------------------------------------------------------------------- EVPI clarification
@@ -107,14 +111,23 @@ def test_low_confidence_load_bearing_without_a_probe_is_unhandled():
     rows = [
         m.Assumption("stale pinned ref", True, "low"),
         m.Assumption("suite is fast", False, "low"),
-        m.Assumption("coverage cmd exists", True, "low", verification_probe="run enforcement.command"),
+        m.Assumption(
+            "coverage cmd exists",
+            True,
+            "low",
+            verification_probe="run enforcement.command",
+        ),
         m.Assumption("git is installed", True, "high"),
     ]
     assert [r.text for r in m.unhandled_assumptions(rows)] == ["stale pinned ref"]
 
 
 def test_a_probe_moves_a_row_out_of_unhandled():
-    rows = [m.Assumption("stale pinned ref", True, "low", verification_probe="re-resolve the ref")]
+    rows = [
+        m.Assumption(
+            "stale pinned ref", True, "low", verification_probe="re-resolve the ref"
+        )
+    ]
     assert m.unhandled_assumptions(rows) == []
 
 
@@ -124,7 +137,10 @@ def test_unknown_confidence_band_raises_rather_than_passing_silently():
 
 
 def test_blank_required_field_resolves_to_worst_case():
-    assert m.blank_field_default("", "no rollback path exists") == "no rollback path exists"
+    assert (
+        m.blank_field_default("", "no rollback path exists")
+        == "no rollback path exists"
+    )
     assert m.blank_field_default(None, "worst") == "worst"
     assert m.blank_field_default([], "worst") == "worst"
     assert m.blank_field_default("declared value", "worst") == "declared value"
@@ -158,18 +174,28 @@ def test_orphan_requirement_is_one_with_no_decision_ancestor():
 
 def _arch(name, corr, rec, crit=(), fp=""):
     return m.Architecture(
-        name=name, scores={"correctness": corr, "recoverability": rec}, critical_errors=list(crit), fingerprint=fp
+        name=name,
+        scores={"correctness": corr, "recoverability": rec},
+        critical_errors=list(crit),
+        fingerprint=fp,
     )
 
 
 def test_critical_error_eliminates_before_any_averaging():
-    cands = [_arch("alpha", 4, 4, crit=["stores a credential"], fp="a"), _arch("beta", 2, 1, fp="b")]
+    cands = [
+        _arch("alpha", 4, 4, crit=["stores a credential"], fp="a"),
+        _arch("beta", 2, 1, fp="b"),
+    ]
     live, out = m.eliminate_critical(cands)
     assert out == ["alpha"] and [c.name for c in live] == ["beta"]
 
 
 def test_near_duplicate_architectures_are_an_independence_failure():
-    cands = [_arch("beta", 4, 1, fp="b"), _arch("delta", 4, 1, fp="b"), _arch("gamma", 2, 4, fp="c")]
+    cands = [
+        _arch("beta", 4, 1, fp="b"),
+        _arch("delta", 4, 1, fp="b"),
+        _arch("gamma", 2, 4, fp="c"),
+    ]
     assert m.near_duplicates(cands) == [("beta", "delta")]
     assert m.near_duplicates([_arch("a", 1, 1, fp="x"), _arch("b", 1, 1, fp="y")]) == []
 
@@ -192,7 +218,9 @@ def test_without_the_override_the_fatal_architecture_would_win():
 
 
 def test_bracket_returns_none_when_every_candidate_is_fatal():
-    champ, rounds = m.bracket([_arch("a", 4, 4, crit=["fatal"], fp="a")], {"correctness": 1.0})
+    champ, rounds = m.bracket(
+        [_arch("a", 4, 4, crit=["fatal"], fp="a")], {"correctness": 1.0}
+    )
     assert champ is None and rounds == []
 
 
@@ -230,7 +258,9 @@ def test_try_except_importerror_flags_fail_open_and_a_missing_probe_is_unmonitor
 def test_supplying_the_probe_clears_the_unmonitored_flag():
     rows = m.failure_domain_walk(
         ["try-except-importerror"],
-        probes={"fail-open-on-missing-dependency": "assert the guard fires when the import is removed"},
+        probes={
+            "fail-open-on-missing-dependency": "assert the guard fires when the import is removed"
+        },
     )
     assert m.unmonitored_domains(rows) == []
 
@@ -247,7 +277,12 @@ def test_zero_applicable_domains_is_reachable_so_the_walk_is_not_rubber_stamping
 def test_unknown_marker_blocks_completion_independently_of_size():
     big_but_unknown = "pairs=12; groups: " + m.UNKNOWN_MARKER + "; " + "x" * 500
     assert m.unit_complete(big_but_unknown, min_bytes=32) is False
-    assert m.unit_complete("all rows measured and cited, nothing outstanding here", min_bytes=32) is True
+    assert (
+        m.unit_complete(
+            "all rows measured and cited, nothing outstanding here", min_bytes=32
+        )
+        is True
+    )
 
 
 def test_size_floor_blocks_completion_independently_of_the_marker():
@@ -275,7 +310,12 @@ def test_a_truthful_partial_is_still_a_success_when_non_empty():
 
 SRC_STAGES = [
     {"id": "a", "kind": "task", "depends_on": []},
-    {"id": "b", "kind": "fanout", "depends_on": ["a"], "body": [{"id": "b-inner", "kind": "task", "depends_on": []}]},
+    {
+        "id": "b",
+        "kind": "fanout",
+        "depends_on": ["a"],
+        "body": [{"id": "b-inner", "kind": "task", "depends_on": []}],
+    },
     {"id": "c", "kind": "gate", "depends_on": ["b"]},
 ]
 
@@ -305,7 +345,10 @@ def test_a_reordered_dependency_edge_breaks_the_round_trip():
 
 
 def test_a_stage_with_no_provider_cell_is_declared_vendor_locked():
-    assert m.vendor_locked(["a", "b", "c"], {"a": {"anthropic": "task"}, "b": {"anthropic": "fanout"}, "c": {}}) == ["c"]
+    assert m.vendor_locked(
+        ["a", "b", "c"],
+        {"a": {"anthropic": "task"}, "b": {"anthropic": "fanout"}, "c": {}},
+    ) == ["c"]
 
 
 # ------------------------------------------------------------- disarmed vs unused (audit)
@@ -321,18 +364,37 @@ def test_a_stage_with_no_provider_cell_is_declared_vendor_locked():
         (False, False, None, "unregistered"),
     ],
 )
-def test_disarmed_is_never_reported_as_unused(registered, fired, fires_on_bad, expected):
+def test_disarmed_is_never_reported_as_unused(
+    registered, fired, fires_on_bad, expected
+):
     assert (
         m.classify_component(
-            registered=registered, fired_recently=fired, fires_on_known_bad_state=fires_on_bad
+            registered=registered,
+            fired_recently=fired,
+            fires_on_known_bad_state=fires_on_bad,
         )
         == expected
     )
 
 
 def test_removal_requires_a_trace_and_refuses_anything_security_bearing():
-    assert m.removable("unregistered", blast_radius_traced=True, security_bearing=False) is True
-    assert m.removable("unregistered", blast_radius_traced=False, security_bearing=False) is False
-    assert m.removable("unregistered", blast_radius_traced=True, security_bearing=True) is False
-    assert m.removable("disarmed", blast_radius_traced=True, security_bearing=False) is False
-    assert m.removable("live-dormant", blast_radius_traced=True, security_bearing=False) is False
+    assert (
+        m.removable("unregistered", blast_radius_traced=True, security_bearing=False)
+        is True
+    )
+    assert (
+        m.removable("unregistered", blast_radius_traced=False, security_bearing=False)
+        is False
+    )
+    assert (
+        m.removable("unregistered", blast_radius_traced=True, security_bearing=True)
+        is False
+    )
+    assert (
+        m.removable("disarmed", blast_radius_traced=True, security_bearing=False)
+        is False
+    )
+    assert (
+        m.removable("live-dormant", blast_radius_traced=True, security_bearing=False)
+        is False
+    )

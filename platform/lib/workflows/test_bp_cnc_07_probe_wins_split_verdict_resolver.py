@@ -59,7 +59,9 @@ def test_an_empty_fingerprint_counts_as_no_probe() -> None:
     doc = C.load(BP)
     wu = C.find_stage(doc, "extract-probes")["work_unit"]
     assert "empty-probe-fingerprint" in wu["failure_classification"]
-    assert any("empty probe_command must count as no probe" in t for t in wu["tests_required"])
+    assert any(
+        "empty probe_command must count as no probe" in t for t in wu["tests_required"]
+    )
     assert "empty_fingerprint_note" in doc["x_extensions"]
     assert "four empty strings" in doc["x_extensions"]["empty_fingerprint_note"]
 
@@ -124,14 +126,19 @@ def test_it_is_the_only_bp2_blueprint_that_gates_on_the_resolution_method() -> N
     for bid in C.BP2_IDS:
         doc = C.load(bid)
         for name, g in (doc.get("gates") or {}).items():
-            if isinstance(g, dict) and "resolved_by_majority" in str(g.get("expression", "")):
+            if isinstance(g, dict) and "resolved_by_majority" in str(
+                g.get("expression", "")
+            ):
                 hits.append((bid, name))
     assert [h[0] for h in hits] == [BP], hits
 
 
 def test_the_walkthrough_states_the_verdict_is_vote_independent() -> None:
     pos = C.worked_examples(C.load(BP))[0]
-    assert "would be identical if the vote had been 2 refute versus 4 confirm" in pos["walkthrough"], (
+    assert (
+        "would be identical if the vote had been 2 refute versus 4 confirm"
+        in pos["walkthrough"]
+    ), (
         "the load-bearing property is that the tally is never read; the worked example says so "
         "explicitly rather than merely happening to agree with the majority"
     )
@@ -157,16 +164,21 @@ def test_the_third_probe_is_conditional_and_must_differ_mechanically() -> None:
     stage = C.find_stage(doc, "third-probe")
     assert stage["when"] == "still_split == true AND allow_third_probe == true"
     wu = stage["work_unit"]
-    assert "differs from BOTH sides by shell, data field or measurement" in wu["question_or_target"]
+    assert (
+        "differs from BOTH sides by shell, data field or measurement"
+        in wu["question_or_target"]
+    )
     assert "probe-is-a-rerun" in wu["failure_classification"]
     assert any("REJECTED as a re-run" in t for t in wu["tests_required"])
 
 
 def test_conditional_stages_are_a_declared_part_of_the_structure() -> None:
     fp = C.fingerprint(C.load(BP))
-    assert fp["conditional_stages"] == ["both-states-control", "control-gate", "third-probe"], (
-        fp["conditional_stages"]
-    )
+    assert fp["conditional_stages"] == [
+        "both-states-control",
+        "control-gate",
+        "third-probe",
+    ], fp["conditional_stages"]
     assert "loop" not in fp["stage_kinds"], (
         "the design card describes a single conditional third probe, not a loop; a loop here "
         "would license re-probing until a preferred answer appeared"
@@ -190,7 +202,9 @@ def test_the_both_states_control_must_discriminate_the_two_states() -> None:
     assert wu["retry_policy"].startswith("no retry on a broken detector")
 
 
-def test_mutation_control_dropping_one_arm_of_the_control_expression_is_visible() -> None:
+def test_mutation_control_dropping_one_arm_of_the_control_expression_is_visible() -> (
+    None
+):
     """A one-armed control is the classic silent detector, so prove the text is asserted."""
     doc = C.load(BP)
     doc["gates"]["control-fires-in-both-states"]["expression"] = (
@@ -200,7 +214,10 @@ def test_mutation_control_dropping_one_arm_of_the_control_expression_is_visible(
         "the schema cannot know a control needs two arms - the requirement lives in the test above"
     )
     good = C.load(BP)
-    assert "control_silent_on_good_state" in good["gates"]["control-fires-in-both-states"]["expression"]
+    assert (
+        "control_silent_on_good_state"
+        in good["gates"]["control-fires-in-both-states"]["expression"]
+    )
 
 
 # ------------------------------------------------------ mechanism 6: UNRESOLVED is legitimate
@@ -209,7 +226,10 @@ def test_mutation_control_dropping_one_arm_of_the_control_expression_is_visible(
 def test_unresolved_is_a_declared_terminal_state_not_a_failure_to_decide() -> None:
     doc = C.load(BP)
     rules = {r["id"]: r for r in doc["stopping_rules"]}
-    assert rules["unresolved-no-independent-instrument"]["expression"] == "independent_signals == 0"
+    assert (
+        rules["unresolved-no-independent-instrument"]["expression"]
+        == "independent_signals == 0"
+    )
     assert rules["unresolved-no-independent-instrument"]["on_stop"] == "emit-partial"
     wu = C.find_stage(doc, "resolve")["work_unit"]
     assert "UNRESOLVED is also a SUCCESS terminal state" in wu["completion_sentinel"]
@@ -236,15 +256,20 @@ def test_worked_examples_validate_and_cover_both_arms() -> None:
     assert not C.worked_example_errors(doc)
     pos, neg = C.worked_examples(doc)
     assert pos["arm"] == "positive" and "REFUTED" in pos["expected_terminal_state"]
-    assert neg["arm"] == "negative-control" and "UNRESOLVED" in neg["expected_terminal_state"]
+    assert (
+        neg["arm"] == "negative-control"
+        and "UNRESOLVED" in neg["expected_terminal_state"]
+    )
 
 
-def test_mutation_control_a_worked_example_with_an_illegal_verdict_token_is_caught() -> None:
+def test_mutation_control_a_worked_example_with_an_illegal_verdict_token_is_caught() -> (
+    None
+):
     C.assert_mutation_caught(
         BP,
-        lambda d: d["x_extensions"]["worked_examples"][0]["params"]["verdicts"][0].__setitem__(
-            "verdict", "PROBABLY_TRUE"
-        ),
+        lambda d: d["x_extensions"]["worked_examples"][0]["params"]["verdicts"][
+            0
+        ].__setitem__("verdict", "PROBABLY_TRUE"),
         "worked_examples",
         what="use a verdict token outside the declared enum, proving the compiled param schema "
         "actually reaches nested array-item enums",

@@ -46,7 +46,9 @@ SHARED_IDS = ["shared.pairwise-overlap-matrix", "shared.write-as-you-go-artifact
 def _docs():
     out = {}
     for bp in BP_IDS:
-        out[bp] = json.loads((WORKFLOW_DIR / f"{bp}.workflow.json").read_text(encoding="utf-8"))
+        out[bp] = json.loads(
+            (WORKFLOW_DIR / f"{bp}.workflow.json").read_text(encoding="utf-8")
+        )
     return out
 
 
@@ -55,7 +57,9 @@ def test_all_twelve_blueprints_are_on_disk():
     this range's twelve are present - never that the directory contains only twelve. Asserting
     exclusivity of a shared directory would fail on a sibling's unrelated, correct work."""
     on_disk = {p.name for p in WORKFLOW_DIR.glob("*.json")}
-    missing = [f"{b}.workflow.json" for b in BP_IDS if f"{b}.workflow.json" not in on_disk]
+    missing = [
+        f"{b}.workflow.json" for b in BP_IDS if f"{b}.workflow.json" not in on_disk
+    ]
     assert missing == [], f"bp-3 blueprints absent from {WORKFLOW_DIR}: {missing}"
     assert len(BP_IDS) == 12
 
@@ -65,9 +69,15 @@ def test_no_bp3_id_collides_with_any_other_blueprint_in_the_shared_directory():
     ours = set(BP_IDS) | set(SHARED_IDS)
     theirs: dict[str, str] = {}
     for path in list(WORKFLOW_DIR.glob("*.json")) + list(SHARED_DIR.glob("*.json")):
-        if path.name.endswith(".workflow.json") and path.stem.replace(".workflow", "") in ours:
+        if (
+            path.name.endswith(".workflow.json")
+            and path.stem.replace(".workflow", "") in ours
+        ):
             continue
-        if path.name.endswith(".subworkflow.json") and path.stem.replace(".subworkflow", "") in ours:
+        if (
+            path.name.endswith(".subworkflow.json")
+            and path.stem.replace(".subworkflow", "") in ours
+        ):
             continue
         try:
             doc = json.loads(path.read_text(encoding="utf-8"))
@@ -76,12 +86,18 @@ def test_no_bp3_id_collides_with_any_other_blueprint_in_the_shared_directory():
         if isinstance(doc, dict) and isinstance(doc.get("id"), str):
             theirs[doc["id"]] = path.name
     collisions = sorted(ours & set(theirs))
-    assert collisions == [], f"id collision with a sibling range: {[(c, theirs[c]) for c in collisions]}"
+    assert collisions == [], (
+        f"id collision with a sibling range: {[(c, theirs[c]) for c in collisions]}"
+    )
 
 
 def test_both_shared_subworkflows_are_on_disk():
     on_disk = {p.name for p in SHARED_DIR.glob("*.subworkflow.json")}
-    missing = [f"{s}.subworkflow.json" for s in SHARED_IDS if f"{s}.subworkflow.json" not in on_disk]
+    missing = [
+        f"{s}.subworkflow.json"
+        for s in SHARED_IDS
+        if f"{s}.subworkflow.json" not in on_disk
+    ]
     assert missing == [], f"shared subworkflows absent from {SHARED_DIR}: {missing}"
 
 
@@ -97,7 +113,9 @@ def _fingerprint(doc) -> tuple:
     """A mechanism fingerprint: stage-kind shape + gate predicates + stopping predicates."""
     kinds = tuple(sorted(Counter(str(s.get("kind")) for s in stages(doc)).items()))
     gates = tuple(sorted(gate_expressions(doc).values()))
-    stops = tuple(sorted(json.dumps(e, sort_keys=True) for e in stopping_expressions(doc)))
+    stops = tuple(
+        sorted(json.dumps(e, sort_keys=True) for e in stopping_expressions(doc))
+    )
     return (kinds, gates, stops)
 
 
@@ -128,7 +146,9 @@ def test_the_two_overlap_matrix_callers_are_not_near_duplicates():
     for doc in (pln02, pln03):
         assert "shared.pairwise-overlap-matrix" in (doc.get("subworkflows") or {})
     # ...and their gates, stopping rules and stage sets are disjoint in substance
-    assert set(gate_expressions(pln02).values()).isdisjoint(gate_expressions(pln03).values())
+    assert set(gate_expressions(pln02).values()).isdisjoint(
+        gate_expressions(pln03).values()
+    )
     assert set(stage_ids(pln02)) != set(stage_ids(pln03))
     assert _fingerprint(pln02) != _fingerprint(pln03)
 
@@ -138,7 +158,9 @@ def test_every_declared_distinguishing_mechanism_is_unique():
     for bp, doc in _docs().items():
         claim = (doc.get("x_extensions") or {}).get("distinguishing_mechanism")
         assert claim, f"{bp} declares no distinguishing mechanism"
-        assert claim not in claims, f"{bp} repeats {claims[claim]}'s distinctness claim verbatim"
+        assert claim not in claims, (
+            f"{bp} repeats {claims[claim]}'s distinctness claim verbatim"
+        )
         claims[claim] = bp
 
 
@@ -146,16 +168,26 @@ def test_every_blueprint_carries_the_seven_mandated_elements():
     """typed params, stages, roles, gates, tools, stopping rules, failure policy - plus an example."""
     for bp, doc in _docs().items():
         assert doc.get("params"), f"{bp}: no typed params"
-        assert all("type" in spec for spec in doc["params"].values()), f"{bp}: an untyped param"
+        assert all("type" in spec for spec in doc["params"].values()), (
+            f"{bp}: an untyped param"
+        )
         assert doc.get("stages"), f"{bp}: no stages"
         assert doc.get("roles"), f"{bp}: no roles"
         assert doc.get("gates"), f"{bp}: no gates"
         assert doc.get("tool_policy", {}).get("allow"), f"{bp}: no tool allowlist"
-        assert doc["tool_policy"].get("default") == "deny", f"{bp}: tool policy is not deny-by-default"
+        assert doc["tool_policy"].get("default") == "deny", (
+            f"{bp}: tool policy is not deny-by-default"
+        )
         assert doc.get("stopping_rules"), f"{bp}: no explicit stopping rule"
-        assert doc.get("failure_policy", {}).get("on_failure"), f"{bp}: no failure policy"
-        assert doc["failure_policy"]["terminal_state_required"] is True, f"{bp}: silence is permitted"
-        assert doc.get("dry_run", {}).get("supported") is True, f"{bp}: not dry-runnable"
+        assert doc.get("failure_policy", {}).get("on_failure"), (
+            f"{bp}: no failure policy"
+        )
+        assert doc["failure_policy"]["terminal_state_required"] is True, (
+            f"{bp}: silence is permitted"
+        )
+        assert doc.get("dry_run", {}).get("supported") is True, (
+            f"{bp}: not dry-runnable"
+        )
         worked_example(doc)  # raises with a precise message when absent or incomplete
 
 
@@ -165,7 +197,7 @@ def test_flagship_count_and_matching_test_files():
     assert len(flagship) == 12, "every blueprint in this range is flagship"
     here = WORKFLOW_DIR.parents[0] / "lib" / "workflows"
     if not here.is_dir():  # running from the package dir itself
-        here = (WORKFLOW_DIR.parents[1] / "platform" / "lib" / "workflows")
+        here = WORKFLOW_DIR.parents[1] / "platform" / "lib" / "workflows"
     for bp in flagship:
         slug = bp.split(".")[0].replace("-", "_")
         expected = here / f"test_{slug}.py"
@@ -194,15 +226,23 @@ def test_no_blueprint_declares_a_measured_estimate_it_cannot_name():
     for bp, doc in _docs().items():
         est = doc.get("estimate") or {}
         if est.get("basis") in ("historical-measured", "hybrid"):
-            assert est.get("measurement_source"), f"{bp} claims measured data with no source"
+            assert est.get("measurement_source"), (
+                f"{bp} claims measured data with no source"
+            )
         else:
-            assert est.get("basis") == "static-declared", f"{bp}: unexpected estimate basis"
+            assert est.get("basis") == "static-declared", (
+                f"{bp}: unexpected estimate basis"
+            )
 
 
 def test_secret_handling_and_export_redaction_hold_everywhere():
     for bp, doc in _docs().items():
         export = (doc.get("portability") or {}).get("export") or {}
-        assert export.get("redact_secrets") is True, f"{bp}: export does not redact secrets"
+        assert export.get("redact_secrets") is True, (
+            f"{bp}: export does not redact secrets"
+        )
         for name, spec in (doc.get("params") or {}).items():
             if spec.get("type") == "secret_ref":
-                assert spec.get("secret") is True and "default" not in spec, f"{bp}.{name}"
+                assert spec.get("secret") is True and "default" not in spec, (
+                    f"{bp}.{name}"
+                )

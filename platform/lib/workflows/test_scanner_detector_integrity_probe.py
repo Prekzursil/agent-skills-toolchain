@@ -46,7 +46,9 @@ def test_worked_example_checker_fires_on_a_dropped_binding(doc: dict) -> None:
 
 def test_worked_example_checker_fires_on_an_unknown_stage(doc: dict) -> None:
     def bend(d: dict) -> None:
-        d["x_extensions"]["worked_example"]["expected_stage_path"].append("no-such-stage")
+        d["x_extensions"]["worked_example"]["expected_stage_path"].append(
+            "no-such-stage"
+        )
 
     fails = H.worked_example_failures(H.mutated(doc, bend))
     assert any("unknown stage" in f for f in fails), fails
@@ -89,7 +91,9 @@ def test_both_gates_exist_and_assert_opposite_outcomes(doc: dict) -> None:
         ("silent-on-clean-state", "must-be-silent"),
     ],
 )
-def test_deleting_either_half_is_detected(doc: dict, gate_name: str, stage_id: str) -> None:
+def test_deleting_either_half_is_detected(
+    doc: dict, gate_name: str, stage_id: str
+) -> None:
     def bend(d: dict) -> None:
         del d["gates"][gate_name]
 
@@ -137,10 +141,10 @@ def test_probe_never_touches_the_live_tree(doc: dict) -> None:
     assert policy["default"] == "deny"
     assert policy["network"] == "none"
     assert "platform/**" in policy["forbid_write_paths"]
-    substrates = {
-        u["execution_substrate"] for u in H.inline_units(doc)
-    }
-    assert substrates <= {"worktree-isolated", "local-serialized", "container"}, substrates
+    substrates = {u["execution_substrate"] for u in H.inline_units(doc)}
+    assert substrates <= {"worktree-isolated", "local-serialized", "container"}, (
+        substrates
+    )
     assert doc["params"]["sandbox_substrate"]["enum"] == [
         "worktree-isolated",
         "container",

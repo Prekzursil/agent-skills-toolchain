@@ -28,7 +28,9 @@ BP = "ssot-documentation-reconcile"
 def test_schema_valid_and_semantically_clean_document() -> None:
     doc = K.load(BP)
     errs = list(schemas.workflow_validator().iter_errors(doc))
-    assert errs == [], [f"{'/'.join(str(p) for p in e.absolute_path)} [{e.validator}]" for e in errs[:5]]
+    assert errs == [], [
+        f"{'/'.join(str(p) for p in e.absolute_path)} [{e.validator}]" for e in errs[:5]
+    ]
     assert [r.to_json() for r in semantics.check_workflow(doc) if r.violations] == []
 
 
@@ -52,30 +54,44 @@ def test_control_removing_the_unverified_everywhere_escape_is_caught() -> None:
     have to be blessed arbitrarily - which is the exact behaviour the card forbids."""
     mutated = K.mutate(
         K.load(BP),
-        K.weaken_gate("authority-is-measurable", "authoritative_source_agrees_with_probe == true"),
+        K.weaken_gate(
+            "authority-is-measurable", "authoritative_source_agrees_with_probe == true"
+        ),
     )
     K.assert_still_schema_valid(mutated)
     result = C.authority_is_assigned_by_measurability(mutated)
     assert not result.ok, "a gate with no honest fallback was accepted"
-    assert any("fact_marked_unverified_everywhere" in r for r in result.reasons), result.reasons
+    assert any("fact_marked_unverified_everywhere" in r for r in result.reasons), (
+        result.reasons
+    )
 
 
 def test_control_removing_the_probe_from_the_adjudicators_inputs_is_caught() -> None:
     """Both-states control: an adjudicator that never receives the probe is choosing authority by
     convenience, which is precisely the failure mode. The gate text alone would still look right."""
-    mutated = K.mutate(K.load(BP), K.drop_work_unit_input("designate-authority", "measurability_probe"))
+    mutated = K.mutate(
+        K.load(BP), K.drop_work_unit_input("designate-authority", "measurability_probe")
+    )
     K.assert_still_schema_valid(mutated)
     result = C.authority_is_assigned_by_measurability(mutated)
     assert not result.ok, "an adjudicator with no probe input was accepted"
-    assert any("does not take the measurability probe" in r for r in result.reasons), result.reasons
+    assert any("does not take the measurability probe" in r for r in result.reasons), (
+        result.reasons
+    )
 
 
-def test_control_letting_the_rewrite_run_before_the_measurability_gate_is_caught() -> None:
-    mutated = K.mutate(K.load(BP), K.drop_dependency("rewrite-as-pointers", "measurability-gate"))
+def test_control_letting_the_rewrite_run_before_the_measurability_gate_is_caught() -> (
+    None
+):
+    mutated = K.mutate(
+        K.load(BP), K.drop_dependency("rewrite-as-pointers", "measurability-gate")
+    )
     K.assert_still_schema_valid(mutated)
     result = C.authority_is_assigned_by_measurability(mutated)
     assert not result.ok, "the rewrite could run without an adjudicated authority"
-    assert any("without the measurability gate" in r for r in result.reasons), result.reasons
+    assert any("without the measurability gate" in r for r in result.reasons), (
+        result.reasons
+    )
 
 
 # ---------------------------------------- property 2: no contradiction resolved silently
@@ -89,17 +105,25 @@ def test_no_contradiction_is_resolved_silently() -> None:
 def test_control_dropping_the_silent_resolution_condition_is_caught() -> None:
     """Both-states control: the superseded register is what stops a corrected fact from being
     re-learned wrong. A gate that no longer requires it lets the correction vanish."""
-    mutated = K.mutate(K.load(BP), K.weaken_gate("superseded-registered", "superseded_register_written == true"))
+    mutated = K.mutate(
+        K.load(BP),
+        K.weaken_gate("superseded-registered", "superseded_register_written == true"),
+    )
     K.assert_still_schema_valid(mutated)
     result = C.no_contradiction_is_resolved_silently(mutated)
     assert not result.ok, "a gate that permits silent resolution was accepted"
-    assert any("contradictions_resolved_silently" in r for r in result.reasons), result.reasons
+    assert any("contradictions_resolved_silently" in r for r in result.reasons), (
+        result.reasons
+    )
 
 
 def test_control_removing_the_false_positive_control_is_caught() -> None:
     """Both-states control: without it, a sentence that legitimately repeats agreed context would
     be rewritten into a pointer - a worse outcome than leaving the contradiction alone."""
-    mutated = K.mutate(K.load(BP), K.weaken_gate("no-legitimate-repeat-flagged", "statements_found > 0"))
+    mutated = K.mutate(
+        K.load(BP),
+        K.weaken_gate("no-legitimate-repeat-flagged", "statements_found > 0"),
+    )
     K.assert_still_schema_valid(mutated)
     result = C.no_contradiction_is_resolved_silently(mutated)
     assert not result.ok, "a reconcile with no false-positive control was accepted"
@@ -107,10 +131,14 @@ def test_control_removing_the_false_positive_control_is_caught() -> None:
 
 
 def test_control_registering_before_the_rewrite_is_caught() -> None:
-    mutated = K.mutate(K.load(BP), K.drop_dependency("register-superseded", "rewrite-as-pointers"))
+    mutated = K.mutate(
+        K.load(BP), K.drop_dependency("register-superseded", "rewrite-as-pointers")
+    )
     K.assert_still_schema_valid(mutated)
     result = C.no_contradiction_is_resolved_silently(mutated)
-    assert not result.ok, "a register that runs before the rewrite it records was accepted"
+    assert not result.ok, (
+        "a register that runs before the rewrite it records was accepted"
+    )
     assert any("after the rewrite" in r for r in result.reasons), result.reasons
 
 
@@ -129,7 +157,9 @@ def test_a_missed_documentation_root_fails_rather_than_degrading() -> None:
     assert join["barrier"]["on_partial"] == "fail"
 
 
-def test_the_search_records_its_own_term_list_so_a_missed_paraphrase_is_diagnosable() -> None:
+def test_the_search_records_its_own_term_list_so_a_missed_paraphrase_is_diagnosable() -> (
+    None
+):
     unit = C.stage(K.load(BP), "search-one-root")["work_unit"]
     assert "params.search_terms" in unit["inputs"]
     assert "search terms used" in unit["evidence_requirement"]
@@ -142,7 +172,9 @@ def test_the_rewrite_loop_is_bounded_and_reversible() -> None:
     assert conv["no_progress_rounds"] >= 1
     assert C.identifiers(conv["converged_when"]) == {"unresolved_restatements"}
     unit = C.stage(K.load(BP), "rewrite-one-batch")["work_unit"]
-    assert "before-text" in unit["evidence_requirement"], "an irreversible doc rewrite is not acceptable"
+    assert "before-text" in unit["evidence_requirement"], (
+        "an irreversible doc rewrite is not acceptable"
+    )
     assert any("byte-identical" in t for t in unit["tests_required"])
 
 
@@ -162,6 +194,10 @@ def test_the_worked_example_uses_this_programs_own_measured_contradiction() -> N
     ext = K.load(BP)["x_extensions"]["bp7"]
     trace = " ".join(ext["worked_example"]["expected_trace"])
     assert "3 groups" in trace
-    assert "LEGITIMATE-REPEAT" in trace, "the example never exercises the false-positive control"
-    assert "was NOT chosen" in trace, "the example does not show the probe overruling prominence"
+    assert "LEGITIMATE-REPEAT" in trace, (
+        "the example never exercises the false-positive control"
+    )
+    assert "was NOT chosen" in trace, (
+        "the example does not show the probe overruling prominence"
+    )
     assert ext["worked_example"]["expected_terminal_state"].startswith("SUCCESS:DOC-84")

@@ -42,7 +42,9 @@ def test_worked_example_checker_fires_on_a_dropped_binding(doc: dict) -> None:
     assert any("has no value in the worked example" in f for f in fails), fails
 
 
-def test_worked_example_checker_fires_when_a_stage_is_both_walked_and_skipped(doc: dict) -> None:
+def test_worked_example_checker_fires_when_a_stage_is_both_walked_and_skipped(
+    doc: dict,
+) -> None:
     def bend(d: dict) -> None:
         ex = d["x_extensions"]["worked_example"]
         ex["skipped_stages"] = [ex["expected_stage_path"][0]]
@@ -70,7 +72,9 @@ def test_the_scan_never_executes_what_it_finds(doc: dict) -> None:
     assert "mcp__codex__codex" in doc["tool_policy"]["deny"]
     # every requested tool is read-shaped or a scoped write into the trust tree
     for token in tokens:
-        assert token.startswith(("Read", "Glob", "Grep", "Bash:python", "Write(command-center/")), token
+        assert token.startswith(
+            ("Read", "Glob", "Grep", "Bash:python", "Write(command-center/")
+        ), token
 
 
 # -------------------------------------------------- mechanism: rename-aside, never delete
@@ -107,12 +111,18 @@ def test_removing_the_delete_clause_weakens_the_gate_detectably(doc: dict) -> No
         )
 
     mutant = H.mutated(doc, bend)
-    assert H.conformance_failures(mutant) == [], "the mutant is still schema-valid on purpose"
-    assert "quarantined_by_delete" not in H.gate_expressions(mutant)["no-executable-surface-live"]
+    assert H.conformance_failures(mutant) == [], (
+        "the mutant is still schema-valid on purpose"
+    )
+    assert (
+        "quarantined_by_delete"
+        not in H.gate_expressions(mutant)["no-executable-surface-live"]
+    )
     with pytest.raises(AssertionError):
-        assert "quarantined_by_delete == 0" in H.gate_expressions(mutant)[
-            "no-executable-surface-live"
-        ]
+        assert (
+            "quarantined_by_delete == 0"
+            in H.gate_expressions(mutant)["no-executable-surface-live"]
+        )
 
 
 # ------------------------------------------------------- mechanism: adverse inference default

@@ -40,7 +40,9 @@ def check_the_trigger_is_active_not_a_config_read(doc: Mapping[str, Any]) -> Non
     fan = K.fanout(doc, "probe-components")
     assert fan["over"]["ref"] == "expected_firing_evidence"
     body_ids = [str(st["id"]) for st in fan["body"]]
-    assert body_ids == ["trigger-and-observe"], f"the probe body changed shape: {body_ids}"
+    assert body_ids == ["trigger-and-observe"], (
+        f"the probe body changed shape: {body_ids}"
+    )
     spec = doc["params"]["expected_firing_evidence"]
     props = spec["items"]["properties"]
     for field in ("trigger", "evidence_path", "evidence_marker"):
@@ -73,7 +75,9 @@ def check_the_delta_stage_runs_after_classification(doc: Mapping[str, Any]) -> N
 
 def check_a_shrinking_inventory_is_not_a_clean_run(doc: Mapping[str, Any]) -> None:
     spec = K.gate_for_stage(doc, "gate-inventory")
-    assert "inventory_component_count >= previous_component_count" in spec["expression"], (
+    assert (
+        "inventory_component_count >= previous_component_count" in spec["expression"]
+    ), (
         "a component that vanished from the inventory would otherwise read as zero findings"
     )
     assert "inventory_age_seconds <=" in spec["expression"], (
@@ -83,7 +87,9 @@ def check_a_shrinking_inventory_is_not_a_clean_run(doc: Mapping[str, Any]) -> No
     assert "component-disappeared" in doc["failure_policy"]["classify_as"]
 
 
-def check_the_five_state_vocabulary_is_enforced_by_failure_classes(doc: Mapping[str, Any]) -> None:
+def check_the_five_state_vocabulary_is_enforced_by_failure_classes(
+    doc: Mapping[str, Any],
+) -> None:
     no_retry = set(doc["retry_policy"]["no_retry_on"])
     assert "inert-misread-as-firing" in no_retry, (
         "WIRED-BUT-INERT must be a distinct state from FIRES, and misreading it is not a flake"
@@ -91,8 +97,12 @@ def check_the_five_state_vocabulary_is_enforced_by_failure_classes(doc: Mapping[
     assert "unknown-folded-into-healthy" in no_retry
     assert "unknown-folded-into-healthy" in doc["failure_policy"]["classify_as"]
     ids = {c["id"] for c in K.benchmark_cases(doc)}
-    assert "cold-feed-is-inert" in ids, "the INERT state needs a case or it is decoration"
-    assert "deliberate-disarm" in ids, "the DISARMED state needs its both-states control"
+    assert "cold-feed-is-inert" in ids, (
+        "the INERT state needs a case or it is decoration"
+    )
+    assert "deliberate-disarm" in ids, (
+        "the DISARMED state needs its both-states control"
+    )
 
 
 def check_the_identity_case_proves_the_differ(doc: Mapping[str, Any]) -> None:
@@ -154,10 +164,14 @@ def check_a_firing_verdict_is_never_served_from_cache(doc: Mapping[str, Any]) ->
     assert doc["dry_run"]["side_effect_free"] is True
 
 
-def check_the_worked_example_shows_a_stable_but_unhealthy_row(doc: Mapping[str, Any]) -> None:
+def check_the_worked_example_shows_a_stable_but_unhealthy_row(
+    doc: Mapping[str, Any],
+) -> None:
     example = K.worked_examples(doc)[0]
     verdicts = {row["component"]: row["verdict"] for row in example["delta"]}
-    assert "REGRESSION" in verdicts.values(), "the example must show the delta earning its keep"
+    assert "REGRESSION" in verdicts.values(), (
+        "the example must show the delta earning its keep"
+    )
     assert any(v.startswith("stable-but-unhealthy") for v in verdicts.values()), (
         "the INERT-and-stable row is the case a delta-only alarm misses; it must be in the example"
     )
@@ -206,7 +220,9 @@ def _accept_a_config_only_verdict(doc: dict) -> None:
 
 
 def _drop_the_evidence_marker_from_a_probe(doc: dict) -> None:
-    doc["params"]["expected_firing_evidence"]["items"]["properties"].pop("evidence_marker")
+    doc["params"]["expected_firing_evidence"]["items"]["properties"].pop(
+        "evidence_marker"
+    )
 
 
 def _make_the_previous_scorecard_optional(doc: dict) -> None:
@@ -218,7 +234,9 @@ def _diff_before_the_classification_gate(doc: dict) -> None:
 
 
 def _accept_a_shrinking_inventory(doc: dict) -> None:
-    doc["gates"]["inventory-is-current"]["expression"] = "inventory_age_seconds <= 604800"
+    doc["gates"]["inventory-is-current"]["expression"] = (
+        "inventory_age_seconds <= 604800"
+    )
 
 
 def _retry_an_inert_misread(doc: dict) -> None:
@@ -227,7 +245,9 @@ def _retry_an_inert_misread(doc: dict) -> None:
 
 def _drop_the_identity_case(doc: dict) -> None:
     doc["x_extensions"]["benchmark_cases"] = [
-        c for c in doc["x_extensions"]["benchmark_cases"] if c["id"] != "identical-scorecards"
+        c
+        for c in doc["x_extensions"]["benchmark_cases"]
+        if c["id"] != "identical-scorecards"
     ]
 
 
@@ -261,22 +281,36 @@ def _collapse_the_worked_example_to_a_binary(doc: dict) -> None:
 
 MUTATIONS = (
     (check_a_verdict_may_not_come_from_configuration, _accept_a_config_only_verdict),
-    (check_the_trigger_is_active_not_a_config_read, _drop_the_evidence_marker_from_a_probe),
+    (
+        check_the_trigger_is_active_not_a_config_read,
+        _drop_the_evidence_marker_from_a_probe,
+    ),
     (check_the_delta_is_mandatory_not_optional, _make_the_previous_scorecard_optional),
-    (check_the_delta_stage_runs_after_classification, _diff_before_the_classification_gate),
+    (
+        check_the_delta_stage_runs_after_classification,
+        _diff_before_the_classification_gate,
+    ),
     (check_a_shrinking_inventory_is_not_a_clean_run, _accept_a_shrinking_inventory),
-    (check_the_five_state_vocabulary_is_enforced_by_failure_classes, _retry_an_inert_misread),
+    (
+        check_the_five_state_vocabulary_is_enforced_by_failure_classes,
+        _retry_an_inert_misread,
+    ),
     (check_the_identity_case_proves_the_differ, _drop_the_identity_case),
     (check_a_regression_escalates_and_never_completes, _let_a_regression_complete),
     (check_the_shared_budget_breach_is_visible, _zero_the_budget_ceiling),
     (check_the_instrument_cannot_edit_its_subject, _allow_writes_into_the_hooks_tree),
     (check_the_probe_barrier_degrades_loudly, _hide_the_partial_probe),
     (check_a_firing_verdict_is_never_served_from_cache, _enable_the_cache),
-    (check_the_worked_example_shows_a_stable_but_unhealthy_row, _collapse_the_worked_example_to_a_binary),
+    (
+        check_the_worked_example_shows_a_stable_but_unhealthy_row,
+        _collapse_the_worked_example_to_a_binary,
+    ),
 )
 
 
-@pytest.mark.parametrize("check,mutate", MUTATIONS, ids=lambda v: getattr(v, "__name__", ""))
+@pytest.mark.parametrize(
+    "check,mutate", MUTATIONS, ids=lambda v: getattr(v, "__name__", "")
+)
 def test_each_check_fails_on_its_mutated_blueprint(check: Any, mutate: Any) -> None:
     broken = K.mutant(DOC, mutate)
     assert K.raises_assertion(check, broken), (

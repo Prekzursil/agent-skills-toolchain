@@ -42,7 +42,9 @@ def test_it_references_the_shared_overlap_primitive_rather_than_carrying_a_copy(
     src = d["subworkflows"]["shared.pairwise-overlap-matrix"]["source"]
     from bp3_testkit import REPO_ROOT
 
-    assert (REPO_ROOT / src).is_file(), f"declared subworkflow source is not on disk: {src}"
+    assert (REPO_ROOT / src).is_file(), (
+        f"declared subworkflow source is not on disk: {src}"
+    )
 
 
 def test_worked_example_overlap_pairs_match_the_declared_expectations():
@@ -80,7 +82,10 @@ def test_declared_control_knowing_u4s_footprint_splits_the_graph_into_three():
 
 def test_worktree_isolation_is_the_default_for_every_mutating_unit():
     d = blueprint()
-    assert gate_expressions(d)["worktree-is-the-default"] == "mutating_units_without_worktree == 0"
+    assert (
+        gate_expressions(d)["worktree-is-the-default"]
+        == "mutating_units_without_worktree == 0"
+    )
     assert d["gates"]["worktree-is-the-default"]["on_fail"] == "fail"
     unit = stage(d, "s2-group")["work_unit"]
     assert any("the default is not scoped-add" in t for t in unit["tests_required"])

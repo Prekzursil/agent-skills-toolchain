@@ -49,7 +49,9 @@ def test_worked_example_gates_evaluate_true(slug: str) -> None:
     expected = ex.get("expected_gate_pass") or []
     assert expected, f"{slug}: worked example claims no passing gate"
     for gate_id in expected:
-        assert kit.evaluate_gate(doc, gate_id) is True, f"{slug}: gate {gate_id} did not evaluate true"
+        assert kit.evaluate_gate(doc, gate_id) is True, (
+            f"{slug}: gate {gate_id} did not evaluate true"
+        )
 
 
 @pytest.mark.parametrize("slug", kit.SLUGS)
@@ -60,10 +62,14 @@ def test_worked_example_stopping_rules_fire_with_their_floor(slug: str) -> None:
     expected = ex.get("expected_stop") or []
     assert expected, f"{slug}: worked example claims no stopping rule fires"
     for rid in expected:
-        assert kit.evaluate_stop(doc, rid) is True, f"{slug}: stopping rule {rid} did not fire"
+        assert kit.evaluate_stop(doc, rid) is True, (
+            f"{slug}: stopping rule {rid} did not fire"
+        )
         floor = rules[rid].get("minimum_conditions")
         if floor is not None:
-            assert _expr.evaluate(floor, kit.worked_context(doc), strict=True) is True, (
+            assert (
+                _expr.evaluate(floor, kit.worked_context(doc), strict=True) is True
+            ), (
                 f"{slug}: the deliberation floor for {rid} does not hold, so the rule may not fire"
             )
 
@@ -73,9 +79,15 @@ def test_negative_control_flips_its_gate_false(slug: str) -> None:
     """Both-states on the EXPRESSION layer: every blueprint names one state its gate rejects."""
     doc = kit.load(slug)
     neg = kit.worked_example(doc).get("negative_control")
-    assert isinstance(neg, dict) and neg.get("gate"), f"{slug}: no negative control declared"
-    assert neg.get("overrides"), f"{slug}: negative control overrides nothing, so it cannot flip anything"
-    assert neg.get("why"), f"{slug}: negative control does not say what failure it models"
+    assert isinstance(neg, dict) and neg.get("gate"), (
+        f"{slug}: no negative control declared"
+    )
+    assert neg.get("overrides"), (
+        f"{slug}: negative control overrides nothing, so it cannot flip anything"
+    )
+    assert neg.get("why"), (
+        f"{slug}: negative control does not say what failure it models"
+    )
     assert kit.evaluate_gate(doc, neg["gate"]) is True, (
         f"{slug}: gate {neg['gate']} is not true in the healthy state, so a false result proves nothing"
     )
@@ -85,7 +97,9 @@ def test_negative_control_flips_its_gate_false(slug: str) -> None:
 
 
 @pytest.mark.parametrize("slug", kit.SLUGS)
-def test_every_expression_parses_and_is_covered_by_the_worked_context(slug: str) -> None:
+def test_every_expression_parses_and_is_covered_by_the_worked_context(
+    slug: str,
+) -> None:
     """A rule that cannot parse can never fire; an identifier absent from the context is
     unmeasured, and under strict evaluation an unmeasured metric raises rather than reading false."""
     doc = kit.load(slug)
@@ -126,8 +140,12 @@ def test_dropping_a_gate_stage_is_rejected(slug: str) -> None:
         if s.get("kind") == "gate"
         and any(s["id"] in (o.get("depends_on") or []) for o in doc["stages"])
     ]
-    assert gate_stages, f"{slug}: no gate stage is depended upon, so no control is load-bearing"
-    kit.assert_rejected(kit.drop_stage(doc, gate_stages[0]), f"dropped gate stage {gate_stages[0]}")
+    assert gate_stages, (
+        f"{slug}: no gate stage is depended upon, so no control is load-bearing"
+    )
+    kit.assert_rejected(
+        kit.drop_stage(doc, gate_stages[0]), f"dropped gate stage {gate_stages[0]}"
+    )
 
 
 @pytest.mark.parametrize("slug", kit.SLUGS)
@@ -142,9 +160,13 @@ def test_no_gate_is_silently_deletable(slug: str) -> None:
     doc = kit.load(slug)
     depended = {str(d) for s in doc["stages"] for d in (s.get("depends_on") or [])}
     terminal = [
-        str(s["id"]) for s in doc["stages"] if s.get("kind") == "gate" and str(s["id"]) not in depended
+        str(s["id"])
+        for s in doc["stages"]
+        if s.get("kind") == "gate" and str(s["id"]) not in depended
     ]
-    assert not terminal, f"{slug}: gate(s) with no downstream dependent, so silently deletable: {terminal}"
+    assert not terminal, (
+        f"{slug}: gate(s) with no downstream dependent, so silently deletable: {terminal}"
+    )
 
 
 @pytest.mark.parametrize("slug", kit.SLUGS)
@@ -170,7 +192,9 @@ def test_mechanism_fingerprints_are_pairwise_distinct(docs: dict[str, dict]) -> 
     assert len(keys) == len(kit.SLUGS)
 
 
-def test_closest_pair_still_differs_on_a_majority_of_fingerprint_fields(docs: dict[str, dict]) -> None:
+def test_closest_pair_still_differs_on_a_majority_of_fingerprint_fields(
+    docs: dict[str, dict],
+) -> None:
     """Residual disclosure as an assertion: near-duplicates by mechanism are the real risk, and
     an exact-key check alone would not see two blueprints agreeing on 6 of 7 axes."""
     prints = {s: d["x_extensions"]["mechanism_fingerprint"] for s, d in docs.items()}
@@ -180,23 +204,35 @@ def test_closest_pair_still_differs_on_a_majority_of_fingerprint_fields(docs: di
     slugs = sorted(prints)
     for i, a in enumerate(slugs):
         for b in slugs[i + 1 :]:
-            agree = sum(1 for f in fields if prints[a].get(f) == prints[b].get(f)) / len(fields)
+            agree = sum(
+                1 for f in fields if prints[a].get(f) == prints[b].get(f)
+            ) / len(fields)
             if agree > worst:
                 worst, worst_pair = agree, (a, b)
-    assert worst < 0.75, f"{worst_pair} agree on {worst:.0%} of fingerprint fields - too close"
+    assert worst < 0.75, (
+        f"{worst_pair} agree on {worst:.0%} of fingerprint fields - too close"
+    )
 
 
-def test_every_work_unit_ref_resolves_to_a_real_catalog_unit(docs: dict[str, dict]) -> None:
-    real = {u["id"] for u in json.loads(CATALOG.read_text(encoding="utf-8"))["work_units"]}
+def test_every_work_unit_ref_resolves_to_a_real_catalog_unit(
+    docs: dict[str, dict],
+) -> None:
+    real = {
+        u["id"] for u in json.loads(CATALOG.read_text(encoding="utf-8"))["work_units"]
+    }
     refs = {r for doc in docs.values() for r in _walk_key(doc, "work_unit_ref")}
     assert refs, "no catalogued unit is referenced at all"
     assert not (refs - real), f"dangling work_unit_ref: {sorted(refs - real)}"
 
 
-def test_inline_unit_ids_cannot_be_mistaken_for_catalog_units(docs: dict[str, dict]) -> None:
+def test_inline_unit_ids_cannot_be_mistaken_for_catalog_units(
+    docs: dict[str, dict],
+) -> None:
     """MEASURED rather than trusted: the catalog's prefix set is recomputed here, so a future
     catalog that adds a CRV or QLT prefix turns this test red instead of silently colliding."""
-    real = {u["id"] for u in json.loads(CATALOG.read_text(encoding="utf-8"))["work_units"]}
+    real = {
+        u["id"] for u in json.loads(CATALOG.read_text(encoding="utf-8"))["work_units"]
+    }
     prefixes = {m.group(1) for i in real if (m := re.match(r"^([A-Z]+)-", i))}
     inline = {
         u["id"]
@@ -205,8 +241,14 @@ def test_inline_unit_ids_cannot_be_mistaken_for_catalog_units(docs: dict[str, di
         if isinstance(u, dict) and "id" in u
     }
     assert inline, "no inline work unit was minted"
-    assert not (inline & real), f"inline id collides with a catalog id: {sorted(inline & real)}"
-    bad = {i for i in inline if (m := re.match(r"^([A-Z]+)-", i)) and m.group(1) in prefixes}
+    assert not (inline & real), (
+        f"inline id collides with a catalog id: {sorted(inline & real)}"
+    )
+    bad = {
+        i
+        for i in inline
+        if (m := re.match(r"^([A-Z]+)-", i)) and m.group(1) in prefixes
+    }
     assert not bad, f"inline id sits in a catalog prefix namespace: {sorted(bad)}"
 
 
@@ -228,7 +270,9 @@ def test_flagship_count_clears_the_pro_rata_floor(docs: dict[str, dict]) -> None
     assert len(flagships) >= 5, f"only {len(flagships)} flagship in this slice"
 
 
-def test_flagship_blueprints_each_have_a_dedicated_test_file(docs: dict[str, dict]) -> None:
+def test_flagship_blueprints_each_have_a_dedicated_test_file(
+    docs: dict[str, dict],
+) -> None:
     """A flagship claim without a dedicated end-to-end test is an overclaim about coverage."""
     present = {p.name for p in kit.HERE.glob("test_*.py")}
     missing = []
@@ -246,21 +290,37 @@ def test_every_blueprint_declares_contraindications_and_a_non_duplicate_argument
 ) -> None:
     for slug, doc in docs.items():
         x = doc["x_extensions"]
-        assert len(x.get("contraindications") or []) >= 2, f"{slug}: too few contraindications"
+        assert len(x.get("contraindications") or []) >= 2, (
+            f"{slug}: too few contraindications"
+        )
         assert x.get("why_not_a_duplicate"), f"{slug}: no non-duplicate argument"
-        assert len(x.get("benchmark_cases") or []) >= 2, f"{slug}: fewer than two benchmark cases"
+        assert len(x.get("benchmark_cases") or []) >= 2, (
+            f"{slug}: fewer than two benchmark cases"
+        )
         assert x.get("library_card"), f"{slug}: no library card anchor"
-        assert 49 <= x["card_index"] <= 60, f"{slug}: card index outside this slice's range"
+        assert 49 <= x["card_index"] <= 60, (
+            f"{slug}: card index outside this slice's range"
+        )
 
 
-def test_no_estimate_claims_a_measured_basis_without_a_measurement(docs: dict[str, dict]) -> None:
+def test_no_estimate_claims_a_measured_basis_without_a_measurement(
+    docs: dict[str, dict],
+) -> None:
     """None of these has been RUN, so a historical-measured basis would be a measured label on a
     guess. The schema only enforces measurement_source when the basis claims to be measured;
     this asserts the honest basis for this slice."""
     for slug, doc in docs.items():
         est = doc["estimate"]
-        assert est["basis"] == "static-declared", f"{slug}: basis={est['basis']} on an unrun blueprint"
-        assert est["confidence"] in {"almost-certain", "likely", "roughly-even", "unlikely", "remote"}
+        assert est["basis"] == "static-declared", (
+            f"{slug}: basis={est['basis']} on an unrun blueprint"
+        )
+        assert est["confidence"] in {
+            "almost-certain",
+            "likely",
+            "roughly-even",
+            "unlikely",
+            "remote",
+        }
 
 
 #: Credential-SHAPED literals: a prefix at a token boundary followed by a high-entropy tail.
@@ -292,14 +352,22 @@ def test_the_secret_shape_detector_fires_on_a_known_present_sample() -> None:
         }
     )
     fired = [p.pattern for p in _SECRET_SHAPES if p.search(planted)]
-    assert len(fired) == len(_SECRET_SHAPES), f"detector missed a planted shape; fired={fired}"
+    assert len(fired) == len(_SECRET_SHAPES), (
+        f"detector missed a planted shape; fired={fired}"
+    )
     # and the measured false positive must NOT fire
-    assert not any(p.search('{"output_type": "risk-classification"}') for p in _SECRET_SHAPES)
+    assert not any(
+        p.search('{"output_type": "risk-classification"}') for p in _SECRET_SHAPES
+    )
 
 
-def test_deny_by_default_tool_policy_and_no_secret_values(docs: dict[str, dict]) -> None:
+def test_deny_by_default_tool_policy_and_no_secret_values(
+    docs: dict[str, dict],
+) -> None:
     for slug, doc in docs.items():
-        assert doc["tool_policy"]["default"] == "deny", f"{slug}: tool policy is not deny-by-default"
+        assert doc["tool_policy"]["default"] == "deny", (
+            f"{slug}: tool policy is not deny-by-default"
+        )
         assert doc["portability"]["export"]["redact_secrets"] is True
         assert doc["failure_policy"]["terminal_state_required"] is True
         assert doc["failure_policy"]["never_silent"] is True
@@ -307,20 +375,30 @@ def test_deny_by_default_tool_policy_and_no_secret_values(docs: dict[str, dict])
         blob = json.dumps(doc)
         for pat in _SECRET_SHAPES:
             hit = pat.search(blob)
-            assert hit is None, f"{slug}: credential-shaped literal matching {pat.pattern!r}"
+            assert hit is None, (
+                f"{slug}: credential-shaped literal matching {pat.pattern!r}"
+            )
 
 
-def test_fanout_and_barrier_bounds_are_present_everywhere(docs: dict[str, dict]) -> None:
+def test_fanout_and_barrier_bounds_are_present_everywhere(
+    docs: dict[str, dict],
+) -> None:
     """An unbounded fan-out is how a local box freezes, and a barrier with no partial policy
     silently drops every straggler's work."""
     for slug, doc in docs.items():
         for _, st in __import__("wfdsl.semantics", fromlist=["x"]).iter_stages(doc):
             if st.get("kind") == "fanout":
-                assert st.get("max_concurrency"), f"{slug}/{st['id']}: unbounded fan-out"
+                assert st.get("max_concurrency"), (
+                    f"{slug}/{st['id']}: unbounded fan-out"
+                )
                 bar = st.get("barrier")
-                assert bar and bar.get("on_partial"), f"{slug}/{st['id']}: barrier without on_partial"
+                assert bar and bar.get("on_partial"), (
+                    f"{slug}/{st['id']}: barrier without on_partial"
+                )
             if st.get("kind") == "loop":
-                assert st["convergence"].get("max_iterations"), f"{slug}/{st['id']}: unbounded loop"
+                assert st["convergence"].get("max_iterations"), (
+                    f"{slug}/{st['id']}: unbounded loop"
+                )
 
 
 def _walk_key(node, key: str) -> list:

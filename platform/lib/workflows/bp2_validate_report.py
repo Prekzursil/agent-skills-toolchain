@@ -76,9 +76,8 @@ def main() -> int:
             "design_card": doc["x_extensions"]["design_card"],
             "flagship": bool(doc.get("flagship")),
             "categories": doc.get("categories"),
-            "stage_count": len(C.fingerprint(doc)["stage_kinds"]) and sum(
-                C.fingerprint(doc)["stage_kinds"].values()
-            ),
+            "stage_count": len(C.fingerprint(doc)["stage_kinds"])
+            and sum(C.fingerprint(doc)["stage_kinds"].values()),
             "stage_kinds": C.fingerprint(doc)["stage_kinds"],
             "validator": cli,
             "schema_refs_declared": len(refs),

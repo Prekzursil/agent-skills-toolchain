@@ -168,12 +168,16 @@ def two_probe_agreement_gates_streaming(doc: Mapping[str, Any]) -> CheckResult:
         return r
     ids = identifiers(expr)
     if not {"probe_a_count", "probe_b_count"} <= ids:
-        r.reasons.append(f"gate expression does not compare the two probe counts: {expr!r}")
+        r.reasons.append(
+            f"gate expression does not compare the two probe counts: {expr!r}"
+        )
 
     g = stage(doc, gate_id) or {}
     deps = set(g.get("depends_on") or [])
     if not {"enumerate-glob", "enumerate-independent"} <= deps:
-        r.reasons.append(f"agreement gate does not depend on both probes: {sorted(deps)}")
+        r.reasons.append(
+            f"agreement gate does not depend on both probes: {sorted(deps)}"
+        )
 
     a, b = stage(doc, "enumerate-glob"), stage(doc, "enumerate-independent")
     if a is None or b is None:
@@ -184,7 +188,9 @@ def two_probe_agreement_gates_streaming(doc: Mapping[str, Any]) -> CheckResult:
         )
 
     if gate_id not in ancestors(doc, "stream-extract"):
-        r.reasons.append("stream-extract does not transitively depend on the agreement gate")
+        r.reasons.append(
+            "stream-extract does not transitively depend on the agreement gate"
+        )
     return r
 
 
@@ -220,7 +226,9 @@ def four_shapes_precede_the_control(doc: Mapping[str, Any]) -> CheckResult:
         return r
     for earlier, later in zip(SHAPE_CHAIN, SHAPE_CHAIN[1:]):
         if earlier not in ancestors(doc, later):
-            r.reasons.append(f"{later!r} does not depend on {earlier!r}: the chain is broken")
+            r.reasons.append(
+                f"{later!r} does not depend on {earlier!r}: the chain is broken"
+            )
     ctl = "known-present-control"
     if stage(doc, ctl) is None:
         r.reasons.append(f"missing {ctl!r}")
@@ -243,7 +251,9 @@ def self_contradiction_halts_the_analysis(doc: Mapping[str, Any]) -> CheckResult
         r.reasons.append(f"halt gate does not test self_contradiction_found: {expr!r}")
     on_fail = gate_on_fail(doc, gid)
     if on_fail not in ("fail", "escalate-to-human"):
-        r.reasons.append(f"halt gate on_fail is {on_fail!r}, which does not halt the analysis")
+        r.reasons.append(
+            f"halt gate on_fail is {on_fail!r}, which does not halt the analysis"
+        )
     for sid in ("shape-self-match", "emit-verdict"):
         if gid not in ancestors(doc, sid):
             r.reasons.append(f"{sid!r} is reachable without passing the halt gate")
@@ -258,7 +268,11 @@ def delta_gated_on_variance_and_degraded_control(doc: Mapping[str, Any]) -> Chec
     r = CheckResult("delta-gated-on-variance-and-degraded-control")
     expr = gate_expression(doc, "delta-gate")
     ids = identifiers(expr)
-    for needed in ("delta_vs_baseline", "rerun_variance_band", "degraded_control_scored_lower"):
+    for needed in (
+        "delta_vs_baseline",
+        "rerun_variance_band",
+        "degraded_control_scored_lower",
+    ):
         if needed not in ids:
             r.reasons.append(f"delta gate does not require {needed}: {expr!r}")
     anc = ancestors(doc, "compare-to-baseline")
@@ -272,13 +286,21 @@ def run_is_hermetic(doc: Mapping[str, Any]) -> CheckResult:
     """No wall clock, no unseeded entropy, no unrecorded network - gated AND declared."""
     r = CheckResult("run-is-hermetic")
     ids = identifiers(gate_expression(doc, "hermeticity-gate"))
-    for needed in ("wall_clock_reads", "unseeded_entropy_reads", "unrecorded_network_calls"):
+    for needed in (
+        "wall_clock_reads",
+        "unseeded_entropy_reads",
+        "unrecorded_network_calls",
+    ):
         if needed not in ids:
             r.reasons.append(f"hermeticity gate does not count {needed}")
-    forbidden = set((doc.get("replay") or {}).get("forbid_nondeterministic_sources") or [])
+    forbidden = set(
+        (doc.get("replay") or {}).get("forbid_nondeterministic_sources") or []
+    )
     for needed in ("clock", "random", "network"):
         if needed not in forbidden:
-            r.reasons.append(f"replay does not forbid the nondeterministic source {needed!r}")
+            r.reasons.append(
+                f"replay does not forbid the nondeterministic source {needed!r}"
+            )
     return r
 
 
@@ -300,18 +322,28 @@ def exactly_one_source_write_stage_with_revert(doc: Mapping[str, Any]) -> CheckR
         r.reasons.append("no repair_loop stage 'revert-gate'")
         return r
     if list(rl.get("target") or []) != ["g5-implement"]:
-        r.reasons.append(f"revert loop targets {rl.get('target')!r}, not the source-write stage")
+        r.reasons.append(
+            f"revert loop targets {rl.get('target')!r}, not the source-write stage"
+        )
     verify = rl.get("verify")
     if not isinstance(verify, dict):
-        r.reasons.append("revert loop has no verify stage: a repair without an independent verify is a retry")
+        r.reasons.append(
+            "revert loop has no verify stage: a repair without an independent verify is a retry"
+        )
         return r
-    vexpr = verify.get("gate", {}).get("expression") if isinstance(verify.get("gate"), dict) else None
+    vexpr = (
+        verify.get("gate", {}).get("expression")
+        if isinstance(verify.get("gate"), dict)
+        else None
+    )
     vids = identifiers(vexpr)
     if "regression_count" not in vids:
         r.reasons.append(f"revert verify does not re-check the regression: {vexpr!r}")
     repair = rl.get("repair") or {}
     if repair.get("role") == (stage(doc, "g5-implement") or {}).get("role"):
-        r.reasons.append("the reverter is the same role as the implementer: the author would certify its own undo")
+        r.reasons.append(
+            "the reverter is the same role as the implementer: the author would certify its own undo"
+        )
     return r
 
 
@@ -319,13 +351,19 @@ def every_gate_declares_its_router_entry(doc: Mapping[str, Any]) -> CheckResult:
     """The mode router is declarative: each G-stage carries a `when` over entry_gate."""
     r = CheckResult("router-entry-declared-on-every-gate")
     if "entry_gate" not in (doc.get("params") or {}):
-        r.reasons.append("entry_gate is not a declared param, so the router cannot be evaluated")
+        r.reasons.append(
+            "entry_gate is not a declared param, so the router cannot be evaluated"
+        )
     gates = [s for s in top_stages(doc) if str(s.get("id", "")).startswith("g")]
     if len(gates) < 8:
-        r.reasons.append(f"expected at least 8 router-guarded gate stages, found {len(gates)}")
+        r.reasons.append(
+            f"expected at least 8 router-guarded gate stages, found {len(gates)}"
+        )
     for s in gates:
         if "entry_gate" not in identifiers(s.get("when")):
-            r.reasons.append(f"stage {s.get('id')!r} has no entry_gate router condition")
+            r.reasons.append(
+                f"stage {s.get('id')!r} has no entry_gate router condition"
+            )
     return r
 
 
@@ -342,7 +380,9 @@ def critical_error_caps_the_composite(doc: Mapping[str, Any]) -> CheckResult:
     elif "<=" not in str(expr):
         r.reasons.append(f"cap gate does not express an upper bound: {expr!r}")
     if "consistency-gate" not in ancestors(doc, "apply-critical-override"):
-        r.reasons.append("the cap is computed before Track B is checked against Track A")
+        r.reasons.append(
+            "the cap is computed before Track B is checked against Track A"
+        )
     return r
 
 
@@ -355,7 +395,9 @@ def one_scoring_call_per_dimension(doc: Mapping[str, Any]) -> CheckResult:
         return r
     over = st.get("over") or {}
     if over.get("source") != "param" or over.get("ref") != "rubric_dimensions":
-        r.reasons.append(f"scoring does not fan out over the rubric_dimensions param: {over!r}")
+        r.reasons.append(
+            f"scoring does not fan out over the rubric_dimensions param: {over!r}"
+        )
     scoring_bodies = [b for b in st.get("body") or [] if b.get("kind") == "task"]
     if len(scoring_bodies) != 1:
         r.reasons.append(
@@ -371,15 +413,21 @@ def one_scoring_call_per_dimension(doc: Mapping[str, Any]) -> CheckResult:
 # ------------------------------------------------------------ 81 design-first-ui-intake
 
 
-def implementation_unreachable_without_a_direction(doc: Mapping[str, Any]) -> CheckResult:
+def implementation_unreachable_without_a_direction(
+    doc: Mapping[str, Any],
+) -> CheckResult:
     """The implement stage is structurally gated on a recorded design direction."""
     r = CheckResult("implementation-unreachable-without-direction")
     gid = "admission-gate"
     expr = gate_expression(doc, gid)
     if "design_direction_recorded" not in identifiers(expr):
-        r.reasons.append(f"admission gate does not require a recorded direction: {expr!r}")
+        r.reasons.append(
+            f"admission gate does not require a recorded direction: {expr!r}"
+        )
     if gate_on_fail(doc, gid) not in ("fail", "escalate-to-human"):
-        r.reasons.append(f"admission gate on_fail is {gate_on_fail(doc, gid)!r} and does not block")
+        r.reasons.append(
+            f"admission gate on_fail is {gate_on_fail(doc, gid)!r} and does not block"
+        )
     impl = stage(doc, "implement")
     if impl is None:
         r.reasons.append("no implement stage")
@@ -412,16 +460,23 @@ def authority_is_assigned_by_measurability(doc: Mapping[str, Any]) -> CheckResul
     r = CheckResult("authority-by-measurability")
     expr = gate_expression(doc, "measurability-gate")
     ids = identifiers(expr)
-    for needed in ("authoritative_source_agrees_with_probe", "fact_marked_unverified_everywhere"):
+    for needed in (
+        "authoritative_source_agrees_with_probe",
+        "fact_marked_unverified_everywhere",
+    ):
         if needed not in ids:
-            r.reasons.append(f"measurability gate does not reference {needed}: {expr!r}")
+            r.reasons.append(
+                f"measurability gate does not reference {needed}: {expr!r}"
+            )
     st = stage(doc, "designate-authority")
     if st is None:
         r.reasons.append("no designate-authority stage")
         return r
     wu = st.get("work_unit") or {}
     if not any("measurability_probe" in str(i) for i in wu.get("inputs", [])):
-        r.reasons.append("the adjudicator does not take the measurability probe as an input")
+        r.reasons.append(
+            "the adjudicator does not take the measurability probe as an input"
+        )
     if "measurability-gate" not in ancestors(doc, "rewrite-as-pointers"):
         r.reasons.append("the pointer rewrite can run without the measurability gate")
     return r
@@ -435,7 +490,9 @@ def no_contradiction_is_resolved_silently(doc: Mapping[str, Any]) -> CheckResult
         if needed not in ids:
             r.reasons.append(f"superseded gate does not assert {needed}")
     if "rewrite-as-pointers" not in ancestors(doc, "register-superseded"):
-        r.reasons.append("the register does not run after the rewrite it is supposed to record")
+        r.reasons.append(
+            "the register does not run after the rewrite it is supposed to record"
+        )
     fp = identifiers(gate_expression(doc, "false-positive-gate"))
     if "legitimate_repeats_flagged_as_contradiction" not in fp:
         r.reasons.append("no false-positive control on legitimately repeated context")

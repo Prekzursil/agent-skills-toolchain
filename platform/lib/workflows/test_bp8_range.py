@@ -46,7 +46,9 @@ def test_the_mutation_kit_actually_detects_a_change() -> None:
     before = json.dumps(doc, sort_keys=True)
     broken = K.mutant(doc, lambda d: d["gates"].pop("population-defined"))
     assert "population-defined" not in broken["gates"]
-    assert json.dumps(doc, sort_keys=True) == before, "mutant() mutated the shipped document"
+    assert json.dumps(doc, sort_keys=True) == before, (
+        "mutant() mutated the shipped document"
+    )
     assert K.raises_assertion(lambda d: K.gate(d, "population-defined"), broken)
     assert not K.raises_assertion(lambda d: K.gate(d, "population-defined"), doc), (
         "the helper must be SILENT on the healthy document, or it measures nothing"
@@ -56,7 +58,9 @@ def test_the_mutation_kit_actually_detects_a_change() -> None:
 # ------------------------------------------------------------------ table versus what is on disk
 
 
-@pytest.mark.parametrize("slot,card,wid,flagship", K.BP8_RANGE, ids=[r[2] for r in K.BP8_RANGE])
+@pytest.mark.parametrize(
+    "slot,card,wid,flagship", K.BP8_RANGE, ids=[r[2] for r in K.BP8_RANGE]
+)
 def test_the_range_table_matches_the_document_on_disk(
     slot: int, card: str, wid: str, flagship: bool
 ) -> None:
@@ -65,7 +69,9 @@ def test_the_range_table_matches_the_document_on_disk(
     assert doc["id"] == wid
     assert meta["slot"] == slot
     assert meta["of"] == SPEC_FLAGSHIP_DENOMINATOR
-    assert meta["design_card"] == card, "a blueprint must name the design card it was built from"
+    assert meta["design_card"] == card, (
+        "a blueprint must name the design card it was built from"
+    )
     assert doc.get("flagship") is flagship
     assert meta.get("flagship") is flagship, (
         "the two flagship declarations must agree, or one of them is decoration"
@@ -111,9 +117,14 @@ def test_every_schema_reference_resolves_on_disk(wid: str) -> None:
     refs = K.schema_references(DOCS[wid])
     assert refs, "a blueprint that declares no typed output has no contract to hold it"
     unresolved = [
-        r for r in refs if not r.startswith(("http://", "https://")) and K.resolve_schema_reference(r) is None
+        r
+        for r in refs
+        if not r.startswith(("http://", "https://"))
+        and K.resolve_schema_reference(r) is None
     ]
-    assert unresolved == [], f"{wid} names schema files that do not exist: {sorted(set(unresolved))}"
+    assert unresolved == [], (
+        f"{wid} names schema files that do not exist: {sorted(set(unresolved))}"
+    )
 
 
 @pytest.mark.parametrize("wid", K.BP8_IDS)
@@ -131,24 +142,45 @@ def test_no_gate_is_declared_but_never_enforced(wid: str) -> None:
         if st.get("kind") == "gate" and st.get("gate_ref")
     }
     declared = set(doc.get("gates") or {})
-    assert declared - enforced == set(), f"{wid}: unenforced gates {sorted(declared - enforced)}"
-    assert enforced - declared == set(), f"{wid}: dangling gate_refs {sorted(enforced - declared)}"
+    assert declared - enforced == set(), (
+        f"{wid}: unenforced gates {sorted(declared - enforced)}"
+    )
+    assert enforced - declared == set(), (
+        f"{wid}: dangling gate_refs {sorted(enforced - declared)}"
+    )
 
 
 @pytest.mark.parametrize("wid", K.BP8_IDS)
 def test_every_document_carries_the_required_authoring_blocks(wid: str) -> None:
     doc = DOCS[wid]
-    for block in ("params", "roles", "tool_policy", "gates", "stages", "stopping_rules",
-                  "retry_policy", "failure_policy", "outputs"):
+    for block in (
+        "params",
+        "roles",
+        "tool_policy",
+        "gates",
+        "stages",
+        "stopping_rules",
+        "retry_policy",
+        "failure_policy",
+        "outputs",
+    ):
         assert doc.get(block), f"{wid} is missing {block}"
-    assert doc["tool_policy"]["default"] == "deny", "an allow-by-default tool policy is not a policy"
+    assert doc["tool_policy"]["default"] == "deny", (
+        "an allow-by-default tool policy is not a policy"
+    )
     assert doc["failure_policy"]["terminal_state_required"] is True
     assert doc["failure_policy"]["never_silent"] is True
     K.worked_examples(doc)
     K.benchmark_cases(doc)
-    assert K.ext(doc, "mechanism"), "a blueprint must state the mechanism it is not a copy of"
-    assert K.ext(doc, "not_a_duplicate_because"), "distinctness must be argued per document"
-    assert K.ext(doc, "contraindications"), "a blueprint that fits everything fits nothing"
+    assert K.ext(doc, "mechanism"), (
+        "a blueprint must state the mechanism it is not a copy of"
+    )
+    assert K.ext(doc, "not_a_duplicate_because"), (
+        "distinctness must be argued per document"
+    )
+    assert K.ext(doc, "contraindications"), (
+        "a blueprint that fits everything fits nothing"
+    )
 
 
 @pytest.mark.parametrize("wid", K.BP8_IDS)
@@ -170,7 +202,9 @@ def test_every_inline_work_unit_is_uniquely_identified(wid: str) -> None:
     assert ids, f"{wid} declares no inline work unit"
     assert len(set(ids)) == len(ids), f"{wid} reuses a work-unit id: {ids}"
     for unit in units:
-        assert unit.get("output_schema"), f"{wid}/{unit['id']} emits an untyped artifact"
+        assert unit.get("output_schema"), (
+            f"{wid}/{unit['id']} emits an untyped artifact"
+        )
         assert unit.get("completion_sentinel", "").startswith("SUCCESS:"), (
             f"{wid}/{unit['id']} has no terminal-state sentinel"
         )
@@ -194,9 +228,15 @@ def test_work_unit_ids_are_unique_across_the_whole_range() -> None:
 
 def test_no_pair_in_the_range_is_a_near_duplicate_by_mechanism() -> None:
     rows = K.pairwise_similarity(DOCS)
-    assert len(rows) == 66, f"expected 66 unordered pairs over 12 documents, got {len(rows)}"
-    offenders = [(round(s, 3), a, b) for s, a, b in rows if s >= NEAR_DUPLICATE_THRESHOLD]
-    assert offenders == [], f"near-duplicate pairs at/above {NEAR_DUPLICATE_THRESHOLD}: {offenders}"
+    assert len(rows) == 66, (
+        f"expected 66 unordered pairs over 12 documents, got {len(rows)}"
+    )
+    offenders = [
+        (round(s, 3), a, b) for s, a, b in rows if s >= NEAR_DUPLICATE_THRESHOLD
+    ]
+    assert offenders == [], (
+        f"near-duplicate pairs at/above {NEAR_DUPLICATE_THRESHOLD}: {offenders}"
+    )
 
 
 def test_the_distinctness_screen_detects_a_planted_renamed_copy() -> None:
@@ -227,7 +267,9 @@ def test_no_two_documents_share_a_gate_expression_set() -> None:
     signatures: dict[frozenset[str], str] = {}
     for wid, doc in DOCS.items():
         sig = frozenset(str(g.get("expression")) for g in doc["gates"].values())
-        assert sig not in signatures, f"{wid} and {signatures[sig]} gate on identical expressions"
+        assert sig not in signatures, (
+            f"{wid} and {signatures[sig]} gate on identical expressions"
+        )
         signatures[sig] = wid
 
 
@@ -239,7 +281,9 @@ def test_the_range_declares_categories_from_the_spec_six() -> None:
     for doc in DOCS.values():
         cats = K.canonical_categories(doc)
         assert cats, f"{doc['id']} declares no category"
-        assert cats <= K.SPEC_CATEGORIES, f"{doc['id']} claims {sorted(cats - K.SPEC_CATEGORIES)}"
+        assert cats <= K.SPEC_CATEGORIES, (
+            f"{doc['id']} claims {sorted(cats - K.SPEC_CATEGORIES)}"
+        )
         covered |= cats
     # This range is deliberately reliability-heavy (BP-REL-*/BP-MNT-*), so it spans three of the
     # six domains, not all six. The 96-wide span is a corpus property, asserted by the corpus-wide
@@ -265,7 +309,9 @@ def test_the_flagship_share_meets_the_prorated_spec_floor() -> None:
 
 def test_every_flagship_has_its_own_end_to_end_test_module() -> None:
     missing = [
-        wid for wid in K.BP8_FLAGSHIP if not (HERE / f"test_{wid.replace('-', '_')}.py").is_file()
+        wid
+        for wid in K.BP8_FLAGSHIP
+        if not (HERE / f"test_{wid.replace('-', '_')}.py").is_file()
     ]
     assert missing == [], f"flagship blueprints with no test module: {missing}"
 
@@ -281,5 +327,13 @@ def test_the_stage_kind_vocabulary_is_genuinely_exercised() -> None:
     kinds: set[str] = set()
     for doc in DOCS.values():
         kinds |= {str(st.get("kind")) for _, st in K.stages(doc)}
-    for needed in ("task", "gate", "fanout", "human_checkpoint", "repair_loop", "loop", "subworkflow"):
+    for needed in (
+        "task",
+        "gate",
+        "fanout",
+        "human_checkpoint",
+        "repair_loop",
+        "loop",
+        "subworkflow",
+    ):
         assert needed in kinds, f"the range never uses stage kind {needed!r}"

@@ -76,11 +76,18 @@ def test_graduation_to_ci_is_an_owner_decision_not_an_agent_one() -> None:
     assert len(stage["options"]) >= 3
 
 
-def test_detector_control_gate_rejects_a_pattern_that_misses_the_known_instance() -> None:
+def test_detector_control_gate_rejects_a_pattern_that_misses_the_known_instance() -> (
+    None
+):
     """The failure this blueprint exists to prevent."""
     d = doc()
     assert kit.evaluate_gate(d, "detector-control") is True
-    assert kit.evaluate_gate(d, "detector-control", {"pattern_finds_known_instance": False}) is False
+    assert (
+        kit.evaluate_gate(
+            d, "detector-control", {"pattern_finds_known_instance": False}
+        )
+        is False
+    )
 
 
 def test_MUTATION_weakening_the_detector_control_removes_its_power() -> None:
@@ -98,7 +105,12 @@ def test_MUTATION_weakening_the_detector_control_removes_its_power() -> None:
 
     ctx = k.worked_context(weakened)
     ctx.update(bad)
-    assert _expr.evaluate(weakened["gates"]["detector-control"]["expression"], ctx, strict=True) is True, (
+    assert (
+        _expr.evaluate(
+            weakened["gates"]["detector-control"]["expression"], ctx, strict=True
+        )
+        is True
+    ), (
         "the mutated gate should have stopped rejecting - if it still rejects, this test was "
         "not measuring the condition it claims to measure"
     )
@@ -107,7 +119,9 @@ def test_MUTATION_weakening_the_detector_control_removes_its_power() -> None:
 def test_MUTATION_dropping_the_detector_control_stage_is_rejected() -> None:
     """Both-states control on the DOCUMENT. Deleting the control stage while later stages still
     depend on it must be caught by DSL-SEM-002."""
-    kit.assert_rejected(kit.drop_stage(doc(), "detector-control"), "detector-control stage removed")
+    kit.assert_rejected(
+        kit.drop_stage(doc(), "detector-control"), "detector-control stage removed"
+    )
 
 
 def test_MUTATION_unbounding_the_sweep_fanout_is_rejected() -> None:

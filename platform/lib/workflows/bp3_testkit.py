@@ -86,7 +86,9 @@ def stage(doc: dict[str, Any], stage_id: str) -> dict[str, Any]:
     for st in stages(doc):
         if st.get("id") == stage_id:
             return st
-    raise AssertionError(f"no stage {stage_id!r}; have {[s.get('id') for s in stages(doc)]}")
+    raise AssertionError(
+        f"no stage {stage_id!r}; have {[s.get('id') for s in stages(doc)]}"
+    )
 
 
 def stage_ids(doc: dict[str, Any]) -> list[str]:
@@ -133,7 +135,9 @@ def both_states_control(
     mutate(mutant)
     with pytest.raises(AssertionError):
         invariant(mutant)
-        pytest.fail(f"both-states control {label!r} did not fire: the invariant is vacuous")
+        pytest.fail(
+            f"both-states control {label!r} did not fire: the invariant is vacuous"
+        )
 
 
 def declared_stopping_rule(doc: dict[str, Any], rule_id: str) -> dict[str, Any]:

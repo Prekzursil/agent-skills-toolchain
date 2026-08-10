@@ -53,13 +53,17 @@ def _resolve_pointer(doc: Any, pointer: str) -> Any:
         token = raw.replace("~1", "/").replace("~0", "~")
         if isinstance(node, dict):
             if token not in node:
-                raise RefError("pointer-unresolved", f"{token!r} absent from {pointer!r}")
+                raise RefError(
+                    "pointer-unresolved", f"{token!r} absent from {pointer!r}"
+                )
             node = node[token]
         elif isinstance(node, list):
             try:
                 node = node[int(token)]
             except (ValueError, IndexError) as exc:
-                raise RefError("pointer-unresolved", f"{token!r} in {pointer!r}: {exc}") from exc
+                raise RefError(
+                    "pointer-unresolved", f"{token!r} in {pointer!r}: {exc}"
+                ) from exc
         else:
             raise RefError("pointer-unresolved", f"{token!r} walks into a scalar")
     return node
@@ -69,7 +73,12 @@ def resolve_ref(ref: str, *, repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     """Resolve one schema reference. Returns a row; raises RefError on any failure."""
     if ref.startswith(("http://", "https://")):
         # An absolute URI is legal per the schema_reference pattern but cannot be opened offline.
-        return {"ref": ref, "kind": "absolute-uri", "resolved": False, "reason": "not-checked-offline"}
+        return {
+            "ref": ref,
+            "kind": "absolute-uri",
+            "resolved": False,
+            "reason": "not-checked-offline",
+        }
     path_part, _, pointer = ref.partition("#")
     if ".." in path_part:
         raise RefError("path-escape", f"{ref!r} contains '..'")
@@ -84,7 +93,9 @@ def resolve_ref(ref: str, *, repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         raise RefError("json-invalid", f"{path_part}: {exc}") from exc
     sub = _resolve_pointer(doc, pointer) if pointer else doc
     if not isinstance(sub, (dict, bool)):
-        raise RefError("not-a-schema", f"{ref!r} resolves to {type(sub).__name__}, not a schema")
+        raise RefError(
+            "not-a-schema", f"{ref!r} resolves to {type(sub).__name__}, not a schema"
+        )
     try:
         from jsonschema import Draft202012Validator
 
@@ -103,7 +114,13 @@ def resolve_ref(ref: str, *, repo_root: Path = REPO_ROOT) -> dict[str, Any]:
 
 def collect_refs(doc: Any, path: str = "") -> list[tuple[str, str]]:
     """Every ``schema_ref`` / ``output_schema`` / ``predicate_ref`` / ``validate_against`` string."""
-    keys = {"schema_ref", "output_schema", "predicate_ref", "validate_against", "council_spec_ref"}
+    keys = {
+        "schema_ref",
+        "output_schema",
+        "predicate_ref",
+        "validate_against",
+        "council_spec_ref",
+    }
     out: list[tuple[str, str]] = []
     if isinstance(doc, dict):
         for k, v in doc.items():
@@ -124,7 +141,9 @@ def check_document(path: Path) -> dict[str, Any]:
         try:
             row = resolve_ref(ref)
         except RefError as exc:
-            failures.append({"where": where, "ref": ref, "reason": exc.reason, "detail": exc.detail})
+            failures.append(
+                {"where": where, "ref": ref, "reason": exc.reason, "detail": exc.detail}
+            )
         else:
             rows.append({"where": where, **row})
     distinct = sorted({r["ref"] for r in rows} | {f["ref"] for f in failures})
@@ -158,14 +177,20 @@ def self_check(tmp: Path) -> dict[str, Any]:
     """Prove the resolver fires on known-broken refs and stays silent on a known-present one."""
     tmp.mkdir(parents=True, exist_ok=True)
     good = "platform/schema/receipt.schema.json"
-    (tmp / "not-a-schema.json").write_text(json.dumps({"$defs": {"leaf": 7}}), encoding="utf-8")
+    (tmp / "not-a-schema.json").write_text(
+        json.dumps({"$defs": {"leaf": 7}}), encoding="utf-8"
+    )
     (tmp / "broken.json").write_text("{not json", encoding="utf-8")
     rel = tmp.relative_to(REPO_ROOT).as_posix()
 
     cases: list[tuple[str, str, str | None]] = [
         ("known-present", good, None),
         ("known-present-pointer", f"{good}#/$defs/receipt_core", None),
-        ("missing-file", "command-center/schema/definitely-not-here.schema.json", "file-missing"),
+        (
+            "missing-file",
+            "command-center/schema/definitely-not-here.schema.json",
+            "file-missing",
+        ),
         ("bad-pointer", f"{good}#/$defs/no_such_def", "pointer-unresolved"),
         ("not-a-schema", f"{rel}/not-a-schema.json#/$defs/leaf", "not-a-schema"),
         ("json-invalid", f"{rel}/broken.json", "json-invalid"),
@@ -180,7 +205,15 @@ def self_check(tmp: Path) -> dict[str, Any]:
                 got = None
             except RefError as exc:
                 got = exc.reason
-            rows.append({"case": name, "ref": ref, "expected": expect, "got": got, "ok": got == expect})
+            rows.append(
+                {
+                    "case": name,
+                    "ref": ref,
+                    "expected": expect,
+                    "got": got,
+                    "ok": got == expect,
+                }
+            )
     finally:
         # The two known-broken fixtures must live UNDER the repo, because resolve_ref joins
         # repo-relative paths against REPO_ROOT - a tempfile outside the tree could not be
@@ -198,15 +231,23 @@ def self_check(tmp: Path) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="bp7_schema_ref_check")
-    ap.add_argument("paths", nargs="*", help="blueprint json files (default: every bp-*.json)")
+    ap.add_argument(
+        "paths", nargs="*", help="blueprint json files (default: every bp-*.json)"
+    )
     ap.add_argument("--self-check", action="store_true")
     ap.add_argument("--json")
     args = ap.parse_args(argv)
 
     if args.self_check:
-        report = self_check(REPO_ROOT / "platform" / "lib" / "workflows" / "_tmp_refcheck")
+        report = self_check(
+            REPO_ROOT / "platform" / "lib" / "workflows" / "_tmp_refcheck"
+        )
         print(json.dumps(report, indent=1))
-        print("SUCCESS:schema-ref-selfcheck" if report["ok"] else "FAILED:schema-ref-selfcheck")
+        print(
+            "SUCCESS:schema-ref-selfcheck"
+            if report["ok"]
+            else "FAILED:schema-ref-selfcheck"
+        )
         return 0 if report["ok"] else 1
 
     paths = [Path(p) for p in args.paths] or sorted(WORKFLOW_DIR.glob("bp-*.json"))
@@ -217,10 +258,14 @@ def main(argv: list[str] | None = None) -> int:
     if args.json:
         Path(args.json).write_text(json.dumps(report, indent=1), encoding="utf-8")
     for r in report["results"]:
-        print(f"{'OK ' if r['ok'] else 'BAD'} {r['document']:<52} refs={r['references']:<4} distinct={r['distinct_references']:<4} resolved={r['resolved']}")
+        print(
+            f"{'OK ' if r['ok'] else 'BAD'} {r['document']:<52} refs={r['references']:<4} distinct={r['distinct_references']:<4} resolved={r['resolved']}"
+        )
         for f in r["failures"]:
             print(f"      {f['reason']:<20} {f['ref']}  @{f['where']}")
-    print(f"documents={report['documents']} references={report['references']} resolved={report['resolved']} failures={len(report['failures'])}")
+    print(
+        f"documents={report['documents']} references={report['references']} resolved={report['resolved']} failures={len(report['failures'])}"
+    )
     print("SUCCESS:schema-ref-check" if report["ok"] else "FAILED:schema-ref-check")
     return 0 if report["ok"] else 1
 

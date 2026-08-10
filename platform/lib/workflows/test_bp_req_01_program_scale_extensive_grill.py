@@ -49,7 +49,9 @@ def test_recall_runs_before_any_owner_question() -> None:
     stages = [s["id"] for s in doc["stages"]]
     assert stages.index("scout") == 0
     assert stages.index("recall-gate") < stages.index("ask-loop")
-    assert "mcp__basic-memory__search_notes" in doc["roles"]["scout"]["tool_permissions"]
+    assert (
+        "mcp__basic-memory__search_notes" in doc["roles"]["scout"]["tool_permissions"]
+    )
     assert "mcp__basic-memory__search_notes" in doc["tool_policy"]["allow"], (
         "DSL-SEM-011 is deny-by-default: a role tool that is not in the allow list is a violation"
     )
@@ -74,9 +76,9 @@ def test_ordering_and_recommendations_are_gated_together() -> None:
     assert "detail_questions_before_foundational == 0" in gate["expression"]
     assert "every_question_has_a_recommendation == true" in gate["expression"]
     wu = C.find_stage(doc, "structure")["work_unit"]
-    assert "which OTHER questions its answer would change" in wu["evidence_requirement"], (
-        "the dependency EDGE is what makes foundational-first mechanically checkable"
-    )
+    assert (
+        "which OTHER questions its answer would change" in wu["evidence_requirement"]
+    ), "the dependency EDGE is what makes foundational-first mechanically checkable"
     assert "bare-question" in doc["failure_policy"]["classify_as"]
     assert any("FIRST, not tenth" in t for t in wu["tests_required"])
     assert any("both-states control" in t for t in wu["tests_required"]), (
@@ -120,12 +122,14 @@ def test_it_is_the_only_bp2_blueprint_with_a_human_checkpoint_inside_a_loop() ->
         for shape in C.fingerprint(C.load(bid))["loop_shape"]:
             if "human_checkpoint" in shape:
                 hits.append(bid)
-    assert sorted(set(hits)) == sorted({BP, "bp-req-02-recursive-decision-ledger-walk"}), hits
+    assert sorted(set(hits)) == sorted(
+        {BP, "bp-req-02-recursive-decision-ledger-walk"}
+    ), hits
     # both have one, so distinguish on the SECOND body member
     mine = C.find_stage(C.load(BP), "ask-loop")["body"]
-    theirs = C.find_stage(
-        C.load("bp-req-02-recursive-decision-ledger-walk"), "walk"
-    )["body"]
+    theirs = C.find_stage(C.load("bp-req-02-recursive-decision-ledger-walk"), "walk")[
+        "body"
+    ]
     assert len(mine) == 2 and len(theirs) == 3, (
         "req-01 asks then records (flat list); req-02 asks, expands the tree, then checkpoints - "
         "the extra expansion stage is the mechanical difference between a flat grill and a "
@@ -198,7 +202,9 @@ def test_parked_questions_must_carry_a_consequence_rating() -> None:
 def test_a_choice_against_the_recommendation_must_be_recorded_as_such() -> None:
     wu = C.find_stage(C.load(BP), "record-answer")["work_unit"]
     assert "chose AGAINST the recommendation" in wu["evidence_requirement"]
-    assert any("not normalised to the recommendation" in t for t in wu["tests_required"])
+    assert any(
+        "not normalised to the recommendation" in t for t in wu["tests_required"]
+    )
     assert "double-append" in wu["failure_classification"]
 
 
@@ -215,14 +221,18 @@ def test_the_conditional_child_workflow_resolves_and_is_non_fatal() -> None:
     )
     assert stage["workflow"]["workflow_id"] in doc["subworkflows"], "DSL-SEM-006"
     declared = doc["subworkflows"]["bp-brn-03-constraint-inversion"]
-    assert declared["source"] == "platform/workflows/bp-brn-03-constraint-inversion.json"
+    assert (
+        declared["source"] == "platform/workflows/bp-brn-03-constraint-inversion.json"
+    )
     assert (C.WF_DIR / "bp-brn-03-constraint-inversion.json").is_file(), (
         "the child workflow must exist on disk, not merely be named"
     )
 
 
 def test_it_is_the_only_bp2_blueprint_with_a_subworkflow() -> None:
-    with_sub = [bid for bid in C.BP2_IDS if C.fingerprint(C.load(bid))["has_subworkflow"]]
+    with_sub = [
+        bid for bid in C.BP2_IDS if C.fingerprint(C.load(bid))["has_subworkflow"]
+    ]
     assert with_sub == [BP], with_sub
 
 
@@ -246,7 +256,9 @@ def test_worked_examples_cover_the_hidden_foundational_choice_and_the_decline() 
     pos, neg = C.worked_examples(doc)
     assert pos["arm"] == "positive"
     assert "next_stage == plan" in pos["expected_terminal_state"]
-    assert "asked FIRST" in pos["walkthrough"] or "orders it FIRST" in pos["walkthrough"]
+    assert (
+        "asked FIRST" in pos["walkthrough"] or "orders it FIRST" in pos["walkthrough"]
+    )
     assert neg["arm"] == "negative-control"
     assert "zero questions asked" in neg["expected_terminal_state"]
     assert "DECLINES to grill" in neg["walkthrough"], (

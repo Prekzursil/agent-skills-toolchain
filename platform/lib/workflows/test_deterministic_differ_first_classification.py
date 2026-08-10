@@ -47,9 +47,9 @@ def test_worked_example_binds_every_declared_param_it_uses(doc: dict) -> None:
     ex = doc["x_extensions"]["worked_example"]
     assert set(ex["params"]) <= set(doc["params"])
     assert "diverged" in ex["params"]["verdict_vocabulary"]
-    assert set(ex["params"]["dangerous_verdicts"]) <= set(ex["params"]["verdict_vocabulary"]), (
-        "a dangerous verdict outside the vocabulary could never be counted"
-    )
+    assert set(ex["params"]["dangerous_verdicts"]) <= set(
+        ex["params"]["verdict_vocabulary"]
+    ), "a dangerous verdict outside the vocabulary could never be counted"
 
 
 # ------------------------------------------------------------ mechanism: routing, both ways
@@ -90,7 +90,10 @@ def test_the_algorithm_is_validated_against_human_labels_first(doc: dict) -> Non
     order = H.top_level_stage_ids(doc)
     assert order.index("sample-validation-gate") < order.index("run-over-full-set")
     unit = H.stage(doc, "write-the-algorithm")["work_unit"]
-    assert "falling back to agents is explicitly not the remedy" in unit["question_or_target"]
+    assert (
+        "falling back to agents is explicitly not the remedy"
+        in unit["question_or_target"]
+    )
     assert "never pivot to agent classification" in unit["retry_policy"]
     tests = " ".join(unit["tests_required"])
     assert "one-directional check must be shown to miss it" in tests
@@ -144,7 +147,9 @@ def test_the_direction_gate_is_the_blocking_verdict(doc: dict) -> None:
     assert H.gate_expressions(doc)["no-dangerous-direction-error"] == (
         "dangerous_direction_errors == 0"
     )
-    assert doc["gates"]["no-dangerous-direction-error"]["on_fail"] == "escalate-to-human"
+    assert (
+        doc["gates"]["no-dangerous-direction-error"]["on_fail"] == "escalate-to-human"
+    )
     unit = H.stage(doc, "measure-error-direction")["work_unit"]
     target = unit["question_or_target"]
     assert "DANGEROUS" in target and "OVER-CAUTIOUS" in target
@@ -175,16 +180,21 @@ def test_weakening_the_direction_gate_to_a_ratio_is_detectable(doc: dict) -> Non
         d["gates"]["no-dangerous-direction-error"]["expression"] = "accuracy >= 0.85"
 
     mutant = H.mutated(doc, bend)
-    assert H.conformance_failures(mutant) == [], "still schema-valid; the loss is the mechanism"
-    assert "dangerous_direction_errors" not in H.gate_expressions(mutant)[
-        "no-dangerous-direction-error"
-    ]
+    assert H.conformance_failures(mutant) == [], (
+        "still schema-valid; the loss is the mechanism"
+    )
+    assert (
+        "dangerous_direction_errors"
+        not in H.gate_expressions(mutant)["no-dangerous-direction-error"]
+    )
 
 
 # -------------------------------------- mechanism: agents only on genuinely judgement residue
 
 
-def test_the_residue_is_agent_only_and_must_contain_nothing_mechanical(doc: dict) -> None:
+def test_the_residue_is_agent_only_and_must_contain_nothing_mechanical(
+    doc: dict,
+) -> None:
     fan = H.stage(doc, "judge-residue")
     assert fan["over"]["ref"].endswith("#/residue_requiring_judgement")
     assert fan["depends_on"] == ["direction-gate"]
@@ -203,7 +213,9 @@ def test_the_estimate_names_the_measurement_it_claims_to_come_from(doc: dict) ->
         assert token in src, token
 
 
-def test_claiming_a_measured_basis_without_naming_the_measurement_is_rejected(doc: dict) -> None:
+def test_claiming_a_measured_basis_without_naming_the_measurement_is_rejected(
+    doc: dict,
+) -> None:
     def bend(d: dict) -> None:
         del d["estimate"]["measurement_source"]
 

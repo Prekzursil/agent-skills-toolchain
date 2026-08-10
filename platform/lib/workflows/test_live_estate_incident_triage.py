@@ -58,14 +58,20 @@ def test_worked_example_declares_why_the_owner_stage_is_skipped(doc: dict) -> No
 # ------------------------------------------------- mechanism: two DIFFERENT instrument classes
 
 
-def test_at_least_two_instrument_classes_are_required_by_the_param_contract(doc: dict) -> None:
+def test_at_least_two_instrument_classes_are_required_by_the_param_contract(
+    doc: dict,
+) -> None:
     spec = doc["params"]["instrument_classes"]
     assert spec["min_items"] >= 2, "one instrument class cannot corroborate itself"
     assert spec["items"]["type"] == "enum"
     classes = spec["items"]["enum"]
     # the declared classes must be mechanically different families, not synonyms of one source
-    assert {"process-table", "file-mtime", "event-log", "exit-code-decode"} <= set(classes)
-    assert len(set(classes)) == len(classes), "a duplicated class inflates the apparent count"
+    assert {"process-table", "file-mtime", "event-log", "exit-code-decode"} <= set(
+        classes
+    )
+    assert len(set(classes)) == len(classes), (
+        "a duplicated class inflates the apparent count"
+    )
 
 
 def test_the_instrument_pair_is_chosen_before_either_probe_runs(doc: dict) -> None:
@@ -97,7 +103,9 @@ def test_the_source_probe_is_declared_not_only_the_verifier(doc: dict) -> None:
     assert "instrument class token" in primary["evidence_requirement"]
     assert "probe-self-match" in primary["failure_classification"]
     tests = " ".join(primary["tests_required"])
-    assert "matches its OWN command line" in tests, "the self-match control must be present"
+    assert "matches its OWN command line" in tests, (
+        "the self-match control must be present"
+    )
 
 
 def test_dropping_the_independence_gate_leaves_a_dangling_reference(doc: dict) -> None:
@@ -113,7 +121,9 @@ def test_dropping_the_independence_gate_leaves_a_dangling_reference(doc: dict) -
 # --------------------------------------------- mechanism: environmental check before defect
 
 
-def test_an_environmental_explanation_is_tested_before_a_defect_is_declared(doc: dict) -> None:
+def test_an_environmental_explanation_is_tested_before_a_defect_is_declared(
+    doc: dict,
+) -> None:
     order = H.top_level_stage_ids(doc)
     assert order.index("environmental-explanation") < order.index("action-gate")
     unit = H.stage(doc, "environmental-explanation")["work_unit"]
@@ -141,18 +151,25 @@ def test_a_single_signal_verdict_is_impossible_by_construction(doc: dict) -> Non
 # ---------------------------------------------------- mechanism: the ACTION is what is gated
 
 
-def test_disruptive_actions_require_corroboration_and_an_owner_signature(doc: dict) -> None:
+def test_disruptive_actions_require_corroboration_and_an_owner_signature(
+    doc: dict,
+) -> None:
     expr = H.gate_expressions(doc)["action-authorised-only-on-corroboration"]
     assert "disruptive_actions_proposed_without_corroborated_claim == 0" in expr
     assert "environmental_explanation_checked == true" in expr
     cp = H.stage(doc, "owner-authorises-disruptive-action")
     assert cp["kind"] == "human_checkpoint"
-    assert cp["when"] == "allow_disruptive_actions == true AND disruptive_actions_proposed >= 1"
+    assert (
+        cp["when"]
+        == "allow_disruptive_actions == true AND disruptive_actions_proposed >= 1"
+    )
     assert cp["on_timeout"] == "fail"
     assert doc["params"]["allow_disruptive_actions"]["default"] is False
 
 
-def test_the_workflow_holds_no_tool_that_could_kill_or_roll_back_unilaterally(doc: dict) -> None:
+def test_the_workflow_holds_no_tool_that_could_kill_or_roll_back_unilaterally(
+    doc: dict,
+) -> None:
     tokens = H.all_tool_tokens(doc)
     for banned in ("Bash", "Bash:taskkill", "Bash:git"):
         assert banned in doc["tool_policy"]["deny"], banned

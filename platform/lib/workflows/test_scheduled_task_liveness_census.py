@@ -38,7 +38,9 @@ def check_the_two_signals_are_read_by_different_roles(doc: Mapping[str, Any]) ->
     assert K.stage(doc, "pair-and-classify")["role"] == "pairing-adjudicator"
 
 
-def check_the_pairing_cannot_happen_before_independence_is_proven(doc: Mapping[str, Any]) -> None:
+def check_the_pairing_cannot_happen_before_independence_is_proven(
+    doc: Mapping[str, Any],
+) -> None:
     order = K.top_level_stage_ids(doc)
     K.assert_precedes(order, "enumerate-and-decode", "gate-result-codes")
     K.assert_precedes(order, "gate-result-codes", "measure-freshness")
@@ -76,9 +78,9 @@ def check_no_oracle_is_a_gap_not_a_pass(doc: Mapping[str, Any]) -> None:
 
 def check_a_nonzero_result_code_is_decoded_not_assumed(doc: Mapping[str, Any]) -> None:
     spec = K.gate_for_stage(doc, "gate-result-codes")
-    assert "nonzero_results_classified == nonzero_results_found" in spec["expression"], (
-        "an undecoded non-zero code is an unclassified task, not a failing one"
-    )
+    assert (
+        "nonzero_results_classified == nonzero_results_found" in spec["expression"]
+    ), "an undecoded non-zero code is an unclassified task, not a failing one"
     assert "expected_refusals_not_counted_as_failing == true" in spec["expression"]
     designed = doc["params"]["designed_nonzero_results"]
     assert designed["type"] == "array" and designed["min_items"] == 0, (
@@ -89,11 +91,15 @@ def check_a_nonzero_result_code_is_decoded_not_assumed(doc: Mapping[str, Any]) -
     assert "designed-refusal" in ids
 
 
-def check_power_off_windows_are_subtracted_before_staleness(doc: Mapping[str, Any]) -> None:
+def check_power_off_windows_are_subtracted_before_staleness(
+    doc: Mapping[str, Any],
+) -> None:
     spec = doc["params"]["power_off_windows"]
     props = spec["items"]["properties"]
     assert {"from", "to"} <= set(props), "a window with no bounds cannot be subtracted"
-    assert spec["min_items"] == 0, "a box that never sleeps declares an empty list, not none"
+    assert spec["min_items"] == 0, (
+        "a box that never sleeps declares an empty list, not none"
+    )
     cases = {c["id"]: c for c in K.benchmark_cases(doc)}
     assert "weekend-not-an-alarm" in cases, (
         "without this case the census would alarm on every power-off window"
@@ -236,7 +242,9 @@ def _give_the_adjudicator_the_scheduler(doc: dict) -> None:
 
 
 def _count_an_unmonitored_task_as_healthy(doc: dict) -> None:
-    doc["gates"]["no-oracle-is-a-gap"]["expression"] = "tasks_without_oracle_reported == true"
+    doc["gates"]["no-oracle-is-a-gap"]["expression"] = (
+        "tasks_without_oracle_reported == true"
+    )
 
 
 def _assume_every_nonzero_code_is_a_failure(doc: dict) -> None:
@@ -250,7 +258,9 @@ def _drop_the_power_off_window_bounds(doc: dict) -> None:
 
 
 def _drop_the_cadence_from_the_oracle(doc: dict) -> None:
-    doc["params"]["output_oracles"]["items"]["properties"].pop("expected_cadence_seconds")
+    doc["params"]["output_oracles"]["items"]["properties"].pop(
+        "expected_cadence_seconds"
+    )
 
 
 def _let_a_dead_task_complete(doc: dict) -> None:
@@ -286,10 +296,19 @@ def _wrap_the_census_in_a_retry_loop(doc: dict) -> None:
             "convergence": {
                 "max_iterations": 3,
                 "converged_when": "tasks_classified == tasks_enumerated",
-                "metrics": [{"name": "tasks_classified", "direction": "increase", "target": 1}],
+                "metrics": [
+                    {"name": "tasks_classified", "direction": "increase", "target": 1}
+                ],
                 "on_no_convergence": "escalate",
             },
-            "body": [{"id": "retry-body", "kind": "task", "role": "task-enumerator", "timeout_seconds": 300}],
+            "body": [
+                {
+                    "id": "retry-body",
+                    "kind": "task",
+                    "role": "task-enumerator",
+                    "timeout_seconds": 300,
+                }
+            ],
         }
     )
 
@@ -300,23 +319,46 @@ def _drop_the_no_oracle_row_from_the_example(doc: dict) -> None:
 
 
 MUTATIONS = (
-    (check_the_two_signals_are_read_by_different_roles, _let_the_oracle_read_task_state),
-    (check_the_pairing_cannot_happen_before_independence_is_proven, _pair_before_the_independence_gate),
-    (check_the_adjudicator_is_a_cross_examining_veto, _give_the_adjudicator_the_scheduler),
+    (
+        check_the_two_signals_are_read_by_different_roles,
+        _let_the_oracle_read_task_state,
+    ),
+    (
+        check_the_pairing_cannot_happen_before_independence_is_proven,
+        _pair_before_the_independence_gate,
+    ),
+    (
+        check_the_adjudicator_is_a_cross_examining_veto,
+        _give_the_adjudicator_the_scheduler,
+    ),
     (check_no_oracle_is_a_gap_not_a_pass, _count_an_unmonitored_task_as_healthy),
-    (check_a_nonzero_result_code_is_decoded_not_assumed, _assume_every_nonzero_code_is_a_failure),
-    (check_power_off_windows_are_subtracted_before_staleness, _drop_the_power_off_window_bounds),
-    (check_the_oracle_declares_a_cadence_and_a_signal, _drop_the_cadence_from_the_oracle),
+    (
+        check_a_nonzero_result_code_is_decoded_not_assumed,
+        _assume_every_nonzero_code_is_a_failure,
+    ),
+    (
+        check_power_off_windows_are_subtracted_before_staleness,
+        _drop_the_power_off_window_bounds,
+    ),
+    (
+        check_the_oracle_declares_a_cadence_and_a_signal,
+        _drop_the_cadence_from_the_oracle,
+    ),
     (check_a_green_but_dead_task_escalates, _let_a_dead_task_complete),
     (check_an_incomplete_census_is_partial_not_complete, _hide_an_incomplete_census),
     (check_a_single_signal_verdict_is_never_retried, _retry_a_single_signal_verdict),
     (check_the_census_cannot_touch_the_system_it_reads, _allow_writes_into_windows),
     (check_it_does_not_pretend_to_trigger_anything, _wrap_the_census_in_a_retry_loop),
-    (check_the_worked_example_shows_all_four_decodings, _drop_the_no_oracle_row_from_the_example),
+    (
+        check_the_worked_example_shows_all_four_decodings,
+        _drop_the_no_oracle_row_from_the_example,
+    ),
 )
 
 
-@pytest.mark.parametrize("check,mutate", MUTATIONS, ids=lambda v: getattr(v, "__name__", ""))
+@pytest.mark.parametrize(
+    "check,mutate", MUTATIONS, ids=lambda v: getattr(v, "__name__", "")
+)
 def test_each_check_fails_on_its_mutated_blueprint(check: Any, mutate: Any) -> None:
     broken = K.mutant(DOC, mutate)
     assert K.raises_assertion(check, broken), (

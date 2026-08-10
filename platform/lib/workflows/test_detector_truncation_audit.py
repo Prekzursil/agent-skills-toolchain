@@ -25,7 +25,9 @@ DOC = K.load(WORKFLOW_ID)
 # ------------------------------------------------------------------------------- the checks
 
 
-def check_the_second_instrument_must_be_mechanically_different(doc: Mapping[str, Any]) -> None:
+def check_the_second_instrument_must_be_mechanically_different(
+    doc: Mapping[str, Any],
+) -> None:
     spec = K.gate_for_stage(doc, "gate-independence")
     assert "instruments_share_mechanism == false" in spec["expression"], (
         "re-running the same query with a bigger limit is one signal, not two"
@@ -48,14 +50,18 @@ def check_each_surface_declares_both_instruments(doc: Mapping[str, Any]) -> None
     assert doc["params"]["counting_surfaces"]["min_items"] >= 1
 
 
-def check_the_counter_cannot_read_the_reported_figure_first(doc: Mapping[str, Any]) -> None:
+def check_the_counter_cannot_read_the_reported_figure_first(
+    doc: Mapping[str, Any],
+) -> None:
     body = {str(st["id"]): st for st in K.fanout(doc, "audit-surfaces")["body"]}
-    assert set(body) == {"read-reported", "count-independently", "compare-and-verdict"}, (
-        f"the per-surface pipeline changed shape: {sorted(body)}"
-    )
-    assert "read-reported" not in (body["count-independently"].get("depends_on") or []), (
-        "an independent count that waits on the reported figure is anchored to it"
-    )
+    assert set(body) == {
+        "read-reported",
+        "count-independently",
+        "compare-and-verdict",
+    }, f"the per-surface pipeline changed shape: {sorted(body)}"
+    assert "read-reported" not in (
+        body["count-independently"].get("depends_on") or []
+    ), "an independent count that waits on the reported figure is anchored to it"
     assert set(body["compare-and-verdict"].get("depends_on") or []) == {
         "read-reported",
         "count-independently",
@@ -87,12 +93,16 @@ def check_the_population_must_be_defined_and_shared(doc: Mapping[str, Any]) -> N
     assert "scope-mismatch" in doc["retry_policy"]["no_retry_on"]
 
 
-def check_disclosure_is_the_pass_condition_not_the_absence_of_caps(doc: Mapping[str, Any]) -> None:
+def check_disclosure_is_the_pass_condition_not_the_absence_of_caps(
+    doc: Mapping[str, Any],
+) -> None:
     spec = K.gate_for_stage(doc, "gate-disclosure")
     assert "truncated == false OR truncation_disclosed == true" in spec["expression"], (
         "a cap is legitimate; an UNDISCLOSED cap is the defect"
     )
-    assert spec["on_fail"] == "repair", "the remedy is to add the disclosure, not to abort"
+    assert spec["on_fail"] == "repair", (
+        "the remedy is to add the disclosure, not to abort"
+    )
     pattern = doc["params"]["disclosure_pattern"]
     assert pattern["default"], "a disclosure standard with no shape cannot be checked"
     ids = {c["id"] for c in K.benchmark_cases(doc)}
@@ -107,7 +117,9 @@ def check_the_independent_counter_is_calibrated_first(doc: Mapping[str, Any]) ->
         "a counter that has never been calibrated cannot adjudicate another counter"
     )
     example = K.worked_examples(doc)[0]
-    assert "calibration" in example, "the worked example must record the calibration run"
+    assert "calibration" in example, (
+        "the worked example must record the calibration run"
+    )
     assert any(ch.isdigit() for ch in str(example["calibration"])), (
         "a calibration with no known-size population named is not a calibration"
     )
@@ -124,7 +136,9 @@ def check_a_single_signal_verdict_is_never_retried(doc: Mapping[str, Any]) -> No
     )
 
 
-def check_an_unverifiable_surface_is_never_folded_into_a_pass(doc: Mapping[str, Any]) -> None:
+def check_an_unverifiable_surface_is_never_folded_into_a_pass(
+    doc: Mapping[str, Any],
+) -> None:
     rule = K.stopping_rule(doc, "unverifiable-surface")
     assert "unverifiable_surfaces > 0" in rule["expression"]
     assert rule["on_stop"] == "emit-partial", (
@@ -173,7 +187,9 @@ def check_the_worked_example_contains_a_clean_row(doc: Mapping[str, Any]) -> Non
     assert "CLEAN" in verdicts, (
         "a detector that has never returned CLEAN is indistinguishable from one that always alarms"
     )
-    assert "UNDISCLOSED-TRUNCATION" in verdicts, "the example must also show a real finding"
+    assert "UNDISCLOSED-TRUNCATION" in verdicts, (
+        "the example must also show a real finding"
+    )
     for row in results:
         assert row["mechanical_difference"], (
             "every audited row must name HOW the two instruments differ"
@@ -183,7 +199,9 @@ def check_the_worked_example_contains_a_clean_row(doc: Mapping[str, Any]) -> Non
     assert finding["actual"] > finding["reported"], (
         "a floor-presented-as-total finding must show the floor below the true total"
     )
-    assert finding["assertion_added"], "a finding must ship the regression assertion for it"
+    assert finding["assertion_added"], (
+        "a finding must ship the regression assertion for it"
+    )
 
 
 ALL_CHECKS = (
@@ -220,11 +238,15 @@ def test_shipped_blueprint_is_conformant() -> None:
 
 
 def _accept_the_same_instrument_twice(doc: dict) -> None:
-    doc["gates"]["second-instrument-is-different"]["expression"] = "surfaces_verdicted > 0"
+    doc["gates"]["second-instrument-is-different"]["expression"] = (
+        "surfaces_verdicted > 0"
+    )
 
 
 def _drop_the_independent_instrument_field(doc: dict) -> None:
-    doc["params"]["counting_surfaces"]["items"]["properties"].pop("independent_instrument")
+    doc["params"]["counting_surfaces"]["items"]["properties"].pop(
+        "independent_instrument"
+    )
 
 
 def _let_the_counter_wait_on_the_reported_figure(doc: dict) -> None:
@@ -242,7 +264,9 @@ def _give_both_numbers_to_one_role(doc: dict) -> None:
 
 
 def _drop_the_shared_population_requirement(doc: dict) -> None:
-    doc["gates"]["population-defined"]["expression"] = "population_definition_present == true"
+    doc["gates"]["population-defined"]["expression"] = (
+        "population_definition_present == true"
+    )
 
 
 def _treat_every_cap_as_a_defect(doc: dict) -> None:
@@ -251,7 +275,9 @@ def _treat_every_cap_as_a_defect(doc: dict) -> None:
 
 def _drop_the_calibration_case(doc: dict) -> None:
     doc["x_extensions"]["benchmark_cases"] = [
-        c for c in doc["x_extensions"]["benchmark_cases"] if c["id"] != "calibrate-the-counter"
+        c
+        for c in doc["x_extensions"]["benchmark_cases"]
+        if c["id"] != "calibrate-the-counter"
     ]
 
 
@@ -274,7 +300,9 @@ def _enable_the_cache(doc: dict) -> None:
 
 
 def _require_only_the_reads_at_the_barrier(doc: dict) -> None:
-    K.find_stage_mut(doc, "audit-surfaces")["barrier"]["require_stages"] = ["read-reported"]
+    K.find_stage_mut(doc, "audit-surfaces")["barrier"]["require_stages"] = [
+        "read-reported"
+    ]
 
 
 def _delete_the_clean_row_from_the_example(doc: dict) -> None:
@@ -283,23 +311,52 @@ def _delete_the_clean_row_from_the_example(doc: dict) -> None:
 
 
 MUTATIONS = (
-    (check_the_second_instrument_must_be_mechanically_different, _accept_the_same_instrument_twice),
-    (check_each_surface_declares_both_instruments, _drop_the_independent_instrument_field),
-    (check_the_counter_cannot_read_the_reported_figure_first, _let_the_counter_wait_on_the_reported_figure),
-    (check_the_reader_and_the_counter_are_separate_roles, _give_both_numbers_to_one_role),
-    (check_the_population_must_be_defined_and_shared, _drop_the_shared_population_requirement),
-    (check_disclosure_is_the_pass_condition_not_the_absence_of_caps, _treat_every_cap_as_a_defect),
+    (
+        check_the_second_instrument_must_be_mechanically_different,
+        _accept_the_same_instrument_twice,
+    ),
+    (
+        check_each_surface_declares_both_instruments,
+        _drop_the_independent_instrument_field,
+    ),
+    (
+        check_the_counter_cannot_read_the_reported_figure_first,
+        _let_the_counter_wait_on_the_reported_figure,
+    ),
+    (
+        check_the_reader_and_the_counter_are_separate_roles,
+        _give_both_numbers_to_one_role,
+    ),
+    (
+        check_the_population_must_be_defined_and_shared,
+        _drop_the_shared_population_requirement,
+    ),
+    (
+        check_disclosure_is_the_pass_condition_not_the_absence_of_caps,
+        _treat_every_cap_as_a_defect,
+    ),
     (check_the_independent_counter_is_calibrated_first, _drop_the_calibration_case),
     (check_a_single_signal_verdict_is_never_retried, _retry_a_one_signal_verdict),
-    (check_an_unverifiable_surface_is_never_folded_into_a_pass, _complete_on_an_unverifiable_surface),
+    (
+        check_an_unverifiable_surface_is_never_folded_into_a_pass,
+        _complete_on_an_unverifiable_surface,
+    ),
     (check_the_auditor_cannot_edit_the_schemas, _allow_schema_writes),
     (check_the_audit_is_byte_reproducible, _enable_the_cache),
-    (check_the_barrier_requires_a_verdict_per_surface, _require_only_the_reads_at_the_barrier),
-    (check_the_worked_example_contains_a_clean_row, _delete_the_clean_row_from_the_example),
+    (
+        check_the_barrier_requires_a_verdict_per_surface,
+        _require_only_the_reads_at_the_barrier,
+    ),
+    (
+        check_the_worked_example_contains_a_clean_row,
+        _delete_the_clean_row_from_the_example,
+    ),
 )
 
 
-@pytest.mark.parametrize("check,mutate", MUTATIONS, ids=lambda v: getattr(v, "__name__", ""))
+@pytest.mark.parametrize(
+    "check,mutate", MUTATIONS, ids=lambda v: getattr(v, "__name__", "")
+)
 def test_each_check_fails_on_its_mutated_blueprint(check: Any, mutate: Any) -> None:
     broken = K.mutant(DOC, mutate)
     assert K.raises_assertion(check, broken), (
@@ -312,4 +369,6 @@ def test_the_anchored_counter_mutant_is_schema_legal() -> None:
     broken = K.mutant(DOC, _let_the_counter_wait_on_the_reported_figure)
     assert K.schema_errors(broken) == []
     assert K.semantic_violations(broken) == []
-    assert K.raises_assertion(check_the_counter_cannot_read_the_reported_figure_first, broken)
+    assert K.raises_assertion(
+        check_the_counter_cannot_read_the_reported_figure_first, broken
+    )
