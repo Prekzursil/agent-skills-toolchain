@@ -51,9 +51,12 @@ SAME = "SAME"
 CROSS = "CROSS"
 REJECTED = "REJECTED"
 
-#: (executor_vendor, reviewer_vendor, expectation, why). 63 rows (29 SAME / 13 CROSS /
-#: 21 REJECTED); the task floor is 20. Counts are asserted by
+#: (executor_vendor, reviewer_vendor, expectation, why). 97 rows (48 SAME / 16 CROSS /
+#: 33 REJECTED); the task floor is 20. Counts are asserted by
 #: test_matrix_covers_every_expectation_and_meets_the_floor rather than trusted from this comment.
+#: Invisible characters are written as \\uXXXX escapes ON PURPOSE: a literal U+200B in this table
+#: can be deleted by any later edit without changing how the line READS, which would leave the
+#: row green while it tested something weaker.
 PAIRS: tuple[tuple[Any, Any, str, str], ...] = (
     # ---------------------------------------------------------------- SAME VENDOR (must block)
     (
@@ -176,6 +179,78 @@ PAIRS: tuple[tuple[Any, Any, str, str], ...] = (
     ("unassigned", "anthropic", REJECTED, "the shipped receipt example's own pair"),
     ("anthropic", "other", REJECTED, "the councilspec escape hatch is not an identity"),
     ("other", "other", REJECTED, "two 'other' seats may be the same vendor"),
+    # ============================================================ D1 CLOSE: the OVER-CORRECTION
+    # Wave 3 measured 3 of its 45 rows as NOT-COMPUTABLE where the answer is SAME-VENDOR
+    # (command-center/WAVE3-FLOOR-AUDIT.json -> check1_D1_cross_vendor.incorrect_rows). A refusal
+    # blocks, so it was never a false green - but it is not a verdict either. These rows are the
+    # regression fence for the registry's `normalization` block.
+    ("anthropic", "Anthropic PBC", SAME, "legal form - Wave 3 row 1 of 3"),
+    ("mistral", "Mistral AI", SAME, "vendor display name - Wave 3 row 2 of 3"),
+    ("anthropic", "anthropic\u200b", SAME, "U+200B ZWSP (Cf) - Wave 3 row 3 of 3"),
+    ("anthropic", "Anthropic, PBC", SAME, "comma before the legal form"),
+    ("anthropic", "Anthropic P.B.C.", SAME, "dotted legal initialism"),
+    ("openai", "OpenAI, Inc.", SAME, "Inc. with a comma and a trailing period"),
+    ("openai", "OpenAI L.L.C.", SAME, "dotted LLC"),
+    ("google", "Google LLC", SAME, "LLC"),
+    (
+        "mistral",
+        "Mistral AI SAS",
+        SAME,
+        "descriptor + French legal form, stripped iteratively",
+    ),
+    ("microsoft", "Microsoft Corporation", SAME, "Corporation"),
+    ("meta", "Meta Platforms, Inc.", SAME, "full legal title"),
+    ("cohere", "Cohere Labs", SAME, "descriptor Labs"),
+    ("alibaba", "Alibaba Cloud Ltd", SAME, "registered alias + Ltd"),
+    ("deepseek", "DeepSeek AI Ltd.", SAME, "registered alias + descriptor + Ltd"),
+    ("xai", "xAI Corp", SAME, "Corp must NOT strip xai down to a bare 'x'"),
+    ("anthropic", "anth\u00adropic", SAME, "U+00AD SOFT HYPHEN inside the token"),
+    ("anthropic", "\u200eanthropic", SAME, "U+200E LEFT-TO-RIGHT MARK"),
+    ("openai", "open\ufeffai", SAME, "U+FEFF BOM inside the token"),
+    ("anthropic", "ANTHROPIC\u00a0", SAME, "U+00A0 NBSP folds to a space under NFKC"),
+    ("Anthropic PBC", "OpenAI, Inc.", CROSS, "two legal names, genuinely distinct"),
+    ("Mistral AI", "Cohere Labs", CROSS, "two descriptor-suffixed vendors"),
+    (
+        "anthropic\u200b",
+        "openai",
+        CROSS,
+        "an invisible character must not block a VALID pair either",
+    ),
+    # OVER-FOLD GUARD. Suffix stripping must never INVENT an identity; each of these stays a
+    # REFUSAL. Without them, widening the alias table would be a one-way ratchet toward the
+    # original D1 inference ("it differs, so it is a different vendor").
+    ("anthropic", "Acme Inc", REJECTED, "unknown vendor + legal form is still unknown"),
+    ("anthropic", "Acme AI Ltd", REJECTED, "unknown + descriptor + legal form"),
+    ("anthropic", "Anthropic Killer Inc", REJECTED, "a LONGER name is not the vendor"),
+    ("anthropic", "Inc", REJECTED, "a bare legal form is not an identity"),
+    ("anthropic", "Ltd.", REJECTED, "a bare legal form with a period"),
+    ("anthropic", "AI", REJECTED, "a bare descriptor is not an identity"),
+    (
+        "anthropic",
+        "Google Cloud",
+        REJECTED,
+        "hosting plane: GCP/Vertex also serves Claude",
+    ),
+    (
+        "anthropic",
+        "AWS Bedrock Inc",
+        REJECTED,
+        "hosting plane + legal form is still a plane",
+    ),
+    ("anthropic", "Amazon Web Services", REJECTED, "the plane, NOT vendor amazon"),
+    ("anthropic", "Azure AI", REJECTED, "hosting plane + descriptor is still a plane"),
+    (
+        "anthropic",
+        "...",
+        REJECTED,
+        "folds to an EMPTY candidate, which must never match",
+    ),
+    (
+        "anthropic",
+        "unknown-vendor-inc",
+        REJECTED,
+        "unknown token that ends in a legal form",
+    ),
 )
 
 _EXPECTED_OUTCOME = {
@@ -636,6 +711,152 @@ def test_emit_is_parseable_and_matches_check() -> None:
     live = json.loads(vss.RECEIPT_SCHEMA_PATH.read_text(encoding="utf-8"))
     for name, block in blocks.items():
         assert live["$defs"][name] == block
+
+
+# ============================================================ D1 CLOSE: the over-correction
+
+
+#: The exact rows Wave 3 measured as NOT-COMPUTABLE where the answer is SAME-VENDOR.
+#: Source: command-center/WAVE3-FLOOR-AUDIT.json -> check1_D1_cross_vendor.incorrect_rows (len 3).
+WAVE3_OVER_CORRECTED: tuple[tuple[str, str], ...] = (
+    ("anthropic", "Anthropic PBC"),
+    ("mistral", "Mistral AI"),
+    ("anthropic", "anthropic\u200b"),
+)
+
+
+@pytest.mark.parametrize(("executor", "reviewer"), WAVE3_OVER_CORRECTED)
+def test_wave3_over_corrected_rows_now_return_same_vendor(
+    executor: str, reviewer: str
+) -> None:
+    """The three rows the Wave 3 audit recorded as NOT-COMPUTABLE must now be SAME-VENDOR.
+
+    NOT-COMPUTABLE blocked, so this was never a false green - but a refusal is not a verdict,
+    and the reason string said so out loud ("is not in VENDOR-REGISTRY.json").
+    """
+    comparison, reason, _detail = vi.compare(executor, reviewer)
+    assert comparison is vi.Comparison.SAME_VENDOR, reason
+    outcome, c9_reason, detail = _c9(executor, reviewer)
+    assert outcome is Outcome.UNSATISFIED, c9_reason
+    assert detail["vendor_comparison"] == vi.Comparison.SAME_VENDOR.value
+    assert "not in VENDOR-REGISTRY.json" not in c9_reason
+
+
+def test_no_alias_can_reach_a_different_vendor_through_any_candidate_form() -> None:
+    """The invariant the registry's `normalization.over_fold_guard` promises, mechanically.
+
+    Sweeps EVERY alias through EVERY candidate form. A suffix/punctuation/domain fold that
+    landed one vendor's alias on ANOTHER vendor's id would silently merge two identities and
+    make a genuinely cross-vendor review report as same-vendor - D1 in the other direction.
+    ``_candidates`` is private; it is called directly because the invariant is about the
+    candidate LADDER, not about any one public call's result.
+    """
+    reg = vi.load_registry()
+    collisions = [
+        (alias, owner, form, reg.alias_index[form])
+        for alias, owner in sorted(reg.alias_index.items())
+        for form in vi._candidates(alias, reg)
+        if reg.alias_index.get(form) not in (None, owner)
+    ]
+    assert not collisions, f"candidate forms merge distinct vendors: {collisions}"
+    # Assert the POSITIVE: the sweep must actually have swept something.
+    assert len(reg.alias_index) >= 100, len(reg.alias_index)
+    assert reg.entity_suffixes, "no suffix tokens loaded - the sweep would be vacuous"
+
+
+def test_collision_sweep_fires_on_a_seeded_merge(tmp_path: Path) -> None:
+    """BOTH-STATES CONTROL for the sweep above: it must go RED on a registry that merges two."""
+    raw = json.loads(vi.REGISTRY_PATH.read_text(encoding="utf-8"))
+    # 'anthropic-corp' belongs to a NEW vendor here, but strips to 'anthropic' - a real merge.
+    raw["identities"].append(
+        {
+            "id": "acme",
+            "display_name": "Acme",
+            "kind": "model_vendor",
+            "establishes_distinctness": True,
+            "aliases": ["acme", "anthropic-corp"],
+        }
+    )
+    seeded = tmp_path / "seeded.json"
+    seeded.write_text(json.dumps(raw), encoding="utf-8")
+    reg = vi.load_registry(seeded)
+    collisions = [
+        (alias, owner, form)
+        for alias, owner in reg.alias_index.items()
+        for form in vi._candidates(alias, reg)
+        if reg.alias_index.get(form) not in (None, owner)
+    ]
+    assert collisions, (
+        "control invalid: the sweep did not fire on a seeded vendor merge"
+    )
+
+
+def test_normalization_is_data_and_an_empty_list_disables_it(tmp_path: Path) -> None:
+    """The suffix rules live in the registry. Absent falls back; PRESENT-BUT-EMPTY disables.
+
+    The distinction is the whole reason a both-states control can disarm this feature. If an
+    empty list silently fell back to the module defaults, a probe that emptied it would measure
+    nothing and report a pass - the fail-open shape this program keeps paying for.
+    """
+    raw = json.loads(vi.REGISTRY_PATH.read_text(encoding="utf-8"))
+    assert "normalization" in raw, (
+        "the normalization block is the DATA half of this fix"
+    )
+
+    absent = json.loads(json.dumps(raw))
+    absent.pop("normalization")
+    fallback = vi.load_registry(_write(tmp_path / "absent.json", absent))
+    assert fallback.legal_entity_suffixes == vi._DEFAULT_LEGAL_ENTITY_SUFFIXES
+    assert vi.resolve("Google LLC", fallback).canonical_id == "google"
+
+    emptied = json.loads(json.dumps(raw))
+    emptied["normalization"] = {
+        "legal_entity_suffix_tokens": [],
+        "descriptor_suffix_tokens": [],
+        "domain_suffixes": [],
+        "punctuation_folded_to_separator": "",
+    }
+    disabled = vi.load_registry(_write(tmp_path / "empty.json", emptied))
+    assert disabled.legal_entity_suffixes == ()
+    assert disabled.entity_suffixes == ()
+    # every capability the block controls must now be OFF
+    for spelling in ("Google LLC", "Microsoft Corporation", "Anthropic P.B.C."):
+        assert vi.resolve(spelling, disabled).resolution is vi.Resolution.UNKNOWN, (
+            spelling
+        )
+    assert vi.resolve("anthropic.com", disabled).resolution is vi.Resolution.UNKNOWN
+    # ... and the explicitly registered alias must STILL resolve: it is a table entry, not a rule
+    assert vi.resolve("Anthropic PBC", disabled).canonical_id == "anthropic"
+
+
+def test_prefix_normalizer_left_format_characters_in_place() -> None:
+    """BOTH-STATES CONTROL for the Cf half: the shipped-before regex could not strip U+200B.
+
+    The old normalizer used ``[\\x00-\\x1f\\x7f]`` while its own comment claimed categories Cc
+    AND Cf were removed. The comment was the spec; the regex was the behaviour.
+    """
+    import unicodedata  # noqa: PLC0415
+
+    prefix_control = re.compile(r"[\x00-\x1f\x7f]")
+    reg = vi.load_registry()
+    for raw in (
+        "anthropic\u200b",
+        "anth\u00adropic",
+        "\u200eanthropic",
+        "open\ufeffai",
+    ):
+        old_key = prefix_control.sub("", unicodedata.normalize("NFKC", raw))
+        old_key = old_key.strip().casefold()
+        assert old_key not in reg.alias_index, (
+            f"control invalid: the pre-fix normalizer already resolved {raw!r}"
+        )
+        assert vi.resolve(raw).is_known, f"{raw!r} must now resolve"
+        assert unicodedata.category(next(c for c in raw if ord(c) > 127)) in ("Cf",)
+
+
+def _write(path: Path, payload: dict[str, Any]) -> Path:
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    return path
 
 
 def test_registry_documents_the_exclusion_rule() -> None:

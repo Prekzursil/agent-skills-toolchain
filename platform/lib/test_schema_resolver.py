@@ -252,7 +252,9 @@ def test_shims_carry_no_constraints(registry):
 #: The ONLY delta to receipt.schema.json this suite authorizes: the DEFECT D1 vendor-identity
 #: layer (platform/lib/vendor_schema_sync.py). Kept as data so the permitted surface is auditable.
 _D1_ADDED_DEFS = ("vendor_id", "vendor_id_canonical")
-_D1_PREFIX_VENDOR_FIELD = {"type": "string", "maxLength": 64}
+#: Sentinel substituted for BOTH the pre-D1 bare-string declaration and the post-D1 $ref, so the
+#: structural comparison below is indifferent to which one the committed HEAD carries.
+_D1_NORMALIZED_VENDOR_FIELD = {"x-normalized-vendor-field": True}
 
 
 def _head_blob(rel: str) -> bytes | None:
@@ -271,23 +273,54 @@ def _head_blob(rel: str) -> bytes | None:
     return p.stdout.replace(b"\r\n", b"\n")
 
 
-def _strip_d1_delta(schema: dict) -> dict:
-    """Reverse the authorized D1 additions, so what remains should equal HEAD."""
-    out = json.loads(json.dumps(schema))
-    for name in _D1_ADDED_DEFS:
-        out.get("$defs", {}).pop(name, None)
-    reviewer = out.get("$defs", {}).get("reviewer", {}).get("properties", {})
+def _vendor_field_sites(schema: dict) -> list[dict]:
+    """The two receipt fields that carry a vendor, located structurally."""
+    defs = schema.get("$defs", {})
+    sites = []
+    reviewer = defs.get("reviewer", {}).get("properties", {})
     if "vendor" in reviewer:
-        reviewer["vendor"] = dict(_D1_PREFIX_VENDOR_FIELD)
+        sites.append(reviewer)
     produced = (
-        out.get("$defs", {})
-        .get("receipt_core", {})
+        defs.get("receipt_core", {})
         .get("properties", {})
         .get("produced_by", {})
         .get("properties", {})
     )
     if "vendor" in produced:
-        produced["vendor"] = dict(_D1_PREFIX_VENDOR_FIELD)
+        sites.append(produced)
+    return sites
+
+
+def _normalize_vendor_layer(schema: dict) -> dict:
+    """Replace the GENERATED vendor layer with a sentinel, on BOTH sides of the comparison.
+
+    This REPLACES `_strip_d1_delta`, which reversed the D1 additions and required the remainder
+    to equal HEAD. That shape anchors the invariant to WHICH STATE HEAD HAPPENS TO BE IN, and it
+    has now reddened a clean tree three times, each time for a different reason:
+
+      1. HEAD was pre-D1 and a plain byte-equality assertion fired on the authorized D1 edit;
+      2. the D1 work was COMMITTED, so HEAD became post-D1 and "strip the delta, compare to
+         HEAD" started failing (fixed by also accepting plain equality);
+      3. the registry gained aliases, so the GENERATED enum legitimately grew and the working
+         copy stopped equalling HEAD again - while the sibling parity test
+         (`vendor_schema_sync.check`) simultaneously DEMANDED that growth. Two guards in direct
+         contradiction: one required the enum to change, the other forbade any change.
+
+    Normalizing both documents removes the moving reference for the generated region only, and
+    the teeth for that region move to where they belong: the block must equal what the REGISTRY
+    generates (asserted in the guard below), which is a stronger claim than equality with
+    whatever bytes happen to be committed. Everything outside the generated region is still
+    compared to HEAD exactly.
+    """
+    out = json.loads(json.dumps(schema))
+    defs = out.setdefault("$defs", {})
+    for name in _D1_ADDED_DEFS:
+        if name in defs:
+            defs[name] = {"x-normalized-generated-block": name}
+    for site in _vendor_field_sites(out):
+        # Pre-D1 this field is a bare string; post-D1 it is a $ref. Normalize either shape so the
+        # comparison does not depend on which one HEAD carries.
+        site["vendor"] = dict(_D1_NORMALIZED_VENDOR_FIELD)
     return out
 
 
@@ -360,7 +393,7 @@ def test_catalog_contract_guard_fires_on_a_destructive_edit():
     ), "an unrelated field addition still reds the guard; it is still too strict"
 
 
-def test_receipt_schema_differs_from_head_ONLY_by_the_authorized_d1_delta():
+def test_receipt_schema_differs_from_head_ONLY_by_the_generated_vendor_layer():
     """receipt.schema.json may differ from HEAD ONLY by the DEFECT D1 vendor-identity layer.
 
     This REPLACES a plain byte-equality assertion ("this unit must not modify it"). That
@@ -377,8 +410,9 @@ def test_receipt_schema_differs_from_head_ONLY_by_the_authorized_d1_delta():
 
     Scope stated so it is not over-read: the comparison is on PARSED structure, so a pure
     reformat or key reorder would pass. That is deliberate (formatting is not a soundness
-    property); every semantic addition, removal or value change anywhere in the document is
-    still caught.
+    property); every semantic addition, removal or value change OUTSIDE the two generated vendor
+    blocks is still caught, and the generated blocks themselves are checked against the registry
+    rather than against HEAD.
     """
     rel = "platform/schema/receipt.schema.json"
     committed = _head_blob(rel)
@@ -386,28 +420,38 @@ def test_receipt_schema_differs_from_head_ONLY_by_the_authorized_d1_delta():
         pytest.skip(f"{rel} is not in HEAD; cannot verify (NOT-CHECKED)")
     head = json.loads(committed.decode("utf-8"))
     working = json.loads((REPO / rel).read_bytes().decode("utf-8"))
-    # THE ANCHOR MOVES. This guard was written while HEAD was the PRE-D1 state, so "strip the
-    # delta and it equals HEAD" held. The moment the D1 work was COMMITTED, HEAD became the
-    # POST-D1 state and stripping the delta made the two differ - the guard went red on a tree
-    # where nothing was wrong, for the second time and for a new reason. Zero difference from
-    # HEAD is strictly SAFER than the permitted-delta case, so accept both: either the working
-    # copy already matches HEAD (the delta has landed), or it differs from HEAD by exactly the
-    # named D1 delta and nothing else. Any third state still fails.
-    landed = working == head
-    assert landed or _strip_d1_delta(working) == head, (
-        f"{rel} differs from HEAD by more than the authorized D1 vendor-identity delta"
+    assert _normalize_vendor_layer(working) == _normalize_vendor_layer(head), (
+        f"{rel} differs from HEAD OUTSIDE the generated vendor layer; that is not authorized"
     )
-    # Assert the POSITIVE too: the D1 layer must actually be PRESENT, or this test would
-    # silently pass on a tree where the fix was reverted.
+    # POSITIVE 1: the D1 layer must actually be PRESENT and WIRED, or this test would silently
+    # pass on a tree where the fix was reverted - the normalization would erase the difference.
     for name in _D1_ADDED_DEFS:
         assert name in working["$defs"], f"the D1 delta is missing: $defs.{name}"
+    sites = _vendor_field_sites(working)
+    assert len(sites) == 2, f"expected 2 vendor field sites, located {len(sites)}"
+    for site in sites:
+        assert site["vendor"] == {"$ref": "#/$defs/vendor_id"}, (
+            f"a vendor field is not a $ref to the enum: {site['vendor']!r}. A bare string is D1."
+        )
+    # POSITIVE 2: this is where the generated region's teeth now live. The blocks are DERIVED, so
+    # they must equal what the registry generates - a hand-edited enum member fails here even
+    # though the structural comparison above is deliberately blind inside these two blocks.
+    # Duplicated from test_vendor_identity.py on purpose: this guard must not depend on another
+    # file's suite having been collected.
+    import vendor_schema_sync as vss  # noqa: PLC0415
+
+    assert vss.build_defs() == {n: working["$defs"][n] for n in _D1_ADDED_DEFS}, (
+        "the generated vendor $defs do not match VENDOR-REGISTRY.json; run "
+        "platform/lib/vendor_schema_sync.py --emit"
+    )
 
 
-def test_the_authorized_delta_guard_fires_on_an_unauthorized_edit():
+def test_the_generated_vendor_layer_guard_fires_on_an_unauthorized_edit():
     """BOTH-STATES CONTROL for the guard above: it must go RED on any other change.
 
-    A guard that permits a named delta is worthless if it also permits everything else. Four
-    mutations, each applied to the WORKING document, must each break the equality.
+    A guard that permits a named delta is worthless if it also permits everything else. Five
+    mutations, each applied to the WORKING document, must each be caught - and the fifth is
+    caught by a DIFFERENT assertion than the first four, which is stated rather than glossed.
     """
     rel = "platform/schema/receipt.schema.json"
     committed = _head_blob(rel)
@@ -415,19 +459,13 @@ def test_the_authorized_delta_guard_fires_on_an_unauthorized_edit():
         pytest.skip(f"{rel} is not in HEAD; cannot verify (NOT-CHECKED)")
     head = json.loads(committed.decode("utf-8"))
     working = json.loads((REPO / rel).read_bytes().decode("utf-8"))
-    # Same moving-anchor handling as the guard itself: once D1 is committed, HEAD carries the
-    # delta and the good state is plain equality. Accept either, then prove teeth from there.
-    landed = working == head
-    assert (
-        landed or _strip_d1_delta(working) == head
-    )  # control: the good state is silent
+    # control: the good state must be SILENT, or every mutation below proves nothing
+    assert _normalize_vendor_layer(working) == _normalize_vendor_layer(head)
 
     def mutate(fn):
         m = json.loads(json.dumps(working))
         fn(m)
-        # Compare against whichever baseline the good state uses, or the mutation would be
-        # measured against the wrong reference and the control would prove nothing.
-        return (m != head) if landed else (_strip_d1_delta(m) != head)
+        return _normalize_vendor_layer(m) != _normalize_vendor_layer(head)
 
     assert mutate(lambda m: m["$defs"].__setitem__("smuggled", {"type": "string"})), (
         "an extra $def slipped past the guard"
@@ -440,6 +478,25 @@ def test_the_authorized_delta_guard_fires_on_an_unauthorized_edit():
     )
     assert mutate(lambda m: m.__setitem__("description", "changed")), (
         "a changed top-level description slipped past the guard"
+    )
+    # A vendor field reverted to the pre-D1 bare string is INVISIBLE to the normalized
+    # comparison by construction - the sentinel erases exactly that difference. It is caught by
+    # the $ref assertion in the guard above, so prove THAT, here, rather than assume it.
+    reverted = json.loads(json.dumps(working))
+    _vendor_field_sites(reverted)[0]["vendor"] = {"type": "string", "maxLength": 64}
+    assert _normalize_vendor_layer(reverted) == _normalize_vendor_layer(head), (
+        "premise changed: the normalization no longer erases a reverted vendor field"
+    )
+    assert _vendor_field_sites(reverted)[0]["vendor"] != {"$ref": "#/$defs/vendor_id"}
+
+    # An enum member smuggled INSIDE a generated block is likewise invisible structurally, and is
+    # caught by the registry-parity assertion instead. Prove that assertion has teeth.
+    import vendor_schema_sync as vss  # noqa: PLC0415
+
+    smuggled = json.loads(json.dumps(working))
+    smuggled["$defs"]["vendor_id"]["enum"].append("acme-ai")
+    assert vss.build_defs() != {n: smuggled["$defs"][n] for n in _D1_ADDED_DEFS}, (
+        "a hand-added enum member slipped past the registry-parity assertion"
     )
 
 

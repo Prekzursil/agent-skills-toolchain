@@ -39,6 +39,30 @@ this rule as data.
 The alias table is DATA, not branches, so it can be audited and extended without touching
 this file - and ``test_vendor_identity.py`` asserts that the table, the receipt schema's
 ``vendor_id`` enum and the councilspec vendor enum all stay in agreement.
+
+THE OVER-CORRECTION, AND WHAT CLOSED IT
+---------------------------------------
+The first fix removed the false green but landed 3 of the 45 rows in the Wave 3 D1 matrix on
+NOT-COMPUTABLE instead of SAME-VENDOR: ``Anthropic PBC`` normalized to ``anthropic-pbc``,
+``Mistral AI`` to ``mistral-ai``, and ``anthropic<U+200B>`` (a ZERO WIDTH SPACE, category Cf) to
+itself - none of which were in the table, so the predicate REFUSED a review that was in fact
+same-vendor. Blocking is safe, but a refusal is not a verdict.
+
+Two things closed it, and both are DATA:
+
+* the registry's ``normalization`` block now carries the domain suffixes, the corporate-form
+  suffix tokens (``inc``/``ltd``/``llc``/``pbc``/``gmbh``/...), a short descriptor list
+  (``ai``/``labs``/``research``) and the punctuation folded to a separator. This module READS
+  those lists; there is no per-vendor branch to review, and a registry that omits the block
+  falls back to the defaults below so a hand-written fixture still loads.
+* ``_normalize_key`` now removes Unicode categories Cc AND Cf, which is what the paragraph
+  below always claimed and the old ``[\\x00-\\x1f\\x7f]`` regex did not do.
+
+The direction of the fix matters: it makes MORE strings resolve to a KNOWN vendor, so a
+same-vendor pair is now reported as SAME-VENDOR (UNSATISFIED) rather than NOT-COMPUTABLE.
+It does NOT make an unknown vendor resolve to "distinct" - that inference is the original
+D1 defect and stripping a suffix can never invent an identity (``Acme Inc`` -> ``acme`` ->
+still UNKNOWN -> still a refusal).
 """
 
 from __future__ import annotations
@@ -73,10 +97,15 @@ REGISTRY_PATH = (
     Path(__file__).resolve().parents[1] / "registry" / "VENDOR-REGISTRY.json"
 )
 
-#: Domain suffixes stripped as a LAST-RESORT lookup candidate (see _candidates). Stripping is
+#: FALLBACKS ONLY. The live values come from the registry's ``normalization`` block; these are
+#: used when a registry omits it (hand-written test fixtures) so the resolver never silently
+#: loses a normalization step. An EMPTY list in the registry means "disabled" and is honoured as
+#: such - it must not fall back to these, or a both-states control could not disarm the feature.
+#:
+#: Domain suffixes are stripped as a LAST-RESORT lookup candidate (see _candidates). Stripping is
 #: never destructive: the un-stripped form is always tried first, so ``x.ai`` still resolves via
 #: the dot-to-dash candidate rather than being mangled to a bare ``x``.
-_DOMAIN_SUFFIXES: tuple[str, ...] = (
+_DEFAULT_DOMAIN_SUFFIXES: tuple[str, ...] = (
     ".com",
     ".ai",
     ".co",
@@ -86,14 +115,83 @@ _DOMAIN_SUFFIXES: tuple[str, ...] = (
     ".dev",
 )
 
+#: Corporate FORM is not identity: ``Anthropic PBC`` is ``anthropic``. Dotted initialisms appear
+#: in their punctuation-folded shape (``l-l-c`` for ``L.L.C.``) because folding runs first.
+_DEFAULT_LEGAL_ENTITY_SUFFIXES: tuple[str, ...] = (
+    "inc",
+    "incorporated",
+    "llc",
+    "l-l-c",
+    "ltd",
+    "limited",
+    "plc",
+    "pbc",
+    "p-b-c",
+    "corp",
+    "corporation",
+    "co",
+    "company",
+    "gmbh",
+    "mbh",
+    "ag",
+    "sa",
+    "s-a",
+    "sas",
+    "s-a-s",
+    "bv",
+    "b-v",
+    "nv",
+    "n-v",
+    "ab",
+    "oy",
+    "oyj",
+    "as",
+    "kk",
+    "k-k",
+    "pte",
+    "pty",
+    "llp",
+    "lp",
+    "srl",
+    "s-r-l",
+    "spa",
+    "s-p-a",
+    "kg",
+    "holdings",
+    "group",
+)
+
+#: Generic industry words inside a trade name. Deliberately SHORT - ``cloud`` is excluded because
+#: ``Google Cloud`` is a hosting plane that also serves Anthropic models.
+_DEFAULT_DESCRIPTOR_SUFFIXES: tuple[str, ...] = ("ai", "labs", "lab", "research")
+
+#: Folded to a separator so ``Anthropic, PBC`` reaches ``anthropic-pbc``. ``/`` and ``+`` are
+#: absent on purpose: the registered aliases ``n/a`` and ``anthropic+openai`` contain them.
+_DEFAULT_PUNCTUATION = ",.;:!?'\"()[]{}<>*|`~"
+
 #: Any run of whitespace / underscore / hyphen collapses to a single hyphen, so ``open ai``,
 #: ``open_ai`` and ``open--ai`` are one token.
 _SEPARATORS = re.compile(r"[\s_\-]+")
 
 #: Unicode categories Cc (control) and Cf (format) are removed outright. A control byte inside a
 #: vendor field is never legitimate and stripping it here means it cannot survive into a terminal
-#: or a log line (rules/common/bash-hud-and-terminal-emit.md section 2).
-_CONTROL = re.compile(r"[\x00-\x1f\x7f]")
+#: or a log line (rules/common/bash-hud-and-terminal-emit.md section 2). Cf matters just as much
+#: and used to be missing: U+200B ZERO WIDTH SPACE, U+00AD SOFT HYPHEN, U+200E LTR MARK and
+#: U+FEFF BOM are INVISIBLE, so ``anthropic<U+200B>`` read as a different vendor both to the
+#: resolver and to a human reviewing the diff.
+_REMOVED_CATEGORIES = frozenset({"Cc", "Cf"})
+
+#: ASCII fast path. Equivalent to the category filter on ASCII input by construction: ASCII's only
+#: Cc characters are \x00-\x1f and \x7f, and ASCII contains no Cf character at all.
+_ASCII_CONTROL = re.compile(r"[\x00-\x1f\x7f]")
+
+
+def _strip_format_characters(value: str) -> str:
+    if value.isascii():
+        return _ASCII_CONTROL.sub("", value)
+    return "".join(
+        ch for ch in value if unicodedata.category(ch) not in _REMOVED_CATEGORIES
+    )
 
 
 class IdentityKind(str, Enum):
@@ -168,6 +266,17 @@ class VendorRegistry:
     alias_index: Mapping[str, str]
     #: canonical id -> the registry entry
     entries: Mapping[str, Mapping[str, Any]]
+    #: The registry's ``normalization`` block, defaulted so an older/fixture registry still loads.
+    #: An EMPTY tuple here means the step is DISABLED, never "fall back to the default".
+    domain_suffixes: tuple[str, ...] = _DEFAULT_DOMAIN_SUFFIXES
+    legal_entity_suffixes: tuple[str, ...] = _DEFAULT_LEGAL_ENTITY_SUFFIXES
+    descriptor_suffixes: tuple[str, ...] = _DEFAULT_DESCRIPTOR_SUFFIXES
+    punctuation: str = _DEFAULT_PUNCTUATION
+
+    @property
+    def entity_suffixes(self) -> tuple[str, ...]:
+        """Corporate-form and descriptor tokens, in one tuple - both strip the same way."""
+        return (*self.legal_entity_suffixes, *self.descriptor_suffixes)
 
     def entry(self, canonical_id: str) -> Mapping[str, Any]:
         return self.entries[canonical_id]
@@ -193,7 +302,7 @@ class VendorRegistry:
 def _normalize_key(value: str) -> str:
     """Fold one token to its lookup key. Whitespace/case/separators are not identity."""
     folded = unicodedata.normalize("NFKC", value)
-    folded = _CONTROL.sub("", folded)
+    folded = _strip_format_characters(folded)
     folded = folded.strip().casefold()
     folded = _SEPARATORS.sub("-", folded)
     return folded.strip("-")
@@ -206,18 +315,61 @@ def normalize(value: Any) -> str:
     return _normalize_key(value)
 
 
-def _candidates(key: str) -> tuple[str, ...]:
-    """Lookup forms tried in order. The un-mangled key always goes first."""
-    forms = [key]
+def _strip_entity_suffixes(key: str, suffixes: tuple[str, ...]) -> str:
+    """Drop trailing corporate-form / descriptor tokens: ``anthropic-pbc`` -> ``anthropic``.
+
+    Only a TRAILING token is removed, and only while something remains, so this can never
+    invent an identity: ``acme-inc`` -> ``acme`` (still unregistered), ``anthropic-killer-inc``
+    -> ``anthropic-killer`` (NOT ``anthropic``), and a bare ``inc`` is left untouched because
+    the match requires the ``-`` separator. Repeats so ``mistral-ai-sas`` reaches ``mistral``.
+    """
+    current = key
+    changed = True
+    while changed:
+        changed = False
+        for suffix in suffixes:
+            tail = f"-{suffix}"
+            if current.endswith(tail) and len(current) > len(tail):
+                current = current[: -len(tail)].strip("-.")
+                changed = True
+    return current
+
+
+def _candidates(key: str, registry: VendorRegistry | None = None) -> tuple[str, ...]:
+    """Lookup forms tried in order. The un-mangled key always goes first.
+
+    EXACT-FIRST is load-bearing, not a style choice. It is why ``x-ai`` resolves to ``xai``
+    instead of being suffix-stripped to a bare ``x``, and why ``azure-ai`` stays the Azure
+    hosting plane instead of folding into a vendor. A later, more aggressive form can only be
+    reached when every earlier form missed.
+    """
+    reg = registry or _default_registry()
+    base = [key]
     if "." in key:
         dotted = _SEPARATORS.sub("-", key.replace(".", "-")).strip("-")
-        if dotted and dotted not in forms:
-            forms.append(dotted)
-    for suffix in _DOMAIN_SUFFIXES:
+        if dotted and dotted not in base:
+            base.append(dotted)
+    for suffix in reg.domain_suffixes:
         if key.endswith(suffix) and len(key) > len(suffix):
             stripped = key[: -len(suffix)].strip("-.")
-            if stripped and stripped not in forms:
-                forms.append(stripped)
+            if stripped and stripped not in base:
+                base.append(stripped)
+    if reg.punctuation:
+        folded = _SEPARATORS.sub(
+            "-", "".join("-" if ch in reg.punctuation else ch for ch in key)
+        ).strip("-")
+        if folded and folded not in base:
+            base.append(folded)
+    entity = reg.entity_suffixes
+    forms: list[str] = []
+    for form in base:
+        variants = (form, _strip_entity_suffixes(form, entity)) if entity else (form,)
+        for candidate in variants:
+            # An empty candidate is DISCARDED. '!!!' folds to nothing but separators, and an
+            # empty key must never be looked up - load_registry rejects empty aliases precisely
+            # so that a match here would be impossible, but relying on that is not a guard.
+            if candidate and candidate not in forms:
+                forms.append(candidate)
     return tuple(forms)
 
 
@@ -245,11 +397,42 @@ def load_registry(path: Path | str | None = None) -> VendorRegistry:
             alias_index[key] = cid
     if not entries:
         raise ValueError(f"{p} declares no identities")
+    norm_block = raw.get("normalization")
+    if norm_block is not None and not isinstance(norm_block, Mapping):
+        raise ValueError(
+            f"{p} 'normalization' must be an object, got {type(norm_block)}"
+        )
+    block: Mapping[str, Any] = norm_block or {}
+
+    def _tokens(field: str, default: tuple[str, ...]) -> tuple[str, ...]:
+        """Read a token list. ABSENT falls back to the default; PRESENT-BUT-EMPTY disables."""
+        value = block.get(field)
+        if value is None:
+            return default
+        if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+            raise ValueError(f"{p} normalization.{field} must be a list of strings")
+        return tuple(value)
+
+    punctuation = block.get("punctuation_folded_to_separator")
+    if punctuation is None:
+        punctuation = _DEFAULT_PUNCTUATION
+    elif not isinstance(punctuation, str):
+        raise ValueError(
+            f"{p} normalization.punctuation_folded_to_separator must be a string"
+        )
     return VendorRegistry(
         registry_id=raw.get("registry_id", str(p)),
         schema_version=raw.get("schema_version", ""),
         alias_index=alias_index,
         entries=entries,
+        domain_suffixes=_tokens("domain_suffixes", _DEFAULT_DOMAIN_SUFFIXES),
+        legal_entity_suffixes=_tokens(
+            "legal_entity_suffix_tokens", _DEFAULT_LEGAL_ENTITY_SUFFIXES
+        ),
+        descriptor_suffixes=_tokens(
+            "descriptor_suffix_tokens", _DEFAULT_DESCRIPTOR_SUFFIXES
+        ),
+        punctuation=punctuation,
     )
 
 
@@ -301,7 +484,7 @@ def resolve(value: Any, registry: VendorRegistry | None = None) -> VendorIdentit
             resolution=Resolution.EMPTY,
             establishes_distinctness=False,
         )
-    for form in _candidates(key):
+    for form in _candidates(key, reg):
         cid = reg.alias_index.get(form)
         if cid is None:
             continue
