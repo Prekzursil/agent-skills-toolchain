@@ -219,7 +219,16 @@ def render_manifest(root: Path) -> dict[str, Any]:
                 }
             )
         elif path.is_file():
-            raw = path.read_bytes()
+            # LF-NORMALISE BEFORE HASHING. These artifacts are text, git stores them
+            # with LF, and a Windows checkout under core.autocrlf=true materialises
+            # them with CRLF. Hashing the raw working-tree bytes therefore produced a
+            # DIFFERENT digest on Windows than on Linux CI, so a manifest generated on
+            # Windows could never satisfy `--check` on CI, and vice versa — measured
+            # 2026-08-10 as `FAILED:cc-render drift=2` on CI while the same commit
+            # reported `no drift` locally. `bytes` is the normalised length for the
+            # same reason: a CRLF tree inflates it by one byte per line.
+            # This is the render-side twin of the REACH-6 defect in validate.py.
+            raw = path.read_bytes().replace(b"\r\n", b"\n")
             entries.append(
                 {
                     "path": f"command-center/{name}",
