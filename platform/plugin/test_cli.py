@@ -322,3 +322,30 @@ def test_every_verb_is_reachable_and_declares_json() -> None:
     for name, sub in choices.items():
         opts = {a.option_strings[0] for a in sub._actions if a.option_strings}  # noqa: SLF001
         assert "--json" in opts, f"verb {name} has no --json output"
+
+
+def test_help_exits_zero_not_usage(capsys: pytest.CaptureFixture[str]) -> None:
+    """`--help` SUCCEEDS. It printed what was asked for, so it is not a usage error.
+
+    Regression for a falsy-zero bug at `cli.py`: `int(exc.code or EXIT_USAGE)` mapped argparse's
+    `SystemExit(0)` to 2, because `0 or 2 == 2`. Measured before the fix: `--help` printed 1,597 B
+    of correct help to stdout and still exited 2. The sibling `mkt.cli --help` exits 0, so the
+    correct behaviour was demonstrable in-tree the whole time.
+    """
+    assert main(["--help"]) == 0
+    assert "usage: astplugin" in capsys.readouterr().out
+
+
+def test_a_real_usage_error_is_still_distinguishable_from_help(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """The discriminating half: if BOTH returned the same code the fix above would be untestable.
+
+    Before the fix `--help`, an unknown flag and a missing required argument ALL returned 2, so a
+    caller could not tell success from failure. This pins the two apart.
+    """
+    assert main(["--nosuchflag"]) == 2
+    capsys.readouterr()
+    assert main(["install"]) == 2, (
+        "missing required --package/--prefix is a usage error"
+    )

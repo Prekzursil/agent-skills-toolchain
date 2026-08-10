@@ -374,8 +374,17 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     try:
         args = parser.parse_args(argv)
-    except SystemExit as exc:  # argparse already printed usage
-        return int(exc.code or EXIT_USAGE)
+    except (
+        SystemExit
+    ) as exc:  # argparse already printed help OR usage -- they are not the same
+        # `exc.code or EXIT_USAGE` was wrong: argparse raises SystemExit(0) for --help, and 0 is
+        # falsy, so every SUCCESSFUL help/version exit was reported as a usage error. Branch on the
+        # type instead, so 0 stays 0 and only a genuinely unset/string code becomes EXIT_USAGE.
+        if exc.code is None:
+            return EXIT_OK
+        if isinstance(exc.code, int):
+            return exc.code
+        return EXIT_USAGE  # a string code: argparse printed the message itself
     try:
         verb, code, doc = _run(args)
     except PluginError as err:
