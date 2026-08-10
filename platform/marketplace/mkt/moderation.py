@@ -27,7 +27,7 @@ from typing import Any
 from . import registry as reg
 from . import schemas
 from .canon import ensure_within, iso_now, read_json, write_json
-from .crypto import sign_document
+from .crypto import public_from_secret, sign_document
 
 AUTHORITY_ROLES = frozenset({"registry-maintainer", "moderator", "security-response"})
 
@@ -155,6 +155,83 @@ def load_or_init_revocation(
     }
 
 
+#: The only role whose key the INSTALL gate will accept as a signer of the revocation list
+#: (`install.py:555-563` requires `rev_key in trust_policy["registry_maintainer_keys"]`).
+#: Deliberately narrower than `AUTHORITY_ROLES`: this model separates the authority that
+#: DECIDES a revocation from the key that has custody to SIGN the list, which is why the
+#: parameter below is named `maintainer_secret_hex` and not `authority_secret_hex`.
+SIGNING_ROLE = "registry-maintainer"
+
+
+def _require_maintainer_signing_key(
+    index: dict[str, Any], authority: str, maintainer_secret_hex: str
+) -> None:
+    """Refuse a revocation whose list signature the install gate would reject.
+
+    MEASURED DEFECT this closes (three-arm probe, fixture marketplace):
+
+        baseline, no revocation ....................... install hello-skill  OK
+        revoke dep-consumer as pub:security-response .. install hello-skill  MKT-I04
+        revoke dep-consumer as pub:registry-root ...... install hello-skill  OK
+                                                        install dep-consumer MKT-I04
+
+    Arm 2 is the defect: revoking ONE package with a `security-response` authority made EVERY
+    package in the registry uninstallable, including packages that were never revoked. The
+    install gate is right to do that -- "an unverifiable revocation list is treated as a
+    refusal, never as an empty one" is the correct fail-closed rule, since an attacker who can
+    corrupt the list must not thereby empty it. And `AUTHORITY_ROLES` is right to include
+    `moderator` and `security-response`, because they are exactly who should be able to order
+    a revocation quickly.
+
+    The bug was that nothing enforced the difference. `revoke` accepted the authority's own key
+    as `maintainer_secret_hex`, wrote a list signed by a non-maintainer key, and returned
+    SUCCESS -- so a supported CLI invocation bricked the registry. That is a denial of service
+    reachable by an authorised user, not an attack.
+
+    Fixed here rather than in the CLI so every caller is covered, and by refusing at the
+    EARLIEST point rather than by widening the install gate: weakening the consumer-side check
+    to accept more signers would trade a self-inflicted outage for a real trust hole.
+
+    A moderator or security-response authority can still order a revocation -- it must be
+    co-signed by a registry-maintainer key, which is what the separation was always for.
+    """
+    try:
+        public = public_from_secret(bytes.fromhex(maintainer_secret_hex.strip()))
+    except (ValueError, TypeError) as exc:
+        raise ModerationError(
+            f"signing key is not a usable hex seed ({exc}); refusing rather than writing a "
+            "revocation list the install gate cannot verify"
+        ) from exc
+    formatted = "ed25519:" + public.hex()
+    maintainers = [
+        p
+        for p in index.get("publishers", [])
+        if p.get("role") == SIGNING_ROLE
+        and any(
+            k.get("public_key") == formatted and k.get("status") == "active"
+            for k in p.get("keys", []) or []
+        )
+    ]
+    if not maintainers:
+        owner = next(
+            (
+                p["id"]
+                for p in index.get("publishers", [])
+                if any(
+                    k.get("public_key") == formatted for k in p.get("keys", []) or []
+                )
+            ),
+            None,
+        )
+        whose = f"belongs to {owner!r}" if owner else "is not a known registry key"
+        raise ModerationError(
+            f"the revocation list must be signed by an active {SIGNING_ROLE} key; the supplied "
+            f"key {whose}. Authority {authority!r} may ORDER this revocation, but the list needs "
+            f"a {SIGNING_ROLE} co-signature -- writing it with this key would make EVERY package "
+            "in the registry uninstallable (MKT-I04), including packages that were never revoked"
+        )
+
+
 def revoke(
     registry_root: str | Path,
     *,
@@ -177,6 +254,7 @@ def revoke(
             f"authority {authority!r} has role {(record or {}).get('role')!r}; revocation requires one of "
             f"{sorted(AUTHORITY_ROLES)} -- a publisher must not be able to revoke, or un-revoke, on its own authority"
         )
+    _require_maintainer_signing_key(index, authority, maintainer_secret_hex)
     doc = load_or_init_revocation(registry_root, index, now=timestamp)
     rid = (
         revocation_id

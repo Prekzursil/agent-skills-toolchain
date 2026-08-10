@@ -404,9 +404,71 @@ def _revoke_hello(root, built, **kwargs):
         reason=kwargs.pop("reason", "Test revocation: the install path must refuse."),
         severity=kwargs.pop("severity", "critical"),
         authority=kwargs.pop("authority", "pub:moderation-board"),
-        maintainer_secret_hex=built["root_secret_hex"],
+        # Popped rather than hardcoded so a test can supply a NON-maintainer key and assert the
+        # refusal. The default stays the root (maintainer) secret, so every existing caller is
+        # unchanged -- and that correct default is exactly why the negative case went unasserted.
+        maintainer_secret_hex=kwargs.pop(
+            "maintainer_secret_hex", built["root_secret_hex"]
+        ),
         now=T0,
         **kwargs,
+    )
+
+
+def test_revoke_refuses_a_signing_key_that_is_not_a_maintainer_key(built, clone):
+    """A moderator may ORDER a revocation; only a maintainer key may SIGN the list.
+
+    Every other test in this file pairs a moderator/security-response authority with
+    ``built["root_secret_hex"]`` -- the correct pairing -- so the negative case went unasserted
+    and the defect below survived a 162-test suite unchanged.
+
+    Measured before the fix, three arms over the fixture marketplace:
+
+        baseline, no revocation ....................... install hello-skill  OK
+        revoke dep-consumer as pub:security-response .. install hello-skill  MKT-I04
+        revoke dep-consumer as pub:registry-root ...... install hello-skill  OK
+
+    Arm 2 is the harm: revoking ONE package with a non-maintainer signature made EVERY package
+    uninstallable, including packages never revoked, because the install gate correctly treats an
+    unverifiable revocation list as a refusal rather than an empty one. `mkt revoke` returned
+    SUCCESS while doing it, so a supported CLI call bricked the registry.
+    """
+    root = clone()
+    non_maintainer_secret = fixture.keys_for("pub:security-response")[0]
+
+    with pytest.raises(moderation.ModerationError) as exc:
+        _revoke_hello(
+            root,
+            built,
+            authority="pub:security-response",
+            maintainer_secret_hex=non_maintainer_secret,
+        )
+    assert "registry-maintainer" in str(exc.value)
+
+
+def test_a_refused_revocation_leaves_every_other_package_installable(
+    built, clone, tmp_path
+):
+    """The blast radius is the point: the old failure took out unrelated packages.
+
+    Asserting only that `revoke` raises would not catch a regression that raised AFTER writing
+    the list. This checks the state the operator actually cares about.
+    """
+    root = clone()
+    with pytest.raises(moderation.ModerationError):
+        _revoke_hello(
+            root,
+            built,
+            authority="pub:security-response",
+            maintainer_secret_hex=fixture.keys_for("pub:security-response")[0],
+        )
+
+    outcome = installer(root, tmp_path / "bystander", built).install(
+        "hello-skill", "=1.0.0", channel="stable", now=T0
+    )
+    assert outcome["outcome"] == "SUCCESS", (
+        "a REFUSED revocation must not have been written -- the registry is bricked (MKT-I04) "
+        "if an unverifiable list reached disk"
     )
 
 
