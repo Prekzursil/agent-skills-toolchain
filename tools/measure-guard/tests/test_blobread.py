@@ -115,20 +115,52 @@ def test_the_control_FIRES_when_the_content_genuinely_differs(tmp_path: Path) ->
     assert "CONTENT" in report["verdict"]
 
 
-def test_git_archive_is_measured_so_the_refusal_is_evidence_backed(
+def test_git_archive_payload_is_byte_identical_to_the_WORKTREE_not_the_blob(
     tmp_path: Path,
 ) -> None:
     """`git archive` is the trap the prescribing rule got wrong until 2026-08-09.
 
-    Measured rather than asserted: the archive route is reported alongside the others so a reader
-    can see why it is not used, instead of taking it on faith.
+    Asserts the strongest available form: the EXTRACTED member is byte-identical to the working
+    tree, same sha256, and differs from the committed blob. An earlier version of this test only
+    checked that the route key was present, which would have passed even if the payload had been
+    the blob - it asserted the report's shape rather than the claim.
+
+    Extraction matters. Counting CRLF across the whole tar CONTAINER happens to work for
+    `--format=tar` and silently inverts to 0 for `--format=tar.gz` or `--format=zip`, which would
+    turn this check into "git archive is LF-clean" - a false negative in the exact gate the module
+    exists to provide.
     """
     root = _repo(tmp_path)
     _commit_lf_checkout_crlf(root, "f.txt")
     report = br.three_route_comparison("f.txt", "HEAD", repo=root)
-    assert "git_archive_tar_bytes" in report["routes"], (
-        "the archive route must appear in the report; silently omitting it would hide the trap"
+    routes = report["routes"]
+
+    assert "git_archive" in routes, (
+        "the archive route must appear; silently omitting it would hide the trap"
     )
+    assert routes["git_archive"] == routes["working_tree"], (
+        "the archive payload must match the WORKING TREE byte for byte - that is what makes it the "
+        "wrong bytes to verify against"
+    )
+    assert routes["git_archive"]["crlf"] == 3
+    assert routes["git_archive"]["sha256_12"] != routes["git_cat_file"]["sha256_12"], (
+        "if archive matched the blob there would be no trap and this module would be pointless"
+    )
+
+
+def test_the_lf_control_now_covers_the_archive_route_too(tmp_path: Path) -> None:
+    """The archive route was previously excluded from the content control.
+
+    That left the one route the module exists to indict as the only route with no content check, so
+    a genuine content difference in the archive payload would have gone unnoticed.
+    """
+    root = _repo(tmp_path)
+    _commit_lf_checkout_crlf(root, "f.txt")
+    report = br.three_route_comparison("f.txt", "HEAD", repo=root)
+    assert "git_archive" in report["lf_normalised_digests"], (
+        "the archive route must be inside the LF-normalisation control, not exempt from it"
+    )
+    assert report["control_identical_after_lf_normalisation"] is True
 
 
 def test_an_absent_path_raises_rather_than_returning_empty(tmp_path: Path) -> None:

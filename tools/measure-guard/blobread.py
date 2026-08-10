@@ -15,9 +15,14 @@ section 8b prescribed it until 2026-08-09 and was wrong: it applies export-time 
 hands back CRLF on this box. Measured on one file, three routes, with a control proving all three
 are byte-identical after LF normalisation (so the difference is line endings, not content):
 
-    git archive + tar -x   3,837 bytes   100 CRLF
-    git cat-file -p        3,737 bytes     0 CRLF
-    git show <rev>:<path>  3,737 bytes     0 CRLF
+    git archive (member EXTRACTED)  3,837 bytes   100 CRLF
+    working tree                    3,837 bytes   100 CRLF
+    git cat-file -p                 3,737 bytes     0 CRLF
+    git show <rev>:<path>           3,737 bytes     0 CRLF
+
+The archive payload matches the WORKING TREE byte for byte, which is the whole point: `git archive`
+hands back the checkout form, not the blob. Independently re-measured by extracting the tar member
+with stdlib `tarfile`, and the extracted payload carries all 100 CRLF while 0 originate outside it.
 
 A rule that tells you to verify against the wrong bytes is worse than no rule, because it
 manufactures confidence in the exact check meant to catch this class.
@@ -65,6 +70,29 @@ def read_blob(path: str, rev: str = "HEAD", *, repo: Path | None = None) -> byte
     return proc.stdout
 
 
+def _tar_member(stream: bytes, path: str) -> bytes | None:
+    """The payload of `path` inside an uncompressed tar stream, or None if absent.
+
+    Uses stdlib `tarfile` rather than hand-walking 512-byte headers. An earlier comment here
+    claimed the header-block walk was implemented when the code in fact stored the whole stream -
+    a false comment inside a module whose entire thesis is "verify the bytes you think you are
+    verifying", which is the defect class it indicts. Implemented for real instead of re-worded.
+    """
+    import io
+    import tarfile
+
+    try:
+        with tarfile.open(fileobj=io.BytesIO(stream), mode="r:") as tar:
+            wanted = path.replace("\\", "/")
+            for member in tar.getmembers():
+                if member.name == wanted or member.name.endswith("/" + wanted):
+                    handle = tar.extractfile(member)
+                    return handle.read() if handle else None
+    except (tarfile.TarError, OSError):
+        return None
+    return None
+
+
 def crlf_count(data: bytes) -> int:
     return data.count(b"\r\n")
 
@@ -105,13 +133,22 @@ def three_route_comparison(
 
     # git archive: the route this module exists to refuse. Measured, not asserted, so the refusal
     # is evidence-backed rather than folklore.
+    #
+    # `--format=tar` is PINNED and the member is EXTRACTED. An earlier version stored the whole
+    # stream and counted CRLF across the container, which an independent review showed to be both
+    # mis-commented and fragile: `--format=tar.gz` and `--format=zip` both yield 0 CRLF at the
+    # container level, so a format change would silently INVERT this reading into "git archive is
+    # LF-clean" - a false negative in the exact check this module exists to provide. Counting the
+    # real payload removes the dependence entirely.
     archive = subprocess.run(
-        ["git", "-C", str(root), "archive", rev, path], capture_output=True, check=False
+        ["git", "-C", str(root), "archive", "--format=tar", rev, path],
+        capture_output=True,
+        check=False,
     )
     if archive.returncode == 0 and archive.stdout:
-        # The tar stream contains the file; extracting it needs no tar binary - locate the member
-        # payload by tar's 512-byte header blocks.
-        routes["git_archive_tar_bytes"] = archive.stdout
+        payload = _tar_member(archive.stdout, path)
+        if payload is not None:
+            routes["git_archive"] = payload
 
     report = {
         "path": path,
@@ -125,8 +162,10 @@ def three_route_comparison(
             for name, data in routes.items()
         },
     }
-    comparable = {k: v for k, v in routes.items() if k != "git_archive_tar_bytes"}
-    normalised = {k: digest(lf_normalised(v)) for k, v in comparable.items()}
+    # EVERY route is in the control now, git_archive included. It was previously excluded, which
+    # left the one route this module exists to indict as the only route with no content control -
+    # so a genuine content difference in the archive payload would have gone unnoticed.
+    normalised = {k: digest(lf_normalised(v)) for k, v in routes.items()}
     report["control_identical_after_lf_normalisation"] = (
         len(set(normalised.values())) == 1
     )

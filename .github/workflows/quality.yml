@@ -409,11 +409,20 @@ jobs:
       # never `git archive`, which returns the CRLF worktree bytes on Windows and so verifies the
       # wrong bytes. Stdlib-only apart from pytest; the tests build throwaway git repos and never
       # touch this one.
+      # `--suite command-center`, NOT `--all`. An independent review found that `--all` includes the
+      # `platform` suite, whose collection needs `jsonschema`, while this step installs only pytest.
+      # It passes today only because earlier steps in this job pull jsonschema in transitively
+      # (measured: jsonschema-4.26.0 in CI run 31410194562) - and at a DIFFERENT version from the
+      # 4.25.1 the test-platform job pins, so the two jobs would measure platform under different
+      # validators. Reordering or trimming an unrelated sibling step would break this one, and the
+      # failure would read "a package is probably failing to import" pointing at platform rather
+      # than at the missing dependency here. platform is already covered by test-platform with
+      # pinned deps, so this step keeps to what it can honestly install.
       - name: gate-tests-coverage measure-guard
         run: |
           pip install pytest
           python -m pytest tools/measure-guard/tests -q
-          python tools/measure-guard/suitefloor.py --all
+          python tools/measure-guard/suitefloor.py --suite command-center
       # tools/agentspec — the portable agent-workflow SPEC, the shared observation envelope, the
       # dispatch-safety pure core (argv/prompt transport, the completion AND-gate, progress-stream
       # rejection, terminal markers, budget accounting, determinism) and the hermetic eval

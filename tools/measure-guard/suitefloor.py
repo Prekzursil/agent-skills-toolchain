@@ -24,9 +24,12 @@ The floors here are LOWER than the observed counts on purpose. A floor set to th
 count becomes a nuisance gate that fails on every legitimately added test, and a nuisance gate gets
 disabled. The margin is stated per suite.
 
-`require_nonempty` generalises the rule past pytest, because TST-0350 is explicit that the defect
-class is not pytest-specific: a census, a benchmark or a diff over an empty input set must be an
-error, never a clean pass.
+`require_nonempty` EXISTS for the non-pytest half of TST-0350 - a census, a benchmark or a diff over
+an empty input set must be an error, never a clean pass - but it currently has ZERO production
+callers, so the CAPABILITY is here while the RULE is generalised nowhere. Stated in the present tense
+because that is the shipped state; the receipt at command-center/receipts/TST-0350.json records the
+same scoping and names the settling experiment. Deliberately NOT satisfied by adding a token call
+site, which would launder the sentence instead of doing the work.
 """
 
 from __future__ import annotations
@@ -55,6 +58,19 @@ class Suite:
     #: Observed count when the floor was set, so the margin is auditable rather than arbitrary.
     observed_when_set: int
     note: str
+    #: Per-package floors, checked IN ADDITION to the whole-suite total.
+    #:
+    #: THE BYPASS THIS CLOSES, found by independent review and measured, not argued: `platform`
+    #: holds 3,946 tests with a floor of 3,900, i.e. 46 of slack. `platform/corpus` holds 45.
+    #:
+    #:     pytest platform --ignore=platform/corpus --collect-only -q  ->  3901 collected
+    #:     check_suite: observed=3901  floor=3900  ->  PASS
+    #:
+    #: An ENTIRE PACKAGE could stop collecting and the gate reported SUCCESS, by a margin of one
+    #: test - precisely the case the module docstring above says the floor exists to catch. A
+    #: single whole-suite total cannot see it, because the slack needed to avoid being a nuisance
+    #: gate is necessarily larger than the smallest package.
+    per_package: tuple[tuple[str, int], ...] = ()
 
 
 #: Every suite that a gate runs. A suite absent from here has NO declared floor, which TST-0350
@@ -66,9 +82,21 @@ SUITES: tuple[Suite, ...] = (
         minimum=3900,
         observed_when_set=3946,
         note=(
-            "3,946 collected on a fresh clone of 15cb70e3 (untracked=0). Floor 3900 leaves ~46 of "
-            "headroom: enough that adding tests never trips it, tight enough that losing one "
-            "package does."
+            "3,946 collected on a fresh clone of 15cb70e3 (untracked=0), independently confirmed at "
+            "3,946 by a GitHub runner (CI run 31410194562) - three platforms, so the reference "
+            "count is not machine-specific. Floor 3900 leaves 46 of headroom for growth; the "
+            "per-package floors below are what actually catch a package disappearing, since 46 of "
+            "slack is wider than the smallest package."
+        ),
+        per_package=(
+            # Measured by bucketing all 3,946 collected node ids by package.
+            ("platform/lib", 3000),
+            ("platform/plugin", 240),
+            ("platform/coordination", 220),
+            ("platform/marketplace", 155),
+            ("platform/routing", 115),
+            # 45 observed. Floor 40 - this is the package the whole-suite total could not protect.
+            ("platform/corpus", 40),
         ),
     ),
     Suite(
@@ -132,7 +160,23 @@ def check_suite(suite: Suite, *, cwd: Path | None = None) -> tuple[bool, int, st
             f"collected {observed}, below the declared floor {suite.minimum} - a package is "
             f"probably failing to import; tail: {tail}",
         )
-    return True, observed, f"collected {observed} >= floor {suite.minimum}"
+
+    # Per-package floors. The whole-suite total above cannot catch a small package vanishing, so
+    # each declared package is checked on its own; the first breach fails the suite and NAMES the
+    # package, which the aggregate total never could.
+    for pkg, floor in suite.per_package:
+        pkg_observed, pkg_tail = collect_count(pkg, cwd=cwd)
+        if pkg_observed < floor:
+            return (
+                False,
+                observed,
+                f"whole-suite total {observed} clears {suite.minimum}, but package {pkg} collected "
+                f"{pkg_observed}, below its floor {floor} - a package can disappear inside the "
+                f"aggregate slack; tail: {pkg_tail}",
+            )
+
+    extra = f" (+{len(suite.per_package)} package floors)" if suite.per_package else ""
+    return True, observed, f"collected {observed} >= floor {suite.minimum}{extra}"
 
 
 def require_nonempty(count: int, label: str, minimum: int = 1) -> None:

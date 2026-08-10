@@ -84,6 +84,100 @@ def test_a_collection_error_is_treated_as_zero_not_as_a_pass(tmp_path: Path) -> 
     assert ok is False
 
 
+def test_a_package_below_its_floor_fails_even_when_the_TOTAL_passes(
+    tmp_path: Path,
+) -> None:
+    """The bypass an independent review found, pinned so it cannot reopen.
+
+    Measured on the real suite before the fix: `platform` held 3,946 tests against a floor of
+    3,900, i.e. 46 of slack, and `platform/corpus` held 45. So
+
+        pytest platform --ignore=platform/corpus --collect-only -q  ->  3901 collected
+        check_suite: observed=3901  floor=3900  ->  PASS
+
+    An entire package could stop collecting and the gate reported SUCCESS, by a margin of one test -
+    exactly the case the module docstring claims the floor catches. A single aggregate total
+    structurally cannot see it, because the slack needed to avoid being a nuisance gate is wider
+    than the smallest package.
+
+    The fixture below is the same shape in miniature: the total clears its floor comfortably while
+    one declared package sits under its own.
+    """
+    big = tmp_path / "big"
+    big.mkdir()
+    (big / "test_many.py").write_text(
+        "".join(f"def test_n{i}():\n    pass\n\n\n" for i in range(10)),
+        encoding="utf-8",
+    )
+    small = tmp_path / "big" / "smallpkg"
+    small.mkdir()
+    (small / "test_one.py").write_text("def test_only():\n    pass\n", encoding="utf-8")
+
+    total, _ = sf.collect_count("big", cwd=tmp_path)
+    assert total == 11, f"fixture should collect 11, collected {total}"
+
+    # Total floor 5 (comfortably cleared by 11) but smallpkg must hold at least 4 and holds 1.
+    suite = sf.Suite(
+        "bypass-probe",
+        "big",
+        minimum=5,
+        observed_when_set=11,
+        note="fixture",
+        per_package=(("big/smallpkg", 4),),
+    )
+    ok, observed, reason = sf.check_suite(suite, cwd=tmp_path)
+    assert ok is False, (
+        "a package under its floor must fail even when the aggregate total passes"
+    )
+    assert observed == 11, "the reported total is still the whole-suite count"
+    assert "big/smallpkg" in reason, (
+        "the failure must NAME the package; that is the point"
+    )
+    assert "disappear inside the aggregate slack" in reason
+
+
+def test_the_same_suite_passes_when_no_package_is_breached(tmp_path: Path) -> None:
+    """Both-states pair for the test above: the per-package check must not fire on a healthy tree."""
+    big = tmp_path / "big"
+    big.mkdir()
+    (big / "test_many.py").write_text(
+        "".join(f"def test_n{i}():\n    pass\n\n\n" for i in range(10)),
+        encoding="utf-8",
+    )
+    small = tmp_path / "big" / "smallpkg"
+    small.mkdir()
+    (small / "test_one.py").write_text("def test_only():\n    pass\n", encoding="utf-8")
+
+    suite = sf.Suite(
+        "bypass-probe",
+        "big",
+        minimum=5,
+        observed_when_set=11,
+        note="fixture",
+        per_package=(("big/smallpkg", 1),),
+    )
+    ok, _, reason = sf.check_suite(suite, cwd=tmp_path)
+    assert ok is True
+    assert "1 package floors" in reason
+
+
+def test_the_platform_suite_declares_a_floor_for_its_smallest_package() -> None:
+    """Without this the fix is one registry edit away from silently reverting."""
+    platform = sf.suite_by_name("platform")
+    assert platform is not None
+    declared = dict(platform.per_package)
+    assert "platform/corpus" in declared, (
+        "platform/corpus is the package the aggregate total cannot protect (45 tests vs 46 slack); "
+        "it must carry its own floor"
+    )
+    slack = platform.observed_when_set - platform.minimum
+    assert declared["platform/corpus"] > 0
+    assert any(floor <= slack for _, floor in platform.per_package), (
+        "at least one declared package is smaller than the aggregate slack, which is the whole "
+        "reason per-package floors exist; if none are, this registry no longer needs them"
+    )
+
+
 # --------------------------------------------------------------------------- non-pytest half
 
 
