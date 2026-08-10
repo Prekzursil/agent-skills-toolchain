@@ -418,12 +418,20 @@ jobs:
       # failure would read "a package is probably failing to import" pointing at platform rather
       # than at the missing dependency here. platform is already covered by test-platform with
       # pinned deps, so this step keeps to what it can honestly install.
+      # `wudeps` closes the largest measurement gap in the command centre: validate.py does not
+      # contain the string `work_units`, so it gates the 103 register items and NONE of the 2,007
+      # work units that are the actual program. Measured 41 dependency refs that resolve to nothing
+      # and 876 that point at buckets with zero members, none of it ever gated. It RATCHETS against
+      # a recorded baseline rather than failing on all 917 pre-existing findings - a gate that fails
+      # on every unrelated PR gets deleted - and reports improvements so the floor gets lowered
+      # instead of drifting into slack.
       - name: gate-tests-coverage measure-guard
         run: |
           pip install pytest
           python -m pytest tools/measure-guard/tests -q
           python tools/measure-guard/suitefloor.py --suite command-center
           python tools/measure-guard/refcheck.py
+          python tools/measure-guard/wudeps.py
       # tools/agentspec — the portable agent-workflow SPEC, the shared observation envelope, the
       # dispatch-safety pure core (argv/prompt transport, the completion AND-gate, progress-stream
       # rejection, terminal markers, budget accounting, determinism) and the hermetic eval
