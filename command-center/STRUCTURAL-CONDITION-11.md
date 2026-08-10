@@ -98,7 +98,18 @@ records registered=false"`. **Both** manifest presence and the flag are required
 
 ## Residual
 
-- The 2,007-unit output-path census was run by the reviewer, not re-derived by me. **UNVERIFIED by a
-  second party.** Settling experiment: intersect every `work_units[].output_path` with
-  `render.CONTRACTED_ARTIFACTS` and assert the intersection is empty.
+- The 2,007-unit output-path census was originally the reviewer's and I marked it UNVERIFIED by a
+  second party. **Now SETTLED**, by running the settling experiment this document named rather than
+  leaving it open:
+
+      work_units                          2007
+      with a non-empty output_path        2007
+      distinct declared output paths      2007
+      CONTRACTED_ARTIFACTS                  14
+      INTERSECTION                           0   (empty)
+
+  With a detector control, because a zero from a broken matcher is worth nothing: injecting
+  `command-center/STATUS.md` into the declared set yields exactly 1 match, so the matcher does find
+  an overlap when one exists. The zero is a measurement.
+
 - Evidence: `command-center/P10-REREVIEW-AND-C11-REFUTATION.md`.
