@@ -1,0 +1,2887 @@
+{
+  "unit": "close/audit-probe-repair",
+  "artifact": "C:\\Users\\Prekzursil\\source\\ast-integrate\\command-center\\WAVE4-ROUTING-PROBE.json",
+  "status": "COMPLETE",
+  "stages": {
+    "stage0_crash_repro": {
+      "reported_crash": "AttributeError: type object 'SemanticModel' has no attribute 'build'",
+      "BROKEN_STATE_call": "semantic.SemanticModel.build",
+      "BROKEN_STATE_raised": true,
+      "BROKEN_STATE_error": "AttributeError: type object 'SemanticModel' has no attribute 'build'",
+      "FIXED_STATE_call": "semantic.SemanticModel.fit(idx) -> SemanticModel",
+      "FIXED_STATE_ok": true,
+      "FIXED_STATE_error": null,
+      "FIXED_STATE_fitted_records": 40,
+      "real_constructor_anchor": "platform/routing/semantic.py:211 @classmethod fit",
+      "router_constructor_anchor": "platform/routing/router.py:279 @classmethod build",
+      "note": "Router.build DOES exist; only SemanticModel.build does not. A probe that reached for SemanticModel.build was calling the wrong class's factory.",
+      "both_states_valid": true,
+      "public_attrs_on_SemanticModel": [
+        "avgdl",
+        "bm25",
+        "ceiling",
+        "fit",
+        "n",
+        "ngram_cos",
+        "score",
+        "top",
+        "use_expansion",
+        "use_ngram"
+      ],
+      "public_classmethods_on_Router": [
+        "build",
+        "effective_threshold",
+        "explain",
+        "fallback",
+        "parse_overrides",
+        "route",
+        "rule_ctx"
+      ]
+    },
+    "stage1_index": {
+      "index_total": 912,
+      "counts": {
+        "agent": 18,
+        "candidate": 164,
+        "command": 71,
+        "mcp": 14,
+        "plugin": 98,
+        "preset": 69,
+        "protocol": 48,
+        "skill": 328,
+        "workflow": 102
+      },
+      "lane_query_total": 60,
+      "lane_tiers": {
+        "L1": 28,
+        "L2": 21,
+        "L3": 6,
+        "L4": 5
+      },
+      "lane_unresolved_gold": [],
+      "lane_excluded_unanswerable": 8,
+      "lane_gold_or_holdout_ids": 63
+    },
+    "stage2_holdout": {
+      "lane_holdout_verification": {
+        "requested": 28,
+        "verified_absent_after_strip": 27,
+        "STILL_PRESENT_after_strip": [
+          "command:compute-monitor"
+        ],
+        "unknown_ids": [],
+        "all_verified": false
+      },
+      "why": "L1 is only a retrieval test if the query sentence is absent from the record it must retrieve. Measuring on the RAW index instead makes L1 circular - which is exactly what the crashed Wave-3 probe did (Router.build(inv))."
+    },
+    "stage3_qs_b": {
+      "protocol": "mechanical leave-one-out over a stride-13 walk of the index, restricted to records that are NOT in any lane gold set and NOT a lane holdout source; the held-out sentence is stripped from routing_text before the router is built, and the strip is positively verified",
+      "n_queries": 45,
+      "n_excluded_unanswerable": 4,
+      "excluded": [
+        {
+          "qid": "B-EXCLUDED-mcp:hexstrike-ai",
+          "reason": "only 12 tokens survive the holdout"
+        },
+        {
+          "qid": "B-EXCLUDED-plugin:claude-code-setup",
+          "reason": "only 5 tokens survive the holdout"
+        },
+        {
+          "qid": "B-EXCLUDED-plugin:firecrawl",
+          "reason": "only 4 tokens survive the holdout"
+        },
+        {
+          "qid": "B-EXCLUDED-plugin:sonarqube",
+          "reason": "only 20 tokens survive the holdout"
+        }
+      ],
+      "by_class": {
+        "agent": 1,
+        "candidate": 4,
+        "command": 5,
+        "preset": 5,
+        "protocol": 4,
+        "skill": 20,
+        "workflow": 6
+      },
+      "holdout_verification": {
+        "requested": 45,
+        "verified_absent_after_strip": 45,
+        "STILL_PRESENT_after_strip": [],
+        "unknown_ids": [],
+        "all_verified": true
+      },
+      "disjoint_from_lane_gold": true
+    },
+    "stage4_qs_c": {
+      "n_queries": 28,
+      "n_positive": 22,
+      "n_negative": 6,
+      "unresolved_gold": [],
+      "mean_leakage": 0.0869,
+      "max_leakage": 0.2727,
+      "lane_L2_mean_leakage_for_comparison": 0.0293,
+      "queries": [
+        {
+          "qid": "C-01",
+          "text": "make this endpoint quicker - try a pile of variants and keep whichever one measures fastest",
+          "gold": [
+            "skill:benchmark-optimization-loop"
+          ],
+          "tier": "C-authored-paraphrase",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.0714
+        },
+        {
+          "qid": "C-02",
+          "text": "farm several coding jobs out to separate checkouts at once and let me watch how each is doing",
+          "gold": [
+            "skill:claude-devfleet"
+          ],
+          "tier": "C-authored-paraphrase",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.0333
+        },
+        {
+          "qid": "C-03",
+          "text": "set me up a scratch pad where I can run bits of python against this data and keep the output",
+          "gold": [
+            "skill:jupyter-notebook"
+          ],
+          "tier": "C-authored-paraphrase",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.0312
+        },
+        {
+          "qid": "C-04",
+          "text": "get the other vendor's assistant on this machine talking to you so the two of you can split the work",
+          "gold": [
+            "skill:multi-ai-mingle"
+          ],
+          "tier": "C-authored-paraphrase",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.0441
+        },
+        {
+          "qid": "C-05",
+          "text": "walk through the signup form in a real browser and grab a picture at each step",
+          "gold": [
+            "skill:playwright"
+          ],
+          "tier": "C-authored-paraphrase",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.0789
+        },
+        {
+          "qid": "C-06",
+          "text": "look up an attack technique in the reference material I keep on this box, no internet",
+          "gold": [
+            "skill:security-kb-lookup"
+          ],
+          "tier": "C-authored-paraphrase",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.027
+        },
+        {
+          "qid": "C-07",
+          "text": "hand every independent piece to a fresh helper and check its work before accepting it",
+          "gold": [
+            "skill:subagent-driven-development"
+          ],
+          "tier": "C-authored-paraphrase",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.0541
+        },
+        {
+          "qid": "C-08",
+          "text": "I want to add a new capability document and be sure it actually works before it ships",
+          "gold": [
+            "skill:writing-skills"
+          ],
+          "tier": "C-authored-paraphrase",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.0714
+        },
+        {
+          "qid": "C-09",
+          "text": "are the other command-line assistants installed and pointed at the right config",
+          "gold": [
+            "command:external-tools-health"
+          ],
+          "tier": "C-authored-paraphrase",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.0
+        },
+        {
+          "qid": "C-10",
+          "text": "find handlers that are wired up but can never actually fire",
+          "gold": [
+            "workflow:silent-disarm-hunt"
+          ],
+          "tier": "C-authored-paraphrase",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.1333
+        },
+        {
+          "qid": "C-11",
+          "text": "nothing gets published until somebody has measured what it costs to keep loaded",
+          "gold": [
+            "workflow:marketplace-publication-governance"
+          ],
+          "tier": "C-authored-paraphrase",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.125
+        },
+        {
+          "qid": "C-12",
+          "text": "list out every option first and have people rank them on their own before anyone argues",
+          "gold": [
+            "protocol:p06-nominal-group-technique"
+          ],
+          "tier": "C-authored-paraphrase",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.1667
+        },
+        {
+          "qid": "C-13",
+          "text": "I want a resolution that makes one side better without making the other side worse - no splitting the difference",
+          "gold": [
+            "protocol:p29-triz-contradiction"
+          ],
+          "tier": "C-authored-paraphrase",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.0417
+        },
+        {
+          "qid": "C-14",
+          "text": "when a saved note goes out of date, point the old one at the replacement and date the new one",
+          "gold": [
+            "preset:c-h62-memory-note-supersession"
+          ],
+          "tier": "C-authored-paraphrase",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.15
+        },
+        {
+          "qid": "C-15",
+          "text": "pull the colours and a picture of one frame out of my design file",
+          "gold": [
+            "mcp:figma"
+          ],
+          "tier": "C-authored-paraphrase",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.125
+        },
+        {
+          "qid": "C-16",
+          "text": "break this feature into phases and dependencies before anybody writes code",
+          "gold": [
+            "agent:planner"
+          ],
+          "tier": "C-authored-paraphrase",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.0435
+        },
+        {
+          "qid": "C-17",
+          "text": "scan the code that was just generated for security holes",
+          "gold": [
+            "plugin:semgrep"
+          ],
+          "tier": "C-authored-paraphrase",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.2727
+        },
+        {
+          "qid": "C-18",
+          "text": "go wide and tell me what my toolkit is missing compared with other setups",
+          "gold": [
+            "skill:gem-hunt"
+          ],
+          "tier": "C-authored-paraphrase",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.0806
+        },
+        {
+          "qid": "C-19",
+          "text": "pull the compounds and protein targets out of this article so I can feed the chemistry tools",
+          "gold": [
+            "skill:drug-discovery-literature-bridge"
+          ],
+          "tier": "C-authored-paraphrase",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.0571
+        },
+        {
+          "qid": "C-20",
+          "text": "we have an ancient monolith to drag into this decade",
+          "gold": [
+            "plugin:code-modernization"
+          ],
+          "tier": "C-authored-paraphrase",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.0385
+        },
+        {
+          "qid": "C-21",
+          "text": "give the reviewers each other's whole write-up, not a summary of it",
+          "gold": [
+            "workflow:bp-cnc-04-full-text-adversarial-sibling-review"
+          ],
+          "tier": "C-authored-paraphrase",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.0
+        },
+        {
+          "qid": "C-22",
+          "text": "explore the question from six different mindsets, one at a time",
+          "gold": [
+            "preset:c-s21-six-hats-6"
+          ],
+          "tier": "C-authored-paraphrase",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.2667
+        },
+        {
+          "qid": "C-23",
+          "text": "how do I get red wine out of a wool carpet",
+          "gold": [],
+          "tier": "C-negative",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.0
+        },
+        {
+          "qid": "C-24",
+          "text": "what year did the bridge at Cernavoda open",
+          "gold": [],
+          "tier": "C-negative",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.0
+        },
+        {
+          "qid": "C-25",
+          "text": "my cat keeps knocking things off the counter at four in the morning",
+          "gold": [],
+          "tier": "C-negative",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.0
+        },
+        {
+          "qid": "C-26",
+          "text": "convert two hundred and fifty grams of flour into cups",
+          "gold": [],
+          "tier": "C-negative",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.0
+        },
+        {
+          "qid": "C-27",
+          "text": "which train goes from Bucharest to Brasov on Sunday morning",
+          "gold": [],
+          "tier": "C-negative",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.0
+        },
+        {
+          "qid": "C-28",
+          "text": "remind me to call my mother on Thursday",
+          "gold": [],
+          "tier": "C-negative",
+          "unresolved_gold": [],
+          "leakage_jaccard_vs_gold_description": 0.0
+        }
+      ],
+      "DISCLOSED_WEAKNESS": "authored by an agent that had already read router.py and semantic.py; a blind set is the settling experiment"
+    },
+    "stage5_lane_heldout": {
+      "n_queries": 60,
+      "n_gold_bearing": 54,
+      "n_negative": 6,
+      "per_k": {
+        "1": {
+          "mean_card_bytes_per_query_ALL": 161.9,
+          "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 172.0,
+          "peak_card_bytes": 219,
+          "mean_full_description_bytes_per_query_ALL": 1268.6,
+          "card_saving_ratio_vs_full_description": 7.84,
+          "mean_items_returned": 0.85,
+          "precision": 0.4259,
+          "recall": 0.3627,
+          "gold_hit_rate": 0.4259,
+          "correct_selections_total": 23,
+          "selections_total_on_gold_bearing": 49,
+          "wasted_selections": 26,
+          "BYTES_PER_CORRECT_SELECTION": 403.8,
+          "total_card_bytes_on_gold_bearing": 9288,
+          "misses_at_max_k": []
+        },
+        "3": {
+          "mean_card_bytes_per_query_ALL": 389.6,
+          "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 412.8,
+          "peak_card_bytes": 657,
+          "mean_full_description_bytes_per_query_ALL": 3188.4,
+          "card_saving_ratio_vs_full_description": 8.18,
+          "mean_items_returned": 2.12,
+          "precision": 0.2747,
+          "recall": 0.4846,
+          "gold_hit_rate": 0.5556,
+          "correct_selections_total": 31,
+          "selections_total_on_gold_bearing": 121,
+          "wasted_selections": 90,
+          "BYTES_PER_CORRECT_SELECTION": 719.0,
+          "total_card_bytes_on_gold_bearing": 22290,
+          "misses_at_max_k": []
+        },
+        "5": {
+          "mean_card_bytes_per_query_ALL": 494.4,
+          "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 522.0,
+          "peak_card_bytes": 1043,
+          "mean_full_description_bytes_per_query_ALL": 4181.8,
+          "card_saving_ratio_vs_full_description": 8.46,
+          "mean_items_returned": 2.73,
+          "precision": 0.263,
+          "recall": 0.5463,
+          "gold_hit_rate": 0.6111,
+          "correct_selections_total": 35,
+          "selections_total_on_gold_bearing": 156,
+          "wasted_selections": 121,
+          "BYTES_PER_CORRECT_SELECTION": 805.3,
+          "total_card_bytes_on_gold_bearing": 28187,
+          "misses_at_max_k": []
+        },
+        "10": {
+          "mean_card_bytes_per_query_ALL": 530.2,
+          "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 558.4,
+          "peak_card_bytes": 1322,
+          "mean_full_description_bytes_per_query_ALL": 4501.6,
+          "card_saving_ratio_vs_full_description": 8.49,
+          "mean_items_returned": 2.93,
+          "precision": 0.2588,
+          "recall": 0.5463,
+          "gold_hit_rate": 0.6111,
+          "correct_selections_total": 35,
+          "selections_total_on_gold_bearing": 167,
+          "wasted_selections": 132,
+          "BYTES_PER_CORRECT_SELECTION": 861.6,
+          "total_card_bytes_on_gold_bearing": 30155,
+          "misses_at_max_k": [
+            {
+              "qid": "L1b-command-01",
+              "query": "Answer a quick side question without interrupting or losing context from the cur",
+              "gold": [
+                "command:aside"
+              ],
+              "got": [
+                "skill:source-command-aside",
+                "skill:volatility-3"
+              ]
+            },
+            {
+              "qid": "L1b-protocol-01",
+              "query": "Surface the tradeoffs of an ambiguous decision that has no obvious winner and re",
+              "gold": [
+                "protocol:p01-free-form-moderated-panel"
+              ],
+              "got": [
+                "skill:council",
+                "skill:recursive-decision-ledger",
+                "workflow:pre-pr-surface-check",
+                "workflow:bp-cnc-05-governance-decision-gate"
+              ]
+            },
+            {
+              "qid": "L1b-agent-04",
+              "query": "Proactively reviews code for quality, security, and maintainability",
+              "gold": [
+                "agent:code-reviewer"
+              ],
+              "got": [
+                "plugin:code-simplifier",
+                "agent:security-reviewer",
+                "plugin:sonarqube",
+                "skill:security-best-practices"
+              ]
+            },
+            {
+              "qid": "L1b-candidate-01",
+              "query": "claude-reflect (bayramannakov/claude-reflect)",
+              "gold": [
+                "candidate:WFA3-068"
+              ],
+              "got": [
+                "plugin:claude-reflect",
+                "command:self-reflect",
+                "candidate:WFA3-080"
+              ]
+            },
+            {
+              "qid": "L1b-candidate-02",
+              "query": "remember (Digital-Process-Tools/claude-remember) v0.18.0",
+              "gold": [
+                "candidate:WFA3-070"
+              ],
+              "got": [
+                "plugin:remember",
+                "command:save-session"
+              ]
+            },
+            {
+              "qid": "L1b-candidate-03",
+              "query": "98 installed plugins / 9 enabled (aggregate observation)",
+              "gold": [
+                "candidate:WFA3-074-REJECT"
+              ],
+              "got": [
+                "plugin:ai-plugins",
+                "candidate:tool-plugin-cache-reaper"
+              ]
+            },
+            {
+              "qid": "L1b-candidate-04",
+              "query": "anthropic-agent-skills (anthropics/skills)",
+              "gold": [
+                "candidate:WFA3-075"
+              ],
+              "got": [
+                "plugin:document-skills",
+                "skill:writing-skills",
+                "skill:claude-api",
+                "skill:frontend-design-direction"
+              ]
+            },
+            {
+              "qid": "L2-03",
+              "query": "strip out the long gaps where nobody is talking",
+              "gold": [
+                "skill:silence-trim"
+              ],
+              "got": []
+            },
+            {
+              "qid": "L2-04",
+              "query": "put the words on screen so they pop one at a time like the viral edits",
+              "gold": [
+                "skill:caption-burn"
+              ],
+              "got": []
+            },
+            {
+              "qid": "L2-05",
+              "query": "re-voice this in Spanish but keep it sounding like the same person",
+              "gold": [
+                "skill:media-dub"
+              ],
+              "got": [
+                "skill:voice-analyze"
+              ]
+            },
+            {
+              "qid": "L2-06",
+              "query": "everyone on the panel nodded along immediately and no one pushed back",
+              "gold": [
+                "protocol:p12-adversarial-collaboration",
+                "protocol:p25-blind-reevaluation"
+              ],
+              "got": [
+                "protocol:p34-scenario-planning",
+                "protocol:p35-reference-class-planning-poker"
+              ]
+            },
+            {
+              "qid": "L2-07",
+              "query": "my installer clobbered newer files that only existed on the machine",
+              "gold": [
+                "workflow:anchor-checked-per-file-deploy"
+              ],
+              "got": []
+            }
+          ]
+        }
+      },
+      "marginal": {
+        "k=1->3": {
+          "extra_card_bytes": 13002,
+          "extra_correct_selections": 8,
+          "MARGINAL_BYTES_PER_EXTRA_CORRECT": 1625.2,
+          "recall_delta": 0.1219
+        },
+        "k=3->5": {
+          "extra_card_bytes": 5897,
+          "extra_correct_selections": 4,
+          "MARGINAL_BYTES_PER_EXTRA_CORRECT": 1474.2,
+          "recall_delta": 0.0617
+        },
+        "k=5->10": {
+          "extra_card_bytes": 1968,
+          "extra_correct_selections": 0,
+          "MARGINAL_BYTES_PER_EXTRA_CORRECT": null,
+          "recall_delta": 0.0
+        }
+      },
+      "negatives": {
+        "n": 6,
+        "abstained": 4,
+        "abstain_rate": 0.6667,
+        "false_fires": [
+          {
+            "qid": "L3-04",
+            "query": "translate this sentence into French for a birthday card",
+            "got": [
+              "skill:subtitle-translate",
+              "workflow:crv.overclaim-scoping-review",
+              "preset:c-s22-nominal-group-6"
+            ]
+          },
+          {
+            "qid": "L3-05",
+            "query": "what did I have for lunch yesterday",
+            "got": [
+              "skill:cost-tracking",
+              "workflow:per-surface-usability-source-audit",
+              "workflow:secret-exposure-blast-radius-trace"
+            ]
+          }
+        ]
+      }
+    },
+    "stage5b_lane_raw_circular": {
+      "n_queries": 60,
+      "n_gold_bearing": 54,
+      "n_negative": 6,
+      "per_k": {
+        "1": {
+          "mean_card_bytes_per_query_ALL": 163.1,
+          "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 173.3,
+          "peak_card_bytes": 219,
+          "mean_full_description_bytes_per_query_ALL": 1302.5,
+          "card_saving_ratio_vs_full_description": 7.99,
+          "mean_items_returned": 0.85,
+          "precision": 0.5185,
+          "recall": 0.4552,
+          "gold_hit_rate": 0.5185,
+          "correct_selections_total": 28,
+          "selections_total_on_gold_bearing": 49,
+          "wasted_selections": 21,
+          "BYTES_PER_CORRECT_SELECTION": 334.2,
+          "total_card_bytes_on_gold_bearing": 9357,
+          "misses_at_max_k": []
+        },
+        "3": {
+          "mean_card_bytes_per_query_ALL": 387.6,
+          "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 410.5,
+          "peak_card_bytes": 657,
+          "mean_full_description_bytes_per_query_ALL": 3235.3,
+          "card_saving_ratio_vs_full_description": 8.35,
+          "mean_items_returned": 2.13,
+          "precision": 0.3364,
+          "recall": 0.6512,
+          "gold_hit_rate": 0.7222,
+          "correct_selections_total": 40,
+          "selections_total_on_gold_bearing": 122,
+          "wasted_selections": 82,
+          "BYTES_PER_CORRECT_SELECTION": 554.2,
+          "total_card_bytes_on_gold_bearing": 22169,
+          "misses_at_max_k": []
+        },
+        "5": {
+          "mean_card_bytes_per_query_ALL": 494.4,
+          "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 522.0,
+          "peak_card_bytes": 1043,
+          "mean_full_description_bytes_per_query_ALL": 4185.2,
+          "card_saving_ratio_vs_full_description": 8.47,
+          "mean_items_returned": 2.78,
+          "precision": 0.3065,
+          "recall": 0.6759,
+          "gold_hit_rate": 0.7407,
+          "correct_selections_total": 42,
+          "selections_total_on_gold_bearing": 159,
+          "wasted_selections": 117,
+          "BYTES_PER_CORRECT_SELECTION": 671.1,
+          "total_card_bytes_on_gold_bearing": 28186,
+          "misses_at_max_k": []
+        },
+        "10": {
+          "mean_card_bytes_per_query_ALL": 540.0,
+          "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 569.3,
+          "peak_card_bytes": 1322,
+          "mean_full_description_bytes_per_query_ALL": 4590.6,
+          "card_saving_ratio_vs_full_description": 8.5,
+          "mean_items_returned": 3.03,
+          "precision": 0.2996,
+          "recall": 0.6759,
+          "gold_hit_rate": 0.7407,
+          "correct_selections_total": 42,
+          "selections_total_on_gold_bearing": 173,
+          "wasted_selections": 131,
+          "BYTES_PER_CORRECT_SELECTION": 732.0,
+          "total_card_bytes_on_gold_bearing": 30743,
+          "misses_at_max_k": [
+            {
+              "qid": "L2-03",
+              "query": "strip out the long gaps where nobody is talking",
+              "gold": [
+                "skill:silence-trim"
+              ],
+              "got": []
+            },
+            {
+              "qid": "L2-04",
+              "query": "put the words on screen so they pop one at a time like the viral edits",
+              "gold": [
+                "skill:caption-burn"
+              ],
+              "got": []
+            },
+            {
+              "qid": "L2-05",
+              "query": "re-voice this in Spanish but keep it sounding like the same person",
+              "gold": [
+                "skill:media-dub"
+              ],
+              "got": [
+                "skill:voice-analyze"
+              ]
+            },
+            {
+              "qid": "L2-06",
+              "query": "everyone on the panel nodded along immediately and no one pushed back",
+              "gold": [
+                "protocol:p12-adversarial-collaboration",
+                "protocol:p25-blind-reevaluation"
+              ],
+              "got": [
+                "protocol:p34-scenario-planning",
+                "protocol:p35-reference-class-planning-poker"
+              ]
+            },
+            {
+              "qid": "L2-07",
+              "query": "my installer clobbered newer files that only existed on the machine",
+              "gold": [
+                "workflow:anchor-checked-per-file-deploy"
+              ],
+              "got": []
+            },
+            {
+              "qid": "L2-08",
+              "query": "I keep believing a number I never actually measured",
+              "gold": [
+                "skill:fresh-context-verify"
+              ],
+              "got": [
+                "skill:autoresearch",
+                "workflow:skill-plugin-portfolio-stocktake",
+                "skill:workflow-foundry",
+                "preset:c-h61-mcp-server-admission",
+                "workflow:bp-pln-03.multi-pr-stacking-order-planner"
+              ]
+            },
+            {
+              "qid": "L2-11",
+              "query": "which of these competing patches should I actually keep",
+              "gold": [
+                "skill:execution-grounded-bon"
+              ],
+              "got": [
+                "protocol:p38-analysis-of-competing-hypotheses"
+              ]
+            },
+            {
+              "qid": "L2-12",
+              "query": "the buttons look fine but the colours are unreadable for some people",
+              "gold": [
+                "skill:ui-audit"
+              ],
+              "got": []
+            },
+            {
+              "qid": "L2-13",
+              "query": "rent something with a big graphics card for a few hours",
+              "gold": [
+                "skill:cloud-infra-toolchain"
+              ],
+              "got": []
+            },
+            {
+              "qid": "L2-15",
+              "query": "run many independent jobs at once across separate checkouts",
+              "gold": [
+                "skill:dispatching-parallel-agents",
+                "skill:orchestration-patterns"
+              ],
+              "got": [
+                "skill:parallel-execution-optimizer",
+                "candidate:tool-gitcrypt-worktree",
+                "skill:mcp-code-orchestrate",
+                "skill:imagegen",
+                "skill:sora"
+              ]
+            },
+            {
+              "qid": "L2-17",
+              "query": "score how good this interface looks against real design rules",
+              "gold": [
+                "skill:design-system",
+                "skill:ui-audit"
+              ],
+              "got": [
+                "workflow:rules-distill-sweep",
+                "command:rules-distill"
+              ]
+            },
+            {
+              "qid": "L2-20",
+              "query": "spin up a rented GPU box for a few hours and copy my data onto it",
+              "gold": [
+                "mcp:cloud-hub",
+                "skill:cloud-infra-toolchain"
+              ],
+              "got": [
+                "plugin:data"
+              ]
+            }
+          ]
+        }
+      },
+      "marginal": {
+        "k=1->3": {
+          "extra_card_bytes": 12812,
+          "extra_correct_selections": 12,
+          "MARGINAL_BYTES_PER_EXTRA_CORRECT": 1067.7,
+          "recall_delta": 0.196
+        },
+        "k=3->5": {
+          "extra_card_bytes": 6017,
+          "extra_correct_selections": 2,
+          "MARGINAL_BYTES_PER_EXTRA_CORRECT": 3008.5,
+          "recall_delta": 0.0247
+        },
+        "k=5->10": {
+          "extra_card_bytes": 2557,
+          "extra_correct_selections": 0,
+          "MARGINAL_BYTES_PER_EXTRA_CORRECT": null,
+          "recall_delta": 0.0
+        }
+      },
+      "negatives": {
+        "n": 6,
+        "abstained": 4,
+        "abstain_rate": 0.6667,
+        "false_fires": [
+          {
+            "qid": "L3-04",
+            "query": "translate this sentence into French for a birthday card",
+            "got": [
+              "skill:subtitle-translate",
+              "workflow:crv.overclaim-scoping-review",
+              "preset:c-s22-nominal-group-6"
+            ]
+          },
+          {
+            "qid": "L3-05",
+            "query": "what did I have for lunch yesterday",
+            "got": [
+              "skill:cost-tracking",
+              "workflow:per-surface-usability-source-audit",
+              "workflow:secret-exposure-blast-radius-trace"
+            ]
+          }
+        ]
+      }
+    },
+    "stage5c_lane_per_tier": {
+      "L1": {
+        "n_queries": 28,
+        "n_gold_bearing": 28,
+        "n_negative": 0,
+        "per_k": {
+          "1": {
+            "mean_card_bytes_per_query_ALL": 185.7,
+            "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 185.7,
+            "peak_card_bytes": 219,
+            "mean_full_description_bytes_per_query_ALL": 1209.8,
+            "card_saving_ratio_vs_full_description": 6.51,
+            "mean_items_returned": 1.0,
+            "precision": 0.5,
+            "recall": 0.5,
+            "gold_hit_rate": 0.5,
+            "correct_selections_total": 14,
+            "selections_total_on_gold_bearing": 28,
+            "wasted_selections": 14,
+            "BYTES_PER_CORRECT_SELECTION": 371.4,
+            "total_card_bytes_on_gold_bearing": 5200,
+            "misses_at_max_k": []
+          },
+          "3": {
+            "mean_card_bytes_per_query_ALL": 479.4,
+            "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 479.4,
+            "peak_card_bytes": 657,
+            "mean_full_description_bytes_per_query_ALL": 3568.9,
+            "card_saving_ratio_vs_full_description": 7.44,
+            "mean_items_returned": 2.64,
+            "precision": 0.3036,
+            "recall": 0.6786,
+            "gold_hit_rate": 0.6786,
+            "correct_selections_total": 19,
+            "selections_total_on_gold_bearing": 74,
+            "wasted_selections": 55,
+            "BYTES_PER_CORRECT_SELECTION": 706.5,
+            "total_card_bytes_on_gold_bearing": 13424,
+            "misses_at_max_k": []
+          },
+          "5": {
+            "mean_card_bytes_per_query_ALL": 602.5,
+            "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 602.5,
+            "peak_card_bytes": 992,
+            "mean_full_description_bytes_per_query_ALL": 4668.1,
+            "card_saving_ratio_vs_full_description": 7.75,
+            "mean_items_returned": 3.39,
+            "precision": 0.2833,
+            "recall": 0.75,
+            "gold_hit_rate": 0.75,
+            "correct_selections_total": 21,
+            "selections_total_on_gold_bearing": 95,
+            "wasted_selections": 74,
+            "BYTES_PER_CORRECT_SELECTION": 803.3,
+            "total_card_bytes_on_gold_bearing": 16870,
+            "misses_at_max_k": []
+          },
+          "10": {
+            "mean_card_bytes_per_query_ALL": 641.1,
+            "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 641.1,
+            "peak_card_bytes": 1322,
+            "mean_full_description_bytes_per_query_ALL": 4994.8,
+            "card_saving_ratio_vs_full_description": 7.79,
+            "mean_items_returned": 3.61,
+            "precision": 0.2774,
+            "recall": 0.75,
+            "gold_hit_rate": 0.75,
+            "correct_selections_total": 21,
+            "selections_total_on_gold_bearing": 101,
+            "wasted_selections": 80,
+            "BYTES_PER_CORRECT_SELECTION": 854.8,
+            "total_card_bytes_on_gold_bearing": 17950,
+            "misses_at_max_k": [
+              {
+                "qid": "L1b-command-01",
+                "query": "Answer a quick side question without interrupting or losing context from the cur",
+                "gold": [
+                  "command:aside"
+                ],
+                "got": [
+                  "skill:source-command-aside",
+                  "skill:volatility-3"
+                ]
+              },
+              {
+                "qid": "L1b-protocol-01",
+                "query": "Surface the tradeoffs of an ambiguous decision that has no obvious winner and re",
+                "gold": [
+                  "protocol:p01-free-form-moderated-panel"
+                ],
+                "got": [
+                  "skill:council",
+                  "skill:recursive-decision-ledger",
+                  "workflow:pre-pr-surface-check",
+                  "workflow:bp-cnc-05-governance-decision-gate"
+                ]
+              },
+              {
+                "qid": "L1b-agent-04",
+                "query": "Proactively reviews code for quality, security, and maintainability",
+                "gold": [
+                  "agent:code-reviewer"
+                ],
+                "got": [
+                  "plugin:code-simplifier",
+                  "agent:security-reviewer",
+                  "plugin:sonarqube",
+                  "skill:security-best-practices"
+                ]
+              },
+              {
+                "qid": "L1b-candidate-01",
+                "query": "claude-reflect (bayramannakov/claude-reflect)",
+                "gold": [
+                  "candidate:WFA3-068"
+                ],
+                "got": [
+                  "plugin:claude-reflect",
+                  "command:self-reflect",
+                  "candidate:WFA3-080"
+                ]
+              },
+              {
+                "qid": "L1b-candidate-02",
+                "query": "remember (Digital-Process-Tools/claude-remember) v0.18.0",
+                "gold": [
+                  "candidate:WFA3-070"
+                ],
+                "got": [
+                  "plugin:remember",
+                  "command:save-session"
+                ]
+              },
+              {
+                "qid": "L1b-candidate-03",
+                "query": "98 installed plugins / 9 enabled (aggregate observation)",
+                "gold": [
+                  "candidate:WFA3-074-REJECT"
+                ],
+                "got": [
+                  "plugin:ai-plugins",
+                  "candidate:tool-plugin-cache-reaper"
+                ]
+              },
+              {
+                "qid": "L1b-candidate-04",
+                "query": "anthropic-agent-skills (anthropics/skills)",
+                "gold": [
+                  "candidate:WFA3-075"
+                ],
+                "got": [
+                  "plugin:document-skills",
+                  "skill:writing-skills",
+                  "skill:claude-api",
+                  "skill:frontend-design-direction"
+                ]
+              }
+            ]
+          }
+        },
+        "marginal": {
+          "k=1->3": {
+            "extra_card_bytes": 8224,
+            "extra_correct_selections": 5,
+            "MARGINAL_BYTES_PER_EXTRA_CORRECT": 1644.8,
+            "recall_delta": 0.1786
+          },
+          "k=3->5": {
+            "extra_card_bytes": 3446,
+            "extra_correct_selections": 2,
+            "MARGINAL_BYTES_PER_EXTRA_CORRECT": 1723.0,
+            "recall_delta": 0.0714
+          },
+          "k=5->10": {
+            "extra_card_bytes": 1080,
+            "extra_correct_selections": 0,
+            "MARGINAL_BYTES_PER_EXTRA_CORRECT": null,
+            "recall_delta": 0.0
+          }
+        }
+      },
+      "L2": {
+        "n_queries": 21,
+        "n_gold_bearing": 21,
+        "n_negative": 0,
+        "per_k": {
+          "1": {
+            "mean_card_bytes_per_query_ALL": 150.5,
+            "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 150.5,
+            "peak_card_bytes": 218,
+            "mean_full_description_bytes_per_query_ALL": 1402.5,
+            "card_saving_ratio_vs_full_description": 9.32,
+            "mean_items_returned": 0.76,
+            "precision": 0.3333,
+            "recall": 0.2302,
+            "gold_hit_rate": 0.3333,
+            "correct_selections_total": 7,
+            "selections_total_on_gold_bearing": 16,
+            "wasted_selections": 9,
+            "BYTES_PER_CORRECT_SELECTION": 451.6,
+            "total_card_bytes_on_gold_bearing": 3161,
+            "misses_at_max_k": []
+          },
+          "3": {
+            "mean_card_bytes_per_query_ALL": 310.0,
+            "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 310.0,
+            "peak_card_bytes": 651,
+            "mean_full_description_bytes_per_query_ALL": 2918.5,
+            "card_saving_ratio_vs_full_description": 9.42,
+            "mean_items_returned": 1.62,
+            "precision": 0.2222,
+            "recall": 0.2937,
+            "gold_hit_rate": 0.381,
+            "correct_selections_total": 9,
+            "selections_total_on_gold_bearing": 34,
+            "wasted_selections": 25,
+            "BYTES_PER_CORRECT_SELECTION": 723.2,
+            "total_card_bytes_on_gold_bearing": 6509,
+            "misses_at_max_k": []
+          },
+          "5": {
+            "mean_card_bytes_per_query_ALL": 415.0,
+            "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 415.0,
+            "peak_card_bytes": 1043,
+            "mean_full_description_bytes_per_query_ALL": 3938.5,
+            "card_saving_ratio_vs_full_description": 9.49,
+            "mean_items_returned": 2.19,
+            "precision": 0.219,
+            "recall": 0.3571,
+            "gold_hit_rate": 0.4286,
+            "correct_selections_total": 11,
+            "selections_total_on_gold_bearing": 46,
+            "wasted_selections": 35,
+            "BYTES_PER_CORRECT_SELECTION": 792.4,
+            "total_card_bytes_on_gold_bearing": 8716,
+            "misses_at_max_k": []
+          },
+          "10": {
+            "mean_card_bytes_per_query_ALL": 442.9,
+            "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 442.9,
+            "peak_card_bytes": 1309,
+            "mean_full_description_bytes_per_query_ALL": 4233.0,
+            "card_saving_ratio_vs_full_description": 9.56,
+            "mean_items_returned": 2.33,
+            "precision": 0.2163,
+            "recall": 0.3571,
+            "gold_hit_rate": 0.4286,
+            "correct_selections_total": 11,
+            "selections_total_on_gold_bearing": 49,
+            "wasted_selections": 38,
+            "BYTES_PER_CORRECT_SELECTION": 845.5,
+            "total_card_bytes_on_gold_bearing": 9300,
+            "misses_at_max_k": [
+              {
+                "qid": "L2-03",
+                "query": "strip out the long gaps where nobody is talking",
+                "gold": [
+                  "skill:silence-trim"
+                ],
+                "got": []
+              },
+              {
+                "qid": "L2-04",
+                "query": "put the words on screen so they pop one at a time like the viral edits",
+                "gold": [
+                  "skill:caption-burn"
+                ],
+                "got": []
+              },
+              {
+                "qid": "L2-05",
+                "query": "re-voice this in Spanish but keep it sounding like the same person",
+                "gold": [
+                  "skill:media-dub"
+                ],
+                "got": [
+                  "skill:voice-analyze"
+                ]
+              },
+              {
+                "qid": "L2-06",
+                "query": "everyone on the panel nodded along immediately and no one pushed back",
+                "gold": [
+                  "protocol:p12-adversarial-collaboration",
+                  "protocol:p25-blind-reevaluation"
+                ],
+                "got": [
+                  "protocol:p34-scenario-planning",
+                  "protocol:p35-reference-class-planning-poker"
+                ]
+              },
+              {
+                "qid": "L2-07",
+                "query": "my installer clobbered newer files that only existed on the machine",
+                "gold": [
+                  "workflow:anchor-checked-per-file-deploy"
+                ],
+                "got": []
+              },
+              {
+                "qid": "L2-08",
+                "query": "I keep believing a number I never actually measured",
+                "gold": [
+                  "skill:fresh-context-verify"
+                ],
+                "got": [
+                  "skill:autoresearch",
+                  "workflow:skill-plugin-portfolio-stocktake",
+                  "skill:workflow-foundry",
+                  "preset:c-h61-mcp-server-admission",
+                  "workflow:bp-pln-03.multi-pr-stacking-order-planner"
+                ]
+              },
+              {
+                "qid": "L2-11",
+                "query": "which of these competing patches should I actually keep",
+                "gold": [
+                  "skill:execution-grounded-bon"
+                ],
+                "got": [
+                  "protocol:p38-analysis-of-competing-hypotheses"
+                ]
+              },
+              {
+                "qid": "L2-12",
+                "query": "the buttons look fine but the colours are unreadable for some people",
+                "gold": [
+                  "skill:ui-audit"
+                ],
+                "got": []
+              },
+              {
+                "qid": "L2-13",
+                "query": "rent something with a big graphics card for a few hours",
+                "gold": [
+                  "skill:cloud-infra-toolchain"
+                ],
+                "got": []
+              },
+              {
+                "qid": "L2-15",
+                "query": "run many independent jobs at once across separate checkouts",
+                "gold": [
+                  "skill:dispatching-parallel-agents",
+                  "skill:orchestration-patterns"
+                ],
+                "got": [
+                  "skill:parallel-execution-optimizer",
+                  "candidate:tool-gitcrypt-worktree",
+                  "skill:mcp-code-orchestrate",
+                  "skill:imagegen",
+                  "command:compute-monitor"
+                ]
+              },
+              {
+                "qid": "L2-17",
+                "query": "score how good this interface looks against real design rules",
+                "gold": [
+                  "skill:design-system",
+                  "skill:ui-audit"
+                ],
+                "got": [
+                  "workflow:rules-distill-sweep",
+                  "command:rules-distill"
+                ]
+              },
+              {
+                "qid": "L2-20",
+                "query": "spin up a rented GPU box for a few hours and copy my data onto it",
+                "gold": [
+                  "mcp:cloud-hub",
+                  "skill:cloud-infra-toolchain"
+                ],
+                "got": [
+                  "plugin:data"
+                ]
+              }
+            ]
+          }
+        },
+        "marginal": {
+          "k=1->3": {
+            "extra_card_bytes": 3348,
+            "extra_correct_selections": 2,
+            "MARGINAL_BYTES_PER_EXTRA_CORRECT": 1674.0,
+            "recall_delta": 0.0635
+          },
+          "k=3->5": {
+            "extra_card_bytes": 2207,
+            "extra_correct_selections": 2,
+            "MARGINAL_BYTES_PER_EXTRA_CORRECT": 1103.5,
+            "recall_delta": 0.0634
+          },
+          "k=5->10": {
+            "extra_card_bytes": 584,
+            "extra_correct_selections": 0,
+            "MARGINAL_BYTES_PER_EXTRA_CORRECT": null,
+            "recall_delta": 0.0
+          }
+        }
+      },
+      "L3": {
+        "n_queries": 6,
+        "n_gold_bearing": 0,
+        "n_negative": 6,
+        "per_k": {
+          "1": {
+            "mean_card_bytes_per_query_ALL": 71.0,
+            "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 0.0,
+            "peak_card_bytes": 214,
+            "mean_full_description_bytes_per_query_ALL": 722.0,
+            "card_saving_ratio_vs_full_description": 10.17,
+            "mean_items_returned": 0.33,
+            "precision": null,
+            "recall": null,
+            "gold_hit_rate": null,
+            "correct_selections_total": 0,
+            "selections_total_on_gold_bearing": 0,
+            "wasted_selections": 0,
+            "BYTES_PER_CORRECT_SELECTION": null,
+            "total_card_bytes_on_gold_bearing": 0,
+            "misses_at_max_k": []
+          },
+          "3": {
+            "mean_card_bytes_per_query_ALL": 181.0,
+            "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 0.0,
+            "peak_card_bytes": 548,
+            "mean_full_description_bytes_per_query_ALL": 1638.3,
+            "card_saving_ratio_vs_full_description": 9.05,
+            "mean_items_returned": 1.0,
+            "precision": null,
+            "recall": null,
+            "gold_hit_rate": null,
+            "correct_selections_total": 0,
+            "selections_total_on_gold_bearing": 0,
+            "wasted_selections": 0,
+            "BYTES_PER_CORRECT_SELECTION": null,
+            "total_card_bytes_on_gold_bearing": 0,
+            "misses_at_max_k": []
+          },
+          "5": {
+            "mean_card_bytes_per_query_ALL": 246.0,
+            "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 0.0,
+            "peak_card_bytes": 938,
+            "mean_full_description_bytes_per_query_ALL": 2617.3,
+            "card_saving_ratio_vs_full_description": 10.64,
+            "mean_items_returned": 1.33,
+            "precision": null,
+            "recall": null,
+            "gold_hit_rate": null,
+            "correct_selections_total": 0,
+            "selections_total_on_gold_bearing": 0,
+            "wasted_selections": 0,
+            "BYTES_PER_CORRECT_SELECTION": null,
+            "total_card_bytes_on_gold_bearing": 0,
+            "misses_at_max_k": []
+          },
+          "10": {
+            "mean_card_bytes_per_query_ALL": 276.2,
+            "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 0.0,
+            "peak_card_bytes": 1119,
+            "mean_full_description_bytes_per_query_ALL": 2934.0,
+            "card_saving_ratio_vs_full_description": 10.62,
+            "mean_items_returned": 1.5,
+            "precision": null,
+            "recall": null,
+            "gold_hit_rate": null,
+            "correct_selections_total": 0,
+            "selections_total_on_gold_bearing": 0,
+            "wasted_selections": 0,
+            "BYTES_PER_CORRECT_SELECTION": null,
+            "total_card_bytes_on_gold_bearing": 0,
+            "misses_at_max_k": []
+          }
+        },
+        "marginal": {
+          "k=1->3": {
+            "extra_card_bytes": 0,
+            "extra_correct_selections": 0,
+            "MARGINAL_BYTES_PER_EXTRA_CORRECT": null,
+            "recall_delta": 0
+          },
+          "k=3->5": {
+            "extra_card_bytes": 0,
+            "extra_correct_selections": 0,
+            "MARGINAL_BYTES_PER_EXTRA_CORRECT": null,
+            "recall_delta": 0
+          },
+          "k=5->10": {
+            "extra_card_bytes": 0,
+            "extra_correct_selections": 0,
+            "MARGINAL_BYTES_PER_EXTRA_CORRECT": null,
+            "recall_delta": 0
+          }
+        },
+        "negatives": {
+          "n": 6,
+          "abstained": 4,
+          "abstain_rate": 0.6667,
+          "false_fires": [
+            {
+              "qid": "L3-04",
+              "query": "translate this sentence into French for a birthday card",
+              "got": [
+                "skill:subtitle-translate",
+                "workflow:crv.overclaim-scoping-review",
+                "preset:c-s22-nominal-group-6"
+              ]
+            },
+            {
+              "qid": "L3-05",
+              "query": "what did I have for lunch yesterday",
+              "got": [
+                "skill:cost-tracking",
+                "workflow:per-surface-usability-source-audit",
+                "workflow:secret-exposure-blast-radius-trace"
+              ]
+            }
+          ]
+        }
+      },
+      "L4": {
+        "n_queries": 5,
+        "n_gold_bearing": 5,
+        "n_negative": 0,
+        "per_k": {
+          "1": {
+            "mean_card_bytes_per_query_ALL": 185.4,
+            "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 185.4,
+            "peak_card_bytes": 208,
+            "mean_full_description_bytes_per_query_ALL": 1691.0,
+            "card_saving_ratio_vs_full_description": 9.12,
+            "mean_items_returned": 1.0,
+            "precision": 0.4,
+            "recall": 0.15,
+            "gold_hit_rate": 0.4,
+            "correct_selections_total": 2,
+            "selections_total_on_gold_bearing": 5,
+            "wasted_selections": 3,
+            "BYTES_PER_CORRECT_SELECTION": 463.5,
+            "total_card_bytes_on_gold_bearing": 927,
+            "misses_at_max_k": []
+          },
+          "3": {
+            "mean_card_bytes_per_query_ALL": 471.4,
+            "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 471.4,
+            "peak_card_bytes": 645,
+            "mean_full_description_bytes_per_query_ALL": 4051.2,
+            "card_saving_ratio_vs_full_description": 8.59,
+            "mean_items_returned": 2.6,
+            "precision": 0.3333,
+            "recall": 0.2,
+            "gold_hit_rate": 0.6,
+            "correct_selections_total": 3,
+            "selections_total_on_gold_bearing": 13,
+            "wasted_selections": 10,
+            "BYTES_PER_CORRECT_SELECTION": 785.7,
+            "total_card_bytes_on_gold_bearing": 2357,
+            "misses_at_max_k": []
+          },
+          "5": {
+            "mean_card_bytes_per_query_ALL": 520.2,
+            "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 520.2,
+            "peak_card_bytes": 880,
+            "mean_full_description_bytes_per_query_ALL": 4357.2,
+            "card_saving_ratio_vs_full_description": 8.38,
+            "mean_items_returned": 3.0,
+            "precision": 0.3333,
+            "recall": 0.2,
+            "gold_hit_rate": 0.6,
+            "correct_selections_total": 3,
+            "selections_total_on_gold_bearing": 15,
+            "wasted_selections": 12,
+            "BYTES_PER_CORRECT_SELECTION": 867.0,
+            "total_card_bytes_on_gold_bearing": 2601,
+            "misses_at_max_k": []
+          },
+          "10": {
+            "mean_card_bytes_per_query_ALL": 581.0,
+            "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 581.0,
+            "peak_card_bytes": 1184,
+            "mean_full_description_bytes_per_query_ALL": 4749.2,
+            "card_saving_ratio_vs_full_description": 8.17,
+            "mean_items_returned": 3.4,
+            "precision": 0.3333,
+            "recall": 0.2,
+            "gold_hit_rate": 0.6,
+            "correct_selections_total": 3,
+            "selections_total_on_gold_bearing": 17,
+            "wasted_selections": 14,
+            "BYTES_PER_CORRECT_SELECTION": 968.3,
+            "total_card_bytes_on_gold_bearing": 2905,
+            "misses_at_max_k": [
+              {
+                "qid": "L4-01",
+                "query": "I want a structured multi-agent review where the reviewers are forced to disagre",
+                "gold": [
+                  "protocol:p08-red-blue-team",
+                  "protocol:p12-adversarial-collaboration",
+                  "protocol:p25-blind-reevaluation"
+                ],
+                "got": [
+                  "skill:regex-vs-llm-structured-text",
+                  "candidate:agent-code-reviewer",
+                  "candidate:agent-python-reviewer"
+                ]
+              },
+              {
+                "qid": "L4-04",
+                "query": "verify a claim two independent ways before I act on it",
+                "gold": [
+                  "skill:agent-as-judge",
+                  "skill:diff-blind-test-synth",
+                  "skill:fresh-context-verify"
+                ],
+                "got": [
+                  "command:verify",
+                  "preset:c-m03-micro-single-claim-adjudication",
+                  "skill:verification-before-completion",
+                  "protocol:p15-claim-by-claim-adjudication",
+                  "candidate:WFC-0110"
+                ]
+              }
+            ]
+          }
+        },
+        "marginal": {
+          "k=1->3": {
+            "extra_card_bytes": 1430,
+            "extra_correct_selections": 1,
+            "MARGINAL_BYTES_PER_EXTRA_CORRECT": 1430.0,
+            "recall_delta": 0.05
+          },
+          "k=3->5": {
+            "extra_card_bytes": 244,
+            "extra_correct_selections": 0,
+            "MARGINAL_BYTES_PER_EXTRA_CORRECT": null,
+            "recall_delta": 0.0
+          },
+          "k=5->10": {
+            "extra_card_bytes": 304,
+            "extra_correct_selections": 0,
+            "MARGINAL_BYTES_PER_EXTRA_CORRECT": null,
+            "recall_delta": 0.0
+          }
+        }
+      }
+    },
+    "stage5d_qs_b": {
+      "n_queries": 45,
+      "n_gold_bearing": 45,
+      "n_negative": 0,
+      "per_k": {
+        "1": {
+          "mean_card_bytes_per_query_ALL": 177.2,
+          "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 177.2,
+          "peak_card_bytes": 220,
+          "mean_full_description_bytes_per_query_ALL": 1373.8,
+          "card_saving_ratio_vs_full_description": 7.75,
+          "mean_items_returned": 1.0,
+          "precision": 0.5333,
+          "recall": 0.5333,
+          "gold_hit_rate": 0.5333,
+          "correct_selections_total": 24,
+          "selections_total_on_gold_bearing": 45,
+          "wasted_selections": 21,
+          "BYTES_PER_CORRECT_SELECTION": 332.2,
+          "total_card_bytes_on_gold_bearing": 7974,
+          "misses_at_max_k": []
+        },
+        "3": {
+          "mean_card_bytes_per_query_ALL": 465.2,
+          "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 465.2,
+          "peak_card_bytes": 653,
+          "mean_full_description_bytes_per_query_ALL": 3848.6,
+          "card_saving_ratio_vs_full_description": 8.27,
+          "mean_items_returned": 2.64,
+          "precision": 0.3444,
+          "recall": 0.8667,
+          "gold_hit_rate": 0.8667,
+          "correct_selections_total": 39,
+          "selections_total_on_gold_bearing": 119,
+          "wasted_selections": 80,
+          "BYTES_PER_CORRECT_SELECTION": 536.8,
+          "total_card_bytes_on_gold_bearing": 20935,
+          "misses_at_max_k": []
+        },
+        "5": {
+          "mean_card_bytes_per_query_ALL": 625.3,
+          "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 625.3,
+          "peak_card_bytes": 1073,
+          "mean_full_description_bytes_per_query_ALL": 5369.9,
+          "card_saving_ratio_vs_full_description": 8.59,
+          "mean_items_returned": 3.58,
+          "precision": 0.2859,
+          "recall": 0.8667,
+          "gold_hit_rate": 0.8667,
+          "correct_selections_total": 39,
+          "selections_total_on_gold_bearing": 161,
+          "wasted_selections": 122,
+          "BYTES_PER_CORRECT_SELECTION": 721.5,
+          "total_card_bytes_on_gold_bearing": 28139,
+          "misses_at_max_k": []
+        },
+        "10": {
+          "mean_card_bytes_per_query_ALL": 733.2,
+          "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 733.2,
+          "peak_card_bytes": 1771,
+          "mean_full_description_bytes_per_query_ALL": 6319.2,
+          "card_saving_ratio_vs_full_description": 8.62,
+          "mean_items_returned": 4.18,
+          "precision": 0.2706,
+          "recall": 0.8667,
+          "gold_hit_rate": 0.8667,
+          "correct_selections_total": 39,
+          "selections_total_on_gold_bearing": 188,
+          "wasted_selections": 149,
+          "BYTES_PER_CORRECT_SELECTION": 846.1,
+          "total_card_bytes_on_gold_bearing": 32996,
+          "misses_at_max_k": [
+            {
+              "qid": "B-skill-000",
+              "query": "Build, review, refactor, or architect ASP.NET Core web applications using curren",
+              "gold": [
+                "skill:aspnet-core"
+              ],
+              "got": [
+                "agent:architect",
+                "skill:test-driven-development",
+                "plugin:security-guidance",
+                "plugin:modern-web-guidance",
+                "skill:subagent-driven-development"
+              ]
+            },
+            {
+              "qid": "B-skill-004",
+              "query": "ONE entry to the whole design pipeline over a running app (Reframe, momentstudio",
+              "gold": [
+                "skill:design-studio"
+              ],
+              "got": [
+                "skill:reframe",
+                "skill:design-studio-session",
+                "workflow:design-studio-eight-gate-loop",
+                "skill:design-review-loop",
+                "skill:reframe-transcribe"
+              ]
+            },
+            {
+              "qid": "B-skill-015",
+              "query": "Monitor a PR through to merge - handles CI failures, reviews, and thread resolut",
+              "gold": [
+                "skill:source-command-pr-shepherd"
+              ],
+              "got": [
+                "command:pr-shepherd",
+                "workflow:pr-shepherd-to-merge"
+              ]
+            },
+            {
+              "qid": "B-command-024",
+              "query": "Show skill portfolio health dashboard with charts and analytics",
+              "gold": [
+                "command:skill-health"
+              ],
+              "got": [
+                "skill:source-command-skill-health",
+                "workflow:skill-plugin-portfolio-stocktake"
+              ]
+            },
+            {
+              "qid": "B-candidate-045",
+              "query": "mattpocock-skills (third-party skill directory)",
+              "gold": [
+                "candidate:WFA3-084"
+              ],
+              "got": [
+                "plugin:mattpocock-skills"
+              ]
+            },
+            {
+              "qid": "B-candidate-046",
+              "query": "agents/harness-optimizer.md - analyse and improve the local harness config for r",
+              "gold": [
+                "candidate:agent-harness-optimizer"
+              ],
+              "got": [
+                "agent:harness-optimizer",
+                "candidate:wf-saved-harness-self-improve-sweep"
+              ]
+            }
+          ]
+        }
+      },
+      "marginal": {
+        "k=1->3": {
+          "extra_card_bytes": 12961,
+          "extra_correct_selections": 15,
+          "MARGINAL_BYTES_PER_EXTRA_CORRECT": 864.1,
+          "recall_delta": 0.3334
+        },
+        "k=3->5": {
+          "extra_card_bytes": 7204,
+          "extra_correct_selections": 0,
+          "MARGINAL_BYTES_PER_EXTRA_CORRECT": null,
+          "recall_delta": 0.0
+        },
+        "k=5->10": {
+          "extra_card_bytes": 4857,
+          "extra_correct_selections": 0,
+          "MARGINAL_BYTES_PER_EXTRA_CORRECT": null,
+          "recall_delta": 0.0
+        }
+      }
+    },
+    "stage5e_qs_c": {
+      "n_queries": 28,
+      "n_gold_bearing": 22,
+      "n_negative": 6,
+      "per_k": {
+        "1": {
+          "mean_card_bytes_per_query_ALL": 145.9,
+          "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 147.5,
+          "peak_card_bytes": 219,
+          "mean_full_description_bytes_per_query_ALL": 1251.0,
+          "card_saving_ratio_vs_full_description": 8.58,
+          "mean_items_returned": 0.82,
+          "precision": 0.2273,
+          "recall": 0.2273,
+          "gold_hit_rate": 0.2273,
+          "correct_selections_total": 5,
+          "selections_total_on_gold_bearing": 18,
+          "wasted_selections": 13,
+          "BYTES_PER_CORRECT_SELECTION": 648.8,
+          "total_card_bytes_on_gold_bearing": 3244,
+          "misses_at_max_k": []
+        },
+        "3": {
+          "mean_card_bytes_per_query_ALL": 327.4,
+          "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 307.8,
+          "peak_card_bytes": 639,
+          "mean_full_description_bytes_per_query_ALL": 3038.8,
+          "card_saving_ratio_vs_full_description": 9.28,
+          "mean_items_returned": 1.75,
+          "precision": 0.2121,
+          "recall": 0.3636,
+          "gold_hit_rate": 0.3636,
+          "correct_selections_total": 8,
+          "selections_total_on_gold_bearing": 36,
+          "wasted_selections": 28,
+          "BYTES_PER_CORRECT_SELECTION": 846.4,
+          "total_card_bytes_on_gold_bearing": 6771,
+          "misses_at_max_k": []
+        },
+        "5": {
+          "mean_card_bytes_per_query_ALL": 409.0,
+          "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 364.7,
+          "peak_card_bytes": 1045,
+          "mean_full_description_bytes_per_query_ALL": 3793.0,
+          "card_saving_ratio_vs_full_description": 9.27,
+          "mean_items_returned": 2.21,
+          "precision": 0.2091,
+          "recall": 0.4091,
+          "gold_hit_rate": 0.4091,
+          "correct_selections_total": 9,
+          "selections_total_on_gold_bearing": 43,
+          "wasted_selections": 34,
+          "BYTES_PER_CORRECT_SELECTION": 891.4,
+          "total_card_bytes_on_gold_bearing": 8023,
+          "misses_at_max_k": []
+        },
+        "10": {
+          "mean_card_bytes_per_query_ALL": 462.1,
+          "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 414.7,
+          "peak_card_bytes": 1478,
+          "mean_full_description_bytes_per_query_ALL": 4209.4,
+          "card_saving_ratio_vs_full_description": 9.11,
+          "mean_items_returned": 2.61,
+          "precision": 0.2016,
+          "recall": 0.4091,
+          "gold_hit_rate": 0.4091,
+          "correct_selections_total": 9,
+          "selections_total_on_gold_bearing": 49,
+          "wasted_selections": 40,
+          "BYTES_PER_CORRECT_SELECTION": 1013.7,
+          "total_card_bytes_on_gold_bearing": 9123,
+          "misses_at_max_k": [
+            {
+              "qid": "C-02",
+              "query": "farm several coding jobs out to separate checkouts at once and let me watch how ",
+              "gold": [
+                "skill:claude-devfleet"
+              ],
+              "got": [
+                "skill:zero-issue-coding",
+                "preset:gap-watch-standing-watch-council"
+              ]
+            },
+            {
+              "qid": "C-03",
+              "query": "set me up a scratch pad where I can run bits of python against this data and kee",
+              "gold": [
+                "skill:jupyter-notebook"
+              ],
+              "got": [
+                "plugin:data"
+              ]
+            },
+            {
+              "qid": "C-04",
+              "query": "get the other vendor's assistant on this machine talking to you so the two of yo",
+              "gold": [
+                "skill:multi-ai-mingle"
+              ],
+              "got": [
+                "workflow:scanner-detector-integrity-probe",
+                "skill:orchestration-patterns"
+              ]
+            },
+            {
+              "qid": "C-05",
+              "query": "walk through the signup form in a real browser and grab a picture at each step",
+              "gold": [
+                "skill:playwright"
+              ],
+              "got": []
+            },
+            {
+              "qid": "C-06",
+              "query": "look up an attack technique in the reference material I keep on this box, no int",
+              "gold": [
+                "skill:security-kb-lookup"
+              ],
+              "got": [
+                "protocol:p06-nominal-group-technique"
+              ]
+            },
+            {
+              "qid": "C-07",
+              "query": "hand every independent piece to a fresh helper and check its work before accepti",
+              "gold": [
+                "skill:subagent-driven-development"
+              ],
+              "got": [
+                "skill:fresh-context-verify",
+                "skill:verification-before-completion"
+              ]
+            },
+            {
+              "qid": "C-08",
+              "query": "I want to add a new capability document and be sure it actually works before it ",
+              "gold": [
+                "skill:writing-skills"
+              ],
+              "got": [
+                "plugin:document-skills",
+                "skill:nutrient-document-processing",
+                "skill:acceptance-review",
+                "skill:writing-plans"
+              ]
+            },
+            {
+              "qid": "C-09",
+              "query": "are the other command-line assistants installed and pointed at the right config",
+              "gold": [
+                "command:external-tools-health"
+              ],
+              "got": []
+            },
+            {
+              "qid": "C-12",
+              "query": "list out every option first and have people rank them on their own before anyone",
+              "gold": [
+                "protocol:p06-nominal-group-technique"
+              ],
+              "got": []
+            },
+            {
+              "qid": "C-13",
+              "query": "I want a resolution that makes one side better without making the other side wor",
+              "gold": [
+                "protocol:p29-triz-contradiction"
+              ],
+              "got": []
+            },
+            {
+              "qid": "C-18",
+              "query": "go wide and tell me what my toolkit is missing compared with other setups",
+              "gold": [
+                "skill:gem-hunt"
+              ],
+              "got": [
+                "plugin:pr-review-toolkit",
+                "plugin:fastly-agent-toolkit"
+              ]
+            },
+            {
+              "qid": "C-19",
+              "query": "pull the compounds and protein targets out of this article so I can feed the che",
+              "gold": [
+                "skill:drug-discovery-literature-bridge"
+              ],
+              "got": [
+                "skill:protein-interaction-network-analysis"
+              ]
+            }
+          ]
+        }
+      },
+      "marginal": {
+        "k=1->3": {
+          "extra_card_bytes": 3527,
+          "extra_correct_selections": 3,
+          "MARGINAL_BYTES_PER_EXTRA_CORRECT": 1175.7,
+          "recall_delta": 0.1363
+        },
+        "k=3->5": {
+          "extra_card_bytes": 1252,
+          "extra_correct_selections": 1,
+          "MARGINAL_BYTES_PER_EXTRA_CORRECT": 1252.0,
+          "recall_delta": 0.0455
+        },
+        "k=5->10": {
+          "extra_card_bytes": 1100,
+          "extra_correct_selections": 0,
+          "MARGINAL_BYTES_PER_EXTRA_CORRECT": null,
+          "recall_delta": 0.0
+        }
+      },
+      "negatives": {
+        "n": 6,
+        "abstained": 1,
+        "abstain_rate": 0.1667,
+        "false_fires": [
+          {
+            "qid": "C-23",
+            "query": "how do I get red wine out of a wool carpet",
+            "got": [
+              "skill:test-driven-development",
+              "skill:using-superpowers",
+              "skill:python-testing"
+            ]
+          },
+          {
+            "qid": "C-24",
+            "query": "what year did the bridge at Cernavoda open",
+            "got": [
+              "skill:ghidra-bridge",
+              "skill:ghidra-automation-recipes",
+              "skill:drug-discovery-literature-bridge"
+            ]
+          },
+          {
+            "qid": "C-26",
+            "query": "convert two hundred and fifty grams of flour into cups",
+            "got": [
+              "skill:video-convert",
+              "preset:c-x46-gem-hunt-40lens",
+              "workflow:bp-req-05.intent-to-prd-with-reviewer"
+            ]
+          },
+          {
+            "qid": "C-27",
+            "query": "which train goes from Bucharest to Brasov on Sunday morning",
+            "got": [
+              "skill:cloud-infra-toolchain"
+            ]
+          },
+          {
+            "qid": "C-28",
+            "query": "remind me to call my mother on Thursday",
+            "got": [
+              "command:grill-me-extensive",
+              "skill:grill-me-extensive",
+              "skill:prompt-optimizer"
+            ]
+          }
+        ]
+      }
+    },
+    "stage6_controls": {
+      "selectors": {
+        "flood_everything": {
+          "n_queries": 60,
+          "n_gold_bearing": 54,
+          "n_negative": 6,
+          "per_k": {
+            "1": {
+              "mean_card_bytes_per_query_ALL": 147265.0,
+              "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 147265.0,
+              "peak_card_bytes": 147265,
+              "mean_full_description_bytes_per_query_ALL": 1249978.0,
+              "card_saving_ratio_vs_full_description": 8.49,
+              "mean_items_returned": 912.0,
+              "precision": 0.0015,
+              "recall": 1.0,
+              "gold_hit_rate": 1.0,
+              "correct_selections_total": 74,
+              "selections_total_on_gold_bearing": 49248,
+              "wasted_selections": 49174,
+              "BYTES_PER_CORRECT_SELECTION": 107463.6,
+              "total_card_bytes_on_gold_bearing": 7952310,
+              "misses_at_max_k": []
+            },
+            "3": {
+              "mean_card_bytes_per_query_ALL": 147265.0,
+              "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 147265.0,
+              "peak_card_bytes": 147265,
+              "mean_full_description_bytes_per_query_ALL": 1249978.0,
+              "card_saving_ratio_vs_full_description": 8.49,
+              "mean_items_returned": 912.0,
+              "precision": 0.0015,
+              "recall": 1.0,
+              "gold_hit_rate": 1.0,
+              "correct_selections_total": 74,
+              "selections_total_on_gold_bearing": 49248,
+              "wasted_selections": 49174,
+              "BYTES_PER_CORRECT_SELECTION": 107463.6,
+              "total_card_bytes_on_gold_bearing": 7952310,
+              "misses_at_max_k": []
+            },
+            "5": {
+              "mean_card_bytes_per_query_ALL": 147265.0,
+              "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 147265.0,
+              "peak_card_bytes": 147265,
+              "mean_full_description_bytes_per_query_ALL": 1249978.0,
+              "card_saving_ratio_vs_full_description": 8.49,
+              "mean_items_returned": 912.0,
+              "precision": 0.0015,
+              "recall": 1.0,
+              "gold_hit_rate": 1.0,
+              "correct_selections_total": 74,
+              "selections_total_on_gold_bearing": 49248,
+              "wasted_selections": 49174,
+              "BYTES_PER_CORRECT_SELECTION": 107463.6,
+              "total_card_bytes_on_gold_bearing": 7952310,
+              "misses_at_max_k": []
+            },
+            "10": {
+              "mean_card_bytes_per_query_ALL": 147265.0,
+              "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 147265.0,
+              "peak_card_bytes": 147265,
+              "mean_full_description_bytes_per_query_ALL": 1249978.0,
+              "card_saving_ratio_vs_full_description": 8.49,
+              "mean_items_returned": 912.0,
+              "precision": 0.0015,
+              "recall": 1.0,
+              "gold_hit_rate": 1.0,
+              "correct_selections_total": 74,
+              "selections_total_on_gold_bearing": 49248,
+              "wasted_selections": 49174,
+              "BYTES_PER_CORRECT_SELECTION": 107463.6,
+              "total_card_bytes_on_gold_bearing": 7952310,
+              "misses_at_max_k": []
+            }
+          },
+          "marginal": {
+            "k=1->3": {
+              "extra_card_bytes": 0,
+              "extra_correct_selections": 0,
+              "MARGINAL_BYTES_PER_EXTRA_CORRECT": null,
+              "recall_delta": 0.0
+            },
+            "k=3->5": {
+              "extra_card_bytes": 0,
+              "extra_correct_selections": 0,
+              "MARGINAL_BYTES_PER_EXTRA_CORRECT": null,
+              "recall_delta": 0.0
+            },
+            "k=5->10": {
+              "extra_card_bytes": 0,
+              "extra_correct_selections": 0,
+              "MARGINAL_BYTES_PER_EXTRA_CORRECT": null,
+              "recall_delta": 0.0
+            }
+          }
+        },
+        "query_blind_topk": {
+          "n_queries": 60,
+          "n_gold_bearing": 54,
+          "n_negative": 6,
+          "per_k": {
+            "1": {
+              "mean_card_bytes_per_query_ALL": 217.0,
+              "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 217.0,
+              "peak_card_bytes": 217,
+              "mean_full_description_bytes_per_query_ALL": 1750.0,
+              "card_saving_ratio_vs_full_description": 8.06,
+              "mean_items_returned": 1.0,
+              "precision": 0.0185,
+              "recall": 0.0185,
+              "gold_hit_rate": 0.0185,
+              "correct_selections_total": 1,
+              "selections_total_on_gold_bearing": 54,
+              "wasted_selections": 53,
+              "BYTES_PER_CORRECT_SELECTION": 11718.0,
+              "total_card_bytes_on_gold_bearing": 11718,
+              "misses_at_max_k": []
+            },
+            "3": {
+              "mean_card_bytes_per_query_ALL": 642.0,
+              "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 642.0,
+              "peak_card_bytes": 642,
+              "mean_full_description_bytes_per_query_ALL": 6132.0,
+              "card_saving_ratio_vs_full_description": 9.55,
+              "mean_items_returned": 3.0,
+              "precision": 0.0185,
+              "recall": 0.0556,
+              "gold_hit_rate": 0.0556,
+              "correct_selections_total": 3,
+              "selections_total_on_gold_bearing": 162,
+              "wasted_selections": 159,
+              "BYTES_PER_CORRECT_SELECTION": 11556.0,
+              "total_card_bytes_on_gold_bearing": 34668,
+              "misses_at_max_k": []
+            },
+            "5": {
+              "mean_card_bytes_per_query_ALL": 1076.0,
+              "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 1076.0,
+              "peak_card_bytes": 1076,
+              "mean_full_description_bytes_per_query_ALL": 11531.0,
+              "card_saving_ratio_vs_full_description": 10.72,
+              "mean_items_returned": 5.0,
+              "precision": 0.0185,
+              "recall": 0.0802,
+              "gold_hit_rate": 0.0926,
+              "correct_selections_total": 5,
+              "selections_total_on_gold_bearing": 270,
+              "wasted_selections": 265,
+              "BYTES_PER_CORRECT_SELECTION": 11620.8,
+              "total_card_bytes_on_gold_bearing": 58104,
+              "misses_at_max_k": []
+            },
+            "10": {
+              "mean_card_bytes_per_query_ALL": 2035.0,
+              "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 2035.0,
+              "peak_card_bytes": 2035,
+              "mean_full_description_bytes_per_query_ALL": 21607.0,
+              "card_saving_ratio_vs_full_description": 10.62,
+              "mean_items_returned": 10.0,
+              "precision": 0.0093,
+              "recall": 0.0802,
+              "gold_hit_rate": 0.0926,
+              "correct_selections_total": 5,
+              "selections_total_on_gold_bearing": 540,
+              "wasted_selections": 535,
+              "BYTES_PER_CORRECT_SELECTION": 21978.0,
+              "total_card_bytes_on_gold_bearing": 109890,
+              "misses_at_max_k": [
+                {
+                  "qid": "L1b-command-01",
+                  "query": "Answer a quick side question without interrupting or losing context from the cur",
+                  "gold": [
+                    "command:aside"
+                  ],
+                  "got": [
+                    "skill:010-editor",
+                    "skill:acceptance-review",
+                    "skill:accurate-grok-imagine",
+                    "skill:agent-architecture-audit",
+                    "skill:agent-as-judge"
+                  ]
+                },
+                {
+                  "qid": "L1b-command-02",
+                  "query": "# Build and Fix Incrementally fix build and type errors with minimal, safe chang",
+                  "gold": [
+                    "command:build-fix"
+                  ],
+                  "got": [
+                    "skill:010-editor",
+                    "skill:acceptance-review",
+                    "skill:accurate-grok-imagine",
+                    "skill:agent-architecture-audit",
+                    "skill:agent-as-judge"
+                  ]
+                },
+                {
+                  "qid": "L1b-command-03",
+                  "query": "# Code Review Comprehensive security and quality review of uncommitted changes: ",
+                  "gold": [
+                    "command:code-review"
+                  ],
+                  "got": [
+                    "skill:010-editor",
+                    "skill:acceptance-review",
+                    "skill:accurate-grok-imagine",
+                    "skill:agent-architecture-audit",
+                    "skill:agent-as-judge"
+                  ]
+                },
+                {
+                  "qid": "L1b-command-04",
+                  "query": "Served-generic monitor for ANY long computation",
+                  "gold": [
+                    "command:compute-monitor"
+                  ],
+                  "got": [
+                    "skill:010-editor",
+                    "skill:acceptance-review",
+                    "skill:accurate-grok-imagine",
+                    "skill:agent-architecture-audit",
+                    "skill:agent-as-judge"
+                  ]
+                },
+                {
+                  "qid": "L1b-workflow-01",
+                  "query": "Anchor-checked per-file deploy - refuse a file that does not look as expected",
+                  "gold": [
+                    "workflow:anchor-checked-per-file-deploy"
+                  ],
+                  "got": [
+                    "skill:010-editor",
+                    "skill:acceptance-review",
+                    "skill:accurate-grok-imagine",
+                    "skill:agent-architecture-audit",
+                    "skill:agent-as-judge"
+                  ]
+                },
+                {
+                  "qid": "L1b-workflow-02",
+                  "query": "Both-states detector control: the probe must FIRE on the known-broken state",
+                  "gold": [
+                    "workflow:both-states-detector-control"
+                  ],
+                  "got": [
+                    "skill:010-editor",
+                    "skill:acceptance-review",
+                    "skill:accurate-grok-imagine",
+                    "skill:agent-architecture-audit",
+                    "skill:agent-as-judge"
+                  ]
+                },
+                {
+                  "qid": "L1b-workflow-03",
+                  "query": "Bounded corpus distillation with two-probe enumeration agreement",
+                  "gold": [
+                    "workflow:bounded-corpus-distillation"
+                  ],
+                  "got": [
+                    "skill:010-editor",
+                    "skill:acceptance-review",
+                    "skill:accurate-grok-imagine",
+                    "skill:agent-architecture-audit",
+                    "skill:agent-as-judge"
+                  ]
+                },
+                {
+                  "qid": "L1b-workflow-04",
+                  "query": "Architecture Tournament with Minority-Report Fold-In",
+                  "gold": [
+                    "workflow:bp-arc-01.architecture-tournament"
+                  ],
+                  "got": [
+                    "skill:010-editor",
+                    "skill:acceptance-review",
+                    "skill:accurate-grok-imagine",
+                    "skill:agent-architecture-audit",
+                    "skill:agent-as-judge"
+                  ]
+                },
+                {
+                  "qid": "L1b-protocol-01",
+                  "query": "Surface the tradeoffs of an ambiguous decision that has no obvious winner and re",
+                  "gold": [
+                    "protocol:p01-free-form-moderated-panel"
+                  ],
+                  "got": [
+                    "skill:010-editor",
+                    "skill:acceptance-review",
+                    "skill:accurate-grok-imagine",
+                    "skill:agent-architecture-audit",
+                    "skill:agent-as-judge"
+                  ]
+                },
+                {
+                  "qid": "L1b-protocol-02",
+                  "query": "Reach a scored recommendation with measurably equal airtime across all seats, so",
+                  "gold": [
+                    "protocol:p02-round-robin"
+                  ],
+                  "got": [
+                    "skill:010-editor",
+                    "skill:acceptance-review",
+                    "skill:accurate-grok-imagine",
+                    "skill:agent-architecture-audit",
+                    "skill:agent-as-judge"
+                  ]
+                },
+                {
+                  "qid": "L1b-protocol-03",
+                  "query": "Let a wide panel review a proposal without producing an unreadable transcript, b",
+                  "gold": [
+                    "protocol:p03-fishbowl"
+                  ],
+                  "got": [
+                    "skill:010-editor",
+                    "skill:acceptance-review",
+                    "skill:accurate-grok-imagine",
+                    "skill:agent-architecture-audit",
+                    "skill:agent-as-judge"
+                  ]
+                },
+                {
+                  "qid": "L1b-protocol-04",
+                  "query": "Produce a verdict that carries buy-in across incompatible interests by giving qu",
+                  "gold": [
+                    "protocol:p04-consensus-conference"
+                  ],
+                  "got": [
+                    "skill:010-editor",
+                    "skill:acceptance-review",
+                    "skill:accurate-grok-imagine",
+                    "skill:agent-architecture-audit",
+                    "skill:agent-as-judge"
+                  ]
+                }
+              ]
+            }
+          },
+          "marginal": {
+            "k=1->3": {
+              "extra_card_bytes": 22950,
+              "extra_correct_selections": 2,
+              "MARGINAL_BYTES_PER_EXTRA_CORRECT": 11475.0,
+              "recall_delta": 0.0371
+            },
+            "k=3->5": {
+              "extra_card_bytes": 23436,
+              "extra_correct_selections": 2,
+              "MARGINAL_BYTES_PER_EXTRA_CORRECT": 11718.0,
+              "recall_delta": 0.0246
+            },
+            "k=5->10": {
+              "extra_card_bytes": 51786,
+              "extra_correct_selections": 0,
+              "MARGINAL_BYTES_PER_EXTRA_CORRECT": null,
+              "recall_delta": 0.0
+            }
+          }
+        },
+        "gold_oracle": {
+          "n_queries": 60,
+          "n_gold_bearing": 54,
+          "n_negative": 6,
+          "per_k": {
+            "1": {
+              "mean_card_bytes_per_query_ALL": 169.3,
+              "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 188.1,
+              "peak_card_bytes": 219,
+              "mean_full_description_bytes_per_query_ALL": 1572.5,
+              "card_saving_ratio_vs_full_description": 9.29,
+              "mean_items_returned": 0.9,
+              "precision": 1.0,
+              "recall": 0.8611,
+              "gold_hit_rate": 1.0,
+              "correct_selections_total": 54,
+              "selections_total_on_gold_bearing": 54,
+              "wasted_selections": 0,
+              "BYTES_PER_CORRECT_SELECTION": 188.1,
+              "total_card_bytes_on_gold_bearing": 10157,
+              "misses_at_max_k": []
+            },
+            "3": {
+              "mean_card_bytes_per_query_ALL": 230.8,
+              "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 256.5,
+              "peak_card_bytes": 648,
+              "mean_full_description_bytes_per_query_ALL": 2237.5,
+              "card_saving_ratio_vs_full_description": 9.69,
+              "mean_items_returned": 1.2,
+              "precision": 1.0,
+              "recall": 0.9907,
+              "gold_hit_rate": 1.0,
+              "correct_selections_total": 72,
+              "selections_total_on_gold_bearing": 72,
+              "wasted_selections": 0,
+              "BYTES_PER_CORRECT_SELECTION": 192.3,
+              "total_card_bytes_on_gold_bearing": 13849,
+              "misses_at_max_k": []
+            },
+            "5": {
+              "mean_card_bytes_per_query_ALL": 236.1,
+              "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 262.3,
+              "peak_card_bytes": 789,
+              "mean_full_description_bytes_per_query_ALL": 2294.4,
+              "card_saving_ratio_vs_full_description": 9.72,
+              "mean_items_returned": 1.23,
+              "precision": 1.0,
+              "recall": 1.0,
+              "gold_hit_rate": 1.0,
+              "correct_selections_total": 74,
+              "selections_total_on_gold_bearing": 74,
+              "wasted_selections": 0,
+              "BYTES_PER_CORRECT_SELECTION": 191.4,
+              "total_card_bytes_on_gold_bearing": 14164,
+              "misses_at_max_k": []
+            },
+            "10": {
+              "mean_card_bytes_per_query_ALL": 236.1,
+              "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 262.3,
+              "peak_card_bytes": 789,
+              "mean_full_description_bytes_per_query_ALL": 2294.4,
+              "card_saving_ratio_vs_full_description": 9.72,
+              "mean_items_returned": 1.23,
+              "precision": 1.0,
+              "recall": 1.0,
+              "gold_hit_rate": 1.0,
+              "correct_selections_total": 74,
+              "selections_total_on_gold_bearing": 74,
+              "wasted_selections": 0,
+              "BYTES_PER_CORRECT_SELECTION": 191.4,
+              "total_card_bytes_on_gold_bearing": 14164,
+              "misses_at_max_k": []
+            }
+          },
+          "marginal": {
+            "k=1->3": {
+              "extra_card_bytes": 3692,
+              "extra_correct_selections": 18,
+              "MARGINAL_BYTES_PER_EXTRA_CORRECT": 205.1,
+              "recall_delta": 0.1296
+            },
+            "k=3->5": {
+              "extra_card_bytes": 315,
+              "extra_correct_selections": 2,
+              "MARGINAL_BYTES_PER_EXTRA_CORRECT": 157.5,
+              "recall_delta": 0.0093
+            },
+            "k=5->10": {
+              "extra_card_bytes": 0,
+              "extra_correct_selections": 0,
+              "MARGINAL_BYTES_PER_EXTRA_CORRECT": null,
+              "recall_delta": 0.0
+            }
+          }
+        },
+        "shuffled_gold": {
+          "n_queries": 54,
+          "n_gold_bearing": 54,
+          "n_negative": 0,
+          "per_k": {
+            "1": {
+              "mean_card_bytes_per_query_ALL": 168.0,
+              "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 168.0,
+              "peak_card_bytes": 219,
+              "mean_full_description_bytes_per_query_ALL": 1322.9,
+              "card_saving_ratio_vs_full_description": 7.88,
+              "mean_items_returned": 0.89,
+              "precision": 0.0,
+              "recall": 0.0,
+              "gold_hit_rate": 0.0,
+              "correct_selections_total": 0,
+              "selections_total_on_gold_bearing": 48,
+              "wasted_selections": 48,
+              "BYTES_PER_CORRECT_SELECTION": null,
+              "total_card_bytes_on_gold_bearing": 9071,
+              "misses_at_max_k": []
+            },
+            "3": {
+              "mean_card_bytes_per_query_ALL": 404.9,
+              "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 404.9,
+              "peak_card_bytes": 657,
+              "mean_full_description_bytes_per_query_ALL": 3325.4,
+              "card_saving_ratio_vs_full_description": 8.21,
+              "mean_items_returned": 2.2,
+              "precision": 0.0,
+              "recall": 0.0,
+              "gold_hit_rate": 0.0,
+              "correct_selections_total": 0,
+              "selections_total_on_gold_bearing": 119,
+              "wasted_selections": 119,
+              "BYTES_PER_CORRECT_SELECTION": null,
+              "total_card_bytes_on_gold_bearing": 21866,
+              "misses_at_max_k": []
+            },
+            "5": {
+              "mean_card_bytes_per_query_ALL": 514.1,
+              "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 514.1,
+              "peak_card_bytes": 1043,
+              "mean_full_description_bytes_per_query_ALL": 4320.4,
+              "card_saving_ratio_vs_full_description": 8.4,
+              "mean_items_returned": 2.85,
+              "precision": 0.0,
+              "recall": 0.0,
+              "gold_hit_rate": 0.0,
+              "correct_selections_total": 0,
+              "selections_total_on_gold_bearing": 154,
+              "wasted_selections": 154,
+              "BYTES_PER_CORRECT_SELECTION": null,
+              "total_card_bytes_on_gold_bearing": 27763,
+              "misses_at_max_k": []
+            },
+            "10": {
+              "mean_card_bytes_per_query_ALL": 550.6,
+              "mean_card_bytes_per_query_GOLD_BEARING_ONLY": 550.6,
+              "peak_card_bytes": 1322,
+              "mean_full_description_bytes_per_query_ALL": 4640.5,
+              "card_saving_ratio_vs_full_description": 8.43,
+              "mean_items_returned": 3.06,
+              "precision": 0.0,
+              "recall": 0.0,
+              "gold_hit_rate": 0.0,
+              "correct_selections_total": 0,
+              "selections_total_on_gold_bearing": 165,
+              "wasted_selections": 165,
+              "BYTES_PER_CORRECT_SELECTION": null,
+              "total_card_bytes_on_gold_bearing": 29731,
+              "misses_at_max_k": [
+                {
+                  "qid": "L1a-skill-01-SHUF",
+                  "query": "applying binary templates (.bt), running 010 Editor scripts (.1sc), or performin",
+                  "gold": [
+                    "skill:acceptance-review"
+                  ],
+                  "got": [
+                    "skill:010-editor"
+                  ]
+                },
+                {
+                  "qid": "L1b-skill-02-SHUF",
+                  "query": "Use at the \"done\" boundary of an app change — before claiming a feature/app work",
+                  "gold": [
+                    "skill:accurate-grok-imagine"
+                  ],
+                  "got": [
+                    "plugin:feature-dev",
+                    "skill:acceptance-review",
+                    "skill:verification-before-completion"
+                  ]
+                },
+                {
+                  "qid": "L1b-skill-03-SHUF",
+                  "query": "Precision prompting workflow for Grok Imagine xAI image generation and editing",
+                  "gold": [
+                    "skill:agent-architecture-audit"
+                  ],
+                  "got": [
+                    "skill:accurate-grok-imagine",
+                    "skill:use-image-clipboard",
+                    "skill:imagegen"
+                  ]
+                },
+                {
+                  "qid": "L1b-skill-04-SHUF",
+                  "query": "Use when agent architecture audit is needed",
+                  "gold": [
+                    "command:aside"
+                  ],
+                  "got": [
+                    "skill:agent-architecture-audit",
+                    "agent:architect",
+                    "candidate:agent-architect",
+                    "candidate:WFC-0146",
+                    "workflow:bp-arc-03.anti-overfit-architecture-audit"
+                  ]
+                },
+                {
+                  "qid": "L1b-command-01-SHUF",
+                  "query": "Answer a quick side question without interrupting or losing context from the cur",
+                  "gold": [
+                    "command:build-fix"
+                  ],
+                  "got": [
+                    "skill:source-command-aside",
+                    "skill:volatility-3"
+                  ]
+                },
+                {
+                  "qid": "L1b-command-02-SHUF",
+                  "query": "# Build and Fix Incrementally fix build and type errors with minimal, safe chang",
+                  "gold": [
+                    "command:code-review"
+                  ],
+                  "got": [
+                    "agent:build-error-resolver",
+                    "command:build-fix",
+                    "command:verify",
+                    "skill:source-command-python-review",
+                    "candidate:agent-build-error-resolver"
+                  ]
+                },
+                {
+                  "qid": "L1b-command-03-SHUF",
+                  "query": "# Code Review Comprehensive security and quality review of uncommitted changes: ",
+                  "gold": [
+                    "command:compute-monitor"
+                  ],
+                  "got": [
+                    "command:code-review",
+                    "plugin:code-review",
+                    "command:python-review",
+                    "plugin:pr-review-toolkit"
+                  ]
+                },
+                {
+                  "qid": "L1b-command-04-SHUF",
+                  "query": "Served-generic monitor for ANY long computation",
+                  "gold": [
+                    "workflow:anchor-checked-per-file-deploy"
+                  ],
+                  "got": [
+                    "command:compute-monitor",
+                    "skill:run-taskwatch_monitor",
+                    "candidate:tool-taskwatch-monitor"
+                  ]
+                },
+                {
+                  "qid": "L1b-workflow-01-SHUF",
+                  "query": "Anchor-checked per-file deploy - refuse a file that does not look as expected",
+                  "gold": [
+                    "workflow:both-states-detector-control"
+                  ],
+                  "got": [
+                    "workflow:anchor-checked-per-file-deploy"
+                  ]
+                },
+                {
+                  "qid": "L1b-workflow-02-SHUF",
+                  "query": "Both-states detector control: the probe must FIRE on the known-broken state",
+                  "gold": [
+                    "workflow:bounded-corpus-distillation"
+                  ],
+                  "got": [
+                    "workflow:both-states-detector-control",
+                    "workflow:scanner-detector-integrity-probe",
+                    "preset:c-m05-micro-premortem-solo-plus-critic",
+                    "workflow:measurement-instrument-validation",
+                    "candidate:tool-detector-self-test"
+                  ]
+                },
+                {
+                  "qid": "L1b-workflow-03-SHUF",
+                  "query": "Bounded corpus distillation with two-probe enumeration agreement",
+                  "gold": [
+                    "workflow:bp-arc-01.architecture-tournament"
+                  ],
+                  "got": [
+                    "workflow:bounded-corpus-distillation",
+                    "workflow:postmortem-failure-entry-distillation",
+                    "workflow:bp-gem-05-executed-corpus-archaeology-mine"
+                  ]
+                },
+                {
+                  "qid": "L1b-workflow-04-SHUF",
+                  "query": "Architecture Tournament with Minority-Report Fold-In",
+                  "gold": [
+                    "protocol:p01-free-form-moderated-panel"
+                  ],
+                  "got": [
+                    "agent:architect",
+                    "workflow:bp-arc-01.architecture-tournament",
+                    "protocol:p36-calibration-tournament",
+                    "preset:c-s23-delphi-5-anon-3rounds",
+                    "preset:c-d31-deep-architecture-12"
+                  ]
+                }
+              ]
+            }
+          },
+          "marginal": {
+            "k=1->3": {
+              "extra_card_bytes": 12795,
+              "extra_correct_selections": 0,
+              "MARGINAL_BYTES_PER_EXTRA_CORRECT": null,
+              "recall_delta": 0
+            },
+            "k=3->5": {
+              "extra_card_bytes": 5897,
+              "extra_correct_selections": 0,
+              "MARGINAL_BYTES_PER_EXTRA_CORRECT": null,
+              "recall_delta": 0
+            },
+            "k=5->10": {
+              "extra_card_bytes": 1968,
+              "extra_correct_selections": 0,
+              "MARGINAL_BYTES_PER_EXTRA_CORRECT": null,
+              "recall_delta": 0
+            }
+          }
+        }
+      },
+      "verdicts_at_k5": {
+        "shuffled_gold_collapses": {
+          "real_recall": 0.5463,
+          "shuffled_recall": 0.0,
+          "collapsed": true,
+          "meaning": "if recall survived relabelling, the metric is not reading the selection at all"
+        },
+        "flood_is_visibly_more_expensive": {
+          "real_bytes_per_correct": 805.3,
+          "flood_bytes_per_correct": 107463.6,
+          "ratio": 133.4,
+          "flood_recall": 1.0,
+          "PROBE_FIRES_on_seeded_flood": true,
+          "PROBE_SILENT_on_shipped_router": true
+        },
+        "bytes_alone_cannot_certify": {
+          "query_blind_recall": 0.0802,
+          "query_blind_mean_bytes": 1076.0,
+          "real_mean_bytes": 494.4,
+          "note": "a router that ignores the query costs comparable bytes, so a low byte count is NOT evidence of good selection - the two tables must both be read"
+        },
+        "oracle_floor": {
+          "oracle_bytes_per_correct": 191.4,
+          "real_bytes_per_correct": 805.3,
+          "real_over_oracle": 4.21,
+          "meaning": "the oracle is the theoretical minimum bytes per correct selection for this corpus; real/oracle is the router's context-efficiency penalty over a perfect selector"
+        }
+      }
+    },
+    "stage7_crosscheck": {
+      "lane_artifact": "C:\\Users\\Prekzursil\\source\\ast-integrate\\platform\\routing\\MEASUREMENTS.json",
+      "byte_table": [
+        {
+          "k": 1,
+          "lane_mean_card_bytes": 161.9,
+          "my_mean_card_bytes": 161.9,
+          "delta": 0.0,
+          "lane_peak_card_bytes": 219,
+          "my_peak_card_bytes": 219,
+          "lane_mean_selected": 0.8,
+          "my_mean_items": 0.85,
+          "lane_card_saving_ratio": 7.8,
+          "my_card_saving_ratio": 7.84
+        },
+        {
+          "k": 3,
+          "lane_mean_card_bytes": 389.6,
+          "my_mean_card_bytes": 389.6,
+          "delta": 0.0,
+          "lane_peak_card_bytes": 657,
+          "my_peak_card_bytes": 657,
+          "lane_mean_selected": 2.1,
+          "my_mean_items": 2.12,
+          "lane_card_saving_ratio": 8.2,
+          "my_card_saving_ratio": 8.18
+        },
+        {
+          "k": 5,
+          "lane_mean_card_bytes": 494.4,
+          "my_mean_card_bytes": 494.4,
+          "delta": 0.0,
+          "lane_peak_card_bytes": 1043,
+          "my_peak_card_bytes": 1043,
+          "lane_mean_selected": 2.7,
+          "my_mean_items": 2.73,
+          "lane_card_saving_ratio": 8.5,
+          "my_card_saving_ratio": 8.46
+        },
+        {
+          "k": 10,
+          "lane_mean_card_bytes": 530.2,
+          "my_mean_card_bytes": 530.2,
+          "delta": 0.0,
+          "lane_peak_card_bytes": 1322,
+          "my_peak_card_bytes": 1322,
+          "lane_mean_selected": 2.9,
+          "my_mean_items": 2.93,
+          "lane_card_saving_ratio": 8.5,
+          "my_card_saving_ratio": 8.49
+        }
+      ],
+      "quality_table": [
+        {
+          "tier": "L1",
+          "k": 1,
+          "lane_precision": 0.5,
+          "my_precision": 0.5,
+          "lane_recall": 0.5,
+          "my_recall": 0.5,
+          "lane_gold_hit": 0.5,
+          "my_gold_hit": 0.5
+        },
+        {
+          "tier": "L1",
+          "k": 3,
+          "lane_precision": 0.3036,
+          "my_precision": 0.3036,
+          "lane_recall": 0.6786,
+          "my_recall": 0.6786,
+          "lane_gold_hit": 0.6786,
+          "my_gold_hit": 0.6786
+        },
+        {
+          "tier": "L1",
+          "k": 5,
+          "lane_precision": 0.2833,
+          "my_precision": 0.2833,
+          "lane_recall": 0.75,
+          "my_recall": 0.75,
+          "lane_gold_hit": 0.75,
+          "my_gold_hit": 0.75
+        },
+        {
+          "tier": "L1",
+          "k": 10,
+          "lane_precision": 0.2774,
+          "my_precision": 0.2774,
+          "lane_recall": 0.75,
+          "my_recall": 0.75,
+          "lane_gold_hit": 0.75,
+          "my_gold_hit": 0.75
+        },
+        {
+          "tier": "L2",
+          "k": 1,
+          "lane_precision": 0.3333,
+          "my_precision": 0.3333,
+          "lane_recall": 0.2302,
+          "my_recall": 0.2302,
+          "lane_gold_hit": 0.3333,
+          "my_gold_hit": 0.3333
+        },
+        {
+          "tier": "L2",
+          "k": 3,
+          "lane_precision": 0.2222,
+          "my_precision": 0.2222,
+          "lane_recall": 0.2937,
+          "my_recall": 0.2937,
+          "lane_gold_hit": 0.381,
+          "my_gold_hit": 0.381
+        },
+        {
+          "tier": "L2",
+          "k": 5,
+          "lane_precision": 0.219,
+          "my_precision": 0.219,
+          "lane_recall": 0.3571,
+          "my_recall": 0.3571,
+          "lane_gold_hit": 0.4286,
+          "my_gold_hit": 0.4286
+        },
+        {
+          "tier": "L2",
+          "k": 10,
+          "lane_precision": 0.2163,
+          "my_precision": 0.2163,
+          "lane_recall": 0.3571,
+          "my_recall": 0.3571,
+          "lane_gold_hit": 0.4286,
+          "my_gold_hit": 0.4286
+        },
+        {
+          "tier": "L4",
+          "k": 1,
+          "lane_precision": 0.4,
+          "my_precision": 0.4,
+          "lane_recall": 0.15,
+          "my_recall": 0.15,
+          "lane_gold_hit": 0.4,
+          "my_gold_hit": 0.4
+        },
+        {
+          "tier": "L4",
+          "k": 3,
+          "lane_precision": 0.3333,
+          "my_precision": 0.3333,
+          "lane_recall": 0.2,
+          "my_recall": 0.2,
+          "lane_gold_hit": 0.6,
+          "my_gold_hit": 0.6
+        },
+        {
+          "tier": "L4",
+          "k": 5,
+          "lane_precision": 0.3333,
+          "my_precision": 0.3333,
+          "lane_recall": 0.2,
+          "my_recall": 0.2,
+          "lane_gold_hit": 0.6,
+          "my_gold_hit": 0.6
+        },
+        {
+          "tier": "L4",
+          "k": 10,
+          "lane_precision": 0.3333,
+          "my_precision": 0.3333,
+          "lane_recall": 0.2,
+          "my_recall": 0.2,
+          "lane_gold_hit": 0.6,
+          "my_gold_hit": 0.6
+        }
+      ],
+      "lane_L3_abstain_rate": 0.6667,
+      "my_L3_abstain_rate": 0.6667,
+      "byte_definition_crosscheck": {
+        "decisions_where_my_count_equals_Decision.injected_bytes": 1239,
+        "disagreements": [],
+        "n_disagreements": 0
+      }
+    }
+  },
+  "elapsed_sec": 313.8
+}
