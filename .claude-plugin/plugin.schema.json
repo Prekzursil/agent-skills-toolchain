@@ -1,0 +1,259 @@
+{
+  "$id": "https://prekzursil.dev/ast-integrate/schema/plugin.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "A superset of the fields Claude Code reads: name/version/description/author/license/keywords/homepage keep their client meaning, and this profile adds compatibility, interpreters, entrypoints, payload budgets and deploy targets. Unknown properties are REJECTED except under the reserved 'x-' extension namespace, so a typo is an error rather than a silently dropped field.",
+  "patternProperties": {
+    "^x-": {}
+  },
+  "properties": {
+    "author": {
+      "additionalProperties": false,
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
+    },
+    "compatibility": {
+      "additionalProperties": false,
+      "properties": {
+        "max_client": {
+          "pattern": "^(\\d+)\\.(\\d+)\\.(\\d+)(?:[-+].*)?$",
+          "type": "string"
+        },
+        "min_client": {
+          "pattern": "^(\\d+)\\.(\\d+)\\.(\\d+)(?:[-+].*)?$",
+          "type": "string"
+        },
+        "platforms": {
+          "items": {
+            "enum": [
+              "windows",
+              "macos",
+              "linux"
+            ]
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "schema_version": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "shells": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "min_client"
+      ],
+      "type": "object"
+    },
+    "deploy": {
+      "additionalProperties": false,
+      "properties": {
+        "targets": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "mode": {
+                "enum": [
+                  "copy",
+                  "link",
+                  "merge"
+                ]
+              },
+              "source": {
+                "type": "string"
+              },
+              "target": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "source",
+              "target",
+              "mode"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "targets"
+      ],
+      "type": "object"
+    },
+    "description": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "entrypoints": {
+      "items": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "command",
+                    "hook",
+                    "script"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "interpreter"
+              ]
+            }
+          }
+        ],
+        "properties": {
+          "args": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "interpreter": {
+            "enum": [
+              "bash",
+              "node",
+              "pwsh",
+              "python3"
+            ]
+          },
+          "kind": {
+            "enum": [
+              "command",
+              "hook",
+              "script",
+              "skill"
+            ]
+          },
+          "path": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "path"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "homepage": {
+      "type": "string"
+    },
+    "interpreters": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "floor": {
+            "type": "string"
+          },
+          "id": {
+            "enum": [
+              "bash",
+              "node",
+              "pwsh",
+              "python3"
+            ]
+          },
+          "required": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "keywords": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "license": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "name": {
+      "pattern": "^[a-z0-9][a-z0-9-]{1,63}$",
+      "type": "string"
+    },
+    "payload": {
+      "additionalProperties": false,
+      "properties": {
+        "exclude": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "include": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "max_bytes": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_files": {
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "version": {
+      "pattern": "^(\\d+)\\.(\\d+)\\.(\\d+)(?:[-+].*)?$",
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "version",
+    "description",
+    "author",
+    "license",
+    "compatibility"
+  ],
+  "title": "Claude Code plugin manifest (.claude-plugin/plugin.json), strict profile",
+  "type": "object"
+}
