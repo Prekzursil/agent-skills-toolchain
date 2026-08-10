@@ -138,13 +138,43 @@ def test_git_archive_payload_is_byte_identical_to_the_WORKTREE_not_the_blob(
     assert "git_archive" in routes, (
         "the archive route must appear; silently omitting it would hide the trap"
     )
-    assert routes["git_archive"] == routes["working_tree"], (
-        "the archive payload must match the WORKING TREE byte for byte - that is what makes it the "
-        "wrong bytes to verify against"
+
+    # WHETHER CONVERSION APPLIES IS MEASURED, NOT GUESSED FROM sys.platform. An earlier version of
+    # this test asserted archive == working_tree unconditionally and passed on Windows while failing
+    # on a Linux runner with archive at 29 bytes / 0 CRLF against a worktree of 32 / 3. That was the
+    # same platform-specific-assertion-without-a-gate defect fixed in
+    # platform/coordination/test_leases.py earlier in this session - repeating it was worse than the
+    # original, and the CI failure is what caught it.
+    #
+    # The underlying FACT is narrower than "git archive returns the worktree bytes": archive applies
+    # export-time EOL conversion WHERE CONFIGURED. On a Windows checkout with autocrlf that yields
+    # CRLF; on a stock Linux runner it yields the blob unchanged. So the trap is real but scoped, and
+    # branching on the measured behaviour keeps a discriminating assertion on BOTH platforms rather
+    # than skipping one.
+    conversion_applied = (
+        routes["git_archive"]["sha256_12"] != routes["git_cat_file"]["sha256_12"]
     )
-    assert routes["git_archive"]["crlf"] == 3
-    assert routes["git_archive"]["sha256_12"] != routes["git_cat_file"]["sha256_12"], (
-        "if archive matched the blob there would be no trap and this module would be pointless"
+    if conversion_applied:
+        assert routes["git_archive"] == routes["working_tree"], (
+            "where export conversion applies, the archive payload must match the WORKING TREE byte "
+            "for byte - that is exactly what makes it the wrong bytes to verify a blob against"
+        )
+        assert routes["git_archive"]["crlf"] > 0
+    else:
+        assert routes["git_archive"] == routes["git_cat_file"], (
+            "with no export conversion the archive payload must equal the blob; if it matched "
+            "neither the blob nor the worktree, something else is rewriting it and the whole "
+            "comparison is untrustworthy"
+        )
+        assert routes["git_archive"]["crlf"] == 0
+
+    # Platform-independent and the module's actual thesis: cat-file NEVER applies conversion, so it
+    # is the route to trust. This holds on every platform and is what a caller relies on.
+    assert routes["git_cat_file"] == routes["git_show"], (
+        "cat-file and show must agree; both read the blob"
+    )
+    assert routes["git_cat_file"]["crlf"] == 0, (
+        "the committed blob is LF and cat-file must report it as such regardless of platform"
     )
 
 

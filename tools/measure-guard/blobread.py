@@ -11,9 +11,19 @@ different decision on the LF form of `hooks/stopfailure-notify/notify.py`. The l
 measured against bytes CI never sees, so it verified nothing.
 
 `git archive` is the trap and is REFUSED here rather than merely avoided. `rules/common/windows-shell.md`
-section 8b prescribed it until 2026-08-09 and was wrong: it applies export-time EOL conversion and
-hands back CRLF on this box. Measured on one file, three routes, with a control proving all three
-are byte-identical after LF normalisation (so the difference is line endings, not content):
+section 8b prescribed it until 2026-08-09 and was wrong: it applies export-time EOL conversion WHERE
+CONFIGURED and hands back CRLF on this box.
+
+SCOPE, because the unqualified version of that sentence is false and a CI run proved it: archive
+applies conversion per platform and config. On this Windows checkout it returns CRLF; on a stock
+Linux runner with no `core.autocrlf` it returns the blob unchanged (measured: 29 bytes / 0 CRLF
+against a 32-byte / 3-CRLF worktree). So the trap is real and Windows-scoped rather than universal -
+which is consistent with section 8b being a windows-shell rule. `git cat-file` applies no conversion
+on any platform, which is why it is the route to trust rather than merely the route that happens to
+work here.
+
+Measured on this box, one file, four routes, with a control proving they are byte-identical after LF
+normalisation (so the difference is line endings, not content):
 
     git archive (member EXTRACTED)  3,837 bytes   100 CRLF
     working tree                    3,837 bytes   100 CRLF
