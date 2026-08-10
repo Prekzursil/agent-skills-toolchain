@@ -1,32 +1,128 @@
 {
   "artifact": "SUBSTRATE-RESOLUTION-STATUS",
   "unit": "substrate/output-schema",
-  "written_at_stage": "SKELETON - nothing measured yet",
-  "warning": "If it still reads this way, the unit died before measuring anything and no verdict here may be cited.",
+  "written_at_stage": "FINAL - implemented and proven; residuals named below",
+
   "premise_reverification": {
-    "distinct_output_schema_values": "UNKNOWN - not yet measured",
-    "total_references": "UNKNOWN - not yet measured",
-    "resolving_before_fix": "UNKNOWN - not yet measured",
-    "verdict": "UNKNOWN - not yet measured"
+    "verdict": "CONFIRMED - the P1 was real. Every number in the brief was wrong.",
+    "detector_control": {
+      "known_present": "platform/schema/receipt.schema.json -> True",
+      "known_absent": "platform/schema/__definitely_not_here__.schema.json -> False",
+      "detector_valid": true
+    },
+    "measured_before_fix": {
+      "work_units": 2007,
+      "units_declaring_an_output_schema": 2007,
+      "units_missing_the_field": 0,
+      "raw_distinct_output_schema_strings": 367,
+      "normalized_distinct_SCHEMA_FILES": 234,
+      "references_to_a_file_path": 1986,
+      "references_to_the_draft_2020_12_meta_schema_URL": 21,
+      "distinct_files_resolving_on_disk": 0,
+      "command_center_schema_dir_existed": false
+    },
+    "brief_numbers_REFUTED": {
+      "claim_269_distinct": "REFUTED",
+      "claim_1896_references": "REFUTED",
+      "method": "six normalizations enumerated mechanically; none yields 269 or 1896",
+      "normalizations_tried": {
+        "raw_strings": "367 distinct / 2007 refs",
+        "strip_fragment_only": "305 / 2007",
+        "strip_annotation_only": "297 / 2007",
+        "strip_both": "235 / 2007",
+        "strip_both_drop_meta_url": "234 / 1986",
+        "basenames_only": "235 / 2007"
+      },
+      "probe": "platform/lib/_probe_substrate_selfaudit.py"
+    },
+    "encoding_variants": {
+      "path_plus_json_pointer_refs": 287,
+      "path_plus_prose_annotation_refs": 159,
+      "meta_schema_url_refs": 21
+    },
+    "fragments": {
+      "distinct_demanded": 64,
+      "on_receipt.schema.json": 14,
+      "on_foundry-artifact.schema.json": 32,
+      "on_wfa-schema-pack.json": 18,
+      "already_defined_physically_before_fix": 14,
+      "undefined_before_fix": 50
+    }
   },
+
   "design_decision": {
-    "options_considered": ["(a) populate command-center/schema/", "(b) rewrite catalog output_schema values", "(c) logical->physical resolver layer"],
-    "chosen": "UNKNOWN - not yet decided",
-    "justification": "UNKNOWN - not yet measured"
+    "chosen": "(c) resolver layer, MATERIALIZED as an on-disk $ref-shim tree so (a)'s literal-path property also holds. Explicitly NOT (b).",
+    "why_not_a_alone": "234 independently authored schemas means a second receipt.schema.json with its own copy of the constraints - the duplicate-control-plane defect the spec forbids - and at achievable fidelity they would be permissive stubs. A schema that accepts everything is worse than none.",
+    "why_not_b": "Rewriting output_schema across 2007 units edits a COMMITTED Wave-1 artifact that ~20 concurrent agents share one git index over, collapses 234 semantically distinct class names onto one physical file (destroying all cross-class discrimination), and burns the catalog provenance.",
+    "why_not_pure_c": "A code-only resolver leaves os.path.isfile(output_schema) False for all 234, so the stated defect is not actually closed for a naive consumer.",
+    "how_duplication_is_avoided": "Every generated file is pure delegation: its body is a $ref. A shim DEFINES no constraint. A class is receipt.schema.json#/$defs/generic_report (which already carries receipt_core plus the kind/observations/control_ids discipline) narrowed by ONE const pin on report.kind. Enforced by test_shims_carry_no_constraints, which fails if any shim grows a keyword outside a fixed allowlist.",
+    "honest_cost": "A declaration carrying a ' profile=...' or ' (required: ...)' annotation is still not a literal path; a consumer must split it first. The repo already owned that splitter (receipt_schema_gate.parse_schema_ref) and the resolver imports it rather than reimplementing it."
   },
+
   "implementation": {
-    "files_written": [],
-    "status": "UNKNOWN - not yet measured"
+    "files_written": {
+      "platform/schema/artifact-class-profiles.schema.json": "physical definition of all 295 artifact classes (231 file classes + 64 fragment classes); each = $ref generic_report + a report.kind const pin",
+      "platform/schema/ARTIFACT-CLASS-REGISTRY.json": "logical id -> physical target map as inspectable DATA, with per-class reference counts and sample unit ids",
+      "platform/lib/schema_resolver.py": "the blessed API: resolve() / validator_for() / validate_artifact() / audit(); fails closed, disk-only retrieval, repo-root confined",
+      "platform/lib/test_schema_resolver.py": "31 tests, half of them negative",
+      "platform/lib/_gen_schema_substrate.py": "deterministic generator (asserted byte-stable by test)",
+      "command-center/schema/*.schema.json": "231 generated shims",
+      "command-center/schema/_meta/json-schema-2020-12.json": "draft-2020-12 meta-schema mirror, emitted from the installed jsonschema package (no network)",
+      "command-center/schema/meta/json-schema-draft.json": "alias shim to the above, so the document is stored once",
+      "command-center/wfa/schema/wfa-schema-pack.json": "shim + $defs for the 18 WFA pack classes (127 references)",
+      "platform/schema/examples/substrate/*.json": "8 receipt fixtures: 4 valid + 4 malformed"
+    },
+    "files_deliberately_NOT_modified": {
+      "command-center/WORK-UNIT-CATALOG.json": "byte-identical to HEAD (git-verified; test_wave1_files_are_untouched)",
+      "platform/schema/receipt.schema.json": "byte-identical to HEAD (git-verified). 59 tests and a 22-mutation battery are pinned to it."
+    }
   },
+
   "proof": {
-    "positive_receipts": "UNKNOWN - not yet measured",
-    "negative_receipts_rejected": "UNKNOWN - not yet measured",
-    "both_states_control": "UNKNOWN - not yet measured"
+    "audit": "python platform/lib/schema_resolver.py --audit -> references_resolving 2007/2007, distinct_logical_files_resolving 234/234, SUCCESS:schema-resolver-audit",
+    "both_states_control": "moving command-center/schema/audit-finding.schema.json aside flips the audit to exit 1 + FAILED marker naming the victim; restoring returns exit 0. good=0 broken=1 restored=0.",
+    "compile_proof": "234/234 logical ids and 64/64 declared fragments build a real Draft202012Validator with disk-only retrieval; the meta-schema URL form and a decorated 'profile=... (required: ...)' form both compile.",
+    "meta_validation": "235 generated schema documents validate against the draft-2020-12 meta-schema, with a detector control that fires on {'type': 7} and is silent on {'type':'object'}.",
+    "receipt_proof": {
+      "CC-0001": "phase 0, bare canonical receipt -> receipt.schema.json#/$defs/receipt_core; layer1 PASS, gate-A 12/12; malformed (dropped spec_anchor) REJECTED",
+      "TST-0129": "phase 10, pointer into a pre-existing def -> profiles#/$defs/fault_injection_report; layer1 PASS, gate-A 12/12; malformed (kind=shell_report) REJECTED",
+      "RES-0005": "phase 2, generated class -> profiles#/$defs/research-claim-record; layer1 PASS, gate-A 12/12; malformed (negative control that did not fire) REJECTED",
+      "WFA-0129": "phase 2B bucket B04, previously-undefined fragment -> profiles#/$defs/benchmark-corpus; layer1 PASS, gate-A 12/12; malformed (declared field name artifact_paths) REJECTED",
+      "ARC-0078": "phase 4, meta-schema URL; a real generated schema doc ACCEPTED, {'type': 7} REJECTED",
+      "note": "'bucket' is populated on only 272 of 2007 units (B10/B02/B04), so the spanning axis is output_schema mechanism x phase; WFA-0129 carries the one real bucket value."
+    },
+    "discrimination_census": "exact, not a spot check: all 231 kind-pinned classes reject a foreign report.kind (test_every_pinned_class_rejects_a_foreign_kind, 231 validations). An unknown logical id raises UnknownSchemaError rather than degrading to a permissive schema.",
+    "regression": "platform/lib suite 444 passed BEFORE, 475 passed AFTER (444 + 31 new). Zero regressions.",
+    "lint": "ruff check on all 9 new/changed Python files: All checks passed!"
   },
+
   "post_fix_counts": {
-    "resolving_after_fix": "UNKNOWN - not yet measured",
-    "still_unresolved": "UNKNOWN - not yet measured",
-    "reasons": "UNKNOWN - not yet measured"
+    "distinct_declared_schema_files": 234,
+    "resolving_after_fix": 234,
+    "still_not_resolving": 0,
+    "references_resolving_after_fix": "2007 of 2007",
+    "resolution_definition": "the DECLARED path exists on disk AND its physical target exists AND a validator compiles from it. Path existence alone was rejected as insufficient."
   },
-  "coverage": "NOTHING MEASURED. All sections above are unmeasured placeholders."
+
+  "residual_defects_found_but_NOT_fixed": {
+    "P2_declared_field_names_are_forbidden_by_the_schema": "118 references declare '(required: unit_id, artifact_paths[], spec_anchor, evidence[], test_ids[], negative_control_ids[], reviewer_verdict, residual_unknowns[])'. The physical receipt_core defines artifacts / tests / negative_controls / reviewer and sets additionalProperties:false, so a receipt authored to the DECLARED contract is REJECTED. Demonstrated deliberately as WFA-0129's malformed case. NOT fixed: the two available fixes are editing the catalog (rejected, option b) or adding aliases to receipt_core (weakens the schema). OWNER DECISION.",
+    "P3_546_references_get_no_cross_class_discrimination": "546 of 2007 references resolve to the canonical receipt, which is deliberately NOT kind-pinned. 118 of those carry a profile= annotation that could pin it, but receipt.schema.json's own comment on receipt_core.properties.profile states the 30 profile variants 'all declare the same required core, so a profile narrows nothing structurally and is carried for routing only'. Pinning it would invent a contract the source says does not exist. These 546 still get full receipt_core discipline plus the 12-condition predicate; they do not get cross-class discrimination. Breakdown: 1438 kind-pinned + 546 unpinned + 23 meta-schema = 2007.",
+    "P3_two_catalog_paths_name_the_same_meta_schema": "command-center/schema/_meta/json-schema-2020-12.json and command-center/schema/meta/json-schema-draft.json. Resolved by storing the document once and making the second an alias, but the catalog duplication itself remains."
+  },
+
+  "residual_unknowns": {
+    "independent_review": "NOT-CHECKED. No independent cross-vendor reviewer has audited this substrate. Settled by dispatching a fresh-context Codex refuter over artifact-class-profiles.schema.json and schema_resolver.py.",
+    "downstream_adoption": "NOT-CHECKED. Nothing yet rewires existing emitters/harvesters to call schema_resolver.validator_for(). The substrate makes a schema-valid receipt POSSIBLE for all 2007 units; it does not prove any other component has been pointed at it. Settled by grepping for open()/json.load() on an output_schema value and converting each call site.",
+    "class_payload_fidelity": "PARTIAL. A class pins report.kind and inherits the observations/control_ids discipline; it does not model class-specific payload fields (a research-claim-record and an audit-finding differ by name and kind, not yet by field set). Settled by mining each class's evidence_requirement text into per-class report properties - a follow-on unit."
+  },
+
+  "reproduce": [
+    "python platform/lib/_gen_schema_substrate.py",
+    "python platform/lib/schema_resolver.py --audit",
+    "python platform/lib/_probe_substrate_bothstates.py",
+    "python platform/lib/_probe_substrate_receipts.py",
+    "python platform/lib/_probe_substrate_selfaudit.py",
+    "cd platform/lib && python -m pytest -q"
+  ],
+  "coverage": "MEASURED: premise, encoding variants, fragment inventory, design rationale, implementation, both-states control, compile proof, meta-validation, 5-unit receipt proof with negatives, 231-class discrimination census, regression, lint, post-fix counts. NOT MEASURED: independent review, downstream call-site adoption, per-class payload fidelity - all three named above with settling experiments."
 }
