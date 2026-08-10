@@ -214,7 +214,18 @@ def validate(
             Violation("REACH-6", "-", f"register snapshot missing at {snapshot}")
         )
     else:
-        raw = snapshot.read_bytes()
+        # LF-NORMALISE BEFORE HASHING — the register snapshot is text, git stores it
+        # with LF, and a Windows checkout under core.autocrlf=true materialises CRLF.
+        # Hashing raw working-tree bytes made REACH-6 unsatisfiable on ANY Windows
+        # checkout while passing on Linux CI (measured 2026-08-10: worktree digest
+        # 1a404a91d819 vs the recorded 8b3e44cc3813, which is exactly the committed
+        # blob). That is not a data defect, it is a portability defect in this gate.
+        #
+        # It was not cosmetic: render_status() embeds validate()'s violations, so the
+        # phantom Windows violation was baked into the COMMITTED STATUS.md and then
+        # showed up on CI as `cc-render drift=1` — a local-only measurement artifact
+        # leaking into a tracked artifact. Same root cause as render_manifest.
+        raw = snapshot.read_bytes().replace(b"\r\n", b"\n")
         digest = hashlib.sha256(raw).hexdigest()
         recorded = str(provenance.get("register_sha256", ""))
         if recorded and digest != recorded:
