@@ -36,13 +36,16 @@ def _index_blob(rel: str) -> bytes | None:
     """
     entry = subprocess.run(
         ["git", "-C", str(REPO), "ls-files", "-s", "--", rel],
-        capture_output=True, text=True, check=False,
+        capture_output=True,
+        text=True,
+        check=False,
     ).stdout.split()
     if len(entry) < 2:
         return None
     return subprocess.run(
         ["git", "-C", str(REPO), "cat-file", "-p", entry[1]],
-        capture_output=True, check=False,
+        capture_output=True,
+        check=False,
     ).stdout
 
 
@@ -60,7 +63,9 @@ def main(argv: list[str]) -> int:
         line
         for line in subprocess.run(
             ["git", "-C", str(REPO), "diff", "--cached", "--name-only"],
-            capture_output=True, text=True, check=False,
+            capture_output=True,
+            text=True,
+            check=False,
         ).stdout.splitlines()
         if line.endswith(".py")
     ]
@@ -83,6 +88,18 @@ def main(argv: list[str]) -> int:
     if bad:
         print(f"FAILED:eol-probe {len(bad)} staged blob(s) contain CRLF: {bad}")
         return 1
+    if not rels:
+        # An empty input set is NOT a pass. Measured on this very file 40 minutes after committing
+        # it: with nothing staged it printed `SUCCESS:eol-probe all 0 staged blob(s) are LF-only`,
+        # which reads as a clean bill of health for files it never opened. That is the fail-open
+        # no-op `rules/common/ci-hygiene.md` section 1 exists to forbid, and both sibling gates
+        # (suitefloor, refcheck) already fail closed on an empty walk. Report NOT-CHECKED instead:
+        # there is genuinely nothing to judge, and saying so is not the same as passing.
+        print(
+            "NOT-CHECKED:eol-probe no .py files staged, so nothing was measured. "
+            "Pass paths explicitly to check unstaged files."
+        )
+        return 2
     print(f"SUCCESS:eol-probe all {len(rels)} staged blob(s) are LF-only")
     return 0
 
