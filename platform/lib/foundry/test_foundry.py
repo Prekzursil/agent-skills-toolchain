@@ -12,6 +12,7 @@ fails here rather than shipping as a decoration.
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 from pathlib import Path
 
@@ -1275,3 +1276,261 @@ def test_tournament_prefers_the_cheapest_certified_entrant():
         )
         assert res["winner"]["stage_count"] == cheapest
         assert res["winner"]["gratuitous_stages"] == []
+
+
+# ------------------------------------------------- D4: forged id collision (regression)
+#
+# Measured defect D4: `fused.dc5b5f0b10f7` was carried by THREE documents under
+# platform/workflows/ - the CERTIFIED 9-stage best-of-breed fusion, a byte-identical
+# duplicate of it, and the REJECTED 18-stage `union` of the same pair. A loader keyed on
+# workflow id could therefore execute the rejected 18-stage union in place of the certified
+# 9-stage fusion. Root cause: `_fused_id` derived the id from the source pair ALONE - not the
+# strategy, not the resulting content, not the certification verdict.
+
+
+WORKFLOWS_DIR = REPO_ROOT / "platform" / "workflows"
+
+
+def _canonical_digest(doc: dict) -> str:
+    """Digest of the PARSED document, canonicalised.
+
+    Deliberately NOT a hash of the file bytes: git stores LF and Windows checks out CRLF, so a
+    byte hash of a working-tree file is platform-dependent. Parsing first makes the digest
+    depend on content alone.
+    """
+    return hashlib.sha256(
+        json.dumps(doc, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+def _is_workflow_doc(doc: object) -> bool:
+    return (
+        isinstance(doc, dict)
+        and isinstance(doc.get("id"), str)
+        and bool(doc["id"])
+        and "dsl_version" in doc
+        and "stages" in doc
+    )
+
+
+def _verdict_of(doc: dict) -> str | None:
+    foundry = (doc.get("x_extensions") or {}).get("foundry")
+    if not isinstance(foundry, dict):
+        return None
+    cert = foundry.get("certification")
+    return cert.get("verdict") if isinstance(cert, dict) else None
+
+
+def _scan_workflow_ids(root: Path) -> dict:
+    """Scan every *.json under `root` RECURSIVELY and report id-identity violations.
+
+    Scope note: `rglob`, not a depth-1 walk. The D4 documents live in a `forged/`
+    subdirectory, and a depth-1 scan reports a clean tree while the collision is live.
+    """
+    by_id: dict[str, dict[str, list[str]]] = {}
+    verdicts: dict[str, set[str | None]] = {}
+    docs = 0
+    for path in sorted(root.rglob("*.json")):
+        try:
+            doc = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            return {"unparsable": f"{path}: {exc}"}
+        if not _is_workflow_doc(doc):
+            continue
+        docs += 1
+        rel = path.relative_to(root).as_posix()
+        wid = str(doc["id"])
+        by_id.setdefault(wid, {}).setdefault(_canonical_digest(doc), []).append(rel)
+        verdicts.setdefault(wid, set()).add(_verdict_of(doc))
+
+    return {
+        "workflow_documents": docs,
+        "distinct_ids": len(by_id),
+        # (1) one id must never resolve to two DIFFERENT documents.
+        "divergent_ids": {
+            wid: groups for wid, groups in by_id.items() if len(groups) > 1
+        },
+        # (2) an id must never be shared by a CERTIFIED and a REJECTED document.
+        "mixed_verdict_ids": {
+            wid: sorted(v for v in vs if v)
+            for wid, vs in verdicts.items()
+            if "REJECTED" in vs and "CERTIFIED" in vs
+        },
+        # (3) a REJECTED document must be namespaced so it cannot be mistaken for certified.
+        "unmarked_rejected_ids": sorted(
+            wid
+            for wid, vs in verdicts.items()
+            if "REJECTED" in vs and not wid.startswith(f"{forge._REJECTED_ID_PREFIX}.")
+        ),
+        "unparsable": None,
+    }
+
+
+def test_no_workflow_id_resolves_to_two_different_documents():
+    """The D4 gate, over the whole shipped corpus under platform/workflows/."""
+    if not WORKFLOWS_DIR.is_dir():
+        pytest.skip("platform/workflows is not present")
+        return
+    report = _scan_workflow_ids(WORKFLOWS_DIR)
+    assert report["unparsable"] is None, report["unparsable"]
+    # Fail closed: an empty walk means the detector checked nothing, which is a detector
+    # failure, never a pass.
+    assert report["workflow_documents"] > 0, "scanned no workflow documents"
+    assert report["divergent_ids"] == {}, (
+        "one workflow id resolves to two DIFFERENT documents, so a loader keyed on id cannot "
+        f"tell them apart: {report['divergent_ids']}"
+    )
+    assert report["mixed_verdict_ids"] == {}, (
+        f"an id is shared by a CERTIFIED and a REJECTED document: {report['mixed_verdict_ids']}"
+    )
+    assert report["unmarked_rejected_ids"] == [], (
+        f"a REJECTED document carries an unnamespaced id: {report['unmarked_rejected_ids']}"
+    )
+
+
+def test_the_id_collision_gate_fires_on_a_seeded_collision(tmp_path):
+    """Both-states control for the gate above.
+
+    Without this, a green from `test_no_workflow_id_resolves_to_two_different_documents` is
+    unfalsifiable: a scanner that silently matched nothing would also report clean.
+    """
+    good = _minimal_workflow("wf.alpha")
+    (tmp_path / "a.json").write_text(json.dumps(good), encoding="utf-8")
+    (tmp_path / "b.json").write_text(
+        json.dumps(_minimal_workflow("wf.beta")), encoding="utf-8"
+    )
+    clean = _scan_workflow_ids(tmp_path)
+    assert clean["workflow_documents"] == 2
+    assert clean["divergent_ids"] == {}, "control tree must be clean BEFORE seeding"
+
+    # Seed the exact D4 shape: same id, DIFFERENT content, in a subdirectory so the scan's
+    # recursion is exercised too.
+    (tmp_path / "forged").mkdir()
+    collider = _minimal_workflow("wf.alpha")
+    collider["stages"] = [
+        *collider["stages"],
+        {"id": "extra", "kind": "task", "work_unit_ref": "AAA-0002"},
+    ]
+    assert _canonical_digest(collider) != _canonical_digest(good)
+    (tmp_path / "forged" / "collider.json").write_text(
+        json.dumps(collider), encoding="utf-8"
+    )
+    seeded = _scan_workflow_ids(tmp_path)
+    assert seeded["workflow_documents"] == 3
+    assert "wf.alpha" in seeded["divergent_ids"], (
+        "the gate did NOT fire on a seeded id collision, so it measures nothing"
+    )
+    assert len(seeded["divergent_ids"]["wf.alpha"]) == 2
+
+
+def test_a_seeded_rejected_certified_id_clash_is_caught(tmp_path):
+    """Second both-states control, for the verdict half of the gate."""
+    certified = _minimal_workflow("wf.same")
+    certified["x_extensions"] = {"foundry": {"certification": {"verdict": "CERTIFIED"}}}
+    rejected = _minimal_workflow("wf.same")
+    rejected["x_extensions"] = {"foundry": {"certification": {"verdict": "REJECTED"}}}
+    (tmp_path / "c.json").write_text(json.dumps(certified), encoding="utf-8")
+    (tmp_path / "r.json").write_text(json.dumps(rejected), encoding="utf-8")
+    report = _scan_workflow_ids(tmp_path)
+    assert report["mixed_verdict_ids"] == {"wf.same": ["CERTIFIED", "REJECTED"]}
+    assert report["unmarked_rejected_ids"] == ["wf.same"]
+
+
+def test_fused_id_separates_strategies_for_the_same_pair():
+    """The direct D4 root cause: `union` and `best-of-breed` of ONE pair are two documents."""
+    a, b = _rich_workflow("wf.a"), _rich_workflow("wf.b")
+    ids = {
+        strat: forge.fuse(a, b, strategy=strat, cases=list(bench.DEFAULT_CASES)).doc[
+            "id"
+        ]
+        for strat in FUSION_STRATEGIES
+    }
+    assert len(set(ids.values())) == len(ids), f"two strategies produced one id: {ids}"
+
+
+def test_fused_id_is_content_addressed_in_both_directions():
+    a, b = _rich_workflow("wf.a"), _rich_workflow("wf.b")
+    cases = list(bench.DEFAULT_CASES)
+    first = forge.fuse(a, b, cases=cases).doc
+    again = forge.fuse(a, b, cases=cases).doc
+    # same content -> same id (`fuse` is pure; re-running must not churn identity)
+    assert first["id"] == again["id"]
+    assert forge.fusion_payload_digest(first) == forge.fusion_payload_digest(again)
+    # different content -> different id
+    mutated = copy.deepcopy(a)
+    mutated["stages"] = [
+        *mutated["stages"],
+        {
+            "id": "novel",
+            "kind": "task",
+            "title": "a stage that did not exist before",
+            "role": "worker",
+            "work_unit_ref": "AAA-0009",
+        },
+    ]
+    changed = forge.fuse(mutated, b, cases=cases).doc
+    assert changed["id"] != first["id"], "a content change did not change the id"
+
+
+def test_a_rejected_fusion_can_never_carry_a_certified_id():
+    """The D4 hazard, reproduced end-to-end through the real certifier."""
+    a, b = _rich_workflow("wf.a"), _rich_workflow("wf.b")
+    cases = list(bench.DEFAULT_CASES)
+    seen: dict[str, str] = {}
+    verdicts_seen: set[str] = set()
+    for strat in FUSION_STRATEGIES:
+        out = forge.fuse_and_certify(a, b, strategy=strat, cases=cases)
+        wid, verdict = out["doc"]["id"], out["certification"]["verdict"]
+        verdicts_seen.add(verdict)
+        if verdict == "REJECTED":
+            assert wid.startswith(f"{forge._REJECTED_ID_PREFIX}."), (
+                f"{strat} was REJECTED but its id is not namespaced: {wid}"
+            )
+        else:
+            assert not wid.startswith(f"{forge._REJECTED_ID_PREFIX}."), wid
+        assert seen.get(wid, verdict) == verdict, (
+            f"id {wid} carries both {seen.get(wid)} and {verdict}"
+        )
+        seen[wid] = verdict
+        assert out["fused_id"] == wid, (
+            "the report fused_id drifted from the document id"
+        )
+    # Guard the guard: if no strategy is ever REJECTED here, the namespacing branch above was
+    # never exercised and this test would pass without measuring the hazard.
+    assert "REJECTED" in verdicts_seen, (
+        "no strategy was REJECTED, so the branch is untested"
+    )
+
+
+def test_every_fused_id_stays_within_the_schema_slug_cap():
+    """`$defs/slug` caps `id` at 80 chars; the digest suffix must not push it over."""
+    long_a = _rich_workflow("wf." + "a" * 70)
+    long_b = _rich_workflow("wf." + "b" * 70)
+    for strat in FUSION_STRATEGIES:
+        doc = forge.fuse(
+            long_a, long_b, strategy=strat, cases=list(bench.DEFAULT_CASES)
+        ).doc
+        assert len(doc["id"]) <= 80, (
+            f"{strat}: id is {len(doc['id'])} chars: {doc['id']}"
+        )
+        assert forge._SLUG.match(doc["id"]), doc["id"]
+
+
+def test_forged_documents_on_disk_carry_a_recomputable_id():
+    """A stamped id is a claim; recomputing it from the document is the check."""
+    forged = WORKFLOWS_DIR / "forged"
+    if not forged.is_dir():
+        pytest.skip("no forged artifacts emitted")
+        return
+    checked = 0
+    for path in sorted(forged.glob("*.workflow.json")):
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        expected = forge.expected_fused_id(doc)
+        if expected is None:
+            continue
+        checked += 1
+        assert doc["id"] == expected, (
+            f"{path.name}: id {doc['id']!r} does not match the id recomputed from its own "
+            f"content, {expected!r}"
+        )
+    assert checked > 0, "no forged document was actually checked"

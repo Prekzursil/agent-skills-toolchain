@@ -136,7 +136,15 @@ def validate_catalog(
     for prof in out["profiles"].values():
         prof.pop("_failing_ids", None)
 
-    out["semantic_rules"] = [r.to_json() for r in semantics.check_work_units(units)]
+    # The authorization plane (SEM-008..011) consumes the catalog-level `tool_policy` -
+    # the SAME `$defs/tool_policy` the DSL plane uses. Passing it explicitly (rather than
+    # letting it default to None) is load-bearing: None means "no policy", which SEM-008
+    # correctly reports as every tool denied.
+    out["tool_policy_declared"] = bool(catalog.get("tool_policy"))
+    out["semantic_rules"] = [
+        r.to_json()
+        for r in semantics.check_work_units(units, catalog.get("tool_policy"))
+    ]
     return out
 
 
@@ -250,6 +258,11 @@ def run_all(catalog_path: Path) -> dict[str, Any]:
         r["schema_valid"] and r["semantic_violations"] == 0
         for r in report["examples"]["results"]
     )
+    authz = {
+        r["rule"]: r
+        for r in cat["semantic_rules"]
+        if r["rule"] in ("SEM-008", "SEM-009", "SEM-010", "SEM-011")
+    }
     assertions = {
         "every schema validates against the draft 2020-12 metaschema": len(
             report["metaschema"]
@@ -293,6 +306,20 @@ def run_all(catalog_path: Path) -> dict[str, Any]:
         ]["parsed"]
         == 6
         and report["spec_stopping_expressions"]["all_true_on_reference_context"],
+        # defect D2: the work-unit plane's authorization rules. `checked` is asserted too -
+        # a rule reporting 0 violations over 0 subjects is a no-op wearing a pass.
+        "the catalog declares a deny-by-default tool_policy": cat[
+            "tool_policy_declared"
+        ]
+        and str(
+            (schemas.load_json(catalog_path).get("tool_policy") or {}).get("default")
+        )
+        == "deny",
+        "every work-unit authorization rule is clean on the real catalog": all(
+            authz[r]["violations"] == 0 for r in authz
+        )
+        and len(authz) == 4
+        and all(authz[r]["checked"] > 0 for r in authz),
     }
     report["assertions"] = assertions
     report["assertions_failed"] = sorted(k for k, v in assertions.items() if not v)

@@ -44,6 +44,9 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from vendor_identity import Comparison
+from vendor_identity import compare as compare_vendors
+
 __all__ = [
     "ABSOLUTE_MIN_BYTES",
     "CONDITIONS",
@@ -923,20 +926,28 @@ def _c9_reviewer(
         if isinstance(receipt.get("produced_by"), dict)
         else {}
     )
-    exec_vendor = str(produced.get("vendor") or "")
-    rev_vendor = str(rv.get("vendor") or "")
     if opts.require_cross_vendor_review:
-        if not rev_vendor or not exec_vendor:
+        # DEFECT D1: this used to be `rev_vendor == exec_vendor` over free text, which accepted
+        # 10/10 same-vendor ALIAS pairs (anthropic/claude, openai/codex, google/gemini, and a
+        # trailing space) as cross-vendor. Comparison now runs on CANONICAL identity resolved
+        # against platform/registry/VENDOR-REGISTRY.json, and a vendor string that does not
+        # resolve is REJECTED as NOT-CHECKED instead of being promoted to "distinct" merely for
+        # differing. NOT-CHECKED blocks completion, so an unregistered vendor cannot pass.
+        comparison, vendor_reason, vendor_detail = compare_vendors(
+            produced.get("vendor"), rv.get("vendor")
+        )
+        detail["vendor_comparison"] = comparison.value
+        detail["vendor_identity"] = vendor_detail
+        if comparison is Comparison.NOT_COMPUTABLE:
             return (
                 Outcome.NOT_CHECKED,
-                "unit requires a cross-vendor reviewer but a vendor is undeclared",
+                f"unit requires a cross-vendor reviewer but {vendor_reason}",
                 detail,
             )
-        if rev_vendor == exec_vendor:
+        if comparison is Comparison.SAME_VENDOR:
             return (
                 Outcome.UNSATISFIED,
-                f"unit requires a cross-vendor reviewer; reviewer vendor {rev_vendor!r} equals "
-                "the executor's, and a same-vendor reviewer inherits the executor's blind spots",
+                f"unit requires a cross-vendor reviewer; {vendor_reason}",
                 detail,
             )
     if opts.require_fresh_context_review and rv.get("fresh_context") is not True:

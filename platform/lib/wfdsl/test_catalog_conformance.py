@@ -82,6 +82,17 @@ def test_semantic_rules_do_not_regress(report: dict) -> None:
     assert by_rule["SEM-006"] == 0, "dependency cycle"
     assert by_rule["SEM-001"] <= CEILINGS["SEM-001"], by_rule["SEM-001"]
     assert by_rule["SEM-002"] <= CEILINGS["SEM-002"], by_rule["SEM-002"]
+    # The authorization plane (defect D2) landed clean and must STAY clean. These are not
+    # ceilings: SEM-008..011 measured 2007 / 30 / 2 / 10 violations before the catalog was
+    # repaired, and zero after, so any non-zero here is a real regression, not corpus debt.
+    assert by_rule["SEM-008"] == 0, (
+        "a unit requests a tool the tool_policy does not allow"
+    )
+    assert by_rule["SEM-009"] == 0, (
+        "an approval-gated tool is held without owner approval"
+    )
+    assert by_rule["SEM-010"] == 0, "tool_permissions exceed the declared substrate"
+    assert by_rule["SEM-011"] == 0, "an mcp__ token is not a specific server+tool"
 
 
 def test_semantic_detectors_fire_on_injected_defects(catalog: dict) -> None:

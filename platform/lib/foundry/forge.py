@@ -115,14 +115,104 @@ def _block_strength(block: Any, keys: Sequence[str]) -> int:
     return sum(1 for k in keys if block.get(k) not in (None, "", [], {}, False))
 
 
-def _fused_id(a: str, b: str) -> str:
-    readable = f"fused.{a}.{b}".lower()
-    readable = re.sub(r"[^a-z0-9._-]+", "-", readable)
-    readable = re.sub(r"[-._]{2,}", ".", readable).strip("-._")
-    if len(readable) <= 80 and _SLUG.match(readable):
-        return readable
-    digest = hashlib.sha256(f"{a}\x1e{b}".encode()).hexdigest()[:12]
-    return f"fused.{digest}"
+#: `id` is capped at 80 chars by $defs/slug in platform/schema/workflow-dsl.schema.json.
+_SLUG_MAX = 80
+#: how many hex chars of the payload digest ride in the id.
+_ID_DIGEST_CHARS = 12
+#: id prefix for a fusion the certifier REJECTED. A rejected document keeps its evidentiary
+#: value (forge must be able to refuse) but must never be loadable under a certified id.
+_REJECTED_ID_PREFIX = "rejected"
+
+
+def _slugify(text: str) -> str:
+    out = re.sub(r"[^a-z0-9._-]+", "-", text.lower())
+    return re.sub(r"[-._]{2,}", ".", out).strip("-._")
+
+
+def fusion_payload_digest(doc: Mapping[str, Any]) -> str:
+    """sha256 over the behaviour-bearing content of a fused document.
+
+    Excluded, and only these two:
+
+    * ``id`` - it is the value being derived, so including it would be circular.
+    * ``x_extensions.foundry.certification`` - written by :func:`fuse_and_certify`
+      *after* the id is assigned.
+
+    Excluding exactly those two is what makes the id **recomputable from a finished
+    document on disk**, so :func:`expected_fused_id` can verify any forged artifact
+    rather than taking its stamped id on trust.
+    """
+    payload = copy.deepcopy(dict(doc))
+    payload.pop("id", None)
+    ext = payload.get("x_extensions")
+    if isinstance(ext, Mapping):
+        foundry = ext.get("foundry")
+        if isinstance(foundry, Mapping) and "certification" in foundry:
+            payload["x_extensions"] = {
+                **ext,
+                "foundry": {k: v for k, v in foundry.items() if k != "certification"},
+            }
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _fused_id(
+    a: str, b: str, strategy: str, payload_digest: str, *, rejected: bool = False
+) -> str:
+    """Derive a fused workflow id that cannot collide across strategy or verdict.
+
+    Three inputs beyond the source pair, each closing a measured D4 collision:
+
+    * ``strategy`` - a ``union`` fusion and a ``best-of-breed`` fusion of the SAME pair
+      are different documents and must not share an id.
+    * ``payload_digest`` - a re-run whose content differs gets a different id; a re-run
+      whose content is identical deliberately keeps the same id (``fuse`` is pure, so
+      same-content/same-id is the correct content-addressed outcome).
+    * ``rejected`` - a REJECTED document is namespaced under ``rejected.``, so a loader
+      keyed on id can never resolve a rejected fusion where a certified one is meant.
+    """
+    head = _REJECTED_ID_PREFIX + ".fused" if rejected else "fused"
+    short = payload_digest[:_ID_DIGEST_CHARS]
+    body = _slugify(f"{a}.{b}.{strategy}")
+    candidate = _slugify(f"{head}.{body}.{short}")
+    if len(candidate) <= _SLUG_MAX and _SLUG.match(candidate):
+        return candidate
+    # Too long for the slug cap: keep the head and the digest (the parts that carry the
+    # uniqueness guarantee) and trim the readable middle. `strategy` is folded into the
+    # digest by the caller, so trimming it out of the readable text cannot reintroduce a
+    # cross-strategy collision.
+    room = _SLUG_MAX - len(head) - len(short) - 2
+    trimmed = _slugify(body[:room]) if room > 1 else ""
+    candidate = _slugify(f"{head}.{trimmed}.{short}" if trimmed else f"{head}.{short}")
+    if len(candidate) <= _SLUG_MAX and _SLUG.match(candidate):
+        return candidate
+    return f"{head}.{short}"
+
+
+def expected_fused_id(doc: Mapping[str, Any]) -> str | None:
+    """Recompute the id a forged document SHOULD carry, straight from the document.
+
+    Returns ``None`` for a document that forge did not produce (no foundry decomposition),
+    which the caller must treat as "not checkable here", never as a pass.
+    """
+    foundry = (doc.get("x_extensions") or {}).get("foundry")
+    if not isinstance(foundry, Mapping):
+        return None
+    decomposition = foundry.get("decomposition")
+    if not isinstance(decomposition, Mapping):
+        return None
+    base = decomposition.get("base") or {}
+    donor = decomposition.get("donor") or {}
+    if not isinstance(base, Mapping) or not isinstance(donor, Mapping):
+        return None
+    verdict = (foundry.get("certification") or {}).get("verdict")
+    return _fused_id(
+        str(base.get("id")),
+        str(donor.get("id")),
+        str(decomposition.get("strategy")),
+        fusion_payload_digest(doc),
+        rejected=verdict == "REJECTED",
+    )
 
 
 # --------------------------------------------------------------------- id rewriting
@@ -327,6 +417,9 @@ class Fusion:
     decomposition: dict[str, Any]
     notes: list[str] = field(default_factory=list)
     conflicts: list[dict[str, str]] = field(default_factory=list)
+    #: sha256 over the fused content, excluding `id` and the later-written certification.
+    #: Carried so `fuse_and_certify` can re-stamp a REJECTED id without recomputing it.
+    payload_digest: str = ""
 
 
 def fuse(
@@ -588,7 +681,10 @@ def fuse(
         fused["outputs"].setdefault(target, copy.deepcopy(spec))
 
     # ---- identity, lineage, decomposition
-    fused["id"] = _fused_id(base_id, donor_id)
+    # `id` is assigned at the END of this function, once every content-bearing block exists:
+    # it is a digest OVER that content, so it cannot be computed here. Re-assigning the key
+    # later preserves its position (`fused` is a deepcopy of `base`, which already has `id`),
+    # so the emitted JSON keeps `id` as its second key.
     fused["version"] = "1.0.0"
     fused["name"] = (
         f"Fused ({strategy}): {base.get('name', base_id)} + {donor.get('name', donor_id)}"
@@ -656,6 +752,8 @@ def fuse(
             "decomposition": decomposition,
         },
     }
+    payload_digest = fusion_payload_digest(fused)
+    fused["id"] = _fused_id(base_id, donor_id, strategy, payload_digest)
     return Fusion(
         doc=fused,
         strategy=strategy,
@@ -664,6 +762,7 @@ def fuse(
         decomposition=decomposition,
         notes=notes,
         conflicts=conflicts,
+        payload_digest=payload_digest,
     )
 
 
@@ -877,6 +976,17 @@ def fuse_and_certify(
                 for c in tool_conflicts
             )
             + " - the stricter posture was kept, so the fused document is intentionally invalid",
+        )
+    # D4: the verdict is only known HERE, so re-stamp the id under the `rejected.` namespace
+    # when the certifier refused. Without this a loader keyed on id could resolve the rejected
+    # union in place of the certified fusion of the same pair - the measured D4 hazard.
+    if not cert.accepted:
+        fusion.doc["id"] = _fused_id(
+            fusion.base_id,
+            fusion.donor_id,
+            fusion.strategy,
+            fusion.payload_digest,
+            rejected=True,
         )
     fusion.doc["x_extensions"]["foundry"]["certification"] = {
         "verdict": cert.verdict,
