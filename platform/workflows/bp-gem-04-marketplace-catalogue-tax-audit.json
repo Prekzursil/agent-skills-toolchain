@@ -1,0 +1,1081 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "bp-gem-04-marketplace-catalogue-tax-audit",
+  "name": "Marketplace Prospect and Catalogue-Tax Audit",
+  "description": "Evaluate third-party plugins / skills / MCP servers for adoption while MEASURING and CAPPING the per-turn context tax they impose - adopt-with-budget, not adopt-and-forget. Three things make this a governance blueprint rather than a research one: the tax is measured with an instrument that is itself validated against a control (a plugin that measures zero tax means the instrument is broken, not that the plugin is free); an artifact that ships its own hooks directory and is not a registered marketplace is QUARANTINED pending security review, because a cloned marketplace can auto-load hooks the moment an agent runs in it; and the enable/disable is applied at USER scope only, since project scope silently returns when the working directory changes.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "security-governance-and-risk",
+    "collective-intelligence-and-meta"
+  ],
+  "tags": [
+    "catalogue-tax",
+    "user-scope-only",
+    "hook-surface-quarantine"
+  ],
+  "flagship": false,
+  "params": {
+    "candidates": {
+      "type": "array",
+      "required": true,
+      "min_items": 1,
+      "max_items": 100,
+      "items": {
+        "type": "string",
+        "min_length": 2
+      },
+      "description": "Third-party artifacts under consideration"
+    },
+    "catalogue_root": {
+      "type": "path",
+      "required": true,
+      "description": "The installed plugin / skill / MCP tree to inventory"
+    },
+    "context_budget_tokens": {
+      "type": "integer",
+      "required": true,
+      "minimum": 1000,
+      "maximum": 400000,
+      "description": "The per-turn context ceiling; a DO verdict must fit inside it"
+    },
+    "control_artifact": {
+      "type": "string",
+      "required": true,
+      "min_length": 2,
+      "description": "A KNOWN-installed artifact used to validate the tax instrument: enabling it must measure NON-ZERO"
+    },
+    "detect_clones": {
+      "type": "boolean",
+      "default": true,
+      "description": "Optional S1b: byte-level duplicate-marketplace detection"
+    },
+    "artifact_root": {
+      "type": "path",
+      "default": "command-center/catalogue/bp-gem-04",
+      "description": "Every write is confined here"
+    }
+  },
+  "roles": {
+    "inventory-agent": {
+      "description": "Inventories the installed catalogue and measures today's baseline per-turn tax",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash:python",
+        "Write(command-center/catalogue/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "candidate-evaluator": {
+      "description": "Evaluates one candidate: licence, maintenance signal, hook surface, tool count - and refuses a DO without a recorded licence",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write(command-center/catalogue/**)"
+      ],
+      "min_participants": 1,
+      "max_participants": 16,
+      "speaking_rights": "always"
+    },
+    "tax-measurer": {
+      "description": "Measures the delta per-turn tax of enabling a candidate, with a control proving the instrument can register a non-zero reading",
+      "vendor": "any",
+      "effort": "low",
+      "authority": "judge",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Bash:claude",
+        "Write(command-center/catalogue/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "budget-reconciler": {
+      "description": "Decides DO / DEFER / DROP against the declared token budget; a candidate whose tax cannot be measured is DEFER, never DO",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "chair",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/catalogue/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - the only role that may authorise an install or a deregistration",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash:python",
+      "Bash:claude",
+      "Write(command-center/catalogue/**)"
+    ],
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "WebSearch",
+      "Write(platform/**)",
+      "Write(command-center/WORK-UNIT-CATALOG.json)"
+    ],
+    "require_owner_approval": [
+      "Bash:claude"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/catalogue/**"
+    ],
+    "forbid_write_paths": [
+      "platform/**",
+      "command-center/WORK-UNIT-CATALOG.json"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "license_allowlist": [
+        "MIT",
+        "Apache-2.0",
+        "BSD-3-Clause",
+        "MPL-2.0",
+        "CC-BY-4.0",
+        "owner-proprietary"
+      ],
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "record-as-not-checked"
+    }
+  },
+  "model_routing": {
+    "strategy": "cost-aware",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium"
+    },
+    "routes": [
+      {
+        "when": "stage_role == 'tax-measurer'",
+        "target": {
+          "model": "none-deterministic-script",
+          "vendor": "mixed",
+          "effort": "low"
+        },
+        "reason": "the tax is a measurement; a model estimate of it is exactly the fiction this blueprint replaces"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "instrument-validated": {
+      "predicate": "custom-expression",
+      "expression": "control_artifact_measured_tax > 0 AND baseline_tax_recorded == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "hook-surface-quarantine": {
+      "predicate": "custom-expression",
+      "expression": "unregistered_artifacts_shipping_hooks_admitted == 0 AND do_verdicts_without_licence == 0 AND project_scope_enables == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    }
+  },
+  "stages": [
+    {
+      "id": "inventory-baseline",
+      "title": "Inventory the installed catalogue and measure today's baseline tax",
+      "kind": "task",
+      "role": "inventory-agent",
+      "checkpoint": true,
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "BPG-0401",
+        "title": "Enumerate installed artifacts, their enable state and scope, and the baseline per-turn token cost",
+        "phase": "2B",
+        "question_or_target": "Inventory every installed plugin, skill and MCP server with its enable state AND the scope that enable lives at, then measure the baseline per-turn context cost. Installed-but-disabled is the common case and must be counted separately from enabled.",
+        "inputs": [
+          "params.catalogue_root"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "inventory-agent",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash:python",
+          "Write(command-center/catalogue/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/catalogue/bp-gem-04/catalogue-inventory.json",
+        "output_schema": "command-center/schema/audit-inventory.schema.json",
+        "evidence_requirement": "counts of installed vs enabled with the config file and key each enable state was read from; a state inferred without a file read is not recorded",
+        "tests_required": [
+          "the installed count must exceed the enabled count on this estate; equality means the reader is reading one field for both",
+          "an enable recorded at project scope must be reported as project-scoped, because it returns when the cwd changes"
+        ],
+        "reviewer_requirement": "the tax measurer refuses to compute a delta against a baseline whose source files are not named",
+        "completion_sentinel": "SUCCESS:BPG-0401 emitted only when every installed artifact has an enable state, a scope, and the file the state was read from; the baseline tax is recorded; otherwise FAILED:BPG-0401 <failure-class> <reason>",
+        "retry_policy": "fixed backoff, at most 2 attempts",
+        "failure_classification": [
+          "catalogue-unreadable",
+          "detector-truncation"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "scope-aware-catalogue-inventory"
+      },
+      "produces": [
+        {
+          "path": "command-center/catalogue/bp-gem-04/catalogue-inventory.json",
+          "schema_ref": "command-center/schema/audit-inventory.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPG-0401",
+          "consumers": [
+            "instrument-control",
+            "measure-delta-tax",
+            "decide"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "instrument-control",
+      "title": "Validate the tax instrument against a known-installed control",
+      "kind": "task",
+      "depends_on": [
+        "inventory-baseline"
+      ],
+      "role": "tax-measurer",
+      "timeout_seconds": 1200,
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Bash:claude",
+        "Write(command-center/catalogue/**)"
+      ],
+      "work_unit": {
+        "id": "BPG-0402",
+        "title": "Prove the tax instrument registers a non-zero reading on a control artifact",
+        "phase": "2B",
+        "question_or_target": "Measure the per-turn tax with the control artifact enabled and disabled. The delta MUST be greater than zero. A zero reading means the instrument is broken, and every later measurement it produces is meaningless.",
+        "inputs": [
+          "command-center/catalogue/bp-gem-04/catalogue-inventory.json",
+          "params.control_artifact"
+        ],
+        "dependencies": [
+          "BPG-0401"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "none-deterministic-script",
+          "vendor": "mixed",
+          "role": "tax-measurer",
+          "basis": "a measurement plus its control; the whole blueprint rests on this instrument being real"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Bash:claude",
+          "Write(command-center/catalogue/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1200,
+        "output_path": "command-center/catalogue/bp-gem-04/tax-instrument-control.json",
+        "output_schema": "command-center/schema/detector-control.schema.json",
+        "evidence_requirement": "both readings (enabled, disabled), the delta, and the exact command that produced each - a delta asserted without two readings is not a measurement",
+        "tests_required": [
+          "MANDATORY both-states: the control artifact must measure NON-ZERO tax when enabled and the baseline must be reproducible when it is disabled",
+          "if the instrument reports zero for a known-heavy artifact the stage must FAIL, not record zero"
+        ],
+        "reviewer_requirement": "the budget reconciler treats any candidate measured after a failed control as unmeasured, hence DEFER",
+        "completion_sentinel": "SUCCESS:BPG-0402 emitted only when the control delta is greater than zero and both readings carry their producing commands; otherwise FAILED:BPG-0402 <failure-class> <reason>",
+        "retry_policy": "fixed backoff, at most 2 attempts; a second zero reading fails the control",
+        "failure_classification": [
+          "detector-failure",
+          "instrument-unavailable"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "tax-instrument-control-validation"
+      },
+      "produces": [
+        {
+          "path": "command-center/catalogue/bp-gem-04/tax-instrument-control.json",
+          "schema_ref": "command-center/schema/detector-control.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPG-0402",
+          "consumers": [
+            "instrument-gate",
+            "measure-delta-tax"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "instrument-gate",
+      "title": "A zero-reading instrument measures nothing: block before spending on candidates",
+      "kind": "gate",
+      "depends_on": [
+        "instrument-control"
+      ],
+      "gate_ref": "instrument-validated"
+    },
+    {
+      "id": "candidate-fanout",
+      "title": "Evaluate each candidate: licence, maintenance, hook surface, tool count",
+      "kind": "fanout",
+      "depends_on": [
+        "instrument-gate"
+      ],
+      "over": {
+        "source": "param",
+        "ref": "candidates",
+        "item_var": "candidate",
+        "key_field": "candidate"
+      },
+      "max_concurrency": 4,
+      "arrival_stagger_ms": 200,
+      "max_items": 100,
+      "on_item_failure": "quarantine",
+      "body": [
+        {
+          "id": "evaluate-candidate",
+          "title": "Evaluate one third-party artifact",
+          "kind": "task",
+          "role": "candidate-evaluator",
+          "timeout_seconds": 1800,
+          "work_unit": {
+            "id": "BPG-0403",
+            "title": "Record licence, maintenance signal, hook surface, tool count and registration status",
+            "phase": "2B",
+            "question_or_target": "For the assigned candidate record: its licence (verbatim), its maintenance signal, whether it ships its own hooks directory, whether it is a REGISTERED marketplace, and how many tools it adds. A candidate shipping hooks while unregistered is flagged for quarantine.",
+            "inputs": [
+              "params.candidates",
+              "command-center/catalogue/bp-gem-04/catalogue-inventory.json"
+            ],
+            "dependencies": [
+              "BPG-0401"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "candidate-evaluator",
+              "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+            },
+            "tool_permissions": [
+              "Read",
+              "Grep",
+              "Glob",
+              "Write(command-center/catalogue/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 1800,
+            "output_path": "command-center/catalogue/bp-gem-04/candidates/evaluation.json",
+            "output_schema": "command-center/schema/license-and-rights-record.schema.json",
+            "evidence_requirement": "the licence text is quoted from the artifact's own file; the hook surface is a directory listing, not an inference",
+            "tests_required": [
+              "an artifact shipping its own hooks directory and absent from the registered marketplace list must be flagged for QUARANTINE",
+              "a candidate with no discoverable licence must be recorded licence-unknown, which makes DO impossible downstream"
+            ],
+            "reviewer_requirement": "the quarantine gate blocks admission of any flagged artifact regardless of its other scores",
+            "completion_sentinel": "SUCCESS:BPG-0403 emitted only when every candidate has a licence field, a hook-surface finding, a registration status and a tool count; otherwise FAILED:BPG-0403 <failure-class> <reason>",
+            "retry_policy": "fixed backoff, at most 2 attempts",
+            "failure_classification": [
+              "licence-indeterminate",
+              "artifact-unreadable"
+            ],
+            "owner_approval_required": false,
+            "mechanism": "licence-and-hook-surface-evaluation"
+          },
+          "produces": [
+            {
+              "path": "command-center/catalogue/bp-gem-04/candidates/evaluation.json",
+              "schema_ref": "command-center/schema/license-and-rights-record.schema.json",
+              "min_bytes": 128,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:BPG-0403",
+              "consumers": [
+                "measure-delta-tax",
+                "decide"
+              ]
+            }
+          ]
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "fail",
+        "require_stages": [
+          "evaluate-candidate"
+        ],
+        "reject_result_matching": [
+          "started in the background"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "clone-detect",
+      "title": "Optional S1b: a byte-level duplicate marketplace is pure tax",
+      "kind": "task",
+      "depends_on": [
+        "candidate-fanout"
+      ],
+      "when": "detect_clones == true",
+      "role": "inventory-agent",
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "BPG-0404",
+        "title": "Detect duplicate and orphaned marketplace clones by content hash",
+        "phase": "2B",
+        "question_or_target": "Hash the marketplace trees and report duplicates and orphans. A byte-level duplicate adds catalogue tax and zero capability; an orphaned clone is registered to nothing and may still ship hooks.",
+        "inputs": [
+          "command-center/catalogue/bp-gem-04/catalogue-inventory.json"
+        ],
+        "dependencies": [
+          "BPG-0401"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "inventory-agent",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "Read",
+          "Glob",
+          "Bash:python",
+          "Write(command-center/catalogue/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 900,
+        "output_path": "command-center/catalogue/bp-gem-04/clone-census.json",
+        "output_schema": "command-center/schema/collision-census.schema.json",
+        "evidence_requirement": "each duplicate group lists its member paths and the shared content hash; an orphan names the registration it lacks",
+        "tests_required": [
+          "MANDATORY: the known orphaned marketplace clones on this estate must be detected - a clean result on a box that has them means the detector is wrong",
+          "two trees differing by one byte must NOT be reported as duplicates"
+        ],
+        "reviewer_requirement": "the owner decides deregistration; this stage only reports",
+        "completion_sentinel": "SUCCESS:BPG-0404 emitted only when every marketplace tree is hashed and grouped, and each orphan names its missing registration; otherwise FAILED:BPG-0404 <failure-class> <reason>",
+        "retry_policy": "fixed backoff, at most 2 attempts",
+        "failure_classification": [
+          "catalogue-unreadable",
+          "detector-failure"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "content-hash-clone-census"
+      },
+      "produces": [
+        {
+          "path": "command-center/catalogue/bp-gem-04/clone-census.json",
+          "schema_ref": "command-center/schema/collision-census.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPG-0404",
+          "consumers": [
+            "decide"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "measure-delta-tax",
+      "title": "Measure the per-turn tax each candidate would ADD",
+      "kind": "task",
+      "depends_on": [
+        "clone-detect"
+      ],
+      "role": "tax-measurer",
+      "timeout_seconds": 2400,
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Bash:claude",
+        "Write(command-center/catalogue/**)"
+      ],
+      "work_unit": {
+        "id": "BPG-0405",
+        "title": "Measure each candidate's delta tax against the validated baseline",
+        "phase": "2B",
+        "question_or_target": "For each candidate measure the per-turn token delta it would add, using the instrument the control validated. A candidate whose tax cannot be measured is recorded UNMEASURED - which forces DEFER, never DO.",
+        "inputs": [
+          "command-center/catalogue/bp-gem-04/candidates/evaluation.json",
+          "command-center/catalogue/bp-gem-04/tax-instrument-control.json"
+        ],
+        "dependencies": [
+          "BPG-0402",
+          "BPG-0403"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "none-deterministic-script",
+          "vendor": "mixed",
+          "role": "tax-measurer",
+          "basis": "a measurement against a validated instrument, not an estimate"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Bash:claude",
+          "Write(command-center/catalogue/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 2400,
+        "output_path": "command-center/catalogue/bp-gem-04/delta-tax.json",
+        "output_schema": "command-center/schema/measurement-run.schema.json",
+        "evidence_requirement": "each delta names the baseline it was measured against and the command that produced the reading; an UNMEASURED row states why",
+        "tests_required": [
+          "a candidate adding many tools must measure a larger delta than one adding a single tool - a flat reading across both means the instrument is not resolving",
+          "an unmeasurable candidate must be UNMEASURED, never zero"
+        ],
+        "reviewer_requirement": "the budget reconciler cannot promote an UNMEASURED candidate to DO",
+        "completion_sentinel": "SUCCESS:BPG-0405 emitted only when every candidate has a delta tax or an explicit UNMEASURED reason, each naming its baseline; otherwise FAILED:BPG-0405 <failure-class> <reason>",
+        "retry_policy": "fixed backoff, at most 2 attempts; a second failure records UNMEASURED",
+        "failure_classification": [
+          "detector-failure",
+          "instrument-unavailable"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "delta-tax-measurement"
+      },
+      "produces": [
+        {
+          "path": "command-center/catalogue/bp-gem-04/delta-tax.json",
+          "schema_ref": "command-center/schema/measurement-run.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPG-0405",
+          "consumers": [
+            "decide"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "decide",
+      "title": "DO / DEFER / DROP against the declared context budget",
+      "kind": "task",
+      "depends_on": [
+        "measure-delta-tax"
+      ],
+      "role": "budget-reconciler",
+      "timeout_seconds": 1200,
+      "work_unit": {
+        "id": "BPG-0406",
+        "title": "Reconcile every candidate against the token budget and emit a scoped decision",
+        "phase": "2B",
+        "question_or_target": "Decide DO / DEFER / DROP per candidate: DO requires a recorded licence, a measured delta, no quarantine flag, and room inside the context budget. Every DO records that it will be applied at USER scope.",
+        "inputs": [
+          "command-center/catalogue/bp-gem-04/delta-tax.json",
+          "command-center/catalogue/bp-gem-04/candidates/evaluation.json",
+          "command-center/catalogue/bp-gem-04/clone-census.json",
+          "params.context_budget_tokens"
+        ],
+        "dependencies": [
+          "BPG-0403",
+          "BPG-0405"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "budget-reconciler",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/catalogue/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1200,
+        "output_path": "command-center/catalogue/bp-gem-04/picks.json",
+        "output_schema": "command-center/schema/disposition-table.schema.json",
+        "evidence_requirement": "the artifact states the budget, the sum of admitted deltas, and the remaining headroom numerically; each verdict names its blocking condition where not DO",
+        "tests_required": [
+          "a candidate with no licence must never be DO",
+          "the sum of admitted deltas must not exceed the declared budget",
+          "a quarantine-flagged candidate must never be DO regardless of its tax"
+        ],
+        "reviewer_requirement": "the owner approves before anything is applied; the quarantine gate runs first",
+        "completion_sentinel": "SUCCESS:BPG-0406 emitted only when every candidate has a verdict, the admitted delta sum fits the budget, and every DO is marked user-scope; otherwise FAILED:BPG-0406 <failure-class> <reason>",
+        "retry_policy": "fixed backoff, at most 2 attempts",
+        "failure_classification": [
+          "budget-undeclared",
+          "licence-indeterminate"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "tax-budgeted-do-defer-drop"
+      },
+      "produces": [
+        {
+          "path": "command-center/catalogue/bp-gem-04/picks.json",
+          "schema_ref": "command-center/schema/disposition-table.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPG-0406",
+          "consumers": [
+            "quarantine-gate",
+            "owner-authorise",
+            "apply-user-scope"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "quarantine-gate",
+      "title": "No unregistered hook-shipping artifact, no unlicensed DO, no project-scope enable",
+      "kind": "gate",
+      "depends_on": [
+        "decide"
+      ],
+      "gate_ref": "hook-surface-quarantine"
+    },
+    {
+      "id": "owner-authorise",
+      "title": "Owner authorises the installs and any deregistration",
+      "kind": "human_checkpoint",
+      "depends_on": [
+        "quarantine-gate"
+      ],
+      "prompt": "These picks fit the declared context budget. Authorise the DO list to be enabled at USER scope, authorise deregistration of the orphaned clones, or decline. A quarantined artifact is not in this list and needs a security review first.",
+      "approvers": [
+        "owner"
+      ],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 86400,
+      "on_timeout": "fail",
+      "owner_approval_required": true,
+      "options": [
+        "authorise-do-list",
+        "authorise-with-deregistration",
+        "decline"
+      ],
+      "decision_artifact": {
+        "path": "command-center/catalogue/bp-gem-04/owner-decision.json",
+        "schema_ref": "command-center/schema/decision-record.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true,
+        "consumers": [
+          "apply-user-scope"
+        ]
+      }
+    },
+    {
+      "id": "apply-user-scope",
+      "title": "Apply at USER scope only, and record the scope that was written",
+      "kind": "task",
+      "depends_on": [
+        "owner-authorise"
+      ],
+      "role": "tax-measurer",
+      "timeout_seconds": 900,
+      "tool_permissions": [
+        "Read",
+        "Bash:claude",
+        "Write(command-center/catalogue/**)"
+      ],
+      "work_unit": {
+        "id": "BPG-0407",
+        "title": "Enable or disable at USER scope and verify the scope actually written",
+        "phase": "2B",
+        "question_or_target": "Apply the authorised verdicts at USER scope, then RE-READ the config and confirm the change landed at user scope. A change written at project scope silently returns when the working directory changes, so the durable cure is the scope, not the toggle.",
+        "inputs": [
+          "command-center/catalogue/bp-gem-04/picks.json",
+          "command-center/catalogue/bp-gem-04/owner-decision.json"
+        ],
+        "dependencies": [
+          "BPG-0406"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "none-deterministic-script",
+          "vendor": "mixed",
+          "role": "tax-measurer",
+          "basis": "apply-then-verify: the verification is a re-read, not a claim"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:claude",
+          "Write(command-center/catalogue/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 900,
+        "output_path": "command-center/catalogue/bp-gem-04/apply-report.json",
+        "output_schema": "command-center/schema/install-report.schema.json",
+        "evidence_requirement": "per change: the command run, the config file re-read afterwards, and the scope the key was found at - a change asserted without a re-read is not verified",
+        "tests_required": [
+          "both-states: a change written at user scope must be found at user scope on re-read; a change that lands at project scope must FAIL this stage",
+          "the post-change tax must be re-measured and compared against the predicted delta"
+        ],
+        "reviewer_requirement": "the owner decision record and this report are read together, so an applied change outside the authorised list is visible",
+        "completion_sentinel": "SUCCESS:BPG-0407 emitted only when every authorised change is applied, re-read, and confirmed at USER scope, with the post-change tax measured; otherwise FAILED:BPG-0407 <failure-class> <reason>",
+        "retry_policy": "two strikes then pivot: after two failed applications, revert and report rather than a third attempt",
+        "failure_classification": [
+          "scope-mismatch",
+          "apply-failed"
+        ],
+        "owner_approval_required": true,
+        "mechanism": "user-scope-apply-then-reread"
+      },
+      "produces": [
+        {
+          "path": "command-center/catalogue/bp-gem-04/apply-report.json",
+          "schema_ref": "command-center/schema/install-report.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPG-0407",
+          "consumers": [
+            "command-center/DECISION-LOG.json"
+          ]
+        }
+      ]
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "candidates-decided-and-budget-reconciled",
+      "expression": "candidates_without_verdict == 0 AND admitted_delta_sum <= context_budget_tokens",
+      "applies_to": "workflow",
+      "minimum_conditions": "control_artifact_measured_tax > 0",
+      "on_stop": "complete"
+    },
+    {
+      "id": "instrument-broken",
+      "expression": "control_artifact_measured_tax == 0",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": [
+      "detector-failure",
+      "artifact-unreadable"
+    ],
+    "no_retry_on": [
+      "owner-blocked",
+      "licence-blocked"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "owner-authorise"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "quarantine",
+    "classify_as": [
+      "licence-indeterminate",
+      "detector-failure",
+      "scope-mismatch",
+      "apply-failed"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner-authorise",
+    "quarantine_path": "command-center/catalogue/bp-gem-04/quarantine"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/catalogue/bp-gem-04/checkpoints",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260810,
+    "journal_path": "command-center/catalogue/bp-gem-04/replay/journal.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "timings",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "schema-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "fail"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "workflow",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash",
+      "tool_versions"
+    ],
+    "store": "command-center/catalogue/bp-gem-04/cache",
+    "ttl_seconds": 86400,
+    "verify_integrity": true,
+    "invalidate_on": [
+      "schema-version-change",
+      "tool-version-change"
+    ],
+    "read_only": false
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "artifact-diff",
+      "graph"
+    ],
+    "plan_artifact": "command-center/catalogue/bp-gem-04/dry-run-plan.json",
+    "forbid_tools": [
+      "Bash:claude",
+      "Bash:python",
+      "Write(command-center/catalogue/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "min": 0.4,
+      "expected": 1.8,
+      "max": 7.0
+    },
+    "wallclock_seconds": {
+      "min": 600,
+      "expected": 2400,
+      "max": 9000
+    },
+    "tokens": {
+      "min": 60000,
+      "expected": 300000,
+      "max": 1200000
+    },
+    "tool_calls": {
+      "expected": 80,
+      "max": 500
+    },
+    "impact": {
+      "risk": "medium",
+      "reversibility": "reversible-with-effort",
+      "blast_radius": "mutates the agent catalogue enable state at USER scope after owner authorisation; every change is re-read and recorded",
+      "requires_owner_approval": true
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/bp-gem-04.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "skills/mcp-fleet-curation",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner (USER-scope disable cure, the two root causes)"
+      },
+      {
+        "source": "skills/skill-stocktake",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner (portfolio inventory)"
+      },
+      {
+        "source": "exec-skill-source-triage",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner (the DO/DEFER/DROP pick table)"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-GEM-04",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true
+  },
+  "outputs": {
+    "picks": {
+      "path": "command-center/catalogue/bp-gem-04/picks.json",
+      "schema_ref": "command-center/schema/disposition-table.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/DECISION-LOG.json"
+      ]
+    },
+    "apply-report": {
+      "path": "command-center/catalogue/bp-gem-04/apply-report.json",
+      "schema_ref": "command-center/schema/install-report.schema.json",
+      "min_bytes": 128,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/DECISION-LOG.json"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint_source": {
+      "card": "BP-GEM-04",
+      "library": "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.md",
+      "card_heading_line": 601
+    },
+    "acquisition_route_from_card": "COMPOSE",
+    "mechanism_signature": [
+      "scope-aware-catalogue-inventory",
+      "tax-instrument-control-validation",
+      "delta-tax-measurement-per-candidate",
+      "licence-and-hook-surface-evaluation",
+      "unregistered-hook-shipper-quarantine",
+      "user-scope-apply-then-reread"
+    ],
+    "contraindications": [
+      "NOT for first-party owner artifacts - no licence question and no tax surprise",
+      "NOT a security review of the artifact's CODE: a quarantine flag hands that to a security blueprint"
+    ],
+    "why_not_a_duplicate_of_bp_gem_02": "BP-GEM-02 judges candidates against a declared architecture list and a budget using set arithmetic and NO measurement. This one MEASURES an instrument-validated quantity (per-turn context tax), evaluates licences, and mutates the catalogue at a verified scope. One is arithmetic over declarations; the other is a measurement plus an apply-then-verify.",
+    "unverified": [
+      "UNVERIFIED as a combined pass; settling experiment = run it over the disabled plugins on this estate and see whether ANY DO verdict survives its own budget check."
+    ],
+    "owner_decision": "What per-turn context budget is the ceiling, and does a marketplace declared RETIRED but still registered get deregistered now?",
+    "worked_example": {
+      "name": "evaluate three third-party plugins against a 40k per-turn budget",
+      "params": {
+        "candidates": [
+          "example-plugin-a",
+          "example-plugin-b",
+          "example-mcp-c"
+        ],
+        "catalogue_root": "command-center/catalogue/installed-tree.json",
+        "context_budget_tokens": 40000,
+        "control_artifact": "example-known-installed-plugin",
+        "detect_clones": true
+      },
+      "expected_stage_order": [
+        "inventory-baseline",
+        "instrument-control",
+        "instrument-gate",
+        "candidate-fanout",
+        "clone-detect",
+        "measure-delta-tax",
+        "decide",
+        "quarantine-gate",
+        "owner-authorise",
+        "apply-user-scope"
+      ],
+      "expected_skipped": [],
+      "expected_max_parallel": 4,
+      "expected_gate_ids": [
+        "instrument-gate",
+        "quarantine-gate"
+      ],
+      "acceptance": [
+        "the control artifact measures a NON-ZERO tax delta",
+        "the known orphaned marketplace clones are detected",
+        "a candidate shipping its own hooks while unregistered is quarantined, not adopted",
+        "every applied change is re-read and confirmed at USER scope"
+      ],
+      "stopping_rule_controls": [
+        {
+          "rule": "candidates-decided-and-budget-reconciled",
+          "why": "the floor stops a completed-looking run whose tax instrument never worked",
+          "fires_on": {
+            "candidates_without_verdict": 0,
+            "admitted_delta_sum": 12000,
+            "context_budget_tokens": 40000,
+            "control_artifact_measured_tax": 900
+          },
+          "does_not_fire_on": {
+            "candidates_without_verdict": 0,
+            "admitted_delta_sum": 12000,
+            "context_budget_tokens": 40000,
+            "control_artifact_measured_tax": 0
+          }
+        },
+        {
+          "rule": "instrument-broken",
+          "why": "a zero control reading must escalate, because every later measurement is then meaningless",
+          "fires_on": {
+            "candidates_without_verdict": 3,
+            "admitted_delta_sum": 0,
+            "context_budget_tokens": 40000,
+            "control_artifact_measured_tax": 0
+          },
+          "does_not_fire_on": {
+            "candidates_without_verdict": 3,
+            "admitted_delta_sum": 0,
+            "context_budget_tokens": 40000,
+            "control_artifact_measured_tax": 900
+          }
+        }
+      ]
+    }
+  }
+}

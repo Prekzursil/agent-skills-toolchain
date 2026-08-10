@@ -1,0 +1,513 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "worktree-isolated-parallel-build",
+  "name": "Worktree-isolated parallel build with an empty-index guard and a recorded downgrade",
+  "description": "Blueprint 39 of 96 (BP-IMP-02). FLAGSHIP. The ISOLATION SUBSTRATE that mutating fan-outs run inside, promoted from a measured 2.7% exception (9 of 329 executed workflows) to the default. Worktrees are PRE-CREATED before any unit starts (pre-creation removes the creation race), each from an explicit base_ref rather than whatever HEAD happens to be; integration is serial; and the empty-index trap - a scoped add in a fresh worktree staging thousands of deletions - is checked before any commit. A unit that cannot get a worktree is serialised into the main tree with scoped adds AND that downgrade is written down.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": ["engineering-and-reliability"],
+  "tags": ["git-worktree", "isolation", "empty-index-guard", "recorded-downgrade"],
+  "flagship": true,
+
+  "params": {
+    "units": {
+      "type": "array",
+      "items": { "type": "string" },
+      "min_items": 1,
+      "max_items": 64,
+      "required": true,
+      "description": "The mutating units that each need their own tree"
+    },
+    "repo": {
+      "type": "path",
+      "required": true,
+      "description": "Repository root. Windows-style drive paths only for PATH arguments - a POSIX /c/... path is silently mangled by MSYS."
+    },
+    "base_ref": {
+      "type": "string",
+      "default": "origin/main",
+      "description": "EXPLICIT base for every worktree branch. Never HEAD - HEAD drifts while the fan-out runs."
+    },
+    "encrypted_repo": {
+      "type": "boolean",
+      "default": false,
+      "description": "git-crypt plus worktrees is a known interop hazard; when true the provisioner routes through the gitcrypt-worktree path"
+    },
+    "disk_budget_gb": {
+      "type": "integer",
+      "default": 40,
+      "minimum": 1,
+      "maximum": 4096,
+      "description": "Above this projected footprint the fan-out is narrowed rather than started"
+    }
+  },
+
+  "roles": {
+    "provisioner": {
+      "description": "Creates and destroys worktrees; asserts the target repository before any write and never touches unit content",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Glob", "Bash:git", "Bash:python"],
+      "write_paths": ["command-center/isolation/**"],
+      "speaking_rights": "always"
+    },
+    "integrator": {
+      "description": "Merges the per-unit branches back SERIALLY, one at a time, checking the staged surface of each",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "informed",
+      "tool_permissions": ["Read", "Grep", "Bash:git"],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "Decides whether the disk cost of default isolation is acceptable at this fan-out width",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+
+  "tool_policy": {
+    "default": "deny",
+    "allow": ["Read", "Grep", "Glob", "Bash:git", "Bash:python"],
+    "deny": ["Bash:git-add-all", "WebFetch", "WebSearch"],
+    "network": "read-only",
+    "write_paths": ["command-center/isolation/**"],
+    "forbid_write_paths": [".git/config", "command-center/WORK-UNIT-CATALOG.json"]
+  },
+
+  "model_routing": {
+    "strategy": "static",
+    "default": { "model": "opus", "vendor": "anthropic", "effort": "medium" },
+    "forbid_downgrade_below": "opus"
+  },
+
+  "gates": {
+    "target-repo-asserted": {
+      "predicate": "custom-expression",
+      "expression": "worktree_target_repo_matches_declared == true AND worktree_path_is_drive_absolute == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "disk-budget": {
+      "predicate": "custom-expression",
+      "expression": "projected_footprint_gb <= disk_budget_gb",
+      "blocking": true,
+      "on_fail": "escalate-to-human"
+    },
+    "no-broad-add": {
+      "predicate": "custom-expression",
+      "expression": "broad_add_all_invocations == 0 AND every_add_is_path_scoped == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "empty-index-guard": {
+      "predicate": "custom-expression",
+      "expression": "staged_deletions == 0 OR deletions_explicitly_intended == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "isolation-preserved": {
+      "predicate": "custom-expression",
+      "expression": "cross_unit_files_in_any_commit == 0 AND sibling_work_lost == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    }
+  },
+
+  "subworkflows": {
+    "per-unit-four-phase-pipeline": {
+      "workflow_id": "per-unit-four-phase-pipeline",
+      "version_range": ">=1.0.0 <2.0.0",
+      "source": "platform/workflows/per-unit-four-phase-pipeline.json"
+    }
+  },
+
+  "stages": [
+    {
+      "id": "pre-create-worktrees",
+      "title": "S0 PRE-CREATE every worktree before any unit starts - pre-creation removes the creation race",
+      "kind": "task",
+      "role": "provisioner",
+      "timeout_seconds": 3600,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "IMP-0446",
+        "title": "Pre-create one worktree per mutating unit from an explicit base_ref, with content-preserving teardown planned up front",
+        "phase": "4",
+        "question_or_target": "Create N worktrees in ONE serial pass before any unit runs, each on a branch cut from the declared base_ref (never HEAD), each asserted to live under the declared repository, and record the teardown plan at creation time so an abandoned run cannot leak trees.",
+        "inputs": ["params.units", "params.repo", "params.base_ref", "params.encrypted_repo"],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "provisioner",
+          "basis": "provisioning errors are silent and expensive; do not downgrade this step"
+        },
+        "tool_permissions": ["Read", "Glob", "Bash:git", "Bash:python"],
+        "execution_substrate": "local-serial",
+        "timeout_seconds": 3600,
+        "output_path": "command-center/isolation/worktree-manifest.json",
+        "output_schema": "command-center/schema/isolation-report.schema.json",
+        "evidence_requirement": "`git worktree list --porcelain` output showing N trees, each branch's merge-base equal to the declared base_ref commit, and each path resolving under the declared repo root - all three re-runnable",
+        "tests_required": [
+          "a worktree whose branch was cut from a moving HEAD instead of base_ref must be rejected by the merge-base check",
+          "a path outside the declared repo root must be refused BEFORE creation, not cleaned up afterwards",
+          "both-states control: with git-crypt enabled the provisioner must take the gitcrypt-worktree path and the plain path must FAIL on the same repo"
+        ],
+        "reviewer_requirement": "an independent reviewer who re-lists the worktrees and re-derives each merge-base rather than reading the manifest",
+        "completion_sentinel": "SUCCESS:IMP-0446 emitted only when worktree-manifest.json lists exactly one live tree per unit, every merge-base equals base_ref, and every path is drive-absolute under the declared repo; otherwise FAILED:IMP-0446 <reason>",
+        "retry_policy": "two strikes then pivot: a second creation failure for the same unit routes to the recorded serial downgrade rather than a third attempt",
+        "failure_classification": ["worktree-creation-failed", "gitcrypt-interop", "disk-exhausted"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/isolation/worktree-manifest.json",
+          "schema_ref": "command-center/schema/isolation-report.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:IMP-0446",
+          "consumers": ["run-units", "cleanup-worktrees"]
+        }
+      ]
+    },
+    {
+      "id": "target-assert-gate",
+      "title": "Assert the target repository and path shape BEFORE any unit writes",
+      "kind": "gate",
+      "depends_on": ["pre-create-worktrees"],
+      "gate_ref": "target-repo-asserted"
+    },
+    {
+      "id": "disk-gate",
+      "title": "Narrow the fan-out rather than exhaust the disk",
+      "kind": "gate",
+      "depends_on": ["target-assert-gate"],
+      "gate_ref": "disk-budget"
+    },
+    {
+      "id": "run-units",
+      "title": "S1 RUN units concurrently, each inside its own tree, each delegating to the quality loop",
+      "kind": "fanout",
+      "depends_on": ["disk-gate"],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/isolation/worktree-manifest.json",
+        "item_var": "worktree",
+        "key_field": "unit"
+      },
+      "max_concurrency": 12,
+      "arrival_stagger_ms": 250,
+      "max_items": 64,
+      "on_item_failure": "quarantine",
+      "body": [
+        {
+          "id": "build-in-worktree",
+          "title": "Delegate the four-phase quality loop into this unit's tree",
+          "kind": "subworkflow",
+          "workflow": {
+            "workflow_id": "per-unit-four-phase-pipeline",
+            "version_range": ">=1.0.0 <2.0.0"
+          },
+          "params": { "single_unit_mode": true },
+          "isolation": "worktree",
+          "propagate_failure": false,
+          "timeout_seconds": 21600
+        },
+        {
+          "id": "serial-downgrade",
+          "title": "S1b FALLBACK - no worktree available: serialise into the main tree with scoped adds and RECORD the downgrade",
+          "kind": "task",
+          "role": "provisioner",
+          "depends_on": ["build-in-worktree"],
+          "when": "worktree_available == false",
+          "work_unit_ref": "IMP-0432",
+          "timeout_seconds": 5400,
+          "produces": [
+            {
+              "path": "command-center/isolation/downgrade-record.json",
+              "schema_ref": "command-center/schema/decision-record.schema.json",
+              "min_bytes": 128,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:IMP-0432",
+              "consumers": ["integration-barrier", "isolation-review"]
+            }
+          ]
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "proceed-with-quarantine",
+        "verify_artifact_exists": true,
+        "reject_result_matching": ["started in the background", "Check /codex:status"]
+      }
+    },
+    {
+      "id": "integration-barrier",
+      "title": "Hard barrier: nothing integrates until every unit is terminal",
+      "kind": "barrier",
+      "depends_on": ["run-units"],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "fail",
+        "require_stages": ["run-units"],
+        "verify_artifact_exists": true
+      },
+      "joins": ["run-units"]
+    },
+    {
+      "id": "broad-add-gate",
+      "title": "`git add -A` in a shared tree sweeps a sibling's work - it is denied, and the denial is checked",
+      "kind": "gate",
+      "depends_on": ["integration-barrier"],
+      "gate_ref": "no-broad-add"
+    },
+    {
+      "id": "empty-index-gate",
+      "title": "A scoped add in a FRESH tree can stage thousands of deletions - catch it before the commit",
+      "kind": "gate",
+      "depends_on": ["broad-add-gate"],
+      "gate_ref": "empty-index-guard"
+    },
+    {
+      "id": "integrate-serially",
+      "title": "S2 INTEGRATE one branch at a time, re-checking the staged surface of each",
+      "kind": "task",
+      "role": "integrator",
+      "depends_on": ["empty-index-gate"],
+      "work_unit_ref": "IMP-0428",
+      "timeout_seconds": 7200,
+      "produces": [
+        {
+          "path": "command-center/isolation/integration-report.json",
+          "schema_ref": "command-center/schema/isolation-report.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:IMP-0428",
+          "consumers": ["isolation-review", "cleanup-worktrees"]
+        }
+      ]
+    },
+    {
+      "id": "isolation-review",
+      "title": "Prove no commit carries another unit's files and no sibling work was lost",
+      "kind": "gate",
+      "depends_on": ["integrate-serially"],
+      "gate_ref": "isolation-preserved"
+    },
+    {
+      "id": "cleanup-worktrees",
+      "title": "S3 CLEAN UP - teardown must be content-preserving and must actually run",
+      "kind": "task",
+      "role": "provisioner",
+      "depends_on": ["isolation-review"],
+      "work_unit_ref": "IMP-0223",
+      "timeout_seconds": 1800,
+      "produces": [
+        {
+          "path": "command-center/isolation/cleanup-report.json",
+          "schema_ref": "command-center/schema/isolation-report.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:IMP-0223",
+          "consumers": ["owner-isolation-decision"]
+        }
+      ]
+    },
+    {
+      "id": "owner-isolation-decision",
+      "title": "OWNER-DECISION: make isolation the hard default at 40+ agents, given the measured disk and setup cost?",
+      "kind": "human_checkpoint",
+      "depends_on": ["cleanup-worktrees"],
+      "prompt": "Measured disk footprint and setup wall-clock for this run are attached. Make worktree isolation the hard default for every mutating fan-out, keep it opt-in, or cap it at a fan-out width?",
+      "approvers": ["owner"],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 86400,
+      "on_timeout": "proceed",
+      "owner_approval_required": true,
+      "options": ["hard-default", "opt-in", "default-below-a-width-cap"],
+      "decision_artifact": {
+        "path": "command-center/isolation/owner-isolation-decision.json",
+        "schema_ref": "command-center/schema/owner-decision-packet.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true
+      }
+    }
+  ],
+
+  "stopping_rules": [
+    {
+      "id": "all-trees-integrated-and-removed",
+      "expression": "worktrees_live == 0 AND units_integrated_or_quarantined == units_total",
+      "applies_to": "workflow",
+      "minimum_conditions": "worktrees_created >= 1",
+      "on_stop": "complete"
+    },
+    {
+      "id": "isolation-broken",
+      "expression": {
+        "any": [
+          "cross_unit_files_in_any_commit > 0",
+          "sibling_work_lost > 0"
+        ]
+      },
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": ["index-lock", "disk-transient"],
+    "no_retry_on": ["gitcrypt-interop", "owner-blocked"],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "owner-isolation-decision"
+    }
+  },
+
+  "failure_policy": {
+    "on_failure": "quarantine",
+    "classify_as": ["worktree-creation-failed", "gitcrypt-interop", "staged-deletions", "cross-unit-contamination"],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner-isolation-decision",
+    "quarantine_path": "command-center/isolation/quarantine"
+  },
+
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/worktree-isolated-parallel-build",
+    "granularity": "fanout-item",
+    "idempotency_key_from": ["workflow_id", "stage_id", "item_key"],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 604800,
+    "on_stale": "fail"
+  },
+
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/worktree-isolated-parallel-build.jsonl",
+    "record": ["params", "tool_calls", "tool_results", "timings"],
+    "forbid_nondeterministic_sources": ["filesystem-order"],
+    "on_divergence": "warn"
+  },
+
+  "cache": {
+    "enabled": false,
+    "scope": "workflow",
+    "read_only": true,
+    "invalidate_on": ["base-ref-moved"]
+  },
+
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": ["plan", "estimate", "graph", "permission-report"],
+    "plan_artifact": "command-center/dry-run/worktree-isolated-parallel-build-plan.json",
+    "forbid_tools": ["Bash:git", "Bash:python"]
+  },
+
+  "estimate": {
+    "basis": "hybrid",
+    "confidence": "likely",
+    "measurement_source": "command-center/measurements/worktree-provisioning-runs.json",
+    "wallclock_seconds": { "min": 600, "expected": 7200, "max": 43200 },
+    "tokens": { "min": 80000, "expected": 500000, "max": 2000000 },
+    "tool_calls": { "expected": 240, "max": 1200 },
+    "impact": {
+      "risk": "medium",
+      "reversibility": "reversible",
+      "blast_radius": "N worktrees plus N branches under the declared repo; the isolation itself is what bounds the blast radius of the units running inside it",
+      "requires_owner_approval": false
+    }
+  },
+
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": ["definition", "tests", "lineage"],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/worktree-isolated-parallel-build.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject"
+    }
+  },
+
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "skills/workflow-authoring#isolation-worktree",
+        "relation": "REPAIR",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "superpowers:using-git-worktrees",
+        "relation": "ADOPT-WITH-WRAPPER",
+        "license": "third-party-plugin",
+        "credit": "superpowers"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-IMP-02",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": ["skills/workflow-authoring@as-shipped"]
+  },
+
+  "outputs": {
+    "integration-report": {
+      "path": "command-center/isolation/integration-report.json",
+      "schema_ref": "command-center/schema/isolation-report.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": ["command-center/PROGRAM-LEDGER.json"]
+    },
+    "downgrade-record": {
+      "path": "command-center/isolation/downgrade-record.json",
+      "schema_ref": "command-center/schema/decision-record.schema.json",
+      "min_bytes": 128,
+      "register_in_manifest": true,
+      "consumers": ["owner-isolation-decision"]
+    }
+  },
+
+  "x_extensions": {
+    "worked_example": {
+      "scenario": "Two concurrent units in one repo; unit A runs `git add -A` and commits while unit B has uncommitted work.",
+      "shared_tree_outcome": "unit A's broad add stages unit B's in-progress files; A commits them; B's later commit is empty or conflicting and B's work is silently attributed to A",
+      "isolated_outcome": "A and B hold separate indexes, so A's add cannot see B's files; broad-add-gate additionally fails A because broad_add_all_invocations > 0",
+      "empty_index_control": "unit C's worktree is fresh and its scoped `git add src/` stages 6,013 DELETIONS because the index is empty; empty-index-gate fails on staged_deletions > 0 before any commit exists",
+      "downgrade_control": "unit D's worktree creation fails twice (disk); the pivot routes D to serial-downgrade, which writes downgrade-record.json - the run is not silently less safe than it claims",
+      "gitcrypt_control": "with encrypted_repo=true the plain provisioning path must FAIL and the gitcrypt-worktree path must succeed; a provisioner that passes on both is not detecting the hazard"
+    },
+    "distinctive_mechanism": "pre-creation before any unit starts, an explicit base_ref merge-base assertion, the empty-index staged-deletions guard, and a RECORDED downgrade when isolation is unavailable",
+    "contraindications": [
+      "NOT for read-only fan-outs - pure overhead, no contamination to prevent",
+      "NOT where git-crypt and worktrees are combined without the gitcrypt-worktree path (known interop hazard)",
+      "NOT when disk is constrained below the projected footprint - narrow the fan-out instead"
+    ],
+    "not_a_duplicate_because": "BP-PLN-02 DECIDES which units may run in parallel; this is the substrate they run inside, and it delegates the quality loop rather than reimplementing it.",
+    "flagship_test": "platform/lib/workflows/test_worktree_isolated_parallel_build.py"
+  }
+}

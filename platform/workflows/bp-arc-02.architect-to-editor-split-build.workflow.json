@@ -1,0 +1,838 @@
+{
+ "dsl_version": "1.0.0",
+ "id": "bp-arc-02.architect-to-editor-split-build",
+ "name": "Architect-to-Editor Split Build",
+ "description": "Separate deciding WHAT to change from mechanically applying it: an Opus architect emits a typed change-spec, a Codex editor applies it. The change-spec - not the conversation - is the durable, reviewable, re-appliable artifact, so a different editor can reproduce the change. The lint ladder is capped at max_reflections and the attempt after the cap ESCALATES to the lead for re-decomposition; it never becomes a further retry.",
+ "version": "1.0.0",
+ "kind": "workflow",
+ "categories": [
+  "engineering-and-reliability"
+ ],
+ "tags": [
+  "cross-vendor",
+  "change-spec",
+  "lint-ladder",
+  "escalate-not-grind"
+ ],
+ "flagship": true,
+ "params": {
+  "goal": {
+   "type": "string",
+   "required": true,
+   "min_length": 15,
+   "description": "What must change, in one sentence"
+  },
+  "repo_map_path": {
+   "type": "path",
+   "required": true,
+   "description": "PageRank-ranked symbol map over LSP reference edges - the grounding, not a vector store"
+  },
+  "max_reflections": {
+   "type": "integer",
+   "default": 3,
+   "minimum": 1,
+   "maximum": 3,
+   "description": "Lint-ladder cap. The attempt after this one escalates; it is never a retry."
+  },
+  "sandbox": {
+   "type": "enum",
+   "enum": [
+    "none",
+    "wsl2",
+    "docker",
+    "modal"
+   ],
+   "default": "none",
+   "description": "Windows has no native OS process sandbox, so any change that EXECUTES anything routes off-native"
+  },
+  "editor_vendor": {
+   "type": "enum",
+   "enum": [
+    "openai",
+    "anthropic"
+   ],
+   "default": "openai",
+   "description": "Editor vendor. Defaulting to the non-architect vendor is the point of the split."
+  }
+ },
+ "roles": {
+  "architect": {
+   "description": "Decides the change and emits a typed change-spec complete enough that the editor needs no judgement",
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "max",
+   "authority": "chair",
+   "independence": "independent",
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Glob",
+    "Bash:python",
+    "Write(command-center/changespec/**)"
+   ],
+   "write_paths": [
+    "command-center/changespec/**"
+   ],
+   "speaking_rights": "always"
+  },
+  "editor": {
+   "description": "Applies the change-spec verbatim and fails LOUDLY on an under-specified spec instead of improvising",
+   "model": "gpt-5-codex",
+   "vendor": "openai",
+   "effort": "high",
+   "authority": "advisory",
+   "independence": "informed",
+   "cross_vendor_required": true,
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Bash:git",
+    "mcp__codex__codex"
+   ],
+   "speaking_rights": "on-request"
+  },
+  "lead": {
+   "description": "Re-decomposes the work unit when the editor breaches the failure threshold",
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "max",
+   "authority": "veto",
+   "independence": "informed",
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Write(command-center/changespec/**)"
+   ],
+   "speaking_rights": "on-request"
+  }
+ },
+ "tool_policy": {
+  "default": "deny",
+  "allow": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash:git",
+   "Bash:python",
+   "mcp__codex__codex",
+   "Write(command-center/changespec/**)"
+  ],
+  "deny": [
+   "Bash",
+   "WebFetch"
+  ],
+  "network": "none",
+  "require_owner_approval": [
+   "Bash:git"
+  ],
+  "write_paths": [
+   "command-center/changespec/**"
+  ],
+  "forbid_write_paths": [
+   "command-center/WORK-UNIT-CATALOG.json"
+  ]
+ },
+ "model_routing": {
+  "strategy": "vendor-diverse",
+  "default": {
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high"
+  },
+  "routes": [
+   {
+    "when": "stage_role == editor",
+    "target": {
+     "model": "gpt-5-codex",
+     "vendor": "openai",
+     "effort": "high"
+    },
+    "reason": "the editor is deliberately a different vendor from the architect"
+   }
+  ],
+  "escalation": {
+   "on": [
+    "failure",
+    "timeout"
+   ],
+   "target": {
+    "model": "opus",
+    "vendor": "anthropic",
+    "effort": "max"
+   },
+   "max_escalations": 1
+  },
+  "forbid_downgrade_below": "opus"
+ },
+ "gates": {
+  "spec-complete": {
+   "predicate": "custom-expression",
+   "expression": "change_spec_validates == true AND unresolved_editor_questions == 0",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "fail"
+  },
+  "lint-clean-or-escalate": {
+   "predicate": "custom-expression",
+   "expression": "lint_clean == true OR lint_attempts >= 3",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "escalate-to-human"
+  },
+  "dispatch-was-blocking": {
+   "predicate": "custom-expression",
+   "expression": "editor_result_is_artifact == true AND background_receipt_returned == false",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "fail"
+  },
+  "unit-complete": {
+   "predicate": "completion-predicate-v1",
+   "predicate_ref": "command-center/COMPLETION-GATES.json#/gate_a_unit_completion_predicate",
+   "conditions_required": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "repair"
+  }
+ },
+ "stages": [
+  {
+   "id": "s0-ground",
+   "title": "S0 GROUND with a PageRank repo map",
+   "kind": "task",
+   "role": "architect",
+   "timeout_seconds": 1200,
+   "checkpoint": true,
+   "work_unit": {
+    "id": "BP3-ARC02-S0",
+    "title": "Rank the symbols the change will touch, using LSP reference edges",
+    "phase": "2B",
+    "question_or_target": "Produce the ranked symbol neighbourhood of the goal so the change-spec is grounded in the real call graph.",
+    "inputs": [
+     "params.goal",
+     "params.repo_map_path"
+    ],
+    "dependencies": [],
+    "assigned_model_vendor_role": {
+     "model": "opus",
+     "vendor": "anthropic",
+     "role": "architect",
+     "basis": "grounding quality determines change-spec quality"
+    },
+    "tool_permissions": [
+     "Read",
+     "Grep",
+     "Glob",
+     "Bash:python"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 1200,
+    "output_path": "command-center/changespec/arc02-repo-map.json",
+    "output_schema": "command-center/schema/capability-index.schema.json",
+    "evidence_requirement": "every ranked symbol is reachable from a real reference edge, not from a name-similarity guess",
+    "tests_required": [
+     "a symbol with no inbound reference edge must not appear in the ranked neighbourhood"
+    ],
+    "reviewer_requirement": "the lead reads the map before the change-spec is accepted",
+    "completion_sentinel": "SUCCESS:BP3-ARC02-S0 only when every ranked symbol cites the reference edge that ranked it; otherwise FAILED:BP3-ARC02-S0 <reason>",
+    "retry_policy": "two strikes then pivot to a narrower symbol seed",
+    "failure_classification": [
+     "detector-failure",
+     "spec-underspecified"
+    ],
+    "owner_approval_required": false
+   },
+   "produces": [
+    {
+     "path": "command-center/changespec/arc02-repo-map.json",
+     "schema_ref": "command-center/schema/capability-index.schema.json",
+     "min_bytes": 256,
+     "register_in_manifest": true,
+     "sentinel": "SUCCESS:BP3-ARC02-S0",
+     "consumers": [
+      "s1-architect"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "s1-architect",
+   "title": "S1 ARCHITECT emits a typed change-spec",
+   "kind": "task",
+   "role": "architect",
+   "depends_on": [
+    "s0-ground"
+   ],
+   "timeout_seconds": 2400,
+   "work_unit": {
+    "id": "BP3-ARC02-S1",
+    "title": "Emit a typed change-spec the editor can apply without judgement",
+    "phase": "2B",
+    "question_or_target": "Write the complete change-spec: per file, the exact edit intent, the acceptance check, and the rollback.",
+    "inputs": [
+     "command-center/changespec/arc02-repo-map.json",
+     "params.goal"
+    ],
+    "dependencies": [
+     "BP3-ARC02-S0"
+    ],
+    "assigned_model_vendor_role": {
+     "model": "opus",
+     "vendor": "anthropic",
+     "role": "architect",
+     "basis": "the deciding is the hard part and belongs on the strongest model"
+    },
+    "tool_permissions": [
+     "Read",
+     "Grep",
+     "Write(command-center/changespec/**)"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 2400,
+    "output_path": "command-center/changespec/arc02-change-spec.json",
+    "output_schema": "command-center/schema/contract-spec.schema.json",
+    "evidence_requirement": "each edit names the file, the anchor it applies at, the acceptance check, and the rollback step",
+    "tests_required": [
+     "a spec entry with no acceptance check must FAIL validation, since the editor could not tell success from failure",
+     "a spec that leaves an edit anchor ambiguous must FAIL rather than let the editor choose"
+    ],
+    "reviewer_requirement": "the editor is the reviewer of record: if it needs to ask, the spec is incomplete",
+    "completion_sentinel": "SUCCESS:BP3-ARC02-S1 only when every edit carries an anchor, an acceptance check and a rollback; otherwise FAILED:BP3-ARC02-S1 <reason>",
+    "retry_policy": "two strikes then pivot to a decomposed spec of smaller units",
+    "failure_classification": [
+     "spec-underspecified",
+     "overclaim"
+    ],
+    "owner_approval_required": false
+   },
+   "produces": [
+    {
+     "path": "command-center/changespec/arc02-change-spec.json",
+     "schema_ref": "command-center/schema/contract-spec.schema.json",
+     "min_bytes": 512,
+     "register_in_manifest": true,
+     "sentinel": "SUCCESS:BP3-ARC02-S1",
+     "consumers": [
+      "s2-editor",
+      "the replay surface"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "s1-gate",
+   "title": "S1 gate: an under-specified spec must not reach the editor",
+   "kind": "gate",
+   "depends_on": [
+    "s1-architect"
+   ],
+   "gate_ref": "spec-complete"
+  },
+  {
+   "id": "s2-apply",
+   "title": "S2 EDITOR applies the spec, S3 LINTs only the changed files",
+   "kind": "loop",
+   "depends_on": [
+    "s1-gate"
+   ],
+   "loop_var": "reflection",
+   "body": [
+    {
+     "id": "editor-apply",
+     "kind": "task",
+     "role": "editor",
+     "timeout_seconds": 1800,
+     "work_unit": {
+      "id": "BP3-ARC02-S2",
+      "title": "Apply the change-spec through a BLOCKING cross-vendor dispatch",
+      "phase": "2B",
+      "question_or_target": "Apply every edit in the change-spec verbatim, and fail loudly on any entry that requires a judgement call.",
+      "inputs": [
+       "command-center/changespec/arc02-change-spec.json"
+      ],
+      "dependencies": [
+       "BP3-ARC02-S1"
+      ],
+      "assigned_model_vendor_role": {
+       "model": "gpt-5-codex",
+       "vendor": "openai",
+       "role": "editor",
+       "basis": "cross-vendor diversity per work unit; the editor is not the architect"
+      },
+      "tool_permissions": [
+       "Read",
+       "Grep",
+       "mcp__codex__codex"
+      ],
+      "execution_substrate": "codex-mcp",
+      "timeout_seconds": 1800,
+      "output_path": "command-center/changespec/arc02-applied-diff.json",
+      "output_schema": "command-center/schema/work-result.schema.json",
+      "evidence_requirement": "exit code 0 AND a non-empty parseable output artifact AND that artifact validates against the declared schema - all three, never exit code alone",
+      "tests_required": [
+       "a result string containing 'started in the background' or 'Check /codex:status' must be REJECTED as a receipt, not accepted as a result",
+       "an under-specified spec entry must produce FAILED with the entry id, never an improvised edit"
+      ],
+      "reviewer_requirement": "the lint ladder, then the lead on threshold breach",
+      "completion_sentinel": "SUCCESS:BP3-ARC02-S2 only when the dispatch was foreground, the output artifact exists and parses, and it validates against its schema; otherwise FAILED:BP3-ARC02-S2 <reason>",
+      "retry_policy": "bounded by the loop convergence at max_reflections; the attempt after the cap escalates instead",
+      "failure_classification": [
+       "severed-stream",
+       "win-arg-limit",
+       "schema-invalid",
+       "spec-underspecified"
+      ],
+      "owner_approval_required": false
+     }
+    },
+    {
+     "id": "lint-changed-only",
+     "kind": "task",
+     "role": "architect",
+     "depends_on": [
+      "editor-apply"
+     ],
+     "timeout_seconds": 900,
+     "work_unit": {
+      "id": "BP3-ARC02-S3",
+      "title": "Lint only the files the editor changed",
+      "phase": "2B",
+      "question_or_target": "Run the project lint over exactly the changed file set, so cost scales with the diff and not with the repo.",
+      "inputs": [
+       "command-center/changespec/arc02-applied-diff.json"
+      ],
+      "dependencies": [
+       "BP3-ARC02-S2"
+      ],
+      "assigned_model_vendor_role": {
+       "model": "opus",
+       "vendor": "anthropic",
+       "role": "architect",
+       "basis": "a changed-file-only lint is the smallest check that could still catch this change"
+      },
+      "tool_permissions": [
+       "Read",
+       "Bash:python",
+       "Bash:git"
+      ],
+      "execution_substrate": "local-single",
+      "timeout_seconds": 900,
+      "output_path": "command-center/changespec/arc02-lint.json",
+      "output_schema": "command-center/schema/conformance-report.schema.json",
+      "evidence_requirement": "records the exact command, its exit code, and the changed-file list it was given",
+      "tests_required": [
+       "a lint over an EMPTY changed-file set must FAIL closed, because a lint that examined nothing is not a pass",
+       "the lint must be verified against a known-bad file before its silence counts as clean"
+      ],
+      "reviewer_requirement": "none - exit code plus the both-states control is the evidence",
+      "completion_sentinel": "SUCCESS:BP3-ARC02-S3 only when the changed-file set is non-empty and the recorded command exited 0; otherwise FAILED:BP3-ARC02-S3 <reason>",
+      "retry_policy": "bounded by the loop; a lint failure feeds the next reflection",
+      "failure_classification": [
+       "detector-failure",
+       "lint-failure"
+      ],
+      "owner_approval_required": false
+     }
+    }
+   ],
+   "convergence": {
+    "max_iterations": 3,
+    "min_iterations": 1,
+    "converged_when": "lint_violations == 0",
+    "no_progress_rounds": 2,
+    "metrics": [
+     {
+      "name": "lint_violations",
+      "direction": "decrease",
+      "target": 0
+     }
+    ],
+    "on_no_convergence": "escalate"
+   }
+  },
+  {
+   "id": "s2-dispatch-gate",
+   "title": "S2 gate: a background receipt is not a result",
+   "kind": "gate",
+   "depends_on": [
+    "s2-apply"
+   ],
+   "gate_ref": "dispatch-was-blocking"
+  },
+  {
+   "id": "s3-lint-gate",
+   "title": "S3 gate: lint clean, or the ladder is spent",
+   "kind": "gate",
+   "depends_on": [
+    "s2-dispatch-gate"
+   ],
+   "gate_ref": "lint-clean-or-escalate"
+  },
+  {
+   "id": "s4-escalate",
+   "title": "S4 ESCALATE to the lead for re-decomposition - never a fourth attempt",
+   "kind": "repair_loop",
+   "depends_on": [
+    "s3-lint-gate"
+   ],
+   "when": "lint_clean == false",
+   "target": [
+    "s1-architect",
+    "s2-apply"
+   ],
+   "max_attempts": 1,
+   "classification_filter": [
+    "lint-failure",
+    "spec-underspecified",
+    "severed-stream"
+   ],
+   "escalate_to": "lead",
+   "require_root_cause": true,
+   "diagnose": {
+    "id": "lead-diagnose",
+    "kind": "task",
+    "role": "lead",
+    "timeout_seconds": 1200,
+    "work_unit": {
+     "id": "BP3-ARC02-S4D",
+     "title": "Decide whether the spec, the decomposition, or the editor failed",
+     "phase": "2B",
+     "question_or_target": "Attribute the repeated failure to the change-spec, the unit decomposition, or the editor rail, and enumerate at least two alternatives.",
+     "inputs": [
+      "command-center/changespec/arc02-lint.json",
+      "command-center/changespec/arc02-change-spec.json"
+     ],
+     "dependencies": [
+      "BP3-ARC02-S3"
+     ],
+     "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "lead",
+      "basis": "re-decomposition is a judgement the lead owns"
+     },
+     "tool_permissions": [
+      "Read",
+      "Grep",
+      "Write(command-center/changespec/**)"
+     ],
+     "execution_substrate": "local-single",
+     "timeout_seconds": 1200,
+     "output_path": "command-center/changespec/arc02-escalation.json",
+     "output_schema": "command-center/schema/root-cause-graph.schema.json",
+     "evidence_requirement": "names the failing fingerprint and at least two mechanically different alternatives",
+     "tests_required": [
+      "an escalation offering fewer than two alternatives must FAIL - that is a retry wearing an escalation label"
+     ],
+     "reviewer_requirement": "the owner when the alternatives all require a scope change",
+     "completion_sentinel": "SUCCESS:BP3-ARC02-S4D only when at least two mechanically different alternatives are enumerated; otherwise FAILED:BP3-ARC02-S4D <reason>",
+     "retry_policy": "none; this stage IS the pivot",
+     "failure_classification": [
+      "spec-underspecified",
+      "decomposition-too-coarse"
+     ],
+     "owner_approval_required": false
+    }
+   },
+   "verify": {
+    "id": "escalation-verified",
+    "kind": "gate",
+    "gate": {
+     "predicate": "custom-expression",
+     "expression": "alternatives_enumerated >= 2 AND root_cause_named == true",
+     "blocking": true,
+     "evidence_required": true,
+     "on_fail": "fail"
+    }
+   }
+  },
+  {
+   "id": "s5-predicate",
+   "title": "S5 gate the applied change on the shared 12-condition predicate",
+   "kind": "gate",
+   "depends_on": [
+    "s4-escalate"
+   ],
+   "gate_ref": "unit-complete"
+  }
+ ],
+ "stopping_rules": [
+  {
+   "id": "lint-clean-or-ladder-spent",
+   "expression": "lint_clean == true OR lint_attempts >= 3",
+   "applies_to": "workflow",
+   "minimum_conditions": "change_spec_validates == true",
+   "on_stop": "complete"
+  },
+  {
+   "id": "editor-rail-severed",
+   "expression": "editor_result_is_artifact == false AND dispatch_attempts >= 2",
+   "applies_to": "workflow",
+   "on_stop": "escalate"
+  }
+ ],
+ "retry_policy": {
+  "strategy": "two-strikes-then-pivot",
+  "max_attempts": 3,
+  "backoff_seconds": 15,
+  "jitter": true,
+  "retry_on": [
+   "severed-stream",
+   "win-arg-limit",
+   "quota-429-storm"
+  ],
+  "no_retry_on": [
+   "owner-blocked",
+   "spec-underspecified"
+  ],
+  "pivot": {
+   "after_attempts": 2,
+   "enumerate_alternatives_min": 2,
+   "escalate_to": "lead"
+  }
+ },
+ "failure_policy": {
+  "on_failure": "escalate-to-human",
+  "classify_as": [
+   "severed-stream",
+   "spec-underspecified",
+   "lint-failure"
+  ],
+  "terminal_state_required": true,
+  "never_silent": true,
+  "preserve_partial_artifact": true,
+  "escalate_to": "lead",
+  "quarantine_path": "command-center/quarantine/arc02"
+ },
+ "resume": {
+  "enabled": true,
+  "checkpoint_store": "command-center/checkpoints/arc02",
+  "granularity": "work-unit",
+  "idempotency_key_from": [
+   "workflow_id",
+   "workflow_version",
+   "stage_id",
+   "inputs_hash"
+  ],
+  "resume_from": "last-checkpoint",
+  "stale_checkpoint_seconds": 86400,
+  "on_stale": "warn-and-resume"
+ },
+ "replay": {
+  "deterministic": true,
+  "seed": 20260810,
+  "journal_path": "command-center/replay/arc02.jsonl",
+  "record": [
+   "params",
+   "inputs",
+   "tool_calls",
+   "tool_results",
+   "env_fingerprint"
+  ],
+  "forbid_nondeterministic_sources": [
+   "clock",
+   "random",
+   "filesystem-order",
+   "process-id"
+  ],
+  "replay_source": "recorded-journal",
+  "verify": "hash-equal",
+  "hash_algorithm": "sha256",
+  "on_divergence": "record-discrepancy"
+ },
+ "cache": {
+  "enabled": true,
+  "scope": "workflow",
+  "key_from": [
+   "workflow_version",
+   "stage_id",
+   "inputs_hash",
+   "prompt_hash",
+   "model_id",
+   "tool_versions"
+  ],
+  "store": "command-center/cache/arc02",
+  "ttl_seconds": 86400,
+  "verify_integrity": true,
+  "invalidate_on": [
+   "schema-version-change",
+   "tool-version-change"
+  ],
+  "read_only": false
+ },
+ "dry_run": {
+  "supported": true,
+  "side_effect_free": true,
+  "emits": [
+   "plan",
+   "estimate",
+   "permission-report",
+   "artifact-diff"
+  ],
+  "plan_artifact": "command-center/dry-run/arc02-plan.json",
+  "forbid_tools": [
+   "mcp__codex__codex",
+   "Bash:git",
+   "Bash:python",
+   "Write(command-center/changespec/**)"
+  ]
+ },
+ "estimate": {
+  "basis": "static-declared",
+  "wallclock_seconds": {
+   "min": 600,
+   "expected": 3000,
+   "max": 10800
+  },
+  "tokens": {
+   "min": 80000,
+   "expected": 400000,
+   "max": 1200000
+  },
+  "tool_calls": {
+   "expected": 40,
+   "max": 300
+  },
+  "impact": {
+   "risk": "medium",
+   "reversibility": "reversible-with-effort",
+   "blast_radius": "the editor mutates repo files; every edit carries a declared rollback and the change-spec can be re-applied or reverted",
+   "requires_owner_approval": false
+  }
+ },
+ "portability": {
+  "export": {
+   "format": "bundle",
+   "includes": [
+    "definition",
+    "examples",
+    "tests",
+    "lineage"
+   ],
+   "redact_secrets": true,
+   "bundle_path": "command-center/export/bp-arc-02.bundle.json"
+  },
+  "import": {
+   "validate_against": "platform/schema/workflow-dsl.schema.json",
+   "on_version_mismatch": "reject",
+   "trust": {
+    "require_signature": false,
+    "allow_publishers": [
+     "prekzursil"
+    ]
+   }
+  }
+ },
+ "lineage": {
+  "derived_from": [
+   {
+    "source": "skills/orchestration-patterns",
+    "relation": "ADOPT-AS-IS",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "rules/common/cross-vendor-dispatch.md",
+    "relation": "REBUILD-FROM-SPEC",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-ARC-02",
+    "relation": "REBUILD-FROM-SPEC",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   }
+  ],
+  "decomposable_back_to_sources": true,
+  "rollback_to": [
+   "skills/orchestration-patterns@current"
+  ]
+ },
+ "outputs": {
+  "change_spec": {
+   "path": "command-center/changespec/arc02-change-spec.json",
+   "schema_ref": "command-center/schema/contract-spec.schema.json",
+   "min_bytes": 512,
+   "register_in_manifest": true,
+   "consumers": [
+    "the editor",
+    "any future editor re-applying the change",
+    "code review"
+   ]
+  },
+  "applied_diff": {
+   "path": "command-center/changespec/arc02-applied-diff.json",
+   "schema_ref": "command-center/schema/work-result.schema.json",
+   "min_bytes": 256,
+   "register_in_manifest": true,
+   "consumers": [
+    "the lint stage",
+    "code review"
+   ]
+  },
+  "lint": {
+   "path": "command-center/changespec/arc02-lint.json",
+   "schema_ref": "command-center/schema/conformance-report.schema.json",
+   "min_bytes": 128,
+   "register_in_manifest": true,
+   "consumers": [
+    "the lint gate",
+    "the lead"
+   ]
+  }
+ },
+ "x_extensions": {
+  "design_card": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-ARC-02 (doc-order 29 of 96)",
+  "distinguishing_mechanism": "a typed change-spec crosses the vendor boundary and the lint ladder is CAPPED, so the attempt after the cap is a re-decomposition rather than a fourth try. BP-IMP-01 is the per-work-unit quality pipeline; this is the role split INSIDE its implement step and nests within it.",
+  "cross_vendor_dispatch_constraints": [
+   "the dispatch MUST block: a job id or a 'started in the background' string is not a result",
+   "pass the prompt BY FILE: Windows CreateProcess caps a command line at 32,767 chars",
+   "pass --ignore-user-config on every non-interactive invocation, so the active MCP inventory cannot blow the arg limit",
+   "set an explicit 30-minute timeout; the silent 10-minute default is what makes agents reach for --background"
+  ],
+  "worked_example": {
+   "name": "the lint ladder escalates on the fourth attempt",
+   "narrative": "The editor applies the spec and the changed-file lint fails three times in a row. With max_reflections=3 the ladder stops at three and the outcome is 'escalate' with three attempts used - a fourth attempt must never be made. The control shows the same input reaching 'clean' when the second attempt succeeds, which proves the ladder is not simply always escalating.",
+   "mechanism": "mechanisms.lint_ladder",
+   "input": {
+    "attempt_results": [
+     false,
+     false,
+     false,
+     true
+    ],
+    "cap": 3
+   },
+   "expected": {
+    "outcome": "escalate",
+    "attempts_used": 3
+   },
+   "controls": [
+    {
+     "attempt_results": [
+      false,
+      true,
+      false
+     ],
+     "expected_outcome": "clean",
+     "expected_attempts": 2,
+     "why": "the ladder must be capable of both outcomes, or it measures nothing"
+    }
+   ]
+  }
+ }
+}

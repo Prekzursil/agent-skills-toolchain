@@ -1,0 +1,496 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "dead-feed-recovery-unattended-proof",
+  "name": "Dead-feed recovery gated on an unattended cadence hit",
+  "description": "BP-INC-02 (card 68). Defining mechanism: the acceptance criterion is an event nobody triggered. A manual rebuild proves only that a human can write the file; the repair is proven only when the producer writes AGAIN, unattended, at its next natural cadence. The loop here therefore converges on an externally-caused observation and FAILS rather than emitting a partial when that observation never arrives - the opposite disposition from every other loop in this set. Environmental-versus-defect separation is delegated to live-estate-incident-triage as a subworkflow rather than re-implemented.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": ["engineering-and-reliability"],
+  "tags": ["bp-inc-02", "dead-feed", "unattended-proof", "self-healing"],
+  "flagship": true,
+
+  "params": {
+    "feed_name": {
+      "type": "string",
+      "required": true,
+      "min_length": 2,
+      "description": "The feed whose output is stale"
+    },
+    "producer": {
+      "type": "string",
+      "required": true,
+      "min_length": 2,
+      "description": "The scheduled task, daemon or job that is supposed to write the feed"
+    },
+    "output_path": {
+      "type": "path",
+      "required": true,
+      "description": "The artifact whose freshness is the observable"
+    },
+    "expected_cadence_seconds": {
+      "type": "integer",
+      "required": true,
+      "minimum": 60,
+      "maximum": 2592000,
+      "description": "The producer's declared period. Staleness is measured against this, not against a feeling."
+    },
+    "cadence_polls": {
+      "type": "integer",
+      "default": 3,
+      "minimum": 1,
+      "maximum": 12,
+      "description": "How many cadence periods to wait for the unattended write before declaring the fix failed"
+    },
+    "add_freshness_postcondition": {
+      "type": "boolean",
+      "default": true,
+      "description": "Leave behind a consumer-side freshness check so the NEXT staleness is self-reported"
+    }
+  },
+
+  "roles": {
+    "staleness-measurer": {
+      "description": "Measures observed staleness against the declared cadence, in seconds, from the artifact itself",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Bash:python", "Bash:pwsh", "Write(command-center/incident/feed/**)"],
+      "write_paths": ["command-center/incident/feed/**"],
+      "speaking_rights": "always"
+    },
+    "producer-fixer": {
+      "description": "Repairs the producer or its freshness window, in the repo source and never in a deployed copy",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": ["Read", "Grep", "Bash:python", "Bash:pwsh", "Write(command-center/incident/feed/**)"],
+      "speaking_rights": "always"
+    },
+    "cadence-watcher": {
+      "description": "Observes whether a write happened that nobody in this workflow caused",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "judge",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Bash:python", "Write(command-center/incident/feed/**)"],
+      "speaking_rights": "always"
+    }
+  },
+
+  "tool_policy": {
+    "default": "deny",
+    "allow": ["Read", "Grep", "Glob", "Bash:python", "Bash:pwsh", "Write(command-center/incident/feed/**)"],
+    "deny": ["Bash", "WebFetch"],
+    "require_owner_approval": ["Bash:pwsh"],
+    "network": "none",
+    "write_paths": ["command-center/incident/feed/**"],
+    "forbid_write_paths": ["command-center/WORK-UNIT-CATALOG.json"],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "skip"
+    }
+  },
+
+  "model_routing": {
+    "strategy": "static",
+    "default": { "model": "opus", "vendor": "anthropic", "effort": "high" },
+    "forbid_downgrade_below": "opus"
+  },
+
+  "gates": {
+    "staleness-is-a-defect-not-the-environment": {
+      "predicate": "custom-expression",
+      "expression": "environmental_explanation_checked == true AND claim_class == DEFECT",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "record-and-continue"
+    },
+    "unattended-write-observed": {
+      "predicate": "custom-expression",
+      "expression": "unattended_writes_observed >= 1 AND manual_rebuild_counted_as_proof == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    }
+  },
+
+  "subworkflows": {
+    "live-estate-incident-triage": {
+      "workflow_id": "live-estate-incident-triage",
+      "version_range": ">=1.0.0 <2.0.0",
+      "source": "platform/workflows/live-estate-incident-triage.json"
+    }
+  },
+
+  "stages": [
+    {
+      "id": "measure-staleness",
+      "title": "Measure observed staleness against the DECLARED cadence",
+      "kind": "task",
+      "role": "staleness-measurer",
+      "timeout_seconds": 900,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "INC-6801",
+        "title": "Measure feed staleness in seconds against the declared cadence",
+        "phase": "7",
+        "question_or_target": "Record the output artifact's last write time, the current time, the observed interval in seconds and the ratio to expected_cadence_seconds; a feed is stale only when the ratio exceeds one, so 'looks old' is replaced by a number.",
+        "inputs": ["params.output_path", "params.expected_cadence_seconds", "params.producer"],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "staleness-measurer",
+          "basis": "substantive subagents default to Opus"
+        },
+        "tool_permissions": ["Read", "Bash:python", "Write(command-center/incident/feed/**)"],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 900,
+        "output_path": "command-center/incident/feed/staleness.json",
+        "output_schema": "command-center/schema/evidence-decay-report.schema.json",
+        "evidence_requirement": "last write time, reference time, interval in seconds and the cadence ratio - four numbers, so the verdict is arithmetic rather than impression",
+        "tests_required": [
+          "a deliberately broken producer must make the ratio exceed one (the known-broken half of the control)",
+          "a healthy producer must keep the ratio at or below one (the known-good half)"
+        ],
+        "reviewer_requirement": "the cadence watcher re-reads the artifact's timestamp itself rather than this record",
+        "completion_sentinel": "SUCCESS:INC-6801 when all four numbers are recorded and the ratio is computed; otherwise FAILED:INC-6801 <reason>",
+        "retry_policy": "two strikes then pivot to the producer's own log for its last successful write",
+        "failure_classification": ["output-path-missing", "cadence-undeclared"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/incident/feed/staleness.json",
+          "schema_ref": "command-center/schema/evidence-decay-report.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:INC-6801",
+          "consumers": ["separate-environmental-cause", "fix-producer"]
+        }
+      ]
+    },
+    {
+      "id": "separate-environmental-cause",
+      "title": "Delegate environmental-versus-defect to the triage blueprint",
+      "kind": "subworkflow",
+      "depends_on": ["measure-staleness"],
+      "timeout_seconds": 5400,
+      "workflow": {
+        "workflow_id": "live-estate-incident-triage",
+        "version_range": ">=1.0.0 <2.0.0"
+      },
+      "params": {
+        "allow_disruptive_actions": false
+      },
+      "isolation": "none",
+      "propagate_failure": true
+    },
+    {
+      "id": "defect-gate",
+      "title": "A power-off window is not a dead feed",
+      "kind": "gate",
+      "depends_on": ["separate-environmental-cause"],
+      "gate_ref": "staleness-is-a-defect-not-the-environment"
+    },
+    {
+      "id": "fix-producer",
+      "title": "Repair the producer or its freshness window, in the repo source",
+      "kind": "task",
+      "depends_on": ["defect-gate"],
+      "role": "producer-fixer",
+      "timeout_seconds": 3600,
+      "work_unit": {
+        "id": "INC-6802",
+        "title": "Repair the producer in the repo source and record what changed",
+        "phase": "7",
+        "question_or_target": "Change the producer or its freshness window at its REPO source - never a deployed copy, which the next deploy overwrites - and record the diff plus the mechanism by which the change reaches the running schedule.",
+        "inputs": ["command-center/incident/feed/staleness.json", "params.producer"],
+        "dependencies": ["INC-6801"],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "producer-fixer",
+          "basis": "a change to a scheduled producer is substantive"
+        },
+        "tool_permissions": ["Read", "Grep", "Bash:python", "Write(command-center/incident/feed/**)"],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 3600,
+        "output_path": "command-center/incident/feed/fix-record.json",
+        "output_schema": "command-center/schema/root-cause-graph.schema.json",
+        "evidence_requirement": "the repo path changed, the diff, and the deploy mechanism that carries it to the live schedule - a deployed-copy edit is recorded as a defect of the fix, not as the fix",
+        "tests_required": [
+          "an edit whose only target is a deployed copy must be rejected",
+          "the changed repo file must be shown to be the one the live schedule actually loads"
+        ],
+        "reviewer_requirement": "an independent reviewer confirms the edited path is the source of truth, not a deploy target",
+        "completion_sentinel": "SUCCESS:INC-6802 when the repo-source change and its deploy path are recorded; otherwise FAILED:INC-6802 <reason>",
+        "retry_policy": "two strikes then pivot to widening the freshness window instead of changing the producer",
+        "failure_classification": ["deployed-copy-edit", "root-cause-unknown"],
+        "owner_approval_required": false
+      }
+    },
+    {
+      "id": "manual-rebuild",
+      "title": "Rebuild once by hand - explicitly NOT the proof",
+      "kind": "task",
+      "depends_on": ["fix-producer"],
+      "role": "producer-fixer",
+      "timeout_seconds": 3600,
+      "work_unit_ref": "IMP-0004"
+    },
+    {
+      "id": "await-unattended-hit",
+      "title": "Wait for a write nobody in this workflow caused",
+      "kind": "loop",
+      "depends_on": ["manual-rebuild"],
+      "loop_var": "cadence_poll",
+      "body": [
+        {
+          "id": "poll-for-unattended-write",
+          "title": "One poll: has the producer written again on its own",
+          "kind": "task",
+          "role": "cadence-watcher",
+          "timeout_seconds": 3600,
+          "work_unit": {
+            "id": "INC-6803",
+            "title": "Observe whether the producer wrote again without any manual trigger",
+            "phase": "7",
+            "question_or_target": "Compare the artifact's current write time against the timestamp recorded for the manual rebuild and against this workflow's own action log; a write counts as UNATTENDED only when its timestamp is later than the manual rebuild AND no action in this workflow's log could have caused it.",
+            "inputs": ["params.output_path", "command-center/incident/feed/fix-record.json"],
+            "dependencies": ["INC-6802"],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "cadence-watcher",
+              "basis": "the whole acceptance criterion rests on this observation"
+            },
+            "tool_permissions": ["Read", "Bash:python", "Write(command-center/incident/feed/**)"],
+            "execution_substrate": "local-serialized",
+            "timeout_seconds": 3600,
+            "output_path": "command-center/incident/feed/unattended-proof.json",
+            "output_schema": "command-center/schema/health-report.schema.json",
+            "evidence_requirement": "two timestamps and a negative: the manual-rebuild time, the observed write time, and the absence of any workflow action between them that could have written the file",
+            "tests_required": [
+              "a write caused by this workflow must NOT count as unattended (the attribution control)",
+              "killing the producer mid-flight must be recorded as forensically silent rather than as a clean absence of error"
+            ],
+            "reviewer_requirement": "an independent reviewer checks the attribution negative, not just the timestamps",
+            "completion_sentinel": "SUCCESS:INC-6803 when an unattended write is observed with its attribution negative, or the poll records none; otherwise FAILED:INC-6803 <reason>",
+            "retry_policy": "no retry inside a poll - the loop is the retry, bounded by cadence_polls",
+            "failure_classification": ["attribution-ambiguous", "producer-killed-silently"],
+            "owner_approval_required": false
+          },
+          "produces": [
+            {
+              "path": "command-center/incident/feed/unattended-proof.json",
+              "schema_ref": "command-center/schema/health-report.schema.json",
+              "min_bytes": 128,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:INC-6803",
+              "consumers": ["unattended-gate"]
+            }
+          ]
+        }
+      ],
+      "convergence": {
+        "max_iterations": 12,
+        "min_iterations": 1,
+        "converged_when": "unattended_writes_observed >= 1",
+        "no_progress_rounds": 12,
+        "metrics": [
+          { "name": "unattended_writes_observed", "direction": "increase", "target": 1 }
+        ],
+        "on_no_convergence": "fail"
+      }
+    },
+    {
+      "id": "unattended-gate",
+      "title": "The manual rebuild is not proof; only the unattended hit is",
+      "kind": "gate",
+      "depends_on": ["await-unattended-hit"],
+      "gate_ref": "unattended-write-observed"
+    },
+    {
+      "id": "leave-freshness-postcondition",
+      "title": "Leave behind a consumer-side freshness check so the next staleness self-reports",
+      "kind": "task",
+      "depends_on": ["unattended-gate"],
+      "when": "add_freshness_postcondition == true",
+      "role": "producer-fixer",
+      "timeout_seconds": 1800,
+      "work_unit_ref": "IMP-0005",
+      "produces": [
+        {
+          "path": "command-center/incident/feed/freshness-postcondition.json",
+          "schema_ref": "command-center/schema/telemetry-contract.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "consumers": ["the-feed-consumer"]
+        }
+      ]
+    }
+  ],
+
+  "stopping_rules": [
+    {
+      "id": "unattended-success-observed",
+      "expression": "unattended_writes_observed >= 1",
+      "applies_to": "workflow",
+      "minimum_conditions": "manual_rebuild_completed == true AND environmental_explanation_checked == true",
+      "on_stop": "complete"
+    },
+    {
+      "id": "no-unattended-hit-within-budget",
+      "expression": "cadence_polls_spent >= cadence_polls AND unattended_writes_observed == 0",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+
+  "retry_policy": {
+    "strategy": "none",
+    "max_attempts": 1,
+    "no_retry_on": ["attribution-ambiguous", "deployed-copy-edit"]
+  },
+
+  "failure_policy": {
+    "on_failure": "escalate-to-human",
+    "classify_as": ["fix-unproven", "attribution-ambiguous", "producer-killed-silently"],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "quarantine_path": "command-center/incident/feed/quarantine"
+  },
+
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/dead-feed",
+    "granularity": "stage",
+    "idempotency_key_from": ["workflow_id", "stage_id", "params_hash"],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 2592000,
+    "on_stale": "warn-and-resume"
+  },
+
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/dead-feed.jsonl",
+    "record": ["params", "inputs", "timings", "env_fingerprint"],
+    "replay_source": "recorded-journal",
+    "verify": "none",
+    "on_divergence": "warn"
+  },
+
+  "cache": {
+    "enabled": false
+  },
+
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": ["plan", "estimate"],
+    "plan_artifact": "command-center/dry-run/dead-feed-plan.json",
+    "forbid_tools": ["Bash:pwsh", "Bash:python", "Write(command-center/incident/feed/**)"]
+  },
+
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": { "currency": "USD", "expected": 0.6, "max": 2.5 },
+    "wallclock_seconds": { "min": 3600, "expected": 172800, "max": 2592000 },
+    "tokens": { "expected": 120000, "max": 500000 },
+    "tool_calls": { "expected": 45, "max": 200 },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "changes one producer's source plus its freshness window; the wall-clock cost is dominated by WAITING for a cadence, not by compute",
+      "requires_owner_approval": false
+    }
+  },
+
+  "portability": {
+    "export": {
+      "format": "json",
+      "includes": ["definition", "tests", "lineage"],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/dead-feed-recovery.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject"
+    }
+  },
+
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-INC-02",
+        "relation": "REPAIR",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "platform/workflows/live-estate-incident-triage.json",
+        "relation": "COMPOSE",
+        "credit": "this unit"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": ["09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-INC-02"]
+  },
+
+  "outputs": {
+    "unattended-proof": {
+      "path": "command-center/incident/feed/unattended-proof.json",
+      "schema_ref": "command-center/schema/health-report.schema.json",
+      "min_bytes": 128,
+      "register_in_manifest": true,
+      "consumers": ["owner", "command-center/incident/feed/staleness.json"]
+    }
+  },
+
+  "x_extensions": {
+    "mechanism_fingerprint": {
+      "primary": "acceptance-gated-on-an-externally-caused-unattended-write-with-manual-work-explicitly-disqualified",
+      "distinguishing_stage": "await-unattended-hit",
+      "distinguishing_gate": "unattended-write-observed",
+      "not_a_duplicate_because": "BP-INC-01 decides whether a disruptive action is justified and stops. This is the reactive repair of ONE feed whose only accepted proof is an event nobody triggered - the only loop in this set that FAILS rather than emitting a partial when its metric never moves."
+    },
+    "worked_example": {
+      "name": "the recall index rebuilt itself hours later, which is what closed the incident",
+      "params": {
+        "feed_name": "recall-index",
+        "producer": "RecallIndexRebuild scheduled task",
+        "output_path": "command-center/incident/feed/recall-index.json",
+        "expected_cadence_seconds": 21600,
+        "cadence_polls": 3,
+        "add_freshness_postcondition": true
+      },
+      "expected_stage_path": [
+        "measure-staleness",
+        "separate-environmental-cause",
+        "defect-gate",
+        "fix-producer",
+        "manual-rebuild",
+        "await-unattended-hit",
+        "poll-for-unattended-write",
+        "unattended-gate",
+        "leave-freshness-postcondition"
+      ],
+      "expected_artifacts": [
+        "command-center/incident/feed/staleness.json",
+        "command-center/incident/feed/unattended-proof.json",
+        "command-center/incident/feed/freshness-postcondition.json"
+      ],
+      "expected_terminal": "SUCCESS:INC-6803",
+      "narrative": "Observed interval 373,680s against a 21,600s cadence, ratio 17.3 - stale by arithmetic. The triage subworkflow attributes 102.3 of the 103.8 stale hours to a measured power-off window but the residual 1.5 hours still exceeds one cadence, so the claim stays DEFECT. The freshness window in the producer's repo source is widened and a stale-input guard is fixed; a manual rebuild succeeds, and the workflow explicitly does NOT close on it. Poll 2, roughly six hours later, finds a write later than the manual rebuild with no workflow action in between - the unattended hit - and only then does the gate pass. A consumer-side freshness postcondition is left behind so the next staleness reports itself instead of waiting to be noticed."
+    }
+  }
+}

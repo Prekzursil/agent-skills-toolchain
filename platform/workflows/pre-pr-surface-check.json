@@ -1,0 +1,659 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "pre-pr-surface-check",
+  "name": "Pre-PR surface check - measure what a branch actually proposes",
+  "description": "Blueprint 88 of 96 (design BP-REL-02). Before `gh pr create`, MEASURE the commit-to-commit surface with three dots so a stale branch cannot propose deleting everything the base has gained. Mechanism: a purely deterministic git measurement plus a deletion-ratio verdict - there is no model in the measurement path, which is why this workflow declares no model_routing and no artifact cache (a cached surface measurement certifies a stale branch tip).",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "engineering-and-reliability"
+  ],
+  "tags": [
+    "release",
+    "git",
+    "deterministic-gate",
+    "pre-pr"
+  ],
+  "flagship": true,
+  "params": {
+    "branch": {
+      "type": "string",
+      "required": true,
+      "min_length": 1,
+      "description": "The branch whose proposed surface is being measured (its tip, not the working tree)"
+    },
+    "base": {
+      "type": "string",
+      "default": "origin/main",
+      "min_length": 1,
+      "description": "The base ref the PR would target. Must be fetched: a stale local base makes every number wrong."
+    },
+    "repo_root": {
+      "type": "path",
+      "required": true,
+      "description": "ABSOLUTE repo root. A repo-relative default dies with [Errno 2] from any other cwd."
+    },
+    "deletion_ratio_stop": {
+      "type": "number",
+      "default": 0.25,
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Deletions / (insertions + deletions) at or above which the verdict is STOP rather than REVIEW"
+    },
+    "credential_name_patterns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "min_items": 1,
+      "default": [
+        "*.pem",
+        "*.key",
+        "*_token*",
+        "*.credentials.json",
+        "auth.json",
+        ".env*"
+      ],
+      "description": "Untracked-file globs that must be surfaced even though they are NOT in the PR - the two-dot diff is what makes them look like they are"
+    }
+  },
+  "roles": {
+    "surface-auditor": {
+      "description": "Runs the git measurement and emits the verdict. Mechanical: it reports numbers, it does not judge semantic appropriateness.",
+      "vendor": "any",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Bash:git",
+        "Write(command-center/release/**)"
+      ],
+      "write_paths": [
+        "command-center/release/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - the only role that may accept a STOP verdict and open the PR anyway",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Bash:git",
+      "Write(command-center/release/**)"
+    ],
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/release/**"
+    ],
+    "forbid_write_paths": [
+      ".git/**",
+      "command-center/WORK-UNIT-CATALOG.json"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "skip"
+    }
+  },
+  "gates": {
+    "base-is-resolvable": {
+      "predicate": "custom-expression",
+      "expression": "base_resolved == true AND base_fetch_age_seconds <= 3600",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "three-dot-only": {
+      "predicate": "custom-expression",
+      "expression": "diff_mode == THREE_DOT AND working_tree_noise_folded_in == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "deletion-ratio-verdict": {
+      "predicate": "custom-expression",
+      "expression": "verdict == SAFE OR verdict == REVIEW OR cherry_pick_alternative_proposed == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    }
+  },
+  "stages": [
+    {
+      "id": "measure-surface",
+      "title": "Three-dot commit-to-commit stat",
+      "kind": "task",
+      "role": "surface-auditor",
+      "timeout_seconds": 300,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "BPW-8801",
+        "title": "Measure the commit-to-commit surface of the branch against the base",
+        "phase": "7",
+        "question_or_target": "Run `git diff <base>...HEAD --stat` (THREE dots) plus `git diff --name-status <merge-base> <tip>` and record files_changed, insertions, deletions, and the A/M/D composition. Resolve and record the merge-base SHA.",
+        "inputs": [
+          "params.branch",
+          "params.base",
+          "params.repo_root"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "none-mechanical",
+          "vendor": "any",
+          "role": "surface-auditor",
+          "basis": "a byte/line comparison is answerable by an exact algorithm, so it is not handed to a model (fan-out-contract C4: LLM judgement on a mechanical comparison measured 86% accurate with 100% of errors pointing at data loss)"
+        },
+        "tool_permissions": [
+          "Bash:git",
+          "Write(command-center/release/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 300,
+        "output_path": "command-center/release/pre-pr-surface-measurement.json",
+        "output_schema": "command-center/schema/divergence-report.schema.json",
+        "evidence_requirement": "the literal git command line AND its raw stdout for both the three-dot stat and the name-status composition; a summary without the command line is not evidence",
+        "tests_required": [
+          "both-states control: on a branch 300 commits behind the base the run must report a deletion-heavy surface, and on a rebased copy of the SAME branch it must not",
+          "the two-dot form must be shown to differ from the three-dot form on at least one fixture, otherwise the three-dot requirement is decorative"
+        ],
+        "reviewer_requirement": "none - the output is a raw measurement; the reviewer requirement attaches to the verdict stage, not to the numbers",
+        "completion_sentinel": "SUCCESS:BPW-8801 emitted only when the merge-base SHA is recorded and both raw command outputs are captured; otherwise FAILED:BPW-8801 <reason>",
+        "retry_policy": "no retry - a git measurement that fails twice is an environment fault, not a flake",
+        "failure_classification": [
+          "base-unresolvable",
+          "detector-failure",
+          "repo-state-dirty"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/release/pre-pr-surface-measurement.json",
+          "schema_ref": "command-center/schema/divergence-report.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-8801",
+          "consumers": [
+            "classify-deletions",
+            "emit-verdict"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate-base",
+      "title": "A wrong base makes every number wrong",
+      "kind": "gate",
+      "depends_on": [
+        "measure-surface"
+      ],
+      "gate_ref": "base-is-resolvable"
+    },
+    {
+      "id": "gate-three-dot",
+      "title": "Three dots mandatory - two dots folds in working-tree noise",
+      "kind": "gate",
+      "depends_on": [
+        "gate-base"
+      ],
+      "gate_ref": "three-dot-only"
+    },
+    {
+      "id": "classify-deletions",
+      "title": "Deletion ratio and A/M/D composition",
+      "kind": "task",
+      "role": "surface-auditor",
+      "depends_on": [
+        "gate-three-dot"
+      ],
+      "timeout_seconds": 300,
+      "work_unit": {
+        "id": "BPW-8802",
+        "title": "Compute the deletion ratio and split additions from modifications",
+        "phase": "7",
+        "question_or_target": "From the recorded measurement compute deletion_ratio = deletions / (insertions + deletions), and split the name-status composition into A (added, never conflicts), M (modified, the real reconcile surface) and D (deleted). Report the M-count as the conflict surface, NOT the line count.",
+        "inputs": [
+          "command-center/release/pre-pr-surface-measurement.json",
+          "params.deletion_ratio_stop"
+        ],
+        "dependencies": [
+          "BPW-8801"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "none-mechanical",
+          "vendor": "any",
+          "role": "surface-auditor",
+          "basis": "arithmetic over a recorded measurement"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:git",
+          "Write(command-center/release/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 300,
+        "output_path": "command-center/release/pre-pr-deletion-classification.json",
+        "output_schema": "command-center/schema/regression-delta.schema.json",
+        "evidence_requirement": "the arithmetic shown with its inputs, plus the A/M/D counts from the name-status output; a ratio with no numerator and denominator is not checkable",
+        "tests_required": [
+          "an all-additions branch must yield deletion_ratio 0 and an M-count of 0",
+          "a branch whose only change is a rename must not be counted as a deletion plus an addition"
+        ],
+        "reviewer_requirement": "none - arithmetic is re-derivable from the recorded inputs",
+        "completion_sentinel": "SUCCESS:BPW-8802 emitted only when deletion_ratio and the A/M/D split are both present; otherwise FAILED:BPW-8802 <reason>",
+        "retry_policy": "no retry - arithmetic over a recorded input is deterministic; a second attempt would produce the same number",
+        "failure_classification": [
+          "detector-failure",
+          "arithmetic-error"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/release/pre-pr-deletion-classification.json",
+          "schema_ref": "command-center/schema/regression-delta.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-8802",
+          "consumers": [
+            "emit-verdict"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "list-untracked-noise",
+      "title": "Files a two-dot diff would have folded in",
+      "kind": "task",
+      "role": "surface-auditor",
+      "depends_on": [
+        "gate-three-dot"
+      ],
+      "timeout_seconds": 300,
+      "work_unit": {
+        "id": "BPW-8803",
+        "title": "Enumerate untracked and unstaged paths, flagging credential-shaped names",
+        "phase": "7",
+        "question_or_target": "Run `git status --porcelain -uall` (collapsed untracked directories hide members) and list every untracked or unstaged path, marking those matching credential_name_patterns. State explicitly that these are NOT in the PR - the point is that they are on disk.",
+        "inputs": [
+          "params.repo_root",
+          "params.credential_name_patterns"
+        ],
+        "dependencies": [
+          "BPW-8801"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "none-mechanical",
+          "vendor": "any",
+          "role": "surface-auditor",
+          "basis": "set membership against a glob list"
+        },
+        "tool_permissions": [
+          "Bash:git",
+          "Write(command-center/release/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 300,
+        "output_path": "command-center/release/pre-pr-untracked-noise.json",
+        "output_schema": "command-center/schema/secret-egress-map.schema.json",
+        "evidence_requirement": "the porcelain output with -uall, and for each flagged path its name only - never its contents, never a value",
+        "tests_required": [
+          "a credential-shaped file inside an untracked DIRECTORY must be listed: `git status --porcelain` without -uall collapses the directory and the member is invisible",
+          "no flagged path's contents may appear anywhere in the artifact"
+        ],
+        "reviewer_requirement": "none for the enumeration; any flagged path is reported to the owner, who decides",
+        "completion_sentinel": "SUCCESS:BPW-8803 emitted only when -uall was used and every flagged path carries a name-only record; otherwise FAILED:BPW-8803 <reason>",
+        "retry_policy": "no retry - a truncated enumeration is a detector fault, so re-running the same truncating command is banned by AGENTS.md 4b",
+        "failure_classification": [
+          "detector-failure",
+          "truncated-enumeration"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/release/pre-pr-untracked-noise.json",
+          "schema_ref": "command-center/schema/secret-egress-map.schema.json",
+          "min_bytes": 64,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-8803",
+          "consumers": [
+            "emit-verdict",
+            "owner"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "emit-verdict",
+      "title": "SAFE / REVIEW / STOP with the numbers that produced it",
+      "kind": "task",
+      "role": "surface-auditor",
+      "depends_on": [
+        "classify-deletions",
+        "list-untracked-noise"
+      ],
+      "timeout_seconds": 300,
+      "work_unit": {
+        "id": "BPW-8804",
+        "title": "Emit the surface verdict and, when STOP, the cherry-pick-onto-fresh-base alternative",
+        "phase": "7",
+        "question_or_target": "Emit verdict SAFE | REVIEW | STOP. STOP when deletion_ratio >= deletion_ratio_stop. On STOP, propose the concrete alternative: cherry-pick the wanted commits onto a fresh branch cut from the fetched base, and state the surface that alternative would produce.",
+        "inputs": [
+          "command-center/release/pre-pr-deletion-classification.json",
+          "command-center/release/pre-pr-untracked-noise.json"
+        ],
+        "dependencies": [
+          "BPW-8802",
+          "BPW-8803"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "surface-auditor",
+          "basis": "the THRESHOLD comparison is mechanical, but naming which commits to cherry-pick is judgement; only that half is modelled"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:git",
+          "Write(command-center/release/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 300,
+        "output_path": "command-center/release/pre-pr-surface-verdict.json",
+        "output_schema": "command-center/schema/stopping-verdict.schema.json",
+        "evidence_requirement": "the verdict plus every number it rests on inline, plus the threshold it was compared against; a bare verdict is a claim, not a measurement",
+        "tests_required": [
+          "a deletion-heavy surface must produce STOP, not a warning",
+          "a clean branch must produce SAFE and the artifact must still carry the numbers"
+        ],
+        "reviewer_requirement": "one independent reader who re-derives the verdict from the recorded numbers without re-running git",
+        "completion_sentinel": "SUCCESS:BPW-8804 emitted only when the verdict, its numbers, and (on STOP) the cherry-pick alternative are all present; otherwise FAILED:BPW-8804 <reason>",
+        "retry_policy": "no retry - a verdict that needs a retry means an input was missing, which is a FAILED terminal state",
+        "failure_classification": [
+          "overclaim",
+          "missing-input",
+          "detector-failure"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/release/pre-pr-surface-verdict.json",
+          "schema_ref": "command-center/schema/stopping-verdict.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-8804",
+          "consumers": [
+            "pr-shepherd-to-merge",
+            "owner"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate-verdict",
+      "title": "STOP is a stop, not a warning",
+      "kind": "gate",
+      "depends_on": [
+        "emit-verdict"
+      ],
+      "gate_ref": "deletion-ratio-verdict"
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "verdict-emitted",
+      "expression": "verdict_present == true AND numbers_attached == true",
+      "applies_to": "workflow",
+      "minimum_conditions": "base_resolved == true AND diff_mode == THREE_DOT",
+      "on_stop": "complete"
+    },
+    {
+      "id": "base-unresolvable",
+      "expression": "base_resolved == false",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "none",
+    "max_attempts": 1,
+    "no_retry_on": [
+      "base-unresolvable",
+      "repo-state-dirty"
+    ]
+  },
+  "failure_policy": {
+    "on_failure": "fail-fast",
+    "classify_as": [
+      "base-unresolvable",
+      "detector-failure",
+      "truncated-enumeration"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner",
+    "quarantine_path": "command-center/quarantine/pre-pr-surface"
+  },
+  "resume": {
+    "enabled": false,
+    "resume_from": "restart"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 0,
+    "journal_path": "command-center/replay/pre-pr-surface-check.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "network",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "fail"
+  },
+  "cache": {
+    "enabled": false,
+    "read_only": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report"
+    ],
+    "plan_artifact": "command-center/dry-run/pre-pr-surface-check-plan.json",
+    "forbid_tools": [
+      "Write(command-center/release/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "hybrid",
+    "confidence": "almost-certain",
+    "measurement_source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-REL-02 - the recorded incident where a leftover feature branch showed 1,188 files / 316,222 deletions against main and the cherry-pick-onto-fresh-base alternative reduced it to 7 files / 4 deletions",
+    "cost": {
+      "currency": "USD",
+      "min": 0,
+      "expected": 0.02,
+      "max": 0.15
+    },
+    "wallclock_seconds": {
+      "min": 3,
+      "expected": 20,
+      "max": 120
+    },
+    "tokens": {
+      "min": 0,
+      "expected": 4000,
+      "max": 20000
+    },
+    "tool_calls": {
+      "min": 3,
+      "expected": 6,
+      "max": 12
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "reads git, writes only under command-center/release/**; no ref is created, moved or deleted",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "json",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/pre-pr-surface-check.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-REL-02",
+        "relation": "REBUILD-FROM-SPEC",
+        "license": "owner-proprietary",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "rules/common/windows-shell.md#8d",
+        "relation": "TRANSLATE",
+        "license": "owner-proprietary",
+        "credit": "owner - the three-dot rule and the -uall collapse",
+        "url": "https://github.com/example/agent-skills-toolchain"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "manual `git diff origin/main...HEAD --stat`"
+    ]
+  },
+  "outputs": {
+    "verdict": {
+      "path": "command-center/release/pre-pr-surface-verdict.json",
+      "schema_ref": "command-center/schema/stopping-verdict.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "sentinel": "SUCCESS:BPW-8804",
+      "consumers": [
+        "pr-shepherd-to-merge",
+        "owner"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint": {
+      "slot": 88,
+      "of": 96,
+      "design_card": "BP-REL-02",
+      "design_family": "D17-release",
+      "spec_category": "engineering-and-reliability",
+      "acquisition_route": "BUILD-NEW",
+      "flagship": true
+    },
+    "mechanism": "deterministic three-dot commit-to-commit measurement + deletion-ratio threshold verdict. No agent judgement in the measurement path; the only modelled step is naming the cherry-pick alternative.",
+    "not_a_duplicate_because": {
+      "vs_pr-shepherd-to-merge": "that drives an ALREADY-OPEN PR to merge by decoding CI status; this runs BEFORE the PR exists and never touches CI",
+      "vs_live-to-repo-drift-reconcile": "that compares two TREES on disk; this compares two COMMITS and never writes into either tree",
+      "vs_dual-tree-plumbing-mirror": "that mirrors blobs; this writes no blob anywhere"
+    },
+    "contraindications": [
+      "none - it is cheap enough to always run before `gh pr create`"
+    ],
+    "benchmark_cases": [
+      {
+        "id": "stale-branch-stop",
+        "given": "a branch 300 commits behind the fetched base",
+        "expect": "verdict STOP with the deletion count named, plus a cherry-pick alternative"
+      },
+      {
+        "id": "two-dot-vs-three-dot",
+        "given": "a repo with uncommitted working-tree changes AND a branch behind the base",
+        "expect": "the two-dot and three-dot surfaces DIFFER, and the recorded diff_mode is THREE_DOT"
+      },
+      {
+        "id": "untracked-dir-credential",
+        "given": "an untracked directory containing a *.pem file",
+        "expect": "the .pem is listed by name (proving -uall was used) and its contents appear nowhere"
+      }
+    ],
+    "worked_examples": [
+      {
+        "id": "the-recorded-incident",
+        "params": {
+          "branch": "feat/leftover-2026-05",
+          "base": "origin/main",
+          "repo_root": "C:/Users/Prekzursil/source/example-repo",
+          "deletion_ratio_stop": 0.25
+        },
+        "measured_surface": {
+          "diff_mode": "THREE_DOT",
+          "files_changed": 1188,
+          "insertions": 4102,
+          "deletions": 316222,
+          "deletion_ratio": 0.987,
+          "composition": {
+            "A": 61,
+            "M": 214,
+            "D": 913
+          }
+        },
+        "verdict": "STOP",
+        "alternative_proposed": "cherry-pick 1 commit onto a fresh branch cut from origin/main",
+        "alternative_surface": {
+          "files_changed": 7,
+          "insertions": 118,
+          "deletions": 4,
+          "deletion_ratio": 0.033
+        },
+        "terminal_state": "SUCCESS:BPW-8804 - verdict STOP with numbers and alternative attached",
+        "note": "The numbers in this example are the ones recorded in the design card; they are the reason the threshold defaults to 0.25 rather than to a round number chosen by taste."
+      }
+    ],
+    "owner_decision": "none",
+    "unverified": [
+      "The 0.25 default threshold is a JUDGEMENT, not a measurement: the recorded incident sat at 0.987 and a clean branch at 0.033, so any threshold between them would have separated those two cases. Settling experiment = run the check over the last 50 merged PRs in this estate and pick the threshold that produces zero STOP verdicts on PRs that merged cleanly."
+    ]
+  }
+}

@@ -1,0 +1,855 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "per-surface-usability-source-audit",
+  "name": "Per-surface usability source audit with adversarial finding verification",
+  "description": "Audit every UI surface at the SOURCE level for broken or unusable controls, and let no finding enter the fix queue until an adversarial verifier has confirmed it against the source. Two mechanisms carry it. First, the surface inventory comes from the ROUTER, not from clicking, because a conditionally-rendered surface is unreachable by interaction and would otherwise be silently omitted. Second, a SECOND fan-out verifies each finding individually and records the DROPS - in one executed run a large fraction of raw findings did not survive verification, so an unverified queue would have been mostly noise. A surface that cannot be analysed statically is listed UNAUDITED, never clean.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "product-design-and-strategy",
+    "engineering-and-reliability"
+  ],
+  "tags": [
+    "bp-ux-03",
+    "source-audit",
+    "per-surface",
+    "adversarial-verification",
+    "fix-queue"
+  ],
+  "flagship": false,
+  "params": {
+    "source_root": {
+      "type": "path",
+      "required": true,
+      "description": "Repository root of the app's UI source. Opened read-only."
+    },
+    "router_manifest": {
+      "type": "path",
+      "required": true,
+      "description": "The route table or equivalent source of truth for what surfaces EXIST. Clicking cannot enumerate conditional surfaces."
+    },
+    "verification_standard": {
+      "type": "enum",
+      "enum": [
+        "file-line-cited",
+        "file-line-plus-runtime-crosscheck"
+      ],
+      "default": "file-line-cited",
+      "description": "How strong a finding's proof must be before it may enter the queue."
+    },
+    "max_surface_concurrency": {
+      "type": "integer",
+      "default": 24,
+      "minimum": 1,
+      "maximum": 128,
+      "description": "One agent per surface is expensive; this is the ceiling that keeps a 300-surface app from freezing the box."
+    }
+  },
+  "roles": {
+    "surface-enumerator": {
+      "description": "Derives the surface inventory from the router source, not from interaction.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write(command-center/design/**)"
+      ]
+    },
+    "surface-auditor": {
+      "description": "Audits one surface's controls at source level for broken or unusable affordances.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Write(command-center/design/**)"
+      ]
+    },
+    "finding-verifier": {
+      "description": "Adversarially re-derives each finding from source. A finding it cannot confirm is DROPPED and the drop is recorded.",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "cross-examining",
+      "cross_vendor_required": true,
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "mcp__codex__codex"
+      ],
+      "speaking_rights": "always"
+    },
+    "ranker": {
+      "description": "Ranks surviving findings into a fix queue by severity times surface reach.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/design/**)"
+      ]
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Glob",
+      "Grep",
+      "Read",
+      "Write(command-center/design/**)",
+      "mcp__codex__codex"
+    ],
+    "network": "none",
+    "deny": [
+      "Bash",
+      "Bash:git",
+      "Edit",
+      "WebFetch",
+      "Write(app/**)",
+      "Write(src/**)"
+    ],
+    "write_paths": [
+      "command-center/design/per-surface-source-audit/**"
+    ],
+    "forbid_write_paths": [
+      "app/**",
+      "src/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "vendor-diverse",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "routes": [
+      {
+        "when": "stage_role == finding-verifier",
+        "target": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "effort": "high"
+        },
+        "reason": "the verifier must fail differently from the auditor that raised the finding"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "enumeration-from-source-of-truth": {
+      "predicate": "custom-expression",
+      "expression": "surfaces_from_router > 0 AND enumeration_source == router",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "unaudited-listed-not-clean": {
+      "predicate": "custom-expression",
+      "expression": "unanalysable_surfaces_listed == true AND unanalysable_surfaces_marked_clean == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "verified-only-queue": {
+      "predicate": "custom-expression",
+      "expression": "unverified_findings_in_queue == 0 AND dropped_findings_recorded == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "queue-complete": {
+      "predicate": "completion-predicate-v1",
+      "predicate_ref": "command-center/COMPLETION-GATES.json#/gate_a_unit_completion_predicate",
+      "conditions_required": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        11,
+        12
+      ],
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    }
+  },
+  "stages": [
+    {
+      "id": "enumerate-surfaces",
+      "title": "S0 - enumerate surfaces from the ROUTER, not from clicking",
+      "kind": "task",
+      "role": "surface-enumerator",
+      "timeout_seconds": 1800,
+      "checkpoint": true,
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write(command-center/design/**)"
+      ],
+      "work_unit": {
+        "id": "UX-7901",
+        "title": "Derive the complete surface inventory from the router source of truth",
+        "phase": "2B",
+        "question_or_target": "Enumerate every surface the router can reach, INCLUDING conditionally-rendered ones that no click sequence can reach, and record for each whether static analysis is possible.",
+        "inputs": [
+          "params.router_manifest",
+          "params.source_root"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "surface-enumerator",
+          "basis": "reading a router to find conditional surfaces requires understanding the guard conditions"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Write(command-center/design/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/design/per-surface-source-audit/surface-inventory.json",
+        "output_schema": "command-center/schema/audit-inventory.schema.json",
+        "evidence_requirement": "each surface with its router entry file:line, its render guard if any, and an analysable/unanalysable flag with the reason",
+        "tests_required": [
+          "a conditionally-rendered surface unreachable by clicking still appears in the inventory",
+          "a surface behind a feature flag is enumerated with its guard recorded, not omitted",
+          "both-states control: removing a route from the manifest removes exactly one surface from the inventory"
+        ],
+        "reviewer_requirement": "the finding-verifier, which will reject findings on surfaces the inventory never declared",
+        "completion_sentinel": "SUCCESS:UX-7901 emitted only when every router entry maps to an inventory row carrying an analysable flag; otherwise FAILED:UX-7901 <reason>",
+        "retry_policy": "two strikes then pivot to a second enumeration route (a build manifest) rather than re-parsing the same router",
+        "failure_classification": [
+          "surface-enumeration-gap",
+          "router-unparseable",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "router-derived enumeration that reaches conditionally-rendered surfaces"
+      },
+      "produces": [
+        {
+          "path": "command-center/design/per-surface-source-audit/surface-inventory.json",
+          "schema_ref": "command-center/schema/audit-inventory.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:UX-7901",
+          "consumers": [
+            "enumeration-gate",
+            "audit-surfaces",
+            "rank-fix-queue"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "enumeration-gate",
+      "title": "Clicking is not an enumeration - the inventory must come from the router",
+      "kind": "gate",
+      "depends_on": [
+        "enumerate-surfaces"
+      ],
+      "gate_ref": "enumeration-from-source-of-truth"
+    },
+    {
+      "id": "audit-surfaces",
+      "title": "S1 - one agent per surface, auditing controls at source level",
+      "kind": "fanout",
+      "depends_on": [
+        "enumeration-gate"
+      ],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/design/per-surface-source-audit/surface-inventory.json",
+        "item_var": "surface",
+        "key_field": "surface_id"
+      },
+      "max_concurrency": 24,
+      "arrival_stagger_ms": 120,
+      "max_items": 512,
+      "on_item_failure": "quarantine",
+      "body": [
+        {
+          "id": "audit-one-surface",
+          "title": "Audit one surface's controls",
+          "kind": "task",
+          "role": "surface-auditor",
+          "timeout_seconds": 2400,
+          "tool_permissions": [
+            "Read",
+            "Grep",
+            "Write(command-center/design/**)"
+          ],
+          "cache": {
+            "enabled": true,
+            "scope": "stage",
+            "key_from": [
+              "stage_id",
+              "item_key",
+              "inputs_hash",
+              "tool_versions"
+            ],
+            "store": "command-center/design/per-surface-source-audit/cache/surfaces",
+            "ttl_seconds": 604800,
+            "verify_integrity": true
+          },
+          "work_unit": {
+            "id": "UX-7902",
+            "title": "Audit one surface for broken, dead or unusable controls at source level",
+            "phase": "2B",
+            "question_or_target": "For one surface, find every control whose handler is missing, unreachable, permanently disabled, or unlabelled, and cite file:line for each - and if the surface cannot be analysed statically, emit UNAUDITED with the reason.",
+            "inputs": [
+              "item.surface",
+              "params.source_root"
+            ],
+            "dependencies": [
+              "UX-7901"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "surface-auditor",
+              "basis": "recognising that a handler is unreachable requires following the control flow, which is judgement"
+            },
+            "tool_permissions": [
+              "Read",
+              "Grep",
+              "Write(command-center/design/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 2400,
+            "output_path": "command-center/design/per-surface-source-audit/findings/raw-findings.jsonl",
+            "output_schema": "command-center/schema/audit-finding.schema.json",
+            "evidence_requirement": "every finding cites file:line and the defect class; a finding without an anchor is not submittable",
+            "tests_required": [
+              "a control with no handler is found and anchored to file:line",
+              "a surface that cannot be statically analysed emits UNAUDITED with a reason, NOT an empty clean result",
+              "both-states control: a surface with a known-good control set yields zero findings, so the auditor is not fabricating defects"
+            ],
+            "reviewer_requirement": "the finding-verifier, adversarially, per finding",
+            "completion_sentinel": "SUCCESS:UX-7902 emitted only when the surface has a finding list (possibly empty) or an explicit UNAUDITED reason; otherwise FAILED:UX-7902 <reason>",
+            "retry_policy": "two strikes then quarantine the surface as UNAUDITED rather than reporting it clean",
+            "failure_classification": [
+              "surface-unanalysable",
+              "anchor-missing",
+              "partial-artifact"
+            ],
+            "owner_approval_required": false,
+            "mechanism": "per-surface source-level control audit with UNAUDITED rather than clean-by-default"
+          },
+          "produces": [
+            {
+              "path": "command-center/design/per-surface-source-audit/findings/raw-findings.jsonl",
+              "schema_ref": "command-center/schema/audit-finding.schema.json",
+              "min_bytes": 32,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:UX-7902",
+              "consumers": [
+                "verify-findings",
+                "rank-fix-queue"
+              ]
+            }
+          ]
+        }
+      ],
+      "barrier": {
+        "mode": "quorum",
+        "quorum": 0.9,
+        "on_partial": "proceed-with-quarantine",
+        "reject_result_matching": [
+          "started in the background",
+          "Check /codex:status"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "unaudited-gate",
+      "title": "An unanalysable surface is UNAUDITED, never clean",
+      "kind": "gate",
+      "depends_on": [
+        "audit-surfaces"
+      ],
+      "gate_ref": "unaudited-listed-not-clean"
+    },
+    {
+      "id": "verify-findings",
+      "title": "S2 - adversarially verify EACH finding; a drop is recorded, not hidden",
+      "kind": "fanout",
+      "depends_on": [
+        "unaudited-gate"
+      ],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/design/per-surface-source-audit/findings/raw-findings.jsonl",
+        "item_var": "finding",
+        "key_field": "finding_id"
+      },
+      "max_concurrency": 16,
+      "arrival_stagger_ms": 150,
+      "on_item_failure": "quarantine",
+      "body": [
+        {
+          "id": "verify-one-finding",
+          "title": "Re-derive one finding from source, independently",
+          "kind": "task",
+          "role": "finding-verifier",
+          "timeout_seconds": 1800,
+          "tool_permissions": [
+            "Read",
+            "Grep",
+            "mcp__codex__codex"
+          ],
+          "work_unit": {
+            "id": "UX-7903",
+            "title": "Independently confirm or refute one finding from the cited source",
+            "phase": "2B",
+            "question_or_target": "Open the cited file:line and decide, without reading the auditor's reasoning, whether the defect is real - and when it is not, record a DROP with the reason so the queue's shrinkage is visible.",
+            "inputs": [
+              "item.finding",
+              "params.source_root",
+              "params.verification_standard"
+            ],
+            "dependencies": [
+              "UX-7902"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "gpt-5-codex",
+              "vendor": "openai",
+              "role": "finding-verifier",
+              "basis": "a same-vendor verifier shares the auditor's blind spots; the drop authority must fail differently"
+            },
+            "tool_permissions": [
+              "Read",
+              "Grep",
+              "mcp__codex__codex"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 1800,
+            "output_path": "command-center/design/per-surface-source-audit/findings/verified-findings.jsonl",
+            "output_schema": "command-center/schema/refutation-record.schema.json",
+            "evidence_requirement": "the re-derivation from the cited anchor, and for a refutation the specific reason the defect is not real",
+            "tests_required": [
+              "a finding that does not survive verification is DROPPED and the drop is recorded with a reason",
+              "the verifier receives the anchor and the source, never the auditor's prose - a verifier reading the auditor's argument is not independent",
+              "both-states control: a genuine defect is CONFIRMED, so the verifier is not dropping everything"
+            ],
+            "reviewer_requirement": "the surface-auditor, which may contest a drop with new evidence but not with repetition",
+            "completion_sentinel": "SUCCESS:UX-7903 emitted only when the finding is CONFIRMED or DROPPED with a reason, never left unadjudicated; otherwise FAILED:UX-7903 <reason>",
+            "retry_policy": "two strikes then escalate the finding as CONTESTED rather than letting the verifier decide by fatigue",
+            "failure_classification": [
+              "finding-unverifiable",
+              "anchor-missing",
+              "detector-failure"
+            ],
+            "owner_approval_required": false,
+            "mechanism": "per-finding adversarial re-derivation with recorded drops",
+            "not_a_duplicate_because": "the surface audit RAISES findings from a whole surface; this adjudicates ONE finding from its anchor with no access to the raising argument"
+          },
+          "produces": [
+            {
+              "path": "command-center/design/per-surface-source-audit/findings/verified-findings.jsonl",
+              "schema_ref": "command-center/schema/refutation-record.schema.json",
+              "min_bytes": 32,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:UX-7903",
+              "consumers": [
+                "verified-gate",
+                "rank-fix-queue"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "drop-unverified",
+          "title": "An unverified finding may not reach the queue",
+          "kind": "gate",
+          "depends_on": [
+            "verify-one-finding"
+          ],
+          "gate": {
+            "predicate": "custom-expression",
+            "expression": "finding_confirmed == true OR drop_reason_recorded == true",
+            "blocking": false,
+            "evidence_required": true,
+            "on_fail": "record-and-continue"
+          }
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "proceed-with-quarantine",
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "verified-gate",
+      "title": "The queue contains only findings that survived verification",
+      "kind": "gate",
+      "depends_on": [
+        "verify-findings"
+      ],
+      "gate_ref": "verified-only-queue"
+    },
+    {
+      "id": "rank-fix-queue",
+      "title": "S3 - rank the survivors into a fix queue",
+      "kind": "task",
+      "depends_on": [
+        "verified-gate"
+      ],
+      "role": "ranker",
+      "timeout_seconds": 1800,
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/design/**)"
+      ],
+      "work_unit": {
+        "id": "UX-7904",
+        "title": "Rank surviving findings into an implementable fix queue",
+        "phase": "2B",
+        "question_or_target": "Order confirmed findings by severity times the number of surfaces they affect, and report the survival rate alongside, so the queue's credibility is visible with it.",
+        "inputs": [
+          "command-center/design/per-surface-source-audit/findings/verified-findings.jsonl",
+          "command-center/design/per-surface-source-audit/surface-inventory.json"
+        ],
+        "dependencies": [
+          "UX-7901",
+          "UX-7903"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "ranker",
+          "basis": "severity times reach is a product judgement, not an arithmetic one"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/design/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/design/per-surface-source-audit/ranked-fix-queue.json",
+        "output_schema": "command-center/schema/intervention-ranking.schema.json",
+        "evidence_requirement": "each queue entry carries its file:line anchors, its severity, its affected-surface count and its verification record",
+        "tests_required": [
+          "the queue reports raw findings, confirmed findings and the survival rate together",
+          "UNAUDITED surfaces appear in the report as an explicit coverage gap, not as zero findings"
+        ],
+        "reviewer_requirement": "one independent adversarial reviewer in a fresh context who samples five queue entries and re-checks their anchors",
+        "completion_sentinel": "SUCCESS:UX-7904 emitted only when the queue is ordered, every entry is anchored, and the survival rate plus the UNAUDITED list are both present; otherwise FAILED:UX-7904 <reason>",
+        "retry_policy": "two strikes then emit the unranked confirmed set rather than an invented ordering",
+        "failure_classification": [
+          "overclaim",
+          "coverage-unreconciled",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "severity-times-reach ranking published together with the verification survival rate"
+      },
+      "produces": [
+        {
+          "path": "command-center/design/per-surface-source-audit/ranked-fix-queue.json",
+          "schema_ref": "command-center/schema/intervention-ranking.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:UX-7904",
+          "consumers": [
+            "queue-complete-gate",
+            "command-center/MANIFEST.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "queue-complete-gate",
+      "title": "The shared completion predicate over the audit",
+      "kind": "gate",
+      "depends_on": [
+        "rank-fix-queue"
+      ],
+      "gate_ref": "queue-complete"
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "all-surfaces-audited-and-findings-adjudicated",
+      "expression": "surfaces_pending == 0 AND unadjudicated_findings == 0",
+      "applies_to": "workflow",
+      "minimum_conditions": "enumeration_source == router",
+      "on_stop": "complete"
+    },
+    {
+      "id": "enumeration-not-from-router-halts",
+      "expression": "enumeration_source != router",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    },
+    {
+      "id": "survival-rate-too-low-is-a-finding-about-the-auditor",
+      "expression": "finding_survival_rate < 0.25",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": [
+      "surface-unanalysable",
+      "finding-unverifiable"
+    ],
+    "no_retry_on": [
+      "router-unparseable",
+      "anchor-missing"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "rank-fix-queue"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "quarantine",
+    "classify_as": [
+      "surface-unanalysable",
+      "finding-unverifiable",
+      "router-unparseable",
+      "coverage-unreconciled"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "rank-fix-queue",
+    "quarantine_path": "command-center/design/per-surface-source-audit/quarantine"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/design/per-surface-source-audit/checkpoints",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260810,
+    "journal_path": "command-center/design/per-surface-source-audit/replay.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "model_outputs"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "network",
+      "filesystem-order"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "semantic-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "workflow",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash",
+      "tool_versions"
+    ],
+    "store": "command-center/design/per-surface-source-audit/cache",
+    "ttl_seconds": 604800,
+    "verify_integrity": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "graph"
+    ],
+    "plan_artifact": "command-center/design/per-surface-source-audit/dry-run-plan.json",
+    "forbid_tools": [
+      "Write(command-center/design/**)",
+      "mcp__codex__codex"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "expected": 28.0,
+      "max": 140.0
+    },
+    "wallclock_seconds": {
+      "expected": 10800,
+      "max": 43200
+    },
+    "tokens": {
+      "expected": 4000000
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "read-only over app source; Edit and every app write path are denied, so a 300-agent sweep cannot modify what it audits",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/design/per-surface-source-audit/export/per-surface-usability-source-audit.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-UX-03",
+        "relation": "DISTILL",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "exec-reframe-surface-usability-audit",
+        "relation": "DISTILL",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "exec-primariro-ui-audit",
+        "relation": "MERGE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "exec-reframe-v15-total-audit",
+        "relation": "MERGE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true
+  },
+  "outputs": {
+    "ranked_fix_queue": {
+      "path": "command-center/design/per-surface-source-audit/ranked-fix-queue.json",
+      "schema_ref": "command-center/schema/intervention-ranking.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/MANIFEST.json"
+      ]
+    },
+    "verified_findings": {
+      "path": "command-center/design/per-surface-source-audit/findings/verified-findings.jsonl",
+      "schema_ref": "command-center/schema/refutation-record.schema.json",
+      "min_bytes": 32,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/MANIFEST.json"
+      ]
+    }
+  },
+  "x_extensions": {
+    "bp7": {
+      "card": "BP-UX-03",
+      "card_index_in_library": 79,
+      "family": "D15-ux",
+      "primary_category": "product-design-and-strategy",
+      "mechanism_signature": [
+        "router-derived-surface-enumeration",
+        "one-agent-per-surface-source-audit",
+        "second-fanout-per-finding-adversarial-verification",
+        "recorded-drops-and-survival-rate",
+        "unaudited-never-clean"
+      ],
+      "worked_example": {
+        "scenario": "Pre-release sweep of an app with 61 surfaces, 9 of them behind feature flags that no click path reaches.",
+        "params": {
+          "source_root": "src/ui",
+          "router_manifest": "src/ui/routes.ts",
+          "verification_standard": "file-line-cited",
+          "max_surface_concurrency": 24
+        },
+        "expected_trace": [
+          "enumerate-surfaces -> 61 surfaces including all 9 flag-gated ones; 3 marked unanalysable (dynamic component factory)",
+          "enumeration-gate PASS (enumeration_source == router)",
+          "audit-surfaces -> 58 audited, 3 UNAUDITED with reasons; 214 raw findings; barrier quorum 0.95",
+          "unaudited-gate PASS (3 listed, 0 marked clean)",
+          "verify-findings -> 214 verified individually; 78 CONFIRMED, 136 DROPPED with reasons; survival rate 0.36",
+          "verified-gate PASS (0 unverified in queue, drops recorded)",
+          "rank-fix-queue -> 78 entries ordered by severity x reach; the report carries 214/78/0.36 and the 3 UNAUDITED surfaces"
+        ],
+        "expected_terminal_state": "SUCCESS:UX-7904 with 78 of 214 findings surviving and 3 surfaces declared UNAUDITED"
+      },
+      "unverified": "UNVERIFIED as a reusable app-neutral blueprint - the survival rate is recorded from two executed runs on two apps, and a third would test whether the shape or the app determines it. Settling experiment = run on a third app and compare the verified-finding survival rate against the two recorded runs.",
+      "distinct_from": {
+        "bp-ux-02": "that audits the RUNNING app and can measure computed contrast; this audits SOURCE and reaches surfaces the runtime cannot",
+        "BP-CNC-04": "that gives reviewers a sibling's full text; this gives a verifier only an anchor, deliberately withholding the raising argument",
+        "bp-ux-01": "no design direction, no revert gate - this produces a queue, not a change"
+      },
+      "flagship_test": null,
+      "flagship_rationale": "NOT flagship: an end-to-end test needs a real multi-surface app source tree with a router, which this repo does not contain. Its structural properties (a second fan-out over findings, UNAUDITED accounting, verified-only queue) ARE asserted by test_bp7_slice.py."
+    }
+  }
+}

@@ -1,0 +1,545 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "live-estate-incident-triage",
+  "name": "Live-estate incident triage with an action-authorisation gate",
+  "description": "BP-INC-01 (card 67). Defining mechanism: the disruptive ACTION, not the diagnosis, is what is gated. Each symptom is restated as a falsifiable claim, probed by TWO instruments from DIFFERENT declared instrument classes (so re-running the same probe cannot masquerade as corroboration), checked against an environmental explanation - power-off, reboot, quota - before any defect is concluded, and only then does an authorisation gate release restart / kill / rollback. A claim with one signal, or two signals from the same instrument class, authorises nothing.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": ["engineering-and-reliability"],
+  "tags": ["bp-inc-01", "incident", "two-signal", "action-gate"],
+  "flagship": true,
+
+  "params": {
+    "symptom": {
+      "type": "string",
+      "required": true,
+      "min_length": 10,
+      "description": "The reported symptom, verbatim - restated as a falsifiable claim in stage one, not accepted as a diagnosis"
+    },
+    "affected_component": {
+      "type": "string",
+      "required": true,
+      "min_length": 2,
+      "description": "The component the symptom is attributed to. The attribution is itself a claim to be probed."
+    },
+    "instrument_classes": {
+      "type": "array",
+      "items": {
+        "type": "enum",
+        "enum": ["process-table", "port-listener", "file-mtime", "byte-growth", "event-log", "scheduled-task-state", "cpu-delta", "http-health", "exit-code-decode"]
+      },
+      "min_items": 2,
+      "default": ["process-table", "byte-growth", "event-log", "scheduled-task-state"],
+      "description": "At least two, because a single instrument class cannot corroborate itself"
+    },
+    "candidate_actions": {
+      "type": "array",
+      "items": {
+        "type": "enum",
+        "enum": ["restart", "kill", "rollback", "reconfigure", "wait", "no-action"]
+      },
+      "min_items": 1,
+      "default": ["wait", "no-action"],
+      "description": "The actions under consideration. Each must be justified by a corroborated claim or it is refused."
+    },
+    "allow_disruptive_actions": {
+      "type": "boolean",
+      "default": false,
+      "description": "Restart, kill and rollback stay blocked until the owner authorises them on a corroborated claim"
+    }
+  },
+
+  "roles": {
+    "probe-runner": {
+      "description": "Runs exactly one instrument class and reports its raw reading, never an interpretation",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Grep", "Bash:python", "Bash:pwsh", "Write(command-center/incident/**)"],
+      "write_paths": ["command-center/incident/**"],
+      "speaking_rights": "always"
+    },
+    "reconciler": {
+      "description": "Compares the two readings; disagreement means the FIRST reading was probably an artifact, not that the system is broken",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "judge",
+      "independence": "informed",
+      "tool_permissions": ["Read", "Bash:python", "Write(command-center/incident/**)"],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - the only actor who may authorise a disruptive action",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "always"
+    }
+  },
+
+  "tool_policy": {
+    "default": "deny",
+    "allow": ["Read", "Grep", "Glob", "Bash:python", "Bash:pwsh", "Write(command-center/incident/**)"],
+    "deny": ["Bash", "WebFetch", "Bash:taskkill", "Bash:git"],
+    "require_owner_approval": ["Bash:pwsh"],
+    "network": "none",
+    "write_paths": ["command-center/incident/**"],
+    "forbid_write_paths": ["platform/**", "command-center/WORK-UNIT-CATALOG.json"],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "skip"
+    }
+  },
+
+  "model_routing": {
+    "strategy": "static",
+    "default": { "model": "opus", "vendor": "anthropic", "effort": "high" },
+    "forbid_downgrade_below": "opus"
+  },
+
+  "gates": {
+    "instruments-are-independent": {
+      "predicate": "custom-expression",
+      "expression": "distinct_instrument_classes_used >= 2 AND same_probe_rerun_count == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "every-claim-has-a-verdict": {
+      "predicate": "custom-expression",
+      "expression": "claims_with_verdict == claims_stated AND claims_with_single_signal == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "action-authorised-only-on-corroboration": {
+      "predicate": "custom-expression",
+      "expression": "disruptive_actions_proposed_without_corroborated_claim == 0 AND environmental_explanation_checked == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    }
+  },
+
+  "stages": [
+    {
+      "id": "state-claims",
+      "title": "Restate the symptom as falsifiable claims",
+      "kind": "task",
+      "role": "reconciler",
+      "timeout_seconds": 900,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "INC-6701",
+        "title": "Restate the reported symptom as a set of independently falsifiable claims",
+        "phase": "7",
+        "question_or_target": "Turn the symptom into 1-6 claims that each name the observation that would REFUTE them, and record the attribution to affected_component as one of those claims rather than as background fact.",
+        "inputs": ["params.symptom", "params.affected_component"],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "reconciler",
+          "basis": "framing the claim decides what the probes can even test"
+        },
+        "tool_permissions": ["Read", "Write(command-center/incident/**)"],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 900,
+        "output_path": "command-center/incident/claims.json",
+        "output_schema": "command-center/schema/triage-revalidation.schema.json",
+        "evidence_requirement": "each claim carries its refuting observation and the two instrument classes chosen to test it, named before either is run",
+        "tests_required": [
+          "a claim with no refuting observation must be rejected as unfalsifiable",
+          "a claim whose two named instrument classes are identical must be rejected before any probe runs"
+        ],
+        "reviewer_requirement": "an independent reviewer confirms the instrument pair chosen per claim is mechanically different, not two views of one source",
+        "completion_sentinel": "SUCCESS:INC-6701 when every claim has a refuting observation and two distinct instrument classes; otherwise FAILED:INC-6701 <reason>",
+        "retry_policy": "two strikes then pivot to asking the owner what would count as refutation",
+        "failure_classification": ["unfalsifiable-claim", "instrument-pair-degenerate"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/incident/claims.json",
+          "schema_ref": "command-center/schema/triage-revalidation.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:INC-6701",
+          "consumers": ["probe-claims", "reconcile-readings"]
+        }
+      ]
+    },
+    {
+      "id": "probe-claims",
+      "title": "Two mechanically different instruments per claim, in parallel",
+      "kind": "fanout",
+      "depends_on": ["state-claims"],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/incident/claims.json#/claims",
+        "item_var": "claim",
+        "key_field": "claim_id"
+      },
+      "max_concurrency": 4,
+      "arrival_stagger_ms": 100,
+      "max_items": 6,
+      "on_item_failure": "continue",
+      "body": [
+        {
+          "id": "probe-primary",
+          "title": "Instrument A - the class that produced the original reading",
+          "kind": "task",
+          "role": "probe-runner",
+          "timeout_seconds": 900,
+          "work_unit": {
+            "id": "INC-6702",
+            "title": "Run the primary instrument for one claim and record the SOURCE probe explicitly",
+            "phase": "7",
+            "question_or_target": "Run the instrument class that produced the original reading and record the exact command, its raw output and the instrument class name - the SOURCE probe must be declared, because an undeclared source is zero signals rather than one.",
+            "inputs": ["command-center/incident/claims.json", "fanout.item.claim_id"],
+            "dependencies": ["INC-6701"],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "probe-runner",
+              "basis": "substantive subagents default to Opus"
+            },
+            "tool_permissions": ["Read", "Bash:python", "Bash:pwsh", "Write(command-center/incident/**)"],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 900,
+            "output_path": "command-center/incident/probe-primary",
+            "output_schema": "command-center/schema/detector-control.schema.json",
+            "evidence_requirement": "the exact command, the raw output, and the instrument class token - so a later reader can tell whether the second probe was mechanically different",
+            "tests_required": [
+              "a probe whose pattern matches its OWN command line must be flagged (the self-match control that once reported a dead session ACTIVE)"
+            ],
+            "reviewer_requirement": "the reconciler compares instrument class tokens, not prose descriptions",
+            "completion_sentinel": "SUCCESS:INC-6702 when the command, raw output and instrument class are recorded; otherwise FAILED:INC-6702 <reason>",
+            "retry_policy": "two strikes then pivot to a different instrument in the same class",
+            "failure_classification": ["probe-self-match", "instrument-unavailable"],
+            "owner_approval_required": false
+          }
+        },
+        {
+          "id": "probe-corroborating",
+          "title": "Instrument B - a DIFFERENT class, run independently",
+          "kind": "task",
+          "role": "probe-runner",
+          "timeout_seconds": 900,
+          "work_unit_ref": "AUD-0002"
+        },
+        {
+          "id": "independence-gate",
+          "title": "Two readings from one instrument class are one signal",
+          "kind": "gate",
+          "depends_on": ["probe-primary", "probe-corroborating"],
+          "gate_ref": "instruments-are-independent"
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "proceed-with-quarantine",
+        "reject_result_matching": ["started in the background"],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "reconcile-readings",
+      "title": "Disagreement means the first reading was probably an artifact",
+      "kind": "task",
+      "depends_on": ["probe-claims"],
+      "role": "reconciler",
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "INC-6703",
+        "title": "Reconcile the instrument pair per claim into CONFIRMED, REFUTED or UNRESOLVED",
+        "phase": "7",
+        "question_or_target": "For each claim compare the two readings and emit CONFIRMED (both agree), REFUTED (the corroborating instrument contradicts the original) or UNRESOLVED (a second signal could not be obtained); when they disagree, the default reading is that the FIRST measurement was an artifact, not that the system is broken.",
+        "inputs": ["command-center/incident/probe-primary", "command-center/incident/claims.json"],
+        "dependencies": ["INC-6702"],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "reconciler",
+          "basis": "the reconciliation is what a disruptive action would be justified by"
+        },
+        "tool_permissions": ["Read", "Bash:python", "Write(command-center/incident/**)"],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/incident/claim-verdicts.json",
+        "output_schema": "command-center/schema/triage-revalidation.schema.json",
+        "evidence_requirement": "per claim: both instrument class tokens, both raw readings, and the verdict; an UNRESOLVED verdict names which instrument could not be obtained",
+        "tests_required": [
+          "a claim with only one reading must be UNRESOLVED, never CONFIRMED",
+          "a decoded exit code meaning a designed steady state must produce REFUTED for a hang claim"
+        ],
+        "reviewer_requirement": "the owner sees the UNRESOLVED list before any action is authorised",
+        "completion_sentinel": "SUCCESS:INC-6703 when every claim has a verdict backed by two named instrument classes or is marked UNRESOLVED; otherwise FAILED:INC-6703 <reason>",
+        "retry_policy": "no retry - an UNRESOLVED verdict is the honest terminal state",
+        "failure_classification": ["single-signal-verdict", "detector-failure"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/incident/claim-verdicts.json",
+          "schema_ref": "command-center/schema/triage-revalidation.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:INC-6703",
+          "consumers": ["verdict-gate", "environmental-explanation"]
+        }
+      ]
+    },
+    {
+      "id": "verdict-gate",
+      "title": "No claim may reach the action stage on one signal",
+      "kind": "gate",
+      "depends_on": ["reconcile-readings"],
+      "gate_ref": "every-claim-has-a-verdict"
+    },
+    {
+      "id": "environmental-explanation",
+      "title": "Rule out power-off, reboot and quota BEFORE concluding a defect",
+      "kind": "task",
+      "depends_on": ["verdict-gate"],
+      "role": "reconciler",
+      "timeout_seconds": 1200,
+      "work_unit": {
+        "id": "INC-6704",
+        "title": "Test each confirmed claim against an environmental explanation before calling it a defect",
+        "phase": "7",
+        "question_or_target": "For each CONFIRMED claim, test whether an environmental cause explains it fully - machine power-off windows against the staleness interval, a reboot against a process absence, a quota window against a burst of failures - and where the environmental interval covers the observation, reclassify the claim as ENVIRONMENTAL rather than DEFECT.",
+        "inputs": ["command-center/incident/claim-verdicts.json"],
+        "dependencies": ["INC-6703"],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "reconciler",
+          "basis": "this reclassification is what prevents a wrong restart"
+        },
+        "tool_permissions": ["Read", "Bash:python", "Bash:pwsh", "Write(command-center/incident/**)"],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1200,
+        "output_path": "command-center/incident/environmental-analysis.json",
+        "output_schema": "command-center/schema/health-report.schema.json",
+        "evidence_requirement": "the environmental interval measured from an independent source (power event log, uptime, quota window) compared numerically against the observation interval - an overlap claim needs both numbers",
+        "tests_required": [
+          "a staleness interval fully covered by a measured power-off window must reclassify to ENVIRONMENTAL",
+          "an absence of log events across a gap must be checked against a log-rollover control before it is read as a gap"
+        ],
+        "reviewer_requirement": "an independent reviewer re-reads the power/uptime source rather than the comparison",
+        "completion_sentinel": "SUCCESS:INC-6704 when every confirmed claim is DEFECT or ENVIRONMENTAL with both intervals recorded; otherwise FAILED:INC-6704 <reason>",
+        "retry_policy": "two strikes then pivot to a different environmental source",
+        "failure_classification": ["environmental-source-unavailable", "rollover-not-controlled"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/incident/environmental-analysis.json",
+          "schema_ref": "command-center/schema/health-report.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:INC-6704",
+          "consumers": ["action-gate", "owner-authorises-disruptive-action"]
+        }
+      ]
+    },
+    {
+      "id": "action-gate",
+      "title": "The action is what is gated, not the diagnosis",
+      "kind": "gate",
+      "depends_on": ["environmental-explanation"],
+      "gate_ref": "action-authorised-only-on-corroboration"
+    },
+    {
+      "id": "owner-authorises-disruptive-action",
+      "title": "Restart, kill and rollback need an owner signature on a corroborated claim",
+      "kind": "human_checkpoint",
+      "depends_on": ["action-gate"],
+      "when": "allow_disruptive_actions == true AND disruptive_actions_proposed >= 1",
+      "prompt": "Each proposed disruptive action is listed with the corroborated claim that justifies it and the two instrument classes behind that claim. Authorise, downgrade to wait, or refuse.",
+      "approvers": ["owner"],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 43200,
+      "on_timeout": "fail",
+      "owner_approval_required": true,
+      "options": ["authorise-listed-actions", "downgrade-to-wait", "refuse"],
+      "decision_artifact": {
+        "path": "command-center/incident/ACTION-AUTHORISATION.json",
+        "schema_ref": "command-center/schema/receipt.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true
+      }
+    }
+  ],
+
+  "stopping_rules": [
+    {
+      "id": "every-claim-decided-and-actions-listed",
+      "expression": "claims_with_verdict == claims_stated AND action_list_decided == true",
+      "applies_to": "workflow",
+      "minimum_conditions": "distinct_instrument_classes_used >= 2",
+      "on_stop": "complete"
+    },
+    {
+      "id": "second-signal-unobtainable",
+      "expression": "claims_unresolved >= 1",
+      "applies_to": "workflow",
+      "minimum_conditions": "claims_stated >= 1",
+      "on_stop": "emit-partial"
+    }
+  ],
+
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 10,
+    "jitter": false,
+    "retry_on": ["instrument-unavailable"],
+    "no_retry_on": ["single-signal-verdict", "probe-self-match"],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "owner-authorises-disruptive-action"
+    }
+  },
+
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": ["single-signal-verdict", "detector-failure", "environmental-source-unavailable"],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner-authorises-disruptive-action",
+    "quarantine_path": "command-center/incident/quarantine"
+  },
+
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/incident-triage",
+    "granularity": "fanout-item",
+    "idempotency_key_from": ["workflow_id", "stage_id", "item_key"],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 3600,
+    "on_stale": "restart"
+  },
+
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/incident-triage.jsonl",
+    "record": ["params", "inputs", "tool_calls", "tool_results", "timings"],
+    "replay_source": "recorded-journal",
+    "verify": "semantic-equal",
+    "on_divergence": "record-discrepancy"
+  },
+
+  "cache": {
+    "enabled": false
+  },
+
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": ["plan", "permission-report", "graph"],
+    "plan_artifact": "command-center/dry-run/incident-triage-plan.json",
+    "forbid_tools": ["Bash:pwsh", "Bash:python", "Write(command-center/incident/**)"]
+  },
+
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "almost-certain",
+    "cost": { "currency": "USD", "expected": 0.5, "max": 2.0 },
+    "wallclock_seconds": { "min": 180, "expected": 1200, "max": 5400 },
+    "tokens": { "expected": 120000, "max": 500000 },
+    "tool_calls": { "expected": 50, "max": 200 },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "read-mostly; every destructive action is behind the authorisation gate and the owner checkpoint",
+      "requires_owner_approval": false
+    }
+  },
+
+  "portability": {
+    "export": {
+      "format": "json",
+      "includes": ["definition", "tests", "examples", "lineage"],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/live-estate-incident-triage.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject"
+    }
+  },
+
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-INC-01",
+        "relation": "COMPOSE",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "rules/common/single-signal-verification.md",
+        "relation": "TRANSLATE",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": ["rules/common/single-signal-verification.md"]
+  },
+
+  "outputs": {
+    "claim-verdicts": {
+      "path": "command-center/incident/claim-verdicts.json",
+      "schema_ref": "command-center/schema/triage-revalidation.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": ["dead-feed-recovery-unattended-proof", "owner"]
+    }
+  },
+
+  "x_extensions": {
+    "mechanism_fingerprint": {
+      "primary": "per-claim-two-different-instrument-classes-gating-the-ACTION-not-the-diagnosis",
+      "distinguishing_stage": "environmental-explanation",
+      "distinguishing_gate": "instruments-are-independent",
+      "not_a_duplicate_because": "BP-DBG-01 debugs deterministic CODE. This triages a live SYSTEM where the dominant risk is acting on a measurement artifact, and it is the only blueprint here whose terminal output is an authorised-actions list rather than a finding list."
+    },
+    "worked_example": {
+      "name": "a scheduled task reporting a non-zero result code",
+      "params": {
+        "symptom": "the recall-index task shows a non-zero last result and its index file has not changed for 103 hours",
+        "affected_component": "recall-index scheduled task",
+        "instrument_classes": ["scheduled-task-state", "file-mtime", "event-log", "exit-code-decode"],
+        "candidate_actions": ["restart", "wait", "no-action"],
+        "allow_disruptive_actions": false
+      },
+      "expected_stage_path": [
+        "state-claims",
+        "probe-claims",
+        "probe-primary",
+        "probe-corroborating",
+        "independence-gate",
+        "reconcile-readings",
+        "verdict-gate",
+        "environmental-explanation",
+        "action-gate"
+      ],
+      "skipped_stages": ["owner-authorises-disruptive-action"],
+      "skipped_because": "allow_disruptive_actions is false and the only surviving action is wait, so no disruptive action is proposed and the owner checkpoint does not fire",
+      "expected_artifacts": [
+        "command-center/incident/claims.json",
+        "command-center/incident/claim-verdicts.json",
+        "command-center/incident/environmental-analysis.json"
+      ],
+      "expected_terminal": "SUCCESS:INC-6704",
+      "narrative": "Two claims are stated. Claim 1 - 'the task is hung' - is probed by scheduled-task-state and by exit-code-decode; the decode shows the code means the operator refused a second concurrent instance, which is a DESIGNED steady state for a single-instance task, so claim 1 is REFUTED and the restart it would have justified is never proposed. Claim 2 - 'the index is stale' - is CONFIRMED by file-mtime and byte-growth, then the environmental stage measures a 102.3 hour power-off window against the 103.8 hour staleness interval and reclassifies it ENVIRONMENTAL. Authorised actions: wait. Blocked actions: restart, with the reason recorded."
+    }
+  }
+}

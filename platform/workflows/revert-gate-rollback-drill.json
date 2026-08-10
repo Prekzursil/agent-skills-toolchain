@@ -1,0 +1,466 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "revert-gate-rollback-drill",
+  "name": "Revert-gate rollback drill (reversibility proven before application)",
+  "description": "BP-INC-05 (card 71). Defining mechanism: reversibility is DEMONSTRATED, not asserted, and the demonstration happens BEFORE the change is applied for real. The drill captures a byte-level baseline, applies the change, checks its postcondition, reverts, and then compares the tree to the baseline BYTE-FOR-BYTE - a revert that leaves any residue is not a revert, and a change whose revert cannot be demonstrated escalates to an owner decision rather than being applied quietly. Drills are serialized by construction: two drills against one tree would each be the other's residue.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": ["engineering-and-reliability", "security-governance-and-risk"],
+  "tags": ["bp-inc-05", "revert-gate", "byte-parity", "drill"],
+  "flagship": true,
+
+  "params": {
+    "changes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "min_items": 1,
+      "max_items": 32,
+      "required": true,
+      "description": "Fan-out keys - one drill per candidate change, run strictly one at a time"
+    },
+    "baseline_paths": {
+      "type": "array",
+      "items": { "type": "path" },
+      "min_items": 1,
+      "required": true,
+      "description": "Every path the change could touch. The baseline is the bytes of these paths, not a description of them."
+    },
+    "apply_command": {
+      "type": "string",
+      "required": true,
+      "min_length": 2,
+      "description": "How the change is applied. Recorded verbatim so the drill and the real application are the same operation."
+    },
+    "revert_command": {
+      "type": "string",
+      "required": true,
+      "min_length": 2,
+      "description": "How the change is undone. A change with no revert command is undrillable and escalates."
+    },
+    "postcondition": {
+      "type": "string",
+      "required": true,
+      "min_length": 10,
+      "description": "The observable that shows the change actually did something while applied - otherwise the drill proves only that nothing happened"
+    },
+    "hash_algorithm": {
+      "type": "enum",
+      "enum": ["sha256", "sha512"],
+      "default": "sha256",
+      "description": "Baseline and post-revert manifests are compared by digest per path plus a manifest digest"
+    }
+  },
+
+  "roles": {
+    "baseline-capturer": {
+      "description": "Captures and re-captures the byte manifest; the only role that may declare byte equality",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "judge",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Glob", "Bash:python", "Write(command-center/drill/**)"],
+      "write_paths": ["command-center/drill/**"],
+      "speaking_rights": "always"
+    },
+    "drill-operator": {
+      "description": "Applies and reverts the change using the recorded commands, without improvising either",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": ["Read", "Bash:python", "Bash:pwsh", "Write(command-center/drill/**)"],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - decides what to do with a change whose revert cannot be demonstrated",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "always"
+    }
+  },
+
+  "tool_policy": {
+    "default": "deny",
+    "allow": ["Read", "Glob", "Grep", "Bash:python", "Bash:pwsh", "Write(command-center/drill/**)"],
+    "deny": ["Bash", "WebFetch", "Bash:git"],
+    "require_owner_approval": ["Bash:pwsh"],
+    "network": "none",
+    "write_paths": ["command-center/drill/**"],
+    "forbid_write_paths": ["command-center/WORK-UNIT-CATALOG.json"],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "skip"
+    }
+  },
+
+  "model_routing": {
+    "strategy": "static",
+    "default": { "model": "opus", "vendor": "anthropic", "effort": "high" },
+    "forbid_downgrade_below": "opus"
+  },
+
+  "gates": {
+    "change-actually-did-something": {
+      "predicate": "custom-expression",
+      "expression": "postcondition_result == PASS AND applied_manifest_differs_from_baseline == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    },
+    "revert-restores-bytes-exactly": {
+      "predicate": "custom-expression",
+      "expression": "post_revert_manifest_digest == baseline_manifest_digest AND residual_paths == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    },
+    "real-apply-authorised": {
+      "predicate": "custom-expression",
+      "expression": "drills_passed == drills_attempted AND undrillable_changes_applied == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+
+  "stages": [
+    {
+      "id": "drill-each-change",
+      "title": "One drill per change, strictly serialized",
+      "kind": "fanout",
+      "over": {
+        "source": "param",
+        "ref": "changes",
+        "item_var": "change",
+        "key_field": "change"
+      },
+      "max_concurrency": 1,
+      "max_items": 32,
+      "on_item_failure": "abort",
+      "body": [
+        {
+          "id": "capture-baseline",
+          "title": "Capture the baseline as BYTES - a digest per path plus a manifest digest",
+          "kind": "task",
+          "role": "baseline-capturer",
+          "timeout_seconds": 900,
+          "work_unit": {
+            "id": "INC-7101",
+            "title": "Capture a byte-level baseline manifest over every path the change could touch",
+            "phase": "10",
+            "question_or_target": "For every path in baseline_paths record its digest, its byte size, and whether it exists; then record one manifest digest over the sorted per-path rows, so a later comparison is one equality rather than a walk that could miss a path.",
+            "inputs": ["params.baseline_paths", "params.hash_algorithm", "fanout.item.change"],
+            "dependencies": [],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "baseline-capturer",
+              "basis": "substantive subagents default to Opus"
+            },
+            "tool_permissions": ["Read", "Glob", "Bash:python", "Write(command-center/drill/**)"],
+            "execution_substrate": "local-serialized",
+            "timeout_seconds": 900,
+            "output_path": "command-center/drill/baseline-manifest.json",
+            "output_schema": "command-center/schema/byte-parity-report.schema.json",
+            "evidence_requirement": "per path: existence flag, byte size and digest; plus one manifest digest over the sorted rows - the existence flag is what makes a stray NEW file detectable after the revert",
+            "tests_required": [
+              "a path that does not exist must be recorded with existence false, so a file created by the change is visible as a change of state rather than as a missing row",
+              "reordering the walk must not change the manifest digest (the sorted-rows control)"
+            ],
+            "reviewer_requirement": "the comparison stage re-captures with the same code path and compares digests, never descriptions",
+            "completion_sentinel": "SUCCESS:INC-7101 when every baseline path has a row and the manifest digest is recorded; otherwise FAILED:INC-7101 <reason>",
+            "retry_policy": "no retry - a baseline that cannot be captured means the change is undrillable",
+            "failure_classification": ["baseline-uncapturable", "path-unreadable"],
+            "owner_approval_required": false
+          },
+          "produces": [
+            {
+              "path": "command-center/drill/baseline-manifest.json",
+              "schema_ref": "command-center/schema/byte-parity-report.schema.json",
+              "min_bytes": 128,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:INC-7101",
+              "consumers": ["compare-to-baseline"]
+            }
+          ]
+        },
+        {
+          "id": "apply-in-drill",
+          "title": "Apply the change with the recorded command, unmodified",
+          "kind": "task",
+          "depends_on": ["capture-baseline"],
+          "role": "drill-operator",
+          "timeout_seconds": 1800,
+          "work_unit_ref": "IMP-0006"
+        },
+        {
+          "id": "postcondition-gate",
+          "title": "A change that changed nothing has a trivially perfect revert",
+          "kind": "gate",
+          "depends_on": ["apply-in-drill"],
+          "gate_ref": "change-actually-did-something"
+        },
+        {
+          "id": "revert-in-drill",
+          "title": "Revert with the recorded command, unmodified",
+          "kind": "task",
+          "depends_on": ["postcondition-gate"],
+          "role": "drill-operator",
+          "timeout_seconds": 1800,
+          "work_unit_ref": "IMP-0007"
+        },
+        {
+          "id": "compare-to-baseline",
+          "title": "Byte-for-byte comparison, including files that should not exist",
+          "kind": "task",
+          "depends_on": ["revert-in-drill"],
+          "role": "baseline-capturer",
+          "timeout_seconds": 900,
+          "work_unit": {
+            "id": "INC-7102",
+            "title": "Re-capture the manifest after the revert and compare it to the baseline",
+            "phase": "10",
+            "question_or_target": "Re-capture the manifest with the same code path and compare it to the baseline: equal manifest digests, and separately an enumeration of residual paths - files that now exist and did not before, or whose digest differs - because a stray file is the residue class a single overall digest could hide behind a rounding of the report.",
+            "inputs": ["command-center/drill/baseline-manifest.json", "params.baseline_paths"],
+            "dependencies": ["INC-7101"],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "baseline-capturer",
+              "basis": "the equality claim is the whole deliverable"
+            },
+            "tool_permissions": ["Read", "Glob", "Bash:python", "Write(command-center/drill/**)"],
+            "execution_substrate": "local-serialized",
+            "timeout_seconds": 900,
+            "output_path": "command-center/drill/revert-comparison.json",
+            "output_schema": "command-center/schema/rollback-report.schema.json",
+            "evidence_requirement": "the two manifest digests, and the explicit residual-path list with a reason per entry - created, modified or deleted; an empty list is stated as empty rather than omitted",
+            "tests_required": [
+              "a revert that leaves one stray file must produce residual_paths of 1 and fail the gate (the residue control)",
+              "a clean apply and revert must produce equal manifest digests and an explicitly empty residual list, not a 'looks the same' verdict"
+            ],
+            "reviewer_requirement": "the owner reads any non-empty residual list before the change is applied for real",
+            "completion_sentinel": "SUCCESS:INC-7102 when both digests and the residual list are recorded; otherwise FAILED:INC-7102 <reason>",
+            "retry_policy": "no retry - residue is a property of the revert command, not a transient",
+            "failure_classification": ["revert-left-residue", "revert-failed", "manifest-mismatch"],
+            "owner_approval_required": false
+          },
+          "produces": [
+            {
+              "path": "command-center/drill/revert-comparison.json",
+              "schema_ref": "command-center/schema/rollback-report.schema.json",
+              "min_bytes": 128,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:INC-7102",
+              "consumers": ["residue-gate"]
+            }
+          ]
+        },
+        {
+          "id": "residue-gate",
+          "title": "A revert that leaves residue is not a revert",
+          "kind": "gate",
+          "depends_on": ["compare-to-baseline"],
+          "gate_ref": "revert-restores-bytes-exactly"
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "fail",
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "owner-decides-undrillable",
+      "title": "A change whose revert cannot be demonstrated is an owner decision, not a quiet apply",
+      "kind": "human_checkpoint",
+      "depends_on": ["drill-each-change"],
+      "when": "undrillable_changes >= 1",
+      "prompt": "These changes could not be drilled: either no revert command exists, or the revert left residue. For each, decide whether to accept the irreversibility explicitly, redesign the change so it is drillable, or drop it. It will not be applied on the strength of this workflow.",
+      "approvers": ["owner"],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 86400,
+      "on_timeout": "fail",
+      "owner_approval_required": true,
+      "options": ["accept-irreversibility-explicitly", "redesign-to-be-drillable", "drop-the-change"],
+      "decision_artifact": {
+        "path": "command-center/drill/UNDRILLABLE-RULINGS.json",
+        "schema_ref": "command-center/schema/decision-reversal.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true,
+        "consumers": ["authorise-real-apply"]
+      }
+    },
+    {
+      "id": "authorise-real-apply",
+      "title": "Only a drilled change may be applied for real",
+      "kind": "gate",
+      "depends_on": ["owner-decides-undrillable"],
+      "gate_ref": "real-apply-authorised"
+    }
+  ],
+
+  "stopping_rules": [
+    {
+      "id": "every-change-drilled-and-baseline-restored",
+      "expression": "drills_passed == drills_attempted AND residual_paths == 0",
+      "applies_to": "workflow",
+      "minimum_conditions": "drills_attempted >= 1 AND postcondition_result == PASS",
+      "on_stop": "complete"
+    },
+    {
+      "id": "revert-unprovable",
+      "expression": "undrillable_changes >= 1",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+
+  "retry_policy": {
+    "strategy": "none",
+    "max_attempts": 1,
+    "no_retry_on": ["revert-left-residue", "baseline-uncapturable"]
+  },
+
+  "failure_policy": {
+    "on_failure": "fail-fast",
+    "classify_as": ["revert-left-residue", "revert-failed", "baseline-uncapturable"],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner-decides-undrillable",
+    "quarantine_path": "command-center/drill/quarantine"
+  },
+
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/drill",
+    "granularity": "fanout-item",
+    "idempotency_key_from": ["workflow_id", "stage_id", "item_key", "inputs_hash"],
+    "resume_from": "restart",
+    "stale_checkpoint_seconds": 3600,
+    "on_stale": "restart"
+  },
+
+  "replay": {
+    "deterministic": true,
+    "seed": 0,
+    "journal_path": "command-center/replay/drill.jsonl",
+    "record": ["params", "inputs", "tool_calls", "tool_results", "env_fingerprint"],
+    "forbid_nondeterministic_sources": ["clock", "random", "network", "filesystem-order", "process-id"],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "fail"
+  },
+
+  "cache": {
+    "enabled": false
+  },
+
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": ["plan", "artifact-diff", "permission-report"],
+    "plan_artifact": "command-center/dry-run/drill-plan.json",
+    "forbid_tools": ["Bash:pwsh", "Bash:python", "Write(command-center/drill/**)"]
+  },
+
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": { "currency": "USD", "expected": 0.4, "max": 2.0 },
+    "wallclock_seconds": { "min": 120, "expected": 900, "max": 7200 },
+    "tokens": { "expected": 90000, "max": 400000 },
+    "tool_calls": { "expected": 45, "max": 250 },
+    "impact": {
+      "risk": "medium",
+      "reversibility": "reversible",
+      "blast_radius": "the drill itself APPLIES the change temporarily, so the target really is touched; the byte comparison is what bounds the blast radius, and doubling the apply cost is the deliberate price",
+      "requires_owner_approval": false
+    }
+  },
+
+  "portability": {
+    "export": {
+      "format": "json",
+      "includes": ["definition", "tests", "examples"],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/revert-gate-rollback-drill.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject"
+    }
+  },
+
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-INC-05",
+        "relation": "GENERALIZE",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "skills/design-studio#revert-gate",
+        "relation": "EXTEND",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": ["skills/design-studio#revert-gate"]
+  },
+
+  "outputs": {
+    "rollback-report": {
+      "path": "command-center/drill/revert-comparison.json",
+      "schema_ref": "command-center/schema/rollback-report.schema.json",
+      "min_bytes": 128,
+      "register_in_manifest": true,
+      "consumers": ["owner", "command-center/drill/UNDRILLABLE-RULINGS.json"]
+    }
+  },
+
+  "x_extensions": {
+    "mechanism_fingerprint": {
+      "primary": "apply-then-revert-then-byte-manifest-equality-before-the-real-application",
+      "distinguishing_stage": "compare-to-baseline",
+      "distinguishing_gate": "revert-restores-bytes-exactly",
+      "not_a_duplicate_because": "BP-REL-03 is the staged DEPLOY transport - it moves a change. This is the pre-application proof that the move can be undone, and it is the only blueprint here whose gate is byte equality of a whole path manifest including negative existence."
+    },
+    "worked_example": {
+      "name": "a hook-manifest change to a live harness",
+      "params": {
+        "changes": ["register-todo-surfacer-stop-hook"],
+        "baseline_paths": ["command-center/drill/fixtures/hooks/manifest.json", "command-center/drill/fixtures/hooks/todo-surfacer"],
+        "apply_command": "python platform/lib/workflows/_drill_apply.py register-todo-surfacer-stop-hook",
+        "revert_command": "python platform/lib/workflows/_drill_apply.py --revert register-todo-surfacer-stop-hook",
+        "postcondition": "the manifest lists a Stop entry naming todo-surfacer and the dispatcher resolves it",
+        "hash_algorithm": "sha256"
+      },
+      "expected_stage_path": [
+        "drill-each-change",
+        "capture-baseline",
+        "apply-in-drill",
+        "postcondition-gate",
+        "revert-in-drill",
+        "compare-to-baseline",
+        "residue-gate",
+        "authorise-real-apply"
+      ],
+      "skipped_stages": ["owner-decides-undrillable"],
+      "skipped_because": "the single drill passes, so undrillable_changes is 0 and the `when` guard on the owner checkpoint does not fire",
+      "expected_artifacts": [
+        "command-center/drill/baseline-manifest.json",
+        "command-center/drill/revert-comparison.json"
+      ],
+      "expected_terminal": "SUCCESS:INC-7102",
+      "narrative": "The baseline records two paths, one of which does not exist yet (existence false - the hook directory). Applying the change adds the directory and rewrites the manifest, and the postcondition confirms the dispatcher resolves the new Stop entry, so the change is proven to do something rather than nothing. The revert restores the manifest byte-identically but leaves a .bak file the apply script wrote: residual_paths is 1, the manifest digests differ, and the residue gate blocks - which is exactly the finding a description-level check ('the manifest looks right again') would have missed. After the apply script is fixed to clean its own backup, the second drill returns equal digests with an explicitly empty residual list and the real application is authorised."
+    }
+  }
+}

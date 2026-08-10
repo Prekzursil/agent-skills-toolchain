@@ -1,0 +1,622 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "supply-chain-alert-campaign-fail-closed",
+  "name": "Supply-chain alert campaign with a fail-closed gate audit",
+  "description": "BP-SEC-04 (card 64). Defining mechanism: a second-order AUDIT OF THE GATE. Every other multi-repo campaign reads each repo's CI verdict and stops; this one then audits those verdicts and reclassifies three specific fail-open readings - a repo reporting CLEAN with checks:NONE is UNGATED not passing, mergeStateStatus BLOCKED means the checks RAN AND FAILED not that they are pending, and a non-zero non-1 scanner exit (127) is a tool error not a finding count of zero. The measured near-miss this exists to prevent is a fail-open gate that almost let a fork-sync delete the estate's own security fixes. Replay is deliberately declared NON-deterministic because advisory data is time-varying; the snapshot date is the record.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": ["security-governance-and-risk", "engineering-and-reliability"],
+  "tags": ["bp-sec-04", "supply-chain", "fail-closed", "gate-audit"],
+  "flagship": true,
+
+  "params": {
+    "repos": {
+      "type": "array",
+      "items": { "type": "string" },
+      "min_items": 1,
+      "max_items": 64,
+      "required": true,
+      "description": "Fan-out keys - one campaign runner per repo, in owner/name form"
+    },
+    "advisory_source": {
+      "type": "enum",
+      "enum": ["osv", "dependabot", "both"],
+      "default": "both",
+      "description": "Where alerts come from. If the source is unreachable the campaign HALTS rather than reporting zero alerts."
+    },
+    "floor_policy": {
+      "type": "enum",
+      "enum": ["minimum-patched", "latest-minor", "latest-major"],
+      "default": "minimum-patched",
+      "description": "Which version floor a bump proposes; also the dedupe key's second component"
+    },
+    "snapshot_date": {
+      "type": "string",
+      "required": true,
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "description": "The advisory snapshot this campaign is pinned to. Without it a re-run silently measures a different world."
+    },
+    "propose_only": {
+      "type": "boolean",
+      "default": true,
+      "description": "PRs are opened as drafts and never auto-merged. Release mode on this estate is PR-only."
+    },
+    "min_repo_quorum": {
+      "type": "number",
+      "default": 0.75,
+      "minimum": 0.1,
+      "maximum": 1,
+      "description": "Fraction of repos that must produce a gate verdict before the central audit may run"
+    }
+  },
+
+  "roles": {
+    "alert-collector": {
+      "description": "Pulls the advisory snapshot and halts loudly if the source is unreachable",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Bash:python", "Bash:osv-scanner", "Bash:gh", "Write(command-center/supply-chain/**)"],
+      "write_paths": ["command-center/supply-chain/**"],
+      "speaking_rights": "always"
+    },
+    "repo-runner": {
+      "description": "Proposes one repo's bump as a draft PR and reads that repo's REAL CI result",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Grep", "Bash:git", "Bash:gh", "Bash:python", "Write(command-center/supply-chain/**)"],
+      "speaking_rights": "always"
+    },
+    "gate-auditor": {
+      "description": "Audits the gate itself; the only role allowed to overturn a repo's self-reported PASS",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "veto",
+      "vote_weight": 3,
+      "independence": "cross-examining",
+      "cross_vendor_required": true,
+      "tool_permissions": ["Read", "Bash:gh", "Bash:python", "mcp__codex__codex", "Write(command-center/supply-chain/**)"],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - merges, since release mode is PR-only",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Bash:git",
+      "Bash:gh",
+      "Bash:osv-scanner",
+      "Bash:python",
+      "mcp__codex__codex",
+      "Write(command-center/supply-chain/**)"
+    ],
+    "deny": ["Bash", "WebFetch"],
+    "require_owner_approval": ["Bash:gh"],
+    "network": "read-only",
+    "write_paths": ["command-center/supply-chain/**"],
+    "forbid_write_paths": ["command-center/WORK-UNIT-CATALOG.json", "platform/schema/**"],
+    "source_policy": {
+      "allow_domains": ["osv.dev", "api.github.com", "github.com"],
+      "offline_only": false,
+      "license_allowlist": ["MIT", "Apache-2.0", "BSD-3-Clause"],
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "record-as-not-checked"
+    }
+  },
+
+  "model_routing": {
+    "strategy": "vendor-diverse",
+    "default": { "model": "opus", "vendor": "anthropic", "effort": "medium" },
+    "routes": [
+      {
+        "when": "stage_role == gate-auditor",
+        "target": { "model": "gpt-5-codex", "vendor": "openai", "effort": "high" },
+        "reason": "the gate audit must not share the runner's reading of its own CI output"
+      }
+    ],
+    "escalation": {
+      "on": ["quota-429", "failure"],
+      "target": { "model": "opus", "vendor": "anthropic", "effort": "high" },
+      "max_escalations": 2
+    },
+    "forbid_downgrade_below": "opus"
+  },
+
+  "gates": {
+    "advisory-source-live": {
+      "predicate": "custom-expression",
+      "expression": "advisory_source_reachable == true AND alerts_collected >= 0 AND collector_exit_class != TOOL-ERROR",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "no-repo-ungated": {
+      "predicate": "custom-expression",
+      "expression": "repos_ungated == 0 AND repos_without_verdict == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    },
+    "campaign-complete": {
+      "predicate": "completion-predicate-v1",
+      "predicate_ref": "command-center/COMPLETION-GATES.json#/gate_a_unit_completion_predicate",
+      "conditions_required": [1, 2, 3, 4, 5, 6, 9, 10, 11, 12],
+      "blocking": true,
+      "on_fail": "record-and-continue"
+    }
+  },
+
+  "stages": [
+    {
+      "id": "collect-advisories",
+      "title": "Pull the pinned advisory snapshot, or halt",
+      "kind": "task",
+      "role": "alert-collector",
+      "timeout_seconds": 1800,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "SEC-6401",
+        "title": "Collect the advisory snapshot and classify the collector's own exit code",
+        "phase": "7",
+        "question_or_target": "Pull alerts for every repo from advisory_source at snapshot_date, and classify the collector's exit: 0 with alerts, 1 with findings, and ANY other non-zero (notably 127) as TOOL-ERROR. A tool error must halt the campaign; it must never be reported as zero alerts.",
+        "inputs": ["params.repos", "params.advisory_source", "params.snapshot_date"],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "alert-collector",
+          "basis": "substantive subagents default to Opus"
+        },
+        "tool_permissions": ["Read", "Bash:osv-scanner", "Bash:gh", "Bash:python", "Write(command-center/supply-chain/**)"],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/supply-chain/alerts-raw.json",
+        "output_schema": "command-center/schema/supply-chain-receipt.schema.json",
+        "evidence_requirement": "the literal exit code of every advisory query plus the snapshot_date echoed from the tool output, so a zero-alert result is distinguishable from a query that never ran",
+        "tests_required": [
+          "a scanner stubbed to exit 127 must halt the campaign, not report zero alerts",
+          "an unreachable advisory source must halt, not produce an empty alert set"
+        ],
+        "reviewer_requirement": "the gate auditor independently re-queries one repo and compares the alert count",
+        "completion_sentinel": "SUCCESS:SEC-6401 when every query has a classified exit and the snapshot date is recorded; otherwise FAILED:SEC-6401 <reason>",
+        "retry_policy": "two strikes then pivot to the other advisory source; never degrade to an empty set",
+        "failure_classification": ["advisory-source-unreachable", "tool-error-read-as-zero", "detector-failure"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/supply-chain/alerts-raw.json",
+          "schema_ref": "command-center/schema/supply-chain-receipt.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:SEC-6401",
+          "consumers": ["dedupe-alerts"]
+        }
+      ]
+    },
+    {
+      "id": "source-live-gate",
+      "title": "An unreachable advisory source is not a clean estate",
+      "kind": "gate",
+      "depends_on": ["collect-advisories"],
+      "gate_ref": "advisory-source-live"
+    },
+    {
+      "id": "dedupe-alerts",
+      "title": "Collapse alerts by (package, floor) - mechanically, not by judgement",
+      "kind": "task",
+      "depends_on": ["source-live-gate"],
+      "role": "alert-collector",
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "SEC-6402",
+        "title": "Deduplicate alerts by the (package, floor) key with an exact algorithm",
+        "phase": "7",
+        "question_or_target": "Group alerts by the exact tuple (package_name, resolved_floor_under_floor_policy) and emit one row per group with its member advisory ids; this is set membership, so it is computed by an algorithm and never delegated to model judgement.",
+        "inputs": ["command-center/supply-chain/alerts-raw.json", "params.floor_policy"],
+        "dependencies": ["SEC-6401"],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "alert-collector",
+          "basis": "the reduction is mechanical; the model writes and runs the reducer rather than performing it"
+        },
+        "tool_permissions": ["Read", "Bash:python", "Write(command-center/supply-chain/**)"],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 900,
+        "output_path": "command-center/supply-chain/alerts-deduped.json",
+        "output_schema": "command-center/schema/floor-audit.schema.json",
+        "evidence_requirement": "input alert count, output group count, and the sum of group members equal to the input count - a reduction that loses rows is visible as an arithmetic mismatch",
+        "tests_required": [
+          "two advisories for the same package resolving to the same floor must collapse to one group",
+          "two advisories for the same package resolving to DIFFERENT floors must NOT collapse"
+        ],
+        "reviewer_requirement": "the member-sum identity is re-computed independently of the reducer that produced it",
+        "completion_sentinel": "SUCCESS:SEC-6402 when the member sum equals the input alert count; otherwise FAILED:SEC-6402 <reason>",
+        "retry_policy": "no retry - an arithmetic mismatch is a reducer bug",
+        "failure_classification": ["reduction-lost-rows", "floor-resolution-ambiguous"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/supply-chain/alerts-deduped.json",
+          "schema_ref": "command-center/schema/floor-audit.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:SEC-6402",
+          "consumers": ["run-per-repo"]
+        }
+      ]
+    },
+    {
+      "id": "run-per-repo",
+      "title": "One propose-only runner per repo",
+      "kind": "fanout",
+      "depends_on": ["dedupe-alerts"],
+      "over": {
+        "source": "param",
+        "ref": "repos",
+        "item_var": "repo",
+        "key_field": "repo"
+      },
+      "max_concurrency": 6,
+      "arrival_stagger_ms": 400,
+      "max_items": 64,
+      "on_item_failure": "quarantine",
+      "body": [
+        {
+          "id": "check-sync-direction",
+          "title": "For a fork, verify sync DIRECTION before merging anything upstream",
+          "kind": "task",
+          "role": "repo-runner",
+          "when": "repo_is_fork == true",
+          "timeout_seconds": 900,
+          "work_unit": {
+            "id": "SEC-6403",
+            "title": "Verify fork sync direction so an upstream merge cannot delete local security fixes",
+            "phase": "7",
+            "question_or_target": "For a fork, compute ahead_by and behind_by in BOTH directions and require that no commit unique to this fork would be lost by the proposed sync; a one-directional read of ahead_by cannot see that the fork also holds unique content.",
+            "inputs": ["fanout.item.repo", "command-center/supply-chain/alerts-deduped.json"],
+            "dependencies": ["SEC-6402"],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "repo-runner",
+              "basis": "a direction misread here deletes security fixes"
+            },
+            "tool_permissions": ["Read", "Bash:git", "Bash:gh", "Write(command-center/supply-chain/**)"],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 900,
+            "output_path": "command-center/supply-chain/sync-direction",
+            "output_schema": "command-center/schema/divergence-report.schema.json",
+            "evidence_requirement": "both ahead_by and behind_by, plus the list of commits unique to the fork; a single number is not a direction",
+            "tests_required": [
+              "a fork holding a unique local commit must be flagged even when it is also behind upstream (the two-directional control)"
+            ],
+            "reviewer_requirement": "the gate auditor re-derives the unique-commit list with a different command",
+            "completion_sentinel": "SUCCESS:SEC-6403 when both directions and the unique-commit list are recorded; otherwise FAILED:SEC-6403 <reason>",
+            "retry_policy": "no retry on an ambiguous direction - it escalates",
+            "failure_classification": ["sync-direction-ambiguous", "would-delete-local-fixes"],
+            "owner_approval_required": false
+          }
+        },
+        {
+          "id": "open-draft-bump",
+          "title": "Open the floor bump as a DRAFT PR - never auto-merge",
+          "kind": "task",
+          "depends_on": ["check-sync-direction"],
+          "role": "repo-runner",
+          "timeout_seconds": 1800,
+          "work_unit_ref": "REL-0001"
+        },
+        {
+          "id": "read-real-ci-result",
+          "title": "Read that repo's ACTUAL check runs, not its merge-state summary",
+          "kind": "task",
+          "depends_on": ["open-draft-bump"],
+          "role": "repo-runner",
+          "timeout_seconds": 3600,
+          "work_unit": {
+            "id": "SEC-6404",
+            "title": "Record the repo's real check-run conclusions and the count of required contexts",
+            "phase": "7",
+            "question_or_target": "Record every check run with its conclusion and the number of REQUIRED contexts configured for the branch; record mergeStateStatus separately and never as a substitute, because BLOCKED means the checks ran and failed while UNKNOWN means nothing at all.",
+            "inputs": ["fanout.item.repo", "command-center/supply-chain/sync-direction"],
+            "dependencies": ["SEC-6403"],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "repo-runner",
+              "basis": "the CI reading is what the whole campaign gates on"
+            },
+            "tool_permissions": ["Read", "Bash:gh", "Bash:python", "Write(command-center/supply-chain/**)"],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 3600,
+            "output_path": "command-center/supply-chain/ci-verdicts",
+            "output_schema": "command-center/schema/release-gate-report.schema.json",
+            "evidence_requirement": "the per-check conclusion list AND the required-context count as two separate fields; an empty check list with a CLEAN merge state must be recorded as both, not merged into one verdict",
+            "tests_required": [
+              "a repo with zero configured checks must record checks:NONE, not PASS",
+              "mergeStateStatus BLOCKED with a failed check run must record the failure, not pending"
+            ],
+            "reviewer_requirement": "the gate auditor is the only role permitted to convert this record into a PASS or UNGATED verdict",
+            "completion_sentinel": "SUCCESS:SEC-6404 when the check list and the required-context count are both present; otherwise FAILED:SEC-6404 <reason>",
+            "retry_policy": "two strikes then pivot to the run-list API; a tool auth failure is a detector failure, never a verdict",
+            "failure_classification": ["ci-read-auth-failure", "detector-failure", "checks-absent"],
+            "owner_approval_required": false
+          }
+        }
+      ],
+      "barrier": {
+        "mode": "quorum",
+        "quorum": 0.75,
+        "on_partial": "proceed-degraded",
+        "reject_result_matching": ["started in the background", "Check /codex:status", "no checks reported"],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "audit-the-gate",
+      "title": "Audit the gate itself - the defining stage of this blueprint",
+      "kind": "task",
+      "depends_on": ["run-per-repo"],
+      "role": "gate-auditor",
+      "timeout_seconds": 3600,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "SEC-6405",
+        "title": "Reclassify every fail-open CI reading into an explicit UNGATED verdict",
+        "phase": "7",
+        "question_or_target": "For each repo convert the raw CI record into exactly one of PASS, FAIL or UNGATED, applying three inversions: zero configured required contexts is UNGATED regardless of any CLEAN summary; BLOCKED with a failed run is FAIL not pending; a tool auth failure while reading CI is UNGATED not PASS. Report the list of UNGATED repos as a first-class output.",
+        "inputs": ["command-center/supply-chain/ci-verdicts", "command-center/supply-chain/alerts-deduped.json"],
+        "dependencies": ["SEC-6404"],
+        "assigned_model_vendor_role": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "role": "gate-auditor",
+          "basis": "cross-vendor so the audit does not inherit the runner's reading of its own output"
+        },
+        "tool_permissions": ["Read", "Bash:gh", "Bash:python", "mcp__codex__codex", "Write(command-center/supply-chain/**)"],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 3600,
+        "output_path": "command-center/supply-chain/gate-audit.json",
+        "output_schema": "command-center/schema/release-gate-report.schema.json",
+        "evidence_requirement": "per repo: the raw fields that drove the verdict quoted verbatim, plus which of the three inversions (if any) was applied",
+        "tests_required": [
+          "a repo with checks:NONE and a CLEAN merge state must audit to UNGATED (the fail-open control)",
+          "a repo with a genuinely passing required context must audit to PASS (the detector must not simply always say UNGATED)"
+        ],
+        "reviewer_requirement": "the owner reads the UNGATED list before any merge; an UNGATED repo may not be merged on the strength of this campaign",
+        "completion_sentinel": "SUCCESS:SEC-6405 when every repo with a raw record has exactly one audited verdict and the UNGATED list is emitted; otherwise FAILED:SEC-6405 <reason>",
+        "retry_policy": "no retry - a missing raw record is reported as repos_without_verdict, not retried into existence",
+        "failure_classification": ["fail-open-gate", "verdict-missing", "detector-failure"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/supply-chain/gate-audit.json",
+          "schema_ref": "command-center/schema/release-gate-report.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:SEC-6405",
+          "consumers": ["fail-closed-gate", "campaign-report"]
+        }
+      ]
+    },
+    {
+      "id": "fail-closed-gate",
+      "title": "Absence of checks is UNGATED, never a pass",
+      "kind": "gate",
+      "depends_on": ["audit-the-gate"],
+      "gate_ref": "no-repo-ungated"
+    },
+    {
+      "id": "campaign-report",
+      "title": "Report per repo, with the UNGATED list first",
+      "kind": "task",
+      "depends_on": ["fail-closed-gate"],
+      "role": "gate-auditor",
+      "timeout_seconds": 1200,
+      "work_unit_ref": "SYN-0001",
+      "produces": [
+        {
+          "path": "command-center/supply-chain/campaign-report.json",
+          "schema_ref": "command-center/schema/supply-chain-receipt.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "consumers": ["owner"]
+        }
+      ]
+    },
+    {
+      "id": "completion-gate",
+      "title": "Campaign completion predicate (10 of 12 conditions; 7 and 8 are owner-side)",
+      "kind": "gate",
+      "depends_on": ["campaign-report"],
+      "gate_ref": "campaign-complete"
+    }
+  ],
+
+  "stopping_rules": [
+    {
+      "id": "every-repo-has-a-gate-verdict-including-ungated",
+      "expression": "repos_with_audited_verdict == repos_requested",
+      "applies_to": "workflow",
+      "minimum_conditions": "advisory_source_reachable == true",
+      "on_stop": "complete"
+    },
+    {
+      "id": "halt-on-dead-advisory-source",
+      "expression": "advisory_source_reachable == false",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+
+  "retry_policy": {
+    "strategy": "exponential",
+    "max_attempts": 3,
+    "backoff_seconds": 30,
+    "jitter": true,
+    "retry_on": ["quota-429-storm", "ci-read-auth-failure"],
+    "no_retry_on": ["would-delete-local-fixes", "tool-error-read-as-zero"]
+  },
+
+  "failure_policy": {
+    "on_failure": "quarantine",
+    "classify_as": ["fail-open-gate", "advisory-source-unreachable", "would-delete-local-fixes"],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "quarantine_path": "command-center/supply-chain/quarantine"
+  },
+
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/supply-chain",
+    "granularity": "fanout-item",
+    "idempotency_key_from": ["workflow_id", "stage_id", "item_key", "params_hash"],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/supply-chain.jsonl",
+    "record": ["params", "inputs", "tool_calls", "tool_results", "timings"],
+    "replay_source": "recorded-journal",
+    "verify": "semantic-equal",
+    "on_divergence": "record-discrepancy"
+  },
+
+  "cache": {
+    "enabled": true,
+    "scope": "workflow",
+    "key_from": ["workflow_version", "params_hash", "item_key"],
+    "store": "command-center/cache/supply-chain",
+    "ttl_seconds": 43200,
+    "verify_integrity": true,
+    "invalidate_on": ["snapshot-date-change"],
+    "read_only": false
+  },
+
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": ["plan", "estimate", "permission-report"],
+    "plan_artifact": "command-center/dry-run/supply-chain-plan.json",
+    "forbid_tools": ["Bash:gh", "Bash:git", "Write(command-center/supply-chain/**)"]
+  },
+
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "roughly-even",
+    "cost": { "currency": "USD", "min": 2, "expected": 9, "max": 30 },
+    "wallclock_seconds": { "min": 1800, "expected": 10800, "max": 43200 },
+    "tokens": { "expected": 1200000, "max": 4000000 },
+    "tool_calls": { "expected": 500, "max": 2000 },
+    "impact": {
+      "risk": "medium",
+      "reversibility": "reversible-with-effort",
+      "blast_radius": "opens draft PRs in every listed repo; nothing merges without the owner, because release mode on this estate is PR-only",
+      "requires_owner_approval": true
+    }
+  },
+
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": ["definition", "tests", "cache-manifest", "lineage"],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/supply-chain-alert-campaign.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "warn"
+    }
+  },
+
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-SEC-04",
+        "relation": "REPAIR",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "rules/common/ci-hygiene.md#1-a-no-op-gate",
+        "relation": "EXTEND",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": ["09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-SEC-04"]
+  },
+
+  "outputs": {
+    "gate-audit": {
+      "path": "command-center/supply-chain/gate-audit.json",
+      "schema_ref": "command-center/schema/release-gate-report.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "consumers": ["owner", "command-center/supply-chain/campaign-report.json"]
+    }
+  },
+
+  "x_extensions": {
+    "mechanism_fingerprint": {
+      "primary": "second-order-audit-of-the-gate-that-reclassifies-absence-as-ungated",
+      "distinguishing_stage": "audit-the-gate",
+      "distinguishing_gate": "no-repo-ungated",
+      "not_a_duplicate_because": "BP-IMP-05 is the generic propose-only fleet build. The mechanism here is not the proposing; it is auditing the verdicts the proposals were gated on, and inverting three specific fail-open readings."
+    },
+    "worked_example": {
+      "name": "a five-repo urllib3 floor bump where one repo has no CI at all",
+      "params": {
+        "repos": ["prekzursil/alpha", "prekzursil/beta", "prekzursil/gamma-fork", "prekzursil/delta", "prekzursil/epsilon"],
+        "advisory_source": "both",
+        "floor_policy": "minimum-patched",
+        "snapshot_date": "2026-08-10",
+        "propose_only": true,
+        "min_repo_quorum": 0.75
+      },
+      "expected_stage_path": [
+        "collect-advisories",
+        "source-live-gate",
+        "dedupe-alerts",
+        "run-per-repo",
+        "check-sync-direction",
+        "open-draft-bump",
+        "read-real-ci-result",
+        "audit-the-gate",
+        "fail-closed-gate",
+        "campaign-report",
+        "completion-gate"
+      ],
+      "expected_artifacts": [
+        "command-center/supply-chain/alerts-raw.json",
+        "command-center/supply-chain/alerts-deduped.json",
+        "command-center/supply-chain/gate-audit.json",
+        "command-center/supply-chain/campaign-report.json"
+      ],
+      "expected_terminal": "SUCCESS:SEC-6405",
+      "narrative": "Nine advisories collapse to three (package, floor) groups. Four repos open draft PRs; gamma-fork's direction check finds two commits unique to the fork that an upstream sync would have deleted, so its bump is proposed as a cherry-pick instead. delta reports mergeStateStatus CLEAN with an empty check list - the audit reclassifies it UNGATED, which trips the fail-closed gate and escalates to the owner rather than reporting five green repos. epsilon's CI read fails on a token scope; that is a detector failure, so epsilon is UNGATED too, not PASS. Final verdicts: 3 PASS, 0 FAIL, 2 UNGATED - and the campaign's own headline is the UNGATED list, not the PASS count."
+    }
+  }
+}

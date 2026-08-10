@@ -1,0 +1,924 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "anchor-checked-per-file-deploy",
+  "name": "Anchor-checked per-file deploy - refuse a file that does not look as expected",
+  "description": "Blueprint 89 of 96 (design BP-REL-03). Land harness changes into a live tree ONE FILE AT A TIME with a content anchor as the precondition and a SYMBOL assertion as the postcondition, because the whole-tree installer overwrites live-ahead work and can report {status: deployed, count: 0} with exit 0. Mechanism: a strictly SERIAL fan-out (max_concurrency 1) because apply order is load-bearing - a bundle applied after a targeted fix silently deleted that fix while a 681-test suite stayed green - plus a per-file rollback ref recorded before each write.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "engineering-and-reliability"
+  ],
+  "tags": [
+    "deploy",
+    "anchor",
+    "serial-apply",
+    "rollback"
+  ],
+  "flagship": true,
+  "params": {
+    "unit": {
+      "type": "string",
+      "required": true,
+      "min_length": 2,
+      "description": "The change unit being landed - used in the terminal sentinel and the rollback record"
+    },
+    "source_ref": {
+      "type": "string",
+      "required": true,
+      "min_length": 4,
+      "description": "The git rev holding the authoritative bytes. Read with `git cat-file -p <rev>:<path>`, never `git archive` (which returns CRLF on this box)."
+    },
+    "apply_plan": {
+      "type": "array",
+      "min_items": 1,
+      "max_items": 500,
+      "items": {
+        "type": "object",
+        "properties": {
+          "order": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "target_path": {
+            "type": "string"
+          },
+          "expected_anchor": {
+            "type": "string"
+          },
+          "asserted_symbol": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "ORDERED files. Order is part of the contract: a coupled bundle applied after a targeted fix can delete that fix. Each entry names the anchor that must be present BEFORE the write and the symbol that must be present AFTER it."
+    },
+    "live_unique_preservation_table": {
+      "type": "array",
+      "min_items": 1,
+      "items": {
+        "type": "string"
+      },
+      "description": "Enumerated BEFORE any apply: the live-only content that must survive. On the files that matter, LIVE is ahead - so a one-way deploy is the wrong operation and this table is what proves the deploy is not one."
+    },
+    "installer_transport_banned": {
+      "type": "boolean",
+      "default": true,
+      "description": "Must stay true until the installer is fixed. Bare / --bootstrap REPLACE the whole hooks key, dropping 21 registrations including both security guards."
+    }
+  },
+  "roles": {
+    "deploy-operator": {
+      "description": "Applies one file at a time, checking the anchor before and the symbol after, and records a rollback ref per file",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Bash:git",
+        "Write(command-center/deploy/**)"
+      ],
+      "write_paths": [
+        "command-center/deploy/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "postcondition-auditor": {
+      "description": "Independently asserts the named symbol is present after each write. A green test suite is NOT this role's evidence - it is the thing this role exists because of.",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "cross-examining",
+      "cross_vendor_required": true,
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "mcp__codex__codex"
+      ],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - authorises the deploy and owns the standing installer decision",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Bash:git",
+      "Write(command-center/deploy/**)",
+      "mcp__codex__codex"
+    ],
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "require_owner_approval": [
+      "Write(command-center/deploy/**)"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/deploy/**"
+    ],
+    "forbid_write_paths": [
+      "Documents/GitHub/Reframe/**",
+      ".claude/agent-worktrees/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "skip"
+    }
+  },
+  "model_routing": {
+    "strategy": "vendor-diverse",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "routes": [
+      {
+        "when": "stage_role == postcondition-auditor",
+        "target": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "effort": "high"
+        },
+        "reason": "the operator wrote the bytes; a same-vendor auditor shares its blind spot about what the write actually changed"
+      }
+    ],
+    "fallbacks": [
+      {
+        "model": "opus",
+        "vendor": "anthropic",
+        "effort": "max"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "preservation-table-enumerated": {
+      "predicate": "custom-expression",
+      "expression": "preservation_table_entries > 0 AND installer_transport_banned == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "anchor-present": {
+      "predicate": "custom-expression",
+      "expression": "anchor_found == true AND target_baseline_captured == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "symbol-asserted-not-suite-green": {
+      "predicate": "custom-expression",
+      "expression": "asserted_symbol_present == true AND symbol_assertion_is_independent_of_suite == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    }
+  },
+  "stages": [
+    {
+      "id": "enumerate-preservation",
+      "title": "Enumerate live-unique content BEFORE any write",
+      "kind": "task",
+      "role": "deploy-operator",
+      "timeout_seconds": 1800,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "BPW-8901",
+        "title": "Build the live-unique preservation table for every file in the apply plan",
+        "phase": "7",
+        "question_or_target": "For every target_path in the apply plan, enumerate the content the LIVE file holds that the source rev does not. This table is the proof that the deploy is not a one-way overwrite. If it is empty for a file the live tree is known to lead on, the table is wrong, not the file.",
+        "inputs": [
+          "params.apply_plan",
+          "params.source_ref"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "deploy-operator",
+          "basis": "enumerating what would be LOST is the judgement step; the byte comparison feeding it is mechanical"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Bash:git",
+          "Write(command-center/deploy/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/deploy/preservation-table.json",
+        "output_schema": "command-center/schema/blast-radius.schema.json",
+        "evidence_requirement": "per target path the live-only lines quoted verbatim with their line numbers, and the source-rev blob hash they were compared against; a count with no quoted lines cannot be checked against the post-deploy state",
+        "tests_required": [
+          "a file where live leads must produce a non-empty entry; an empty entry for such a file must FAIL the stage",
+          "both-states control: a one-directional comparison that only asks 'does the source have extra content' must be shown to MISS a live-only line that the bidirectional comparison finds"
+        ],
+        "reviewer_requirement": "one independent reviewer who re-derives at least one live-only line from the raw blobs without reading the table",
+        "completion_sentinel": "SUCCESS:BPW-8901 emitted only when every target path has an entry and every non-empty entry quotes its lines verbatim; otherwise FAILED:BPW-8901 <reason>",
+        "retry_policy": "no retry on an empty table for a known live-ahead file - that is a detector failure and must be reported, not re-attempted with the same comparison",
+        "failure_classification": [
+          "one-directional-comparison",
+          "empty-preservation-table",
+          "detector-failure"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/deploy/preservation-table.json",
+          "schema_ref": "command-center/schema/blast-radius.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-8901",
+          "consumers": [
+            "gate-preservation",
+            "apply-serially"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate-preservation",
+      "title": "No apply until the preservation table exists and the installer transport is banned",
+      "kind": "gate",
+      "depends_on": [
+        "enumerate-preservation"
+      ],
+      "gate_ref": "preservation-table-enumerated"
+    },
+    {
+      "id": "owner-authorise-deploy",
+      "title": "A harness deploy touches security-bearing registrations",
+      "kind": "human_checkpoint",
+      "depends_on": [
+        "gate-preservation"
+      ],
+      "prompt": "The preservation table names what live holds uniquely and the apply order is fixed. Authorise the per-file deploy, or hold. Note: the whole-tree installer remains banned as a transport.",
+      "approvers": [
+        "owner"
+      ],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 43200,
+      "on_timeout": "fail",
+      "owner_approval_required": true,
+      "options": [
+        "authorise-per-file-deploy",
+        "hold-pending-installer-fix",
+        "abandon"
+      ],
+      "decision_artifact": {
+        "path": "command-center/deploy/deploy-authorisation.json",
+        "schema_ref": "command-center/schema/owner-decision-packet.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true,
+        "consumers": [
+          "apply-serially"
+        ]
+      }
+    },
+    {
+      "id": "apply-serially",
+      "title": "One file at a time, in the declared order - concurrency 1 is the contract",
+      "kind": "fanout",
+      "depends_on": [
+        "owner-authorise-deploy"
+      ],
+      "over": {
+        "source": "param",
+        "ref": "apply_plan",
+        "item_var": "apply_item",
+        "key_field": "order"
+      },
+      "max_concurrency": 1,
+      "arrival_stagger_ms": 0,
+      "max_items": 500,
+      "on_item_failure": "abort",
+      "timeout_seconds": 28800,
+      "body": [
+        {
+          "id": "capture-baseline",
+          "kind": "task",
+          "role": "deploy-operator",
+          "timeout_seconds": 600,
+          "work_unit": {
+            "id": "BPW-8902",
+            "title": "Capture the live file byte-for-byte and record its rollback ref",
+            "phase": "7",
+            "question_or_target": "Before touching one target file, hash-object its current bytes into the object store and record that hash as the rollback ref. A deploy step with no recorded pre-image is not reversible, whatever the report says.",
+            "inputs": [
+              "params.apply_plan"
+            ],
+            "dependencies": [
+              "BPW-8901"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "deploy-operator",
+              "basis": "mechanical, but it is the only thing standing between a bad write and permanent loss"
+            },
+            "tool_permissions": [
+              "Bash:git",
+              "Read",
+              "Write(command-center/deploy/**)"
+            ],
+            "execution_substrate": "local-serialized",
+            "timeout_seconds": 600,
+            "output_path": "command-center/deploy/rollback-refs.json",
+            "output_schema": "command-center/schema/rollback-report.schema.json",
+            "evidence_requirement": "the pre-image blob hash and its byte length for this exact path, plus the command line that produced it",
+            "tests_required": [
+              "a target path whose pre-image hash is missing must block its own write",
+              "restoring from a recorded rollback ref must reproduce the pre-image byte-for-byte"
+            ],
+            "reviewer_requirement": "none for the capture; the restore test is the reviewer",
+            "completion_sentinel": "SUCCESS:BPW-8902 emitted only when a pre-image hash and byte length are recorded for this path; otherwise FAILED:BPW-8902 <reason>",
+            "retry_policy": "one retry on object-store-lock; never proceed to the write without a pre-image",
+            "failure_classification": [
+              "missing-preimage",
+              "object-store-lock"
+            ],
+            "owner_approval_required": false
+          }
+        },
+        {
+          "id": "gate-anchor",
+          "title": "Refuse a target that does not look as expected, before any byte is written",
+          "kind": "gate",
+          "depends_on": [
+            "capture-baseline"
+          ],
+          "gate_ref": "anchor-present"
+        },
+        {
+          "id": "check-anchor-and-write",
+          "kind": "task",
+          "role": "deploy-operator",
+          "depends_on": [
+            "gate-anchor"
+          ],
+          "timeout_seconds": 900,
+          "work_unit": {
+            "id": "BPW-8903",
+            "title": "Verify the expected anchor, then write one file",
+            "phase": "7",
+            "question_or_target": "Assert expected_anchor is present in the live target. If it is absent, REFUSE and report - never write to a file that does not look as expected. On a match, write the source bytes read via `git cat-file -p`.",
+            "inputs": [
+              "command-center/deploy/rollback-refs.json",
+              "params.source_ref"
+            ],
+            "dependencies": [
+              "BPW-8902"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "deploy-operator",
+              "basis": "the refusal decision is judgement about whether the target is the file the plan assumed"
+            },
+            "tool_permissions": [
+              "Read",
+              "Grep",
+              "Bash:git",
+              "Write(command-center/deploy/**)"
+            ],
+            "execution_substrate": "local-serialized",
+            "timeout_seconds": 900,
+            "output_path": "command-center/deploy/apply-log.json",
+            "output_schema": "command-center/schema/install-report.schema.json",
+            "evidence_requirement": "the anchor string, the line it matched at, the source blob hash written, and the post-write blob hash; an anchor reported as matched without its line number is unfalsifiable",
+            "tests_required": [
+              "an anchor that is absent must produce a REFUSAL, not a write",
+              "both-states control: a mutated anchor must be refused while the true anchor is accepted - a checker that accepts both measures nothing",
+              "a write reporting count 0 with a success status must FAIL the stage (the measured installer fail-open)"
+            ],
+            "reviewer_requirement": "the postcondition auditor stage reviews each write independently; the operator never certifies its own write",
+            "completion_sentinel": "SUCCESS:BPW-8903 emitted only when the anchor matched at a recorded line AND the post-write hash equals the source hash; otherwise FAILED:BPW-8903 <reason>",
+            "retry_policy": "no retry on anchor mismatch - the plan is wrong or the target drifted, and a second identical attempt cannot discover which",
+            "failure_classification": [
+              "anchor-mismatch",
+              "fail-open-zero-count",
+              "hash-mismatch"
+            ],
+            "owner_approval_required": false
+          }
+        },
+        {
+          "id": "assert-symbol",
+          "kind": "task",
+          "role": "postcondition-auditor",
+          "depends_on": [
+            "check-anchor-and-write"
+          ],
+          "timeout_seconds": 900,
+          "work_unit": {
+            "id": "BPW-8904",
+            "title": "Independently assert the named symbol is present after the write",
+            "phase": "7",
+            "question_or_target": "Assert asserted_symbol exists in the written file. Do this WITHOUT running the project's test suite: the measured case had both apply orders reach 681 passed while one of them had deleted the entire fix, because no test asserted the changed symbol.",
+            "inputs": [
+              "command-center/deploy/apply-log.json",
+              "params.apply_plan"
+            ],
+            "dependencies": [
+              "BPW-8903"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "gpt-5-codex",
+              "vendor": "openai",
+              "role": "postcondition-auditor",
+              "basis": "cross-vendor, because the operator that wrote the bytes cannot be the independent check on what they contain"
+            },
+            "tool_permissions": [
+              "Read",
+              "Grep",
+              "mcp__codex__codex"
+            ],
+            "execution_substrate": "container",
+            "timeout_seconds": 900,
+            "output_path": "command-center/deploy/symbol-assertions.json",
+            "output_schema": "command-center/schema/attestation-ledger.schema.json",
+            "evidence_requirement": "the symbol, the file, the line it was found at, and an explicit statement that no test-suite result was used as the evidence",
+            "tests_required": [
+              "deleting the symbol must make this assertion FAIL even when the project's suite is fully green - the both-states control that proves the assertion is not a proxy for the suite",
+              "a result string containing 'started in the background' must be REJECTED as a receipt, not accepted as an assertion"
+            ],
+            "reviewer_requirement": "this stage IS the independent reviewer; it holds veto authority over the deploy",
+            "completion_sentinel": "SUCCESS:BPW-8904 emitted only when the symbol is located at a named line by a check independent of the test suite; otherwise FAILED:BPW-8904 <reason>",
+            "retry_policy": "one retry with the prompt passed by FILE (an inline prompt can exceed the Windows 32767-char command line), then escalate",
+            "failure_classification": [
+              "symbol-absent",
+              "severed-stream",
+              "win-arg-limit"
+            ],
+            "owner_approval_required": false
+          }
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "fail",
+        "require_stages": [
+          "assert-symbol"
+        ],
+        "reject_result_matching": [
+          "started in the background",
+          "Check /codex:status"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "gate-symbol",
+      "title": "A green suite is not a postcondition",
+      "kind": "gate",
+      "depends_on": [
+        "apply-serially"
+      ],
+      "gate_ref": "symbol-asserted-not-suite-green"
+    },
+    {
+      "id": "rollback-on-failed-postcondition",
+      "title": "Diagnose, roll back, and independently re-verify",
+      "kind": "repair_loop",
+      "depends_on": [
+        "gate-symbol"
+      ],
+      "target": [
+        "apply-serially"
+      ],
+      "max_attempts": 2,
+      "classification_filter": [
+        "symbol-absent",
+        "anchor-mismatch",
+        "hash-mismatch",
+        "fail-open-zero-count"
+      ],
+      "escalate_to": "owner",
+      "require_root_cause": true,
+      "timeout_seconds": 7200,
+      "diagnose": {
+        "id": "diagnose-apply-order",
+        "kind": "task",
+        "role": "postcondition-auditor",
+        "timeout_seconds": 1800,
+        "work_unit": {
+          "id": "BPW-8905",
+          "title": "Determine whether the failure is apply-ORDER coupling or a bad payload",
+          "phase": "7",
+          "question_or_target": "Establish whether the missing symbol was never written or was written and then overwritten by a later, coupled file in the plan. Compare the per-file post-write hashes in order; an overwrite is visible as a later hash that no longer contains the earlier symbol.",
+          "inputs": [
+            "command-center/deploy/apply-log.json",
+            "command-center/deploy/symbol-assertions.json"
+          ],
+          "dependencies": [
+            "BPW-8904"
+          ],
+          "assigned_model_vendor_role": {
+            "model": "gpt-5-codex",
+            "vendor": "openai",
+            "role": "postcondition-auditor",
+            "basis": "the operator authored the order, so it is not the independent diagnostician of an order defect"
+          },
+          "tool_permissions": [
+            "Read",
+            "Grep",
+            "mcp__codex__codex"
+          ],
+          "execution_substrate": "container",
+          "timeout_seconds": 1800,
+          "output_path": "command-center/deploy/apply-order-diagnosis.json",
+          "output_schema": "command-center/schema/root-cause-graph.schema.json",
+          "evidence_requirement": "the ordered list of post-write hashes with the point at which the symbol disappeared, or a statement that it was never present with the hash that proves it",
+          "tests_required": [
+            "the recorded case must be reproduced: a bundle applied AFTER a targeted fix must be diagnosed as order coupling, not as a bad payload"
+          ],
+          "reviewer_requirement": "the operator may rebut with hashes; a split verdict is resolved by reading the hashes, not by counting opinions",
+          "completion_sentinel": "SUCCESS:BPW-8905 emitted only when the diagnosis names order-coupling or bad-payload with the hash sequence that supports it; otherwise FAILED:BPW-8905 <reason>",
+          "retry_policy": "one attempt then escalate - a second pass over the same hashes is not an independent signal",
+          "failure_classification": [
+            "insufficient-log",
+            "overclaim",
+            "detector-failure"
+          ],
+          "owner_approval_required": false
+        }
+      },
+      "repair": {
+        "id": "restore-and-reorder",
+        "kind": "task",
+        "role": "deploy-operator",
+        "timeout_seconds": 3600,
+        "work_unit": {
+          "id": "BPW-8906",
+          "title": "Restore from the rollback refs and re-apply in a corrected order",
+          "phase": "7",
+          "question_or_target": "Restore every affected path from its recorded rollback ref, verify each restore reproduces the pre-image hash, then re-apply with the coupled files ordered so the targeted fix lands last.",
+          "inputs": [
+            "command-center/deploy/rollback-refs.json",
+            "command-center/deploy/apply-order-diagnosis.json"
+          ],
+          "dependencies": [
+            "BPW-8905"
+          ],
+          "assigned_model_vendor_role": {
+            "model": "opus",
+            "vendor": "anthropic",
+            "role": "deploy-operator",
+            "basis": "restoring and re-ordering is substantive and irreversible if done wrong"
+          },
+          "tool_permissions": [
+            "Read",
+            "Bash:git",
+            "Write(command-center/deploy/**)"
+          ],
+          "execution_substrate": "local-serialized",
+          "timeout_seconds": 3600,
+          "output_path": "command-center/deploy/restore-log.json",
+          "output_schema": "command-center/schema/lifecycle-drill-receipt.schema.json",
+          "evidence_requirement": "per restored path the pre-image hash, the post-restore hash, and their equality; plus the corrected order with the reason each move was needed",
+          "tests_required": [
+            "a restore whose post-hash differs from the pre-image must FAIL rather than report success",
+            "the corrected order must be shown to place the coupled bundle BEFORE the targeted fix"
+          ],
+          "reviewer_requirement": "the verify gate is the reviewer; the operator does not certify its own restore",
+          "completion_sentinel": "SUCCESS:BPW-8906 emitted only when every restore hash matches its pre-image and the corrected order is recorded; otherwise FAILED:BPW-8906 <reason>",
+          "retry_policy": "two strikes then pivot: after two failed restores escalate to the owner with the rollback refs, rather than attempting a third",
+          "failure_classification": [
+            "restore-hash-mismatch",
+            "missing-preimage",
+            "same-fingerprint-twice"
+          ],
+          "owner_approval_required": false
+        }
+      },
+      "verify": {
+        "id": "verify-restore",
+        "kind": "gate",
+        "gate": {
+          "predicate": "custom-expression",
+          "expression": "restore_hash_matches_preimage == true AND asserted_symbol_present == true AND preservation_table_entries_still_present == true",
+          "blocking": true,
+          "evidence_required": true,
+          "on_fail": "escalate-to-human"
+        }
+      }
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "all-files-anchored-and-asserted",
+      "expression": "files_applied == files_planned AND symbol_assertions_passed == files_planned",
+      "applies_to": "workflow",
+      "minimum_conditions": "preservation_table_entries > 0 AND owner_authorised == true",
+      "on_stop": "complete"
+    },
+    {
+      "id": "anchor-refusal",
+      "expression": "anchor_found == false",
+      "applies_to": "stage",
+      "on_stop": "escalate"
+    },
+    {
+      "id": "fail-open-detected",
+      "expression": "reported_deployed_count == 0 AND reported_status == DEPLOYED",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 2,
+    "backoff_seconds": 10,
+    "jitter": false,
+    "retry_on": [
+      "object-store-lock",
+      "severed-stream",
+      "win-arg-limit"
+    ],
+    "no_retry_on": [
+      "anchor-mismatch",
+      "symbol-absent",
+      "restore-hash-mismatch",
+      "missing-preimage"
+    ],
+    "pivot": {
+      "after_attempts": 1,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "owner"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "anchor-mismatch",
+      "symbol-absent",
+      "fail-open-zero-count",
+      "restore-hash-mismatch"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner",
+    "quarantine_path": "command-center/quarantine/anchor-deploy"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/anchor-deploy",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 3600,
+    "on_stale": "fail"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 0,
+    "journal_path": "command-center/replay/anchor-deploy.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "network",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "fail"
+  },
+  "cache": {
+    "enabled": false,
+    "read_only": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "artifact-diff",
+      "permission-report",
+      "estimate"
+    ],
+    "plan_artifact": "command-center/dry-run/anchor-deploy-plan.json",
+    "forbid_tools": [
+      "Bash:git",
+      "Write(command-center/deploy/**)",
+      "mcp__codex__codex"
+    ]
+  },
+  "estimate": {
+    "basis": "hybrid",
+    "confidence": "almost-certain",
+    "measurement_source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-REL-03 - three measured installer defects (no --source and a fail-open {status: deployed, count: 0} exit 0; bare and --bootstrap replacing the whole hooks key and dropping 21 registrations including both security guards; a whole-tree deploy from main overwriting 35 of 37 files and hitting 7 of 7 protected paths) plus the apply-order case where both orders reached 681 passed and one had deleted the entire fix",
+    "cost": {
+      "currency": "USD",
+      "min": 0.2,
+      "expected": 1.8,
+      "max": 9.0
+    },
+    "wallclock_seconds": {
+      "min": 300,
+      "expected": 3600,
+      "max": 28800
+    },
+    "tokens": {
+      "min": 30000,
+      "expected": 250000,
+      "max": 1200000
+    },
+    "tool_calls": {
+      "min": 12,
+      "expected": 120,
+      "max": 900
+    },
+    "impact": {
+      "risk": "high",
+      "reversibility": "reversible",
+      "blast_radius": "writes into the live harness trees one file at a time; every write is preceded by a recorded pre-image hash, so each is individually revertible. Without those refs the same operation would be irreversible.",
+      "requires_owner_approval": true
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage",
+        "replay-journal"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/anchor-deploy.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": true,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-REL-03",
+        "relation": "REPAIR",
+        "license": "owner-proprietary",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "tools/d001-dual-write",
+        "relation": "SPECIALIZE",
+        "license": "owner-proprietary",
+        "credit": "owner - the plumbing-only apply pattern, specialised here to a DIVERGENT target"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "per-file rollback refs recorded by BPW-8902"
+    ]
+  },
+  "outputs": {
+    "apply_log": {
+      "path": "command-center/deploy/apply-log.json",
+      "schema_ref": "command-center/schema/install-report.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "sentinel": "SUCCESS:BPW-8903",
+      "consumers": [
+        "owner",
+        "firing-path-revalidation"
+      ]
+    },
+    "assertions": {
+      "path": "command-center/deploy/symbol-assertions.json",
+      "schema_ref": "command-center/schema/attestation-ledger.schema.json",
+      "min_bytes": 128,
+      "register_in_manifest": true,
+      "consumers": [
+        "owner"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint": {
+      "slot": 89,
+      "of": 96,
+      "design_card": "BP-REL-03",
+      "design_family": "D17-release",
+      "spec_category": "engineering-and-reliability",
+      "acquisition_route": "REPAIR",
+      "flagship": true
+    },
+    "mechanism": "per-file anchor precondition + cross-vendor SYMBOL postcondition + recorded pre-image, executed strictly in declared order at concurrency 1. Concurrency 1 is not a performance choice: apply order is the defect.",
+    "not_a_duplicate_because": {
+      "vs_dual-tree-plumbing-mirror": "that refuses to write a target that has diverged. This one writes into a target that is KNOWN to have diverged, which is only safe because of the anchor precondition, the enumerated preservation table and the per-file rollback ref.",
+      "vs_live-to-repo-drift-reconcile": "that produces the drift VERDICT; this is the transport that lands a change once a verdict exists. It consumes drift-report.json and never produces one.",
+      "vs_pr-shepherd-to-merge": "that lands a change through a hosted merge queue with CI as the gate; this lands bytes into a live tree where no CI runs and a green suite is explicitly NOT accepted as the postcondition."
+    },
+    "contraindications": [
+      "NOT for application code with a normal build/deploy",
+      "NOT when a proper installer exists and is trusted - here it is measured untrustworthy"
+    ],
+    "benchmark_cases": [
+      {
+        "id": "symbol-assertion-catches-what-the-suite-misses",
+        "given": "a bundle applied after a targeted fix, deleting that fix, with the project suite fully green",
+        "expect": "the symbol assertion FAILS - the recorded case reached 681 passed in both apply orders"
+      },
+      {
+        "id": "fail-open-installer",
+        "given": "the whole-tree installer run in a scratch copy",
+        "expect": "{status: deployed, count: 0} with exit 0 is detected and classified fail-open-zero-count"
+      },
+      {
+        "id": "mutated-anchor-refused",
+        "given": "a target whose anchor has been altered by one character",
+        "expect": "REFUSAL, while the unaltered anchor is accepted - a checker that accepts both measures nothing"
+      }
+    ],
+    "worked_examples": [
+      {
+        "id": "land-a-hook-fix-after-a-bundle",
+        "params": {
+          "unit": "hooks-completion-fix",
+          "source_ref": "origin/main",
+          "apply_plan": [
+            {
+              "order": 1,
+              "target_path": "hooks/_shared/completion.py",
+              "expected_anchor": "def evaluate_completion(",
+              "asserted_symbol": "DEFAULT_MIN_BYTES"
+            },
+            {
+              "order": 2,
+              "target_path": "hooks/_dispatch/manifest.json",
+              "expected_anchor": "\"git-hygiene\"",
+              "asserted_symbol": "stopfailure-notify"
+            }
+          ],
+          "live_unique_preservation_table": [
+            "hooks/_dispatch/manifest.json holds 21 live-only registrations including both security guards",
+            "hooks/_shared/completion.py holds a live-only min_bytes override"
+          ],
+          "installer_transport_banned": true
+        },
+        "apply_trace": [
+          {
+            "order": 1,
+            "anchor_found_at_line": 42,
+            "preimage_hash": "b7e1...",
+            "postwrite_hash": "c04a...",
+            "symbol_asserted": "DEFAULT_MIN_BYTES @ line 18"
+          },
+          {
+            "order": 2,
+            "anchor_found_at_line": 7,
+            "preimage_hash": "9fd3...",
+            "postwrite_hash": "1ab8...",
+            "symbol_asserted": "stopfailure-notify @ line 91"
+          }
+        ],
+        "preservation_recheck": "both preservation-table entries still present after the last write",
+        "terminal_state": "SUCCESS:BPW-8904 - 2 of 2 files applied in order, 2 of 2 symbols asserted by a cross-vendor check independent of the test suite",
+        "note": "Had the order been reversed, the bundle at order 2 would have replaced the whole hooks key and deleted the order-1 fix - and the project suite would still have reported all green. That is the measured case this blueprint exists to prevent."
+      }
+    ],
+    "owner_decision": "YES - is the installer FIXED (add --source, stop replacing the hooks key) or PERMANENTLY banned as a transport? Represented as the installer_transport_banned param, which defaults to the ban and is checked by a blocking gate, so the procedural ban is enforced by code rather than by memory.",
+    "unverified": [
+      "The three installer defects are quoted from the design card as measured in an earlier program phase; this artifact does NOT re-measure them. Settling experiment = benchmark case fail-open-installer, run in a scratch copy. Until it runs, the ban is a precaution supported by cited evidence, not by this workflow's own probe - which is a weaker footing than blueprint 92, where the control is a gated stage."
+    ]
+  }
+}

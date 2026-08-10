@@ -1,0 +1,556 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "silent-disarm-hunt",
+  "name": "Silent-disarm hunt: registered handlers that CANNOT fire, and guards that fail open",
+  "description": "Blueprint 48 of 96 (BP-DBG-05). FLAGSHIP. Finds the failure class where nothing looks wrong because nothing complains: a handler that is registered but whose required event is absent from the generator that produces the registration, and a guard that fails OPEN on a missing dependency. The distinctive mechanism is a four-way cross-check nothing else performs - handler on disk, registration in every channel, event name against the generator's own event tuple, and OBSERVED fire - so a handler is classified LIVE only if it was seen to fire, never merely because it is registered. Read-only by construction: this blueprint has no human checkpoint and no write path into the harness it audits.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": ["security-governance-and-risk", "engineering-and-reliability"],
+  "tags": ["silent-disarm", "event-reachability", "fail-open", "read-only-audit"],
+  "flagship": true,
+
+  "params": {
+    "handler_roots": {
+      "type": "array",
+      "items": { "type": "string" },
+      "min_items": 1,
+      "max_items": 32,
+      "required": true,
+      "description": "Directories holding handler implementations, in BOTH the repo and the deployed tree"
+    },
+    "registration_channels": {
+      "type": "array",
+      "items": { "type": "string" },
+      "min_items": 1,
+      "max_items": 16,
+      "required": true,
+      "description": "EVERY channel: the settings file, the dispatch manifest, the generator's event tuple, and any per-tool config. Missing one channel is how an unregistered handler reads as registered."
+    },
+    "event_generator_source": {
+      "type": "path",
+      "required": true,
+      "description": "The source that GENERATES registrations by iterating an event tuple. An event absent from that tuple can never fire, whatever the handler declares."
+    },
+    "compare_live_to_repo": {
+      "type": "boolean",
+      "default": true,
+      "description": "S1b: a deployed-copy edit is invisible to git and dies on the next deploy, so live and repo registrations are diffed"
+    },
+    "observed_fire_window_hours": {
+      "type": "integer",
+      "default": 168,
+      "minimum": 1,
+      "maximum": 8760,
+      "description": "How far back an observed fire counts. A handler quiet for the whole window is SUSPICIOUS, not proven dead - absence of a fire is not proof of disarm without a probe."
+    }
+  },
+
+  "roles": {
+    "inventory-scanner": {
+      "description": "Mechanical: enumerates handlers on disk and registrations per channel. No judgement, no interpretation.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "low",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Grep", "Glob", "Bash:python"],
+      "speaking_rights": "always"
+    },
+    "reachability-analyst": {
+      "description": "Cross-checks each handler's required event against the generator's event tuple and reports UNREACHABLE handlers",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Grep", "Bash:python"],
+      "speaking_rights": "always"
+    },
+    "fail-open-auditor": {
+      "description": "AST-scans for fail-open paths - bare except, except ImportError around a dependency, exit 0 on error - and flags them as candidates, not verdicts",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "voting",
+      "vote_weight": 1,
+      "independence": "cross-examining",
+      "cross_vendor_required": true,
+      "tool_permissions": ["Read", "Grep", "Bash:python", "mcp__codex__codex"],
+      "speaking_rights": "always"
+    },
+    "classifier": {
+      "description": "Assigns each handler exactly one of LIVE, DISARMED, UNREACHABLE, UNREGISTERED, UNKNOWN - and may not use LIVE without an observed fire",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "judge",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Bash:python"],
+      "speaking_rights": "always"
+    }
+  },
+
+  "tool_policy": {
+    "default": "deny",
+    "allow": ["Read", "Grep", "Glob", "Bash:python", "mcp__codex__codex"],
+    "deny": ["Edit", "Write", "Bash:git-commit", "WebFetch", "WebSearch"],
+    "network": "none",
+    "write_paths": ["command-center/disarm/**"],
+    "forbid_write_paths": ["hooks/**", ".claude/**", "platform/lib/**"]
+  },
+
+  "model_routing": {
+    "strategy": "capability",
+    "default": { "model": "opus", "vendor": "anthropic", "effort": "high" },
+    "routes": [
+      {
+        "when": "stage_role == fail-open-auditor",
+        "target": { "model": "gpt-5-codex", "vendor": "openai", "effort": "high" },
+        "reason": "the AST fail-open pass is the heuristic step; a second vendor's false-positive profile differs from ours"
+      },
+      {
+        "when": "stage_role == inventory-scanner",
+        "target": { "model": "opus", "vendor": "anthropic", "effort": "low" },
+        "reason": "enumeration is mechanical; effort buys nothing"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+
+  "gates": {
+    "all-channels-read": {
+      "predicate": "custom-expression",
+      "expression": "channels_read == channels_declared AND channels_declared >= 2",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "known-unreachable-found": {
+      "predicate": "custom-expression",
+      "expression": "known_unreachable_handlers_found >= 2 AND scan_detector_validated == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "live-requires-observed-fire": {
+      "predicate": "custom-expression",
+      "expression": "handlers_marked_live_without_observed_fire == 0 AND handlers_unclassified == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "no-findings-is-not-evidence": {
+      "predicate": "custom-expression",
+      "expression": "silence_treated_as_pass == false AND disarmed_aggregate_line_read == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+
+  "subworkflows": {
+    "both-states-detector-control": {
+      "workflow_id": "both-states-detector-control",
+      "version_range": ">=1.0.0 <2.0.0",
+      "source": "platform/workflows/both-states-detector-control.json"
+    }
+  },
+
+  "stages": [
+    {
+      "id": "enumerate-handlers",
+      "title": "S0 ENUMERATE every handler on disk, in the repo AND in the deployed tree",
+      "kind": "task",
+      "role": "inventory-scanner",
+      "timeout_seconds": 2700,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "AUD-0013",
+        "title": "Inventory every handler on disk and every registration entry, and pair them so an orphan on either side is visible",
+        "phase": "0",
+        "question_or_target": "Walk every declared handler root in BOTH the repo and the deployed tree, list each handler with the event it declares it needs, and pair it against the registration entries found on disk. Report handlers with no registration AND registrations with no handler - the second direction is the one a one-sided scan misses.",
+        "inputs": ["params.handler_roots", "params.registration_channels", "params.compare_live_to_repo"],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "inventory-scanner",
+          "basis": "mechanical enumeration; the judgement is in the later reachability cross-check"
+        },
+        "tool_permissions": ["Read", "Grep", "Glob", "Bash:python"],
+        "execution_substrate": "local-serial",
+        "timeout_seconds": 2700,
+        "output_path": "command-center/disarm/handler-inventory.json",
+        "output_schema": "command-center/schema/audit-inventory.schema.json",
+        "evidence_requirement": "the file list with a count per root and the declared-event field extracted per handler, plus the scope of the walk stated explicitly - a depth-limited walk that reports a floor as a total is the recorded detector-truncation failure",
+        "tests_required": [
+          "a handler present on disk with NO registration must appear as UNREGISTERED",
+          "a registration entry naming a handler that does not exist must appear as an orphan - the reverse direction a one-sided scan cannot see",
+          "both-states control: seed one known-unregistered handler and confirm the scan finds it before any absence is believed",
+          "the walk depth must be stated; a depth-1 walk reporting a subtree total is a truncated detector"
+        ],
+        "reviewer_requirement": "an independent reviewer who re-counts the handlers with a different tool and compares totals, not summaries",
+        "completion_sentinel": "SUCCESS:AUD-0013 emitted only when handler-inventory.json exists, parses, states its walk scope, and pairs handlers with registrations in BOTH directions; otherwise FAILED:AUD-0013 <reason>",
+        "retry_policy": "two strikes then pivot; a second scan returning a suspiciously round or identical count means the walk is truncated - fix the walk, do not re-run it",
+        "failure_classification": ["detector-truncation", "walk-scope-unstated", "partial-artifact"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/disarm/handler-inventory.json",
+          "schema_ref": "command-center/schema/audit-inventory.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:AUD-0013",
+          "consumers": ["enumerate-registrations", "check-event-reachability"]
+        }
+      ]
+    },
+    {
+      "id": "enumerate-registrations",
+      "title": "S1 ENUMERATE registrations across ALL channels - one channel per fan-out item",
+      "kind": "fanout",
+      "depends_on": ["enumerate-handlers"],
+      "over": {
+        "source": "param",
+        "ref": "registration_channels",
+        "item_var": "channel",
+        "key_field": "channel"
+      },
+      "max_concurrency": 6,
+      "max_items": 16,
+      "on_item_failure": "abort",
+      "body": [
+        {
+          "id": "read-one-channel",
+          "title": "Read one registration channel exactly as the runtime reads it",
+          "kind": "task",
+          "role": "inventory-scanner",
+          "work_unit_ref": "AUD-0016",
+          "timeout_seconds": 900
+        },
+        {
+          "id": "live-vs-repo-diff",
+          "title": "S1b Diff the LIVE channel against the repo's - a deployed-copy edit is invisible to git",
+          "kind": "task",
+          "role": "inventory-scanner",
+          "depends_on": ["read-one-channel"],
+          "when": "compare_live_to_repo == true",
+          "work_unit_ref": "AUD-0019",
+          "timeout_seconds": 900,
+          "produces": [
+            {
+              "path": "command-center/disarm/live-repo-drift.json",
+              "schema_ref": "command-center/schema/audit-drift.schema.json",
+              "min_bytes": 128,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:AUD-0019",
+              "consumers": ["channels-gate", "classify-handlers"]
+            }
+          ]
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "fail",
+        "verify_artifact_exists": true,
+        "reject_result_matching": ["started in the background", "Check /codex:status"]
+      }
+    },
+    {
+      "id": "channels-gate",
+      "title": "A channel not read is a channel that cannot contradict you",
+      "kind": "gate",
+      "depends_on": ["enumerate-registrations"],
+      "gate_ref": "all-channels-read"
+    },
+    {
+      "id": "check-event-reachability",
+      "title": "S2 CROSS-CHECK each handler's required event against the GENERATOR's event tuple",
+      "kind": "task",
+      "role": "reachability-analyst",
+      "depends_on": ["channels-gate"],
+      "work_unit_ref": "BLD-0002",
+      "timeout_seconds": 2700,
+      "produces": [
+        {
+          "path": "command-center/disarm/event-reachability.json",
+          "schema_ref": "command-center/schema/gate-reachability.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BLD-0002",
+          "consumers": ["reachability-gate", "probe-suspects", "classify-handlers"]
+        }
+      ]
+    },
+    {
+      "id": "reachability-gate",
+      "title": "The scan must find the two handlers KNOWN to be unreachable, or the scan is broken",
+      "kind": "gate",
+      "depends_on": ["check-event-reachability"],
+      "gate_ref": "known-unreachable-found"
+    },
+    {
+      "id": "scan-fail-open-paths",
+      "title": "S3 AST-SCAN for fail-open paths: bare except, except ImportError, exit 0 on error",
+      "kind": "task",
+      "role": "fail-open-auditor",
+      "depends_on": ["reachability-gate"],
+      "work_unit_ref": "AUD-0045",
+      "timeout_seconds": 3600,
+      "produces": [
+        {
+          "path": "command-center/disarm/fail-open-candidates.json",
+          "schema_ref": "command-center/schema/floor-audit.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:AUD-0045",
+          "consumers": ["probe-suspects", "classify-handlers"]
+        }
+      ]
+    },
+    {
+      "id": "probe-suspects",
+      "title": "S4 BOTH-STATES probe each suspicious handler - delegate to the detector-control blueprint",
+      "kind": "fanout",
+      "depends_on": ["scan-fail-open-paths"],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/disarm/fail-open-candidates.json",
+        "item_var": "suspect",
+        "key_field": "handler"
+      },
+      "max_concurrency": 4,
+      "max_items": 128,
+      "on_item_failure": "continue",
+      "body": [
+        {
+          "id": "both-states-on-suspect",
+          "title": "Break this handler's dependency and require the probe to notice the DISARM, not just the absence of a finding",
+          "kind": "subworkflow",
+          "workflow": {
+            "workflow_id": "both-states-detector-control",
+            "version_range": ">=1.0.0 <2.0.0"
+          },
+          "params": { "subject_is_test_suite": false },
+          "isolation": "container",
+          "propagate_failure": false,
+          "timeout_seconds": 7200
+        }
+      ],
+      "barrier": {
+        "mode": "quorum",
+        "quorum": 0.8,
+        "on_partial": "proceed-with-quarantine",
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "classify-handlers",
+      "title": "S5 CLASSIFY: LIVE requires an OBSERVED fire; everything else is DISARMED, UNREACHABLE, UNREGISTERED or UNKNOWN",
+      "kind": "task",
+      "role": "classifier",
+      "depends_on": ["probe-suspects"],
+      "work_unit_ref": "BLD-0047",
+      "timeout_seconds": 2700,
+      "produces": [
+        {
+          "path": "command-center/disarm/handler-classification.json",
+          "schema_ref": "command-center/schema/reachability-report.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BLD-0047",
+          "consumers": ["classification-gate", "command-center/PROGRAM-LEDGER.json"]
+        }
+      ]
+    },
+    {
+      "id": "classification-gate",
+      "title": "Registered is not LIVE. Every handler carries exactly one classification.",
+      "kind": "gate",
+      "depends_on": ["classify-handlers"],
+      "gate_ref": "live-requires-observed-fire"
+    },
+    {
+      "id": "silence-gate",
+      "title": "'No findings reported' from a guard is not evidence that the guard ran",
+      "kind": "gate",
+      "depends_on": ["classification-gate"],
+      "gate_ref": "no-findings-is-not-evidence"
+    }
+  ],
+
+  "stopping_rules": [
+    {
+      "id": "every-handler-classified",
+      "expression": "handlers_unclassified == 0 AND channels_read == channels_declared",
+      "applies_to": "workflow",
+      "minimum_conditions": "known_unreachable_handlers_found >= 2",
+      "on_stop": "complete"
+    },
+    {
+      "id": "firing-condition-unconstructible",
+      "expression": {
+        "any": [
+          "handlers_with_unconstructible_fire > 0",
+          "scan_detector_validated == false"
+        ]
+      },
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+
+  "retry_policy": {
+    "strategy": "fixed",
+    "max_attempts": 2,
+    "backoff_seconds": 15,
+    "jitter": false,
+    "retry_on": ["channel-read-transient"],
+    "no_retry_on": ["detector-truncation", "walk-scope-unstated"]
+  },
+
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": ["detector-truncation", "unreachable-handler", "fail-open-path", "unconstructible-fire"],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "quarantine_path": "command-center/disarm/quarantine"
+  },
+
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/silent-disarm-hunt",
+    "granularity": "stage",
+    "idempotency_key_from": ["workflow_id", "stage_id", "inputs_hash"],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 604800,
+    "on_stale": "restart"
+  },
+
+  "replay": {
+    "deterministic": true,
+    "seed": 5,
+    "journal_path": "command-center/replay/silent-disarm-hunt.jsonl",
+    "record": ["params", "inputs", "tool_calls", "tool_results", "env_fingerprint"],
+    "forbid_nondeterministic_sources": ["clock", "random", "filesystem-order", "process-id"],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "record-discrepancy"
+  },
+
+  "cache": {
+    "enabled": true,
+    "scope": "workflow",
+    "key_from": ["workflow_version", "inputs_hash", "tool_versions"],
+    "store": "command-center/cache/silent-disarm-hunt",
+    "ttl_seconds": 86400,
+    "verify_integrity": true,
+    "invalidate_on": ["registration-change", "handler-tree-change", "generator-change"],
+    "read_only": false
+  },
+
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": ["plan", "graph", "permission-report", "artifact-diff"],
+    "plan_artifact": "command-center/dry-run/silent-disarm-hunt-plan.json",
+    "forbid_tools": ["Bash:python", "mcp__codex__codex"]
+  },
+
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "almost-certain",
+    "wallclock_seconds": { "min": 600, "expected": 5400, "max": 28800 },
+    "tokens": { "min": 60000, "expected": 600000, "max": 2400000 },
+    "tool_calls": { "expected": 180, "max": 900 },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "read-only: Edit and Write are denied and the harness trees are in forbid_write_paths, so the sweep cannot repair what it finds - it reports, and the repair is a separate decision",
+      "requires_owner_approval": false
+    }
+  },
+
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": ["definition", "tests", "examples", "lineage"],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/silent-disarm-hunt.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject"
+    }
+  },
+
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "measured failure class 1 - registration generated from an EVENTS tuple",
+        "relation": "CLEAN-ROOM-REIMPLEMENT",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "measured failure class 2 - a guard fails open on a missing dependency",
+        "relation": "CLEAN-ROOM-REIMPLEMENT",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "tools/detector-self-test",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-DBG-05",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": ["tools/detector-self-test@as-shipped"]
+  },
+
+  "outputs": {
+    "handler-classification": {
+      "path": "command-center/disarm/handler-classification.json",
+      "schema_ref": "command-center/schema/reachability-report.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": ["command-center/PROGRAM-LEDGER.json", "owner"]
+    },
+    "live-repo-drift": {
+      "path": "command-center/disarm/live-repo-drift.json",
+      "schema_ref": "command-center/schema/audit-drift.schema.json",
+      "min_bytes": 128,
+      "register_in_manifest": true,
+      "consumers": ["owner"]
+    }
+  },
+
+  "x_extensions": {
+    "worked_example": {
+      "scenario": "A hook tree whose registrations are GENERATED by iterating an EVENTS tuple, with a green conformance gate.",
+      "the_class": "two handlers - one SessionEnd, one Notification - are fully implemented and correctly registered, but their event names are absent from the generator's EVENTS tuple. They can never be invoked. The conformance gate is green because it validates the generated registration against itself, not the event names",
+      "s2_outcome": "check-event-reachability compares each handler's declared event against the tuple and classes both as UNREACHABLE. reachability-gate then demands that at least these two be found - the scan's own detector control, using a known-present case",
+      "s3_outcome": "the AST pass flags a guard wrapping its dependency in try/except ImportError. That is a CANDIDATE, not a verdict - AST heuristics for fail-open have false positives",
+      "s4_outcome": "probe-suspects delegates each candidate to the both-states blueprint: rename the dependency, and require the probe to report a DISARM rather than 'no findings'. The guard that stays silent is confirmed DISARMED",
+      "s5_outcome": "classification: 2 UNREACHABLE, 1 DISARMED, 5 LIVE (each with an observed fire inside the window), 1 UNKNOWN (no firing condition constructible). The 9-of-9-DISARMED aggregate line the dispatcher already prints is read as a first-class input, not re-derived",
+      "why_absence_is_not_proof": "a handler with no fire inside observed_fire_window_hours is SUSPICIOUS, never DISARMED by that fact alone; only the both-states probe promotes it"
+    },
+    "distinctive_mechanism": "the four-way cross-check handler -> registration -> generator event tuple -> observed fire, with LIVE gated on the observed fire and the DISARMED aggregate line consumed rather than recomputed",
+    "contraindications": [
+      "NOT a functional test of what a guard DOES - that is the guard's own suite",
+      "NOT for third-party hooks you cannot instrument - they are UNKNOWN, and saying so is the correct output",
+      "NOT a repair workflow: writes into the harness trees are forbidden, so a finding here is a proposal, not a change"
+    ],
+    "not_a_duplicate_because": "a standing CI unit test asserts event-name reachability for the repo it lives in; this is an investigative sweep across BOTH trees that adds fail-open AST paths, observed-fire evidence, and a per-suspect both-states probe, and it is the only member of this set with no human checkpoint because it changes nothing.",
+    "flagship_test": "platform/lib/workflows/test_silent_disarm_hunt.py"
+  }
+}

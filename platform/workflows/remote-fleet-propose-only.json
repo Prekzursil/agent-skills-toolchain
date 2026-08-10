@@ -1,0 +1,515 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "remote-fleet-propose-only",
+  "name": "Remote fleet sweep that may only ever open a DRAFT pull request",
+  "description": "Blueprint 42 of 96 (BP-IMP-05). Sweeps many repositories with autonomous remote runners under one hard structural constraint: the runner can open a DRAFT PR and nothing else. Merge tools are DENIED by policy rather than discouraged, so scale never buys the right to land unreviewed code. Two separately-scoped credentials are declared as distinct secret references - a dispatch credential that cannot read auth and a secrets credential that cannot trigger runs - and neither value ever travels in the task text or the export bundle. A sweep that produces no PRs is treated as a DETECTOR question before it is treated as a content result.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": ["engineering-and-reliability", "security-governance-and-risk"],
+  "tags": ["fleet", "propose-only", "draft-pr", "scoped-credentials", "remote-ci"],
+  "flagship": false,
+
+  "params": {
+    "repo_targets": {
+      "type": "array",
+      "items": { "type": "string" },
+      "min_items": 1,
+      "max_items": 64,
+      "required": true,
+      "description": "Enabled targets from the targets file. An empty list is a configuration fault, not an empty sweep."
+    },
+    "per_repo_task": {
+      "type": "string",
+      "required": true,
+      "min_length": 20,
+      "description": "The single change every runner attempts. Must be verifiable by that repo's own CI or the repo is skipped."
+    },
+    "dispatch_credential": {
+      "type": "secret_ref",
+      "secret": true,
+      "description": "Reference name only. Scope: trigger the runner workflow. It must NOT be able to read auth or write secrets."
+    },
+    "secrets_credential": {
+      "type": "secret_ref",
+      "secret": true,
+      "description": "Reference name only. Scope: write repository Secrets for token refresh. It must NOT be able to trigger runs. The split IS the security design; a single shared-scope credential defeats it."
+    },
+    "off_peak_window": {
+      "type": "enum",
+      "enum": ["overnight", "weekend", "immediate"],
+      "default": "overnight",
+      "description": "A daytime sweep can silently starve interactive quota on the shared subscription"
+    },
+    "sweep_deadline_seconds": {
+      "type": "integer",
+      "default": 10800,
+      "minimum": 600,
+      "maximum": 86400,
+      "description": "Wall-clock bound on the whole sweep; late runners are reported as late, never dropped"
+    }
+  },
+
+  "roles": {
+    "target-selector": {
+      "description": "Reads the targets file and emits the enabled set; refuses to invent targets when the file is empty",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "low",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Grep", "Bash:gh"],
+      "speaking_rights": "always"
+    },
+    "remote-runner": {
+      "description": "One remote job per repository. Makes the change, runs that repo's own CI, opens a DRAFT PR, and stops.",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Grep", "Edit", "Bash:git", "Bash:gh", "mcp__codex__codex"],
+      "write_paths": ["the target repository working tree only"],
+      "speaking_rights": "always"
+    },
+    "sweep-auditor": {
+      "description": "Answers 'why did this sweep produce N PRs' as a DETECTOR question first - targets enabled, credential valid, runner log present - before treating N as a content result",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "judge",
+      "independence": "cross-examining",
+      "tool_permissions": ["Read", "Grep", "Bash:gh"],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The ONLY actor that may merge. Every PR from this workflow waits here.",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+
+  "tool_policy": {
+    "default": "deny",
+    "allow": ["Read", "Grep", "Glob", "Edit", "Bash:git", "Bash:gh", "mcp__codex__codex"],
+    "deny": ["Bash:gh-pr-merge", "Bash:git-push-force", "WebFetch"],
+    "require_owner_approval": ["Bash:gh-pr-ready", "Bash:gh-workflow-run"],
+    "network": "full",
+    "write_paths": ["command-center/fleet/**"],
+    "forbid_write_paths": [".github/workflows/codex-runner.yml", "command-center/WORK-UNIT-CATALOG.json"],
+    "source_policy": {
+      "allow_domains": ["github.com", "api.github.com"],
+      "offline_only": false,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "record-as-not-checked"
+    }
+  },
+
+  "model_routing": {
+    "strategy": "cost-aware",
+    "default": { "model": "gpt-5-codex", "vendor": "openai", "effort": "high" },
+    "routes": [
+      {
+        "when": "stage_role == sweep-auditor",
+        "target": { "model": "opus", "vendor": "anthropic", "effort": "high" },
+        "reason": "the auditor must not share a vendor with the runners whose silence it is diagnosing"
+      }
+    ],
+    "fallbacks": [{ "model": "opus", "vendor": "anthropic" }],
+    "escalation": {
+      "on": ["quota-429", "timeout"],
+      "target": { "model": "opus", "vendor": "anthropic", "effort": "medium" },
+      "max_escalations": 1
+    }
+  },
+
+  "gates": {
+    "draft-only": {
+      "predicate": "custom-expression",
+      "expression": "every_pr_is_draft == true AND auto_merged_prs == 0 AND force_pushes == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "credential-scopes-split": {
+      "predicate": "custom-expression",
+      "expression": "dispatch_scope_can_read_auth == false AND secrets_scope_can_trigger_runs == false AND credential_values_in_task_text == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "ci-verified-or-skipped": {
+      "predicate": "custom-expression",
+      "expression": "repos_with_unverifiable_change_skipped == true AND repos_force_pushed == 0",
+      "blocking": true,
+      "on_fail": "fail"
+    },
+    "empty-sweep-is-a-detector-question": {
+      "predicate": "custom-expression",
+      "expression": "targets_enabled_checked == true AND dispatch_credential_authenticated == true AND runner_logs_present == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    }
+  },
+
+  "stages": [
+    {
+      "id": "select-targets",
+      "title": "S0 SELECT the enabled targets - an empty targets file is a fault, not a result",
+      "kind": "task",
+      "role": "target-selector",
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "ADV-0140",
+        "title": "Enumerate the enabled fleet targets and prove the propose-only owner gate cannot be bypassed on any of them",
+        "phase": "12",
+        "question_or_target": "Read the targets file, emit the enabled repository set, and for each target enumerate every route by which a runner could land code without owner approval - direct push, auto-merge, ready-for-review plus a merge queue, an admin override - and confirm each is closed. An empty enabled set is reported as FAILED, never as a clean sweep of zero.",
+        "inputs": ["params.repo_targets", "params.per_repo_task", "command-center/fleet/codex-targets.yml"],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "target-selector",
+          "basis": "the owner-gate enumeration is a security judgement, not a lookup"
+        },
+        "tool_permissions": ["Read", "Grep", "Bash:gh"],
+        "execution_substrate": "local-serial",
+        "timeout_seconds": 900,
+        "output_path": "command-center/fleet/target-set.json",
+        "output_schema": "command-center/schema/dispatch-plan.schema.json",
+        "evidence_requirement": "the enabled target list with, per target, the branch-protection and auto-merge settings read from the API - a claim that merging is blocked must cite the setting that blocks it",
+        "tests_required": [
+          "an empty enabled set must emit FAILED, not SUCCESS with zero targets",
+          "a target whose repository allows auto-merge must be reported as an OPEN bypass route before any dispatch",
+          "both-states control: a repo with branch protection ON and one with it OFF must produce different verdicts; identical verdicts mean the setting was never read"
+        ],
+        "reviewer_requirement": "an independent reviewer who re-reads the protection settings from the API for a sample of targets rather than trusting the emitted set",
+        "completion_sentinel": "SUCCESS:ADV-0140 emitted only when target-set.json exists, parses, is non-empty, and every target carries its measured bypass-route verdict; otherwise FAILED:ADV-0140 <reason>",
+        "retry_policy": "two strikes then pivot; a second empty read means the targets file or the credential is wrong - diagnose the detector, do not retry the read",
+        "failure_classification": ["empty-target-set", "credential-unauthenticated", "open-bypass-route"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/fleet/target-set.json",
+          "schema_ref": "command-center/schema/dispatch-plan.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:ADV-0140",
+          "consumers": ["credential-gate", "dispatch-runners"]
+        }
+      ]
+    },
+    {
+      "id": "credential-gate",
+      "title": "The two credential scopes must be genuinely disjoint before anything is dispatched",
+      "kind": "gate",
+      "depends_on": ["select-targets"],
+      "gate_ref": "credential-scopes-split"
+    },
+    {
+      "id": "dispatch-runners",
+      "title": "S1-S3 One remote runner per repo: change, that repo's own CI, DRAFT PR",
+      "kind": "fanout",
+      "depends_on": ["credential-gate"],
+      "over": {
+        "source": "param",
+        "ref": "repo_targets",
+        "item_var": "repo",
+        "key_field": "repo"
+      },
+      "max_concurrency": 8,
+      "arrival_stagger_ms": 1500,
+      "max_items": 64,
+      "on_item_failure": "continue",
+      "body": [
+        {
+          "id": "runner-change-and-ci",
+          "title": "Make the change and run THAT repository's CI - not ours",
+          "kind": "task",
+          "role": "remote-runner",
+          "work_unit_ref": "ADV-0022",
+          "timeout_seconds": 10800
+        },
+        {
+          "id": "ci-gate",
+          "title": "A repo whose CI cannot verify the change is SKIPPED, never force-pushed",
+          "kind": "gate",
+          "depends_on": ["runner-change-and-ci"],
+          "gate_ref": "ci-verified-or-skipped"
+        },
+        {
+          "id": "open-draft-pr",
+          "title": "Open a DRAFT pull request and stop - this is the terminal action a runner may take",
+          "kind": "task",
+          "role": "remote-runner",
+          "depends_on": ["ci-gate"],
+          "work_unit_ref": "REL-0009",
+          "timeout_seconds": 1800,
+          "produces": [
+            {
+              "path": "command-center/fleet/per-repo-pr.json",
+              "schema_ref": "command-center/schema/release-gate-receipt.schema.json",
+              "min_bytes": 128,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:REL-0009",
+              "consumers": ["draft-only-gate", "roll-up-dashboard"]
+            }
+          ]
+        }
+      ],
+      "barrier": {
+        "mode": "deadline",
+        "deadline_seconds": 10800,
+        "on_partial": "proceed-degraded",
+        "verify_artifact_exists": true,
+        "reject_result_matching": ["started in the background", "Check /codex:status"]
+      }
+    },
+    {
+      "id": "draft-only-gate",
+      "title": "Every PR must still be a draft when the sweep ends",
+      "kind": "gate",
+      "depends_on": ["dispatch-runners"],
+      "gate_ref": "draft-only"
+    },
+    {
+      "id": "diagnose-sweep-yield",
+      "title": "S4a Why did the sweep produce N PRs? Detector first, content second",
+      "kind": "task",
+      "role": "sweep-auditor",
+      "depends_on": ["draft-only-gate"],
+      "work_unit_ref": "AUD-0045",
+      "timeout_seconds": 2700,
+      "produces": [
+        {
+          "path": "command-center/fleet/sweep-diagnosis.json",
+          "schema_ref": "command-center/schema/detector-control.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:AUD-0045",
+          "consumers": ["yield-gate"]
+        }
+      ]
+    },
+    {
+      "id": "yield-gate",
+      "title": "An empty sweep may not be reported as success until the detector is cleared",
+      "kind": "gate",
+      "depends_on": ["diagnose-sweep-yield"],
+      "gate_ref": "empty-sweep-is-a-detector-question"
+    },
+    {
+      "id": "roll-up-dashboard",
+      "title": "S4 ROLL UP - a no-op repo gets an explicit no-op record, not an absence",
+      "kind": "task",
+      "role": "sweep-auditor",
+      "depends_on": ["yield-gate"],
+      "work_unit_ref": "TST-0148",
+      "timeout_seconds": 1800,
+      "produces": [
+        {
+          "path": "command-center/fleet/sweep-summary.json",
+          "schema_ref": "command-center/schema/completion-census.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:TST-0148",
+          "consumers": ["owner-review-drafts"]
+        }
+      ]
+    },
+    {
+      "id": "owner-review-drafts",
+      "title": "Only the owner merges. The sweep ends here by design.",
+      "kind": "human_checkpoint",
+      "depends_on": ["roll-up-dashboard"],
+      "prompt": "These draft PRs are ready for human review. Review burden is the declared cost of this blueprint: the runners cannot merge, cannot mark ready, and cannot force-push. Approve, request changes, or close.",
+      "approvers": ["owner"],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 86400,
+      "on_timeout": "proceed",
+      "owner_approval_required": true,
+      "options": ["review-and-merge-manually", "request-changes", "close-the-drafts"],
+      "decision_artifact": {
+        "path": "command-center/fleet/owner-fleet-decision.json",
+        "schema_ref": "command-center/schema/owner-decision-packet.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true
+      }
+    }
+  ],
+
+  "stopping_rules": [
+    {
+      "id": "all-targets-attempted",
+      "expression": "targets_attempted == targets_enabled AND targets_enabled >= 1",
+      "applies_to": "workflow",
+      "minimum_conditions": "dispatch_credential_authenticated == true",
+      "on_stop": "complete"
+    },
+    {
+      "id": "sweep-deadline-reached",
+      "expression": "elapsed_seconds >= sweep_deadline_seconds",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    },
+    {
+      "id": "detector-fault-found",
+      "expression": {
+        "any": [
+          "targets_enabled == 0",
+          "dispatch_credential_authenticated == false",
+          "runner_logs_present == false"
+        ]
+      },
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+
+  "retry_policy": {
+    "strategy": "exponential",
+    "max_attempts": 3,
+    "backoff_seconds": 60,
+    "jitter": true,
+    "retry_on": ["quota-429-storm", "runner-transient", "api-rate-limited"],
+    "no_retry_on": ["credential-unauthenticated", "open-bypass-route", "owner-blocked"]
+  },
+
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": ["empty-target-set", "credential-unauthenticated", "ci-unverifiable", "runner-timeout"],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner-review-drafts",
+    "quarantine_path": "command-center/fleet/quarantine"
+  },
+
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/remote-fleet-propose-only",
+    "granularity": "fanout-item",
+    "idempotency_key_from": ["workflow_id", "stage_id", "item_key"],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 259200,
+    "on_stale": "restart"
+  },
+
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/remote-fleet-propose-only.jsonl",
+    "record": ["params", "tool_calls", "tool_results", "timings", "env_fingerprint"],
+    "forbid_nondeterministic_sources": ["network", "clock"],
+    "on_divergence": "warn"
+  },
+
+  "cache": {
+    "enabled": false,
+    "scope": "global",
+    "read_only": true,
+    "invalidate_on": ["targets-file-change"]
+  },
+
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": ["plan", "estimate", "permission-report", "graph"],
+    "plan_artifact": "command-center/dry-run/remote-fleet-propose-only-plan.json",
+    "forbid_tools": ["Bash:gh", "Bash:git", "Edit", "mcp__codex__codex"]
+  },
+
+  "estimate": {
+    "basis": "hybrid",
+    "confidence": "roughly-even",
+    "measurement_source": "command-center/measurements/fleet-sweep-runs.json",
+    "cost": { "currency": "USD", "min": 0.0, "expected": 8.0, "max": 45.0 },
+    "wallclock_seconds": { "min": 1800, "expected": 10800, "max": 86400 },
+    "tokens": { "min": 100000, "expected": 900000, "max": 4000000 },
+    "tool_calls": { "expected": 300, "max": 1600 },
+    "impact": {
+      "risk": "medium",
+      "reversibility": "reversible",
+      "blast_radius": "one draft PR per target repository; nothing is merged, so reverting the sweep means closing the drafts",
+      "requires_owner_approval": true
+    }
+  },
+
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": ["definition", "presets", "lineage"],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/remote-fleet-propose-only.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": true,
+        "allow_publishers": ["prekzursil"]
+      }
+    }
+  },
+
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "skills/codex-fleet-github",
+        "relation": "SPECIALIZE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "exec-fleet-zero-wave1-realfix-coverage",
+        "relation": "DISTILL",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-IMP-05",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": ["skills/codex-fleet-github@as-shipped"]
+  },
+
+  "outputs": {
+    "sweep-summary": {
+      "path": "command-center/fleet/sweep-summary.json",
+      "schema_ref": "command-center/schema/completion-census.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": ["owner", "command-center/PROGRAM-LEDGER.json"]
+    },
+    "sweep-diagnosis": {
+      "path": "command-center/fleet/sweep-diagnosis.json",
+      "schema_ref": "command-center/schema/detector-control.schema.json",
+      "min_bytes": 128,
+      "register_in_manifest": true,
+      "consumers": ["owner"]
+    }
+  },
+
+  "x_extensions": {
+    "worked_example": {
+      "scenario": "A 26-repo dependency-floor sweep run overnight.",
+      "no_op_case": "repo 14 already satisfies the floor. The runner opens NO PR and writes an explicit no-op record; roll-up-dashboard reports it as no-op, so 25 PRs against 26 targets is not a silent gap",
+      "revoked_credential_case": "the dispatch credential is revoked before the run. Every runner fails to trigger and zero PRs appear. WITHOUT yield-gate this reads as 'nothing needed changing'; WITH it, empty-sweep-is-a-detector-question fails on dispatch_credential_authenticated == false and the sweep is reported as a DETECTOR failure",
+      "unverifiable_ci_case": "repo 21 has no CI that exercises the changed path. ci-gate fails, the repo is recorded as SKIPPED, and no PR is opened - the alternative (push and hope) is what the gate exists to prevent",
+      "quota_case": "run overnight because a daytime sweep on the shared subscription starves interactive coding with 429s; off_peak_window=immediate is available but is not the default",
+      "credential_handling": "both credentials are declared as secret_ref params: the workflow carries the reference NAME, the value is never in the task text, and export.redact_secrets is true so the bundle cannot carry it either"
+    },
+    "distinctive_mechanism": "propose-only as a POLICY property - merge tooling is in tool_policy.deny, ready-for-review requires owner approval - plus two disjoint credential scopes and a deadline barrier that reports late runners rather than dropping them",
+    "contraindications": [
+      "NOT for a single repository - local is cheaper and the remote machinery buys nothing",
+      "NOT for changes needing deep repo-specific judgement - the same task text cannot fit 26 repos",
+      "NOT when the change cannot be verified by the target repo's own CI - such repos are skipped by gate, not pushed"
+    ],
+    "not_a_duplicate_because": "BP-IMP-06 fans many WORK UNITS onto rented compute for a RAM ceiling; this fans one task across many REPOSITORIES on their own CI, and its defining property is that the runner's terminal action is a draft PR."
+  }
+}

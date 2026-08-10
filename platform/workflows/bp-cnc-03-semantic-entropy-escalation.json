@@ -1,0 +1,803 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "bp-cnc-03-semantic-entropy-escalation",
+  "name": "Semantic-Entropy Escalation Council",
+  "description": "Blueprint 18 of 96 (design card BP-CNC-03, 09-WORKFLOW-BLUEPRINT-LIBRARY.md:958). MECHANISM: replace a human eyeballing three opinions with a NUMBER and a FIXED rule. Answers from >=3 independent models are clustered semantically, an entropy is computed, and the accept/escalate decision is taken deterministically against a threshold that was committed BEFORE any answer was seen. Two refusals are load-bearing: fewer than three answers means the gate REFUSES rather than computing a meaningless entropy, and low entropy across same-family models raises a correlated-blind-spot warning because agreement is not truth. This is the only blueprint in the range that does not loop and does not fan out - the design card says the gate takes ONE decision per invocation - and the only one with fully deterministic replay.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "collective-intelligence-and-meta-workflows",
+    "research-and-evidence"
+  ],
+  "tags": [
+    "semantic-entropy",
+    "deterministic-routing",
+    "escalation-gate",
+    "bp-cnc-03"
+  ],
+  "flagship": true,
+  "params": {
+    "question": {
+      "type": "string",
+      "required": true,
+      "min_length": 10,
+      "description": "The question the model answers were produced for"
+    },
+    "model_answers": {
+      "type": "array",
+      "min_items": 3,
+      "max_items": 32,
+      "description": "Already-collected answers. Fewer than three is a refusal, not a degraded run: entropy over two points is undefined in any useful sense.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "model": {
+            "type": "string"
+          },
+          "vendor": {
+            "type": "enum",
+            "enum": [
+              "anthropic",
+              "openai",
+              "google",
+              "human"
+            ]
+          },
+          "answer": {
+            "type": "string"
+          },
+          "answer_hash": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "entropy_threshold": {
+      "type": "number",
+      "default": 0.35,
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Normalised semantic entropy above which the run ESCALATES. Committed and hashed BEFORE any answer is read - a threshold chosen after seeing the answers is not a threshold."
+    },
+    "escalation_target": {
+      "type": "enum",
+      "enum": [
+        "debate",
+        "add-a-vendor",
+        "owner",
+        "probe-wins-resolver"
+      ],
+      "default": "debate",
+      "description": "Where an ESCALATE decision routes. The design card prefers a debate over simply adding a fourth model."
+    },
+    "clustering_seed": {
+      "type": "integer",
+      "default": 20260810,
+      "minimum": 0,
+      "description": "Seed for the semantic clustering, so replay is byte-reproducible"
+    }
+  },
+  "roles": {
+    "threshold-committer": {
+      "description": "Writes and hashes the threshold BEFORE any answer is read; holds no opinion on the question",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "low",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/entropy/**)"
+      ],
+      "write_paths": [
+        "command-center/entropy/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "clusterer": {
+      "description": "Runs the deterministic semantic clustering and entropy computation; reports the number and never interprets it",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/entropy/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "independence-auditor": {
+      "description": "Audits whether the answers are actually INDEPENDENT - same-family models agreeing confidently and wrongly is the failure this role exists to catch",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "veto",
+      "vote_weight": 2,
+      "independence": "cross-examining",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Write(command-center/entropy/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - the escalation destination of last resort",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Bash:python",
+      "Write(command-center/entropy/**)"
+    ],
+    "deny": [
+      "Bash",
+      "Edit",
+      "WebFetch",
+      "WebSearch",
+      "mcp__codex__codex"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/entropy/**"
+    ],
+    "forbid_write_paths": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "platform/schema",
+      "platform/lib"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "static",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium"
+    },
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "threshold-precommitted": {
+      "predicate": "custom-expression",
+      "expression": "threshold_hash_recorded == true AND threshold_recorded_before_answers_read == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "enough-independent-answers": {
+      "predicate": "custom-expression",
+      "expression": "answers_supplied >= 3 AND distinct_vendors >= 2",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "deterministic-route": {
+      "predicate": "custom-expression",
+      "expression": "decision == ACCEPT OR decision == ESCALATE",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+  "stages": [
+    {
+      "id": "precommit-threshold",
+      "title": "S0a COMMIT the threshold and hash it BEFORE any answer is read",
+      "kind": "task",
+      "role": "threshold-committer",
+      "checkpoint": true,
+      "timeout_seconds": 300,
+      "work_unit": {
+        "id": "WCNC-0301",
+        "title": "Commit and hash the entropy threshold before reading any answer",
+        "phase": "2B",
+        "question_or_target": "Write the threshold, the escalation target and the clustering seed to disk and hash them, recording that no answer content has been read yet.",
+        "inputs": [
+          "params.entropy_threshold",
+          "params.escalation_target",
+          "params.clustering_seed"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "threshold-committer",
+          "basis": "trivial work, but it must happen first or the whole gate is post-hoc"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/entropy/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 300,
+        "output_path": "command-center/entropy/bp-cnc-03/threshold-commit.json",
+        "output_schema": "command-center/schema/confirmation-policy.schema.json",
+        "evidence_requirement": "the commit records a sha256 over threshold plus seed plus escalation target, and asserts answers_read == 0 at write time, so a later-chosen threshold is mechanically detectable",
+        "tests_required": [
+          "a threshold written after answers were read must FAIL the precommit gate",
+          "both-states control: run the ordering check with the commit AFTER the collect stage and confirm it FAILS; run it before and confirm it PASSES"
+        ],
+        "reviewer_requirement": "the independence auditor confirms the commit hash matches the threshold actually used in the routing decision",
+        "completion_sentinel": "SUCCESS:WCNC-0301 emitted when threshold-commit.json exists, parses, and records the hash plus answers_read == 0; otherwise FAILED:WCNC-0301 <reason>",
+        "retry_policy": "no retry - a re-commit after answers were read is exactly the defect this unit prevents; restart the invocation instead",
+        "failure_classification": [
+          "threshold-post-hoc",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/entropy/bp-cnc-03/threshold-commit.json",
+          "schema_ref": "command-center/schema/confirmation-policy.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WCNC-0301",
+          "consumers": [
+            "threshold-gate",
+            "route"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "threshold-gate",
+      "title": "S0b The threshold must be pre-committed or this workflow measures nothing",
+      "kind": "gate",
+      "depends_on": [
+        "precommit-threshold"
+      ],
+      "gate_ref": "threshold-precommitted"
+    },
+    {
+      "id": "collect",
+      "title": "S0c COLLECT the answers and audit whether they are actually independent",
+      "kind": "task",
+      "role": "independence-auditor",
+      "depends_on": [
+        "threshold-gate"
+      ],
+      "timeout_seconds": 1200,
+      "work_unit": {
+        "id": "WCNC-0302",
+        "title": "Normalise the answer set and build the independence matrix over its producers",
+        "phase": "2B",
+        "question_or_target": "Normalise every supplied answer, count distinct vendors and model families, and state for each pair whether the two producers are mechanically independent.",
+        "inputs": [
+          "params.model_answers",
+          "params.question"
+        ],
+        "dependencies": [
+          "WCNC-0301"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "independence-auditor",
+          "basis": "independence is the assumption the entropy number rests on; auditing it is not a cheap step"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Write(command-center/entropy/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1200,
+        "output_path": "command-center/entropy/bp-cnc-03/answer-set.json",
+        "output_schema": "command-center/schema/agreement-statistic.schema.json",
+        "evidence_requirement": "the matrix names the mechanism that makes each pair independent (different vendor, different family, different prompt) - a pair with no named mechanism is recorded as CORRELATED, not assumed independent",
+        "tests_required": [
+          "three answers from one vendor must set distinct_vendors == 1 and fail the enough-independent-answers gate",
+          "two answers must fail the gate rather than yielding an entropy",
+          "both-states control: feed 3 same-vendor answers (expect FAIL) and 3 cross-vendor answers (expect PASS)"
+        ],
+        "reviewer_requirement": "the clusterer refuses to run if the answer set reports zero named independence mechanisms",
+        "completion_sentinel": "SUCCESS:WCNC-0302 emitted when answer-set.json exists, parses, and every producer pair carries an independence verdict; otherwise FAILED:WCNC-0302 <reason>",
+        "retry_policy": "no retry on too-few-answers - that is an input shortfall the caller must fix, not a transient failure",
+        "failure_classification": [
+          "too-few-answers",
+          "correlated-producers",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/entropy/bp-cnc-03/answer-set.json",
+          "schema_ref": "command-center/schema/agreement-statistic.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WCNC-0302",
+          "consumers": [
+            "min-answers-gate",
+            "cluster",
+            "blindspot-warning"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "min-answers-gate",
+      "title": "S0d REFUSE rather than compute a meaningless entropy",
+      "kind": "gate",
+      "depends_on": [
+        "collect"
+      ],
+      "gate_ref": "enough-independent-answers"
+    },
+    {
+      "id": "cluster",
+      "title": "S1-S2 CLUSTER semantically and COMPUTE the entropy - deterministic given the answer set",
+      "kind": "task",
+      "role": "clusterer",
+      "depends_on": [
+        "min-answers-gate"
+      ],
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "WCNC-0303",
+        "title": "Cluster the answers semantically and compute the normalised entropy",
+        "phase": "2B",
+        "question_or_target": "Cluster answers by meaning under the committed seed and compute the normalised semantic entropy over the cluster distribution.",
+        "inputs": [
+          "command-center/entropy/bp-cnc-03/answer-set.json",
+          "command-center/entropy/bp-cnc-03/threshold-commit.json"
+        ],
+        "dependencies": [
+          "WCNC-0302"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "clusterer",
+          "basis": "the clustering is itself a model, which is the honest weakness of this blueprint; the seed makes it at least reproducible"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/entropy/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/entropy/bp-cnc-03/entropy.json",
+        "output_schema": "command-center/schema/agreement-statistic.schema.json",
+        "evidence_requirement": "the artifact records the cluster assignment per answer, the seed used, and the exact command that produced the number - so the same inputs re-run to the same entropy and a divergence is detectable",
+        "tests_required": [
+          "three identical answers must give entropy near zero",
+          "three mutually contradictory answers must give a high entropy",
+          "two identical plus one different must land on a documented, stable side of the threshold",
+          "re-running with the same seed must reproduce the entropy byte-for-byte"
+        ],
+        "reviewer_requirement": "the independence auditor re-runs the computation once with the same seed and confirms hash equality",
+        "completion_sentinel": "SUCCESS:WCNC-0303 emitted when entropy.json exists, parses, records the seed and the per-answer cluster assignment, and the re-run hash matches; otherwise FAILED:WCNC-0303 <reason>",
+        "retry_policy": "one retry on a transient tool failure; a non-reproducible entropy is a detector failure and escalates rather than retrying",
+        "failure_classification": [
+          "detector-failure",
+          "nondeterministic-clustering",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/entropy/bp-cnc-03/entropy.json",
+          "schema_ref": "command-center/schema/agreement-statistic.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WCNC-0303",
+          "consumers": [
+            "route",
+            "blindspot-warning"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "blindspot-warning",
+      "title": "S2b Low entropy across same-family models is NOT independence - raise the warning",
+      "kind": "task",
+      "role": "independence-auditor",
+      "depends_on": [
+        "cluster"
+      ],
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "WCNC-0304",
+        "title": "Raise a correlated-blind-spot warning when agreement comes from correlated producers",
+        "phase": "2B",
+        "question_or_target": "If the entropy is low, state whether the agreeing answers came from mechanically independent producers, and raise a correlated-blind-spot warning where they did not.",
+        "inputs": [
+          "command-center/entropy/bp-cnc-03/entropy.json",
+          "command-center/entropy/bp-cnc-03/answer-set.json"
+        ],
+        "dependencies": [
+          "WCNC-0303"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "independence-auditor",
+          "basis": "this is the only thing standing between a low number and a false sense of settledness"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Write(command-center/entropy/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 900,
+        "output_path": "command-center/entropy/bp-cnc-03/blindspot-warning.json",
+        "output_schema": "command-center/schema/blindspot-register.schema.json",
+        "evidence_requirement": "the warning names WHICH producer pairs are correlated and by what mechanism; a low entropy with no correlated pairs records an explicit NO-WARNING rather than an empty file",
+        "tests_required": [
+          "three same-family answers agreeing must produce a WARNING even though entropy is near zero",
+          "both-states control: the warning must FIRE on a same-family agreeing set and stay SILENT on a cross-vendor agreeing set - a warning that fires in both states measures nothing"
+        ],
+        "reviewer_requirement": "one independent reader confirms the warning is absent only where a named independence mechanism exists for every agreeing pair",
+        "completion_sentinel": "SUCCESS:WCNC-0304 emitted when blindspot-warning.json exists and parses, carrying either named correlated pairs or an explicit NO-WARNING; otherwise FAILED:WCNC-0304 <reason>",
+        "retry_policy": "two strikes then pivot: record the warning as UNKNOWN rather than asserting independence that was not established",
+        "failure_classification": [
+          "correlated-producers",
+          "overclaim",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/entropy/bp-cnc-03/blindspot-warning.json",
+          "schema_ref": "command-center/schema/blindspot-register.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WCNC-0304",
+          "consumers": [
+            "route",
+            "owner"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "route",
+      "title": "S3 ROUTE deterministically against the pre-committed threshold - ACCEPT or ESCALATE, one decision, no loop",
+      "kind": "gate",
+      "depends_on": [
+        "blindspot-warning"
+      ],
+      "gate_ref": "deterministic-route",
+      "produces": [
+        {
+          "path": "command-center/entropy/bp-cnc-03/decision.json",
+          "schema_ref": "command-center/schema/stopping-verdict.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WCNC-0305",
+          "consumers": [
+            "owner",
+            "bp-cnc-02-two-peer-cross-vendor-debate",
+            "bp-cnc-07-probe-wins-split-verdict-resolver"
+          ]
+        }
+      ]
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "one-decision-per-invocation",
+      "expression": "decision == ACCEPT OR decision == ESCALATE",
+      "applies_to": "workflow",
+      "minimum_conditions": "answers_supplied >= 3 AND threshold_hash_recorded == true",
+      "on_stop": "complete"
+    },
+    {
+      "id": "refuse-too-few-answers",
+      "expression": "answers_supplied < 3",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    },
+    {
+      "id": "clustering-not-reproducible",
+      "expression": "entropy_reproduced_on_rerun == false",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "none",
+    "max_attempts": 1
+  },
+  "failure_policy": {
+    "on_failure": "fail-fast",
+    "classify_as": [
+      "too-few-answers",
+      "threshold-post-hoc",
+      "nondeterministic-clustering",
+      "correlated-producers"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner",
+    "quarantine_path": "command-center/quarantine/bp-cnc-03"
+  },
+  "resume": {
+    "enabled": false
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260810,
+    "journal_path": "command-center/replay/bp-cnc-03.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "network",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "fail"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "workflow",
+    "key_from": [
+      "workflow_version",
+      "inputs_hash",
+      "params_hash"
+    ],
+    "store": "command-center/cache/bp-cnc-03",
+    "ttl_seconds": 2592000,
+    "verify_integrity": true,
+    "invalidate_on": [
+      "threshold-change",
+      "seed-change",
+      "clusterer-version-change"
+    ]
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "artifact-diff"
+    ],
+    "plan_artifact": "command-center/dry-run/bp-cnc-03-plan.json",
+    "forbid_tools": [
+      "Bash:python",
+      "Write(command-center/entropy/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "almost-certain",
+    "cost": {
+      "currency": "USD",
+      "min": 0.05,
+      "expected": 0.25,
+      "max": 0.9
+    },
+    "wallclock_seconds": {
+      "min": 60,
+      "expected": 300,
+      "max": 1200
+    },
+    "tokens": {
+      "min": 8000,
+      "expected": 40000,
+      "max": 150000
+    },
+    "tool_calls": {
+      "expected": 12,
+      "max": 40
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "writes only under command-center/entropy/bp-cnc-03/**; no network; the routing decision is advisory until a caller acts on it",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage",
+        "replay-journal"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/bp-cnc-03.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": true,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "tools/ese-gate",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/execution-grounded-bon",
+        "relation": "DISTILL",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-CNC-03",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "tools/ese-gate"
+    ]
+  },
+  "outputs": {
+    "decision": {
+      "path": "command-center/entropy/bp-cnc-03/decision.json",
+      "schema_ref": "command-center/schema/stopping-verdict.schema.json",
+      "min_bytes": 128,
+      "register_in_manifest": true,
+      "consumers": [
+        "owner",
+        "bp-cnc-02-two-peer-cross-vendor-debate"
+      ]
+    },
+    "entropy": {
+      "path": "command-center/entropy/bp-cnc-03/entropy.json",
+      "schema_ref": "command-center/schema/agreement-statistic.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "route",
+        "owner"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint_index": 18,
+    "design_card": "BP-CNC-03",
+    "design_card_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.md:958",
+    "acquisition_route": "ADOPT",
+    "state_v": [
+      "FOUND"
+    ],
+    "size_v": [
+      "NATIVE"
+    ],
+    "distinct_mechanism": "a pre-committed and hashed threshold, a refusal below three independent answers, a seeded reproducible entropy, a purely deterministic ACCEPT/ESCALATE route, and a correlated-blind-spot warning - with no loop and no fan-out anywhere in the document",
+    "not_a_duplicate_because": "BP-CNC-07 resolves a split by READING THE PROBES and never computes a dispersion number; this measures DISPERSION and never inspects a probe. BP-CNC-02 makes the models interact; this never does - it consumes answers that already exist. It is the only blueprint in the range with replay.deterministic == true and retry strategy none.",
+    "contraindications": [
+      "a single model - entropy is undefined",
+      "free-form essay answers - semantic clustering degrades and the number stops meaning anything",
+      "use as a correctness oracle - low entropy means agreement, NOT truth"
+    ],
+    "worked_examples": [
+      {
+        "name": "three cross-vendor answers that genuinely disagree",
+        "params": {
+          "question": "How many distinct output_schema paths does the work-unit catalog declare",
+          "model_answers": [
+            {
+              "model": "opus",
+              "vendor": "anthropic",
+              "answer": "269 distinct paths across 1,896 references",
+              "answer_hash": "a1"
+            },
+            {
+              "model": "gpt-5-codex",
+              "vendor": "openai",
+              "answer": "234 distinct paths across 2,007 references",
+              "answer_hash": "b2"
+            },
+            {
+              "model": "gemini-pro",
+              "vendor": "google",
+              "answer": "about 250, the reference count is unclear",
+              "answer_hash": "c3"
+            }
+          ],
+          "entropy_threshold": 0.35,
+          "escalation_target": "probe-wins-resolver",
+          "clustering_seed": 20260810
+        },
+        "expected_artifacts": [
+          "command-center/entropy/bp-cnc-03/threshold-commit.json",
+          "command-center/entropy/bp-cnc-03/answer-set.json",
+          "command-center/entropy/bp-cnc-03/entropy.json",
+          "command-center/entropy/bp-cnc-03/blindspot-warning.json",
+          "command-center/entropy/bp-cnc-03/decision.json"
+        ],
+        "expected_terminal_state": "SUCCESS:WCNC-0305 with decision == ESCALATE",
+        "walkthrough": "S0a hashes threshold 0.35 with seed 20260810 and records answers_read == 0. S0b passes. S0c finds 3 answers from 3 distinct vendors and names the independence mechanism for each pair. S0d passes. S1-S2 cluster into three singleton clusters, giving normalised entropy 1.0. S2b raises NO-WARNING: the producers are genuinely independent, so the disagreement is real information rather than an artifact. S3 routes ESCALATE (1.0 > 0.35) to the probe-wins resolver - which is the correct destination, because this is a FACTUAL question and dispersion cannot settle it. Note what the blueprint does NOT do: it does not pick 234 because two answers are numerically closer. That is the whole point of routing rather than judging.",
+        "expected_gate_outcomes": {
+          "threshold-precommitted": "PASS - hash recorded, answers_read == 0 at write time",
+          "enough-independent-answers": "PASS - answers_supplied == 3, distinct_vendors == 3",
+          "deterministic-route": "PASS - decision == ESCALATE"
+        },
+        "arm": "positive"
+      },
+      {
+        "name": "negative control - three same-vendor answers agreeing",
+        "params": {
+          "question": "How many distinct output_schema paths does the catalog declare",
+          "model_answers": [
+            {
+              "model": "opus",
+              "vendor": "anthropic",
+              "answer": "269",
+              "answer_hash": "a1"
+            },
+            {
+              "model": "opus",
+              "vendor": "anthropic",
+              "answer": "269 distinct paths",
+              "answer_hash": "a2"
+            },
+            {
+              "model": "sonnet",
+              "vendor": "anthropic",
+              "answer": "269 paths",
+              "answer_hash": "a3"
+            }
+          ],
+          "entropy_threshold": 0.35
+        },
+        "expected_artifacts": [
+          "command-center/entropy/bp-cnc-03/answer-set.json"
+        ],
+        "expected_terminal_state": "FAILED:WCNC-0302 correlated-producers",
+        "walkthrough": "Entropy would be near zero and a naive gate would ACCEPT 269 - which is the WRONG number (the measured value is 234). distinct_vendors == 1 fails enough-independent-answers with on_fail=fail, so no entropy is ever computed. Had the set slipped through, S2b would still raise a correlated-blind-spot warning naming all three pairs as same-vendor. This is the design card's standing warning made mechanical: agreement among same-family models is not independence, and this is the one case where a low number is most dangerous.",
+        "arm": "negative-control"
+      }
+    ],
+    "benchmark_cases": [
+      "three identical answers -> entropy ~0 -> ACCEPT",
+      "three mutually contradictory answers -> ESCALATE",
+      "two identical plus one different -> the threshold behaviour must be documented and stable"
+    ],
+    "unverified": "UNVERIFIED threshold calibration on this estate. Settling experiment: replay 20 past multi-model answer sets whose ground truth is now known and pick the threshold that maximises correct escalation. Confidence that the tool exists: almost-certain (90-99%); that the default threshold is right without calibration: likely (55-80%).",
+    "owner_decision": "OPEN (design card BP-CNC-03): calibrate the entropy threshold on replayed history before use, or ship the tool's default and tune on incidents? This blueprint is executable either way - entropy_threshold is a param with a default, and the precommit gate makes whichever choice is made auditable.",
+    "council_presets_referenced": [
+      "platform/council/presets/C-D44-crossvendor-mirrored-12.councilspec.json"
+    ]
+  }
+}

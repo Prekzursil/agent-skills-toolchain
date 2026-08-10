@@ -1,0 +1,1049 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "bp-cnc-06-weighted-rubric-jury",
+  "name": "Weighted Rubric Jury with Critical-Error Override",
+  "description": "Blueprint 21 of 96 (design card BP-CNC-06, 09-WORKFLOW-BLUEPRINT-LIBRARY.md:1091). MECHANISM: score an artifact on a rubric FIXED AND HASHED BEFORE the artifact is read, one call PER DIMENSION (the reliability protocol, expressed here as a fan-out with max_concurrency 1 so the calls are genuinely serialised and cannot cross-contaminate), then apply a CRITICAL-ERROR OVERRIDE where a critical dimension scoring zero CAPS the whole composite regardless of the other eight. A dimension that cannot be evidenced scores UNKNOWN and is EXCLUDED from the composite with the exclusion stated - never silently defaulted to mid-scale, which is how a fatal flaw averages its way to a pass. An optional cross-vendor critic is reconciled CONSERVATIVELY (take the lower score).",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "collective-intelligence-and-meta-workflows",
+    "product-design-and-strategy"
+  ],
+  "tags": [
+    "rubric",
+    "critical-error-override",
+    "weighted-composite",
+    "one-call-per-dimension",
+    "bp-cnc-06"
+  ],
+  "flagship": true,
+  "params": {
+    "artifact": {
+      "type": "path",
+      "required": true,
+      "description": "The artifact under score: a design, a plan, a report, a skill or a PR"
+    },
+    "rubric": {
+      "type": "object",
+      "required": true,
+      "description": "The rubric. Fixed and hashed BEFORE the artifact is read - a rubric changed after seeing the artifact is invalid, because then the rubric is a justification rather than a standard.",
+      "schema": {
+        "type": "object",
+        "required": [
+          "dimensions",
+          "scale"
+        ],
+        "properties": {
+          "dimensions": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 16,
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "weight",
+                "critical"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 2
+                },
+                "weight": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "critical": {
+                  "type": "boolean"
+                },
+                "deterministic_metric": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "scale": {
+            "type": "string",
+            "const": "0-4"
+          },
+          "critical_cap": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 4
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "artifact_class": {
+      "type": "enum",
+      "enum": [
+        "design",
+        "plan",
+        "report",
+        "skill",
+        "pull-request"
+      ],
+      "required": true,
+      "description": "Which canonical rubric applies. OWNER-DECISION on the design card: which classes get a canonical rubric and who owns its weights."
+    },
+    "cross_vendor_critic": {
+      "type": "boolean",
+      "default": false,
+      "description": "Add a cross-vendor critic as a 5th persona, reconciled conservatively (the LOWER of the two scores wins)"
+    },
+    "restability_check": {
+      "type": "boolean",
+      "default": true,
+      "description": "Re-score the artifact a second time and require every dimension to move by at most one point, or the protocol is not stabilising"
+    }
+  },
+  "roles": {
+    "rubric-keeper": {
+      "description": "Fixes and hashes the rubric before the artifact is read; refuses any change to weights afterwards",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "chair",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/rubric/**)"
+      ],
+      "write_paths": [
+        "command-center/rubric/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "metric-computer": {
+      "description": "Computes every deterministic metric BEFORE any scoring call, so a number is never left to model judgement when it can be measured",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash:python",
+        "Write(command-center/rubric/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "dimension-scorer": {
+      "description": "Scores exactly ONE dimension per call, citing evidence; sees no other dimension's score",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write(command-center/rubric/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "codex-critic": {
+      "description": "Optional cross-vendor critic; its disagreement is reconciled conservatively rather than averaged",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "independent",
+      "cross_vendor_required": true,
+      "tool_permissions": [
+        "Read",
+        "mcp__codex__codex"
+      ],
+      "speaking_rights": "rebuttal-only"
+    },
+    "compositor": {
+      "description": "Applies the critical-error override and computes the weighted composite; excludes UNKNOWN dimensions and states the exclusion",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "judge",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/rubric/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - owns each rubric's weights; a rubric invented ad hoc to justify a conclusion is the failure this ownership prevents",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash:python",
+      "mcp__codex__codex",
+      "Write(command-center/rubric/**)"
+    ],
+    "deny": [
+      "Bash",
+      "Edit",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/rubric/**"
+    ],
+    "forbid_write_paths": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "platform/schema",
+      "platform/lib"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "capability",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "routes": [
+      {
+        "when": "stage_role == codex_critic",
+        "target": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "effort": "high"
+        },
+        "reason": "the critic must not share the scorer's blind spots"
+      },
+      {
+        "when": "stage_role == metric_computer",
+        "target": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "effort": "medium"
+        },
+        "reason": "computing a deterministic metric needs correctness, not creativity"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "rubric-frozen-before-read": {
+      "predicate": "custom-expression",
+      "expression": "rubric_hash_recorded == true AND artifact_bytes_read_at_freeze == 0 AND weights_changed_after_freeze == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "unknown-excluded-not-defaulted": {
+      "predicate": "custom-expression",
+      "expression": "dimensions_defaulted_to_midscale == 0 AND unknown_dimensions_excluded_and_stated == true AND scores_without_evidence == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "critical-override-applied": {
+      "predicate": "custom-expression",
+      "expression": "critical_zero_present == false OR composite_capped == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "protocol-is-stabilising": {
+      "predicate": "custom-expression",
+      "expression": "max_dimension_drift_on_rescore <= 1",
+      "blocking": false,
+      "evidence_required": true,
+      "on_fail": "record-and-continue"
+    }
+  },
+  "stages": [
+    {
+      "id": "freeze-rubric",
+      "title": "S0 FIX the rubric and weights BEFORE seeing the artifact, and hash them",
+      "kind": "task",
+      "role": "rubric-keeper",
+      "checkpoint": true,
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "WCNC-0601",
+        "title": "Freeze and hash the rubric before any artifact byte is read",
+        "phase": "2B",
+        "question_or_target": "Write the rubric - dimensions, weights, critical flags, scale and critical cap - to disk and hash it, recording that zero artifact bytes have been read.",
+        "inputs": [
+          "params.rubric",
+          "params.artifact_class"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "rubric-keeper",
+          "basis": "rubric design is the whole ballgame; freezing it is cheap and non-negotiable"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/rubric/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 900,
+        "output_path": "command-center/rubric/bp-cnc-06/rubric-freeze.json",
+        "output_schema": "command-center/schema/confirmation-policy.schema.json",
+        "evidence_requirement": "the freeze records a sha256 over the rubric, the weight sum, and artifact_bytes_read == 0 at write time, so a rubric edited after the artifact was seen is mechanically detectable",
+        "tests_required": [
+          "a rubric whose weights are changed after the freeze must FAIL the frozen gate",
+          "a rubric whose weights do not sum to 1 must be rejected at freeze time, not silently renormalised",
+          "both-states control: freeze AFTER reading the artifact and confirm the gate FAILS; freeze before and confirm it PASSES"
+        ],
+        "reviewer_requirement": "the compositor verifies the rubric hash used in the composite matches the frozen hash",
+        "completion_sentinel": "SUCCESS:WCNC-0601 emitted when rubric-freeze.json exists, parses, records the hash and artifact_bytes_read == 0, and the weights sum to 1; otherwise FAILED:WCNC-0601 <reason>",
+        "retry_policy": "no retry after the artifact has been read - restart the invocation with a clean rubric instead",
+        "failure_classification": [
+          "rubric-post-hoc",
+          "weights-do-not-sum",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/rubric/bp-cnc-06/rubric-freeze.json",
+          "schema_ref": "command-center/schema/confirmation-policy.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WCNC-0601",
+          "consumers": [
+            "freeze-gate",
+            "score",
+            "composite"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "freeze-gate",
+      "title": "S0b A rubric changed after seeing the artifact is invalid",
+      "kind": "gate",
+      "depends_on": [
+        "freeze-rubric"
+      ],
+      "gate_ref": "rubric-frozen-before-read"
+    },
+    {
+      "id": "deterministic-metrics",
+      "title": "S1 COMPUTE every deterministic metric first - never ask a model for a number you can measure",
+      "kind": "task",
+      "role": "metric-computer",
+      "depends_on": [
+        "freeze-gate"
+      ],
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "WCNC-0602",
+        "title": "Compute the deterministic metrics named by the rubric before any scoring call",
+        "phase": "2B",
+        "question_or_target": "For every dimension declaring a deterministic_metric, compute it with a rerunnable command and record the exact output.",
+        "inputs": [
+          "command-center/rubric/bp-cnc-06/rubric-freeze.json",
+          "params.artifact"
+        ],
+        "dependencies": [
+          "WCNC-0601"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "metric-computer",
+          "basis": "an exact algorithm beats LLM judgement on a mechanical comparison; measured 86% accuracy with 100% of errors in the dangerous direction"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash:python",
+          "Write(command-center/rubric/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/rubric/bp-cnc-06/deterministic-metrics.json",
+        "output_schema": "command-center/schema/audit-metric-baseline.schema.json",
+        "evidence_requirement": "each metric records the exact command and its raw output; a metric that could not be computed is recorded NOT-COMPUTED with the reason, never estimated",
+        "tests_required": [
+          "a dimension declaring a deterministic_metric must not be scored by judgement when the metric computed successfully",
+          "both-states control: break one metric command and confirm it records NOT-COMPUTED rather than an estimated value"
+        ],
+        "reviewer_requirement": "the compositor re-runs one metric command and confirms the output matches",
+        "completion_sentinel": "SUCCESS:WCNC-0602 emitted when deterministic-metrics.json exists, parses, and every declared metric carries a command plus output or an explicit NOT-COMPUTED; otherwise FAILED:WCNC-0602 <reason>",
+        "retry_policy": "two strikes then pivot: record NOT-COMPUTED and let the dimension fall through to judgement with that fact stated",
+        "failure_classification": [
+          "metric-not-computed",
+          "detector-failure",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/rubric/bp-cnc-06/deterministic-metrics.json",
+          "schema_ref": "command-center/schema/audit-metric-baseline.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WCNC-0602",
+          "consumers": [
+            "score",
+            "composite"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "score",
+      "title": "S2 SCORE one dimension PER CALL - serialised, each blind to the others",
+      "kind": "fanout",
+      "depends_on": [
+        "deterministic-metrics"
+      ],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/rubric/bp-cnc-06/rubric-freeze.json",
+        "item_var": "dimension",
+        "key_field": "name"
+      },
+      "max_concurrency": 1,
+      "arrival_stagger_ms": 0,
+      "max_items": 16,
+      "on_item_failure": "continue",
+      "timeout_seconds": 10800,
+      "body": [
+        {
+          "id": "score-one-dimension",
+          "title": "Score exactly one dimension, citing evidence",
+          "kind": "task",
+          "role": "dimension-scorer",
+          "timeout_seconds": 1800,
+          "work_unit": {
+            "id": "WCNC-0603",
+            "title": "Score one rubric dimension 0-4 with cited evidence, or UNKNOWN",
+            "phase": "2B",
+            "question_or_target": "Score the assigned dimension only, on the 0-4 scale, citing the evidence for the score. If the dimension cannot be evidenced, return UNKNOWN - never a mid-scale guess.",
+            "inputs": [
+              "command-center/rubric/bp-cnc-06/rubric-freeze.json",
+              "command-center/rubric/bp-cnc-06/deterministic-metrics.json",
+              "params.artifact",
+              "item.dimension"
+            ],
+            "dependencies": [
+              "WCNC-0602"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "dimension-scorer",
+              "basis": "one call per dimension is the reliability protocol; batching dimensions is what makes scores drift"
+            },
+            "tool_permissions": [
+              "Read",
+              "Grep",
+              "Glob",
+              "Write(command-center/rubric/**)"
+            ],
+            "execution_substrate": "local-serial",
+            "timeout_seconds": 1800,
+            "output_path": "command-center/rubric/bp-cnc-06/scores/dimension.json",
+            "output_schema": "command-center/schema/calibration-report.schema.json",
+            "evidence_requirement": "every score cites a file:line, a screenshot region or a computed metric; a score with no evidence is rejected rather than accepted at face value",
+            "tests_required": [
+              "a score with no cited evidence must fail the evidence check",
+              "an unevidenceable dimension must return UNKNOWN, never 2 of 4",
+              "both-states control: strip the evidence from one score and confirm scores_without_evidence rises above zero and the gate FAILS"
+            ],
+            "reviewer_requirement": "the optional cross-vendor critic re-scores independently; reconciliation takes the LOWER score, never the mean",
+            "completion_sentinel": "SUCCESS:WCNC-0603 emitted per dimension when the score artifact exists, parses, and carries a 0-4 score with evidence or an explicit UNKNOWN; otherwise FAILED:WCNC-0603 <reason>",
+            "retry_policy": "one retry with the scale restated inline; then record UNKNOWN rather than forcing a number",
+            "failure_classification": [
+              "score-without-evidence",
+              "midscale-default",
+              "severed-stream"
+            ],
+            "owner_approval_required": false
+          }
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "proceed-with-quarantine",
+        "reject_result_matching": [
+          "started in the background",
+          "Check /codex:status",
+          "roughly a 2"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "evidence-gate",
+      "title": "S2b UNKNOWN is excluded and stated - never defaulted to mid-scale",
+      "kind": "gate",
+      "depends_on": [
+        "score"
+      ],
+      "gate_ref": "unknown-excluded-not-defaulted"
+    },
+    {
+      "id": "cross-vendor-critique",
+      "title": "S2c CONDITIONAL cross-vendor critic, reconciled CONSERVATIVELY (take the lower score)",
+      "kind": "task",
+      "role": "codex-critic",
+      "depends_on": [
+        "evidence-gate"
+      ],
+      "when": "cross_vendor_critic == true",
+      "timeout_seconds": 2400,
+      "tool_permissions": [
+        "Read",
+        "mcp__codex__codex"
+      ],
+      "work_unit": {
+        "id": "WCNC-0604",
+        "title": "Cross-vendor re-score and conservative reconciliation",
+        "phase": "2B",
+        "question_or_target": "Independently score the same dimensions on the same frozen rubric, then reconcile against the primary scores by taking the LOWER score per dimension.",
+        "inputs": [
+          "command-center/rubric/bp-cnc-06/scores",
+          "command-center/rubric/bp-cnc-06/rubric-freeze.json"
+        ],
+        "dependencies": [
+          "WCNC-0603"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "role": "codex-critic",
+          "basis": "a same-vendor critic shares the scorer's blind spots, so the second opinion must cross vendors to be worth paying for"
+        },
+        "tool_permissions": [
+          "Read",
+          "mcp__codex__codex"
+        ],
+        "execution_substrate": "codex-mcp-blocking",
+        "timeout_seconds": 2400,
+        "output_path": "command-center/rubric/bp-cnc-06/cross-vendor-scores.json",
+        "output_schema": "command-center/schema/calibration-report.schema.json",
+        "evidence_requirement": "the critic cites its own evidence per dimension and the reconciliation records both scores plus which one was taken - conservatism must be visible, not asserted",
+        "tests_required": [
+          "reconciliation must take the LOWER score, never the mean - a mean re-introduces the averaging this blueprint exists to prevent",
+          "both-states control: feed a critic score of 1 against a primary of 4 and confirm the reconciled value is 1"
+        ],
+        "reviewer_requirement": "the compositor confirms every reconciled value equals the minimum of the two inputs",
+        "completion_sentinel": "SUCCESS:WCNC-0604 emitted when cross-vendor-scores.json exists, parses, and every reconciled value is the minimum of the pair; otherwise FAILED:WCNC-0604 <reason>",
+        "retry_policy": "one retry with --ignore-user-config on a win-arg-limit; no retry on a severed stream - proceed with the primary scores and record the critic as absent",
+        "failure_classification": [
+          "severed-stream",
+          "win-arg-limit",
+          "reconciliation-not-conservative"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/rubric/bp-cnc-06/cross-vendor-scores.json",
+          "schema_ref": "command-center/schema/calibration-report.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WCNC-0604",
+          "consumers": [
+            "composite"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "composite",
+      "title": "S3-S4 APPLY the critical-error override, then compute the weighted composite",
+      "kind": "task",
+      "role": "compositor",
+      "depends_on": [
+        "cross-vendor-critique"
+      ],
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "WCNC-0605",
+        "title": "Apply the critical-error override and compute the capped weighted composite",
+        "phase": "2B",
+        "question_or_target": "If any critical dimension scored zero, CAP the composite at the rubric critical_cap regardless of the other dimensions; otherwise compute the weighted composite over the evidenced dimensions only, restating which UNKNOWN dimensions were excluded.",
+        "inputs": [
+          "command-center/rubric/bp-cnc-06/scores",
+          "command-center/rubric/bp-cnc-06/cross-vendor-scores.json",
+          "command-center/rubric/bp-cnc-06/rubric-freeze.json"
+        ],
+        "dependencies": [
+          "WCNC-0603"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "compositor",
+          "basis": "the override is the mechanism that stops a beautiful thing with a fatal flaw from averaging its way to a pass"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/rubric/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/rubric/bp-cnc-06/verdict.json",
+        "output_schema": "command-center/schema/completion-verdict.schema.json",
+        "evidence_requirement": "the verdict shows the arithmetic: per-dimension score, weight, contribution, the excluded UNKNOWN set, whether the cap fired and which critical dimension triggered it - the composite must be recomputable by hand from the artifact",
+        "tests_required": [
+          "an artifact with one fatal flaw and eight strong dimensions MUST be capped, not averaged - the design card's decisive benchmark",
+          "an UNKNOWN dimension must be excluded from the denominator, not counted as mid-scale",
+          "re-score the same artifact twice - dimension scores must move at most one point or the protocol is not stabilising",
+          "both-states control: set one critical dimension to zero and confirm composite_capped == true; set it to 1 and confirm the cap does NOT fire"
+        ],
+        "reviewer_requirement": "one independent reader recomputes the composite by hand from the published arithmetic and confirms it matches",
+        "completion_sentinel": "SUCCESS:WCNC-0605 emitted when verdict.json exists, parses, publishes the full arithmetic, and the cap state matches the critical scores; otherwise FAILED:WCNC-0605 <reason>",
+        "retry_policy": "two strikes then pivot: publish the per-dimension scores with the composite marked UNCOMPUTABLE rather than a number that cannot be reproduced",
+        "failure_classification": [
+          "cap-not-applied",
+          "midscale-default",
+          "arithmetic-unreproducible"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/rubric/bp-cnc-06/verdict.json",
+          "schema_ref": "command-center/schema/completion-verdict.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WCNC-0605",
+          "consumers": [
+            "override-gate",
+            "owner",
+            "bp-cnc-05-governance-decision-gate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "override-gate",
+      "title": "S4b A critical zero MUST cap the composite",
+      "kind": "gate",
+      "depends_on": [
+        "composite"
+      ],
+      "gate_ref": "critical-override-applied"
+    },
+    {
+      "id": "stability-gate",
+      "title": "S4c ADVISORY - if a re-score moves a dimension by more than one point the protocol is not stabilising",
+      "kind": "gate",
+      "depends_on": [
+        "override-gate"
+      ],
+      "when": "restability_check == true",
+      "gate_ref": "protocol-is-stabilising"
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "all-dimensions-scored",
+      "expression": "dimensions_scored_or_unknown == dimensions_total AND scores_without_evidence == 0",
+      "applies_to": "workflow",
+      "minimum_conditions": "rubric_hash_recorded == true",
+      "on_stop": "complete"
+    },
+    {
+      "id": "capped-by-critical-error",
+      "expression": "composite_capped == true",
+      "applies_to": "workflow",
+      "on_stop": "complete"
+    },
+    {
+      "id": "rubric-invalid",
+      "expression": "weights_changed_after_freeze >= 1",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 2,
+    "backoff_seconds": 10,
+    "jitter": false,
+    "retry_on": [
+      "score-without-evidence",
+      "severed-stream",
+      "win-arg-limit"
+    ],
+    "no_retry_on": [
+      "rubric-post-hoc",
+      "midscale-default",
+      "owner-blocked"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "owner"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "rubric-post-hoc",
+      "midscale-default",
+      "cap-not-applied",
+      "score-without-evidence",
+      "arithmetic-unreproducible"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner",
+    "quarantine_path": "command-center/quarantine/bp-cnc-06"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/bp-cnc-06",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/bp-cnc-06.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "model_outputs"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "filesystem-order"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "schema-equal",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "stage",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash",
+      "prompt_hash"
+    ],
+    "store": "command-center/cache/bp-cnc-06",
+    "ttl_seconds": 86400,
+    "verify_integrity": true,
+    "invalidate_on": [
+      "rubric-hash-change",
+      "artifact-hash-change"
+    ]
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "graph"
+    ],
+    "plan_artifact": "command-center/dry-run/bp-cnc-06-plan.json",
+    "forbid_tools": [
+      "Bash:python",
+      "mcp__codex__codex",
+      "Write(command-center/rubric/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "min": 0.6,
+      "expected": 2.4,
+      "max": 8.0
+    },
+    "wallclock_seconds": {
+      "min": 900,
+      "expected": 3600,
+      "max": 12000
+    },
+    "tokens": {
+      "min": 90000,
+      "expected": 400000,
+      "max": 1200000
+    },
+    "tool_calls": {
+      "expected": 60,
+      "max": 220
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "read-only on the artifact plus writes under command-center/rubric/bp-cnc-06/**; the verdict is a score, not an action",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "presets",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/bp-cnc-06.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "migrate",
+      "migrations": [
+        {
+          "from": "0.9.0",
+          "to": "1.0.0",
+          "script": "platform/lib/wfdsl/migrations/v0_9_to_v1_0.py",
+          "reversible": true
+        }
+      ],
+      "trust": {
+        "require_signature": true,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "skills/ui-audit#DESIGN-EVAL-v1",
+        "relation": "GENERALIZE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/critique-panel",
+        "relation": "MERGE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/rubric-verifier",
+        "relation": "MERGE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/design-system",
+        "relation": "DISTILL",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-CNC-06",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "skills/ui-audit"
+    ]
+  },
+  "outputs": {
+    "verdict": {
+      "path": "command-center/rubric/bp-cnc-06/verdict.json",
+      "schema_ref": "command-center/schema/completion-verdict.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "consumers": [
+        "owner",
+        "bp-cnc-05-governance-decision-gate"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint_index": 21,
+    "design_card": "BP-CNC-06",
+    "design_card_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.md:1091",
+    "acquisition_route": "MERGE",
+    "state_v": [
+      "MERGED"
+    ],
+    "size_v": [
+      "BUILD-SMALL"
+    ],
+    "distinct_mechanism": "a hashed rubric frozen before the artifact is read, deterministic metrics computed before any judgement call, a fan-out with max_concurrency 1 so dimensions are scored strictly one per call, UNKNOWN excluded from the denominator rather than defaulted, a hard critical-error cap, and conservative (minimum, never mean) cross-vendor reconciliation",
+    "not_a_duplicate_because": "BP-CNC-01 returns categorical persona verdicts and no score; this returns a weighted numeric composite with a hard cap - a different decision surface. It is the only blueprint in this range whose fan-out is deliberately serialised (max_concurrency 1) and the only one carrying an intentionally NON-blocking advisory gate alongside blocking ones.",
+    "contraindications": [
+      "the dimensions are unknown - run a council first",
+      "a binary go/no-go - a composite is the wrong instrument",
+      "a rubric invented ad hoc to justify a conclusion the author already reached"
+    ],
+    "conflicts_with": [
+      "ad-hoc scoring without a pre-fixed rubric"
+    ],
+    "owner_decision": "OPEN (design card BP-CNC-06): which artifact classes get a canonical rubric (design, plan, skill, PR) and who owns each rubric's weights? artifact_class is a required enum param so the question is surfaced at every invocation rather than defaulted.",
+    "worked_examples": [
+      {
+        "name": "capping benchmark - eight strong dimensions and one fatal flaw",
+        "params": {
+          "artifact": "command-center/plans/receipt-substrate-plan.md",
+          "artifact_class": "plan",
+          "rubric": {
+            "dimensions": [
+              {
+                "name": "control-plane-singularity",
+                "weight": 0.2,
+                "critical": true,
+                "deterministic_metric": "count distinct physical schema roots referenced"
+              },
+              {
+                "name": "reversibility",
+                "weight": 0.15,
+                "critical": true
+              },
+              {
+                "name": "test-coverage-of-the-claim",
+                "weight": 0.15,
+                "critical": false,
+                "deterministic_metric": "pytest -q collected count for the new module"
+              },
+              {
+                "name": "evidence-anchoring",
+                "weight": 0.15,
+                "critical": false
+              },
+              {
+                "name": "scope-discipline",
+                "weight": 0.1,
+                "critical": false
+              },
+              {
+                "name": "failure-policy-completeness",
+                "weight": 0.1,
+                "critical": false
+              },
+              {
+                "name": "resume-safety",
+                "weight": 0.05,
+                "critical": false
+              },
+              {
+                "name": "cost-realism",
+                "weight": 0.05,
+                "critical": false
+              },
+              {
+                "name": "documentation",
+                "weight": 0.05,
+                "critical": false
+              }
+            ],
+            "scale": "0-4",
+            "critical_cap": 1.0
+          },
+          "cross_vendor_critic": true,
+          "restability_check": true
+        },
+        "expected_artifacts": [
+          "command-center/rubric/bp-cnc-06/rubric-freeze.json",
+          "command-center/rubric/bp-cnc-06/deterministic-metrics.json",
+          "command-center/rubric/bp-cnc-06/cross-vendor-scores.json",
+          "command-center/rubric/bp-cnc-06/verdict.json"
+        ],
+        "expected_terminal_state": "SUCCESS:WCNC-0605 with composite_capped == true",
+        "walkthrough": "S0 hashes the nine-dimension rubric (weights sum to 1.0) with artifact_bytes_read == 0. S0b passes. S1 computes two deterministic metrics: distinct physical schema roots == 3 and pytest collected == 475. S2 scores nine dimensions one call at a time, serialised. control-plane-singularity scores 0 because the plan introduces a second physical root - a CRITICAL dimension at zero. The other eight score 3 or 4. S2b passes (all evidenced, no UNKNOWN). S2c's cross-vendor critic scores reversibility 2 against the primary 3; reconciliation takes 2 (the lower). S3-S4 sees critical_zero_present and CAPS the composite at 1.0 instead of computing the weighted mean, which would have been about 3.0 - a comfortable pass. S4b passes. S4c re-scores and finds max drift 1, so the advisory records a stabilising protocol.",
+        "expected_gate_outcomes": {
+          "rubric-frozen-before-read": "PASS - hash recorded, artifact_bytes_read == 0, weights unchanged",
+          "unknown-excluded-not-defaulted": "PASS - 0 defaulted, 0 unevidenced",
+          "critical-override-applied": "PASS - critical zero present AND composite_capped == true",
+          "protocol-is-stabilising": "RECORDED - max drift 1, advisory only"
+        },
+        "arm": "positive"
+      },
+      {
+        "name": "negative control - a dimension that cannot be evidenced",
+        "params": {
+          "artifact": "command-center/plans/receipt-substrate-plan.md",
+          "artifact_class": "plan",
+          "rubric": {
+            "dimensions": [
+              {
+                "name": "control-plane-singularity",
+                "weight": 0.4,
+                "critical": true
+              },
+              {
+                "name": "operator-satisfaction",
+                "weight": 0.3,
+                "critical": false
+              },
+              {
+                "name": "reversibility",
+                "weight": 0.3,
+                "critical": true
+              }
+            ],
+            "scale": "0-4",
+            "critical_cap": 1.0
+          },
+          "cross_vendor_critic": false
+        },
+        "expected_artifacts": [
+          "command-center/rubric/bp-cnc-06/verdict.json"
+        ],
+        "expected_terminal_state": "SUCCESS:WCNC-0605 with one dimension excluded as UNKNOWN",
+        "walkthrough": "operator-satisfaction cannot be evidenced from a plan document - there is no operator and no measurement. The scorer returns UNKNOWN rather than 2 of 4. The composite is computed over the two evidenced dimensions with their weights RENORMALISED and the exclusion stated in the verdict. The failure this prevents: had UNKNOWN silently become mid-scale, a 30%-weighted invented number would have carried a real verdict. dimensions_defaulted_to_midscale must stay 0 for the evidence gate to pass, and a mutated run that defaults it FAILS - that is the both-states control for this arm.",
+        "arm": "negative-control"
+      }
+    ],
+    "benchmark_cases": [
+      "an artifact with one fatal flaw and eight strong dimensions - the composite MUST be capped, not averaged",
+      "re-score the same artifact twice - dimension scores should move at most 1 point or the protocol is not stabilising"
+    ],
+    "unverified": "UNVERIFIED outside the UI domain: the override and weighted composite exist today only inside the ui-audit skill, while critique-panel and rubric-verifier have personas and lenses but no override. Settling experiment = score five plans, plant a fatal flaw in one, confirm the cap fires. Confidence that the override generalises: corpus band very-likely (80-90%), expressed in estimate.confidence as the nearest legal DSL band likely; that the stability protocol holds outside UI: likely (55-80%).",
+    "confidence_band_note": "The DSL confidence_band enum has five members and no very-likely, so the corpus band very-likely (80-90%) is recorded here and estimate.confidence carries likely.",
+    "council_presets_referenced": [
+      "platform/council/presets/c-s14-critique-panel-rubric.councilspec.json",
+      "platform/council/presets/C-D45-jury-12-plus-judge.councilspec.json"
+    ]
+  }
+}

@@ -1,0 +1,765 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "tst.diff-scoped-mutation-gate",
+  "name": "Diff-scoped mutation gate: would any test notice?",
+  "description": "Answer the question coverage cannot. Coverage says a line RAN; mutation says a test would NOTICE if that line broke. Scoped to the lines the diff touched so the cost is bounded - whole-repo mutation is unaffordable and is refused here. The measured case this exists for: reverting DEFAULT_MIN_BYTES from 1024 to 512 still passed 15 of 15 tests, because every test passed min_bytes explicitly and the default was never exercised. 100% coverage with surviving mutants is explicitly NOT protection.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "engineering-and-reliability"
+  ],
+  "tags": [
+    "testing",
+    "mutation",
+    "test-power",
+    "diff-scoped"
+  ],
+  "flagship": true,
+  "params": {
+    "diff_path": {
+      "type": "path",
+      "required": true,
+      "description": "Only lines inside this diff may be mutated"
+    },
+    "test_command": {
+      "type": "string",
+      "required": true,
+      "min_length": 3,
+      "description": "The command whose PASS/FAIL decides whether a mutant was killed",
+      "examples": [
+        "python -m pytest -q platform/lib/wfdsl"
+      ]
+    },
+    "mutation_operators": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "min_items": 1,
+      "default": [
+        "constant-replacement",
+        "comparison-flip",
+        "boundary-shift",
+        "default-argument-change",
+        "boolean-negation"
+      ],
+      "description": "default-argument-change is present because it is the operator that caught the measured hole"
+    },
+    "max_mutants": {
+      "type": "integer",
+      "default": 40,
+      "minimum": 1,
+      "maximum": 500,
+      "description": "Bound on cost; exceeding it narrows the diff scope, it does not widen the budget"
+    },
+    "impacted_test_set_ref": {
+      "type": "path",
+      "description": "The L1 impacted set from tst.smallest-check-ladder, for speed"
+    },
+    "flake_reruns": {
+      "type": "integer",
+      "default": 2,
+      "minimum": 1,
+      "maximum": 5,
+      "description": "A mutant whose result is unstable across reruns is INDETERMINATE, never killed"
+    }
+  },
+  "roles": {
+    "mutant-generator": {
+      "description": "Selects mutable lines inside the diff and generates bounded mutants",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash:python"
+      ],
+      "speaking_rights": "always"
+    },
+    "mutant-runner": {
+      "description": "Runs the impacted tests once per mutant and records killed/survived/indeterminate",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "low",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash:pytest",
+        "Bash:longrun",
+        "Write(command-center/test/**)"
+      ],
+      "write_paths": [
+        "command-center/test/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "survivor-triager": {
+      "description": "Separates a genuine test gap from an equivalent mutant",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "speaking_rights": "always"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Bash:longrun",
+      "Bash:pytest",
+      "Bash:python",
+      "Glob",
+      "Grep",
+      "Read",
+      "Write(command-center/test/**)"
+    ],
+    "network": "none",
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "write_paths": [
+      "command-center/test/**"
+    ],
+    "forbid_write_paths": [
+      "platform/lib/**",
+      "hooks/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "cost-aware",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "low"
+    },
+    "routes": [
+      {
+        "when": "stage_role == SURVIVOR_TRIAGER",
+        "target": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "effort": "high"
+        },
+        "reason": "equivalent-mutant triage is judgement; the run loop is mechanical"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "bounded-to-the-diff": {
+      "predicate": "custom-expression",
+      "expression": "mutants_outside_diff == 0 AND mutants_generated <= max_mutants",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "indeterminate-not-killed": {
+      "predicate": "custom-expression",
+      "expression": "unstable_mutants_reported_as_killed == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "coverage-is-not-protection": {
+      "predicate": "custom-expression",
+      "expression": "surviving_mutants_reported_as_gaps == true AND coverage_used_as_protection_claim == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "mutation-source-restored": {
+      "predicate": "custom-expression",
+      "expression": "working_tree_clean_after_run == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    }
+  },
+  "stages": [
+    {
+      "id": "select-mutable-lines",
+      "title": "Which lines inside the diff can carry a meaningful mutant?",
+      "kind": "task",
+      "role": "mutant-generator",
+      "checkpoint": true,
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "QLT-5501",
+        "title": "Select mutable lines strictly inside the diff and reject any candidate outside it",
+        "phase": "2B",
+        "question_or_target": "Enumerate the lines the diff touched that admit a meaningful mutant under the declared operators, and REJECT every candidate outside the diff. Include default-argument sites explicitly: the measured hole was a default no test ever exercised.",
+        "inputs": [
+          "params.diff_path",
+          "params.mutation_operators",
+          "params.max_mutants"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "mutant-generator",
+          "basis": "selection decides the cost bound and the interpretability of the score"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash:python"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 900,
+        "output_path": "command-center/test/qlt-55-mutable-lines.json",
+        "output_schema": "command-center/schema/mutation-census.schema.json",
+        "evidence_requirement": "each candidate cites file:line and the operator that applies, and is proven inside the diff hunks",
+        "tests_required": [
+          "a candidate outside the diff must be rejected, and the rejection counted",
+          "both-states control: a default-argument site inside the diff must be SELECTED, since that is the operator that caught the measured hole"
+        ],
+        "reviewer_requirement": "the bounded-to-the-diff gate is mechanical and blocks before any mutant runs",
+        "completion_sentinel": "SUCCESS:QLT-5501 emitted only when every selected line lies inside a diff hunk and the count is at or below max_mutants; otherwise FAILED:QLT-5501 <reason>",
+        "retry_policy": "two strikes then pivot to narrowing the operator set rather than raising the budget",
+        "failure_classification": [
+          "scope-too-broad",
+          "detector-failure"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "hunk-bounded line selection filtered by operator applicability"
+      },
+      "produces": [
+        {
+          "path": "command-center/test/qlt-55-mutable-lines.json",
+          "schema_ref": "command-center/schema/mutation-census.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:QLT-5501",
+          "consumers": [
+            "bounded-to-the-diff",
+            "run-mutants"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bounded-to-the-diff",
+      "title": "Whole-repo mutation is refused, not merely discouraged",
+      "kind": "gate",
+      "depends_on": [
+        "select-mutable-lines"
+      ],
+      "gate_ref": "bounded-to-the-diff"
+    },
+    {
+      "id": "run-mutants",
+      "title": "One test run per mutant, on the impacted set",
+      "kind": "fanout",
+      "depends_on": [
+        "bounded-to-the-diff"
+      ],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/test/qlt-55-mutable-lines.json",
+        "item_var": "mutant",
+        "key_field": "mutant_id"
+      },
+      "max_concurrency": 4,
+      "arrival_stagger_ms": 200,
+      "max_items": 500,
+      "on_item_failure": "quarantine",
+      "body": [
+        {
+          "id": "run-one-mutant",
+          "kind": "task",
+          "role": "mutant-runner",
+          "tool_permissions": [
+            "Read",
+            "Grep",
+            "Glob",
+            "Bash:pytest",
+            "Bash:longrun",
+            "Write(command-center/test/**)"
+          ],
+          "work_unit_ref": "TST-0119",
+          "timeout_seconds": 3600
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "proceed-with-quarantine",
+        "reject_result_matching": [
+          "started in the background",
+          "Check /codex:status"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "reclassify-flakes",
+      "title": "An unstable mutant is INDETERMINATE, not killed",
+      "kind": "repair_loop",
+      "depends_on": [
+        "run-mutants"
+      ],
+      "target": [
+        "run-mutants"
+      ],
+      "max_attempts": 3,
+      "classification_filter": [
+        "runner-flake"
+      ],
+      "require_root_cause": false,
+      "escalate_to": "triage-survivors",
+      "diagnose": {
+        "id": "detect-unstable-mutants",
+        "kind": "task",
+        "role": "mutant-runner",
+        "work_unit_ref": "TST-0030"
+      },
+      "repair": {
+        "id": "rerun-unstable-mutants",
+        "kind": "task",
+        "role": "mutant-runner",
+        "work_unit_ref": "TST-0028"
+      },
+      "verify": {
+        "id": "verify-stability",
+        "kind": "gate",
+        "gate": {
+          "predicate": "custom-expression",
+          "expression": "unstable_after_reruns == 0 OR indeterminate_recorded == true",
+          "blocking": true,
+          "evidence_required": true,
+          "on_fail": "fail"
+        }
+      }
+    },
+    {
+      "id": "indeterminate-not-killed",
+      "title": "No unstable mutant may be recorded as killed",
+      "kind": "gate",
+      "depends_on": [
+        "reclassify-flakes"
+      ],
+      "gate_ref": "indeterminate-not-killed"
+    },
+    {
+      "id": "triage-survivors",
+      "title": "Genuine test gap, or equivalent mutant?",
+      "kind": "task",
+      "depends_on": [
+        "indeterminate-not-killed"
+      ],
+      "role": "survivor-triager",
+      "work_unit_ref": "TST-0120",
+      "timeout_seconds": 2700
+    },
+    {
+      "id": "report-survivors",
+      "title": "Every survivor on a changed line is a reported test gap",
+      "kind": "task",
+      "depends_on": [
+        "triage-survivors"
+      ],
+      "role": "survivor-triager",
+      "work_unit": {
+        "id": "QLT-5502",
+        "title": "Report surviving mutants as test gaps, with the survival rate and its cost caveat",
+        "phase": "2B",
+        "question_or_target": "Emit each surviving non-equivalent mutant as a TEST GAP naming the line, the operator and the test that should have caught it. State the survival rate over the diff-scoped population only - a diff-scoped rate is not a repository mutation score and must not be presented as one.",
+        "inputs": [
+          "command-center/test/qlt-55-mutable-lines.json",
+          "command-center/test/qlt-55-mutant-results.json"
+        ],
+        "dependencies": [
+          "QLT-5501"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "survivor-triager",
+          "basis": "the gap report is the deliverable and its scoping is where it can lie"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Write(command-center/test/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1200,
+        "output_path": "command-center/test/qlt-55-mutation-report.json",
+        "output_schema": "command-center/schema/mutation-report.schema.json",
+        "evidence_requirement": "each survivor carries its file:line, operator, the mutated source and the test-run output that failed to notice it",
+        "tests_required": [
+          "the recorded default-value case: change a default no test exercises explicitly and the mutant MUST survive, proving the gate sees the hole",
+          "both-states control: a well-tested line's mutants must all be KILLED, so the gate is not simply reporting everything as a gap"
+        ],
+        "reviewer_requirement": "one reviewer re-runs two survivors by hand to confirm the suite really does not notice",
+        "completion_sentinel": "SUCCESS:QLT-5502 emitted only when every survivor is reported as a gap with its evidence, and the survival rate is labelled diff-scoped; otherwise FAILED:QLT-5502 <reason>",
+        "retry_policy": "two strikes then pivot to reporting the raw mutant table without a rate",
+        "failure_classification": [
+          "overclaim",
+          "partial-artifact",
+          "runner-flake"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "survivor-to-gap mapping with a scope-labelled survival rate",
+        "not_a_duplicate_because": "a both-states DETECTOR control mutates SYSTEM STATE to validate a probe; this mutates SOURCE to validate a test suite"
+      },
+      "produces": [
+        {
+          "path": "command-center/test/qlt-55-mutation-report.json",
+          "schema_ref": "command-center/schema/mutation-report.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "consumers": [
+            "tst.fail-first-red-proof-certification",
+            "command-center/CLAIM-REGISTRY.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "coverage-is-not-protection",
+      "title": "Refuse a protection claim built on coverage alone",
+      "kind": "gate",
+      "depends_on": [
+        "report-survivors"
+      ],
+      "gate_ref": "coverage-is-not-protection"
+    },
+    {
+      "id": "mutation-source-restored",
+      "title": "No mutated source may survive the run",
+      "kind": "gate",
+      "depends_on": [
+        "coverage-is-not-protection"
+      ],
+      "gate_ref": "mutation-source-restored"
+    },
+    {
+      "id": "emit-mutation-verdict",
+      "title": "Emit the mutation verdict only after the source-restored gate clears",
+      "kind": "task",
+      "depends_on": [
+        "mutation-source-restored"
+      ],
+      "role": "survivor-triager",
+      "work_unit_ref": "BLD-0039",
+      "timeout_seconds": 900,
+      "produces": [
+        {
+          "path": "command-center/test/qlt-55-mutation-verdict.json",
+          "schema_ref": "command-center/schema/test-quality-census.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "consumers": [
+            "tst.fail-first-red-proof-certification"
+          ]
+        }
+      ]
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "all-diff-mutants-evaluated",
+      "expression": "mutants_evaluated >= mutants_generated AND mutants_outside_diff == 0",
+      "applies_to": "workflow",
+      "on_stop": "complete",
+      "minimum_conditions": "mutants_generated >= 1"
+    },
+    {
+      "id": "budget-exhausted-honestly",
+      "expression": "mutants_generated >= max_mutants AND budget_truncation_disclosed == true",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": [
+      "severed-stream",
+      "quota-429-storm",
+      "runner-flake"
+    ],
+    "no_retry_on": [
+      "owner-blocked",
+      "detector-failure",
+      "overclaim"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "report-survivors"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "quarantine",
+    "classify_as": [
+      "runner-flake",
+      "scope-too-broad",
+      "partial-artifact"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "report-survivors",
+    "quarantine_path": "command-center/quarantine/qlt-55"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/qlt-55",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260816,
+    "journal_path": "command-center/replay/qlt-55-mutation.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "stage",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash",
+      "tool_versions"
+    ],
+    "store": "command-center/cache/qlt-55",
+    "ttl_seconds": 43200,
+    "verify_integrity": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "artifact-diff"
+    ],
+    "plan_artifact": "command-center/dry-run/qlt-55-plan.json",
+    "forbid_tools": [
+      "Bash:python",
+      "Bash:pytest",
+      "Bash:longrun",
+      "Write(command-center/test/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "expected": 0.3,
+      "max": 1.5
+    },
+    "wallclock_seconds": {
+      "expected": 2400,
+      "max": 10800
+    },
+    "tokens": {
+      "expected": 60000
+    },
+    "impact": {
+      "risk": "medium",
+      "reversibility": "reversible",
+      "blast_radius": "temporarily mutates source in a scratch copy and runs the suite once per mutant; mutation-source-restored is a gate because a leaked mutant is a real hazard",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/qlt-55-mutation.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-TST-02",
+        "relation": "REBUILD-FROM-SPEC",
+        "license": "owner-proprietary",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "tools/mutation-gate",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/mutation-check",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "tools/detector-self-test",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "tools/mutation-gate"
+    ]
+  },
+  "outputs": {
+    "mutation-report": {
+      "path": "command-center/test/qlt-55-mutation-report.json",
+      "schema_ref": "command-center/schema/mutation-report.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "tst.fail-first-red-proof-certification"
+      ]
+    }
+  },
+  "x_extensions": {
+    "library_card": "BP-TST-02",
+    "card_index": 55,
+    "family": "D11-testing",
+    "acquisition_route": "ADOPT",
+    "mechanism_fingerprint": {
+      "subject": "test-suite-power",
+      "oracle": "test-runner-as-oracle",
+      "execution_required": true,
+      "mutation_target": "source-lines",
+      "comparison_axis": "original-vs-mutant",
+      "output_type": "survivor-list",
+      "information_barrier": false
+    },
+    "mechanism": "Perturb the SOURCE inside the diff and ask the existing suite whether it notices. The suite is the oracle and the source is the thing mutated - the inverse of a detector control, which mutates state and asks whether a probe notices.",
+    "contraindications": [
+      "NOT whole-repo mutation - unbounded cost, refused by bounded-to-the-diff",
+      "NOT for code with no tests - there is nothing to mutate against",
+      "NOT a replacement for coverage thresholds - it is orthogonal to them",
+      "NOT a repository mutation score: the rate is diff-scoped and must be labelled so"
+    ],
+    "benchmark_cases": [
+      {
+        "name": "default-min-bytes",
+        "setup": "revert a default from 1024 to 512 where every test passes the value explicitly",
+        "expected": "the mutant SURVIVES and is reported as a gap; this is the measured case that proved the hole"
+      },
+      {
+        "name": "well-tested-line",
+        "setup": "a line covered by targeted assertions",
+        "expected": "all its mutants are killed"
+      }
+    ],
+    "why_not_a_duplicate": "BP-TST-01 chooses which tests to RUN; this asks whether those tests have POWER. BP-CRV-03 also hunts behavioural difference but compares two implementations symbolically with no mutation and no test suite in the loop.",
+    "unverified": "UNVERIFIED (likely) the wall-clock cost on this repo; settling experiment = time a 20-mutant diff-scoped run against platform/lib. Equivalent mutants are a known noise source, which is why triage is a separate voting role rather than a filter.",
+    "owner_decision": null,
+    "worked_example": {
+      "name": "20 mutants over a change to the completion predicate's default bound",
+      "params": {
+        "diff_path": "command-center/test/inbox/predicate-default.diff",
+        "test_command": "python -m pytest -q platform/lib/wfdsl",
+        "max_mutants": 40,
+        "flake_reruns": 2
+      },
+      "narrative": "20 mutants generated, all inside the diff. 18 killed, 1 indeterminate (reclassified after 2 reruns, never counted as killed) and 1 SURVIVOR: the default-argument mutant, because every test passes the bound explicitly. That survivor is reported as a test gap and the survival rate is labelled diff-scoped, not repository-wide.",
+      "context": {
+        "mutants_outside_diff": 0,
+        "mutants_generated": 20,
+        "max_mutants": 40,
+        "mutants_evaluated": 20,
+        "unstable_mutants_reported_as_killed": 0,
+        "unstable_after_reruns": 0,
+        "indeterminate_recorded": true,
+        "surviving_mutants_reported_as_gaps": true,
+        "coverage_used_as_protection_claim": false,
+        "working_tree_clean_after_run": true,
+        "budget_truncation_disclosed": false,
+        "stage_role": "SURVIVOR_TRIAGER"
+      },
+      "expected_gate_pass": [
+        "bounded-to-the-diff",
+        "indeterminate-not-killed",
+        "coverage-is-not-protection",
+        "mutation-source-restored"
+      ],
+      "expected_stop": [
+        "all-diff-mutants-evaluated"
+      ],
+      "negative_control": {
+        "gate": "coverage-is-not-protection",
+        "overrides": {
+          "coverage_used_as_protection_claim": true
+        },
+        "expected": false,
+        "why": "the exact confusion this blueprint exists to break - 100% coverage presented as protection while mutants survive - must fail the gate"
+      }
+    }
+  }
+}

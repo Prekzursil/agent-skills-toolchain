@@ -1,0 +1,544 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "postmortem-failure-entry-distillation",
+  "name": "Postmortem distillation into a falsifiable failure entry with supersede semantics",
+  "description": "BP-INC-04 (card 70). Defining mechanism: a SCRIPT-FIRST REDIRECT plus supersede semantics. Any candidate rule that a deterministic script could enforce is rejected as a rule and re-emitted as a script requirement, so the rules tree does not accrete prose that code should carry. The failure entry is only valid if it states the FALSIFIABLE preconditions under which the failure would recur, and if it contradicts an existing entry it must link a supersede edge - which is the mechanism that stops a retired dead end from being re-walked. Two writes leave the workflow: the append-only ledger entry, and a durable memory note carrying valid_as_of.",
+  "version": "1.0.0",
+  "kind": "meta-workflow",
+  "categories": ["collective-intelligence-and-meta", "engineering-and-reliability"],
+  "tags": ["bp-inc-04", "postmortem", "script-first", "supersede"],
+  "flagship": true,
+
+  "params": {
+    "incident_summary": {
+      "type": "string",
+      "required": true,
+      "min_length": 20,
+      "description": "What happened, in one paragraph"
+    },
+    "root_cause": {
+      "type": "string",
+      "description": "The measured root cause. If unknown, leave unset - the workflow records the SYMPTOM plus what was ruled out, explicitly marked unresolved."
+    },
+    "probes_used": {
+      "type": "array",
+      "items": { "type": "string" },
+      "min_items": 1,
+      "required": true,
+      "description": "The probes that produced the diagnosis, so a later reader can tell what was actually measured"
+    },
+    "existing_entry_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Candidate prior ledger entries this incident may contradict; the supersede check runs against these"
+    },
+    "propose_rule": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether to consider a durable rule at all. Even when true, the script-first gate may redirect it."
+    }
+  },
+
+  "roles": {
+    "distiller": {
+      "description": "Writes the failure entry with falsifiable preconditions; may not write an entry whose preconditions are untestable",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": ["Read", "Grep", "Bash:python", "Write(command-center/knowledge/**)", "mcp__basic-memory__write_note"],
+      "write_paths": ["command-center/knowledge/**"],
+      "speaking_rights": "always"
+    },
+    "supersede-checker": {
+      "description": "Searches prior entries for a contradiction and writes the supersede edge; independent of the distiller",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "judge",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Grep", "mcp__basic-memory__search_notes", "Write(command-center/knowledge/**)"],
+      "speaking_rights": "always"
+    },
+    "script-first-arbiter": {
+      "description": "Decides rule versus script; a rule a script could enforce is redirected, not softened",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "veto",
+      "vote_weight": 2,
+      "independence": "cross-examining",
+      "cross_vendor_required": true,
+      "tool_permissions": ["Read", "mcp__codex__codex", "Write(command-center/knowledge/**)"],
+      "speaking_rights": "always"
+    }
+  },
+
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash:python",
+      "Write(command-center/knowledge/**)",
+      "mcp__basic-memory__write_note",
+      "mcp__basic-memory__search_notes",
+      "mcp__codex__codex"
+    ],
+    "deny": ["Bash", "WebFetch", "WebSearch"],
+    "network": "read-only",
+    "write_paths": ["command-center/knowledge/**"],
+    "forbid_write_paths": ["platform/**", "command-center/WORK-UNIT-CATALOG.json"],
+    "source_policy": {
+      "offline_only": false,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "skip"
+    }
+  },
+
+  "model_routing": {
+    "strategy": "vendor-diverse",
+    "default": { "model": "opus", "vendor": "anthropic", "effort": "high" },
+    "routes": [
+      {
+        "when": "stage_role == script-first-arbiter",
+        "target": { "model": "gpt-5-codex", "vendor": "openai", "effort": "high" },
+        "reason": "the author of a proposed rule is the worst judge of whether a script could replace it"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+
+  "gates": {
+    "preconditions-are-falsifiable": {
+      "predicate": "custom-expression",
+      "expression": "preconditions_stated >= 1 AND preconditions_without_a_testable_observation == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "script-first": {
+      "predicate": "custom-expression",
+      "expression": "rule_proposals_a_script_could_enforce == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "supersede-edge-present-when-contradicting": {
+      "predicate": "custom-expression",
+      "expression": "contradicted_entries_without_supersede_edge == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "memory-note-carries-temporal-validity": {
+      "predicate": "custom-expression",
+      "expression": "notes_without_valid_as_of == 0 AND superseded_notes_without_superseded_by == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+
+  "stages": [
+    {
+      "id": "state-failure-with-preconditions",
+      "title": "State the failure with the conditions under which it would recur",
+      "kind": "task",
+      "role": "distiller",
+      "timeout_seconds": 1800,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "INC-7001",
+        "title": "Write the failure entry with falsifiable recurrence preconditions",
+        "phase": "10",
+        "question_or_target": "State the failure as a set of preconditions that would make it recur, each paired with the observation that would show the precondition holds; where root_cause is unset, record the SYMPTOM plus the enumerated list of what was ruled out and mark the entry unresolved rather than guessing a cause.",
+        "inputs": ["params.incident_summary", "params.probes_used", "params.root_cause"],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "distiller",
+          "basis": "substantive subagents default to Opus"
+        },
+        "tool_permissions": ["Read", "Grep", "Write(command-center/knowledge/**)"],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/knowledge/failure-entry.json",
+        "output_schema": "command-center/schema/failure-taxonomy.schema.json",
+        "evidence_requirement": "each precondition names its testable observation and the probe from probes_used that could produce it; a precondition with no observation is rejected before the entry is written",
+        "tests_required": [
+          "an entry whose preconditions are untestable prose must be rejected by the gate",
+          "an entry with root_cause unset must still be accepted, marked unresolved, with a non-empty ruled-out list"
+        ],
+        "reviewer_requirement": "the supersede checker reads the entry independently and looks for a prior entry it contradicts",
+        "completion_sentinel": "SUCCESS:INC-7001 when every precondition carries a testable observation; otherwise FAILED:INC-7001 <reason>",
+        "retry_policy": "two strikes then pivot to recording the symptom plus the ruled-out list",
+        "failure_classification": ["precondition-untestable", "root-cause-unknown"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/knowledge/failure-entry.json",
+          "schema_ref": "command-center/schema/failure-taxonomy.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:INC-7001",
+          "consumers": ["find-contradicted-entries", "rule-or-script"]
+        }
+      ]
+    },
+    {
+      "id": "falsifiability-gate",
+      "title": "An entry without falsifiable preconditions is not a failure entry",
+      "kind": "gate",
+      "depends_on": ["state-failure-with-preconditions"],
+      "gate_ref": "preconditions-are-falsifiable"
+    },
+    {
+      "id": "find-contradicted-entries",
+      "title": "Search prior entries for one this incident refutes",
+      "kind": "task",
+      "depends_on": ["falsifiability-gate"],
+      "role": "supersede-checker",
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "INC-7002",
+        "title": "Find every prior entry this incident contradicts and write the supersede edges",
+        "phase": "10",
+        "question_or_target": "Search the ledger and the durable memory store for entries whose claim this incident refutes, and for each write an explicit supersede edge from the new entry to the old one; the old entry is never deleted, because a deleted dead end is re-walked while a superseded one is not.",
+        "inputs": ["command-center/knowledge/failure-entry.json", "params.existing_entry_ids"],
+        "dependencies": ["INC-7001"],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "supersede-checker",
+          "basis": "an independent reader is needed to notice a contradiction the author does not see"
+        },
+        "tool_permissions": ["Read", "Grep", "mcp__basic-memory__search_notes", "Write(command-center/knowledge/**)"],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/knowledge/supersede-edges.json",
+        "output_schema": "command-center/schema/supersession-graph.schema.json",
+        "evidence_requirement": "per edge: the old entry id, the quoted claim it makes, and the measurement in this incident that refutes it - a supersede with no refuting measurement is an opinion",
+        "tests_required": [
+          "an incident contradicting a prior entry must produce exactly one edge to it (the supersede benchmark)",
+          "an incident contradicting nothing must produce an explicit empty edge set, not silence"
+        ],
+        "reviewer_requirement": "the arbiter checks that no edge was written without a refuting measurement",
+        "completion_sentinel": "SUCCESS:INC-7002 when every contradicted entry has an edge with a refuting measurement, or the edge set is explicitly empty; otherwise FAILED:INC-7002 <reason>",
+        "retry_policy": "two strikes then pivot to a keyword search over the raw ledger",
+        "failure_classification": ["supersede-missing", "supersede-unjustified"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/knowledge/supersede-edges.json",
+          "schema_ref": "command-center/schema/supersession-graph.schema.json",
+          "min_bytes": 64,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:INC-7002",
+          "consumers": ["supersede-gate", "write-ledger-and-memory"]
+        }
+      ]
+    },
+    {
+      "id": "supersede-gate",
+      "title": "A contradiction without a supersede edge leaves the dead end live",
+      "kind": "gate",
+      "depends_on": ["find-contradicted-entries"],
+      "gate_ref": "supersede-edge-present-when-contradicting"
+    },
+    {
+      "id": "rule-or-script",
+      "title": "Rule versus script - and a script wins whenever it can enforce the thing",
+      "kind": "task",
+      "depends_on": ["supersede-gate"],
+      "when": "propose_rule == true",
+      "role": "script-first-arbiter",
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "INC-7003",
+        "title": "Decide rule versus script for each candidate lesson, redirecting anything mechanisable",
+        "phase": "10",
+        "question_or_target": "For each candidate durable lesson decide RULE or SCRIPT: if a deterministic check could enforce it - a path pattern, a count, a schema, a byte comparison - it is redirected to SCRIPT with the check sketched, and the rule is not written; only lessons requiring judgement survive as rules.",
+        "inputs": ["command-center/knowledge/failure-entry.json", "command-center/knowledge/supersede-edges.json"],
+        "dependencies": ["INC-7002"],
+        "assigned_model_vendor_role": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "role": "script-first-arbiter",
+          "basis": "cross-vendor so the redirect is not decided by the model that wants to write the rule"
+        },
+        "tool_permissions": ["Read", "mcp__codex__codex", "Write(command-center/knowledge/**)"],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/knowledge/rule-or-script.json",
+        "output_schema": "command-center/schema/improvement-ledger.schema.json",
+        "evidence_requirement": "per candidate: the verdict, and for a SCRIPT verdict the concrete check (input, comparison, exit condition) that would enforce it - a redirect with no sketched check is not a redirect",
+        "tests_required": [
+          "a lesson of the form 'always compare bytes not descriptions' must be redirected to SCRIPT with a byte-comparison check sketched",
+          "a lesson requiring judgement (how to weigh a tradeoff) must survive as RULE - the arbiter must not redirect everything"
+        ],
+        "reviewer_requirement": "the distiller may object once, in writing; the arbiter holds veto authority on the redirect",
+        "completion_sentinel": "SUCCESS:INC-7003 when every candidate has a verdict and every SCRIPT verdict carries a sketched check; otherwise FAILED:INC-7003 <reason>",
+        "retry_policy": "two strikes then pivot: record the candidate as DEFERRED with the open question",
+        "failure_classification": ["rule-accretion", "redirect-without-check"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/knowledge/rule-or-script.json",
+          "schema_ref": "command-center/schema/improvement-ledger.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:INC-7003",
+          "consumers": ["script-first-gate", "write-ledger-and-memory"]
+        }
+      ]
+    },
+    {
+      "id": "script-first-gate",
+      "title": "A rule a script could enforce is a smell, not a deliverable",
+      "kind": "gate",
+      "depends_on": ["rule-or-script"],
+      "gate_ref": "script-first"
+    },
+    {
+      "id": "write-ledger-and-memory",
+      "title": "Append the entry and write the durable note with valid_as_of",
+      "kind": "task",
+      "depends_on": ["script-first-gate"],
+      "role": "distiller",
+      "timeout_seconds": 1200,
+      "work_unit": {
+        "id": "INC-7004",
+        "title": "Append the ledger entry and write the durable memory note with temporal validity",
+        "phase": "10",
+        "question_or_target": "Append the failure entry to the append-only ledger and write one durable memory note carrying valid_as_of; where a supersede edge exists, also stamp the OLD note with superseded_by so recall surfaces current truth rather than the retired claim.",
+        "inputs": ["command-center/knowledge/failure-entry.json", "command-center/knowledge/supersede-edges.json", "command-center/knowledge/rule-or-script.json"],
+        "dependencies": ["INC-7003"],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "distiller",
+          "basis": "the durable write is the deliverable"
+        },
+        "tool_permissions": ["Read", "Write(command-center/knowledge/**)", "mcp__basic-memory__write_note"],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1200,
+        "output_path": "command-center/knowledge/postmortem-receipt.json",
+        "output_schema": "command-center/schema/receipt.schema.json",
+        "evidence_requirement": "the ledger entry id, the note permalink, the valid_as_of date, and for each supersede edge the confirmation that the OLD note now carries superseded_by",
+        "tests_required": [
+          "a note written without valid_as_of must fail the gate",
+          "a supersede edge whose old note lacks superseded_by must fail the gate (both directions of the temporal link)"
+        ],
+        "reviewer_requirement": "a fresh-context reader searches for the OLD claim and must reach the new one via the supersede link",
+        "completion_sentinel": "SUCCESS:INC-7004 when the ledger entry, the note and every supersede stamp are recorded; otherwise FAILED:INC-7004 <reason>",
+        "retry_policy": "two strikes then pivot to writing the note locally and flagging the store as unavailable",
+        "failure_classification": ["note-without-valid-as-of", "supersede-one-directional", "memory-store-unavailable"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/knowledge/postmortem-receipt.json",
+          "schema_ref": "command-center/schema/receipt.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:INC-7004",
+          "consumers": ["temporal-validity-gate"]
+        }
+      ]
+    },
+    {
+      "id": "temporal-validity-gate",
+      "title": "Both ends of the temporal link, or recall surfaces a retired claim",
+      "kind": "gate",
+      "depends_on": ["write-ledger-and-memory"],
+      "gate_ref": "memory-note-carries-temporal-validity"
+    }
+  ],
+
+  "stopping_rules": [
+    {
+      "id": "entry-written-and-links-closed",
+      "expression": "ledger_entry_written == true AND contradicted_entries_without_supersede_edge == 0 AND notes_without_valid_as_of == 0",
+      "applies_to": "workflow",
+      "minimum_conditions": "preconditions_stated >= 1",
+      "on_stop": "complete"
+    },
+    {
+      "id": "root-cause-unknown-record-symptom",
+      "expression": "root_cause_known == false",
+      "applies_to": "workflow",
+      "minimum_conditions": "ruled_out_count >= 1",
+      "on_stop": "emit-partial"
+    }
+  ],
+
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 5,
+    "jitter": false,
+    "retry_on": ["memory-store-unavailable"],
+    "no_retry_on": ["rule-accretion", "supersede-one-directional"],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "write-ledger-and-memory"
+    }
+  },
+
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": ["precondition-untestable", "rule-accretion", "supersede-missing"],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "quarantine_path": "command-center/knowledge/quarantine"
+  },
+
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/postmortem",
+    "granularity": "stage",
+    "idempotency_key_from": ["workflow_id", "stage_id", "params_hash"],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+
+  "replay": {
+    "deterministic": true,
+    "seed": 7,
+    "journal_path": "command-center/replay/postmortem.jsonl",
+    "record": ["params", "inputs", "model_outputs", "tool_calls"],
+    "forbid_nondeterministic_sources": ["clock", "random", "filesystem-order"],
+    "replay_source": "recorded-journal",
+    "verify": "semantic-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "record-discrepancy"
+  },
+
+  "cache": {
+    "enabled": false
+  },
+
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": ["plan", "permission-report"],
+    "plan_artifact": "command-center/dry-run/postmortem-plan.json",
+    "forbid_tools": ["mcp__basic-memory__write_note", "Write(command-center/knowledge/**)", "mcp__codex__codex"]
+  },
+
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "almost-certain",
+    "cost": { "currency": "USD", "expected": 0.5, "max": 2.0 },
+    "wallclock_seconds": { "min": 300, "expected": 1500, "max": 5400 },
+    "tokens": { "expected": 150000, "max": 500000 },
+    "tool_calls": { "expected": 40, "max": 150 },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible-with-effort",
+      "blast_radius": "appends to the ledger and the durable memory store; an append is reversible but a superseded note changes what future recall surfaces",
+      "requires_owner_approval": false
+    }
+  },
+
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": ["definition", "lineage", "examples"],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/postmortem-distillation.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "migrate",
+      "migrations": [
+        {
+          "from": "0.9.0",
+          "to": "1.0.0",
+          "script": "platform/lib/wfdsl/migrations/v0_9_to_v1_0.py",
+          "reversible": true
+        }
+      ]
+    }
+  },
+
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-INC-04",
+        "relation": "MERGE",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "AGENTS.md#3-event-ledger-failure-entries",
+        "relation": "ADOPT-AS-IS",
+        "credit": "owner"
+      },
+      {
+        "source": "commands/rules-distill",
+        "relation": "COMPOSE",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": ["AGENTS.md#3-event-ledger-failure-entries", "commands/rules-distill"]
+  },
+
+  "outputs": {
+    "postmortem-receipt": {
+      "path": "command-center/knowledge/postmortem-receipt.json",
+      "schema_ref": "command-center/schema/receipt.schema.json",
+      "min_bytes": 128,
+      "register_in_manifest": true,
+      "consumers": ["owner", "command-center/knowledge/supersede-edges.json"]
+    }
+  },
+
+  "x_extensions": {
+    "mechanism_fingerprint": {
+      "primary": "script-first-redirect-plus-bidirectional-temporal-supersede-link",
+      "distinguishing_stage": "rule-or-script",
+      "distinguishing_gate": "script-first",
+      "not_a_duplicate_because": "BP-DOC-02 distils rules from SKILLS proactively and its output is a rule set. This distils from an INCIDENT, its primary output is a falsifiable failure entry, and its defining move is REFUSING to write a rule that code could enforce."
+    },
+    "worked_example": {
+      "name": "a formatter green locally and red in CI",
+      "params": {
+        "incident_summary": "a formatter reported the file already formatted on the working tree while CI reported it needed reformatting for the same commit; the working tree was CRLF and the stored blob was LF, so the local check measured different bytes than CI",
+        "root_cause": "the local check ran against the working-tree bytes rather than the stored blob, and the two differ in line endings",
+        "probes_used": ["formatter --check on the working tree", "formatter --check on git cat-file output", "byte count and CRLF count of both forms"],
+        "existing_entry_ids": ["ENTRY-0412-verify-with-git-archive"],
+        "propose_rule": true
+      },
+      "expected_stage_path": [
+        "state-failure-with-preconditions",
+        "falsifiability-gate",
+        "find-contradicted-entries",
+        "supersede-gate",
+        "rule-or-script",
+        "script-first-gate",
+        "write-ledger-and-memory",
+        "temporal-validity-gate"
+      ],
+      "expected_artifacts": [
+        "command-center/knowledge/failure-entry.json",
+        "command-center/knowledge/supersede-edges.json",
+        "command-center/knowledge/rule-or-script.json",
+        "command-center/knowledge/postmortem-receipt.json"
+      ],
+      "expected_terminal": "SUCCESS:INC-7004",
+      "narrative": "Two preconditions are stated, each with a testable observation: (1) the working tree holds CRLF while the blob holds LF - observable as a CRLF count difference between the two forms; (2) the check is run against the working tree rather than the blob - observable in the command line. The supersede checker finds ENTRY-0412, which prescribed verifying against an archive export, and refutes it with a measurement showing that route returns CRLF on this box - so a supersede edge is written and ENTRY-0412 is stamped, not deleted. The candidate rule 'always verify against the blob' is redirected to SCRIPT by the arbiter, with the check sketched as: read both forms, compare CRLF counts, fail when the checked form is not the blob. The rule that survives is the judgement-bearing one - which bytes are authoritative for a given gate - and the durable note carries valid_as_of."
+    }
+  }
+}

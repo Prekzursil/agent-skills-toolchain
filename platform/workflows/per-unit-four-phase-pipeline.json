@@ -1,0 +1,562 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "per-unit-four-phase-pipeline",
+  "name": "Per-work-unit four-phase pipeline with NO cohort barrier",
+  "description": "Blueprint 38 of 96 (BP-IMP-01). FLAGSHIP. IMPLEMENT -> VALIDATE -> ADVERSARIAL REVIEW -> COMMIT, run as one INDEPENDENT pipeline per work unit. The distinctive mechanism is a deliberate ABSENCE: the fan-out declares no barrier, because a cohort-wide phase barrier is the measured deadlock cause this blueprint exists to remove (one hung agent froze a whole phase). Coverage comes from the project's threshold SSOT, never from a skill's own logic; the reviewer is a FRESH cross-vendor agent that did not write the code; --no-verify is denied by tool policy rather than by convention.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": ["engineering-and-reliability"],
+  "tags": ["orchestrated-execution", "tdd", "no-cohort-barrier", "coverage-ssot"],
+  "flagship": true,
+
+  "params": {
+    "units": {
+      "type": "array",
+      "items": { "type": "string" },
+      "min_items": 1,
+      "max_items": 256,
+      "required": true,
+      "description": "File-disjoint work-unit ids. Run BP-PLN-02 first if disjointness is unproven."
+    },
+    "coverage_thresholds_path": {
+      "type": "path",
+      "default": ".coverage-thresholds.json",
+      "description": "The project's coverage SSOT. If the project has none, VALIDATE emits NOT-CHECKED - it never folds a missing file into a silent pass."
+    },
+    "review_contract": {
+      "type": "object",
+      "description": "The reviewer's typed finding contract - inline because it is a per-programme shape, not a DSL concept",
+      "schema": {
+        "type": "object",
+        "required": ["verdict", "blocking_findings"],
+        "properties": {
+          "verdict": { "type": "string", "enum": ["PASS", "REFUTED", "PARTIAL"] },
+          "blocking_findings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["claim", "anchor"],
+              "properties": {
+                "claim": { "type": "string" },
+                "anchor": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "max_review_rounds": {
+      "type": "integer",
+      "default": 2,
+      "minimum": 1,
+      "maximum": 3,
+      "description": "Two strikes on the same unit, then re-decomposition - never a third grind"
+    }
+  },
+
+  "roles": {
+    "implementer": {
+      "description": "Writes the change inside the unit's own worktree and stays strictly within its declared file scope",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": ["Read", "Grep", "Glob", "Edit", "Write", "Bash:pytest", "Bash:git"],
+      "write_paths": ["unit-declared scope only"],
+      "speaking_rights": "always"
+    },
+    "reviewer": {
+      "description": "FRESH adversarial reviewer, cross-vendor, given the requirements plus the raw diff - never the implementer's own summary",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "veto",
+      "vote_weight": 1,
+      "independence": "cross-examining",
+      "cross_vendor_required": true,
+      "tool_permissions": ["Read", "Grep", "Bash:pytest", "mcp__codex__codex"],
+      "speaking_rights": "always"
+    },
+    "committer": {
+      "description": "Commits an approved unit. Never --no-verify, never force-push, never a broad `git add -A`.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "low",
+      "authority": "advisory",
+      "tool_permissions": ["Read", "Bash:git"],
+      "speaking_rights": "on-request"
+    },
+    "owner": {
+      "description": "Approves re-decomposition when a unit fails review twice",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Edit",
+      "Write",
+      "Bash:pytest",
+      "Bash:git",
+      "mcp__codex__codex"
+    ],
+    "deny": ["Bash:git-no-verify", "Bash:git-push-force", "WebFetch"],
+    "require_owner_approval": ["Bash:gh"],
+    "network": "none",
+    "write_paths": ["command-center/implementation/**"],
+    "forbid_write_paths": [".coverage-thresholds.json", "command-center/WORK-UNIT-CATALOG.json"]
+  },
+
+  "model_routing": {
+    "strategy": "vendor-diverse",
+    "default": { "model": "opus", "vendor": "anthropic", "effort": "high" },
+    "routes": [
+      {
+        "when": "stage_role == reviewer",
+        "target": { "model": "gpt-5-codex", "vendor": "openai", "effort": "high" },
+        "reason": "a same-vendor reviewer shares the author's blind spots, so review is routed off-vendor by construction"
+      }
+    ],
+    "escalation": {
+      "on": ["reviewer-refuted", "failure"],
+      "target": { "model": "opus", "vendor": "anthropic", "effort": "max" },
+      "max_escalations": 2
+    },
+    "forbid_downgrade_below": "opus"
+  },
+
+  "gates": {
+    "coverage-ssot": {
+      "predicate": "coverage-threshold",
+      "predicate_ref": "command-center/schema/coverage-delta.schema.json",
+      "expression": "thresholds_file_found == true AND coverage_meets_ssot == true AND newly_uncovered_lines == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "coverage-not-checked": {
+      "predicate": "custom-expression",
+      "expression": "thresholds_file_found == false AND not_checked_emitted == true",
+      "blocking": false,
+      "on_fail": "record-and-continue"
+    },
+    "no-self-certification": {
+      "predicate": "reviewer-pass",
+      "expression": "reviewer_agent_id != implementer_agent_id AND reviewer_vendor != implementer_vendor AND reviewer_read_raw_diff == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "unit-complete": {
+      "predicate": "completion-predicate-v1",
+      "predicate_ref": "platform/schema/completion-predicate-result.schema.json",
+      "conditions_required": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    }
+  },
+
+  "stages": [
+    {
+      "id": "unit-pipelines",
+      "title": "One independent four-phase pipeline per unit - deliberately NO barrier",
+      "kind": "fanout",
+      "over": {
+        "source": "param",
+        "ref": "units",
+        "item_var": "unit",
+        "key_field": "unit"
+      },
+      "max_concurrency": 8,
+      "arrival_stagger_ms": 400,
+      "max_items": 256,
+      "on_item_failure": "continue",
+      "body": [
+        {
+          "id": "implement",
+          "title": "Phase 1 IMPLEMENT - inside the unit's own worktree, scope-bounded",
+          "kind": "task",
+          "role": "implementer",
+          "timeout_seconds": 5400,
+          "checkpoint": true,
+          "work_unit": {
+            "id": "IMP-0372",
+            "title": "Implement one work unit in isolation behind a measured benefit gate",
+            "phase": "16",
+            "question_or_target": "Implement exactly the unit's declared change inside its own worktree, touching only files in its declared scope, and emit a work-result artifact carrying the raw diff plus the commands that will be re-run in VALIDATE.",
+            "inputs": ["params.units", "params.review_contract", "command-center/WORK-UNIT-CATALOG.json"],
+            "dependencies": [],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "implementer",
+              "basis": "substantive subagents default to Opus; quality over cost"
+            },
+            "tool_permissions": ["Read", "Grep", "Glob", "Edit", "Write", "Bash:git"],
+            "execution_substrate": "local-parallel-worktree",
+            "timeout_seconds": 5400,
+            "output_path": "command-center/implementation/work-result.json",
+            "output_schema": "command-center/schema/work-result.schema.json",
+            "evidence_requirement": "the raw unified diff plus the exact test and coverage commands, both re-runnable by a third party who has only this artifact",
+            "tests_required": [
+              "every changed behaviour has a test that FAILED before the change - a green-before test is not a regression test for this unit",
+              "no file outside the unit's declared scope appears in the diff (scope-escape control)"
+            ],
+            "reviewer_requirement": "a FRESH cross-vendor reviewer who did not author the diff and who reads the raw diff, not this unit's summary",
+            "completion_sentinel": "SUCCESS:IMP-0372 emitted only when work-result.json exists, parses, carries a non-empty diff, and no out-of-scope path appears; otherwise FAILED:IMP-0372 <reason>",
+            "retry_policy": "at most two review rounds on the same unit; a third failure escalates for re-decomposition rather than a third attempt",
+            "failure_classification": ["scope-escape", "test-missing", "partial-artifact"],
+            "owner_approval_required": false
+          },
+          "produces": [
+            {
+              "path": "command-center/implementation/work-result.json",
+              "schema_ref": "command-center/schema/work-result.schema.json",
+              "min_bytes": 512,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:IMP-0372",
+              "consumers": ["validate", "adversarial-review"]
+            }
+          ]
+        },
+        {
+          "id": "validate",
+          "title": "Phase 2 VALIDATE - tests plus coverage read from the project SSOT",
+          "kind": "task",
+          "role": "implementer",
+          "depends_on": ["implement"],
+          "work_unit_ref": "TST-0338",
+          "timeout_seconds": 3600,
+          "produces": [
+            {
+              "path": "command-center/implementation/coverage-delta.json",
+              "schema_ref": "command-center/schema/coverage-delta.schema.json",
+              "min_bytes": 128,
+              "register_in_manifest": true,
+              "consumers": ["coverage-gate"]
+            }
+          ]
+        },
+        {
+          "id": "coverage-gate",
+          "title": "Coverage is judged against the SSOT file, or explicitly NOT-CHECKED",
+          "kind": "gate",
+          "depends_on": ["validate"],
+          "gate_ref": "coverage-ssot"
+        },
+        {
+          "id": "adversarial-review",
+          "title": "Phase 3 ADVERSARIAL REVIEW - a fresh cross-vendor agent, raw diff only",
+          "kind": "task",
+          "role": "reviewer",
+          "depends_on": ["coverage-gate"],
+          "work_unit_ref": "ADV-0001",
+          "timeout_seconds": 3600,
+          "produces": [
+            {
+              "path": "command-center/implementation/review-verdict.json",
+              "schema_ref": "command-center/schema/completion-verdict.schema.json",
+              "min_bytes": 128,
+              "register_in_manifest": true,
+              "consumers": ["self-certification-gate", "completion-gate"]
+            }
+          ]
+        },
+        {
+          "id": "self-certification-gate",
+          "title": "The reviewer must not be the author, and must not share the author's vendor",
+          "kind": "gate",
+          "depends_on": ["adversarial-review"],
+          "gate_ref": "no-self-certification"
+        },
+        {
+          "id": "completion-gate",
+          "title": "The one shared 12-condition completion predicate",
+          "kind": "gate",
+          "depends_on": ["self-certification-gate"],
+          "gate_ref": "unit-complete"
+        },
+        {
+          "id": "commit",
+          "title": "Phase 4 COMMIT - scoped add, hooks always run",
+          "kind": "task",
+          "role": "committer",
+          "depends_on": ["completion-gate"],
+          "work_unit_ref": "IMP-0428",
+          "timeout_seconds": 900,
+          "produces": [
+            {
+              "path": "command-center/implementation/unit-receipt.json",
+              "schema_ref": "platform/schema/receipt.schema.json",
+              "min_bytes": 128,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:IMP-0428",
+              "consumers": ["cohort-rollup"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "unit-repair",
+      "title": "A refuted unit loops back at most twice, then escalates for re-decomposition",
+      "kind": "repair_loop",
+      "depends_on": ["unit-pipelines"],
+      "target": ["unit-pipelines"],
+      "max_attempts": 2,
+      "classification_filter": ["reviewer-refuted", "coverage-below-ssot", "scope-escape"],
+      "escalate_to": "redecomposition-checkpoint",
+      "require_root_cause": true,
+      "diagnose": {
+        "id": "diagnose-refutation",
+        "title": "Root-cause the blocking findings before touching the code again",
+        "kind": "task",
+        "role": "reviewer",
+        "work_unit_ref": "ADV-0006",
+        "timeout_seconds": 1800
+      },
+      "repair": {
+        "id": "apply-unit-repair",
+        "title": "Apply the narrowest change that answers every blocking finding",
+        "kind": "task",
+        "role": "implementer",
+        "work_unit_ref": "IMP-0372",
+        "timeout_seconds": 3600
+      },
+      "verify": {
+        "id": "verify-unit-repair",
+        "title": "Independent verification - the repair may not be certified by whoever applied it",
+        "kind": "gate",
+        "gate": {
+          "predicate": "custom-expression",
+          "expression": "every_blocking_finding_answered == true AND regression_count == 0 AND verifier_agent_id != repairer_agent_id",
+          "blocking": true,
+          "evidence_required": true,
+          "on_fail": "escalate-to-human"
+        }
+      }
+    },
+    {
+      "id": "cohort-rollup",
+      "title": "Roll up per-unit receipts - a MISSING unit is named, never averaged away",
+      "kind": "task",
+      "role": "committer",
+      "depends_on": ["unit-repair"],
+      "work_unit_ref": "TST-0148",
+      "timeout_seconds": 1200,
+      "produces": [
+        {
+          "path": "command-center/implementation/cohort-summary.json",
+          "schema_ref": "command-center/schema/completion-census.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:TST-0148",
+          "consumers": ["redecomposition-checkpoint"]
+        }
+      ]
+    },
+    {
+      "id": "redecomposition-checkpoint",
+      "title": "Two strikes on one unit is a decomposition problem, not an effort problem",
+      "kind": "human_checkpoint",
+      "depends_on": ["cohort-rollup"],
+      "prompt": "These units failed adversarial review twice. Re-decompose them, accept them as disclosed partials, or drop them. A third implementation attempt on the same decomposition is not offered.",
+      "approvers": ["owner"],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 86400,
+      "on_timeout": "escalate",
+      "owner_approval_required": true,
+      "options": ["re-decompose", "accept-as-disclosed-partial", "drop"],
+      "decision_artifact": {
+        "path": "command-center/implementation/redecomposition-decision.json",
+        "schema_ref": "command-center/schema/owner-decision-packet.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true
+      }
+    }
+  ],
+
+  "stopping_rules": [
+    {
+      "id": "all-units-terminal",
+      "expression": "units_terminal == units_total AND units_still_running == 0",
+      "applies_to": "workflow",
+      "minimum_conditions": "units_total >= 1",
+      "on_stop": "complete"
+    },
+    {
+      "id": "quality-gate-clean",
+      "expression": "quality_gate == PASS AND unresolved_load_bearing_counterexample == 0",
+      "applies_to": "workflow",
+      "on_stop": "complete"
+    }
+  ],
+
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 45,
+    "jitter": true,
+    "retry_on": ["quota-429-storm", "severed-stream", "flaky-test"],
+    "no_retry_on": ["owner-blocked", "scope-escape"],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "redecomposition-checkpoint"
+    }
+  },
+
+  "failure_policy": {
+    "on_failure": "continue",
+    "classify_as": ["reviewer-refuted", "coverage-below-ssot", "scope-escape", "severed-stream"],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "redecomposition-checkpoint",
+    "quarantine_path": "command-center/implementation/quarantine"
+  },
+
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/per-unit-four-phase-pipeline",
+    "granularity": "fanout-item",
+    "idempotency_key_from": ["workflow_id", "workflow_version", "stage_id", "item_key", "inputs_hash"],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/per-unit-four-phase-pipeline.jsonl",
+    "record": ["params", "inputs", "tool_calls", "tool_results", "model_outputs", "timings"],
+    "forbid_nondeterministic_sources": ["filesystem-order", "process-id"],
+    "replay_source": "recorded-journal",
+    "verify": "semantic-equal",
+    "on_divergence": "record-discrepancy"
+  },
+
+  "cache": {
+    "enabled": true,
+    "scope": "stage",
+    "key_from": ["workflow_version", "stage_id", "item_key", "inputs_hash", "tool_versions"],
+    "store": "command-center/cache/per-unit-pipeline",
+    "ttl_seconds": 86400,
+    "verify_integrity": true,
+    "invalidate_on": ["coverage-threshold-change", "tool-version-change"],
+    "read_only": false
+  },
+
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": ["plan", "estimate", "permission-report", "graph"],
+    "plan_artifact": "command-center/dry-run/per-unit-four-phase-pipeline-plan.json",
+    "forbid_tools": ["Edit", "Write", "Bash:git", "Bash:pytest"]
+  },
+
+  "estimate": {
+    "basis": "historical-measured",
+    "confidence": "likely",
+    "measurement_source": "command-center/measurements/orchestrated-execution-runs.json",
+    "cost": { "currency": "USD", "min": 4.0, "expected": 22.0, "max": 90.0 },
+    "wallclock_seconds": { "min": 1800, "expected": 10800, "max": 43200 },
+    "tokens": { "min": 400000, "expected": 2600000, "max": 9000000 },
+    "tool_calls": { "expected": 600, "max": 3000 },
+    "impact": {
+      "risk": "medium",
+      "reversibility": "reversible",
+      "blast_radius": "one commit per unit, each independently revertible; no cross-unit commit exists by construction",
+      "requires_owner_approval": false
+    }
+  },
+
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": ["definition", "presets", "tests", "lineage"],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/per-unit-four-phase-pipeline.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": ["prekzursil"]
+      }
+    }
+  },
+
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "metaswarm:orchestrated-execution",
+        "relation": "MERGE",
+        "license": "third-party-plugin",
+        "credit": "metaswarm"
+      },
+      {
+        "source": "skills/workflow-authoring#per-work-unit-pipelines",
+        "relation": "EXTEND",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-IMP-01",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": ["metaswarm:orchestrated-execution@as-shipped"]
+  },
+
+  "outputs": {
+    "cohort-summary": {
+      "path": "command-center/implementation/cohort-summary.json",
+      "schema_ref": "command-center/schema/completion-census.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": ["command-center/PROGRAM-LEDGER.json"]
+    }
+  },
+
+  "defaults": {
+    "timeout_seconds": 3600,
+    "retry": {
+      "strategy": "fixed",
+      "max_attempts": 2,
+      "backoff_seconds": 30
+    }
+  },
+
+  "x_extensions": {
+    "worked_example": {
+      "scenario": "An 8-unit cohort where unit 3 hangs at 70 minutes with a 691 KB transcript and no artifact.",
+      "barrier_form_outcome": "with a cohort-wide VALIDATE barrier, units 1,2,4-8 finish IMPLEMENT and then wait on unit 3; the phase never completes and eight units produce zero commits",
+      "pipelined_form_outcome": "each unit advances on its own; 7 units reach COMMIT while unit 3 is quarantined by on_item_failure=continue and named in cohort-summary.json",
+      "self_certification_control": "unit 5's reviewer is spawned with the SAME agent id as its implementer -> no-self-certification gate fails with reviewer_agent_id == implementer_agent_id and the unit does not commit",
+      "coverage_control": "unit 6's tests pass but coverage_lines drops below the SSOT threshold -> coverage-ssot gate fails and routes to repair, not to commit",
+      "not_checked_control": "a project with NO .coverage-thresholds.json emits NOT-CHECKED via coverage-not-checked and is reported as unmeasured - never as a pass"
+    },
+    "distinctive_mechanism": "the ABSENCE of a fan-out barrier. `stages[0]` declares max_concurrency and on_item_failure but deliberately no `barrier` block, so no unit can be blocked by a sibling. A test asserts this absence; adding a barrier is the mutation that must be caught.",
+    "contraindications": [
+      "NOT for a single trivial change - the four phases cost more than the change",
+      "NOT when units are not file-disjoint - run the decomposition blueprint first, or sibling adds will sweep each other",
+      "NOT when there is no test surface to validate against - VALIDATE would be decorative"
+    ],
+    "not_a_duplicate_because": "BP-ARC-02 splits ROLES inside the implement step; this is the quality loop wrapped around a whole unit, and its defining property is the missing cohort barrier.",
+    "flagship_test": "platform/lib/workflows/test_per_unit_four_phase_pipeline.py"
+  }
+}

@@ -1,0 +1,876 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "bp-gem-02-anti-overfit-candidate-gate",
+  "name": "Anti-Overfit Candidate Gate",
+  "description": "Given ANY candidate list - from a sweep, a council, a marketplace, a reviewer - decide ADOPT / BUILD / PRUNE / DEFER against a fixed rejected-architecture list, a dedup set and an absorption budget, WITHOUT re-running discovery. Stages S0-S3 are deterministic set arithmetic; only the ambiguous residue reaches a model. The signature property is fail-closed on a blank required input: a missing or empty already-built inventory makes the gate REFUSE to run rather than pass everything, because a required-but-blank field defaults to worst case, not to 'probably fine'. Its tool policy denies every discovery tool: this blueprint may judge, never search.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "collective-intelligence-and-meta",
+    "security-governance-and-risk"
+  ],
+  "tags": [
+    "deterministic-gate",
+    "fail-closed",
+    "absorption-budget"
+  ],
+  "flagship": true,
+  "params": {
+    "candidates": {
+      "type": "path",
+      "required": true,
+      "description": "The candidate list under judgement; this gate never produces one"
+    },
+    "already_built_inventory": {
+      "type": "path",
+      "required": true,
+      "description": "Required. An absent or EMPTY inventory makes the gate refuse: passing every candidate because the dedup set is missing is the fail-open this exists to prevent."
+    },
+    "rejected_components": {
+      "type": "array",
+      "required": true,
+      "min_items": 1,
+      "max_items": 100,
+      "items": {
+        "type": "string",
+        "min_length": 3
+      },
+      "description": "Rejected ARCHITECTURES (a second orchestration runtime, a vector-DB memory, a durable-execution engine, a trained critic, observability SaaS, a guardrail framework) - not unfamiliar ideas"
+    },
+    "absorption_budget": {
+      "type": "integer",
+      "required": true,
+      "minimum": 0,
+      "maximum": 200,
+      "description": "A HARD cap on ADOPT+BUILD verdicts, not a suggestion"
+    },
+    "owner_override_register": {
+      "type": "path",
+      "default": "command-center/decisions/anchor-overrides.json",
+      "description": "Optional S1b: where a knowingly-accepted anchor violation is recorded"
+    },
+    "artifact_root": {
+      "type": "path",
+      "default": "command-center/decisions/bp-gem-02",
+      "description": "Every write is confined here"
+    }
+  },
+  "roles": {
+    "gate-runner": {
+      "description": "Runs the deterministic set arithmetic; has judge authority precisely because it exercises no judgement",
+      "vendor": "any",
+      "effort": "low",
+      "authority": "judge",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/decisions/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "adjudicator": {
+      "description": "Sees ONLY the ambiguous residue the deterministic stages could not decide, and must give a reason code per ruling",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write(command-center/decisions/**)"
+      ],
+      "speaking_rights": "on-request"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash:python",
+      "Write(command-center/decisions/**)"
+    ],
+    "deny": [
+      "Bash",
+      "WebSearch",
+      "WebFetch",
+      "mcp__search-hub__web_search_exa",
+      "mcp__searxng__searxng_web_search",
+      "mcp__github__search_repositories",
+      "mcp__codex__codex"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/decisions/**"
+    ],
+    "forbid_write_paths": [
+      "platform/**",
+      "command-center/WORK-UNIT-CATALOG.json"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "record-as-not-checked"
+    }
+  },
+  "model_routing": {
+    "strategy": "cost-aware",
+    "default": {
+      "model": "none-deterministic-script",
+      "vendor": "mixed",
+      "effort": "low"
+    },
+    "routes": [
+      {
+        "when": "stage_role == 'adjudicator'",
+        "target": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "effort": "high"
+        },
+        "reason": "only the ambiguous residue is worth a model; the rest is set arithmetic"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "inputs-complete": {
+      "predicate": "custom-expression",
+      "expression": "already_built_inventory_rows > 0 AND rejected_components_declared > 0 AND absorption_budget_declared == true AND candidate_rows > 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "budget-respected": {
+      "predicate": "custom-expression",
+      "expression": "adopt_plus_build_verdicts <= absorption_budget AND verdicts_without_reason_code == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+  "stages": [
+    {
+      "id": "input-completeness-gate",
+      "title": "FAIL CLOSED: refuse to run on a blank required input",
+      "kind": "gate",
+      "gate_ref": "inputs-complete"
+    },
+    {
+      "id": "dedup",
+      "title": "S0 deterministic dedup against the already-built set",
+      "kind": "task",
+      "depends_on": [
+        "input-completeness-gate"
+      ],
+      "role": "gate-runner",
+      "timeout_seconds": 600,
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/decisions/**)"
+      ],
+      "work_unit": {
+        "id": "BPG-0201",
+        "title": "Mark every candidate that already exists, by exact and normalised name match",
+        "phase": "2B",
+        "question_or_target": "Compare each candidate against the already-built inventory by exact match and by a normalised form (case, separators, common suffixes). A match is PRUNE with reason code DUPLICATE-OF-BUILT naming the matched row.",
+        "inputs": [
+          "params.candidates",
+          "params.already_built_inventory"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "none-deterministic-script",
+          "vendor": "mixed",
+          "role": "gate-runner",
+          "basis": "set membership is exactly computable; an LLM comparison here measured 86 percent accurate with 100 percent of errors in the unsafe direction"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/decisions/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 600,
+        "output_path": "command-center/decisions/bp-gem-02/dedup-verdicts.json",
+        "output_schema": "command-center/schema/dedup-report.schema.json",
+        "evidence_requirement": "every PRUNE names the inventory row it matched and the match kind (exact / normalised); the comparison is a script, not a judgement",
+        "tests_required": [
+          "MANDATORY: a candidate identical to a built item must be PRUNED with the matched row named",
+          "both-states: a genuinely new candidate in the same list must survive - a deduper that prunes everything is as broken as one that prunes nothing"
+        ],
+        "reviewer_requirement": "the anchor stage re-reads the survivors only; a pruned candidate is not re-litigated by a model",
+        "completion_sentinel": "SUCCESS:BPG-0201 emitted only when every candidate has a dedup outcome and every PRUNE names its matched row and match kind; otherwise FAILED:BPG-0201 <failure-class> <reason>",
+        "retry_policy": "none: a deterministic comparison over unchanged inputs cannot produce a different result",
+        "failure_classification": [
+          "inventory-missing",
+          "schema-invalid"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "deterministic-set-dedup"
+      },
+      "produces": [
+        {
+          "path": "command-center/decisions/bp-gem-02/dedup-verdicts.json",
+          "schema_ref": "command-center/schema/dedup-report.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPG-0201",
+          "consumers": [
+            "anchor-check"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "anchor-check",
+      "title": "S1 anti-overfit anchor: reject a rejected ARCHITECTURE, not an unfamiliar idea",
+      "kind": "task",
+      "depends_on": [
+        "dedup"
+      ],
+      "role": "gate-runner",
+      "timeout_seconds": 600,
+      "work_unit": {
+        "id": "BPG-0202",
+        "title": "Prune any survivor that reintroduces a declared rejected architecture",
+        "phase": "2B",
+        "question_or_target": "Check each surviving candidate against the rejected_components list. A match is PRUNE with reason code ANCHOR-VIOLATION naming the component. Unfamiliarity is NOT a reason: the list is of rejected architectures, not of ideas the estate has not seen before.",
+        "inputs": [
+          "command-center/decisions/bp-gem-02/dedup-verdicts.json",
+          "params.rejected_components"
+        ],
+        "dependencies": [
+          "BPG-0201"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "none-deterministic-script",
+          "vendor": "mixed",
+          "role": "gate-runner",
+          "basis": "a declared list plus text matching; judgement enters only at the residue stage"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/decisions/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 600,
+        "output_path": "command-center/decisions/bp-gem-02/anchor-verdicts.json",
+        "output_schema": "command-center/schema/option-closure.schema.json",
+        "evidence_requirement": "every ANCHOR-VIOLATION names the rejected component matched and quotes the candidate text that matched it",
+        "tests_required": [
+          "MANDATORY: a candidate proposing a vector-DB memory must be PRUNED with the anchor named",
+          "a merely UNFAMILIAR candidate must NOT be pruned by this stage - that would make the anchor a novelty filter"
+        ],
+        "reviewer_requirement": "the owner override register is the only route to accept a known anchor violation, and it records who accepted it",
+        "completion_sentinel": "SUCCESS:BPG-0202 emitted only when every survivor has an anchor outcome and every violation names its component plus the matching text; otherwise FAILED:BPG-0202 <failure-class> <reason>",
+        "retry_policy": "none: deterministic matching over unchanged inputs",
+        "failure_classification": [
+          "anchor-list-missing",
+          "schema-invalid"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "rejected-architecture-anchor-match"
+      },
+      "produces": [
+        {
+          "path": "command-center/decisions/bp-gem-02/anchor-verdicts.json",
+          "schema_ref": "command-center/schema/option-closure.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPG-0202",
+          "consumers": [
+            "bus-check"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bus-check",
+      "title": "S2 bus check: does it ride the existing hook / skill / MCP bus, or demand a new runtime?",
+      "kind": "task",
+      "depends_on": [
+        "anchor-check"
+      ],
+      "role": "gate-runner",
+      "timeout_seconds": 600,
+      "work_unit": {
+        "id": "BPG-0203",
+        "title": "Classify each survivor by the bus it needs and downgrade a bus-less ADOPT to DEFER",
+        "phase": "2B",
+        "question_or_target": "For each survivor decide which existing bus carries it - hook, skill, MCP, CLI, or NONE. A candidate that needs a bus the estate does not have is downgraded to DEFER with the missing bus NAMED, never adopted on the assumption the bus will appear.",
+        "inputs": [
+          "command-center/decisions/bp-gem-02/anchor-verdicts.json"
+        ],
+        "dependencies": [
+          "BPG-0202"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "none-deterministic-script",
+          "vendor": "mixed",
+          "role": "gate-runner",
+          "basis": "bus presence is a filesystem and config fact, not an opinion"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash:python",
+          "Write(command-center/decisions/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 600,
+        "output_path": "command-center/decisions/bp-gem-02/bus-verdicts.json",
+        "output_schema": "command-center/schema/compatibility-matrix.schema.json",
+        "evidence_requirement": "each row names the carrying bus and the file or config that proves the bus exists; a DEFER names the missing bus",
+        "tests_required": [
+          "a candidate needing a bus the estate lacks must be DEFER with that bus named, not ADOPT",
+          "both-states: a candidate riding an existing MCP must be allowed through with the proving locator recorded"
+        ],
+        "reviewer_requirement": "the budget stage cannot promote a DEFER back to ADOPT; only the owner override register can",
+        "completion_sentinel": "SUCCESS:BPG-0203 emitted only when every survivor names its bus, with a locator when the bus exists and a name when it does not; otherwise FAILED:BPG-0203 <failure-class> <reason>",
+        "retry_policy": "none: deterministic inspection over unchanged inputs",
+        "failure_classification": [
+          "bus-undetermined",
+          "schema-invalid"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "existing-bus-or-defer"
+      },
+      "produces": [
+        {
+          "path": "command-center/decisions/bp-gem-02/bus-verdicts.json",
+          "schema_ref": "command-center/schema/compatibility-matrix.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPG-0203",
+          "consumers": [
+            "budget-fit"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "budget-fit",
+      "title": "S3 absorption budget: a hard cap, not a suggestion",
+      "kind": "task",
+      "depends_on": [
+        "bus-check"
+      ],
+      "role": "gate-runner",
+      "timeout_seconds": 600,
+      "work_unit": {
+        "id": "BPG-0204",
+        "title": "Fit the survivors into the absorption budget and DEFER the overflow explicitly",
+        "phase": "2B",
+        "question_or_target": "Rank the survivors and admit at most absorption_budget of them as ADOPT or BUILD. Everything above the line becomes DEFER with reason code BUDGET-OVERFLOW and its rank recorded, so nothing is silently dropped.",
+        "inputs": [
+          "command-center/decisions/bp-gem-02/bus-verdicts.json",
+          "params.absorption_budget"
+        ],
+        "dependencies": [
+          "BPG-0203"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "none-deterministic-script",
+          "vendor": "mixed",
+          "role": "gate-runner",
+          "basis": "counting and ranking are exactly computable"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/decisions/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 600,
+        "output_path": "command-center/decisions/bp-gem-02/budget-fit.json",
+        "output_schema": "command-center/schema/intervention-ranking.schema.json",
+        "evidence_requirement": "the artifact states the budget, the admitted count and the overflow count numerically, and every overflow row carries its rank",
+        "tests_required": [
+          "with budget 0 every survivor must be DEFER with BUDGET-OVERFLOW - a budget of zero must be honoured, not treated as unset",
+          "the admitted count must never exceed the budget"
+        ],
+        "reviewer_requirement": "the budget gate recomputes the admitted count independently of this stage's own claim",
+        "completion_sentinel": "SUCCESS:BPG-0204 emitted only when admitted count is at most the budget, and every overflow row carries a rank and the BUDGET-OVERFLOW reason code; otherwise FAILED:BPG-0204 <failure-class> <reason>",
+        "retry_policy": "none: deterministic arithmetic over unchanged inputs",
+        "failure_classification": [
+          "budget-undeclared",
+          "schema-invalid"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "hard-absorption-budget-cap"
+      },
+      "produces": [
+        {
+          "path": "command-center/decisions/bp-gem-02/budget-fit.json",
+          "schema_ref": "command-center/schema/intervention-ranking.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPG-0204",
+          "consumers": [
+            "residue-adjudication",
+            "budget-gate",
+            "emit-verdicts"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "residue-adjudication",
+      "title": "The ONLY model-judged stage: the ambiguous residue",
+      "kind": "task",
+      "depends_on": [
+        "budget-fit"
+      ],
+      "when": "ambiguous_residue > 0",
+      "role": "adjudicator",
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "BPG-0205",
+        "title": "Rule on the candidates the deterministic stages could not decide",
+        "phase": "2B",
+        "question_or_target": "For each candidate the deterministic stages left ambiguous - a near-match that may be a genuinely new variant, a bus that half exists - rule ADOPT / BUILD / PRUNE / DEFER with a reason code, and say which deterministic stage was ambiguous and why.",
+        "inputs": [
+          "command-center/decisions/bp-gem-02/budget-fit.json",
+          "command-center/decisions/bp-gem-02/dedup-verdicts.json"
+        ],
+        "dependencies": [
+          "BPG-0204"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "adjudicator",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Write(command-center/decisions/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/decisions/bp-gem-02/residue-rulings.json",
+        "output_schema": "command-center/schema/adjudication-record.schema.json",
+        "evidence_requirement": "each ruling names the ambiguous stage, the competing readings, and the reason code chosen",
+        "tests_required": [
+          "a semantic near-match that is a genuinely new variant must be allowed through with the difference stated - a deduper that prunes every variant ossifies the estate",
+          "the adjudicator must not touch a candidate the deterministic stages already decided"
+        ],
+        "reviewer_requirement": "one independent reviewer checks no deterministic verdict was overturned here",
+        "completion_sentinel": "SUCCESS:BPG-0205 emitted only when every ambiguous candidate has a ruling with a reason code, and no unambiguous candidate was re-decided; otherwise FAILED:BPG-0205 <failure-class> <reason>",
+        "retry_policy": "fixed backoff, at most 2 attempts",
+        "failure_classification": [
+          "ambiguity-unresolvable",
+          "overclaim"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "residue-only-model-judgement"
+      },
+      "produces": [
+        {
+          "path": "command-center/decisions/bp-gem-02/residue-rulings.json",
+          "schema_ref": "command-center/schema/adjudication-record.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPG-0205",
+          "consumers": [
+            "emit-verdicts"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "budget-gate",
+      "title": "Every verdict has a reason code and the budget was not exceeded",
+      "kind": "gate",
+      "depends_on": [
+        "residue-adjudication"
+      ],
+      "gate_ref": "budget-respected"
+    },
+    {
+      "id": "emit-verdicts",
+      "title": "Emit the reason-coded verdict table",
+      "kind": "task",
+      "depends_on": [
+        "budget-gate"
+      ],
+      "role": "gate-runner",
+      "timeout_seconds": 600,
+      "work_unit": {
+        "id": "BPG-0206",
+        "title": "Reduce every stage outcome to one verdict per candidate with its reason code",
+        "phase": "2B",
+        "question_or_target": "Produce one row per input candidate: verdict, reason code, the stage that decided it, and the anchor or inventory row it matched where relevant. The row count must equal the input candidate count exactly.",
+        "inputs": [
+          "command-center/decisions/bp-gem-02/budget-fit.json",
+          "command-center/decisions/bp-gem-02/residue-rulings.json",
+          "params.candidates"
+        ],
+        "dependencies": [
+          "BPG-0204",
+          "BPG-0205"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "none-deterministic-script",
+          "vendor": "mixed",
+          "role": "gate-runner",
+          "basis": "a deterministic reduction over the stage outcomes"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/decisions/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 600,
+        "output_path": "command-center/decisions/bp-gem-02/verdicts.json",
+        "output_schema": "command-center/schema/disposition-table.schema.json",
+        "evidence_requirement": "the artifact reconciles its row count against the input candidate count and states the per-verdict tallies numerically",
+        "tests_required": [
+          "the verdict row count must equal the input candidate count - a dropped candidate is a defect, not a filter",
+          "every row must carry a reason code; a verdict without one is invalid"
+        ],
+        "reviewer_requirement": "the calling workflow reads this table; a row count mismatch is a hard reject",
+        "completion_sentinel": "SUCCESS:BPG-0206 emitted only when one verdict per input candidate, each with a reason code, reconciled against the input count; otherwise FAILED:BPG-0206 <failure-class> <reason>",
+        "retry_policy": "none: deterministic reduction over unchanged inputs",
+        "failure_classification": [
+          "schema-invalid",
+          "count-mismatch"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "reason-coded-verdict-reduction"
+      },
+      "produces": [
+        {
+          "path": "command-center/decisions/bp-gem-02/verdicts.json",
+          "schema_ref": "command-center/schema/disposition-table.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPG-0206",
+          "consumers": [
+            "bp-gem-01-wide-lens-gem-sweep",
+            "command-center/DECISION-LOG.json"
+          ]
+        }
+      ]
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "candidate-list-exhausted",
+      "expression": "candidates_without_verdict == 0",
+      "applies_to": "workflow",
+      "minimum_conditions": "candidate_rows > 0",
+      "on_stop": "complete"
+    },
+    {
+      "id": "refuse-on-blank-input",
+      "expression": "already_built_inventory_rows == 0 OR rejected_components_declared == 0",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "none",
+    "max_attempts": 1
+  },
+  "failure_policy": {
+    "on_failure": "fail-fast",
+    "classify_as": [
+      "inventory-missing",
+      "budget-undeclared",
+      "count-mismatch",
+      "ambiguity-unresolvable"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "the calling workflow"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/decisions/bp-gem-02/checkpoints",
+    "granularity": "stage",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260810,
+    "journal_path": "command-center/decisions/bp-gem-02/replay/journal.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "timings",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "fail"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "workflow",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "inputs_hash"
+    ],
+    "store": "command-center/decisions/bp-gem-02/cache",
+    "ttl_seconds": 604800,
+    "verify_integrity": true,
+    "invalidate_on": [
+      "schema-version-change",
+      "tool-version-change"
+    ],
+    "read_only": false
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "artifact-diff"
+    ],
+    "plan_artifact": "command-center/decisions/bp-gem-02/dry-run-plan.json",
+    "forbid_tools": [
+      "Bash:python",
+      "Write(command-center/decisions/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "min": 0.05,
+      "expected": 0.3,
+      "max": 1.5
+    },
+    "wallclock_seconds": {
+      "min": 60,
+      "expected": 300,
+      "max": 1800
+    },
+    "tokens": {
+      "min": 10000,
+      "expected": 60000,
+      "max": 250000
+    },
+    "tool_calls": {
+      "expected": 15,
+      "max": 120
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "judgement only: no discovery tool is reachable and no write leaves command-center/decisions/bp-gem-02/**",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "tests",
+        "examples",
+        "lineage",
+        "replay-journal"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/bp-gem-02.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "exec-gem-hunt-2026-06-30",
+        "relation": "DISTILL",
+        "license": "owner-proprietary",
+        "credit": "owner (the anchor stage existed only inside that run)"
+      },
+      {
+        "source": "wf-saved-harness-self-improve-sweep",
+        "relation": "DISTILL",
+        "license": "owner-proprietary",
+        "credit": "owner (T0-T3 tiering vocabulary)"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-GEM-02",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true
+  },
+  "outputs": {
+    "verdicts": {
+      "path": "command-center/decisions/bp-gem-02/verdicts.json",
+      "schema_ref": "command-center/schema/disposition-table.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "bp-gem-01-wide-lens-gem-sweep",
+        "command-center/DECISION-LOG.json"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint_source": {
+      "card": "BP-GEM-02",
+      "library": "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.md",
+      "card_heading_line": 512
+    },
+    "acquisition_route_from_card": "DISTILL",
+    "mechanism_signature": [
+      "fail-closed-on-blank-required-input",
+      "deterministic-set-dedup",
+      "rejected-architecture-anchor-match",
+      "existing-bus-or-defer",
+      "hard-absorption-budget-cap",
+      "residue-only-model-judgement",
+      "reason-coded-verdict-reduction"
+    ],
+    "contraindications": [
+      "NOT a discovery stage - it never searches, and its tool policy denies every search tool",
+      "NOT for candidates whose value is unknown - send those to a probe first",
+      "do NOT use it to reject a candidate merely because it is unfamiliar: the list is of rejected ARCHITECTURES"
+    ],
+    "why_not_a_duplicate_of_bp_gem_01": "BP-GEM-01 discovers; this only judges - and can judge lists it did not produce (a council's options, a marketplace listing, a reviewer's suggestions). It is called BY BP-GEM-01 as a subworkflow, which is why neither reimplements the other.",
+    "unverified": [
+      "UNVERIFIED whether standalone use changes any verdict; settling experiment = apply it to the last three candidate lists produced in this estate and count changed verdicts."
+    ],
+    "owner_decision": "What is the absorption budget per cycle, and who curates rejected_components so the anchor does not ossify?",
+    "worked_example": {
+      "name": "judge a 40-candidate sweep output against a budget of 6",
+      "params": {
+        "candidates": "command-center/sweeps/bp-gem-01/candidates.json",
+        "already_built_inventory": "command-center/CAPABILITY-INVENTORY.json",
+        "rejected_components": [
+          "second orchestration runtime",
+          "vector-DB or knowledge-graph memory",
+          "durable-execution engine",
+          "trained critic model",
+          "observability SaaS",
+          "guardrail framework"
+        ],
+        "absorption_budget": 6
+      },
+      "facts": {
+        "ambiguous_residue": 4
+      },
+      "expected_stage_order": [
+        "input-completeness-gate",
+        "dedup",
+        "anchor-check",
+        "bus-check",
+        "budget-fit",
+        "residue-adjudication",
+        "budget-gate",
+        "emit-verdicts"
+      ],
+      "expected_skipped": [],
+      "expected_max_parallel": 1,
+      "expected_gate_ids": [
+        "input-completeness-gate",
+        "budget-gate"
+      ],
+      "fact_variants": [
+        {
+          "facts": {
+            "ambiguous_residue": 4
+          },
+          "expected_skipped": []
+        },
+        {
+          "facts": {
+            "ambiguous_residue": 0
+          },
+          "expected_skipped": [
+            "residue-adjudication"
+          ]
+        }
+      ],
+      "acceptance": [
+        "a candidate identical to a built item is PRUNED by S0 with the matched row named",
+        "a candidate proposing a vector store is PRUNED by S1 with the anchor named",
+        "an EMPTY already_built_inventory makes the gate REFUSE, not pass everything",
+        "the ADOPT+BUILD count never exceeds 6"
+      ],
+      "stopping_rule_controls": [
+        {
+          "rule": "candidate-list-exhausted",
+          "why": "the floor stops an empty candidate list from reading as a completed judgement",
+          "fires_on": {
+            "candidates_without_verdict": 0,
+            "candidate_rows": 40,
+            "already_built_inventory_rows": 120,
+            "rejected_components_declared": 6
+          },
+          "does_not_fire_on": {
+            "candidates_without_verdict": 0,
+            "candidate_rows": 0,
+            "already_built_inventory_rows": 120,
+            "rejected_components_declared": 6
+          }
+        },
+        {
+          "rule": "refuse-on-blank-input",
+          "why": "THE signature property: a blank required input must escalate, never pass everything",
+          "fires_on": {
+            "candidates_without_verdict": 40,
+            "candidate_rows": 40,
+            "already_built_inventory_rows": 0,
+            "rejected_components_declared": 6
+          },
+          "does_not_fire_on": {
+            "candidates_without_verdict": 40,
+            "candidate_rows": 40,
+            "already_built_inventory_rows": 120,
+            "rejected_components_declared": 6
+          }
+        }
+      ]
+    }
+  }
+}
