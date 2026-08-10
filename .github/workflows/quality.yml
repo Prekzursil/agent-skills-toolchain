@@ -1308,6 +1308,74 @@ jobs:
             --cov=index --cov=engines --cov=evaluation --cov-branch \
             --cov-report=term-missing --cov-fail-under=100
 
+  # ---------------------------------------------------------------------------------------
+  # platform/ — the Prompt Two build tree: lib, workflows, architecture, plugin, marketplace,
+  # routing, coordination, corpus. 3,946 tests.
+  #
+  # WHY THIS LANE DID NOT EXIST UNTIL NOW, and it was not an oversight: it was NOT RUNNABLE on
+  # a runner. Two independent blockers, both measured and both now fixed:
+  #
+  #   1. platform/routing bound its capability corpus to the OPERATOR'S LIVE ~/.claude via
+  #      `index.py:55` (`HOME = ROUTING_HOME or Path.home()`), pulling 5 of 8 source roots from
+  #      it. Windows ~/.claude had agents=27 commands=71 skills=79; a Linux box has 0/0/0, so
+  #      the lane's own implausibly-small-corpus floor fired and 22 tests failed. Closed by a
+  #      committed 581-file fixture home plus platform/routing/conftest.py.
+  #   2. Nine files that TRACKED code depends on were never committed, because every commit
+  #      script in this program excluded `/_` paths as agent scratch. A fresh clone went from
+  #      31 COLLECTION ERRORS -> 8 -> 6 failures -> clean across three rounds of this.
+  #
+  # VERIFIED AGAINST A REAL CLONE, not the working tree. That distinction is the whole reason
+  # this job is trustworthy: `pytest platform` reported 3,910 passed on the working tree while
+  # a `git clone` of the same commit could not COLLECT the suite at all, because the working
+  # tree held the untracked files a runner would not have. Every green figure below came from
+  # `git clone --single-branch --branch main` into a scratch dir, `untracked=0`.
+  #
+  # Named `gate-tests-coverage (platform)` so .quality/charter_check.sh maps it to the existing
+  # `tests-coverage` slug — no new charter entry, one-in/one-out preserved. Kept as its own JOB
+  # rather than a step in the python-packages job so a ~12 minute suite does not serialise
+  # behind, or extend, the fast package gates.
+  #
+  # NO --cov-fail-under here, deliberately. The sibling steps gate coverage at 100% on packages
+  # built for it; platform/ has never had a coverage number measured, and inventing a threshold
+  # would either be trivially passed or instantly red. Pass/fail on the suite is the honest
+  # first contract. UNVERIFIED: what platform/ line+branch coverage actually is — nobody has
+  # measured it. Settling experiment: run with --cov=platform --cov-report=term-missing once
+  # and read the number before choosing a floor.
+  test-platform:
+    name: gate-tests-coverage (platform)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          # 3.12, not the 3.11 the sibling jobs use, because 3.12.3 is the interpreter the
+          # clone-verified green run was measured on. UNVERIFIED on 3.11 — no 3.11 exists on
+          # the box this was verified from, and pinning the gate to an interpreter the suite
+          # was never run under would make its first execution the experiment.
+          python-version: "3.12"
+      - name: gate-tests-coverage platform (pinned deps)
+        run: pip install pytest==8.3.3 jsonschema==4.25.1
+      # Collection is asserted SEPARATELY and first. Three of the four fresh-clone rounds above
+      # failed at COLLECTION, not on an assertion, and a bare `pytest` reports that as a generic
+      # non-zero exit. Failing here names the cause instead: an import or data dependency is
+      # missing from the commit. It also fails closed on an empty walk — 3946 is the measured
+      # count, and a collapse to a handful would otherwise look like a fast green.
+      - name: gate-tests-coverage platform (collection integrity)
+        run: |
+          set -o pipefail
+          python -m pytest platform -q -p no:cacheprovider --collect-only 2>&1 | tail -3
+          collected=$(python -m pytest platform -q -p no:cacheprovider --collect-only 2>/dev/null \
+            | grep -oE '[0-9]+ tests collected' | grep -oE '[0-9]+' || echo 0)
+          echo "collected=$collected"
+          if [ "$collected" -lt 3900 ]; then
+            echo "FAILED:platform-collect only $collected tests collected (expected ~3946); an import or data dependency is missing from the commit"
+            exit 1
+          fi
+          echo "SUCCESS:platform-collect $collected"
+      - name: gate-tests-coverage platform (suite)
+        run: python -m pytest platform -q -p no:cacheprovider
+
   sast:
     name: gate-sast (opengrep)
     runs-on: ubuntu-latest
