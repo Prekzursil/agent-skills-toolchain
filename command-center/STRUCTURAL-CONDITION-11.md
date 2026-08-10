@@ -1,74 +1,104 @@
-# Structural finding: condition 11 is unsatisfiable for every work unit
+# Condition 11: satisfiable, but unsatisfied for all 2,007 units under the current convention
 
-- **Found:** 2026-08-10, while trying to move TST-0334 / TST-0350 off `BLOCKED`
-- **Status:** CONFIRMED by reading both implementations. Needs an OWNER decision, not a code fix.
-- **Consequence:** no work unit in the 2,007-unit catalog can reach receipt state `SUCCESS`.
+- **First written:** 2026-08-10, while trying to move TST-0334 / TST-0350 off `BLOCKED`
+- **CORRECTED:** same day, after an independent refutation attempt. The original headline was FALSE.
+- **Status:** the finding survives in a narrower form. Needs an OWNER choice, not a redesign.
 
-## The contradiction
+## RETRACTION — read this first
 
-Two parts of the program's own contract cannot both hold.
+The first version of this document asserted:
 
-**Side A — the completion predicate.** `platform/lib/completion_predicate.py:83` declares condition 11
-as *"output was registered in the artifact manifest"* (spec `:10643`), and `_c11_manifest`
-(`:1011-1062`) implements it by requiring **every PRIMARY artifact of the receipt** to appear in the
-`artifacts` array of the manifest named by `manifest_registration.manifest_path`, with a matching
-sha256. An artifact absent from the manifest returns `UNSATISFIED` with the reason *"an artifact on
-disk but unregistered is not complete (ARC-0084)"*.
+> Condition 11 is unsatisfiable for EVERY work unit, so no unit in the 2,007-unit catalog can ever
+> reach receipt state `SUCCESS`.
 
-**Side B — the manifest.** `tools/command-center/render.py:34-36` defines `ARTIFACT-MANIFEST.json` as
-*"The 13 files Prompt Two names at `_USER-PROMPTS.md:10590-10602`, plus the append-only event log at
-`:10603`"* — a hardcoded 14-name tuple, `CONTRACTED_ARTIFACTS`. `render_manifest()` iterates exactly
-that tuple. Nothing anywhere adds a unit's produced artifact to it.
+**That sentence is REFUTED.** It is left quoted rather than deleted so the correction has lineage.
 
-Measured now: the manifest holds **14 entries and zero receipts or unit artifacts.**
+`_c11_manifest` resolves `receipt.manifest_registration.manifest_path` **as given**
+(`completion_predicate.py:1026`), and `receipt_core` types that field as a bare
+`{"type": "string", "minLength": 1, "maxLength": 1024}` — no enum, no const, no pattern. Nothing pins
+it to the contracted file. Asked of the real evaluator rather than reasoned about:
 
-## Why this caps the whole program
+| manifest named | `Outcome` |
+|---|---|
+| `command-center/ARTIFACT-MANIFEST.json` (the original premise) | `UNSATISFIED` |
+| a temp manifest with an **empty** `artifacts` array (negative control) | `UNSATISFIED` |
+| **a purpose-built manifest naming the artifact + sha256** | **`SATISFIED`** |
+| same, with the LF-normalised digest | **`SATISFIED`** |
+| purpose-built manifest but `registered: false` | `UNSATISFIED` |
 
-A unit's primary artifact is normally *not* one of those 14 files. TST-0350's is
-`tools/measure-guard/suitefloor.py`; TST-0334's is `tools/measure-guard/blobread.py`. Neither is in
-`CONTRACTED_ARTIFACTS`, neither can be, and `receipt_core`'s `allOf[0]` makes
-`manifest_registration.registered = true` a precondition of `state: SUCCESS`.
+The negative control is what makes that evidence rather than a green light: the detector still fails
+on a manifest that omits the artifact. **Condition 11 is satisfiable.**
 
-So the ceiling is structural, not a property of these two units:
+I had also written that "`manifest_path` is already a free field, so a receipt can name a per-unit
+manifest" as *option 1, a proposal*. It is not a proposal. The code and schema already permit it, and
+I did not check before framing it as future work.
 
-- **TST-0334** and **TST-0350**: `registered: false`, correctly.
-- **BLD-0023**, written by a different lane on a different day: also `registered: false`.
+## What survives, and it is still worth acting on
 
-Three receipts exist in this repo and all three are capped for the same reason. This is an
-independent corroboration of Phase 14's condition-21 verdict, reached from the opposite direction:
-Phase 14 concluded the shared predicate returns false for the program; this explains one reason it
-*must*, regardless of how well any unit is executed.
+**Condition 11 is unsatisfied for all 2,007 units under the current convention.** Measured: of the
+2,007 `work_units`, **zero** declare an `output_path` that is one of the 14 contracted artifacts —
+they all write under `command-center/` but none to a contracted name. Every existing receipt names
+`command-center/ARTIFACT-MANIFEST.json`, which `render.py:36` regenerates from a fixed 14-name tuple
+and which holds exactly 14 entries, all `command-center/*`.
 
-## What this is NOT
+So the ceiling is real but it is a CONVENTION, not a structural impossibility. That distinction is
+the whole correction.
 
-- **Not a defect in either implementation.** The predicate is right that an unregistered artifact is
-  not demonstrably complete. The manifest is right to be the 13 contracted files, because the spec
-  says so and `cc-render --check` gates it against drift.
-- **Not fixable by me unilaterally.** Adding unit artifacts to `ARTIFACT-MANIFEST.json` would change
-  the meaning of a contracted artifact and would alter what `cc-render --check` enforces. That is a
-  spec decision.
-- **Not an argument for relaxing condition 11.** A receipt claiming SUCCESS for an artifact nothing
-  tracks is exactly the failure the condition exists to prevent.
+Census, verified independently: `BLD-0023`, `TST-0334`, `TST-0350` — all three `state=BLOCKED`,
+`registered=false`, `manifest_path=command-center/ARTIFACT-MANIFEST.json`. The generalisation to
+2,007 rests on the output-path mechanism above, not on n=3.
 
-## Options for the owner, least invasive first
+## Three inferences of mine were STRENGTHENED, not merely confirmed
 
-1. **Let a receipt name its own manifest.** `manifest_registration.manifest_path` is already a free
-   string field, so a unit could point at a per-phase manifest (e.g.
-   `command-center/UNIT-ARTIFACT-MANIFEST.json`) that a new renderer maintains. Requires no change to
-   the 13 contracted files and no change to the predicate. **Recommended.**
-2. **Extend `CONTRACTED_ARTIFACTS`** with a receipts/unit-artifact section. Changes the scope of a
-   contracted artifact and therefore what `cc-render --check` gates.
-3. **Scope condition 11** to units whose declared output is a command-center deliverable, and record
-   `NOT-APPLICABLE` rather than `UNSATISFIED` for source-code artifacts. Weakest option: it edits the
-   predicate to accommodate the data, which is the direction this program has repeatedly found to be
-   the wrong one.
+Recorded because they were the parts I was least sure of and explicitly asked to have attacked:
+
+1. **`_primaries()` is WIDER than I assumed.** `completion_predicate.py:314` is `primary or arts` —
+   artifacts with `role == "primary"`, falling back to ALL artifacts when none declares the role. It
+   is never empty unless the receipt has no artifacts, so there is no vacuous-pass hole.
+2. **`UNSATISFIED` does gate.** `evaluate()`'s docstring: *"An UNSATISFIED or NOT-CHECKED on any
+   condition blocks completion; NOT-APPLICABLE is never counted as a pass."* UNSATISFIED and
+   NOT-CHECKED differ in reporting, not in gating.
+3. **The waiver escape hatch is closed**, which I had not thought to check. `evaluate()` consults
+   `_waiver(n, opts)` first, but `NON_WAIVABLE = {1, 2, 3, 4, 5, 11, 12}` includes 11 and `_waiver`
+   returns UNSATISFIED with *"a waiver of a structural condition is a failure of that condition,
+   never a pass"*.
+
+## My expectation about the spec anchor was INVERTED
+
+I flagged `_USER-PROMPTS.md:10643` UNVERIFIED and predicted that if it said "a manifest" it would
+authorise the per-unit route. It reads:
+
+> `11. output was registered in the artifact manifest;`
+
+**Definite article.** The spec does not authorise the re-scope; the CODE and SCHEMA do, by making the
+path a free string. **That gap — a definite-article spec against a free-string implementation — is
+the actual defect worth recording**, and it is a different defect from the one this document
+originally claimed. A future reader could satisfy condition 11 by pointing at any file they like,
+which the spec sentence plainly does not intend.
+
+## Options for the owner
+
+Both are already legal under the schema; this is a choice, not a redesign.
+
+1. **Point `manifest_path` at a per-unit or per-program manifest** that receipts may append to.
+   Cheapest, and already permitted — but see the definite-article gap above: doing this without
+   tightening the field leaves condition 11 satisfiable by naming an arbitrary file.
+2. **Extend `CONTRACTED_ARTIFACTS` / `render.py`** to carry unit outputs. Keeps one manifest, honours
+   the spec's definite article, and changes the scope of a contracted artifact and therefore what
+   `cc-render --check` gates.
+
+Whichever is chosen, **tightening `manifest_path`** (an enum, or a pattern restricting it to a known
+set) is worth doing alongside it, or condition 11 remains satisfiable by construction.
+
+## Correction the reviewer made to its own prior review
+
+Its first review said `_c11_manifest` records `registered` without gating on it. That was wrong:
+the function ends with `if reg.get("registered") is not True: return UNSATISFIED, "receipt itself
+records registered=false"`. **Both** manifest presence and the flag are required.
 
 ## Residual
 
-- **UNVERIFIED:** whether `_USER-PROMPTS.md:10643` (condition 11's spec anchor) intends the
-  13-file manifest specifically or *a* manifest generally. Reading that line would decide between
-  options 1 and 2 immediately, and it is inside the governing spec range this program is scoped to.
-  I did not read it, because the surrounding decision is the owner's either way.
-- The three-receipt sample is the entire population of receipts, so "all three are capped" is a
-  census rather than a sample — but it is a census of 3, and the claim that this generalises to all
-  2,007 rests on the mechanism (paths outside `CONTRACTED_ARTIFACTS`), not on the count.
+- The 2,007-unit output-path census was run by the reviewer, not re-derived by me. **UNVERIFIED by a
+  second party.** Settling experiment: intersect every `work_units[].output_path` with
+  `render.CONTRACTED_ARTIFACTS` and assert the intersection is empty.
+- Evidence: `command-center/P10-REREVIEW-AND-C11-REFUTATION.md`.
