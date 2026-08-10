@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.invalid/platform/marketplace/schema/publisher.schema.json",
+  "title": "Publisher identity",
+  "description": "Publisher identity (spec 10847). Identity is an Ed25519 public key plus the metadata a consumer needs to decide whether to trust it; it is NOT a reputation score. Marketplace-first section 7.2 REFUTED publisher reputation for a one-user estate and that refutation is adopted here: there is no `stars`, no `downloads`, no `rating`. What remains is the part that is falsifiable -- can this key verify this signature, and is this key in the trust policy.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "display_name", "keys", "contact", "registered_at"],
+  "properties": {
+    "id": { "$ref": "common.schema.json#/$defs/publisher_id" },
+    "display_name": { "type": "string", "minLength": 2, "maxLength": 120 },
+    "contact": { "type": "string", "minLength": 3, "maxLength": 200 },
+    "registered_at": { "$ref": "common.schema.json#/$defs/iso8601" },
+    "keys": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key_id", "public_key", "status", "valid_from"],
+        "properties": {
+          "key_id": { "type": "string", "pattern": "^key:[0-9a-f]{16}$" },
+          "public_key": { "$ref": "common.schema.json#/$defs/ed25519_public_key" },
+          "status": {
+            "enum": ["active", "retired", "compromised"],
+            "description": "`compromised` is stronger than `retired`: mkt.identity refuses EVERY signature from a compromised key, including signatures made before the compromise was declared, because the compromise date cannot be trusted to be earlier than the forgery."
+          },
+          "valid_from": { "$ref": "common.schema.json#/$defs/iso8601" },
+          "valid_until": { "$ref": "common.schema.json#/$defs/iso8601" }
+        }
+      }
+    },
+    "role": {
+      "enum": ["publisher", "registry-maintainer", "moderator", "security-response"],
+      "default": "publisher",
+      "description": "Capability separation. Only `registry-maintainer` may sign the index; only `moderator` may close a moderation case; only `security-response` may sign an advisory. One key that can do all three is one key whose loss ends the marketplace."
+    }
+  }
+}

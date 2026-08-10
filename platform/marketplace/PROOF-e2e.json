@@ -1,0 +1,209 @@
+{
+  "step0_fixture": {
+    "registry_id": "reg:fixture-local",
+    "entries": [
+      "dep-consumer@1.0.0(stable)",
+      "hello-skill@1.0.0(stable)",
+      "hello-skill@1.1.0(beta)",
+      "vulnerable-lib@1.0.0(stable)"
+    ],
+    "published": [
+      {
+        "name": "hello-skill",
+        "version": "1.0.0",
+        "score": 90,
+        "files": 3
+      },
+      {
+        "name": "hello-skill",
+        "version": "1.1.0",
+        "score": 90,
+        "files": 3
+      },
+      {
+        "name": "dep-consumer",
+        "version": "1.0.0",
+        "score": 90,
+        "files": 3
+      },
+      {
+        "name": "vulnerable-lib",
+        "version": "1.0.0",
+        "score": 90,
+        "files": 3
+      }
+    ],
+    "refusals": [
+      {
+        "folder": "evil-overreach-1.0.0",
+        "expected": "MKT-P07",
+        "actual": "MKT-P07",
+        "message": "MKT-P07: excessive permissions: ['secrets:read:**', 'net:egress:**', 'exec:process:**', 'fs:write:**', 'hook:register:PreToolUse'] -> {'secrets:read:**': \"forbidden by policy pattern 'secrets:read'\", 'net:egress:**': \"net:egress at universal ('**') width requires an EXACT explicit grant, not a wildc"
+      },
+      {
+        "folder": "secret-leaker-1.0.0",
+        "expected": "MKT-P06",
+        "actual": "MKT-P06",
+        "message": "MKT-P06: 3 secret/topology finding(s) in the payload; deny-by-default refuses the publish"
+      },
+      {
+        "folder": "apache-mixer-1.0.0",
+        "expected": "MKT-P08",
+        "actual": "MKT-P08",
+        "message": "MKT-P08: declared aggregate licence 'MIT' does not cover component licences ['Apache-2.0', 'MIT'] and `aggregate_verified` is false. This is the M1 defect shape: 31 Apache-2.0 entries under a declared MIT, invisible to a LICENSE-file scanner."
+      }
+    ]
+  },
+  "step1_publish": {
+    "coordinate": "hello-skill@1.0.0",
+    "manifest_signature_verifies": true,
+    "signature_reason": "",
+    "payload_digest": "sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b",
+    "conformance_score": 90,
+    "lint": "PASS"
+  },
+  "step2_install": {
+    "outcome": "SUCCESS",
+    "gates_evaluated": 13,
+    "gates_declared": 13,
+    "all_gates_accounted": true,
+    "gate_outcomes": {
+      "index-signature": "PASS",
+      "publisher-known": "PASS",
+      "manifest-signature": "PASS",
+      "revocation": "PASS",
+      "permissions": "PASS",
+      "compatibility": "PASS",
+      "advisory": "PASS",
+      "conformance-score": "PASS",
+      "payload-digest": "PASS",
+      "sbom": "PASS",
+      "license": "PASS",
+      "dependencies": "SKIP",
+      "lockfile": "PASS"
+    },
+    "installed_files": 3,
+    "files_on_disk": [
+      "LICENSE",
+      "README.md",
+      "hello.py"
+    ],
+    "lockfile_packages": [
+      "hello-skill"
+    ]
+  },
+  "step3_verify": {
+    "signature_verifies_on_installed_manifest": true,
+    "sbom_ok_on_installed_payload": true,
+    "sbom_summary": "3/3 components matched; missing_from_disk=0 missing_from_sbom=0 hash_mismatch=0",
+    "control_known_broken_sbom_fires": true,
+    "control_detail": "2/3 components matched; missing_from_disk=0 missing_from_sbom=0 hash_mismatch=1"
+  },
+  "step4_revoke": {
+    "rollback_precondition_update_ok": true,
+    "case_state": "action-taken",
+    "revocations": [
+      "rev:hello-1"
+    ],
+    "install_refused_after_revocation": true,
+    "refusal_code": "MKT-I04",
+    "refusal_detail": "MKT-I04 [revocation] hello-skill@1.0.0 is REVOKED by rev:hello-1 (version scope, severity critical): Fixture revocation: proving the install path refuses a revoked version.",
+    "nothing_written_to_site": true,
+    "rollback_to_revoked_version_refused": true,
+    "rollback_code": "MKT-I04",
+    "control_same_install_succeeded_before_revocation": true,
+    "fail_closed_when_revocation_list_deleted": {
+      "refused": true,
+      "code": "MKT-I04",
+      "detail": "MKT-I04 [revocation] no revocation list is reachable for this registry and policy says refuse. A revocation channel that can be removed to re-enable a revoked package is not a revocation channel."
+    }
+  },
+  "step4b_dispute_reversal": {
+    "revocations_after_appeal": [],
+    "install_succeeds_again": true
+  },
+  "step5_malicious": {
+    "publish_refused": true,
+    "publish_code": "MKT-P07",
+    "forced_into_index_then_install_refused": true,
+    "install_code": "MKT-I05",
+    "install_detail": "MKT-I05 [permissions] excessive permissions ['exec:process:**', 'fs:write:**', 'hook:register:PreToolUse', 'net:egress:**', 'secrets:read:**']: exec:process:** -> forbidden by policy pattern 'exec:process'; fs:write:** -> fs:write at universal ('**') width requires an EXACT explicit grant, not a wil",
+    "control_benign_package_installs_from_same_index": true
+  },
+  "extras": {
+    "search_text_hello": [
+      "dep-consumer@1.0.0",
+      "hello-skill@1.0.0",
+      "hello-skill@1.1.0"
+    ],
+    "search_category_security": [
+      "vulnerable-lib"
+    ],
+    "collection_starter": [
+      "hello-skill@1.1.0"
+    ],
+    "federated_mirror_resolve": {
+      "mirrors_opened": [
+        "mir:private-a"
+      ],
+      "resolved_from": "primary",
+      "rejected_mirror_rows": []
+    },
+    "offline_bundle": {
+      "bundle_id": "bun:75d13f029aad6dbb",
+      "includes": {
+        "revocation": true,
+        "advisory": true,
+        "publishers": true
+      },
+      "verified": true,
+      "imported": true,
+      "offline_install_outcome": "SUCCESS"
+    },
+    "registry_lint": {
+      "schema_version": "1.0.0",
+      "target": "<REDACTED-LOCAL-PATH>",
+      "target_kind": "registry",
+      "verdict": "PASS",
+      "rules_total": 20,
+      "rules_evaluated": [
+        "MKT-L01",
+        "MKT-L02",
+        "MKT-L03",
+        "MKT-L04",
+        "MKT-L05",
+        "MKT-L06",
+        "MKT-L07",
+        "MKT-L08",
+        "MKT-L09",
+        "MKT-L10",
+        "MKT-L11",
+        "MKT-L12",
+        "MKT-L13",
+        "MKT-L14",
+        "MKT-L15",
+        "MKT-L16",
+        "MKT-L17",
+        "MKT-L18",
+        "MKT-L19",
+        "MKT-L20"
+      ],
+      "findings": [],
+      "linted_at": "2026-08-10T09:00:00Z"
+    },
+    "linter_self_test": {
+      "mutation": "payload-digest",
+      "known_good_verdict": "PASS",
+      "known_good_findings": 0,
+      "known_broken_verdict": "FAIL",
+      "known_broken_findings": [
+        "MKT-L02",
+        "MKT-L02",
+        "MKT-L02",
+        "MKT-L06"
+      ],
+      "detector_usable": true
+    }
+  }
+}
+SUCCESS:phase6-marketplace-e2e

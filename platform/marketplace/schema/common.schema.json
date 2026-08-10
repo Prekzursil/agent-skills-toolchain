@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.invalid/platform/marketplace/schema/common.schema.json",
+  "title": "Marketplace shared vocabulary",
+  "description": "ONE physical definition per constraint (config-first P-1, adopted via TOURNAMENT-VERDICT.md M6). Every other marketplace schema $refs these $defs instead of re-declaring a pattern. A second copy of `sha256` would be a second control plane.",
+  "type": "object",
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "Prefixed lowercase hex digest. The prefix is mandatory so an unprefixed hex string can never be silently accepted as a digest of a different algorithm."
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$"
+    },
+    "version_range": {
+      "type": "string",
+      "pattern": "^(\\*|(=|>=|<=|>|<|\\^|~)?(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?)$",
+      "description": "Deliberately small range grammar: exact, comparator, caret, tilde, or `*`. A grammar nobody can enumerate is a grammar nobody can gate."
+    },
+    "package_name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+      "minLength": 2,
+      "maxLength": 64
+    },
+    "publisher_id": {
+      "type": "string",
+      "pattern": "^pub:[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+    },
+    "channel": {
+      "enum": ["stable", "beta", "canary"],
+      "description": "Closed set. An unknown channel string must fail validation rather than resolve to a default; `mkt.index` never falls back."
+    },
+    "spdx": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9.+-]+( (AND|OR|WITH) [A-Za-z0-9.+-]+)*$",
+      "description": "SPDX identifier or a simple compound expression. NOT a licence-validity claim -- the LICENCE POLICY in trust-policy.schema.json decides acceptability."
+    },
+    "iso8601": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "permission": {
+      "type": "string",
+      "pattern": "^(fs:read|fs:write|net:egress|exec:process|secrets:read|env:read|hook:register|mcp:mount):[A-Za-z0-9_.:*/@-]+$",
+      "description": "`<capability>:<scope>`. The capability half is a CLOSED set so a novel capability cannot be smuggled in as free text; the scope half is open but `*` is what the trust policy scores as excessive."
+    },
+    "severity": {
+      "enum": ["none", "low", "medium", "high", "critical"]
+    },
+    "ed25519_public_key": {
+      "type": "string",
+      "pattern": "^ed25519:[0-9a-f]{64}$"
+    },
+    "ed25519_signature": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{128}$"
+    },
+    "relative_path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 400,
+      "pattern": "^(?!/)(?!.*[.][.])[A-Za-z0-9._/@-]+$",
+      "description": "Payload paths are relative, forward-slash, and may not traverse. The char class is a POSITIVE allowlist, so backslash, colon and whitespace are rejected by construction -- a Windows-style payload path is how a containment check gets bypassed on one platform and not the other."
+    },
+    "score_0_100": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "INTEGER, not number. The canonical JSON form used for digests and signatures forbids floats outright (mkt.canon), so a float score could not be signed deterministically."
+    }
+  }
+}

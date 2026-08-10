@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.invalid/platform/marketplace/schema/moderation-case.schema.json",
+  "title": "Moderation case and dispute record",
+  "description": "Moderation and dispute process (spec 10867). A case is an append-only event log with a terminal state, so the process is reconstructable rather than remembered. The DISPUTE path is first-class: a publisher may appeal, and an upheld appeal must be able to REVERSE a revocation -- a moderation system with no reversal is a deletion system. Marketplace-first section 7.2 refuted moderation as operationally dead weight for a one-user estate; it is built because the spec requires it, and the honest scope is that the state machine and its transitions are executable and tested while no human moderation body exists.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["case_id", "subject", "opened_at", "opened_by", "reason_category", "state", "events"],
+  "properties": {
+    "case_id": { "type": "string", "pattern": "^case:[0-9a-z-]{3,60}$" },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "$ref": "common.schema.json#/$defs/package_name" },
+        "version": { "$ref": "common.schema.json#/$defs/semver" },
+        "publisher": { "$ref": "common.schema.json#/$defs/publisher_id" }
+      }
+    },
+    "opened_at": { "$ref": "common.schema.json#/$defs/iso8601" },
+    "opened_by": { "type": "string", "minLength": 2, "maxLength": 200 },
+    "reason_category": {
+      "enum": ["malware", "excessive-permissions", "license-violation", "impersonation", "spam", "privacy", "other"]
+    },
+    "state": {
+      "enum": ["open", "under-review", "action-taken", "dismissed", "appealed", "appeal-upheld", "appeal-rejected"],
+      "description": "Terminal states are `dismissed`, `appeal-upheld` and `appeal-rejected`; `action-taken` is terminal for the case but is the state that authorises a revocation entry."
+    },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["at", "actor", "transition", "note"],
+        "properties": {
+          "at": { "$ref": "common.schema.json#/$defs/iso8601" },
+          "actor": { "type": "string", "minLength": 2, "maxLength": 200 },
+          "transition": { "type": "string", "pattern": "^[a-z-]+->[a-z-]+$" },
+          "note": { "type": "string", "minLength": 4, "maxLength": 1000 },
+          "evidence": { "type": "array", "items": { "type": "string", "maxLength": 400 } }
+        }
+      }
+    },
+    "resulting_revocation": { "type": "string", "pattern": "^rev:[0-9a-z-]{3,60}$" },
+    "sla_days": { "type": "integer", "minimum": 1, "maximum": 90 }
+  }
+}
