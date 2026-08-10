@@ -1,0 +1,195 @@
+{
+ "schema_version": 1,
+ "min_bytes_threshold": 1024,
+ "profile": "docs-conformance-report",
+ "timestamps": {
+  "started_at": "2026-08-10T16:03:00Z",
+  "ended_at": "2026-08-10T16:58:00Z"
+ },
+ "retry": {
+  "count": 1,
+  "policy": "one retry consumed: pass 1 was schema-invalid in 57 places because probe evidence was transcribed rather than captured; pass 2 executes every probe"
+ },
+ "reviewer": {
+  "reviewer_id": "UNASSIGNED",
+  "verdict": "NOT-REVIEWED",
+  "independent": false,
+  "notes": "Author self-assessment only. receipt_core states self-review is not review, which is why state is BLOCKED rather than SUCCESS."
+ },
+ "manifest_registration": {
+  "registered": false,
+  "manifest_path": "command-center/ARTIFACT-MANIFEST.json"
+ },
+ "unit_id": "TST-0350",
+ "state": "BLOCKED",
+ "sentinel": "SENTINEL:TST-0350:BLOCKED-ON-INDEPENDENT-REVIEW collection floor shipped, wired into CI, empty-input rule generalised past pytest",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0350",
+ "artifacts": [
+  {
+   "path": "tools/measure-guard/suitefloor.py",
+   "bytes": 7783,
+   "sha256": "f10858e04d1596cd30e9feab64a18f33d38b58ff958c31b665844bd4550d2f89",
+   "exists": true,
+   "role": "primary",
+   "eol": "LF"
+  },
+  {
+   "path": "tools/measure-guard/tests/test_suitefloor.py",
+   "bytes": 5834,
+   "sha256": "0008b1807dd3d5914a2458872bc344dafbff34dde98c3d0c88ca0ff5ac3a3205",
+   "exists": true,
+   "role": "control",
+   "eol": "LF"
+  },
+  {
+   "path": ".github/workflows/quality.yml",
+   "bytes": 104378,
+   "sha256": "5b2cc74df58d1872132ab6a33a690de11de87a755b73568dd741d75827bb0547",
+   "exists": true,
+   "role": "supporting",
+   "eol": "LF"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "Declared floors hold for both registered suites - platform 3,946 >= 3,900 and command-center 61 >= 55 - and the CLI exits 0.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "python tools/measure-guard/suitefloor.py --all",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "C:\\Python314\\python.exe tools/measure-guard/suitefloor.py --all",
+     "raw_output": "OK   platform: collected 3946 >= floor 3900\n  OK   command-center: collected 61 >= floor 55\nSUCCESS:suite-floor 2 suite(s) at or above floor",
+     "fingerprint": "fe37c69998aeed24",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "C:\\Python314\\python.exe tools/measure-guard/suitefloor.py --list",
+     "raw_output": "platform         path=platform                   floor= 3900 (observed 3946)\n  command-center   path=tools/command-center/tests floor=   55 (observed 61)",
+     "fingerprint": "b3c2689b4f0f0176",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "All four tests TST-0350 requires pass, including a zero-collected run failing against an empty directory and a collection ERROR counting as zero rather than as a healthy small suite.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "tools/measure-guard/tests/test_suitefloor.py",
+   "probes": [
+    {
+     "role": "verifier",
+     "method": "test-run",
+     "command": "C:\\Python314\\python.exe -m pytest tools/measure-guard/tests/test_suitefloor.py -q -p no:cacheprovider",
+     "raw_output": ".............                                                            [100%]\n13 passed in 56.84s",
+     "fingerprint": "17967142442bbbe5",
+     "exit_code": 0
+    },
+    {
+     "role": "source",
+     "method": "command",
+     "command": "C:\\Python314\\python.exe tools/measure-guard/suitefloor.py --all",
+     "raw_output": "OK   platform: collected 3946 >= floor 3900\n  OK   command-center: collected 61 >= floor 55\nSUCCESS:suite-floor 2 suite(s) at or above floor",
+     "fingerprint": "fe37c69998aeed24",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "TST-0350-T1",
+   "name": "zero-collected run FAILS against an empty directory",
+   "command": "python -m pytest tools/measure-guard/tests/test_suitefloor.py -q",
+   "result": "PASS"
+  },
+  {
+   "id": "TST-0350-T2",
+   "name": "below-minimum run FAILS (2 collected, floor 100)",
+   "command": "python -m pytest tools/measure-guard/tests/test_suitefloor.py -q",
+   "result": "PASS"
+  },
+  {
+   "id": "TST-0350-T3",
+   "name": "normal run passes, so the floor is not a nuisance gate",
+   "command": "python -m pytest tools/measure-guard/tests/test_suitefloor.py -q",
+   "result": "PASS"
+  },
+  {
+   "id": "TST-0350-T4",
+   "name": "empty-input rule applied to a NON-test measurement",
+   "command": "python -m pytest tools/measure-guard/tests/test_suitefloor.py -q",
+   "result": "PASS"
+  },
+  {
+   "id": "TST-0350-T5",
+   "name": "collection ERROR counts as zero",
+   "command": "python -m pytest tools/measure-guard/tests/test_suitefloor.py -q",
+   "result": "PASS"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "TST-0350-NC1",
+   "kind": "mutation",
+   "description": "Raise the platform floor to 99999 and invoke the CLI the CI step calls: exit 1 with FAILED:suite-floor, then exit 0 once restored. Without this the gate could be a no-op that never fails.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "FAILED:suite-floor 1 suite(s) below floor",
+   "good_state_output": "SUCCESS:suite-floor 1 suite(s) at or above floor"
+  },
+  {
+   "id": "TST-0350-NC2",
+   "kind": "absent-input",
+   "description": "Point the collector at an empty directory: pytest exits 0 over nothing, so the floor must reject it. This is the primary defect being guarded.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true
+  },
+  {
+   "id": "TST-0350-NC3",
+   "kind": "known-broken-fixture",
+   "description": "A fixture module with an unresolvable import: a collection error must count as 0, not as a small healthy suite - the clone defect in miniature.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "consumer": ".github/workflows/quality.yml gate-tests-coverage (platform)",
+   "artifact_path": "tools/measure-guard/suitefloor.py",
+   "executed": false,
+   "read_ok": false,
+   "probe": {
+    "role": "source",
+    "method": "static-analysis",
+    "command": "git -C C:\\Users\\Prekzursil\\source\\ast-integrate grep -n suitefloor -- .github/workflows/quality.yml",
+    "raw_output": ".github/workflows/quality.yml:405:      # nothing, both derived from defects measured on this repo. `suitefloor` gives every\n.github/workflows/quality.yml:416:          python tools/measure-guard/suitefloor.py --all\n.github/workflows/quality.yml:1377:      # Delegated to tools/measure-guard/suitefloor.py rather than inlined here. The first version\n.github/workflows/quality.yml:1384:        run: python tools/measure-guard/suitefloor.py --suite platform",
+    "fingerprint": "8ad84a2c5c9cd7cc",
+    "exit_code": 0
+   }
+  }
+ ],
+ "residual_unknowns": [
+  {
+   "claim": "Only two suites are registered; every other suite in the repo has NO declared floor, which TST-0350 itself calls a finding.",
+   "verdict": "PARTIAL",
+   "settling_experiment": "Enumerate every pytest invocation in .github/workflows/*.yml, diff against SUITES, and register a floor for each."
+  },
+  {
+   "claim": "The floor margins (3900 vs 3946; 55 vs 61) are judgement, not derived from a measured churn rate.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Measure collected-count deltas per commit over the last 50 commits and set each margin above the largest single-commit decrease."
+  }
+ ],
+ "failure": {
+  "classification": [
+   "blocked-on-independent-review"
+  ],
+  "reason": "All required tests pass and three negative controls each fired on the bad state and were silent on the good one. SUCCESS is still forbidden: no independent reviewer has recorded PASS, and the wired CI step has not yet executed on a runner, so condition 12 is unsatisfied.",
+  "blocked_on": "independent reviewer assignment; first CI execution of the wired step"
+ }
+}

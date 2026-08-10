@@ -401,6 +401,19 @@ jobs:
           python -m pytest tools/command-center/tests -q
           python tools/command-center/validate.py
           python tools/command-center/render.py --check
+      # tools/measure-guard — two guards against measurements that report green while measuring
+      # nothing, both derived from defects measured on this repo. `suitefloor` gives every
+      # registered suite a declared minimum test count and fails below it regardless of exit code
+      # (a fresh clone of main once collected ZERO of platform/ while the working tree reported
+      # 3,910 passed). `blobread` reads a tracked path as the COMMITTED BLOB via `git cat-file`,
+      # never `git archive`, which returns the CRLF worktree bytes on Windows and so verifies the
+      # wrong bytes. Stdlib-only apart from pytest; the tests build throwaway git repos and never
+      # touch this one.
+      - name: gate-tests-coverage measure-guard
+        run: |
+          pip install pytest
+          python -m pytest tools/measure-guard/tests -q
+          python tools/measure-guard/suitefloor.py --all
       # tools/agentspec — the portable agent-workflow SPEC, the shared observation envelope, the
       # dispatch-safety pure core (argv/prompt transport, the completion AND-gate, progress-stream
       # rejection, terminal markers, budget accounting, determinism) and the hermetic eval
@@ -1361,18 +1374,14 @@ jobs:
       # non-zero exit. Failing here names the cause instead: an import or data dependency is
       # missing from the commit. It also fails closed on an empty walk — 3946 is the measured
       # count, and a collapse to a handful would otherwise look like a fast green.
-      - name: gate-tests-coverage platform (collection integrity)
-        run: |
-          set -o pipefail
-          python -m pytest platform -q -p no:cacheprovider --collect-only 2>&1 | tail -3
-          collected=$(python -m pytest platform -q -p no:cacheprovider --collect-only 2>/dev/null \
-            | grep -oE '[0-9]+ tests collected' | grep -oE '[0-9]+' || echo 0)
-          echo "collected=$collected"
-          if [ "$collected" -lt 3900 ]; then
-            echo "FAILED:platform-collect only $collected tests collected (expected ~3946); an import or data dependency is missing from the commit"
-            exit 1
-          fi
-          echo "SUCCESS:platform-collect $collected"
+      # Delegated to tools/measure-guard/suitefloor.py rather than inlined here. The first version
+      # of this step was an untested `[ "$collected" -lt 3900 ]` in this YAML block, which is the
+      # shape that produces a gate nobody notices has stopped working. The module carries 20 tests
+      # including the four TST-0350 requires: a zero-collected run fails, a below-floor run fails,
+      # a normal run passes so the floor is not a nuisance gate, and a collection ERROR counts as
+      # zero rather than as a healthy small suite.
+      - name: gate-tests-coverage platform (collection floor)
+        run: python tools/measure-guard/suitefloor.py --suite platform
       - name: gate-tests-coverage platform (suite)
         run: python -m pytest platform -q -p no:cacheprovider
 
