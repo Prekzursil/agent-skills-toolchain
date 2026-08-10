@@ -186,11 +186,34 @@ def render_owner_decisions(catalog: dict[str, Any]) -> str:
             str(q.get("state", "")),
             ", ".join(sorted(gated.get(str(q.get("id", "")), []))) or "—",
             str(q.get("text", ""))[:200],
+            str(q.get("answer", "")) or "—",
         ]
         for q in questions
     ]
-    lines += _table(rows, ["#", "state", "blocks", "question"])
+    lines += _table(rows, ["#", "state", "blocks", "question", "answer"])
     lines.append("")
+
+    # An answered question whose ANSWER is not rendered is the same "recorded but
+    # unreadable" failure the register exists to prevent: the state flips, the artifact
+    # says ANSWERED, and the actual decision lives only in the JSON. Emit the full
+    # answer plus its provenance, and be explicit when provenance is a session rather
+    # than a file:line -- an answer the owner spoke is real evidence, but it is a
+    # different grade of evidence from one that was committed, and collapsing the two
+    # would overstate it.
+    answered = [q for q in questions if str(q.get("state", "")).upper() == "ANSWERED"]
+    if answered:
+        lines += ["## Answered — the decision of record", ""]
+        for q in answered:
+            lines.append(f"### {q.get('id', '')} — {q.get('answer', '')}")
+            lines.append("")
+            detail = str(q.get("answer_detail", "") or "").strip()
+            if detail:
+                lines += [detail, ""]
+            lines += [
+                f"*Answered {q.get('answered_on', 'date not recorded')}. "
+                f"Provenance: {q.get('answer_provenance', 'NOT RECORDED')}.*",
+                "",
+            ]
     return "\n".join(lines)
 
 
@@ -276,6 +299,18 @@ def write_all(root: Path, catalog: dict[str, Any]) -> list[Path]:
     manifest_path = root / "ARTIFACT-MANIFEST.json"
     cat.save(render_manifest(root), manifest_path)
     written.append(manifest_path)
+
+    # DEPENDENCY-GRAPH.json is derived from the catalog exactly like the two markdown
+    # files above, but until now only `close.py` regenerated it. That made the procedure
+    # this tool's own output documents -- "an answered question is recorded by flipping
+    # its state in WORK-UNIT-CATALOG.json and re-rendering" -- unable to converge: any
+    # catalog edit touching `owner_gate` or `dependencies` changes the derived graph, so
+    # re-rendering left validate.py reporting V-GRAPH drift with no documented way to
+    # clear it short of running an unrelated close. Measured 2026-08-10 by following that
+    # documented procedure and landing on a V-GRAPH violation.
+    graph_path = cat.graph_path()
+    cat.save(cat.build_graph(catalog), graph_path)
+    written.append(graph_path)
     return written
 
 
