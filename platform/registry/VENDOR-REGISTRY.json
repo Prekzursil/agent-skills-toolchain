@@ -1,0 +1,229 @@
+{
+  "schema_version": "1.0.0",
+  "registry_id": "platform/registry/VENDOR-REGISTRY.json@v1",
+  "title": "Canonical vendor identity registry",
+  "description": "The single source of truth for VENDOR IDENTITY on this platform. Consumed by platform/lib/vendor_identity.py (the resolver) and mirrored into the vendor_id enum of platform/schema/receipt.schema.json (parity asserted by platform/lib/test_vendor_identity.py, so the two layers cannot drift). Kept as DATA rather than as branches in code so the alias set can be audited and extended without touching the resolver.",
+  "relationship_to_councilspec_schema": "platform/schema/councilspec.schema.json:442-444 ALREADY constrains participant vendor to a 9-value enum [anthropic, openai, google, meta, mistral, xai, local, human, other]. That prior art is the reason this fix is a superset rather than a new vocabulary: every one of those 9 values resolves here, so the council plane, the receipt plane and the predicate now share ONE identity plane. test_vendor_identity.py asserts the superset relation, so adding a value to the councilspec enum without registering it here fails the suite.",
+  "closes_defect": "DEFECT D1 - completion-predicate condition 9 accepted 10/10 same-vendor ALIAS pairs as cross-vendor because platform/lib/completion_predicate.py compared free text with ==. Measured by platform/architecture/_probe_crossvendor_alias_hole.py before the fix: 'CONFIRMED HOLE: 10/10 same-vendor alias pairs are accepted as cross-vendor.'",
+  "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10641 (condition 9) and :10965 (Phase 9 cross-vendor coordination / vendor-specific adapter boundaries)",
+  "resolution_rules": {
+    "normalize": [
+      "NFKC-fold the string, then strip ALL leading/trailing Unicode whitespace (this is what closed the 'anthropic ' trailing-space leak)",
+      "casefold to lowercase",
+      "collapse any internal run of whitespace, '_' or '-' to a single '-'",
+      "strip a trailing '.com' / '.ai' / '.co' / '.io' / '.org' / '.net' domain suffix",
+      "look the result up in the alias index built from `identities[].id` + `identities[].aliases`"
+    ],
+    "establishes_distinctness": "ONLY an identity whose `establishes_distinctness` is true can be one half of a cross-vendor pair. A hosting_substrate or a placeholder names WHERE a model ran or that the field was never filled in - neither is a vendor identity, so distinctness is NOT COMPUTABLE from it and the predicate must return NOT-CHECKED, never SATISFIED.",
+    "unrecognized": "A string that resolves to nothing is UNKNOWN. UNKNOWN is REJECTED: the predicate returns NOT-CHECKED (which blocks completion) and the schema enum rejects the receipt outright. Treating an unrecognized string as 'distinct because it differs' is precisely the false green D1 records.",
+    "extending": "Add an entry (or an alias to an existing entry) here, then re-run platform/lib/test_vendor_identity.py. The receipt-schema parity test will fail until the vendor_id enum in platform/schema/receipt.schema.json is regenerated to match, so the two layers cannot silently diverge."
+  },
+  "alias_exclusions": {
+    "rule": "A HOSTING PLANE IS NOT A VENDOR ALIAS. 'bedrock', 'vertex', 'azure' and 'openrouter' all serve Anthropic, OpenAI and Google models, so folding them into any one vendor would make the gate WRONG IN THE OTHER DIRECTION - it would report a genuinely cross-vendor review as same-vendor and block a valid completion. They are registered below with kind=hosting_substrate and establishes_distinctness=false.",
+    "excluded_from_every_vendor_alias_set": ["azure", "bedrock", "vertex", "vertex-ai", "openrouter", "together", "groq", "fireworks", "replicate", "huggingface", "ollama", "vllm", "llama-cpp", "lmstudio", "local", "localhost", "self-hosted", "on-prem"]
+  },
+  "identities": [
+    {
+      "id": "anthropic",
+      "display_name": "Anthropic",
+      "kind": "model_vendor",
+      "establishes_distinctness": true,
+      "aliases": [
+        "anthropic",
+        "claude",
+        "claude-code",
+        "claudecode",
+        "claude-cli",
+        "opus",
+        "sonnet",
+        "haiku",
+        "fable"
+      ],
+      "alias_basis": "Product line and model families are the SAME legal vendor. 'claude-code' is the CLI, 'opus'/'sonnet'/'haiku' are model families frequently mis-written into a vendor field, 'fable' is the internal codename used in this estate's own docs. Every one of these compared UNEQUAL to 'anthropic' under the pre-fix == gate."
+    },
+    {
+      "id": "openai",
+      "display_name": "OpenAI",
+      "kind": "model_vendor",
+      "establishes_distinctness": true,
+      "aliases": [
+        "openai",
+        "open-ai",
+        "chatgpt",
+        "gpt",
+        "gpt-4",
+        "gpt-4o",
+        "gpt-5",
+        "gpt-5-codex",
+        "codex",
+        "codex-cli",
+        "o1",
+        "o3",
+        "o4-mini"
+      ],
+      "alias_basis": "'codex' is OpenAI's coding CLI and is the single most load-bearing alias on this estate: every cross-vendor work unit in the catalog names Codex as the reviewer, and 'openai' vs 'codex' passed the pre-fix gate as CROSS-vendor."
+    },
+    {
+      "id": "google",
+      "display_name": "Google / Google DeepMind",
+      "kind": "model_vendor",
+      "establishes_distinctness": true,
+      "aliases": [
+        "google",
+        "google-deepmind",
+        "googledeepmind",
+        "deepmind",
+        "gemini",
+        "gemini-cli",
+        "bard",
+        "palm",
+        "gemma"
+      ],
+      "alias_basis": "Google DeepMind is Google; Gemini/Bard/PaLM/Gemma are its model lines. NOTE 'vertex'/'vertex-ai' is deliberately NOT here - Vertex AI also serves Anthropic models."
+    },
+    {
+      "id": "meta",
+      "display_name": "Meta",
+      "kind": "model_vendor",
+      "establishes_distinctness": true,
+      "aliases": ["meta", "facebook", "llama", "codellama", "code-llama"],
+      "alias_basis": "Llama and Code Llama are Meta's model lines."
+    },
+    {
+      "id": "mistral",
+      "display_name": "Mistral AI",
+      "kind": "model_vendor",
+      "establishes_distinctness": true,
+      "aliases": ["mistral", "mistralai", "codestral", "devstral", "magistral", "mixtral"],
+      "alias_basis": "Present in the catalog (4 units declare vendor=mistral). Codestral/Devstral/Magistral/Mixtral are Mistral model lines."
+    },
+    {
+      "id": "xai",
+      "display_name": "xAI",
+      "kind": "model_vendor",
+      "establishes_distinctness": true,
+      "aliases": ["xai", "x-ai", "grok"],
+      "alias_basis": "Present in the catalog (2 units declare vendor=xai). Grok is xAI's model line."
+    },
+    {
+      "id": "deepseek",
+      "display_name": "DeepSeek",
+      "kind": "model_vendor",
+      "establishes_distinctness": true,
+      "aliases": ["deepseek", "deepseek-ai", "deepseek-coder", "deepseek-r1", "deepseek-v3"],
+      "alias_basis": "Vendor plus its model lines."
+    },
+    {
+      "id": "alibaba",
+      "display_name": "Alibaba Cloud",
+      "kind": "model_vendor",
+      "establishes_distinctness": true,
+      "aliases": ["alibaba", "alibaba-cloud", "qwen", "qwen-coder", "tongyi"],
+      "alias_basis": "Qwen/Tongyi are Alibaba Cloud model lines."
+    },
+    {
+      "id": "cohere",
+      "display_name": "Cohere",
+      "kind": "model_vendor",
+      "establishes_distinctness": true,
+      "aliases": ["cohere", "command-r", "command-r-plus", "aya"],
+      "alias_basis": "Command-R and Aya are Cohere model lines."
+    },
+    {
+      "id": "amazon",
+      "display_name": "Amazon",
+      "kind": "model_vendor",
+      "establishes_distinctness": true,
+      "aliases": ["amazon", "amazon-titan", "titan", "nova"],
+      "alias_basis": "Titan and Nova are Amazon's OWN model lines. 'bedrock' and 'aws' are NOT aliases here - Bedrock is a hosting plane that serves Anthropic and Meta models."
+    },
+    {
+      "id": "microsoft",
+      "display_name": "Microsoft",
+      "kind": "model_vendor",
+      "establishes_distinctness": true,
+      "aliases": ["microsoft", "phi", "phi-4"],
+      "alias_basis": "Phi is Microsoft's own model line. 'azure' is NOT an alias - Azure OpenAI Service serves OpenAI models."
+    },
+    {
+      "id": "human",
+      "display_name": "Human reviewer",
+      "kind": "human",
+      "establishes_distinctness": true,
+      "aliases": ["human", "owner", "person", "manual", "human-reviewer"],
+      "alias_basis": "A human reviewer does not inherit ANY model vendor's blind spots, so a human/AI pair is genuinely cross-vendor. Present in the corpus: platform/lib/council_protocols/_shared.py:346 emits vendor='human'."
+    },
+    {
+      "id": "azure",
+      "display_name": "Microsoft Azure (hosting plane)",
+      "kind": "hosting_substrate",
+      "establishes_distinctness": false,
+      "aliases": ["azure", "azure-openai", "azure-ai"],
+      "alias_basis": "Names WHERE a model ran, not WHOSE model it is. Azure OpenAI Service serves OpenAI models, so 'azure' vs 'openai' is NOT a cross-vendor pair - and it is not provably same-vendor either. NOT COMPUTABLE."
+    },
+    {
+      "id": "bedrock",
+      "display_name": "AWS Bedrock (hosting plane)",
+      "kind": "hosting_substrate",
+      "establishes_distinctness": false,
+      "aliases": ["bedrock", "aws", "aws-bedrock", "amazon-bedrock"],
+      "alias_basis": "Bedrock serves Anthropic, Meta, Mistral, Cohere and Amazon models. Reading it as a vendor would let an Anthropic-on-Bedrock reviewer pass as cross-vendor against an Anthropic executor."
+    },
+    {
+      "id": "vertex",
+      "display_name": "Google Vertex AI (hosting plane)",
+      "kind": "hosting_substrate",
+      "establishes_distinctness": false,
+      "aliases": ["vertex", "vertex-ai", "vertexai", "gcp-vertex"],
+      "alias_basis": "Vertex AI serves Anthropic models as well as Google's own. Same trap as bedrock."
+    },
+    {
+      "id": "aggregator",
+      "display_name": "Model aggregator / router (hosting plane)",
+      "kind": "hosting_substrate",
+      "establishes_distinctness": false,
+      "aliases": ["openrouter", "together", "togetherai", "groq", "fireworks", "replicate", "huggingface", "hf", "litellm"],
+      "alias_basis": "A router serves many vendors. The vendor behind a routed call is unknown from this field alone."
+    },
+    {
+      "id": "local",
+      "display_name": "Locally hosted model (hosting plane)",
+      "kind": "hosting_substrate",
+      "establishes_distinctness": false,
+      "aliases": ["local", "localhost", "self-hosted", "selfhosted", "on-prem", "onprem", "ollama", "vllm", "llama-cpp", "llamacpp", "lmstudio"],
+      "alias_basis": "Present in the corpus (2 occurrences of vendor='local'). A locally served model is still SOMEONE's model - typically Meta's or Alibaba's - so the substrate name cannot establish vendor distinctness."
+    },
+    {
+      "id": "unassigned",
+      "display_name": "Unassigned (placeholder)",
+      "kind": "placeholder",
+      "establishes_distinctness": false,
+      "aliases": ["unassigned", "unspecified", "tbd", "to-be-decided", "none", "null", "n/a", "na", "unknown"],
+      "alias_basis": "Present in the corpus and in the shipped receipt examples: platform/schema/examples/receipt.valid.example.json:103 carries produced_by.vendor='unassigned' while reviewer.vendor='anthropic'. Under the pre-fix == gate that pair read as CROSS-vendor - a second live instance of D1 sitting inside the reference example itself."
+    },
+    {
+      "id": "any",
+      "display_name": "Any vendor (placeholder)",
+      "kind": "placeholder",
+      "establishes_distinctness": false,
+      "aliases": ["any", "any-vendor", "wildcard"],
+      "alias_basis": "44 catalog occurrences. A wildcard is a CONSTRAINT on assignment, not an identity: it cannot be one half of a distinct pair."
+    },
+    {
+      "id": "other",
+      "display_name": "Other / unlisted vendor (placeholder)",
+      "kind": "placeholder",
+      "establishes_distinctness": false,
+      "aliases": ["other", "misc", "custom"],
+      "alias_basis": "Present in the councilspec enum at platform/schema/councilspec.schema.json:444 as the escape hatch. It is NOT an identity: two seats both marked 'other' may be the SAME vendor, so 'other' vs 'other' is not provably same-vendor and 'other' vs 'anthropic' is not provably distinct. NOT COMPUTABLE in both directions."
+    },
+    {
+      "id": "mixed",
+      "display_name": "Mixed vendors (placeholder)",
+      "kind": "placeholder",
+      "establishes_distinctness": false,
+      "aliases": ["mixed", "multi", "multi-vendor", "anthropic+openai", "several"],
+      "alias_basis": "48 catalog occurrences. 'mixed' names a SET, so it is neither equal to nor distinct from a single vendor. NOT COMPUTABLE."
+    }
+  ]
+}
