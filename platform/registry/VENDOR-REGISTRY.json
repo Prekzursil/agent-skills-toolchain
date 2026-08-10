@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "registry_id": "platform/registry/VENDOR-REGISTRY.json@v1",
   "title": "Canonical vendor identity registry",
   "description": "The single source of truth for VENDOR IDENTITY on this platform. Consumed by platform/lib/vendor_identity.py (the resolver) and mirrored into the vendor_id enum of platform/schema/receipt.schema.json (parity asserted by platform/lib/test_vendor_identity.py, so the two layers cannot drift). Kept as DATA rather than as branches in code so the alias set can be audited and extended without touching the resolver.",
@@ -8,19 +8,34 @@
   "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10641 (condition 9) and :10965 (Phase 9 cross-vendor coordination / vendor-specific adapter boundaries)",
   "resolution_rules": {
     "normalize": [
-      "NFKC-fold the string, then strip ALL leading/trailing Unicode whitespace (this is what closed the 'anthropic ' trailing-space leak)",
+      "NFKC-fold the string, then delete every character in Unicode category Cc (control) or Cf (format) - Cf is what makes 'anthropic<U+200B>' and 'anth<U+00AD>ropic' the same token as 'anthropic'",
+      "strip ALL leading/trailing Unicode whitespace (this is what closed the 'anthropic ' trailing-space leak)",
       "casefold to lowercase",
       "collapse any internal run of whitespace, '_' or '-' to a single '-'",
-      "strip a trailing '.com' / '.ai' / '.co' / '.io' / '.org' / '.net' domain suffix",
-      "look the result up in the alias index built from `identities[].id` + `identities[].aliases`"
+      "build LOOKUP CANDIDATES from that key and try them EXACT-FIRST (see `normalization.candidate_order`): the key itself, then its dot-to-dash form, then with a `normalization.domain_suffixes` entry removed, then with `normalization.punctuation_folded_to_separator` characters folded to a separator, and after each of those the same form with trailing `normalization.legal_entity_suffix_tokens` / `normalization.descriptor_suffix_tokens` removed",
+      "look each candidate up in the alias index built from `identities[].id` + `identities[].aliases`; the FIRST hit wins and an empty candidate is discarded"
     ],
     "establishes_distinctness": "ONLY an identity whose `establishes_distinctness` is true can be one half of a cross-vendor pair. A hosting_substrate or a placeholder names WHERE a model ran or that the field was never filled in - neither is a vendor identity, so distinctness is NOT COMPUTABLE from it and the predicate must return NOT-CHECKED, never SATISFIED.",
     "unrecognized": "A string that resolves to nothing is UNKNOWN. UNKNOWN is REJECTED: the predicate returns NOT-CHECKED (which blocks completion) and the schema enum rejects the receipt outright. Treating an unrecognized string as 'distinct because it differs' is precisely the false green D1 records.",
     "extending": "Add an entry (or an alias to an existing entry) here, then re-run platform/lib/test_vendor_identity.py. The receipt-schema parity test will fail until the vendor_id enum in platform/schema/receipt.schema.json is regenerated to match, so the two layers cannot silently diverge."
   },
+  "normalization": {
+    "why_this_is_data": "The resolver READS these lists; it does not branch on them. A real-world vendor spelling is therefore made to resolve by editing THIS FILE and re-running platform/lib/test_vendor_identity.py - no new code path to review. platform/lib/vendor_identity.py falls back to the same defaults when a registry omits this block, so a hand-written test fixture registry still loads.",
+    "candidate_order": "EXACT-FIRST, first hit wins: (1) the normalized key, (2) its dot-to-dash form, (3) with a domain suffix removed, (4) with punctuation folded to a separator, and after each of those (5) the same form with trailing corporate/descriptor tokens removed. Exact-first is load-bearing: it is why 'x-ai' resolves to xai instead of being stripped to a bare 'x', and why 'azure-ai' stays the Azure hosting plane instead of folding to a vendor.",
+    "legal_entity_suffix_tokens": ["inc", "incorporated", "llc", "l-l-c", "ltd", "limited", "plc", "pbc", "p-b-c", "corp", "corporation", "co", "company", "gmbh", "mbh", "ag", "sa", "s-a", "sas", "s-a-s", "bv", "b-v", "nv", "n-v", "ab", "oy", "oyj", "as", "kk", "k-k", "pte", "pty", "llp", "lp", "srl", "s-r-l", "spa", "s-p-a", "kg", "holdings", "group"],
+    "legal_entity_basis": "A corporate FORM is not an identity: 'Anthropic PBC', 'OpenAI, Inc.' and 'Google LLC' name the same vendors as 'anthropic', 'openai' and 'google'. Wave 3 measured the cost of not folding them - 3 of the 45 rows in the D1 matrix returned NOT-COMPUTABLE for 'Anthropic PBC', 'Mistral AI' and a zero-width-space variant, so the predicate REFUSED a completion whose reviewer was in fact same-vendor. Refusing is safe (it blocks) but a refusal is not a verdict. Dotted initialisms are listed in their punctuation-folded form ('l-l-c' for 'L.L.C.') because folding runs before suffix stripping.",
+    "descriptor_suffix_tokens": ["ai", "labs", "lab", "research"],
+    "descriptor_basis": "Generic industry words that sit in a trade name without changing identity ('Mistral AI', 'Cohere Labs', 'Microsoft Research'). Deliberately SHORT. 'cloud' is deliberately NOT here: 'Google Cloud' is a hosting plane that also serves Anthropic models, so folding it to vendor google would recreate D1 in the DANGEROUS direction - it is registered as an alias of the vertex hosting plane instead. Note the asymmetry with 'alibaba-cloud', which IS a vendor alias because Alibaba Cloud is the legal name of the vendor that publishes Qwen. That asymmetry is a decision, not an oversight.",
+    "domain_suffixes": [".com", ".ai", ".co", ".io", ".org", ".net", ".dev"],
+    "punctuation_folded_to_separator": ",.;:!?'\"()[]{}<>*|`~",
+    "punctuation_basis": "Folded to a separator so 'Anthropic, PBC' and 'Anthropic P.B.C.' reach the same key as 'anthropic-pbc'. '/' and '+' are NOT folded, because two registered placeholder aliases legitimately contain them ('n/a', 'anthropic+openai'). A string that folds to nothing but separators ('!!!', '...') yields an EMPTY candidate, which is discarded - an empty candidate must never match an alias.",
+    "over_fold_guard": "Stripping a suffix must never INVENT an identity. Only a TRAILING token from these lists is removed, and only while something remains: 'Acme Inc' -> 'acme' (still UNKNOWN, still a refusal), 'Anthropic Killer Inc' -> 'anthropic-killer' (NOT anthropic), and a bare 'Inc' / 'Ltd.' / 'AI' is never reduced at all. test_vendor_identity.py sweeps EVERY alias in this table through EVERY candidate form and fails if any of them reaches a DIFFERENT canonical id, so a future addition here cannot quietly merge two vendors.",
+    "what_this_does_NOT_do": "It does not make an unregistered vendor resolve. An unknown string is still UNKNOWN and still blocks - closing the NOT-COMPUTABLE gap by treating unknown vendors as 'distinct' is precisely the false green D1 records."
+  },
   "alias_exclusions": {
     "rule": "A HOSTING PLANE IS NOT A VENDOR ALIAS. 'bedrock', 'vertex', 'azure' and 'openrouter' all serve Anthropic, OpenAI and Google models, so folding them into any one vendor would make the gate WRONG IN THE OTHER DIRECTION - it would report a genuinely cross-vendor review as same-vendor and block a valid completion. They are registered below with kind=hosting_substrate and establishes_distinctness=false.",
-    "excluded_from_every_vendor_alias_set": ["azure", "bedrock", "vertex", "vertex-ai", "openrouter", "together", "groq", "fireworks", "replicate", "huggingface", "ollama", "vllm", "llama-cpp", "lmstudio", "local", "localhost", "self-hosted", "on-prem"]
+    "excluded_from_every_vendor_alias_set": ["azure", "bedrock", "vertex", "vertex-ai", "openrouter", "together", "groq", "fireworks", "replicate", "huggingface", "ollama", "vllm", "llama-cpp", "lmstudio", "local", "localhost", "self-hosted", "on-prem", "aws", "amazon-web-services", "google-cloud", "gcp"],
+    "parent_and_investor_relationships_are_NOT_alias_grounds": "Corporate ownership is not vendor identity and must never be folded. Microsoft is OpenAI's largest investor and Azure hosts its models, yet ('microsoft', 'openai') is a GENUINE cross-vendor pair that the matrix requires to be SATISFIED - folding on ownership would report it as same-vendor and block a valid completion. The same reasoning excludes 'alphabet' -> google and 'amazon' -> anthropic. Only trade names, product lines, model families, corporate FORM suffixes and spelling variants of the SAME operating vendor are alias grounds."
   },
   "identities": [
     {
@@ -37,9 +52,10 @@
         "opus",
         "sonnet",
         "haiku",
-        "fable"
+        "fable",
+        "anthropic-pbc"
       ],
-      "alias_basis": "Product line and model families are the SAME legal vendor. 'claude-code' is the CLI, 'opus'/'sonnet'/'haiku' are model families frequently mis-written into a vendor field, 'fable' is the internal codename used in this estate's own docs. Every one of these compared UNEQUAL to 'anthropic' under the pre-fix == gate."
+      "alias_basis": "Product line and model families are the SAME legal vendor. 'anthropic-pbc' is the folded legal name ('Anthropic PBC', 'Anthropic, PBC', 'Anthropic P.B.C.') and is registered EXPLICITLY, not left to the suffix rule, so the receipt-schema enum accepts that spelling at the wire too - the generated enum contains alias-table keys, not resolver candidate forms. 'claude-code' is the CLI, 'opus'/'sonnet'/'haiku' are model families frequently mis-written into a vendor field, 'fable' is the internal codename used in this estate's own docs. Every one of these compared UNEQUAL to 'anthropic' under the pre-fix == gate."
     },
     {
       "id": "openai",
@@ -86,16 +102,16 @@
       "display_name": "Meta",
       "kind": "model_vendor",
       "establishes_distinctness": true,
-      "aliases": ["meta", "facebook", "llama", "codellama", "code-llama"],
-      "alias_basis": "Llama and Code Llama are Meta's model lines."
+      "aliases": ["meta", "facebook", "llama", "codellama", "code-llama", "meta-platforms"],
+      "alias_basis": "Llama and Code Llama are Meta's model lines. 'meta-platforms' is the trade name in the legal title 'Meta Platforms, Inc.'; it is registered explicitly rather than by adding 'platforms' to the legal-form list, because 'Platforms' is part of the NAME, not a corporate form."
     },
     {
       "id": "mistral",
       "display_name": "Mistral AI",
       "kind": "model_vendor",
       "establishes_distinctness": true,
-      "aliases": ["mistral", "mistralai", "codestral", "devstral", "magistral", "mixtral"],
-      "alias_basis": "Present in the catalog (4 units declare vendor=mistral). Codestral/Devstral/Magistral/Mixtral are Mistral model lines."
+      "aliases": ["mistral", "mistralai", "codestral", "devstral", "magistral", "mixtral", "mistral-ai"],
+      "alias_basis": "Present in the catalog (4 units declare vendor=mistral). 'mistral-ai' is the vendor's own display name ('Mistral AI', legally 'Mistral AI SAS') and was one of the 3 rows Wave 3 measured as NOT-COMPUTABLE: the table already held 'mistralai' but a SPACE between the words normalizes to 'mistral-ai', which is a different key. Codestral/Devstral/Magistral/Mixtral are Mistral model lines."
     },
     {
       "id": "xai",
@@ -126,8 +142,8 @@
       "display_name": "Cohere",
       "kind": "model_vendor",
       "establishes_distinctness": true,
-      "aliases": ["cohere", "command-r", "command-r-plus", "aya"],
-      "alias_basis": "Command-R and Aya are Cohere model lines."
+      "aliases": ["cohere", "command-r", "command-r-plus", "aya", "cohere-labs"],
+      "alias_basis": "Command-R and Aya are Cohere model lines. 'cohere-labs' is the current name of the research arm formerly published as Cohere For AI."
     },
     {
       "id": "amazon",
@@ -166,16 +182,16 @@
       "display_name": "AWS Bedrock (hosting plane)",
       "kind": "hosting_substrate",
       "establishes_distinctness": false,
-      "aliases": ["bedrock", "aws", "aws-bedrock", "amazon-bedrock"],
-      "alias_basis": "Bedrock serves Anthropic, Meta, Mistral, Cohere and Amazon models. Reading it as a vendor would let an Anthropic-on-Bedrock reviewer pass as cross-vendor against an Anthropic executor."
+      "aliases": ["bedrock", "aws", "aws-bedrock", "amazon-bedrock", "amazon-web-services"],
+      "alias_basis": "Bedrock serves Anthropic, Meta, Mistral, Cohere and Amazon models. 'amazon-web-services' is registered HERE and not on the amazon vendor entry on purpose: it names where a model ran. Registering it makes the refusal precise ('a hosting_substrate, not a vendor identity') instead of the weaker 'not in the registry'. Reading it as a vendor would let an Anthropic-on-Bedrock reviewer pass as cross-vendor against an Anthropic executor."
     },
     {
       "id": "vertex",
       "display_name": "Google Vertex AI (hosting plane)",
       "kind": "hosting_substrate",
       "establishes_distinctness": false,
-      "aliases": ["vertex", "vertex-ai", "vertexai", "gcp-vertex"],
-      "alias_basis": "Vertex AI serves Anthropic models as well as Google's own. Same trap as bedrock."
+      "aliases": ["vertex", "vertex-ai", "vertexai", "gcp-vertex", "google-cloud", "gcp"],
+      "alias_basis": "Vertex AI serves Anthropic models as well as Google's own. Same trap as bedrock. 'google-cloud' and 'gcp' are registered here rather than on the google vendor entry, and this placement is DEFENSIVE: because candidates are tried exact-first, an explicit hosting-plane alias survives even if someone later adds 'cloud' to descriptor_suffix_tokens, which would otherwise fold 'Google Cloud' into vendor google and pass an Anthropic-on-Vertex reviewer as cross-vendor."
     },
     {
       "id": "aggregator",
