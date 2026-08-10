@@ -9,6 +9,10 @@ import pytest
 from coordination.errors import LeaseConflict, PathOutsideRoot
 from coordination.leases import (
     DEFAULT_LEASE_TTL,
+    # Imported rather than re-derived from sys.platform: the platform gates below must read the
+    # SAME constant the implementation branches on, or the test and the code can disagree about
+    # which filesystem semantics apply and the gate silently protects nothing.
+    _CASE_INSENSITIVE_FS,
     Lease,
     LeaseMode,
     LeaseOutcome,
@@ -93,11 +97,41 @@ def test_relative_and_absolute_forms_normalise_together(tmp_path: Path) -> None:
     assert a == b == "sub/file.py"
 
 
+@pytest.mark.skipif(
+    not _CASE_INSENSITIVE_FS,
+    reason=(
+        "asserts case-insensitive, backslash-folding filesystem semantics. On a case-SENSITIVE "
+        "filesystem `sub/File.PY` and `sub/file.py` are genuinely different files, and "
+        "`sub\\file.py` is one filename containing a backslash - so NOT folding them is the "
+        "correct answer there. normalize_lease_path is platform-sensitive by design "
+        "(`leases.py`: `return text.casefold() if _CASE_INSENSITIVE_FS else text`); folding on "
+        "Linux would manufacture FALSE lease collisions between distinct files and block "
+        "legitimate concurrent work. Gated on the same constant the implementation reads, so the "
+        "test and the code cannot disagree about which platform they are on."
+    ),
+)
 def test_backslash_and_case_fold_on_windows(tmp_path: Path) -> None:
     """Two sessions writing ``a/B.py`` and ``A\\b.py`` must collide, not coexist."""
     a = normalize_lease_path(tmp_path, "sub/File.PY")
     b = normalize_lease_path(tmp_path, "sub\\file.py")
     assert a == b
+
+
+@pytest.mark.skipif(
+    _CASE_INSENSITIVE_FS,
+    reason="the inverse case: only meaningful on a case-SENSITIVE filesystem",
+)
+def test_case_is_preserved_on_a_case_sensitive_filesystem(tmp_path: Path) -> None:
+    """The other half of the pair, so neither platform is left unasserted.
+
+    Without this, gating the test above would mean NO platform checks the folding behaviour at
+    all on Linux -- a skip that silently removes coverage rather than scoping it. Two distinct
+    files must stay distinct here, which is the property that makes lease collision correct.
+    """
+    a = normalize_lease_path(tmp_path, "sub/File.PY")
+    b = normalize_lease_path(tmp_path, "sub/file.py")
+    assert a != b, "distinct files must not collapse to one lease key"
+    assert a == "sub/File.PY"
 
 
 def test_escape_via_dotdot_is_rejected(tmp_path: Path) -> None:
