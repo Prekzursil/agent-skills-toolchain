@@ -10,6 +10,7 @@ rather than covered incidentally.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -159,10 +160,17 @@ def test_a_subagent_is_never_nudged(gate):
 
 
 def test_fires_on_a_stale_register_for_the_monitor_program(gate):
+    """Asserts the MONITOR PREFIX, like its two siblings below, not one specific id.
+
+    It previously pinned `R-M01`. That id was closed on evidence, it left the open set, and this
+    test went red for a reason unrelated to the behaviour under test - which is that a monitor
+    prompt routes to monitor items. The program-b and harness siblings already assert `R-B` / `R-H`;
+    this one was the odd one out, and pinning a live id in a data-driven test is a slow fuse.
+    """
     result = gate.run(event(MONITOR_PROMPT))
     assert result.action == "inject"
     body = result.additional_context[0]
-    assert "R-M01" in body
+    assert "R-M" in body
 
 
 def test_fires_on_a_stale_register_for_program_b(gate):
@@ -289,7 +297,10 @@ def test_session_start_emits_one_short_digest(gate):
     assert result.action == "inject"
     assert result.reason_code == "register_gate_digest"
     body = result.additional_context[0]
-    assert "69 open" in body
+    # The digest must REPORT a count, not report one particular count. Pinning the literal
+    # "69 open" made this test a tripwire on the register's contents rather than on the digest's
+    # shape, so closing ten items broke a test about brevity.
+    assert re.search(r"\b\d+ open\b", body), f"digest states no open count: {body!r}"
     assert len(body.splitlines()) <= 3
 
 
@@ -422,5 +433,12 @@ def test_the_predicate_is_the_one_the_measurement_used(catalog):
     the published rate would describe a gate that no longer exists."""
     items = [item for item in catalog["items"] if not item.get("disposition")]
     matched, programs = RegisterGateModule().would_fire(MONITOR_PROMPT, items)
-    assert "R-M01" in matched
+    # Assert the predicate's BEHAVIOUR - a monitor prompt matches open monitor items and routes to
+    # the MONITOR program - not that one particular id is still open. This pinned `R-M01`, which
+    # was closed on evidence and therefore filtered out by the `not disposition` line two above,
+    # turning an entry-point test red for a data change it does not test.
+    assert matched, "the predicate matched nothing; the entry point may have moved"
+    assert all(mid.startswith("R-M") for mid in matched), (
+        f"a monitor prompt matched non-monitor items: {matched}"
+    )
     assert "MONITOR" in programs

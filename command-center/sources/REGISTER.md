@@ -17,7 +17,17 @@ If it still reads this way, the unit died before measuring anything and no verdi
 the sections below carry measured evidence.)
 
 **RAW → DEDUPED: 127 → 103** (24 merged away, 18.9% compression).
-OUTSTANDING 69 · DELIBERATELY-SKIPPED 3 · SUPERSEDED 5 · SETTLED 26.
+**BY STATUS, 2026-08-11: OUTSTANDING 59 · DELIBERATELY-SKIPPED 3 · SUPERSEDED 5 · SETTLED 36.**
+(was `OUTSTANDING 69 … SETTLED 26` until ten items were closed on re-measured evidence — see
+`command-center/CLOSE-VERIFY.json` and each item's `disposition_evidence`.)
+
+**BY ID PREFIX, unchanged: `R-*` 69 · `D-*` 3 · `S-*` 5 · `T-*` 26.** These are a different
+quantity, and until 2026-08-11 they happened to be numerically identical to the status counts —
+every `R-*` item was outstanding and every `T-*` item settled, so one sentence appeared to say both.
+Closing ten `R-*` items separated them for the first time. `OUTSTANDING` counts STATUS (open +
+in-flight + done-claimed + unknown = 59); `R-*` counts IDs (still 69). The parser test
+`test_parser_reproduces_the_registers_own_header_counts` reproduces the PREFIX counts, which is why
+it stayed green while the status line went stale.
 
 Dedupe was by MEANING. Where two readers named the same work differently (`T0-3`/`X5`,
 `B0-SCOPE`/`B0`, `U2`/`MON-WFMON-PREDECESSOR`, `B5-GAMESEC`/`B3`), the merged entry carries **all**
