@@ -386,7 +386,15 @@ def test_receipt_schema_differs_from_head_ONLY_by_the_authorized_d1_delta():
         pytest.skip(f"{rel} is not in HEAD; cannot verify (NOT-CHECKED)")
     head = json.loads(committed.decode("utf-8"))
     working = json.loads((REPO / rel).read_bytes().decode("utf-8"))
-    assert _strip_d1_delta(working) == head, (
+    # THE ANCHOR MOVES. This guard was written while HEAD was the PRE-D1 state, so "strip the
+    # delta and it equals HEAD" held. The moment the D1 work was COMMITTED, HEAD became the
+    # POST-D1 state and stripping the delta made the two differ - the guard went red on a tree
+    # where nothing was wrong, for the second time and for a new reason. Zero difference from
+    # HEAD is strictly SAFER than the permitted-delta case, so accept both: either the working
+    # copy already matches HEAD (the delta has landed), or it differs from HEAD by exactly the
+    # named D1 delta and nothing else. Any third state still fails.
+    landed = working == head
+    assert landed or _strip_d1_delta(working) == head, (
         f"{rel} differs from HEAD by more than the authorized D1 vendor-identity delta"
     )
     # Assert the POSITIVE too: the D1 layer must actually be PRESENT, or this test would
@@ -407,12 +415,19 @@ def test_the_authorized_delta_guard_fires_on_an_unauthorized_edit():
         pytest.skip(f"{rel} is not in HEAD; cannot verify (NOT-CHECKED)")
     head = json.loads(committed.decode("utf-8"))
     working = json.loads((REPO / rel).read_bytes().decode("utf-8"))
-    assert _strip_d1_delta(working) == head  # control: the good state is silent
+    # Same moving-anchor handling as the guard itself: once D1 is committed, HEAD carries the
+    # delta and the good state is plain equality. Accept either, then prove teeth from there.
+    landed = working == head
+    assert (
+        landed or _strip_d1_delta(working) == head
+    )  # control: the good state is silent
 
     def mutate(fn):
         m = json.loads(json.dumps(working))
         fn(m)
-        return _strip_d1_delta(m) != head
+        # Compare against whichever baseline the good state uses, or the mutation would be
+        # measured against the wrong reference and the control would prove nothing.
+        return (m != head) if landed else (_strip_d1_delta(m) != head)
 
     assert mutate(lambda m: m["$defs"].__setitem__("smuggled", {"type": "string"})), (
         "an extra $def slipped past the guard"
