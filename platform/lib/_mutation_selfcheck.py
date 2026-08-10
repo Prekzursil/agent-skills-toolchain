@@ -88,10 +88,23 @@ def main() -> int:
             work = base / f"m{n}" / "platform"
             (work / "lib").mkdir(parents=True, exist_ok=True)
             (work / "schema").mkdir(parents=True, exist_ok=True)
+            (work / "registry").mkdir(parents=True, exist_ok=True)
             # Copy ONLY this unit's files. A recursive copytree of platform/lib races sibling lanes
             # writing their own `*.tmp.<pid>.<hash>` files there and dies with WinError 2 - measured.
-            for name in ("completion_predicate.py", "test_completion_predicate.py"):
+            # vendor_identity.py + VENDOR-REGISTRY.json are REQUIRED since the DEFECT D1 fix:
+            # completion_predicate imports vendor_identity at module top level, so omitting it makes
+            # the `importable` probe below False for every mutant and this tool then reports a
+            # uniformly broken battery instead of a mutation score.
+            for name in (
+                "completion_predicate.py",
+                "test_completion_predicate.py",
+                "vendor_identity.py",
+            ):
                 shutil.copyfile(PLATFORM / "lib" / name, work / "lib" / name)
+            shutil.copyfile(
+                PLATFORM / "registry" / "VENDOR-REGISTRY.json",
+                work / "registry" / "VENDOR-REGISTRY.json",
+            )
             for schema in (PLATFORM / "schema").glob("*.schema.json"):
                 shutil.copyfile(schema, work / "schema" / schema.name)
             if not build_mutant(work, n):
