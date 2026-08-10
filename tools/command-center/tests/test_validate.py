@@ -46,10 +46,17 @@ def _find(catalog: dict, item_id: str) -> dict:
 
 
 def test_real_catalog_is_clean(real, real_graph):
+    """`open` is pinned deliberately: it catches an accidental mass re-disposition.
+
+    69 -> 59 on 2026-08-11, when ten items were closed on re-measured evidence (see
+    command-center/CLOSE-VERIFY.json and the `disposition_evidence` on each). Update this number
+    when items are closed ON PURPOSE; a change you cannot explain is the regression it exists to
+    catch.
+    """
     violations, stats = val.validate(real, graph=real_graph)
     assert violations == [], [str(entry) for entry in violations]
     assert stats["items"] == 103
-    assert stats["open"] == 69
+    assert stats["open"] == 59
     assert stats["acyclic"] is True
 
 
@@ -79,7 +86,17 @@ def test_detects_dangling_dependency(real):
 
 
 def test_detects_closed_item_depending_on_open_item(real):
+    """Both endpoints are pinned HERE, so no live disposition can silently disarm this test.
+
+    It previously planted only the edge (closed `T-01` -> `R-M01`) and relied on R-M01 being OPEN in
+    the live catalog. When R-M01 was closed on evidence, both ends became closed, the violation
+    stopped firing, and the test went red -- a detector disarmed by an unrelated, correct change to
+    the data it borrowed. A bad-state test must construct its whole bad state.
+    """
     bad = copy.deepcopy(real)
+    target = _find(bad, "R-M01")
+    target["status"] = "OPEN"
+    target["disposition"] = None
     _find(bad, "T-01")["dependencies"] = ["R-M01"]
     violations, _ = val.validate(bad)
     assert any(
