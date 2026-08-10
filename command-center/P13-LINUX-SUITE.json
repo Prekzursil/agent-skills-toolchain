@@ -1,0 +1,91 @@
+{
+  "artifact": "P13-LINUX-SUITE",
+  "unit": "depth/p13-blindspot",
+  "status": "MEASURED",
+  "question": "Q03 what platforms were never tested - measured on Linux, not asserted",
+  "environment": {
+    "os": "Ubuntu 24.04 (WSL2)",
+    "python": "3.12.3 (GCC 13.3.0)",
+    "pytest": "8.3.3",
+    "jsonschema": "4.25.1",
+    "repo_path": "/mnt/c/Users/Prekzursil/source/ast-integrate",
+    "home": "/home/prekzursil",
+    "command": "python3 -m pytest platform -q -p no:cacheprovider"
+  },
+  "summary_line": "24 failed, 3875 passed, 37 skipped in 706.79s (0:11:46)",
+  "summary": {
+    "failed": 24,
+    "passed": 3875,
+    "skipped": 37,
+    "seconds": 706.79,
+    "exit_code": 1,
+    "collected": 3936
+  },
+  "windows_baseline_for_comparison": {
+    "failed": 0,
+    "passed": 3847,
+    "skipped": 14,
+    "collected": 3861,
+    "note": "carried figure from the pinned baseline; NOT re-run by this unit"
+  },
+  "deltas": {
+    "failures_linux_minus_windows": 24,
+    "skips_linux_minus_windows": 23,
+    "collected_delta": 75,
+    "collected_delta_note": "UNVERIFIED: more tests collected on Linux than the Windows baseline reports; parametrisation over discovered files is the likely driver but the cause was not investigated. Settling experiment: pytest --collect-only -q on both platforms and diff the node id lists."
+  },
+  "failures": [
+    "platform/coordination/test_docs.py::test_every_resolution_source_anchor_points_at_a_real_file",
+    "platform/coordination/test_leases.py::test_backslash_and_case_fold_on_windows",
+    "platform/routing/test_descriptions.py::test_corpus_stats_reports_a_real_length_distribution",
+    "platform/routing/test_descriptions.py::test_the_platform_authored_inventory_declares_NO_trigger_prose",
+    "platform/routing/test_descriptions.py::test_third_party_described_classes_are_reported_not_asserted",
+    "platform/routing/test_descriptions.py::test_mcp_records_carry_real_domain_vocabulary",
+    "platform/routing/test_index.py::test_verify_floors_PASSES_on_the_live_index",
+    "platform/routing/test_index.py::test_main_returns_zero_on_the_live_inventory",
+    "platform/routing/test_index.py::test_every_card_is_within_the_byte_cap",
+    "platform/routing/test_index.py::test_mirror_duplicates_are_grouped_on_the_live_inventory",
+    "platform/routing/test_index.py::test_cross_class_same_name_records_are_NOT_grouped",
+    "platform/routing/test_regression_no_flood.py::test_the_labelled_set_is_well_formed",
+    "platform/routing/test_regression_no_flood.py::test_the_holdout_is_real_not_decorative",
+    "platform/routing/test_regression_no_flood.py::test_a_query_blind_router_is_cheap_but_irrelevant",
+    "platform/routing/test_regression_no_flood.py::test_the_tail_of_the_repertoire_is_reachable",
+    "platform/routing/test_regression_no_flood.py::test_selection_spans_the_capability_classes",
+    "platform/routing/test_router.py::test_user_override_forces_a_capability_past_the_threshold",
+    "platform/routing/test_router.py::test_user_override_ban_suppresses_a_capability_that_would_otherwise_win",
+    "platform/routing/test_router.py::test_a_ban_beats_a_force_in_the_same_query",
+    "platform/routing/test_router.py::test_a_superseded_tombstone_is_demoted_and_the_reason_recorded",
+    "platform/routing/test_router.py::test_mirror_duplicates_are_not_both_injected",
+    "platform/routing/test_router.py::test_every_selected_capability_carries_a_non_empty_why",
+    "platform/routing/test_router.py::test_rule_context_gates_a_corpus_common_fragment",
+    "platform/routing/test_schema.py::test_every_indexed_record_validates"
+  ],
+  "failures_by_package": {
+    "platform/routing": 22,
+    "platform/coordination": 2
+  },
+  "root_cause": {
+    "verdict": "CONFIRMED for 21 of 24 failures (all in platform/routing)",
+    "mechanism": "platform/routing/index.py:55 sets HOME = Path(os.environ.get('ROUTING_HOME') or Path.home()), and index.py:93-97 binds skills/agents/commands under that HOME. The capability corpus under test is therefore the OPERATOR's LIVE ~/.claude harness, not a committed fixture.",
+    "measurement": "Windows ~/.claude: agents=27 commands=71 skills=79. Linux ~/.claude: agents=0 commands=0 skills=0. Linux indexed 383 records; the test's own positive-form guard asserts >800 and fired: 'corpus implausibly small (383); the walk is probably broken'.",
+    "consequence": "The Phase 8 capability count and every derived precision/recall and bytes-per-query figure are machine-specific and not reproducible in CI or on any other host. This also structurally explains the missing platform/ CI lane: these tests cannot pass on a runner with no ~/.claude harness, so the absence of CI is forced by the design rather than merely forgotten.",
+    "credit_where_due": "The tests are well designed: they assert the POSITIVE form (N of N, plus an explicit implausibly-small floor) which is exactly why the coupling surfaced instead of passing vacuously.",
+    "available_fix_seam": "ROUTING_HOME already exists at index.py:55 and no test sets it. Pointing it at a committed fixture corpus would make the lane hermetic (ci-hygiene.md 2) and unblock a platform/ CI lane."
+  },
+  "not_attributed_to_that_root_cause": [
+    "platform/coordination/test_docs.py::test_every_resolution_source_anchor_points_at_a_real_file",
+    "platform/coordination/test_leases.py::test_backslash_and_case_fold_on_windows",
+    "platform/routing/test_descriptions.py::test_corpus_stats_reports_a_real_length_distribution"
+  ],
+  "control": {
+    "probe": "python3 -m pytest platform/plugin -q on the SAME Linux interpreter",
+    "result": "252 passed in 118.98s",
+    "meaning": "a disjoint subpackage passes cleanly, so the 24 failures are localised - a blanket 'the build breaks on Linux' claim is REFUTED"
+  },
+  "scope_limits": [
+    "the 3 non-routing failures were not individually triaged",
+    "no macOS run was attempted - no macOS host exists on this estate",
+    "the Windows baseline was carried, not re-measured by this unit",
+    "run over /mnt/c (Windows filesystem) so wall-clock is not a fair perf comparison"
+  ]
+}

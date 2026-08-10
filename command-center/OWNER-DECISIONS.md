@@ -2,36 +2,50 @@
 
 # OWNER-DECISIONS
 
-**27 open of 27.** Send as ONE batch — the owner asked explicitly not to be interrupted piecemeal (`sources/REGISTER.md` section 6).
+**25 open of 27.** Send as ONE batch — the owner asked explicitly not to be interrupted piecemeal (`sources/REGISTER.md` section 6).
 
 An answered question is recorded here by flipping its `state` in `WORK-UNIT-CATALOG.json` and re-rendering; the items it gates then stop counting it as a live blocker and must show a next smallest action instead (validator check REACH-4).
 
-| # | state | blocks | question |
-|---|---|---|---|
-| Q3 | OPEN | — | `dark-surface/check.py` is now **97% of the Stop battery** (4.29 s of 4.4 s). Who owns converting it — and does the conversion's typed-silence change get its own both-states row? |
-| Q6 | OPEN | — | RT-01 role-based model floor — adopt the table with T3 (cheap tier) OFF, or run a bounded pilot? Collides with your standing Opus-for-substantive-subagents preference |
-| Q9 | OPEN | — | B-24 measurement-only ratings (no stars, no download counts) — adopt? |
-| Q10 | OPEN | — | J-15 dual-use disclosure review before upstreaming security-bearing code — and apply it to `chore/harness-reconcile-20260808` before merge? |
-| Q11 | OPEN | — | C-32 budget-aware fan-out width profiles — adopt the mechanism; **the numbers are yours** |
-| Q12 | OPEN | — | B-20 plugin-cache GC (12 GB, 230,181 files, 49/57 entries temp orphans) — approve after a dry-run report? |
-| Q13 | OPEN | — | B-10 / M-31 quarantine + review the unregistered marketplace clone that ships its own `hooks/` (CVE-2026-47751 shape). *The one item the author would not defer* |
-| Q14 | OPEN | — | I-02 corpus attrition (364 of 668 executed scripts already deleted by temp sweeps) — adopt copy-on-run now, hold retention? |
-| Q15 | OPEN | — | M-29 deploy the 11 dark cross-vendor skills — into the LAZY vault, starting with 3? |
-| Q16 | OPEN | — | B-01 owner marketplace index — public or private? |
-| Q17 | OPEN | — | `~/CLAUDE.md:31` documents `bd prime --work-type recovery`, which errors *unknown flag* — fix the doc or add the flag? |
-| Q18 | OPEN | — | `.beads/plans/` (documented) vs `.beads/context/` (the only path a live reader checks) — which is canonical? |
-| Q19 | OPEN | R-H10 | `rules/common/owner-ops-authorization.md` is live-only, on no git ref — reconstruct and commit, or accept? *(independently corroborated today: it is one of only 3 LIVE-AHEAD rule files — see R-H10)* |
-| Q20 | OPEN | — | The 6 metaswarm guides + `templates/external-tools-setup.md` are dead links from `~`. Where do they live? Pure fact only you hold |
-| Q21 | OPEN | — | `~/CLAUDE.md` is metaswarm **project** instructions living at `~`, so its mandatory 9-phase gate applies to every session whose cwd is home. Intended? |
-| Q22 | OPEN | R-B04 | `scripts/validate-all-skills.ps1` is unrunnable (resolves a validator under `.agents/skills/.system/` that exists nowhere) — restore or repoint? *(blocks R-B04)* |
-| Q23 | OPEN | — | `dup-guard` has 68 open fires; closing them needs a generic-name stop-list + target-role filter, which make the guard speak less. Precision-vs-recall on a guard with real true positives |
-| Q24 | OPEN | — | Promote `workflow-foundry` into the curated 79-skill set, or leave it in the 330-skill lazy vault? (its description is 1,750 chars — rank 1 of 418, 5.9× median, and descriptions are always-loaded cont |
-| Q25 | OPEN | — | Five hook test files collect **zero** tests under pytest — wire them in, or run them separately and print the count? |
-| OQ-1 | OPEN | R-A03 | **Prompt Two — which option IDs are selected?** The `[PASTE SELECTED OPTION IDS HERE]` placeholder is still literal. `07-OPTION-UNIVERSE.json` carries `owner_decisions: 70` and is the natural source |
-| OQ-2 | OPEN | R-A03 | **Prompt Two — owner overrides and priority ordering?** Without it any executor invents one |
-| OQ-3 | OPEN | R-A03, R-A17 | **Prompt Two — release mode: PR-ONLY / PRIVATE CANARY / PUBLIC MARKETPLACE?** Owner-only gate; Phase 15 branches entirely on it |
-| OQ-4 | OPEN | R-A04 | **Was the 38-item harness tranche an APPROVED substitute for the ≥2,048-unit Prompt Two?** No approval record exists anywhere I searched. If not approved, every artifact calling the tranche "Prompt Tw |
-| OQ-5 | OPEN | R-A05 | **C22/G-05 (the SPEC's 38) vs I3/D07 (the 1.9R adjudication)** — which authority wins? Surfaced 2026-07-24, never answered |
-| OQ-6 | OPEN | R-B08 | **`Diag 1.txt` credentials** — quarantine where, and do you want the blast-radius trace (what indexes that directory) before or after? *Rotation is yours; I will not touch it* |
-| OQ-7 | OPEN | R-B07 | **Program B renumbering** — the prompt and the backlog disagree on B3/B4/B5. Prompt wins by §0 authority order; confirm so it can be renumbered ONCE and never re-litigated |
-| OQ-8 | OPEN | R-M18 | **Enroll the monitor cockpit program into the unified contract, at what priority?** It was never in scope, so it stays invisible until you say so |
+| # | state | blocks | question | answer |
+|---|---|---|---|---|
+| Q3 | OPEN | — | `dark-surface/check.py` is now **97% of the Stop battery** (4.29 s of 4.4 s). Who owns converting it — and does the conversion's typed-silence change get its own both-states row? | — |
+| Q6 | OPEN | — | RT-01 role-based model floor — adopt the table with T3 (cheap tier) OFF, or run a bounded pilot? Collides with your standing Opus-for-substantive-subagents preference | — |
+| Q9 | OPEN | — | B-24 measurement-only ratings (no stars, no download counts) — adopt? | — |
+| Q10 | OPEN | — | J-15 dual-use disclosure review before upstreaming security-bearing code — and apply it to `chore/harness-reconcile-20260808` before merge? | — |
+| Q11 | OPEN | — | C-32 budget-aware fan-out width profiles — adopt the mechanism; **the numbers are yours** | — |
+| Q12 | OPEN | — | B-20 plugin-cache GC (12 GB, 230,181 files, 49/57 entries temp orphans) — approve after a dry-run report? | — |
+| Q13 | OPEN | — | B-10 / M-31 quarantine + review the unregistered marketplace clone that ships its own `hooks/` (CVE-2026-47751 shape). *The one item the author would not defer* | — |
+| Q14 | OPEN | — | I-02 corpus attrition (364 of 668 executed scripts already deleted by temp sweeps) — adopt copy-on-run now, hold retention? | — |
+| Q15 | OPEN | — | M-29 deploy the 11 dark cross-vendor skills — into the LAZY vault, starting with 3? | — |
+| Q16 | OPEN | — | B-01 owner marketplace index — public or private? | — |
+| Q17 | OPEN | — | `~/CLAUDE.md:31` documents `bd prime --work-type recovery`, which errors *unknown flag* — fix the doc or add the flag? | — |
+| Q18 | OPEN | — | `.beads/plans/` (documented) vs `.beads/context/` (the only path a live reader checks) — which is canonical? | — |
+| Q19 | OPEN | R-H10 | `rules/common/owner-ops-authorization.md` is live-only, on no git ref — reconstruct and commit, or accept? *(independently corroborated today: it is one of only 3 LIVE-AHEAD rule files — see R-H10)* | — |
+| Q20 | OPEN | — | The 6 metaswarm guides + `templates/external-tools-setup.md` are dead links from `~`. Where do they live? Pure fact only you hold | — |
+| Q21 | OPEN | — | `~/CLAUDE.md` is metaswarm **project** instructions living at `~`, so its mandatory 9-phase gate applies to every session whose cwd is home. Intended? | — |
+| Q22 | OPEN | R-B04 | `scripts/validate-all-skills.ps1` is unrunnable (resolves a validator under `.agents/skills/.system/` that exists nowhere) — restore or repoint? *(blocks R-B04)* | — |
+| Q23 | OPEN | — | `dup-guard` has 68 open fires; closing them needs a generic-name stop-list + target-role filter, which make the guard speak less. Precision-vs-recall on a guard with real true positives | — |
+| Q24 | OPEN | — | Promote `workflow-foundry` into the curated 79-skill set, or leave it in the 330-skill lazy vault? (its description is 1,750 chars — rank 1 of 418, 5.9× median, and descriptions are always-loaded cont | — |
+| Q25 | OPEN | — | Five hook test files collect **zero** tests under pytest — wire them in, or run them separately and print the count? | — |
+| OQ-1 | OPEN | R-A03 | **Prompt Two — which option IDs are selected?** The `[PASTE SELECTED OPTION IDS HERE]` placeholder is still literal. `07-OPTION-UNIVERSE.json` carries `owner_decisions: 70` and is the natural source | — |
+| OQ-2 | OPEN | R-A03 | **Prompt Two — owner overrides and priority ordering?** Without it any executor invents one | — |
+| OQ-3 | ANSWERED | — | **Prompt Two — release mode: PR-ONLY / PRIVATE CANARY / PUBLIC MARKETPLACE?** Owner-only gate; Phase 15 branches entirely on it | PR-ONLY. |
+| OQ-4 | ANSWERED | — | **Was the 38-item harness tranche an APPROVED substitute for the ≥2,048-unit Prompt Two?** No approval record exists anywhere I searched. If not approved, every artifact calling the tranche "Prompt Tw | NO - the 38-item tranche was NOT an approved substitute. |
+| OQ-5 | OPEN | R-A05 | **C22/G-05 (the SPEC's 38) vs I3/D07 (the 1.9R adjudication)** — which authority wins? Surfaced 2026-07-24, never answered | — |
+| OQ-6 | OPEN | R-B08 | **`Diag 1.txt` credentials** — quarantine where, and do you want the blast-radius trace (what indexes that directory) before or after? *Rotation is yours; I will not touch it* | — |
+| OQ-7 | OPEN | R-B07 | **Program B renumbering** — the prompt and the backlog disagree on B3/B4/B5. Prompt wins by §0 authority order; confirm so it can be renumbered ONCE and never re-litigated | — |
+| OQ-8 | OPEN | R-M18 | **Enroll the monitor cockpit program into the unified contract, at what priority?** It was never in scope, so it stays invisible until you say so | — |
+
+## Answered — the decision of record
+
+### OQ-3 — PR-ONLY.
+
+Release mode is PR-ONLY: propose changes as pull requests, never a private canary and never a public marketplace release. Phase 15 branches on this and now has its branch.
+
+*Answered 2026-08-10. Provenance: owner statement in session 30bd50d4 (spoken, not previously committed - this record is the fix for that gap).*
+
+### OQ-4 — NO - the 38-item tranche was NOT an approved substitute.
+
+The owner selected 'Run the real Prompt Two' - the full >=2,048 work units, 21 phases and 13-file command center - and explicitly did not accept the 38-item harness tranche as a stand-in. Every artifact that calls the tranche 'Prompt Two' is therefore mislabelled, which is the consequence OQ-4's own text predicted.
+
+*Answered 2026-08-10. Provenance: owner statement in session 30bd50d4 (spoken, not previously committed - this record is the fix for that gap).*

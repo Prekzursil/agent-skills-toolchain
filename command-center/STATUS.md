@@ -10,7 +10,7 @@ Regenerate: `python tools/command-center/render.py`. Verify: `python tools/comma
 
 | program | open | ready | blocked | owner-gated |
 |---|---|---|---|---|
-| A-toolchain | 32 | 17 | 15 | 4 |
+| A-toolchain | 32 | 17 | 15 | 2 |
 | HARNESS | 10 | 9 | 1 | 1 |
 | MONITOR | 19 | 16 | 3 | 1 |
 | B-workflow_design | 8 | 8 | 0 | 3 |
@@ -25,7 +25,7 @@ R-A01, R-A02, R-A05, R-A06, R-A07, R-A08, R-A09, R-A11, R-A12, R-A13, R-A15, R-A
 
 ## Waiting on an owner answer
 
-R-A03, R-A04, R-A05, R-A17, R-B04, R-B07, R-B08, R-H10, R-M18
+R-A03, R-A05, R-B04, R-B07, R-B08, R-H10, R-M18
 
 ## Deferred (still open; returns on its own)
 
