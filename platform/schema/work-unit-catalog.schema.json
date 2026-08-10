@@ -16,6 +16,10 @@
       "$ref": "#/$defs/defaults_block",
       "$comment": "OPTIONAL authoring convenience only. A field present here does NOT satisfy that field's per-unit requirement; the resolver in platform/lib/wfdsl/resolve.py fills a MISSING field from here only in explicit 'resolved' mode, and the raw catalog contract still requires all 19 per unit."
     },
+    "tool_policy": {
+      "$ref": "https://schema.ast-integrate.local/workflow-dsl/1.0.0#/$defs/tool_policy",
+      "$comment": "The authorization plane for `work_units`, read by platform/lib/wfdsl/semantics.py::check_work_unit_authorization (SEM-008..SEM-011). It deliberately $refs the DSL plane's EXISTING `$defs/tool_policy` rather than declaring a second vocabulary: the two planes share one allow/deny/require_owner_approval partition with `default: deny`, so a policy authored for a workflow reads identically here (platform/architecture/TOURNAMENT-VERDICT.md 1.1 and 3.1 - a duplicate control plane was ruled inadmissible). OPTIONAL in the schema, but its ABSENCE is not permissive: SEM-008 fails closed and reports every requested tool as denied, so a catalog with no policy is a red gate, not a skipped one. Note that `$defs/tool_policy` sets additionalProperties:false, so the instance carries no `$comment` of its own - the rationale for each entry lives in command-center/authz_apply_fixes.py and command-center/D2-WORKUNIT-AUTHZ.md."
+    },
     "items": {
       "type": "array",
       "$comment": "the 33-field backlog register - a DIFFERENT schema; validated by its own contract, not by this one",
