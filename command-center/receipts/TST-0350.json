@@ -161,16 +161,17 @@
   {
    "consumer": ".github/workflows/quality.yml gate-tests-coverage (platform)",
    "artifact_path": "tools/measure-guard/suitefloor.py",
-   "executed": false,
-   "read_ok": false,
+   "executed": true,
+   "read_ok": true,
    "probe": {
-    "role": "source",
-    "method": "static-analysis",
-    "command": "git -C C:\\Users\\Prekzursil\\source\\ast-integrate grep -n suitefloor -- .github/workflows/quality.yml",
-    "raw_output": ".github/workflows/quality.yml:405:      # nothing, both derived from defects measured on this repo. `suitefloor` gives every\n.github/workflows/quality.yml:416:          python tools/measure-guard/suitefloor.py --all\n.github/workflows/quality.yml:1377:      # Delegated to tools/measure-guard/suitefloor.py rather than inlined here. The first version\n.github/workflows/quality.yml:1384:        run: python tools/measure-guard/suitefloor.py --suite platform",
-    "fingerprint": "8ad84a2c5c9cd7cc",
+    "role": "verifier",
+    "method": "command",
+    "command": "gh run view 31410194562 --log | grep SUCCESS:suite-floor",
+    "raw_output": "gate-tests-coverage (platform) / gate-tests-coverage platform (collection floor):\n  OK   platform: collected 3946 >= floor 3900\nSUCCESS:suite-floor 1 suite(s) at or above floor\ngate-tests-coverage (python packages) / gate-tests-coverage measure-guard:\n  20 passed in 2.90s\n  OK   platform: collected 3946 >= floor 3900\n  OK   command-center: collected 61 >= floor 55\nSUCCESS:suite-floor 2 suite(s) at or above floor",
+    "fingerprint": "ci-31410194562-a274f74c",
     "exit_code": 0
-   }
+   },
+   "exit_code": 0
   }
  ],
  "residual_unknowns": [
@@ -188,13 +189,18 @@
    "claim": "The floor margins (3900 vs 3946; 55 vs 61) are judgement, not derived from a measured churn rate.",
    "verdict": "NOT-CHECKED",
    "settling_experiment": "Measure collected-count deltas per commit over the last 50 commits and set each margin above the largest single-commit decrease."
+  },
+  {
+   "claim": "Condition 12 is now SATISFIED for suitefloor: the CI step executed it on a GitHub runner at a274f74c and both invocations exited 0. That run also measured 3,946 collected independently on a hosted runner, a THIRD platform after the WSL working tree and a WSL fresh clone, so the floor's reference count is not machine-specific.",
+   "verdict": "CONFIRMED",
+   "settling_experiment": "Already settled: gh run view 31410194562 --json jobs shows gate-tests-coverage (platform) success with SUCCESS:suite-floor in its log."
   }
  ],
  "failure": {
   "classification": [
    "blocked-on-independent-review"
   ],
-  "reason": "All required tests pass and three negative controls each fired on the bad state and were silent on the good one. SUCCESS is still forbidden: no independent reviewer has recorded PASS, and the wired CI step has not yet executed on a runner, so condition 12 is unsatisfied.",
-  "blocked_on": "independent reviewer assignment; first CI execution of the wired step"
+  "reason": "All required tests pass and three negative controls each fired on the bad state and were silent on the good one. The CI consumer HAS now executed (run 31410194562, exit 0), so condition 12 is satisfied. SUCCESS remains forbidden for exactly one reason: no independent reviewer has recorded PASS, and receipt_core states that self-review is not review.",
+  "blocked_on": "independent reviewer assignment ONLY; condition 12 cleared by CI run 31410194562"
  }
 }
