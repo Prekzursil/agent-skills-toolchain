@@ -63,7 +63,12 @@ def claim_id(cluster_members: list[str]) -> str:
     Stable across runs and independent of iteration order, so the same corpus always
     produces the same id for the same mechanism cluster.
     """
-    h = hashlib.sha1("|".join(sorted(cluster_members)).encode("utf-8")).hexdigest()[:12]
+    # nosemgrep: quality.opengrep.python-weak-hash-md5-sha1 -- non-cryptographic cluster key,
+    # not a security control. sha1 is kept (not upgraded to sha256) because the id is embedded
+    # in already-emitted CLM-* claim ids; changing the algorithm would renumber the whole corpus.
+    h = hashlib.sha1(
+        "|".join(sorted(cluster_members)).encode("utf-8"), usedforsecurity=False
+    ).hexdigest()[:12]
     return f"CLM-{h}"
 
 
