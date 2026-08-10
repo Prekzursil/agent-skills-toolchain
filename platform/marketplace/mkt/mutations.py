@@ -105,6 +105,21 @@ def load_mutant(source: str, *, name: str = MUTANT_MODULE) -> Any:
     module.__package__ = "mkt"
     sys.modules[name] = module
     try:
+        # Executing dynamically-built code IS the mechanism here, so the rule's advice --
+        # "use explicit dispatch" -- has nothing to dispatch to: the whole point is to run a
+        # deliberately BROKEN variant of mkt/install.py and prove the gate under test rejects
+        # it. `source` comes from mutate() applied to this repo's own committed install.py,
+        # never from user input or the network, and the mutant module is popped from
+        # sys.modules on any failure so a broken mutant cannot masquerade as a passing gate.
+        #
+        # NOT rewritten as spec_from_file_location + loader.exec_module: that calls exec on the
+        # compiled code object internally, so it would clear the scanner while changing nothing
+        # about what actually runs, and would leave the next reader believing there is no
+        # dynamic execution in this file. Suppress honestly rather than launder.
+        #
+        # semgrep only honours a suppression inline or on the line DIRECTLY above the match, so
+        # this comment must stay adjacent to the call.
+        # nosemgrep: quality.opengrep.python-exec-use
         exec(compile(source, "<mutant mkt/install.py>", "exec"), module.__dict__)  # noqa: S102
     except (
         Exception

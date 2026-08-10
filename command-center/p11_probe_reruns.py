@@ -195,6 +195,13 @@ with tempfile.TemporaryDirectory() as td:
     buf = io.StringIO()
     try:
         with redirect_stdout(buf):
+            # `tool_src` is HEAD's own committed platform/lib/_mutation_selfcheck.py, executed
+            # against an older checkout of the tree to reconstruct that wave's mutation baseline.
+            # Running the CURRENT tool over an OLD tree is the entire point -- it isolates
+            # tool-vs-tree as the cause of a baseline disagreement -- and no explicit dispatch
+            # can substitute for executing the tool's source. Repo-committed bytes only.
+            # semgrep honours a suppression only inline or on the line DIRECTLY above.
+            # nosemgrep: quality.opengrep.python-exec-use
             exec(compile(tool_src, "<HEAD tool vs W1 tree>", "exec"), ns)  # noqa: S102
             rc = ns["main"]()  # type: ignore[operator]
         text = buf.getvalue()

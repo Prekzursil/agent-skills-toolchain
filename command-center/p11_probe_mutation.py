@@ -47,6 +47,14 @@ def run_source(src: str, label: str) -> dict[str, object]:
     rc: int | str
     try:
         with redirect_stdout(buf):
+            # `src` is this repo's OWN committed platform/lib/_mutation_selfcheck.py, read via
+            # `git cat-file` for one arm and off the worktree for the other, so the two can be
+            # run in-process and their verdicts compared. Never user input, never network. The
+            # rule's advice -- "use explicit dispatch" -- cannot apply: the arms differ only in
+            # their source bytes, which is precisely what has to be executed. This probe is how
+            # the HEAD-vs-worktree split (0/12 killed vs 12/12) was found at all.
+            # semgrep honours a suppression only inline or on the line DIRECTLY above.
+            # nosemgrep: quality.opengrep.python-exec-use
             exec(compile(src, f"<{label}:{REL}>", "exec"), ns)  # noqa: S102
             rc = ns["main"]()  # type: ignore[operator]
     except Exception as exc:  # pragma: no cover - reported, not swallowed
