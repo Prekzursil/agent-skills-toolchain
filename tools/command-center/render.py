@@ -296,10 +296,6 @@ def write_all(root: Path, catalog: dict[str, Any]) -> list[Path]:
             text if text.endswith("\n") else text + "\n", encoding="utf-8", newline="\n"
         )
         written.append(path)
-    manifest_path = root / "ARTIFACT-MANIFEST.json"
-    cat.save(render_manifest(root), manifest_path)
-    written.append(manifest_path)
-
     # DEPENDENCY-GRAPH.json is derived from the catalog exactly like the two markdown
     # files above, but until now only `close.py` regenerated it. That made the procedure
     # this tool's own output documents -- "an answered question is recorded by flipping
@@ -308,9 +304,25 @@ def write_all(root: Path, catalog: dict[str, Any]) -> list[Path]:
     # re-rendering left validate.py reporting V-GRAPH drift with no documented way to
     # clear it short of running an unrelated close. Measured 2026-08-10 by following that
     # documented procedure and landing on a V-GRAPH violation.
-    graph_path = cat.graph_path()
+    #
+    # ORDER IS LOAD-BEARING: the graph must be written BEFORE render_manifest(), because
+    # the manifest hashes what is ON DISK. Appending the graph write after the manifest --
+    # the first version of this fix -- made every single render emit a manifest describing
+    # the PREVIOUS graph, so `render.py --check` failed immediately after `render.py` and
+    # only converged on a second run. Measured: DEPENDENCY-GRAPH.json 25317 -> 25261 with
+    # the manifest still recording 25317.
+    # Derived from `root`, NOT from cat.graph_path(): every other write in this function is
+    # parameterised on root, and a function that writes one output to the real repo no matter
+    # what root it was handed cannot be tested without editing the live tree. This program's
+    # own architecture panel already found that shape once -- a test running with cwd=REPO
+    # silently repairing the real tree -- and it is not worth reintroducing for one line.
+    graph_path = root / cat.graph_path().name
     cat.save(cat.build_graph(catalog), graph_path)
     written.append(graph_path)
+
+    manifest_path = root / "ARTIFACT-MANIFEST.json"
+    cat.save(render_manifest(root), manifest_path)
+    written.append(manifest_path)
     return written
 
 
