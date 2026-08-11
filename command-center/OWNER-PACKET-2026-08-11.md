@@ -162,6 +162,43 @@ that way it reports **174 passed, 0 failed, 0 skipped**. Exactly the trap
 
 ---
 
+## 4c. 735 KB OF WORK EXISTS IN NO VERSION-CONTROLLED LOCATION
+
+Two no-remote repos under `source/_advver_M14/` — `chk` (1 commit) and `scratch` (**zero commits**,
+40 uncommitted). Both are working copies of the toolchain, so the hygiene hook's "this work exists
+nowhere else" needed testing rather than believing. Measured by content, LF-normalised, against every
+tracked blob in `ast-integrate` (`command-center/triage_noremote.py`, controls pass):
+
+| repo | files | VARIANT (path in repo, content differs) | **ORPHAN (no such path anywhere)** |
+|---|---|---|---|
+| `chk` | 7,770 | 350 | **77** |
+| `scratch` | 7,772 | 348 | **77** |
+
+The 350 variants are diverged copies of tracked files — low risk. The **77 orphans, 735,139 bytes**,
+are whole subsystems that exist only here:
+
+| files | area |
+|---|---|
+| 46 | `tools/web/agentify-desktop` |
+| 17 | `tools/mcp/codex-orchestrator` (package.json, src/, integrations/codex/, manager/, orchestrator/) |
+| 7 | `tools/web/promptbridge-talk-lane` |
+| 3 | `tools/mcp/agent-lanes-codex` |
+| 2 | `tools/web/agent-lanes-chatgpt-web` |
+| 2 | root `mcp-server.mjs`, `docs/incubating/tools/agentify-web-chatgpt-bridge.md` |
+
+`chk` at least has them in local git. **`scratch` has zero commits**, so its copies are working-tree
+files only — deleting that directory destroys them with no recovery.
+
+**Per your standing decision I triaged and stopped: no remote created, nothing pushed, nothing
+deleted.** The decision is whether these subsystems are live work worth a remote, or abandoned
+experiments worth deleting. I have not read them for intent — only measured their uniqueness.
+
+**Method correction, disclosed:** my first working run reported "427 unique files". That was an
+overclaim — it counted modified copies of tracked files as unique. Splitting VARIANT from ORPHAN
+took the real at-risk number from 427 to 77.
+
+---
+
 ## 5. THINGS THAT ARE BROKEN AND ARE NOT MINE TO FIX
 
 - **`autofix-models` has never worked.** It triggers on `workflow_run` completion of `quality` and
