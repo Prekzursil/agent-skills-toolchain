@@ -314,6 +314,25 @@ def test_dispatch_transport_error_is_named_in_the_terminal_record(tmp_path):
 
 
 def test_every_registered_provider_event_has_valid_native_wire_output(tmp_path):
+    """KNOWN INTERMITTENT FAILURE under load, measured 2026-08-11. Not yet root-caused.
+
+    It spawns ``dispatcher.py`` as a SUBPROCESS once per event type -- 11 processes, ~27s alone --
+    which makes it the most timing-sensitive test in this suite.
+
+        isolated          5 runs, 5 passes
+        in the full suite 2 of 6 runs failed (~33%; two later capture attempts both passed, which
+                          is why the assertion text is still unrecorded)
+        failure count     varies between runs (2 once, 1 another) -- nondeterministic
+        timing            BOTH failing runs were the SLOWEST of their batch (368s, 357s) against
+                          184s / 157s / 143s for passing ones
+
+    So the signature is contention, not logic and not test ORDER: both failures happened while other
+    suites and `gh` pollers were running concurrently on the same box. CI installs no ordering
+    plugin, runs one suite at a time on a dedicated runner, and is green (835/835).
+
+    If you see this red locally, re-run it alone before believing it. If you see it red in CI, that
+    IS new information -- say so, because it has not happened yet.
+    """
     script = Path(__file__).resolve().parents[1] / "dispatcher.py"
     payloads = {
         "SessionStart": {"source": "startup"},
