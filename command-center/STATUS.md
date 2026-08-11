@@ -2,7 +2,7 @@
 
 # STATUS
 
-**59 open / 103 total.** Reachability: ALL items reach a final disposition. Graph: 18 edges, acyclic=True.
+**58 open / 103 total.** Reachability: ALL items reach a final disposition. Graph: 18 edges, acyclic=True.
 
 Regenerate: `python tools/command-center/render.py`. Verify: `python tools/command-center/validate.py`.
 
@@ -10,22 +10,22 @@ Regenerate: `python tools/command-center/render.py`. Verify: `python tools/comma
 
 | program | open | ready | blocked | owner-gated |
 |---|---|---|---|---|
-| A-toolchain | 25 | 13 | 12 | 2 |
+| A-toolchain | 24 | 20 | 4 | 1 |
 | HARNESS | 10 | 9 | 1 | 1 |
-| MONITOR | 18 | 16 | 2 | 1 |
+| MONITOR | 18 | 16 | 2 | 0 |
 | B-workflow_design | 6 | 6 | 0 | 3 |
 
 ## Ready now (no open dependency)
 
-R-A03, R-A04, R-A14, R-A18, R-A19, R-A21, R-A22, R-A25, R-A26, R-A27, R-A28, R-A29, R-A30, R-B01, R-B02, R-B03, R-B04, R-B07, R-B08, R-H01, R-H02, R-H03, R-H04, R-H05, R-H06, R-H08, R-H09, R-H10, R-M02, R-M03, R-M04, R-M05, R-M07, R-M08, R-M09, R-M10, R-M11, R-M12, R-M13, R-M14, R-M15, R-M16, R-M18, R-M19
+R-A02, R-A04, R-A07, R-A08, R-A11, R-A13, R-A14, R-A15, R-A16, R-A17, R-A18, R-A19, R-A21, R-A22, R-A25, R-A26, R-A27, R-A28, R-A29, R-A30, R-B01, R-B02, R-B03, R-B04, R-B07, R-B08, R-H01, R-H02, R-H03, R-H04, R-H05, R-H06, R-H08, R-H09, R-H10, R-M02, R-M03, R-M04, R-M05, R-M07, R-M08, R-M09, R-M10, R-M11, R-M12, R-M13, R-M14, R-M15, R-M16, R-M18, R-M19
 
 ## Blocked (waiting on another item)
 
-R-A01, R-A02, R-A05, R-A07, R-A08, R-A11, R-A13, R-A15, R-A16, R-A17, R-A31, R-A32, R-H07, R-M06, R-M17
+R-A01, R-A05, R-A31, R-A32, R-H07, R-M06, R-M17
 
 ## Waiting on an owner answer
 
-R-A03, R-A05, R-B04, R-B07, R-B08, R-H10, R-M18
+R-A05, R-B04, R-B07, R-B08, R-H10
 
 ## Deferred (still open; returns on its own)
 

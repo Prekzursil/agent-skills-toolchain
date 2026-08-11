@@ -2,7 +2,7 @@
 
 # OWNER-DECISIONS
 
-**25 open of 27.** Send as ONE batch — the owner asked explicitly not to be interrupted piecemeal (`sources/REGISTER.md` section 6).
+**22 open of 29.** Send as ONE batch — the owner asked explicitly not to be interrupted piecemeal (`sources/REGISTER.md` section 6).
 
 An answered question is recorded here by flipping its `state` in `WORK-UNIT-CATALOG.json` and re-rendering; the items it gates then stop counting it as a live blocker and must show a next smallest action instead (validator check REACH-4).
 
@@ -27,16 +27,30 @@ An answered question is recorded here by flipping its `state` in `WORK-UNIT-CATA
 | Q23 | OPEN | — | `dup-guard` has 68 open fires; closing them needs a generic-name stop-list + target-role filter, which make the guard speak less. Precision-vs-recall on a guard with real true positives | — |
 | Q24 | OPEN | — | Promote `workflow-foundry` into the curated 79-skill set, or leave it in the 330-skill lazy vault? (its description is 1,750 chars — rank 1 of 418, 5.9× median, and descriptions are always-loaded cont | — |
 | Q25 | OPEN | — | Five hook test files collect **zero** tests under pytest — wire them in, or run them separately and print the count? | — |
-| OQ-1 | OPEN | R-A03 | **Prompt Two — which option IDs are selected?** The `[PASTE SELECTED OPTION IDS HERE]` placeholder is still literal. `07-OPTION-UNIVERSE.json` carries `owner_decisions: 70` and is the natural source | — |
-| OQ-2 | OPEN | R-A03 | **Prompt Two — owner overrides and priority ordering?** Without it any executor invents one | — |
+| OQ-1 | ANSWERED | — | **Prompt Two — which option IDs are selected?** The `[PASTE SELECTED OPTION IDS HERE]` placeholder is still literal. `07-OPTION-UNIVERSE.json` carries `owner_decisions: 70` and is the natural source | The 70 `owner_decisions` in 07-OPTION-UNIVERSE.json (delegated default). |
+| OQ-2 | ANSWERED | — | **Prompt Two — owner overrides and priority ordering?** Without it any executor invents one | Phase order, then unblocking power (delegated default). |
 | OQ-3 | ANSWERED | — | **Prompt Two — release mode: PR-ONLY / PRIVATE CANARY / PUBLIC MARKETPLACE?** Owner-only gate; Phase 15 branches entirely on it | PR-ONLY. |
 | OQ-4 | ANSWERED | — | **Was the 38-item harness tranche an APPROVED substitute for the ≥2,048-unit Prompt Two?** No approval record exists anywhere I searched. If not approved, every artifact calling the tranche "Prompt Tw | NO - the 38-item tranche was NOT an approved substitute. |
 | OQ-5 | OPEN | R-A05 | **C22/G-05 (the SPEC's 38) vs I3/D07 (the 1.9R adjudication)** — which authority wins? Surfaced 2026-07-24, never answered | — |
 | OQ-6 | OPEN | R-B08 | **`Diag 1.txt` credentials** — quarantine where, and do you want the blast-radius trace (what indexes that directory) before or after? *Rotation is yours; I will not touch it* | — |
 | OQ-7 | OPEN | R-B07 | **Program B renumbering** — the prompt and the backlog disagree on B3/B4/B5. Prompt wins by §0 authority order; confirm so it can be renumbered ONCE and never re-litigated | — |
-| OQ-8 | OPEN | R-M18 | **Enroll the monitor cockpit program into the unified contract, at what priority?** It was never in scope, so it stays invisible until you say so | — |
+| OQ-8 | ANSWERED | — | **Enroll the monitor cockpit program into the unified contract, at what priority?** It was never in scope, so it stays invisible until you say so | Enrol the monitor cockpit at the same priority as the other MONITOR rows (delegated default). |
+| OQ-9 | ANSWERED | — | **REL-0003 - what substitutes for the canary under PR-ONLY?** Spec :11125 and promotion gate :11131 both name a canary that PR-ONLY does not have. THE largest gate in the program: 42 of the 43 Phase-1 | A green CI install/upgrade/rollback rehearsal stands in for the canary (delegated default). |
+| OQ-10 | ANSWERED | — | **What does a `B\d+` (bucket) dependency MEAN?** Undefined in the catalog contract, defaults and tool_policy, and twice in the 29,273-line spec, neither time as a definition (control: 'phase' appears  | A bucket dependency is satisfied by a bucket-level gate artifact (delegated default). |
 
 ## Answered — the decision of record
+
+### OQ-1 — The 70 `owner_decisions` in 07-OPTION-UNIVERSE.json (delegated default).
+
+Accept the existing list verbatim (A-01, A-03, A-12, A-13, A-17, A-18, ... 70 ids); the [PASTE SELECTED OPTION IDS HERE] placeholder is filled by it. A flagged conflict was investigated and DISSOLVED before answering: an audit lane reported 70 conflicting with a repo figure of 123, but _USER-PROMPTS.md:28780 reads 'Buckets: now 123 . platform 119 . research 41; 70 carry OWNER-DECISION' - 123 is a BUCKET count, a different quantity. Three independent signals agree on 70: that spec sentence, the owner_decisions list length, and the count of options whose owner flag is true. The reported conflict was a use-vs-mention read.
+
+*Answered 2026-08-11. Provenance: owner DELEGATED the default in session 30bd50d4 ('go', 'you proceed'). This is a delegated default, NOT an owner-authored selection - override freely..*
+
+### OQ-2 — Phase order, then unblocking power (delegated default).
+
+Execute in ascending phase (0 -> 16, letter sub-phases in place); within a phase take the unit that unblocks the most downstream units first. 1,369 of 2,007 units are blocked solely on unbuilt dependencies, so unblocking power is the only ordering that compounds.
+
+*Answered 2026-08-11. Provenance: owner DELEGATED the default in session 30bd50d4 ('go', 'you proceed'). This is a delegated default, NOT an owner-authored selection - override freely..*
 
 ### OQ-3 — PR-ONLY.
 
@@ -49,3 +63,21 @@ Release mode is PR-ONLY: propose changes as pull requests, never a private canar
 The owner selected 'Run the real Prompt Two' - the full >=2,048 work units, 21 phases and 13-file command center - and explicitly did not accept the 38-item harness tranche as a stand-in. Every artifact that calls the tranche 'Prompt Two' is therefore mislabelled, which is the consequence OQ-4's own text predicted.
 
 *Answered 2026-08-10. Provenance: owner statement in session 30bd50d4 (spoken, not previously committed - this record is the fix for that gap).*
+
+### OQ-8 — Enrol the monitor cockpit at the same priority as the other MONITOR rows (delegated default).
+
+The cockpit is already reachable - a [cockpit] stanza sits at line 58 of all three monitors.toml copies (R-M01, closed on that evidence). Enrolling it into the unified contract at normal MONITOR priority makes it visible to the register without privileging it over the remaining R-M rows, which are the actual unbuilt work.
+
+*Answered 2026-08-11. Provenance: owner DELEGATED the default in session 30bd50d4 ('go', 'you proceed'). This is a delegated default, NOT an owner-authored selection - override freely..*
+
+### OQ-9 — A green CI install/upgrade/rollback rehearsal stands in for the canary (delegated default).
+
+Substitute pass condition: a green CI run on the PR head exercising install -> upgrade -> rollback against a throwaway prefix, plus the documented rollback procedure - i.e. what WAVE4-PLUGIN-LIFECYCLE-VERIFY.json already measures at 5/5 checks - standing in for the canary gate. No deployment target is created, consistent with OQ-3 = PR-ONLY.
+
+*Answered 2026-08-11. Provenance: owner DELEGATED the default in session 30bd50d4 ('go', 'you proceed'). This is a delegated default, NOT an owner-authored selection - override freely..*
+
+### OQ-10 — A bucket dependency is satisfied by a bucket-level gate artifact (delegated default).
+
+Rejected alternative: 'all members done' leaves all 876 edges permanently unsatisfiable, because 1,735 units carry no bucket field and nothing assigns them one. tools/measure-guard/wudeps.py ratchets the bucket counts so this reading cannot silently drift.
+
+*Answered 2026-08-11. Provenance: owner DELEGATED the default in session 30bd50d4 ('go', 'you proceed'). This is a delegated default, NOT an owner-authored selection - override freely..*
