@@ -60,9 +60,14 @@ def _crypt_filtered(repo: Path, rels: list[str]) -> set[str]:
     """Paths whose git `filter` attribute is git-crypt. One batch call, not one per file."""
     if not rels:
         return set()
+    # `-z` is BIDIRECTIONAL: it makes git expect NUL-separated INPUT as well as emit NUL-separated
+    # output. Sending newline-joined paths made git see ONE enormous path, match nothing, and return
+    # an empty set -- so this entire branch was inoperative and the "two independent signals" claim
+    # was really one (the magic-byte scan). Caught by an adversarial re-measurement, not by the
+    # suite: the shipped tests supply BOTH signals, so they pass on the magic-byte branch alone.
     proc = subprocess.run(
         ["git", "-C", str(repo), "check-attr", "--stdin", "filter", "-z"],
-        input="\n".join(rels),
+        input="\0".join(rels) + "\0",
         capture_output=True,
         text=True,
         check=False,

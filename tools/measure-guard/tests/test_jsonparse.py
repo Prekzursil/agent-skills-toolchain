@@ -81,6 +81,34 @@ def test_the_magic_bytes_alone_also_exclude(tmp_path: Path) -> None:
     assert report["encrypted_skipped"] == 1
 
 
+def test_the_ATTRIBUTE_branch_excludes_on_its_own(tmp_path: Path) -> None:
+    """Attribute-only: git-crypt attribute set, but NO magic bytes. The other two exclusion tests
+    supply BOTH signals or magic-only, so neither can detect an inoperative attribute branch --
+    and it WAS inoperative. `check-attr --stdin -z` expects NUL-separated INPUT as well as output;
+    sending newline-joined paths made git see one enormous path and match nothing, silently
+    collapsing "two independent signals" to one. This test fails if that regresses.
+    """
+    root = make_git_repo(tmp_path / "r")
+    (root / ".gitattributes").write_text(
+        "marked.json filter=git-crypt diff=git-crypt\n", encoding="utf-8"
+    )
+    # Deliberately NOT git-crypt bytes: plain broken JSON. Only the attribute can exclude it.
+    (root / "marked.json").write_text("this is not json at all", encoding="utf-8")
+    # MULTIPLE tracked .json files are REQUIRED to expose the defect. With a single path,
+    # "\n".join(rels) and "\0".join(rels) are indistinguishable -- there is no separator to get
+    # wrong -- so a one-file fixture passes under the broken implementation and proves nothing.
+    # Verified by mutation: with one file the mutant survives; with these siblings it dies.
+    for n in range(3):
+        (root / f"sibling{n}.json").write_text('{"n": %d}' % n, encoding="utf-8")
+    _commit(root)
+    report = jp.scan(root)
+    assert report["unparseable"] == [], (
+        "the attribute branch alone must exclude it; if this fails, --stdin -z is mis-fed again"
+    )
+    assert report["encrypted_skipped"] == 1
+    assert report["parsed"] == 3, "the sibling files must still be parsed normally"
+
+
 def test_a_plain_binary_file_is_STILL_flagged(tmp_path: Path) -> None:
     """Discrimination: the exclusion must key on git-crypt, not on 'undecodable'.
 
