@@ -27,6 +27,24 @@ close them.
 > name* is invisible to a basename sweep, and R-A06/R-A09/R-A12 were exactly that shape (the anchor
 > named a concept, not the delivered filename). Settling that needs semantic review per item, not a
 > set-membership check. Plan against 51 open, not against a discount.
+>
+> **SECOND INDEPENDENT AXIS, measured 2026-08-11 05:40 — also negative.** Every one of the 51 open
+> items declares an `output_path`, and **0 of 51 exist on disk** (`os.path.exists` per item; control:
+> a known-present path returns True, a bogus one False). So the two cheap mechanical tests for
+> "already delivered but invisible" both come back empty:
+>
+> | axis | result |
+> |---|---|
+> | declared `output_path` exists | **0 / 51** |
+> | named artifact exists under `platform/` | **0 / 51** |
+>
+> What survives is only the CONCEPTUALLY-RENAMED case — the item's anchor names an idea, and the
+> deliverable shipped under an unrelated filename. That is exactly how R-A06 ("a single self-listing
+> manifest" → `platform/marketplace/mkt/`) and R-A09 ("skills/council" → `platform/lib/councilspec/`)
+> closed, so the class is real and demonstrably not rare. It is also **not mechanically detectable**
+> — no path or name comparison can find it. Settling it needs a human or an LLM reading each item's
+> intent against the tree, one item at a time. Until someone does that, **51 open is the honest
+> number** and any discount applied to it is a guess.
 
 ---
 
