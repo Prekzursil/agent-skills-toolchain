@@ -9,9 +9,24 @@ taken from a lane digest — the verifier blocked 4 of the first 7 attempts, so 
 
 **The one framing fact.** Five of the ten closed because the deliverable had **shipped under
 `platform/`** while the register's anchor still named a pre-`platform/` path. Nothing was built to
-close them. If that ratio holds across the 59 still open, a meaningful fraction may already be done
-and merely invisible — which is a different program state than "59 items of work remaining", and
-worth one sweep before anyone plans capacity against that number.
+close them.
+
+> **CORRECTION, measured after this packet was first committed.** I wrote here that "if that ratio
+> holds across the 59 still open, a meaningful fraction may already be done". **It does not hold.**
+> `command-center/namespace_sweep.py` indexed 4,978 tracked basenames against all **51** items whose
+> status is literally `OPEN` (the 59 figure includes IN-FLIGHT / DONE-CLAIMED / UNKNOWN) and found
+> **zero** naming an artifact that exists under `platform/`. Thirteen items name a file that exists
+> elsewhere, but on inspection: most are MONITOR rows whose file exists in three copies
+> (`.agents/skills/`, `skills/`, `tools/monitorcore/`) — the already-understood repo/live
+> triplication, not a namespace miss — and `R-A21`/`R-A22` match `PROMPT-ONE-REVERIFY.md` only
+> because I wrote that filename into their evidence field tonight, which is use-vs-mention against
+> my own prose.
+>
+> **Scope of the refutation:** it kills the "same filename, different directory" hypothesis. It does
+> NOT prove the 51 are all genuinely undone — an item whose deliverable shipped under a *different
+> name* is invisible to a basename sweep, and R-A06/R-A09/R-A12 were exactly that shape (the anchor
+> named a concept, not the delivered filename). Settling that needs semantic review per item, not a
+> set-membership check. Plan against 51 open, not against a discount.
 
 ---
 
@@ -82,8 +97,10 @@ questions that block no work, and treating all 25 as a backlog overstates what i
 
 1. **Retire the 8 remaining counterfactual `R-A03` edges** — but only after O-1, since your answer
    may make the gate real again for some of them.
-2. **Sweep the 59 open items for the `platform/` path-namespace miss** (see the framing fact above).
-   This is the single highest expected-yield task left and needs nobody's permission.
+2. ~~Sweep the 59 open items for the `platform/` path-namespace miss.~~ **DONE, and it came back
+   negative** — see the correction above. `namespace_sweep.py` is committed and re-runnable; the
+   remaining question it cannot answer is the *renamed-deliverable* case, which needs per-item
+   semantic review rather than a basename check.
 3. **`10-WORKFLOW-FUSION-AND-CERTIFICATION-MAPS.json`** is the only genuinely missing R-A22
    artifact. Its two siblings exist at 344,197 B and 161,920 B — the old action line said to write
    the 344 KB one first.
