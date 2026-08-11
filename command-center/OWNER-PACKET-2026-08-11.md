@@ -112,6 +112,56 @@ questions that block no work, and treating all 25 as a backlog overstates what i
 
 ---
 
+## 4b. LIVE DEFECT ON THIS MACHINE — a stale deployed hook is silently dropping Bash options
+
+**Found while verifying Prompt 1.5's residual R5. This is the most immediately actionable item in
+the packet, and it is affecting every session on this box right now.**
+
+`~/.claude/hooks/cmd-rewrite/inject-nopager.py` is a `PreToolUse` rewriter registered in live
+`settings.json`. The deployed copy is **stale**, and the version it is stuck on carries a real bug:
+
+```python
+live (stale):  payload["updatedInput"] = {"command": rewritten}
+repo (fixed):  payload["updatedInput"] = {**tool_input, "command": rewritten}
+```
+
+`updatedInput` **replaces** the whole `tool_input` object. The stale line therefore discards every
+field it does not restate — the repo's own comment names them: *"a requested background call with a
+600000 ms timeout became a foreground call at the default timeout"*. So on this machine, any Bash
+call this hook rewrites silently loses `description`, `timeout` and `run_in_background`.
+
+**Five independent signals, not one:**
+
+| # | signal |
+|---|---|
+| 1 | LF-normalised sha of the caller: repo `1b067a25a9b3` vs live `77fb44633741` |
+| 2 | the diff is 8 lines and contains exactly the buggy assignment |
+| 3 | the repo's comment documents the precise symptom, so this was a known, fixed defect |
+| 4 | `hooks/cmd-rewrite/test_updated_input_preservation.py` — 9 tests for this exact behaviour, green in repo, and CI runs them |
+| 5 | the harness's OWN `install.py --check` independently reports `drift` on `hooks.claude` and `hooks.codex` |
+
+**The fix already exists and is tested — it simply has not been deployed.** `msys_pathconv.py`
+itself is byte-identical repo-to-live (`50740f9c4369`), so only the caller drifted.
+
+**Why I did not deploy it.** Repo → live is the correct direction (`harness-vcs-hygiene.md`), but the
+deployment tooling is outside what I run unattended, and a hand-copy into the live hook tree is how
+harnesses break at 4am. Evidence is above; the deploy is yours.
+
+**Incidental result: Prompt 1.5's R5 is now partly discharged.** R5 read *"the repaired msys hook was
+never run against the live registered rail."* It ran tonight — it fired on one of my own commands
+with `[msys-pathconv] ENFORCED … FIX APPLIED`, correctly excluded a `/c/Users/...` argument, and the
+command then succeeded. That is the first observed live execution. The **module** is verified live
+and correct; the **caller** is not, which is the newly-found half above.
+
+**Correction to my own method here, recorded because it nearly became a false report.** I first ran
+`python -m pytest hooks/cmd-rewrite/test_msys_pathconv.py` and reported "1 error —
+`test_real_git_end_to_end`, fixture `repo` not found". That was my wrong invocation, not a defect:
+the file is a standalone script with its own `main()`, CI runs `python test_msys_pathconv.py`, and
+that way it reports **174 passed, 0 failed, 0 skipped**. Exactly the trap
+`single-signal-verification.md` already documents about running a standalone script under pytest.
+
+---
+
 ## 5. THINGS THAT ARE BROKEN AND ARE NOT MINE TO FIX
 
 - **`autofix-models` has never worked.** It triggers on `workflow_run` completion of `quality` and
