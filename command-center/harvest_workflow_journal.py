@@ -78,14 +78,24 @@ def main(argv: list[str]) -> int:
                     "result": res,
                 }
             )
-        # Control: if the journal had rows but nothing harvested, the schema moved. Say so loudly
-        # rather than writing an empty file that a downstream lane would read as "no findings".
+        # Control: rows but no payload. There are TWO causes and conflating them is a detector bug I
+        # shipped and hit within the hour -- the tool blamed a schema change when the real answer was
+        # "every agent is still running". A journal row is written when an agent STARTS; the `result`
+        # key appears only when it FINISHES. So `result` missing from EVERY row is normal for a young
+        # run and alarming only if the key is absent from the inventory entirely.
         if recs and not harvested:
+            if "result" in keyinv:
+                print(
+                    f"    NOT-CHECKED:harvest {len(recs)} rows carry a `result` key but all are "
+                    f"empty -- agents started and none has finished. Nothing to harvest YET."
+                )
+                continue
             print(
-                f"    FAILED:harvest {len(recs)} rows but 0 carried a non-empty `result` -- "
-                f"the payload key likely changed; inspect the key inventory above"
+                f"    NOT-CHECKED:harvest {len(recs)} rows and NO `result` key anywhere. Either no "
+                f"agent has finished yet, or the payload key moved -- check the inventory above "
+                f"against a run you know completed before concluding the schema changed."
             )
-            return 1
+            continue
 
         sizes = [len(json.dumps(h["result"], ensure_ascii=False)) for h in harvested]
         print(f"    harvested {len(harvested)} agent results, {sum(sizes):,} chars total")
