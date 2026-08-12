@@ -1,6 +1,6 @@
 ---
 name: rubric-verifier
-description: "Use AFTER N candidate patches exist (codex council / multi-execute / Codex+Gemini fan-out) and BEFORE running tests, to select the best candidate execution-free. A fresh-context reviewer builds a repo-grounded rubric of criteria, scores every candidate diff, and returns a ranked pick. ADVISORY only: the pick is a recommendation; the 100%-coverage VALIDATE step stays the blocking authority."
+description: Use AFTER N candidate patches exist (from codex council / /multi-execute / external-tools Codex+Gemini fan-out) and BEFORE running tests, to select the best candidate execution-free. A fresh-context reviewer builds a repo-grounded rubric — a weighted checklist of issue-specific criteria — then scores every candidate diff against it and returns a ranked pick with rationale. ADVISORY only: the ranked pick is a recommendation, not a gate; the 100%-coverage VALIDATE step remains the blocking authority. Skip when only one candidate exists, or when the issue is trivially localised and any diff that compiles is correct. Based on "Agentic Rubrics as Contextual Verifiers" (arXiv:2601.04171, Scale AI).
 metadata:
   version: 0.1.0
   compatibility: claude-code codex cursor gemini-cli opencode

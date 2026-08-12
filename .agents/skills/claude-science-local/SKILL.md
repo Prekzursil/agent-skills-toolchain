@@ -1,6 +1,6 @@
 ---
 name: claude-science-local
-description: Use to bring up, diagnose, or recover Claude Science, Anthropic's local compchem / life-science workbench - a WSL2 daemon on 127.0.0.1:8000. Triggers - claude science, compchem/life-science workbench, :8000 down, cs open/status/fix/doctor/ensure, science daemon wedged. Teaches why HTTP 401 means alive, the host-RAM SQLite wedge that cs fix recovers, and cs ensure before any :8000 call.
+description: Use to bring up, diagnose, or recover Anthropic's Claude Science local compchem / life-science workbench - a WSL2 daemon on 127.0.0.1:8000. Triggers - claude science, compchem or life-science workbench, :8000 down or unreachable, /claude-science, /cs, cs open, start claude science, science daemon wedged or off, open the science UI. Teaches the cs verbs (open, ensure, status, fix, doctor, backup, restore), why HTTP 401 means alive, the host-RAM SQLite wedge and that cs fix recovers it, cs ensure before any :8000 call, that NOT-CHECKED is not PASS, and that scope is LOCAL only.
 license: MIT
 ---
 
@@ -35,6 +35,9 @@ license: MIT
 pwsh -File ~/source/agent-skills-toolchain/scripts/claude-science/cs.ps1 <verb>
 ```
 
+Slash command: **`/claude-science <verb>`** (canonical) or **`/cs <verb>`** (short alias — the
+rename kept it working; see `commands/claude-science.md` and `commands/cs.md`).
+
 | Verb | What it does |
 |---|---|
 | **`cs open`** | Ensure up (start-if-down / recover-if-wedged), **wait for readiness** (not a blind sleep), then open the UI in the browser. The human one-click. |
@@ -56,13 +59,40 @@ pwsh -File ~/source/agent-skills-toolchain/scripts/claude-science/cs.ps1 <verb>
 ## `cs doctor` — what it checks
 
 A read-only report that operationalizes the reliability audit. Rows (each
-PASS/WARN/FAIL/INFO): **WSL reachable** · **CS daemon** (state + latency, flags
-`*** WEDGED ***`) · **daemon detail** (pid/version/uptime) · **DB** (integrity +
+PASS/WARN/FAIL/**NOT-CHECKED**/INFO): **WSL reachable** · **CS daemon** (state + latency,
+flags `*** WEDGED ***`) · **daemon detail** (pid/version/uptime) · **DB** (integrity +
 `journal_mode` + size) · **WSL disk free** · **Host RAM free** + top consumers
-(the freeze root cause) · **Watchdog registered** · **Watchdog instances**
-(catches the duplicate-watchdog race) · **Watchdog heartbeat** (catches a hung
-watchdog) · **Backup freshness** · **Tab-death regfix**. Ends with a
-`N FAIL, N WARN, N PASS` summary; on any FAIL it suggests `cs fix` then re-run.
+(the freeze root cause) · **Watchdog registered** · **Watchdog re-launch trigger**
+(a logon-only trigger cannot restart a watchdog that exited — that is how it stayed
+dead for 3.3 days) · **Watchdog instances** (catches the duplicate-watchdog race) ·
+**Watchdog heartbeat** · **Backup freshness** · **Backup restorable** (opens the newest
+snapshot and integrity-checks it) · **Tab-death regfix**. Ends with a
+`N FAIL, N WARN, N NOT-CHECKED, N PASS` summary and **exits non-zero on FAIL or
+NOT-CHECKED**, so other tooling can gate on it.
+
+### `NOT-CHECKED` is not `PASS` — read this row honestly
+
+A health check that cannot reach its input **fails closed**. It was not always so: the DB row
+used to print `WARN "sqlite3 or operon-cli.db not found"` when the real cause was a probe
+timeout — a factual claim about a file it never looked at — while `Backup freshness` rendered
+`PASS` green over the same unreachable VM. Now a timed-out or empty probe renders
+`NOT-CHECKED` and says only that, a genuinely absent input renders `FAIL`, and the summary
+counts NOT-CHECKED separately so `0 FAIL, 0 WARN` can no longer hide unmeasured rows.
+
+Two heartbeat subtleties worth knowing, both measured:
+- **A stale heartbeat alone does not mean the watchdog hung.** Under host-RAM pressure the
+  watchdog *process* is descheduled and a single probe took 66 s against a nominal 8 s socket
+  cap, so a healthy watchdog measuring a wedge looked hung. The row now AND-gates the stale
+  beat against process liveness: stale + no process = FAIL, stale + live process = WARN.
+- **The instance count used to count the probe itself.** Anything whose command line contained
+  `cs-watchdog` matched, so asking the question could manufacture the "DUPLICATE" answer.
+
+Verify all of the above with the shipped both-states harness — it stubs every WSL probe, so it
+is hermetic and safe to run *while* the box is wedged:
+
+```
+pwsh -NoProfile -File ~/source/agent-skills-toolchain/scripts/claude-science/test-cs-doctor-failclosed.ps1
+```
 
 ## Gotchas
 
@@ -74,7 +104,14 @@ watchdog) · **Backup freshness** · **Tab-death regfix**. Ends with a
   VM. Free RAM, then `cs fix`.
 - **A backup you can't restore is false safety.** `cs backup` and `cs restore`
   are matched — take a `cs backup` before risky changes; `cs restore latest`
-  rolls back.
+  rolls back. `cs backup` now integrity-checks the snapshot it just wrote and exits
+  non-zero if it does not open, and `cs doctor` has a **Backup restorable** row that opens
+  the newest one rather than merely confirming a file exists.
+- **One config file, env-overridable.** Port, distro, backup roots, wedge threshold, health
+  floors and the freshness thresholds all live in `scripts/claude-science/cs.conf`. Both halves
+  read it — `cs-lib.ps1` for PowerShell, `cs-lib.sh` for the shell scripts — and an environment
+  variable of the same name overrides the file, so `$env:CS_PORT = 8123` needs no edit. The
+  backup root is stored once in WSL form (`/mnt/d/...`); the Windows form is derived.
 - **Scope is LOCAL.** Remote access / Tailscale (`cs-tailscale-serve.ps1`) is out
   of scope here — `cs` targets `127.0.0.1:8000` only.
 

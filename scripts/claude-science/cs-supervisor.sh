@@ -5,11 +5,17 @@
 # heartbeat file. No systemd (avoids the systemd-resolved/DNS blast-radius on this distro).
 # Wedge = socket accepts but HTTP is slow/silent (WSL frozen under host-RAM pressure).
 export PATH="$HOME/.local/bin:$PATH"
-URL="http://127.0.0.1:8000/"
-DD="$HOME/.claude-science"
+# Config seam. Fail LOUD if a partial deploy dropped it: without cs-lib.sh the helpers below
+# are undefined and every $CS_* is empty, which would silently target the wrong paths.
+_cs_lib="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/cs-lib.sh"
+[ -r "$_cs_lib" ] || { echo "!!! cs-lib.sh missing beside $0 - re-run install.ps1 (it deploys cs-lib.sh + cs.conf)" >&2; exit 1; }
+# shellcheck source=cs-lib.sh
+. "$_cs_lib"
+URL="$CS_URL"
+DD="$(cs_data_dir)"
 HB="$DD/supervisor.heartbeat"
 LOG="$DD/supervisor.log"
-SLOWSEC=4          # response >= this = SLOW (wedge candidate)
+SLOWSEC=$(( CS_SLOW_MS / 1000 ))   # from cs.conf, so the wedge threshold matches cs-lib.ps1
 SLOWSTRIKES=3      # consecutive SLOW/WEDGE (~90s) => recover
 slow=0
 mkdir -p "$DD" 2>/dev/null
@@ -30,7 +36,7 @@ while true; do
   r=$(curl -s -o /dev/null -m 8 -w '%{http_code} %{time_total}' "$URL" 2>/dev/null)
   http=${r%% *}; t=${r##* }
   if [ -z "$http" ] || [ "$http" = "000" ]; then
-    if timeout 2 bash -c 'exec 3<>/dev/tcp/127.0.0.1/8000' 2>/dev/null; then state=WEDGE; else state=DOWN; fi
+    if timeout 2 bash -c "exec 3<>/dev/tcp/$CS_HOST/$CS_PORT" 2>/dev/null; then state=WEDGE; else state=DOWN; fi
   elif [ "$(awk -v x="$t" -v s="$SLOWSEC" 'BEGIN{print (x>=s)?1:0}')" = "1" ]; then
     state=SLOW
   else

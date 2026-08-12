@@ -5,8 +5,16 @@
 # hygiene, NOT the wedge fix -- the ~164s wedge is host-RAM freezing WSL, not DB cost (2026-07-07 audit).
 set -uo pipefail
 export PATH="$HOME/.local/bin:$PATH"
-DD="$HOME/.claude-science"
-DB=$(find "$DD/orgs" -name operon-cli.db 2>/dev/null | head -1)
+# Config seam. Fail LOUD if a partial deploy dropped it: without cs-lib.sh the helpers below
+# are undefined and every $CS_* is empty, which would silently target the wrong paths.
+_cs_lib="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/cs-lib.sh"
+[ -r "$_cs_lib" ] || { echo "!!! cs-lib.sh missing beside $0 - re-run install.ps1 (it deploys cs-lib.sh + cs.conf)" >&2; exit 1; }
+# shellcheck source=cs-lib.sh
+. "$_cs_lib"
+DD="$(cs_data_dir)"
+# cs_find_db picks the NEWEST-mtime DB. `find | head -1` across the two org dirs could
+# maintain one org's DB while cs-backup snapshotted the other -- both steps "succeed".
+DB=$(cs_find_db)
 
 echo "[maintain] stopping daemon (graceful, then scoped kill)"
 pid=$(claude-science status 2>/dev/null | grep -oE '"pid":[[:space:]]*[0-9]+' | grep -oE '[0-9]+' | head -1)
@@ -26,7 +34,7 @@ rm -f "$DD/daemon.sock" "$DD/operon.lock" 2>/dev/null || true
 echo "[maintain] backup first"
 if command -v cs-backup >/dev/null 2>&1; then cs-backup; else bash "$(dirname "$0")/cs-backup.sh"; fi
 
-DEST="/mnt/d/Backups/claude-science"
+DEST="$CS_BACKUP_ROOT"
 if ! command -v sqlite3 >/dev/null 2>&1; then
   echo "!!! [maintain] sqlite3 NOT FOUND on PATH — SKIPPING the entire DB maintenance block"
   echo "!!! [maintain] (integrity_check + checkpoint + VACUUM silently no-op without it; install: sudo apt-get install -y sqlite3)"

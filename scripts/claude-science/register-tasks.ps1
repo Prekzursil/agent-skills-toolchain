@@ -5,6 +5,7 @@
 #   ClaudeScienceMaintain  -- weekly offline SQLite maintenance (Sun 04:00)
 $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path $here 'cs-lib.ps1')      # cs.conf -> $script:CSDistro (was hardcoded in the maintain action)
 $watch = Join-Path $here 'cs-watchdog.ps1'
 
 # --- kill the OLD dual-registration path: remove any stale Startup watchdog launcher ---
@@ -61,7 +62,7 @@ s.Run "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -Fi
 
 # --- 2. Weekly offline maintenance (DB is tiny + already WAL; weekly light-hygiene is enough) ---
 try {
-  $am = New-ScheduledTaskAction -Execute 'wsl.exe' -Argument '-d Ubuntu -e sh -lc cs-maintain'
+  $am = New-ScheduledTaskAction -Execute 'wsl.exe' -Argument "-d $script:CSDistro -e sh -lc cs-maintain"
   $tm = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Sunday -At 4am
   $sm = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
   Register-ScheduledTask -TaskName 'ClaudeScienceMaintain' -Action $am -Trigger $tm -Settings $sm -Force | Out-Null

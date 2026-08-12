@@ -73,7 +73,7 @@ function Get-CSStatus {
   $pm = [regex]::Match($blob, '"pid":\s*(\d+)')
   if ($pm.Success) { $dpid = [int]$pm.Groups[1].Value }
 
-  $port = 8000
+  $port = $script:CSPort   # cs.conf default; the daemon's own reported port wins when present
   $portm = [regex]::Match($blob, '"port":\s*(\d+)')
   if ($portm.Success) { $port = [int]$portm.Groups[1].Value }
 
@@ -85,9 +85,15 @@ function Get-CSStatus {
     $ramGb = $null
   }
 
+  # watchdog_alive AND-gates two mechanically independent signals: a fresh heartbeat OR a live
+  # process. A stale beat alone is not proof of death -- measured 2026-08-12, `cs status` returned
+  # watchdog_alive:false while the beat was 22.7s fresh and pid 49572 was alive, because one probe
+  # had run 66,396ms against a nominal 8,000ms cap and blown the old bare-90s threshold.
   $beat = Join-Path $env:LOCALAPPDATA 'claude-science-watchdog.heartbeat'
-  $wdAlive = $false
-  if (Test-Path $beat) { $wdAlive = (((Get-Date) - (Get-Item $beat).LastWriteTime).TotalSeconds -lt 90) }
+  $beatAge = $null
+  if (Test-Path $beat) { $beatAge = [math]::Round(((Get-Date) - (Get-Item $beat).LastWriteTime).TotalSeconds) }
+  $wdProcs = @(Get-CSWatchdogProcess).Count
+  $wdAlive = (($null -ne $beatAge -and $beatAge -lt $script:CSBeatStaleS) -or $wdProcs -ge 1)
 
   $lastRecover = $null
   $log = Join-Path $env:LOCALAPPDATA 'claude-science-watchdog.log'
@@ -111,12 +117,29 @@ function Get-CSStatus {
     free_wsl_disk_gb = $diskGb
     host_free_ram_gb = $ramGb
     watchdog_alive   = $wdAlive
+    watchdog_procs   = $wdProcs
+    watchdog_beat_s  = $beatAge
     last_recover     = $lastRecover
   }
 }
 
 switch ($Verb.ToLower()) {
-  'ensure' { if (Invoke-EnsureUp) { Write-Output 'SUCCESS:cs-up'; exit 0 } else { Write-Output 'FAILED:cs-down'; exit 1 } }
+  'ensure' {
+    # THE PRECONDITION CONTRACT for other tooling. Terminal-state marker on stdout, nothing else
+    # (progress goes to the information stream), exit 0/1. -Json adds a machine-readable object
+    # carrying the same verdict plus the measured latency, for callers that want the reason.
+    #   PowerShell : $r = pwsh -NoProfile -File cs.ps1 ensure -Json | ConvertFrom-Json
+    #                if (-not $r.ok) { throw "CS unavailable: $($r.state) $($r.latency_ms)ms" }
+    #   Any shell  : cs ensure && curl http://127.0.0.1:8000/...
+    $ok = Invoke-EnsureUp
+    if ($Json) {
+      $hh = Test-CSHealth
+      [pscustomobject]@{ ok = $ok; marker = $(if ($ok) { 'SUCCESS:cs-up' } else { 'FAILED:cs-down' }); state = $hh.State; http_status = $hh.Http; latency_ms = $hh.Ms; url = $script:CSUrl } | ConvertTo-Json -Compress
+    } else {
+      Write-Output $(if ($ok) { 'SUCCESS:cs-up' } else { 'FAILED:cs-down' })
+    }
+    if ($ok) { exit 0 } else { exit 1 }
+  }
   'open' {
     if (Invoke-EnsureUp) {
       Set-CSTabRegfix
@@ -156,7 +179,12 @@ switch ($Verb.ToLower()) {
       "watchdog : alive={0}  last_recover={1}" -f $s.watchdog_alive, $(if ($s.last_recover) { $s.last_recover } else { 'n/a' })
     }
   }
-  'doctor' { & (Join-Path $PSScriptRoot 'cs-doctor.ps1') }
+  'doctor' {
+    # Propagate the doctor's exit code (non-zero on FAIL or NOT-CHECKED) so `cs doctor` is usable
+    # as a gate. Swallowing it here would put the fail-open behaviour straight back.
+    if ($Json) { & (Join-Path $PSScriptRoot 'cs-doctor.ps1') -Json } else { & (Join-Path $PSScriptRoot 'cs-doctor.ps1') }
+    exit $LASTEXITCODE
+  }
   default {
     @'
 cs - Claude Science (local) control
@@ -165,8 +193,11 @@ cs - Claude Science (local) control
   cs status [-Json]    state incl. latency + wedged flag (12-field JSON for other tools)
   cs fix               force-recover (graceful)      cs stop    stop the daemon
   cs backup            online SQLite backup          cs restore <ts|latest>
-  cs doctor            full-stack PASS/WARN/FAIL report
+  cs doctor [-Json]    full-stack PASS/WARN/FAIL/NOT-CHECKED report; exits non-zero on either
 401 on / = alive (auth gate). A slow/timeout response = WEDGED (WSL frozen, usually host-RAM).
+NOT-CHECKED is not PASS: a row whose input could not be reached says so and never renders green.
+Config: cs.conf next to this script (env vars of the same name override it).
+Slash command: /claude-science  (alias: /cs).
 '@
   }
 }

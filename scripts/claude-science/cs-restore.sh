@@ -1,17 +1,23 @@
 #!/bin/bash
 # cs-restore <timestamp|latest> [--dry-run] - roll back to a cs-backup snapshot. The missing inverse
 # of cs-backup.sh (a backup you can't restore is false safety). Matches cs-backup's format exactly:
-#   DB      -> /mnt/d/Backups/claude-science/operon-<TS>.db
-#   key     -> /mnt/d/Backups/claude-science-keys/encryption.key  (stored separately)
+#   DB      -> $CS_BACKUP_ROOT/operon-<TS>.db          (both roots come from cs.conf)
+#   key     -> $CS_BACKUP_KEY_ROOT/encryption.key      (stored separately)
 # Stops the daemon, clears locks, keeps a pre-restore safety copy, restores the DB (+ drops the
 # stale WAL/SHM so it opens clean), re-places the encryption key, restarts pinned, verifies HTTP 401
 # (auth gate = alive). --dry-run prints the plan and changes nothing. Fails LOUD if the backup or D:
 # is missing.
 set -uo pipefail
 export PATH="$HOME/.local/bin:$PATH"
-DD="$HOME/.claude-science"
-DEST="/mnt/d/Backups/claude-science"
-KEYDEST="/mnt/d/Backups/claude-science-keys"
+# Config seam. Fail LOUD if a partial deploy dropped it: without cs-lib.sh the helpers below
+# are undefined and every $CS_* is empty, which would silently target the wrong paths.
+_cs_lib="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/cs-lib.sh"
+[ -r "$_cs_lib" ] || { echo "!!! cs-lib.sh missing beside $0 - re-run install.ps1 (it deploys cs-lib.sh + cs.conf)" >&2; exit 1; }
+# shellcheck source=cs-lib.sh
+. "$_cs_lib"
+DD="$(cs_data_dir)"
+DEST="$CS_BACKUP_ROOT"
+KEYDEST="$CS_BACKUP_KEY_ROOT"
 
 # --- args: <ts|latest> in any order with --dry-run/-n ---
 DRYRUN=0
@@ -82,7 +88,7 @@ sleep 6
 verify_up() {
   # prefer a real HTTP 401 (auth gate = alive); fall back to the daemon status flag
   if command -v curl >/dev/null 2>&1; then
-    code=$(curl -s -o /dev/null -m 8 -w '%{http_code}' http://127.0.0.1:8000/ 2>/dev/null || echo 000)
+    code=$(curl -s -o /dev/null -m 8 -w '%{http_code}' "$CS_URL" 2>/dev/null || echo 000)
     case "$code" in 401 | 200) return 0 ;; esac
   fi
   claude-science status 2>/dev/null | grep -q '"running": true'

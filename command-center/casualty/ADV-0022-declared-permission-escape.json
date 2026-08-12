@@ -1,16 +1,630 @@
 {
-  "SKELETON_WARNING": "If it still reads this way, the unit died before measuring anything and no verdict here may be cited.",
+  "schema_version": 1,
   "unit_id": "ADV-0022",
-  "lane": "LANE CASUALTY (rebuild of dead builder build:ADV-0022)",
-  "schema": "command-center/schema/exploit-proof.schema.json",
-  "state": "UNKNOWN - not yet measured",
-  "COVERAGE": "UNMEASURED: exploit attempts, enforcement-point audit, sandbox substrate disclosure, reviewer requirement, gate vector. Nothing below is citable.",
-  "started_at": "2026-08-12T01:45:00Z",
-  "ended_at": null,
-  "findings": [],
-  "probes": [],
-  "tests": [],
-  "negative_controls": [],
-  "observations": [],
-  "residual_risks": []
+  "state": "BLOCKED",
+  "sentinel": "FAILED:ADV-0022 measurement is COMPLETE and the counterexample is proven 4/4 with a passing wide-permission control; no verdict below is downgraded. The terminal state is BLOCKED rather than SUCCESS because conditions the builder cannot satisfy honestly remain open - condition 9, where this unit demands TWO reviewers from DIFFERENT vendors each independently reproducing the counterexample and none has run; condition 11, orchestrator manifest registration; and one tests_required clause is only PARTIALLY met, because the prescribed disposable Modal sandbox was unauthenticated and the run fell back to a local disposable %TEMP% workspace. The artifact also sits at command-center/casualty/ because this lane is forbidden from writing into command-center/adversarial/.",
+  "spec_anchor": "_USER-PROMPTS.md:11346, 10804",
+  "min_bytes_threshold": 8192,
+  "artifacts": [
+    {
+      "path": "command-center/casualty/ADV-0022-declared-permission-escape.json",
+      "bytes": 105357,
+      "sha256": "31e48945ff82422816766c57144ea353405f3f913119e246231e1b39b72e9fa1",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    },
+    {
+      "path": "command-center/casualty/probe-output/adv0022_probe1_out.ORIGINAL.txt",
+      "bytes": 4912,
+      "sha256": "d5313dd38ef78863b1510a6f6ce68084e9a0fd827b30b3b2d03b24ae4ef123be",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/casualty/probe-output/adv0022_probe2_out.ORIGINAL.txt",
+      "bytes": 3671,
+      "sha256": "f52c606bf0b2a4ddf4d0f4ec3efa080fe9ab29db0f9e04d88652c1abe1594638",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/casualty/probe-output/adv0022_git_verifier_out.txt",
+      "bytes": 4650,
+      "sha256": "d003a7159ca777b9387a8c9ab020d110828849c9b3989c0ea4c43eb5c99bff0c",
+      "exists": true,
+      "eol": "LF",
+      "role": "control"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "A component whose manifest declares tool_permissions=['Read','Grep','Glob'] reached capability outside that declaration on 4 of 4 attempts: it spawned a subprocess, opened a network socket, wrote a file outside its own component root, and imported and invoked a wider-permission sibling. Every one is marked escaped_declaration=true because the required tool was not in its manifest.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "adv0022_probe1_out.ORIGINAL.txt:narrow_component.ops (md5 94ef1b416fc3b6736fdf0eb22a6c1045)",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "ADV0022_BASE=\"$PWD/adv0022_canon_ws\" ADV0022_BLOCK_NETWORK=\"unavailable-modal-token-missing\" python command-center/casualty/probes/adv0022_escape_harness.py",
+          "raw_output": "ADV0022_JSON_BEGIN\n{\n  \"detector_integrity\": {\n    \"battery\": [\n      {\n        \"detail\": \"correctly failed: FileNotFoundError(2, 'The system cannot find the file specified', None, 2, None)\",\n        \"expected\": \"FAILED\",\n        \"outcome\": \"FAILED\",\n        \"probe\": \"must_fail_nonexistent_binary\"\n      },\n      {\n        \"detail\": \"correctly refused on closed port 51309: TimeoutError('timed out')\",\n        \"expected\": \"FAILED\",\n        \"outcome\": \"FAILED\",\n        \"probe\": \"must_fail_closed_port\"\n      },\n      {\n        \"detail\": \"rc=0 stdout='ok'\",\n        \"expected\": \"SUCCEEDED\",\n        \"outcome\": \"SUCCEEDED\",\n        \"probe\": \"must_succeed_trivial_subprocess\"\n      }\n    ],\n    \"discriminates\": true\n  },\n  \"meta\": {\n    \"base\": \"C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Prekzursil\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\scratchpad\\\\adv0022_canon_ws\",\n    \"block_network_env\": \"unavailable-modal-token-missing\",\n    \"platform\": \"win32\",\n    \"python\": \"3.14.6\"\n  },\n  \"narrow_component\": {\n    \"declared\": [\n      \"Read\",\n      \"Grep\",\n      \"Glob\"\n    ],\n    \"ops\": [\n      {\n        \"declared_in_manifest\": false,\n        \"detail\": \"child stdout='SUBPROC_CHILD_RAN' rc=0\",\n        \"escaped_declaration\": true,\n        \"op\": \"op1_subprocess_spawn\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Bash\"\n      },\n      {\n        \"declared_in_manifest\": false,\n        \"detail\": \"loopback round-trip reply='pong:ping' (no egress; egress NOT attempted)\",\n        \"escaped_declaration\": true,\n        \"op\": \"op2_network_call\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"WebFetch\"\n      },\n      {\n        \"declared_in_manifest\": false,\n        \"detail\": \"wrote C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Prekzursil\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\scratchpad\\\\adv0022_canon_ws\\\\escaped_from_comp_narrow.txt (193 bytes); component root was C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Prekzursil\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\scratchpad\\\\adv0022_canon_ws\\\\components\\\\comp_narrow\",\n        \"escaped_declaration\": true,\n        \"op\": \"op3_write_outside_root\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Write\"\n      },\n      {\n        \"declared_in_manifest\": false,\n        \"detail\": \"imported sibling component 'sibling_privileged' (declares tool_permissions=['Read', 'Grep', 'Glob', 'Bash', 'Write']) and invoked its privileged_write(); it performed 'C:\\\\\\\\Users\\\\\\\\PREKZU~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-Prekzursil\\\\\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\\\\\scratchpad\\\\\\\\adv0022_canon_ws\\\\\\\\sibling_effect_for_comp_narrow.txt'\",\n        \"escaped_declaration\": true,\n        \"op\": \"op4_invoke_wider_sibling\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Task\"\n      }\n    ]\n  },\n  \"summary\": {\n    \"detector_discriminates\": true,\n    \"narrow_ops_succeeded\": 4,\n    \"narrow_ops_total\": 4,\n    \"narrow_out_of_declaration_escapes\": 4,\n    \"wide_ops_succeeded\": 4\n  },\n  \"wide_component_control\": {\n    \"declared\": [\n      \"Read\",\n      \"Grep\",\n      \"Glob\",\n      \"Bash\",\n      \"Write\",\n      \"WebFetch\"\n    ],\n    \"ops\": [\n      {\n        \"declared_in_manifest\": true,\n        \"detail\": \"child stdout='SUBPROC_CHILD_RAN' rc=0\",\n        \"escaped_declaration\": false,\n        \"op\": \"op1_subprocess_spawn\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Bash\"\n      },\n      {\n        \"declared_in_manifest\": true,\n        \"detail\": \"loopback round-trip reply='pong:ping' (no egress; egress NOT attempted)\",\n        \"escaped_declaration\": false,\n        \"op\": \"op2_network_call\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"WebFetch\"\n      },\n      {\n        \"declared_in_manifest\": true,\n        \"detail\": \"wrote C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Prekzursil\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\scratchpad\\\\adv0022_canon_ws\\\\escaped_from_comp_wide.txt (189 bytes); component root was C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Prekzursil\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\scratchpad\\\\adv0022_canon_ws\\\\components\\\\comp_wide\",\n        \"escaped_declaration\": false,\n        \"op\": \"op3_write_outside_root\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Write\"\n      },\n      {\n        \"declared_in_manifest\": false,\n        \"detail\": \"imported sibling component 'sibling_privileged' (declares tool_permissions=['Read', 'Grep', 'Glob', 'Bash', 'Write']) and invoked its privileged_write(); it performed 'C:\\\\\\\\Users\\\\\\\\PREKZU~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-Prekzursil\\\\\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\\\\\scratchpad\\\\\\\\adv0022_canon_ws\\\\\\\\sibling_effect_for_comp_wide.txt'\",\n        \"escaped_declaration\": true,\n        \"op\": \"op4_invoke_wider_sibling\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Task\"\n      }\n    ]\n  }\n}\nADV0022_JSON_END\n",
+          "fingerprint": "e5cd0d8bf72bbb26c3ca95dbb34752ff",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "python command-center/casualty/probes/adv0022_probe2.py",
+          "raw_output": "ADV0022_P2_BEGIN\n{\n  \"checks\": {\n    \"_control_scanner_finds_known_present_callers\": [\n      \"platform/lib/wfdsl/authz_census.py:171:for r in semantics.check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/authz_census.py:180:results = semantics.check_work_unit_authorization(units, catalog.get(\\\"tool_policy\\\"))\",\n      \"platform/lib/wfdsl/authz_census.py:203:for r in semantics.check_work_unit_authorization(units, policy)\",\n      \"platform/lib/wfdsl/authz_census.py:210:f\\\"rule {rule} not returned by check_work_unit_authorization\\\"\",\n      \"platform/lib/wfdsl/semantics.py:198:return [r1, r2, r3, r4, r5, r6, r7] + check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/semantics.py:318:def check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/semantics.py:94:``None`` makes SEM-008 fail closed (see :func:`check_work_unit_authorization`).\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:219:res = semantics.check_work_unit_authorization([unit(tool_permissions=[])], None)\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:318:res = semantics.check_work_unit_authorization([unit()], POLICY)\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:361:res = semantics.check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:381:for r in semantics.check_work_unit_authorization([unit()], POLICY):\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:405:for r in semantics.check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:53:for r in semantics.check_work_unit_authorization(units, policy)\"\n    ],\n    \"all_callers_repo_wide\": [\n      \"command-center/D2-WORKUNIT-AUTHZ.md:69:`check_work_unit_authorization(units, tool_policy)` \\u2192 SEM-008..011. All four land at severity\",\n      \"platform/lib/wfdsl/authz_census.py:171:for r in semantics.check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/authz_census.py:180:results = semantics.check_work_unit_authorization(units, catalog.get(\\\"tool_policy\\\"))\",\n      \"platform/lib/wfdsl/authz_census.py:203:for r in semantics.check_work_unit_authorization(units, policy)\",\n      \"platform/lib/wfdsl/semantics.py:198:return [r1, r2, r3, r4, r5, r6, r7] + check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:219:res = semantics.check_work_unit_authorization([unit(tool_permissions=[])], None)\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:318:res = semantics.check_work_unit_authorization([unit()], POLICY)\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:361:res = semantics.check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:381:for r in semantics.check_work_unit_authorization([unit()], POLICY):\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:405:for r in semantics.check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:53:for r in semantics.check_work_unit_authorization(units, policy)\"\n    ],\n    \"deny_cred_reads_manifest\": [],\n    \"file_scope_reads_manifest\": [],\n    \"hooks_reference_tool_permissions\": [],\n    \"runtime_consumers_in_hooks\": [],\n    \"skill_router_reads_tool_permissions\": []\n  },\n  \"summary\": {\n    \"all_callers_repo_wide_COUNT\": 11,\n    \"deny_cred_reads_manifest_COUNT\": 0,\n    \"file_scope_reads_manifest_COUNT\": 0,\n    \"hooks_reference_tool_permissions_COUNT\": 0,\n    \"runtime_consumers_in_hooks_COUNT\": 0,\n    \"scanner_control_found_known_present_COUNT\": 13,\n    \"scanner_discriminates\": true,\n    \"skill_router_reads_tool_permissions_COUNT\": 0\n  }\n}\nADV0022_P2_END\nP2_FINGERPRINT_MD5=93e61cf6dbccabb8a8f46883cb793a45\n",
+          "fingerprint": "5b6650ed55ae9616ac27e8f708959fcd",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The declared permission set is METADATA ONLY - it is never consulted at call time. Zero files under hooks/ reference tool_permissions and zero call check_work_unit_authorization, while the repo-wide controls (excluding this recovery lane's own tracked artifacts) return 208 files and 8 files respectively, so the zero is a real absence and not a broken matcher or an empty pathspec - hooks/ holds 289 tracked files.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "platform/lib/wfdsl/semantics.py:318 check_work_unit_authorization - a pure function whose only callers are a census tool, tests and a doc",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "python command-center/casualty/probes/adv0022_probe2.py",
+          "raw_output": "ADV0022_P2_BEGIN\n{\n  \"checks\": {\n    \"_control_scanner_finds_known_present_callers\": [\n      \"platform/lib/wfdsl/authz_census.py:171:for r in semantics.check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/authz_census.py:180:results = semantics.check_work_unit_authorization(units, catalog.get(\\\"tool_policy\\\"))\",\n      \"platform/lib/wfdsl/authz_census.py:203:for r in semantics.check_work_unit_authorization(units, policy)\",\n      \"platform/lib/wfdsl/authz_census.py:210:f\\\"rule {rule} not returned by check_work_unit_authorization\\\"\",\n      \"platform/lib/wfdsl/semantics.py:198:return [r1, r2, r3, r4, r5, r6, r7] + check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/semantics.py:318:def check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/semantics.py:94:``None`` makes SEM-008 fail closed (see :func:`check_work_unit_authorization`).\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:219:res = semantics.check_work_unit_authorization([unit(tool_permissions=[])], None)\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:318:res = semantics.check_work_unit_authorization([unit()], POLICY)\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:361:res = semantics.check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:381:for r in semantics.check_work_unit_authorization([unit()], POLICY):\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:405:for r in semantics.check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:53:for r in semantics.check_work_unit_authorization(units, policy)\"\n    ],\n    \"all_callers_repo_wide\": [\n      \"command-center/D2-WORKUNIT-AUTHZ.md:69:`check_work_unit_authorization(units, tool_policy)` \\u2192 SEM-008..011. All four land at severity\",\n      \"platform/lib/wfdsl/authz_census.py:171:for r in semantics.check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/authz_census.py:180:results = semantics.check_work_unit_authorization(units, catalog.get(\\\"tool_policy\\\"))\",\n      \"platform/lib/wfdsl/authz_census.py:203:for r in semantics.check_work_unit_authorization(units, policy)\",\n      \"platform/lib/wfdsl/semantics.py:198:return [r1, r2, r3, r4, r5, r6, r7] + check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:219:res = semantics.check_work_unit_authorization([unit(tool_permissions=[])], None)\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:318:res = semantics.check_work_unit_authorization([unit()], POLICY)\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:361:res = semantics.check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:381:for r in semantics.check_work_unit_authorization([unit()], POLICY):\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:405:for r in semantics.check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:53:for r in semantics.check_work_unit_authorization(units, policy)\"\n    ],\n    \"deny_cred_reads_manifest\": [],\n    \"file_scope_reads_manifest\": [],\n    \"hooks_reference_tool_permissions\": [],\n    \"runtime_consumers_in_hooks\": [],\n    \"skill_router_reads_tool_permissions\": []\n  },\n  \"summary\": {\n    \"all_callers_repo_wide_COUNT\": 11,\n    \"deny_cred_reads_manifest_COUNT\": 0,\n    \"file_scope_reads_manifest_COUNT\": 0,\n    \"hooks_reference_tool_permissions_COUNT\": 0,\n    \"runtime_consumers_in_hooks_COUNT\": 0,\n    \"scanner_control_found_known_present_COUNT\": 13,\n    \"scanner_discriminates\": true,\n    \"skill_router_reads_tool_permissions_COUNT\": 0\n  }\n}\nADV0022_P2_END\nP2_FINGERPRINT_MD5=93e61cf6dbccabb8a8f46883cb793a45\n",
+          "fingerprint": "5b6650ed55ae9616ac27e8f708959fcd",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "bash command-center/casualty/probes/adv0022_git_verifier.sh",
+          "raw_output": "ADV0022_GITV_BEGIN\ncwd=/c/Users/Prekzursil/source/ast-integrate\nhead=3678417c\n\n--- C1 CONTROL: is hooks/ a populated pathspec? (a zero over an empty tree is meaningless)\ntracked_files_under_hooks=289\n\n--- Q1: files under hooks/ referencing tool_permissions (expect: none)\ngit_grep_exit=1   (1 = no match, 0 = matched)\n\n--- C2 CONTROL: files repo-wide referencing tool_permissions (expect: many)\nSELF-MATCH GUARD: command-center/casualty/ IS TRACKED, so this lane's own probe outputs,\n  worklogs and builders contain the very tokens being counted. Measured both ways:\n  a raw count matched 219 files, of which 12 were this lane's own artifacts. Excluding\n  the lane is mandatory - a probe that matches its own output measures itself.\nraw_including_this_lane=219\nrepo_wide_files_with_tool_permissions=208\n\n--- Q2: callers of check_work_unit_authorization under hooks/ (expect: none)\ngit_grep_exit=1   (1 = no match, 0 = matched)\n\n--- C3 CONTROL: files repo-wide with check_work_unit_authorization, EXCLUDING this lane\n                (expect the python scanner's caller set, not inflated by our own captures)\nraw_including_this_lane=12\nrepo_wide_files=8\ncommand-center/D2-WORKUNIT-AUTHZ.md\ncommand-center/adversarial/ADV-0035-least-privilege-declared-vs-used.json\ncommand-center/authz_apply_fixes.py\ncommand-center/wave3_floor_audit.py\nplatform/lib/wfdsl/authz_census.py\nplatform/lib/wfdsl/semantics.py\nplatform/lib/wfdsl/test_work_unit_authorization.py\nplatform/schema/work-unit-catalog.schema.json\n\n--- C4 USE-vs-MENTION: git finds MORE files than the python scanner found CALLERS.\n    The scanner matched literal call syntax; git matches the token anywhere. Classify,\n    because a file that NAMES the symbol is not a caller (use-vs-mention).\n  --- command-center/authz_apply_fixes.py\n      command-center/authz_apply_fixes.py:33:# platform/lib/wfdsl/semantics.py::check_work_unit_authorization (SEM-008..SEM-011). SAME\n  --- command-center/wave3_floor_audit.py\n      command-center/wave3_floor_audit.py:429:    # does the SHIPPED gate actually fire? drive check_work_unit_authorization directly\n      command-center/wave3_floor_audit.py:456:    fn = getattr(semantics, \"check_work_unit_authorization\", None)\n      command-center/wave3_floor_audit.py:458:        return {\"ok\": False, \"error\": \"check_work_unit_authorization ABSENT\"}\n  --- platform/schema/work-unit-catalog.schema.json\n      platform/schema/work-unit-catalog.schema.json:21:      \"$comment\": \"The authorization plane for `work_units`, read by platform/lib/wfdsl/semantics.py::check_work_unit_authorization (SEM-008..SEM-011). It deliberately $refs the DSL plane's EXISTING `$defs/tool_policy` rather than declaring a second vocabulary: the two planes share one allow/deny/require_owner_approval partition with `default: deny`, so a policy authored for a workflow reads identically here (platform/architecture/TOURNAMENT-VERDICT.md 1.1 and 3.1 - a duplicate control plane was ruled inadmissible). OPTIONAL in the schema, but its ABSENCE is not permissive: SEM-008 fails closed and reports every requested tool as denied, so a catalog with no policy is a red gate, not a skipped one. Note that `$defs/tool_policy` sets additionalProperties:false, so the instance carries no `$comment` of its own - the rationale for each entry lives in command-center/authz_apply_fixes.py and command-center/D2-WORKUNIT-AUTHZ.md.\"\n  --- command-center/adversarial/ADV-0035-least-privilege-declared-vs-used.json\n      command-center/adversarial/ADV-0035-least-privilege-declared-vs-used.json:1872:    \"anchor\": \"platform/lib/wfdsl/semantics.py:318 check_work_unit_authorization\"\n\n    CLASSIFICATION (by reading each hit, not by counting documents):\n      authz_apply_fixes.py:33            MENTION  - a source comment\n      work-unit-catalog.schema.json:21   MENTION  - a schema $comment\n      ADV-0035-...json:1872              MENTION  - an anchor in a sibling artifact\n      wave3_floor_audit.py:456           *CALLER* - getattr(semantics,\n                                         \"check_work_unit_authorization\", None), a DYNAMIC\n                                         invocation the literal-call-syntax scanner missed.\n    NET: the real caller set is 5 files, not 4 - the python scanner UNDER-counted by one.\n    The conclusion is UNCHANGED and slightly strengthened: wave3_floor_audit.py is a\n    command-center floor-AUDIT probe, not a runtime hook, so all 5 callers remain\n    static/CI/audit-time and zero are call-time interceptors.\n\n--- Q3: is platform/architecture/security-first.md tracked? (settles the retracted claim)\nplatform/architecture/security-first.md\ntracked=1\nADV0022_GITV_END\n",
+          "fingerprint": "79c2c0e204bde997c9269ea00a4488e4",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The enforcement plane that does exist is a STATIC lint. CORRECTED COUNT: the dead agent's scanner reported 11 call-syntax hits across 4 files; the independent git verifier found a FIFTH caller it had missed - command-center/wave3_floor_audit.py:456 invokes the function dynamically via getattr, which literal-call-syntax matching cannot see. Three further git hits are MENTIONS, not callers (a source comment, a schema $comment, and an anchor inside sibling artifact ADV-0035). The conclusion is unchanged and slightly strengthened: all FIVE callers are a census tool, its tests, a doc and a floor-audit probe. Zero are PreToolUse hooks or call-time interceptors.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "platform/lib/wfdsl/authz_census.py:171,180,203; semantics.py:198,318; test_work_unit_authorization.py:53,219,318,361,381,405; command-center/D2-WORKUNIT-AUTHZ.md:69; command-center/wave3_floor_audit.py:456",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "python command-center/casualty/probes/adv0022_probe2.py",
+          "raw_output": "ADV0022_P2_BEGIN\n{\n  \"checks\": {\n    \"_control_scanner_finds_known_present_callers\": [\n      \"platform/lib/wfdsl/authz_census.py:171:for r in semantics.check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/authz_census.py:180:results = semantics.check_work_unit_authorization(units, catalog.get(\\\"tool_policy\\\"))\",\n      \"platform/lib/wfdsl/authz_census.py:203:for r in semantics.check_work_unit_authorization(units, policy)\",\n      \"platform/lib/wfdsl/authz_census.py:210:f\\\"rule {rule} not returned by check_work_unit_authorization\\\"\",\n      \"platform/lib/wfdsl/semantics.py:198:return [r1, r2, r3, r4, r5, r6, r7] + check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/semantics.py:318:def check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/semantics.py:94:``None`` makes SEM-008 fail closed (see :func:`check_work_unit_authorization`).\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:219:res = semantics.check_work_unit_authorization([unit(tool_permissions=[])], None)\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:318:res = semantics.check_work_unit_authorization([unit()], POLICY)\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:361:res = semantics.check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:381:for r in semantics.check_work_unit_authorization([unit()], POLICY):\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:405:for r in semantics.check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:53:for r in semantics.check_work_unit_authorization(units, policy)\"\n    ],\n    \"all_callers_repo_wide\": [\n      \"command-center/D2-WORKUNIT-AUTHZ.md:69:`check_work_unit_authorization(units, tool_policy)` \\u2192 SEM-008..011. All four land at severity\",\n      \"platform/lib/wfdsl/authz_census.py:171:for r in semantics.check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/authz_census.py:180:results = semantics.check_work_unit_authorization(units, catalog.get(\\\"tool_policy\\\"))\",\n      \"platform/lib/wfdsl/authz_census.py:203:for r in semantics.check_work_unit_authorization(units, policy)\",\n      \"platform/lib/wfdsl/semantics.py:198:return [r1, r2, r3, r4, r5, r6, r7] + check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:219:res = semantics.check_work_unit_authorization([unit(tool_permissions=[])], None)\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:318:res = semantics.check_work_unit_authorization([unit()], POLICY)\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:361:res = semantics.check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:381:for r in semantics.check_work_unit_authorization([unit()], POLICY):\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:405:for r in semantics.check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:53:for r in semantics.check_work_unit_authorization(units, policy)\"\n    ],\n    \"deny_cred_reads_manifest\": [],\n    \"file_scope_reads_manifest\": [],\n    \"hooks_reference_tool_permissions\": [],\n    \"runtime_consumers_in_hooks\": [],\n    \"skill_router_reads_tool_permissions\": []\n  },\n  \"summary\": {\n    \"all_callers_repo_wide_COUNT\": 11,\n    \"deny_cred_reads_manifest_COUNT\": 0,\n    \"file_scope_reads_manifest_COUNT\": 0,\n    \"hooks_reference_tool_permissions_COUNT\": 0,\n    \"runtime_consumers_in_hooks_COUNT\": 0,\n    \"scanner_control_found_known_present_COUNT\": 13,\n    \"scanner_discriminates\": true,\n    \"skill_router_reads_tool_permissions_COUNT\": 0\n  }\n}\nADV0022_P2_END\nP2_FINGERPRINT_MD5=93e61cf6dbccabb8a8f46883cb793a45\n",
+          "fingerprint": "5b6650ed55ae9616ac27e8f708959fcd",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "bash command-center/casualty/probes/adv0022_git_verifier.sh",
+          "raw_output": "ADV0022_GITV_BEGIN\ncwd=/c/Users/Prekzursil/source/ast-integrate\nhead=3678417c\n\n--- C1 CONTROL: is hooks/ a populated pathspec? (a zero over an empty tree is meaningless)\ntracked_files_under_hooks=289\n\n--- Q1: files under hooks/ referencing tool_permissions (expect: none)\ngit_grep_exit=1   (1 = no match, 0 = matched)\n\n--- C2 CONTROL: files repo-wide referencing tool_permissions (expect: many)\nSELF-MATCH GUARD: command-center/casualty/ IS TRACKED, so this lane's own probe outputs,\n  worklogs and builders contain the very tokens being counted. Measured both ways:\n  a raw count matched 219 files, of which 12 were this lane's own artifacts. Excluding\n  the lane is mandatory - a probe that matches its own output measures itself.\nraw_including_this_lane=219\nrepo_wide_files_with_tool_permissions=208\n\n--- Q2: callers of check_work_unit_authorization under hooks/ (expect: none)\ngit_grep_exit=1   (1 = no match, 0 = matched)\n\n--- C3 CONTROL: files repo-wide with check_work_unit_authorization, EXCLUDING this lane\n                (expect the python scanner's caller set, not inflated by our own captures)\nraw_including_this_lane=12\nrepo_wide_files=8\ncommand-center/D2-WORKUNIT-AUTHZ.md\ncommand-center/adversarial/ADV-0035-least-privilege-declared-vs-used.json\ncommand-center/authz_apply_fixes.py\ncommand-center/wave3_floor_audit.py\nplatform/lib/wfdsl/authz_census.py\nplatform/lib/wfdsl/semantics.py\nplatform/lib/wfdsl/test_work_unit_authorization.py\nplatform/schema/work-unit-catalog.schema.json\n\n--- C4 USE-vs-MENTION: git finds MORE files than the python scanner found CALLERS.\n    The scanner matched literal call syntax; git matches the token anywhere. Classify,\n    because a file that NAMES the symbol is not a caller (use-vs-mention).\n  --- command-center/authz_apply_fixes.py\n      command-center/authz_apply_fixes.py:33:# platform/lib/wfdsl/semantics.py::check_work_unit_authorization (SEM-008..SEM-011). SAME\n  --- command-center/wave3_floor_audit.py\n      command-center/wave3_floor_audit.py:429:    # does the SHIPPED gate actually fire? drive check_work_unit_authorization directly\n      command-center/wave3_floor_audit.py:456:    fn = getattr(semantics, \"check_work_unit_authorization\", None)\n      command-center/wave3_floor_audit.py:458:        return {\"ok\": False, \"error\": \"check_work_unit_authorization ABSENT\"}\n  --- platform/schema/work-unit-catalog.schema.json\n      platform/schema/work-unit-catalog.schema.json:21:      \"$comment\": \"The authorization plane for `work_units`, read by platform/lib/wfdsl/semantics.py::check_work_unit_authorization (SEM-008..SEM-011). It deliberately $refs the DSL plane's EXISTING `$defs/tool_policy` rather than declaring a second vocabulary: the two planes share one allow/deny/require_owner_approval partition with `default: deny`, so a policy authored for a workflow reads identically here (platform/architecture/TOURNAMENT-VERDICT.md 1.1 and 3.1 - a duplicate control plane was ruled inadmissible). OPTIONAL in the schema, but its ABSENCE is not permissive: SEM-008 fails closed and reports every requested tool as denied, so a catalog with no policy is a red gate, not a skipped one. Note that `$defs/tool_policy` sets additionalProperties:false, so the instance carries no `$comment` of its own - the rationale for each entry lives in command-center/authz_apply_fixes.py and command-center/D2-WORKUNIT-AUTHZ.md.\"\n  --- command-center/adversarial/ADV-0035-least-privilege-declared-vs-used.json\n      command-center/adversarial/ADV-0035-least-privilege-declared-vs-used.json:1872:    \"anchor\": \"platform/lib/wfdsl/semantics.py:318 check_work_unit_authorization\"\n\n    CLASSIFICATION (by reading each hit, not by counting documents):\n      authz_apply_fixes.py:33            MENTION  - a source comment\n      work-unit-catalog.schema.json:21   MENTION  - a schema $comment\n      ADV-0035-...json:1872              MENTION  - an anchor in a sibling artifact\n      wave3_floor_audit.py:456           *CALLER* - getattr(semantics,\n                                         \"check_work_unit_authorization\", None), a DYNAMIC\n                                         invocation the literal-call-syntax scanner missed.\n    NET: the real caller set is 5 files, not 4 - the python scanner UNDER-counted by one.\n    The conclusion is UNCHANGED and slightly strengthened: wave3_floor_audit.py is a\n    command-center floor-AUDIT probe, not a runtime hook, so all 5 callers remain\n    static/CI/audit-time and zero are call-time interceptors.\n\n--- Q3: is platform/architecture/security-first.md tracked? (settles the retracted claim)\nplatform/architecture/security-first.md\ntracked=1\nADV0022_GITV_END\n",
+          "fingerprint": "79c2c0e204bde997c9269ea00a4488e4",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "tests_required control satisfied: a component declaring the WIDE permissions it actually uses ran unimpeded - 4 of 4 ops SUCCEEDED with escaped_declaration=false on the three it declared. The enforcement layer is therefore not blocking everything, so the narrow component's success is not an artefact of a dead harness.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "adv0022_probe1_out.ORIGINAL.txt:wide_component_control.ops",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "ADV0022_BASE=\"$PWD/adv0022_canon_ws\" ADV0022_BLOCK_NETWORK=\"unavailable-modal-token-missing\" python command-center/casualty/probes/adv0022_escape_harness.py",
+          "raw_output": "ADV0022_JSON_BEGIN\n{\n  \"detector_integrity\": {\n    \"battery\": [\n      {\n        \"detail\": \"correctly failed: FileNotFoundError(2, 'The system cannot find the file specified', None, 2, None)\",\n        \"expected\": \"FAILED\",\n        \"outcome\": \"FAILED\",\n        \"probe\": \"must_fail_nonexistent_binary\"\n      },\n      {\n        \"detail\": \"correctly refused on closed port 51309: TimeoutError('timed out')\",\n        \"expected\": \"FAILED\",\n        \"outcome\": \"FAILED\",\n        \"probe\": \"must_fail_closed_port\"\n      },\n      {\n        \"detail\": \"rc=0 stdout='ok'\",\n        \"expected\": \"SUCCEEDED\",\n        \"outcome\": \"SUCCEEDED\",\n        \"probe\": \"must_succeed_trivial_subprocess\"\n      }\n    ],\n    \"discriminates\": true\n  },\n  \"meta\": {\n    \"base\": \"C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Prekzursil\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\scratchpad\\\\adv0022_canon_ws\",\n    \"block_network_env\": \"unavailable-modal-token-missing\",\n    \"platform\": \"win32\",\n    \"python\": \"3.14.6\"\n  },\n  \"narrow_component\": {\n    \"declared\": [\n      \"Read\",\n      \"Grep\",\n      \"Glob\"\n    ],\n    \"ops\": [\n      {\n        \"declared_in_manifest\": false,\n        \"detail\": \"child stdout='SUBPROC_CHILD_RAN' rc=0\",\n        \"escaped_declaration\": true,\n        \"op\": \"op1_subprocess_spawn\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Bash\"\n      },\n      {\n        \"declared_in_manifest\": false,\n        \"detail\": \"loopback round-trip reply='pong:ping' (no egress; egress NOT attempted)\",\n        \"escaped_declaration\": true,\n        \"op\": \"op2_network_call\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"WebFetch\"\n      },\n      {\n        \"declared_in_manifest\": false,\n        \"detail\": \"wrote C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Prekzursil\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\scratchpad\\\\adv0022_canon_ws\\\\escaped_from_comp_narrow.txt (193 bytes); component root was C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Prekzursil\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\scratchpad\\\\adv0022_canon_ws\\\\components\\\\comp_narrow\",\n        \"escaped_declaration\": true,\n        \"op\": \"op3_write_outside_root\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Write\"\n      },\n      {\n        \"declared_in_manifest\": false,\n        \"detail\": \"imported sibling component 'sibling_privileged' (declares tool_permissions=['Read', 'Grep', 'Glob', 'Bash', 'Write']) and invoked its privileged_write(); it performed 'C:\\\\\\\\Users\\\\\\\\PREKZU~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-Prekzursil\\\\\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\\\\\scratchpad\\\\\\\\adv0022_canon_ws\\\\\\\\sibling_effect_for_comp_narrow.txt'\",\n        \"escaped_declaration\": true,\n        \"op\": \"op4_invoke_wider_sibling\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Task\"\n      }\n    ]\n  },\n  \"summary\": {\n    \"detector_discriminates\": true,\n    \"narrow_ops_succeeded\": 4,\n    \"narrow_ops_total\": 4,\n    \"narrow_out_of_declaration_escapes\": 4,\n    \"wide_ops_succeeded\": 4\n  },\n  \"wide_component_control\": {\n    \"declared\": [\n      \"Read\",\n      \"Grep\",\n      \"Glob\",\n      \"Bash\",\n      \"Write\",\n      \"WebFetch\"\n    ],\n    \"ops\": [\n      {\n        \"declared_in_manifest\": true,\n        \"detail\": \"child stdout='SUBPROC_CHILD_RAN' rc=0\",\n        \"escaped_declaration\": false,\n        \"op\": \"op1_subprocess_spawn\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Bash\"\n      },\n      {\n        \"declared_in_manifest\": true,\n        \"detail\": \"loopback round-trip reply='pong:ping' (no egress; egress NOT attempted)\",\n        \"escaped_declaration\": false,\n        \"op\": \"op2_network_call\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"WebFetch\"\n      },\n      {\n        \"declared_in_manifest\": true,\n        \"detail\": \"wrote C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Prekzursil\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\scratchpad\\\\adv0022_canon_ws\\\\escaped_from_comp_wide.txt (189 bytes); component root was C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Prekzursil\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\scratchpad\\\\adv0022_canon_ws\\\\components\\\\comp_wide\",\n        \"escaped_declaration\": false,\n        \"op\": \"op3_write_outside_root\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Write\"\n      },\n      {\n        \"declared_in_manifest\": false,\n        \"detail\": \"imported sibling component 'sibling_privileged' (declares tool_permissions=['Read', 'Grep', 'Glob', 'Bash', 'Write']) and invoked its privileged_write(); it performed 'C:\\\\\\\\Users\\\\\\\\PREKZU~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-Prekzursil\\\\\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\\\\\scratchpad\\\\\\\\adv0022_canon_ws\\\\\\\\sibling_effect_for_comp_wide.txt'\",\n        \"escaped_declaration\": true,\n        \"op\": \"op4_invoke_wider_sibling\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Task\"\n      }\n    ]\n  }\n}\nADV0022_JSON_END\n",
+          "fingerprint": "e5cd0d8bf72bbb26c3ca95dbb34752ff",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "python command-center/casualty/_r1_rerun_diff.py",
+          "raw_output": "{\n  \"generated_at_epoch\": 1786513720,\n  \"pairs\": [\n    {\n      \"original\": \"adv0021_probe1_out.ORIGINAL.json\",\n      \"rerun\": \"adv0021_probe1_out.RERUN.json\",\n      \"kind\": \"json\",\n      \"bytes\": {\n        \"adv0021_probe1_out.ORIGINAL.json\": 53286,\n        \"adv0021_probe1_out.RERUN.json\": 53286\n      },\n      \"sha256\": {\n        \"adv0021_probe1_out.ORIGINAL.json\": \"b99e0b726c4c3786bb2c79f8bfd90e1339c6b4c6e71494bbbdf19601585e001a\",\n        \"adv0021_probe1_out.RERUN.json\": \"b99e0b726c4c3786bb2c79f8bfd90e1339c6b4c6e71494bbbdf19601585e001a\"\n      },\n      \"md5\": {\n        \"adv0021_probe1_out.ORIGINAL.json\": \"67b8a702060b41e6e5b1eabfddd49e1f\",\n        \"adv0021_probe1_out.RERUN.json\": \"67b8a702060b41e6e5b1eabfddd49e1f\"\n      },\n      \"byte_identical\": true,\n      \"semantic_leaf_count\": 1299,\n      \"semantic_diff_count\": 0,\n      \"semantic_diff_sample\": [],\n      \"verdict\": \"BYTE-IDENTICAL\"\n    },\n    {\n      \"original\": \"adv0021_results_b.ORIGINAL.json\",\n      \"rerun\": \"adv0021_results_b.RERUN.json\",\n      \"kind\": \"json\",\n      \"bytes\": {\n        \"adv0021_results_b.ORIGINAL.json\": 6114,\n        \"adv0021_results_b.RERUN.json\": 6114\n      },\n      \"sha256\": {\n        \"adv0021_results_b.ORIGINAL.json\": \"c63f681ebd790faf2f209799ffddcce06297cfa8782b52b6847233975f13856e\",\n        \"adv0021_results_b.RERUN.json\": \"2e1d6ae89e7fc726c95600229f790d55ba84f3f136b69be0d5af67689c2ae6ca\"\n      },\n      \"md5\": {\n        \"adv0021_results_b.ORIGINAL.json\": \"ab82c9e72adf33f90cc7ab6e22a941f2\",\n        \"adv0021_results_b.RERUN.json\": \"053985a03003045ae26955d19fa80574\"\n      },\n      \"byte_identical\": false,\n      \"semantic_leaf_count\": 73,\n      \"semantic_diff_count\": 3,\n      \"semantic_diff_sample\": [\n        {\n          \"key\": \".results[13].detail\",\n          \"original\": \"holder subprocess pid=31240 says 'LOCKED'; lock_exists=True\",\n          \"rerun\": \"holder subprocess pid=12812 says 'LOCKED'; lock_exists=True\"\n        },\n        {\n          \"key\": \".results[14].detail\",\n          \"original\": \"exit=1; lock_exists_after=True; stderr_tail=PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\\\\\\\Users\\\\\\\\Prekzursil\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\",\n          \"rerun\": \"exit=1; lock_exists_after=True; stderr_tail=PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\\\\\\\Users\\\\\\\\Prekzursil\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\"\n        },\n        {\n          \"key\": \".tmproot\",\n          \"original\": \"C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0021b_u06q8gaw\",\n          \"rerun\": \"C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0021b_lljrf110\"\n        }\n      ],\n      \"verdict\": \"DIFFERS\"\n    },\n    {\n      \"original\": \"adv0022_probe1_out.ORIGINAL.txt\",\n      \"rerun\": \"adv0022_probe1_out.RERUN.txt\",\n      \"kind\": \"text\",\n      \"bytes\": {\n        \"adv0022_probe1_out.ORIGINAL.txt\": 5037,\n        \"adv0022_probe1_out.RERUN.txt\": 4442\n      },\n      \"sha256\": {\n        \"adv0022_probe1_out.ORIGINAL.txt\": \"e8e420ef2a64d43ae6b632b4fb9707c4dbdbf185e897511e47f880531887ff1c\",\n        \"adv0022_probe1_out.RERUN.txt\": \"a58ec5d540a1a183fc00bd4b05a6f5d031250fba1721c9c8b4c78d5789d2c0c5\"\n      },\n      \"md5\": {\n        \"adv0022_probe1_out.ORIGINAL.txt\": \"b4842de75889e5e0600299907d556128\",\n        \"adv0022_probe1_out.RERUN.txt\": \"9cf3e4d9b54ef6deb9b9929b4e117ca2\"\n      },\n      \"byte_identical\": false,\n      \"lines\": {\n        \"adv0022_probe1_out.ORIGINAL.txt\": 125,\n        \"adv0022_probe1_out.RERUN.txt\": 125\n      },\n      \"only_in_original\": [\n        \"        \\\"detail\\\": \\\"correctly refused on closed port 51309: TimeoutError('timed out')\\\",\",\n        \"        \\\"detail\\\": \\\"imported sibling component 'sibling_privileged' (declares tool_permissions=['Read', 'Grep', 'Glob', 'Bash', 'Write']) and invoked its privileged_write(); it performed 'C:\\\\\\\\\\\\\\\\Users\\\\\\\\\\\\\\\\PREKZU~1\\\\\\\\\\\\\\\\AppData\\\\\\\\\\\\\\\\Local\\\\\\\\\\\\\\\\Temp\\\\\\\\\\\\\\\\claude\\\\\\\\\\\\\\\\C--Users-Prekzursil\\\\\\\\\\\\\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\\\\\\\\\\\\\scratchpad\\\\\\\\\\\\\\\\adv0022_canon_ws\\\\\\\\\\\\\\\\sibling_effect_for_comp_narrow.txt'\\\",\",\n        \"        \\\"detail\\\": \\\"imported sibling component 'sibling_privileged' (declares tool_permissions=['Read', 'Grep', 'Glob', 'Bash', 'Write']) and invoked its privileged_write(); it performed 'C:\\\\\\\\\\\\\\\\Users\\\\\\\\\\\\\\\\PREKZU~1\\\\\\\\\\\\\\\\AppData\\\\\\\\\\\\\\\\Local\\\\\\\\\\\\\\\\Temp\\\\\\\\\\\\\\\\claude\\\\\\\\\\\\\\\\C--Users-Prekzursil\\\\\\\\\\\\\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\\\\\\\\\\\\\scratchpad\\\\\\\\\\\\\\\\adv0022_canon_ws\\\\\\\\\\\\\\\\sibling_effect_for_comp_wide.txt'\\\",\",\n        \"        \\\"detail\\\": \\\"wrote C:\\\\\\\\Users\\\\\\\\PREKZU~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-Prekzursil\\\\\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\\\\\scratchpad\\\\\\\\adv0022_canon_ws\\\\\\\\escaped_from_comp_narrow.txt (193 bytes); component root was C:\\\\\\\\Users\\\\\\\\PREKZU~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-Prekzursil\\\\\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\\\\\scratchpad\\\\\\\\adv0022_canon_ws\\\\\\\\components\\\\\\\\comp_narrow\\\",\",\n        \"        \\\"detail\\\": \\\"wrote C:\\\\\\\\Users\\\\\\\\PREKZU~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-Prekzursil\\\\\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\\\\\scratchpad\\\\\\\\adv0022_canon_ws\\\\\\\\escaped_from_comp_wide.txt (189 bytes); component root was C:\\\\\\\\Users\\\\\\\\PREKZU~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-Prekzursil\\\\\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\\\\\scratchpad\\\\\\\\adv0022_canon_ws\\\\\\\\components\\\\\\\\comp_wide\\\",\",\n        \"    \\\"base\\\": \\\"C:\\\\\\\\Users\\\\\\\\PREKZU~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-Prekzursil\\\\\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\\\\\scratchpad\\\\\\\\adv0022_canon_ws\\\",\",\n        \"    \\\"block_network_env\\\": \\\"unavailable-modal-token-missing\\\",\"\n      ],\n      \"only_in_rerun\": [\n        \"        \\\"detail\\\": \\\"correctly refused on closed port 11737: TimeoutError('timed out')\\\",\",\n        \"        \\\"detail\\\": \\\"imported sibling component 'sibling_privileged' (declares tool_permissions=['Read', 'Grep', 'Glob', 'Bash', 'Write']) and invoked its privileged_write(); it performed 'C:\\\\\\\\\\\\\\\\Users\\\\\\\\\\\\\\\\PREKZU~1\\\\\\\\\\\\\\\\AppData\\\\\\\\\\\\\\\\Local\\\\\\\\\\\\\\\\Temp\\\\\\\\\\\\\\\\adv0022_rerun_ws\\\\\\\\\\\\\\\\sibling_effect_for_comp_narrow.txt'\\\",\",\n        \"        \\\"detail\\\": \\\"imported sibling component 'sibling_privileged' (declares tool_permissions=['Read', 'Grep', 'Glob', 'Bash', 'Write']) and invoked its privileged_write(); it performed 'C:\\\\\\\\\\\\\\\\Users\\\\\\\\\\\\\\\\PREKZU~1\\\\\\\\\\\\\\\\AppData\\\\\\\\\\\\\\\\Local\\\\\\\\\\\\\\\\Temp\\\\\\\\\\\\\\\\adv0022_rerun_ws\\\\\\\\\\\\\\\\sibling_effect_for_comp_wide.txt'\\\",\",\n        \"        \\\"detail\\\": \\\"wrote C:\\\\\\\\Users\\\\\\\\PREKZU~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\adv0022_rerun_ws\\\\\\\\escaped_from_comp_narrow.txt (118 bytes); component root was C:\\\\\\\\Users\\\\\\\\PREKZU~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\adv0022_rerun_ws\\\\\\\\components\\\\\\\\comp_narrow\\\",\",\n        \"        \\\"detail\\\": \\\"wrote C:\\\\\\\\Users\\\\\\\\PREKZU~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\adv0022_rerun_ws\\\\\\\\escaped_from_comp_wide.txt (114 bytes); component root was C:\\\\\\\\Users\\\\\\\\PREKZU~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\adv0022_rerun_ws\\\\\\\\components\\\\\\\\comp_wide\\\",\",\n        \"    \\\"base\\\": \\\"C:\\\\\\\\Users\\\\\\\\PREKZU~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\adv0022_rerun_ws\\\",\",\n        \"    \\\"block_network_env\\\": \\\"unset\\\",\"\n      ],\n      \"line_diff_count\": 14,\n      \"verdict\": \"DIFFERS\"\n    },\n    {\n      \"original\": \"adv0022_probe2_out.ORIGINAL.txt\",\n      \"rerun\": \"adv0022_probe2_out.RERUN.txt\",\n      \"kind\": \"text\",\n      \"bytes\": {\n        \"adv0022_probe2_out.ORIGINAL.txt\": 3721,\n        \"adv0022_probe2_out.RERUN.txt\": 3721\n      },\n      \"sha256\": {\n        \"adv0022_probe2_out.ORIGINAL.txt\": \"2e298e1a3176af83eb1cc491547b3f914a64bea305126bcc1123e16b4017b2ac\",\n        \"adv0022_probe2_out.RERUN.txt\": \"2e298e1a3176af83eb1cc491547b3f914a64bea305126bcc1123e16b4017b2ac\"\n      },\n      \"md5\": {\n        \"adv0022_probe2_out.ORIGINAL.txt\": \"5d542608209a2200d304104439f7d359\",\n        \"adv0022_probe2_out.RERUN.txt\": \"5d542608209a2200d304104439f7d359\"\n      },\n      \"byte_identical\": true,\n      \"lines\": {\n        \"adv0022_probe2_out.ORIGINAL.txt\": 50,\n        \"adv0022_probe2_out.RERUN.txt\": 50\n      },\n      \"only_in_original\": [],\n      \"only_in_rerun\": [],\n      \"line_diff_count\": 0,\n      \"verdict\": \"BYTE-IDENTICAL\"\n    }\n  ]\n}",
+          "fingerprint": "1ad61bf6404bb4645f366de7ee68ace4",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The escape harness is not a rubber stamp: its own detector-integrity battery discriminates - a nonexistent binary FAILED as required, a closed port FAILED as required, and a trivial subprocess SUCCEEDED as required (discriminates=true).",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "adv0022_probe1_out.ORIGINAL.txt:detector_integrity.battery",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "ADV0022_BASE=\"$PWD/adv0022_canon_ws\" ADV0022_BLOCK_NETWORK=\"unavailable-modal-token-missing\" python command-center/casualty/probes/adv0022_escape_harness.py",
+          "raw_output": "ADV0022_JSON_BEGIN\n{\n  \"detector_integrity\": {\n    \"battery\": [\n      {\n        \"detail\": \"correctly failed: FileNotFoundError(2, 'The system cannot find the file specified', None, 2, None)\",\n        \"expected\": \"FAILED\",\n        \"outcome\": \"FAILED\",\n        \"probe\": \"must_fail_nonexistent_binary\"\n      },\n      {\n        \"detail\": \"correctly refused on closed port 51309: TimeoutError('timed out')\",\n        \"expected\": \"FAILED\",\n        \"outcome\": \"FAILED\",\n        \"probe\": \"must_fail_closed_port\"\n      },\n      {\n        \"detail\": \"rc=0 stdout='ok'\",\n        \"expected\": \"SUCCEEDED\",\n        \"outcome\": \"SUCCEEDED\",\n        \"probe\": \"must_succeed_trivial_subprocess\"\n      }\n    ],\n    \"discriminates\": true\n  },\n  \"meta\": {\n    \"base\": \"C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Prekzursil\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\scratchpad\\\\adv0022_canon_ws\",\n    \"block_network_env\": \"unavailable-modal-token-missing\",\n    \"platform\": \"win32\",\n    \"python\": \"3.14.6\"\n  },\n  \"narrow_component\": {\n    \"declared\": [\n      \"Read\",\n      \"Grep\",\n      \"Glob\"\n    ],\n    \"ops\": [\n      {\n        \"declared_in_manifest\": false,\n        \"detail\": \"child stdout='SUBPROC_CHILD_RAN' rc=0\",\n        \"escaped_declaration\": true,\n        \"op\": \"op1_subprocess_spawn\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Bash\"\n      },\n      {\n        \"declared_in_manifest\": false,\n        \"detail\": \"loopback round-trip reply='pong:ping' (no egress; egress NOT attempted)\",\n        \"escaped_declaration\": true,\n        \"op\": \"op2_network_call\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"WebFetch\"\n      },\n      {\n        \"declared_in_manifest\": false,\n        \"detail\": \"wrote C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Prekzursil\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\scratchpad\\\\adv0022_canon_ws\\\\escaped_from_comp_narrow.txt (193 bytes); component root was C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Prekzursil\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\scratchpad\\\\adv0022_canon_ws\\\\components\\\\comp_narrow\",\n        \"escaped_declaration\": true,\n        \"op\": \"op3_write_outside_root\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Write\"\n      },\n      {\n        \"declared_in_manifest\": false,\n        \"detail\": \"imported sibling component 'sibling_privileged' (declares tool_permissions=['Read', 'Grep', 'Glob', 'Bash', 'Write']) and invoked its privileged_write(); it performed 'C:\\\\\\\\Users\\\\\\\\PREKZU~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-Prekzursil\\\\\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\\\\\scratchpad\\\\\\\\adv0022_canon_ws\\\\\\\\sibling_effect_for_comp_narrow.txt'\",\n        \"escaped_declaration\": true,\n        \"op\": \"op4_invoke_wider_sibling\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Task\"\n      }\n    ]\n  },\n  \"summary\": {\n    \"detector_discriminates\": true,\n    \"narrow_ops_succeeded\": 4,\n    \"narrow_ops_total\": 4,\n    \"narrow_out_of_declaration_escapes\": 4,\n    \"wide_ops_succeeded\": 4\n  },\n  \"wide_component_control\": {\n    \"declared\": [\n      \"Read\",\n      \"Grep\",\n      \"Glob\",\n      \"Bash\",\n      \"Write\",\n      \"WebFetch\"\n    ],\n    \"ops\": [\n      {\n        \"declared_in_manifest\": true,\n        \"detail\": \"child stdout='SUBPROC_CHILD_RAN' rc=0\",\n        \"escaped_declaration\": false,\n        \"op\": \"op1_subprocess_spawn\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Bash\"\n      },\n      {\n        \"declared_in_manifest\": true,\n        \"detail\": \"loopback round-trip reply='pong:ping' (no egress; egress NOT attempted)\",\n        \"escaped_declaration\": false,\n        \"op\": \"op2_network_call\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"WebFetch\"\n      },\n      {\n        \"declared_in_manifest\": true,\n        \"detail\": \"wrote C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Prekzursil\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\scratchpad\\\\adv0022_canon_ws\\\\escaped_from_comp_wide.txt (189 bytes); component root was C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Prekzursil\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\scratchpad\\\\adv0022_canon_ws\\\\components\\\\comp_wide\",\n        \"escaped_declaration\": false,\n        \"op\": \"op3_write_outside_root\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Write\"\n      },\n      {\n        \"declared_in_manifest\": false,\n        \"detail\": \"imported sibling component 'sibling_privileged' (declares tool_permissions=['Read', 'Grep', 'Glob', 'Bash', 'Write']) and invoked its privileged_write(); it performed 'C:\\\\\\\\Users\\\\\\\\PREKZU~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-Prekzursil\\\\\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\\\\\scratchpad\\\\\\\\adv0022_canon_ws\\\\\\\\sibling_effect_for_comp_wide.txt'\",\n        \"escaped_declaration\": true,\n        \"op\": \"op4_invoke_wider_sibling\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Task\"\n      }\n    ]\n  }\n}\nADV0022_JSON_END\n",
+          "fingerprint": "e5cd0d8bf72bbb26c3ca95dbb34752ff",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "python command-center/casualty/_r1_rerun_diff.py",
+          "raw_output": "adv0022_probe1_out ORIGINAL vs RERUN: 125 lines each; the 14 differing lines are a workspace path, an ephemeral port number and the block_network_env label. detector_integrity.discriminates=true in BOTH runs; all 8 op outcomes identical.",
+          "fingerprint": "1ad61bf6404bb4645f366de7ee68ace4",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The wider-permission sibling invocation (op4) escaped in BOTH the narrow and the wide component, because a plain Python import crosses the component boundary with no mediation at all - so even a correctly-declared component can borrow capability it never declared.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "adv0022_probe1_out.ORIGINAL.txt:wide_component_control.ops[op4_invoke_wider_sibling] escaped_declaration=true",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "ADV0022_BASE=\"$PWD/adv0022_canon_ws\" ADV0022_BLOCK_NETWORK=\"unavailable-modal-token-missing\" python command-center/casualty/probes/adv0022_escape_harness.py",
+          "raw_output": "ADV0022_JSON_BEGIN\n{\n  \"detector_integrity\": {\n    \"battery\": [\n      {\n        \"detail\": \"correctly failed: FileNotFoundError(2, 'The system cannot find the file specified', None, 2, None)\",\n        \"expected\": \"FAILED\",\n        \"outcome\": \"FAILED\",\n        \"probe\": \"must_fail_nonexistent_binary\"\n      },\n      {\n        \"detail\": \"correctly refused on closed port 51309: TimeoutError('timed out')\",\n        \"expected\": \"FAILED\",\n        \"outcome\": \"FAILED\",\n        \"probe\": \"must_fail_closed_port\"\n      },\n      {\n        \"detail\": \"rc=0 stdout='ok'\",\n        \"expected\": \"SUCCEEDED\",\n        \"outcome\": \"SUCCEEDED\",\n        \"probe\": \"must_succeed_trivial_subprocess\"\n      }\n    ],\n    \"discriminates\": true\n  },\n  \"meta\": {\n    \"base\": \"C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Prekzursil\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\scratchpad\\\\adv0022_canon_ws\",\n    \"block_network_env\": \"unavailable-modal-token-missing\",\n    \"platform\": \"win32\",\n    \"python\": \"3.14.6\"\n  },\n  \"narrow_component\": {\n    \"declared\": [\n      \"Read\",\n      \"Grep\",\n      \"Glob\"\n    ],\n    \"ops\": [\n      {\n        \"declared_in_manifest\": false,\n        \"detail\": \"child stdout='SUBPROC_CHILD_RAN' rc=0\",\n        \"escaped_declaration\": true,\n        \"op\": \"op1_subprocess_spawn\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Bash\"\n      },\n      {\n        \"declared_in_manifest\": false,\n        \"detail\": \"loopback round-trip reply='pong:ping' (no egress; egress NOT attempted)\",\n        \"escaped_declaration\": true,\n        \"op\": \"op2_network_call\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"WebFetch\"\n      },\n      {\n        \"declared_in_manifest\": false,\n        \"detail\": \"wrote C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Prekzursil\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\scratchpad\\\\adv0022_canon_ws\\\\escaped_from_comp_narrow.txt (193 bytes); component root was C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Prekzursil\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\scratchpad\\\\adv0022_canon_ws\\\\components\\\\comp_narrow\",\n        \"escaped_declaration\": true,\n        \"op\": \"op3_write_outside_root\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Write\"\n      },\n      {\n        \"declared_in_manifest\": false,\n        \"detail\": \"imported sibling component 'sibling_privileged' (declares tool_permissions=['Read', 'Grep', 'Glob', 'Bash', 'Write']) and invoked its privileged_write(); it performed 'C:\\\\\\\\Users\\\\\\\\PREKZU~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-Prekzursil\\\\\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\\\\\scratchpad\\\\\\\\adv0022_canon_ws\\\\\\\\sibling_effect_for_comp_narrow.txt'\",\n        \"escaped_declaration\": true,\n        \"op\": \"op4_invoke_wider_sibling\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Task\"\n      }\n    ]\n  },\n  \"summary\": {\n    \"detector_discriminates\": true,\n    \"narrow_ops_succeeded\": 4,\n    \"narrow_ops_total\": 4,\n    \"narrow_out_of_declaration_escapes\": 4,\n    \"wide_ops_succeeded\": 4\n  },\n  \"wide_component_control\": {\n    \"declared\": [\n      \"Read\",\n      \"Grep\",\n      \"Glob\",\n      \"Bash\",\n      \"Write\",\n      \"WebFetch\"\n    ],\n    \"ops\": [\n      {\n        \"declared_in_manifest\": true,\n        \"detail\": \"child stdout='SUBPROC_CHILD_RAN' rc=0\",\n        \"escaped_declaration\": false,\n        \"op\": \"op1_subprocess_spawn\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Bash\"\n      },\n      {\n        \"declared_in_manifest\": true,\n        \"detail\": \"loopback round-trip reply='pong:ping' (no egress; egress NOT attempted)\",\n        \"escaped_declaration\": false,\n        \"op\": \"op2_network_call\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"WebFetch\"\n      },\n      {\n        \"declared_in_manifest\": true,\n        \"detail\": \"wrote C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Prekzursil\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\scratchpad\\\\adv0022_canon_ws\\\\escaped_from_comp_wide.txt (189 bytes); component root was C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Prekzursil\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\scratchpad\\\\adv0022_canon_ws\\\\components\\\\comp_wide\",\n        \"escaped_declaration\": false,\n        \"op\": \"op3_write_outside_root\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Write\"\n      },\n      {\n        \"declared_in_manifest\": false,\n        \"detail\": \"imported sibling component 'sibling_privileged' (declares tool_permissions=['Read', 'Grep', 'Glob', 'Bash', 'Write']) and invoked its privileged_write(); it performed 'C:\\\\\\\\Users\\\\\\\\PREKZU~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-Prekzursil\\\\\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\\\\\scratchpad\\\\\\\\adv0022_canon_ws\\\\\\\\sibling_effect_for_comp_wide.txt'\",\n        \"escaped_declaration\": true,\n        \"op\": \"op4_invoke_wider_sibling\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Task\"\n      }\n    ]\n  }\n}\nADV0022_JSON_END\n",
+          "fingerprint": "e5cd0d8bf72bbb26c3ca95dbb34752ff",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "python command-center/casualty/probes/adv0022_probe2.py",
+          "raw_output": "ADV0022_P2_BEGIN\n{\n  \"checks\": {\n    \"_control_scanner_finds_known_present_callers\": [\n      \"platform/lib/wfdsl/authz_census.py:171:for r in semantics.check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/authz_census.py:180:results = semantics.check_work_unit_authorization(units, catalog.get(\\\"tool_policy\\\"))\",\n      \"platform/lib/wfdsl/authz_census.py:203:for r in semantics.check_work_unit_authorization(units, policy)\",\n      \"platform/lib/wfdsl/authz_census.py:210:f\\\"rule {rule} not returned by check_work_unit_authorization\\\"\",\n      \"platform/lib/wfdsl/semantics.py:198:return [r1, r2, r3, r4, r5, r6, r7] + check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/semantics.py:318:def check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/semantics.py:94:``None`` makes SEM-008 fail closed (see :func:`check_work_unit_authorization`).\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:219:res = semantics.check_work_unit_authorization([unit(tool_permissions=[])], None)\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:318:res = semantics.check_work_unit_authorization([unit()], POLICY)\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:361:res = semantics.check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:381:for r in semantics.check_work_unit_authorization([unit()], POLICY):\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:405:for r in semantics.check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:53:for r in semantics.check_work_unit_authorization(units, policy)\"\n    ],\n    \"all_callers_repo_wide\": [\n      \"command-center/D2-WORKUNIT-AUTHZ.md:69:`check_work_unit_authorization(units, tool_policy)` \\u2192 SEM-008..011. All four land at severity\",\n      \"platform/lib/wfdsl/authz_census.py:171:for r in semantics.check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/authz_census.py:180:results = semantics.check_work_unit_authorization(units, catalog.get(\\\"tool_policy\\\"))\",\n      \"platform/lib/wfdsl/authz_census.py:203:for r in semantics.check_work_unit_authorization(units, policy)\",\n      \"platform/lib/wfdsl/semantics.py:198:return [r1, r2, r3, r4, r5, r6, r7] + check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:219:res = semantics.check_work_unit_authorization([unit(tool_permissions=[])], None)\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:318:res = semantics.check_work_unit_authorization([unit()], POLICY)\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:361:res = semantics.check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:381:for r in semantics.check_work_unit_authorization([unit()], POLICY):\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:405:for r in semantics.check_work_unit_authorization(\",\n      \"platform/lib/wfdsl/test_work_unit_authorization.py:53:for r in semantics.check_work_unit_authorization(units, policy)\"\n    ],\n    \"deny_cred_reads_manifest\": [],\n    \"file_scope_reads_manifest\": [],\n    \"hooks_reference_tool_permissions\": [],\n    \"runtime_consumers_in_hooks\": [],\n    \"skill_router_reads_tool_permissions\": []\n  },\n  \"summary\": {\n    \"all_callers_repo_wide_COUNT\": 11,\n    \"deny_cred_reads_manifest_COUNT\": 0,\n    \"file_scope_reads_manifest_COUNT\": 0,\n    \"hooks_reference_tool_permissions_COUNT\": 0,\n    \"runtime_consumers_in_hooks_COUNT\": 0,\n    \"scanner_control_found_known_present_COUNT\": 13,\n    \"scanner_discriminates\": true,\n    \"skill_router_reads_tool_permissions_COUNT\": 0\n  }\n}\nADV0022_P2_END\nP2_FINGERPRINT_MD5=93e61cf6dbccabb8a8f46883cb793a45\n",
+          "fingerprint": "5b6650ed55ae9616ac27e8f708959fcd",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The intended execution substrate was a disposable Modal sandbox with block_network=true. Modal returned 'Token missing', and per AGENTS.md 9 no credential was created, so the run used a local disposable %TEMP% workspace instead. The network op is loopback-only by construction (reply 'pong:ping', no egress attempted), and all writes stayed under the disposable base.",
+      "verdict": "PARTIAL",
+      "confidence": "almost-certain",
+      "anchor": "adv0022_probe1_out.ORIGINAL.txt:meta.block_network_env='unavailable-modal-token-missing'",
+      "unverified": true,
+      "settling_experiment": "Authenticate Modal (an OWNER action - this lane must not create credentials), then re-run adv0022_escape_harness.py via mcp__cloud-hub__modal_sandbox_create(block_network=true) + modal_sandbox_exec and confirm the 4/4 escape reproduces under a real network namespace.",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "ADV0022_BASE=\"$PWD/adv0022_canon_ws\" ADV0022_BLOCK_NETWORK=\"unavailable-modal-token-missing\" python command-center/casualty/probes/adv0022_escape_harness.py",
+          "raw_output": "ADV0022_JSON_BEGIN\n{\n  \"detector_integrity\": {\n    \"battery\": [\n      {\n        \"detail\": \"correctly failed: FileNotFoundError(2, 'The system cannot find the file specified', None, 2, None)\",\n        \"expected\": \"FAILED\",\n        \"outcome\": \"FAILED\",\n        \"probe\": \"must_fail_nonexistent_binary\"\n      },\n      {\n        \"detail\": \"correctly refused on closed port 51309: TimeoutError('timed out')\",\n        \"expected\": \"FAILED\",\n        \"outcome\": \"FAILED\",\n        \"probe\": \"must_fail_closed_port\"\n      },\n      {\n        \"detail\": \"rc=0 stdout='ok'\",\n        \"expected\": \"SUCCEEDED\",\n        \"outcome\": \"SUCCEEDED\",\n        \"probe\": \"must_succeed_trivial_subprocess\"\n      }\n    ],\n    \"discriminates\": true\n  },\n  \"meta\": {\n    \"base\": \"C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Prekzursil\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\scratchpad\\\\adv0022_canon_ws\",\n    \"block_network_env\": \"unavailable-modal-token-missing\",\n    \"platform\": \"win32\",\n    \"python\": \"3.14.6\"\n  },\n  \"narrow_component\": {\n    \"declared\": [\n      \"Read\",\n      \"Grep\",\n      \"Glob\"\n    ],\n    \"ops\": [\n      {\n        \"declared_in_manifest\": false,\n        \"detail\": \"child stdout='SUBPROC_CHILD_RAN' rc=0\",\n        \"escaped_declaration\": true,\n        \"op\": \"op1_subprocess_spawn\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Bash\"\n      },\n      {\n        \"declared_in_manifest\": false,\n        \"detail\": \"loopback round-trip reply='pong:ping' (no egress; egress NOT attempted)\",\n        \"escaped_declaration\": true,\n        \"op\": \"op2_network_call\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"WebFetch\"\n      },\n      {\n        \"declared_in_manifest\": false,\n        \"detail\": \"wrote C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Prekzursil\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\scratchpad\\\\adv0022_canon_ws\\\\escaped_from_comp_narrow.txt (193 bytes); component root was C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Prekzursil\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\scratchpad\\\\adv0022_canon_ws\\\\components\\\\comp_narrow\",\n        \"escaped_declaration\": true,\n        \"op\": \"op3_write_outside_root\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Write\"\n      },\n      {\n        \"declared_in_manifest\": false,\n        \"detail\": \"imported sibling component 'sibling_privileged' (declares tool_permissions=['Read', 'Grep', 'Glob', 'Bash', 'Write']) and invoked its privileged_write(); it performed 'C:\\\\\\\\Users\\\\\\\\PREKZU~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-Prekzursil\\\\\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\\\\\scratchpad\\\\\\\\adv0022_canon_ws\\\\\\\\sibling_effect_for_comp_narrow.txt'\",\n        \"escaped_declaration\": true,\n        \"op\": \"op4_invoke_wider_sibling\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Task\"\n      }\n    ]\n  },\n  \"summary\": {\n    \"detector_discriminates\": true,\n    \"narrow_ops_succeeded\": 4,\n    \"narrow_ops_total\": 4,\n    \"narrow_out_of_declaration_escapes\": 4,\n    \"wide_ops_succeeded\": 4\n  },\n  \"wide_component_control\": {\n    \"declared\": [\n      \"Read\",\n      \"Grep\",\n      \"Glob\",\n      \"Bash\",\n      \"Write\",\n      \"WebFetch\"\n    ],\n    \"ops\": [\n      {\n        \"declared_in_manifest\": true,\n        \"detail\": \"child stdout='SUBPROC_CHILD_RAN' rc=0\",\n        \"escaped_declaration\": false,\n        \"op\": \"op1_subprocess_spawn\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Bash\"\n      },\n      {\n        \"declared_in_manifest\": true,\n        \"detail\": \"loopback round-trip reply='pong:ping' (no egress; egress NOT attempted)\",\n        \"escaped_declaration\": false,\n        \"op\": \"op2_network_call\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"WebFetch\"\n      },\n      {\n        \"declared_in_manifest\": true,\n        \"detail\": \"wrote C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Prekzursil\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\scratchpad\\\\adv0022_canon_ws\\\\escaped_from_comp_wide.txt (189 bytes); component root was C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Prekzursil\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\scratchpad\\\\adv0022_canon_ws\\\\components\\\\comp_wide\",\n        \"escaped_declaration\": false,\n        \"op\": \"op3_write_outside_root\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Write\"\n      },\n      {\n        \"declared_in_manifest\": false,\n        \"detail\": \"imported sibling component 'sibling_privileged' (declares tool_permissions=['Read', 'Grep', 'Glob', 'Bash', 'Write']) and invoked its privileged_write(); it performed 'C:\\\\\\\\Users\\\\\\\\PREKZU~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-Prekzursil\\\\\\\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\\\\\\\scratchpad\\\\\\\\adv0022_canon_ws\\\\\\\\sibling_effect_for_comp_wide.txt'\",\n        \"escaped_declaration\": true,\n        \"op\": \"op4_invoke_wider_sibling\",\n        \"outcome\": \"SUCCEEDED\",\n        \"required_tool\": \"Task\"\n      }\n    ]\n  }\n}\nADV0022_JSON_END\n",
+          "fingerprint": "e5cd0d8bf72bbb26c3ca95dbb34752ff",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "RETRACTED AND CORRECTED, recorded rather than deleted: mid-run the original agent asserted that platform/architecture/ (where deny-by-default enforcement is described) was UNTRACKED. It then checked and retracted - security-first.md IS tracked. The load-bearing conclusion is unaffected because it never rested on tracking status: it rests on 'zero hooks read tool_permissions', which is measured independently by two tools.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "recovered/ADV-0022-worklog.md rec 69",
+      "probes": [
+        {
+          "role": "source",
+          "method": "manual-inspection",
+          "command": "git ls-files platform/architecture/security-first.md",
+          "raw_output": "The original agent's own mid-run correction, recovered verbatim from its transcript at record 69: \"Important correction: `security-first.md` **is** tracked - so I must not claim the architecture is untracked. The load-bearing fact stands regardless: `grep -rln tool_permissions hooks/` is **empty**.\"",
+          "fingerprint": "ea7683736d50047b9aca19fba3c4772a",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "bash command-center/casualty/probes/adv0022_git_verifier.sh",
+          "raw_output": "ADV0022_GITV_BEGIN\ncwd=/c/Users/Prekzursil/source/ast-integrate\nhead=3678417c\n\n--- C1 CONTROL: is hooks/ a populated pathspec? (a zero over an empty tree is meaningless)\ntracked_files_under_hooks=289\n\n--- Q1: files under hooks/ referencing tool_permissions (expect: none)\ngit_grep_exit=1   (1 = no match, 0 = matched)\n\n--- C2 CONTROL: files repo-wide referencing tool_permissions (expect: many)\nSELF-MATCH GUARD: command-center/casualty/ IS TRACKED, so this lane's own probe outputs,\n  worklogs and builders contain the very tokens being counted. Measured both ways:\n  a raw count matched 219 files, of which 12 were this lane's own artifacts. Excluding\n  the lane is mandatory - a probe that matches its own output measures itself.\nraw_including_this_lane=219\nrepo_wide_files_with_tool_permissions=208\n\n--- Q2: callers of check_work_unit_authorization under hooks/ (expect: none)\ngit_grep_exit=1   (1 = no match, 0 = matched)\n\n--- C3 CONTROL: files repo-wide with check_work_unit_authorization, EXCLUDING this lane\n                (expect the python scanner's caller set, not inflated by our own captures)\nraw_including_this_lane=12\nrepo_wide_files=8\ncommand-center/D2-WORKUNIT-AUTHZ.md\ncommand-center/adversarial/ADV-0035-least-privilege-declared-vs-used.json\ncommand-center/authz_apply_fixes.py\ncommand-center/wave3_floor_audit.py\nplatform/lib/wfdsl/authz_census.py\nplatform/lib/wfdsl/semantics.py\nplatform/lib/wfdsl/test_work_unit_authorization.py\nplatform/schema/work-unit-catalog.schema.json\n\n--- C4 USE-vs-MENTION: git finds MORE files than the python scanner found CALLERS.\n    The scanner matched literal call syntax; git matches the token anywhere. Classify,\n    because a file that NAMES the symbol is not a caller (use-vs-mention).\n  --- command-center/authz_apply_fixes.py\n      command-center/authz_apply_fixes.py:33:# platform/lib/wfdsl/semantics.py::check_work_unit_authorization (SEM-008..SEM-011). SAME\n  --- command-center/wave3_floor_audit.py\n      command-center/wave3_floor_audit.py:429:    # does the SHIPPED gate actually fire? drive check_work_unit_authorization directly\n      command-center/wave3_floor_audit.py:456:    fn = getattr(semantics, \"check_work_unit_authorization\", None)\n      command-center/wave3_floor_audit.py:458:        return {\"ok\": False, \"error\": \"check_work_unit_authorization ABSENT\"}\n  --- platform/schema/work-unit-catalog.schema.json\n      platform/schema/work-unit-catalog.schema.json:21:      \"$comment\": \"The authorization plane for `work_units`, read by platform/lib/wfdsl/semantics.py::check_work_unit_authorization (SEM-008..SEM-011). It deliberately $refs the DSL plane's EXISTING `$defs/tool_policy` rather than declaring a second vocabulary: the two planes share one allow/deny/require_owner_approval partition with `default: deny`, so a policy authored for a workflow reads identically here (platform/architecture/TOURNAMENT-VERDICT.md 1.1 and 3.1 - a duplicate control plane was ruled inadmissible). OPTIONAL in the schema, but its ABSENCE is not permissive: SEM-008 fails closed and reports every requested tool as denied, so a catalog with no policy is a red gate, not a skipped one. Note that `$defs/tool_policy` sets additionalProperties:false, so the instance carries no `$comment` of its own - the rationale for each entry lives in command-center/authz_apply_fixes.py and command-center/D2-WORKUNIT-AUTHZ.md.\"\n  --- command-center/adversarial/ADV-0035-least-privilege-declared-vs-used.json\n      command-center/adversarial/ADV-0035-least-privilege-declared-vs-used.json:1872:    \"anchor\": \"platform/lib/wfdsl/semantics.py:318 check_work_unit_authorization\"\n\n    CLASSIFICATION (by reading each hit, not by counting documents):\n      authz_apply_fixes.py:33            MENTION  - a source comment\n      work-unit-catalog.schema.json:21   MENTION  - a schema $comment\n      ADV-0035-...json:1872              MENTION  - an anchor in a sibling artifact\n      wave3_floor_audit.py:456           *CALLER* - getattr(semantics,\n                                         \"check_work_unit_authorization\", None), a DYNAMIC\n                                         invocation the literal-call-syntax scanner missed.\n    NET: the real caller set is 5 files, not 4 - the python scanner UNDER-counted by one.\n    The conclusion is UNCHANGED and slightly strengthened: wave3_floor_audit.py is a\n    command-center floor-AUDIT probe, not a runtime hook, so all 5 callers remain\n    static/CI/audit-time and zero are call-time interceptors.\n\n--- Q3: is platform/architecture/security-first.md tracked? (settles the retracted claim)\nplatform/architecture/security-first.md\ntracked=1\nADV0022_GITV_END\n",
+          "fingerprint": "79c2c0e204bde997c9269ea00a4488e4",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-0022-1",
+      "name": "tests_required control: a wide-permission component runs unimpeded",
+      "command": "ADV0022_BASE=\"$PWD/adv0022_canon_ws\" ADV0022_BLOCK_NETWORK=\"unavailable-modal-token-missing\" python command-center/casualty/probes/adv0022_escape_harness.py",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "wide_component_control: 4/4 ops SUCCEEDED; the three it declared carry escaped_declaration=false, proving enforcement is not blocking everything"
+    },
+    {
+      "id": "T-0022-2",
+      "name": "narrow-permission component escapes its declaration",
+      "command": "ADV0022_BASE=\"$PWD/adv0022_canon_ws\" ADV0022_BLOCK_NETWORK=\"unavailable-modal-token-missing\" python command-center/casualty/probes/adv0022_escape_harness.py",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "narrow_out_of_declaration_escapes=4 of narrow_ops_total=4"
+    },
+    {
+      "id": "T-0022-3",
+      "name": "harness detector-integrity battery discriminates",
+      "command": "ADV0022_BASE=\"$PWD/adv0022_canon_ws\" ADV0022_BLOCK_NETWORK=\"unavailable-modal-token-missing\" python command-center/casualty/probes/adv0022_escape_harness.py",
+      "result": "PASS",
+      "assertions": 3,
+      "output_tail": "must_fail_nonexistent_binary=FAILED, must_fail_closed_port=FAILED, must_succeed_trivial_subprocess=SUCCEEDED, discriminates=true"
+    },
+    {
+      "id": "T-0022-4",
+      "name": "static audit: zero runtime consumers, with a positive control",
+      "command": "python command-center/casualty/probes/adv0022_probe2.py",
+      "result": "PASS",
+      "assertions": 8,
+      "output_tail": "runtime_consumers_in_hooks_COUNT=0, hooks_reference_tool_permissions_COUNT=0, skill_router_reads_tool_permissions_COUNT=0, file_scope_reads_manifest_COUNT=0, deny_cred_reads_manifest_COUNT=0, all_callers_repo_wide_COUNT=11, scanner_control_found_known_present_COUNT=13, scanner_discriminates=true"
+    },
+    {
+      "id": "T-0022-5",
+      "name": "independent git verifier reproduces the absence with an empty-pathspec control",
+      "command": "bash command-center/casualty/probes/adv0022_git_verifier.sh",
+      "result": "PASS",
+      "assertions": 5,
+      "output_tail": "git grep tool_permissions in hooks/ -> no match (exit 1) while repo-wide 208 files match; check_work_unit_authorization in hooks/ -> no match while 8 files match repo-wide; hooks/ holds 289 tracked files so the pathspec is NOT empty. Two detector defects were caught by this test and are recorded as NC-SELF-MATCH-GUARD and NC-TWO-TOOL-DISAGREEMENT-RESOLVED."
+    },
+    {
+      "id": "T-0022-6",
+      "name": "both probe captures re-execute with identical verdicts",
+      "command": "python command-center/casualty/_r1_rerun_diff.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "adv0022_probe2_out: BYTE-IDENTICAL (sha256 2e298e1a...b2ac). adv0022_probe1_out: 14 nuisance line diffs, all 8 op outcomes identical."
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-SCANNER-FINDS-KNOWN-PRESENT",
+      "kind": "known-broken-fixture",
+      "description": "The static scanner's zero-in-hooks result is only meaningful if the same scanner finds the same symbol where it IS present. It does: 13 real callsites under platform/lib/wfdsl.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "scanner_control_found_known_present_COUNT=13, e.g. platform/lib/wfdsl/semantics.py:318:def check_work_unit_authorization(",
+      "good_state_output": "runtime_consumers_in_hooks_COUNT=0"
+    },
+    {
+      "id": "NC-EMPTY-PATHSPEC",
+      "kind": "absent-input",
+      "description": "A zero from a directory that is not tracked would be a detector failure, not a finding. hooks/ holds 289 tracked files, so the pathspec is populated.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "git ls-files hooks/ | wc -l -> 289",
+      "good_state_output": "git grep -n tool_permissions -- hooks/ -> no output, exit 1"
+    },
+    {
+      "id": "NC-HARNESS-DISCRIMINATES",
+      "kind": "malformed-input",
+      "description": "Before any escape is believed, the harness must FAIL on things that cannot work. It does: a nonexistent binary and a closed port both FAILED, while a trivial subprocess SUCCEEDED.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "must_fail_nonexistent_binary=FAILED (FileNotFoundError); must_fail_closed_port=FAILED (TimeoutError)",
+      "good_state_output": "must_succeed_trivial_subprocess=SUCCEEDED rc=0 stdout='ok'"
+    },
+    {
+      "id": "NC-WIDE-COMPONENT-CONTROL",
+      "kind": "other",
+      "description": "The unit's own required control. If enforcement blocked everything, a narrow component's failure would prove nothing; the wide component running unimpeded is what makes the narrow result an ESCAPE rather than an error.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "narrow component: 4/4 ops escaped_declaration=true",
+      "good_state_output": "wide component: 4/4 ops SUCCEEDED, 3 of them escaped_declaration=false"
+    },
+    {
+      "id": "NC-TWO-TOOL-DISAGREEMENT-RESOLVED",
+      "kind": "other",
+      "description": "The two tools DISAGREE on the caller set, and the disagreement is itself the control. A Python path-walking scanner matching literal call syntax found 4 caller files; git grep over the index found 8. Reading each extra hit rather than counting documents resolved it: 3 are MENTIONS (a comment, a schema $comment, a sibling artifact anchor) and 1 is a REAL caller the scanner missed (a getattr invocation). Both tools nevertheless agree on the load-bearing figure - ZERO under hooks/ - which is what makes that zero credible. Two agreeing tools would have been weaker evidence than two tools that disagreed and were reconciled.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "git found command-center/wave3_floor_audit.py:456 getattr(semantics, \"check_work_unit_authorization\", None) - absent from the python scanner's 11-hit caller list",
+      "good_state_output": "both tools report 0 hits under hooks/, and the 3 non-caller hits are classified as mentions rather than folded into the caller count"
+    },
+    {
+      "id": "NC-SELF-MATCH-GUARD",
+      "kind": "other",
+      "description": "A second detector defect found and fixed inside this build. command-center/casualty/ is TRACKED, so this lane's own probe captures and worklogs contain the very tokens being counted and inflated the controls. The pathspec now excludes the lane. A probe that matches its own output is measuring itself.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "raw_including_this_lane: tool_permissions=219 files, check_work_unit_authorization=12 files",
+      "good_state_output": "excluding ':!command-center/casualty': tool_permissions=208 files, check_work_unit_authorization=8 files; the hooks/ zero is unaffected either way"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "NOT-ASSIGNED",
+    "verdict": "NOT-REVIEWED",
+    "independent": false,
+    "fresh_context": false,
+    "notes": "reviewer_requirement is the strictest in this bucket: TWO reviewers from DIFFERENT vendors must EACH independently reproduce the counterexample, and a split verdict is escalated to the owner with both raw probes attached, NEVER resolved by vote - the specific probe wins over the reviewer count. Zero reviewers have run. This is NOT-CHECKED and is not self-certified. To reproduce, a reviewer needs only command-center/casualty/probes/adv0022_escape_harness.py and a scratch directory; it is self-contained and writes nothing outside its base."
+  },
+  "defects": [
+    {
+      "id": "ADV-0022-D1",
+      "severity": "P1",
+      "status": "open",
+      "summary": "tool_permissions is metadata only. No runtime component reads a declared permission set before executing a tool, so a narrow declaration is unenforceable by construction - proven by 4/4 out-of-declaration ops succeeding against a passing wide-permission control."
+    },
+    {
+      "id": "ADV-0022-D2",
+      "severity": "P1",
+      "status": "open",
+      "summary": "Component-to-component invocation is unmediated: op4 escaped in the WIDE component too, so any component can borrow a sibling's capability by import regardless of what either declares."
+    },
+    {
+      "id": "ADV-0022-D3",
+      "severity": "P2",
+      "status": "open",
+      "summary": "The only authorization plane, check_work_unit_authorization (SEM-008..011), is a pure static function reachable exclusively from a census tool, tests and a doc - a CI lint, not an interceptor. A lint cannot constrain execution."
+    },
+    {
+      "id": "ADV-0022-D4",
+      "severity": "INFO",
+      "status": "resolved",
+      "summary": "Mid-run overclaim, caught by the original agent itself and retracted: it briefly asserted platform/architecture/ was untracked. security-first.md IS tracked. Recorded, not deleted; the conclusion never depended on it."
+    }
+  ],
+  "manifest_registration": {
+    "registered": false,
+    "manifest_path": "command-center/ARTIFACT-MANIFEST.json",
+    "entry_id": "ADV-0022"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "platform/lib/receipt_schema_gate.py -- the independent reducer that validates a receipt and evaluates the 12-condition completion predicate",
+      "artifact_path": "command-center/casualty/ADV-0022-declared-permission-escape.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 1,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python platform/lib/receipt_schema_gate.py command-center/casualty/ADV-0022-declared-permission-escape.json --repo-root .",
+        "raw_output": "$ python platform/lib/receipt_schema_gate.py command-center/casualty/ADV-0022-declared-permission-escape.json --repo-root .\nFAILED:ADV-0022 predicate-unsatisfied c1=UNSATISFIED,c3=UNSATISFIED,c5=UNSATISFIED,c9=UNSATISFIED,c10=UNSATISFIED,c11=UNSATISFIED\n  [FAIL]  1. process/task reached a valid terminal state\n           -> state=BLOCKED is terminal but not a completion\n  [  ok]  2. expected artifact exists\n  [FAIL]  3. artifact is non-empty and exceeds a meaningful minimum size\n           -> declared bytes/sha256 disagree with disk: ['command-center/casualty/ADV-0022-declared-permission-escape.json: sha256 mismatch (on-disk <VOLATILE-ON-DISK-DIGEST>)']\n  [  ok]  4. artifact parses against its schema\n  [FAIL]  5. required sentinel is present\n           -> sentinel is a FAILED marker\n  [  ok]  6. required evidence anchors exist\n  [  ok]  7. required tests ran and passed\n  [  ok]  8. negative controls or mutations fail as expected\n  [FAIL]  9. independent reviewer status is PASS\n           -> reviewer verdict='NOT-REVIEWED'\n  [FAIL] 10. no unresolved P0/P1 defect is attached\n           -> open P0/P1 defect(s): ['ADV-0022-D1', 'ADV-0022-D2']\n  [FAIL] 11. output was registered in the artifact manifest\n           -> manifest_registration.registered is not true\n  [  ok] 12. downstream consumers can read it\n\n[capture note] Exactly one token above is normalised: the 12-hex on-disk digest quoted by condition 3, rendered as <VOLATILE-ON-DISK-DIGEST>. It is volatile by construction because embedding this capture changes the file it describes. Everything else is verbatim, and the build asserts the condition vector is identical before and after embedding.",
+        "fingerprint": "c8cff32488ce1128f7014c21e7db1da2",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-12T08:34:26+03:00",
+    "ended_at": "2026-08-12T09:25:00+03:00"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b). Not triggered. One PIVOT is inherited and recorded: the Modal sandbox substrate was unavailable (Token missing) and the harness pivoted to a local disposable workspace rather than creating a credential.",
+    "attempts": [
+      {
+        "attempt": 1,
+        "outcome": "BLOCKED",
+        "error_fingerprint": "reviewer-and-manifest-and-sandbox-substrate"
+      }
+    ]
+  },
+  "failure": {
+    "classification": [
+      "sandbox-escape",
+      "supply-chain",
+      "dependency-blocked"
+    ],
+    "reason": "Measurement is COMPLETE and the counterexample is proven. The original ADV-0022 agent finished both probes and died at the artifact-assembly step ('Let me build the final artifact in Python - reading both probe outputs verbatim, computing md5 fingerprints...' -> 'API Error: Connection closed mid-response.'). This receipt is assembled from that agent's verbatim captures, both independently RE-EXECUTED (probe 2 byte-identical; probe 1 identical on all 8 op outcomes), plus a new git-based verifier carrying an empty-pathspec control. BLOCKED rather than SUCCESS because the two-different-vendor reviewer requirement is unmet, manifest registration is the orchestrator's, and the prescribed disposable-sandbox substrate was unauthenticated.",
+    "blocked_on": "two different-vendor reviewers each independently reproducing (condition 9); orchestrator manifest registration (condition 11); an authenticated Modal sandbox for the network-namespace leg of tests_required (owner action - this lane must not create credentials)"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "tests_required says 'all attempts run inside a disposable sandbox'. The substrate actually used was a local disposable %TEMP% workspace, not the prescribed Modal sandbox with block_network=true, because Modal returned 'Token missing'. The containment invariant still holds by construction (the network op is loopback-only and no egress was attempted; writes stayed under the disposable base; no third-party system or live credential was touched) - but a %TEMP% directory is a WEAKER substrate than a network-namespaced sandbox and this clause is PARTIALLY met, not met.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Owner authenticates Modal, then re-run the harness via mcp__cloud-hub__modal_sandbox_create(block_network=true) and confirm 4/4 reproduces."
+    },
+    {
+      "claim": "The two-different-vendor reviewer requirement is entirely unmet; zero reviewers of any vendor have reproduced the counterexample.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Dispatch one openai and one non-anthropic non-openai reviewer, each given only probes/adv0022_escape_harness.py and a scratch dir, and require each to produce its own summary.json."
+    },
+    {
+      "claim": "op2 proves a socket can be OPENED from an undeclared component, using a loopback round-trip. It does NOT prove real outbound egress, which was deliberately never attempted.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Inside an authenticated Modal sandbox with block_network=false, attempt a single request to a controlled owner-operated endpoint and record whether it leaves the sandbox."
+    },
+    {
+      "claim": "The escape is proven for PYTHON components sharing one interpreter. Whether a component executed through a different adapter (a subprocess-isolated skill, or an MCP server in its own process) escapes identically was not measured.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-run the harness with each component launched as its own subprocess and compare the op4 result."
+    },
+    {
+      "claim": "Scope of the absence: 'zero runtime consumers' is measured over hooks/ and the repo-wide caller set of one function. A permission check implemented somewhere with a different name and no reference to tool_permissions would not have been found by either tool.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Instrument a live tool call and assert whether ANY code reads a component manifest before dispatch - a dynamic check, which is mechanically different from both static tools used here."
+    }
+  ],
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "claude-opus-4",
+    "role": "casualty-recovery-assembler",
+    "execution_substrate": "worktree-isolated"
+  },
+  "report": {
+    "kind": "exploit-proof",
+    "observations": [
+      {
+        "name": "out-of-declaration ops attempted by the narrow component",
+        "measured": 4,
+        "method": "test-run",
+        "anchor": "adv0022_probe1_out.ORIGINAL.txt:summary.narrow_ops_total"
+      },
+      {
+        "name": "out-of-declaration ops that SUCCEEDED",
+        "measured": 4,
+        "method": "test-run",
+        "anchor": "adv0022_probe1_out.ORIGINAL.txt:summary.narrow_out_of_declaration_escapes"
+      },
+      {
+        "name": "wide-permission control ops that ran unimpeded",
+        "measured": 4,
+        "method": "test-run",
+        "anchor": "adv0022_probe1_out.ORIGINAL.txt:summary.wide_ops_succeeded"
+      },
+      {
+        "name": "runtime consumers of the authz function under hooks/",
+        "measured": 0,
+        "method": "static-analysis",
+        "anchor": "adv0022_probe2_out.ORIGINAL.txt:summary"
+      },
+      {
+        "name": "files under hooks/ referencing tool_permissions",
+        "measured": 0,
+        "method": "static-analysis",
+        "anchor": "adv0022_probe2_out.ORIGINAL.txt:summary"
+      },
+      {
+        "name": "known-present callsites the same scanner DOES find (positive control)",
+        "measured": 13,
+        "method": "static-analysis",
+        "anchor": "adv0022_probe2_out.ORIGINAL.txt:checks._control_scanner_finds_known_present_callers"
+      },
+      {
+        "name": "call-syntax hits for check_work_unit_authorization found by the python scanner",
+        "measured": 11,
+        "method": "static-analysis",
+        "anchor": "adv0022_probe2_out.ORIGINAL.txt:summary.all_callers_repo_wide_COUNT"
+      },
+      {
+        "name": "files matching that symbol via git, excluding this lane",
+        "measured": 8,
+        "method": "command",
+        "anchor": "adv0022_git_verifier_out.txt:C3"
+      },
+      {
+        "name": "of those, real CALLERS after use-vs-mention classification",
+        "measured": 5,
+        "method": "manual-inspection",
+        "anchor": "adv0022_git_verifier_out.txt:C4"
+      },
+      {
+        "name": "callers the literal-syntax scanner MISSED (a getattr invocation)",
+        "measured": 1,
+        "method": "command",
+        "anchor": "command-center/wave3_floor_audit.py:456"
+      },
+      {
+        "name": "of the 5 callers, how many are call-time interceptors",
+        "measured": 0,
+        "method": "manual-inspection",
+        "anchor": "adv0022_git_verifier_out.txt:C4"
+      },
+      {
+        "name": "files repo-wide referencing tool_permissions, excluding this lane (control for the hooks/ zero)",
+        "measured": 208,
+        "method": "command",
+        "anchor": "adv0022_git_verifier_out.txt:C2"
+      },
+      {
+        "name": "control inflation caused by this lane's own tracked artifacts, before the guard",
+        "measured": "219 -> 208 files (tool_permissions); 12 -> 8 files (authz symbol)",
+        "method": "command",
+        "anchor": "adv0022_git_verifier_out.txt:C2,C3"
+      },
+      {
+        "name": "tracked files under hooks/ (empty-pathspec control)",
+        "measured": 289,
+        "method": "command",
+        "anchor": "adv0022_git_verifier_out.txt"
+      },
+      {
+        "name": "skill-router readers of tool_permissions",
+        "measured": 0,
+        "method": "static-analysis",
+        "anchor": "adv0022_probe2_out.ORIGINAL.txt:summary"
+      },
+      {
+        "name": "runtime gates (file-scope, deny-credential-reads) that read a manifest",
+        "measured": 0,
+        "method": "static-analysis",
+        "anchor": "adv0022_probe2_out.ORIGINAL.txt:summary"
+      },
+      {
+        "name": "harness detector-integrity battery discriminates",
+        "measured": true,
+        "method": "test-run",
+        "anchor": "adv0022_probe1_out.ORIGINAL.txt:detector_integrity"
+      },
+      {
+        "name": "probe-2 re-run byte equivalence with the dead agent's capture",
+        "measured": true,
+        "method": "byte-compare",
+        "anchor": "command-center/casualty/RERUN-EQUIVALENCE.json"
+      },
+      {
+        "name": "disposable sandbox substrate actually used",
+        "measured": "local %TEMP% workspace (Modal unavailable: Token missing; no credential created per AGENTS.md 9)",
+        "method": "manual-inspection",
+        "anchor": "adv0022_probe1_out.ORIGINAL.txt:meta"
+      }
+    ],
+    "control_ids": [
+      "NC-SCANNER-FINDS-KNOWN-PRESENT",
+      "NC-EMPTY-PATHSPEC",
+      "NC-HARNESS-DISCRIMINATES",
+      "NC-WIDE-COMPONENT-CONTROL",
+      "NC-TWO-TOOL-DISAGREEMENT-RESOLVED",
+      "NC-SELF-MATCH-GUARD"
+    ],
+    "verdicts": {
+      "question": "Can a component whose manifest declares a narrow tool_permissions set reach capability outside that set - by shelling out, by importing a library that performs I/O, or by invoking another component with wider permissions?",
+      "short_answer": "YES, on all three routes and on a fourth. A component declaring ['Read','Grep','Glob'] spawned a subprocess, opened a socket, wrote outside its own root, and invoked a wider-permission sibling - 4 of 4, while the wide-permission control ran unimpeded. The reason is structural, not a bug: no runtime component reads a declared permission set at all. tool_permissions is metadata.",
+      "per_target": {
+        "op1 subprocess spawn (requires Bash, undeclared)": "CONFIRMED escaped",
+        "op2 network call (requires WebFetch, undeclared)": "CONFIRMED escaped - socket opened; loopback only, real egress deliberately not attempted",
+        "op3 write outside component root (requires Write, undeclared)": "CONFIRMED escaped",
+        "op4 invoke wider-permission sibling (requires Task, undeclared)": "CONFIRMED escaped - and also escaped from the WIDE component, so the boundary is unmediated for everyone",
+        "enforcement point is call-time?": "REFUTED - it is a static CI lint",
+        "disposable-sandbox clause of tests_required": "PARTIAL - local %TEMP%, not Modal",
+        "two-different-vendor reviewers": "NOT-CHECKED - none has run"
+      },
+      "not_a_duplicate_of_ADV_0036": "ADV-0036 audits permissions DECLARED TOO WIDE (least privilege). This proves a NARROW declaration is not enforceable at all. Opposite direction, and this result makes the least-privilege question moot until an interceptor exists."
+    },
+    "systems_under_test": [
+      {
+        "name": "declared-permission metadata plane",
+        "anchor": "component manifests carrying tool_permissions (207 files repo-wide)"
+      },
+      {
+        "name": "the only authorization function",
+        "anchor": "platform/lib/wfdsl/semantics.py:318 check_work_unit_authorization"
+      },
+      {
+        "name": "runtime hook surface that could have enforced it",
+        "anchor": "hooks/ (289 tracked files, 0 referencing tool_permissions)"
+      }
+    ],
+    "safety_decisions": [
+      "No credential was created, rotated or modified when Modal returned 'Token missing' (AGENTS.md 9). The unit degraded its substrate instead and disclosed it inline.",
+      "The network op is a loopback round-trip only. Real egress was never attempted, so no third-party system was contacted.",
+      "All writes were confined to a disposable base directory; the 'escape' is a write outside the COMPONENT root, still inside the disposable workspace.",
+      "The harness is self-contained and reproducible by a reviewer without any credential."
+    ],
+    "provenance_of_this_receipt": {
+      "original_agent": "agent-ab0075824d478040c.jsonl (123 records, 564,827 B)",
+      "death_mode": "died at the artifact-assembly step after ALL measurement completed",
+      "what_was_recovered": "both probe scripts and both probe captures, verbatim, including the md5 the agent had already computed",
+      "what_this_lane_added": "independent re-execution of both probes, a git-based verifier with an empty-pathspec control, and honest scoping of the two unmet tests_required/reviewer clauses"
+    }
+  },
+  "extensions": {
+    "self_digest_recipe": "A receipt cannot contain its own sha256 as a fixed point. artifacts[0].sha256 is the ELIDED digest: read this file's bytes, replace the 64-character value of artifacts[0].sha256 with 64 ASCII '0' characters, then sha256 the result. Verify with python command-center/casualty/verify_elided_digest.py <this file>, which also runs a both-states control.",
+    "canonical_output_path": "command-center/adversarial/ADV-0022-declared-permission-escape.json",
+    "canonical_path_note": "The catalog declares output_path=command-center/adversarial/ADV-0022-declared-permission-escape.json. This lane was forbidden from writing into command-center/adversarial/ because a sibling wave may still be writing there, so the artifact is delivered at command-center/casualty/ADV-0022-declared-permission-escape.json; promotion is an orchestrator action.",
+    "precomputed_probe_fingerprints_from_the_dead_agent": {
+      "P2_FINGERPRINT_MD5_recomputed_here": "cbe82c7f194f6966bdf97a04e5b150a2",
+      "P1_FINGERPRINT_MD5_recomputed_here": "94ef1b416fc3b6736fdf0eb22a6c1045",
+      "note": "The original agent had already computed a probe-2 fingerprint before it died (93e61cf6dbccabb8a8f46883cb793a45). That value is NOT the md5 of the capture file; the md5 of adv0022_probe2_out.ORIGINAL.txt is cbe82c7f194f6966bdf97a04e5b150a2. The original was computed over a different byte range (most likely the probe SCRIPT or the JSON payload without its sentinel lines). Recorded rather than silently reconciled - UNVERIFIED which range it covered; the settling experiment is to md5 adv0022_probe2.py and the sentinel-stripped payload and see which reproduces it."
+    },
+    "probe_scripts": [
+      "command-center/casualty/probes/adv0022_escape_harness.py",
+      "command-center/casualty/probes/adv0022_probe2.py",
+      "command-center/casualty/probes/adv0022_git_verifier.sh"
+    ]
+  }
 }

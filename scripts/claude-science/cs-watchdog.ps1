@@ -10,8 +10,8 @@ $ErrorActionPreference = 'SilentlyContinue'
 . (Join-Path $PSScriptRoot 'cs-lib.ps1')     # Test-CSHealth, Invoke-CSWsl, $script:CSUrl/CSDistro/CSSlowMs
 $Log         = Join-Path $env:LOCALAPPDATA 'claude-science-watchdog.log'
 $Beat        = Join-Path $env:LOCALAPPDATA 'claude-science-watchdog.heartbeat'
-$MinFreeGB   = 10       # WSL ext4 floor (disk-full mid-WAL risks DB corruption)
-$MinRamGB    = 3        # host free-RAM floor (below = warn; oversubscription freezes WSL = the wedge)
+$MinFreeGB   = $script:CSMinWslDiskGb   # cs.conf: WSL ext4 floor (disk-full mid-WAL risks DB corruption)
+$MinRamGB    = $script:CSMinHostRamGb   # cs.conf: host free-RAM floor (oversubscription freezes WSL = the wedge)
 $SlowStrikes = 3        # consecutive SLOW probes (~90s) => wedged => recover
 $DownStrikes = 2        # consecutive DOWN probes => recover
 
@@ -46,6 +46,13 @@ function Invoke-WdRecover($why) {
 }
 
 while ($true) {
+  # BEAT BEFORE THE PROBE. Measured 2026-08-12: a single Test-CSHealth took 66,396ms against a
+  # nominal 8,000ms socket cap -- under host-RAM pressure this PROCESS is descheduled, and no
+  # in-process timeout can bound that. Beating only afterwards let a slow probe age its own
+  # heartbeat past the staleness threshold, so a healthy watchdog that was correctly measuring a
+  # wedge was reported as "STALE - watchdog hung?" by cs status and cs doctor. Writing first
+  # bounds the gap to the loop sleep in the common case where the probe is the slow part.
+  Write-Beat 'PROBING' -1
   $h = Test-CSHealth
   Write-Beat $h.State $h.Ms
   switch ($h.State) {

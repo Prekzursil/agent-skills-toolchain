@@ -6,12 +6,16 @@
 # registers the watchdog+maintenance tasks, and prints a first-run health check.
 $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$distro = 'Ubuntu'
+# cs.conf (via cs-lib.ps1) is the single source for the distro name; it used to be a literal here.
+. (Join-Path $here 'cs-lib.ps1')
+$distro = $script:CSDistro
 
 # --- 1. Windows scripts -> ~\.local\bin (kept together so $PSScriptRoot cross-refs resolve) ---
+# cs.conf MUST travel with them: cs-lib.ps1 resolves it via $PSScriptRoot, so a deploy that omitted
+# it would silently fall back to the in-script defaults and the config seam would be a no-op.
 $winDir = Join-Path $env:USERPROFILE '.local\bin'
 New-Item -ItemType Directory -Force -Path $winDir | Out-Null
-foreach ($f in 'cs.ps1', 'cs.cmd', 'cs-lib.ps1', 'cs-doctor.ps1', 'cs-watchdog.ps1', 'cs-recover.ps1', 'cs-recover.cmd', 'cs-start.ps1', 'cs-start.cmd') {
+foreach ($f in 'cs.ps1', 'cs.cmd', 'cs-lib.ps1', 'cs.conf', 'cs-doctor.ps1', 'cs-watchdog.ps1', 'cs-recover.ps1', 'cs-recover.cmd', 'cs-start.ps1', 'cs-start.cmd', 'test-cs-doctor-failclosed.ps1') {
   $src = Join-Path $here $f
   if (Test-Path $src) { Copy-Item $src (Join-Path $winDir $f) -Force; Write-Information -InformationAction Continue "[win] $f" }
 }
@@ -23,6 +27,18 @@ foreach ($f in 'cs-start.sh', 'cs-recover.sh', 'cs-restore.sh', 'cs-backup.sh', 
     $name = [IO.Path]::GetFileNameWithoutExtension($f)
     $wslSrc = ($src -replace '\\', '/') -replace '^C:', '/mnt/c'
     wsl.exe -d $distro -- bash -lc "mkdir -p ~/.local/bin && tr -d '\r' < '$wslSrc' > ~/.local/bin/$name && chmod +x ~/.local/bin/$name && echo '[wsl] $name'"
+  }
+}
+
+# --- 2b. WSL config seam -> ~/.local/bin, NAME PRESERVED (no extension strip, not executable) ---
+# The loop above deliberately strips extensions so `cs-backup.sh` becomes the command `cs-backup`.
+# These two are sourced BY NAME (`. "$(dirname "${BASH_SOURCE[0]}")/cs-lib.sh"`), so stripping
+# would break every shell script that reads the config. Separate loop, extension kept.
+foreach ($f in 'cs-lib.sh', 'cs.conf') {
+  $src = Join-Path $here $f
+  if (Test-Path $src) {
+    $wslSrc = ($src -replace '\\', '/') -replace '^C:', '/mnt/c'
+    wsl.exe -d $distro -- bash -lc "mkdir -p ~/.local/bin && tr -d '\r' < '$wslSrc' > ~/.local/bin/$f && echo '[wsl] $f'"
   }
 }
 

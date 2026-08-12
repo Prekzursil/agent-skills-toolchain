@@ -5,7 +5,13 @@
 # editor/grep/log tailing the path and can corrupt the DB mid-write); (4) wait for the port to
 # actually free before restarting.
 export PATH="$HOME/.local/bin:$PATH"
-DD="$HOME/.claude-science"
+# Config seam. Fail LOUD if a partial deploy dropped it: without cs-lib.sh the helpers below
+# are undefined and every $CS_* is empty, which would silently target the wrong paths.
+_cs_lib="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/cs-lib.sh"
+[ -r "$_cs_lib" ] || { echo "!!! cs-lib.sh missing beside $0 - re-run install.ps1 (it deploys cs-lib.sh + cs.conf)" >&2; exit 1; }
+# shellcheck source=cs-lib.sh
+. "$_cs_lib"
+DD="$(cs_data_dir)"
 
 # serialize: the Windows watchdog and the in-WSL supervisor must never recover at the same time
 mkdir -p "$DD" 2>/dev/null
@@ -37,9 +43,9 @@ rm -f "$DD/daemon.sock" "$DD/operon.lock" 2>/dev/null
 rm -rf "$DD"/sbx-bind-src/sock-* 2>/dev/null
 echo "cleared daemon.sock, operon.lock, stale sandbox sockets"
 
-echo "=== 4) wait for port 8000 to free, then clean start (pinned) ==="
+echo "=== 4) wait for port $CS_PORT to free, then clean start (pinned) ==="
 for i in 1 2 3 4 5 6; do
-  if (exec 3<>/dev/tcp/127.0.0.1/8000) 2>/dev/null; then exec 3>&- 2>/dev/null; echo "port still busy, waiting ($i)"; sleep 1; else break; fi
+  if (exec 3<>/dev/tcp/"$CS_HOST"/"$CS_PORT") 2>/dev/null; then exec 3>&- 2>/dev/null; echo "port still busy, waiting ($i)"; sleep 1; else break; fi
 done
 read -ra cs_extra <<<"$(cat "$HOME/.cs-serve-extra" 2>/dev/null || true)"
 claude-science serve --no-browser --detached --no-auto-update "${cs_extra[@]}" 2>&1 | tail -3

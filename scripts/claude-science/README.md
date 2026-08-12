@@ -12,8 +12,13 @@ usually host-RAM pressure), which `cs fix` recovers. It targets `127.0.0.1:8000`
 only — **LOCAL scope**.
 
 ```powershell
-pwsh -File .\cs.ps1 <verb>     # or /cs <verb> from Claude Code
+pwsh -File .\cs.ps1 <verb>     # or /claude-science <verb> from Claude Code (/cs still works)
 ```
+
+The slash command is **`/claude-science`**; **`/cs`** is kept as a thin forwarding alias because
+the dispatcher, the `cs.cmd` shim and every `cs <verb>` below still use the short name. (Claude
+Code has no `alias:` frontmatter field, and `name:` only sets the display label of a personal or
+project command — a forwarding file is the only mechanism.)
 
 | Verb | What it does |
 |---|---|
@@ -24,12 +29,34 @@ pwsh -File .\cs.ps1 <verb>     # or /cs <verb> from Claude Code
 | **`cs stop`** | Stop the daemon. |
 | **`cs backup`** | Online SQLite snapshot to `D:\Backups\claude-science` (key stored separately, last 7 kept). Safe while up. |
 | **`cs restore <ts\|latest>`** | Roll back to a snapshot (keeps a pre-restore safety copy, drops stale WAL/SHM, restarts, verifies). |
-| **`cs doctor`** | Full-stack **PASS/WARN/FAIL** report (see below). |
+| **`cs doctor`** | Full-stack **PASS/WARN/FAIL/NOT-CHECKED** report (see below). Exits non-zero on FAIL or NOT-CHECKED. |
+
+## Configuration — one file, env-overridable (`cs.conf`)
+
+Port, distro, backup roots, the wedge threshold, the health floors and the backup-freshness
+thresholds live in **`cs.conf`** and nowhere else. Both halves read it:
+
+| Half | Reader | Consumers |
+|---|---|---|
+| PowerShell | `cs-lib.ps1` (~8-line parser) | `cs.ps1`, `cs-doctor.ps1`, `cs-watchdog.ps1`, `cs-start.ps1`, `cs-recover.ps1`, `cs-tailscale-serve.ps1`, `install.ps1`, `register-tasks.ps1` |
+| Shell | `cs-lib.sh` | `cs-backup.sh`, `cs-maintain.sh`, `cs-restore.sh`, `cs-recover.sh`, `cs-supervisor.sh` |
+
+Precedence is **environment > `cs.conf` > in-script default**, so `$env:CS_PORT = 8123` (or
+`CS_PORT=8123` in the shell) changes the port with no edit, and a missing `cs.conf` degrades to
+the values the scripts shipped with rather than to empty strings. The backup root is stored
+**once**, in WSL form (`/mnt/d/...`); `cs-lib.ps1` derives the Windows form (`D:\...`).
+
+Before this seam existed there were **25 hardcoded config sites across 12 files** (10 port, 9
+distro, 6 backup-root); five PowerShell scripts never dot-sourced `cs-lib.ps1` at all and the
+shell side had no lib whatsoever. There are now **0 outside the seam** — the only remaining
+literals are the definitions in `cs.conf` and the matching fallback defaults in the two libs,
+and `test-cs-doctor-failclosed.ps1` asserts all three agree so the fallback cannot drift from
+the file it backs.
 
 ### `cs doctor` output
 
 A read-only, one-shot report that operationalizes the 2026-07-07 audit into a
-repeatable table. Each row is PASS `[+]` / WARN `[!]` / FAIL `[X]` / INFO `[i]`:
+repeatable table. Each row is PASS `[+]` / WARN `[!]` / FAIL `[X]` / NOT-CHECKED `[?]` / INFO `[i]`:
 
 - **WSL reachable** — distro answers (a timeout ⇒ VM wedged).
 - **CS daemon** — `state=HEALTHY|SLOW|DOWN http=… latency=…ms`; a SLOW state is flagged `*** WEDGED ***`.
@@ -38,11 +65,56 @@ repeatable table. Each row is PASS `[+]` / WARN `[!]` / FAIL `[X]` / INFO `[i]`:
 - **WSL disk free** — ext4 headroom (disk-full mid-WAL risks DB corruption).
 - **Host RAM free** + top 3 consumers — the freeze root cause.
 - **Watchdog registered** / **Watchdog instances** — catches the duplicate-watchdog race.
-- **Watchdog heartbeat** — age of the heartbeat file; catches a silently-hung watchdog.
-- **Backup freshness** — newest snapshot age.
+- **Watchdog re-launch trigger** — the task must carry a *repeating* trigger, not only `-AtLogOn`.
+- **Watchdog heartbeat** — age of the heartbeat file, AND-gated against process liveness.
+- **Backup freshness** — newest snapshot age (WARN/FAIL thresholds from `cs.conf`).
+- **Backup restorable** — *opens* the newest snapshot: SQLite magic header (Windows-side, works
+  even when the VM is wedged) plus `PRAGMA integrity_check` (WSL-side, the real proof).
 - **Tab-death regfix** — Chrome/Edge discard-exception policy applied.
 
-Ends with a `N FAIL, N WARN, N PASS` summary; any FAIL prints `→ try: cs fix then re-run: cs doctor`.
+Ends with a `N FAIL, N WARN, N NOT-CHECKED, N PASS` summary; any FAIL prints
+`→ try: cs fix then re-run: cs doctor`. **Exit code is non-zero on FAIL or NOT-CHECKED**, so other
+tooling can gate on `cs doctor` rather than parsing the table.
+
+### Fail-closed contract (2026-08-12) — and how to falsify it
+
+A health check that cannot reach its input **must not render green**. It used to. Measured: the
+DB row printed `WARN "sqlite3 or operon-cli.db not found"` while both existed and the identical
+probe returned `ok|wal|2.9M` in 1293 ms standalone — the real cause was an `Invoke-CSWsl` timeout
+under host-RAM pressure, and one branch collapsed *three* causes (timeout / empty / genuinely
+absent) into the message for only the third. Immediately below it, `Backup freshness` rendered
+`PASS` over that same unreachable VM, and a third row (`daemon detail`) **silently vanished**
+from the table instead of reporting that it was unmeasured.
+
+Now: timeout or empty ⇒ `NOT-CHECKED` (and it says only that); genuinely absent ⇒ `FAIL`
+(absence *is* a measurement); the summary counts NOT-CHECKED separately so `0 FAIL, 0 WARN`
+cannot hide unmeasured rows.
+
+Two detector bugs were fixed alongside, both measured live:
+
+- **Watchdog instances counted the probe itself.** The filter was `CommandLine -like '*cs-watchdog*'`,
+  which matches any shell whose command line contains that string — asking the question could
+  manufacture the "DUPLICATE — dual-watchdog race" answer. Now `$PID` is excluded *and* the
+  `-File …cs-watchdog.ps1` argument shape is required.
+- **A stale heartbeat was read as a hung watchdog.** One probe took 66,396 ms against a nominal
+  8,000 ms socket cap, because under RAM pressure the watchdog *process* is descheduled and no
+  in-process timeout can bound that. So a healthy watchdog correctly measuring a wedge reported
+  `STALE - watchdog hung?`. The row now AND-gates two independent signals: stale beat + **no**
+  process ⇒ FAIL; stale beat + live process ⇒ WARN. The threshold is `CS_BEAT_STALE_S` (180 s,
+  above the measured worst case) instead of a bare 90 s, and `cs-watchdog.ps1` writes the beat
+  **before** the probe so a slow probe cannot age its own heartbeat.
+
+Falsify all of it with the shipped both-states harness — 12 scenarios, 45 assertions, every WSL
+probe stubbed, so it is hermetic and safe to run *while* the box is wedged:
+
+```powershell
+pwsh -NoProfile -File .\test-cs-doctor-failclosed.ps1
+# SUCCESS:cs-doctor-failclosed all 45 assertions held
+```
+
+It asserts both directions — that each row goes FAIL/NOT-CHECKED when its input is broken, **and**
+that the same row goes PASS in the paired healthy control. A test that only checked the broken
+direction could not tell a fail-closed row from a row that is always red.
 
 ## Reliability hardening (2026-07-07)
 

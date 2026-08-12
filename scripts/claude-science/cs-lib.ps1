@@ -1,23 +1,103 @@
-# cs-lib -- shared Claude Science health/probe helpers.
-# Dot-sourced by cs.ps1, cs-doctor.ps1, and cs-watchdog.ps1 so the wedge-detection is identical
-# everywhere (no drift). A wedged daemon (WSL frozen under host-RAM pressure) still ACCEPTS the
-# socket but answers slowly/never -> latency is the signal the old any-HTTP-status probe missed.
-$script:CSDistro  = 'Ubuntu'
-$script:CSUrl     = 'http://127.0.0.1:8000/'
-$script:CSSlowMs  = 4000     # >= this response time = SLOW (wedge candidate); healthy 401 < 200ms
-$script:CSHardCap = 8000     # ms socket/read timeout; an accepted-but-frozen socket hits this
+# cs-lib -- shared Claude Science config + health/probe helpers.
+# Dot-sourced by cs.ps1, cs-doctor.ps1, cs-watchdog.ps1, cs-start.ps1, cs-recover.ps1,
+# cs-tailscale-serve.ps1, install.ps1 and register-tasks.ps1 so the wedge-detection AND the
+# configuration are identical everywhere (no drift). A wedged daemon (WSL frozen under host-RAM
+# pressure) still ACCEPTS the socket but answers slowly/never -> latency is the signal the old
+# any-HTTP-status probe missed.
+
+# --- config: cs.conf (SSOT) -> in-script defaults, with env vars overriding both -------------
+# Precedence is env > cs.conf > default. Parsing is deliberately trivial (KEY=VALUE, `#` comments)
+# because the same file is `source`d verbatim by cs-lib.sh on the bash side; a richer format would
+# need a parser on both halves. A missing/unreadable cs.conf is NOT fatal -- the defaults below are
+# exactly the values these scripts shipped with, so the seam can never make the tool less available
+# than it was before it existed.
+$script:CSConfPath = Join-Path $PSScriptRoot 'cs.conf'
+$script:CSConf = @{}
+if (Test-Path $script:CSConfPath) {
+  foreach ($line in (Get-Content -LiteralPath $script:CSConfPath -ErrorAction SilentlyContinue)) {
+    $t = $line.Trim()
+    if (-not $t -or $t.StartsWith('#')) { continue }
+    $i = $t.IndexOf('=')
+    if ($i -lt 1) { continue }
+    $script:CSConf[$t.Substring(0, $i).Trim()] = $t.Substring($i + 1).Trim()
+  }
+}
+function Get-CSSetting {
+  param([string]$Key, [string]$Default)
+  $envVal = [Environment]::GetEnvironmentVariable($Key)
+  if ($envVal) { return $envVal }
+  if ($script:CSConf.ContainsKey($Key) -and $script:CSConf[$Key]) { return $script:CSConf[$Key] }
+  return $Default
+}
+function Get-CSSettingInt {
+  param([string]$Key, [int]$Default)
+  $v = 0
+  if ([int]::TryParse((Get-CSSetting $Key "$Default"), [ref]$v)) { return $v }
+  return $Default
+}
+
+$script:CSHost          = Get-CSSetting    'CS_HOST'            '127.0.0.1'
+$script:CSPort          = Get-CSSettingInt 'CS_PORT'            8000
+$script:CSDistro        = Get-CSSetting    'CS_DISTRO'          'Ubuntu'
+$script:CSSlowMs        = Get-CSSettingInt 'CS_SLOW_MS'         4000    # >= this = SLOW (wedge candidate)
+$script:CSHardCap       = Get-CSSettingInt 'CS_HARD_CAP_MS'     8000    # ms socket/read timeout
+$script:CSBackupRoot    = Get-CSSetting    'CS_BACKUP_ROOT'     '/mnt/d/Backups/claude-science'
+$script:CSBackupKeyRoot = Get-CSSetting    'CS_BACKUP_KEY_ROOT' '/mnt/d/Backups/claude-science-keys'
+$script:CSMinWslDiskGb  = Get-CSSettingInt 'CS_MIN_WSL_DISK_GB' 10
+$script:CSMinHostRamGb  = Get-CSSettingInt 'CS_MIN_HOST_RAM_GB' 3
+$script:CSBackupWarnH   = Get-CSSettingInt 'CS_BACKUP_WARN_H'   176
+$script:CSBackupFailH   = Get-CSSettingInt 'CS_BACKUP_FAIL_H'   192
+$script:CSBeatStaleS    = Get-CSSettingInt 'CS_BEAT_STALE_S'    180
+$script:CSUrl           = "http://$($script:CSHost):$($script:CSPort)/"
+
+function ConvertTo-CSWindowsPath {
+  # /mnt/d/Backups/x -> D:\Backups\x . The backup root lives in the config ONCE, in WSL form
+  # (what the bash scripts need); this derives the Windows form instead of duplicating it.
+  # Returns $null for anything that is not a /mnt/<drive>/... path, so callers fail closed
+  # rather than inventing a path.
+  param([string]$WslPath)
+  $m = [regex]::Match($WslPath, '^/mnt/([a-zA-Z])(/.*)?$')
+  if (-not $m.Success) { return $null }
+  $tail = $m.Groups[2].Value -replace '/', '\'
+  return ($m.Groups[1].Value.ToUpper() + ':' + $tail)
+}
+$script:CSBackupRootWin = ConvertTo-CSWindowsPath $script:CSBackupRoot
 
 function Invoke-CSWsl {
   # Run a WSL login-shell command with a HARD timeout, so a frozen VM can never hang the caller.
   # Job inputs are passed explicitly via -ArgumentList and received through param($d,$c) below --
   # no closure capture, so $using: does not apply (PSSA false positive). Live-verified: cs status
   # gathers WSL pid/disk/RAM through this path correctly.
+  #
+  # -Tag names the logical probe (db|backup|...) so a test can inject ONE probe's reply without
+  # touching the others. FAULT INJECTION IS TEST-ONLY and opt-in via environment variables; with
+  # none set this function behaves exactly as before. It exists because cs-doctor's fail-closed
+  # behaviour is unverifiable on a healthy box -- a probe that is silent in both states measures
+  # nothing, so the broken state has to be reachable on demand.
   [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseUsingScopeModifierInNewRunspaces', '', Justification = 'Args passed via -ArgumentList/param(), not closure-captured.')]
-  param([string]$Cmd, [int]$TimeoutSec = 20)
+  param([string]$Cmd, [int]$TimeoutSec = 20, [string]$Tag)
+  if ($env:CS_FORCE_WSL_TIMEOUT -eq '1') { return '__WSL_TIMEOUT__' }
+  if ($Tag) {
+    $forced = [Environment]::GetEnvironmentVariable("CS_FORCE_WSL_$($Tag.ToUpper())")
+    if ($forced) { if ($forced -eq '__EMPTY__') { return '' } else { return $forced } }
+  }
   $job = Start-Job { param($d, $c) & wsl.exe -d $d -e bash -lc "export PATH=`$HOME/.local/bin:`$PATH; $c" 2>&1 } -ArgumentList $script:CSDistro, $Cmd
   if (Wait-Job $job -Timeout $TimeoutSec) { $o = Receive-Job $job; Remove-Job $job -Force -ErrorAction SilentlyContinue; return ($o -join "`n") }
   Stop-Job $job -ErrorAction SilentlyContinue; Remove-Job $job -Force -ErrorAction SilentlyContinue
   return '__WSL_TIMEOUT__'
+}
+
+function Get-CSWatchdogProcess {
+  # The watchdog instances a doctor/status row should count.
+  #
+  # DETECTOR BUG THIS FIXES (measured 2026-08-12, twice, by two different agents): the previous
+  # filter was `CommandLine -like '*cs-watchdog*'`, which MATCHES THE PROBE'S OWN SHELL whenever the
+  # probing command line contains the string -- reporting 2 instances and a phantom "DUPLICATE -
+  # dual-watchdog race" when exactly one watchdog was running. Excluding $PID is not enough either
+  # (a parent pwsh running the probe is a different pid), so this also requires the `-File ...
+  # cs-watchdog.ps1` ARGUMENT SHAPE that only a real launch has, not a bare substring.
+  @(Get-CimInstance Win32_Process -Filter "Name='powershell.exe' OR Name='pwsh.exe'" -ErrorAction SilentlyContinue |
+    Where-Object { $_.ProcessId -ne $PID -and $_.CommandLine -match '(?i)-File\s+"?[^"]*cs-watchdog\.ps1' })
 }
 
 function Test-CSHealth {
