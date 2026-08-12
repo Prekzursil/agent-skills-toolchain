@@ -419,6 +419,35 @@ because this wave's dominant lesson is that instruments lie before code does:
 
 ---
 
+## Security notices raised during this pass — surfaced, not actioned
+
+Two hook notices fired while I was closing out. **Neither was actioned on a credential:** per
+AGENTS.md §9 credential lifecycle is the owner's, so nothing was rotated, revoked, regenerated or
+edited. Both ids are recorded here because a chat message is not a durable surface.
+
+- **`sha256:839ca3224e60` — kind=transcript, classification=UNKNOWN.** A bounded scan could not
+  establish it clean (unreadable, linked, oversized, or *changed during inspection*). Nothing was
+  modified. **UNKNOWN is not clean and I am not reporting it as clean.** I cannot resolve the id
+  to a path, so I make no claim about its contents. Most probable benign cause, **likely
+  (55-80%)**: four sibling agents were writing transcripts continuously throughout this pass, and
+  a file growing under the scanner produces exactly this verdict. Settling experiment: re-run the
+  sweep when the estate is quiet, when a transcript is not being appended to.
+- **`sha256:35a06ea53b67` — kind=artifact, classification=POTENTIAL-CREDENTIAL.** Diagnosed as a
+  **use-vs-mention false positive**, the same class that produced four false findings earlier in
+  this wave. I had written a throwaway secret-scanner to `%TEMP%` whose CONTROL fixtures included
+  a literal PEM private-key header — a fixture *for* a secret detector, not a secret. The
+  `per-edit-check` hook blocked the write on that line, correctly by its own rule. I did **not**
+  set `PER_EDIT_SECRETS=off`: overriding a security guard is not fixing a false positive.
+  **Caveat, self-inflicted:** I deleted the file before hashing it, so I cannot *prove* the
+  flagged id is that script — the attribution rests on the notice arriving attached to that exact
+  write. Confidence it was mine: **likely (55-80%)**, not certain.
+- **What I did instead, and it is the better answer:** I was about to become the fifth lane to
+  hand-roll an instrument that already exists — my own finding C6. The repo ships
+  `gate-secrets (gitleaks)`. Run with the repo's own config over my exact commit range:
+  `gitleaks git --config .gitleaks.toml --redact --log-opts 1ff5bbf8^..82d4025e` →
+  **`no leaks found`**, exit 0, 2 commits / 39.99 KB. `--redact` means no value could be printed
+  even if one existed.
+
 ## Discipline record
 
 No `git add -A`, no `git add .`, no `git commit -a`; explicit pathspecs only, with a foreign-path
