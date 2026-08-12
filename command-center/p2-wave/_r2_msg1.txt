@@ -1,0 +1,40 @@
+fix(command-center): a declared contract that cannot fail is not a gate
+
+An adversarial verifier refuted the round-1 claim that "a state field is forgeable by a
+one-word edit; schema validation is not". Reproduced by execution before fixing anything:
+command-center/receipts/IMP-0433.json with state flipped BLOCKED -> SUCCESS was accepted as
+delivered=True by the predicate shipped that day, because that unit declares the draft-2020-12
+meta-schema, which returns 0 errors for {"totally":"unrelated","passing_tests":999999}.
+
+Blast radius, measured over all 2,007 units: of 367 distinct declared contracts, 364 reject all
+three garbage probes, 3 reject none, and 0 sit in between - so the threshold is not a judgement
+call. Those 3 are declared by 23 units. Worse, WFA-0001 - the program's single delivered=1 unit
+- is one of them, so condition 4 never discriminated for the only unit that passed.
+
+ready_units.py:
+  * condition 4b, contract-vacuity guard: a declared contract must reject three garbage probes
+    before "schema-VALID" counts as evidence. The probes are the two shapes that fooled an
+    earlier verifier here (999999 passing tests; a 2,000-character blob) plus the empty object.
+  * type-appropriate fallback, keyed on the DOCUMENT not the path: a real JSON Schema document
+    ($schema/$id + check_schema) passes; anything else must satisfy receipt.schema.json.
+    Path-keying would have given the self-test fixture a different verdict than the receipt it
+    mirrors - a control that measures its own location instead of the defect.
+  * fail closed on a validator exception (was a silent `pass`). Census: 0 of 367 declarations
+    raise today, so this removes a latent silent-pass, it does not fix a live one.
+  * --self-test gains a two-sided control on the vacuity detector itself, a pre-4b-predicate
+    column on every control, and CONTROL_VACUOUS: the one-word mutant, which the OLD predicate
+    accepted (pre-4b=True) and the new one rejects. The self-test FAILS if that column ever
+    stops reading True, i.e. if the fixture stops being a known-broken state.
+  * publishes the vacuity census into READY-UNITS.json and prints it every run.
+
+Partition is byte-identical before and after (2007 | 1 | 449 | 1390 | 167). Zero collateral was
+measured in _r2_design.py BEFORE the code was written, not asserted after it.
+
+_r2_verify_committed.py supersedes _b1r2_verify_committed.py, which produced the vacuous green:
+it adds a can-fail column, the fallback, and a PER-UNIT two-sided control (the round-1 control
+ran on AUD-0020 alone while its SUCCESS line spoke for all five). All 5 committed blobs now
+validate against a contract proven able to fail.
+
+P2-BUILD-ROUND1.md keeps its refuted sentences in place with inline REFUTED blocks rather than
+deleting them. Two of the three were overclaims - correct artifact, sentence wider than its
+evidence - and one was a real defect in the predicate.

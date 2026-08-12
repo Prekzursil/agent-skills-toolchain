@@ -1,10 +1,10 @@
 # P2 BUILD — ROUND 2 (re-entry after a confirmed adversarial refutation)
 
-STATUS: IN PROGRESS. Sections R0-R2 and R5 are MEASURED. R3 (new units) is UNKNOWN - not yet
-measured. This file is rewritten at every milestone; whatever is on disk is truthful now.
+STATUS: COMPLETE for this round. Every section carries a measurement or an explicit NOT-CHECKED;
+nothing reads `UNKNOWN - not yet measured`.
 
-COVERAGE: R0 measured · R1 measured · R2 measured · R3 UNKNOWN - not yet measured ·
-R4 UNKNOWN - not yet measured · R5 measured · R6 partial.
+COVERAGE: R0 measured · R1 measured · R2 measured · R3 measured · R4 measured · R5 measured ·
+R6 measured-or-explicitly-NOT-CHECKED.
 
 ---
 
@@ -147,11 +147,147 @@ the predicate, now fixed and controlled.
 
 ## R3. New units delivered this round
 
-UNKNOWN - not yet measured.
+Order is the recorded owner ruling OQ-2: ascending INTEGER phase, then unblocking power. Round 1
+took ranks 1,2,3,5,6 and skipped rank 4. Round 2 takes ranks **7 and 8** — the next two in that
+order, both phase 0, both unblocking 3, both declaring a contract measured able to fail. Depth
+over breadth: two units fully proven, not five stubs.
 
-## R4. Blocked units with precise blockers
+```
+  IMP-0433 phase=0 unblocks=13  (round 1)     AUD-0020 phase=0 unblocks=3  (round 1)
+  AUD-0041 phase=0 unblocks=8   (round 1)     AUD-0030 phase=0 unblocks=3  (round 1)
+  AUD-0051 phase=0 unblocks=5   (round 1)  >> CC-0002  phase=0 unblocks=3  ROUND 2
+  AUD-0001 phase=0 unblocks=3   BLOCKED    >> IMP-0440 phase=0 unblocks=3  ROUND 2
+  CONTROL phase-sort: ['0','2','2A','10'] -> OK
+```
 
-UNKNOWN - not yet measured.
+### CC-0002 — create the receipt substrate every unit is contracted to write to
+
+`command-center/receipts/CC-0002.json` (13,399 B blob) — `python command-center/p2-wave/_build_CC0002.py`
+
+Premise **REFUTED on three of its four asserted absences**: `receipt.schema.json` is present
+(5,882 B, git-tracked), `command-center/receipts/` exists with 4 receipts, and an emitter exists
+(`p13_emit_receipt.py`, 42,480 B). The fourth — a committed `.gitkeep` — was genuinely absent and
+is created by this unit.
+
+Prior art was EXECUTED before anything was written. `platform/lib/receipt_schema_gate.py` already
+ships schema validation plus the 12-condition predicate, so it was run against the four mutants
+the row names:
+
+```
+fixture                       schema-only  full-gate
+golden (TST-0334)                    rc=0       rc=1
+m1-missing-sentinel                  rc=1       rc=1
+m2-empty-evidence                    rc=1       rc=1
+m3-unit-id-not-in-catalog            rc=0       rc=1   <-- ACCEPTED: `SCHEMA-VALID:ZZZ-9999`
+m4-unparseable                       rc=1       rc=1
+```
+
+Two facts fall out, and the row needs both. **The hole:** a receipt whose `unit_id` is not one of
+the 2,007 catalog units validates with exit 0. `WORK-UNIT-CATALOG` and `work_units` appear
+nowhere in that file, so the cross-reference is genuinely absent, not a use-vs-mention miss.
+**The layer confusion:** the full gate rejects the GOLDEN receipt too (correctly — it is
+state=BLOCKED on the reviewer gate), so layer 2 cannot be the accept/reject instrument the row's
+"a golden receipt validates" test requires. Admission and completion are different questions.
+
+Shipped `command-center/receipt_validate.py`: an ADMISSION check that IMPORTS the existing gate
+rather than reimplementing it and adds C3, the catalog cross-reference. Single-bit ACCEPT/REJECT,
+never a score — a score becomes the next thing to optimise (the Goodhart result the grounding
+lane's own external research predicts). It fails closed on an empty walk.
+
+```
+  CONTROL golden                     want=ACCEPT got=ACCEPT OK  C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds
+  CONTROL m1-missing-sentinel        want=REJECT got=REJECT OK  C2 schema-invalid (1): 'sentinel' is a required property
+  CONTROL m2-empty-evidence          want=REJECT got=REJECT OK  C2 schema-invalid (1): evidence: [] should be non-empty
+  CONTROL m3-unit-id-not-in-catalog  want=REJECT got=REJECT OK  C3 unit_id 'ZZZ-9999' is not one of the 2007 catalog units
+  CONTROL m4-unparseable             want=REJECT got=REJECT OK  C1 unparseable JSON: JSONDecodeError
+SUCCESS:receipt-validate self-test 1 golden ACCEPTED, 4 mutants REJECTED each on its own condition
+```
+
+All 6 receipts on disk pass admission. `python command-center/receipt_validate.py` with no
+arguments exits 1 — an empty walk is not a pass.
+
+### IMP-0440 — single blob-bytes helper, and removal of the archive recipe everywhere
+
+`command-center/receipts/IMP-0440.json` (15,418 B blob) — `python command-center/p2-wave/_build_IMP0440.py`
+
+Premise **PARTLY REFUTED**: `tools/measure-guard/blobread.py` (8,757 B) already IS the helper and
+refuses the archive route by measurement rather than by comment; its function is
+`read_blob(path, rev)` rather than the row's `blob_bytes(rev, path)` — same capability, different
+name and argument order. Its suite passes (8 tests). The migration itself was already performed
+by `command-center/fix_blob_recipe.py`.
+
+Three-route comparison on TWO committed files, so a single-file artefact cannot explain it:
+
+| target | `git archive`+tar | `git cat-file -p` | `git show <rev>:<path>` | identical after LF-norm |
+|---|---|---|---|---|
+| `command-center/ready_units.py` | 19,927 B / **437 CRLF** | 19,490 B / 0 | 19,490 B / 0 | True |
+| `tools/measure-guard/blobread.py` | 8,974 B / **217 CRLF** | 8,757 B / 0 | 8,757 B / 0 | True |
+
+`git show <rev>:<path>` is byte-identical to `git cat-file -p`. The program floor's claim that
+BOTH return CRLF is false; only `git archive` converts. That matches the correction the
+orchestrator issued and `rules/common/windows-shell.md:8b`.
+
+Census answering the row's exact question — *how many call sites and documents prescribe the wrong
+recipe, and are all of them corrected?*
+
+```
+263 hits | 2 real invocations | 2 legitimate whole-tree packaging | 0 provenance prescriptions remaining
+CONTROL plant-one: detector FOUND the planted recipe=True; silent after removal=True
+```
+
+The 2 survivors are `--format=tar` / `--output=` whole-tree materialisation (a cohort tarball and
+a sanitized staging tree). That is the CORRECT use of `git archive`; "fixing" them would break
+packaging.
+
+**T5 is recorded as FAIL, not hidden.** The row also demands every provenance path route through
+ONE helper. 37 executable files still implement their own `git cat-file -p` read. They are all
+CORRECT, so this is duplication rather than a defect — but it is not what the row asks for, and
+re-routing them means editing `platform/`, `tools/` and `command-center` files this lane does not
+own while sibling lanes are writing the same tree. Reported, not narrowed away.
+
+### Both units, independently re-verified from the committed blob
+
+```
+unit        blob B  CRLF  parses  declared  can-fail effective contract                        VALID  ctl  state
+IMP-0433     17774     0    True         0     False command-center/schema/receipt.schema.json   YES   OK  BLOCKED
+AUD-0041     77871     0    True         0      True .../audit-inventory.schema.json             YES   OK  BLOCKED
+AUD-0051     29935     0    True         0      True .../audit-metric-baseline.schema.json       YES   OK  BLOCKED
+AUD-0030     23565     0    True         0      True .../audit-graph.schema.json                 YES   OK  BLOCKED
+AUD-0020     34300     0    True         0      True .../audit-inventory.schema.json             YES   OK  BLOCKED
+CC-0002      13399     0    True         0      True command-center/schema/receipt.schema.json   YES   OK  BLOCKED
+IMP-0440     15418     0    True         0      True command-center/schema/receipt.schema.json   YES   OK  BLOCKED
+SUCCESS:r2-verify 7/7 committed blobs validate against a contract PROVEN able to fail, each with
+its own two-sided control
+```
+
+Partition after the round: `units 2007 | delivered 1 | READY 449 | blocked 1390 | owner-gated 167`,
+with `artifacts present but NOT delivered` moving 48 → **50** — exactly the two new receipts, both
+honestly `BLOCKED` on the reviewer gate rather than counted as delivered.
+
+---
+
+## R4. Blocked units, with the precise blocker
+
+`python command-center/p2-wave/_b1r2_blockers.py` (its own two-sided control: `validator_for:
+known-good -> resolves; known-bad -> UnknownSchemaError`):
+
+```
+B1 contract unresolvable      : 0
+B2 cloud-batch substrate      : 55      (NOT-CHECKED reachability, not "unavailable")
+B3 off-limits input           : 0 automatic
+B4 reviewer_requirement set   : 449 of 449 (100%)
+substrate histogram over READY: {worktree-isolated 86, local-parallel 157, local-serialized 151, cloud-batch 55}
+```
+
+Per-unit blockers for what this round did not build:
+
+| unit | rank | blocker |
+|---|---|---|
+| AUD-0001 | 4 | Declared inputs walk `~/Documents/GitHub`, the parent of a directory this program is forbidden to touch, and its `reviewer_requirement` is cross-vendor-mandatory. Unchanged from round 1; re-stated, not re-litigated. |
+| IMP-0440 (T5 half) | 8 | Consolidating 37 independent `cat-file` implementations into the one helper needs edit authority over `platform/`, `tools/` and shared `command-center` files that sibling lanes are actively writing. |
+| CC-0002, IMP-0440, and all 5 round-1 units | — | `reviewer.verdict=PASS` + `independent=true`. CC-0002's is structurally unsatisfiable from inside the build lane: it asks for a reviewer who writes a FIFTH mutant *the author did not anticipate*. |
+| 55 cloud-batch units | — | Substrate reachability NOT-CHECKED. No probe was run, so this is "unmeasured", not "unavailable". |
+| 23 meta-declaring units | — | Not blocked, but their declared contract cannot fail; delivered() now routes them through a type-appropriate fallback and the census is published in `READY-UNITS.json`. |
 
 ---
 
@@ -185,6 +321,49 @@ Fixture provenance: `_r2_mkfixture.py` regenerates the mutant and asserts it dif
 real receipt in **exactly one field** and that the source receipt does not already say SUCCESS
 (which would make the control inert).
 
+### Controls on the two new units
+
+- **CC-0002 mutation control:** 4/4 mutants REJECTED *and* the golden ACCEPTED. The accept side is
+  asserted deliberately — a validator that rejects everything is as useless as one that accepts
+  everything, and only the two-sided form distinguishes them.
+- **CC-0002 absent-input control:** no-argument invocation exits 1. A gate that exits 0 when given
+  nothing to check is the `ci-hygiene` no-op in its purest form.
+- **CC-0002 prior-art control:** the EXISTING validator was executed against all four mutants
+  first; it accepted m3, so only the m3 gap was built. Skipping this control is how a duplicate
+  validator gets shipped.
+- **IMP-0440 plant-one control:** a wrong recipe was planted inside the scanned tree, found by the
+  census, removed, and the census re-run silent. A grep returning 0 without this is
+  indistinguishable from a broken pattern — and it caught two of my own detector failures.
+- **IMP-0440 byte-compare control:** the three-route comparison must show a DIFFERENCE
+  (archive != blob) *and* agreement between the two blob routes. All-equal would be consistent
+  with a broken reader.
+
+### TWO DETECTOR FAILURES OF MY OWN THIS ROUND — disclosed, not dropped
+
+1. **The census counted mentions as uses.** First version: any non-comment line matching
+   `git archive` was an invocation. It reported ~19 "remaining prescriptions", all prose inside
+   JSON strings (`"evidence": "The grounding pack states: \"On Windows, git archive ...\""`).
+   That is the exact use-vs-mention failure this program has already paid for four times, and I
+   reproduced it while writing the unit whose whole job is that distinction. Replaced with a
+   per-file-kind classifier: Python by **AST** (a string only counts when it reaches a subprocess
+   argv — `blobread.py` names the recipe eleven times precisely because it refuses it), shell/CI
+   by non-comment line, markdown by fenced-code-block membership, data files excluded with the
+   reason stated rather than silently dropped.
+2. **The fixed classifier still counted 3.** All three were lines PRESCRIBING the correct recipe
+   while naming the wrong one in a TRAILING comment: `git show <final-sha>:<path>   # NOT git
+   archive`. My comment rule only looked at the start of a line. Fixed by stripping trailing
+   comments before matching and treating an explicit negation before the token as a mention.
+
+Both survived only because the plant-one control existed. Neither would have been caught by a
+green number. My round-1 report already disclosed two detector failures; that is four in two
+rounds, which is the honest prior for anything here that is not behind a two-sided control.
+
+3. **A third, smaller one:** the first IMP-0440 run measured the three-route comparison on
+   `command-center/receipt_validate.py`, which was not yet committed, so all three routes returned
+   0 bytes and "identical after LF-normalisation" read False. An all-zero comparison is a
+   self-contradicting output, not a finding. Retargeted to a committed file and the builder now
+   returns its real `rc` instead of "did the file get written".
+
 ---
 
 ## R6. Residual / NOT-CHECKED
@@ -204,3 +383,21 @@ real receipt in **exactly one field** and that the source receipt does not alrea
 - **NOT-CHECKED:** cloud-batch substrate reachability (55 READY units) — no probe run.
 - **NOT-CHECKED:** repo-wide coverage — round 1 measured that no enforcement command in this tree
   emits a coverage table.
+- **PARTIAL — IMP-0440 T5.** 37 executable files hold their own correct `cat-file` read; the
+  single-helper consolidation the row demands is NOT done, and the receipt records that test as
+  FAIL. Settling action: a lane with edit authority over `platform/`, `tools/` and shared
+  `command-center` files re-routes them through `tools/measure-guard/blobread.read_blob`.
+- **PARTIAL — the IMP-0440 classifier.** The plant-one control proves the census detects the
+  canonical wrong recipe; it does not prove it detects every phrasing. Settling experiment named
+  in the receipt: plant a PowerShell `git -C $x archive`, a Makefile rule and a YAML `run:` step
+  and require all three to be found.
+- **NOT CLAIMED:** that any of these seven artifacts is CORRECT. No independent reviewer ran. What
+  is claimed and proven is narrower: each is non-empty, parses, carries 0 CRLF in the stored blob,
+  validates against a contract measured able to reject garbage, and every headline number in it
+  is behind a control shown to fire on a known-broken state. Four of my own detectors were wrong
+  on first run across two rounds and only the controls caught them.
+- **Environment notice, surfaced not actioned:** two report-only `POTENTIAL-CREDENTIAL` sweep
+  notices fired while writing `_r2_verify_committed.py` and editing `_b1r2_verify_committed.py`
+  (ids `sha256:0f667e93eafb`, `sha256:9b69183fa43b`). Both files contain only sha256 hex literals
+  and a 2,000-character `"x"` garbage probe; no credential was read, printed or modified. Reported
+  for the owner per AGENTS.md §9; no agent action clears these.
