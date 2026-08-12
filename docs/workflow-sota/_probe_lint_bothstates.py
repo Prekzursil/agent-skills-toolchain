@@ -1,5 +1,6 @@
 """Both-states control for workflow_lint's parallel-filter rule + a census of the
 10 live saved workflows. Read-only. Prints JSON."""
+
 import json
 import re
 import sys
@@ -63,7 +64,9 @@ for p in sorted(LIVE.glob("*")):
             "bytes": len(t),
             "n_parallel": len(re.findall(r"\bparallel\s*\(", masked)),
             "n_agent": len(re.findall(r"\bagent\s*\(", masked)),
-            "n_filter_boolean": len(re.findall(r"\.filter\s*\(\s*Boolean\s*\)", masked)),
+            "n_filter_boolean": len(
+                re.findall(r"\.filter\s*\(\s*Boolean\s*\)", masked)
+            ),
             "n_promise_race": len(re.findall(r"Promise\s*\.\s*race", masked)),
             "n_settimeout": len(re.findall(r"\bsetTimeout\b", masked)),
             "n_abort": len(re.findall(r"AbortController|AbortSignal", masked)),

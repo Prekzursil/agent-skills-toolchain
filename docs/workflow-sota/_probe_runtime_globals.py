@@ -1,6 +1,7 @@
 """Read-only scan of the bundled claude binary for the Workflow-runner source, to
 answer: which globals does the runner inject into a saved workflow body?
 Chunked so it never holds the 287 MB file in RAM. Prints JSON."""
+
 import json
 import re
 from pathlib import Path
@@ -49,5 +50,9 @@ with BIN.open("rb") as fh:
         pos += len(buf)
         prev = data[-OVERLAP:]
 
-print(json.dumps({"file_bytes": BIN.stat().st_size, "counts": counts,
-                  "samples": samples}, indent=2)[:12000])
+print(
+    json.dumps(
+        {"file_bytes": BIN.stat().st_size, "counts": counts, "samples": samples},
+        indent=2,
+    )[:12000]
+)

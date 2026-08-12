@@ -178,7 +178,10 @@ def consolidate_academic_records(
     def component_has_strong_identity(root: int) -> bool:
         return any(
             find(index) == root
-            and (normalize_doi(record.doi) is not None or canonical_url(record.url) is not None)
+            and (
+                normalize_doi(record.doi) is not None
+                or canonical_url(record.url) is not None
+            )
             for index, record in enumerate(records)
         )
 

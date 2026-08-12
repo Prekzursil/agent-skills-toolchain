@@ -1,6 +1,10 @@
 """Academic record consolidation tests."""
 
-from research_harness.academic import AcademicRecord, consolidate_academic_records, normalize_doi
+from research_harness.academic import (
+    AcademicRecord,
+    consolidate_academic_records,
+    normalize_doi,
+)
 
 
 def test_normalize_doi_accepts_url_and_prefix_variants():

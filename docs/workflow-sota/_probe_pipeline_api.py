@@ -1,6 +1,7 @@
 """Targeted read-only scan of claude.exe for the Workflow runtime API surface:
 does the runner inject pipeline()? what other globals / options does it document?
 Prints JSON with de-duplicated context windows."""
+
 import json
 import re
 from pathlib import Path

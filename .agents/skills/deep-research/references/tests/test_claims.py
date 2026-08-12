@@ -75,7 +75,9 @@ def test_forecast_requires_probability_and_resolution_criterion():
             "page locations are 1-based",
         ),
         (
-            EvidenceSpan("e", 1, "https://x", "x", "web_search_result_location", 0, 1, 0),
+            EvidenceSpan(
+                "e", 1, "https://x", "x", "web_search_result_location", 0, 1, 0
+            ),
             "does not use numeric bounds",
         ),
     ],

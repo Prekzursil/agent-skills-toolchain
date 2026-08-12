@@ -1,7 +1,7 @@
 """Find EVERY vm.createContext site in claude.exe whose sandbox literal mentions
 budget/agent/parallel, to check whether the TOP-LEVEL workflow path (not just the
 child workflow() path) also injects setTimeout/clearTimeout. Read-only."""
-import json
+
 import re
 from pathlib import Path
 

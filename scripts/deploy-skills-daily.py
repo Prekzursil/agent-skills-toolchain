@@ -138,7 +138,9 @@ def plan(source: Path, target: Path, only: set[str] | None = None) -> dict[str, 
     }
 
 
-def deploy(source: Path, target: Path, apply: bool, only: set[str] | None = None) -> int:
+def deploy(
+    source: Path, target: Path, apply: bool, only: set[str] | None = None
+) -> int:
     p = plan(source, target, only)
     rep = p["report"]
     print(f"SOURCE (repo, authoritative) {source}")
@@ -161,9 +163,11 @@ def deploy(source: Path, target: Path, apply: bool, only: set[str] | None = None
 
     if not apply:
         print("\nDRY RUN -- nothing written. Pass --apply to deploy.")
-    print(f"\n{'SUCCESS' if apply else 'DRY-RUN-OK'}:deploy-skills-daily "
-          f"copied={len(p['copyable']) if apply else 0} "
-          f"needs_merge={len(p['needs_merge'])}")
+    print(
+        f"\n{'SUCCESS' if apply else 'DRY-RUN-OK'}:deploy-skills-daily "
+        f"copied={len(p['copyable']) if apply else 0} "
+        f"needs_merge={len(p['needs_merge'])}"
+    )
     return EXIT_OK
 
 
@@ -178,7 +182,10 @@ def self_test() -> int:
     failures: list[str] = []
 
     def check(name: str, cond: bool, detail: str = "") -> None:
-        print(f"  {'PASS' if cond else 'FAIL'}  {name}" + (f"  -- {detail}" if detail else ""))
+        print(
+            f"  {'PASS' if cond else 'FAIL'}  {name}"
+            + (f"  -- {detail}" if detail else "")
+        )
         if not cond:
             failures.append(name)
 
@@ -192,10 +199,12 @@ def self_test() -> int:
             p.write_text(text, encoding="utf-8")
 
         # shared skill "alpha"
-        write(src, "alpha/SKILL.md", "a\nb\nc\n")          # repo strictly ahead
+        write(src, "alpha/SKILL.md", "a\nb\nc\n")  # repo strictly ahead
         write(dst, "alpha/SKILL.md", "a\nb\n")
-        write(src, "alpha/new.md", "brand new\n")           # RIGHT-ONLY-FILE
-        write(dst, "alpha/liveonly.md", "must survive\n")   # LEFT-ONLY-FILE -> must NOT be deleted
+        write(src, "alpha/new.md", "brand new\n")  # RIGHT-ONLY-FILE
+        write(
+            dst, "alpha/liveonly.md", "must survive\n"
+        )  # LEFT-ONLY-FILE -> must NOT be deleted
         # shared skill "beta" -- genuinely two-directional, must never be touched
         write(src, "beta/SKILL.md", "shared\nrepo-unique\n")
         write(dst, "beta/SKILL.md", "shared\nlive-unique\n")
@@ -205,47 +214,81 @@ def self_test() -> int:
         p = plan(src, dst)
         copyable = set(p["copyable"])
 
-        check("CONTROL: a repo-ahead file IS offered", "alpha/SKILL.md" in copyable,
-              "if this failed the tool would be a no-op and every other PASS meaningless")
-        check("CONTROL: a repo-only FILE in a shared skill IS offered", "alpha/new.md" in copyable)
+        check(
+            "CONTROL: a repo-ahead file IS offered",
+            "alpha/SKILL.md" in copyable,
+            "if this failed the tool would be a no-op and every other PASS meaningless",
+        )
+        check(
+            "CONTROL: a repo-only FILE in a shared skill IS offered",
+            "alpha/new.md" in copyable,
+        )
         check("P1 a DIVERGED file is NOT offered", "beta/SKILL.md" not in copyable)
-        check("P2 a repo-only SKILL is NOT offered (integration path)",
-              not any(r.startswith("gamma/") for r in copyable))
+        check(
+            "P2 a repo-only SKILL is NOT offered (integration path)",
+            not any(r.startswith("gamma/") for r in copyable),
+        )
         # The line above CANNOT kill a mutant that deletes the P2 guard: safe_to_deploy is built
         # from SHARED skills, so gamma never reaches the guard and the assertion holds either
         # way.  Measured -- the P2 mutant SURVIVED until these two direct cases were added.
-        check("P2 the guard itself refuses an absent target skill",
-              deployable("gamma/SKILL.md", src, dst) is not None,
-              "direct call: this is the case the integration path cannot construct")
-        check("CONTROL: the guard ACCEPTS a present target skill",
-              deployable("alpha/SKILL.md", src, dst) is None,
-              "a guard that refuses everything would also pass the line above")
+        check(
+            "P2 the guard itself refuses an absent target skill",
+            deployable("gamma/SKILL.md", src, dst) is not None,
+            "direct call: this is the case the integration path cannot construct",
+        )
+        check(
+            "CONTROL: the guard ACCEPTS a present target skill",
+            deployable("alpha/SKILL.md", src, dst) is None,
+            "a guard that refuses everything would also pass the line above",
+        )
 
         deploy(src, dst, apply=True)
 
-        check("P1 the diverged file was left untouched",
-              (dst / "beta/SKILL.md").read_text(encoding="utf-8") == "shared\nlive-unique\n")
+        check(
+            "P1 the diverged file was left untouched",
+            (dst / "beta/SKILL.md").read_text(encoding="utf-8")
+            == "shared\nlive-unique\n",
+        )
         check("P2 the repo-only skill was not created", not (dst / "gamma").exists())
-        check("P3 the live-only file still exists (no prune)", (dst / "alpha/liveonly.md").exists())
-        check("CONTROL: the safe copies actually landed",
-              (dst / "alpha/SKILL.md").read_text(encoding="utf-8") == "a\nb\nc\n"
-              and (dst / "alpha/new.md").exists())
+        check(
+            "P3 the live-only file still exists (no prune)",
+            (dst / "alpha/liveonly.md").exists(),
+        )
+        check(
+            "CONTROL: the safe copies actually landed",
+            (dst / "alpha/SKILL.md").read_text(encoding="utf-8") == "a\nb\nc\n"
+            and (dst / "alpha/new.md").exists(),
+        )
 
     if failures:
-        print(f"\nFAILED:deploy-skills-daily-selftest {len(failures)} guard(s) did not hold: {failures}")
+        print(
+            f"\nFAILED:deploy-skills-daily-selftest {len(failures)} guard(s) did not hold: {failures}"
+        )
         return EXIT_REFUSED
-    print("\nSUCCESS:deploy-skills-daily-selftest all guards fired on the broken fixture")
+    print(
+        "\nSUCCESS:deploy-skills-daily-selftest all guards fired on the broken fixture"
+    )
     return EXIT_OK
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="deploy repo skills into the loaded curated tree")
+    ap = argparse.ArgumentParser(
+        description="deploy repo skills into the loaded curated tree"
+    )
     ap.add_argument("--source", default=str(DEFAULT_SOURCE))
     ap.add_argument("--target", default=str(DEFAULT_TARGET))
-    ap.add_argument("--apply", action="store_true", help="actually write (runs --self-test first)")
-    ap.add_argument("--self-test", action="store_true", help="prove the guards fire, write nothing")
-    ap.add_argument("--only", action="append", default=[],
-                    help="narrow to named skills (repeatable); can only remove candidates")
+    ap.add_argument(
+        "--apply", action="store_true", help="actually write (runs --self-test first)"
+    )
+    ap.add_argument(
+        "--self-test", action="store_true", help="prove the guards fire, write nothing"
+    )
+    ap.add_argument(
+        "--only",
+        action="append",
+        default=[],
+        help="narrow to named skills (repeatable); can only remove candidates",
+    )
     args = ap.parse_args(argv)
 
     if args.self_test:
@@ -262,7 +305,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.apply:
         print("running --self-test before any write (P4)")
         if self_test() != EXIT_OK:
-            print("FAILED:deploy-skills-daily self-test did not pass; refusing to deploy")
+            print(
+                "FAILED:deploy-skills-daily self-test did not pass; refusing to deploy"
+            )
             return EXIT_REFUSED
         print()
     return deploy(source, target, apply=args.apply, only=set(args.only) or None)

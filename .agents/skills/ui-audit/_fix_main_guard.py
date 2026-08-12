@@ -24,12 +24,13 @@ Falls back to the old lexical compare if realpath throws, so the guard can never
 Byte-safe I/O: read_bytes/write_bytes, since a text round-trip rewrites LF as CRLF on
 Windows and would churn every line of all seven files.
 """
+
 import pathlib
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 
-OLD = ("if (process.argv[1] && resolve(process.argv[1]) === resolve(__filename)) {")
+OLD = "if (process.argv[1] && resolve(process.argv[1]) === resolve(__filename)) {"
 
 NEW = """// Junction/symlink-safe main-module check. `~/.claude/skills` is a junction to
 // `skills.daily`; Node resolves symlinks for ESM so import.meta.url reports the REAL

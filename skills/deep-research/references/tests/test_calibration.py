@@ -14,7 +14,9 @@ from research_harness.calibration import (
 
 def test_admiralty_axes_are_independent_and_allow_a5_and_e1():
     assert AdmiraltyRating("A", 5, "history", "implausible").code == "A5"
-    assert AdmiraltyRating("E", 1, "weak history", "independently confirmed").code == "E1"
+    assert (
+        AdmiraltyRating("E", 1, "weak history", "independently confirmed").code == "E1"
+    )
 
 
 def test_unknown_evidence_defaults_conservatively_to_f6():

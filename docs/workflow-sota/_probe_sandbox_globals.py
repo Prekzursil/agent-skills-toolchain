@@ -1,6 +1,7 @@
 """Find the Workflow sandbox's global-injection site in claude.exe: the code that
 throws on Date.now()/Math.random() should sit next to the list of globals handed to
 the script body. Read-only, chunked."""
+
 import json
 import re
 from pathlib import Path
@@ -20,7 +21,9 @@ PATS = {
     "new_AsyncFunction_globals": re.compile(
         rb"AsyncFunction\)\(|new\s+\w{1,3}\(\"agent\""
     ),
-    "settimeout_unavailable": re.compile(rb"setTimeout[^\"'`\n]{0,60}(unavailable|not available|is not defined)", re.I),
+    "settimeout_unavailable": re.compile(
+        rb"setTimeout[^\"'`\n]{0,60}(unavailable|not available|is not defined)", re.I
+    ),
 }
 
 hits = {k: [] for k in PATS}

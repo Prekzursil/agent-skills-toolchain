@@ -73,13 +73,13 @@ def pair(tmp_path: Path) -> tuple[Path, Path]:
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(text, encoding="utf-8")
 
-    write(src, "alpha/SKILL.md", "a\nb\nc\n")           # repo strictly ahead  -> safe
+    write(src, "alpha/SKILL.md", "a\nb\nc\n")  # repo strictly ahead  -> safe
     write(dst, "alpha/SKILL.md", "a\nb\n")
-    write(src, "alpha/new.md", "brand new\n")            # repo-only FILE      -> safe
-    write(dst, "alpha/liveonly.md", "must survive\n")    # live-only FILE      -> P3
+    write(src, "alpha/new.md", "brand new\n")  # repo-only FILE      -> safe
+    write(dst, "alpha/liveonly.md", "must survive\n")  # live-only FILE      -> P3
     write(src, "beta/SKILL.md", "shared\nrepo-unique\n")  # two-directional    -> P1
     write(dst, "beta/SKILL.md", "shared\nlive-unique\n")
-    write(src, "gamma/SKILL.md", "resurrect me\n")       # repo-only SKILL     -> P2
+    write(src, "gamma/SKILL.md", "resurrect me\n")  # repo-only SKILL     -> P2
     return src, dst
 
 
@@ -97,7 +97,9 @@ def test_dry_run_is_the_default_and_writes_nothing(pair: tuple[Path, Path]) -> N
 
     assert rc == mod.EXIT_OK
     after = {p: p.read_bytes() for p in dst.rglob("*") if p.is_file()}
-    assert after == before, "a bare run wrote to the target; dry-run-by-default is broken"
+    assert after == before, (
+        "a bare run wrote to the target; dry-run-by-default is broken"
+    )
 
 
 def test_apply_refuses_when_the_self_test_fails(
@@ -139,7 +141,9 @@ def test_a_diverged_file_is_never_offered_or_written(pair: tuple[Path, Path]) ->
 
     mod.main(["--source", str(src), "--target", str(dst), "--apply"])
 
-    assert (dst / "beta/SKILL.md").read_text(encoding="utf-8") == "shared\nlive-unique\n"
+    assert (dst / "beta/SKILL.md").read_text(
+        encoding="utf-8"
+    ) == "shared\nlive-unique\n"
 
 
 def test_a_repo_only_skill_is_never_resurrected(pair: tuple[Path, Path]) -> None:
@@ -148,7 +152,9 @@ def test_a_repo_only_skill_is_never_resurrected(pair: tuple[Path, Path]) -> None
     assert not (dst / "gamma").exists()
 
 
-def test_the_p2_guard_itself_refuses_an_absent_target_skill(pair: tuple[Path, Path]) -> None:
+def test_the_p2_guard_itself_refuses_an_absent_target_skill(
+    pair: tuple[Path, Path],
+) -> None:
     """Direct call on the seam: the integration path cannot construct this case.
 
     ``safe_to_deploy`` is built from SHARED skills only, so ``gamma`` never reaches the guard
