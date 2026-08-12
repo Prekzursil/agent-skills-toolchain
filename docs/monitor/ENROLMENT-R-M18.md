@@ -63,6 +63,18 @@ NO MTIME STALL CLAIM WAS ADDED. Staleness here is the SOURCE's own dead-man comp
 sample's embedded timestamp against wall time -- not a file mtime, and not an inference about
 whether any process is stuck. `stall.py`'s existing two-signal classifier was not touched.
 
+Verified with a detector that was itself checked, because the first two attempts were broken:
+
+* `grep -n "mtime"` over the modules reported a hit -- it was matching `fro`**`mtime`**`stamp`
+  inside `datetime.fromtimestamp`. A substring false positive.
+* `grep -nE "\bmtime\b"` reported 0 hits on the modules AND **0 on the control**, because
+  `mtime_fn` / `_mtime` have word characters adjacent so `\b` never matches. A detector that
+  cannot fire on a known positive proves nothing about a negative.
+* Working detector: `grep -n "mtime" | grep -v "fromtimestamp"`. Control fires -- 6 hits in
+  `unified.py` (`_mtime`, `mtime_fn`). Against `pane.py`, `pane_views.py`, `health_source.py`:
+  **0 hits.** And `git show b9a77ad7 -- unified.py | grep '^+' | grep -c mtime` = **0**, so this
+  lane added none of the pre-existing ones either.
+
 ### S2 -- executed end-to-end
 
 `python -m monitorcore.unified --once --pane health --width 100` (exit 0):
@@ -90,9 +102,26 @@ An absent feed reads as *not measured*, never as a fabricated zero.
 
 ### S1 -- tests, and proof the tests can fail
 
-`python -m pytest -q --cov=monitorcore --cov-branch` -> **1169 passed** (was 1147),
-TOTAL 4174 stmts / 1244 branches, **0 miss, 100%**. `basedpyright monitorcore` -> 0 errors,
-0 warnings, 0 notes. `ruff==0.15.17 check` + `format --check` -> clean.
+`python -m pytest -q --cov=monitorcore --cov-branch` at the moment of commit `b9a77ad7` ->
+**1169 passed** (was 1147), TOTAL 4174 stmts / 1244 branches, **0 miss, 100%**.
+`basedpyright monitorcore` -> 0 errors, 0 warnings, 0 notes. `ruff==0.15.17 check` +
+`format --check` -> clean.
+
+THE SUITE IS NOT GREEN RIGHT NOW, and it would be dishonest to leave the number above
+unqualified. A later re-run reads **1168 passed, 1 FAILED**:
+`test_registry_shipped.py::test_registry_mirrors_are_byte_identical`.
+
+NOT CAUSED BY THIS LANE, and attributed rather than asserted:
+
+```
+git show --pretty="" --name-only b9a77ad7 01721de9 | grep -c "monitors.toml"   ->  0
+diff skills/monitor-launcher/monitors.toml .agents/skills/monitor-launcher/monitors.toml
+   -> the CS lane's new [csmon] stanza (14 lines), present in .agents, absent from skills/
+```
+
+The test LF-normalises before comparing, so this is a real divergence and not a CRLF phantom.
+It resolves when the CS lane mirrors its stanza into the `skills/` copy; that file is being
+actively edited (`MM`), so this lane did not race it. Flagged to the orchestrator.
 
 A green suite is not evidence until it goes red on a broken build. `_mutation_control.py`
 reverts one guarantee at a time and requires the named test to fail -- **6/6 killed**, restore
