@@ -9,6 +9,11 @@ folded into a pass: (a) no GitHub Actions run has executed any of this wave's ga
 (b) I did not re-derive every per-lane number — where I cite a lane's own measurement I say so,
 and where I re-ran it myself I say that instead.
 
+**§9 was added by a separate SYNTHESIS-REVIEW lane** at HEAD `575a42d8`, which re-executed all six
+gates, corrected four overclaims and one misstated blocker **in place above** (each marked
+`[REVIEW]`), restored four dropped lane residuals as §2 items 10-13, and rewrote D1/D2/D6. Read
+§9.1 first if you want the diff between what this document said at `39f30ab2` and what survived.
+
 **PROVENANCE CAVEAT, load-bearing.** The orchestrator handed me the lane-results payload
 **truncated**: it contained lane CS only, and CS's round-2 refutation was cut off mid-sentence.
 I did not fill that gap by inference. I reconstructed the other five lanes from their terminal
@@ -48,15 +53,26 @@ that landed *after* the last ruff sweep (`4573b603`), I re-checked at **blob lev
 mis-formatted control: `SUCCESS:synth-blobruff 21 committed blobs are CI-clean; control fired`,
 0 CRLF. `bash .quality/charter_check.sh` → `OK -- 7 gates consistent`.
 
+**[REVIEW, 2026-08-12] Two legs of that sentence were missing and are now supplied.**
+(a) `gate-lint-format` runs `ruff check` **and** `ruff format --check`; only the first was
+reported above. Measured: `uvx ruff@0.15.17 format --check .` → 14 would-reformat, **0 tracked**
+(matcher control passes both states). (b) The blob-level check stopped at `39f30ab2`; this
+document's own commit `1ff5bbf8` then added **four more** `.py` blobs (the `workflow_lint` fix and
+its two dual-write twins), which had been lint-checked in the WORKTREE only — the exact
+worktree-vs-blob gap the check exists to close. Re-measured at blob level with `ruff.toml`
+mirrored and a firing control: `SUCCESS:synthrev-blobruff 4 blob(s) CI-clean; control fired`,
+0 CRLF each. All six gates below also re-execute clean at **`575a42d8`**, three commits past the
+HEAD this document was written against.
+
 ### Per lane
 
 | lane | what now exists that did not | anchor |
 |---|---|---|
 | **CS** | `/claude-science` + `/cs` both resolve **and execute the fixed tool** (they ran a detached-HEAD checkout until round 2). `cs doctor` has a 4th state NOT-CHECKED and exits non-zero on it, closing four fail-open rows (DB timeout mis-reported as "not found", backup PASS over an unreachable VM, a daemon row that silently vanished, a disk row that printed a fabricated `0GB`). Backup **restorability** is proven by opening a temp copy, not by `ls`. The always-on watchdog no longer launches out of a disposable git worktree. Fault injection is armed + banner-marked so the doctor can never be ordered to print an unmarked green. `cs_wiring_check.py` — 10 repo-only invariants — is a **CI gate**, red-proofed with 14 single-wire mutations + a healthy control. | `ebf415f5`, `3545a700`, `d14cea8f`, `39f30ab2` |
-| **SKILLS** | The last deploy hop into `~/.claude/skills.daily` (the only tree Claude Code reads) is now **wired into CI twice** and reachable by an agent (`writing-skills/SKILL.md`, +2,823 chars of body, description delta **+0**). 16 hermetic tests; the new suite killed 3/3 mutants where the tool's own `--self-test` left 2 alive. `ui-audit`'s silent-no-op fix reconciled live→repo before anything could deploy over it. | `e9b65d60`, `3678417c` |
+| **SKILLS** | The last deploy hop into `~/.claude/skills.daily` (the only tree Claude Code reads) is now **wired into CI twice** and reachable by an agent (`writing-skills/SKILL.md`, +2,823 chars of body, description delta **+0**). 16 hermetic tests; the new suite killed 3/3 mutants where the tool's own `--self-test` left 2 alive. `ui-audit`'s silent-no-op fix reconciled live→repo before anything could deploy over it (**[REVIEW]** re-measured: guard present **6/6** in repo `skills/ui-audit/`, **0/6** in the live `~/.agents/skills/ui-audit/` — same matcher, both states). **[REVIEW]** Both CI lines live in `skill-dual-write.yml`, which is `pull_request`-only (§2 item 1), and the agent-facing reachability is **single-carrier** (§2 item 11). | `e9b65d60`, `3678417c` |
 | **MON** | `launchpath.py` — the first thing in this repository that **executes** a registered monitor instead of checking its bytes — materialising from committed blobs, both registry mirrors, every stanza accounted for by name, fail-closed six ways. 4-leg both-states control (incl. an inverted control). Verified on **Linux as well as Windows**, and from a **real LF clone**. Cockpit health pane adopted as the 6th pane. | `b9a77ad7`, `0ae5b2a6`, `cdac3f26` |
 | **P2** | `ready_units.py` — the delivery predicate that stands between a fabricated artifact and a `delivered` count — is now a CI gate (`gate-p2-delivery`) with a **self-defending seam** that runs in a different step, so deleting the gate still turns something red. A live fail-open was found and fixed *before* wiring: with the contract checker dark, 367 declarations unchecked and 2,007 units ungated, the tool still printed `SUCCESS`. 4-mutation red-proof with attribution checked. | `70f70f74`, `eac025c6`, `a9b7dde5` |
-| **CASUALTY** | Two dead agents' work recovered as receipts that reproduce their published digest and byte count; `casualty_guard.py` (6 probes) + `integration_redproof.py` (4 controls) wired into CI plus a second independent `suitefloor --suite casualty` line. Four instruments that hardcoded this box's repo root now derive it from `__file__`, so they run in a clone — verified by an actual clone: `SUCCESS:int-freshclone`. | `f087a6f6`, `5e3c2271`, `bc411d87` |
+| **CASUALTY** | Two dead agents' work recovered as receipts that reproduce their published digest and byte count; `casualty_guard.py` (6 probes) + `integration_redproof.py` (4 controls) wired into CI plus a second independent `suitefloor --suite casualty` line. Four instruments that hardcoded this box's repo root now derive it from `__file__`, so they run in a clone — verified by an actual clone: `SUCCESS:int-freshclone`. **[REVIEW]** Detects a missing wire; does **not** enforce one — not tamper-proof (§2 item 12). | `f087a6f6`, `5e3c2271`, `bc411d87` |
 | **WFSOTA** | H6 per-agent timeout + settled barrier, and the CI step **is** the H6 red-proof (its control feeds `parallel()` a thunk that never resolves and requires the barrier to hang). `workflow_lint` — 110 tests, 100% coverage, and **never run over a line of workflow code** — now runs over the real template corpus on every PR. Non-circular pin: the wiring assertion lives in a *different* workflow's directory sweep, so deleting the step turns that other workflow red. Coverage taken 99%→100% with a real test instead of a permanent exception. | `1f05e805`, `b3412595`, `5c4111fc` |
 
 ---
@@ -66,10 +82,30 @@ mis-formatted control: `SUCCESS:synth-blobruff 21 committed blobs are CI-clean; 
 1. **No GitHub Actions run has executed ANY of this.** Five of six lanes disclose this in the
    same words. Five new/extended gates (`gate-p2-delivery`, `casualty`, `launchpath`,
    `wf-timeout`, `gate-skill-deploy-hop`, plus CS's `cs-wiring`) have runner evidence of exactly
-   zero. Blocker: nobody has opened a PR. Band that they pass first try: **likely (55-80%)** —
-   raised above a guess by three independent legs (a Linux interpreter run, real LF-clone runs,
-   blob-level ruff parity), lowered below "almost certain" by the one thing none of them
-   removes: CI pins Python **3.11** while every local leg measured 3.12.3 / 3.14.6.
+   zero. ~~Blocker: nobody has opened a PR.~~ **[REVIEW — the blocker was misstated; corrected
+   here, and it changes D1.]** The real blocker is measured, two mechanically-independent signals:
+   `git rev-list --left-right --count origin/main...HEAD` → **`0  75`**, and a live
+   `git ls-remote origin refs/heads/main` → **`2decae91`**. **The entire wave is UNPUSHED — 75
+   commits ahead of `origin/main`, 0 behind — and the checkout IS `main`.** Two consequences the
+   lanes could not see individually:
+   - `quality.yml` triggers on **`push: branches: [main]`** as well as `pull_request`. So a plain
+     push of `main` runs four of the six gates (`casualty`, `launchpath`, `gate-p2-delivery`,
+     `wf-timeout` — all four measured to sit in job `test-python`, which carries no job-level
+     `if:`). No PR is required for those four.
+   - `skill-dual-write.yml` triggers on **`pull_request: branches: [main]` ONLY** (`:34-36` — this
+     is SKILLS R2, a lane residual this document dropped). Its two gates, `gate-skill-deploy-hop`
+     and `gate-cs-wiring`, therefore **can never run on a push to main**, and cannot be reached by
+     a `main → main` PR either, because that PR cannot exist. The route is: push HEAD to a
+     non-main branch (`git push origin main:refs/heads/<branch>`), then open one PR into `main`.
+   Band that they pass first try: **likely (55-80%)**. **[REVIEW]** That band silently *lowers*
+   two lanes': MON §6.2 says *almost certain, low end (~90%)* and CASUALTY R-I1 says
+   *almost-certain (90-99%)*. The downgrade is defensible and is kept, but it is a downgrade and
+   is now labelled as one. It is raised above a guess by three independent legs (a Linux
+   interpreter run, real LF-clone runs, blob-level ruff parity) and lowered below "almost certain"
+   by the one thing none of them removes: the runner's Python. **[REVIEW — precision]** "CI pins
+   3.11" is true of every job that runs these gates (`lint:81`, `types:134`, `test-python:290`,
+   and `skill-dual-write:55`) but is *not* true of `quality.yml` as a whole, which also pins
+   **3.12** at `:1453` and `:1522`. Every local leg measured 3.12.3 / 3.14.6.
 2. **`~/.agents/skills` (the Codex vault) is an orphan tree with a live silent-no-op in it.**
    The `ui-audit` guard is fixed 6/6 in the repo and 6/6 in `skills.daily`, and **0/6 in the
    vault**. Blocker: no repo-side writer with guards targets that tree — `deploy-skills-daily.py`
@@ -104,6 +140,30 @@ mis-formatted control: `SUCCESS:synth-blobruff 21 committed blobs are CI-clean; 
    redundant: **likely (55-80%)**, not higher.
 9. **ADV-0040 exposes a blind spot in P2's own gate**: its worktree and blob verdicts differ in
    REASON but agree in BOOLEAN, and the divergence check compares the boolean, so it is masked.
+
+**[REVIEW] Items 10-13: lane residuals this document dropped.** Each was in a terminal on-disk
+dossier the synthesis read. Restored with its source so no reader has to re-derive them.
+
+10. **The next casualty triage still runs the tool with the known over-match** (CASUALTY R-I5).
+    `command-center/recover_failed_agents_v2.py` was written but **is not installed over v1**;
+    `command-center/recover_failed_agents.py` is what a triage invokes, and it over-matches
+    **62/92** transcripts. Outside that lane's file scope, and outside every other lane's — so it
+    appeared in no §2, no §6 and no §7 row of this document until now. This is a live defect, not
+    a caveat.
+11. **The deploy hop's agent-facing reachability rests on exactly ONE skill body** (SKILLS R8).
+    The +2,823-char edit lives in `writing-skills/SKILL.md`; a re-vendor from upstream
+    `superpowers` overwrites it and the hop goes dark. Not silent —
+    `test_the_deploy_hop_has_an_agent_facing_surface` turns RED — but §1 states the reachability
+    as shipped without stating that it is single-carrier.
+12. **The casualty integration is NOT tamper-proof** (CASUALTY R-I2, verbatim: *"Do not read this
+    integration as tamper-proof"*). The red-proof shows the guard *detects* a missing wire; it
+    cannot *enforce* one, because deleting the CI line also stops the guard running. §1's
+    "self-defending seam" / "second independent line" language carries the mitigations and not the
+    limit. Branch-protection / CODEOWNERS question, not a script question.
+13. **Eight WFSOTA round-1 residuals are still open** (WFSOTA R3: *"Round 1's residuals 2-9 are
+    untouched by this lane"*, `docs/workflow-sota/BUILD-LOG.md`), including R6 (migrating the 15
+    live barriers to `pipeline()`/`settle()`) and R5 (two competing resume mechanisms). This
+    document counted WFSOTA's integration residuals and not its build residuals.
 
 ---
 
@@ -297,12 +357,14 @@ Each is an answerable question with my recommended default.
 
 | # | Question | Recommended default |
 |---|---|---|
-| **D1** | Open one PR so CI actually runs these six gates? | **YES, now.** It is the only thing that closes five identical residuals, and it costs one PR. Read the `test-python` and `gate-lint-format` job logs; the named risk is the 3.11-vs-3.12/3.14 gap. |
-| **D2** | Fix the receipt id shape by **widening** `$defs.unit_id`, or by giving register rows an emittable **`receipt_id` alias**? | **ALIAS.** Widening loosens a pattern that currently validates 2007/2007 work units — a contract worth keeping tight. The alias touches only the 103 register rows. |
+| **D1** | **[REVIEW — rewritten; as originally phrased this was not executable.]** The wave is 75 commits ahead of `origin/main` and **unpushed**, and the checkout is `main`, so there is no `main → main` PR to open. Push `main`, or branch-and-PR, or both? | **BOTH, in this order.** (1) `git push origin main` — `quality.yml` fires on `push: [main]` and runs four of the six gates with no PR at all. (2) `git push origin main:refs/heads/wave/e2e-2026-08-12` and open **one** PR into `main` — `skill-dual-write.yml` is `pull_request`-only, so `gate-skill-deploy-hop` and `gate-cs-wiring` are unreachable any other way. Read the **`lint`** job (which contains the `gate-lint-format` step and `charter_check.sh`) and the **`test-python`** job; the named risk is the 3.11-vs-3.12/3.14 gap. Pushing 75 commits at once is the cost of having worked on `main`; see D9. |
+| **D2** | Fix the receipt id shape by **widening** `$defs.unit_id`, or by giving register rows an emittable **`receipt_id` alias**? | **ALIAS.** Widening loosens a pattern that currently validates 2007/2007 work units — a contract worth keeping tight. The alias touches only the 103 register rows. **[REVIEW]** This decision already has a second, differently-worded row open: `command-center/sources/REGISTER.md` §6 **OQ-8** and its §9 both point at it. Answer D2 and mark OQ-8 resolved-by-D2 in the same edit, or the register keeps asking. |
 | **D3** | Union-merge `workflow-authoring/SKILL.md` (53 live-only lines are the input) and then deploy? | **YES, as an owner-run merge — not an agent deploy.** The 53 live-only lines are unread by anyone; a machine cannot decide which survive. Then re-run the reachability probe and require `unsafe_to_deploy=0`. |
 | **D4** | Give `~/.agents/skills` a guarded repo-side writer (point `deploy-skills-daily.py` at it with `--target`), or declare the Codex vault hand-deployed forever? | **Point the existing tool at it in DRY-RUN and read the plan first.** It is one flag. Do **not** run `sync-skills.ps1 -Prune` — it deletes `microsoft-foundry` and `qdx-rush`. |
 | **D5** | When does `command-center/adversarial/` unfreeze? | **After the currently-active sibling wave is quiescent.** Then re-run `_i4_percontract.py`, promote the two casualty receipts to their canonical path, and ratchet the count. |
-| **D6** | De-curate the 23 `source-command-*` wrappers and deploy the 75-skill description cap? | **NO, not yet.** The 26 description-less skills are a **render** bug, not a curation gap; rewriting good descriptions trades real text for nothing while the render bug still hides them. Diagnose the render path first. |
+| **D6a** | De-curate the 23 `source-command-*` wrappers? **[REVIEW — split from D6; it bundled two decisions under one reason.]** | **NO, not yet**, and prefer **de-curation over deletion** if it ever happens: the `/command` and the vault copy both survive de-curation, whereas deleting loses Codex-side fallback prose that is unquantified for 22 of the 23. |
+| **D6b** | Deploy the **committed 75-skill description cap**? | **NO, not yet.** **[REVIEW — the locator was missing; the owner could not find the artifact from this document.]** It is the grounding lane's R1b: `command-center/grounding/SKILLS-FLEET-GROUNDING.md:241` — *"75 skills, −17,244 chars"* — carried forward as SKILLS R5. Reason to hold, and it is NOT the render bug: a description is the **entire lexical recall surface**, so every keyword shortened away is a query that no longer matches, and the before/after cannot be measured from inside a subagent (the startup truncation warning is not readable there). |
+| **D6c** | Rewrite the 26 description-less skills? | **NO.** They are a **render** bug, not a curation gap — their `SKILL.md` on disk carries a real description (workflow-foundry: 1,750 chars). Rewriting trades good text for nothing while the render path still hides it. Diagnose the render path first. |
 | **D7** | Merge or retire any of the 328 skills? | **KEEP everything.** The overlap lens never got adversarial clearance and token-level evidence cannot see functional redundancy. Default hard to KEEP. |
 | **D8** | Fix the cross-vendor review rail before dispatching another build wave? | **YES.** 43 units and 449 READY units all name an independent cross-vendor reviewer. Building more units into a dead rail manufactures more un-reviewable work. |
 | **D9** | One worktree per lane (or a single-writer rule on `quality.yml`) for the next wave? | **Worktree per lane.** Two commit-sweep incidents in one night, one of which red-blocked every PR on main. |
@@ -312,15 +374,21 @@ Each is an answerable question with my recommended default.
 
 ## 7. RANKED NEXT ACTIONS
 
-1. **Open one PR and read the CI logs.** Closes the single residual shared by five of six lanes.
-   Zero build cost, and until it happens every "wired into CI" claim in this wave is
-   *likely (55-80%)*, not measured.
+1. **Push, then open one PR from a non-main branch, and read the CI logs.** **[REVIEW — corrected;
+   see §2.1 and D1.]** The wave is 75 commits ahead of `origin/main` and unpushed, on `main`. A
+   push alone runs four of the six gates (`quality.yml` fires on `push: [main]`); the other two
+   live in a `pull_request`-only workflow and need a branch-and-PR. Closes the single residual
+   shared by five of six lanes. Zero build cost, and until it happens every "wired into CI" claim
+   in this wave is *likely (55-80%)*, not measured.
 2. **Fix the cross-vendor review rail** (`mcp__codex__codex` → agent-identity registration
    failure). It gates 43 BLOCKED units and every one of the 449 READY units. Note the trap it
    already sprang: three green signals (`codex --version`, `Get-Command`, `mcp list ✔ Connected`)
    and the rail is unusable — probe with a real call, never a health check.
-3. **Decide D2 (receipt id shape)**, then emit R-M18's receipt with `p13_emit_receipt.py`.
-   Unblocks R-M06 and un-gates MONITOR; unblocks 103 register rows as a side effect.
+3. **Decide D2 (receipt id shape)**, then emit R-M18's receipt with
+   **`command-center/p13_emit_receipt.py`** — **[REVIEW]** the path was missing and the tool is
+   *not* under `tools/measure-guard/` where §1's other instruments live. Unblocks R-M06 and
+   un-gates MONITOR; unblocks 103 register rows as a side effect. Resolve `REGISTER.md` OQ-8 in
+   the same edit.
 4. **Union-merge `workflow-authoring/SKILL.md`, then deploy the 32 absent-live files.** This is
    the only route that closes WFSOTA R1 (C3).
 5. **Point `deploy-skills-daily.py --target ~/.agents/skills` in dry-run** and read the plan.
@@ -332,6 +400,10 @@ Each is an answerable question with my recommended default.
    pure cleanup, no behaviour change, removes four drift sites.
 9. **Generalize `cs_wiring_check.py`'s shape** into a standing repo-only reference-integrity gate
    (C5). This is the wave's transferable asset and currently exists for exactly one directory.
+10. **[REVIEW — added] Install `recover_failed_agents_v2.py` over v1** (§2 item 10, CASUALTY R-I5).
+    Until then the next casualty triage runs the v1 tool that over-matches 62/92 transcripts. It
+    ranks here rather than higher only because no triage is scheduled; it jumps to the top the
+    moment one is.
 
 ---
 
@@ -457,3 +529,135 @@ no `--no-verify`, no history rewrite. No credential read or modified. `sync-from
 live sibling agents and were left untouched. My throwaway instruments live in `%TEMP%`
 (`synth_blobruff.py`, `synth_mapsnull_control.py`) and were deliberately **not** added to the
 repo — five near-identical blob harnesses already exist (C6).
+
+---
+
+## 9. REVIEW — the adversarial pass over this document
+
+Run by the SYNTHESIS-REVIEW lane at **HEAD `575a42d8`** (three commits past the HEAD §1-§8 were
+written against), 2026-08-12. Method: re-execute, never re-read. Every verdict below names the
+command that produced it. **COVERAGE: R1-R7 are all MEASURED.** What is NOT measured and is not
+folded into a pass: no GitHub Actions run (unchanged — §2 item 1), and I did not re-derive P2's
+four contract-rejection counts in §2 item 6, because `command-center/adversarial/` is frozen and
+those numbers are reported-not-gated already.
+
+### 9.1 Scoreboard
+
+| # | check | verdict |
+|---|---|---|
+| **R1** | Every SHIPPED command in §1 re-executes at *current* HEAD | **CONFIRMED — 6/6 exit 0**, plus charter |
+| **R2** | Every commit sha cited anywhere in the document resolves | **CONFIRMED — 28/28** resolve to `commit` |
+| **R3** | Every file named as shipped exists and is tracked | **CONFIRMED**, one path imprecision (fixed) |
+| **R4** | Overclaims remaining in the document's own prose | **4 found, all corrected in place** |
+| **R5** | Lane residual / refutation dropped by the synthesis | **4 found, restored as §2 items 10-13** |
+| **R6** | Owner questions answerable as phrased | **D1 was NOT executable; D6 unanchored+bundled; D2 duplicated. All three rewritten.** |
+| **R7** | §8 FIXED claims reproduce | **CONFIRMED** — F1 word-boundary fix present and byte-identical in both twins; F2 §9 present in REGISTER.md with no row deleted |
+
+### 9.2 R1 — the six gates, re-executed by me at `575a42d8`
+
+Not inherited from §1. Each was run in this review, sequentially:
+
+```
+python scripts/claude-science/cs_wiring_check.py   SUCCESS:cs-wiring all 10 wiring invariants intact   exit 0
+python command-center/casualty/casualty_guard.py   SUCCESS:casualty-guard 6 probe(s) green             exit 0
+python tools/measure-guard/launchpath.py           SUCCESS:launchpath 2 launch(es) ... 5 exempt        exit 0
+python tools/measure-guard/unitgate.py             SUCCESS:unitgate units=2007 artifacts=53            exit 0
+cd tools/wf-timeout && python wf_gate.py           SUCCESS:wf-gate 0 error(s), 1 warning(s)/15 blocks  exit 0
+pytest ci/tests/test_deploy_skills_daily.py -q     16 passed in 1.19s                                  exit 0
+bash .quality/charter_check.sh                     OK -- 7 gates consistent                            exit 0
+```
+
+Two legs §1 was missing, supplied here (both now recorded inline in §1):
+`uvx ruff@0.15.17 format --check .` → 14 would-reformat, **0 tracked** (the other half of
+`gate-lint-format`, previously unreported); and blob-level CI-parity over the **four** `.py` blobs
+this document's own commit added after `39f30ab2` → `SUCCESS:synthrev-blobruff 4 blob(s) CI-clean;
+control fired`, 0 CRLF.
+
+**Detector controls, because a clean reading is a claim.** The tracked-vs-untracked matcher was
+run in both states (a known-tracked path classifies tracked, a known-untracked path classifies
+untracked). `ruff check . --show-files` enumerates **2,126** files including
+`tools/measure-guard/launchpath.py` and both `workflow_lint.py` copies, so "0 tracked findings" is
+a reading and not an empty walk — and the reason my own scratch never appears is
+`.gitignore:76: command-center/_*.py`, checked with `git check-ignore -v`, not assumed. The blob
+harness carried a deliberately mis-formatted control which **fired** (`rc=1`) in the same run that
+returned `rc=0` for the four real blobs.
+
+### 9.3 R4 — overclaims still in the prose (all corrected in place)
+
+1. **"Blocker: nobody has opened a PR" (§2 item 1) — the blocker was misstated, and it was the
+   single most load-bearing sentence in the document** because D1 and next-action 1 both rest on
+   it. Measured with two mechanically-independent signals: `git rev-list --left-right --count
+   origin/main...HEAD` → `0  75`, and a live `git ls-remote origin refs/heads/main` → `2decae91`
+   (so the verdict does not depend on the local remote-tracking ref, last fetched 2026-08-10).
+   **The wave is unpushed and the checkout is `main`.** `quality.yml` fires on `push: [main]`, so
+   four of the six gates need no PR at all; `skill-dual-write.yml` is `pull_request`-only, so its
+   two gates cannot run on a push to main and cannot be reached by a `main → main` PR, which
+   cannot exist. Corrected in §2 item 1, D1 and action 1.
+2. **"main's FIRST gate is clean as CI will see it" (§1)** rested on `ruff check` + charter only.
+   `gate-lint-format` also runs `ruff format --check`, and the blob-level leg stopped at
+   `39f30ab2` while this document's own commit added four more `.py` blobs, lint-checked in the
+   worktree only — the exact worktree-vs-blob gap the check exists to close. Both legs measured
+   (9.2); the sentence is now CONFIRMED rather than narrowed.
+3. **"CI pins Python 3.11" (§2 item 1)** is true of every job that runs these gates and false of
+   `quality.yml` as a whole (3.12 at `:1453` and `:1522`). Scoped in place; the risk statement
+   survives intact.
+4. **The band silently overrode two lanes.** §2 item 1 says *likely (55-80%)* where MON §6.2 says
+   ~90% and CASUALTY R-I1 says *almost-certain (90-99%)*. Being more conservative is defensible
+   and is kept; not saying so was the defect. Now labelled as a downgrade.
+
+### 9.4 R5 — residuals the synthesis dropped (restored as §2 items 10-13)
+
+Each was in a terminal on-disk dossier. Ranked by whether a reader would act wrongly without it:
+**CASUALTY R-I5** (the next triage still runs the v1 tool that over-matches 62/92 transcripts — a
+live defect present in no §2/§6/§7 row until now, and it earned a new action 10) · **SKILLS R2**
+(the `pull_request`-only trigger — the mechanism behind the corrected D1) · **SKILLS R8**
+(single-carrier reachability) · **CASUALTY R-I2** (*"do not read this integration as
+tamper-proof"*) · **WFSOTA R3** (eight round-1 residuals still open in `BUILD-LOG.md`).
+
+Two things I checked and did **not** call dropped, because the content is carried under a
+different label: CASUALTY **R-I3** (no reviewer on either receipt) is §2 item 7, and P2/CASUALTY
+**R-I9** (the swept sibling edit, charter-red main) is C1. Counting ids rather than content would
+have produced two false findings here — the use-vs-mention shape this program keeps hitting.
+
+### 9.5 R6 — owner questions: two were worse than open
+
+- **D1 was not executable as phrased.** "Open one PR" from a `main` checkout 75 commits ahead of
+  an unpushed `origin/main`. Rewritten with the concrete route and what each half buys.
+- **D6 bundled three decisions behind one reason and gave no locator for its object.** The
+  "75-skill description cap" is real but its only anchor is
+  `command-center/grounding/SKILLS-FLEET-GROUNDING.md:241` (*"75 skills, −17,244 chars"*), which
+  the document never cited — an owner reading this file alone could not find the thing being
+  declined. Split into D6a/D6b/D6c, each with its own anchor and its own reason; the render-bug
+  reason answers D6c only, and the cap's real cost is the lexical recall surface.
+- **D2 already had a competing row open** — `REGISTER.md` §6 OQ-8 plus §9 — so the owner would
+  answer twice or miss one. Cross-referenced in D2 and in action 3.
+- D3, D4, D5, D7, D8, D9, D10 are answerable as written. D4's "it is one flag" is CONFIRMED:
+  `scripts/deploy-skills-daily.py` exposes `--target` (argparse: `--apply --only --self-test
+  --source --target`).
+
+### 9.6 What I verified and left alone
+
+`cs_wiring_check.py` **is** a real gate, not a self-test — `ci/tests/test_cs_wiring.py:228
+test_the_real_repository_is_green` calls `wiring.check(REPO_ROOT)`, so a wiring regression in the
+repo turns it red; only its *trigger* is narrower than §1 implied. `$defs.unit_id` re-derived
+independently: `^[A-Z][A-Z0-9]*-[0-9]{4}$`, `BLD-0023`→True, `ADV-0021`→True, `R-M18`→False.
+**449/449** READY units carry a `reviewer_requirement` — my own join of `READY-UNITS.json`
+(`ready_units`, len 449) against `WORK-UNIT-CATALOG.json` (2,007 entries, 0 unmatched). The "43
+blocked units" is anchored at `command-center/CROSS-VENDOR-RAIL-STATUS.md:1`. The two casualty
+receipts are 176,468 B and 114,103 B in `command-center/casualty/`, against 2,100 B and 1,818 B
+skeletons at the canonical path — §2 item 7's "two 2 KB skeletons", exactly. The cockpit health
+pane exists (`tools/monitorcore/monitorcore/health_source.py`, referenced from `pane_views.py` and
+`unified.py`). All 28 shas resolve. `command-center/adversarial/` was read, never written.
+
+### 9.7 Scope of this review, stated rather than implied
+
+I re-executed the gates and re-derived the numbers a wrong decision would rest on. I did **not**
+re-run every lane's internal red-proof, re-audit the 21 overclaims in §4 against their source
+transcripts, or independently reproduce the two casualty digests. Where §1-§8 cite a lane's own
+measurement and I did not re-run it, that citation stands as the lane's, not as mine. My own
+scratch instruments are gitignored (`command-center/_synthrev_*.py`) and deliberately not added to
+the repo — the same C6 reasoning the synthesis lane applied to its own.
+
+`SUCCESS:synthesis-review` — 4 overclaims corrected, 4 dropped residuals restored, 3 owner
+questions made answerable, 2 missing verification legs supplied, 0 SHIPPED items found unshipped.
+
