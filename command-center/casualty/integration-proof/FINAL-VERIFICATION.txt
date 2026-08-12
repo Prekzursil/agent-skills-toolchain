@@ -1,0 +1,47 @@
+=== FINAL VERIFICATION 2026-08-12T10:28:33Z HEAD=bc411d87 ===
+
+1) pytest suite
+................................                                         [100%]
+32 passed in 2.02s
+rc=0
+
+2) guard STRICT
+  OK   P1-wiring: invoked at worktree line(s) [439], blob line(s) [439]
+  OK   P2-inventory: 9 instrument(s), all dispositioned and parseable
+  OK   P3-receipts: 2 receipt(s) reproduce their published digest and byte count
+  OK   P4-no-lost-work: ADV-0021 substantive at lane (6/6); ADV-0022 substantive at lane (6/6)
+  OK   P5-banners: 2 superseded output(s) banner-stamped
+  OK   P6-executed: 2 instrument(s) executed and emitted their marker
+SUCCESS:casualty-guard 6 probe(s) green
+rc=0
+
+3) guard --selftest (per-probe both-states)
+                            -> ADV-0021: no substantive artifact anywhere (best score 0/6 < floor 5) -- the recovered work is LOST, not merel
+  P5-banners       PASS   the _DO_NOT_CITE banner stripped from ADV-LIVENESS.json
+                            -> ADV-LIVENESS.json: no _DO_NOT_CITE / _SUPERSEDED_BY banner -- it reads as citable
+SUCCESS:casualty-guard-selftest
+
+4) integration_redproof
+  PASS  C1-green: rc 0 and SUCCESS:casualty-guard on the real tree
+  PASS  C2-red-no-ci-line: rc 1 and FAILED:casualty-guard P1-wiring when the CI line is deleted
+  PASS  C3-floor-raised: green at the declared floor, RED when the floor is raised above observed
+  PASS  C4-empty-suite: a tests directory with no tests FAILS closed
+SUCCESS:integration-redproof 4 control(s) discriminate
+
+5) suitefloor --suite casualty
+  OK   casualty: collected 32 >= floor 28
+SUCCESS:suite-floor 1 suite(s) at or above floor
+
+6) charter_check
+  - quality.yml has 'gate-p2-delivery' with no matching charter gate
+charter_check: FAILED -- charter and quality.yml diverge.
+charter_check: charter gates : lint-format types tests-coverage sast secrets deps
+charter_check: workflow gates: deps lint-format p2-delivery sast secrets tests-coverage types
+
+7) ci-parity over committed blobs
+  control  : ruff format --check on mangled input -> rc 1 (FIRES)
+  blobs    : 10 materialised via `git cat-file -p`, CRLF bytes 0
+  config   : ['ruff.toml', '.gitattributes']
+  check    : rc 0  All checks passed!
+  format   : rc 0  10 files already formatted
+SUCCESS:ci-parity 10 committed blob(s) clean under the pinned ruff

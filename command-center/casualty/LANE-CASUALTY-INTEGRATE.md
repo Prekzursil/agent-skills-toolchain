@@ -31,7 +31,12 @@ reproduced inside the lane that exists to catch it.
 
 Deliberately **not** a new `gate-<slug>` step: `.quality/charter.yml` is a closed set and
 `charter_check.sh` enforces it, so the lane rides inside an existing gate instead of widening
-the contract. Re-run after the edit: `charter_check: OK -- 6 gates consistent`.
+the contract. Re-run immediately after my edit: `charter_check: OK -- 6 gates consistent`.
+
+> **That check no longer passes at HEAD, and the cause is not this lane's wiring — see R-I9.**
+> A sibling's `gate-p2-delivery` step reached the shared `quality.yml` between that run and my
+> `git add`, and my commit carried it without its charter entry. Recorded here rather than in a
+> trailing note because anyone reading section 2 as "charter clean" would be reading it wrong.
 
 ### What `casualty_guard.py` actually checks
 
@@ -189,6 +194,46 @@ Honestly scoped. Nothing below is hidden in a trailing section it is not also fl
   directions, so this cannot silently widen.
 - **R-I7 — the suite floor is tuned, not derived.** 28 against 32 observed. It catches a
   collapse, not the loss of two cases.
+- **R-I9 — MY COMMIT SWEPT A SIBLING'S UNCOMMITTED WORKFLOW EDIT, AND MAIN IS CHARTER-RED
+  BECAUSE OF IT. Not fixed by me; escalated.** This is the most important line in this file.
+
+  ```
+  $ bash .quality/charter_check.sh
+    - quality.yml has 'gate-p2-delivery' with no matching charter gate
+  charter_check: FAILED -- charter and quality.yml diverge.
+  ```
+
+  `quality.yml:526` declares `- name: gate-p2-delivery` (running
+  `tools/measure-guard/unitgate.py`) and `.quality/charter.yml` has no `p2-delivery` entry.
+  `charter_check.sh` runs inside `gate-lint-format`, the FIRST gate, so at HEAD every PR is
+  blocked, not just that lane's.
+
+  Provenance, measured two-sided rather than assumed:
+
+  | probe | result |
+  |---|---|
+  | `git show 65638bad:.github/workflows/quality.yml \| grep -c gate-p2-delivery` | 0 |
+  | `git show f087a6f6:...` (**my** commit) | 1 |
+  | `git merge-base --is-ancestor 70f70f74 f087a6f6` | NO — the sibling's `unitgate.py` landed *after* mine |
+  | `.quality/charter.yml` worktree status | unmodified, `grep -c p2-delivery` = 0 |
+
+  So a sibling's workflow edit was sitting uncommitted in the shared worktree when I ran
+  `git add .github/workflows/quality.yml`, and my commit carried it. I had run `charter_check`
+  before staging and it printed `OK -- 6 gates consistent`, so the edit arrived inside that
+  window. **I am not reverting their step** — the lines are on disk and reverting would delete
+  in-flight work — and I am not writing their charter entry, because it encodes intent for a
+  gate I did not design. Escalated to `main` with the owner named (author of `70f70f74`).
+
+  The systemic point, and it is the mirror image of a defect this lane already recorded: round 1
+  had a sibling's whole-index commit sweep OUR staged files into `772159ce` under their message.
+  Pathspec staging stops a lane **staging** a sibling's files; nothing stops a lane
+  **committing** a sibling's uncommitted edit to a file both lanes touch. `quality.yml` is the
+  obvious shared file and there is no lock on it. Recommend one worktree per lane, or a rule
+  that one lane at a time may edit `.github/workflows/quality.yml`.
+
+  Scope of the harm: the casualty integration itself is unaffected — re-verified at `d14cea8f`
+  (two further sibling commits later), `SUCCESS:casualty-guard 6 probe(s) green`, 32 tests pass.
+
 - **R-I8 — five lane JSON outputs are dirty in the working tree and are NOT mine.**
   `ADV-COMPLETENESS-CENSUS-V2.json`, `ADV-LIVENESS-V2.json`, `R2-ADV0002-RECHECK.json`,
   `R2-DEFECT-CONTROLS.json`, `R2-FINAL-VERIFICATION.json` were rewritten during this session by
