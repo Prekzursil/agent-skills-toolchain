@@ -157,6 +157,24 @@ python tools/measure-guard/vendordrift.py            ->  SUCCESS:vendordrift (2 
 
 Baseline before this round was 1169 passed; +15 is exactly the new module.
 
+### Fresh-clone verification (the check the fleet audit says exists nowhere)
+
+Working-tree green is not clone green, so the claim was tested rather than assumed. Two legs,
+both from a clone of this repo at the round-2 commit `cdac3f26`, both then deleted:
+
+| leg | checkout | CRLF in the new test file | result |
+|---|---|---|---|
+| 1 | default `git clone` | 418 | `15 passed` (new module) |
+| 2 | `-c core.autocrlf=false -c core.eol=lf` | **0** | `1184 passed` (FULL monitorcore suite) |
+
+Leg 2 is the Linux-runner-equivalent byte form, and leg 1 is its own control: the same clone
+command on this box materialises CRLF, which is exactly why a default local clone is NOT a
+substitute for it. So `monitorcore` is clone-green at this commit, not merely worktree-green —
+a claim round 1 explicitly declined to make.
+
+Scope: this covers the `tools/monitorcore` package only. A whole-repo fresh-clone suite was
+NOT run and is not claimed.
+
 Vendored-copy propagation is NOT required this round, with a control: the two committed
 vendored copies hold **37** files each and **0** of them are tests, while `tools/monitorcore/
 tests` holds 39 test modules. A change confined to `tests/` cannot drift a vendored copy.
