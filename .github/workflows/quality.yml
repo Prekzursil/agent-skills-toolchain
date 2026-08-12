@@ -1007,6 +1007,46 @@ jobs:
           pip install pytest pytest-cov
           pytest --cov=workflow_lint --cov-branch --cov-report=term-missing --cov-fail-under=100
 
+      # tools/wf-timeout -- design item H6 ("per-agent timeout + stall heartbeat, the
+      # barrier-deadlock escape", docs/audit-design-2026-07-13/B2-RFC-operational.md:377,
+      # wave item W1.5 at B3-migration-verification.md:150). Two things run here and each
+      # closes a DIFFERENT no-op-gate hole:
+      #
+      #   1. `pytest` is the H6 RED-PROOF. Its control scenario feeds a bare `parallel()`
+      #      a thunk that never resolves and REQUIRES the barrier to hang (measured
+      #      ~1.5 s, watchdog-bounded) before the wrapped path is allowed to be green.
+      #      B3:156's exit criterion is verbatim "H6 proven to break a synthetic barrier
+      #      hang" -- this step is where that proof is actually executed.
+      #   2. `wf_gate.py` INVOKES workflow_lint over real source. The step directly above
+      #      gates workflow_lint's own unit tests at 100%, but until this step existed
+      #      nothing ever ran that linter over a single line of workflow code -- a linter
+      #      no gate invokes is exactly the defect this job's doctrine calls dead weight.
+      #      `--self-test` runs first and is the both-states control: it proves the gate
+      #      goes RED on a known-bad block, GREEN on a clean one, and fails CLOSED on an
+      #      empty walk (rules/common/ci-hygiene.md 1) -- so the green from the bare
+      #      `wf_gate.py` line after it means something.
+      #
+      # setup-node is LOAD-BEARING, not hygiene: test_h6_timeout.py resolves `node` with
+      # shutil.which and FAILS the suite when it is absent rather than skipping, on the
+      # grounds that a skipped red-proof is the no-op gate the directory exists to
+      # prevent. Same SHA as the pin in the (node workspaces) job above. Reuses the
+      # `gate-tests-coverage` charter slug on purpose -- not a new gate, so
+      # .quality/charter_check.sh stays consistent with no charter.yml edit.
+      #
+      # ci/tests/test_wf_timeout_ci_wiring.py pins this step by its exact command lines
+      # and is collected by skill-dual-write.yml's directory sweep, so deleting the step
+      # turns a DIFFERENT workflow red instead of silently un-wiring the H6 proof.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: gate-tests-coverage wf-timeout (H6 red-proof + workflow-lint invocation)
+        working-directory: tools/wf-timeout
+        run: |
+          pip install pytest pytest-cov
+          pytest --cov=wf_gate --cov=h6_extract --cov-branch --cov-report=term-missing --cov-fail-under=100
+          python wf_gate.py --self-test
+          python wf_gate.py
+
       # ================================ VENDORED TOOL TREES ================================
       # PR #185 vendored two whole tool trees into the toolkit -- tools/abbyy-finereader-ocr-mcp
       # (89 tests) and tools/omniaudit-mcp (149 tests) -- and NEITHER was named in ANY of the 7

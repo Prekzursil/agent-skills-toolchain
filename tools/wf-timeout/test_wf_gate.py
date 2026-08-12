@@ -9,6 +9,7 @@ than once.
 
 from __future__ import annotations
 
+import importlib
 import sys
 from pathlib import Path
 
@@ -159,3 +160,22 @@ def test_repo_templates_are_error_free() -> None:
     assert blocks, "discovery found no template blocks in the repo"
     errors = [f for f in wf_gate.lint_blocks(blocks) if f.level == "error"]
     assert errors == [], errors
+
+
+def test_import_is_idempotent_when_the_lint_dir_is_already_on_the_path() -> None:
+    """The one branch a single import can never reach -- and CI runs at 100%.
+
+    ``wf_gate`` guards its ``sys.path`` insert with ``if str(_LINT_DIR) not in
+    sys.path``.  The first import always takes the True arm, so the False arm
+    (``36->39``) stayed a permanent branch partial.  Rather than ship the CI step
+    with a coverage exception nobody would ever re-examine, re-import the module
+    with the path already present and assert the guard does NOT duplicate the
+    entry -- which is the behaviour the guard exists to provide.
+    """
+    lint_dir = str(wf_gate._LINT_DIR)
+    assert lint_dir in sys.path, "the first import should have inserted it"
+    before = sys.path.count(lint_dir)
+    importlib.reload(wf_gate)
+    assert sys.path.count(lint_dir) == before, "the guard duplicated the sys.path entry"
+    # The reloaded module must still be usable, not merely importable.
+    assert wf_gate.self_test() == 0

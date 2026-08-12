@@ -168,7 +168,10 @@ ruff check / ruff format --check   -> All checks passed / 10 files already forma
 
 ## RESIDUAL / NOT DONE — honestly scoped
 
-1. **Not wired into `.github/workflows/quality.yml`.** That file is outside this lane's declared
+1. ~~**Not wired into `.github/workflows/quality.yml`.**~~ **CLOSED by the INTEGRATE lane** —
+   superseded, see `docs/workflow-sota/INTEGRATE-LOG.md`. Left here rather than deleted so the
+   round-1 record stays truthful about what round 1 shipped.
+   *Round-1 text:* That file is outside this lane's declared
    file scope. The exact step is written out in `tools/wf-timeout/README.md`. Until someone adds
    it, the H6 red-proof and the gate run only when invoked by hand — which is the *same*
    no-op-gate defect this lane fixed for `workflow_lint`, now one layer up. Disclosed, not hidden.

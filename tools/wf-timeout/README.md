@@ -64,20 +64,50 @@ keeps running, keeps one of the ~14 concurrency slots, and keeps spending `budge
 dies on its own. `B3:262`'s word "killed" is an overclaim against this mechanism.
 Settling experiment: compare `budget.spent()` at the timeout receipt and at workflow end.
 
-## CI
+## CI — wired
 
-Not yet named in `.github/workflows/quality.yml` — that file is outside this lane's declared
-file scope. The one-line wiring, for whoever owns it next:
+`.github/workflows/quality.yml`, job `test-python`, step
+**`gate-tests-coverage wf-timeout (H6 red-proof + workflow-lint invocation)`**, immediately
+after the `workflow-authoring lint` step:
 
 ```yaml
-      - name: gate-tests-coverage wf-timeout (H6 red-proof + workflow-lint gate)
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: gate-tests-coverage wf-timeout (H6 red-proof + workflow-lint invocation)
         working-directory: tools/wf-timeout
         run: |
           pip install pytest pytest-cov
-          pytest -q --cov=wf_gate --cov=h6_extract --cov-branch --cov-fail-under=95
+          pytest --cov=wf_gate --cov=h6_extract --cov-branch --cov-report=term-missing --cov-fail-under=100
           python wf_gate.py --self-test
           python wf_gate.py
 ```
 
-Measured locally: `39 passed`, `h6_extract.py` 100% line+branch, `wf_gate.py` 99% (the one
-partial is the import-time `sys.path` guard, unreachable once the path is already set).
+`setup-node` is load-bearing, not hygiene: `test_h6_timeout.py:45,64` resolves `node` with
+`shutil.which` and **fails** the suite when it is absent rather than skipping.
+
+The threshold is `100`, not the `95` an earlier draft of this file proposed. The one branch
+partial that made 95 look necessary — `wf_gate.py 36->39`, the import-time `sys.path` guard's
+already-present arm — is now covered by
+`test_import_is_idempotent_when_the_lint_dir_is_already_on_the_path`, which reloads the module
+with the path present. A coverage exception nobody would re-examine is worse than a test.
+
+### The step cannot be silently deleted
+
+`ci/tests/test_wf_timeout_ci_wiring.py` pins the step by its exact command lines. That file is
+collected by **`.github/workflows/skill-dual-write.yml`** as a whole directory
+(`run: python -m pytest ci/tests tools/d001-dual-write/tests -q`), so removing the `quality.yml`
+step turns a *different* workflow red — a wiring assertion that lived inside the step it pins
+would simply stop running instead.
+
+Both-states proof, `python docs/workflow-sota/_int_redproof.py` (mirrors the tree, never mutates
+the working copy):
+
+```
+  S0 WIRED   rc=0 -> PASS (want PASS) [9 passed]
+  S1 UNWIRED rc=1 -> FAIL (want FAIL) [5 failed, 4 passed]   <-- step excised
+  S2 WEAKENED rc=1 -> FAIL (want FAIL) [1 failed, 8 passed]  <-- --cov-fail-under 100 -> 80
+SUCCESS:redproof control fires -- green when wired, red when not
+```
+
+Measured locally: `40 passed`, `h6_extract.py` and `wf_gate.py` both 100% line+branch.
