@@ -1,6 +1,6 @@
 ---
 name: research-ops
-description: Thin operator entry for the research stack. Use when the user wants fresh facts, comparisons, enrichment, or an evidence-backed recommendation — it routes you to the right research skill rather than duplicating one.
+description: Thin router for the research stack. Use for fresh facts, comparisons, enrichment, or an evidence-backed recommendation -- it picks the right research skill. NOT the full multi-source pass (use deep-research).
 origin: ECC
 ---
 

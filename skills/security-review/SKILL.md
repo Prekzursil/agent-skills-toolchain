@@ -1,6 +1,6 @@
 ---
 name: security-review
-description: Use this skill when adding authentication, handling user input, working with secrets, creating API endpoints, or implementing payment/sensitive features. Provides comprehensive security checklist and patterns.
+description: Use when adding authentication, handling user input, secrets, API endpoints, or payment/sensitive features -- gives a security checklist and patterns. NOT for scanning your .claude config (use security-scan).
 origin: ECC
 ---
 
