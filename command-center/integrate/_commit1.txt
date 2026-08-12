@@ -1,0 +1,55 @@
+feat(skills): wire the last deploy hop into CI and into a skill an agent can find
+
+The BUILD lane shipped scripts/deploy-skills-daily.py -- the missing hop into
+~/.claude/skills.daily, the only tree Claude Code reads -- and it landed with ZERO
+references outside its own file and the lane scratch notes. Measured with
+`git grep -l deploy-skills-daily`: 0 in .github, 0 in ci, 0 in .agents/skills, 0 in
+skills, 0 in hooks. Unreachable by an agent, unproven by CI. That is the same defect
+class as tools/detector-self-test (wired nowhere, runs green) and tools/measure-guard
+(CI-enforced, no agent-facing surface).
+
+CI GATE. ci/tests/test_deploy_skills_daily.py, 16 hermetic tests, wired two
+independent ways: a named `gate-skill-deploy-hop` step in skill-dual-write.yml and the
+pre-existing ci/tests directory glob. The suite asserts BOTH routes itself, so removing
+either fails loudly.
+
+It closes the P4 hole two reviewers measured. The tool docstring claimed all four
+safety properties were self-tested; that is structurally impossible for P4, because
+--self-test returns before main() reaches the --apply branch. Mutation run with an
+unmutated CONTROL green on both probes:
+
+  probe A (tool --self-test)    GREEN GREEN GREEN  -> 2 of 3 mutants SURVIVED
+  probe B (new ci/tests suite)  RED   RED   RED    -> 0 survivors
+
+The survivors were M5 (delete the --apply self-test precondition) and M6 (force
+apply=True regardless of the flag) -- both able to write into the loaded skill tree.
+The docstring is corrected rather than left standing.
+
+AGENT-FACING SURFACE. .agents/skills/writing-skills/SKILL.md, +2823 chars of BODY,
+because that skill contained the instruction that CAUSES the drift: it told an agent
+personal skills "live in" ~/.claude/skills, i.e. author into a live tree, which is how
+work becomes orphaned from git. It now says those are deploy targets, carries a
+four-tree table naming the canonical one, the three runnable commands, what the tool
+returns, and an explicit when-NOT-to-use-it. The Deployment checklist no longer stops
+at "commit to git". The always-loaded description is deliberately untouched: measured
+delta +0 chars, whole delta is body.
+
+DEPLOYED with the tool itself. All four routes byte-identical after LF-normalisation,
+including ~/.claude/skills, the symlink Claude Code loads.
+
+The P1 guard fired on my own first edit. Rewriting line 12 instead of adding to it gave
+the live tree a line the repo no longer had, so the tool refused it (safe to deploy 0).
+Reshaping the edit to be purely additive is what unblocked it (safe to deploy 1). That
+is the strongest evidence in the lane that the guard is not a no-op.
+
+Evidence, RED before / GREEN after, same command:
+  pre-integration   2 failed, 14 passed -- exactly the wiring and reachability cases
+  post-integration  16 passed
+  glob route        627 collected, 16 mine
+  full ci/tests + d001  4 failed, 622 passed; all 4 reproduce in isolation with my file
+                        not collected -- pre-existing Windows artifacts, none mine
+
+Residuals are recorded inline in command-center/integrate/SKILLS-FLEET-INTEGRATE.md,
+including the one that matters most: the hop covers skills.daily only, so ~/.agents/skills
+still carries the pre-fix ui-audit guard (0 of 6 entry points fixed there, against 6 of 6
+in the repo and in skills.daily).

@@ -14,8 +14,16 @@ That is why drift regenerates after every fix, and why work authored in `skills.
 orphaned from version control. This script is that missing hop, and it is deliberately the most
 timid script in the repo.
 
-FOUR SAFETY PROPERTIES, each enforced AND self-tested
------------------------------------------------------
+FOUR SAFETY PROPERTIES -- all four enforced; WHERE each is proven differs
+-------------------------------------------------------------------------
+P1/P2/P3 are proven by ``--self-test`` below, which is a hard precondition of ``--apply`` and
+therefore runs on every real use.  **P4 is NOT reachable by ``--self-test``** and claiming
+otherwise was an overclaim in the first version of this file: ``--self-test`` returns before
+``main()`` ever reaches the ``--apply`` branch, so two mutants -- deleting the ``--apply``
+precondition, and forcing ``apply=True`` -- were measured SURVIVING it.  P4 is proven instead by
+``ci/tests/test_deploy_skills_daily.py``, wired into ``.github/workflows/skill-dual-write.yml``
+as the ``gate-skill-deploy-hop`` step; that suite kills both mutants (measured 2026-08-12,
+against an unmutated CONTROL that stays green on both probes).
 P1  COPIES ONLY `safe_to_deploy`.  That list comes from `check_skill_deploy_drift.reconcile()`
     and contains only RIGHT-AHEAD (repo strictly contains the deployed copy) and
     RIGHT-ONLY-FILE (the deployed tree has no bytes there).  A DIVERGED file is never touched.
@@ -36,7 +44,15 @@ P3  NEVER DELETES.  There is no prune, no mirror-delete, no `rmtree` in this fil
 
 P4  DRY RUN BY DEFAULT.  `--apply` is required, and `--apply` runs `--self-test` FIRST and
     aborts on failure.  A gate that has never gone red is indistinguishable from a no-op, so
-    this one is re-proven against a purpose-built broken fixture on every single real use.
+    P1/P2/P3 are re-proven against a purpose-built broken fixture on every single real use.
+    P4 itself is the one property that fixture cannot reach -- see the header above; its
+    red-proof lives in `ci/tests/test_deploy_skills_daily.py` and runs in CI.
+
+AGENT-FACING ROUTE
+    `.agents/skills/writing-skills/SKILL.md` ("Where to author, and the last hop") is the
+    curated skill that tells an agent this command exists.  That link is itself asserted by the
+    CI suite: a tool with no skill, hook or workflow reference is unreachable in practice, which
+    is exactly how `tools/detector-self-test/` came to run green while wired nowhere.
 
 USAGE
     python scripts/deploy-skills-daily.py                 # report + dry run

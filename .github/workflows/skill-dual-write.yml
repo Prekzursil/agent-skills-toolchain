@@ -66,6 +66,21 @@ jobs:
       # command against those live trees, not a CI gate over them.
       - name: gate-skill-deploy-drift self-test
         run: python -m pytest ci/tests/test_check_skill_deploy_drift.py -q
+      # L11: the LAST hop, `scripts/deploy-skills-daily.py`, which writes into
+      # ~/.claude/skills.daily -- the one tree Claude Code reads. Named explicitly
+      # for the same reason as L10, plus one this file did not have before: the
+      # tool's own `--self-test` structurally CANNOT reach P4 (dry-run default,
+      # and `--apply` refusing on a red self-test), because it returns before
+      # main() ever reaches the --apply branch. Two mutants were measured
+      # surviving it -- deleting the --apply precondition, and forcing
+      # apply=True -- and both are killed only by the suite below. This step also
+      # carries the reachability assertion: if no curated skill tells an agent to
+      # run the tool, the deploy hop is unreachable and skills authored in the
+      # live tree stay orphaned from git, which is the root cause of all the
+      # regenerating skill drift. Hermetic (tmp_path only); the runner has no
+      # ~/.claude tree and this is a LOCAL operator command, not a CI gate over it.
+      - name: gate-skill-deploy-hop self-test
+        run: python -m pytest ci/tests/test_deploy_skills_daily.py -q
       # Exact route comparison catches stale names and old skills/ routes; the
       # generator carries forward declared-only compatibility names.
       - name: gate-skill-surface-manifest

@@ -11,6 +11,8 @@ description: Use when creating new skills, editing existing skills, or verifying
 
 **Personal skills live in agent-specific directories (`~/.claude/skills` for Claude Code, `~/.agents/skills/` for Codex)** 
 
+**Those are DEPLOY TARGETS, not where you author.** Read "Where to author, and the last hop" below before you write a byte: authoring straight into a live tree is what orphans a skill from git, and it has already produced 110 drifted files that no sync can safely resolve in either direction.
+
 You write test cases (pressure scenarios with subagents), watch them fail (baseline behavior), write the skill (documentation), watch tests pass (agents comply), and refactor (close loopholes).
 
 **Core principle:** If you didn't watch an agent fail without the skill, you don't know if the skill teaches the right thing.
@@ -89,6 +91,43 @@ skills/
 - Principles and concepts
 - Code patterns (< 50 lines)
 - Everything else
+
+## Where to author, and the last hop
+
+Four trees hold skills and only one of them is authoritative. Getting this wrong is the single
+most expensive mistake in skill work, because it is silent.
+
+| tree | role |
+|---|---|
+| `<repo>/.agents/skills/` | **canonical — author HERE** |
+| `<repo>/skills/` | generated projection; must be a byte-identical twin (a CI gate enforces it) |
+| `~/.agents/skills/` | deploy target (Codex) |
+| `~/.claude/skills.daily/` | deploy target — **the one tree Claude Code actually reads** |
+
+**Author in the repo, then deploy. Never the other way round.** A skill edited directly in a
+live tree is invisible to git and is overwritten by the next deploy. Measured: 110 files drift
+between the curated copies and the vault, and **zero** of them are safe to copy in either
+direction — 61 of 64 substantive pairs hold unique content on BOTH sides, so a one-directional
+sync destroys real work. Do not reconcile by timestamp either: 72 vault files share one
+bulk-deploy mtime, so "newer wins" picks the wrong side in 58 of 64 pairs.
+
+**The last hop:**
+
+```bash
+python scripts/deploy-skills-daily.py                      # dry run + drift report (default)
+python scripts/deploy-skills-daily.py --self-test          # prove the guards fire
+python scripts/deploy-skills-daily.py --apply --only my-skill   # copy, narrowed to one skill
+```
+
+It returns a per-file plan and a `SUCCESS:`/`DRY-RUN-OK:` terminal line. It is deliberately
+timid: it copies only files where the repo strictly contains the deployed copy (or the deployed
+tree has no bytes there), it never creates a skill the live tree does not already have, it never
+deletes anything, and `--apply` runs `--self-test` first and aborts if a guard fails.
+
+**When NOT to use it:** it will refuse a two-directionally diverged file, and that refusal is
+correct — read both bodies and union-merge by hand. It is also not a prune: two live skills
+(`microsoft-foundry`, `qdx-rush`) are absent from repo `skills/`, so any mirror-with-delete
+sync deletes them.
 
 ## SKILL.md Structure
 
@@ -629,7 +668,13 @@ Deploying untested skills = deploying untested code. It's a violation of quality
 - [ ] Supporting files only for tools or heavy reference
 
 **Deployment:**
+- [ ] Skill authored under `<repo>/.agents/skills/`, NOT in a live tree (see "Where to author")
+- [ ] Mirrored to `<repo>/skills/` as a byte-identical twin (the dual-write gate rejects a half-edit)
 - [ ] Commit skill to git and push to your fork (if configured)
+- [ ] Last hop: `python scripts/deploy-skills-daily.py --apply --only <skill>` — without this the
+      skill is committed but NOT loaded, because nothing else in the repo writes to the tree
+      Claude Code reads
+- [ ] Re-run the dry run and confirm your skill is no longer listed as needing a merge
 - [ ] Consider contributing back via PR (if broadly useful)
 
 ## Discovery Workflow
