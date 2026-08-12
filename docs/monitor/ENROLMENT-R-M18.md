@@ -110,6 +110,29 @@ verified byte-identical:
 `test_every_registered_source_has_a_pane_that_renders_it` is the structural guard, not a one-off
 assertion: any FUTURE source added without a pane now fails there rather than being invisible.
 
+### The committed BLOBS, not just the worktree
+
+windows-shell 8b: a Windows worktree can be CRLF while the stored blob is LF, so a local
+formatter green can be measured against bytes CI never checks out. That trap was live here --
+`_blob_parity.py` on commit `b9a77ad7` reports **15 of 20 files differ between blob and
+worktree, in line endings ONLY, 0 CONTENT mismatches, 0 CRLF in any blob**. So the worktree
+pytest / basedpyright runs transfer (content is identical), but the FORMAT result did not, and
+was re-measured properly:
+
+`_blob_ruff.py` extracts all 18 committed `.py` blobs into a temp tree, copies the repo's
+`ruff.toml` in first (a bare temp dir silently falls back to line-length 88 and manufactures a
+false red) and preserves each repo-relative path so the `extend-exclude` globs still apply:
+
+```
+extracted 18 blob(s), CRLF among them: 0
+[blob] format --check exit=0  18 files already formatted
+[blob] check        exit=0  All checks passed!
+control (mis-formatted blob) format --check exit=1 (must be non-zero)
+SUCCESS:blob-ruff
+```
+
+The mangled control fired, so the green is not a "ruff found no files" artifact.
+
 ## S3 -- vendored copies, and the CI hole that is now closed
 
 `monitorcore` is VENDORED into two committed copies. The source change was propagated
