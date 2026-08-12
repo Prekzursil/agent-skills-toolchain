@@ -1,11 +1,18 @@
 r"""Compare the LIVE hook dispatcher manifest against the repo SSOT, two-directionally.
 
 WHY TWO-DIRECTIONALLY. The obvious reading of "repo is the source of truth" is `deploy repo over
-live`. Measured here, that would ADD two genuinely missing hooks and simultaneously REVERT three Stop
-timeouts that were raised in the live tree -- almost certainly because those hooks were timing out at
-the repo values. It is the same shape the skills-drift lens measured on a different surface: of 64
-substantive skill pairs, 61 were two-directionally diverged and a one-directional sync destroys unique
-content in every one. So this prints BOTH directions and refuses to recommend a wholesale copy.
+live`. When this tool was first run that would have ADDED two genuinely missing hooks and
+simultaneously REVERTED three Stop timeouts raised in the live tree -- raised because those hooks were
+timing out at the repo values (git-hygiene measured 28,275 ms against a 12,000 ms repo budget). It is
+the same shape the skills-drift lens measured on a different surface: of 64 substantive skill pairs,
+61 were two-directionally diverged and a one-directional sync destroys unique content in every one.
+So this prints BOTH directions and lets the VERDICT follow the counts.
+
+SINCE RECONCILED: 1527449f union-merged those three timeouts (repo adopted the live value, git-hygiene
+sized to 90s), so behaviour differences are now 0 and the verdict this tool emits has flipped to
+"repo->live is safe for the 2 missing hooks". That flip is the point -- the verdict line used to be
+hardcoded and went on warning about a hazard that no longer existed, which is a generated conclusion
+that cannot track its own inputs.
 
 THE STRUCTURE TRAP THAT COST ME FOUR PROBES. `manifest["events"][<event>]` is a DICT
 ({settings_matcher, settings_timeout, checks}), not a list of hooks. Iterating it yields the three KEY
@@ -96,11 +103,31 @@ def main() -> int:
         f"live `{LIVE}` = {LIVE.stat().st_size:,} B",
         f"repo `{REPO.relative_to(REPO_ROOT)}` = {REPO.stat().st_size:,} B",
         "",
-        "## Verdict: do NOT deploy repo over live, and do NOT sync live over repo",
+        # The verdict must TRACK the measurement. It was hardcoded to "do NOT deploy in either
+        # direction", which was right when three hooks differed in behaviour -- and stayed on the
+        # page after that was fixed, recommending caution against a hazard that no longer existed.
+        # A generated conclusion that cannot change when its inputs change is the same defect as a
+        # health row that passes over a missing input.
+        "## Verdict: "
+        + (
+            "nothing to reconcile -- the two manifests agree on every hook"
+            if not (repo_only or live_only or behaviour)
+            else "do NOT deploy repo over live, and do NOT sync live over repo"
+            if behaviour or live_only
+            else f"deploying repo->live is SAFE for the {len(repo_only)} missing hook(s) -- "
+            "nothing live would be lost"
+        ),
         "",
         f"{len(repo_only)} hooks exist in git and are NOT deployed; {len(live_only)} exist live and are",
-        f"NOT in git; {len(behaviour)} exist on both sides with DIFFERENT behaviour. A one-directional",
-        "copy in either direction destroys one of those sets. Union-merge per entry.",
+        f"NOT in git; {len(behaviour)} exist on both sides with DIFFERENT behaviour.",
+        "",
+        (
+            "A one-directional copy in either direction destroys one of those sets. Union-merge per entry."
+            if behaviour or live_only
+            else "With 0 behaviour differences and 0 live-only hooks, a repo->live deploy adds the "
+            "missing hook(s) and overwrites nothing. The earlier union-merge warning applied to the "
+            "three Stop timeouts that were live-ahead; those were reconciled in 1527449f."
+        ),
         "",
         "## IN GIT, NOT DEPLOYED (the live harness is missing these)",
         "",
