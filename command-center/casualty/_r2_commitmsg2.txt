@@ -1,0 +1,30 @@
+casualty round 2: the fresh-clone check round 1 never ran found a REAL defect - pin the EOL
+
+Round 1 wrote "a reviewer who clones this repo reproduces both declared digests" without ever
+making a clone. The adversarial audit flagged that as an unproven scope claim. Implementing the
+real check (verify_blob_parity.py --fresh-clone) shows it was not merely unproven - it was FALSE.
+
+Measured against commit ea9a6eee, cloned into a throwaway directory:
+
+  ADV-0021  clone blob     176468 B  CRLF    0   digest MATCH=True
+            clone CHECKOUT 177741 B  CRLF 1273   digest MATCH=False
+  ADV-0022  clone blob     114103 B  CRLF    0   digest MATCH=True
+            clone CHECKOUT 114776 B  CRLF  673   digest MATCH=False
+
+Mechanism: core.autocrlf=true and the root .gitattributes covers only *.sh and *.ps1, so a
+checkout converted these LF blobs to CRLF. Each receipt publishes an elided sha256 of its own
+bytes and verify_elided_digest.py reads with newline="", so it hashes what is on disk. A reviewer
+cloning on Windows therefore could not reproduce either published digest, and the declared
+artifacts[0].bytes disagreed with the file they actually got. The blob was always fine; the
+checkout was not, and the checkout is what a reviewer reads.
+
+FIX: command-center/casualty/.gitattributes marks exactly the two digest-bearing receipts -text,
+so the bytes that were hashed are the bytes a checkout produces on every platform.
+
+Verified safe before applying: all 84 tracked lane blobs are pure LF (_r2_blob_eol_scan.py), so
+-text freezes nothing CRLF in place. Deliberately NOT lane-wide: 30 lane files currently hold
+CRLF in the WORKING TREE while their blobs are LF, and a blanket rule would immediately surface
+30 EOL-only phantom modifications on a worktree that siblings are committing from.
+
+This is the both-states control for the fix: MATCH=False before, and the post-fix clone is
+re-run against this commit with the result recorded in LANE-CASUALTY-ROUND2.md section R2-D.
