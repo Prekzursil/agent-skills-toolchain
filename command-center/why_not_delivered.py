@@ -43,7 +43,18 @@ def main(argv: list[str]) -> int:
     if not units:
         print(f"FAILED:why-not-delivered catalog has no work_units ({list(doc)[:8]})")
         return 1
-    resolver = getattr(ru, "make_resolver", lambda *_: None)(doc) if hasattr(ru, "make_resolver") else None
+    # MUST be the SAME resolver ready_units uses, or this tool silently disagrees with the
+    # authoritative partition. It did: I guessed the factory was named `make_resolver`, hasattr
+    # returned False, and the fallback passed resolver=None -- which makes artifact_delivered skip
+    # its entire schema block (`if resolver is not None ...`, ready_units.py:206), i.e. conditions 4
+    # and 4b. The tool was strictly MORE PERMISSIVE than the predicate it claims to explain and
+    # reported 2 DELIVERED against the partition's 1. A diagnostic that disagrees with the thing it
+    # diagnoses is worse than no diagnostic, and "guess the API name, fall back to a no-op on
+    # AttributeError" is how that happens quietly.
+    resolver = ru._load_resolver()
+    if resolver is None:
+        print("  WARNING: resolver unavailable -- conditions 4/4b will be SKIPPED and this run is")
+        print("           more permissive than ready_units.py. Treat the counts as an upper bound.")
 
     wanted = {a.upper() for a in argv}
     reasons: Counter[str] = Counter()
