@@ -43,14 +43,23 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from pathlib import Path
 
-REPO = Path("C:/Users/Prekzursil/source/ast-integrate")
+# INTEGRATE: repo root derived from THIS file, not hardcoded (see census_v2.py for the why).
+# WF_ROOT is the agent transcript store and is machine-local by nature; Path.home() removes the
+# hardcoded username and CASUALTY_WF_ROOT overrides it. This is why --selftest is CI-EXEMPT: the
+# transcripts exist only on the box that ran the wave, and inventing a fixture for them would be
+# a gate measuring its own fixture.
+REPO = Path(os.environ.get("CASUALTY_REPO") or Path(__file__).resolve().parents[2])
 SESSION = "30bd50d4-5a72-4c19-8fd5-85b6430c7b7d"
 WF_ROOT = (
-    Path("C:/Users/Prekzursil/.claude/projects/C--Users-Prekzursil")
+    Path(
+        os.environ.get("CASUALTY_WF_ROOT")
+        or Path.home() / ".claude" / "projects" / "C--Users-Prekzursil"
+    )
     / SESSION
     / "subagents"
     / "workflows"

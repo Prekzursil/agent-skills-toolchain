@@ -106,6 +106,22 @@ SUITES: tuple[Suite, ...] = (
         observed_when_set=61,
         note="61 collected; floor 55 tolerates removing one test module, not a collapse.",
     ),
+    Suite(
+        name="casualty",
+        path="command-center/casualty/tests",
+        minimum=28,
+        observed_when_set=32,
+        note=(
+            "32 collected. The suite is the TESTED disposition for the casualty lane's "
+            "integration guard: it is what stands in for census_v2 in CI (census_v2 reads "
+            "command-center/adversarial/, which a live sibling wave writes, so pinning its "
+            "control pairs would make an unrelated sibling commit a red build). Floor 25 "
+            "tolerates dropping a couple of cases, not the both-states half of the file - "
+            "every green-state assertion there is paired with a mutation that must go red, so "
+            "a collapse to the good state alone would leave the probes untested and is exactly "
+            "what this floor exists to catch."
+        ),
+    ),
 )
 
 

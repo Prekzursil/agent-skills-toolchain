@@ -24,12 +24,16 @@ visible rather than assumed.
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 import subprocess
 import sys
 from pathlib import Path
 
-REPO = Path("C:/Users/Prekzursil/source/ast-integrate")
+# INTEGRATE: repo root derived from THIS file, not hardcoded (see census_v2.py for the why). A
+# blob-parity checker that can only run from one absolute path is the exact shape of the defect
+# it exists to catch.
+REPO = Path(os.environ.get("CASUALTY_REPO") or Path(__file__).resolve().parents[2])
 TARGETS = [
     "command-center/casualty/ADV-0021-install-path-stride-threat-model.json",
     "command-center/casualty/ADV-0022-declared-permission-escape.json",

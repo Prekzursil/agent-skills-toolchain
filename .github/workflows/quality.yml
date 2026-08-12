@@ -403,12 +403,41 @@ jobs:
       #   seed.py       -- refuses to overwrite without --force, so a stray CI run
       #                    can never discard close/defer history.
       # Both scripts exit non-zero on failure and print a terminal FAILED: marker.
+      #
+      # command-center/casualty -- the two receipts recovered from the two builders that died
+      # mid-wave, and the six instruments built to triage them. Both rounds left the same
+      # structural residual: every instrument was correct and NONE of them was called by
+      # anything, so the only thing keeping the lane from rotting was somebody remembering it.
+      # `casualty_guard.py` is the hermetic subset a runner can execute -- it checks that this
+      # step still invokes it (a comment naming the path does NOT count), that every shipped
+      # instrument carries a disposition in both directions, that both receipts still reproduce
+      # their published elided sha256 and byte count, that a substantive artifact for each
+      # recovered unit still exists SOMEWHERE (location-agnostic, so promoting them to
+      # command-center/adversarial/ is not a failure), and that the two superseded round-1
+      # outputs keep the banner that stops their six FALSE casualty verdicts being cited. It
+      # also EXECUTES two instruments rather than checking their bytes -- the `launchpath`
+      # lesson. Stdlib-only plus git, so `pip install pytest` above is the whole install.
+      # Deliberately NOT a `gate-<slug>` step name: it rides inside this gate rather than adding
+      # one, so .quality/charter.yml stays a closed set. `--selftest` (the per-probe both-states
+      # control) is a local/reviewer command, not run here: it copies the tree six times.
+      #
+      # `integration_redproof.py` is the reason to believe any of the above. It runs the guard
+      # TWICE -- once against this tree, once against a mirror with the invocation line deleted
+      # and the path left behind in a COMMENT -- and requires GREEN then RED. A gate that has
+      # never gone red is indistinguishable from a no-op, and this repo has measured that exact
+      # shape (a probe that printed nothing in the broken state too, one step from being
+      # reported as verification). It also proves the `casualty` suite floor can fail, both by
+      # raising it above the observed count and by pointing it at an empty tests dir. ~20 s,
+      # dominated by pytest --collect-only subprocesses.
       - name: gate-tests-coverage command-center
         run: |
           pip install pytest
           python -m pytest tools/command-center/tests -q
           python tools/command-center/validate.py
           python tools/command-center/render.py --check
+          python -m pytest command-center/casualty/tests -q
+          python command-center/casualty/casualty_guard.py
+          python command-center/casualty/integration_redproof.py
       # tools/measure-guard — two guards against measurements that report green while measuring
       # nothing, both derived from defects measured on this repo. `suitefloor` gives every
       # registered suite a declared minimum test count and fails below it regardless of exit code
@@ -452,10 +481,52 @@ jobs:
           pip install pytest
           python -m pytest tools/measure-guard/tests -q
           python tools/measure-guard/suitefloor.py --suite command-center
+          # `casualty` is the second registered suite this step enforces. The lane's guard checks
+          # that CI still INVOKES it; this checks that the thing being invoked still has tests
+          # under it. Both directions are needed: a suite collapsed to only its green-state
+          # assertions would leave every probe untested while the guard still reported green.
+          python tools/measure-guard/suitefloor.py --suite casualty
           python tools/measure-guard/refcheck.py
           python tools/measure-guard/wudeps.py
           python tools/measure-guard/jsonparse.py
           python tools/measure-guard/launchpath.py
+      # tools/measure-guard/unitgate.py -- the P2 DELIVERY gate, deliberately its OWN step.
+      #
+      # WHAT IT CLOSES. `command-center/ready_units.py` is the predicate that decides whether each
+      # of the 2,007 work units has actually been DELIVERED, and three rounds of build / audit /
+      # adversarial refutation hardened it: bare `Path.exists()` counted 44 delivered artifacts of
+      # which 43 self-declare BLOCKED or FAILED; condition 4b was added after a verifier proved
+      # `state: "SUCCESS"` was one word from a false green on the 23 meta-declaring units. Yet
+      # `grep -rn ready_units .github/workflows/` returned ZERO hits before this step existed, so a
+      # regression to that predicate, or a forged artifact committed under command-center/receipts/,
+      # was green on every pull request. Exactly the green-not-live shape the command-center step
+      # above says it exists to prevent, and the delivery half that `wudeps` (dependencies) left out.
+      #
+      # WHY A SEPARATE STEP. This is the only gate in the chain that needs `jsonschema` -- the
+      # predicate validates each artifact against the contract its own catalog row declares. Folding
+      # it into the step above would falsify that step's honest "keeps to what it can honestly
+      # install" comment and leave it leaning on a sibling's transitive dependency, which the same
+      # comment records as a real, already-diagnosed failure. Pinned to 4.25.1 to match the
+      # test-platform job so the two never grade the same schemas under different validators.
+      #
+      # IT FAILS CLOSED FOUR WAYS, each with a control proven to fire on the known-broken state
+      # (tools/measure-guard/tests/test_unitgate.py, every case two-sided):
+      #   * the contract checker must be LIT before any count is printed -- a known-vacuous
+      #     declaration rejected AND a known-discriminating one accepted. Only the second half can
+      #     catch a dead checker, which calls everything vacuous and would sail through the first;
+      #   * the predicate's own 16 two-sided controls must still fire;
+      #   * the forged-completion detector must reject the shipped known-forged artifact. No real
+      #     artifact declares a done-state today, so without that control "0 forged completions"
+      #     would be indistinguishable from a detector incapable of finding one;
+      #   * every artifact is graded from the COMMITTED BLOB via `git cat-file` -- never
+      #     `git archive`, which hands back the Windows CRLF worktree bytes -- and must agree with
+      #     its worktree copy, because working-tree-green != clone-green is lesson one here.
+      # Plus floors: under 1,500 units read or 40 artifacts found it fails rather than reporting a
+      # green computed over a collapsed read.
+      - name: gate-p2-delivery
+        run: |
+          pip install jsonschema==4.25.1
+          python tools/measure-guard/unitgate.py
       # tools/agentspec — the portable agent-workflow SPEC, the shared observation envelope, the
       # dispatch-safety pure core (argv/prompt transport, the completion AND-gate, progress-stream
       # rejection, terminal markers, budget accounting, determinism) and the hermetic eval

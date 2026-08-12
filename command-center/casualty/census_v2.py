@@ -25,9 +25,15 @@ from __future__ import annotations
 import datetime as _dt
 import importlib.util
 import json
+import os
 from pathlib import Path
 
-REPO = Path("C:/Users/Prekzursil/source/ast-integrate")
+# INTEGRATE: derive the repo root from THIS file rather than hardcoding one box. A hardcoded
+# absolute path is the works-on-my-machine / dies-in-a-fresh-clone defect this program keeps
+# re-finding, and it is what made this instrument unrunnable on a CI runner. parents[2] is the
+# repo root for command-center/casualty/<this file>. CASUALTY_REPO overrides it for a probe that
+# needs to point the instrument at a mutated copy (the guard's both-states control does this).
+REPO = Path(os.environ.get("CASUALTY_REPO") or Path(__file__).resolve().parents[2])
 ADV = REPO / "command-center" / "adversarial"
 CAS = REPO / "command-center" / "casualty"
 

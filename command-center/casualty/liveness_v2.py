@@ -31,14 +31,23 @@ import argparse
 import datetime as _dt
 import importlib.util
 import json
+import os
 import re
 import time
 from pathlib import Path
 
-REPO = Path("C:/Users/Prekzursil/source/ast-integrate")
+# INTEGRATE: derive the repo root from THIS file rather than hardcoding one box (see the same
+# note in census_v2.py). CASUALTY_REPO overrides it so a both-states control can aim the
+# instrument at a mutated copy. WF_ROOT stays machine-local by nature -- it is the agent
+# transcript store, which exists only on the box that ran the wave -- but Path.home() removes
+# the last hardcoded username; CASUALTY_WF_ROOT overrides it.
+REPO = Path(os.environ.get("CASUALTY_REPO") or Path(__file__).resolve().parents[2])
 SESSION = "30bd50d4-5a72-4c19-8fd5-85b6430c7b7d"
 WF_ROOT = (
-    Path("C:/Users/Prekzursil/.claude/projects/C--Users-Prekzursil")
+    Path(
+        os.environ.get("CASUALTY_WF_ROOT")
+        or Path.home() / ".claude" / "projects" / "C--Users-Prekzursil"
+    )
     / SESSION
     / "subagents"
     / "workflows"
