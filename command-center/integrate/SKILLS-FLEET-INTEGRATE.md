@@ -1,11 +1,12 @@
 # SKILLS lane — INTEGRATE (last stage; the loop is over)
 
-STATUS: **MEASURED.** Every claim below carries the command that produced it. One item is still
-running at the time of the last rewrite and is marked inline.
+STATUS: **MEASURED AND LANDED** as commit `e9b65d60` (9 files, +937/-3, zero deletions, zero
+foreign paths). Every claim below carries the command that produced it.
 
 COVERAGE: D1 (CI gate), D2 (agent-facing surface), D3 (deployed to the read tree), the
-end-to-end check and its RED proof, and the mutation table are all MEASURED. The whole-repo
-`ci/tests` run is marked PENDING below until its output lands.
+end-to-end check and its RED proof, the P4 mutation table, the full `ci/tests` + `d001` run, and
+the D-001 gate's own both-states control are all MEASURED. Nothing here is PENDING.
+Residuals R1-R7 are open and scoped at the bottom; none of them is silent.
 
 ---
 
@@ -181,10 +182,46 @@ Third route, the glob: `python -m pytest ci/tests tools/d001-dual-write/tests -q
 
 Pre-existing wiring suite unaffected: `python -m pytest ci/tests/test_ci_wiring.py -q` → `15 passed`.
 
-**PENDING at last rewrite:** the whole `python -m pytest ci/tests tools/d001-dual-write/tests -q`
-run. Result recorded in the Evidence appendix below once it lands; a known pre-existing failure
-(`test_check_skill_dual_write.py:501`, a Windows `0xff`-filename `UnicodeDecodeError`) is
-expected and is not mine.
+**The whole CI self-test command:** `4 failed, 622 passed, 1 skipped in 177.96s`. All four
+failures are in files this lane never touched, and I did not attribute them by reasoning — I
+re-ran exactly those four node-ids alone, with my file not collected, and all four reproduce
+(`4 failed in 6.71s`). They are Windows-platform artifacts (invalid-UTF-8 filename bytes ×2, an
+executable mode-bit regression check, and a git `update-ref` race injector) that would not fire
+on the Linux runner:
+
+```
+FAILED ci/tests/test_check_skill_dual_write.py::test_strict_parity_keeps_distinct_invalid_utf8_path_bytes_distinct
+FAILED tools/d001-dual-write/tests/test_d001_apply.py::test_project_keeps_distinct_invalid_utf8_path_bytes
+FAILED tools/d001-dual-write/tests/test_d001_apply.py::test_verifier_refuses_an_executable_mode_regression
+FAILED tools/d001-dual-write/tests/test_d001_apply.py::test_atomic_ref_create_refuses_a_branch_created_after_precheck
+```
+
+---
+
+## The gate that guards my own commit — and the two controls that were themselves broken
+
+`python ci/check_skill_dual_write.py --base e9b65d60^ --head e9b65d60 --strict-parity`
+→ `OK: changed skill paths match their final-tree counterparts.` (exit 0)
+
+That OK is worthless until the gate is shown capable of saying something else. Two controls were
+tried and **both were broken detectors**, which is worth recording:
+
+| attempt | idea | result | why it measures nothing |
+|---|---|---|---|
+| 1 | re-run over a historical range that once had a violation (`3bf14581^..6c742fd3`) | exit 0 | `--strict-parity` resolves the counterpart in the FINAL tree; that violation was repaired before HEAD |
+| 2 | break the projection twin in the WORKING TREE, re-run the same command | exit 0 / 0 / 0 | "final tree" means the tree of the `--head` COMMIT, not the worktree — a worktree edit is invisible |
+| 3 | build a throwaway repo, COMMIT a canonical-only change, run the real gate with `--repo` | **exit 1 / exit 0** | the violation exists in a commit, which is the only thing the gate reads |
+
+```
+  exit=1   BROKEN state  canonical-only change   D-001 DUAL-WRITE VIOLATION
+  exit=0   FIXED  state  twin repaired           OK: changed skill paths match their final-tree counterparts.
+SUCCESS:i3-gate-control red_on_violation=True green_on_repair=True
+```
+
+Attempt 2 is the one that would have done real damage: it returned green in all three states, so
+reporting the STATE-1 green off the back of it would have been evidence-tag theatre — a probe
+silent in the known-broken state. Nothing in the real worktree was touched by any attempt
+(`_i3_gate_control.py` verifies its own restore by sha256, and attempt 3 never leaves `tempdir`).
 
 ---
 
@@ -250,11 +287,18 @@ refute *textual* duplication decisively. Neither can see two skills doing the sa
 different words. The settling experiment is a pairwise body read of the 57 candidates, which no
 lane has done. Confidence that no pair is functionally redundant: **LIKELY (55-80%)**, not higher.
 
-**R7. This lane added a gate; it did not add a test for the gate's own new probes.**
-`_i1_p4_mutation.py` and `_i2_verify_live.py` are lane instruments under `command-center/`, not
-CI. Both carry their own CONTROL row and both fail closed, but neither is re-run by anything.
-That is the correct scope for a one-shot measurement and the wrong scope for a standing gate;
-the standing gate is `ci/tests/test_deploy_skills_daily.py`, which *is* wired.
+**R7. This lane added a gate; it did not add a gate for its own probes.** `_i1_p4_mutation.py`,
+`_i2_verify_live.py` and `_i3_gate_control.py` are lane instruments under `command-center/`, not
+CI. All three carry their own CONTROL and all three fail closed, but nothing re-runs them. That
+is the right scope for a one-shot measurement and the wrong scope for a standing gate; the
+standing gate is `ci/tests/test_deploy_skills_daily.py`, which *is* wired, twice.
+
+**R8. The reachability assertion is satisfied by exactly ONE skill.** If `writing-skills` is ever
+re-vendored from upstream `superpowers`, my +2,823-char body edit is overwritten and the deploy
+hop goes dark again. That is not silent — `test_the_deploy_hop_has_an_agent_facing_surface` turns
+RED the moment it happens, which is the behaviour I want — but a second carrier would make the
+route survive a re-vendor rather than merely report its loss. Not added here: a second body edit
+is a second place to drift, and the gate already converts the failure mode from silent to loud.
 
 ---
 
@@ -272,5 +316,19 @@ the standing gate is `ci/tests/test_deploy_skills_daily.py`, which *is* wired.
 | 8 | `python scripts/deploy-skills-daily.py --only writing-skills` (additive edit) | `safe to deploy 1` — WOULD-COPY |
 | 9 | `python scripts/deploy-skills-daily.py --only writing-skills --apply` | `SUCCESS:deploy-skills-daily copied=1` |
 | 10 | `python command-center/integrate/_i2_verify_live.py` | `SUCCESS:i2-verify-live problems=0` |
-| 11 | full `ci/tests` + `d001` suite | PENDING — see above |
-| 12 | `python ci/check_skill_dual_write.py --staged --strict-parity` | PENDING — run at commit time |
+| 11 | `python -m pytest ci/tests tools/d001-dual-write/tests -q` | `4 failed, 622 passed, 1 skipped in 177.96s` |
+| 12 | the same 4 node-ids alone, my file not collected | `4 failed in 6.71s` — pre-existing, none mine |
+| 13 | `python ci/check_skill_dual_write.py --base e9b65d60^ --head e9b65d60 --strict-parity` | `OK`, exit 0 |
+| 14 | `python command-center/integrate/_i3_gate_control.py` | `SUCCESS:i3-gate-control` — exit 1 broken / exit 0 fixed |
+| 15 | `git show --name-only e9b65d60` filtered against my declared scope | `NONE - every path is mine`; deletions 0 |
+| 16 | ui-audit guard marker count across 3 trees | vault `0/6`, skills.daily `6/6`, repo `6/6` |
+| 17 | `grep -n` on `workflow-authoring/templates/governed-run-orchestrator.md:1145` | now `git show <final-sha>:<path>` — round-1 residual CLOSED by `faedd97e` |
+
+## Commit
+
+`e9b65d60  feat(skills): wire the last deploy hop into CI and into a skill an agent can find`
+— 9 files, +937/-3. Staged by explicit path with a foreign-path check between the `git add` and
+the `git commit`; the commit itself uses the pathspec form so a sibling's staged work cannot be
+swept in. This is the failure that produced round 1's commit `772159ce`, where a concurrent
+blanket `git add` put this lane's work under another lane's message. Zero deletions, no
+force-push, no history rewrite, no `--no-verify`.
