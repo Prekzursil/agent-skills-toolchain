@@ -1142,7 +1142,11 @@ Impact matrix; `N/A` requires a changed-path reason, unavailable/skip is not PAS
 On Windows verify LF committed bytes, not only a CRLF working tree:
 
 ```bash
-git archive <final-sha> | tar -x -C <fresh-temp>
+git show <final-sha>:<path>          # NOT git archive: it applies export-time EOL
+                                     # conversion and returns CRLF on Windows, i.e. the
+                                     # opposite of the stored blob. git cat-file -p is
+                                     # equivalent; both measured 0 CRLF against a
+                                     # working tree carrying 2,898.
 ```
 
 The grounded `.gitattributes` declared `*.sh eol=lf` and `*.ps1 eol=crlf`.
