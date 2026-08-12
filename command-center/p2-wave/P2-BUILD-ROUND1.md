@@ -344,6 +344,25 @@ recurse). Receipts therefore list what the unit PRODUCED, not themselves.
 SUCCESS:ready-units partition sums correctly
 ```
 
+INDEPENDENT RE-VERIFICATION FROM THE COMMITTED BLOB (`_b1r2_verify_committed.py`). A build script
+validating its own in-memory variable is one signal; this is a mechanically different second one —
+it reads back what git actually stored via `git show HEAD:<path>` and re-validates against the
+schema the **catalog row** declares, not the one the build script happened to pass:
+
+```
+unit        blob B  CRLF  parses  schema-VALID  sentinel-matches  state
+IMP-0433     17774     0  True    YES           True              BLOCKED
+AUD-0041     77871     0  True    YES           True              BLOCKED
+AUD-0051     29935     0  True    YES           True              BLOCKED
+AUD-0030     23565     0  True    YES           True              BLOCKED
+AUD-0020     34300     0  True    YES           True              BLOCKED
+CONTROL verifier: AUD-0020 with `sentinel` removed -> 1 error(s) FIRES; unmodified -> 0 error(s) SILENT
+SUCCESS:p2-verify 5/5 committed blobs are non-empty, parse, and validate against the schema their CATALOG ROW declares
+```
+
+0 CRLF in every blob, confirming the corrected floor: `git show <rev>:<path>` returns the stored
+bytes without export-time EOL conversion (only `git archive` does that).
+
 READ THIS HONESTLY. `delivered` is **1**, not 6, and that number went DOWN from the 44 this lane
 inherited. That is not a regression — it is the first honest reading the tool has produced. The
 `artifacts present but NOT delivered` counter moved 43 -> 48: my five artifacts are on disk, valid

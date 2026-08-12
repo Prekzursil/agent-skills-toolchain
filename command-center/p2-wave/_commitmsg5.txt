@@ -1,0 +1,16 @@
+test(p2): independent blob-level re-verification of the five delivered units
+
+Second, mechanically different signal. The build scripts validated an in-memory
+document and then wrote it; this reads back what git actually STORED via
+`git show HEAD:<path>` and re-validates against the schema the CATALOG ROW
+declares rather than the one the build script happened to pass.
+
+  IMP-0433 17774 B  AUD-0041 77871 B  AUD-0051 29935 B
+  AUD-0030 23565 B  AUD-0020 34300 B
+  all: 0 CRLF, parse, schema-VALID, sentinel matches the catalog row
+
+Control included, because a verifier that passes everything proves nothing:
+AUD-0020 with `sentinel` removed -> 1 error (FIRES); unmodified -> 0 (SILENT).
+
+The 0-CRLF column also confirms the corrected floor -- `git show <rev>:<path>`
+returns stored bytes with no export-time EOL conversion; only `git archive` does.
