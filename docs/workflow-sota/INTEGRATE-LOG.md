@@ -169,7 +169,23 @@ deploy is the destructive one. Settling experiment: union-merge `workflow-author
 (53 live-only lines are the input), then deploy the merged file plus the 32 absent-live files, then
 re-run this probe and require `unsafe_to_deploy=0`.
 Root cause is architectural and named in the fleet harvest: `~/.claude/skills.daily` has **no sync
-path in the repo at all**. That is not fixable inside this lane.
+path in the repo at all**. That is not fixable inside this lane — **and a concurrent sibling lane is
+already fixing it.** Measured after my commit: `scripts/deploy-skills-daily.py` is now a TRACKED file
+(`git ls-files --error-unmatch` resolves it; added in `772159ce`), and a sibling had an uncommitted
+`gate-skill-deploy-hop self-test` step plus `ci/tests/test_deploy_skills_daily.py` in flight. So had I
+hand-deployed, I would have collided with a purpose-built tool that has safety checks mine would not.
+I make **no claim** about whether their hop resolves the two-way divergence above — I did not run it,
+and it is their lane. This is corroboration for the decision, not a verdict on their work.
+
+**R1b — closed, recorded because it was the sharper version of the question.** "Is the wiring in my
+working copy or in what CI checks out?" `python docs/workflow-sota/_int_headblob_verify.py` rebuilds
+the 10 files the check reads from `git cat-file -p HEAD:<path>` and runs the SAME test against them:
+
+```
+  HEAD          crlf=0 rc=0 -> PASS (want PASS) [9 passed]
+  HEAD-excised  crlf=0 rc=1 -> FAIL (want FAIL) [5 failed, 4 passed]
+SUCCESS:headblob committed blobs carry the wiring; control fires without it
+```
 
 **R2. Nothing has actually executed the new step on a GitHub runner yet.** Band: **likely** (55-80%)
 that it passes first try. Evidence for: both suite commands were run verbatim locally and are green;
