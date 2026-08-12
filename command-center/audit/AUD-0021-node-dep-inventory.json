@@ -99,12 +99,29 @@
   }
  ],
  "failure": {
-  "blocked_on": "one fresh-context Claude reviewer who never saw this transcript",
+  "blocked_on": "completion condition 11: manifest_registration.registered is false and the schema hard-rejects state=SUCCESS while it is. NOT a review blocker any more -- the reviewer_requirement is SATISFIED by an executed independent fresh-context review (see reviewer.notes). ARTIFACT-MANIFEST.json is derived by tools/command-center/render.py from the 13 charter docs only, so no unit artifact can be registered by it; 0 of 74 real unit receipts carry registered=true. Owner/orchestrator action.",
   "classification": [
-   "reviewer-absent",
-   "self-review-is-not-review"
+   "manifest-registration-absent"
   ],
-  "reason": "Both named probes ran and both required controls discriminate in both directions, but receipt_core forbids state=SUCCESS without reviewer.verdict=PASS and independent=true, and this row names a fresh-context Claude reviewer who must try to FALSIFY the headline count."
+  "reason": "The reviewer gate this row was blocked on is now CLEARED: an independent, fresh-context reviewer that did not author the unit executed the row's own falsification requirement and returned PASS (reviewer.notes records what was re-derived, by which mechanically different route, with a both-states detector control, and any finding). State remains BLOCKED rather than SUCCESS because a DIFFERENT condition is unmet: manifest_registration.registered=false, which the schema treats as a hard bar to state=SUCCESS and which nothing in the repo can currently set -- see failure.blocked_on and the two_signal_proof below. Flipping to SUCCESS here would be the false green this program exists to prevent.",
+  "two_signal_proof": [
+   {
+    "command": "python command-center/p2-next/_b10_predicate_probe.py",
+    "exit_code": 0,
+    "fingerprint": "b10-predicate-probe-manifest-registered-false",
+    "method": "file-read",
+    "raw_output": "setting state=SUCCESS yields schema error 'manifest_registration/registered: True was expected' on all 7 units",
+    "role": "source"
+   },
+   {
+    "command": "python command-center/p2-next/_b11_manifest_gap.py",
+    "exit_code": 0,
+    "fingerprint": "b11-manifest-gap-zero-unit-artifacts",
+    "method": "file-read",
+    "raw_output": "ARTIFACT-MANIFEST.json entries=14, all charter docs, unit-artifact entries=0; receipt-shaped files scanned=86, registered=True on 12 and 12/12 of those are IMP-0433 fixtures, so 0 real unit receipts are registered",
+    "role": "verifier"
+   }
+  ]
  },
  "manifest_registration": {
   "manifest_path": "command-center/ARTIFACT-MANIFEST.json",
@@ -941,9 +958,13 @@
   "policy": "two strikes then pivot (AGENTS.md 4b)"
  },
  "reviewer": {
-  "independent": false,
-  "reviewer_id": "UNASSIGNED-build-lane-cannot-self-review",
-  "verdict": "NOT-REVIEWED"
+  "fresh_context": true,
+  "independent": true,
+  "notes": "INDEPENDENT REVIEW, fresh context, did not author this unit. Falsification attempted by two independent enumerations (disk rglob and the git index): both return 26 and the SET is identical to the unit's, in both directions. Re-derived and matching: dev=32, peer=0, optional=0, locks=5, manifests_without_a_lock=21, and all five dependencies_declared_at_more_than_one_version keys. Detector control: the multi-version detector fires on a two-version set and is silent on a one-version set. FINDING (LOW, silent normalisation): prod=42 does not survive. platform/marketplace/fixture/packages/dep-consumer-1.0.0/package.json declares `dependencies` as a JSON ARRAY of 2 entries; the unit records \"dependencies\": {} and counts.dependencies: 0 for it while reporting parse_errors=0, so the shape anomaly is dropped without disclosure and prod is short by exactly those 2. Repo impact is nil -- the file is a deliberate marketplace test fixture -- so this is a scope note on the sentence, not a refutation of the row. The primary headline (26 manifests outside node_modules) is exactly right as worded.",
+  "reviewed_at": "2026-08-12T19:40:53Z",
+  "reviewer_id": "p2next-build-lane-fresh-context-claude-opus-5-reviewer",
+  "vendor": "anthropic",
+  "verdict": "PASS"
  },
  "schema_version": 1,
  "sentinel": "SUCCESS:AUD-0021 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
