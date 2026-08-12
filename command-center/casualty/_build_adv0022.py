@@ -26,7 +26,7 @@ def rd(n):
 
 
 def fp(method, command):
-    return hashlib.md5(f"{method}|{command}".encode("utf-8")).hexdigest()
+    return hashlib.md5(f"{method}|{command}".encode("utf-8"), usedforsecurity=False).hexdigest()
 
 
 def probe(role, method, command, raw, exit_code=0):
@@ -54,8 +54,8 @@ P1_CMD = (
 P2_CMD = "python command-center/casualty/probes/adv0022_probe2.py"
 G_CMD = "bash command-center/casualty/probes/adv0022_git_verifier.sh"
 
-P1_MD5 = hashlib.md5(P1_RAW.encode("utf-8")).hexdigest()
-P2_MD5 = hashlib.md5(P2_RAW.encode("utf-8")).hexdigest()
+P1_MD5 = hashlib.md5(P1_RAW.encode("utf-8"), usedforsecurity=False).hexdigest()
+P2_MD5 = hashlib.md5(P2_RAW.encode("utf-8"), usedforsecurity=False).hexdigest()
 
 E = []
 

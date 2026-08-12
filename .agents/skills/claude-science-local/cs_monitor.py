@@ -203,7 +203,7 @@ def main(argv: list[str] | None = None) -> int:
             )
         else:
             if not args.once and os.name == "nt":
-                os.system("")  # noqa: S605,S607 - enable ANSI/redraw on legacy consoles
+                os.system("")  # noqa: S605,S607 - enable ANSI/redraw on legacy consoles  # nosemgrep: quality.opengrep.python-os-system -- argument is a compile-time EMPTY literal, so there is no injectable surface; this is the documented Windows trick to enable VT/ANSI processing on a legacy console, not a command invocation
             print(render(status, doctor, errors, cs), flush=True)
 
         if args.once:

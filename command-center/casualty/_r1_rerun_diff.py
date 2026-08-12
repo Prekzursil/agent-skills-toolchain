@@ -27,7 +27,7 @@ def sha(p):
 
 
 def md5(p):
-    return hashlib.md5(open(p, "rb").read()).hexdigest()
+    return hashlib.md5(open(p, "rb").read(), usedforsecurity=False).hexdigest()
 
 
 def walk(o, prefix=""):

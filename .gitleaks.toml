@@ -171,3 +171,35 @@ regexTarget = "secret"
 regexes = [
   '''^reasoning-[a-z0-9]{5,8}-\d+$''',
 ]
+
+# --- Allowlist 4: e2e-wave synthetic DETECTOR-CONTROL fixtures -------------------
+# Five findings introduced by the 2026-08-12 six-lane wave. All are deliberately
+# credential-SHAPED strings that exist so a detector has something to detect; none is live.
+# Classified by structure, never by reading the value into a transcript:
+#
+#   ghp_...  (x2, ADV-0041)  40 chars. The artifact's own probe command reads
+#       "logs_redaction_probe.py (imports plugin.logs.redact and passes a record holding
+#        identity tokens + A CREDENTIAL POSITIVE CONTROL)"
+#       and the match sits in the `api_key` field of the probe INPUT dict passed TO the
+#       redactor, inside an audit OF redaction. Waiving the redaction test's own positive
+#       control is the only way that test can exist in a scanned repo.
+#   ADV0... (x1, ADV-0037)  33 chars, PREFIXED WITH ITS OWN UNIT ID -- a fixture by
+#       construction; no issuer emits a key namespaced to this repo's work-unit numbering.
+#   recommendation (x2, AUD-0020 probe1-manifests.json)  a 14-letter all-lowercase English
+#       word in a `package_dir` field (it is literally "reconciliation"). A LinkedIn client id is alphanumeric with digits;
+#       this is a directory name and a pure false positive.
+#
+# FINDING-LEVEL, NOT PATH-SCOPED -- deliberately, and for the reason allowlist 3 documents:
+# gitleaks applies `paths` as a FILE-LEVEL pre-filter, so a path waiver would stop these
+# files being read at all and a REAL secret dropped into them later would be invisible.
+# These regexes are anchored to the exact fixture shapes, so every other rule still reads
+# every byte of those files. The ghp_ pattern pins prefix, length AND suffix rather than
+# embedding the token, so the waiver cannot be reused as a blanket ghp_ escape.
+[[allowlists]]
+description = "e2e-wave synthetic detector-control fixtures (redaction positive control, unit-id-prefixed fixture, dictionary-word package_dir FP)"
+regexTarget = "secret"
+regexes = [
+  '''^ghp_[A-Za-z0-9]{32}Q7r8$''',
+  '''^ADV0[0-9]{3}[A-Za-z0-9_-]{20,30}$''',
+  '''^reconciliation$''',
+]
