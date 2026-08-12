@@ -62,6 +62,22 @@ gates:
     enforces: >-
       Secret scan with the committed .gitleaks.toml allowlist (owner-intentional private-env
       store + reasoned doc/fixture placeholders only). Gate on 0.
+  - slug: p2-delivery
+    tools: ["jsonschema 4.25.1"]
+    enforces: >-
+      The P2 DELIVERY predicate (command-center/ready_units.py), which decides whether each of the
+      2,007 work units is actually delivered, run in CI rather than only when a human types the
+      command. Measured gap it closes: `grep -rn "ready_units" .github/workflows/ tools/` returned
+      0 hits, so a regression to the predicate -- or a fabricated artifact committed under
+      command-center/receipts/ -- was green on every pull request. Same green-not-live shape
+      wudeps.py already closed for work-unit DEPENDENCIES; DELIVERY was the half left open.
+      Every artifact is graded from the COMMITTED BLOB via `git cat-file` (never `git archive`,
+      which returns the Windows CRLF worktree bytes) and must agree with its worktree copy,
+      because working-tree-green != clone-green. Ratchets on a two-directional baseline
+      (vacuous_declarations 3, units_declaring_a_vacuous_contract 23): it fails if the count RISES,
+      and equally if it FALLS without the baseline being lowered, so the gate cannot silently
+      loosen. Read-floors fail closed under 1,500 units or 40 artifacts rather than reporting a
+      green computed over a collapsed read.
   - slug: deps
     tools: ["osv-scanner 2.x"]
     enforces: >-
