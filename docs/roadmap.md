@@ -5,10 +5,12 @@
 - Keep the existing live ops, recovery, transcript, and repo-quality skills intact.
 - Build out the Windows-first orchestration stack on top of that existing base.
 - Keep the primary execution surfaces separated:
-  - `.agents/skills/`
+  - `.agents/skills/` — the canonical skill root
+  - `skills/` — the generated projection of `.agents/skills/` that ships; `scripts/sync-skills.ps1`
+    deploys from it (`sync-skills.ps1:45`) and `ci/check_skill_dual_write.py --strict-parity` holds
+    the two in lockstep, so it is a permanent surface, not a temporary compatibility layer
   - `tools/mcp/`
-  - `tools/web/`
-- Keep `skills/` only as a temporary compatibility layer until the migration is complete.
+  - `tools/web/` — reserved and currently empty; see [`tools/web/README.md`](../tools/web/README.md)
 - Retain `tools/editor/` as a bounded editor-local surface.
 - Keep the root install path warning-free.
 - Reach Codex through the official `codex mcp-server` rail (`mcp__codex__codex` /

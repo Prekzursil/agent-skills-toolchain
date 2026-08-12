@@ -1,6 +1,6 @@
 # agent-skills-toolchain
 
-Full configuration and toolchain repo for all my AI agents: Codex CLI, Claude Code, and Gemini CLI. Contains 169+ skills, 40+ MCP server configs, shared tool libraries, and platform config snapshots - all plug-and-play.
+Full configuration and toolchain repo for all my AI agents: Codex CLI, Claude Code, and Gemini CLI. Contains 370+ skills, 40+ MCP server configs, shared tool libraries, and platform config snapshots - all plug-and-play.
 
 ## Quick Start
 
@@ -32,13 +32,13 @@ claude mcp get codex          # expect: Connected
 
 | Surface | Count | Description |
 |---------|-------|-------------|
-| `skills/` | 158 | Shared skills for Codex + Claude (see `SKILLS-MANIFEST.md`); incl. game-RE (`game-re-binary`, `game-frida-trace`, `game-find-anticheat`, `game-unpack-pe`) + SWFOC + Battle Cats |
+| `skills/` | 337 | Shared skills for Codex + Claude (see `SKILLS-MANIFEST.md`); incl. game-RE (`game-re-binary`, `game-frida-trace`, `game-find-anticheat`, `game-unpack-pe`) + SWFOC + Battle Cats |
 | `skills-claude-only/` | 35 | Claude Code exclusive skills (Azure, metaswarm, Ralph, etc.) |
 | `tools/mcp/` | 24 | MCP server projects (workstation bundle, cloud-hub, search-hub, hexstrike-ai, etc.) |
 | `tools/web/` | 0 | Empty since the 2026-08-09 ChatGPT-web retirement; reserved surface |
 | `tools/lib/` | 6 | Dependency-free shared ES modules extracted from the retired trees |
 | `tools/editor/` | 2 | Metaswarm + Ralph Orchestrator |
-| `release/platforms/windows/` | 8 | Config snapshots: Codex (41 MCPs), Claude (40 MCPs), Gemini (25+ MCPs) |
+| `release/platforms/windows/` | 8 | Config snapshots: Codex (40 MCPs), Claude (39 MCPs), Gemini (33 MCPs) |
 | `docs/` | — | Architecture docs, codex-consult analysis, plans, dated session reconciliations |
 
 > **Latest (2026-06-10):** added 4 game-RE skills; new MCP servers **`ocr`**
@@ -61,7 +61,7 @@ honestly, and routes **only** to available open-access and rights-holder-entitle
 ```bash
 cd tools/scholarly-access-mcp
 python -m venv .venv && .venv/Scripts/python -m pip install -e .
-.venv/Scripts/python -m pytest tests/test_policy.py -q   # 22 offline policy/gate tests
+.venv/Scripts/python -m pytest tests/test_policy.py -q   # 24 offline policy/gate tests
 .venv/Scripts/python tests/test_live.py                  # 10 live end-to-end checks
 .venv/Scripts/python list_tools.py                       # the 8-tool surface
 ```
@@ -155,7 +155,7 @@ Reusable code extracted before the delete lives in [`tools/lib/`](tools/lib/READ
 
 This repo is the working home for four kinds of agent assets plus the docs and validation needed to keep them bounded:
 
-- `skills/` for installable, validated skills (134 shared + 35 Claude-only)
+- `skills/` for installable, validated skills (337 shared + 35 Claude-only)
 - `tools/mcp/` for MCP-native contracts, adapters, and promoted tool projects
 - `tools/editor/` for editor-local tools such as VS Code extensions plus vendored host-local agent frameworks
 - `tools/web/` for browser- or web-mediated tool projects with explicit session boundaries
