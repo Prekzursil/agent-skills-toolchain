@@ -209,6 +209,28 @@ docstring; promoting it is an orchestrator decision.
   still contains the 6 false-casualty verdicts. I did not delete them — deleting the evidence of a
   defect is how the defect comes back.
 
+## 8. Fresh-clone verification, and a commit-attribution incident
+
+The six-lens audit flagged that **no fresh-clone verification exists anywhere** in this program.
+`verify_blob_parity.py` closes that for these two artifacts: it reads the **stored blob** with
+`git cat-file -p` — deliberately not `git archive`, which applies export-time EOL conversion and
+returns CRLF on Windows — and recomputes each elided digest.
+
+```
+ADV-0021  worktree 171343 B / CRLF 0   blob 171343 B / CRLF 0   blob digest MATCH=True
+ADV-0022  worktree 105357 B / CRLF 0   blob 105357 B / CRLF 0   blob digest MATCH=True
+```
+
+A reviewer who clones this repo reproduces both declared digests.
+
+**Attribution incident, recorded in `COMMIT-PROVENANCE.md`:** between this lane's `git add` and its
+commit, a sibling agent committed the whole index, sweeping this lane's staged files into
+`772159ce`. Nothing was lost and integrity is verified above, but the commit message describes the
+sibling's work. The scope guard *did* fire — the pre-commit check counted **34 foreign staged
+paths** and a blanket commit was refused in favour of a pathspec commit. What has no guard is a
+sibling committing *our* staged entries: on a shared worktree the index is a shared mutable
+resource. Recommend one worktree per lane, or a commit lock.
+
 ## Re-run everything
 
 ```
