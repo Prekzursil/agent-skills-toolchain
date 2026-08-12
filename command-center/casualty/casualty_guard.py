@@ -119,6 +119,12 @@ INSTRUMENTS: dict[str, str] = {
         "gone red is indistinguishable from a no-op, so CI carries the proof that it can. NOT "
         "EXECUTED by this guard: it invokes the guard, so that would recurse."
     ),
+    "verify_ci_parity.py": (
+        "EXEMPT: runs the PINNED ruff via `uvx`, which fetches from the network -- a live fetch "
+        "does not belong in the fast hermetic gate. It exists for the Windows author, whose "
+        "worktree can be CRLF while the blob CI checks out is LF; the runner already checks out "
+        "the LF form and lints it natively in gate-lint-format, so CI needs no second copy."
+    ),
     "r2_verify_all.py": (
         "EXEMPT: the full local reviewer runner -- shells to Git Bash, makes a real clone, reads "
         "the same machine-local transcripts. It is the thing a human runs, not a per-PR gate."
