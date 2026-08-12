@@ -312,3 +312,28 @@ every scan, so no "0 results" above is an uncontrolled zero.
 **Not re-probed (inherited, therefore NOT-CHECKED-by-me):** every row marked `[inherited]`. The
 largest such blocks are the Program-B wiring probes, the monitor package greps (U7/U10/U14/U18/U20/E5/E7),
 and the Prompt-Two mission grades other than M-1/M-3.
+
+## 9. REFUTATIONS FROM THE 2026-08-12 SIX-LANE WAVE (rows kept, evidence corrected)
+
+Recorded by the SYNTHESIS lane because `docs/monitor/MON-INTEGRATE.md` §6.5 delegated it here
+verbatim: *"Recording those corrections belongs to whoever owns `command-center/sources/REGISTER.md`.
+Record the refutation; do not delete the rows."* Nothing above is deleted — the rows stay, and a
+reader who trusts §1C or §8 without reading this section will act on three disproved premises.
+
+| row / claim | status now | measurement |
+|---|---|---|
+| §8 *"13 monitorcore files stale"* (also R-M02's evidence column) | **REFUTED** | 0 real drift. `tools/measure-guard/vendordrift.py` gates every committed copy as byte-identical, and `launchpath.py` now materialises them from the COMMITTED blobs and executes the cockpit. Source: MON-INTEGRATE §1-§3. |
+| §8 *"cockpit unregistered"* | **REFUTED** | A `[cockpit]` stanza exists in BOTH registry mirrors and now provably LAUNCHES. Re-run by me at HEAD `39f30ab2`, not inherited: `python tools/measure-guard/launchpath.py` -> `SUCCESS:launchpath 2 launch(es) from committed blobs across 2 registry mirror(s); 5 stanza(s) exempt`, exit 0. |
+| R-M18 *"a `[cockpit]` stanza sits at line 58 of all three monitors.toml copies"* | **REFUTED on both counts** | Line **72** (it moved when `[csmon]` landed), and there are **2** registries plus **1** test fixture, not three copies. Source: MON-INTEGRATE §6.1. |
+| R-M18 round-1 blocker: *"the SUCCESS branch requires an independent reviewer"* | **REFUTED — real, but not the blocker** | That clause gates a `state="SUCCESS"` receipt only; `command-center/receipts/BLD-0023.json` is a schema-valid `BLOCKED` receipt with no reviewer. The true blocker is narrower: `platform/schema/receipt.schema.json` `$defs.unit_id` is `^[A-Z][A-Z0-9]*-[0-9]{4}$`, which matches **0 of 103** register rows and **2007 of 2007** work units (control: `BLD-0023` -> True, `R-M18` -> False). **No register row in this file can emit a valid receipt at all.** That is an owner decision (widen the pattern, or give register rows an emittable `receipt_id` alias) — see OQ-8. Source: MON-INTEGRATE §6.1. |
+
+**Do not let anyone hand-write a SUCCESS receipt to clear R-M18.** R-M06 depends on R-M18, so
+MONITOR stays gated until the id decision is made. Settling experiment, unchanged: after the
+decision, `python command-center/p13_emit_receipt.py` for that unit must exit 0 and the emitted
+file must validate against the schema.
+
+Independence note: the id-shape row is **not** inherited. I re-derived it from
+`platform/schema/receipt.schema.json` `$defs.unit_id` directly and re-ran the match myself
+(`BLD-0023` -> True, `ADV-0021` -> True, `R-M18` -> False), and confirmed `BLD-0023.json` carries
+`state: BLOCKED`. The launch row is likewise my own run at HEAD `39f30ab2`. The line-72 and
+two-registries corrections are MON's measurement, cited not re-run.

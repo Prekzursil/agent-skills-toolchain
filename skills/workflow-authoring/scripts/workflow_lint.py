@@ -672,15 +672,24 @@ _ASSIGN_BEFORE = re.compile(
 _MAP_AFTER = re.compile(r"\s*\)?\s*\.\s*map\s*\(")
 
 
+_NULL_WORD = re.compile(r"\bnull\b")
+
+
 def _maps_nulls(masked: str, at: int) -> bool:
-    """True if a ``.map(...)`` starting at ``at`` mentions ``null`` in its body."""
+    """True if a ``.map(...)`` starting at ``at`` mentions ``null`` in its body.
+
+    The match is word-bounded on purpose. A bare substring test also matched
+    ``v.nullable`` / ``nullish``, so a ``.map()`` that merely CONTAINS the letters
+    silently suppressed ``parallel-filter-boolean`` -- a false negative in a rule
+    that CI now runs over real template source.
+    """
     m = _MAP_AFTER.match(masked, at)
     if m is None:
         return False
     body_close = _match_bracket(masked, m.end() - 1)
     if body_close is None:
         return False
-    return "null" in masked[m.end() : body_close]
+    return _NULL_WORD.search(masked[m.end() : body_close]) is not None
 
 
 def _var_is_null_tolerant(masked: str, name: str, from_idx: int) -> bool:

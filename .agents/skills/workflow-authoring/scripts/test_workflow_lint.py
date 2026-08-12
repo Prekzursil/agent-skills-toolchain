@@ -407,6 +407,31 @@ def test_parallel_no_filter_warns():
     assert p[0].level == wl.WARN
 
 
+def test_a_map_that_types_the_null_drop_suppresses_the_warning():
+    # positive control for the pair below: a `.map` that genuinely NAMES null is
+    # the stronger null-tolerance the rule is written to recognise, with no
+    # `.filter(Boolean)` present, so this exercises `_maps_nulls` and nothing else.
+    src = (
+        "export const meta = { name: 'x' }\n"
+        "const raw = await parallel(thunks)\n"
+        "const survivors = raw.map((s, i) => s ? { id: i, s } : null)\n"
+    )
+    findings = wl.lint_text(src)
+    assert not [f for f in findings if f.check == "parallel-filter-boolean"]
+
+
+def test_a_map_body_merely_containing_the_letters_null_does_not_suppress():
+    # `v.nullable` is not null handling. The pre-fix substring test matched it and
+    # silently suppressed the warning; word-bounding is what makes this red.
+    src = (
+        "export const meta = { name: 'x' }\n"
+        "const raw = await parallel(thunks)\n"
+        "const rows = raw.map((v) => v.nullable)\n"
+    )
+    findings = wl.lint_text(src)
+    assert [f for f in findings if f.check == "parallel-filter-boolean"]
+
+
 def test_parallel_assigned_then_chained_filter_ok():
     # the rtv-pdr pattern: const raw = await parallel(...); raw.map(...).filter(Boolean)
     src = (
