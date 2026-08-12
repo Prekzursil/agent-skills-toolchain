@@ -77,7 +77,17 @@ _GARBAGE_PROBES = (
 #: whose `state` says SUCCESS without a passing independent reviewer (3 errors).
 RECEIPT_FALLBACK_CONTRACT = "command-center/schema/receipt.schema.json"
 
+#: A text artifact is degenerate when it carries almost no information -- the 2,000-repeated-
+#: character shape that fooled an earlier verifier in this program. Measured on the real corpus:
+#: the smallest genuine report on disk has 60+ distinct characters, the blob has 1.
+_TEXT_MIN_DISTINCT_CHARS = 12
+_TEXT_MAX_SINGLE_CHAR_RUN = 200
+#: A floor, disclosed as a heuristic and not as a contract: an artifact whose whole body is its own
+#: completion sentinel is not a report. 200 non-space characters is roughly two sentences.
+_TEXT_MIN_BODY_CHARS = 200
+
 _DISCRIMINATES: dict[str, bool] = {}
+_REGISTRY_CACHE: list = []  # [] = not attempted, [None] = attempted and unavailable, [reg] = live
 
 
 def contract_discriminates(resolver, schema: str) -> bool:
@@ -107,24 +117,136 @@ def contract_discriminates(resolver, schema: str) -> bool:
     return verdict
 
 
-def looks_like_schema_doc(doc) -> bool:
-    """Is this document itself a usable JSON Schema? The type-appropriate fallback for the 21
-    meta-declaring units whose `output_path` really is a schema, where the meta-schema is the
-    right KIND of contract and merely cannot reject unrelated JSON.
+def _registry(resolver):
+    """The platform schema registry, or None. Cached because building it walks the schema tree.
 
-    Two-sided by construction: it accepts the real WFA-0001 schema pack, and rejects all three
-    garbage probes AND a structurally-broken schema (`{"type": 123, "required": "not-an-array"}`),
-    which the meta-schema itself also rejects.
+    Load-bearing for `schema_doc_verdict`: WITHOUT it the real WFA-0001 pack raises
+    `_WrappedReferencingError` on every probe (its `$ref` is unresolvable in a bare validator) and
+    would be admitted by the raise-means-refused convention -- i.e. for the wrong reason. WITH it
+    the same pack returns 12/12/11 real errors on the three garbage probes, so it passes on merit.
+    Measured by `command-center/p2-wave/_r3_probe_registry.py`.
+    """
+    if _REGISTRY_CACHE:
+        return _REGISTRY_CACHE[0]
+    reg = None
+    if resolver is not None:
+        try:
+            reg = resolver.build_registry()
+        except Exception:  # pragma: no cover - environment-dependent
+            reg = None
+    _REGISTRY_CACHE.append(reg)
+    return reg
+
+
+def schema_doc_verdict(doc, resolver=None) -> tuple[bool, str]:
+    """Is this document a usable, NON-VACUOUS JSON Schema? Returns (verdict, stage).
+
+    The type-appropriate fallback for the 23 units whose declared contract resolves to a
+    JSON-Schema meta-schema: for an artifact that really IS a schema the meta-schema is the right
+    KIND of contract and merely cannot reject unrelated JSON.
+
+    The returned stage names WHICH gate rejected, so a control can assert the stage rather than
+    only the boolean -- see the refutation below for why that matters.
+
+    REFUTED WORDING, recorded rather than deleted. Until 2026-08-12 this function was
+    `looks_like_schema_doc` and its docstring claimed: "Two-sided by construction: it accepts the
+    real WFA-0001 schema pack, and rejects all three garbage probes AND a structurally-broken
+    schema". Both halves were false, and an adversarial verifier proved it by execution
+    (`command-center/p2-wave/_av2_tmp/probe_bypass.py`, `probe_merit.py`):
+
+      * the three garbage probes were rejected by the ONE-LINE `$schema`/`$id` key check, not on
+        merit. Adding a single `"$schema"` key to the SAME garbage flipped the end-to-end
+        predicate to `delivered=True`  -- `BYPASS_PROVEN = True`, including for a bare
+        `{"$schema": ...}` of 59 bytes and for the 2,000-x blob;
+      * the structurally-broken example `{"type": 123, "required": "not-an-array"}` carries
+        neither key, so it too was rejected by the key check and `check_schema` was never
+        exercised by that control at all -- a control silent in both states.
+
+    The fix is the third stage below: the document, USED AS A CONTRACT, must reject the same
+    garbage probes the declared contract could not. That is the property the fallback was always
+    claiming, now measured instead of assumed.
     """
     if not isinstance(doc, dict) or not ("$schema" in doc or "$id" in doc):
-        return False
+        return False, "not-a-schema-document"
     try:
         import jsonschema
-
+    except (
+        Exception
+    ):  # pragma: no cover - jsonschema is a hard dependency of the resolver
+        return False, "schema-document-uncheckable:jsonschema-missing"
+    try:
         jsonschema.Draft202012Validator.check_schema(doc)
-    except Exception:
-        return False
-    return True
+    except Exception as e:
+        return False, f"schema-document-invalid:{type(e).__name__}"
+    reg = _registry(resolver)
+    try:
+        v = (
+            jsonschema.Draft202012Validator(doc, registry=reg)
+            if reg is not None
+            else jsonschema.Draft202012Validator(doc)
+        )
+    except Exception as e:
+        return False, f"schema-document-unusable:{type(e).__name__}"
+    raised = None
+    for probe in _GARBAGE_PROBES:
+        try:
+            if not list(v.iter_errors(probe)):
+                return False, "schema-document-vacuous"
+        except Exception as e:  # a contract that raises on garbage has still refused it
+            raised = type(e).__name__
+    if raised:
+        # Disclosed, not hidden: refusal by exception is weaker evidence than refusal by
+        # validation, because an unresolvable $ref refuses EVERYTHING including a good instance.
+        return True, f"schema-document-discriminates(refused-by-raise:{raised})"
+    return True, "schema-document-discriminates"
+
+
+def looks_like_schema_doc(doc, resolver=None) -> bool:
+    """Boolean face of `schema_doc_verdict`, kept so the round-2 probes still run unchanged."""
+    return schema_doc_verdict(doc, resolver)[0]
+
+
+def text_artifact_verdict(unit: dict, text: str) -> tuple[bool, str]:
+    """The gate for a NON-JSON artifact. Returns (verdict, reason).
+
+    D2, confirmed by execution (`command-center/p2-wave/_av2_tmp/probe_nonjson.py`): until
+    2026-08-12 `artifact_delivered` returned `(True, "non-json-present")` for ANY non-.json path
+    that merely existed and was non-empty, so a 2,000-x blob named `.md` was DELIVERED while the
+    identical bytes named `.json` were rejected -- `SUFFIX_BYPASS_PROVEN = True`. 120 units (all
+    `.md`) sit behind that branch; 0 of their artifacts exist yet, so the hole was latent, not
+    already-exploited.
+
+    What this gate can and cannot do, stated plainly because the reason string is quoted:
+      * it CANNOT contract-prove the artifact. All 6 contracts those 120 rows declare reject a
+        markdown string outright (1 error each: they are object schemas), so the declared
+        contract is unenforceable against the declared output_path. That is a catalog-internal
+        inconsistency; this module reports it and does not silently paper over it;
+      * it CAN require the row's own `completion_sentinel` (declared by 2007/2007 rows) to appear
+        in the document, and the content not to be degenerate.
+    """
+    sentinel = unit.get("completion_sentinel")
+    if not isinstance(sentinel, str) or not sentinel.strip():
+        return False, "text-artifact:no-completion-sentinel-declared"
+    if sentinel.strip() not in text:
+        return False, "text-artifact:completion-sentinel-absent"
+    # Everything below is measured on the BODY -- the text with the sentinel removed -- so that an
+    # artifact consisting only of its own sentinel cannot pass on the sentinel's own characters.
+    body = text.replace(sentinel.strip(), "")
+    solid = "".join(body.split())
+    if len(solid) < _TEXT_MIN_BODY_CHARS:
+        return False, f"text-artifact:body-too-thin(non-space-chars={len(solid)})"
+    if len(set(solid)) < _TEXT_MIN_DISTINCT_CHARS:
+        return False, f"text-artifact:degenerate(distinct-chars={len(set(solid))})"
+    run = longest = 1
+    for a, b in zip(body, body[1:]):
+        run = run + 1 if a == b else 1
+        longest = max(longest, run)
+    if longest >= _TEXT_MAX_SINGLE_CHAR_RUN:
+        return False, f"text-artifact:degenerate(longest-run={longest})"
+    return (
+        True,
+        "delivered(text artifact; sentinel present, non-degenerate; declared contract is NOT machine-checkable against a .md path)",
+    )
 
 
 def _fallback_contract(doc, resolver) -> tuple[bool, str]:
@@ -134,8 +256,12 @@ def _fallback_contract(doc, resolver) -> tuple[bool, str]:
     `--self-test` mutant a different verdict than the real receipt it is a copy of, which is a
     control that measures its own location instead of the defect.
     """
-    if looks_like_schema_doc(doc):
-        return True, "delivered(schema-document fallback; declared contract is vacuous)"
+    ok, stage = schema_doc_verdict(doc, resolver)
+    if ok:
+        return (
+            True,
+            f"delivered(schema-document fallback; declared contract is vacuous; {stage})",
+        )
     try:
         errs = resolver.validate_artifact(doc, RECEIPT_FALLBACK_CONTRACT)
     except Exception as e:
@@ -180,10 +306,16 @@ def artifact_delivered(unit: dict, resolver=None) -> tuple[bool, str]:
     Conditions, in order, each of which a bare `exists()` skips:
       1. output_path declared and the file exists;
       2. it is non-empty (a 0-byte file is the MSYS redirect-truncation signature);
-      3. if JSON, it parses;
+      3. if NOT JSON, `text_artifact_verdict` decides -- this branch used to be a bare
+         `return True, "non-json-present"`, which an adversarial verifier proved admits a
+         2,000-x blob named `.md` (`SUFFIX_BYPASS_PROVEN = True`, 120 units behind it);
+      3b. if JSON, it parses;
       4. if it validates against a declared output_schema, it must actually validate;
       4b. that declared contract must be ABLE TO FAIL -- see `contract_discriminates`. When it
           cannot, condition 4 is not evidence and a type-appropriate contract is applied instead;
+      4c. when that substitute is "the artifact is itself a schema", the artifact must be a
+          NON-VACUOUS schema -- see `schema_doc_verdict`. Until 2026-08-12 this stage checked
+          only for a `$schema`/`$id` key, and one added key flipped garbage to DELIVERED;
       5. if it carries a `state` field, that state must not be a self-declared failure.
 
     Condition 5 alone is forgeable by a one-word edit, which is why 4 is also enforced; condition
@@ -208,7 +340,11 @@ def artifact_delivered(unit: dict, resolver=None) -> tuple[bool, str]:
     if size <= 0:
         return False, "empty"
     if fp.suffix.lower() != ".json":
-        return True, "non-json-present"
+        try:
+            text = fp.read_text(encoding="utf-8", errors="replace")
+        except OSError as e:
+            return False, f"read-error:{type(e).__name__}"
+        return text_artifact_verdict(unit, text)
     try:
         doc = json.loads(fp.read_text(encoding="utf-8"))
     except Exception as e:
@@ -263,6 +399,86 @@ def _prefix_predicate(unit: dict, resolver) -> bool:
         if isinstance(st, str) and st.upper() in NOT_DELIVERING:
             return False
     return True
+
+
+def _pre_r3_schema_doc(doc) -> bool:
+    """`looks_like_schema_doc` as it stood BEFORE 2026-08-12 (key check + `check_schema`, no merit
+    stage), reproduced so every schema-document control can print the column that matters: did the
+    OLD instrument accept this? A fixture the old instrument also rejected is not a control for
+    this defect."""
+    if not isinstance(doc, dict) or not ("$schema" in doc or "$id" in doc):
+        return False
+    try:
+        import jsonschema
+
+        jsonschema.Draft202012Validator.check_schema(doc)
+    except Exception:
+        return False
+    return True
+
+
+_META = "https://json-schema.org/draft/2020-12/schema"
+
+#: One fixture per STAGE of `schema_doc_verdict`, because the defect being fixed was a control
+#: that never reached the stage it claimed to test. `want_stage` is a prefix, asserted so a
+#: document rejected by the WRONG stage still fails the control.
+_SCHEMA_DOC_CONTROLS = (
+    (
+        "unkeyed garbage",
+        {"totally": "unrelated", "passing_tests": 999999},
+        False,
+        "not-a-schema-document",
+    ),
+    (
+        "KEYED garbage (the proven bypass)",
+        {"$schema": _META, "totally": "unrelated", "passing_tests": 999999},
+        False,
+        "schema-document-vacuous",
+    ),
+    ("bare {$schema}", {"$schema": _META}, False, "schema-document-vacuous"),
+    (
+        "$id-only garbage",
+        {"$id": "urn:x", "totally": "unrelated"},
+        False,
+        "schema-document-vacuous",
+    ),
+    (
+        "KEYED broken schema",
+        {"$schema": _META, "type": 123, "required": "not-an-array"},
+        False,
+        "schema-document-invalid",
+    ),
+)
+
+#: One fixture per STAGE of `text_artifact_verdict`, same reasoning. All five are `.md`, so the
+#: PRE-fix predicate accepted every one of them -- that column is the proof the control bites.
+_TEXT_CONTROLS = (
+    ("good note", "text-good.md", True, "delivered(text artifact"),
+    (
+        "sentinel absent",
+        "text-no-sentinel.md",
+        False,
+        "text-artifact:completion-sentinel-absent",
+    ),
+    ("body is only the sentinel", "text-thin.md", False, "text-artifact:body-too-thin"),
+    (
+        "2,000-x blob body",
+        "text-degenerate-run.md",
+        False,
+        "text-artifact:degenerate(longest-run",
+    ),
+    (
+        "two-character body",
+        "text-degenerate-distinct.md",
+        False,
+        "text-artifact:degenerate(distinct-chars",
+    ),
+)
+
+_TEXT_FIXTURE_DIR = "command-center/p2-wave/fixtures/ready-units"
+#: The catalog row the text controls borrow: a real unit, so the sentinel under test is the one
+#: the catalog actually declares rather than one this file invented.
+_TEXT_CONTROL_UNIT = "CNL-0002"
 
 
 def self_test() -> int:
@@ -334,14 +550,72 @@ def self_test() -> int:
             f"| pre-4b-predicate={before} -> {'OK (guard fires on the broken state)' if fires else 'BROKEN'}"
         )
 
+    # --- D1: the schema-document fallback, one control per STAGE, with the old column. ---
+    wfa = by_id.get("WFA-0001")
+    cases = list(_SCHEMA_DOC_CONTROLS)
+    if wfa and (REPO / wfa["output_path"]).is_file():
+        cases.append(
+            (
+                "REAL WFA-0001 pack",
+                json.loads((REPO / wfa["output_path"]).read_text(encoding="utf-8")),
+                True,
+                "schema-document-discriminates",
+            )
+        )
+    else:
+        print(
+            "  CONTROL schema-doc: WFA-0001 artifact MISSING -- the known-GOOD state cannot run"
+        )
+        ok = False
+    for label, doc, want, want_stage in cases:
+        got, stage = schema_doc_verdict(doc, resolver)
+        good = got is want and stage.startswith(want_stage)
+        if not good:
+            ok = False
+        print(
+            f"  CONTROL schema-doc {label:34s}: want={want!s:5s} got={got!s:5s} "
+            f"stage={stage:46s} | pre-r3-instrument={_pre_r3_schema_doc(doc)!s:5s} "
+            f"-> {'OK' if good else 'BROKEN'}"
+        )
+
+    # --- D2: the text-artifact gate, one control per STAGE, with the old column. ---
+    tunit = by_id.get(_TEXT_CONTROL_UNIT)
+    if tunit is None:
+        print(
+            f"  CONTROL text: {_TEXT_CONTROL_UNIT} not in catalog -- controls cannot run"
+        )
+        ok = False
+    else:
+        for label, fname, want, want_reason in _TEXT_CONTROLS:
+            rel = f"{_TEXT_FIXTURE_DIR}/{fname}"
+            if not (REPO / rel).is_file():
+                print(
+                    f"  CONTROL text {label}: fixture {rel} MISSING -- control cannot run"
+                )
+                ok = False
+                continue
+            u = dict(tunit)
+            u["output_path"] = rel
+            got, why = artifact_delivered(u, resolver)
+            before = _prefix_predicate(u, resolver)
+            good = got is want and why.startswith(want_reason)
+            if not good:
+                ok = False
+            print(
+                f"  CONTROL text {label:26s}: want={want!s:5s} got={got!s:5s} "
+                f"reason={why[:52]:52s} | pre-r3-predicate={before!s:5s} "
+                f"-> {'OK' if good else 'BROKEN'}"
+            )
+
     if not ok:
         print(
             "FAILED:ready-units self-test the delivered() control does not discriminate"
         )
         return 1
     print(
-        "SUCCESS:ready-units self-test delivered() fires on both broken states "
-        "(self-declared failure AND vacuous-contract false green) and is silent on the good one"
+        "SUCCESS:ready-units self-test delivered() fires on every known-broken state "
+        "(self-declared failure, vacuous-contract false green, one-key $schema bypass, "
+        "and non-.json suffix bypass) and is silent on the good ones"
     )
     return 0
 

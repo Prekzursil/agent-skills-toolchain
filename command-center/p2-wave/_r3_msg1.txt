@@ -1,0 +1,51 @@
+fix(command-center): one added key was enough to be counted DELIVERED
+
+An adversarial verifier refuted the round-2 vacuity fallback by executing it, and I reproduced
+both defects with its own probes before touching anything.
+
+D1, the one-key bypass. `looks_like_schema_doc` gated on a `$schema`/`$id` key plus
+`check_schema`, and `check_schema` accepts unknown keywords. So adding ONE key to arbitrary
+garbage produced a "usable schema" and the end-to-end predicate returned delivered=True --
+for a 128-byte garbage document, for a 2,000-x blob, and for a bare `{"$schema": ...}` of 59
+bytes. 23 units declare a contract that cannot fail, i.e. 23 units were one key from a false
+green. `_av2_tmp/probe_bypass.py` printed BYPASS_PROVEN = True; it now prints False.
+
+D1b, the control shipped with it was silent in both states. Its docstring claimed
+two-sidedness against `{"type": 123, "required": "not-an-array"}` -- a document carrying
+neither key, so the KEY check rejected it and check_schema was never exercised by that control
+at all. Every new control here asserts the STAGE that rejected, not only the boolean, so a
+fixture rejected by the wrong stage still fails.
+
+D2, the suffix bypass. `artifact_delivered` returned (True, "non-json-present") on suffix
+alone, so a 2,000-x file named .md was DELIVERED while the identical bytes named .json were
+rejected. 120 units sit behind that branch; 0 of their artifacts exist yet, so the hole was
+latent and no delivered count was ever wrong because of it. Correctly scoped rather than
+inflated. `_av2_tmp/probe_nonjson.py` printed SUFFIX_BYPASS_PROVEN = True; it now prints False.
+
+The fix for D1 is stronger than the verifier's own candidate remedy. Its version treated a
+raise as a refusal, which keeps WFA-0001 delivered -- but WFA-0001 raises on every probe
+because its $ref is unresolvable in a bare validator, so it would have passed for the wrong
+reason. platform/lib/schema_resolver exposes build_registry(); attaching it makes the same
+pack discriminate on merit (12/12/11 real errors) while the three bypass documents stay
+vacuous (0/0/0). Refusal-by-raise is still accepted, per the module's existing convention, but
+is now disclosed in the reason string because an unresolvable $ref refuses good instances too.
+
+The fix for D2 is a gate sized to what a text artifact can bear, with its limits written where
+they are used: it CANNOT contract-prove the artifact -- all 6 contracts those 120 .md rows
+declare reject a markdown string outright, which is a catalog-internal inconsistency I report
+rather than repair -- but it CAN require the row's own completion_sentinel (2007/2007 rows
+declare one) plus a non-degenerate body. The 200/12/200 thresholds are labelled a heuristic
+floor in the source, not a contract.
+
+Evidence, all re-runnable:
+  ready_units.py --self-test  -> 16 controls, exit 0, each printing the pre-r3 instrument's
+    column beside it; where that column reads True the shipped predicate accepted that exact
+    document. One fixture per stage: unkeyed garbage, keyed garbage, bare {$schema}, $id-only,
+    keyed broken schema, real WFA-0001 pack, and five .md fixtures covering sentinel-absent,
+    body-too-thin, longest-run and distinct-chars.
+  _r3_blast.py -> old predicate executed from the HEAD blob (ls-files + cat-file, never git
+    archive): 51 artifacts present, 0 verdict changes, and the bypass document flips True to
+    False in the same run, so the fix is neither destructive nor inert.
+  partition unchanged: units 2007 | delivered 1 | READY 449 | blocked 1390 | owner-gated 167.
+
+The REFUTED round-2 wording is recorded inline in the docstrings rather than deleted.
