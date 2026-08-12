@@ -726,6 +726,24 @@ def main() -> int:
     ):
         print("FAILED:ready-units partition does not sum to the unit count")
         return 1
+    # FAIL CLOSED on a dark contract checker. `--self-test` already refused to report a verdict
+    # without a resolver; this path did not, and printed `SUCCESS:ready-units partition sums
+    # correctly` while every one of the 367 declarations went unchecked. Measured 2026-08-12 by
+    # `command-center/p2-wave/_i1_dark_probe2.py` (monkeypatched `_load_resolver`) with the LIT
+    # state as its control:
+    #     main/LIT   exit=0  contract-vacuity: 3 declarations ... (checker=live)
+    #     main/DARK  exit=0  contract-vacuity: 367 declarations ... (checker=unavailable)
+    # The sum still added up, so the only assertion this function made was arithmetic over a
+    # partition computed from an unenforced predicate. A partition is not trustworthy because it
+    # sums; it is trustworthy because the predicate that produced it actually ran. That distinction
+    # is the whole reason this file was rewritten, and it was missing from its own exit code.
+    if cv["checker"] != "live":
+        print(
+            f"FAILED:ready-units the contract checker is {cv['checker']} -- "
+            f"{len(cv['vacuous_declarations'])} declarations went unchecked, so this partition "
+            "is not evidence of anything"
+        )
+        return 1
     print("\nSUCCESS:ready-units partition sums correctly")
     return 0
 
