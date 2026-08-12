@@ -1,0 +1,142 @@
+# LANE CASUALTY — BUILD ROUND 2 (re-entry after adversarial refutation)
+
+Build round 2, 2026-08-12. Write-as-you-go: rewritten at every milestone; whatever is on disk is
+always truthful.
+
+> If a section still reads `UNKNOWN - not yet measured`, the unit died before measuring it and no
+> verdict there may be cited.
+
+**COVERAGE at this write:** R2-A DONE · R2-B DONE (5/5 controls, each proven against the pinned
+pre-fix blob) · R2-C DONE (8 sentence repairs) · R2-D partial — the fresh-clone leg runs against
+the round-2 commit and is filled in immediately after it · R2-E DONE · R2-F in progress.
+
+---
+
+## R2-A. What the adversarial audit actually confirmed
+
+The audit text handed to this lane was TRUNCATED mid-sentence. I recovered the full record rather
+than guessing: `_r2_find_audit.py` scans the workflow journals for it, `_r2_dump_audit.py` dumps
+one record. It is `wf_e58dfd3f-7b1` journal line 65, agentId `aa1e83cff63e3c2bd`, saved verbatim
+at `_r2_audit_round1.txt` (26,672 B).
+
+Verdict **PARTIAL** — *"ALL SIX DoD ITEMS SUBSTANTIVELY HOLD UNDER MY OWN EXECUTION … Nothing
+needs rebuilding"*, with **7 overclaims** and **4 real defects** in ancillary tooling. Round 2
+fixes all of them, plus a fifth defect found while fixing the third. Nothing was rebuilt; no probe
+was re-authored.
+
+## R2-B. CONFIRMED DEFECTS — fixed, each with a both-states control
+
+`python command-center/casualty/_r2_defect_controls.py` →
+`SUCCESS:r2-defect-controls 5 controls, all separate broken-vs-fixed`; machine-readable in
+`R2-DEFECT-CONTROLS.json`. Each control materialises the PRE-FIX code from the stored blob at the
+**pinned round-1 baseline `4afce4e1`** and requires the defect to REPRODUCE there first.
+
+| id | defect | fix | broken-state proof |
+|----|--------|-----|--------------------|
+| D1a | re-running `_probe_liveness.py` silently ERASES the `_DO_NOT_CITE` banner on `ADV-LIVENESS.json` and republishes 6 false CASUALTY verdicts | execution refused (rc=2) unless `--i-know-this-is-superseded --out DIR`; importing it for `score()` is unaffected | pre-fix copy with OUT redirected to a temp dir holding a planted banner → rc=0 and **banner survived=False** |
+| D1b | same shape, `_probe_census.py` → `ADV-COMPLETENESS-CENSUS.json` | same guard | same: **banner survived=False** |
+| D2 | `verify_elided_digest.py` with no args printed nothing and exited **0** — a zero-input run indistinguishable from two passes, in an anti-fabrication tool | fails closed, rc=2, `FAILED:elided-digest no inputs` | pre-fix no-arg run `rc=0 stdout=''`; the fixed tool still emits 4×`MATCH=True` on the real receipts, so it is not merely inert |
+| D3 | `liveness_v2.py`'s three-state control was opt-in behind `--selftest`, so the citable tally was produced without ever running it | the control runs unconditionally BEFORE any tally; `--selftest-mutate drop-g3` proves it can still fail | pre-fix default run: control printed=False, tally printed=True. Mutated run: rc=1 and **no tally emitted at all** |
+| **D5 — new, found by me while fixing D3** | the control exercised `evaluate()` while the tally came from a **second copy** of the gate logic inside `main()`. The control guarded a different code path than the number it was certifying | one implementation; `main()` calls `evaluate()` | the AND-gate expression `g1 and g2 and g3` appears **2×** pre-fix, **1×** post-fix; tally unchanged at `{'SUBSTANTIVE': 38, 'RECOVERED': 2}`, so the collapse is behaviour-preserving |
+| D4 | `adv0022_git_verifier.sh:31` narrated "219 files, of which 12" two lines above the lines that compute it | the delta is computed and printed as `self_match_inflation` | see the sharpening below |
+
+**D4 is worse than the audit found, and the sharper version is the one recorded.** The audit read
+it as drift ("live values are now 225 and 208"). Measured: the stored capture computes
+`raw=219 / excluding-lane=208` → delta **11**, while its own narrative says **12**. It was wrong
+**at capture time**, not merely stale — and the stray 12 is the *C3* block's
+`raw_including_this_lane=12`, a number borrowed from the wrong block. Independent recomputation
+today: raw=225, excluding-lane=208, delta=17; the fixed probe prints exactly 17.
+
+**Three of my own round-2 detectors failed and are recorded, not hidden.**
+1. the D5 duplicate-implementation counter counted the literal `verdict = "MID-FLIGHT"` — a syntax
+   form that `evaluate()` writes as a ternary. It scored pre-fix=1 / post-fix=0, i.e. reported the
+   defect ABSENT and the fix as having DELETED the logic.
+2. the D4 control demanded `raw_including_this_lane=225` inside the OLD capture; 225 is today's
+   value and the old capture holds 219, so it required a number the broken state never contained.
+3. the ADV-0021 routing recount searched the WHOLE cell object for an ADV id and returned 24/6
+   over unmitigated+partial — the use-vs-mention error, and not comparable with the audit's count
+   over unmitigated cells. Field-scoped to the `disposition`, it reproduces the audit's 17 exactly.
+
+All three are the count-the-form-not-the-thing shape. Every number above comes from the corrected
+instruments. A fourth self-catch: my first ADV-0022 defect record used
+`status: "closed-in-round-2"`, and the gate rejected the whole receipt as `schema-invalid` — the
+enum is `['open','resolved','waived-by-owner','superseded']`. The gate caught me; that is what it
+is for.
+
+## R2-C. Overclaim repairs — 8 sentences, each recorded as REFUTED beside its scoped replacement
+
+Located with a controlled corpus scan (`_r2_scan_overclaims.py`, 72 files, every pattern paired
+with a known-present control token; 0 failed controls).
+
+| # | refuted wording | what was actually measured | where it is fixed |
+|---|---|---|---|
+| OC1 | "every unmitigated cell routed to a **NAMED** existing catalog unit" | **17 of 21** route to a named unit; **4** are accepted residuals with owner-visible impact. The requirement is a disjunction and both arms are used | receipt `tests_required_closure.routing_split_recounted_in_round2`; `LANE-CASUALTY-REPORT.md` §2 |
+| OC2 | "Probe 2 executes the bypass for every 'mitigated' cell … All satisfied" | TB3/Tampering had **no executed bypass against its own boundary** | **DATA fix:** cell downgraded `mitigated`→`unmitigated` per the spec's literal rule; counts 20/2 → **21/1** |
+| OC3 | "c1/c5 = family convention" | c1 fails **41/42 (97%)** — holds. c5 fails **25/42 (59%)** — common, not universal; 17 siblings satisfy it | `LANE-CASUALTY-REPORT.md` §4; `_probe_census.py` docstring |
+| OC4 | "c3 … cannot be satisfied" | unsatisfiable only for a receipt declaring ITSELF as primary artifact (40/42). ADV-0010 and ADV-0005 satisfy c3 by declaring external files | `LANE-CASUALTY-REPORT.md` §4 |
+| OC5 | "a fresh clone reproduces both declared digests" | **no clone was made**; on a clean tree blob == worktree by construction | tool now HAS a real `--fresh-clone` mode (R2-D); wording fixed in the tool, the report and `COMMIT-PROVENANCE.md` |
+| OC6 | "ADV-0002 … never dispatched" | round-1 probe read 2 runs / 100 transcripts / 1 session | **widened, not narrowed** — see below |
+| OC7 | two stale pasted numbers: `transcripts scanned: 98`; "219 files, of which 12" | live 100; and the 12 was wrong at capture time | `ADV-0002-ACCOUNTING.md`; D4 fix |
+| OC8 | "a **sibling agent** committed the whole index" | all commits share one author identity, so git cannot attribute it **in either direction** | `COMMIT-PROVENANCE.md` header + report §8 |
+
+**OC6 was widened rather than narrowed, and it survived.** `_r2_adv0002_recheck.py` re-ran the
+question with `rg` — a mechanically different tool — over **every `*.jsonl` in every session of
+every project** under `~/.claude/projects`, not the census's two named runs:
+
+- `YOUR WORK UNIT: ADV-0038` → **0 occurrences anywhere**.
+- `YOUR WORK UNIT: ADV-0002` → occurrences exist and **every one is a MENTION** (an agent quoting
+  a `uniq -c` tally, an agent quoting this investigation, and self-match from this round's own
+  transcript). **Zero transcripts carry ADV-0002 as their own dispatched unit.**
+- Detector control: the same matcher with the wildcard id finds **152 occurrences across 52
+  files**, ADV-0021 six times — so the zero is a real absence, not a broken pattern.
+
+This started as a genuine scare: a ripgrep sweep surfaced `3 YOUR WORK UNIT: ADV-0002` inside a
+sibling's `uniq -c` output, which reads exactly like three dispatches. Reading the raw record
+showed it was a count of *occurrences* across all projects, i.e. mentions. Two probes disagreed and
+the disagreement was resolved from the raw source, not by vote.
+
+**Residual, inline:** both probes assume a dispatch always carries the literal `YOUR WORK UNIT:`
+marker. That held 40/40 for this wave. A launcher using a different template is invisible to both.
+*Settling experiment:* read the workflow launcher that composes the spawn prompt and confirm the
+marker is unconditional. — **Also measured:** ADV-0041 was dispatched to **three** agents, so
+"one agent per unit" is not an invariant of this wave; the grounding lane flagged retry as a
+theoretical risk to two-signal identification and it is real.
+
+## R2-D. Re-verification after the fixes
+
+- **Gate vector, both receipts, unchanged by every round-2 edit:**
+  `c2, c4, c6, c7, c8, c12 = SATISFIED`; `c1, c3, c5, c9, c10, c11 = UNSATISFIED`. Read as a
+  vector, never as the binary marker — the marker is saturated across the family (it prints
+  `FAILED` for the known-complete ADV-0024 and for a 1,818 B skeleton alike).
+- **Elided self-digests re-converged and re-verified after patching:** ADV-0021 `MATCH=True`
+  at 176,468 B, ADV-0022 `MATCH=True` at 114,103 B, both with the mutated-state control still
+  changing the digest.
+- **Receipt patcher is idempotent** — it rebases on the pinned round-1 blobs at `4afce4e1` before
+  applying, so a second run reproduces byte-for-byte instead of double-appending.
+- **Fresh clone:** `UNKNOWN - not yet measured at this write.` It must run against a commit that
+  CONTAINS the round-2 receipts, so it runs immediately after the round-2 commit and is recorded
+  in the follow-up commit. If this line still reads UNKNOWN, the clone leg never ran.
+
+## R2-E. Census + liveness refresh, with the live-wave caveat demonstrated
+
+Re-run immediately before committing, `2026-08-12T08:28:41Z`:
+
+- `census_v2.py` → control FIRST: **6 pairs, ALL SEPARATE** (complete 6/6 vs skeleton 0/6); 40
+  artifacts; raw `{0: 2, 5: 4, 6: 34}`; `SUCCESS:census-v2`. The script exits non-zero and prints
+  no tally if any control pair fails to separate.
+- `liveness_v2.py` → three-state control PASSES **on the same invocation that reports the tally**
+  (that is the D3+D5 fix), then `{'SUBSTANTIVE': 38, 'RECOVERED': 2}` at
+  `2026-08-12T11:28:41+03:00`, `SUCCESS:liveness-v2`.
+- The two known casualties are RECOVERED, not dead: their finished receipts exist at this lane's
+  paths. The canonical `command-center/adversarial/` paths still hold the 2 KB skeletons —
+  promotion is an orchestrator action, and until it happens any tool reading only the canonical
+  path sees two false casualties.
+
+**The live-wave caveat is not boilerplate — it is still live at this write.**
+`git status --porcelain -- command-center/adversarial/` shows ADV-0037, ADV-0040 and ADV-0041
+modified by a sibling wave right now. **A low score is never a casualty verdict on its own**, and
+this census is stale the moment it is written.
+
+## R2-F. Commit
+
+`UNKNOWN - not yet measured`

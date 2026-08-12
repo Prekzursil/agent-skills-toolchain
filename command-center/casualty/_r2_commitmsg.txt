@@ -1,0 +1,54 @@
+casualty round 2: fix the 4 confirmed defects + 8 overclaims, and a 5th defect the audit missed
+
+The adversarial audit of round 1 returned PARTIAL: all six DoD items held under its own
+execution, nothing needed rebuilding, but four tooling defects were real and seven sentences
+were wider than their evidence. This commit closes all of them, plus one more found while
+fixing the third. Every fix carries a both-states control pinned to the round-1 baseline
+4afce4e1, so the broken state stays reachable after this commit lands.
+
+DEFECTS (python command-center/casualty/_r2_defect_controls.py -> 5/5 separate)
+  D1a/D1b  _probe_liveness.py and _probe_census.py silently overwrote the very files carrying
+           their own _DO_NOT_CITE banners, republishing 6 false CASUALTY verdicts on any
+           accidental re-run. Execution now refused (rc=2) unless --i-know-this-is-superseded
+           and an explicit --out DIR; importing them for score() is unaffected, which matters
+           because census_v2/liveness_v2 depend on that import.
+  D2       verify_elided_digest.py printed nothing and exited 0 with no arguments - an empty
+           walk indistinguishable from two passing verifications, inside an anti-fabrication
+           tool. Now fails closed.
+  D3       liveness_v2.py's three-state control was opt-in behind --selftest, so the citable
+           tally was produced without it. It now runs unconditionally before any tally, and
+           --selftest-mutate drop-g3 proves it can still fail.
+  D5 NEW   the control exercised evaluate() while the tally came from a SECOND copy of the gate
+           logic in main(). The control guarded a different code path than the number it
+           certified. Collapsed to one implementation; tally unchanged, so behaviour-preserving.
+  D4       adv0022_git_verifier.sh narrated a frozen pair of numbers two lines above the lines
+           that compute them. Sharper than the audit found: the narrated 12 disagreed with the
+           same capture's own 219-208=11, so it was wrong AT CAPTURE TIME, and the 12 is the C3
+           block's raw count borrowed from the wrong block. The delta is now computed.
+
+RECEIPT DATA FIX (not a sentence fix)
+  ADV-0021 TB3/Tampering was marked mitigated although no bypass was ever executed against that
+  boundary. The catalog spec says a mitigation with no executable check is downgraded to
+  unmitigated, so the cell moves: counts 20/2 -> 21/1, every derived number recounted from the
+  cells rather than edited. Every cell still marked mitigated now has an executed bypass, so the
+  Probe-2 clause is satisfied without qualification.
+
+OVERCLAIMS - 8 sentences, each recorded as REFUTED beside its scoped replacement, never deleted.
+  Highlight: "ADV-0002 never dispatched" was WIDENED rather than narrowed. Re-measured with rg
+  over every transcript of every project under ~/.claude/projects: ADV-0038 has zero occurrences
+  anywhere, every ADV-0002 occurrence is a MENTION, and the wildcard control finds 152
+  occurrences across 52 files so the zero is a real absence. A sibling's uniq -c output reading
+  "3 YOUR WORK UNIT: ADV-0002" looked like a refutation until the raw record was read.
+  Also: "a fresh clone reproduces the digests" was refuted because no clone was ever made -
+  verify_blob_parity.py now has a real --fresh-clone mode; and the commit-attribution claim is
+  downgraded to NOT-CHECKED because every commit here shares one author identity.
+
+THREE OF MY OWN ROUND-2 DETECTORS FAILED FIRST and are recorded in the artifact rather than
+quietly replaced: a duplicate-implementation counter that counted a syntax form, a control that
+demanded a number the broken state never contained, and a routing recount that searched the
+whole cell object instead of the disposition field (use-vs-mention). All three are the
+count-the-form-not-the-thing shape.
+
+Gate vector unchanged on both receipts: c2,c4,c6,c7,c8,c12 SATISFIED. Elided digests
+re-converged and re-verified. Census control separates 6/6 vs 0/6; liveness tally
+{SUBSTANTIVE 38, RECOVERED 2} with its control on the same invocation.

@@ -5,12 +5,33 @@ a passing two-sided detector control; nothing here is inferred from a filename.
 
 ## Verdict: NEVER DISPATCHED. Not a casualty, not a lost artifact.
 
+**Scope of that verdict, stated up front (round-2 correction).** Round 1 wrote "NEVER DISPATCHED"
+unqualified while its probe read exactly two runs of one session. The adversarial audit was right
+to call that wider than its evidence. Round 2 did not narrow the sentence — it **widened the
+measurement** with a mechanically different tool and the verdict survived:
+
+| probe | tool | corpus | ADV-0002 | ADV-0038 |
+|---|---|---|---|---|
+| round 1 | python, parses each transcript's own first user message | 2 runs, 100 transcripts, 1 session | dispatched=False | dispatched=False |
+| round 2 | `rg` over raw bytes (`_r2_adv0002_recheck.py`) | **every `*.jsonl` in every session of every project** under `~/.claude/projects` | occurrences exist, **all MENTIONS**; 0 transcripts own it | **0 occurrences at all** |
+
+Detector control for the round-2 sweep: the same matcher with the wildcard id returns **152
+occurrences across 52 files**, and ADV-0021 six times — so a zero is a real absence and not a
+broken pattern. Full record: `R2-ADV0002-RECHECK.json`.
+
+**Residual, inline:** both probes assume a dispatch always carries the literal `YOUR WORK UNIT:`
+marker. That held 40/40 in this wave. A launcher using a different template is invisible to both.
+*Settling experiment:* read the workflow launcher that composes the spawn prompt and confirm the
+marker is unconditional.
+
 `python command-center/casualty/_probe_dispatch_census.py` reads the literal
-`YOUR WORK UNIT: <ID>` line out of every spawn prompt across the run.
+`YOUR WORK UNIT: <ID>` line out of every spawn prompt across the run. Re-run in round 2 — the
+`98` below was already stale when round 1 pasted it; the live value is `100`, and the file is the
+live output:
 
 ```
 CONTROL: positive(finds known-dispatched ADV-0021+ADV-0022)=True negative(does not invent ADV-9999)=True
-transcripts scanned: 98; distinct units dispatched: 40
+transcripts scanned: 100; distinct units dispatched: 40
 ADV units DISPATCHED in these runs: 40
 ADV artifacts ON DISK now:          40
 DISPATCHED but NO artifact on disk: (none)

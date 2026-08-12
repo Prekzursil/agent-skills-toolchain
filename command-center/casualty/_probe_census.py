@@ -4,9 +4,12 @@ WHY NOT THE OBVIOUS DETECTORS (both measured, both fail their control):
   (a) an UNKNOWN-sentinel grep scores 8 hits on a complete 162 KB artifact and 8 on a 1.8 KB
       skeleton, because UNKNOWN is a legitimate verdict VALUE (use-vs-mention).
   (b) receipt_schema_gate's BINARY marker prints FAILED for BOTH the known-complete ADV-0024 and
-      the known-skeleton ADV-0021, because c1/c5 encode a family-wide convention
-      (state=BLOCKED + a FAILED sentinel) that completed adversarial units deliberately use.
-      A saturated signal carries no information.
+      the known-skeleton ADV-0021. A signal saturated across both known states carries no
+      information. [ROUND-2 SCOPE CORRECTION, audit-confirmed] the earlier wording here said
+      "c1/c5 encode a family-wide convention"; measured across all 42 receipts, c1 fails 41/42
+      (97%, near-universal) but c5 fails only 25/42 (59%) -- common, not universal, and 17
+      siblings do satisfy c5. The saturation of the BINARY marker is what this docstring needs
+      and that part is unchanged; the c5 half of the old sentence was wider than its evidence.
 
 WHAT DISCRIMINATES is whether the SUBSTANCE arrays are populated. This script reuses the repo's
 existing gate (platform/lib/receipt_schema_gate.py -- do NOT reimplement it) for the per-condition
@@ -101,7 +104,36 @@ def score(doc: dict, nbytes: int) -> dict:
     }
 
 
+SUPERSEDED_BY = "command-center/casualty/census_v2.py"
+SUPERSEDED_MSG = (
+    "FAILED:census SUPERSEDED as a GENERATOR. score() and is_real() remain the canonical scorer "
+    "and are imported by census_v2.py/liveness_v2.py -- that is unaffected. What is refused is "
+    "EXECUTION: main() overwrites command-center/casualty/ADV-COMPLETENESS-CENSUS.json, the "
+    "mid-wave 01:35 snapshot that now carries a _DO_NOT_CITE banner and is the evidence for a "
+    "measured P1 defect. An accidental re-run erases that banner and republishes a snapshot "
+    "whose scores were 8 hours stale.\n"
+    f"  Use: python {SUPERSEDED_BY}\n"
+    "  To run it anyway (for a both-states control), pass --i-know-this-is-superseded and an "
+    "explicit --out DIR; it will never write the canonical path without both."
+)
+
+
 def main(argv: list[str]) -> int:
+    # ROUND-2 D1 (confirmed by the adversarial audit of build round 1).
+    global OUT
+    argv = list(argv)
+    forced = "--i-know-this-is-superseded" in argv
+    out_override = None
+    if "--out" in argv:
+        i = argv.index("--out")
+        if i + 1 < len(argv):
+            out_override = Path(argv[i + 1])
+    if not (forced and out_override):
+        print(SUPERSEDED_MSG)
+        return 2
+    OUT = out_override
+    OUT.mkdir(parents=True, exist_ok=True)
+
     files = sorted(ADV.glob("*.json"))
     if not files:
         print("FAILED:census no artifacts found -- detector or path is wrong, not an empty dir")

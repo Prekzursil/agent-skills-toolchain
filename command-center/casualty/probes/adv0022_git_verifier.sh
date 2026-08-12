@@ -27,11 +27,16 @@ echo
 
 echo "--- C2 CONTROL: files repo-wide referencing tool_permissions (expect: many)"
 echo "SELF-MATCH GUARD: command-center/casualty/ IS TRACKED, so this lane's own probe outputs,"
-echo "  worklogs and builders contain the very tokens being counted. Measured both ways:"
-echo "  a raw count matched 219 files, of which 12 were this lane's own artifacts. Excluding"
-echo "  the lane is mandatory - a probe that matches its own output measures itself."
-echo "raw_including_this_lane=$(git grep -l "tool_permissions" | wc -l)"
-echo "repo_wide_files_with_tool_permissions=$(git grep -l "tool_permissions" -- ':!command-center/casualty' | wc -l)"
+echo "  worklogs and builders contain the very tokens being counted. Excluding the lane is"
+echo "  mandatory - a probe that matches its own output measures itself."
+echo "  [ROUND-2 D4 FIX] this block used to NARRATE a frozen pair of numbers (\"219 files, of"
+echo "  which 12\") two lines above the lines that COMPUTE them; both had since drifted, so the"
+echo "  probe contradicted itself in its own output. The delta is now computed, never quoted."
+_tp_raw=$(git grep -l "tool_permissions" | wc -l)
+_tp_ex=$(git grep -l "tool_permissions" -- ':!command-center/casualty' | wc -l)
+echo "raw_including_this_lane=$_tp_raw"
+echo "repo_wide_files_with_tool_permissions=$_tp_ex"
+echo "self_match_inflation=$((_tp_raw - _tp_ex))   (files that are THIS lane matching its own output)"
 echo
 
 echo "--- Q2: callers of check_work_unit_authorization under hooks/ (expect: none)"
@@ -41,8 +46,11 @@ echo
 
 echo "--- C3 CONTROL: files repo-wide with check_work_unit_authorization, EXCLUDING this lane"
 echo "                (expect the python scanner's caller set, not inflated by our own captures)"
-echo "raw_including_this_lane=$(git grep -l "check_work_unit_authorization" | wc -l)"
-echo "repo_wide_files=$(git grep -l "check_work_unit_authorization" -- ':!command-center/casualty' | wc -l)"
+_cw_raw=$(git grep -l "check_work_unit_authorization" | wc -l)
+_cw_ex=$(git grep -l "check_work_unit_authorization" -- ':!command-center/casualty' | wc -l)
+echo "raw_including_this_lane=$_cw_raw"
+echo "repo_wide_files=$_cw_ex"
+echo "self_match_inflation=$((_cw_raw - _cw_ex))"
 git grep -l "check_work_unit_authorization" -- ':!command-center/casualty'
 echo
 

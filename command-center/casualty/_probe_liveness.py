@@ -36,7 +36,38 @@ OUT = REPO / "command-center" / "casualty"
 STALE_SEC = 900  # 15 min with no write from EITHER the artifact or its agent
 
 
+SUPERSEDED_BY = "command-center/casualty/liveness_v2.py"
+SUPERSEDED_MSG = (
+    "FAILED:liveness SUPERSEDED. This script has a P1 defect: it reads G1 (substance_score) out "
+    "of ADV-COMPLETENESS-CENSUS.json with NO freshness check (see the read below), so a stale "
+    "census turns mid-flight units into false CASUALTY verdicts as the wave ages -- measured "
+    "8 CASUALTY of which 6 were FALSE. It ALSO overwrites command-center/casualty/"
+    "ADV-LIVENESS.json, the very file that carries the _DO_NOT_CITE banner recording that "
+    "defect, so an accidental re-run silently republishes the false verdicts.\n"
+    f"  Use: python {SUPERSEDED_BY}\n"
+    "  To run it anyway (for a both-states control), pass --i-know-this-is-superseded and an "
+    "explicit --out DIR; it will never write the canonical path without both."
+)
+
+
 def main(argv: list[str]) -> int:
+    # ROUND-2 D1 (confirmed by the adversarial audit of build round 1). Importing this module
+    # for its score()/helpers stays free; only EXECUTION is refused, and only into the
+    # canonical output path.
+    global OUT
+    argv = list(argv)
+    forced = "--i-know-this-is-superseded" in argv
+    out_override = None
+    if "--out" in argv:
+        i = argv.index("--out")
+        if i + 1 < len(argv):
+            out_override = Path(argv[i + 1])
+    if not (forced and out_override):
+        print(SUPERSEDED_MSG)
+        return 2
+    OUT = out_override
+    OUT.mkdir(parents=True, exist_ok=True)
+
     now = time.time()
     census_path = OUT / "ADV-COMPLETENESS-CENSUS.json"
     if not census_path.is_file():

@@ -8,8 +8,8 @@
   "artifacts": [
     {
       "path": "command-center/casualty/ADV-0021-install-path-stride-threat-model.json",
-      "bytes": 171343,
-      "sha256": "ee4735e104ba01a183f68bd435515e0bad92158b44d01ae2cf7a27f6b52d82a0",
+      "bytes": 176468,
+      "sha256": "ee2c3a44cd8c354701383aae49f12bf479a5864de1b78ac69ec1670e49ce1165",
       "exists": true,
       "eol": "LF",
       "role": "primary"
@@ -844,10 +844,17 @@
       {
         "boundary": "TB3 staged tree -> live deploy targets",
         "stride": "Tampering",
-        "status": "mitigated",
+        "status": "unmitigated",
         "control_anchor": "safe_join at deploy.py:140,167,336,412 (V3 control confirms 4 functions call it)",
         "bypass_result": "B1c probed the adjacent version-dir boundary and found safe_join ABSENT there; the deploy boundary itself was NOT bypassed in this unit",
-        "disposition": "ACCEPTED RESIDUAL (scope): the deploy-side safe_join is confirmed PRESENT by two mechanisms but its bypass was not executed here. Owner impact: this cell is 'mitigated-by-inspection', not 'mitigated-by-bypass-attempt'. Settling experiment named in residual_unknowns."
+        "disposition": "ACCEPTED RESIDUAL (downgraded per the spec's own rule, round 2): the deploy-side safe_join is confirmed PRESENT by two independent mechanisms, but no bypass was executed against this boundary, so it is NOT claimed as mitigated. Owner impact: the deploy write path is protected only as far as inspection shows; an untested guard is an assumption, not a control. Settling experiment in residual_unknowns: extend adv0021_probe2b.py with a deploy.sync entry path containing '../' and a Windows device name and record whether safe_join raises. Previous disposition, retained verbatim so the change is auditable: ACCEPTED RESIDUAL (scope): the deploy-side safe_join is confirmed PRESENT by two mechanisms but its bypass was not executed here. Owner impact: this cell is 'mitigated-by-inspection', not 'mitigated-by-bypass-attempt'. Settling experiment named in residual_unknowns.",
+        "downgraded_in_round2": {
+          "from": "mitigated",
+          "rule": "catalog spec ADV-0021 evidence_requirement, literal text: 'Probe 2 (mechanically different): for every cell marked mitigated, execute the control's bypass attempt; a mitigation with no executable check is downgraded to unmitigated.' The control's PRESENCE was executably verified (V3 AST: safe_join called by 4 deploy functions) but its BYPASS was never executed against this boundary, so the literal rule applies.",
+          "refuted_wording": "round 1 kept this cell at status=mitigated and the build report claimed 'Probe 2 executes the bypass for every mitigated cell ... All satisfied'. REFUTED by the adversarial audit; the code and the measurement were right and the classification was wider than the evidence.",
+          "audit_anchor": "command-center/casualty/_r2_audit_round1.txt (adversarial audit of build round 1, wf_e58dfd3f-7b1 journal line 65, agentId aa1e83cff63e3c2bd)",
+          "consequence": "mitigated 2 -> 1 and unmitigated 20 -> 21. Every cell still marked mitigated now has an executed bypass attempt, so the Probe-2 clause is satisfied without qualification."
+        }
       },
       {
         "boundary": "TB3 staged tree -> live deploy targets",
@@ -1083,10 +1090,10 @@
       }
     ],
     "stride_status_counts": {
-      "unmitigated": 20,
+      "unmitigated": 21,
       "partial": 9,
       "not-applicable": 11,
-      "mitigated": 2
+      "mitigated": 1
     },
     "trust_boundaries": [
       {
@@ -1166,7 +1173,7 @@
     ],
     "tests_required_closure": {
       "requirement": "every unmitigated cell must be converted into either a named follow-up work unit or an explicitly accepted residual risk with an owner-visible impact statement - an unmitigated cell with neither is a unit failure",
-      "cells_requiring_disposition": 29,
+      "cells_requiring_disposition": 30,
       "cells_without_disposition": 0,
       "satisfied": true,
       "routed_to_existing_catalog_units": {
@@ -1192,7 +1199,24 @@
         "ACCEPTED RESIDUAL: a lock-contention failure is indistinguishable from a crash in logs. Owner impact: operators cannot tell 'someone else is installing' from 'the installer is broken'.",
         "ACCEPTED RESIDUAL: subprocess failures are not separately classified. Owner impact: a failed interpreter negotiation is logged the same as any crash.",
         "ACCEPTED RESIDUAL: any exception outside PluginError exits with a raw traceback and no taxonomy code. Owner impact: the fan-in barrier cannot classify an install failure, so a crash may be read as an ordinary non-zero exit."
-      ]
+      ],
+      "routing_split_recounted_in_round2": {
+        "detector": "classified on the cell's disposition FIELD, not on the cell object -- a cell that merely NAMES a sibling unit elsewhere is not routed to it",
+        "unmitigated_cells": 21,
+        "named_follow_up_unit": 17,
+        "accepted_residual_with_owner_impact": 4,
+        "partial_cells": 9,
+        "partial_named_follow_up_unit": 7,
+        "partial_accepted_residual": 2,
+        "total_requiring_disposition": 30,
+        "refuted_wording": "the round-1 build report said 'every unmitigated cell routed to a NAMED existing catalog unit'. REFUTED: the requirement is a DISJUNCTION (named unit OR accepted residual with owner-visible impact) and both arms are used. The receipt's own requirement string always stated the disjunction correctly; only the summary prose narrowed it.",
+        "audit_anchor": "command-center/casualty/_r2_audit_round1.txt (adversarial audit of build round 1, wf_e58dfd3f-7b1 journal line 65, agentId aa1e83cff63e3c2bd)"
+      },
+      "probe2_bypass_coverage_recounted_in_round2": {
+        "cells_still_marked_mitigated": 1,
+        "of_which_have_an_executed_bypass_attempt": 1,
+        "rule": "spec: a mitigation with no executable check is downgraded to unmitigated"
+      }
     },
     "provenance_of_this_receipt": {
       "original_agent": "agent-ae7e589262e107d7e.jsonl (124 records, 627,092 B)",
@@ -1210,6 +1234,41 @@
       "command-center/casualty/probes/adv0021_probe1.py",
       "command-center/casualty/probes/adv0021_probe2b.py",
       "command-center/casualty/probes/adv0021_verifier.py"
-    ]
+    ],
+    "round2_corrections": {
+      "trigger": "adversarial audit of build round 1 returned PARTIAL",
+      "audit_anchor": "command-center/casualty/_r2_audit_round1.txt (adversarial audit of build round 1, wf_e58dfd3f-7b1 journal line 65, agentId aa1e83cff63e3c2bd)",
+      "audit_finding": "ALL SIX DoD ITEMS SUBSTANTIVELY HOLD UNDER MY OWN EXECUTION ... Nothing needs rebuilding. Two DoD self-assessments are stated wider than the evidence, and I found four real (minor) defects.",
+      "data_corrections": [
+        {
+          "what": "TB3/Tampering downgraded mitigated -> unmitigated per the spec's literal rule",
+          "counts_before": {
+            "unmitigated": 20,
+            "partial": 9,
+            "not-applicable": 11,
+            "mitigated": 2
+          },
+          "counts_after": {
+            "unmitigated": 21,
+            "partial": 9,
+            "not-applicable": 11,
+            "mitigated": 1
+          }
+        }
+      ],
+      "sentence_corrections": [
+        {
+          "refuted": "every unmitigated cell routed to a NAMED existing catalog unit",
+          "measured": "17 of 21 UNMITIGATED cells route to a named catalog unit; 4 are accepted residuals with owner-visible impact statements (and of the 9 partial cells, 7 route to a named unit)",
+          "scoped": "the unit's tests_required is a disjunction and both arms are used; cells_without_disposition remains 0, so the clause is satisfied"
+        },
+        {
+          "refuted": "Probe 2 executes the bypass for every 'mitigated' cell ... All satisfied",
+          "measured": "TB3/Tampering had no executed bypass against its own boundary",
+          "scoped": "the cell is downgraded per the spec's rule; the clause is now satisfied for every cell still marked mitigated"
+        }
+      ],
+      "unchanged_and_why": "no probe was re-authored and no capture was edited. The audit independently re-executed the ADV-0021 verifier (byte-identical after EOL-normalise) and re-derived three P1 findings from the source with a different instrument."
+    }
   }
 }

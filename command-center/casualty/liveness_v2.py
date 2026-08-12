@@ -72,10 +72,18 @@ SKELETON_FIXTURE = {
 }
 
 
+MUTATE = ""  # round-2: set by --selftest-mutate to prove the control is not inert
+
+
 def selftest() -> int:
     """BOTH-STATES CONTROL. A gate reporting zero casualties is only meaningful if it can
     still FIRE. Build a synthetic wave containing one known-dead unit and one known-complete
-    unit, both stale, and require CASUALTY for the first and SUBSTANTIVE for the second."""
+    unit, both stale, and require CASUALTY for the first and SUBSTANTIVE for the second.
+
+    ROUND-2 (defect D3, confirmed by the adversarial audit): this control used to be OPT-IN
+    behind --selftest, so the default run printed a citable tally without ever exercising it.
+    It now runs UNCONDITIONALLY before any tally is produced, mirroring census_v2.py, and
+    --selftest-mutate proves it can still FAIL rather than passing vacuously."""
     import shutil
     import tempfile
     tmp = Path(tempfile.mkdtemp(prefix="liveness_v2_selftest_"))
@@ -145,6 +153,10 @@ def evaluate(adv_root: Path, wf_root: Path, agent_of: dict, recovered: dict,
         eff = fresh_score(REPO / recovered[uid]) if is_rec else sc
         g1, g2 = eff < 2, a_age > stale
         g3 = t_age is not None and t_age > stale
+        if MUTATE == "drop-g3":
+            # DELIBERATE BREAKAGE for the control's control: ignoring G3 collapses the
+            # AND-gate back to the mtime-only reading that produced 6 false casualties.
+            g3 = True
         verdict = ("RECOVERED" if is_rec else "CASUALTY" if (g1 and g2 and g3)
                    else "MID-FLIGHT" if g1 else "SUBSTANTIVE")
         rows.append({"unit": uid, "bytes": f.stat().st_size, "score_at_canonical_path": sc,
@@ -158,13 +170,26 @@ def evaluate(adv_root: Path, wf_root: Path, agent_of: dict, recovered: dict,
 
 
 def main() -> int:
+    global MUTATE
     ap = argparse.ArgumentParser()
     ap.add_argument("--stale-sec", type=int, default=900)
     ap.add_argument("--selftest", action="store_true",
-                    help="run the both-states control and exit")
+                    help="run the both-states control and exit (it now also runs by default)")
+    ap.add_argument("--selftest-mutate", default="", choices=["", "drop-g3"],
+                    help="deliberately break the gate to prove the control is not inert")
     args = ap.parse_args()
+    MUTATE = args.selftest_mutate
     if args.selftest:
         return selftest()
+
+    # ROUND-2 D3: the control runs BEFORE any tally, every time. A gate that reports zero
+    # casualties has to be shown able to fire, on the same invocation that reports the zero.
+    rc = selftest()
+    if rc != 0:
+        print("FAILED:liveness-v2 both-states control did not pass -- no tally is emitted and "
+              "no verdict below may be cited.")
+        return rc
+    print()
     now = time.time()
     stale = args.stale_sec
 
@@ -181,39 +206,12 @@ def main() -> int:
         print("FAILED:liveness-v2 no artifacts found -- path/detector failure, not an empty wave")
         return 1
 
-    rows = []
-    for f in files:
-        m = re.match(r"(ADV-\d+)", f.name)
-        uid = m.group(1) if m else f.stem
-        sc = fresh_score(f)                      # <-- FRESH, never from a file
-        a_age = now - f.stat().st_mtime
-        rel = agent_of.get(uid)
-        t_age = None
-        if rel:
-            tp = WF_ROOT / rel
-            if tp.is_file():
-                t_age = now - tp.stat().st_mtime
-
-        recovered = uid in RECOVERED and (REPO / RECOVERED[uid]).is_file()
-        eff = fresh_score(REPO / RECOVERED[uid]) if recovered else sc
-
-        g1 = eff < 2
-        g2 = a_age > stale
-        g3 = t_age is not None and t_age > stale
-        if recovered:
-            verdict = "RECOVERED"
-        elif g1 and g2 and g3:
-            verdict = "CASUALTY"
-        elif g1:
-            verdict = "MID-FLIGHT"
-        else:
-            verdict = "SUBSTANTIVE"
-        rows.append({"unit": uid, "bytes": f.stat().st_size, "score_at_canonical_path": sc,
-                     "effective_score": eff, "recovered_to": RECOVERED.get(uid) if recovered else None,
-                     "artifact_age_s": int(a_age),
-                     "agent_transcript_age_s": int(t_age) if t_age is not None else None,
-                     "G1_low_score": g1, "G2_artifact_stale": g2, "G3_agent_stale": g3,
-                     "verdict": verdict})
+    # ROUND-2 D5 (found while fixing D3, not reported by the audit): main() used to carry its
+    # OWN copy of the gate logic while selftest() exercised evaluate(). The control therefore
+    # guarded a DIFFERENT code path than the one that produced the citable tally -- so the
+    # control could pass while the reported number came from broken code. There is now exactly
+    # one implementation, and the control that runs above tests THIS function.
+    rows = evaluate(ADV, WF_ROOT, agent_of, RECOVERED, stale, now)
 
     tally: dict[str, int] = {}
     for r in rows:

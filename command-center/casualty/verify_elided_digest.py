@@ -11,6 +11,12 @@ This tool checks BOTH states, so its silence means something:
 A checker that passed in both states would be measuring nothing.
 
 usage: python verify_elided_digest.py <receipt.json> [...]
+
+ROUND-2 FIX (defect D2, confirmed by the adversarial audit of build round 1). This tool
+previously FAILED OPEN on empty input: `python verify_elided_digest.py` with no arguments
+printed nothing and exited 0, so a zero-input invocation was indistinguishable from two
+passing verifications -- in a tool whose entire purpose is anti-fabrication. That is the
+ci-hygiene "empty walk must fail closed" shape. It now refuses, non-zero, with a marker.
 """
 from __future__ import annotations
 
@@ -22,13 +28,19 @@ import sys
 
 FAIL = 0
 
+PATHS = sys.argv[1:]
+if not PATHS:
+    print("FAILED:elided-digest no inputs -- an empty walk is a detector failure, not a pass. "
+          "usage: python verify_elided_digest.py <receipt.json> [...]")
+    raise SystemExit(2)
+
 
 def elide(text: str, declared: str) -> str:
     """Replace the declared digest with 64 zeros exactly once, in the artifacts[0] slot."""
     return re.sub(re.escape(declared), "0" * 64, text, count=1)
 
 
-for path in sys.argv[1:]:
+for path in PATHS:
     raw = io.open(path, encoding="utf-8", newline="").read()
     doc = json.loads(raw)
     declared = doc["artifacts"][0]["sha256"]
