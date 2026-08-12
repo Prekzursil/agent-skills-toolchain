@@ -61,6 +61,29 @@ and an instrument you are already running disagree, **the instrument wins**.
    verification. The same discipline applied to a TEST SUITE is **mutation testing** — revert each
    real bug in turn and require the suite to go red; a suite that stays green is not protecting
    that behaviour. One of six C1 mutations survived and exposed a genuine hole in the tests.
+3c. **A control that cannot distinguish the two hypotheses is not a control — it only proves the
+   instrument ran.** This is the failure mode 3b does *not* catch, and it is more seductive because
+   the control PASSES and you record it as diligence. Measured 2026-08-12 on
+   `hooks/_dispatch/manifest.json`: `manifest["events"][<event>]` is a **dict**
+   (`{settings_matcher, settings_timeout, checks}`), not a list of hooks, so iterating it yields the
+   three KEY NAMES and `len()` reports "3 modules" for every event on both sides. Live and repo
+   therefore compared **equal** — while a lens had correctly measured `PreToolUse live=5 repo=7`,
+   including the missing producer that makes `/rollback` a promise the harness cannot keep. A
+   detector control was run and it passed: it confirmed the first entry parsed as
+   `settings_matcher`. That is the *wrong collection*, one level above the hooks, so the control
+   proved only that the file was readable. Four successive probes agreed with each other and all
+   four were wrong.
+   - **The test:** state the two hypotheses first (`H1: surfaces are identical` vs `H2: repo has
+     hooks live lacks`), then ask what the control's PASS would look like under each. If it looks
+     the same under both, the control is inert — it is measuring readability, not the claim.
+   - **Cheapest fix:** make the control a COUNT of the thing you are actually comparing, and fail
+     closed when it is implausible. The corrected reader prints `found 25 live checks across 4
+     events` and exits non-zero at zero, so a shape change is loud instead of reporting parity.
+   - **Tell:** a suspiciously round, suspiciously equal number on both sides (here, "3 and 3" four
+     times) is more often a collection-level mistake than genuine parity.
+   - **When your probe and someone else's disagree, this is the first thing to suspect in YOUR
+     probe** — rule 4 of the fan-out contract says the specific probe wins over the agent count, and
+     that cuts against your own instrument too.
 4. **Terminal-state discipline (AGENTS.md §4):** `DONE` only on receipt **AND** postcondition;
    `FAILED`/`STALLED` only on an AND-gate of ≥2 signals — never single-signal, never CPU-alone,
    never mtime-alone.
