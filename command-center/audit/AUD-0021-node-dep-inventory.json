@@ -1,0 +1,987 @@
+{
+ "artifacts": [
+  {
+   "bytes": 12502,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0021/probe1-manifests.json",
+   "role": "primary",
+   "sha256": "7555039d919d32902db2977af2a1deb84403973f95e20d70e81c1f8f90b234f1"
+  },
+  {
+   "bytes": 5920,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0021/probe2-locks.json",
+   "role": "supporting",
+   "sha256": "d33cd81279d2eee26aff3cd23ab3bbc3a1954805c343a71981e2bed1b05a0365"
+  },
+  {
+   "bytes": 40350,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0021/fixture-lock-corrupt.json",
+   "role": "supporting",
+   "sha256": "918681fc53974732c78dd415c6afbd0d43cc2e00ffdd148c8a716a510c217da0"
+  },
+  {
+   "bytes": 40420,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0021/fixture-lock-good.json",
+   "role": "supporting",
+   "sha256": "55447081f3e9ed526b5ab02e21e8a57c07ace5f60feb7185c285f123841e3faf"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/audit/AUD-0021-node-dep-inventory.json",
+   "consumer": "command-center/ready_units.py (artifact_delivered contract check)",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "schema_resolver.validate_artifact(doc, 'command-center/schema/audit-inventory.schema.json')",
+    "exit_code": 0,
+    "fingerprint": "2f0960c31f39f4b7fe0ea79d57456de3",
+    "method": "schema-validate",
+    "raw_output": "validated before write; emitter refuses to persist an invalid artifact",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/AUD-0021/probe1-manifests.json",
+   "claim": "26 package.json manifests exist in the tree outside node_modules",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "os.walk + json.loads of every package.json (node_modules pruned)",
+     "exit_code": 0,
+     "fingerprint": "18ea55662d888bbb1dbe43313fd9dd65",
+     "method": "file-read",
+     "raw_output": "manifests=26 parse_errors=0 deps prod=42 dev=32 peer=0 optional=0 | locks=5 failing_integrity=0 desynced=0 manifests_without_a_lock=21",
+     "role": "source"
+    },
+    {
+     "command": "git ls-files -- '*package.json' | grep -v node_modules | wc -l",
+     "exit_code": 0,
+     "fingerprint": "a3f5c35476f20a9effb9f3ea0ab3f098",
+     "method": "command",
+     "raw_output": "git ls-files rc=0 tracked package.json outside node_modules = 26\nos.walk=26 git=26 only-on-disk=[] only-in-index=[]",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/AUD-0021/probe2-locks.json",
+   "claim": "5 lockfiles, 0 failing the integrity scan, 0 out of sync with their manifest",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "check_lock_integrity(): parse every lock's packages map, integrity present and well-formed",
+     "fingerprint": "f118993dbb1a6804abb79293d7438a44",
+     "method": "static-analysis",
+     "raw_output": "[\n {\n  \"path\": \".agents/skills/ui-audit/package-lock.json\",\n  \"entries\": 8,\n  \"registry_resolved\": 8,\n  \"local_link_entries\": 0,\n  \"missing\": 0,\n  \"malformed\": 0,\n  \"parse_error\": null\n },\n {\n  \"path\": \"package-lock.json\",\n  \"entries\": 6,\n  \"registry_resolved\": 0,\n  \"local_link_entries\": 3,\n  \"missing\": 0,\n  \"malformed\": 0,\n  \"parse_error\": null\n },\n {\n  \"path\": \"skills/ui-audit/package-lock.json\",\n  \"entries\": 8,\n  \"registry_resolved\": 8,\n  \"local_link_entries\": 0,\n  \"missing\": 0,\n  \"malformed\": 0,\n  \"parse_error\": null\n },\n {\n  \"path\": \"tools/editor/ralph-orchestrator/vendor/package-lock.json\",\n  \"entries\": 550,\n  \"registry_resolved\": 546,\n  \"local_link_entries\": 2,\n  \"missing\": 0,\n  \"malformed\": 0,\n  \"parse_error\": null\n },\n {\n  \"path\": \"tools/mcp/hacktricks-mcp-server/package-lock.json\",\n  \"entries\": 96,\n  \"registry_resolved\": 96,\n  \"local_link_entries\": 0,\n  \"missing\": 0,\n  \"malformed\": 0,\n  \"parse_error\": null\n }\n]",
+     "role": "source"
+    },
+    {
+     "command": "npm.cmd ls --all --json per locked directory (npm's own resolver, not my parser)",
+     "fingerprint": "d054ed0a8efa74198cc65ffc12d13b72",
+     "method": "command",
+     "raw_output": "[\n {\n  \"dir\": \".\",\n  \"exit_code\": 0,\n  \"problem_count\": null,\n  \"first_problem\": null\n },\n {\n  \"dir\": \".agents/skills/ui-audit\",\n  \"exit_code\": 1,\n  \"problem_count\": null,\n  \"first_problem\": null\n },\n {\n  \"dir\": \"skills/ui-audit\",\n  \"exit_code\": 1,\n  \"problem_count\": null,\n  \"first_problem\": null\n },\n {\n  \"dir\": \"tools/editor/ralph-orchestrator/vendor\",\n  \"exit_code\": 1,\n  \"problem_count\": null,\n  \"first_problem\": null\n },\n {\n  \"dir\": \"tools/mcp/hacktricks-mcp-server\",\n  \"exit_code\": 0,\n  \"problem_count\": null,\n  \"first_problem\": null\n }\n]",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "failure": {
+  "blocked_on": "one fresh-context Claude reviewer who never saw this transcript",
+  "classification": [
+   "reviewer-absent",
+   "self-review-is-not-review"
+  ],
+  "reason": "Both named probes ran and both required controls discriminate in both directions, but receipt_core forbids state=SUCCESS without reviewer.verdict=PASS and independent=true, and this row names a fresh-context Claude reviewer who must try to FALSIFY the headline count."
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/ARTIFACT-MANIFEST.json",
+  "registered": false
+ },
+ "min_bytes_threshold": 4096,
+ "negative_controls": [
+  {
+   "bad_state_output": "corrupt fixture -> malformed_integrity=['node_modules/@hono/node-server'] (victim node_modules/@hono/node-server)",
+   "description": "the row's own required control: corrupt ONE integrity hash in a fixture copy of a real lock and require the checker to name that package",
+   "fired_on_bad_state": true,
+   "good_state_output": "clean fixture -> missing=0 malformed=0 entries=96",
+   "id": "AUD-0021-C1",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "planted ghost dep -> ['ghost_pkg_that_does_not_exist']",
+   "description": "a lock can be intact yet out of SYNC with its manifest, which an integrity scan cannot see: plant a declared dependency absent from the lock",
+   "fired_on_bad_state": true,
+   "good_state_output": "clean donor -> []",
+   "id": "AUD-0021-C2",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "local-parallel",
+  "model": "opus",
+  "role": "tool-author",
+  "vendor": "anthropic"
+ },
+ "report": {
+  "control_ids": [
+   "AUD-0021-C1",
+   "AUD-0021-C2"
+  ],
+  "dependencies_declared_at_more_than_one_version": {
+   "@modelcontextprotocol/sdk": [
+    "1.29.0",
+    "^1.27.0",
+    "^1.29.0"
+   ],
+   "@types/node": [
+    "22.20.1",
+    "^22.0.0",
+    "^25.0.10"
+   ],
+   "playwright": [
+    "^1.50.0",
+    "^1.58.2",
+    "^1.61.1"
+   ],
+   "typescript": [
+    "5.9.3",
+    "^5.7.0",
+    "^5.9.3"
+   ],
+   "zod": [
+    "^3.23.0",
+    "^4.3.6",
+    "^4.4.3"
+   ]
+  },
+  "kind": "audit-inventory",
+  "locks": [
+   {
+    "bytes": 3655,
+    "declared_but_absent_from_lock": [],
+    "entries": 8,
+    "kind": "package-lock.json",
+    "local_link_entries": [],
+    "lockfile_version": 3,
+    "malformed_integrity": [],
+    "missing_integrity": [],
+    "parse_error": null,
+    "path": ".agents/skills/ui-audit/package-lock.json",
+    "with_resolved": 8
+   },
+   {
+    "bytes": 985,
+    "declared_but_absent_from_lock": [],
+    "entries": 6,
+    "kind": "package-lock.json",
+    "local_link_entries": [
+     "node_modules/@prekzursil/agentspec-js",
+     "node_modules/@prekzursil/fanout-schema",
+     "node_modules/@prekzursil/tools-lib"
+    ],
+    "lockfile_version": 3,
+    "malformed_integrity": [],
+    "missing_integrity": [],
+    "parse_error": null,
+    "path": "package-lock.json",
+    "with_resolved": 0
+   },
+   {
+    "bytes": 3655,
+    "declared_but_absent_from_lock": [],
+    "entries": 8,
+    "kind": "package-lock.json",
+    "local_link_entries": [],
+    "lockfile_version": 3,
+    "malformed_integrity": [],
+    "missing_integrity": [],
+    "parse_error": null,
+    "path": "skills/ui-audit/package-lock.json",
+    "with_resolved": 8
+   },
+   {
+    "bytes": 289600,
+    "declared_but_absent_from_lock": [],
+    "entries": 550,
+    "kind": "package-lock.json",
+    "local_link_entries": [
+     "node_modules/@ralph-web/dashboard",
+     "node_modules/@ralph-web/server"
+    ],
+    "lockfile_version": 3,
+    "malformed_integrity": [],
+    "missing_integrity": [],
+    "parse_error": null,
+    "path": "tools/editor/ralph-orchestrator/vendor/package-lock.json",
+    "with_resolved": 546
+   },
+   {
+    "bytes": 44185,
+    "declared_but_absent_from_lock": [],
+    "entries": 96,
+    "kind": "package-lock.json",
+    "local_link_entries": [],
+    "lockfile_version": 3,
+    "malformed_integrity": [],
+    "missing_integrity": [],
+    "parse_error": null,
+    "path": "tools/mcp/hacktricks-mcp-server/package-lock.json",
+    "with_resolved": 96
+   }
+  ],
+  "manifests": [
+   {
+    "counts": {
+     "dependencies": 0,
+     "devDependencies": 0,
+     "optionalDependencies": 0,
+     "peerDependencies": 0
+    },
+    "dependencies": {},
+    "name": "critique-panel",
+    "path": ".agents/skills/critique-panel/package.json",
+    "private": false,
+    "script_names": [
+     "test"
+    ],
+    "version": "1.0.0",
+    "workspaces": null
+   },
+   {
+    "counts": {
+     "dependencies": 0,
+     "devDependencies": 0,
+     "optionalDependencies": 0,
+     "peerDependencies": 0
+    },
+    "dependencies": {},
+    "name": "design-review-loop",
+    "path": ".agents/skills/design-studio/package.json",
+    "private": true,
+    "script_names": [
+     "test"
+    ],
+    "version": "1.0.0",
+    "workspaces": null
+   },
+   {
+    "counts": {
+     "dependencies": 0,
+     "devDependencies": 2,
+     "optionalDependencies": 0,
+     "peerDependencies": 0
+    },
+    "dependencies": {
+     "devDependencies": {
+      "@tokens-studio/sd-transforms": "^1.2.0",
+      "style-dictionary": "^4.0.0"
+     }
+    },
+    "name": "design-tokens-pipeline",
+    "path": ".agents/skills/design-tokens-pipeline/package.json",
+    "private": true,
+    "script_names": [
+     "test"
+    ],
+    "version": "1.0.0",
+    "workspaces": null
+   },
+   {
+    "counts": {
+     "dependencies": 1,
+     "devDependencies": 0,
+     "optionalDependencies": 0,
+     "peerDependencies": 0
+    },
+    "dependencies": {
+     "dependencies": {
+      "playwright": "^1.58.2"
+     }
+    },
+    "name": null,
+    "path": ".agents/skills/develop-web-game/package.json",
+    "private": false,
+    "script_names": [],
+    "version": null,
+    "workspaces": null
+   },
+   {
+    "counts": {
+     "dependencies": 4,
+     "devDependencies": 0,
+     "optionalDependencies": 0,
+     "peerDependencies": 0
+    },
+    "dependencies": {
+     "dependencies": {
+      "@axe-core/playwright": "^4.10.1",
+      "pixelmatch": "^5.3.0",
+      "playwright": "^1.50.0",
+      "pngjs": "^7.0.0"
+     }
+    },
+    "name": "ui-audit",
+    "path": ".agents/skills/ui-audit/package.json",
+    "private": false,
+    "script_names": [
+     "test",
+     "test:browser",
+     "test:unit"
+    ],
+    "version": "1.0.0",
+    "workspaces": null
+   },
+   {
+    "counts": {
+     "dependencies": 0,
+     "devDependencies": 0,
+     "optionalDependencies": 0,
+     "peerDependencies": 0
+    },
+    "dependencies": {},
+    "name": "agent-skills-toolchain",
+    "path": "package.json",
+    "private": true,
+    "script_names": [
+     "test",
+     "validate:skills"
+    ],
+    "version": "0.1.0",
+    "workspaces": [
+     "tools/fanout-schema",
+     "tools/agentspec-js",
+     "tools/lib"
+    ]
+   },
+   {
+    "counts": {
+     "dependencies": 0,
+     "devDependencies": 0,
+     "optionalDependencies": 0,
+     "peerDependencies": 0
+    },
+    "dependencies": {},
+    "name": "dep-consumer",
+    "path": "platform/marketplace/fixture/packages/dep-consumer-1.0.0/package.json",
+    "private": false,
+    "script_names": [],
+    "version": "1.0.0",
+    "workspaces": null
+   },
+   {
+    "counts": {
+     "dependencies": 0,
+     "devDependencies": 0,
+     "optionalDependencies": 0,
+     "peerDependencies": 0
+    },
+    "dependencies": {},
+    "name": "hello-skill",
+    "path": "platform/marketplace/fixture/packages/hello-skill-1.0.0/package.json",
+    "private": false,
+    "script_names": [],
+    "version": "1.0.0",
+    "workspaces": null
+   },
+   {
+    "counts": {
+     "dependencies": 0,
+     "devDependencies": 0,
+     "optionalDependencies": 0,
+     "peerDependencies": 0
+    },
+    "dependencies": {},
+    "name": "hello-skill",
+    "path": "platform/marketplace/fixture/packages/hello-skill-1.1.0/package.json",
+    "private": false,
+    "script_names": [],
+    "version": "1.1.0",
+    "workspaces": null
+   },
+   {
+    "counts": {
+     "dependencies": 0,
+     "devDependencies": 0,
+     "optionalDependencies": 0,
+     "peerDependencies": 0
+    },
+    "dependencies": {},
+    "name": "vulnerable-lib",
+    "path": "platform/marketplace/fixture/packages/vulnerable-lib-1.0.0/package.json",
+    "private": false,
+    "script_names": [],
+    "version": "1.0.0",
+    "workspaces": null
+   },
+   {
+    "counts": {
+     "dependencies": 0,
+     "devDependencies": 0,
+     "optionalDependencies": 0,
+     "peerDependencies": 0
+    },
+    "dependencies": {},
+    "name": "@prekzursil/agent-skills-toolchain-release",
+    "path": "release/package.json",
+    "private": true,
+    "script_names": [
+     "lint"
+    ],
+    "version": "0.0.0",
+    "workspaces": null
+   },
+   {
+    "counts": {
+     "dependencies": 0,
+     "devDependencies": 0,
+     "optionalDependencies": 0,
+     "peerDependencies": 0
+    },
+    "dependencies": {},
+    "name": "critique-panel",
+    "path": "skills/critique-panel/package.json",
+    "private": false,
+    "script_names": [
+     "test"
+    ],
+    "version": "1.0.0",
+    "workspaces": null
+   },
+   {
+    "counts": {
+     "dependencies": 0,
+     "devDependencies": 0,
+     "optionalDependencies": 0,
+     "peerDependencies": 0
+    },
+    "dependencies": {},
+    "name": "design-review-loop",
+    "path": "skills/design-studio/package.json",
+    "private": true,
+    "script_names": [
+     "test"
+    ],
+    "version": "1.0.0",
+    "workspaces": null
+   },
+   {
+    "counts": {
+     "dependencies": 0,
+     "devDependencies": 2,
+     "optionalDependencies": 0,
+     "peerDependencies": 0
+    },
+    "dependencies": {
+     "devDependencies": {
+      "@tokens-studio/sd-transforms": "^1.2.0",
+      "style-dictionary": "^4.0.0"
+     }
+    },
+    "name": "design-tokens-pipeline",
+    "path": "skills/design-tokens-pipeline/package.json",
+    "private": true,
+    "script_names": [
+     "test"
+    ],
+    "version": "1.0.0",
+    "workspaces": null
+   },
+   {
+    "counts": {
+     "dependencies": 1,
+     "devDependencies": 0,
+     "optionalDependencies": 0,
+     "peerDependencies": 0
+    },
+    "dependencies": {
+     "dependencies": {
+      "playwright": "^1.58.2"
+     }
+    },
+    "name": null,
+    "path": "skills/develop-web-game/package.json",
+    "private": false,
+    "script_names": [],
+    "version": null,
+    "workspaces": null
+   },
+   {
+    "counts": {
+     "dependencies": 4,
+     "devDependencies": 0,
+     "optionalDependencies": 0,
+     "peerDependencies": 0
+    },
+    "dependencies": {
+     "dependencies": {
+      "@axe-core/playwright": "^4.10.1",
+      "pixelmatch": "^5.3.0",
+      "playwright": "^1.50.0",
+      "pngjs": "^7.0.0"
+     }
+    },
+    "name": "ui-audit",
+    "path": "skills/ui-audit/package.json",
+    "private": false,
+    "script_names": [
+     "test",
+     "test:browser",
+     "test:unit"
+    ],
+    "version": "1.0.0",
+    "workspaces": null
+   },
+   {
+    "counts": {
+     "dependencies": 0,
+     "devDependencies": 0,
+     "optionalDependencies": 0,
+     "peerDependencies": 0
+    },
+    "dependencies": {},
+    "name": "@prekzursil/agentspec-js",
+    "path": "tools/agentspec-js/package.json",
+    "private": true,
+    "script_names": [
+     "parity",
+     "test"
+    ],
+    "version": "1.0.0",
+    "workspaces": null
+   },
+   {
+    "counts": {
+     "dependencies": 0,
+     "devDependencies": 0,
+     "optionalDependencies": 0,
+     "peerDependencies": 0
+    },
+    "dependencies": {},
+    "name": "metaswarm",
+    "path": "tools/editor/metaswarm/package.json",
+    "private": false,
+    "script_names": [],
+    "version": "0.10.0",
+    "workspaces": null
+   },
+   {
+    "counts": {
+     "dependencies": 10,
+     "devDependencies": 6,
+     "optionalDependencies": 0,
+     "peerDependencies": 0
+    },
+    "dependencies": {
+     "dependencies": {
+      "@fastify/cors": "^11.2.0",
+      "@fastify/websocket": "^11.2.0",
+      "@trpc/server": "^11.8.1",
+      "better-sqlite3": "^12.6.2",
+      "drizzle-orm": "^0.45.1",
+      "fastify": "^5.7.1",
+      "strip-ansi": "^6.0.1",
+      "uuid": "^13.0.0",
+      "yaml": "^2.8.2",
+      "zod": "^4.3.6"
+     },
+     "devDependencies": {
+      "@types/better-sqlite3": "^7.6.13",
+      "@types/node": "^22.0.0",
+      "@types/ws": "^8.18.1",
+      "drizzle-kit": "^0.31.8",
+      "tsx": "^4.19.0",
+      "typescript": "^5.9.3"
+     }
+    },
+    "name": "@ralph-web/server",
+    "path": "tools/editor/ralph-orchestrator/vendor/backend/ralph-web-server/package.json",
+    "private": false,
+    "script_names": [
+     "build",
+     "clean",
+     "dev",
+     "start",
+     "test"
+    ],
+    "version": "0.1.0",
+    "workspaces": null
+   },
+   {
+    "counts": {
+     "dependencies": 15,
+     "devDependencies": 14,
+     "optionalDependencies": 0,
+     "peerDependencies": 0
+    },
+    "dependencies": {
+     "dependencies": {
+      "@radix-ui/react-slot": "^1.2.4",
+      "@tanstack/react-query": "^5.80.0",
+      "@types/uuid": "^10.0.0",
+      "@xyflow/react": "^12.10.0",
+      "class-variance-authority": "^0.7.1",
+      "clsx": "^2.1.1",
+      "date-fns": "^4.1.0",
+      "lucide-react": "^0.563.0",
+      "react": "^19.1.0",
+      "react-dom": "^19.1.0",
+      "react-markdown": "^10.1.0",
+      "react-router-dom": "^7.13.0",
+      "tailwind-merge": "^3.4.0",
+      "uuid": "^13.0.0",
+      "zustand": "^5.0.10"
+     },
+     "devDependencies": {
+      "@playwright/test": "^1.58.0",
+      "@tailwindcss/vite": "^4.1.18",
+      "@testing-library/jest-dom": "^6.6.3",
+      "@testing-library/react": "^16.3.0",
+      "@testing-library/user-event": "^14.6.1",
+      "@types/node": "^25.0.10",
+      "@types/react": "^19.1.6",
+      "@types/react-dom": "^19.1.6",
+      "@vitejs/plugin-react": "^4.5.2",
+      "jsdom": "^26.1.0",
+      "tailwindcss": "^4.1.18",
+      "typescript": "^5.9.3",
+      "vite": "^7.0.0",
+      "vitest": "^3.1.4"
+     }
+    },
+    "name": "@ralph-web/dashboard",
+    "path": "tools/editor/ralph-orchestrator/vendor/frontend/ralph-web/package.json",
+    "private": true,
+    "script_names": [
+     "build",
+     "clean",
+     "dev",
+     "preview",
+     "test",
+     "test:watch"
+    ],
+    "version": "0.1.0",
+    "workspaces": null
+   },
+   {
+    "counts": {
+     "dependencies": 0,
+     "devDependencies": 0,
+     "optionalDependencies": 0,
+     "peerDependencies": 0
+    },
+    "dependencies": {},
+    "name": "ralph-orchestrator",
+    "path": "tools/editor/ralph-orchestrator/vendor/package.json",
+    "private": true,
+    "script_names": [
+     "build",
+     "build:server",
+     "build:web",
+     "clean",
+     "dev",
+     "dev:api",
+     "dev:legacy-server",
+     "dev:web",
+     "lint",
+     "start",
+     "test",
+     "test:server"
+    ],
+    "version": "2.8.1",
+    "workspaces": [
+     "backend/*",
+     "frontend/*"
+    ]
+   },
+   {
+    "counts": {
+     "dependencies": 0,
+     "devDependencies": 0,
+     "optionalDependencies": 0,
+     "peerDependencies": 0
+    },
+    "dependencies": {},
+    "name": "@prekzursil/fanout-schema",
+    "path": "tools/fanout-schema/package.json",
+    "private": true,
+    "script_names": [
+     "lint",
+     "test"
+    ],
+    "version": "1.0.0",
+    "workspaces": null
+   },
+   {
+    "counts": {
+     "dependencies": 0,
+     "devDependencies": 0,
+     "optionalDependencies": 0,
+     "peerDependencies": 0
+    },
+    "dependencies": {},
+    "name": "@prekzursil/tools-lib",
+    "path": "tools/lib/package.json",
+    "private": true,
+    "script_names": [
+     "test"
+    ],
+    "version": "0.1.0",
+    "workspaces": null
+   },
+   {
+    "counts": {
+     "dependencies": 3,
+     "devDependencies": 6,
+     "optionalDependencies": 0,
+     "peerDependencies": 0
+    },
+    "dependencies": {
+     "dependencies": {
+      "@modelcontextprotocol/sdk": "^1.27.0",
+      "ssh2": "^1.17.0",
+      "zod": "^3.23.0"
+     },
+     "devDependencies": {
+      "@jest/globals": "^30.3.0",
+      "@types/node": "^22.0.0",
+      "@types/ssh2": "^1.15.5",
+      "jest": "^30.3.0",
+      "ts-jest": "^29.4.6",
+      "typescript": "^5.7.0"
+     }
+    },
+    "name": "ovhcloud-mcp",
+    "path": "tools/mcp/cloud-hub/ovh-mcp/package.json",
+    "private": false,
+    "script_names": [
+     "build",
+     "start",
+     "test"
+    ],
+    "version": "2.0.1",
+    "workspaces": null
+   },
+   {
+    "counts": {
+     "dependencies": 3,
+     "devDependencies": 0,
+     "optionalDependencies": 0,
+     "peerDependencies": 0
+    },
+    "dependencies": {
+     "dependencies": {
+      "@modelcontextprotocol/sdk": "^1.29.0",
+      "playwright": "^1.61.1",
+      "zod": "^4.4.3"
+     }
+    },
+    "name": "fb-reels-uploader",
+    "path": "tools/mcp/fb-reels-uploader/package.json",
+    "private": true,
+    "script_names": [
+     "start"
+    ],
+    "version": "1.0.0",
+    "workspaces": null
+   },
+   {
+    "counts": {
+     "dependencies": 1,
+     "devDependencies": 2,
+     "optionalDependencies": 0,
+     "peerDependencies": 0
+    },
+    "dependencies": {
+     "dependencies": {
+      "@modelcontextprotocol/sdk": "1.29.0"
+     },
+     "devDependencies": {
+      "@types/node": "22.20.1",
+      "typescript": "5.9.3"
+     }
+    },
+    "name": "@prekzursil/hacktricks-mcp-server",
+    "path": "tools/mcp/hacktricks-mcp-server/package.json",
+    "private": true,
+    "script_names": [
+     "build",
+     "start",
+     "test"
+    ],
+    "version": "1.3.4-hardened.1",
+    "workspaces": null
+   }
+  ],
+  "manifests_without_a_lock": [
+   ".agents/skills/critique-panel",
+   ".agents/skills/design-studio",
+   ".agents/skills/design-tokens-pipeline",
+   ".agents/skills/develop-web-game",
+   "platform/marketplace/fixture/packages/dep-consumer-1.0.0",
+   "platform/marketplace/fixture/packages/hello-skill-1.0.0",
+   "platform/marketplace/fixture/packages/hello-skill-1.1.0",
+   "platform/marketplace/fixture/packages/vulnerable-lib-1.0.0",
+   "release",
+   "skills/critique-panel",
+   "skills/design-studio",
+   "skills/design-tokens-pipeline",
+   "skills/develop-web-game",
+   "tools/agentspec-js",
+   "tools/editor/metaswarm",
+   "tools/editor/ralph-orchestrator/vendor/backend/ralph-web-server",
+   "tools/editor/ralph-orchestrator/vendor/frontend/ralph-web",
+   "tools/fanout-schema",
+   "tools/lib",
+   "tools/mcp/cloud-hub/ovh-mcp",
+   "tools/mcp/fb-reels-uploader"
+  ],
+  "npm_ls": [
+   {
+    "dir": ".",
+    "exit_code": 0,
+    "first_problem": null,
+    "problem_count": null,
+    "raw_head": "{\n  \"version\": \"0.1.0\",\n  \"name\": \"agent-skills-toolchain\",\n  \"dependencies\": {\n    \"@prekzursil/agentspec-js\": {\n      \"version\": \"1.0.0\",\n      \"resolved\": \"file:../../tools/agentspec-js\",\n      \"overridden\": false\n    },\n    \"@prekzursil/fanout-schema\": {\n      \"version\": \"1.0.0\",\n      \"resolved\": \"file:../../tools/fanout-schema\",\n      \"overridden\": false\n    },\n    \"@prekzursil/tools-lib\": {\n      \"version\": \"0.1.0\",\n      \"resolved\": \"file:../../tools/lib\",\n      \"overridden\": false\n    }\n  }\n}\n"
+   },
+   {
+    "dir": ".agents/skills/ui-audit",
+    "exit_code": 1,
+    "first_problem": null,
+    "problem_count": null,
+    "raw_head": "{\n  \"version\": \"1.0.0\",\n  \"name\": \"ui-audit\",\n  \"problems\": [\n    \"missing: @axe-core/playwright@^4.10.1, required by ui-audit@1.0.0\",\n    \"missing: pixelmatch@^5.3.0, required by ui-audit@1.0.0\",\n    \"missing: playwright@^1.50.0, required by ui-audit@1.0.0\",\n    \"missing: pngjs@^7.0.0, required by ui-audit@1.0.0\"\n  ],\n  \"dependencies\": {\n    \"@axe-core/playwright\": {\n      \"required\": \"^4.10.1\",\n      \"missing\": true,\n      \"problems\": [\n        \"missing: @axe-core/playwright@^4.10.1, required by ui-audit@1.0.0\"\n      ]\n    },\n    \"pixelmatch\": {\n      \"missing\": true,\n      \"problems\": [\n   "
+   },
+   {
+    "dir": "skills/ui-audit",
+    "exit_code": 1,
+    "first_problem": null,
+    "problem_count": null,
+    "raw_head": "{\n  \"version\": \"1.0.0\",\n  \"name\": \"ui-audit\",\n  \"problems\": [\n    \"missing: @axe-core/playwright@^4.10.1, required by ui-audit@1.0.0\",\n    \"missing: pixelmatch@^5.3.0, required by ui-audit@1.0.0\",\n    \"missing: playwright@^1.50.0, required by ui-audit@1.0.0\",\n    \"missing: pngjs@^7.0.0, required by ui-audit@1.0.0\"\n  ],\n  \"dependencies\": {\n    \"@axe-core/playwright\": {\n      \"required\": \"^4.10.1\",\n      \"missing\": true,\n      \"problems\": [\n        \"missing: @axe-core/playwright@^4.10.1, required by ui-audit@1.0.0\"\n      ]\n    },\n    \"pixelmatch\": {\n      \"missing\": true,\n      \"problems\": [\n   "
+   },
+   {
+    "dir": "tools/editor/ralph-orchestrator/vendor",
+    "exit_code": 1,
+    "first_problem": null,
+    "problem_count": null,
+    "raw_head": "{\n  \"version\": \"2.8.1\",\n  \"name\": \"ralph-orchestrator\",\n  \"problems\": [\n    \"missing: @ralph-web/dashboard@file:C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\tools\\\\editor\\\\ralph-orchestrator\\\\vendor\\\\frontend\\\\ralph-web, required by ralph-orchestrator@2.8.1\",\n    \"missing: @ralph-web/server@file:C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\tools\\\\editor\\\\ralph-orchestrator\\\\vendor\\\\backend\\\\ralph-web-server, required by ralph-orchestrator@2.8.1\"\n  ],\n  \"dependencies\": {\n    \"@ralph-web/dashboard\": {\n      \"required\": \"file:C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\tools\\\\editor\\\\ralph-or"
+   },
+   {
+    "dir": "tools/mcp/hacktricks-mcp-server",
+    "exit_code": 0,
+    "first_problem": null,
+    "problem_count": null,
+    "raw_head": "{\n  \"version\": \"1.3.4-hardened.1\",\n  \"name\": \"@prekzursil/hacktricks-mcp-server\",\n  \"dependencies\": {\n    \"@modelcontextprotocol/sdk\": {\n      \"version\": \"1.29.0\",\n      \"resolved\": \"https://registry.npmjs.org/@modelcontextprotocol/sdk/-/sdk-1.29.0.tgz\",\n      \"overridden\": false,\n      \"dependencies\": {\n        \"@cfworker/json-schema\": {},\n        \"@hono/node-server\": {\n          \"version\": \"2.0.11\",\n          \"resolved\": \"https://registry.npmjs.org/@hono/node-server/-/node-server-2.0.11.tgz\",\n          \"overridden\": false,\n          \"dependencies\": {\n            \"hono\": {\n              \"vers"
+   }
+  ],
+  "observations": [
+   {
+    "anchor": "every package.json outside node_modules",
+    "measured": 26,
+    "method": "file-read",
+    "name": "node_manifests",
+    "note": "Vendored trees are INCLUDED and labelled by path rather than excluded: tools/editor/ralph-orchestrator/vendor/** carries 3 of the manifests and the largest lock (289,600 B). Excluding them would have made the headline count smaller and the audit less true."
+   },
+   {
+    "anchor": "packages[*].integrity in every package-lock.json",
+    "measured": 0,
+    "method": "static-analysis",
+    "name": "locks_failing_integrity",
+    "note": "CORRECTION recorded rather than silently fixed: the first version of this checker required an integrity hash from every entry carrying a `resolved` field and would have published 'locks failing integrity = 2'. All 5 offending entries are `link: true` workspace links whose `resolved` is a LOCAL PATH (tools/agentspec-js, tools/fanout-schema, tools/lib, frontend/ralph-web, backend/ralph-web-server); npm attaches no hash to those by design. Only http(s) registry tarballs are required to carry one, and the true count is 0."
+   },
+   {
+    "anchor": "npm.cmd ls --all --json per locked directory",
+    "measured": 5,
+    "method": "command",
+    "name": "npm_ls_signal_quality",
+    "note": "Reported by EXIT STATUS, not by its dependency tree: no node_modules is installed anywhere in this tree, so the tree output is empty by construction. It is a second signal on lock/manifest agreement only, and is DEGRADED -- stated here rather than folded into a pass."
+   }
+  ],
+  "question": "For every package.json in the repo, what are its dependencies by class, and does the lockfile pass an integrity check?",
+  "summary": "manifests=26 parse_errors=0 deps prod=42 dev=32 peer=0 optional=0 | locks=5 failing_integrity=0 desynced=0 manifests_without_a_lock=21",
+  "totals_by_class": {
+   "dependencies": 42,
+   "devDependencies": 32,
+   "optionalDependencies": 0,
+   "peerDependencies": 0
+  }
+ },
+ "residual_unknowns": [
+  {
+   "claim": "npm ls cannot validate the resolved TREE: no node_modules exists anywhere in this repo, so its exit status reflects manifest/lock agreement only and is a DEGRADED second signal.",
+   "settling_experiment": "npm ci in a scratch clone of each locked directory, then npm ls --all; compare against the static scan.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "Integrity hashes are checked for PRESENCE and SHAPE, not recomputed against the tarballs they name. A well-formed but wrong hash passes this scan, so 'failing_integrity' is a LOWER bound.",
+   "settling_experiment": "download each resolved tarball and recompute sha512; requires network egress, which this lane did not use.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "pnpm-lock.yaml and yarn.lock parsing is unimplemented. 0 such locks exist in this tree today, so the gap is inert, but it would report unsupported-lock-format rather than a verdict if one appeared.",
+   "settling_experiment": "add a pnpm workspace fixture and confirm the walker reports unsupported-lock-format rather than silently skipping it.",
+   "verdict": "PARTIAL"
+  }
+ ],
+ "retry": {
+  "count": 1,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "reviewer": {
+  "independent": false,
+  "reviewer_id": "UNASSIGNED-build-lane-cannot-self-review",
+  "verdict": "NOT-REVIEWED"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:AUD-0021 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#AUD-0021",
+ "state": "BLOCKED",
+ "tests": [
+  {
+   "assertions": 2,
+   "command": "check_lock_integrity(fixture-lock-corrupt.json, kind='package-lock.json')",
+   "id": "ctl-corrupted-integrity-hash",
+   "output_tail": "malformed_integrity=['node_modules/@hono/node-server'] (want exactly ['node_modules/@hono/node-server'])",
+   "result": "PASS"
+  },
+  {
+   "assertions": 2,
+   "command": "check_lock_integrity(fixture-lock-good.json, kind='package-lock.json')",
+   "id": "ctl-clean-fixture-stays-silent",
+   "output_tail": "missing=0 malformed=0 entries=96 (want 0/0)",
+   "result": "PASS"
+  },
+  {
+   "assertions": 2,
+   "command": "desync(fixture-lock-desync.json) then desync(donor)",
+   "id": "ctl-planted-desync",
+   "output_tail": "['ghost_pkg_that_does_not_exist'] then [] (want ['ghost_pkg_that_does_not_exist'] then [])",
+   "result": "PASS"
+  },
+  {
+   "assertions": 2,
+   "command": "git ls-files -- *package.json (node_modules pruned) vs os.walk",
+   "id": "xcheck-oswalk-vs-git-index",
+   "output_tail": "os.walk=26 git=26 only-on-disk=[] only-in-index=[]",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-12T12:40:00Z",
+  "started_at": "2026-08-12T12:05:00Z"
+ },
+ "unit_id": "AUD-0021"
+}

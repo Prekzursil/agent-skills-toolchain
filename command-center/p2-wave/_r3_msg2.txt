@@ -1,0 +1,49 @@
+feat(command-center): deliver AUD-0021 and AUD-0006, both controls two-directional
+
+Two units, taken in the recorded owner order (OQ-2: ascending integer phase, then unblocking
+power) from the candidate set that remains after two exclusions I state rather than apply
+silently: ADV-* (108 of the 449 READY, and the entire current READY head) writes into
+command-center/adversarial/, which this wave forbids this lane from touching; and 9 units
+whose artifact already exists were taken by an earlier round.
+
+AUD-0021 -- node dependency inventory and lockfile integrity (32,978 B).
+  26 package.json, 42 prod + 32 dev dependencies, 0 peer, 0 optional; 5 package-lock.json,
+  0 failing integrity, 0 out of sync with their manifest, 21 manifests with no lock at all.
+  Probe 1 parses the dependency classes; probe 2 is the lock integrity scan PLUS npm's own
+  resolver (npm ls --all --json exit status per locked directory), and a git-index count that
+  cross-checks my os.walk enumeration (26 = 26).
+
+  TWO detector failures of my own, both caught before any count was published, both recorded in
+  the source rather than quietly fixed:
+    1. the format decision keyed on the FILE NAME, so both control fixtures -- copies of a real
+       lock saved under fixture names -- came back "unsupported-lock-format" and the control
+       scored the SAME in the good and the bad state. The builder refused to emit. Fixed by
+       deciding format from an explicit kind, not the name.
+    2. the first honest-looking run reported "2 locks failing integrity". All 5 offending
+       entries are `link: true` workspace links whose `resolved` is a LOCAL PATH -- npm attaches
+       no hash to those by design. The true count is 0. Checking the finding before publishing
+       it is the only reason this commit does not carry a false headline.
+
+AUD-0006 -- uncommitted and untracked work census (84,851 B).
+  174 uncommitted or untracked paths; body classifier says 152 real work, 10 scratch, 12
+  undecided. The row's actual question is whether a path-only sweep is good enough, and the
+  answer is measured: it disagrees on 37 paths -- it would LOSE 17 files the body says are real
+  authored work, and KEEP 8 the body says are scratch plus 11 it cannot decide. Those three
+  numbers are reported separately on purpose; folding UNDECIDED into "junk" would claim a
+  verdict the classifier explicitly refuses to make.
+
+  The row's required planted mutant is implemented in both directions: a genuinely authored
+  module under a scratch-looking path (content rescues it, path-only loses it) AND a 4,000-z
+  blob under src/core (content rejects it, path-only keeps it). A one-sided control is the
+  documented house failure mode.
+
+  SCOPE, stated loudly rather than narrowed quietly: the row says "every owner-controlled
+  repo"; this lane may touch exactly one. ~/Documents/GitHub/** and ~/.claude/agent-worktrees/**
+  belong to concurrent sessions and are forbidden by the wave floor, and walking ~ to discover
+  the rest would read credential-bearing files. 1 repo of N, N NOT-CHECKED, recorded in
+  residual_unknowns.
+
+Both artifacts are emitted by a writer that validates BEFORE it writes and refuses to persist a
+failing document -- it fired for real four times across these two units. Both are state=BLOCKED
+on the same structural gate every unit in this catalog carries: receipt_core forbids
+state=SUCCESS without an independent reviewer verdict, and a build lane cannot review itself.
