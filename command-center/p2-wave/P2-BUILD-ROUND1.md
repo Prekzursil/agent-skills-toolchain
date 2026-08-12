@@ -1,5 +1,36 @@
 # P2 BUILD LANE — ROUND 1
 
+> ## REFUTED IN ROUND 2 — read this before citing anything below
+>
+> An adversarial verifier refuted two sentences in this document and I reproduced both by
+> execution. The original wording is left in place, marked inline, rather than deleted.
+>
+> **R1. "each delivered unit executable-proven against its declared contract" — REFUTED for 1 of
+> 5.** IMP-0433's catalog row declares `command-center/schema/meta/json-schema-draft.json`, the
+> draft-2020-12 meta-schema, which returns **0 errors** for
+> `{"totally":"unrelated","passing_tests":999999}`. A green from a contract that cannot fail is
+> not evidence. Correctly scoped: **4 of 5** units were proven against a declared contract
+> measured able to reject garbage (3/3 probes); IMP-0433 was proven against
+> `command-center/schema/receipt.schema.json` — which the build script did pass as
+> `also=[...]`, so the ARTIFACT was always fine — plus its 12+1 fixture matrix. The *proof* was
+> vacuous, not the artifact. Round 2 re-verifies all five against a contract proven able to
+> fail: `python command-center/p2-wave/_r2_verify_committed.py`.
+>
+> **R2. "A `state` field alone is forgeable by a one-word edit … Schema validation cannot be
+> satisfied that cheaply" — REFUTED for the 23 meta-declaring units.** Measured:
+> `command-center/receipts/IMP-0433.json` with `state` flipped `BLOCKED`→`SUCCESS` was accepted
+> as `delivered=True` by the predicate this document shipped. The other four mutants were
+> correctly rejected (`schema-invalid:3/4/3/3`), so the sentence held for 4 of 5 and failed for
+> exactly the unit whose contract cannot fail. Round 2 adds condition 4b (contract-vacuity guard
+> + type-appropriate fallback) and keeps that mutant as a live `--self-test` control.
+>
+> **R3. Not refuted but hollow, and now disclosed:** the single `delivered=1` unit WFA-0001 is
+> *also* meta-gated, so condition 4 never discriminated for it either. It survives round 2 via
+> the schema-document fallback (its artifact really is a JSON Schema, `$schema` + `$id` present,
+> `check_schema` passes) — `--self-test` now prints which path certified it.
+>
+> Round-2 report: `command-center/p2-wave/P2-BUILD-ROUND2.md`.
+
 STATUS: COMPLETE for this round. Every section below carries a measurement or an explicit
 NOT-CHECKED. Nothing here is `UNKNOWN - not yet measured`.
 
@@ -87,6 +118,14 @@ I shipped T3, not T2, deliberately. A `state` field alone is forgeable by a one-
 "Building to the Test" failure the grounding lane's own external research predicts. Schema
 validation cannot be satisfied that cheaply, and it costs 1.95 s.
 
+> **REFUTED (round 2, reproduced by execution).** The last sentence is false for the 23 units
+> whose declared contract resolves to a JSON-Schema meta-schema: for them schema validation is
+> satisfied by *anything*, so the T3 predicate collapses back to T2 and the one-word edit works.
+> `command-center/receipts/IMP-0433.json` + `state: SUCCESS` → `delivered=True` under the
+> predicate shipped here. Correctly scoped: T3 is strictly stronger than T2 for the 364 of 367
+> distinct declarations that reject all three garbage probes, and equal to T2 for the other 3
+> (declared by 23 units). Fixed by condition 4b in `ready_units.py`; the mutant is now a control.
+
 Movement: **+36 units return to READY** (the grounding lane predicted 34; the difference is
 predicate-dependent — they also imposed a 200 B floor, I impose contract validation instead) and
 **ADV-0002 leaves READY**, because it was queued on a BLOCKED foundation.
@@ -128,6 +167,13 @@ were deliberately NOT created: seeding directories for still-blocked units is no
 ---
 
 ## C5. Unit deliverables, each executable-proven against its declared contract
+
+> **REFUTED HEADING (round 2).** Correct heading: *four* delivered units were proven against a
+> declared contract measured able to fail; IMP-0433's declared contract cannot fail, and it was
+> proven instead against `command-center/schema/receipt.schema.json` (which the emitter did
+> apply via `also=[...]`) plus its 12+1 fixture matrix. The claim as written was wider than its
+> evidence for 1 of 5. Settling command: `python command-center/p2-wave/_r2_verify_committed.py`
+> — its `can-fail` column states this per unit instead of hiding it.
 
 Every artifact is emitted through `_p2lib.write_if_valid()`, which **validates against the declared
 `output_schema` BEFORE it writes and refuses to persist a document that fails**. An artifact on
@@ -348,6 +394,12 @@ INDEPENDENT RE-VERIFICATION FROM THE COMMITTED BLOB (`_b1r2_verify_committed.py`
 validating its own in-memory variable is one signal; this is a mechanically different second one —
 it reads back what git actually stored via `git show HEAD:<path>` and re-validates against the
 schema the **catalog row** declares, not the one the build script happened to pass:
+
+> **REFUTED (round 2).** "Re-validates against the schema the catalog row declares" is exactly
+> the hole: for IMP-0433 that schema cannot fail, so its `schema-VALID YES` below is vacuous.
+> The control shown at the bottom of that block also ran on AUD-0020 only, while the SUCCESS
+> line spoke for all five. `_b1r2_verify_committed.py` is SUPERSEDED by `_r2_verify_committed.py`,
+> which adds a `can-fail` column, a type-appropriate fallback, and a PER-UNIT two-sided control.
 
 ```
 unit        blob B  CRLF  parses  schema-VALID  sentinel-matches  state

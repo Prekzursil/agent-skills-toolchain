@@ -48,6 +48,96 @@ NOT_DELIVERING = frozenset({"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"})
 CONTROL_GOOD = "WFA-0001"  # exists, non-empty, parses, schema-VALID, no self-declared failure
 CONTROL_BAD = "ADV-0031"  # exists, non-empty, parses, schema-VALID, but state == BLOCKED
 
+#: A third control, added 2026-08-12 after an adversarial verifier REFUTED the round-1 claim that
+#: "a `state` field is forgeable by a one-word edit; schema validation is not". For the 23 units
+#: whose declared contract resolves to a JSON-Schema meta-schema, schema validation is ALSO one
+#: word away: `command-center/receipts/IMP-0433.json` with `state` flipped to SUCCESS was accepted
+#: as DELIVERED by the predicate shipped that day. This fixture IS that known-broken state, so the
+#: vacuity guard below has a state in which it must FIRE.
+CONTROL_VACUOUS = "command-center/p2-wave/fixtures/ready-units/IMP-0433-state-SUCCESS-mutant.json"
+
+#: Garbage probes for the contract-vacuity guard. A declared contract that accepts ALL of these
+#: cannot fail, so "schema-VALID against it" carries no information. The first two are the exact
+#: shapes that fooled an earlier verifier in this program (a doc asserting 999999 passing tests,
+#: and a 2,000-repeated-character blob); the third is the empty object.
+_GARBAGE_PROBES = (
+    {"totally": "unrelated", "passing_tests": 999999},
+    {"blob": "x" * 2000},
+    {},
+)
+
+#: The type-appropriate fallback for an artifact under command-center/receipts/. Measured
+#: discriminating: it rejects all three garbage probes (11/11/10 errors) and rejects a receipt
+#: whose `state` says SUCCESS without a passing independent reviewer (3 errors).
+RECEIPT_FALLBACK_CONTRACT = "command-center/schema/receipt.schema.json"
+
+_DISCRIMINATES: dict[str, bool] = {}
+
+
+def contract_discriminates(resolver, schema: str) -> bool:
+    """Can this declared contract ever FAIL? Measured against garbage, never assumed.
+
+    Census over the catalog's 367 distinct declarations (2026-08-12): 364 reject all three
+    probes, 3 reject none -- `https://json-schema.org/draft/2020-12/schema` (21 units),
+    `command-center/schema/meta/json-schema-draft.json` (1) and
+    `command-center/schema/_meta/json-schema-2020-12.json` (1). The split is clean, so the
+    all-three threshold is not a judgement call: nothing sits in between.
+    """
+    if resolver is None or not schema:
+        return False
+    cached = _DISCRIMINATES.get(schema)
+    if cached is not None:
+        return cached
+    verdict = True
+    for probe in _GARBAGE_PROBES:
+        try:
+            rejected = bool(resolver.validate_artifact(probe, schema))
+        except Exception:  # a contract that raises on garbage has still refused it
+            rejected = True
+        if not rejected:
+            verdict = False
+            break
+    _DISCRIMINATES[schema] = verdict
+    return verdict
+
+
+def looks_like_schema_doc(doc) -> bool:
+    """Is this document itself a usable JSON Schema? The type-appropriate fallback for the 21
+    meta-declaring units whose `output_path` really is a schema, where the meta-schema is the
+    right KIND of contract and merely cannot reject unrelated JSON.
+
+    Two-sided by construction: it accepts the real WFA-0001 schema pack, and rejects all three
+    garbage probes AND a structurally-broken schema (`{"type": 123, "required": "not-an-array"}`),
+    which the meta-schema itself also rejects.
+    """
+    if not isinstance(doc, dict) or not ("$schema" in doc or "$id" in doc):
+        return False
+    try:
+        import jsonschema
+
+        jsonschema.Draft202012Validator.check_schema(doc)
+    except Exception:
+        return False
+    return True
+
+
+def _fallback_contract(doc, resolver) -> tuple[bool, str]:
+    """The declared contract cannot fail. Find one for this artifact CLASS that can.
+
+    Keyed on the DOCUMENT, never on the output path: a path-keyed fallback would give the
+    `--self-test` mutant a different verdict than the real receipt it is a copy of, which is a
+    control that measures its own location instead of the defect.
+    """
+    if looks_like_schema_doc(doc):
+        return True, "delivered(schema-document fallback; declared contract is vacuous)"
+    try:
+        errs = resolver.validate_artifact(doc, RECEIPT_FALLBACK_CONTRACT)
+    except Exception as e:
+        return False, f"contract-vacuous;receipt-fallback-unresolvable:{type(e).__name__}"
+    if not errs:
+        return True, "delivered(receipt fallback; declared contract is vacuous)"
+    return False, f"contract-vacuous:no-type-appropriate-fallback(receipt-errors={len(errs)})"
+
 
 def _load_resolver():
     """Load platform/lib/schema_resolver for contract validation.
@@ -80,9 +170,18 @@ def artifact_delivered(unit: dict, resolver=None) -> tuple[bool, str]:
       2. it is non-empty (a 0-byte file is the MSYS redirect-truncation signature);
       3. if JSON, it parses;
       4. if it validates against a declared output_schema, it must actually validate;
+      4b. that declared contract must be ABLE TO FAIL -- see `contract_discriminates`. When it
+          cannot, condition 4 is not evidence and a type-appropriate contract is applied instead;
       5. if it carries a `state` field, that state must not be a self-declared failure.
+
     Condition 5 alone is forgeable by a one-word edit, which is why 4 is also enforced; condition
     4 alone passes a perfectly-formed receipt that says BLOCKED, which is why 5 is also enforced.
+
+    REFUTED WORDING, recorded rather than deleted: until 2026-08-12 this docstring's companion
+    report claimed schema validation is NOT one word away. For the 23 meta-declaring units it was
+    -- `command-center/receipts/IMP-0433.json` with `state` flipped to SUCCESS was accepted as
+    DELIVERED, because its declared contract is the draft-2020-12 meta-schema, which accepts any
+    object. Condition 4b closes that; `--self-test` keeps the mutant as a live control.
     """
     p = unit.get("output_path")
     if not p:
@@ -103,27 +202,83 @@ def artifact_delivered(unit: dict, resolver=None) -> tuple[bool, str]:
     except Exception as e:
         return False, f"unparseable:{type(e).__name__}"
     schema = unit.get("output_schema")
+    why_ok = "delivered"
     if resolver is not None and isinstance(schema, str) and schema:
         try:
             errs = resolver.validate_artifact(doc, schema)
-            if errs:
-                return False, f"schema-invalid:{len(errs)}"
-        except Exception:
-            pass  # unresolvable contract is reported by the resolver's own audit, not here
+        except Exception as e:
+            # FAIL CLOSED. This was `pass` until 2026-08-12, which silently skipped condition 4
+            # for any unit whose contract raised. Census that day: 0 of 367 distinct declarations
+            # raise, so closing the hole moves nothing -- it removes a latent silent-pass.
+            return False, f"contract-unresolvable:{type(e).__name__}"
+        if errs:
+            return False, f"schema-invalid:{len(errs)}"
+        if not contract_discriminates(resolver, schema):
+            ok, why = _fallback_contract(doc, resolver)
+            if not ok:
+                return False, why
+            why_ok = why
     if isinstance(doc, dict):
         st = doc.get("state")
         if isinstance(st, str) and st.upper() in NOT_DELIVERING:
             return False, f"self-declared:{st.upper()}"
-    return True, "delivered"
+    return True, why_ok
+
+
+def _prefix_predicate(unit: dict, resolver) -> bool:
+    """The predicate as it stood BEFORE condition 4b, reproduced so every control can print the
+    column that matters: did the OLD instrument agree? A control whose two states score the same
+    under the old and the new predicate has measured nothing."""
+    p = unit.get("output_path")
+    fp = REPO / p if p else None
+    if not p or not fp.exists() or fp.stat().st_size <= 0:
+        return False
+    if fp.suffix.lower() != ".json":
+        return True
+    try:
+        doc = json.loads(fp.read_text(encoding="utf-8"))
+    except Exception:
+        return False
+    schema = unit.get("output_schema")
+    if resolver is not None and isinstance(schema, str) and schema:
+        try:
+            if resolver.validate_artifact(doc, schema):
+                return False
+        except Exception:
+            pass  # the old silent skip, reproduced deliberately
+    if isinstance(doc, dict):
+        st = doc.get("state")
+        if isinstance(st, str) and st.upper() in NOT_DELIVERING:
+            return False
+    return True
 
 
 def self_test() -> int:
-    """Both-states control. MUST accept CONTROL_GOOD and MUST reject CONTROL_BAD."""
+    """Both-states control over THREE fixtures, each with the old predicate's column beside it.
+
+      CONTROL_GOOD    a real delivered artifact          -> must be ACCEPTED
+      CONTROL_BAD     a real self-declared-BLOCKED one   -> must be REJECTED
+      CONTROL_VACUOUS the one-word `state: SUCCESS` mutant of a receipt whose declared contract
+                      cannot fail -> must be REJECTED, and the OLD predicate must have ACCEPTED
+                      it. If the old column ever reads False the fixture has stopped being a
+                      known-broken state and this control no longer proves anything.
+    """
     doc = json.loads(CATALOG.read_text(encoding="utf-8"))
     by_id = {u["id"]: u for u in doc["work_units"]}
     resolver = _load_resolver()
     print(f"  resolver: {'loaded' if resolver else 'UNAVAILABLE (contract check degraded)'}")
     ok = True
+
+    # --- control the vacuity detector itself, before trusting any verdict that uses it. ---
+    vac = "https://json-schema.org/draft/2020-12/schema"
+    disc = RECEIPT_FALLBACK_CONTRACT
+    for label, sch, want in (("known-VACUOUS", vac, False), ("known-DISCRIMINATING", disc, True)):
+        got = contract_discriminates(resolver, sch)
+        state = "OK" if got is want else "BROKEN"
+        if got is not want:
+            ok = False
+        print(f"  CONTROL contract_discriminates({label}): want={want} got={got} -> {state}")
+
     for uid, want in ((CONTROL_GOOD, True), (CONTROL_BAD, False)):
         u = by_id.get(uid)
         if u is None:
@@ -137,12 +292,34 @@ def self_test() -> int:
             ok = False
         print(
             f"  CONTROL {uid}: want={want} got={got} ({why}) "
-            f"| legacy-exists-predicate={legacy} -> {verdict}"
+            f"| legacy-exists-predicate={legacy} | pre-4b-predicate={_prefix_predicate(u, resolver)}"
+            f" -> {verdict}"
         )
+
+    # --- the vacuity control: a known-broken state the guard must FIRE on. ---
+    mutant_unit = dict(by_id.get("IMP-0433") or {})
+    if not mutant_unit or not (REPO / CONTROL_VACUOUS).is_file():
+        print(f"  CONTROL VACUOUS: fixture {CONTROL_VACUOUS} MISSING -- control cannot run")
+        ok = False
+    else:
+        mutant_unit["output_path"] = CONTROL_VACUOUS
+        got, why = artifact_delivered(mutant_unit, resolver)
+        before = _prefix_predicate(mutant_unit, resolver)
+        fires = (got is False) and (before is True)
+        if not fires:
+            ok = False
+        print(
+            f"  CONTROL VACUOUS (state:=SUCCESS mutant): want=False got={got} ({why}) "
+            f"| pre-4b-predicate={before} -> {'OK (guard fires on the broken state)' if fires else 'BROKEN'}"
+        )
+
     if not ok:
         print("FAILED:ready-units self-test the delivered() control does not discriminate")
         return 1
-    print("SUCCESS:ready-units self-test delivered() fires on the bad state and is silent on the good one")
+    print(
+        "SUCCESS:ready-units self-test delivered() fires on both broken states "
+        "(self-declared failure AND vacuous-contract false green) and is silent on the good one"
+    )
     return 0
 
 
@@ -187,8 +364,27 @@ def main() -> int:
         else:
             ready.append(u["id"])
 
+    # Contract-vacuity census. Published because "schema-VALID" is only evidence when the schema
+    # can fail, and 23 units declare one that cannot. Reported, never used to block a unit: the
+    # catalog's schema choice is not the unit's fault, so the fallback in condition 4b decides.
+    vac_decls = sorted(
+        {
+            s
+            for s in (u.get("output_schema") for u in units)
+            if isinstance(s, str) and s and not contract_discriminates(resolver, s)
+        }
+    )
+    vac_units = [u["id"] for u in units if u.get("output_schema") in vac_decls]
+
     out = {
         "bucket_reading": "a bucket-level gate artifact exists (owner ruling 2026-08-11)",
+        "contract_vacuity": {
+            "probe": "a declared contract must reject all 3 garbage probes to count as evidence",
+            "vacuous_declarations": vac_decls,
+            "units_declaring_a_vacuous_contract": len(vac_units),
+            "vacuous_unit_ids": vac_units,
+            "checker": "unavailable" if resolver is None else "live",
+        },
         "totals": {
             "units": len(units),
             "already_delivered": sum(1 for u in units if delivered(u["id"])),
@@ -221,6 +417,11 @@ def main() -> int:
         f"{t['artifacts_present_but_not_delivered']}"
     )
     print(f"  block reasons: {out['block_reasons']}")
+    cv = out["contract_vacuity"]
+    print(
+        f"  contract-vacuity: {len(cv['vacuous_declarations'])} declarations cannot fail, "
+        f"declared by {cv['units_declaring_a_vacuous_contract']} units (checker={cv['checker']})"
+    )
     print(f"  first ready: {ready[:8]}")
     if (
         t["ready"] + t["blocked"] + t["owner_gated"] + t["already_delivered"]

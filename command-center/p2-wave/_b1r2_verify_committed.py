@@ -1,4 +1,13 @@
-r"""Independent re-verification of the five delivered units, from the COMMITTED BLOB.
+r"""SUPERSEDED 2026-08-12 by `_r2_verify_committed.py`. DO NOT cite this file's SUCCESS line.
+
+An adversarial verifier REFUTED it and I reproduced both holes: (1) it validates against the
+CATALOG-DECLARED contract, and IMP-0433's declared contract is the draft-2020-12 meta-schema,
+which returns 0 errors for `{"totally":"unrelated","passing_tests":999999}` -- so its
+`schema-VALID YES` for that unit is a green from a gate that cannot fail; (2) its corruption
+control runs on AUD-0020 only while its SUCCESS line speaks for all five. Kept unmodified as the
+record of what round 1 actually ran.
+
+Independent re-verification of the five delivered units, from the COMMITTED BLOB.
 
 Mechanically different from every build script: those validated an in-memory document and then
 wrote it. This reads back what git actually stored (`git show HEAD:<path>`, which the corrected
