@@ -168,6 +168,25 @@ Census disjointness control PASS: `untracked ∩ ignored = 0`, `tracked ∩ untr
 
 ---
 
+## Final verification (post-commit, fresh LF clone at `fa87d1a2`)
+
+Run AFTER both of this lane's commits landed. Controls: 0 CRLF in clone, nested config present,
+mangled control fires — all PASS.
+
+| | at `86dde6c1` (pre-lane) | at `fa87d1a2` (post-lane) |
+|---|---|---|
+| `ruff check .` | rc 0, all passed | rc 0, all passed |
+| `ruff format --check .` | rc 0, 2028 clean | **rc 1**, 2086 clean, 8 fail |
+| files failing | — | the same 8 `grounding/_s2_*.py` |
+
+**This lane's 91 committed files added ZERO gate failures.** The failing set is byte-identically
+the same 8 filenames before and after both commits, and clean-file count rose 2028 → 2086 (+58)
+with no new entry in the failure list. The red is entirely sibling commit `1e9cfe81`'s, and it
+appeared between `86dde6c1` and my first commit.
+
+Both commits verified as ancestors of HEAD (`git merge-base --is-ancestor`) — neither was lost
+to the concurrent sibling commits that moved HEAD six times during this lane.
+
 ## Confidence
 
 - **almost certain (95–99%)** — B-1 (fresh clone, both states, 3 controls PASS); B1's 123/0/45/78
