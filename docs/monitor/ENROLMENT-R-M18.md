@@ -107,8 +107,11 @@ An absent feed reads as *not measured*, never as a fabricated zero.
 `basedpyright monitorcore` -> 0 errors, 0 warnings, 0 notes. `ruff==0.15.17 check` +
 `format --check` -> clean.
 
-THE SUITE IS NOT GREEN RIGHT NOW, and it would be dishonest to leave the number above
-unqualified. A later re-run reads **1168 passed, 1 FAILED**:
+FINAL STATE: **1169 passed, 100% line+branch, 0 miss**, and verified CLONE-GREEN (below).
+The transient red that occurred mid-wave is recorded rather than deleted, because it produced
+the sharpest finding of this lane.
+
+A mid-wave re-run read **1168 passed, 1 FAILED**:
 `test_registry_shipped.py::test_registry_mirrors_are_byte_identical`.
 
 NOT CAUSED BY THIS LANE, and attributed rather than asserted:
@@ -119,9 +122,35 @@ diff skills/monitor-launcher/monitors.toml .agents/skills/monitor-launcher/monit
    -> the CS lane's new [csmon] stanza (14 lines), present in .agents, absent from skills/
 ```
 
-The test LF-normalises before comparing, so this is a real divergence and not a CRLF phantom.
-It resolves when the CS lane mirrors its stanza into the `skills/` copy; that file is being
-actively edited (`MM`), so this lane did not race it. Flagged to the orchestrator.
+The test LF-normalises before comparing, so this was a real divergence and not a CRLF phantom.
+Flagged to the orchestrator rather than raced, because the file was actively being edited.
+
+### The finding that mattered: a WORKTREE green is not a CLONE green
+
+The fix was applied and reported GREEN on the strength of `pytest` passing. It was still
+broken. `test_registry_mirrors_are_byte_identical` reads the WORKING TREE
+(`p.read_bytes()`); CI checks out the COMMIT. Those had diverged:
+
+```
+HEAD:skills/monitor-launcher/monitors.toml          3874 B   [csmon] present
+HEAD:.agents/skills/monitor-launcher/monitors.toml  3224 B   [csmon] ABSENT
+```
+
+One side had been committed and the other left modified-but-uncommitted, so a fresh clone got
+exactly the half-written pair the test exists to catch -- invisible to a suite run that
+measures the wrong bytes. Committed as `3bdcaf56`.
+
+VERIFIED THE RIGHT WAY AFTERWARDS, by extracting both blobs at HEAD into a temp tree and
+comparing those (with a mangled control that fires):
+
+```
+control fires: True
+SUCCESS:clone-green mirrors identical in a fresh extraction
+```
+
+GENERAL LESSON for this program: for any assertion about files a gate compares, run the check
+against `git show HEAD:<path>` output, never the worktree. Passing `pytest` proves the tree on
+your disk is consistent; it says nothing about what CI will materialise.
 
 A green suite is not evidence until it goes red on a broken build. `_mutation_control.py`
 reverts one guarantee at a time and requires the named test to fail -- **6/6 killed**, restore
