@@ -111,7 +111,8 @@ function With([hashtable]$over) {
 # expect: row name -> expected status. '<ANY>' means "present, status unconstrained".
 $scenarios = @(
   @{ name = 'S1  control: every input healthy'; env = (With @{}); expect = @{
-      'DB' = 'PASS'; 'Backup freshness' = 'PASS'; 'Backup restorable' = 'PASS'; 'daemon detail' = 'INFO' } }
+      'DB' = 'PASS'; 'Backup freshness' = 'PASS'; 'Backup restorable' = 'PASS'; 'daemon detail' = 'INFO'
+      'WSL disk free' = 'PASS' } }
 
   @{ name = 'S2  global WSL timeout (the measured false-claim case)'; env = @{ CS_FORCE_WSL_TIMEOUT = '1' }; expect = @{
       'DB' = 'NOT-CHECKED'; 'Backup freshness' = 'NOT-CHECKED'; 'Backup restorable' = 'NOT-CHECKED'; 'daemon detail' = 'NOT-CHECKED' }
@@ -146,6 +147,18 @@ $scenarios = @(
   @{ name = 'S17 control: NO injection at all -> no banner, no [INJECTED]'; env = @{ CS_DISTRO = $deadDistro }; envRemove = @('CS_FAULT_INJECTION'); expect = @{} }
   @{ name = 'S18 CS_FORCE_* set WITHOUT arming -> REFUSED, not obeyed'; env = @{ CS_DISTRO = $deadDistro; CS_FORCE_WSL_DB = 'ok|wal|999M' }; envRemove = @('CS_FAULT_INJECTION'); expect = @{}
     forbidAnyDetail = @('999M') }
+
+  # --- R3/R4: a row must not INVENT a number or leak a raw error string ---------------------------
+  # ROUND 2 shipped `$dg = 0; [void][int]::TryParse(...)` -- the parse result was DISCARDED, so an
+  # unparseable df reply left the initialiser in place and the row printed a confident
+  # "WSL disk free WARN 0GB (floor 10GB)". Same fail-open class as the DB row's collapsed branches;
+  # the fabricated value just happened to be a default rather than a sentence. S1 is the control
+  # (a parseable 99 must still read PASS), so these cannot be satisfied by an always-NOT-CHECKED row.
+  @{ name = 'S19 disk probe unparseable (wsl.exe error text)'; env = (With @{ CS_FORCE_WSL_DISK = 'There is no distribution with the supplied name.' }); expect = @{ 'WSL disk free' = 'NOT-CHECKED' }
+    forbidDetail = @{ 'WSL disk free' = '0GB (floor' } }
+  @{ name = 'S20 disk probe empty'; env = (With @{ CS_FORCE_WSL_DISK = '__EMPTY__' }); expect = @{ 'WSL disk free' = 'NOT-CHECKED' } }
+  @{ name = 'S21 DB reply unparseable (not the 3-field shape)'; env = (With @{ CS_FORCE_WSL_DB = 'Error: 0x8007019e The Windows Subsystem for Linux has no installed distributions.' }); expect = @{ 'DB' = 'NOT-CHECKED' }
+    forbidDetail = @{ 'DB' = 'integrity=Error' } }
 )
 
 $failures = @()
@@ -185,6 +198,87 @@ foreach ($k in $conf.Keys) {
   }
 }
 "config parity: {0} keys in cs.conf cross-checked against cs-lib.ps1 and cs-lib.sh defaults" -f $conf.Count
+
+# --- UNIT: Get-CSWatchdogActionVerdict + Format-CSProbeReply --------------------------------------
+# These two are exercised directly rather than through a doctor run, for a reason worth stating:
+# driving them end-to-end would need either a real edit to ClaudeScienceWatchdog (mutating a live
+# always-on task from a test) or a THIRD CS_FORCE_* injection seam. Every injection seam is one
+# more way to order the tool to print a green, which is defect D2 -- so the rule here is to make the
+# judgement a pure function and test the function.
+#
+# WHAT THEY EXIST FOR (measured 2026-08-12):
+#   * the watchdog task launched cs-watchdog.ps1 out of a LINKED GIT WORKTREE while three separate
+#     doctor rows (registered / trigger / instances) all read PASS, because not one of them looks
+#     at $task.Actions;
+#   * a wsl.exe error reached the DB row as UTF-16-decoded-as-ANSI spaced text.
+# Each block carries its CONTROL: the durable-clone case must NOT be flagged ephemeral, the
+# matching-content case must PASS, and a clean short reply must pass through the sanitizer byte for
+# byte. Without those, an always-FAIL row and an always-mangling sanitizer would both score green.
+. (Join-Path $PSScriptRoot 'cs-lib.ps1')
+$wtRoot = Join-Path $env:TEMP "cs-test-wt-$stamp"          # fake LINKED worktree (.git is a FILE)
+$cloneRoot = Join-Path $env:TEMP "cs-test-clone-$stamp"    # fake ordinary clone (.git is a DIR)
+New-Item -ItemType Directory -Path $wtRoot -Force | Out-Null
+New-Item -ItemType Directory -Path $cloneRoot -Force | Out-Null
+New-Item -ItemType Directory -Path (Join-Path $cloneRoot '.git') -Force | Out-Null
+Set-Content -LiteralPath (Join-Path $wtRoot '.git') -Value 'gitdir: C:/Users/x/source/repo/.git/worktrees/scratch' -NoNewline
+$wtScript = Join-Path $wtRoot 'cs-watchdog.ps1'
+$refScript = Join-Path $cloneRoot 'cs-watchdog.ps1'
+$staleScript = Join-Path $cloneRoot 'cs-watchdog-stale.ps1'
+Set-Content -LiteralPath $wtScript -Value '# watchdog' -NoNewline
+Set-Content -LiteralPath $refScript -Value '# watchdog' -NoNewline
+Set-Content -LiteralPath $staleScript -Value '# watchdog, older bytes' -NoNewline
+function FakeTask([string]$arguments) {
+  if ($null -eq $arguments) { return [pscustomobject]@{ Actions = @() } }
+  return [pscustomobject]@{ Actions = @([pscustomobject]@{ Execute = 'powershell.exe'; Arguments = $arguments }) }
+}
+$argShape = '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "{0}"'
+# DEFERRED, NOT EAGER. Each case is a scriptblock invoked inside try/catch, because a unit that
+# THROWS must still say which case threw. Measured while mutation-testing this very file: deleting
+# the "does the target exist" guard made Get-FileHash throw on a missing path, which (under
+# $ErrorActionPreference='Stop') killed the whole harness -- exit 1 with ZERO assertion lines. That
+# is a detection, but a useless one: it names no defect, and an eagerly-built @( ... ) array cannot
+# even reach the later cases. A crash is now an assertion failure with the case name attached.
+$unit = @(
+  @{ n = 'W1 no task at all'; call = { Get-CSWatchdogActionVerdict -Task $null -ReferenceScript $refScript }; want = 'FAIL' }
+  @{ n = 'W2 task with no action'; call = { Get-CSWatchdogActionVerdict -Task (FakeTask $null) -ReferenceScript $refScript }; want = 'NOT-CHECKED' }
+  @{ n = 'W3 action names no -File script'; call = { Get-CSWatchdogActionVerdict -Task (FakeTask '-Command Start-Sleep') -ReferenceScript $refScript }; want = 'NOT-CHECKED' }
+  @{ n = 'W4 launches a path that does not exist'; call = { Get-CSWatchdogActionVerdict -Task (FakeTask ($argShape -f (Join-Path $env:TEMP "cs-gone-$stamp\cs-watchdog.ps1"))) -ReferenceScript $refScript }; want = 'FAIL'; need = 'DOES NOT EXIST' }
+  @{ n = 'W5 launches out of an EPHEMERAL worktree (the live defect)'; call = { Get-CSWatchdogActionVerdict -Task (FakeTask ($argShape -f $wtScript)) -ReferenceScript $refScript }; want = 'FAIL'; need = 'EPHEMERAL' }
+  @{ n = 'W6 durable path but STALE bytes'; call = { Get-CSWatchdogActionVerdict -Task (FakeTask ($argShape -f $staleScript)) -ReferenceScript $refScript }; want = 'FAIL'; need = 'STALE' }
+  @{ n = 'W7 CONTROL durable + matching bytes'; call = { Get-CSWatchdogActionVerdict -Task (FakeTask ($argShape -f $refScript)) -ReferenceScript $refScript }; want = 'PASS' }
+)
+foreach ($u in $unit) {
+  $checked++
+  $got = $null
+  try { $got = & $u.call } catch { $failures += "unit $($u.n): THREW instead of returning a verdict - $($_.Exception.Message)"; continue }
+  if ($got.Status -ne $u.want) { $failures += "unit $($u.n): expected $($u.want), got $($got.Status)  [detail: $($got.Detail)]" }
+  elseif ($u.need -and $got.Detail -notlike "*$($u.need)*") { $failures += "unit $($u.n): detail should name '$($u.need)' so the operator can act. detail=$($got.Detail)" }
+}
+# CONTROL for the worktree detector itself: an ordinary clone must come back $null, or W5 would be
+# proving nothing more than "this function always says ephemeral".
+$checked++
+if ($null -ne (Test-CSEphemeralWorktree $refScript)) { $failures += "unit W8 CONTROL: an ordinary clone (.git DIRECTORY) was reported as an ephemeral worktree - the detector is always-on" }
+$checked++
+if ($null -eq (Test-CSEphemeralWorktree $wtScript)) { $failures += 'unit W9: a linked worktree (.git FILE with gitdir:.../worktrees/) was NOT detected' }
+
+$nulText = "T`0h`0e`0r`0e`0 `0i`0s`0 `0n`0o`0"      # UTF-16LE ASCII read as single-byte = NUL-interleaved
+$sanCases = @(
+  @{ n = 'F1 NUL-interleaved wsl.exe error'; call = { Format-CSProbeReply $nulText }; want = 'There is no' }
+  @{ n = 'F2 control chars and newlines collapsed'; call = { Format-CSProbeReply "a`r`nb`tc" }; want = 'a b c' }
+  @{ n = 'F3 CONTROL a clean reply is unchanged'; call = { Format-CSProbeReply 'ok|wal|2.9M' }; want = 'ok|wal|2.9M' }
+)
+foreach ($c in $sanCases) {
+  $checked++
+  $g = $null
+  try { $g = & $c.call } catch { $failures += "unit $($c.n): THREW - $($_.Exception.Message)"; continue }
+  if ($g -ne $c.want) { $failures += "unit $($c.n): expected '$($c.want)', got '$g'" }
+}
+$checked++
+$long = Format-CSProbeReply ('x' * 500)
+if ($long.Length -gt 160 -or $long -notlike '*truncated*') { $failures += "unit F4: a 500-char reply was not bounded (len=$($long.Length)) - one bad probe pushes the table off-screen" }
+$checked++
+if ((Format-CSProbeReply $nulText) -match "`0") { $failures += 'unit F5: NUL survived the sanitizer' }
+"unit checks: 9 watchdog-action + 5 sanitizer, each with its control"
 
 foreach ($s in $scenarios) {
   $envSet = @{}
@@ -281,7 +375,7 @@ foreach ($s in $scenarios) {
   }
 }
 
-Remove-Item $emptyWin, $badWin, $cmdGood, $cmdMissing, $cmdGhost, $cmdStale, $staleTree -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item $emptyWin, $badWin, $cmdGood, $cmdMissing, $cmdGhost, $cmdStale, $staleTree, $wtRoot, $cloneRoot -Recurse -Force -ErrorAction SilentlyContinue
 
 ""
 if ($failures.Count) {

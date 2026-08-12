@@ -15,7 +15,7 @@ $distro = $script:CSDistro
 # it would silently fall back to the in-script defaults and the config seam would be a no-op.
 $winDir = Join-Path $env:USERPROFILE '.local\bin'
 New-Item -ItemType Directory -Force -Path $winDir | Out-Null
-foreach ($f in 'cs.ps1', 'cs.cmd', 'cs-lib.ps1', 'cs.conf', 'cs-doctor.ps1', 'cs-watchdog.ps1', 'cs-recover.ps1', 'cs-recover.cmd', 'cs-start.ps1', 'cs-start.cmd', 'test-cs-doctor-failclosed.ps1') {
+foreach ($f in 'cs.ps1', 'cs.cmd', 'cs-lib.ps1', 'cs.conf', 'cs-doctor.ps1', 'cs-watchdog.ps1', 'cs-recover.ps1', 'cs-recover.cmd', 'cs-start.ps1', 'cs-start.cmd', 'register-tasks.ps1', 'test-cs-doctor-failclosed.ps1') {
   $src = Join-Path $here $f
   if (Test-Path $src) { Copy-Item $src (Join-Path $winDir $f) -Force; Write-Information -InformationAction Continue "[win] $f" }
 }
@@ -96,7 +96,11 @@ if (Test-Path $oldVbs) { Remove-Item $oldVbs -Force -ErrorAction SilentlyContinu
 Write-Information -InformationAction Continue '[ok] "Claude Science" shortcut on Desktop + Start Menu (flash-free via conhost --headless -> cs open)'
 
 # --- 7. Register the always-on tasks (watchdog + weekly maintenance) ---
-& (Join-Path $here 'register-tasks.ps1')
+# -WatchdogPath is EXPLICIT and points at the DEPLOYED copy, not at $here. Without it, running this
+# installer from a checkout registered the always-on supervisor against that checkout: measured
+# 2026-08-12, the live task launched cs-watchdog.ps1 out of a linked git worktree that a
+# `git worktree remove` would have deleted, while the identical file in $winDir went unused.
+& (Join-Path $here 'register-tasks.ps1') -WatchdogPath (Join-Path $winDir 'cs-watchdog.ps1')
 
 # --- 8. First-run health check ---
 Write-Information -InformationAction Continue "`nDone. Ensure $winDir is on your Windows user PATH (so 'cs' works everywhere)."

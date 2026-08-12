@@ -70,13 +70,15 @@ A read-only report that operationalizes the reliability audit. Rows (each
 PASS/WARN/FAIL/**NOT-CHECKED**/INFO): **WSL reachable** · **CS daemon** (state + latency,
 flags `*** WEDGED ***`) · **daemon detail** (pid/version/uptime) · **DB** (integrity +
 `journal_mode` + size) · **WSL disk free** · **Host RAM free** + top consumers
-(the freeze root cause) · **Watchdog registered** · **Watchdog re-launch trigger**
+(the freeze root cause) · **Watchdog registered** · **Watchdog action path**
+(does the task launch a script that exists, is durable, and matches this deploy? it was
+launching out of a disposable git worktree) · **Watchdog re-launch trigger**
 (a logon-only trigger cannot restart a watchdog that exited — that is how it stayed
 dead for 3.3 days) · **Watchdog instances** (catches the duplicate-watchdog race) ·
 **Watchdog heartbeat** · **Backup freshness** · **Backup restorable** (copies the newest
 snapshot to a temp dir and integrity-checks the **copy**, so the backup root is never written) ·
 **Slash-command route** (do `/claude-science` and `/cs` actually run this code?) ·
-**Tab-death regfix**. Ends with a `N FAIL, N WARN, N NOT-CHECKED, N PASS` summary and
+**PowerShell host** · **Tab-death regfix**. Ends with a `N FAIL, N WARN, N NOT-CHECKED, N PASS` summary and
 **exits non-zero on FAIL or NOT-CHECKED**, so other tooling can gate on it.
 
 ### `NOT-CHECKED` is not `PASS` — read this row honestly
@@ -95,6 +97,20 @@ Two heartbeat subtleties worth knowing, both measured:
   beat against process liveness: stale + no process = FAIL, stale + live process = WARN.
 - **The instance count used to count the probe itself.** Anything whose command line contained
   `cs-watchdog` matched, so asking the question could manufacture the "DUPLICATE" answer.
+
+Two more, added 2026-08-12 after a verifier found the same defect class still live here:
+- **A registered task is not a working task.** `Watchdog registered`, `re-launch trigger` and
+  `instances` all read PASS while the action launched `cs-watchdog.ps1` out of a *linked git
+  worktree* that a `git worktree remove` deletes — and Task Scheduler reports a missing
+  `-File` target as a task that ran. If you ever register this by hand, point it at
+  `~/.local/bin/cs-watchdog.ps1`, never at a checkout.
+- **Run the doctor under `pwsh`, not Windows PowerShell 5.1.** 5.1 mangles native arguments
+  containing embedded double quotes, so the quoted `sqlite3 -readonly "file:…"` inside the
+  DB and backup probes reaches bash truncated and those rows go NOT-CHECKED. Measured on one
+  box minutes apart: 5.1 `0 FAIL, 2 WARN, 4 NOT-CHECKED, 8 PASS` against pwsh `0 FAIL, 1 WARN,
+  0 NOT-CHECKED, 13 PASS`. The `.cmd` shims now prefer `pwsh`; the **PowerShell host** row
+  tells you when the 5.1 fallback fired. NOT-CHECKED here is the contract working, not a
+  broken box — but it is also not a measurement.
 
 ### A run marked `[INJECTED]` is a SIMULATION, never health evidence
 

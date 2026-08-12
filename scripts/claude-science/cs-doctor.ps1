@@ -27,6 +27,22 @@ $script:rows = @()
 function Add-Row($name, $status, $detail) { $script:rows += [pscustomobject]@{ Check = $name; Status = $status; Detail = $detail } }
 function Test-CSUnmeasured($v) { return ($null -eq $v -or "$v" -eq '' -or "$v" -eq '__WSL_TIMEOUT__') }
 
+# 0. The measuring instrument itself. Declared FIRST because it conditions every row below.
+#
+# MEASURED 2026-08-12, four runs, one table: the SAME cs-doctor.ps1 on the SAME box minutes apart
+#   round 2 code @ powershell 5.1 -> 1 FAIL, 2 WARN, 3 NOT-CHECKED,  7 PASS
+#   round 2 code @ pwsh 7         -> 1 FAIL, 1 WARN, 0 NOT-CHECKED, 11 PASS
+#   round 3 code @ powershell 5.1 -> 0 FAIL, 2 WARN, 4 NOT-CHECKED,  8 PASS
+#   round 3 code @ pwsh 7         -> 0 FAIL, 1 WARN, 0 NOT-CHECKED, 13 PASS
+# Windows PowerShell 5.1 mangles native-command arguments containing embedded double quotes, and
+# the DB/backup probes hand wsl.exe a quoted `sqlite3 -readonly "file:...?mode=ro"`, so under 5.1
+# bash receives a truncated command ("-readonly: -c: line 2: unexpected EOF") and those rows cannot
+# be measured. They render NOT-CHECKED, which is the fail-closed contract working correctly -- but
+# an operator comparing two runs needs to be told WHY they differ instead of rediscovering it.
+# The .cmd shims now prefer pwsh; this row is what makes the fallback visible when they cannot.
+$psDesc = "$($PSVersionTable.PSEdition) $($PSVersionTable.PSVersion)"
+Add-Row 'PowerShell host' $(if ($PSVersionTable.PSEdition -eq 'Core') { 'PASS' } else { 'WARN' }) $(if ($PSVersionTable.PSEdition -eq 'Core') { $psDesc } else { "$psDesc - 5.1 mangles quoted native args, so quoted WSL probes below may read NOT-CHECKED that pwsh 7 can measure. Re-run with: pwsh -File cs-doctor.ps1" })
+
 # 1. WSL reachable
 $wsl = Invoke-CSWsl 'echo ok' 15 -Tag 'wsl'
 Add-Row 'WSL reachable' $(if ($wsl -eq 'ok') { 'PASS' } elseif ($wsl -eq '__WSL_TIMEOUT__') { 'FAIL' } else { 'WARN' }) $(if ($wsl -eq '__WSL_TIMEOUT__') { 'wsl call timed out (VM wedged?)' } else { "distro=$script:CSDistro" })
@@ -61,9 +77,15 @@ if (Test-CSUnmeasured $dbline) {
   Add-Row 'DB' 'FAIL' 'operon-cli.db not found under ~/.claude-science/orgs (measured absent)'
 } elseif ($dbline -eq '__NOSQLITE__') {
   Add-Row 'DB' 'FAIL' 'sqlite3 not on PATH in WSL - DB integrity cannot be checked at all'
+} elseif (($dbline -split '\|').Count -lt 3) {
+  # UNPARSEABLE != CORRUPT. The three-field reply is what the probe emits when it ran; anything
+  # else is wsl.exe or bash talking, and rendering it as `integrity=<error text>` states a verdict
+  # about a database nothing opened. Measured 2026-08-12: a wsl.exe error reached this row as
+  # UTF-16-decoded-as-ANSI spaced text sitting in the integrity field.
+  Add-Row 'DB' 'NOT-CHECKED' "unparseable DB probe reply, integrity unmeasured: $(Format-CSProbeReply $dbline)"
 } else {
   $p = $dbline -split '\|'
-  Add-Row 'DB' $(if ($p[0] -eq 'ok') { 'PASS' } else { 'FAIL' }) "integrity=$($p[0]) journal=$($p[1]) size=$($p[2])"
+  Add-Row 'DB' $(if ($p[0] -eq 'ok') { 'PASS' } else { 'FAIL' }) "integrity=$(Format-CSProbeReply $p[0] 60) journal=$(Format-CSProbeReply $p[1] 20) size=$(Format-CSProbeReply $p[2] 20)"
 }
 
 # 5. WSL disk
@@ -71,8 +93,18 @@ $disk = (Invoke-CSWsl 'df -BG --output=avail "$HOME" | tail -1 | tr -dc 0-9' 15 
 if (Test-CSUnmeasured $disk) {
   Add-Row 'WSL disk free' 'NOT-CHECKED' 'WSL probe returned nothing; free disk unmeasured'
 } else {
-  $dg = 0; [void][int]::TryParse(("$disk").Trim(), [ref]$dg)
-  Add-Row 'WSL disk free' $(if ($dg -ge $script:CSMinWslDiskGb) { 'PASS' } else { 'WARN' }) "${dg}GB (floor ${script:CSMinWslDiskGb}GB)"
+  # FAIL-CLOSED, and this row is why the class needed re-checking. It used to read
+  #   $dg = 0; [void][int]::TryParse(...)         # discard the result
+  # so an unparseable reply left $dg at its initialiser and the row printed a confident
+  # "WSL disk free WARN 0GB (floor 10GB)". Measured 2026-08-12 by an independent auditor: the
+  # number came from a probe that never ran. A discarded TryParse result is the same defect shape
+  # as the DB row's collapsed branches -- the fabricated value is simply the default, not a string.
+  $dg = 0
+  if ([int]::TryParse(("$disk").Trim(), [ref]$dg)) {
+    Add-Row 'WSL disk free' $(if ($dg -ge $script:CSMinWslDiskGb) { 'PASS' } else { 'WARN' }) "${dg}GB (floor ${script:CSMinWslDiskGb}GB)"
+  } else {
+    Add-Row 'WSL disk free' 'NOT-CHECKED' "unparseable df reply, free disk unmeasured (NOT a claim it is 0GB): $(Format-CSProbeReply $disk)"
+  }
 }
 
 # 6. host RAM + top consumers (the freeze root cause)
@@ -85,6 +117,18 @@ Add-Row 'Host RAM free' $(if ($ramGB -ge $script:CSMinHostRamGb) { 'PASS' } else
 $task = Get-ScheduledTask -TaskName 'ClaudeScienceWatchdog' -ErrorAction SilentlyContinue
 $procs = Get-CSWatchdogProcess   # self-excluding, argument-shape matched (see cs-lib.ps1)
 Add-Row 'Watchdog registered' $(if ($task) { 'PASS' } else { 'FAIL' }) $(if ($task) { "state=$($task.State)" } else { 'not registered - run register-tasks.ps1' })
+# WHAT THE TASK ACTUALLY RUNS. 'Watchdog registered' reads only $task.State, the trigger row reads
+# only $task.Triggers, and the instance row counts processes -- so all three said PASS while the
+# task launched
+#   C:\Users\Prekzursil\source\ast-integrate\scripts\claude-science\cs-watchdog.ps1
+# out of a LINKED GIT WORKTREE (`.git` is a file: gitdir: .../worktrees/ast-integrate) created for
+# one integration run, while the durable ~/.local/bin/cs-watchdog.ps1 sat there byte-identical and
+# unused. Removing the worktree would have killed the supervisor exactly as silently as the
+# logon-only trigger did for 3.3 days, and nothing in this report would have said so.
+# Reference = the cs-watchdog.ps1 beside the RUNNING doctor, so this doubles as a deploy-staleness
+# detector, the same content-not-paths rule as the slash-command route row below.
+$wdVerdict = Get-CSWatchdogActionVerdict -Task $task -ReferenceScript (Join-Path $PSScriptRoot 'cs-watchdog.ps1')
+Add-Row 'Watchdog action path' $wdVerdict.Status $wdVerdict.Detail
 # A logon-only trigger cannot restart a watchdog that exited: measured 2026-08-08..12, dead 3.3
 # days with State=Ready and an empty NextRunTime. The repeating trigger IS the self-healing.
 $rep = @($task.Triggers | ForEach-Object { $_.Repetition.Interval } | Where-Object { $_ })
@@ -144,7 +188,11 @@ if (Test-CSUnmeasured $bkProbe) {
 #   (b) WSL-side PRAGMA integrity_check -- the real proof, when sqlite3 is reachable.
 $hdrOk = $null; $hdrDetail = 'backup root not derivable from CS_BACKUP_ROOT'
 if ($script:CSBackupRootWin) {
-  $newest = Get-ChildItem -LiteralPath $script:CSBackupRootWin -Filter 'operon-*.db' -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -First 1
+  # BY MTIME, matching the WSL half's `ls -t` exactly. This used to sort by NAME while the WSL
+  # probe above picked by mtime, so the two halves could select DIFFERENT files and the row would
+  # print one snapshot's name beside another snapshot's integrity result -- a composite sentence
+  # that is false about both. Same rule, both sides, or the row is not about a single file.
+  $newest = Get-ChildItem -LiteralPath $script:CSBackupRootWin -Filter 'operon-*.db' -ErrorAction SilentlyContinue | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
   if (-not $newest) { $hdrOk = $false; $hdrDetail = "no operon-*.db under $script:CSBackupRootWin" }
   else {
     $magic = [byte[]]::new(16)

@@ -3,10 +3,34 @@
 # named mutex is the belt, this is the suspenders).
 #   ClaudeScienceWatchdog  -- cs-watchdog.ps1 at logon (single-instance via mutex + IgnoreNew)
 #   ClaudeScienceMaintain  -- weekly offline SQLite maintenance (Sun 04:00)
+#
+# THE LAUNCH PATH IS PART OF THE FIX, NOT AN INCIDENTAL DETAIL. This script used to register
+# whatever copy of cs-watchdog.ps1 sat beside ITSELF ($here), and install.ps1 invokes it from the
+# source directory -- so running the installer from a checkout registered an always-on supervisor
+# against that checkout. Measured 2026-08-12: the live task launched
+#   C:\Users\Prekzursil\source\ast-integrate\scripts\claude-science\cs-watchdog.ps1
+# where `.git` is a FILE reading `gitdir: .../worktrees/ast-integrate` -- a LINKED WORKTREE created
+# for one integration run. `git worktree remove` would have deleted the supervisor's script, and
+# Task Scheduler reports a missing -File target as a task that ran, so the death would have been as
+# silent as the 3.3-day logon-only outage this same file exists to prevent. The durable copy at
+# ~/.local/bin/cs-watchdog.ps1 already existed, byte-identical, and nothing pointed at it.
+# Default is now that durable copy; -WatchdogPath overrides; falling back to $here is loud.
+[CmdletBinding()]
+param([string]$WatchdogPath)
 $ErrorActionPreference = 'Stop'
-$here = Split-Path -Parent $MyInvocation.MyCommand.Path
+$here = Split-Path -Parent $PSCommandPath
 . (Join-Path $here 'cs-lib.ps1')      # cs.conf -> $script:CSDistro (was hardcoded in the maintain action)
-$watch = Join-Path $here 'cs-watchdog.ps1'
+
+$installed = Join-Path $env:USERPROFILE '.local\bin\cs-watchdog.ps1'
+$watch = if ($WatchdogPath) { $WatchdogPath }
+elseif (Test-Path -LiteralPath $installed) { $installed }
+else { Join-Path $here 'cs-watchdog.ps1' }
+if (-not (Test-Path -LiteralPath $watch)) { throw "cs-watchdog.ps1 not found at '$watch' - refusing to register a task that cannot start (that failure mode is invisible in Task Scheduler)." }
+$eph = Test-CSEphemeralWorktree $watch
+if ($eph) {
+  Write-Information -InformationAction Continue "[WARN] registering the watchdog OUT OF AN EPHEMERAL GIT WORKTREE ($eph): $watch"
+  Write-Information -InformationAction Continue '[WARN] it will stop working the moment that worktree is removed, and Task Scheduler will not say so. Run install.ps1 (deploys to ~\.local\bin) or pass -WatchdogPath.'
+}
 
 # --- kill the OLD dual-registration path: remove any stale Startup watchdog launcher ---
 $startupVbs = Join-Path ([Environment]::GetFolderPath('Startup')) 'cs-watchdog.vbs'
@@ -51,6 +75,13 @@ try {
   } else {
     Write-Information -InformationAction Continue "[WARN] ClaudeScienceWatchdog registered but repetition NOT set (got: $($rep -join ',')) - it will die on the next silent exit and stay dead. Set it by hand in taskschd.msc."
   }
+  # VERIFY THE ACTION TOO, for the same reason the repetition is read back: a registration that
+  # silently kept a previous action, or wrote a path that does not exist, is indistinguishable from
+  # success at the API. This is the identical judgement cs-doctor's 'Watchdog action path' row makes,
+  # applied at the moment of writing so the defect cannot be introduced in the first place.
+  $v = Get-CSWatchdogActionVerdict -Task $live -ReferenceScript $watch
+  if ($v.Status -eq 'PASS') { Write-Information -InformationAction Continue "[ok] action verified -> $($v.Detail)" }
+  else { Write-Information -InformationAction Continue "[$($v.Status)] watchdog action: $($v.Detail)" }
 } catch {
   Write-Information -InformationAction Continue "[fallback] Task Scheduler denied ($($_.Exception.Message)); using Startup folder."
   @"

@@ -133,7 +133,13 @@ function Invoke-CSWsl {
     }
   }
   $job = Start-Job { param($d, $c) & wsl.exe -d $d -e bash -lc "export PATH=`$HOME/.local/bin:`$PATH; $c" 2>&1 } -ArgumentList $script:CSDistro, $Cmd
-  if (Wait-Job $job -Timeout $TimeoutSec) { $o = Receive-Job $job; Remove-Job $job -Force -ErrorAction SilentlyContinue; return ($o -join "`n") }
+  # NUL-strip at the SOURCE. wsl.exe writes its own errors ("There is no distribution with the
+  # supplied name.") as UTF-16LE; decoded as single-byte text every character is followed by a NUL,
+  # so the reply reaches the report as "T h e r e   i s   n o ...". Removing the NULs here recovers
+  # the real sentence for every caller at once, instead of each row learning to un-mangle it.
+  # Only U+0000 is touched -- newlines and the payload are untouched, so sentinel comparisons and
+  # the pipe-delimited probe replies below are unaffected.
+  if (Wait-Job $job -Timeout $TimeoutSec) { $o = Receive-Job $job; Remove-Job $job -Force -ErrorAction SilentlyContinue; return (($o -join "`n") -replace "`0", '') }
   Stop-Job $job -ErrorAction SilentlyContinue; Remove-Job $job -Force -ErrorAction SilentlyContinue
   return '__WSL_TIMEOUT__'
 }
@@ -149,6 +155,101 @@ function Get-CSWatchdogProcess {
   # cs-watchdog.ps1` ARGUMENT SHAPE that only a real launch has, not a bare substring.
   @(Get-CimInstance Win32_Process -Filter "Name='powershell.exe' OR Name='pwsh.exe'" -ErrorAction SilentlyContinue |
     Where-Object { $_.ProcessId -ne $PID -and $_.CommandLine -match '(?i)-File\s+"?[^"]*cs-watchdog\.ps1' })
+}
+
+function Test-CSEphemeralWorktree {
+  # -> the `gitdir:` marker line if $Path lives inside a LINKED git worktree, else $null.
+  #
+  # WHY THIS EXISTS (measured 2026-08-12 by an independent verifier, reproduced by me).
+  # ClaudeScienceWatchdog's action was
+  #   -File "C:\Users\Prekzursil\source\ast-integrate\scripts\claude-science\cs-watchdog.ps1"
+  # and `C:\Users\Prekzursil\source\ast-integrate\.git` is a FILE reading
+  #   gitdir: C:/Users/Prekzursil/source/agent-skills-toolchain/.git/worktrees/ast-integrate
+  # i.e. a linked worktree created for one integration run. `git worktree remove` deletes that
+  # directory, and an always-on supervisor registered to launch out of it dies with it -- silently,
+  # because Task Scheduler reports a missing script as a task that ran. Meanwhile the stable copy
+  # ~/.local/bin/cs-watchdog.ps1 already existed, byte-identical, and nothing used it.
+  #
+  # A NORMAL CLONE IS NOT FLAGGED. There, `.git` is a DIRECTORY and the checkout is as durable as
+  # ~/.local/bin; flagging it would be a false alarm on the ordinary developer layout. The property
+  # that matters is "created and destroyed per run", and the linked-worktree marker is exactly that.
+  #
+  # `-Force` is not optional: `.git` is HIDDEN, and Get-Item without it throws "Could not find
+  # item" on a path Get-Content reads fine -- a detector that reports "no worktree here" for every
+  # repository on the box.
+  param([string]$Path)
+  if (-not $Path) { return $null }
+  $dir = try { if (Test-Path -LiteralPath $Path -PathType Leaf) { Split-Path -Parent $Path } else { $Path } } catch { return $null }
+  for ($i = 0; $i -lt 40 -and $dir; $i++) {
+    $marker = Join-Path $dir '.git'
+    $item = Get-Item -LiteralPath $marker -Force -ErrorAction SilentlyContinue
+    if ($item) {
+      if (-not $item.PSIsContainer) {
+        $line = (Get-Content -LiteralPath $marker -TotalCount 1 -ErrorAction SilentlyContinue)
+        if ("$line" -match '(?i)gitdir:.*[\\/]worktrees[\\/]') { return "$line".Trim() }
+      }
+      return $null   # a real .git directory (or a gitfile that is not a worktree) = durable
+    }
+    $parent = Split-Path -Parent $dir
+    if ($parent -eq $dir) { break }
+    $dir = $parent
+  }
+  return $null
+}
+
+function Get-CSWatchdogActionVerdict {
+  # Does the registered watchdog task launch code that (a) exists, (b) will still exist tomorrow,
+  # and (c) is the same code as this deploy? -> @{ Status; Detail }
+  #
+  # cs-doctor already checked the TRIGGER (the 3.3-day-death fix) and the PROCESS COUNT, and had a
+  # 'Watchdog registered' row that read only $task.State. None of the three looks at what the task
+  # actually RUNS, so a task pointing at a deleted or stale script reported PASS/PASS/PASS. Field
+  # check with a control on the round-2 doctor: /\.Actions/ 0 hits, /cs-watchdog/ 0, /\.Triggers/ 1.
+  #
+  # Pure and injection-free ON PURPOSE: it takes the task object and a reference path, so the test
+  # harness can drive every branch without touching Task Scheduler and without another CS_FORCE_*
+  # seam (each of those is one more way to fabricate a green -- see the D2 disclosure above).
+  param([object]$Task, [string]$ReferenceScript)
+  if (-not $Task) { return @{ Status = 'FAIL'; Detail = 'no ClaudeScienceWatchdog task - run register-tasks.ps1' } }
+  $act = @($Task.Actions)[0]
+  if (-not $act) { return @{ Status = 'NOT-CHECKED'; Detail = 'task has no action to inspect' } }
+  $m = [regex]::Match("$($act.Arguments)", '(?i)-File\s+"?([^"]+?\.ps1)"?(\s|$)')
+  if (-not $m.Success) {
+    return @{ Status = 'NOT-CHECKED'; Detail = "action names no -File script (execute=$($act.Execute)); launch target unverifiable" }
+  }
+  $target = $m.Groups[1].Value.Trim()
+  if (-not (Test-Path -LiteralPath $target)) {
+    return @{ Status = 'FAIL'; Detail = "launches a script that DOES NOT EXIST: $target - the watchdog cannot start at all. Re-run register-tasks.ps1" }
+  }
+  $wt = Test-CSEphemeralWorktree $target
+  if ($wt) {
+    return @{ Status = 'FAIL'; Detail = "launches out of an EPHEMERAL git worktree ($wt): $target - it dies when the worktree is removed. Re-run register-tasks.ps1 to point at ~/.local/bin" }
+  }
+  if (-not $ReferenceScript -or -not (Test-Path -LiteralPath $ReferenceScript)) {
+    return @{ Status = 'PASS'; Detail = "$target (exists, durable; no reference copy to compare against)" }
+  }
+  $a = (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash
+  $b = (Get-FileHash -LiteralPath $ReferenceScript -Algorithm SHA256).Hash
+  if ($a -ne $b) {
+    return @{ Status = 'FAIL'; Detail = "launches STALE code: $target (sha $($a.Substring(0,12))) != $ReferenceScript (sha $($b.Substring(0,12)))" }
+  }
+  return @{ Status = 'PASS'; Detail = "$target (durable, sha $($a.Substring(0,12)) matches this deploy)" }
+}
+
+function Format-CSProbeReply {
+  # Make a raw probe reply safe to print in a one-line report cell.
+  #
+  # MEASURED 2026-08-12: the DB row rendered wsl.exe's own error as "T h e r e   i s   n o ..." --
+  # wsl.exe emits its errors as UTF-16LE, and reading them as single-byte text interleaves a NUL
+  # after every character. Stripping the NULs recovers the real sentence, which is the diagnosis
+  # the operator needs; leaving them in produces a row that looks corrupted rather than informative.
+  # Also bounds the length, because an unbounded reply pushes the rest of the table off-screen.
+  param([string]$Text, [int]$Max = 140)
+  if ($null -eq $Text) { return '' }
+  $s = ($Text -replace "[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]", '') -replace '\s+', ' '
+  $s = $s.Trim()
+  if ($s.Length -gt $Max) { $s = $s.Substring(0, $Max) + '...(truncated)' }
+  return $s
 }
 
 function Test-CSHealth {

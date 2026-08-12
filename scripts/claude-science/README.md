@@ -78,6 +78,20 @@ as *the* number:
 > Settling experiment: run both scripts above at any commit; they must agree on the *set of files*
 > holding literals even where they disagree on the total.
 
+> **Second refuted wording, also kept on the record (round 3).** Both counts above are measured
+> over the **repository**, and until 2026-08-12 12:49 that was the whole truth of the claim: the
+> live WSL tree still held the 2026-07-07 copies with **no `cs-lib.sh` and no `cs.conf` at all**,
+> so `cs-recover`, `cs-restore` and `cs-supervisor` carried five literal `8000`s and editing
+> `cs.conf` changed nothing on the shell side. "Config centralised" was true of the repo and false
+> of the running system — and the round-2 hardcode delta was **entirely round 1's**; round 2 moved
+> it by exactly zero. Both were disclosed as residual #2 rather than hidden, but the headline
+> sentence was still wider than the evidence. Now closed by deploying: measured after,
+> `DEPLOYED_COMMAND_BYPASS_TOTAL=0` across all nine WSL commands, with the matcher controlled
+> (it still finds 3 hits inside `cs.conf`, so the zero is a reading and not a blind regex), and
+> the seam proven in **both** directions — `. cs-lib.sh` resolves `CS_PORT=8000` from the deployed
+> `cs.conf`, and `CS_PORT=9099` overrides it to `http://127.0.0.1:9099/`. Settling experiment:
+> `wsl -d Ubuntu -- grep -c 8000 ~/.local/bin/cs-recover` must print 0.
+
 ### `cs doctor` output
 
 A read-only, one-shot report that operationalizes the 2026-07-07 audit into a
@@ -138,7 +152,7 @@ probe stubbed, so it is hermetic and safe to run *while* the box is wedged:
 
 ```powershell
 pwsh -NoProfile -File .\test-cs-doctor-failclosed.ps1
-# SUCCESS:cs-doctor-failclosed all 76 assertions held
+# SUCCESS:cs-doctor-failclosed all 102 assertions held
 ```
 
 It asserts both directions — that each row goes FAIL/NOT-CHECKED when its input is broken, **and**
@@ -186,7 +200,72 @@ python .\test-cs-backup-readonly.py check .\cs-doctor.ps1
 
 Any `+N sidecars` in the restorable row is the fingerprint of that old in-place open. They are
 reported, never deleted — this tool does not write to the backup root, and that includes cleaning
-up after itself.
+up after itself. *(Round 3 correction: the round-2 text said "two stale sidecars". It is four
+files / two pairs — a `-shm` and a `-wal` per snapshot. The count printed by the row was always
+right; the prose rounded it down.)*
+
+### Round 3 (2026-08-12) — the same defect class, in two places round 2 did not look
+
+Round 2 fixed D1 and described it as a **class fix**. An independent verifier refuted that word:
+the fix covered the *slash-command launcher* and nothing else, and two live instances of "a
+long-lived thing points at a stale or disposable tree" were still open inside this directory.
+
+**R1 (blocking) — the always-on watchdog launched out of a disposable git worktree.** The
+registered action was
+`-File "C:\Users\Prekzursil\source\ast-integrate\scripts\claude-science\cs-watchdog.ps1"`, and that
+directory's `.git` is a *file* reading `gitdir: …/worktrees/ast-integrate` — a linked worktree
+created for one integration run. `git worktree remove` would have deleted the supervisor's script,
+and Task Scheduler reports a missing `-File` target as a task that *ran*, so the death would have
+been exactly as silent as the 3.3-day logon-only outage this suite already fixed once. The durable
+`~/.local/bin/cs-watchdog.ps1` existed the whole time, byte-identical, unused. Three doctor rows
+(registered / trigger / instances) all read PASS, because none of them looks at `$task.Actions`.
+
+Fixed at both ends: `register-tasks.ps1` now defaults to the installed copy (with `-WatchdogPath`
+to override, a loud warning if it ever falls back to a worktree, and a read-back of the action it
+just wrote), `install.ps1` passes the deployed path explicitly, and cs doctor gained a **Watchdog
+action path** row that fails on a missing target, on an ephemeral-worktree target, and on stale
+bytes. Its judgement is the pure function `Get-CSWatchdogActionVerdict`, tested directly by nine
+harness assertions — including the two controls that matter: an ordinary clone (`.git` *directory*)
+must **not** be called ephemeral, and matching bytes must read PASS.
+
+**R2 (blocking) — `cs-deploy.sh` installed the stale checkout.** Its first line was
+`SRC=/mnt/c/…/agent-skills-toolchain/scripts/claude-science` — the same detached-HEAD tree as D1.
+Running it *downgraded* the WSL side (`cs-backup` 4,054 B → 2,523 B) and deployed neither
+`cs-lib.sh` nor `cs.conf`. `SRC` is now derived from `${BASH_SOURCE[0]}` (`CS_SRC` overrides), the
+file list mirrors `install.ps1` exactly, and the script verifies its own deploy and exits non-zero
+on a partial one — the dangerous state, because the commands then exist on `PATH` and each dies on
+the missing `cs-lib.sh` at the moment it is needed, typically inside the weekly maintenance window.
+
+**R3 — the disk row invented a number.** `$dg = 0; [void][int]::TryParse(…)` discarded the parse
+result, so an unparseable reply left the initialiser and the row printed a confident
+`WSL disk free WARN 0GB (floor 10GB)`. Same fail-open shape as the original DB row; the fabricated
+value simply happened to be a default rather than a sentence. Now `NOT-CHECKED`, quoting the reply.
+
+**R4 — probe replies reached the report mangled.** `wsl.exe` writes its own errors as UTF-16LE, so
+decoded byte-wise every character is followed by a NUL and the row read `T h e r e   i s   n o …`.
+`Invoke-CSWsl` now strips NULs at the source (which *recovers* the sentence rather than hiding it)
+and `Format-CSProbeReply` collapses control characters and bounds the length. A DB reply that is
+not the three-field shape is `NOT-CHECKED`, not `integrity=<error text>`.
+
+**Found while verifying, not reported by anyone: the two routes still disagreed.** `cs.cmd` named
+`powershell` — Windows PowerShell 5.1 — while `/claude-science` runs `pwsh`. Four runs, same box,
+minutes apart:
+
+| code | host | summary |
+|---|---|---|
+| round 2 | powershell 5.1 | `1 FAIL, 2 WARN, 3 NOT-CHECKED, 7 PASS` |
+| round 2 | pwsh 7 | `1 FAIL, 1 WARN, 0 NOT-CHECKED, 11 PASS` |
+| round 3 | powershell 5.1 | `0 FAIL, 2 WARN, 4 NOT-CHECKED, 8 PASS` |
+| round 3 | pwsh 7 | `0 FAIL, 1 WARN, 0 NOT-CHECKED, 13 PASS` |
+
+5.1 mangles native-command arguments containing embedded double quotes, and the DB/backup probes
+hand `wsl.exe` a quoted `sqlite3 -readonly "file:…?mode=ro"`, so bash receives a truncated command
+(`-readonly: -c: line 2: unexpected EOF`). The rows go NOT-CHECKED, which is the fail-closed
+contract working — an unmeasurable probe never reads PASS — but two routes disagreeing about one
+box is precisely D1's class. The pre/post table above is also the control that this was **not**
+introduced by round 3: round 2 degrades the same way. The three `.cmd` shims now prefer `pwsh` and
+keep 5.1 as a fallback, and a **PowerShell host** row makes the fallback visible instead of
+mysterious.
 
 ## Reliability hardening (2026-07-07)
 
