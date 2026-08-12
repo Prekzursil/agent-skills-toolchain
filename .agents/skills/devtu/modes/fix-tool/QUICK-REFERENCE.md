@@ -283,6 +283,14 @@ python scripts/test_new_tools.py | grep "❌"
 
 # Count failures by category
 python scripts/test_new_tools.py | grep -c "Failed"
+#   TRAP: `grep -c` prints 0 AND EXITS 1 when there are no matches, so the reflex
+#   `grep -c "Failed" || echo 0` fires BOTH sides and yields a doubled zero:
+#       $ out=$(grep -c zzz f.txt || echo 0); echo "[$out]"   ->  [0
+#                                                                  0]     (2 lines)
+#       $ out=$(grep -c alpha f.txt || echo 0); echo "[$out]"  ->  [1]     (control, 1 line)
+#   "0\n0" != "0", so every downstream count/threshold comparison silently mis-reads.
+#   Use `grep -c ... ; true` and keep the raw value, or `awk '/Failed/{n++} END{print n+0}'`
+#   (always exits 0 and always prints one number).
 
 # Show only schema mismatches
 python scripts/test_new_tools.py -v | grep "Schema Mismatch"

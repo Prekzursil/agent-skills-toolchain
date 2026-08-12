@@ -138,3 +138,63 @@ Then drop back to the INNER loop on the located file until it's green, and re-ru
 - **Mutation is a micro-check, not a suite.** Scope it to the changed files (`--mutate <file>`);
   a full-tree mutation run belongs in CI, not the commit loop.
 - **Config/dep/test-infra edits void selection** — always OUTER (rule 3).
+
+## Three ways a green OUTER loop still lies (each measured, not hypothesised)
+
+The OUTER loop is the merge signal, but it is measured against *your* working tree, on *your*
+box, by *your* tests. Each of those three is a place a green has been wrong here.
+
+### 1. WORKING-TREE green ≠ CLONE green
+
+Measured: a suite reported **3,910 passed** in the working tree and **31 collection errors** from
+a fresh clone of the *same commit*. The gap is everything the tree has that the commit does not —
+untracked files, stale `__pycache__`, an editable install, a local `conftest.py`, a path that only
+resolves because of where you happen to be standing. CI checks out a clone, so the clone is the
+one that counts.
+
+```bash
+git clone --no-hardlinks "C:/Users/you/source/<repo>" /tmp/clonecheck   # Windows-style path:
+cd /tmp/clonecheck && git checkout <sha> && <install> && <full suite>   #   MSYS mangles /c/...
+```
+
+Do this before any "ready to merge" claim on a repo whose suite you have never run cold. Note the
+path form: use `C:/Users/...`, not `/c/Users/...` — and do **not** set `MSYS_NO_PATHCONV=1`
+globally to work around it, because that suppresses the conversion the clone path itself needs
+and the clone then silently does not happen.
+
+### 2. LOCAL formatter green ≠ CI formatter green (CRLF vs LF)
+
+Your working tree is CRLF; git stores LF; CI checks out LF. Formatters make different decisions
+on the two forms — measured: `ruff format --check` said *"1 file already formatted"* locally while
+CI said *"Would reformat"* for the same commit. Verify against the **stored blob**:
+
+```bash
+git show <rev>:<path>          # LF, exactly what CI checks out
+git cat-file -p "$(git rev-parse <rev>:<path>)"
+```
+
+**Never `git archive` for this.** Re-measured on two files in this repo, with a control proving
+all routes are byte-identical after LF-normalisation (so the delta is purely EOL, not content):
+`git show` and `git cat-file -p` → 7,487 B / **0 CRLF**; `git archive` + `tar -x` and the working
+tree → 7,627 B / **140 CRLF**. `git archive` applies export-time EOL conversion and hands back
+exactly the bytes you were trying to look past. Pin the tool version too (`uvx ruff@<pinned>`) —
+a local 0.15.22 and a CI 0.15.17 format differently.
+
+### 3. A green SUITE is not a green DETECTOR
+
+A gate that has never gone red is indistinguishable from a no-op. Two in-repo instruments exist
+for this and are worth naming because they are otherwise unreachable — neither is referenced by
+any skill, hook, or (for the first) any CI job:
+
+- **`tools/detector-self-test/`** — the both-states harness: run a probe against the KNOWN-BROKEN
+  state and require it to FIRE there before its silence counts as "fixed".
+- **`tools/measure-guard/`** — `suitefloor` (a run below its declared minimum test count FAILS
+  regardless of exit code — it is the §1 clone-vs-tree gap turned into a gate), `refcheck`,
+  `wudeps`, `jsonparse` and `vendordrift` are executed by `.github/workflows/quality.yml`
+  (`:114`, `:439-443`). **`blobread` is NOT** — grep it and you get exactly one hit,
+  `quality.yml:416`, which is a *comment*. It is the §2 wrong-bytes reader and it is available
+  as a library today, not as a gate. Naming a tool in a CI comment is not running it; count the
+  step, not the mention.
+
+The mutation micro-check in the OUTER loop is the same idea applied to the tests: revert a real
+bug and require the suite to go red. One of six mutations surviving is a genuine hole, not noise.

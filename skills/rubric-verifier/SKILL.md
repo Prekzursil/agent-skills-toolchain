@@ -262,6 +262,17 @@ The 100%-coverage threshold in .coverage-thresholds.json remains the blocking au
 - **Execution-free means no runtime surprise coverage.** A candidate may pass all
   rubric criteria and still fail a test that exercises an untouched invariant.  The
   coverage gate exists precisely for this.
+- **But coverage is NECESSARY, NOT SUFFICIENT — do not let it be read as the done-signal.**
+  This skill defers to "the 100%-coverage threshold remains the blocking authority", and that
+  is right about *authority to block* and wrong if read as *authority to declare done*. Measured
+  on this estate: a suite at full green had a mutation survive — reverting `DEFAULT_MIN_BYTES`
+  1024 -> 512 kept every test passing, because each case passed the value explicitly and the
+  default was never exercised. Coverage says a line RAN; it does not say anything ASSERTED on
+  it. And a green suite in the working tree is not a green suite from a clone of the same
+  commit (measured: 3,910 passed in-tree vs 31 collection errors cold).
+  So the ordering is: rubric rank (advisory) -> coverage gate (may BLOCK) -> the held-out
+  golden journey against the PACKAGED artifact (may DECLARE DONE). Only the last one is a
+  done-signal; see `seed-golden-journey`, `packaged-artifact-smoke` and `mutation-check`.
 - **Rubric quality depends on repo exploration quality.** If serena/repomix cannot
   resolve the affected symbols (e.g. generated code, heavy metaprogramming), the
   criteria will be shallower.  Surface this in the rubric's `rationale` fields so the
