@@ -105,6 +105,37 @@ mutation no-pathext-resolve -> control red? True
 SUCCESS:redproof-control 4/4 mutations caught
 ```
 
+### 2b. The repo gates were verified against the COMMITTED BLOBS, with controls
+
+Working-tree green is not blob green is not CI green, so both gates were re-run over
+`git show <commit>:<path>` output with `ruff.toml` from HEAD mirrored into place (a bare
+temp dir would make ruff fall back to its own defaults and answer a different question):
+
+```
+extracted 12 blobs from b9dce830; CRLF bytes in blobs: 0
+blob ruff check        rc=0  ['All checks passed!']
+blob ruff format-check rc=0  ['12 files already formatted']
+MANGLED control fires: True (rc=1)          <- a mis-formatted copy MUST be flagged
+SUCCESS:blob-gate blobs pass both ruff gates, control fired, 0 CRLF
+```
+
+Secrets, with a control that is itself committed (because `gitleaks git` reads **history**,
+so an uncommitted control proves nothing — the recorded failure on this estate):
+
+```
+control (committed synthetic secret in a throwaway repo) fires: True (rc=1)
+real scan over b9dce830: rc=0, 1 commit scanned, no leaks found
+SUCCESS:secrets-gate
+```
+
+**My first secrets control was INERT and I nearly recorded it as diligence.** An
+`AKIA` + 16-identical-chars synthetic fires under **neither** the repo `.gitleaks.toml`
+**nor** gitleaks' own defaults — measured as a 2×2 over {default, repo} × {low, high
+entropy}. The clean verdict on the real commit was therefore meaningless until the control
+was replaced with a token shape measured to fire under both configs. The synthetic is
+generated from a fixed seed rather than written as a literal, so the verifier does not trip
+the gate it verifies.
+
 ## 3. Capability sweep — 23 mounted servers
 
 `python probe_capability.py --mounted --timeout 150`, control passed, exit 0,
@@ -309,6 +340,10 @@ capability evidence but **not** a resolution, and does not act on it.
 | `command-center/mcp-audit/redproof_control.py` | 4/4 mutation red-proof of that control |
 | `command-center/mcp-audit/overlap_report.py` | exact tool-surface set arithmetic |
 | `command-center/mcp-audit/rank_disposition.py` | 4-signal join + disposition + reversibility invariant |
+| `command-center/mcp-audit/_verify_blob_gate.py` | re-runs pinned ruff over the committed BLOBS + a mangled control |
+| `command-center/mcp-audit/_verify_secrets_gate.py` | real gitleaks over the commit + a committed positive control |
+| `command-center/mcp-audit/_diag_popen_cmd.py` | the measurement that settled detector failure #1 (PATHEXT) |
+| `command-center/mcp-audit/_diag_mutation.py` | the measurement that settled detector failure #2 (tuple truthiness) |
 | `command-center/mcp-audit/capability-matrix.json` | 23 rows, 150 s budget, control block included |
 | `command-center/mcp-audit/capability-slowrows.json` | `angr` + `chrome-devtools` re-probe that refuted the 45 s FAILs |
 | `command-center/mcp-audit/overlap-report.json` | 16 surfaces, 4 pairs, 1 eligible |
