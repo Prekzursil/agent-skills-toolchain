@@ -22,6 +22,7 @@ from monitorcore.codex_source import CodexPayload, CodexSource
 from monitorcore.codex_tail import CodexThread, ToolEvent
 from monitorcore.contract import MonitorSource, Snapshot, SourceState
 from monitorcore.databricks_source import DatabricksSource, DbxPayload, DbxUnit
+from monitorcore.health_source import HealthPayload, SystemHealthSource
 from monitorcore.mcp_source import McpPayload, McpServer, McpSource
 from monitorcore.pane import NOT_MEASURED, PaneId
 from monitorcore.pane_views import PANES
@@ -124,6 +125,10 @@ def _fixture_sources(*, hostile: bool = False) -> dict[str, MonitorSource[object
         McpSource.id: _FakeSource(
             McpSource.id,
             McpPayload(servers=(McpServer(name=name, declared_in=("user",)),)),
+        ),
+        SystemHealthSource.id: _FakeSource(
+            SystemHealthSource.id,
+            HealthPayload(band="green", driver=name, gdi_max_proc=name),
         ),
     }
 
@@ -363,6 +368,7 @@ def test_default_sources_registers_one_adapter_per_pane_source():
         AgentsSource.id,
         DatabricksSource.id,
         McpSource.id,
+        SystemHealthSource.id,
     }
     assert all(isinstance(src, MonitorSource) for src in sources.values())
     # every pane's declared source_id is actually registered

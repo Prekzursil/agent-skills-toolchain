@@ -11,12 +11,18 @@ from __future__ import annotations
 
 import pytest
 
-from monitorcore.agents_source import AgentRow, AgentsPayload
-from monitorcore.codex_source import CodexPayload
+from monitorcore.agents_source import AgentRow, AgentsPayload, AgentsSource
+from monitorcore.codex_source import CodexPayload, CodexSource
 from monitorcore.codex_tail import CodexThread, fmt_dur
 from monitorcore.contract import Snapshot, SourceState
-from monitorcore.databricks_source import DbxPayload, DbxUnit, Liveness
-from monitorcore.mcp_source import McpPayload, McpServer
+from monitorcore.databricks_source import (
+    DatabricksSource,
+    DbxPayload,
+    DbxUnit,
+    Liveness,
+)
+from monitorcore.health_source import HealthPayload, SystemHealthSource
+from monitorcore.mcp_source import McpPayload, McpServer, McpSource
 from monitorcore.pane import NOT_MEASURED, Pane, PaneCtx
 from monitorcore.pane_views import (
     PANES,
@@ -24,6 +30,7 @@ from monitorcore.pane_views import (
     AgentsPane,
     CodexPane,
     DatabricksPane,
+    HealthPane,
     McpPane,
     WorkflowsPane,
     age_label,
@@ -139,9 +146,28 @@ def test_every_pane_declares_a_source_and_a_distinct_title(pane: Pane):
     assert pane.source_id and pane.title
 
 
-def test_the_default_tab_strip_has_five_unique_panes():
-    assert len(PANES) == 5
-    assert len({p.id for p in PANES}) == 5
+def test_the_default_tab_strip_has_six_unique_panes():
+    assert len(PANES) == 6
+    assert len({p.id for p in PANES}) == 6
+
+
+def test_every_registered_source_has_a_pane_that_renders_it():
+    """A source with no pane is an ORPHAN: written, tested, and visible nowhere.
+
+    ``SystemHealthSource`` was exactly that until the health pane landed — it appeared in no
+    ``PANES`` entry, so the one adapter whose whole purpose is to notice the observer has died
+    was itself unobservable. This is the structural guard, not a one-off assertion: any future
+    source added without a pane fails here rather than being silently invisible.
+    """
+    rendered = {p.source_id for p in PANES}
+    assert SystemHealthSource.id in rendered
+    assert {
+        CodexSource.id,
+        AgentsSource.id,
+        DatabricksSource.id,
+        McpSource.id,
+        SystemHealthSource.id,
+    } == rendered
 
 
 # ───────────────────────────── codex pane ─────────────────────────────
@@ -385,14 +411,122 @@ def test_mcp_pane_with_no_declarations_reports_a_measured_empty():
             DbxPayload(units=(DbxUnit(unit_id=HOSTILE, error=HOSTILE),)),
         ),
         (McpPane(), McpPayload(servers=(McpServer(name=HOSTILE, last_error=HOSTILE),))),
+        (
+            HealthPane(),
+            HealthPayload(
+                band=HOSTILE,
+                driver=HOSTILE,
+                gdi_max_proc=HOSTILE,
+                orphan_top=(HOSTILE,),
+            ),
+        ),
     ],
-    ids=["codex", "agents", "workflows", "databricks", "mcp"],
+    ids=["codex", "agents", "workflows", "databricks", "mcp", "health"],
 )
 def test_a_hostile_name_cannot_emit_an_escape_byte_into_a_pane(
     pane: Pane, payload: object
 ):
     joined = "\n".join(pane.body(_snap(payload), CTX).lines)
     assert not any(ch in joined for ch in ("\x1b", "\x07", "\x9b", "\x00"))
+
+
+# ───────────────────────────── health pane ─────────────────────────────
+def _health(**kw: object) -> HealthPayload:
+    base: dict[str, object] = {
+        "band": "green",
+        "driver": "",
+        "commit_pct": 57.1,
+        "phys_pct": 96.4,
+        "procs": 320,
+        "handles": 120_000,
+        "threads": 4_000,
+    }
+    base.update(kw)
+    return HealthPayload(**base)  # pyright: ignore[reportArgumentType]
+
+
+def test_health_pane_renders_the_sentinel_sample():
+    body = HealthPane().body(_snap(_health(driver="commit")), CTX)
+    text = "\n".join(body.lines)
+    assert body.count == 4  # band · procs · gui · orphans
+    assert "[GREEN]" in text
+    assert "phys 96%" in text and "commit 57%" in text
+    assert "driver commit" in text
+    assert "procs 320" in text and "handles 120000" in text
+
+
+def test_health_pane_prints_none_rather_than_a_blank_when_no_driver_is_named():
+    """The empty-driver branch: a band with no named driver is a MEASURED fact."""
+    assert "driver none" in _text(HealthPane(), _snap(_health()))
+
+
+def test_health_pane_never_fabricates_a_zero_for_an_unsampled_gui_counter():
+    """``gdi_max``/``usr_max`` are ``int | None``; ``None`` is unsampled, NOT zero.
+
+    This is the board built to spot the GDI-starvation freeze, so an unsampled GUI counter
+    reading as ``0`` would be the exact wrong answer — it would look like maximum headroom.
+    """
+    text = _text(HealthPane(), _snap(_health(gdi_max=None, usr_max=None)))
+    assert f"gdi_max {NOT_MEASURED_SHORT}" in text
+    assert f"usr_max {NOT_MEASURED_SHORT}" in text
+    assert f"top {NOT_MEASURED_SHORT}" in text
+    assert "gdi_max 0" not in text
+
+
+def test_health_pane_shows_a_measured_gui_counter_and_its_owning_process():
+    text = _text(HealthPane(), _snap(_health(gdi_max=9999, gdi_max_proc="Taskmgr")))
+    assert "gdi_max 9999" in text and "top Taskmgr" in text
+
+
+def test_health_pane_lists_each_orphaned_runtime():
+    body = HealthPane().body(
+        _snap(_health(orphan_count=2, orphan_top=("npx:41 (ppid 1, 80 MB)", "node:9"))),
+        CTX,
+    )
+    text = "\n".join(body.lines)
+    assert "orphaned MCP runtimes 2" in text
+    assert "orphan · npx:41" in text and "orphan · node:9" in text
+    assert body.count == 6  # the four fixed rows plus one row per orphan
+
+
+def test_health_pane_leads_with_an_explicit_stale_row_when_the_feed_is_not_advancing():
+    """The dead-man rule reaching the OPERATOR, not just the snapshot.
+
+    The sentinel's last sample stays readable forever after the sentinel dies. Rendering it as
+    plain numbers is the "reports success while dead" class: the figures look healthy because
+    they ARE the last healthy figures. The stale row must come FIRST, before any number.
+    """
+    snap = Snapshot(
+        source_id="health",
+        ts=NOW,
+        reachable=True,
+        stale=True,
+        state=SourceState.STALLED,
+        headline="h",
+        payload=_health(),
+        age_s=900.0,
+    )
+    lines = HealthPane().body(snap, CTX).lines
+    assert "[STALE]" in lines[0]
+    assert "LAST reading" in lines[0]
+    assert "[GREEN]" in lines[1]  # the figures still render, but only BELOW the warning
+
+
+def test_health_pane_omits_the_stale_row_on_a_fresh_sample():
+    """The both-states control for the row above: it must be ABSENT when the feed is live."""
+    assert "[STALE]" not in _text(HealthPane(), _snap(_health()))
+
+
+def test_health_pane_says_not_measured_when_the_payload_is_not_a_sentinel_sample():
+    """A mis-registered source degrades THIS row, never the whole board.
+
+    The scalar analogue of ``payload_rows(of=...)``: without ``payload_of`` the pane would read
+    ``.band`` off whatever object it was handed and raise ``AttributeError`` mid-paint.
+    """
+    body = HealthPane().body(_snap(AgentsPayload(rows=())), CTX)
+    joined = "\n".join(body.lines)
+    assert body.count == 0
+    assert NOT_MEASURED in joined and "not a sentinel sample" in joined
 
 
 def test_a_hostile_error_string_cannot_escape_the_degraded_row():

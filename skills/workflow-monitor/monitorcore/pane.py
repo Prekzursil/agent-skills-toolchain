@@ -38,7 +38,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol, TypeVar, runtime_checkable
 
 from .codex_tail import clip
 from .contract import Snapshot
@@ -58,8 +58,10 @@ __all__ = [
     "cursor_rows",
     "not_measured",
     "pane_bar",
+    "payload_of",
     "payload_rows",
     "safe",
+    "snap_is_stale",
     "state_badge",
 ]
 
@@ -68,6 +70,10 @@ __all__ = [
 # the marker width and the clamp rule must stay identical or switching panes would shift the
 # columns under the operator's eye and the two cursors would disagree at the edges.
 NOT_MEASURED = "not measured"
+
+#: The payload type :func:`payload_of` narrows to — the scalar counterpart of the row element
+#: type ``payload_rows`` filters on.
+T = TypeVar("T")
 
 
 class PaneId(StrEnum):
@@ -78,6 +84,7 @@ class PaneId(StrEnum):
     WORKFLOWS = "workflows"
     DATABRICKS = "databricks"
     MCP = "mcp"
+    HEALTH = "health"
 
 
 @dataclass(frozen=True)
@@ -202,6 +209,36 @@ def payload_rows(
     if of is None:
         return tuple(rows)
     return tuple(row for row in rows if isinstance(row, of))
+
+
+def payload_of(snap: Snapshot[Any] | None, of: type[T]) -> T | None:
+    """The payload itself when it is of the expected type, else ``None``.
+
+    The SCALAR twin of :func:`payload_rows`. A source whose domain model is one sample rather
+    than a row sequence (the sentinel's :class:`~monitorcore.health_source.HealthPayload`) gets
+    the same never-raise guarantee: a missing snapshot or a mis-registered source hands back
+    ``None``, which the pane renders as an explicit *not measured* row. Without it a pane would
+    reach into ``snap.payload`` directly and a wrong-typed payload would raise
+    ``AttributeError`` mid-paint and tear the WHOLE board down, not just its own row — the hole
+    ``payload_rows``'s ``of=`` closed for sequence payloads.
+    """
+    if snap is None:
+        return None
+    payload = snap.payload
+    if isinstance(payload, of):
+        return payload
+    return None
+
+
+def snap_is_stale(snap: Snapshot[Any] | None) -> bool:
+    """``True`` when the snapshot carries a RETAINED last-good payload, not a fresh read.
+
+    A pane needs this to be a plain bool it can fold into a row: rendering a retained sample as
+    if it were current is precisely the "reports success while dead" class — the numbers still
+    look healthy because they ARE the last healthy numbers. An absent snapshot is not stale, it
+    is unmeasured, and the caller has already routed that case to a *not measured* row.
+    """
+    return snap is not None and snap.stale
 
 
 def state_badge(snap: Snapshot[Any] | None, *, source_id: str) -> str:

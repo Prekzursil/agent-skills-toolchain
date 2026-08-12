@@ -54,6 +54,12 @@ from .textsafe import strip_controls
 
 __all__ = ["HealthPayload", "SystemHealthSource"]
 
+#: The registered source id. Declared at module scope and mirrored onto the class (as
+#: ``codex_source`` / ``agents_source`` / ``mcp_source`` / ``databricks_source`` all do) so the
+#: cockpit can wire a pane to this source by ``SystemHealthSource.id`` WITHOUT constructing one
+#: — a pane declares its ``source_id`` at class-definition time, long before any adapter exists.
+_ID = "health"
+
 # Read this much from the tail. Comfortably more than one sample (~1 KB) so a truncated final
 # line always has at least one complete predecessor to fall back to.
 _TAIL_BYTES = 65536
@@ -187,11 +193,16 @@ def _to_payload(obj: dict[str, object]) -> HealthPayload:
 class SystemHealthSource:
     """Tails the sentinel's NDJSON and reports workstation liveness on the shared board."""
 
+    #: The default registered id, readable off the CLASS. ``__init__`` still assigns
+    #: ``self.id``, so a caller may register a second instance under its own id (a second
+    #: sentinel feed) without disturbing the pane's class-level wiring.
+    id = _ID
+
     def __init__(
         self,
         events_path: Path | str | None = None,
         *,
-        source_id: str = "health",
+        source_id: str = _ID,
         dead_man_s: float = 45.0,
         redact_enabled: bool = True,
     ) -> None:

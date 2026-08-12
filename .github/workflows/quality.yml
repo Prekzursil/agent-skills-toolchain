@@ -97,13 +97,21 @@ jobs:
         run: bash .quality/charter_check.sh
       # monitorcore is VENDORED into consuming skills as a committed copy (sync-skills.ps1
       # deploys committed skill dirs wholesale). tools/monitorcore/ is the single CI-gated
-      # source of truth; this fails the gate if the vendored copy has drifted. Deliberately
+      # source of truth; this fails the gate if a vendored copy has drifted. Deliberately
       # NOT a `gate-<slug>` step name so charter_check.sh's reverse check ignores it.
-      - name: monitorcore vendor-drift (tools == vendored)
-        run: |
-          diff -r --exclude=__pycache__ \
-            tools/monitorcore/monitorcore \
-            skills/workflow-monitor/monitorcore
+      #
+      # WAS a hardcoded `diff -r` of ONE pair (tools/... vs skills/workflow-monitor/...).
+      # That left the SECOND committed copy, .agents/skills/workflow-monitor/monitorcore,
+      # named in no workflow at all -- measured with a positive control:
+      #   grep -c "skills/workflow-monitor/monitorcore" quality.yml = 1  (matcher fires)
+      #   grep -c "\.agents/skills/workflow-monitor"    quality.yml = 0  (genuinely absent)
+      # so a change landing in tools/ + skills/ passed CI while the .agents copy rotted.
+      # vendordrift.py DISCOVERS every tracked `*/monitorcore/__init__.py` instead, so a
+      # third copy cannot arrive ungated, and it compares committed blob OIDs rather than
+      # worktree bytes -- `diff -r` compares CRLF worktree bytes on a Windows checkout,
+      # which is not what a fresh Linux clone materialises. Fails closed on an empty walk.
+      - name: monitorcore vendor-drift (every committed copy)
+        run: python tools/measure-guard/vendordrift.py
       # D-wu-19: the codex-runner installs ci/skills-allowlist/* VERBATIM into
       # $HOME/.agents/skills (codex-runner.yml:163) and skill_surface_census.py then
       # merkle-compares the two roots, so the acceptance-review helper must live IN the

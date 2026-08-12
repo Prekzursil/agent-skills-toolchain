@@ -20,6 +20,10 @@ pane             the existing source it renders
                  measured :func:`~monitorcore.databricks_source.busy_glyph`.
 ``mcp``          :class:`monitorcore.mcp_source.McpSource` — inventory only; every health
                  column prints ``not-measured`` and every unreadable config is named.
+``health``       :class:`monitorcore.health_source.SystemHealthSource` — the sentinel sample.
+                 A SCALAR payload, so it degrades through
+                 :func:`monitorcore.pane.payload_of` rather than ``payload_rows``, and it
+                 leads with an explicit STALE row when the dead-man window has expired.
 ===============  ====================================================================
 
 Degradation is uniform and explicit. A pane whose source is **not registered** or **not
@@ -47,6 +51,7 @@ from .codex_tail import CodexThread, fmt_dur
 from .contract import Snapshot
 from .databricks_source import DatabricksSource, DbxUnit, busy_glyph
 from .group_tree import derive_groups
+from .health_source import HealthPayload, SystemHealthSource
 from .mcp_source import McpServer, McpSource
 from .nav import ViewState, nav_items, visible_groups
 from .pane import (
@@ -57,8 +62,10 @@ from .pane import (
     clamp,
     cursor_rows,
     not_measured,
+    payload_of,
     payload_rows,
     safe,
+    snap_is_stale,
 )
 from .responsive import layout_for
 from .view import render_view
@@ -68,6 +75,7 @@ __all__ = [
     "AgentsPane",
     "CodexPane",
     "DatabricksPane",
+    "HealthPane",
     "McpPane",
     "WorkflowsPane",
     "age_label",
@@ -328,11 +336,79 @@ def _server_line(server: McpServer) -> str:
     )
 
 
-#: The default tab strip, in switch-key order (``1``-``5``).
+class HealthPane:
+    """Workstation liveness — the sentinel sample, as a row set instead of an orphan.
+
+    :class:`~monitorcore.health_source.SystemHealthSource` was written, unit-tested and then
+    wired to NOTHING: before this pane existed it appeared in no ``PaneId``, no ``PANES`` entry
+    and no :func:`monitorcore.unified.default_sources` call, so the one adapter whose entire
+    purpose is to notice that the observer has died was itself unobservable. Measured with a
+    positive control: ``SystemHealthSource`` matched zero other modules in the package while
+    ``McpSource`` matched four.
+
+    THE STALE ROW IS THE POINT. The sentinel's last sample stays readable forever after the
+    sentinel dies, so a pane that simply printed the numbers would render a healthy board for a
+    machine nobody is watching. When the source flags the snapshot stale (its dead-man window,
+    :class:`~monitorcore.health_source.SystemHealthSource`) the first row says so, ahead of any
+    figure, and every figure below it is explicitly labelled as the last-good reading rather
+    than a current one.
+
+    The payload is ONE sample, not a row sequence, so the never-raise guarantee comes from
+    :func:`monitorcore.pane.payload_of` rather than ``payload_rows``.
+    """
+
+    id: str = PaneId.HEALTH
+    title: str = "health"
+    source_id: str = SystemHealthSource.id
+
+    def body(self, snap: Snapshot[object] | None, ctx: PaneCtx) -> PaneBody:
+        degraded = _degraded("workstation health", snap, ctx)
+        if degraded is not None:
+            return degraded
+        sample = payload_of(snap, HealthPayload)
+        if sample is None:
+            return _notice(
+                not_measured("workstation health", "payload is not a sentinel sample"),
+                ctx,
+            )
+        lines = _health_lines(sample, stale=snap_is_stale(snap))
+        return PaneBody(cursor_rows(lines, ctx), len(lines))
+
+
+def _health_lines(p: HealthPayload, *, stale: bool) -> list[str]:
+    """``[GREEN] phys 41% · commit 57% · driver none`` and the supporting counts.
+
+    ``gdi_max`` / ``usr_max`` print :data:`NOT_MEASURED_SHORT` when the sentinel did not supply
+    them — the source models them ``int | None`` precisely because a GUI-object count of zero is
+    a different fact from an unsampled one, and this is the board that exists to tell those two
+    apart.
+    """
+    lines: list[str] = []
+    if stale:
+        lines.append(
+            "[STALE] retained last-good sample — the sentinel feed is not advancing; "
+            "every figure below is the LAST reading, not a current one"
+        )
+    lines.append(
+        f"[{safe(p.band).upper()}] phys {p.phys_pct:.0f}% · commit {p.commit_pct:.0f}% · "
+        f"driver {safe(p.driver) or 'none'}"
+    )
+    lines.append(f"procs {p.procs} · handles {p.handles} · threads {p.threads}")
+    lines.append(
+        f"gdi_max {measured(p.gdi_max)} · usr_max {measured(p.usr_max)} · "
+        f"top {safe(p.gdi_max_proc) or NOT_MEASURED_SHORT}"
+    )
+    lines.append(f"orphaned MCP runtimes {p.orphan_count}")
+    lines.extend(f"  orphan · {safe(o)}" for o in p.orphan_top)
+    return lines
+
+
+#: The default tab strip, in switch-key order (``1``-``6``).
 PANES: tuple[Pane, ...] = (
     CodexPane(),
     AgentsPane(),
     WorkflowsPane(),
     DatabricksPane(),
     McpPane(),
+    HealthPane(),
 )

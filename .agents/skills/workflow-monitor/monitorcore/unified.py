@@ -13,7 +13,7 @@ every module CLI in this package already carries.
 The loop is keystroke-driven, deliberately, exactly as Phase 1 is: one keypress = one
 ``poll_all`` = one repaint. There is no timer and no busy poll.
 
-Keys — ``1``-``5`` jump straight to a pane · ``tab`` cycles · ``↑``/``k`` and ``↓``/``j``
+Keys — ``1``-``6`` jump straight to a pane · ``tab`` cycles · ``↑``/``k`` and ``↓``/``j``
 move the selection within the active pane · ``q`` quits.
 
 The loop also owns the WU6 stall layer for the codex pane (:func:`codex_marks`), because the
@@ -49,6 +49,7 @@ from .codex_tail import CodexThread, clip
 from .cockpit import _default_write, _getch, _mtime, _supported, stall_marks
 from .contract import MonitorSource, Snapshot, SourceState
 from .databricks_source import DatabricksSource
+from .health_source import SystemHealthSource
 from .mcp_source import McpSource
 from .pane import (
     GUTTER,
@@ -284,7 +285,7 @@ def run_board(
 def _build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(
         description="Unified monitor cockpit — ONE board, switchable panes "
-        "(codex · agents · workflows · databricks · mcp). --once renders a single "
+        "(codex · agents · workflows · databricks · mcp · health). --once renders a single "
         "read-only frame and degrades cleanly under Windows Terminal."
     )
     ap.add_argument(
@@ -309,6 +310,9 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="an MCP config document to read (repeatable; default: the standard scopes)",
     )
+    ap.add_argument(
+        "--health-path", default=None, help="system-sentinel NDJSON event log"
+    )
     return ap
 
 
@@ -325,6 +329,11 @@ def default_sources(
             events_path=args.events_path, clock=clock
         ),
         McpSource.id: McpSource(paths=args.mcp_config, clock=clock),
+        # No ``clock=``: this adapter deliberately takes none. Its freshness is derived from
+        # the SAMPLE's own timestamp against wall time, which is what makes the dead-man rule
+        # work — a source that read the board's injected clock could be handed a frozen clock
+        # and would then never age its feed out.
+        SystemHealthSource.id: SystemHealthSource(events_path=args.health_path),
     }
 
 

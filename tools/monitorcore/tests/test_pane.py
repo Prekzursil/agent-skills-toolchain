@@ -20,8 +20,10 @@ from monitorcore.pane import (
     cursor_rows,
     not_measured,
     pane_bar,
+    payload_of,
     payload_rows,
     safe,
+    snap_is_stale,
     state_badge,
 )
 
@@ -190,6 +192,33 @@ def test_payload_rows_without_a_declared_type_keeps_every_element():
     assert payload_rows(_snap(_Payload(rows=("oops",))), "rows") == ("oops",)
 
 
+# ───────────────────────────── payload_of (the SCALAR twin) ─────────────────────────────
+def test_payload_of_returns_the_payload_when_the_type_matches():
+    payload = _Payload(band="green")
+    assert payload_of(_snap(payload), _Payload) is payload
+
+
+def test_payload_of_on_a_missing_snapshot_is_none():
+    assert payload_of(None, _Payload) is None
+
+
+def test_payload_of_on_a_wrong_typed_payload_is_none_rather_than_a_raise():
+    """The hole this closes: a pane reading ``.band`` off a str kills the WHOLE board."""
+    assert payload_of(_snap("not a payload"), _Payload) is None
+    assert payload_of(_snap(None), _Payload) is None
+
+
+# ───────────────────────────── snap_is_stale ─────────────────────────────
+def test_snap_is_stale_reports_the_retained_last_good_flag():
+    assert snap_is_stale(_snap(None, stale=True)) is True
+    assert snap_is_stale(_snap(None, stale=False)) is False
+
+
+def test_snap_is_stale_treats_a_missing_snapshot_as_unmeasured_not_stale():
+    """Absent is not stale — the caller routes ``None`` to a *not measured* row instead."""
+    assert snap_is_stale(None) is False
+
+
 # ───────────────────────────── state_badge ─────────────────────────────
 def test_state_badge_for_an_unregistered_source_says_not_measured():
     text = state_badge(None, source_id="mcp")
@@ -267,4 +296,5 @@ def test_pane_ids_are_plain_strings():
         "workflows",
         "databricks",
         "mcp",
+        "health",
     ]
