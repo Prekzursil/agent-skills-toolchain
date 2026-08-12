@@ -45,8 +45,12 @@ NOT_DELIVERING = frozenset({"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"})
 
 #: Both-states control fixtures for `--self-test`. The OLD existence predicate accepts BOTH of
 #: these, so a control that only checked the good one would have been silent in both states.
-CONTROL_GOOD = "WFA-0001"  # exists, non-empty, parses, schema-VALID, no self-declared failure
-CONTROL_BAD = "ADV-0031"  # exists, non-empty, parses, schema-VALID, but state == BLOCKED
+CONTROL_GOOD = (
+    "WFA-0001"  # exists, non-empty, parses, schema-VALID, no self-declared failure
+)
+CONTROL_BAD = (
+    "ADV-0031"  # exists, non-empty, parses, schema-VALID, but state == BLOCKED
+)
 
 #: A third control, added 2026-08-12 after an adversarial verifier REFUTED the round-1 claim that
 #: "a `state` field is forgeable by a one-word edit; schema validation is not". For the 23 units
@@ -54,7 +58,9 @@ CONTROL_BAD = "ADV-0031"  # exists, non-empty, parses, schema-VALID, but state =
 #: word away: `command-center/receipts/IMP-0433.json` with `state` flipped to SUCCESS was accepted
 #: as DELIVERED by the predicate shipped that day. This fixture IS that known-broken state, so the
 #: vacuity guard below has a state in which it must FIRE.
-CONTROL_VACUOUS = "command-center/p2-wave/fixtures/ready-units/IMP-0433-state-SUCCESS-mutant.json"
+CONTROL_VACUOUS = (
+    "command-center/p2-wave/fixtures/ready-units/IMP-0433-state-SUCCESS-mutant.json"
+)
 
 #: Garbage probes for the contract-vacuity guard. A declared contract that accepts ALL of these
 #: cannot fail, so "schema-VALID against it" carries no information. The first two are the exact
@@ -133,10 +139,16 @@ def _fallback_contract(doc, resolver) -> tuple[bool, str]:
     try:
         errs = resolver.validate_artifact(doc, RECEIPT_FALLBACK_CONTRACT)
     except Exception as e:
-        return False, f"contract-vacuous;receipt-fallback-unresolvable:{type(e).__name__}"
+        return (
+            False,
+            f"contract-vacuous;receipt-fallback-unresolvable:{type(e).__name__}",
+        )
     if not errs:
         return True, "delivered(receipt fallback; declared contract is vacuous)"
-    return False, f"contract-vacuous:no-type-appropriate-fallback(receipt-errors={len(errs)})"
+    return (
+        False,
+        f"contract-vacuous:no-type-appropriate-fallback(receipt-errors={len(errs)})",
+    )
 
 
 def _load_resolver():
@@ -256,28 +268,35 @@ def _prefix_predicate(unit: dict, resolver) -> bool:
 def self_test() -> int:
     """Both-states control over THREE fixtures, each with the old predicate's column beside it.
 
-      CONTROL_GOOD    a real delivered artifact          -> must be ACCEPTED
-      CONTROL_BAD     a real self-declared-BLOCKED one   -> must be REJECTED
-      CONTROL_VACUOUS the one-word `state: SUCCESS` mutant of a receipt whose declared contract
-                      cannot fail -> must be REJECTED, and the OLD predicate must have ACCEPTED
-                      it. If the old column ever reads False the fixture has stopped being a
-                      known-broken state and this control no longer proves anything.
+    CONTROL_GOOD    a real delivered artifact          -> must be ACCEPTED
+    CONTROL_BAD     a real self-declared-BLOCKED one   -> must be REJECTED
+    CONTROL_VACUOUS the one-word `state: SUCCESS` mutant of a receipt whose declared contract
+                    cannot fail -> must be REJECTED, and the OLD predicate must have ACCEPTED
+                    it. If the old column ever reads False the fixture has stopped being a
+                    known-broken state and this control no longer proves anything.
     """
     doc = json.loads(CATALOG.read_text(encoding="utf-8"))
     by_id = {u["id"]: u for u in doc["work_units"]}
     resolver = _load_resolver()
-    print(f"  resolver: {'loaded' if resolver else 'UNAVAILABLE (contract check degraded)'}")
+    print(
+        f"  resolver: {'loaded' if resolver else 'UNAVAILABLE (contract check degraded)'}"
+    )
     ok = True
 
     # --- control the vacuity detector itself, before trusting any verdict that uses it. ---
     vac = "https://json-schema.org/draft/2020-12/schema"
     disc = RECEIPT_FALLBACK_CONTRACT
-    for label, sch, want in (("known-VACUOUS", vac, False), ("known-DISCRIMINATING", disc, True)):
+    for label, sch, want in (
+        ("known-VACUOUS", vac, False),
+        ("known-DISCRIMINATING", disc, True),
+    ):
         got = contract_discriminates(resolver, sch)
         state = "OK" if got is want else "BROKEN"
         if got is not want:
             ok = False
-        print(f"  CONTROL contract_discriminates({label}): want={want} got={got} -> {state}")
+        print(
+            f"  CONTROL contract_discriminates({label}): want={want} got={got} -> {state}"
+        )
 
     for uid, want in ((CONTROL_GOOD, True), (CONTROL_BAD, False)):
         u = by_id.get(uid)
@@ -299,7 +318,9 @@ def self_test() -> int:
     # --- the vacuity control: a known-broken state the guard must FIRE on. ---
     mutant_unit = dict(by_id.get("IMP-0433") or {})
     if not mutant_unit or not (REPO / CONTROL_VACUOUS).is_file():
-        print(f"  CONTROL VACUOUS: fixture {CONTROL_VACUOUS} MISSING -- control cannot run")
+        print(
+            f"  CONTROL VACUOUS: fixture {CONTROL_VACUOUS} MISSING -- control cannot run"
+        )
         ok = False
     else:
         mutant_unit["output_path"] = CONTROL_VACUOUS
@@ -314,7 +335,9 @@ def self_test() -> int:
         )
 
     if not ok:
-        print("FAILED:ready-units self-test the delivered() control does not discriminate")
+        print(
+            "FAILED:ready-units self-test the delivered() control does not discriminate"
+        )
         return 1
     print(
         "SUCCESS:ready-units self-test delivered() fires on both broken states "

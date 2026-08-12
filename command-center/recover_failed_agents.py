@@ -67,7 +67,9 @@ def agent_facts(path: Path) -> dict:
                 if block.get("type") == "tool_use":
                     name = block.get("name", "")
                     inp = block.get("input") or {}
-                    if name in ("Write", "Edit", "NotebookEdit") and isinstance(inp, dict):
+                    if name in ("Write", "Edit", "NotebookEdit") and isinstance(
+                        inp, dict
+                    ):
                         fp = inp.get("file_path") or inp.get("notebook_path")
                         if fp:
                             written.append(str(fp))
@@ -108,7 +110,9 @@ def main(argv: list[str]) -> int:
             if aid:
                 # The payload key is `result`; `value` does not exist and reads as None.
                 returned[aid] = rec.get("result")
-    print(f"  run {run}: {len(transcripts)} transcripts, {len(returned)} journal results")
+    print(
+        f"  run {run}: {len(transcripts)} transcripts, {len(returned)} journal results"
+    )
 
     matched = 0
     for tpath in transcripts:
@@ -126,7 +130,9 @@ def main(argv: list[str]) -> int:
             f"{'present' if got not in (None, '<<no journal row>>') else got}"
         )
         if not f["written"]:
-            print("    WROTE NOTHING -- total loss for this agent, re-run from scratch.")
+            print(
+                "    WROTE NOTHING -- total loss for this agent, re-run from scratch."
+            )
         for p in f["written"]:
             q = Path(p)
             if q.is_file():
@@ -142,7 +148,9 @@ def main(argv: list[str]) -> int:
                 print(f"    | {line[:150]}")
 
     if not matched:
-        print(f"FAILED:recover detector matched 0 of {len(transcripts)} transcripts for {wanted}")
+        print(
+            f"FAILED:recover detector matched 0 of {len(transcripts)} transcripts for {wanted}"
+        )
         return 1
     print(f"\nSUCCESS:recover matched={matched}")
     return 0

@@ -55,11 +55,15 @@ def patch(path: Path, tag: str) -> tuple[bool, list[str]]:
     audit what changed. A surgical edit cannot have that failure mode at all.
     """
     raw = path.read_text(encoding="utf-8", newline="")
-    doc = json.loads(raw)  # parse only to VALIDATE and to read current values, never to write
+    doc = json.loads(
+        raw
+    )  # parse only to VALIDATE and to read current values, never to write
     checks = ((doc.get("events") or {}).get("Stop") or {}).get("checks") or []
     if not checks:
         return False, [f"{tag}: no Stop.checks found -- manifest shape changed"]
-    current = {c.get("name"): c.get("timeout") for c in checks if c.get("name") in TARGETS}
+    current = {
+        c.get("name"): c.get("timeout") for c in checks if c.get("name") in TARGETS
+    }
     missing = set(TARGETS) - set(current)
     if missing:
         return False, [f"{tag}: MISSING hooks {sorted(missing)} -- refusing to write"]
@@ -75,17 +79,28 @@ def patch(path: Path, tag: str) -> tuple[bool, list[str]]:
         # Find this hook's own object: its "name" line, then the FIRST "timeout" line after it and
         # before the next "name" line. Anchoring on the following "name" is what stops the edit
         # leaking into a sibling hook when a block has no timeout of its own.
-        anchor = next((i for i, ln in enumerate(lines) if f'"name": "{name}"' in ln), None)
+        anchor = next(
+            (i for i, ln in enumerate(lines) if f'"name": "{name}"' in ln), None
+        )
         if anchor is None:
             return False, notes + [f"{tag}: no line carries the name {name!r}"]
-        end = next((j for j in range(anchor + 1, len(lines)) if '"name":' in lines[j]), len(lines))
+        end = next(
+            (j for j in range(anchor + 1, len(lines)) if '"name":' in lines[j]),
+            len(lines),
+        )
         tline = next((j for j in range(anchor, end) if '"timeout":' in lines[j]), None)
         if tline is None:
-            return False, notes + [f"{tag}: {name} has no timeout line in its own block"]
+            return False, notes + [
+                f"{tag}: {name} has no timeout line in its own block"
+            ]
         before = lines[tline]
-        lines[tline] = re.sub(r'("timeout":\s*)\d+', lambda m: f"{m.group(1)}{new}", before, count=1)
+        lines[tline] = re.sub(
+            r'("timeout":\s*)\d+', lambda m: f"{m.group(1)}{new}", before, count=1
+        )
         if lines[tline] == before:
-            return False, notes + [f"{tag}: {name} timeout line did not change: {before.strip()!r}"]
+            return False, notes + [
+                f"{tag}: {name} timeout line did not change: {before.strip()!r}"
+            ]
         notes.append(f"{tag}: {name} {old}s -> {new}s")
         edits += 1
 
@@ -93,15 +108,21 @@ def patch(path: Path, tag: str) -> tuple[bool, list[str]]:
         out = eol.join(lines)
         changed = sum(1 for a, b in zip(raw.split(eol), lines) if a != b)
         if changed != edits:
-            return False, notes + [f"{tag}: {changed} lines differ but only {edits} edits intended"]
+            return False, notes + [
+                f"{tag}: {changed} lines differ but only {edits} edits intended"
+            ]
         with open(path, "w", encoding="utf-8", newline="") as f:
             f.write(out)
-        json.loads(path.read_text(encoding="utf-8"))  # still parses after a textual edit
+        json.loads(
+            path.read_text(encoding="utf-8")
+        )  # still parses after a textual edit
     return True, notes
 
 
 def main() -> int:
-    print(f"  measured git-hygiene full scan: {MEASURED_FULL_SCAN_MS:,}ms -> budget {TARGETS['git-hygiene']}s")
+    print(
+        f"  measured git-hygiene full scan: {MEASURED_FULL_SCAN_MS:,}ms -> budget {TARGETS['git-hygiene']}s"
+    )
     allnotes = []
     for path, tag in ((REPO_MANIFEST, "repo"), (LIVE, "live")):
         if not path.is_file():

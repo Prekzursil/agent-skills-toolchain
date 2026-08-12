@@ -20,7 +20,15 @@ from pathlib import Path
 
 HARVEST_DIR = Path(__file__).resolve().parent / "harvest"
 #: MERGE/RETIRE destroy capability; surface them first. Lower sorts earlier.
-ACTION_RANK = {"RETIRE": 0, "MERGE": 1, "FIX": 2, "ADD": 3, "UPGRADE": 4, "KEEP": 5, "NO-ACTION": 6}
+ACTION_RANK = {
+    "RETIRE": 0,
+    "MERGE": 1,
+    "FIX": 2,
+    "ADD": 3,
+    "UPGRADE": 4,
+    "KEEP": 5,
+    "NO-ACTION": 6,
+}
 
 
 def clip(s: object, n: int) -> str:
@@ -58,16 +66,22 @@ def main(argv: list[str]) -> int:
             total += len(findings)
             print(f"\n=== LENS {lens}  ({len(findings)} findings)")
             print(f"    coverage: {clip(res.get('coverage'), 400)}")
-            ordered = sorted(findings, key=lambda f: ACTION_RANK.get(str(f.get("action")), 9))
+            ordered = sorted(
+                findings, key=lambda f: ACTION_RANK.get(str(f.get("action")), 9)
+            )
             for f in ordered:
                 act = str(f.get("action", "?"))
                 actions[act] += 1
                 print(f"    [{act:9}] {clip(f.get('title'), 110)}")
                 if f.get("targets"):
                     print(f"                targets : {clip(f.get('targets'), 160)}")
-                print(f"                evidence: {clip(f.get('evidence'), 900 if detail else 300)}")
+                print(
+                    f"                evidence: {clip(f.get('evidence'), 900 if detail else 300)}"
+                )
                 if str(f.get("capability_at_risk") or "").strip():
-                    print(f"                AT RISK : {clip(f.get('capability_at_risk'), 300)}")
+                    print(
+                        f"                AT RISK : {clip(f.get('capability_at_risk'), 300)}"
+                    )
                 print(f"                conf    : {clip(f.get('confidence'), 130)}")
                 if detail and str(f.get("unverified") or "").strip():
                     print(f"                UNVERIF : {clip(f.get('unverified'), 400)}")
@@ -76,7 +90,9 @@ def main(argv: list[str]) -> int:
     print(f"  lenses present : {sorted(lenses)}")
     print(f"  action mix     : {dict(actions.most_common())}")
     destructive = actions.get("MERGE", 0) + actions.get("RETIRE", 0)
-    print(f"  DESTRUCTIVE    : {destructive} (never acted on without reading both bodies)")
+    print(
+        f"  DESTRUCTIVE    : {destructive} (never acted on without reading both bodies)"
+    )
     print("\nSUCCESS:read-harvest")
     return 0
 

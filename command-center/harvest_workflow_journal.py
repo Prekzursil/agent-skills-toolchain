@@ -98,7 +98,9 @@ def main(argv: list[str]) -> int:
             continue
 
         sizes = [len(json.dumps(h["result"], ensure_ascii=False)) for h in harvested]
-        print(f"    harvested {len(harvested)} agent results, {sum(sizes):,} chars total")
+        print(
+            f"    harvested {len(harvested)} agent results, {sum(sizes):,} chars total"
+        )
         for h, s in zip(harvested, sizes):
             print(f"      {s:>8,}B  {h['label'] or h['agentId']}")
         grand[run] = harvested

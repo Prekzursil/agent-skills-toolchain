@@ -25,7 +25,9 @@ REPO = Path(__file__).resolve().parents[1]
 
 
 def load_ready_units():
-    spec = importlib.util.spec_from_file_location("ru", REPO / "command-center" / "ready_units.py")
+    spec = importlib.util.spec_from_file_location(
+        "ru", REPO / "command-center" / "ready_units.py"
+    )
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
@@ -53,8 +55,12 @@ def main(argv: list[str]) -> int:
     # AttributeError" is how that happens quietly.
     resolver = ru._load_resolver()
     if resolver is None:
-        print("  WARNING: resolver unavailable -- conditions 4/4b will be SKIPPED and this run is")
-        print("           more permissive than ready_units.py. Treat the counts as an upper bound.")
+        print(
+            "  WARNING: resolver unavailable -- conditions 4/4b will be SKIPPED and this run is"
+        )
+        print(
+            "           more permissive than ready_units.py. Treat the counts as an upper bound."
+        )
 
     wanted = {a.upper() for a in argv}
     reasons: Counter[str] = Counter()
@@ -77,7 +83,9 @@ def main(argv: list[str]) -> int:
             shown += 1
 
     if wanted and not shown:
-        print(f"FAILED:why-not-delivered none of {sorted(wanted)} matched a unit id -- wrong ids or wrong catalog")
+        print(
+            f"FAILED:why-not-delivered none of {sorted(wanted)} matched a unit id -- wrong ids or wrong catalog"
+        )
         return 1
 
     print("\n  reason histogram across all units:")

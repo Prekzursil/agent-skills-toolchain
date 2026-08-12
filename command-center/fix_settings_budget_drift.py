@@ -68,8 +68,12 @@ def main() -> int:
     for frac in (0.02, 0.04):
         budget = int(WINDOW_TOKENS * frac)
         verdict = "FITS" if LISTING_CHARS // 4 <= budget else "OVERFLOWS"
-        print(f"  {frac}: {budget:,} tokens vs ~{LISTING_CHARS // 4:,} needed -> {verdict}")
-    print(f"  patched line {hits[0] + 1} of {TARGET.relative_to(REPO)} (eol preserved: {eol!r})")
+        print(
+            f"  {frac}: {budget:,} tokens vs ~{LISTING_CHARS // 4:,} needed -> {verdict}"
+        )
+    print(
+        f"  patched line {hits[0] + 1} of {TARGET.relative_to(REPO)} (eol preserved: {eol!r})"
+    )
     print("\nSUCCESS:settings-budget-drift")
     return 0
 

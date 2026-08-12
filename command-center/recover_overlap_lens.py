@@ -52,7 +52,9 @@ def main() -> int:
     needed = {"a", "b", "desc_cos", "body_jac", "la", "lb"}
     missing = [i for i, r in enumerate(pairs) if not needed <= set(r)]
     if missing:
-        print(f"FAILED:recover-overlap {len(missing)} records lack required keys, e.g. index {missing[0]}")
+        print(
+            f"FAILED:recover-overlap {len(missing)} records lack required keys, e.g. index {missing[0]}"
+        )
         return 1
 
     pairs.sort(key=lambda r: -r["desc_cos"])
@@ -88,7 +90,7 @@ def main() -> int:
         "content instead of removing redundancy.",
         "",
         "The owner's condition was explicit -- make sure no ability is lost. On this evidence the",
-        "answer to \"can they be consolidated into only one or so\" is **no**, and the productive work",
+        'answer to "can they be consolidated into only one or so" is **no**, and the productive work',
         "is description quality (a negative case naming the sibling to use instead), not consolidation.",
         "",
         "## Honest limit, inline",
@@ -125,8 +127,12 @@ def main() -> int:
     OUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     print(f"  recovered {len(pairs)} pairs from {PAIRS.name}")
-    print(f"  body_jac  max={body_max:.3f} median={body_median:.3f} floor={BODY_MERGE_FLOOR:.2f} headroom={headroom:.3f}")
-    print(f"  desc_cos >= {DESC_SUSPICIOUS}: {len(suspicious)} pairs LOOK like duplicates")
+    print(
+        f"  body_jac  max={body_max:.3f} median={body_median:.3f} floor={BODY_MERGE_FLOOR:.2f} headroom={headroom:.3f}"
+    )
+    print(
+        f"  desc_cos >= {DESC_SUSPICIOUS}: {len(suspicious)} pairs LOOK like duplicates"
+    )
     print(f"  pairs clearing the merge floor: {len(mergeable)}")
     print(f"  wrote {OUT} ({OUT.stat().st_size:,}B)")
     print("\nSUCCESS:recover-overlap-lens")

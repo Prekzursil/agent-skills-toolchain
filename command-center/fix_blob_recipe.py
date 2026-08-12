@@ -38,11 +38,13 @@ REL = "workflow-authoring/templates/governed-run-orchestrator.md"
 ROOTS = (REPO / ".agents" / "skills", REPO / "skills")
 
 OLD = "git archive <final-sha> | tar -x -C <fresh-temp>"
-NEW = "git show <final-sha>:<path>          # NOT git archive: it applies export-time EOL\n" \
-      "                                     # conversion and returns CRLF on Windows, i.e. the\n" \
-      "                                     # opposite of the stored blob. git cat-file -p is\n" \
-      "                                     # equivalent; both measured 0 CRLF against a\n" \
-      "                                     # working tree carrying 2,898."
+NEW = (
+    "git show <final-sha>:<path>          # NOT git archive: it applies export-time EOL\n"
+    "                                     # conversion and returns CRLF on Windows, i.e. the\n"
+    "                                     # opposite of the stored blob. git cat-file -p is\n"
+    "                                     # equivalent; both measured 0 CRLF against a\n"
+    "                                     # working tree carrying 2,898."
+)
 #: The packaging use that must survive untouched.
 KEEP = "git archive --format=tar.gz"
 
@@ -57,14 +59,18 @@ def main() -> int:
     # Parity precondition: if the mirrors already differ, a blind two-sided edit could widen the gap.
     a, b = (p.read_bytes() for p in targets)
     if a != b:
-        print("FAILED:blob-recipe mirrors already differ before the edit -- reconcile first")
+        print(
+            "FAILED:blob-recipe mirrors already differ before the edit -- reconcile first"
+        )
         return 1
 
     for p in targets:
         raw = p.read_text(encoding="utf-8", newline="")
         n = raw.count(OLD)
         if n != 1:
-            print(f"FAILED:blob-recipe anchor appears {n} times in {p} (expected exactly 1)")
+            print(
+                f"FAILED:blob-recipe anchor appears {n} times in {p} (expected exactly 1)"
+            )
             return 1
         keep_before = raw.count(KEEP)
         out = raw.replace(OLD, NEW)
@@ -75,11 +81,15 @@ def main() -> int:
         # the diff becomes the whole file instead of five lines.
         with open(p, "w", encoding="utf-8", newline="") as f:
             f.write(out)
-        print(f"  patched {p.relative_to(REPO)} (packaging git archive preserved: {keep_before})")
+        print(
+            f"  patched {p.relative_to(REPO)} (packaging git archive preserved: {keep_before})"
+        )
 
     a, b = (p.read_bytes() for p in targets)
     if a != b:
-        print("FAILED:blob-recipe mirrors DIVERGED after the edit -- D-001 parity broken")
+        print(
+            "FAILED:blob-recipe mirrors DIVERGED after the edit -- D-001 parity broken"
+        )
         return 1
     print("  mirrors byte-identical after edit: True")
 

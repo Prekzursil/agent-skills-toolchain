@@ -28,12 +28,23 @@ OUT = REPO_ROOT / "command-center" / "HOOK-MANIFEST-DRIFT.md"
 
 #: Fields whose difference changes BEHAVIOUR. `comment` is prose and is reported separately, because
 #: treating a reworded comment as drift is how a 5-hook difference gets buried under 40 noise rows.
-BEHAVIOUR_FIELDS = ("script", "args", "matcher", "timeout", "isolate", "side_effect", "emits", "slow")
+BEHAVIOUR_FIELDS = (
+    "script",
+    "args",
+    "matcher",
+    "timeout",
+    "isolate",
+    "side_effect",
+    "emits",
+    "slow",
+)
 
 
 def checks(doc: dict, event: str) -> dict[str, dict]:
     node = (doc.get("events") or {}).get(event) or {}
-    if isinstance(node, list):  # tolerate an older flat shape rather than crashing on it
+    if isinstance(
+        node, list
+    ):  # tolerate an older flat shape rather than crashing on it
         items = node
     else:
         items = node.get("checks") or []
@@ -53,9 +64,13 @@ def main() -> int:
     # and every "identical" below would be vacuous -- exactly the failure this docstring records.
     total = sum(len(checks(L, e)) for e in events)
     if total == 0:
-        print("FAILED:hook-drift reader found 0 checks in the LIVE manifest -- shape changed, not a clean tree")
+        print(
+            "FAILED:hook-drift reader found 0 checks in the LIVE manifest -- shape changed, not a clean tree"
+        )
         return 1
-    print(f"  detector control: reader found {total} live checks across {len(events)} events")
+    print(
+        f"  detector control: reader found {total} live checks across {len(events)} events"
+    )
 
     repo_only, live_only, behaviour, comment_only = [], [], [], []
     for ev in events:
@@ -69,7 +84,9 @@ def main() -> int:
             else:
                 diffs = [f for f in BEHAVIOUR_FIELDS if x.get(f) != y.get(f)]
                 if diffs:
-                    behaviour.append((ev, name, {f: (x.get(f), y.get(f)) for f in diffs}))
+                    behaviour.append(
+                        (ev, name, {f: (x.get(f), y.get(f)) for f in diffs})
+                    )
                 elif x.get("comment") != y.get("comment"):
                     comment_only.append((ev, name))
 
@@ -89,15 +106,22 @@ def main() -> int:
         "",
     ]
     for ev, name, y in repo_only:
-        lines.append(f"* **`{name}`** ({ev}) -- script `{y.get('script')}`, matcher `{y.get('matcher')}`, "
-                     f"timeout {y.get('timeout')}, emits {y.get('emits')}")
+        lines.append(
+            f"* **`{name}`** ({ev}) -- script `{y.get('script')}`, matcher `{y.get('matcher')}`, "
+            f"timeout {y.get('timeout')}, emits {y.get('emits')}"
+        )
     lines += ["", "## DEPLOYED, NOT IN GIT (a redeploy would delete these)", ""]
     for ev, name, x in live_only or []:
         lines.append(f"* **`{name}`** ({ev}) -- script `{x.get('script')}`")
     if not live_only:
         lines.append("* none")
-    lines += ["", "## SAME HOOK, DIFFERENT BEHAVIOUR (a deploy silently changes these)", "",
-              "| event | hook | field | live | repo |", "|---|---|---|---|---|"]
+    lines += [
+        "",
+        "## SAME HOOK, DIFFERENT BEHAVIOUR (a deploy silently changes these)",
+        "",
+        "| event | hook | field | live | repo |",
+        "|---|---|---|---|---|",
+    ]
     for ev, name, d in behaviour:
         for f, (lv, rv) in d.items():
             lines.append(f"| {ev} | `{name}` | {f} | `{lv}` | `{rv}` |")
@@ -116,7 +140,10 @@ def main() -> int:
     print(f"  deployed, NOT in git        : {len(live_only)}")
     print(f"  same hook, behaviour differs: {len(behaviour)}")
     for ev, name, d in behaviour:
-        print(f"      {ev:13} {name}: " + ", ".join(f"{f} live={lv} repo={rv}" for f, (lv, rv) in d.items()))
+        print(
+            f"      {ev:13} {name}: "
+            + ", ".join(f"{f} live={lv} repo={rv}" for f, (lv, rv) in d.items())
+        )
     print(f"  comment-only differences    : {len(comment_only)}")
     print(f"  wrote {OUT.name}")
     print("\nSUCCESS:hook-manifest-drift")

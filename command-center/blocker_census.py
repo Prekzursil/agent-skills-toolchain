@@ -30,16 +30,35 @@ REPO = Path(__file__).resolve().parents[1]
 #: did not instead print an empty histogram that would have read as "nothing is blocked".
 CATALOG_CANDIDATES = (REPO / "command-center" / "WORK-UNIT-CATALOG.json",)
 #: Keys whose value plausibly explains a block. Ordered: the most specific wins the label.
-BLOCKER_KEYS = ("blocker", "blocked_by", "blocked_reason", "failure", "reason", "residual_unknowns",
-                "residual", "retry", "report", "summary")
+BLOCKER_KEYS = (
+    "blocker",
+    "blocked_by",
+    "blocked_reason",
+    "failure",
+    "reason",
+    "residual_unknowns",
+    "residual",
+    "retry",
+    "report",
+    "summary",
+)
 #: Coarse cause buckets. First match wins, so order from specific to generic.
 BUCKETS: tuple[tuple[str, str], ...] = (
     ("owner-decision", r"owner[- ]?(decision|approval|gate|ruling)|awaiting the owner"),
-    ("dependency-unbuilt", r"depend\w*\s+(is|are|not)\s+\w*built|unbuilt|prerequisite|upstream unit"),
+    (
+        "dependency-unbuilt",
+        r"depend\w*\s+(is|are|not)\s+\w*built|unbuilt|prerequisite|upstream unit",
+    ),
     ("schema-or-contract", r"schema|contract|output_schema|does not validate|invalid"),
     ("independent-reviewer", r"independent\s+review|reviewer\.independent|self-certif"),
-    ("evidence-insufficient", r"insufficient evidence|could not measure|unmeasured|NOT-CHECKED"),
-    ("tooling-or-access", r"not installed|no such|permission|access denied|unavailable|offline"),
+    (
+        "evidence-insufficient",
+        r"insufficient evidence|could not measure|unmeasured|NOT-CHECKED",
+    ),
+    (
+        "tooling-or-access",
+        r"not installed|no such|permission|access denied|unavailable|offline",
+    ),
 )
 
 
@@ -142,7 +161,9 @@ def main() -> int:
             units_by_class.setdefault(cls[0], []).append(u["id"])
 
     if not blocked:
-        print("FAILED:blocker-census found 0 BLOCKED receipts -- detector disagrees with ready_units")
+        print(
+            "FAILED:blocker-census found 0 BLOCKED receipts -- detector disagrees with ready_units"
+        )
         return 1
 
     print(f"  BLOCKED/FAILED receipts found: {len(blocked)}")
@@ -156,10 +177,16 @@ def main() -> int:
         print(f"    {n:>4}  {k}")
 
     # THE AUTHORITATIVE VIEW: the structured field, not my regex over prose.
-    print(f"\n  STRUCTURED classification tags across {len(blocked)} receipts (a receipt may carry several):")
+    print(
+        f"\n  STRUCTURED classification tags across {len(blocked)} receipts (a receipt may carry several):"
+    )
     for c, n in structured.most_common(14):
         print(f"    {n:>4}  {c}")
-    review = sum(n for c, n in structured.items() if "review" in c.lower() or "refut" in c.lower())
+    review = sum(
+        n
+        for c, n in structured.items()
+        if "review" in c.lower() or "refut" in c.lower()
+    )
     print(f"\n  tags naming an independent/cross-vendor REVIEW gate: {review}")
     print("\nSUCCESS:blocker-census")
     return 0
