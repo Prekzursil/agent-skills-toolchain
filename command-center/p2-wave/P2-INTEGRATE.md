@@ -185,7 +185,8 @@ all three verify with **0 foreign paths**.
 |---|---|
 | `70f70f74` | the gate, 21 two-sided tests, the `main()` fail-closed fix, both dark-state probes |
 | `eac025c6` | the 4-mutation red-proof + stored-blob CI-parity checker |
-| `d75c…` (this) | two-directional ratchet to match the charter + the per-artifact contract probe |
+| `a9b7dde5` | two-directional ratchet to match the charter + the per-artifact contract probe |
+| `3d6b3dc5` | this dossier |
 
 Files: `tools/measure-guard/unitgate.py`, `tools/measure-guard/tests/test_unitgate.py`,
 `command-center/ready_units.py`, `command-center/p2-wave/_i{1,2,3,4}_*.py`.
