@@ -20,6 +20,16 @@
 #     which are valid there and invalid as standalone Python. It is committed so the fan-out chain is
 #     reproducible from the repo rather than existing only inside the workspace.
 extend-exclude = [
+    # Cited-but-ignored root probe scripts, committed byte-unchanged by the SLOP lane.
+    # 45 of the 123 `command-center/_*.py` are named inside committed artifacts, so a clone
+    # needs them or those citations dangle (see the .gitignore EXCEPTION 2 block). They are
+    # evidence, not source: they were written once to answer one question. Same trade-off
+    # already settled above for `command-center/casualty/probes` -- there is no per-file escape
+    # from `ruff format` that does not itself change the bytes, and a digest-lock check on
+    # these files failed its positive control, so the bytes are preserved rather than
+    # reformatted on an unproven assumption. Measured: with this line the gate is green
+    # (0 reformat, 0 lint); without it, 29 reformat + 9 lint errors.
+    "command-center/_*.py",
     # Provenance-locked recovery evidence. Five scripts here are BYTE-IDENTICAL to the scratch
     # originals written by two agents that died mid-run (API error, connection closed mid-response).
     # That byte-match IS the evidence the work was RECOVERED rather than re-authored, and the
