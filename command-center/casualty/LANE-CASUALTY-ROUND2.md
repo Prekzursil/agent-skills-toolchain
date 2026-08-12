@@ -188,11 +188,16 @@ committing (`git diff --cached --name-only | grep -cv '^command-center/casualty/
 rewrite. `command-center/adversarial/` was READ-ONLY throughout. Unlike round 1, each commit
 carries this lane's own message.
 
-| commit | files | what |
-|---|---|---|
-| `ea9a6eee` | 31 | the 5 defect fixes, the receipt data fix, the 8 overclaim repairs, the round-2 probes |
-| `676a65db` | 3 | the EOL pinning that the fresh-clone check proved necessary |
-| *(this one)* | — | final verification runner, its recorded output, and this artifact |
+| commit | files | lane | foreign | what |
+|---|---|---|---|---|
+| `ea9a6eee` | 31 | 31 | **0** | the 5 defect fixes, the receipt data fix, the 8 overclaim repairs, the round-2 probes |
+| `676a65db` | 3 | 3 | **0** | the EOL pinning that the fresh-clone check proved necessary |
+| `7f7fb32d` | 9 | 9 | **0** | the one-command verification runner and its recorded output |
+| `808dde5e` | 44 | 44 | **0** | ruff-green the lane, minus the 5 provenance-locked originals |
+| *(this one)* | — | — | **0** | this artifact's final state |
+
+Round 1's bulk was swept into a whole-index commit whose message belonged to another lane. That
+did not recur: all four round-2 commits are lane-only and carry this lane's own message.
 
 ## R2-G. What is still NOT done — honestly scoped
 
