@@ -52,11 +52,27 @@ def test_real_catalog_is_clean(real, real_graph):
     command-center/CLOSE-VERIFY.json and the `disposition_evidence` on each). Update this number
     when items are closed ON PURPOSE; a change you cannot explain is the regression it exists to
     catch.
+
+    59 -> 58 at commit 3a19b9a3 ("record the four delegated owner rulings"), which closed exactly
+    one item, R-A03, to DONE-VERIFIED. Its `disposition_evidence` names all three required entry
+    inputs as filled, the first being OQ-1 answered 2026-08-11 (the 70 `owner_decisions` in
+    07-OPTION-UNIVERSE.json, accepted verbatim, after a reported 70-vs-123 conflict was
+    investigated and dissolved -- 123 counts BUCKETS). So this is the pin's documented
+    close-on-purpose case, not the mass re-disposition it guards against.
+
+    WHY IT SURFACED ONLY NOW, and why that is the more useful finding: 3a19b9a3 closed R-A03
+    without updating this pin, so the assertion below has been stale since. It never reported,
+    because `assert violations == []` sits ABOVE it and was failing first on a separate defect
+    (REACH-6, a stale register digest introduced by 1ff5bbf8). One red assertion hid the next --
+    the CI log for run 31617966828 shows ONLY the REACH-6 AssertionError, so the pin drift was
+    invisible on the instrument. Verified by walking every revision of WORK-UNIT-CATALOG.json and
+    recomputing the open set with catalog.is_open (not a re-implementation): 69 -> 62 at 2dd3623b,
+    62 -> 59 at 318c1555, 59 -> 58 at 3a19b9a3, and no other transition.
     """
     violations, stats = val.validate(real, graph=real_graph)
     assert violations == [], [str(entry) for entry in violations]
     assert stats["items"] == 103
-    assert stats["open"] == 59
+    assert stats["open"] == 58
     assert stats["acyclic"] is True
 
 
