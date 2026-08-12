@@ -1,0 +1,39 @@
+fix(command-center): make ready_units delivered() read the receipt, not just stat it
+
+The dependency predicate was bare Path.exists(). That is the Goodhart shape the
+program keeps rediscovering: the check rewards a file being PRESENT, so the
+program produced 44 present artifacts of which 43 self-declare state BLOCKED or
+FAILED, and the partition reported all 44 as delivered.
+
+delivered() now requires: exists AND non-empty AND (if JSON) parses AND
+validates against the unit declared output_schema AND does not carry a
+self-declared failure state. Condition 5 alone is forgeable by a one-word edit,
+so 4 is enforced too; condition 4 alone passes a perfectly formed receipt that
+says BLOCKED, so 5 is enforced too.
+
+Measured with command-center/p2-wave/_b1r2_scope_measure.py and _b1r2_tier3.py:
+
+  before  units 2007 | delivered 44 | READY 414 | blocked 1385 | owner-gated 164
+  after   units 2007 | delivered  1 | READY 449 | blocked 1390 | owner-gated 167
+          artifacts present but NOT delivered: 43
+
+36 units return to the READY set that the existence predicate wrongly excluded,
+and ADV-0002 leaves it: it was queued on a BLOCKED foundation.
+
+Ships its own both-states control, because a control that only checked the good
+state would have been silent in both. `python command-center/ready_units.py
+--self-test`:
+
+  CONTROL WFA-0001: want=True  got=True  (delivered)             | legacy-exists-predicate=True -> OK
+  CONTROL ADV-0031: want=False got=False (self-declared:BLOCKED) | legacy-exists-predicate=True -> OK
+
+The legacy column is the point: the old predicate accepted BOTH fixtures, so it
+could not discriminate at all.
+
+Also creates the 14 output_path parent directories that READY units write into.
+27 parent dirs are absent across 713 units; 14 of them are on the path of 105
+READY units. The failure mode is proven, not assumed: open(path,'w') into a
+missing parent raises FileNotFoundError (control fires on the bad state) and
+succeeds into an existing parent (control silent on the good state). A unit that
+dies that way exits non-zero with no output file, which this program classifies
+as SEVERED. .gitkeep is needed because git cannot track an empty directory.

@@ -1,0 +1,54 @@
+feat(command-center): deliver IMP-0433 and AUD-0041, executable-proven against their contracts
+
+Both artifacts are emitted by a writer that VALIDATES BEFORE IT WRITES and refuses
+to persist a document that fails its declared output_schema, so an artifact on
+disk is a receipt of validation rather than a claim of it.
+
+IMP-0433 (phase 0, unblocks 13 -- highest in the catalog)
+  The unit says to author command-center/schema/receipt.schema.json "that does not
+  exist on disk". PREMISE REFUTED by measurement: it is present (5,882 B) and
+  resolves by $ref to platform/schema/receipt.schema.json#/$defs/receipt_core
+  (42,109 B). The honest delta was the test suite the row actually demands.
+
+  Built and executed 12 negative fixtures (one per completion condition from
+  COMPLETION-GATES.json gate_a) plus 1 positive. Result 12/12 INVALID, positive
+  VALID, metaschema self-validation clean, and the metaschema control FIRES on a
+  known-bad schema (2 errors) so T2 is not measuring nothing.
+
+  DETECTOR FAILURE CAUGHT IN MY OWN FIRST RUN, disclosed rather than dropped: the
+  base fixture was itself INVALID (residual_unknowns verdict 'UNVERIFIED' is not in
+  the enum), so conditions 1 and 7 scored "INVALID ok" on that unrelated error --
+  a false 12/12. The script now refuses to report the matrix unless the base is
+  clean (ATTRIBUTION GUARD), and after the fix conditions 1 and 7 fail on their own
+  mutations.
+
+  RE-SCOPES THE GROUNDING LANE. It reported "drop reviewer -> VALID=True", read as
+  a strictness gap. Measured here on both states: on a SUCCESS receipt all three
+  named conditions hold {sentinel: True, evidence: True, reviewer: True}; on a
+  BLOCKED receipt reviewer is optional {..., reviewer: False}. That is correct
+  design, not a hole -- a blocked unit has no reviewer to cite. The schema is
+  right and the earlier sentence was state-blind.
+
+AUD-0041 (phase 0, unblocks 8)
+  7 workflow files, 14 jobs, 143 steps, 4 conditional steps, 2 conditional jobs.
+  Probe 2 (Actions API) reconciles 4/4 with the static leg prediction and surfaces
+  what the YAML cannot: 56 skipped steps in the quality run alone.
+
+  The row's control asks that the matrix expander be checked against API leg
+  counts. ZERO jobs in this repo use strategy.matrix (two independent signals:
+  grep and a structural strategy.matrix scan), so that check is degenerate here.
+  The expander is therefore proven separately on a synthetic fixture -- 3 os x 2
+  py, minus 1 exclude, plus 1 include = 6 legs, and exactly 1 leg on a plain job.
+  Without it an INERT expander would be indistinguishable from a working one in a
+  zero-matrix repo. Residual disclosed inline with its settling experiment.
+
+  Second control worth keeping: PyYAML parses the bare `on:` key as boolean True
+  (YAML 1.1), so doc["on"] returns nothing and every workflow reads as
+  trigger-less. That is a silent total detector failure; the parser reads
+  doc.get("on", doc.get(True)) and the control asserts all 7 files yield triggers.
+
+BOTH ARE state=BLOCKED, NOT SUCCESS, and this is deliberate. receipt_core requires
+reviewer.verdict=PASS with independent=true for state SUCCESS, and both rows name
+an independent reviewer this build lane cannot supply without self-certifying.
+Every measurement the rows contract for ran and passed; the blocker is the
+reviewer gate, named precisely in failure.blocked_on. Self-review is not review.
