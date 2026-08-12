@@ -95,6 +95,14 @@ As of the `prepwizard` / `glide_grid` / `prime_mmgbsa` addition, the whole struc
 
 `glide_dock` still requires a grid `.zip` - but `glide_grid` now produces it, so a true `receptor.pdb + SMILES -> docked, rescored pose` flow is possible end-to-end. The grid box still needs a sensible center (the binding site); surface that choice to the user rather than guessing blindly.
 
+## Multi-GPU pool on a cloud box (Linux) - and the BPMD/JobDJ "No job found" download gotcha
+
+On a multi-GPU Linux box (e.g. a 4xH100 node) a SINGLE shared `jobserverd` strips `CUDA_VISIBLE_DEVICES` from its subjobs, so every job piles onto GPU 0. The working pattern (see `schrod-gpu-pool.sh`, toolchain PR #79) is one CVD-pinned `jobserverd` per GPU, with each launch routed to its GPU's server via `jsc local-server-dir --set <pool>/js_gpu<g>` at submit time. FEP+ is the exception - it self-parallelizes, so use `multisim -maxjob N` instead of the pool.
+
+- GOTCHA (cost real re-runs): a driver that ends with a JobDJ `jsc download` - BPMD (`binding_pose_metadynamics.py`), and any `-WAIT` driver that downloads its own results - FAILS the download step when the pool restores the default jobserver after launch. The compute RAN fine on the pinned GPU, but the driver's final `jsc download <jobid>` queries the RESTORED default server, which has no record of the job -> `No job found for JobId`. This is a silent partial failure: GPU work done, results never collected.
+- FIX (validated): give each concurrent driver its OWN isolated `HOME` (e.g. `export HOME=/root/bpmd_iso_<ligand>`) BEFORE routing. Then inside that HOME: `jsc local-server-dir --set <pool>/js_gpu<g>`, `export CUDA_VISIBLE_DEVICES=<g>`, and run the driver `-HOST localhost -SUBHOST localhost:1 -WAIT`. The isolated HOME pins the driver's `~/.schrodinger` jobserver config for its WHOLE lifecycle, so submit AND the final JobDJ download resolve against the SAME per-driver server. Shared-HOME pool BPMD failed every download; isolated-HOME BPMD produced `-out.maegz` + CompScore cleanly.
+- Extract BPMD scores from the driver's real output: `proplister -c bpmd_<L>-out.maegz` (CompScore/PoseScore properties) - do NOT `head` the per-frame `-out.csv`, which is trajectory data, not the summary.
+
 ## Common Mistakes
 
 - Treating `smiles_to_3d` as a required step before `ligprep` - LigPrep accepts SMILES (`.smi`) directly.

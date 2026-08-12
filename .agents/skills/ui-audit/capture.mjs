@@ -36,6 +36,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
+import { realpathSync } from 'node:fs';
 
 const STYLE_PROPS = [
   'marginTop', 'marginBottom', 'marginLeft', 'marginRight',
@@ -321,7 +322,17 @@ async function main() {
 }
 
 const __filename = fileURLToPath(import.meta.url);
-if (process.argv[1] && resolve(process.argv[1]) === resolve(__filename)) {
+// Junction/symlink-safe main-module check. `~/.claude/skills` is a junction to
+// `skills.daily`; Node resolves symlinks for ESM so import.meta.url reports the REAL
+// path while resolve(argv[1]) stays lexical. A lexical compare therefore NEVER matched
+// on the documented `~/.claude/skills/...` invocation and main() silently never ran
+// (exit 0, no output, no artifacts). realpathSync.native also collapses 8.3 short
+// names (PREKZU~1), which realpathSync does not.
+const __isMain = (a, b) => {
+  try { return realpathSync.native(a) === realpathSync.native(b); }
+  catch { return resolve(a) === resolve(b); }
+};
+if (process.argv[1] && __isMain(process.argv[1], __filename)) {
   main().catch(err => {
     console.error(`FAILED:capture ${err.message}`);
     process.exit(1);
