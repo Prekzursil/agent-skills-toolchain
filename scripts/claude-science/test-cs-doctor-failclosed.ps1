@@ -7,9 +7,19 @@
 # and, in the paired control, that the SAME row goes PASS when the input is fine. A test that only
 # checks the broken direction cannot tell a fail-closed row from a row that is always red.
 #
-# It also pins the specific defect that motivated the rewrite: on a probe TIMEOUT the DB row used
-# to print "sqlite3 or operon-cli.db not found" -- a factual claim about a file it never looked at.
-# S2 asserts that string can no longer appear when the cause was a timeout.
+# It also pins the specific defects that motivated each rewrite:
+#   * ROUND 1 -- on a probe TIMEOUT the DB row printed "sqlite3 or operon-cli.db not found", a
+#     factual claim about a file it never looked at. S2 asserts that string cannot reappear.
+#   * ROUND 2 / D1 -- /claude-science and /cs routed to a stale checkout, so every fix above was
+#     unreachable through the command the owner types. S13-S16 drive the route row through missing,
+#     nonexistent, STALE and unreadable, and S1's control asserts it goes PASS when they agree.
+#   * ROUND 2 / D2 -- the CS_FORCE_* seam was unarmed and unmarked, so `CS_FORCE_WSL_DB=
+#     'ok|wal|999M'` produced a fabricated "[+] DB PASS ... 0 FAIL ... exit 0". S18 asserts an
+#     un-armed variable is REFUSED and its payload never reaches the report; every armed scenario
+#     asserts the FAIL banner + [INJECTED] tags; S17 is the un-armed control that stops the banner
+#     from being trivially always-on.
+# NOT covered here (stated so it is not assumed): that the doctor does not WRITE into the backup
+# root. That needs the real filesystem, so it lives in test-cs-backup-readonly.py.
 #
 # Run:   pwsh -NoProfile -File scripts/claude-science/test-cs-doctor-failclosed.ps1
 # Exit:  0 = all assertions held (prints SUCCESS:cs-doctor-failclosed)
@@ -41,6 +51,48 @@ New-Item -ItemType Directory -Path $badWin -Force | Out-Null
 
 $nowU = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
 function AgoH([int]$h) { return ($nowU - ($h * 3600)).ToString() }
+
+# --- scratch slash-command dirs (for the route-parity row) ---------------------------------------
+# cs-doctor reads claude-science.md / cs.md out of CS_COMMANDS_DIR and asserts they route to code
+# byte-identical to the doctor that is running. Pointing that at scratch dirs keeps the harness
+# hermetic AND lets the D1 defect itself be reproduced on demand: a command file that names a
+# stale dispatcher must turn the row red.
+$cmdGood = Join-Path $env:TEMP "cs-test-cmd-good-$stamp"
+$cmdMissing = Join-Path $env:TEMP "cs-test-cmd-missing-$stamp"
+$cmdGhost = Join-Path $env:TEMP "cs-test-cmd-ghost-$stamp"
+$cmdStale = Join-Path $env:TEMP "cs-test-cmd-stale-$stamp"
+$staleTree = Join-Path $env:TEMP "cs-test-staletree-$stamp"
+foreach ($d in @($cmdGood, $cmdMissing, $cmdGhost, $cmdStale, $staleTree)) { New-Item -ItemType Directory -Path $d -Force | Out-Null }
+# A second dispatcher whose cs-doctor.ps1 is NOT this one -- exactly the round-1 shape, where the
+# command files named a checkout holding a 5,590 B doctor while a 13,852 B doctor was deployed.
+Set-Content -LiteralPath (Join-Path $staleTree 'cs.ps1') -Value '# stale dispatcher' -NoNewline
+Set-Content -LiteralPath (Join-Path $staleTree 'cs-doctor.ps1') -Value '# stale doctor, different bytes' -NoNewline
+function CmdFixture([string]$dir, [string]$name, [string]$dispatcher) {
+  Set-Content -LiteralPath (Join-Path $dir $name) -Value @"
+---
+description: scratch fixture
+---
+``````
+pwsh -NoProfile -File $dispatcher `$ARGUMENTS
+``````
+"@
+}
+$realDispatcher = Join-Path $PSScriptRoot 'cs.ps1'
+CmdFixture $cmdGood 'claude-science.md' $realDispatcher
+CmdFixture $cmdGood 'cs.md' $realDispatcher
+CmdFixture $cmdMissing 'claude-science.md' $realDispatcher          # cs.md deliberately absent
+CmdFixture $cmdGhost 'claude-science.md' (Join-Path $env:TEMP "cs-nope-$stamp/cs.ps1")
+CmdFixture $cmdGhost 'cs.md' (Join-Path $env:TEMP "cs-nope-$stamp/cs.ps1")
+CmdFixture $cmdStale 'claude-science.md' (Join-Path $staleTree 'cs.ps1')
+CmdFixture $cmdStale 'cs.md' (Join-Path $staleTree 'cs.ps1')
+
+# Applied to EVERY scenario, then overridden per scenario; `envRemove` drops a key entirely.
+# CS_FAULT_INJECTION=1 is what ARMS the CS_FORCE_* seam -- round 1 honoured those variables with no
+# arming and no marker at all, which is defect D2.
+$baseEnv = @{ CS_FAULT_INJECTION = '1'; CS_COMMANDS_DIR = $cmdGood }
+# A distro that cannot exist: wsl.exe errors immediately, so the two un-armed scenarios below stay
+# fast and hermetic (no live VM, no injection) instead of waiting on real probes.
+$deadDistro = "__cs_no_such_distro_$stamp"
 
 $healthy = @{
   CS_FORCE_WSL_WSL    = 'ok'
@@ -78,6 +130,22 @@ $scenarios = @(
   @{ name = 'S11 backup header corrupt, WSL unreachable (Windows-only signal)'; env = (With @{ CS_FORCE_WSL_BACKUP = '__WSL_TIMEOUT__'; CS_BACKUP_ROOT = (ConvertTo-WslPath $badWin) }); expect = @{
       'Backup freshness' = 'NOT-CHECKED'; 'Backup restorable' = 'FAIL' } }
   @{ name = 'S12 daemon status probe returns empty'; env = (With @{ CS_FORCE_WSL_STAT = '__EMPTY__' }); expect = @{ 'daemon detail' = 'NOT-CHECKED' } }
+
+  # --- D1: the slash command must run THIS code -------------------------------------------------
+  # Round 1 declared the rename "works" from a command LISTING while both files still routed to a
+  # stale checkout. These four drive the row through every route state it can reach.
+  @{ name = 'S13 route: /cs missing from the commands dir'; env = (With @{ CS_COMMANDS_DIR = $cmdMissing }); expect = @{ 'Slash-command route' = 'FAIL' } }
+  @{ name = 'S14 route: dispatcher named does not exist'; env = (With @{ CS_COMMANDS_DIR = $cmdGhost }); expect = @{ 'Slash-command route' = 'FAIL' } }
+  @{ name = 'S15 route: dispatcher exists but is STALE (the D1 shape)'; env = (With @{ CS_COMMANDS_DIR = $cmdStale }); expect = @{ 'Slash-command route' = 'FAIL' }
+    requireDetail = @{ 'Slash-command route' = 'STALE code' } }
+  @{ name = 'S16 route: commands dir absent entirely'; env = (With @{ CS_COMMANDS_DIR = (Join-Path $env:TEMP "cs-no-such-dir-$stamp") }); expect = @{ 'Slash-command route' = 'NOT-CHECKED' } }
+
+  # --- D2: an injected run must never be able to look clean -------------------------------------
+  # S17/S18 are the ONLY scenarios that run un-armed, so they are also the control proving the
+  # banner is not simply always-on. They use a nonexistent distro so no live VM is touched.
+  @{ name = 'S17 control: NO injection at all -> no banner, no [INJECTED]'; env = @{ CS_DISTRO = $deadDistro }; envRemove = @('CS_FAULT_INJECTION'); expect = @{} }
+  @{ name = 'S18 CS_FORCE_* set WITHOUT arming -> REFUSED, not obeyed'; env = @{ CS_DISTRO = $deadDistro; CS_FORCE_WSL_DB = 'ok|wal|999M' }; envRemove = @('CS_FAULT_INJECTION'); expect = @{}
+    forbidAnyDetail = @('999M') }
 )
 
 $failures = @()
@@ -119,7 +187,18 @@ foreach ($k in $conf.Keys) {
 "config parity: {0} keys in cs.conf cross-checked against cs-lib.ps1 and cs-lib.sh defaults" -f $conf.Count
 
 foreach ($s in $scenarios) {
-  foreach ($k in @($s.env.Keys)) { Set-Item -Path "Env:\$k" -Value $s.env[$k] }
+  $envSet = @{}
+  foreach ($k in $baseEnv.Keys) { $envSet[$k] = $baseEnv[$k] }
+  foreach ($k in @($s.env.Keys)) { $envSet[$k] = $s.env[$k] }
+  # @($null) is a ONE-element array holding $null, so an absent optional field must be filtered,
+  # not just wrapped -- otherwise Remove($null) throws and a bare -like "**" matches every row.
+  foreach ($k in @($s.envRemove | Where-Object { $_ })) { [void]$envSet.Remove($k) }
+  foreach ($k in @($envSet.Keys)) { Set-Item -Path "Env:\$k" -Value $envSet[$k] }
+  # The banner expectation is DERIVED from the environment actually set, not hand-written per
+  # scenario, so it cannot drift out of step with the scenario it describes.
+  $anyForce = @($envSet.Keys | Where-Object { $_ -like 'CS_FORCE_*' }).Count -gt 0
+  $armed = ($envSet['CS_FAULT_INJECTION'] -eq '1')
+  $wantBanner = if ($anyForce -and $armed) { 'used' } elseif ($anyForce) { 'refused' } else { 'none' }
   try {
     $raw = & $doctor -Json 2>&1 | Out-String
     $code = $LASTEXITCODE
@@ -148,6 +227,47 @@ foreach ($s in $scenarios) {
         }
       }
     }
+    if ($s.requireDetail) {
+      foreach ($rowName in $s.requireDetail.Keys) {
+        $checked++
+        $need = $s.requireDetail[$rowName]
+        if (-not ($byName.ContainsKey($rowName) -and $byName[$rowName].Detail -like "*$need*")) {
+          $failures += "$($s.name): row '$rowName' should name '$need' so the operator can act on it. detail=$($byName[$rowName].Detail)"
+        }
+      }
+    }
+    foreach ($bad in @($s.forbidAnyDetail | Where-Object { $_ })) {
+      $checked++
+      $hit = @($obj.rows | Where-Object { "$($_.Detail)" -like "*$bad*" })
+      if ($hit.Count) { $failures += "$($s.name): '$bad' reached the report from a REFUSED injection - row '$($hit[0].Check)': $($hit[0].Detail)" }
+    }
+
+    # --- FAULT-INJECTION DISCLOSURE (D2) ----------------------------------------------------------
+    # Round 1's seam obeyed CS_FORCE_* with no arming and no marker, so an auditor got a fabricated
+    # "[+] DB PASS ... size=999M / 0 FAIL / exit 0". Three things are asserted here, and S17/S18 are
+    # the un-armed control that stops these from being trivially satisfiable by an always-on banner.
+    $checked++
+    $banner = @($obj.rows | Where-Object Check -eq 'Fault injection')
+    $tagged = @($obj.rows | Where-Object { "$($_.Detail)" -like '`[INJECTED`]*' })
+    switch ($wantBanner) {
+      'used' {
+        if ($banner.Count -ne 1) { $failures += "$($s.name): injected run has no 'Fault injection' banner row - the report reads as a real measurement" }
+        elseif ($banner[0].Status -ne 'FAIL') { $failures += "$($s.name): 'Fault injection' banner is $($banner[0].Status), must be FAIL so an injected run cannot exit 0" }
+        elseif ($banner[0].Detail -notlike '*SIMULATED*') { $failures += "$($s.name): banner does not say SIMULATED. detail=$($banner[0].Detail)" }
+        if (-not $tagged.Count) { $failures += "$($s.name): injection was used but no row carries the [INJECTED] tag" }
+        if (-not @($obj.injection.used).Count) { $failures += "$($s.name): JSON injection.used is empty on an injected run" }
+      }
+      'refused' {
+        if ($banner.Count -ne 1) { $failures += "$($s.name): CS_FORCE_* was set without arming and nothing reported it" }
+        elseif ($banner[0].Status -ne 'FAIL' -or $banner[0].Detail -notlike '*REFUSED*') { $failures += "$($s.name): un-armed injection must render FAIL/REFUSED, got $($banner[0].Status): $($banner[0].Detail)" }
+        if ($tagged.Count) { $failures += "$($s.name): a REFUSED injection still tagged $($tagged.Count) row(s) [INJECTED] - it was obeyed after all" }
+      }
+      'none' {
+        if ($banner.Count) { $failures += "$($s.name): a clean run grew a 'Fault injection' row - the banner is always-on and therefore measures nothing" }
+        if ($tagged.Count) { $failures += "$($s.name): a clean run tagged $($tagged.Count) row(s) [INJECTED]" }
+        if (@($obj.injection.used).Count) { $failures += "$($s.name): JSON injection.used non-empty on a clean run" }
+      }
+    }
     # Exit-code contract: any FAIL or NOT-CHECKED must make the doctor exit non-zero.
     $checked++
     $expectNonZero = ($obj.fail -gt 0 -or $obj.not_checked -gt 0)
@@ -157,11 +277,11 @@ foreach ($s in $scenarios) {
     $tag = if ($failures.Count) { '' } else { '' }
     "{0,-62} fail={1} warn={2} nc={3} pass={4} exit={5}{6}" -f $s.name, $obj.fail, $obj.warn, $obj.not_checked, $obj.pass, $code, $tag
   } finally {
-    foreach ($k in @($s.env.Keys)) { Remove-Item -Path "Env:\$k" -ErrorAction SilentlyContinue }
+    foreach ($k in @($envSet.Keys)) { Remove-Item -Path "Env:\$k" -ErrorAction SilentlyContinue }
   }
 }
 
-Remove-Item $emptyWin, $badWin -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item $emptyWin, $badWin, $cmdGood, $cmdMissing, $cmdGhost, $cmdStale, $staleTree -Recurse -Force -ErrorAction SilentlyContinue
 
 ""
 if ($failures.Count) {
@@ -170,6 +290,6 @@ if ($failures.Count) {
   "FAILED:cs-doctor-failclosed $($failures.Count)/$checked assertions failed"
   exit 1
 }
-"FAILED-state coverage: $($scenarios.Count - 1) broken scenarios + 1 healthy control; $checked assertions."
+"FAILED-state coverage: $($scenarios.Count - 2) broken scenarios + 2 controls (S1 healthy inputs, S17 no injection); $checked assertions."
 "SUCCESS:cs-doctor-failclosed all $checked assertions held"
 exit 0

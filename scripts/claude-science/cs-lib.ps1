@@ -48,7 +48,57 @@ $script:CSMinHostRamGb  = Get-CSSettingInt 'CS_MIN_HOST_RAM_GB' 3
 $script:CSBackupWarnH   = Get-CSSettingInt 'CS_BACKUP_WARN_H'   176
 $script:CSBackupFailH   = Get-CSSettingInt 'CS_BACKUP_FAIL_H'   192
 $script:CSBeatStaleS    = Get-CSSettingInt 'CS_BEAT_STALE_S'    180
+$script:CSCommandsDir   = Get-CSSetting    'CS_COMMANDS_DIR'    '.claude/commands'
 $script:CSUrl           = "http://$($script:CSHost):$($script:CSPort)/"
+# Relative = under $HOME (the normal case, and the only portable way to express it in a KEY=VALUE
+# file that bash also sources). An absolute override is honoured as-is so a test can point the
+# slash-command route check at a scratch directory.
+if (-not [System.IO.Path]::IsPathRooted($script:CSCommandsDir)) {
+  $script:CSCommandsDir = Join-Path $HOME $script:CSCommandsDir
+}
+
+# --- fault injection: ARMED and always DISCLOSED -------------------------------------------------
+# ROUND 1 SHIPPED THIS SEAM UNARMED AND UNMARKED, and an independent auditor proved the cost:
+#   $env:CS_FORCE_WSL_DB='ok|wal|999M'  ->  "[+] DB PASS integrity=ok journal=wal size=999M",
+#   "summary: 0 FAIL, 0 WARN, 0 NOT-CHECKED, 12 PASS", exit 0, and ZERO occurrences of the word
+#   "inject" anywhere in the output. I reproduced that verbatim before changing anything.
+# A health tool that can be told to print a fabricated green IS the gate-fabrication class this
+# repo exists to catch, so the seam now carries two independent locks:
+#   1. ARMED  - a CS_FORCE_* variable is ignored outright unless CS_FAULT_INJECTION=1. A stray or
+#               leaked variable can no longer change one bit of behaviour. An ignored variable is
+#               REPORTED (cs-doctor renders it FAIL), never silently swallowed - an unexplained
+#               injection attempt in the environment is itself a finding.
+#   2. MARKED - every value actually taken from injection is recorded below, so cs-doctor can
+#               prefix those rows with [INJECTED] and emit a FAIL banner. An injected run can
+#               therefore never render as a clean pass and never exit 0.
+# The seam still has to exist: cs-doctor's fail-closed behaviour is unverifiable on a healthy box,
+# and a probe that is silent in both states measures nothing.
+$script:CSInjectionArmed = ($env:CS_FAULT_INJECTION -eq '1')
+$script:CSInjectionUsed = [System.Collections.Generic.List[string]]::new()
+$script:CSForceVars = @(
+  @([Environment]::GetEnvironmentVariables().Keys) |
+  Where-Object { "$_" -like 'CS_FORCE_*' } | Sort-Object
+)
+
+function Get-CSInjectionState {
+  # -> @{ Armed; Declared[]; Used[]; Refused[]; Active } . `Refused` is non-empty exactly when
+  # someone set a CS_FORCE_* without arming, which is the accident/tamper case.
+  [pscustomobject]@{
+    Armed    = $script:CSInjectionArmed
+    Declared = @($script:CSForceVars)
+    Used     = @($script:CSInjectionUsed | Sort-Object -Unique)
+    Refused  = @(if ($script:CSInjectionArmed) { @() } else { $script:CSForceVars })
+    Active   = ($script:CSInjectionArmed -and $script:CSForceVars.Count -gt 0)
+  }
+}
+
+function Test-CSTagInjected {
+  # Did THIS logical probe's value come from injection? Used to tag individual rows.
+  param([string]$Tag)
+  if (-not $Tag) { return $false }
+  return ($script:CSInjectionUsed -contains 'CS_FORCE_WSL_TIMEOUT') -or
+         ($script:CSInjectionUsed -contains "CS_FORCE_WSL_$($Tag.ToUpper())")
+}
 
 function ConvertTo-CSWindowsPath {
   # /mnt/d/Backups/x -> D:\Backups\x . The backup root lives in the config ONCE, in WSL form
@@ -70,16 +120,17 @@ function Invoke-CSWsl {
   # gathers WSL pid/disk/RAM through this path correctly.
   #
   # -Tag names the logical probe (db|backup|...) so a test can inject ONE probe's reply without
-  # touching the others. FAULT INJECTION IS TEST-ONLY and opt-in via environment variables; with
-  # none set this function behaves exactly as before. It exists because cs-doctor's fail-closed
-  # behaviour is unverifiable on a healthy box -- a probe that is silent in both states measures
-  # nothing, so the broken state has to be reachable on demand.
+  # touching the others. Injection is TEST-ONLY, requires CS_FAULT_INJECTION=1 to be armed, and
+  # every use is recorded so the caller can disclose it (see the fault-injection block above).
   [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseUsingScopeModifierInNewRunspaces', '', Justification = 'Args passed via -ArgumentList/param(), not closure-captured.')]
   param([string]$Cmd, [int]$TimeoutSec = 20, [string]$Tag)
-  if ($env:CS_FORCE_WSL_TIMEOUT -eq '1') { return '__WSL_TIMEOUT__' }
-  if ($Tag) {
-    $forced = [Environment]::GetEnvironmentVariable("CS_FORCE_WSL_$($Tag.ToUpper())")
-    if ($forced) { if ($forced -eq '__EMPTY__') { return '' } else { return $forced } }
+  if ($script:CSInjectionArmed) {
+    if ($env:CS_FORCE_WSL_TIMEOUT -eq '1') { $script:CSInjectionUsed.Add('CS_FORCE_WSL_TIMEOUT'); return '__WSL_TIMEOUT__' }
+    if ($Tag) {
+      $vn = "CS_FORCE_WSL_$($Tag.ToUpper())"
+      $forced = [Environment]::GetEnvironmentVariable($vn)
+      if ($forced) { $script:CSInjectionUsed.Add($vn); if ($forced -eq '__EMPTY__') { return '' } else { return $forced } }
+    }
   }
   $job = Start-Job { param($d, $c) & wsl.exe -d $d -e bash -lc "export PATH=`$HOME/.local/bin:`$PATH; $c" 2>&1 } -ArgumentList $script:CSDistro, $Cmd
   if (Wait-Job $job -Timeout $TimeoutSec) { $o = Receive-Job $job; Remove-Job $job -Force -ErrorAction SilentlyContinue; return ($o -join "`n") }

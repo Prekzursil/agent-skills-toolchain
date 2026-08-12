@@ -12,13 +12,21 @@ usually host-RAM pressure), which `cs fix` recovers. It targets `127.0.0.1:8000`
 only — **LOCAL scope**.
 
 ```powershell
-pwsh -File .\cs.ps1 <verb>     # or /claude-science <verb> from Claude Code (/cs still works)
+cs <verb>                             # the installed shim on PATH (~\.local\bin)
+pwsh -File ~/.local/bin/cs.ps1 <verb> # the same file, named explicitly
+pwsh -File .\cs.ps1 <verb>            # this checkout, for development only
 ```
 
 The slash command is **`/claude-science`**; **`/cs`** is kept as a thin forwarding alias because
 the dispatcher, the `cs.cmd` shim and every `cs <verb>` below still use the short name. (Claude
 Code has no `alias:` frontmatter field, and `name:` only sets the display label of a personal or
 project command — a forwarding file is the only mechanism.)
+
+**Both slash commands invoke the INSTALLED dispatcher, never a checkout.** They used to name a
+source tree that had drifted, so they silently ran a pre-fix build; `cs doctor`'s
+**Slash-command route** row now fails unless what they name is byte-identical to the running code
+(details under *Round 2* below). Repo → live deploys go through `install.ps1`; the reverse
+direction is never correct.
 
 | Verb | What it does |
 |---|---|
@@ -46,12 +54,29 @@ Precedence is **environment > `cs.conf` > in-script default**, so `$env:CS_PORT 
 the values the scripts shipped with rather than to empty strings. The backup root is stored
 **once**, in WSL form (`/mnt/d/...`); `cs-lib.ps1` derives the Windows form (`D:\...`).
 
-Before this seam existed there were **25 hardcoded config sites across 12 files** (10 port, 9
-distro, 6 backup-root); five PowerShell scripts never dot-sourced `cs-lib.ps1` at all and the
-shell side had no lib whatsoever. There are now **0 outside the seam** — the only remaining
-literals are the definitions in `cs.conf` and the matching fallback defaults in the two libs,
-and `test-cs-doctor-failclosed.ps1` asserts all three agree so the fallback cannot drift from
-the file it backs.
+Before this seam existed, five PowerShell scripts never dot-sourced `cs-lib.ps1` at all and the
+shell side had no lib whatsoever. **The load-bearing result, and the only one two independent
+instruments agree on: there are now 0 config bypass sites outside the seam files, down from 12-13
+files that each held at least one.** Every remaining literal is either a definition in `cs.conf`
+or the matching fallback default in one of the two libs, and `test-cs-doctor-failclosed.ps1`
+cross-checks all three so a fallback cannot drift from the file it backs.
+
+The absolute counts depend on the instrument, so both are given rather than one being presented
+as *the* number:
+
+| Instrument | Before | After | Counts a lib's `Get-CSSetting` default as… |
+|---|---|---|---|
+| build-side `count_cs_hardcodes.py` | 25 sites / 12 files | 12 sites / 2 files (`cs.conf`, `cs-lib.sh`) | seam, excluded |
+| audit-side `audit_hardcode_v2.py` (written independently) | 29 sites / 13 files | 18 sites / 3 files (+ `cs-lib.ps1`) | code, counted |
+
+> **Refuted wording, kept on the record.** The round-1 claim was *"AFTER 12, and all 12 are inside
+> the two seam files (`cs.conf` 6 + `cs-lib.sh` 6 **ONLY**)"*. An adversarial audit refuted it:
+> `cs-lib.ps1` holds six equivalent defaults too, which round 1's own residual note admitted, so
+> "the two seam files" was wrong and "25 → 12" was instrument-specific rather than absolute. The
+> code was never wrong — the sentence was wider than its evidence. Correct scope: **three** seam
+> files, and zero bypasses outside them, confirmed by two independently-written counters.
+> Settling experiment: run both scripts above at any commit; they must agree on the *set of files*
+> holding literals even where they disagree on the total.
 
 ### `cs doctor` output
 
@@ -69,7 +94,11 @@ repeatable table. Each row is PASS `[+]` / WARN `[!]` / FAIL `[X]` / NOT-CHECKED
 - **Watchdog heartbeat** — age of the heartbeat file, AND-gated against process liveness.
 - **Backup freshness** — newest snapshot age (WARN/FAIL thresholds from `cs.conf`).
 - **Backup restorable** — *opens* the newest snapshot: SQLite magic header (Windows-side, works
-  even when the VM is wedged) plus `PRAGMA integrity_check` (WSL-side, the real proof).
+  even when the VM is wedged) plus `PRAGMA integrity_check` on a **temp copy** (WSL-side, the real
+  proof). Copying first is what keeps the row read-only; see the round-2 notes below.
+- **Slash-command route** — do `/claude-science` and `/cs` actually run *this* code? Hashes the
+  `cs-doctor.ps1` beside the dispatcher each command file names and compares it with the doctor
+  currently executing.
 - **Tab-death regfix** — Chrome/Edge discard-exception policy applied.
 
 Ends with a `N FAIL, N WARN, N NOT-CHECKED, N PASS` summary; any FAIL prints
@@ -104,17 +133,60 @@ Two detector bugs were fixed alongside, both measured live:
   above the measured worst case) instead of a bare 90 s, and `cs-watchdog.ps1` writes the beat
   **before** the probe so a slow probe cannot age its own heartbeat.
 
-Falsify all of it with the shipped both-states harness — 12 scenarios, 45 assertions, every WSL
+Falsify all of it with the shipped both-states harness — 18 scenarios, 76 assertions, every WSL
 probe stubbed, so it is hermetic and safe to run *while* the box is wedged:
 
 ```powershell
 pwsh -NoProfile -File .\test-cs-doctor-failclosed.ps1
-# SUCCESS:cs-doctor-failclosed all 45 assertions held
+# SUCCESS:cs-doctor-failclosed all 76 assertions held
 ```
 
 It asserts both directions — that each row goes FAIL/NOT-CHECKED when its input is broken, **and**
 that the same row goes PASS in the paired healthy control. A test that only checked the broken
 direction could not tell a fail-closed row from a row that is always red.
+
+### Round 2 (2026-08-12) — three defects an adversarial audit confirmed
+
+Round 1 shipped the fail-closed contract above and called the work done. An independent auditor
+confirmed the contract itself but found three real defects. All three are fixed; each carries the
+probe that fires in the broken state, because a probe silent in both states measures nothing.
+
+**D1 — `/claude-science` and `/cs` executed pre-fix code.** Both command files (and both
+`agent-self/config/commands` twins) named
+`~/source/agent-skills-toolchain/scripts/claude-science/cs.ps1`. That checkout sat at a detached
+HEAD holding the *old* tool — `cs-doctor.ps1` 5,590 B against the deployed 13,852 B, no `cs.conf`,
+no `cs-lib.sh`. Same box, same minute: the slash route printed 11 rows and `0 FAIL, 1 WARN, 9
+PASS`; `cs doctor` on PATH printed the 13-row four-state report. **Round 1 declared the rename
+"works" on the evidence of a command *listing* — a listing render is not an execution.** The files
+now name the installed dispatcher `~/.local/bin/cs.ps1`, which is the same file the `cs` shim runs,
+and the new **Slash-command route** row makes the class detectable rather than only this instance.
+Control: point `CS_COMMANDS_DIR` at a copy of the live command files edited back to the stale path
+— the row must read `FAIL … routes to STALE code`.
+
+**D2 — the fault-injection seam shipped unarmed and unmarked.** `CS_FORCE_WSL_DB='ok|wal|999M'`
+against round 1 produced `[+] DB PASS integrity=ok journal=wal size=999M`, `summary: 0 FAIL, 0
+WARN, 0 NOT-CHECKED, 12 PASS`, exit 0, and the word "inject" nowhere in the output — a health tool
+that could be ordered to print a fabricated green, inside the very file written to stop that. Now
+the seam is inert unless `CS_FAULT_INJECTION=1` arms it; an un-armed `CS_FORCE_*` is **refused and
+reported**; and an armed run gets a `Fault injection` FAIL row, `[INJECTED]` on every affected
+detail, and a `[SIMULATED …]` summary, so it can never read clean and never exits 0.
+
+**D3 — the "read-only" doctor wrote into the backup root.** The restorability row opened the
+snapshot in place with `sqlite3 -readonly "file:$B?mode=ro"`, which still maps and stamps the WAL
+`-shm` index beside it. Measured across a doctor run:
+`CHANGED operon-20260812-093431.db-shm mtime_ns 1786520529508095000 -> 1786521751710545500`.
+It now copies the snapshot to a temp dir and checks the copy — which is also the faithful test,
+since a restore copies the `.db` out. That property needs the real filesystem, so it is **not**
+covered by the hermetic harness; it has its own probe:
+
+```powershell
+python .\test-cs-backup-readonly.py check .\cs-doctor.ps1
+# SUCCESS:cs-backup-readonly [check] backup root byte-and-stamp identical
+```
+
+Any `+N sidecars` in the restorable row is the fingerprint of that old in-place open. They are
+reported, never deleted — this tool does not write to the backup root, and that includes cleaning
+up after itself.
 
 ## Reliability hardening (2026-07-07)
 

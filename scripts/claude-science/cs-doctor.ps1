@@ -110,7 +110,18 @@ if (Test-Path $beat) {
 # 8. backup freshness + RESTORABILITY (one WSL round-trip serves both rows)
 # "A backup you cannot restore is false safety" -- so EXISTENCE is not the check. This opens the
 # newest snapshot and runs PRAGMA integrity_check on it.
-$bkProbe = Invoke-CSWsl ("B=`$(ls -t '$script:CSBackupRoot'/operon-*.db 2>/dev/null | head -1); if [ -z `"`$B`" ]; then echo __NOBACKUP__; elif ! command -v sqlite3 >/dev/null 2>&1; then echo `"`$(stat -c %Y `"`$B`")|__NOSQLITE__|`"; else echo `"`$(stat -c %Y `"`$B`")|`$(sqlite3 -readonly `"file:`$B?mode=ro`" 'PRAGMA integrity_check;' 2>&1 | head -1)|`$(sqlite3 -readonly `"file:`$B?mode=ro`" `"SELECT count(*) FROM sqlite_master WHERE type='table';`" 2>&1 | head -1)`"; fi") 25 -Tag 'backup'
+#
+# THE SNAPSHOT IS COPIED TO A TEMP DIR AND THE **COPY** IS OPENED. Round 1 opened it in place with
+# `sqlite3 -readonly "file:$B?mode=ro"`, which reads as safe and is not: in WAL mode SQLite still
+# maps and stamps the `-shm` WAL index beside the database. Measured 2026-08-12 by snapshotting
+# every entry in D:\Backups\claude-science around a doctor run --
+#   CHANGED operon-20260812-093431.db-shm  mtime_ns 1786520529508095000 -> 1786521751710545500
+# -- so a documented READ-ONLY health check was mutating the backup directory on every run. Copying
+# first makes the property structural rather than a subtle URI argument, and it also makes this the
+# faithful test: a restore copies the .db out, so verifying a copy of the .db alone is exactly the
+# question "can this file be restored from". Falsify with:
+#   python scripts/claude-science/test-cs-backup-readonly.py <label> <path-to-cs-doctor.ps1>
+$bkProbe = Invoke-CSWsl ("B=`$(ls -t '$script:CSBackupRoot'/operon-*.db 2>/dev/null | head -1); if [ -z `"`$B`" ]; then echo __NOBACKUP__; elif ! command -v sqlite3 >/dev/null 2>&1; then echo `"`$(stat -c %Y `"`$B`")|__NOSQLITE__|`"; else T=`$(mktemp -d 2>/dev/null); if [ -z `"`$T`" ]; then echo `"`$(stat -c %Y `"`$B`")|__NOTMP__|`"; else cp `"`$B`" `"`$T/snap.db`" 2>/dev/null; echo `"`$(stat -c %Y `"`$B`")|`$(sqlite3 -readonly `"`$T/snap.db`" 'PRAGMA integrity_check;' 2>&1 | head -1)|`$(sqlite3 -readonly `"`$T/snap.db`" `"SELECT count(*) FROM sqlite_master WHERE type='table';`" 2>&1 | head -1)`"; rm -rf `"`$T`"; fi; fi") 30 -Tag 'backup'
 
 $bkParts = @()
 if (-not (Test-CSUnmeasured $bkProbe) -and $bkProbe -ne '__NOBACKUP__') { $bkParts = "$bkProbe".Trim() -split '\|' }
@@ -141,24 +152,121 @@ if ($script:CSBackupRootWin) {
       $fs = [System.IO.File]::OpenRead($newest.FullName)
       try { [void]$fs.Read($magic, 0, 16) } finally { $fs.Dispose() }
       $hdrOk = ([System.Text.Encoding]::ASCII.GetString($magic) -eq "SQLite format 3`0")
-      $hdrDetail = "$($newest.Name) $($newest.Length)B header=$(if ($hdrOk) { 'ok' } else { 'CORRUPT' })"
+      # Details are kept SHORT on purpose: Format-Table truncates at the console width, and this is
+      # the row that carries the temp-copy evidence, so a verbose string would hide its own proof.
+      $hdrDetail = "$($newest.Name) $($newest.Length)B hdr=$(if ($hdrOk) { 'ok' } else { 'CORRUPT' })"
+      # Sidecars beside a SNAPSHOT mean something opened it in place (round 1's doctor did exactly
+      # that). Harmless to a restore, which copies the .db out, but it is the fingerprint of the
+      # defect above, so surface it rather than leave it invisible. Reported, never deleted -- this
+      # tool does not write to the backup root, and that includes cleaning up after itself.
+      $side = @(Get-ChildItem -LiteralPath $script:CSBackupRootWin -Filter "$($newest.Name)-*" -ErrorAction SilentlyContinue)
+      if ($side.Count) { $hdrDetail += " +$($side.Count) sidecars" }
     } catch { $hdrOk = $null; $hdrDetail = "cannot read $($newest.Name): $($_.Exception.Message)" }
   }
 }
 $integ = if ($bkParts.Count -ge 2) { $bkParts[1] } else { $null }
 $ntab = if ($bkParts.Count -ge 3) { $bkParts[2] } else { $null }
+# __NOSQLITE__ / __NOTMP__ are UNMEASURED sentinels, not verdicts: routing them into the FAIL arm
+# below would print "the snapshot does NOT open cleanly" about a snapshot nothing ever opened.
+$unmeasuredInteg = @('__NOSQLITE__', '__NOTMP__')
 if ($hdrOk -eq $false) {
   Add-Row 'Backup restorable' 'FAIL' $hdrDetail
 } elseif ($integ -eq 'ok') {
-  Add-Row 'Backup restorable' 'PASS' "$hdrDetail; integrity=ok tables=$ntab"
-} elseif ($integ -and $integ -ne '__NOSQLITE__') {
+  Add-Row 'Backup restorable' 'PASS' "$hdrDetail; integrity=ok tables=$ntab (temp-copy, root unwritten)"
+} elseif ($integ -and $integ -notin $unmeasuredInteg) {
   Add-Row 'Backup restorable' 'FAIL' "$hdrDetail; integrity=$integ - the snapshot does NOT open cleanly"
 } else {
-  Add-Row 'Backup restorable' 'NOT-CHECKED' "$hdrDetail; integrity unmeasured (WSL/sqlite3 unreachable) - header alone is not proof of restorability"
+  Add-Row 'Backup restorable' 'NOT-CHECKED' "$hdrDetail; integrity unmeasured ($(if ($integ -eq '__NOTMP__') { 'no temp dir in WSL for the copy' } else { 'WSL/sqlite3 unreachable' })) - header alone is not proof of restorability"
 }
 
-# 9. tab-death regfix
+# 9. slash-command route parity -- does /claude-science actually run THIS code?
+#
+# THE DEFECT THIS EXISTS FOR (measured 2026-08-12 by an independent auditor, reproduced by me):
+# round 1 renamed /cs to /claude-science, deployed both files, and confirmed "works" from the
+# session's COMMAND LISTING. A listing render is not an execution. Both files still contained
+#   pwsh -NoProfile -File ~/source/agent-skills-toolchain/scripts/claude-science/cs.ps1
+# and that checkout sat at a detached HEAD holding the PRE-FIX tool: cs-doctor.ps1 5,590 B vs
+# 13,852 B, cs.conf and cs-lib.sh absent entirely. Same box, same minute: the slash route printed
+# 11 rows / "0 FAIL, 1 WARN, 9 PASS" while `cs doctor` on PATH printed 13 rows / 4 states. Every
+# fail-closed fix was real and none of it was reachable through the command the owner types.
+#
+# Comparing PATHS would false-alarm whenever someone legitimately runs the doctor out of a checkout,
+# so this compares CONTENT: the SHA-256 of the cs-doctor.ps1 sitting beside the dispatcher the
+# command file names, against the SHA-256 of the doctor currently executing. Identical bytes = no
+# route defect, wherever it lives. Different bytes = one of the two copies is stale, which is
+# precisely D1 and is also the general deploy-staleness detector.
+$selfHash = try { (Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash } catch { $null }
+$cmdDir = $script:CSCommandsDir
+if (-not $selfHash) {
+  Add-Row 'Slash-command route' 'NOT-CHECKED' 'cannot hash the running doctor; route parity unmeasured'
+} elseif (-not (Test-Path -LiteralPath $cmdDir)) {
+  Add-Row 'Slash-command route' 'NOT-CHECKED' "commands dir not found: $cmdDir - cannot tell what /claude-science runs"
+} else {
+  $routeProblems = @()
+  $routeOk = @()
+  foreach ($cf in @('claude-science.md', 'cs.md')) {
+    $cp = Join-Path $cmdDir $cf
+    if (-not (Test-Path -LiteralPath $cp)) { $routeProblems += "/$($cf -replace '\.md$','') MISSING from $cmdDir"; continue }
+    $body = Get-Content -Raw -LiteralPath $cp -ErrorAction SilentlyContinue
+    $m = [regex]::Match("$body", '(?im)^[^\r\n#]*?-File\s+"?([^"\r\n]*?cs\.ps1)"?')
+    if (-not $m.Success) { $routeProblems += "$cf names no cs.ps1 dispatcher"; continue }
+    $target = $m.Groups[1].Value.Trim()
+    $resolved = if ($target -match '^~[\\/]') { Join-Path $HOME $target.Substring(2) } else { $target }
+    if (-not (Test-Path -LiteralPath $resolved)) { $routeProblems += "$cf routes to a dispatcher that does not exist: $target"; continue }
+    $sib = Join-Path (Split-Path -Parent $resolved) 'cs-doctor.ps1'
+    if (-not (Test-Path -LiteralPath $sib)) { $routeProblems += "$cf routes to $target but there is no cs-doctor.ps1 beside it"; continue }
+    $h = (Get-FileHash -LiteralPath $sib -Algorithm SHA256).Hash
+    if ($h -ne $selfHash) {
+      $routeProblems += ("$cf routes to STALE code: $target (doctor sha $($h.Substring(0,12))) != running doctor $($PSCommandPath) (sha $($selfHash.Substring(0,12)))")
+    } else { $routeOk += $target }
+  }
+  if ($routeProblems.Count) {
+    Add-Row 'Slash-command route' 'FAIL' ($routeProblems -join ' | ')
+  } else {
+    Add-Row 'Slash-command route' 'PASS' "/claude-science and /cs both run this exact code ($(@($routeOk | Sort-Object -Unique) -join ', '))"
+  }
+}
+
+# 10. tab-death regfix
 Add-Row 'Tab-death regfix' $(if (Test-Path 'HKCU:\SOFTWARE\Policies\Google\Chrome\TabDiscardingExceptions') { 'PASS' } else { 'WARN' }) $(if (Test-Path 'HKCU:\SOFTWARE\Policies\Google\Chrome\TabDiscardingExceptions') { 'Chrome exceptions set' } else { 'not applied (install.ps1 sets it)' })
+
+# --- FAULT-INJECTION DISCLOSURE ------------------------------------------------------------------
+# An auditor set CS_FORCE_WSL_DB='ok|wal|999M' against round 1 and got
+#   [+] DB PASS integrity=ok journal=wal size=999M ... summary: 0 FAIL, 0 WARN, 0 NOT-CHECKED,
+#   12 PASS, exit 0
+# with the word "inject" appearing nowhere. That is a health tool that can be ordered to print a
+# fabricated green -- the gate-fabrication class, in the very file written to close it. Two rules
+# now hold, and both are asserted by test-cs-doctor-failclosed.ps1 in BOTH directions:
+#   * a run with ANY injected value carries a FAIL banner row and tags every affected row
+#     [INJECTED], so it can never read as clean and (via the FAIL) can never exit 0;
+#   * a CS_FORCE_* set WITHOUT CS_FAULT_INJECTION=1 is REFUSED, not obeyed, and reported anyway --
+#     an unexplained injection attempt in the environment is itself a finding.
+$inj = Get-CSInjectionState
+if ($inj.Used.Count) {
+  foreach ($map in @(
+      @{ Tag = 'wsl'; Rows = @('WSL reachable') }
+      @{ Tag = 'stat'; Rows = @('daemon detail') }
+      @{ Tag = 'db'; Rows = @('DB') }
+      @{ Tag = 'disk'; Rows = @('WSL disk free') }
+      @{ Tag = 'backup'; Rows = @('Backup freshness', 'Backup restorable') }
+    )) {
+    if (-not (Test-CSTagInjected $map.Tag)) { continue }
+    foreach ($rn in $map.Rows) {
+      foreach ($r in @($script:rows | Where-Object Check -eq $rn)) { $r.Detail = "[INJECTED] $($r.Detail)" }
+    }
+  }
+  $script:rows = @(, [pscustomobject]@{
+      Check  = 'Fault injection'
+      Status = 'FAIL'
+      Detail = "SIMULATED RUN - $($inj.Used.Count) probe reply/replies came from $($inj.Used -join ', '). No [INJECTED] row is evidence about the real system."
+    }) + $script:rows
+} elseif ($inj.Refused.Count) {
+  $script:rows = @(, [pscustomobject]@{
+      Check  = 'Fault injection'
+      Status = 'FAIL'
+      Detail = "REFUSED - $($inj.Refused -join ', ') set without CS_FAULT_INJECTION=1, so it was IGNORED. Rows below are real, but the environment is tampered; unset it."
+    }) + $script:rows
+}
 
 # render
 $fail = @($script:rows | Where-Object Status -eq 'FAIL').Count
@@ -167,17 +275,22 @@ $pass = @($script:rows | Where-Object Status -eq 'PASS').Count
 $nc = @($script:rows | Where-Object Status -eq 'NOT-CHECKED').Count
 if ($Json) {
   [pscustomobject]@{
-    at    = (Get-Date -Format 's')
-    fail  = $fail; warn = $warn; not_checked = $nc; pass = $pass
-    rows  = @($script:rows)
+    at        = (Get-Date -Format 's')
+    fail      = $fail; warn = $warn; not_checked = $nc; pass = $pass
+    injection = [pscustomobject]@{ armed = [bool]$inj.Armed; used = @($inj.Used); refused = @($inj.Refused) }
+    rows      = @($script:rows)
   } | ConvertTo-Json -Depth 4 -Compress
   if ($fail -or $nc) { exit 1 } else { exit 0 }
 }
-"`n  Claude Science - doctor  ($(Get-Date -Format 's'))`n"
-($script:rows | Format-Table -AutoSize @{L = ' '; E = { switch ($_.Status) { 'PASS' { '[+]' } 'FAIL' { '[X]' } 'WARN' { '[!]' } 'NOT-CHECKED' { '[?]' } default { '[i]' } } } }, Check, Status, Detail | Out-String).TrimEnd()
+"`n  Claude Science - doctor  ($(Get-Date -Format 's'))$(if ($inj.Used.Count) { "   *** SIMULATED: FAULT INJECTION ACTIVE - NOT A MEASUREMENT OF THIS BOX ***" })`n"
+# -Wrap, not the default truncate. Without it Format-Table clips Detail at the host width and ends
+# the line in a single-character ellipsis -- so the longest details, which are exactly the ones
+# carrying a diagnosis (which snapshot, which stale dispatcher, which injected variable), were the
+# ones being hidden. A health report that elides its own evidence is not a health report.
+($script:rows | Format-Table -AutoSize -Wrap @{L = ' '; E = { switch ($_.Status) { 'PASS' { '[+]' } 'FAIL' { '[X]' } 'WARN' { '[!]' } 'NOT-CHECKED' { '[?]' } default { '[i]' } } } }, Check, Status, Detail | Out-String -Width 4096).TrimEnd()
 # NOT-CHECKED is counted separately and deliberately: folding it into PASS is the exact bug this
 # file was rewritten to remove, and folding it into WARN would hide that nothing was measured.
-"`n  summary: $fail FAIL, $warn WARN, $nc NOT-CHECKED, $pass PASS"
+"`n  summary: $fail FAIL, $warn WARN, $nc NOT-CHECKED, $pass PASS$(if ($inj.Used.Count) { '   [SIMULATED - fault injection active]' } elseif ($inj.Refused.Count) { '   [tampered env - CS_FORCE_* refused]' })"
 if ($fail) { "  -> try: cs fix    then re-run: cs doctor" }
 if ($nc) { "  -> NOT-CHECKED rows were NOT measured (usually a wedged VM). Re-run after: cs fix" }
 # Non-zero exit on FAIL so `cs doctor` is usable as a gate by other tooling. NOT-CHECKED also

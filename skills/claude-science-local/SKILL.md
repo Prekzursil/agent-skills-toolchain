@@ -32,11 +32,19 @@ license: MIT
 ## The `cs` verbs (run from PowerShell)
 
 ```
-pwsh -File ~/source/agent-skills-toolchain/scripts/claude-science/cs.ps1 <verb>
+cs <verb>                                  # the shim on PATH
+pwsh -File ~/.local/bin/cs.ps1 <verb>      # the same installed dispatcher, explicitly
 ```
 
 Slash command: **`/claude-science <verb>`** (canonical) or **`/cs <verb>`** (short alias — the
 rename kept it working; see `commands/claude-science.md` and `commands/cs.md`).
+
+**Always the INSTALLED copy, never a source checkout.** Both slash commands used to name
+`~/source/agent-skills-toolchain/scripts/claude-science/cs.ps1`, and that tree had drifted to a
+detached HEAD holding the pre-fix tool — so `/claude-science doctor` ran an 11-row report with no
+fail-closed states while `cs doctor` ran the 13-row one, on the same box, in the same minute.
+`cs doctor`'s **Slash-command route** row now hashes whatever dispatcher the command files name and
+fails unless it is byte-identical to the running code.
 
 | Verb | What it does |
 |---|---|
@@ -65,10 +73,11 @@ flags `*** WEDGED ***`) · **daemon detail** (pid/version/uptime) · **DB** (int
 (the freeze root cause) · **Watchdog registered** · **Watchdog re-launch trigger**
 (a logon-only trigger cannot restart a watchdog that exited — that is how it stayed
 dead for 3.3 days) · **Watchdog instances** (catches the duplicate-watchdog race) ·
-**Watchdog heartbeat** · **Backup freshness** · **Backup restorable** (opens the newest
-snapshot and integrity-checks it) · **Tab-death regfix**. Ends with a
-`N FAIL, N WARN, N NOT-CHECKED, N PASS` summary and **exits non-zero on FAIL or
-NOT-CHECKED**, so other tooling can gate on it.
+**Watchdog heartbeat** · **Backup freshness** · **Backup restorable** (copies the newest
+snapshot to a temp dir and integrity-checks the **copy**, so the backup root is never written) ·
+**Slash-command route** (do `/claude-science` and `/cs` actually run this code?) ·
+**Tab-death regfix**. Ends with a `N FAIL, N WARN, N NOT-CHECKED, N PASS` summary and
+**exits non-zero on FAIL or NOT-CHECKED**, so other tooling can gate on it.
 
 ### `NOT-CHECKED` is not `PASS` — read this row honestly
 
@@ -87,11 +96,29 @@ Two heartbeat subtleties worth knowing, both measured:
 - **The instance count used to count the probe itself.** Anything whose command line contained
   `cs-watchdog` matched, so asking the question could manufacture the "DUPLICATE" answer.
 
+### A run marked `[INJECTED]` is a SIMULATION, never health evidence
+
+The harness below reaches the broken state through a `CS_FORCE_*` env seam. That seam once
+obeyed those variables unarmed and unmarked, so `CS_FORCE_WSL_DB='ok|wal|999M'` produced a
+fabricated `[+] DB PASS integrity=ok journal=wal size=999M`, `0 FAIL … 12 PASS`, exit 0 — a
+health tool that could be ordered to print a green. Now: the seam is inert unless
+`CS_FAULT_INJECTION=1` arms it; a `CS_FORCE_*` set without arming is **refused and reported**;
+and an armed run gets a `Fault injection` **FAIL** row plus an `[INJECTED]` tag on every affected
+detail, so it can never read clean and never exits 0. **Never quote a `[SIMULATED …]` run.**
+
 Verify all of the above with the shipped both-states harness — it stubs every WSL probe, so it
 is hermetic and safe to run *while* the box is wedged:
 
 ```
-pwsh -NoProfile -File ~/source/agent-skills-toolchain/scripts/claude-science/test-cs-doctor-failclosed.ps1
+pwsh -NoProfile -File ~/.local/bin/test-cs-doctor-failclosed.ps1
+```
+
+One property it deliberately does **not** cover, because it needs the real filesystem: that the
+doctor does not write into the backup root. That has its own probe, which snapshots every entry
+in `D:\Backups\claude-science` around a doctor run —
+
+```
+python ~/.local/bin/test-cs-backup-readonly.py check ~/.local/bin/cs-doctor.ps1
 ```
 
 ## Gotchas

@@ -27,14 +27,21 @@ The one-line summary, so this file is useful even on its own: shell to the dispa
 `$ARGUMENTS` through as the verb (defaulting to `status` when empty), then relay its output.
 
 ```
-pwsh -NoProfile -File ~/source/agent-skills-toolchain/scripts/claude-science/cs.ps1 $ARGUMENTS
+pwsh -NoProfile -File ~/.local/bin/cs.ps1 $ARGUMENTS
 ```
+
+This must stay byte-for-byte the same target as `claude-science.md` — it is the **installed**
+dispatcher, the same file the `cs` shim on `PATH` runs. It previously named a source checkout that
+had drifted, so both slash commands silently ran the pre-fix tool; `cs doctor`'s **Slash-command
+route** row now fails if either file routes anywhere but the running code.
 
 Key facts that change a diagnosis (the full set is in `claude-science.md`):
 
 - **HTTP 401 on `/` = alive** (auth gate). Slow/timeout = **WEDGED**, not down — `fix` recovers it.
 - **`ensure`** emits `SUCCESS:cs-up` / `FAILED:cs-down`; only touch `:8000` on the success marker.
 - **`NOT-CHECKED` is not `PASS`** — a doctor row that could not reach its input says so.
+- A run tagged **`[INJECTED]`** or carrying a `Fault injection` row is a **simulation**, not a
+  measurement of this box — never quote it as health evidence.
 
 ## Related
 
