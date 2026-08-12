@@ -433,6 +433,20 @@ jobs:
       # a recorded baseline rather than failing on all 917 pre-existing findings - a gate that fails
       # on every unrelated PR gets deleted - and reports improvements so the floor gets lowered
       # instead of drifting into slack.
+      # `launchpath` is the only gate here that EXECUTES a shipped program. Everything else in the
+      # monitor chain checks bytes: vendordrift proves every committed copy of `monitorcore` is
+      # byte-identical, test_registry_commit_truth proves each registry stanza names a TRACKED
+      # path, test_registry_shipped proves the file exists on the author's box. None of them run
+      # it, so a shim whose import breaks, or an entry that exits 0 without rendering, is green in
+      # all three - the silent-no-op shape that once turned `ui-audit` into a vacuous pass. This
+      # materialises the registry and the probed skill dir from the blobs git STORED (never `git
+      # archive`, which returns Windows CRLF), launches the entry with `--once`, and requires both
+      # exit 0 and a marker proving the board rendered. Honest scope: 1 of 6 stanzas is executed,
+      # in each of the 2 registry mirrors; the other 5 are interactive pollers or quarantined and
+      # carry a written exemption. Both directions fail closed - a NEW stanza that is neither
+      # probed nor exempt fails, and an exemption naming a deleted stanza fails - so the policy
+      # cannot rot into fiction and a green cannot be computed over nothing. Stdlib-only, and the
+      # cockpit it launches declares `dependencies = []`, so `pip install pytest` above is enough.
       - name: gate-tests-coverage measure-guard
         run: |
           pip install pytest
@@ -441,6 +455,7 @@ jobs:
           python tools/measure-guard/refcheck.py
           python tools/measure-guard/wudeps.py
           python tools/measure-guard/jsonparse.py
+          python tools/measure-guard/launchpath.py
       # tools/agentspec — the portable agent-workflow SPEC, the shared observation envelope, the
       # dispatch-safety pure core (argv/prompt transport, the completion AND-gate, progress-stream
       # rejection, terminal markers, budget accounting, determinism) and the hermetic eval
