@@ -33,6 +33,13 @@ RESULTS: list[dict] = []
 # baseline, so a wrong pin fails loudly instead of passing vacuously.
 BASELINE = "4afce4e1"
 
+# `bash` on PATH from a Python subprocess resolves to C:\WINDOWS\system32\bash.exe = WSL, which
+# sees a different filesystem root and makes `git` inside the script fail with
+# "fatal: not a git repository". Measured while building this file. Use Git Bash explicitly.
+GIT_BASH = next((p for p in ("C:/Program Files/Git/bin/bash.exe",
+                             "C:/Program Files (x86)/Git/bin/bash.exe")
+                 if Path(p).exists()), "bash")
+
 
 def sh(args, cwd=ROOT, text=True):
     return subprocess.run(args, cwd=str(cwd), capture_output=True, text=text)
@@ -222,12 +229,17 @@ def control_d4() -> None:
     broken = frozen in old and (o_raw - o_ex) != 12
     fixed = frozen not in new
 
-    # Independent recomputation of the delta the fixed probe now prints.
+    # DETECTOR NOTE (round 2, second correction). The first version of this leg compared the
+    # STORED R2 capture against a LIVE `git grep` recount -- i.e. it reproduced D4's own defect:
+    # a frozen number checked against a moving one. It passed while the capture was minutes old
+    # and failed the moment this lane committed 34 more files containing the token. A capture is
+    # a historical fact; only a FRESH run may be compared with a FRESH recount.
+    fresh = sh([GIT_BASH, str(CAS / "probes" / "adv0022_git_verifier.sh")]).stdout
     raw = len(sh(["git", "grep", "-l", "tool_permissions"]).stdout.strip().splitlines())
     ex = len(sh(["git", "grep", "-l", "tool_permissions", "--",
                  ":!command-center/casualty"]).stdout.strip().splitlines())
     printed = None
-    for line in new.splitlines():
+    for line in fresh.splitlines():
         if line.startswith("self_match_inflation=") and "THIS lane" in line:
             printed = int(line.split("=")[1].split()[0])
     still = printed is not None and printed == raw - ex and raw > ex
@@ -238,8 +250,9 @@ def control_d4() -> None:
            f"excluding-lane={o_ex} -> delta {o_raw - o_ex}, not 12. Wrong AT CAPTURE TIME, not "
            f"merely drifted: the 12 is the C3 block's raw count, borrowed from the wrong block\n"
            f"POST-FIX capture contains the frozen string: {frozen in new}\n"
-           f"independent recomputation: raw={raw} excluding-lane={ex} delta={raw - ex}; "
-           f"probe printed self_match_inflation={printed} -> agree={still}")
+           f"FRESH run of the fixed probe vs a FRESH recomputation (never capture-vs-live): "
+           f"raw={raw} excluding-lane={ex} delta={raw - ex}; probe printed "
+           f"self_match_inflation={printed} -> agree={still}")
 
 
 def main() -> int:

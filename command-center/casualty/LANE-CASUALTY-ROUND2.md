@@ -7,8 +7,12 @@ always truthful.
 > verdict there may be cited.
 
 **COVERAGE at this write:** R2-A DONE · R2-B DONE (5/5 controls, each proven against the pinned
-pre-fix blob) · R2-C DONE (8 sentence repairs) · R2-D partial — the fresh-clone leg runs against
-the round-2 commit and is filled in immediately after it · R2-E DONE · R2-F in progress.
+pre-fix blob) · R2-C DONE (8 sentence repairs) · R2-D DONE — and the fresh-clone leg found a REAL
+defect, now fixed and re-proven · R2-E DONE · R2-F DONE (3 commits, 0 foreign paths).
+
+**One command re-runs everything:** `python command-center/casualty/r2_verify_all.py` →
+`SUCCESS:r2-verify-all 12 steps executed, all pass`, recorded verbatim in
+`R2-FINAL-VERIFICATION.json`. Every step is a real subprocess; nothing in it reads a claim.
 
 ---
 
@@ -113,9 +117,48 @@ theoretical risk to two-signal identification and it is real.
   changing the digest.
 - **Receipt patcher is idempotent** — it rebases on the pinned round-1 blobs at `4afce4e1` before
   applying, so a second run reproduces byte-for-byte instead of double-appending.
-- **Fresh clone:** `UNKNOWN - not yet measured at this write.` It must run against a commit that
-  CONTAINS the round-2 receipts, so it runs immediately after the round-2 commit and is recorded
-  in the follow-up commit. If this line still reads UNKNOWN, the clone leg never ran.
+### The fresh-clone leg found a REAL defect — round 1's sentence was not merely unproven, it was FALSE
+
+`verify_blob_parity.py --fresh-clone` clones this repo into a throwaway directory and recomputes
+each digest from the clone's object store **and** from the clone's checked-out file. Run against
+the round-2 receipts commit `ea9a6eee`:
+
+```
+ADV-0021  clone blob     176468 B  CRLF    0   digest MATCH=True
+          clone CHECKOUT 177741 B  CRLF 1273   digest MATCH=False
+ADV-0022  clone blob     114103 B  CRLF    0   digest MATCH=True
+          clone CHECKOUT 114776 B  CRLF  673   digest MATCH=False
+FAILED:fresh-clone a reviewer who clones this repo cannot reproduce the declared digest
+```
+
+**Mechanism:** `core.autocrlf=true` and the root `.gitattributes` covers only `*.sh` and `*.ps1`,
+so a checkout converted these LF blobs to CRLF. Each receipt publishes an elided sha256 of its own
+bytes and `verify_elided_digest.py` reads with `newline=""` — it hashes what is on disk. A
+reviewer cloning on Windows therefore could **not** reproduce either published digest, and the
+declared `artifacts[0].bytes` disagreed with the file they actually got. The blob was always fine;
+the checkout was not, and the checkout is what a reviewer reads. This is the
+worktree-green-vs-clone-green trap landing on the very artifact that claimed immunity to it.
+
+**Fix:** `command-center/casualty/.gitattributes` marks exactly the two digest-bearing receipts
+`-text`. Verified safe before applying — all **84** tracked lane blobs are pure LF
+(`_r2_blob_eol_scan.py`), so nothing CRLF is frozen in place. Deliberately **not** lane-wide: 30
+lane files hold CRLF in the *working tree* while their blobs are LF, and a blanket rule would
+surface 30 EOL-only phantom modifications on a worktree siblings commit from.
+
+**Post-fix, same probe, commit `676a65db` — the other half of the both-states control:**
+
+```
+ADV-0021  clone blob 176468 B CRLF 0 MATCH=True   clone CHECKOUT 176468 B CRLF 0 MATCH=True
+ADV-0022  clone blob 114103 B CRLF 0 MATCH=True   clone CHECKOUT 114103 B CRLF 0 MATCH=True
+SUCCESS:fresh-clone both receipts reproduce their declared digest from a clone that never saw
+this working tree
+```
+
+**Scope of that claim, stated exactly:** measured on this Windows host with `core.autocrlf=true`,
+cloning over `file://` at depth 1. A Linux CI checkout (`autocrlf=false`) would have produced LF
+and matched even before the fix — so the pre-fix failure was reviewer-platform-specific, while the
+fix makes it platform-independent. *Settling experiment for the residual:* clone on Linux with
+`core.autocrlf=input` and confirm both digests still match.
 
 ## R2-E. Census + liveness refresh, with the live-wave caveat demonstrated
 
@@ -137,6 +180,75 @@ Re-run immediately before committing, `2026-08-12T08:28:41Z`:
 modified by a sibling wave right now. **A low score is never a casualty verdict on its own**, and
 this census is stale the moment it is written.
 
-## R2-F. Commit
+## R2-F. Commits
 
-`UNKNOWN - not yet measured`
+Three commits, every one a pathspec commit whose foreign-path count was checked as **0** before
+committing (`git diff --cached --name-only | grep -cv '^command-center/casualty/'`). No
+`git add -A`, no `git add .`, no `git commit -a`, no force-push, no `--no-verify`, no history
+rewrite. `command-center/adversarial/` was READ-ONLY throughout. Unlike round 1, each commit
+carries this lane's own message.
+
+| commit | files | what |
+|---|---|---|
+| `ea9a6eee` | 31 | the 5 defect fixes, the receipt data fix, the 8 overclaim repairs, the round-2 probes |
+| `676a65db` | 3 | the EOL pinning that the fresh-clone check proved necessary |
+| *(this one)* | — | final verification runner, its recorded output, and this artifact |
+
+## R2-G. What is still NOT done — honestly scoped
+
+1. **No reviewer on either unit, and I cannot be one.** ADV-0021 requires one cross-vendor
+   **openai** refuter who re-derives the counterexample from the raw artifact; ADV-0022 requires
+   **two different-vendor** reviewers each independently reproducing. Zero have run; both receipts
+   carry `reviewer.verdict = NOT-REVIEWED, independent=false`. The round-1 auditor was same-vendor
+   and said so explicitly. Reproduction is cheap and needs no credential:
+   `probes/adv0022_escape_harness.py` plus a scratch dir.
+2. **Both receipts are still parked outside their canonical `output_path`,** at
+   `command-center/casualty/`, because this lane is forbidden from writing into
+   `command-center/adversarial/` while a sibling wave is active. Each records
+   `extensions.canonical_output_path`. Until an orchestrator promotes them, the canonical paths
+   hold the 2 KB skeletons and any tool reading only those paths sees two false casualties.
+   `census_v2`/`liveness_v2` handle this via a recovery cross-reference; other tools will not.
+3. **ADV-0022's disposable-sandbox clause remains PARTIAL.** `%TEMP%` is a weaker substrate than a
+   network-namespaced sandbox; Modal returned "Token missing" and no credential was created
+   (AGENTS.md §9). Containment holds by construction (loopback only, no egress attempted).
+4. **`command-center/recover_failed_agents.py` is still unpatched.** `recover_failed_agents_v2.py`
+   is a drop-in with a both-states selftest, but the original is outside this lane's file scope.
+   Until someone promotes it, the next casualty triage runs a tool that over-matches 62/92 and can
+   report a delivered artifact as a total loss.
+5. **The census axes are tuned, not derived,** and controlled on a bimodal corpus with only two
+   distinct skeleton fixtures. A genuinely half-finished artifact could land mid-band.
+   *Settling experiment:* build a deliberately half-finished fixture and check it scores 2–4.
+6. **Why ADV-0002/ADV-0038 were never dispatched is still unknown.** Round 1 refuted the leading
+   hypothesis (the READY-snapshot theory); no replacement has been established.
+7. **The liveness AND-gate is not wired into the wave harness.** The grounding lane's scope
+   expansion #3 — promote it as the missing watchdog — remains a recommendation. Both casualties
+   sat dead ~2.6 h and were found by a human going looking, which is the failure the durable-
+   execution literature names: *"no supervisor, no watchdog, no heartbeat … simply dead until
+   something external notices."* The instrument now exists and is control-proven; wiring it is an
+   orchestrator action outside this lane's file scope.
+
+## R2-H. Detector failures I caught in MYSELF this round (five)
+
+Recorded because a program whose dominant failure mode is the false green cannot afford a lane
+that only reports its successes.
+
+1. **D5 duplicate-implementation counter** counted the literal `verdict = "MID-FLIGHT"` — a syntax
+   form `evaluate()` writes as a ternary. Scored pre-fix=1/post-fix=0: defect ABSENT, fix DELETES
+   the logic. Both readings wrong. Fixed by counting the AND-gate expression (2 → 1).
+2. **D4 control** demanded `raw_including_this_lane=225` inside the OLD capture; 225 is today's
+   value and the capture holds 219, so it required a number the broken state never contained.
+3. **D4 control, second failure — it reproduced the very defect it was testing.** It compared the
+   FROZEN R2 capture against a LIVE `git grep` recount, and broke the moment this lane committed
+   34 more files containing the token. A capture is a historical fact; only a fresh run may be
+   compared with a fresh recount.
+4. **ADV-0021 routing recount** searched the WHOLE cell object for an ADV id (use-vs-mention) and
+   mixed partial cells into a count the audit made over unmitigated cells: 24/6 instead of 17/4.
+5. **The verification runner's `git-verifier` step PASSED while every git query inside it had
+   failed.** `bash` from a Python subprocess resolves to `C:\WINDOWS\system32\bash.exe` = WSL,
+   which sees `/mnt/c` and dies with `fatal: not a git repository`; the needle
+   (`ADV0022_GITV_END`) prints regardless, so it was a needle that could not fail. Fixed by
+   invoking Git Bash explicitly and asserting the C1 control is non-zero and no `fatal:` appears.
+   *(A sixth, cosmetic: the gate-vector assertion used `[  ok] 2.` while the gate right-aligns to
+   `[  ok]  2.`, failing both gates on formatting alone. The parser now requires all twelve
+   conditions to be seen, and is itself controlled: it returns True for these receipts, False for
+   sibling ADV-0010 and False for the 1,818 B skeleton at the canonical path.)*
