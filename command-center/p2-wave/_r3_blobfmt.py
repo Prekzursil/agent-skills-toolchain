@@ -51,7 +51,9 @@ for rel in FILES:
     if not ls:
         print(f"  {rel}: NOT TRACKED -- skipped")
         continue
-    blob = subprocess.run(["git", "cat-file", "-p", ls[1]], cwd=REPO, capture_output=True).stdout
+    blob = subprocess.run(
+        ["git", "cat-file", "-p", ls[1]], cwd=REPO, capture_output=True
+    ).stdout
     crlf_total += blob.count(b"\r\n")
     out = SCRATCH / Path(rel).name
     out.write_bytes(blob)

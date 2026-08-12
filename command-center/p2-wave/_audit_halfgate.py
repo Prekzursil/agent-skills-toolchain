@@ -8,6 +8,7 @@ Method that does not depend on the builder's framing:
      returns >0, the second half is provably not evaluated.
 Both-states: half B alone MUST fire, else the fixture is not diagnostic.
 """
+
 import importlib.util
 import json
 import sys
@@ -21,11 +22,17 @@ mod = importlib.util.module_from_spec(spec)
 sys.modules["schema_resolver"] = mod
 spec.loader.exec_module(mod)
 
-CAT = json.loads((REPO / "command-center/WORK-UNIT-CATALOG.json").read_text(encoding="utf-8"))
+CAT = json.loads(
+    (REPO / "command-center/WORK-UNIT-CATALOG.json").read_text(encoding="utf-8")
+)
 units = CAT["work_units"]
 by = {u["id"]: u for u in units}
 
-two = [u for u in units if isinstance(u.get("output_schema"), str) and "+" in u["output_schema"]]
+two = [
+    u
+    for u in units
+    if isinstance(u.get("output_schema"), str) and "+" in u["output_schema"]
+]
 print(f"two-schema units: {len(two)}")
 decl = two[0]["output_schema"]
 print(f"sample unit  : {two[0]['id']}")
@@ -34,7 +41,9 @@ halves = [h.strip() for h in decl.split("+")]
 print(f"halves       : {halves}")
 
 # Use a real, known-good receipt as the doc (valid against half A = the receipt schema).
-doc = json.loads((REPO / "command-center/receipts/IMP-0433.json").read_text(encoding="utf-8"))
+doc = json.loads(
+    (REPO / "command-center/receipts/IMP-0433.json").read_text(encoding="utf-8")
+)
 
 
 def n(d, s):
@@ -46,7 +55,9 @@ def n(d, s):
 
 print()
 print(f"  errors vs HALF A alone   ({halves[0]}) : {n(doc, halves[0])}")
-print(f"  errors vs HALF B alone   ({halves[1]}) : {n(doc, halves[1])}   <-- must be >0 to be diagnostic")
+print(
+    f"  errors vs HALF B alone   ({halves[1]}) : {n(doc, halves[1])}   <-- must be >0 to be diagnostic"
+)
 print(f"  errors vs COMBINED 'A + B'                : {n(doc, decl)}")
 print()
 print(f"  parse_schema_ref(combined) -> {mod.parse_schema_ref(decl)!r}")

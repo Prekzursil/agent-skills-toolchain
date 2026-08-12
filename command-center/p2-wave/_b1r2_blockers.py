@@ -16,7 +16,11 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 BUCKET = re.compile(r"B\d+")
-OFF_LIMITS = ("Documents/GitHub/Reframe", ".claude/agent-worktrees", "command-center/adversarial")
+OFF_LIMITS = (
+    "Documents/GitHub/Reframe",
+    ".claude/agent-worktrees",
+    "command-center/adversarial",
+)
 
 
 def main() -> int:
@@ -38,10 +42,14 @@ def main() -> int:
         return cache[uid]
 
     ready = [
-        u for u in units
-        if not delivered(u["id"]) and not u.get("owner_approval_required")
-        and all(BUCKET.fullmatch(d) or (d in by_id and delivered(d))
-                for d in (u.get("dependencies") or []))
+        u
+        for u in units
+        if not delivered(u["id"])
+        and not u.get("owner_approval_required")
+        and all(
+            BUCKET.fullmatch(d) or (d in by_id and delivered(d))
+            for d in (u.get("dependencies") or [])
+        )
     ]
     print(f"READY (dependency-edges satisfied): {len(ready)}")
 
@@ -65,29 +73,44 @@ def main() -> int:
     for u in ready:
         sub = str(u.get("execution_substrate") or "")
         if sub == "cloud-batch":
-            add(u["id"], "substrate cloud-batch NOT-CHECKED: no reachability probe was run for it")
+            add(
+                u["id"],
+                "substrate cloud-batch NOT-CHECKED: no reachability probe was run for it",
+            )
 
     # B3 -- inputs point outside the lane's permitted surface
     for u in ready:
         for inp in u.get("inputs") or []:
-            if any(o.lower() in str(inp).replace("\\", "/").lower() for o in OFF_LIMITS):
+            if any(
+                o.lower() in str(inp).replace("\\", "/").lower() for o in OFF_LIMITS
+            ):
                 add(u["id"], f"input is off-limits to this wave: {str(inp)[:90]}")
                 break
 
     # B4 -- reviewer requirement a build lane structurally cannot satisfy
     rev_needed = [u for u in ready if u.get("reviewer_requirement")]
 
-    print(f"\nB1 contract unresolvable      : {sum(1 for v in blockers.values() if any('contract' in x or 'no-output-schema' in x for x in v))}")
-    print(f"B2 cloud-batch substrate      : {sum(1 for v in blockers.values() if any('cloud-batch' in x for x in v))}")
-    print(f"B3 off-limits input           : {sum(1 for v in blockers.values() if any('off-limits' in x for x in v))}")
-    print(f"B4 reviewer_requirement set   : {len(rev_needed)} of {len(ready)} "
-          f"({100 * len(rev_needed) // max(len(ready), 1)}%)")
+    print(
+        f"\nB1 contract unresolvable      : {sum(1 for v in blockers.values() if any('contract' in x or 'no-output-schema' in x for x in v))}"
+    )
+    print(
+        f"B2 cloud-batch substrate      : {sum(1 for v in blockers.values() if any('cloud-batch' in x for x in v))}"
+    )
+    print(
+        f"B3 off-limits input           : {sum(1 for v in blockers.values() if any('off-limits' in x for x in v))}"
+    )
+    print(
+        f"B4 reviewer_requirement set   : {len(rev_needed)} of {len(ready)} "
+        f"({100 * len(rev_needed) // max(len(ready), 1)}%)"
+    )
 
     print("\n--- B1 detail (all) ---")
     for uid, v in sorted(blockers.items()):
         if any("contract" in x or "no-output-schema" in x for x in v):
             u = by_id[uid]
-            print(f"  {uid} phase={u.get('phase')} schema={str(u.get('output_schema'))[:110]}")
+            print(
+                f"  {uid} phase={u.get('phase')} schema={str(u.get('output_schema'))[:110]}"
+            )
             for x in v:
                 if "contract" in x or "no-output-schema" in x:
                     print(f"      -> {x}")
@@ -108,21 +131,28 @@ def main() -> int:
         sr.validator_for("command-center/schema/definitely-not-a-real-schema.json")
     except Exception as e:  # noqa: BLE001
         bad_err = f"{type(e).__name__}"
-    print(f"\nCONTROL validator_for: known-good -> "
-          f"{'resolves' if ok_err is None else 'FAILED ' + ok_err} (want resolves); "
-          f"known-bad -> {bad_err or 'RESOLVED ** INERT **'} (want an exception)")
+    print(
+        f"\nCONTROL validator_for: known-good -> "
+        f"{'resolves' if ok_err is None else 'FAILED ' + ok_err} (want resolves); "
+        f"known-bad -> {bad_err or 'RESOLVED ** INERT **'} (want an exception)"
+    )
     if ok_err is not None or bad_err is None:
-        print("FAILED:p2-blockers contract-resolvability detector does not discriminate")
+        print(
+            "FAILED:p2-blockers contract-resolvability detector does not discriminate"
+        )
         return 1
 
     out = {
         "ready_count": len(ready),
         "blockers": blockers,
         "reviewer_gated_count": len(rev_needed),
-        "substrate_histogram": dict(Counter(str(u.get("execution_substrate")) for u in ready)),
+        "substrate_histogram": dict(
+            Counter(str(u.get("execution_substrate")) for u in ready)
+        ),
     }
     (REPO / "command-center/p2-wave/P2-BLOCKED-UNITS.json").write_text(
-        json.dumps(out, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+        json.dumps(out, indent=1, sort_keys=True) + "\n", encoding="utf-8"
+    )
     print(f"\nsubstrate histogram over READY: {out['substrate_histogram']}")
     print(f"units with at least one hard blocker: {len(blockers)}")
     print("SUCCESS:p2-blockers enumerated with precise blockers")

@@ -57,8 +57,13 @@ def main() -> int:
     print("state x validity:", dict(Counter((r[1], r[2]) for r in rows)))
     n_state_ok = sum(1 for r in rows if r[1] not in NOT_DELIVERING)
     n_both = sum(1 for r in rows if r[1] not in NOT_DELIVERING and r[2] == "VALID")
-    print(f"state-delivering: {n_state_ok} | state-delivering AND schema-VALID: {n_both}")
-    print("rows where state is delivering:", [r for r in rows if r[1] not in NOT_DELIVERING])
+    print(
+        f"state-delivering: {n_state_ok} | state-delivering AND schema-VALID: {n_both}"
+    )
+    print(
+        "rows where state is delivering:",
+        [r for r in rows if r[1] not in NOT_DELIVERING],
+    )
     return 0
 
 

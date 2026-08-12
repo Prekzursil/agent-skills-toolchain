@@ -37,7 +37,9 @@ def main(argv: list[str]) -> int:
             results.append(rec)
 
     if not results:
-        print("NOT-CHECKED:wf-results journal holds 0 result records (nothing has returned yet)")
+        print(
+            "NOT-CHECKED:wf-results journal holds 0 result records (nothing has returned yet)"
+        )
         return 2
 
     print(f"  {len(results)} lane result(s)\n")
@@ -51,7 +53,9 @@ def main(argv: list[str]) -> int:
             except ValueError:
                 pass
         if not isinstance(val, dict):
-            print(f"  --- {rec.get('agentId', '?')[:12]}: non-dict result, {str(val)[:200]}")
+            print(
+                f"  --- {rec.get('agentId', '?')[:12]}: non-dict result, {str(val)[:200]}"
+            )
             continue
         print(f"  ===== LANE {val.get('lane', rec.get('agentId', '?')[:12])} =====")
         cov = str(val.get("coverage") or "")

@@ -1,16 +1,26 @@
 """AUDIT (independent): full row text for the audited units + top-level shape of each artifact."""
+
 import json
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-CAT = json.loads((REPO / "command-center/WORK-UNIT-CATALOG.json").read_text(encoding="utf-8"))
+CAT = json.loads(
+    (REPO / "command-center/WORK-UNIT-CATALOG.json").read_text(encoding="utf-8")
+)
 by = {u["id"]: u for u in CAT["work_units"]}
 
 for uid in ["IMP-0433", "AUD-0041", "AUD-0030"]:
     u = by[uid]
     print(f"================ {uid} ================")
-    for k in ("title", "question_or_target", "inputs", "tests_required",
-              "evidence_requirement", "completion_sentinel", "failure_classification"):
+    for k in (
+        "title",
+        "question_or_target",
+        "inputs",
+        "tests_required",
+        "evidence_requirement",
+        "completion_sentinel",
+        "failure_classification",
+    ):
         print(f"--{k}--\n  {u.get(k)!r}")
     print()
 

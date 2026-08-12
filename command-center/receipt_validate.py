@@ -85,13 +85,25 @@ def admit(path: Path, ids: set[str], gate) -> tuple[bool, str, str]:
         return False, uid_s, f"C2 schema-invalid ({len(errs)}): {errs[0][:120]}"
 
     if uid_s not in ids:
-        return False, uid_s, f"C3 unit_id {uid_s!r} is not one of the {len(ids)} catalog units"
+        return (
+            False,
+            uid_s,
+            f"C3 unit_id {uid_s!r} is not one of the {len(ids)} catalog units",
+        )
 
     sentinel = doc.get("sentinel")
     if not isinstance(sentinel, str) or uid_s not in sentinel:
-        return False, uid_s, f"C4 sentinel does not embed the unit id: {str(sentinel)[:80]!r}"
+        return (
+            False,
+            uid_s,
+            f"C4 sentinel does not embed the unit id: {str(sentinel)[:80]!r}",
+        )
 
-    return True, uid_s, "C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds"
+    return (
+        True,
+        uid_s,
+        "C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds",
+    )
 
 
 def self_test() -> int:
@@ -143,7 +155,9 @@ def self_test() -> int:
             f"{'OK' if good else 'BROKEN'}  {reason[:96]}"
         )
     if not ok:
-        print("FAILED:receipt-validate self-test the admission check does not discriminate")
+        print(
+            "FAILED:receipt-validate self-test the admission check does not discriminate"
+        )
         return 1
     print(
         "SUCCESS:receipt-validate self-test 1 golden ACCEPTED, 4 mutants REJECTED each on its "

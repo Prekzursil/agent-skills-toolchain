@@ -1,4 +1,5 @@
 """AUDIT: read what the artifacts and lane docs ACTUALLY contain vs what the report claims."""
+
 import json
 from pathlib import Path
 
@@ -29,17 +30,27 @@ print("=" * 72)
 a = load("command-center/audit/AUD-0041-ci-step-inventory.json")
 r = a["report"]
 print(f"  report keys: {sorted(r.keys())}")
-for k in ("workflow_files", "job_count", "step_count", "conditional_steps", "conditional_jobs"):
+for k in (
+    "workflow_files",
+    "job_count",
+    "step_count",
+    "conditional_steps",
+    "conditional_jobs",
+):
     if k in r:
         print(f"  {k:<22} = {r[k]}")
 ev = a.get("evidence", [])
 print(f"  evidence entries: {len(ev)}")
 for e in ev[:6]:
-    print(f"    - anchor={str(e.get('anchor'))[:70]!r} claim={str(e.get('claim'))[:90]!r}")
+    print(
+        f"    - anchor={str(e.get('anchor'))[:70]!r} claim={str(e.get('claim'))[:90]!r}"
+    )
 tests = a.get("tests", [])
 print(f"  tests entries: {len(tests)}")
 for t in tests[:6]:
-    print(f"    - {t.get('id')}: result={t.get('result')} cmd={str(t.get('command'))[:80]!r}")
+    print(
+        f"    - {t.get('id')}: result={t.get('result')} cmd={str(t.get('command'))[:80]!r}"
+    )
 
 print()
 print("=" * 72)
@@ -74,8 +85,10 @@ print()
 print("=" * 72)
 print(".gitkeep census (builder: 14 new dirs)")
 print("=" * 72)
-gk = sorted(p.parent.relative_to(REPO).as_posix()
-            for p in (REPO / "command-center").rglob(".gitkeep"))
+gk = sorted(
+    p.parent.relative_to(REPO).as_posix()
+    for p in (REPO / "command-center").rglob(".gitkeep")
+)
 print(f"  .gitkeep under command-center : {len(gk)}")
 for g in gk:
     print(f"     {g}")

@@ -1,4 +1,5 @@
 """AUDIT: blocker census, probe-file existence, substrate histogram, lane docs."""
+
 import json
 from pathlib import Path
 
@@ -28,7 +29,9 @@ p2 = PW / "probes/AUD-0041/probe2-actions-api.json"
 if p2.is_file():
     d = json.loads(p2.read_text(encoding="utf-8"))
     s = json.dumps(d)
-    print(f"  size={p2.stat().st_size} B  top-keys={sorted(d.keys()) if isinstance(d, dict) else type(d)}")
+    print(
+        f"  size={p2.stat().st_size} B  top-keys={sorted(d.keys()) if isinstance(d, dict) else type(d)}"
+    )
     print(f"  mentions run ids? {'run_id' in s or 'runs/' in s}")
     print(f"  excerpt: {s[:600]}")
 else:
@@ -36,12 +39,17 @@ else:
 
 print()
 print("=" * 72)
-print("SUBSTRATE HISTOGRAM over READY units (builder: local-parallel 157, local-serialized 151,")
+print(
+    "SUBSTRATE HISTOGRAM over READY units (builder: local-parallel 157, local-serialized 151,"
+)
 print("                                       worktree-isolated 86, cloud-batch 55)")
 print("=" * 72)
 import importlib.util as il  # noqa: E402
 import re  # noqa: E402
-CAT = json.loads((REPO / "command-center/WORK-UNIT-CATALOG.json").read_text(encoding="utf-8"))
+
+CAT = json.loads(
+    (REPO / "command-center/WORK-UNIT-CATALOG.json").read_text(encoding="utf-8")
+)
 units = CAT["work_units"]
 by = {u["id"]: u for u in units}
 s = il.spec_from_file_location("ru", REPO / "command-center/ready_units.py")
@@ -63,7 +71,9 @@ ready = []
 for u in units:
     if dv(u["id"]) or u.get("owner_approval_required"):
         continue
-    if all(BK.fullmatch(d) or (d in by and dv(d)) for d in (u.get("dependencies") or [])):
+    if all(
+        BK.fullmatch(d) or (d in by and dv(d)) for d in (u.get("dependencies") or [])
+    ):
         ready.append(u)
 hist = {}
 for u in ready:

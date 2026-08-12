@@ -22,17 +22,41 @@ DAILY = Path(r"C:/Users/Prekzursil/.claude/skills.daily")
 PLUGINS = Path(r"C:/Users/Prekzursil/.claude/plugins")
 
 BARE = [
-    "ui-drive", "ui-invariant-walk", "vercel-deploy", "verification-loop",
-    "video-convert", "video-join-concat", "video-resize-aspect", "video-stabilize",
-    "voice-analyze", "voice-apply", "voice-blend", "voice-create", "volatility-3",
-    "webapp-testing", "windbg-command-cookbook", "windbg-preview",
-    "windows-virtualization-conflict-triage", "winui-app", "workflow-foundry",
-    "workflow-monitor", "writing-plans", "wsl-vmware-cutover", "x-api", "x64dbg",
-    "yeet", "zero-issue-coding",
+    "ui-drive",
+    "ui-invariant-walk",
+    "vercel-deploy",
+    "verification-loop",
+    "video-convert",
+    "video-join-concat",
+    "video-resize-aspect",
+    "video-stabilize",
+    "voice-analyze",
+    "voice-apply",
+    "voice-blend",
+    "voice-create",
+    "volatility-3",
+    "webapp-testing",
+    "windbg-command-cookbook",
+    "windbg-preview",
+    "windows-virtualization-conflict-triage",
+    "winui-app",
+    "workflow-foundry",
+    "workflow-monitor",
+    "writing-plans",
+    "wsl-vmware-cutover",
+    "x-api",
+    "x64dbg",
+    "yeet",
+    "zero-issue-coding",
 ]
 SURVIVORS = [
-    "ui-ux-pro-max", "use-image-clipboard", "using-git-worktrees", "using-superpowers",
-    "verification-before-completion", "video-watermark-removal", "workflow-authoring",
+    "ui-ux-pro-max",
+    "use-image-clipboard",
+    "using-git-worktrees",
+    "using-superpowers",
+    "verification-before-completion",
+    "video-watermark-removal",
+    "workflow-authoring",
     "writing-skills",
 ]
 
@@ -60,7 +84,9 @@ def parse_frontmatter(text: str):
                     folded = True
                     buf = []
                     j = i + 1
-                    while j < len(lines) and (lines[j].startswith(("  ", "\t")) or not lines[j].strip()):
+                    while j < len(lines) and (
+                        lines[j].startswith(("  ", "\t")) or not lines[j].strip()
+                    ):
                         buf.append(lines[j].strip())
                         j += 1
                     desc = " ".join(x for x in buf if x)
@@ -84,15 +110,17 @@ for d in sorted([p for p in DAILY.iterdir() if p.is_dir()], key=lambda p: p.name
         continue
     text = sk.read_text(encoding="utf-8", errors="replace")
     keys, desc, folded = parse_frontmatter(text)
-    rows.append({
-        "name": d.name,
-        "desc_chars": len(desc) if desc else 0,
-        "folded": folded,
-        "keys": keys,
-        "mtime": sk.stat().st_mtime,
-        "size": sk.stat().st_size,
-        "in_plugins": d.name in plugin_names,
-    })
+    rows.append(
+        {
+            "name": d.name,
+            "desc_chars": len(desc) if desc else 0,
+            "folded": folded,
+            "keys": keys,
+            "mtime": sk.stat().st_mtime,
+            "size": sk.stat().st_size,
+            "in_plugins": d.name in plugin_names,
+        }
+    )
 
 # DETECTOR CONTROL --------------------------------------------------------
 by_name = {r["name"]: r for r in rows}
@@ -117,13 +145,16 @@ for r in rows:
     if n == BARE[0]:
         first_bare_cum = cum - dc
     if cls or (first_bare_cum is not None and not cls):
-        print(f"{n:42s} {dc:6d} {cum:8d} "
-              f"{'Y' if r.get('folded') else '.':>4s} "
-              f"{'Y' if r.get('in_plugins') else '.':>4s}  {cls}")
+        print(
+            f"{n:42s} {dc:6d} {cum:8d} "
+            f"{'Y' if r.get('folded') else '.':>4s} "
+            f"{'Y' if r.get('in_plugins') else '.':>4s}  {cls}"
+        )
 
 print()
 print(f"CUMULATIVE CHARS BEFORE FIRST BARE ENTRY ({BARE[0]}): {first_bare_cum}")
 print(f"TOTAL DESCRIPTION CHARS (all {len(rows)}): {cum}")
+
 
 # Distinguishers between BARE and SURVIVORS
 def stat(group, label):
@@ -131,8 +162,8 @@ def stat(group, label):
     print(f"\n{label}: n={len(vals)}")
     print(f"  folded      : {sum(1 for v in vals if v.get('folded'))}")
     print(f"  in_plugins  : {sum(1 for v in vals if v.get('in_plugins'))}")
-    dcs = sorted(v['desc_chars'] for v in vals)
-    print(f"  desc_chars  : min={dcs[0]} med={dcs[len(dcs)//2]} max={dcs[-1]}")
+    dcs = sorted(v["desc_chars"] for v in vals)
+    print(f"  desc_chars  : min={dcs[0]} med={dcs[len(dcs) // 2]} max={dcs[-1]}")
     keyset = {}
     for v in vals:
         for k in v.get("keys", []):
@@ -140,12 +171,18 @@ def stat(group, label):
     print(f"  keys        : {dict(sorted(keyset.items(), key=lambda kv: -kv[1]))}")
     mt = sorted(v["mtime"] for v in vals)
     import datetime
-    print(f"  mtime range : {datetime.datetime.fromtimestamp(mt[0]):%Y-%m-%d} .. "
-          f"{datetime.datetime.fromtimestamp(mt[-1]):%Y-%m-%d}")
+
+    print(
+        f"  mtime range : {datetime.datetime.fromtimestamp(mt[0]):%Y-%m-%d} .. "
+        f"{datetime.datetime.fromtimestamp(mt[-1]):%Y-%m-%d}"
+    )
+
 
 stat(BARE, "BARE (26)")
 stat(SURVIVORS, "SURVIVORS (8)")
 
-out = Path(r"C:/Users/Prekzursil/source/ast-integrate/command-center/grounding/G-BARE-DESC.json")
+out = Path(
+    r"C:/Users/Prekzursil/source/ast-integrate/command-center/grounding/G-BARE-DESC.json"
+)
 out.write_text(json.dumps(rows, indent=1), encoding="utf-8")
 print(f"\nwrote {out}")

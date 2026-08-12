@@ -26,7 +26,9 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-CAT = json.loads((REPO / "command-center/WORK-UNIT-CATALOG.json").read_text(encoding="utf-8"))
+CAT = json.loads(
+    (REPO / "command-center/WORK-UNIT-CATALOG.json").read_text(encoding="utf-8")
+)
 UNITS = CAT["work_units"]
 
 p = REPO / "platform" / "lib" / "schema_resolver.py"
@@ -63,15 +65,23 @@ def n_rejected(schema):
     return out
 
 
-print("=== P1: does receipt.schema.json reject the state=SUCCESS mutant of IMP-0433? ===")
-real = json.loads((REPO / "command-center/receipts/IMP-0433.json").read_text(encoding="utf-8"))
+print(
+    "=== P1: does receipt.schema.json reject the state=SUCCESS mutant of IMP-0433? ==="
+)
+real = json.loads(
+    (REPO / "command-center/receipts/IMP-0433.json").read_text(encoding="utf-8")
+)
 mut = copy.deepcopy(real)
 mut["state"] = "SUCCESS"
 print(f"  real   receipt vs receipt.schema.json -> errors={errs(real, RECEIPT_SCHEMA)}")
 print(f"  MUTANT state=SUCCESS                  -> errors={errs(mut, RECEIPT_SCHEMA)}")
-print(f"  reviewer block present: {'reviewer' in real}  verdict={real.get('reviewer', {}).get('verdict')!r}")
+print(
+    f"  reviewer block present: {'reviewer' in real}  verdict={real.get('reviewer', {}).get('verdict')!r}"
+)
 for g in GARBAGE:
-    print(f"  GARBAGE(keys={list(g)[:2]}) vs receipt.schema.json -> errors={errs(g, RECEIPT_SCHEMA)}")
+    print(
+        f"  GARBAGE(keys={list(g)[:2]}) vs receipt.schema.json -> errors={errs(g, RECEIPT_SCHEMA)}"
+    )
 
 print()
 print("=== P2: the 'is a JSON Schema document' discriminator ===")
@@ -91,19 +101,33 @@ def looks_like_schema_doc(doc) -> bool:
     return True
 
 
-wfa = json.loads((REPO / "command-center/wfa/schema/wfa-schema-pack.json").read_text("utf-8"))
+wfa = json.loads(
+    (REPO / "command-center/wfa/schema/wfa-schema-pack.json").read_text("utf-8")
+)
 print(f"  WFA-0001 artifact  -> looks_like_schema_doc={looks_like_schema_doc(wfa)}")
 print(f"  IMP-0433 receipt   -> looks_like_schema_doc={looks_like_schema_doc(real)}")
 for g in GARBAGE:
-    print(f"  GARBAGE(keys={list(g)[:2]}) -> looks_like_schema_doc={looks_like_schema_doc(g)}")
-broken_schema = {"$schema": "https://json-schema.org/draft/2020-12/schema", "type": 123,
-                 "required": "not-an-array"}
-print(f"  KNOWN-BAD schema doc -> looks_like_schema_doc={looks_like_schema_doc(broken_schema)}")
+    print(
+        f"  GARBAGE(keys={list(g)[:2]}) -> looks_like_schema_doc={looks_like_schema_doc(g)}"
+    )
+broken_schema = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": 123,
+    "required": "not-an-array",
+}
+print(
+    f"  KNOWN-BAD schema doc -> looks_like_schema_doc={looks_like_schema_doc(broken_schema)}"
+)
 
 print()
 print("=== P3: vacuity census over DISTINCT declared contracts ===")
-decls = sorted({u.get("output_schema") for u in UNITS if isinstance(u.get("output_schema"), str)
-                and u.get("output_schema")})
+decls = sorted(
+    {
+        u.get("output_schema")
+        for u in UNITS
+        if isinstance(u.get("output_schema"), str) and u.get("output_schema")
+    }
+)
 tally = {0: [], 1: [], 2: [], 3: []}
 for d in decls:
     tally[n_rejected(d)].append(d)
@@ -115,14 +139,18 @@ for d in tally[0]:
     n = sum(1 for u in UNITS if u.get("output_schema") == d)
     print(f"     {d}   (declared by {n} units)")
 if tally[1] or tally[2]:
-    print("  PARTIAL discriminators (1/3 or 2/3) -- these would change meaning by threshold:")
+    print(
+        "  PARTIAL discriminators (1/3 or 2/3) -- these would change meaning by threshold:"
+    )
     for k in (1, 2):
         for d in tally[k]:
             n = sum(1 for u in UNITS if u.get("output_schema") == d)
             print(f"     [{k}/3] {d}   (declared by {n} units)")
 
 print()
-print("=== P4: partition movement -- units whose artifact EXISTS, old vs new verdict ===")
+print(
+    "=== P4: partition movement -- units whose artifact EXISTS, old vs new verdict ==="
+)
 sys.path.insert(0, str(REPO / "command-center"))
 import ready_units as RU  # noqa: E402
 
@@ -140,7 +168,11 @@ for u in UNITS:
     if old:
         sch = u.get("output_schema")
         if isinstance(sch, str) and sch and n_rejected(sch) < 3:
-            doc = json.loads((REPO / op).read_text(encoding="utf-8")) if op.endswith(".json") else None
+            doc = (
+                json.loads((REPO / op).read_text(encoding="utf-8"))
+                if op.endswith(".json")
+                else None
+            )
             if isinstance(doc, dict) and op.startswith("command-center/receipts/"):
                 e = errs(doc, RECEIPT_SCHEMA)
                 new, newwhy = (e == 0), f"vacuous-contract;receipt-fallback-errors={e}"

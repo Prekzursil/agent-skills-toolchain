@@ -7,6 +7,7 @@ These are the two mechanically-safe live->repo directions:
 
 Everything else (DIVERGED) needs a read-both-sides merge and is listed separately, not copied.
 """
+
 import json
 import subprocess
 import sys
@@ -20,7 +21,18 @@ REPO_AGENTS = REPO / ".agents" / "skills"
 # a .bak-<tag> DIRECTORY leaks through ci/check_skill_deploy_drift.py's is_noise(),
 # which only tests the LEAF for the ".bak-" infix.  Filter it here too so the
 # reconcile plan is not polluted by backup snapshots.
-BINARY_EXT = {".png", ".jpg", ".jpeg", ".gif", ".db", ".sqlite", ".zip", ".pdf", ".ico", ".webp"}
+BINARY_EXT = {
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".db",
+    ".sqlite",
+    ".zip",
+    ".pdf",
+    ".ico",
+    ".webp",
+}
 
 
 def is_bak(rel: str) -> bool:
@@ -28,9 +40,19 @@ def is_bak(rel: str) -> bool:
 
 
 out = subprocess.run(
-    [sys.executable, str(REPO / "ci" / "check_skill_deploy_drift.py"),
-     "--left", str(DAILY), "--right", str(REPO_AGENTS), "--json"],
-    capture_output=True, text=True, encoding="utf-8", cwd=str(REPO),
+    [
+        sys.executable,
+        str(REPO / "ci" / "check_skill_deploy_drift.py"),
+        "--left",
+        str(DAILY),
+        "--right",
+        str(REPO_AGENTS),
+        "--json",
+    ],
+    capture_output=True,
+    text=True,
+    encoding="utf-8",
+    cwd=str(REPO),
 )
 data = json.loads(out.stdout)
 

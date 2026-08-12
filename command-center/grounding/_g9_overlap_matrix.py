@@ -28,17 +28,47 @@ DAILY = Path(r"C:/Users/Prekzursil/.claude/skills.daily")
 WORD = re.compile(r"[a-z0-9][a-z0-9_-]*")
 
 CLUSTERS = {
-    "humanizer":  ["humanizer", "agentic-humanizer", "slop-check"],
-    "deploy":     ["cloudflare-deploy", "netlify-deploy", "render-deploy", "vercel-deploy"],
-    "hexstrike":  ["hexstrike-ai-setup", "hexstrike-ai-mcp", "hexstrike-ai-authorized-engagement"],
-    "seclookup":  ["secsearch", "hacktricks", "hacktricks-api", "lolbin-lookup",
-                   "gtfobins-lookup", "security-kb-lookup", "sec-corpora-update"],
-    "verify":     ["two-tier-verify", "verification-before-completion", "mutation-check",
-                   "verification-loop", "acceptance-review", "smallest-check-ladder",
-                   "seed-golden-journey", "packaged-artifact-smoke"],
-    "playwright": ["playwright", "playwright-interactive", "webapp-testing", "e2e-testing"],
-    "design":     ["design-studio", "design-review-loop", "design-studio-session",
-                   "ui-audit", "critique-panel", "ui-drive", "ui-invariant-walk"],
+    "humanizer": ["humanizer", "agentic-humanizer", "slop-check"],
+    "deploy": ["cloudflare-deploy", "netlify-deploy", "render-deploy", "vercel-deploy"],
+    "hexstrike": [
+        "hexstrike-ai-setup",
+        "hexstrike-ai-mcp",
+        "hexstrike-ai-authorized-engagement",
+    ],
+    "seclookup": [
+        "secsearch",
+        "hacktricks",
+        "hacktricks-api",
+        "lolbin-lookup",
+        "gtfobins-lookup",
+        "security-kb-lookup",
+        "sec-corpora-update",
+    ],
+    "verify": [
+        "two-tier-verify",
+        "verification-before-completion",
+        "mutation-check",
+        "verification-loop",
+        "acceptance-review",
+        "smallest-check-ladder",
+        "seed-golden-journey",
+        "packaged-artifact-smoke",
+    ],
+    "playwright": [
+        "playwright",
+        "playwright-interactive",
+        "webapp-testing",
+        "e2e-testing",
+    ],
+    "design": [
+        "design-studio",
+        "design-review-loop",
+        "design-studio-session",
+        "ui-audit",
+        "critique-panel",
+        "ui-drive",
+        "ui-invariant-walk",
+    ],
 }
 
 
@@ -47,7 +77,7 @@ def body_of(p: Path) -> str:
     if t.startswith("---"):
         e = t.find("\n---", 3)
         if e != -1:
-            t = t[e + 4:]
+            t = t[e + 4 :]
     return t.lower()
 
 
@@ -60,7 +90,7 @@ for d in sorted(x for x in DAILY.iterdir() if x.is_dir()):
     bodies[d.name] = b
     toks = WORD.findall(b)
     wordsets[d.name] = set(toks)
-    shingles[d.name] = {tuple(toks[i:i + 5]) for i in range(max(0, len(toks) - 4))}
+    shingles[d.name] = {tuple(toks[i : i + 5]) for i in range(max(0, len(toks) - 4))}
 
 print(f"parsed bodies: {len(bodies)}")
 
@@ -86,7 +116,9 @@ lo_pairs = [("humanizer", "x64dbg"), ("reframe", "gtfobins-lookup")]
 print(f"DETECTOR CONTROL: self-pair J={self_j:.3f} C={self_c:.3f} (must be 1.000)")
 for a, b in lo_pairs:
     if a in wordsets and b in wordsets:
-        print(f"  unrelated {a} vs {b}: J={jac(a, b):.3f} C={cont(a, b):.3f} (must be low)")
+        print(
+            f"  unrelated {a} vs {b}: J={jac(a, b):.3f} C={cont(a, b):.3f} (must be low)"
+        )
 if abs(self_j - 1.0) > 1e-9:
     print("  -> METRIC BROKEN, all numbers void")
 del wordsets["__SELF__"], shingles["__SELF__"]
@@ -97,8 +129,10 @@ print("=== NAMED CLUSTERS (briefed candidates) ===")
 for cname, members in CLUSTERS.items():
     present = [m for m in members if m in wordsets]
     absent = [m for m in members if m not in wordsets]
-    print(f"\n## {cname}  present={len(present)}/{len(members)}"
-          + (f"  ABSENT={absent}" if absent else ""))
+    print(
+        f"\n## {cname}  present={len(present)}/{len(members)}"
+        + (f"  ABSENT={absent}" if absent else "")
+    )
     for a, b in itertools.combinations(present, 2):
         j, c = jac(a, b), cont(a, b)
         flag = "  <-- READ BOTH" if (j >= 0.45 or c >= 0.20) else ""
@@ -116,10 +150,21 @@ print(f"\n=== FLEET-WIDE PAIRS WITH J >= 0.40 : {len(scored)} ===")
 for j, c, a, b in scored[:45]:
     print(f"   J={j:.3f} C={c:.3f}  {a} | {b}")
 
-out = Path(r"C:/Users/Prekzursil/source/ast-integrate/command-center/grounding/G-OVERLAP-MATRIX.json")
-out.write_text(json.dumps(
-    {"threshold": 0.40,
-     "self_control": {"jaccard": self_j, "containment": self_c},
-     "pairs": [{"jaccard": j, "containment": c, "a": a, "b": b} for j, c, a, b in scored]},
-    indent=1), encoding="utf-8")
+out = Path(
+    r"C:/Users/Prekzursil/source/ast-integrate/command-center/grounding/G-OVERLAP-MATRIX.json"
+)
+out.write_text(
+    json.dumps(
+        {
+            "threshold": 0.40,
+            "self_control": {"jaccard": self_j, "containment": self_c},
+            "pairs": [
+                {"jaccard": j, "containment": c, "a": a, "b": b}
+                for j, c, a, b in scored
+            ],
+        },
+        indent=1,
+    ),
+    encoding="utf-8",
+)
 print(f"\nwrote {out}")

@@ -19,8 +19,14 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-DATA = Path(r"C:/Users/Prekzursil/source/ast-integrate/command-center/grounding/G-BARE-DESC.json")
-rows = [r for r in json.loads(DATA.read_text(encoding="utf-8")) if r.get("desc_chars") is not None]
+DATA = Path(
+    r"C:/Users/Prekzursil/source/ast-integrate/command-center/grounding/G-BARE-DESC.json"
+)
+rows = [
+    r
+    for r in json.loads(DATA.read_text(encoding="utf-8"))
+    if r.get("desc_chars") is not None
+]
 rows.sort(key=lambda r: r["name"])
 
 DAILY = Path(r"C:/Users/Prekzursil/.claude/skills.daily")
@@ -47,7 +53,7 @@ for enc_name in ("o200k_base", "cl100k_base"):
         sk = DAILY / name / "SKILL.md"
         text = sk.read_text(encoding="utf-8", errors="replace")
         m = re.search(r"^description:\s*(.*)$", text, re.M)
-        return (m.group(1).strip().strip("\"'") if m else "")
+        return m.group(1).strip().strip("\"'") if m else ""
 
     lines, cum_tok, cut_tok = [], 0, None
     CUT_AFTER = "winui-app"  # last skill fully inside the observed budget region
@@ -70,8 +76,10 @@ for enc_name in ("o200k_base", "cl100k_base"):
 
     total_chars = sum(r["desc_chars"] + len(r["name"]) + 4 for r in rows)
     print(f"\n=== {enc_name} ===")
-    print(f"  FULL listing: {total_chars} chars -> {total_tok} tokens "
-          f"({total_chars / total_tok:.2f} chars/token)")
+    print(
+        f"  FULL listing: {total_chars} chars -> {total_tok} tokens "
+        f"({total_chars / total_tok:.2f} chars/token)"
+    )
     print(f"  AT the measured greedy cut (~108,408 desc+name chars): {tok_cum} tokens")
-    print(f"  budget if 0.04 x 1,000,000 window = 40,000 tokens")
-    print(f"  budget if 0.04 x   200,000 window =  8,000 tokens")
+    print("  budget if 0.04 x 1,000,000 window = 40,000 tokens")
+    print("  budget if 0.04 x   200,000 window =  8,000 tokens")

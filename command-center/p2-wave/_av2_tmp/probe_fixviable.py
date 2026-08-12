@@ -15,15 +15,19 @@ from pathlib import Path
 import jsonschema
 
 REPO = Path("C:/Users/Prekzursil/source/ast-integrate")
-spec = importlib.util.spec_from_file_location("ru", REPO / "command-center/ready_units.py")
+spec = importlib.util.spec_from_file_location(
+    "ru", REPO / "command-center/ready_units.py"
+)
 ru = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ru)
 resolver = ru._load_resolver()
 
 
-_ORIG_LOOKS = ru.looks_like_schema_doc  # bind BEFORE any monkeypatch, or `strengthened` recurses
-                                        # into itself (my own detector failure, caught by the
-                                        # RecursionError rather than by a plausible number)
+_ORIG_LOOKS = (
+    ru.looks_like_schema_doc
+)  # bind BEFORE any monkeypatch, or `strengthened` recurses
+# into itself (my own detector failure, caught by the
+# RecursionError rather than by a plausible number)
 
 
 def strengthened(doc) -> bool:
@@ -45,12 +49,18 @@ def strengthened(doc) -> bool:
 
 META = "https://json-schema.org/draft/2020-12/schema"
 cases = [
-    ("garbage + $schema  (the bypass)", {"$schema": META, "totally": "u", "passing_tests": 999999}, False),
+    (
+        "garbage + $schema  (the bypass)",
+        {"$schema": META, "totally": "u", "passing_tests": 999999},
+        False,
+    ),
     ("bare {$schema}", {"$schema": META}, False),
     ("garbage + $id only", {"$id": "urn:x", "totally": "u"}, False),
     ("structurally-broken + $schema", {"$schema": META, "type": 123}, False),
 ]
-catalog = json.loads((REPO / "command-center/WORK-UNIT-CATALOG.json").read_text(encoding="utf-8"))
+catalog = json.loads(
+    (REPO / "command-center/WORK-UNIT-CATALOG.json").read_text(encoding="utf-8")
+)
 units = catalog["work_units"] if isinstance(catalog, dict) else catalog
 w = next(x for x in units if x["id"] == "WFA-0001")
 pack = json.loads((REPO / w["output_path"]).read_text(encoding="utf-8"))
@@ -62,7 +72,9 @@ for label, doc, want in cases:
     got = strengthened(doc)
     ok = got is want
     allok &= ok
-    print(f"  {label:44s} current={str(ru.looks_like_schema_doc(doc)):5s} remedy={str(got):5s} want={str(want):5s} {'OK' if ok else 'MISMATCH'}")
+    print(
+        f"  {label:44s} current={str(ru.looks_like_schema_doc(doc)):5s} remedy={str(got):5s} want={str(want):5s} {'OK' if ok else 'MISMATCH'}"
+    )
 print(f"  REMEDY_TWO_SIDED = {allok}")
 
 print("\n--- B. does the remedy move any verdict on artifacts that EXIST today? ---")
@@ -86,7 +98,9 @@ for u in units:
 print(f"  artifacts present on disk: {present}")
 print(f"  verdict CHANGES under the remedy: {len(changed)} -> {changed}")
 
-print("\n--- C. strictness check: is the SHIPPED fix ever MORE permissive than the pre-4b one? ---")
+print(
+    "\n--- C. strictness check: is the SHIPPED fix ever MORE permissive than the pre-4b one? ---"
+)
 looser = []
 for u in units:
     p = u.get("output_path")

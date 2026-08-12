@@ -56,8 +56,13 @@ for ln in prescribes:
 
 print()
 print("=== EXECUTABLE call sites (a doc naming it is not a dependency) ===")
-code = [ln for ln in lines if ln.split(":", 1)[0].endswith((".py", ".ps1", ".sh", ".mjs", ".js",
-                                                            ".yml", ".yaml"))]
+code = [
+    ln
+    for ln in lines
+    if ln.split(":", 1)[0].endswith(
+        (".py", ".ps1", ".sh", ".mjs", ".js", ".yml", ".yaml")
+    )
+]
 print(f"  hits inside executable/CI files: {len(code)}")
 for ln in code:
     print(f"    {ln[:170]}")
@@ -70,8 +75,11 @@ rc2, blob_show = git("show", f"HEAD:{target}", binary=True)
 arch_bytes = b""
 with tempfile.TemporaryDirectory() as td:
     tarp = Path(td) / "a.tar"
-    r = subprocess.run(["git", "archive", "-o", str(tarp), "HEAD", "--", target],
-                       cwd=str(REPO), capture_output=True)
+    r = subprocess.run(
+        ["git", "archive", "-o", str(tarp), "HEAD", "--", target],
+        cwd=str(REPO),
+        capture_output=True,
+    )
     if r.returncode == 0 and tarp.is_file():
         with tarfile.open(tarp) as tf:
             fh = tf.extractfile(tf.getmember(target))
@@ -89,8 +97,12 @@ for name, data in routes.items():
 
 vals = [v.replace(CRLF, b"\n") for v in routes.values()]
 identical = all(v == vals[0] for v in vals) and bool(vals[0])
-print(f"  CONTROL identical-after-LF-normalisation: {identical}  "
-      f"(proves the difference is line endings, not content)")
-print(f"  CONTROL the comparison must FAIL on a mangled copy: "
-      f"{(vals[0] + b'# planted') != vals[0]} (a comparison that cannot fail proves nothing)")
+print(
+    f"  CONTROL identical-after-LF-normalisation: {identical}  "
+    f"(proves the difference is line endings, not content)"
+)
+print(
+    f"  CONTROL the comparison must FAIL on a mangled copy: "
+    f"{(vals[0] + b'# planted') != vals[0]} (a comparison that cannot fail proves nothing)"
+)
 print("DONE:imp0440-census")

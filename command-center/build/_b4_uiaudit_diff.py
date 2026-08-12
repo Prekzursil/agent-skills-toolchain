@@ -4,18 +4,29 @@ DIVERGED means BOTH sides hold unique lines, so a blind copy in either direction
 content.  This prints each side's unique lines so a union merge can be authored by reading,
 not guessed.
 """
+
 import difflib
 from pathlib import Path
 
 DAILY = Path(r"C:/Users/Prekzursil/.claude/skills.daily/ui-audit")
 REPO = Path(r"C:/Users/Prekzursil/source/ast-integrate/.agents/skills/ui-audit")
 
-TARGETS = ["capture.mjs", "run_audit.mjs", "layout_lint.mjs", "visual_diff.mjs",
-           "axe_scan.mjs", "critique.mjs"]
+TARGETS = [
+    "capture.mjs",
+    "run_audit.mjs",
+    "layout_lint.mjs",
+    "visual_diff.mjs",
+    "axe_scan.mjs",
+    "critique.mjs",
+]
 
 
 def lines(p):
-    return p.read_text(encoding="utf-8", errors="replace").replace("\r\n", "\n").splitlines()
+    return (
+        p.read_text(encoding="utf-8", errors="replace")
+        .replace("\r\n", "\n")
+        .splitlines()
+    )
 
 
 for name in TARGETS:
@@ -27,8 +38,10 @@ for name in TARGETS:
             right_only += [(i1 + k + 1, b[i1 + k]) for k in range(i2 - i1)]
         if tag in ("replace", "insert"):
             left_only += [(j1 + k + 1, a[j1 + k]) for k in range(j2 - j1)]
-    print(f"===== {name}: live={len(a)} repo={len(b)} "
-          f"live-unique={len(left_only)} repo-unique={len(right_only)}")
+    print(
+        f"===== {name}: live={len(a)} repo={len(b)} "
+        f"live-unique={len(left_only)} repo-unique={len(right_only)}"
+    )
     print("  -- REPO-ONLY lines (would be LOST if live overwrote repo):")
     for n, ln in right_only:
         print(f"     repo:{n}: {ln[:160]}")
@@ -36,5 +49,5 @@ for name in TARGETS:
     for n, ln in left_only[:40]:
         print(f"     live:{n}: {ln[:160]}")
     if len(left_only) > 40:
-        print(f"     ... +{len(left_only)-40} more live-only lines")
+        print(f"     ... +{len(left_only) - 40} more live-only lines")
     print()

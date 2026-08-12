@@ -55,7 +55,9 @@ for uid in FIVE:
     print(f"   tests_required= {json.dumps(tr)[:300] if tr else None}")
     print(f"   reviewer_req  = {str(u.get('reviewer_requirement'))[:120]!r}")
 
-print("\n=== Q2: EVERY unit whose contract resolves to a meta-schema (all spellings) ===")
+print(
+    "\n=== Q2: EVERY unit whose contract resolves to a meta-schema (all spellings) ==="
+)
 meta_units = []
 kinds = {}
 errs_resolve = []

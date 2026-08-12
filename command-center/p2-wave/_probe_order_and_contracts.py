@@ -54,8 +54,13 @@ def main() -> int:
     for uid in ready:
         kind, path = classify_schema(by_id[uid].get("output_schema"))
         kinds[kind] += 1
-        if kind in {"missing", "prose-unresolved", "none"} and len(bad_examples[kind]) < 4:
-            bad_examples[kind].append((uid, (by_id[uid].get("output_schema") or "")[:95]))
+        if (
+            kind in {"missing", "prose-unresolved", "none"}
+            and len(bad_examples[kind]) < 4
+        ):
+            bad_examples[kind].append(
+                (uid, (by_id[uid].get("output_schema") or "")[:95])
+            )
     print(f"(A) CONTRACT RESOLVABILITY over the {len(ready)} READY units")
     for k, n in kinds.most_common():
         print(f"    {n:>5}  {k}")

@@ -14,14 +14,15 @@ from __future__ import annotations
 
 import importlib.util
 import json
-import sys
 from pathlib import Path
 
 REPO = Path("C:/Users/Prekzursil/source/ast-integrate")
 TMP = REPO / "command-center/p2-wave/_av2_tmp"
 TMP.mkdir(parents=True, exist_ok=True)
 
-spec = importlib.util.spec_from_file_location("ru", REPO / "command-center/ready_units.py")
+spec = importlib.util.spec_from_file_location(
+    "ru", REPO / "command-center/ready_units.py"
+)
 ru = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ru)
 
@@ -80,7 +81,10 @@ print(f"  control (no key) rejected : {ok_plain is False}")
 print(f"  one-key bypass accepted   : {ok_keyed is True}")
 print(
     "  BYPASS_PROVEN =",
-    (ok_plain is False) and (ok_keyed is True) and (ok_blobk is True) and (ok_bare is True),
+    (ok_plain is False)
+    and (ok_keyed is True)
+    and (ok_blobk is True)
+    and (ok_bare is True),
 )
 
 fp.unlink(missing_ok=True)

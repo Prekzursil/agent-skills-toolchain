@@ -14,6 +14,7 @@ decision with an adversarial review, not to a docs commit.
 So the union is taken in the safe direction: keep the LIVE description, keep the NEW body. The
 repo copy then strictly contains the live copy and becomes deployable without shortening anything.
 """
+
 from __future__ import annotations
 
 import sys
@@ -47,9 +48,13 @@ for rel in RELS:
         if cur[ci] == live_desc:
             print(f"  already-matches {root}/{rel}")
             continue
-        print(f"  {'ADOPT' if apply else 'WOULD-ADOPT'} live description in {root}/{rel}")
-        print(f"      repo {len(cur[ci])} chars -> live {len(live_desc)} chars "
-              f"({len(live_desc) - len(cur[ci]):+d})")
+        print(
+            f"  {'ADOPT' if apply else 'WOULD-ADOPT'} live description in {root}/{rel}"
+        )
+        print(
+            f"      repo {len(cur[ci])} chars -> live {len(live_desc)} chars "
+            f"({len(live_desc) - len(cur[ci]):+d})"
+        )
         if apply:
             cur[ci] = live_desc
             dst.write_bytes("\n".join(cur).encode("utf-8"))

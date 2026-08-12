@@ -40,21 +40,29 @@ def build_store():
 def main() -> int:
     import jsonschema
 
-    print(f"P1 exists({SCHEMA.relative_to(REPO)}) = {SCHEMA.exists()}  size={SCHEMA.stat().st_size if SCHEMA.exists() else 0}B")
+    print(
+        f"P1 exists({SCHEMA.relative_to(REPO)}) = {SCHEMA.exists()}  size={SCHEMA.stat().st_size if SCHEMA.exists() else 0}B"
+    )
     if not SCHEMA.exists():
-        print("SUCCESS:imp0433-premise premise HOLDS - file absent, unit must author it")
+        print(
+            "SUCCESS:imp0433-premise premise HOLDS - file absent, unit must author it"
+        )
         return 0
 
     schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
     print(f"   physical definition: {str(schema.get('x-physical-definition'))[:110]}")
     print(f"   top-level $ref     : {schema.get('$ref')}")
     store = build_store()
-    res = jsonschema.RefResolver(base_uri=schema.get("$id", ""), referrer=schema, store=store)
+    res = jsonschema.RefResolver(
+        base_uri=schema.get("$id", ""), referrer=schema, store=store
+    )
 
     # Positive fixture: an existing REAL receipt from the tree.
     real = REPO / "command-center/receipts/TST-0334.json"
     positive = json.loads(real.read_text(encoding="utf-8"))
-    print(f"\nP3 positive fixture = {real.relative_to(REPO)} keys={sorted(positive)[:12]}")
+    print(
+        f"\nP3 positive fixture = {real.relative_to(REPO)} keys={sorted(positive)[:12]}"
+    )
 
     def valid(doc) -> tuple[bool, str]:
         try:
@@ -76,13 +84,19 @@ def main() -> int:
             continue
         mutant = {k: v for k, v in positive.items() if k != drop}
         v, m = valid(mutant)
-        print(f"   drop {drop:<16} VALID={v}  {'<-- SURVIVED (schema does not require it)' if v else m}")
+        print(
+            f"   drop {drop:<16} VALID={v}  {'<-- SURVIVED (schema does not require it)' if v else m}"
+        )
         if v:
             all_reject = False
 
     print(
         "\nVERDICT: premise REFUTED - schema exists"
-        + (" and enforces the named conditions" if all_reject else " but at least one named condition is NOT enforced")
+        + (
+            " and enforces the named conditions"
+            if all_reject
+            else " but at least one named condition is NOT enforced"
+        )
     )
     print("SUCCESS:imp0433-premise measured")
     return 0

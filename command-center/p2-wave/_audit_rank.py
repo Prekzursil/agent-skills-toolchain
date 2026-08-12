@@ -2,13 +2,16 @@
 
 Unblocking power = how many currently-blocked units name this unit as a dependency.
 """
+
 import importlib.util as il
 import json
 import re
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-CAT = json.loads((REPO / "command-center/WORK-UNIT-CATALOG.json").read_text(encoding="utf-8"))
+CAT = json.loads(
+    (REPO / "command-center/WORK-UNIT-CATALOG.json").read_text(encoding="utf-8")
+)
 units = CAT["work_units"]
 by = {u["id"]: u for u in units}
 
@@ -31,7 +34,9 @@ ready, blocked = [], []
 for u in units:
     if dv(u["id"]) or u.get("owner_approval_required"):
         continue
-    if all(BK.fullmatch(d) or (d in by and dv(d)) for d in (u.get("dependencies") or [])):
+    if all(
+        BK.fullmatch(d) or (d in by and dv(d)) for d in (u.get("dependencies") or [])
+    ):
         ready.append(u)
     else:
         blocked.append(u)
@@ -49,13 +54,23 @@ def phase_key(p):
     return (int(m.group(1)), m.group(2)) if m else (999, str(p))
 
 
-print("  phase comparator control: ['0','2','2A','10'] sorted ->",
-      sorted(["0", "2", "2A", "10"], key=phase_key))
+print(
+    "  phase comparator control: ['0','2','2A','10'] sorted ->",
+    sorted(["0", "2", "2A", "10"], key=phase_key),
+)
 
-ranked = sorted(ready, key=lambda u: (phase_key(u.get("phase")), -power.get(u["id"], 0), u["id"]))
+ranked = sorted(
+    ready, key=lambda u: (phase_key(u.get("phase")), -power.get(u["id"], 0), u["id"])
+)
 print()
 print(f"  {'rank':<5} {'unit':<10} {'phase':<6} {'unblocks':<9} built-by-builder?")
 built = {"IMP-0433", "AUD-0041", "AUD-0051", "AUD-0030", "AUD-0020"}
 for i, u in enumerate(ranked[:10], 1):
-    mark = "YES" if u["id"] in built else ("SKIPPED (blocker recorded)" if u["id"] == "AUD-0001" else "no")
-    print(f"  {i:<5} {u['id']:<10} {str(u.get('phase')):<6} {power.get(u['id'], 0):<9} {mark}")
+    mark = (
+        "YES"
+        if u["id"] in built
+        else ("SKIPPED (blocker recorded)" if u["id"] == "AUD-0001" else "no")
+    )
+    print(
+        f"  {i:<5} {u['id']:<10} {str(u.get('phase')):<6} {power.get(u['id'], 0):<9} {mark}"
+    )

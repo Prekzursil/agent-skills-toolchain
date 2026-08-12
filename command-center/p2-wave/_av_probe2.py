@@ -48,7 +48,9 @@ for u in units:
         delivered.append((u["id"], why, u.get("output_path"), u.get("output_schema")))
     elif u.get("output_path") and (REPO / u["output_path"]).exists():
         present_not_delivered += 1
-print(f"delivered count = {len(delivered)}   present-but-not-delivered = {present_not_delivered}")
+print(
+    f"delivered count = {len(delivered)}   present-but-not-delivered = {present_not_delivered}"
+)
 for uid, why, op, os_ in delivered:
     try:
         kind = sr.resolve(os_).kind
@@ -63,8 +65,10 @@ for uid, why, op, os_ in delivered:
     print(f"      output_path   = {op}")
     print(f"      output_schema = {os_}")
     print(f"      resolved kind = {kind}")
-    print(f"      GARBAGE validates with errors = {garbage}   "
-          f"-> condition-4 discriminates: {garbage != 0}")
+    print(
+        f"      GARBAGE validates with errors = {garbage}   "
+        f"-> condition-4 discriminates: {garbage != 0}"
+    )
 
 print("\n=== Q6: the self-test's own controls, both states ===")
 by_id = {u["id"]: u for u in units}
@@ -82,8 +86,10 @@ for uid in (ru.CONTROL_GOOD, ru.CONTROL_BAD):
         fake = dict(u)
         fake["output_path"] = str(mp.relative_to(REPO)).replace("\\", "/")
         mok, mwhy = ru.artifact_delivered(fake, resolver)
-        print(f"  {uid} (real state={real_state!r}, real delivered={ok}/{why}) "
-              f"| state:={flip} -> delivered={mok} ({mwhy})")
+        print(
+            f"  {uid} (real state={real_state!r}, real delivered={ok}/{why}) "
+            f"| state:={flip} -> delivered={mok} ({mwhy})"
+        )
 
 print("\n=== Q7: fail-open census -- units where condition 4 is SILENTLY skipped ===")
 raise_resolve = 0

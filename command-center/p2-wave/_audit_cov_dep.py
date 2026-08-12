@@ -1,9 +1,20 @@
 """AUDIT (independent): coverage-gate operability + dependency-manifest census, my own scan."""
+
 import json
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-SKIP = {".git", "node_modules", ".venv", "venv", "__pycache__", ".mypy_cache", ".pytest_cache", "dist", "build"}
+SKIP = {
+    ".git",
+    "node_modules",
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".mypy_cache",
+    ".pytest_cache",
+    "dist",
+    "build",
+}
 
 
 def walk(root):
@@ -24,19 +35,30 @@ for t in thr:
     cmd = enf.get("command")
     print(f"    path    : {t.relative_to(REPO).as_posix()}")
     print(f"    command : {cmd!r}")
-    print(f"    blockPRCreation={enf.get('blockPRCreation')} blockTaskCompletion={enf.get('blockTaskCompletion')}")
+    print(
+        f"    blockPRCreation={enf.get('blockPRCreation')} blockTaskCompletion={enf.get('blockTaskCompletion')}"
+    )
     pkg = t.parent / "package.json"
     if pkg.is_file():
         pj = json.loads(pkg.read_text(encoding="utf-8"))
         scripts = pj.get("scripts", {})
-        print(f"    sibling package.json scripts = {scripts!r}   (empty => command cannot run)")
+        print(
+            f"    sibling package.json scripts = {scripts!r}   (empty => command cannot run)"
+        )
         want = (cmd or "").replace("pnpm ", "").replace("npm run ", "").strip()
         print(f"    is '{want}' present in scripts? {want in scripts}")
     else:
         print("    NO sibling package.json")
 
 # project discovery, my own definition
-markers = ("pyproject.toml", "package.json", "pytest.ini", "setup.py", "setup.cfg", "tox.ini")
+markers = (
+    "pyproject.toml",
+    "package.json",
+    "pytest.ini",
+    "setup.py",
+    "setup.cfg",
+    "tox.ini",
+)
 projs = set()
 for p in walk(REPO):
     if p.name in markers:
@@ -49,11 +71,28 @@ print()
 print("=" * 72)
 print("PYTHON DEP MANIFESTS  (builder: 23 manifests, 93 deps, 4 locked, 19 unlocked)")
 print("=" * 72)
-man = [p for p in walk(REPO)
-       if p.name in ("pyproject.toml", "requirements.txt", "requirements-dev.txt", "Pipfile", "setup.py", "setup.cfg")]
+man = [
+    p
+    for p in walk(REPO)
+    if p.name
+    in (
+        "pyproject.toml",
+        "requirements.txt",
+        "requirements-dev.txt",
+        "Pipfile",
+        "setup.py",
+        "setup.cfg",
+    )
+]
 kinds = {}
 for m in man:
     kinds[m.name] = kinds.get(m.name, 0) + 1
 print(f"  python manifests found : {len(man)}   breakdown={kinds}")
-locks = [p for p in walk(REPO) if p.name in ("uv.lock", "poetry.lock", "Pipfile.lock", "requirements.lock")]
-print(f"  lockfiles found        : {len(locks)} {[str(x.relative_to(REPO).as_posix()) for x in locks]}")
+locks = [
+    p
+    for p in walk(REPO)
+    if p.name in ("uv.lock", "poetry.lock", "Pipfile.lock", "requirements.lock")
+]
+print(
+    f"  lockfiles found        : {len(locks)} {[str(x.relative_to(REPO).as_posix()) for x in locks]}"
+)

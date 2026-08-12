@@ -74,8 +74,12 @@ def main() -> int:
         if u["id"] in ready:
             need[rel] += 1
 
-    print(f"missing parent dirs total   : {len(allmissing)} ({sum(allmissing.values())} units)")
-    print(f"missing parent dirs w/ READY: {len(need)} ({sum(need.values())} READY units)")
+    print(
+        f"missing parent dirs total   : {len(allmissing)} ({sum(allmissing.values())} units)"
+    )
+    print(
+        f"missing parent dirs w/ READY: {len(need)} ({sum(need.values())} READY units)"
+    )
     for d, n in sorted(need.items()):
         print(f"  {'CREATE' if apply else 'would create'} {d:<52} ready_units={n}")
     if not apply:

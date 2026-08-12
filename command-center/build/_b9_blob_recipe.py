@@ -11,6 +11,7 @@ distinguish them would be useless:
 CONTROL: all routes must be byte-identical AFTER LF-normalisation.  If they are not, the files
 differ in CONTENT and any line-ending conclusion drawn from them would be an artifact.
 """
+
 from __future__ import annotations
 
 import subprocess
@@ -48,8 +49,12 @@ for rel in TARGETS:
         arch = member.read() if member else b""
     wt = (REPO / rel).read_bytes()
 
-    rows = [("git show <rev>:<path>", show), ("git cat-file -p <oid>", cat),
-            ("git archive + tar -x", arch), ("working tree", wt)]
+    rows = [
+        ("git show <rev>:<path>", show),
+        ("git cat-file -p <oid>", cat),
+        ("git archive + tar -x", arch),
+        ("working tree", wt),
+    ]
     print(f"=== {rel}")
     for tag, data in rows:
         # NOTE: an earlier revision wrote `data.count(b'CRLF'[:0])`, i.e. count of the EMPTY

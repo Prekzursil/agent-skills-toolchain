@@ -69,10 +69,18 @@ def main() -> int:
             f"out={u.get('output_path')}"
         )
     print("-" * 100)
-    print("PHASE-0 READY count:", sum(1 for u in ready if phase_key(u.get("phase"))[0] == 0))
+    print(
+        "PHASE-0 READY count:",
+        sum(1 for u in ready if phase_key(u.get("phase"))[0] == 0),
+    )
     # control: the sort key must place '2' before '10'
     ctl = sorted(["10", "2", "0", "2A"], key=phase_key)
-    print("CONTROL phase-sort:", ctl, "->", "OK" if ctl == ["0", "2", "2A", "10"] else "BROKEN")
+    print(
+        "CONTROL phase-sort:",
+        ctl,
+        "->",
+        "OK" if ctl == ["0", "2", "2A", "10"] else "BROKEN",
+    )
     return 0
 
 

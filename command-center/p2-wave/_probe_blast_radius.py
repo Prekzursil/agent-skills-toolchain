@@ -79,13 +79,17 @@ def main() -> int:
     print(f"READY under state-aware delivered():    {len(strict)}")
     phantom = sorted(loose - strict)
     gained = sorted(strict - loose)
-    print(f"\nPHANTOM-READY (ready only because a BLOCKED/FAILED artifact counted as done): {len(phantom)}")
+    print(
+        f"\nPHANTOM-READY (ready only because a BLOCKED/FAILED artifact counted as done): {len(phantom)}"
+    )
     for uid in phantom[:25]:
         deps = by_id[uid].get("dependencies") or []
         print(f"  {uid:<10} deps={deps}")
     if len(phantom) > 25:
         print(f"  ... and {len(phantom) - 25} more")
-    print(f"\nNEWLY-READY under strict (self-declared-done units re-enter the build set): {len(gained)}")
+    print(
+        f"\nNEWLY-READY under strict (self-declared-done units re-enter the build set): {len(gained)}"
+    )
     for uid in gained[:15]:
         print(f"  {uid}")
     print(

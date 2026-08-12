@@ -66,13 +66,17 @@ def art(rel: str, role: str = "supporting") -> dict:
     }
 
 
-def probe(role: str, method: str, command: str, raw: str, exit_code: int | None = None) -> dict:
+def probe(
+    role: str, method: str, command: str, raw: str, exit_code: int | None = None
+) -> dict:
     d = {
         "role": role,
         "method": method,
         "command": command,
         "raw_output": raw[:65000],
-        "fingerprint": hashlib.sha256(f"{method}\x1f{command}".encode()).hexdigest()[:32],
+        "fingerprint": hashlib.sha256(f"{method}\x1f{command}".encode()).hexdigest()[
+            :32
+        ],
     }
     if exit_code is not None:
         d["exit_code"] = exit_code
@@ -80,7 +84,11 @@ def probe(role: str, method: str, command: str, raw: str, exit_code: int | None 
 
 
 def evidence(
-    claim: str, verdict: str, anchor: str, probes: list[dict], confidence: str | None = None
+    claim: str,
+    verdict: str,
+    anchor: str,
+    probes: list[dict],
+    confidence: str | None = None,
 ) -> dict:
     d = {"claim": claim, "verdict": verdict, "anchor": anchor, "probes": probes}
     if confidence:
@@ -89,7 +97,13 @@ def evidence(
 
 
 def control(
-    cid: str, kind: str, description: str, fired_bad: bool, silent_good: bool, bad="", good=""
+    cid: str,
+    kind: str,
+    description: str,
+    fired_bad: bool,
+    silent_good: bool,
+    bad="",
+    good="",
 ) -> dict:
     return {
         "id": cid,
@@ -121,7 +135,9 @@ def run(cmd: list[str], cwd: Path | None = None, timeout: int = 300) -> tuple[in
         return 127, f"{type(e).__name__}: {e}"
 
 
-def write_if_valid(doc: dict, rel_out: str, schema: str, *, also: list[str] = ()) -> int:
+def write_if_valid(
+    doc: dict, rel_out: str, schema: str, *, also: list[str] = ()
+) -> int:
     """Write the artifact ONLY if it validates against its declared contract.
 
     An artifact that does not validate is reported FAILED and NOT persisted; persisting it would
@@ -132,7 +148,9 @@ def write_if_valid(doc: dict, rel_out: str, schema: str, *, also: list[str] = ()
     for extra in also:
         errs += [f"[{extra}] {e}" for e in validate(doc, extra)]
     if errs:
-        print(f"FAILED:{doc.get('unit_id')} artifact does not satisfy its declared contract")
+        print(
+            f"FAILED:{doc.get('unit_id')} artifact does not satisfy its declared contract"
+        )
         for e in errs[:25]:
             print("   ", e)
         return 1
@@ -142,7 +160,9 @@ def write_if_valid(doc: dict, rel_out: str, schema: str, *, also: list[str] = ()
     size = out.stat().st_size
     floor = doc.get("min_bytes_threshold", 1)
     if size < floor:
-        print(f"FAILED:{doc.get('unit_id')} artifact {size}B below declared floor {floor}B")
+        print(
+            f"FAILED:{doc.get('unit_id')} artifact {size}B below declared floor {floor}B"
+        )
         return 1
     print(f"  wrote {rel_out} ({size} B) VALID against {schema}")
     return 0

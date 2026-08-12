@@ -20,6 +20,26 @@
 #     which are valid there and invalid as standalone Python. It is committed so the fan-out chain is
 #     reproducible from the repo rather than existing only inside the workspace.
 extend-exclude = [
+    # Provenance-locked recovery evidence. Five scripts here are BYTE-IDENTICAL to the scratch
+    # originals written by two agents that died mid-run (API error, connection closed mid-response).
+    # That byte-match IS the evidence the work was RECOVERED rather than re-authored, and the
+    # casualty lane re-measured the sha256 against the scratchpad rather than trusting its own audit
+    # (5/5 locked; adv0021_verifier.py is correctly unlocked, round-2-authored with no scratch twin,
+    # and happens to be ruff-clean already so this exclusion costs nothing there).
+    # There is no per-file escape from `ruff format` that does not itself change the bytes, so the
+    # choice is a directory exclusion or destroying the provenance to satisfy a style gate.
+    # Verified before adding: command-center/casualty/r2_verify_all.py runs 12/12 PASS, including a
+    # fresh-clone step proving both receipts reproduce their declared digest from a clone that never
+    # saw this working tree. Requested by the lane that found it, which correctly declared the root
+    # ruff.toml outside its own file scope and reported it NOT DONE rather than reaching for it.
+    "command-center/casualty/probes",
+    # Deliberately-broken CONTROL fixtures. These are inputs a detector must FAIL on, not code:
+    # AUD-0006/control/src/core/session_state.py is a single line of ~2,000 'z' characters -- the
+    # same shape as the 2,000-'x' blob that a verifier in this program once accepted as a valid
+    # artifact. Linting them is a category error; "fixing" the F821 would delete the control and
+    # leave a gate that can no longer be shown to fire. Same reasoning as the provenance-locked
+    # probes above: the bytes ARE the measurement.
+    "command-center/p2-wave/probes/*/control",
     "tools/editor/ralph-orchestrator/vendor",
     "skills/codex-databricks-fanout/scripts/batch_runner.py",
     ".agents/skills/codex-databricks-fanout/scripts/batch_runner.py",

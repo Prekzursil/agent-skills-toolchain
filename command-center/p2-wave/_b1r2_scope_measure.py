@@ -43,7 +43,9 @@ def tier_strict(p: Path) -> bool:
     if not tier_nonempty(p):
         return False
     if p.suffix.lower() != ".json":
-        return True  # non-JSON artifacts: existence+non-empty is all this tier can check
+        return (
+            True  # non-JSON artifacts: existence+non-empty is all this tier can check
+        )
     doc = parse_json(p)
     if doc is None:
         return False
@@ -99,9 +101,7 @@ def main() -> int:
     sets = {}
     for name, pred in tiers.items():
         delivered_n = sum(
-            1
-            for u in units
-            if u.get("output_path") and pred(REPO / u["output_path"])
+            1 for u in units if u.get("output_path") and pred(REPO / u["output_path"])
         )
         r = ready_under(units, pred)
         sets[name] = r
@@ -150,7 +150,9 @@ def main() -> int:
     for d, n in sorted(missing.items()):
         print(f"    {d:<58} units={n:<4} of which READY(T0)={undelivered_using[d]}")
     print(f"  total units writing into a missing dir: {sum(missing.values())}")
-    print(f"  of which READY under T0                : {sum(undelivered_using.values())}")
+    print(
+        f"  of which READY under T0                : {sum(undelivered_using.values())}"
+    )
 
     print("-" * 90)
     print("  CONTROL (both-states) for the missing-dir failure mode:")
@@ -159,18 +161,26 @@ def main() -> int:
         try:
             with open(victim, "w", encoding="utf-8") as fh:
                 fh.write("x")
-            print("    BAD-STATE  open(w) into missing parent: SUCCEEDED -> control INERT")
+            print(
+                "    BAD-STATE  open(w) into missing parent: SUCCEEDED -> control INERT"
+            )
             victim.unlink()
         except OSError as e:
-            print(f"    BAD-STATE  open(w) into missing parent: {type(e).__name__} -> control FIRES")
+            print(
+                f"    BAD-STATE  open(w) into missing parent: {type(e).__name__} -> control FIRES"
+            )
         good = REPO / "command-center/p2-wave/_ctl_probe.tmp"
         try:
             with open(good, "w", encoding="utf-8") as fh:
                 fh.write("x")
-            print("    GOOD-STATE open(w) into existing parent: SUCCEEDED -> control SILENT")
+            print(
+                "    GOOD-STATE open(w) into existing parent: SUCCEEDED -> control SILENT"
+            )
             good.unlink()
         except OSError as e:
-            print(f"    GOOD-STATE open(w) into existing parent: {type(e).__name__} -> control OVER-FIRES")
+            print(
+                f"    GOOD-STATE open(w) into existing parent: {type(e).__name__} -> control OVER-FIRES"
+            )
     else:
         print("    no missing dirs -- control not applicable")
     return 0

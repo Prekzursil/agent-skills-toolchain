@@ -22,17 +22,38 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-DATA = Path(r"C:/Users/Prekzursil/source/ast-integrate/command-center/grounding/G-BARE-DESC.json")
+DATA = Path(
+    r"C:/Users/Prekzursil/source/ast-integrate/command-center/grounding/G-BARE-DESC.json"
+)
 rows = json.loads(DATA.read_text(encoding="utf-8"))
 
 BARE = {
-    "ui-drive", "ui-invariant-walk", "vercel-deploy", "verification-loop",
-    "video-convert", "video-join-concat", "video-resize-aspect", "video-stabilize",
-    "voice-analyze", "voice-apply", "voice-blend", "voice-create", "volatility-3",
-    "webapp-testing", "windbg-command-cookbook", "windbg-preview",
-    "windows-virtualization-conflict-triage", "winui-app", "workflow-foundry",
-    "workflow-monitor", "writing-plans", "wsl-vmware-cutover", "x-api", "x64dbg",
-    "yeet", "zero-issue-coding",
+    "ui-drive",
+    "ui-invariant-walk",
+    "vercel-deploy",
+    "verification-loop",
+    "video-convert",
+    "video-join-concat",
+    "video-resize-aspect",
+    "video-stabilize",
+    "voice-analyze",
+    "voice-apply",
+    "voice-blend",
+    "voice-create",
+    "volatility-3",
+    "webapp-testing",
+    "windbg-command-cookbook",
+    "windbg-preview",
+    "windows-virtualization-conflict-triage",
+    "winui-app",
+    "workflow-foundry",
+    "workflow-monitor",
+    "writing-plans",
+    "wsl-vmware-cutover",
+    "x-api",
+    "x64dbg",
+    "yeet",
+    "zero-issue-coding",
 }
 
 rows = [r for r in rows if r.get("desc_chars") is not None]
@@ -88,14 +109,23 @@ hm = min(w for (m, _), (_, w) in best.items() if m == "hardcut")
 print(f"BEST greedy mismatches  = {gm}")
 print(f"BEST hardcut mismatches = {hm}   (DETECTOR CONTROL: must be worse than greedy)")
 if gm == 0:
-    print("VERDICT: H-D CONFIRMED -- greedy budget fill reproduces the partition EXACTLY.")
+    print(
+        "VERDICT: H-D CONFIRMED -- greedy budget fill reproduces the partition EXACTLY."
+    )
 elif gm < hm:
-    print("VERDICT: H-D favoured but NOT exact -- greedy beats hard-cut but does not fit perfectly.")
+    print(
+        "VERDICT: H-D favoured but NOT exact -- greedy beats hard-cut but does not fit perfectly."
+    )
 else:
     print("VERDICT: H-D REFUTED -- greedy is no better than hard-cut.")
 
 # Show the exact residual mismatches for the best greedy fit
-(bb, bw) = min(((v, k) for k, v in best.items() if k[0] == "greedy"), key=lambda t: t[0][1])[0], None
+(bb, bw) = (
+    min(((v, k) for k, v in best.items() if k[0] == "greedy"), key=lambda t: t[0][1])[
+        0
+    ],
+    None,
+)
 for (m, oh), (B, w) in best.items():
     if m == "greedy" and w == gm:
         used = 0
@@ -107,8 +137,10 @@ for (m, oh), (B, w) in best.items():
                 used += cost
             pred_bare = not fits
             if pred_bare != observed[r["name"]]:
-                print(f"   {r['name']:42s} desc={r['desc_chars']:5d} "
-                      f"predicted={'BARE' if pred_bare else 'DESC'} "
-                      f"observed={'BARE' if observed[r['name']] else 'DESC'}")
+                print(
+                    f"   {r['name']:42s} desc={r['desc_chars']:5d} "
+                    f"predicted={'BARE' if pred_bare else 'DESC'} "
+                    f"observed={'BARE' if observed[r['name']] else 'DESC'}"
+                )
         print(f"   final used={used} of B={B}")
         break

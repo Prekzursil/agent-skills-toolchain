@@ -69,7 +69,9 @@ def deep_stats(o, keys: set, vals: list, depth=0):
         vals.append(o)
 
 
-print("=== Q8/Q9: stored-blob verification + substance, with a per-unit corruption control ===")
+print(
+    "=== Q8/Q9: stored-blob verification + substance, with a per-unit corruption control ==="
+)
 hdr = f"{'unit':10s} {'blobB':>7s} {'CRLF':>5s} {'parse':>5s} {'errs':>5s} {'ctlErr':>6s} {'keys':>5s} {'vals':>6s} {'uniqV':>6s} {'maxRun':>6s} state"
 print(hdr)
 for uid in FIVE:
@@ -104,7 +106,11 @@ for uid in FIVE:
     )
 
 print("\n=== Q10: half-gate -- does ' + ' get dropped? ===")
-two = [u for u in units if isinstance(u.get("output_schema"), str) and " + " in u["output_schema"]]
+two = [
+    u
+    for u in units
+    if isinstance(u.get("output_schema"), str) and " + " in u["output_schema"]
+]
 print(f"units declaring a two-schema expression: {len(two)}")
 if two:
     d = two[0]["output_schema"]
@@ -122,8 +128,10 @@ if two:
             print(f"    half {h[:60]:60s} -> RAISED {type(e).__name__}")
     try:
         n = len(sr.validate_artifact(probe, d))
-        print(f"    COMBINED expression -> errors={n}  "
-              f"(if the 2nd half raises alone but the combo does not, half B is DROPPED)")
+        print(
+            f"    COMBINED expression -> errors={n}  "
+            f"(if the 2nd half raises alone but the combo does not, half B is DROPPED)"
+        )
     except Exception as e:  # noqa: BLE001
         print(f"    COMBINED expression -> RAISED {type(e).__name__}")
 
@@ -146,8 +154,10 @@ if yaml:
         for _jn, j in (d.get("jobs") or {}).items():
             jobs += 1
             steps += len(j.get("steps") or [])
-    print(f"  workflow files={len(wf)} jobs={jobs} steps={steps} "
-          f"files where bare `on:` parsed as boolean True={on_via_true}")
+    print(
+        f"  workflow files={len(wf)} jobs={jobs} steps={steps} "
+        f"files where bare `on:` parsed as boolean True={on_via_true}"
+    )
     a = json.loads(blob_bytes(by_id["AUD-0041"]["output_path"]).decode("utf-8"))
     flat = json.dumps(a)
     for n in (len(wf), jobs, steps):

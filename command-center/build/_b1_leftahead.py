@@ -3,6 +3,7 @@
 LEFT-AHEAD is the ONLY mechanically-safe live->repo direction: the deployed copy strictly
 contains the repo copy, so copying live->repo cannot destroy repo-unique content.
 """
+
 import json
 import subprocess
 import sys
@@ -16,9 +17,19 @@ REPO_AGENTS = str(REPO / ".agents" / "skills")
 
 def run(left, right):
     out = subprocess.run(
-        [sys.executable, str(REPO / "ci" / "check_skill_deploy_drift.py"),
-         "--left", left, "--right", right, "--json"],
-        capture_output=True, text=True, encoding="utf-8", cwd=str(REPO),
+        [
+            sys.executable,
+            str(REPO / "ci" / "check_skill_deploy_drift.py"),
+            "--left",
+            left,
+            "--right",
+            right,
+            "--json",
+        ],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        cwd=str(REPO),
     )
     return json.loads(out.stdout)
 

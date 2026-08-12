@@ -6,6 +6,7 @@ A control on one unit's schema says nothing about a DIFFERENT unit's schema.
 For each of the 5 units: validate (a) the real artifact, (b) a garbage doc, (c) the artifact with
 its `sentinel` field removed. A schema that accepts (b) is a NO-OP gate for that unit.
 """
+
 import importlib.util
 import json
 import sys
@@ -19,12 +20,16 @@ mod = importlib.util.module_from_spec(spec)
 sys.modules["schema_resolver"] = mod
 spec.loader.exec_module(mod)
 
-CAT = json.loads((REPO / "command-center/WORK-UNIT-CATALOG.json").read_text(encoding="utf-8"))
+CAT = json.loads(
+    (REPO / "command-center/WORK-UNIT-CATALOG.json").read_text(encoding="utf-8")
+)
 by = {u["id"]: u for u in CAT["work_units"]}
 
 GARBAGE = {"totally": "unrelated", "nonsense": [1, 2, 3], "n": 999999}
 
-print(f"{'unit':<10} {'declared output_schema':<52} {'real':<6} {'GARBAGE':<9} {'no-sentinel':<12} verdict")
+print(
+    f"{'unit':<10} {'declared output_schema':<52} {'real':<6} {'GARBAGE':<9} {'no-sentinel':<12} verdict"
+)
 print("-" * 118)
 for uid in ["IMP-0433", "AUD-0041", "AUD-0051", "AUD-0030", "AUD-0020"]:
     u = by[uid]
@@ -39,10 +44,16 @@ for uid in ["IMP-0433", "AUD-0041", "AUD-0051", "AUD-0030", "AUD-0020"]:
             return f"ERR:{type(e).__name__}"
 
     e_real, e_garb, e_strip = n(doc), n(GARBAGE), n(stripped)
-    vacuous = (e_real == 0 and e_garb == 0 and e_strip == 0)
-    print(f"{uid:<10} {schema:<52} {str(e_real):<6} {str(e_garb):<9} {str(e_strip):<12} "
-          f"{'*** VACUOUS - accepts garbage ***' if vacuous else 'discriminates'}")
+    vacuous = e_real == 0 and e_garb == 0 and e_strip == 0
+    print(
+        f"{uid:<10} {schema:<52} {str(e_real):<6} {str(e_garb):<9} {str(e_strip):<12} "
+        f"{'*** VACUOUS - accepts garbage ***' if vacuous else 'discriminates'}"
+    )
 
 print()
-print("Interpretation: a schema returning 0 errors for the GARBAGE column cannot distinguish")
-print("the real artifact from unrelated JSON, so 'schema-VALID' carries no information there.")
+print(
+    "Interpretation: a schema returning 0 errors for the GARBAGE column cannot distinguish"
+)
+print(
+    "the real artifact from unrelated JSON, so 'schema-VALID' carries no information there."
+)

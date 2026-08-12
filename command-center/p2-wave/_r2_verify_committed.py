@@ -58,12 +58,16 @@ def discriminates(sr, schema) -> bool:
 def main() -> int:
     units = sys.argv[1:] or DEFAULT_UNITS
     sr = load_resolver()
-    cat = json.loads((REPO / "command-center/WORK-UNIT-CATALOG.json").read_text(encoding="utf-8"))
+    cat = json.loads(
+        (REPO / "command-center/WORK-UNIT-CATALOG.json").read_text(encoding="utf-8")
+    )
     by_id = {u["id"]: u for u in cat["work_units"]}
     bad = 0
     rows = []
-    print(f"{'unit':<9} {'blob B':>8} {'CRLF':>5} {'parses':>7} {'declared':>9} {'can-fail':>9} "
-          f"{'effective contract':<44} {'VALID':>6} {'ctl':>10}  state")
+    print(
+        f"{'unit':<9} {'blob B':>8} {'CRLF':>5} {'parses':>7} {'declared':>9} {'can-fail':>9} "
+        f"{'effective contract':<44} {'VALID':>6} {'ctl':>10}  state"
+    )
     print("-" * 132)
     for uid in units:
         u = by_id.get(uid)
@@ -72,7 +76,9 @@ def main() -> int:
             bad += 1
             continue
         path = u["output_path"]
-        r = subprocess.run(["git", "show", f"HEAD:{path}"], cwd=str(REPO), capture_output=True)
+        r = subprocess.run(
+            ["git", "show", f"HEAD:{path}"], cwd=str(REPO), capture_output=True
+        )
         if r.returncode != 0:
             print(f"{uid:<9} NOT COMMITTED: {r.stderr.decode(errors='replace')[:70]}")
             bad += 1
@@ -101,7 +107,11 @@ def main() -> int:
         m_err = n_err(sr, mut, effective)
         ctl_fires = isinstance(m_err, str) or m_err > 0
         ctl_silent = e_err == 0
-        ctl = "OK" if (ctl_fires and ctl_silent) else ("INERT" if not ctl_fires else "OVERFIRE")
+        ctl = (
+            "OK"
+            if (ctl_fires and ctl_silent)
+            else ("INERT" if not ctl_fires else "OVERFIRE")
+        )
 
         want = (u.get("completion_sentinel") or "").strip()
         token = want.split()[0].rstrip(":") if want else ""
@@ -111,24 +121,38 @@ def main() -> int:
         if not ok:
             bad += 1
         rows.append((uid, ok, sent_ok))
-        print(f"{uid:<9} {len(raw):>8} {crlf:>5} {'True':>7} {str(d_err):>9} {str(can_fail):>9} "
-              f"{effective[-44:]:<44} {('YES' if e_err == 0 else 'NO(' + str(e_err) + ')'):>6} "
-              f"{ctl:>10}  {doc.get('state')}")
+        print(
+            f"{uid:<9} {len(raw):>8} {crlf:>5} {'True':>7} {str(d_err):>9} {str(can_fail):>9} "
+            f"{effective[-44:]:<44} {('YES' if e_err == 0 else 'NO(' + str(e_err) + ')'):>6} "
+            f"{ctl:>10}  {doc.get('state')}"
+        )
         if not sent_ok:
-            print(f"      sentinel MISMATCH: want prefix {token!r} got {str(doc.get('sentinel'))[:60]!r}")
+            print(
+                f"      sentinel MISMATCH: want prefix {token!r} got {str(doc.get('sentinel'))[:60]!r}"
+            )
         if isinstance(e_err, int) and e_err:
             for e in sr.validate_artifact(doc, effective)[:5]:
                 print("      ", e)
 
     print("-" * 132)
-    print("Column `can-fail` = does the CATALOG-DECLARED contract reject all 3 garbage probes.")
-    print("Where it is False the declared green is worthless and the effective contract shown is")
-    print("a type-appropriate substitute; `ctl` is that contract's per-unit two-sided control.")
+    print(
+        "Column `can-fail` = does the CATALOG-DECLARED contract reject all 3 garbage probes."
+    )
+    print(
+        "Where it is False the declared green is worthless and the effective contract shown is"
+    )
+    print(
+        "a type-appropriate substitute; `ctl` is that contract's per-unit two-sided control."
+    )
     if bad:
-        print(f"FAILED:r2-verify {bad}/{len(units)} artifacts fail the strengthened check")
+        print(
+            f"FAILED:r2-verify {bad}/{len(units)} artifacts fail the strengthened check"
+        )
         return 1
-    print(f"SUCCESS:r2-verify {len(units)}/{len(units)} committed blobs validate against a contract "
-          f"PROVEN able to fail, each with its own two-sided control")
+    print(
+        f"SUCCESS:r2-verify {len(units)}/{len(units)} committed blobs validate against a contract "
+        f"PROVEN able to fail, each with its own two-sided control"
+    )
     return 0
 
 

@@ -2,13 +2,22 @@
 
 Independent of the builder's resolver. Includes a planted-cycle control (both states).
 """
+
 import ast
 import json
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 TOOLS = REPO / "tools"
-SKIP = {".git", "node_modules", ".venv", "venv", "__pycache__", ".mypy_cache", ".pytest_cache"}
+SKIP = {
+    ".git",
+    "node_modules",
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".mypy_cache",
+    ".pytest_cache",
+}
 
 
 def modname(p: Path) -> str:
@@ -49,9 +58,9 @@ for name, p in mods.items():
             # longest-prefix match against known internal modules
             best = None
             for cand in mods:
-                if (t == cand or t.startswith(cand + ".") or cand.endswith("." + t)) and (
-                    best is None or len(cand) > len(best)
-                ):
+                if (
+                    t == cand or t.startswith(cand + ".") or cand.endswith("." + t)
+                ) and (best is None or len(cand) > len(best)):
                     best = cand
             if best and best != name:
                 edges.add((name, best))
@@ -120,8 +129,12 @@ for c in cyc:
 
 # CONTROL, both states
 ctl_nodes = ["x.a", "x.b"]
-print(f"  CONTROL planted cycle  : {len(sccs(ctl_nodes, {('x.a','x.b'),('x.b','x.a')}))} cycle(s) -> must be 1 (FIRES)")
-print(f"  CONTROL acyclic pair   : {len(sccs(ctl_nodes, {('x.a','x.b')}))} cycle(s) -> must be 0 (SILENT)")
+print(
+    f"  CONTROL planted cycle  : {len(sccs(ctl_nodes, {('x.a', 'x.b'), ('x.b', 'x.a')}))} cycle(s) -> must be 1 (FIRES)"
+)
+print(
+    f"  CONTROL acyclic pair   : {len(sccs(ctl_nodes, {('x.a', 'x.b')}))} cycle(s) -> must be 0 (SILENT)"
+)
 
 fanin = {}
 for a, b in edges:
@@ -129,7 +142,11 @@ for a, b in edges:
 top = sorted(fanin.items(), key=lambda kv: -kv[1])[:5]
 print(f"  top fan-in             : {top}")
 
-art = json.loads((REPO / "command-center/audit/AUD-0030-import-graph-cycles.json").read_text(encoding="utf-8"))
+art = json.loads(
+    (REPO / "command-center/audit/AUD-0030-import-graph-cycles.json").read_text(
+        encoding="utf-8"
+    )
+)
 rep = art.get("report", {})
 print()
 print(f"  BUILDER artifact report keys: {sorted(rep.keys())[:14]}")

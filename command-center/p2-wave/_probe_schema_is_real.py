@@ -74,7 +74,9 @@ def main() -> int:
         except Exception as exc:
             results.append((spath, n, f"SCHEMA-PARSE-FAIL:{type(exc).__name__}", 0, 0))
             continue
-        res = jsonschema.RefResolver(base_uri=schema.get("$id", ""), referrer=schema, store=store)
+        res = jsonschema.RefResolver(
+            base_uri=schema.get("$id", ""), referrer=schema, store=store
+        )
         rejected = 0
         errs = 0
         for g in GARBAGE:
@@ -84,8 +86,14 @@ def main() -> int:
                 rejected += 1
             except Exception:
                 errs += 1
-        verdict = "NO-OP (accepts all garbage)" if rejected == 0 and errs == 0 else (
-            f"resolve-error x{errs}" if errs else f"discriminates ({rejected}/3 garbage rejected)"
+        verdict = (
+            "NO-OP (accepts all garbage)"
+            if rejected == 0 and errs == 0
+            else (
+                f"resolve-error x{errs}"
+                if errs
+                else f"discriminates ({rejected}/3 garbage rejected)"
+            )
         )
         results.append((spath, n, verdict, rejected, errs))
 

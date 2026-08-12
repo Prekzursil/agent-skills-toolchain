@@ -39,7 +39,7 @@ def description_of(text: str) -> str:
         out.append(line)
     for line in out:
         if line.startswith("description:"):
-            return line[len("description:"):].strip()
+            return line[len("description:") :].strip()
     return ""
 
 
@@ -63,7 +63,10 @@ def main() -> int:
     print("\nDESCRIPTION DELTA (always-loaded context -- must be ZERO)")
     before = subprocess.run(
         ["git", "show", f"{BASELINE_REV}:.agents/skills/{SKILL}"],
-        cwd=str(REPO), capture_output=True, text=True, encoding="utf-8",
+        cwd=str(REPO),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
     ).stdout
     after = (REPO / ".agents" / "skills" / SKILL).read_text(encoding="utf-8")
     d_before, d_after = description_of(before), description_of(after)
@@ -83,10 +86,14 @@ def main() -> int:
 
     print("\nCONTROL: the detector can see a difference")
     mangled = after.replace("description:", "description: XX", 1)
-    print(f"  a mangled description is detected as changed: "
-          f"{description_of(mangled) != d_after}")
+    print(
+        f"  a mangled description is detected as changed: "
+        f"{description_of(mangled) != d_after}"
+    )
     if description_of(mangled) == d_after:
-        print("  ! detector cannot see a description change; no verdict above may be read")
+        print(
+            "  ! detector cannot see a description change; no verdict above may be read"
+        )
         bad += 1
 
     print(f"\n{'SUCCESS' if not bad else 'FAILED'}:i2-verify-live problems={bad}")

@@ -41,16 +41,21 @@ def load_resolver():
 
 def main() -> int:
     sr = load_resolver()
-    cat = json.loads((REPO / "command-center/WORK-UNIT-CATALOG.json").read_text(encoding="utf-8"))
+    cat = json.loads(
+        (REPO / "command-center/WORK-UNIT-CATALOG.json").read_text(encoding="utf-8")
+    )
     by_id = {u["id"]: u for u in cat["work_units"]}
     bad = 0
-    print(f"{'unit':<9} {'blob B':>8} {'CRLF':>5}  parses  schema-VALID  sentinel-matches  state")
+    print(
+        f"{'unit':<9} {'blob B':>8} {'CRLF':>5}  parses  schema-VALID  sentinel-matches  state"
+    )
     print("-" * 92)
     for uid in UNITS:
         u = by_id[uid]
         path = u["output_path"]
-        r = subprocess.run(["git", "show", f"HEAD:{path}"], cwd=str(REPO),
-                           capture_output=True)
+        r = subprocess.run(
+            ["git", "show", f"HEAD:{path}"], cwd=str(REPO), capture_output=True
+        )
         if r.returncode != 0:
             print(f"{uid:<9} NOT COMMITTED: {r.stderr.decode(errors='replace')[:70]}")
             bad += 1
@@ -69,11 +74,13 @@ def main() -> int:
         got_sentinel = doc.get("sentinel", "")
         # the catalog sentinel is sometimes a prose sentence; match on the leading token
         token = want_sentinel.split()[0] if want_sentinel else ""
-        sent_ok = bool(token) and got_sentinel.startswith(token.rstrip(":") .split()[0])
+        sent_ok = bool(token) and got_sentinel.startswith(token.rstrip(":").split()[0])
         ok = parses and not errs and len(raw) > 0
-        print(f"{uid:<9} {len(raw):>8} {crlf:>5}  {str(parses):<6}  "
-              f"{('YES' if not errs else 'NO(' + str(len(errs)) + ')'):<12}  "
-              f"{str(sent_ok):<16}  {doc.get('state')}")
+        print(
+            f"{uid:<9} {len(raw):>8} {crlf:>5}  {str(parses):<6}  "
+            f"{('YES' if not errs else 'NO(' + str(len(errs)) + ')'):<12}  "
+            f"{str(sent_ok):<16}  {doc.get('state')}"
+        )
         if not ok:
             bad += 1
             for e in errs[:5]:
@@ -82,24 +89,37 @@ def main() -> int:
     # CONTROL: the verifier must REJECT a deliberately corrupted copy of a real artifact.
     print("-" * 92)
     victim = by_id["AUD-0020"]
-    raw = subprocess.run(["git", "show", f"HEAD:{victim['output_path']}"], cwd=str(REPO),
-                         capture_output=True).stdout
+    raw = subprocess.run(
+        ["git", "show", f"HEAD:{victim['output_path']}"],
+        cwd=str(REPO),
+        capture_output=True,
+    ).stdout
     doc = json.loads(raw.decode("utf-8"))
-    doc.pop("sentinel", None)                       # break completion condition 5
+    doc.pop("sentinel", None)  # break completion condition 5
     mutant_errs = sr.validate_artifact(doc, victim["output_schema"])
-    good_errs = sr.validate_artifact(json.loads(raw.decode("utf-8")), victim["output_schema"])
+    good_errs = sr.validate_artifact(
+        json.loads(raw.decode("utf-8")), victim["output_schema"]
+    )
     fires, silent = bool(mutant_errs), not good_errs
-    print(f"CONTROL verifier: AUD-0020 with `sentinel` removed -> {len(mutant_errs)} error(s) "
-          f"{'FIRES' if fires else '** INERT **'}; unmodified -> {len(good_errs)} error(s) "
-          f"{'SILENT' if silent else 'OVER-FIRES'}")
+    print(
+        f"CONTROL verifier: AUD-0020 with `sentinel` removed -> {len(mutant_errs)} error(s) "
+        f"{'FIRES' if fires else '** INERT **'}; unmodified -> {len(good_errs)} error(s) "
+        f"{'SILENT' if silent else 'OVER-FIRES'}"
+    )
     if not (fires and silent):
-        print("FAILED:p2-verify the verifier does not discriminate; its PASSes mean nothing")
+        print(
+            "FAILED:p2-verify the verifier does not discriminate; its PASSes mean nothing"
+        )
         return 1
     if bad:
-        print(f"FAILED:p2-verify {bad}/{len(UNITS)} committed artifacts do not satisfy their contract")
+        print(
+            f"FAILED:p2-verify {bad}/{len(UNITS)} committed artifacts do not satisfy their contract"
+        )
         return 1
-    print(f"SUCCESS:p2-verify {len(UNITS)}/{len(UNITS)} committed blobs are non-empty, parse, and "
-          f"validate against the schema their CATALOG ROW declares")
+    print(
+        f"SUCCESS:p2-verify {len(UNITS)}/{len(UNITS)} committed blobs are non-empty, parse, and "
+        f"validate against the schema their CATALOG ROW declares"
+    )
     return 0
 
 

@@ -3,6 +3,7 @@
 Reads the two files' import statements directly. No graph, no SCC, no resolver -- just the source.
 Also stress-tests my own SCC from _audit_graph.py on a 3-cycle to rule out an instrument bug.
 """
+
 import ast
 from pathlib import Path
 
@@ -27,8 +28,10 @@ for c in cand:
             for a in node.names:
                 print(f"    line {node.lineno}: import {a.name}")
         elif isinstance(node, ast.ImportFrom):
-            print(f"    line {node.lineno}: from {'.' * node.level}{node.module or ''} import "
-                  f"{', '.join(a.name for a in node.names)}")
+            print(
+                f"    line {node.lineno}: from {'.' * node.level}{node.module or ''} import "
+                f"{', '.join(a.name for a in node.names)}"
+            )
 
 print()
 print("=== is tools/crcp inside my scanned set? ===")
@@ -41,8 +44,11 @@ for p in crcp[:12]:
 
 print()
 print("=== INSTRUMENT CONTROL: my SCC on a 3-cycle and a 2-cycle ===")
-import importlib.util
-s = importlib.util.spec_from_file_location("ag", REPO / "command-center/p2-wave/_audit_graph.py")
+import importlib.util  # noqa: E402  (deliberate late import: section-local probe)
+
+s = importlib.util.spec_from_file_location(
+    "ag", REPO / "command-center/p2-wave/_audit_graph.py"
+)
 # don't exec (it runs the full scan); re-implement the check inline instead using networkx-free DFS
 
 
@@ -57,7 +63,7 @@ def find_cycles(nodes, edges):
         stack.append(u)
         for v in adj[u]:
             if color.get(v, 0) == 1:
-                out.append(stack[stack.index(v):] + [v])
+                out.append(stack[stack.index(v) :] + [v])
             elif color.get(v, 0) == 0:
                 dfs(v, stack)
         stack.pop()
@@ -69,6 +75,8 @@ def find_cycles(nodes, edges):
     return out
 
 
-print(f"  2-cycle a<->b : {find_cycles(['a','b'], [('a','b'),('b','a')])}")
-print(f"  3-cycle a>b>c>a : {find_cycles(['a','b','c'], [('a','b'),('b','c'),('c','a')])}")
-print(f"  acyclic a>b   : {find_cycles(['a','b'], [('a','b')])}")
+print(f"  2-cycle a<->b : {find_cycles(['a', 'b'], [('a', 'b'), ('b', 'a')])}")
+print(
+    f"  3-cycle a>b>c>a : {find_cycles(['a', 'b', 'c'], [('a', 'b'), ('b', 'c'), ('c', 'a')])}"
+)
+print(f"  acyclic a>b   : {find_cycles(['a', 'b'], [('a', 'b')])}")

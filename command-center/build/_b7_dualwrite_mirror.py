@@ -12,6 +12,7 @@ file failing that precondition is REFUSED and reported, never overwritten.
 Usage:  python _b7_dualwrite_mirror.py            # dry run
         python _b7_dualwrite_mirror.py --apply
 """
+
 from __future__ import annotations
 
 import json
@@ -26,7 +27,9 @@ CANON = REPO / ".agents" / "skills"
 PROJ = REPO / "skills"
 
 applied = json.loads(
-    (REPO / "command-center" / "build" / "B5-reconcile-applied.json").read_text(encoding="utf-8")
+    (REPO / "command-center" / "build" / "B5-reconcile-applied.json").read_text(
+        encoding="utf-8"
+    )
 )
 
 
@@ -35,8 +38,11 @@ def norm(b: bytes) -> bytes:
 
 
 def head_blob(rel: str) -> bytes | None:
-    r = subprocess.run(["git", "show", f"HEAD:.agents/skills/{rel}"],
-                       capture_output=True, cwd=str(REPO))
+    r = subprocess.run(
+        ["git", "show", f"HEAD:.agents/skills/{rel}"],
+        capture_output=True,
+        cwd=str(REPO),
+    )
     return r.stdout if r.returncode == 0 else None
 
 
@@ -52,10 +58,14 @@ def main() -> int:
         if dst.exists():
             was = head_blob(rel)
             if was is None:
-                refused.append((rel, "projection exists but canonical had no HEAD blob"))
+                refused.append(
+                    (rel, "projection exists but canonical had no HEAD blob")
+                )
                 continue
             if norm(dst.read_bytes()) != norm(was):
-                refused.append((rel, "projection holds content unique vs canonical@HEAD"))
+                refused.append(
+                    (rel, "projection holds content unique vs canonical@HEAD")
+                )
                 continue
         ok.append(rel)
         if do:
@@ -66,12 +76,21 @@ def main() -> int:
     print(f"skipped (no projection dir): {len(skipped)}")
     for rel, why in skipped[:10]:
         print(f"   - {rel}  [{why}]")
-    print(f"REFUSED (projection has unique content -- needs a human merge): {len(refused)}")
+    print(
+        f"REFUSED (projection has unique content -- needs a human merge): {len(refused)}"
+    )
     for rel, why in refused:
         print(f"   ! {rel}  [{why}]")
     (REPO / "command-center" / "build" / "B7-dualwrite-mirror.json").write_text(
-        json.dumps({"applied": do, "mirrored": sorted(ok),
-                    "refused": sorted(refused), "skipped": sorted(skipped)}, indent=1),
+        json.dumps(
+            {
+                "applied": do,
+                "mirrored": sorted(ok),
+                "refused": sorted(refused),
+                "skipped": sorted(skipped),
+            },
+            indent=1,
+        ),
         encoding="utf-8",
     )
     return 0

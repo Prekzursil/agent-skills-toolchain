@@ -17,12 +17,16 @@ from collections import Counter
 from pathlib import Path
 
 REPO = Path("C:/Users/Prekzursil/source/ast-integrate")
-spec = importlib.util.spec_from_file_location("ru", REPO / "command-center/ready_units.py")
+spec = importlib.util.spec_from_file_location(
+    "ru", REPO / "command-center/ready_units.py"
+)
 ru = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ru)
 resolver = ru._load_resolver()
 
-catalog = json.loads((REPO / "command-center/WORK-UNIT-CATALOG.json").read_text(encoding="utf-8"))
+catalog = json.loads(
+    (REPO / "command-center/WORK-UNIT-CATALOG.json").read_text(encoding="utf-8")
+)
 units = catalog["work_units"] if isinstance(catalog, dict) else catalog
 
 suffixes = Counter()
@@ -42,7 +46,9 @@ for s, n in suffixes.most_common():
     print(f"  {s:14s} {n}")
 print(f"  NON-.json units (predicate degenerates to exists+size): {len(nonjson)}")
 
-print("\n--- B. how many of those already exist on disk, and what does the predicate say? ---")
+print(
+    "\n--- B. how many of those already exist on disk, and what does the predicate say? ---"
+)
 present = []
 for u in nonjson:
     fp = REPO / u["output_path"]
@@ -53,7 +59,9 @@ print(f"  present + non-empty: {len(present)}")
 for row in present[:15]:
     print(f"   {row[0]:11s} {row[2]:8d} B  delivered={row[3]} ({row[4]})")
 
-print("\n--- C. EXECUTE the false green on a scratch non-.json path (no real output_path touched) ---")
+print(
+    "\n--- C. EXECUTE the false green on a scratch non-.json path (no real output_path touched) ---"
+)
 rel = "command-center/p2-wave/_av2_tmp/_synthetic_artifact.md"
 fp = REPO / rel
 fp.write_text("x" * 2000, encoding="utf-8")
@@ -62,7 +70,8 @@ donor = nonjson[0] if nonjson else {}
 unit = {
     "id": "AV2-NONJSON",
     "output_path": rel,
-    "output_schema": donor.get("output_schema") or "command-center/schema/receipt.schema.json",
+    "output_schema": donor.get("output_schema")
+    or "command-center/schema/receipt.schema.json",
     "state": "BLOCKED",
 }
 ok, why = ru.artifact_delivered(unit, resolver)

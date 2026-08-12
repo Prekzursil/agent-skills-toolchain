@@ -19,16 +19,22 @@ REPO = Path("C:/Users/Prekzursil/source/ast-integrate")
 CAT = REPO / "command-center/WORK-UNIT-CATALOG.json"
 units = json.loads(CAT.read_text(encoding="utf-8"))["work_units"]
 by_id = {u["id"]: u for u in units}
-ready = json.loads((REPO / "command-center/READY-UNITS.json").read_text("utf-8"))["ready_units"]
+ready = json.loads((REPO / "command-center/READY-UNITS.json").read_text("utf-8"))[
+    "ready_units"
+]
 
 
 def git(*a: str, check=True):
-    return subprocess.run(["git", *a], cwd=str(REPO), capture_output=True, text=True, check=check)
+    return subprocess.run(
+        ["git", *a], cwd=str(REPO), capture_output=True, text=True, check=check
+    )
 
 
 print("=== Q12: DoD4 blocker census, my own count ===")
 bp = REPO / "command-center/P2-BLOCKED-UNITS.json"
-print(f"P2-BLOCKED-UNITS.json exists={bp.is_file()} size={bp.stat().st_size if bp.is_file() else 0}")
+print(
+    f"P2-BLOCKED-UNITS.json exists={bp.is_file()} size={bp.stat().st_size if bp.is_file() else 0}"
+)
 hist: dict[str, int] = {}
 rev = 0
 for uid in ready:
@@ -57,14 +63,30 @@ print(f"has a `state` field: {'state' in doc}   value={doc.get('state')!r}")
 print(f"declared output_schema: {w['output_schema']}")
 
 print("\n=== Q14: did receipt.schema.json pre-exist commit 03e565ea? ===")
-r = git("cat-file", "-s", "03e565ea~1:command-center/schema/receipt.schema.json", check=False)
+r = git(
+    "cat-file",
+    "-s",
+    "03e565ea~1:command-center/schema/receipt.schema.json",
+    check=False,
+)
 print(f"  size at 03e565ea~1: {r.stdout.strip() or r.stderr.strip()}")
-r2 = git("log", "--diff-filter=A", "--format=%h %ad %s", "--date=short", "--",
-         "command-center/schema/receipt.schema.json", check=False)
+r2 = git(
+    "log",
+    "--diff-filter=A",
+    "--format=%h %ad %s",
+    "--date=short",
+    "--",
+    "command-center/schema/receipt.schema.json",
+    check=False,
+)
 print(f"  add-commit: {r2.stdout.strip()[:160]}")
 
-print("\n=== Q15: fairness -- is the meta-schema type-appropriate for each meta unit? ===")
-import importlib.util, sys  # noqa: E402
+print(
+    "\n=== Q15: fairness -- is the meta-schema type-appropriate for each meta unit? ==="
+)
+import importlib.util  # noqa: E402  (deliberate late import: section-local probe)
+import sys  # noqa: E402
+
 sp = REPO / "platform/lib/schema_resolver.py"
 spec = importlib.util.spec_from_file_location("schema_resolver", sp)
 sr = importlib.util.module_from_spec(spec)
@@ -82,9 +104,13 @@ for u in units:
     if res.kind not in ("meta-schema-url", "meta-schema-mirror"):
         continue
     op = str(u.get("output_path") or "")
-    is_schema_output = op.endswith(".schema.json") or "/schema/" in op or "/contracts/" in op
+    is_schema_output = (
+        op.endswith(".schema.json") or "/schema/" in op or "/contracts/" in op
+    )
     (appropriate if is_schema_output else category_error).append((u["id"], op))
 print(f"meta-declaring units total          : {len(appropriate) + len(category_error)}")
 print(f"  output IS a schema/contract (ok-ish): {len(appropriate)}")
-print(f"  output is NOT a schema (category error): {len(category_error)} -> {category_error}")
+print(
+    f"  output is NOT a schema (category error): {len(category_error)} -> {category_error}"
+)
 print("\nDONE:av-probe4")

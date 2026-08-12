@@ -20,6 +20,7 @@ checkout that .gitignore already excludes under skills/ (line 40-41).
 Usage:  python _b5_reconcile.py            # dry run
         python _b5_reconcile.py --apply
 """
+
 from __future__ import annotations
 
 import json
@@ -31,7 +32,9 @@ REPO = Path(r"C:/Users/Prekzursil/source/ast-integrate")
 DAILY = Path(r"C:/Users/Prekzursil/.claude/skills.daily")
 DEST = REPO / ".agents" / "skills"
 BUCKETS = json.loads(
-    (REPO / "command-center" / "build" / "B2-reconcile-buckets.json").read_text(encoding="utf-8")
+    (REPO / "command-center" / "build" / "B2-reconcile-buckets.json").read_text(
+        encoding="utf-8"
+    )
 )
 
 # vendored third-party checkouts: present live, deliberately absent from git.
@@ -62,7 +65,11 @@ def classify(rel: str) -> str | None:
 
 
 def collect() -> dict[str, list[str]]:
-    plan: dict[str, list[str]] = {"LEFT-ONLY-FILE": [], "LEFT-AHEAD": [], "UI-AUDIT-FIX": []}
+    plan: dict[str, list[str]] = {
+        "LEFT-ONLY-FILE": [],
+        "LEFT-AHEAD": [],
+        "UI-AUDIT-FIX": [],
+    }
     for rel in BUCKETS.get("LEFT-ONLY-FILE", []):
         if classify(rel):
             plan["LEFT-ONLY-FILE"].append(rel)
@@ -94,10 +101,14 @@ def main() -> int:
             copied.append(rel)
     print(f"\ntotal {'copied' if apply else 'would copy'}: {len(copied)}")
     excluded = [r for r in BUCKETS.get("LEFT-ONLY-FILE", []) if not classify(r)]
-    print(f"deliberately NOT copied (vendored clone / nested self-copy): {len(excluded)}")
+    print(
+        f"deliberately NOT copied (vendored clone / nested self-copy): {len(excluded)}"
+    )
     (REPO / "command-center" / "build" / "B5-reconcile-applied.json").write_text(
-        json.dumps({"applied": apply, "copied": sorted(copied),
-                    "excluded": sorted(excluded)}, indent=1),
+        json.dumps(
+            {"applied": apply, "copied": sorted(copied), "excluded": sorted(excluded)},
+            indent=1,
+        ),
         encoding="utf-8",
     )
     return 0

@@ -13,9 +13,13 @@ import subprocess
 from pathlib import Path
 
 R = Path("C:/Users/Prekzursil/source/ast-integrate")
-units = json.loads((R / "command-center/WORK-UNIT-CATALOG.json").read_text("utf-8"))["work_units"]
+units = json.loads((R / "command-center/WORK-UNIT-CATALOG.json").read_text("utf-8"))[
+    "work_units"
+]
 by = {x["id"]: x for x in units}
-ready = json.loads((R / "command-center/READY-UNITS.json").read_text("utf-8"))["ready_units"]
+ready = json.loads((R / "command-center/READY-UNITS.json").read_text("utf-8"))[
+    "ready_units"
+]
 
 h = collections.Counter(by[i]["execution_substrate"] for i in ready)
 print(f"READY={len(ready)}  execution_substrate histogram = {dict(h)}")
@@ -26,7 +30,9 @@ print(f"{rel}: exists={bp.is_file()} worktree_bytes={bp.stat().st_size}")
 sha = subprocess.run(
     ["git", "ls-files", "-s", "--", rel], cwd=str(R), capture_output=True, text=True
 ).stdout.split()[1]
-blob = subprocess.run(["git", "cat-file", "-p", sha], cwd=str(R), capture_output=True).stdout
+blob = subprocess.run(
+    ["git", "cat-file", "-p", sha], cwd=str(R), capture_output=True
+).stdout
 crlf = blob.count(b"\r\n")
 print(f"  blob_bytes={len(blob)} CRLF={crlf}")
 d = json.loads(blob.decode("utf-8"))
@@ -37,8 +43,10 @@ for k in ("ready_count", "reviewer_gated_count", "substrate_histogram"):
 print(f"\nRES-0001 in READY set: {'RES-0001' in ready}")
 print(f"IMP-0433 in READY set: {'IMP-0433' in ready}")
 meta_ready = [
-    i for i in ready
-    if by[i]["output_schema"] in (
+    i
+    for i in ready
+    if by[i]["output_schema"]
+    in (
         "https://json-schema.org/draft/2020-12/schema",
         "command-center/schema/meta/json-schema-draft.json",
         "command-center/schema/_meta/json-schema-2020-12.json",

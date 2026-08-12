@@ -41,18 +41,19 @@ M5_OLD = (
     "        print()\n"
 )
 M5_NEW = (
-    "    if args.apply:\n"
-    '        print("running --self-test before any write (P4)")\n'
+    '    if args.apply:\n        print("running --self-test before any write (P4)")\n'
 )
 
-M6_OLD = "    return deploy(source, target, apply=args.apply, only=set(args.only) or None)\n"
+M6_OLD = (
+    "    return deploy(source, target, apply=args.apply, only=set(args.only) or None)\n"
+)
 M6_NEW = "    return deploy(source, target, apply=True, only=set(args.only) or None)\n"
 
 P2_OLD = (
     "    if not (target / skill).is_dir():\n"
     '        return "P2 would resurrect a skill absent from the curated tree"\n'
 )
-P2_NEW = "    if False:\n        return \"disabled\"\n"
+P2_NEW = '    if False:\n        return "disabled"\n'
 
 MUTANTS: list[tuple[str, str | None, str | None]] = [
     ("CONTROL unmutated copy (must be GREEN on both probes)", None, None),
@@ -66,12 +67,16 @@ def build_sandbox(td: Path, text: str) -> Path:
     (td / "scripts").mkdir(parents=True, exist_ok=True)
     tool = td / "scripts" / "deploy-skills-daily.py"
     tool.write_text(text, encoding="utf-8")
-    shutil.copytree(REPO / "ci", td / "ci", ignore=shutil.ignore_patterns("__pycache__"))
+    shutil.copytree(
+        REPO / "ci", td / "ci", ignore=shutil.ignore_patterns("__pycache__")
+    )
     return tool
 
 
 def run(cmd: list[str], cwd: Path) -> tuple[int, str]:
-    r = subprocess.run(cmd, cwd=str(cwd), capture_output=True, text=True, encoding="utf-8")
+    r = subprocess.run(
+        cmd, cwd=str(cwd), capture_output=True, text=True, encoding="utf-8"
+    )
     out = ((r.stdout or "") + (r.stderr or "")).strip().splitlines()
     return r.returncode, (out[-1] if out else "")
 
@@ -83,7 +88,9 @@ def main() -> int:
         text = base
         if old is not None:
             if old not in text:
-                rows.append((name, "SKIP", "SKIP", "anchor not found -- mutation not applied"))
+                rows.append(
+                    (name, "SKIP", "SKIP", "anchor not found -- mutation not applied")
+                )
                 continue
             text = text.replace(old, new or "")
         with tempfile.TemporaryDirectory() as tdname:
@@ -91,9 +98,17 @@ def main() -> int:
             tool = build_sandbox(td, text)
             rc_a, tail_a = run([sys.executable, str(tool), "--self-test"], td)
             rc_b, tail_b = run(
-                [sys.executable, "-m", "pytest",
-                 str(td / "ci" / "tests" / "test_deploy_skills_daily.py"),
-                 "-q", "-k", KSELECT, "-p", "no:cacheprovider"],
+                [
+                    sys.executable,
+                    "-m",
+                    "pytest",
+                    str(td / "ci" / "tests" / "test_deploy_skills_daily.py"),
+                    "-q",
+                    "-k",
+                    KSELECT,
+                    "-p",
+                    "no:cacheprovider",
+                ],
                 td,
             )
         a = "GREEN" if rc_a == 0 else "RED"
@@ -109,21 +124,31 @@ def main() -> int:
 
     control = rows[0]
     if control[1] != "GREEN" or control[2] != "GREEN":
-        print("\nFAILED:i1-p4-mutation the CONTROL is not green on both probes; "
-              "the harness is measuring its sandbox, not the mutations")
+        print(
+            "\nFAILED:i1-p4-mutation the CONTROL is not green on both probes; "
+            "the harness is measuring its sandbox, not the mutations"
+        )
         return 1
 
     survivors_b = [r[0] for r in rows[1:] if r[2] != "RED"]
     survivors_a = [r[0] for r in rows[1:] if r[1] != "RED"]
-    print(f"\nprobe A (tool --self-test) survivors: {len(survivors_a)}/{len(rows) - 1} "
-          f"{survivors_a}")
-    print(f"probe B (new ci/tests suite) survivors: {len(survivors_b)}/{len(rows) - 1} "
-          f"{survivors_b}")
+    print(
+        f"\nprobe A (tool --self-test) survivors: {len(survivors_a)}/{len(rows) - 1} "
+        f"{survivors_a}"
+    )
+    print(
+        f"probe B (new ci/tests suite) survivors: {len(survivors_b)}/{len(rows) - 1} "
+        f"{survivors_b}"
+    )
     if survivors_b:
-        print(f"\nFAILED:i1-p4-mutation new suite left {len(survivors_b)} mutant(s) alive")
+        print(
+            f"\nFAILED:i1-p4-mutation new suite left {len(survivors_b)} mutant(s) alive"
+        )
         return 1
-    print("\nSUCCESS:i1-p4-mutation new suite killed every mutant; "
-          f"the pre-existing self-test left {len(survivors_a)} alive")
+    print(
+        "\nSUCCESS:i1-p4-mutation new suite killed every mutant; "
+        f"the pre-existing self-test left {len(survivors_a)} alive"
+    )
     return 0
 
 

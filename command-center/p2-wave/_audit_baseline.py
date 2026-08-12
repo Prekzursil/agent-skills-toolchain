@@ -2,6 +2,7 @@
 
 Reads git BLOBS, not the worktree, so sibling lanes landing work afterwards cannot skew it.
 """
+
 import json
 import subprocess
 from pathlib import Path
@@ -11,8 +12,13 @@ REV = "03e565ea~1"
 
 
 def git(*a):
-    return subprocess.run(["git", "-C", str(REPO), *a], capture_output=True,
-                          text=True, encoding="utf-8", errors="replace")
+    return subprocess.run(
+        ["git", "-C", str(REPO), *a],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
 
 
 cat_blob = git("cat-file", "-p", f"{REV}:command-center/WORK-UNIT-CATALOG.json")
@@ -41,6 +47,12 @@ for u in units:
 
 print(f"  artifacts tracked & non-empty at baseline : {present}   (builder: 44)")
 print(f"  state tally at baseline                   : {tally}")
-print(f"     (builder claimed {{'BLOCKED': 42, 'FAILED': 1, '<no-state-field>': 1}})")
-notdone = sum(v for k, v in tally.items() if k.upper() in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"})
-print(f"  self-declared NOT-done at baseline        : {notdone} of {present}   (builder: 43 of 44)")
+print("     (builder claimed {'BLOCKED': 42, 'FAILED': 1, '<no-state-field>': 1})")
+notdone = sum(
+    v
+    for k, v in tally.items()
+    if k.upper() in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}
+)
+print(
+    f"  self-declared NOT-done at baseline        : {notdone} of {present}   (builder: 43 of 44)"
+)

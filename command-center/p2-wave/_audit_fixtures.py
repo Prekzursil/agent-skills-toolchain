@@ -4,6 +4,7 @@ The builder's claim is 12/12 negative fixtures INVALID + 1 positive VALID, each 
 its OWN mutation (attribution). I re-validate from disk with my own loop and print the actual error
 paths so attribution can be checked rather than trusted.
 """
+
 import importlib.util
 import json
 import sys
@@ -37,7 +38,7 @@ for f in files:
     errs = mod.validate_artifact(doc, SCHEMA)
     kind = "POSITIVE" if "positive" in f.name else "negative"
     if kind == "POSITIVE":
-        pos_ok = (len(errs) == 0)
+        pos_ok = len(errs) == 0
     else:
         neg_total += 1
         if errs:
@@ -45,15 +46,21 @@ for f in files:
     first = ""
     if errs:
         e = errs[0]
-        loc = getattr(e, "json_path", None) or "/".join(str(x) for x in getattr(e, "absolute_path", []))
+        loc = getattr(e, "json_path", None) or "/".join(
+            str(x) for x in getattr(e, "absolute_path", [])
+        )
         msg = str(getattr(e, "message", e))
         first = f"{loc}: {msg[:78]}"
     print(f"  {f.name:<26} {kind:<9} errors={len(errs):<3} {first}")
 
 print()
 print(f"  positive fixture VALID      : {pos_ok}          (builder: VALID)")
-print(f"  negatives INVALID           : {neg_invalid}/{neg_total}      (builder: 12/12)")
+print(
+    f"  negatives INVALID           : {neg_invalid}/{neg_total}      (builder: 12/12)"
+)
 
 print()
-print("ATTRIBUTION GUARD (my own): a negative only proves its condition if the POSITIVE base is clean.")
+print(
+    "ATTRIBUTION GUARD (my own): a negative only proves its condition if the POSITIVE base is clean."
+)
 print(f"  base clean? {pos_ok}")

@@ -15,13 +15,16 @@ grafted in ahead of "## Common Mistakes", which is where it sits in the live fil
 
 Written to BOTH roots so ci/check_skill_dual_write.py --strict-parity stays satisfied.
 """
+
 from __future__ import annotations
 
 import sys
 from pathlib import Path
 
 REPO = Path(r"C:/Users/Prekzursil/source/ast-integrate")
-LIVE = Path(r"C:/Users/Prekzursil/.claude/skills.daily/schrodinger-maestro-driver/SKILL.md")
+LIVE = Path(
+    r"C:/Users/Prekzursil/.claude/skills.daily/schrodinger-maestro-driver/SKILL.md"
+)
 PROJ = REPO / "skills" / "schrodinger-maestro-driver" / "SKILL.md"
 CANON = REPO / ".agents" / "skills" / "schrodinger-maestro-driver" / "SKILL.md"
 

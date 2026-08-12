@@ -72,7 +72,12 @@ def main() -> int:
     print("-" * 104)
     print("PHASE-0 READY:", sum(1 for u in ready if phase_key(u.get("phase"))[0] == 0))
     ctl = sorted(["10", "2", "0", "2A"], key=phase_key)
-    print("CONTROL phase-sort:", ctl, "->", "OK" if ctl == ["0", "2", "2A", "10"] else "BROKEN")
+    print(
+        "CONTROL phase-sort:",
+        ctl,
+        "->",
+        "OK" if ctl == ["0", "2", "2A", "10"] else "BROKEN",
+    )
     return 0
 
 
