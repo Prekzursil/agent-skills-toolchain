@@ -391,6 +391,21 @@ All six headline gates re-run **together at HEAD**, whole-repo ruff filtered to 
 and blob-level CI-parity over the 21 `.py` files that landed after the last sweep with a control
 that fired. Results in §1. Nobody had done this; each lane verified itself at its own commit.
 
+Post-commit, my own six blobs measure **0 CRLF** each (binary `git cat-file` reads) — the LF form
+CI checks out. Getting that number cost **two more self-caught detector failures**, recorded
+because this wave's dominant lesson is that instruments lie before code does:
+
+1. The first probe piped `git cat-file -p` through PowerShell's `Out-String`, which re-joins the
+   pipeline with CRLF. It reported 415/339/962 CRLF on files git had *just* said were LF in the
+   index. Self-contradicting output is a detector failure, not a finding — replaced with binary
+   reads, never reported as a result.
+2. The replacement's **control predicate was wrong**: it asserted every worktree copy is CRLF, but
+   four of the six were written LF by the editing tool, so the control read `False` and the script
+   printed `FAILED`. The counter is nonetheless proven able to see CRLF — it returned 962 on the
+   two genuinely-CRLF worktree copies. The correct control is "at least one known-CRLF file counts
+   non-zero", which holds. **A failing control invalidates the verdict, not the reading** — but
+   only once you have checked which of the two is wrong.
+
 ### Deliberately NOT fixed, with the reason
 
 - **`measure-guard` suite floor** (C8/D10) — needs an edit to the twice-swept `quality.yml`
