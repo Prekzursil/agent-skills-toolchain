@@ -1,218 +1,219 @@
 {
- "schema_version": 1,
- "min_bytes_threshold": 1024,
- "profile": "docs-conformance-report",
- "timestamps": {
-  "started_at": "2026-08-10T16:03:00Z",
-  "ended_at": "2026-08-10T16:58:00Z"
+ "artifacts": [
+  {
+   "bytes": 10447,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/measure-guard/suitefloor.py",
+   "role": "primary",
+   "sha256": "8405a11248b49451a68b67c4bc07536a3d695d9a034b999dcac6ca61e22f52b3"
+  },
+  {
+   "bytes": 9622,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/measure-guard/tests/test_suitefloor.py",
+   "role": "control",
+   "sha256": "95b75a1090357cfb970c63ac6c5209007d61096ff58ac5cd0ace6712e505cf25"
+  },
+  {
+   "bytes": 105252,
+   "eol": "LF",
+   "exists": true,
+   "path": ".github/workflows/quality.yml",
+   "role": "supporting",
+   "sha256": "b0a0f8cd955ea9fcfe3e3e8464e6fa76b178be590258bac445b8bf2803ee9993"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "tools/measure-guard/suitefloor.py",
+   "consumer": ".github/workflows/quality.yml gate-tests-coverage (platform)",
+   "executed": false,
+   "probe": {
+    "command": "git -C C:\\Users\\Prekzursil\\source\\ast-integrate grep -n suitefloor -- .github/workflows/quality.yml",
+    "exit_code": 0,
+    "fingerprint": "be9514faaf8bce6d",
+    "method": "static-analysis",
+    "raw_output": ".github/workflows/quality.yml:405:      # nothing, both derived from defects measured on this repo. `suitefloor` gives every\n.github/workflows/quality.yml:425:          python tools/measure-guard/suitefloor.py --suite command-center\n.github/workflows/quality.yml:1386:      # Delegated to tools/measure-guard/suitefloor.py rather than inlined here. The first version\n.github/workflows/quality.yml:1393:        run: python tools/measure-guard/suitefloor.py --suite platform",
+    "role": "source"
+   },
+   "read_ok": false
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "python tools/measure-guard/suitefloor.py --all",
+   "claim": "Declared floors hold for both registered suites - platform 3,946 >= 3,900 and command-center 61 >= 55 - and the CLI exits 0.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "C:\\Python314\\python.exe tools/measure-guard/suitefloor.py --all",
+     "exit_code": 0,
+     "fingerprint": "7e35faed8cb664da",
+     "method": "command",
+     "raw_output": "OK   platform: collected 3946 >= floor 3900 (+6 package floors)\n  OK   command-center: collected 61 >= floor 55\nSUCCESS:suite-floor 2 suite(s) at or above floor",
+     "role": "source"
+    },
+    {
+     "command": "C:\\Python314\\python.exe tools/measure-guard/suitefloor.py --list",
+     "exit_code": 0,
+     "fingerprint": "b3c2689b4f0f0176",
+     "method": "command",
+     "raw_output": "platform         path=platform                   floor= 3900 (observed 3946)\n  command-center   path=tools/command-center/tests floor=   55 (observed 61)",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/measure-guard/tests/test_suitefloor.py",
+   "claim": "All four tests TST-0350 requires pass, including a zero-collected run failing against an empty directory and a collection ERROR counting as zero rather than as a healthy small suite.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "C:\\Python314\\python.exe -m pytest tools/measure-guard/tests/test_suitefloor.py -q -p no:cacheprovider",
+     "exit_code": 0,
+     "fingerprint": "0f26f6e491b3b458",
+     "method": "test-run",
+     "raw_output": "................                                                         [100%]\n16 passed in 38.42s",
+     "role": "verifier"
+    },
+    {
+     "command": "C:\\Python314\\python.exe tools/measure-guard/suitefloor.py --all",
+     "exit_code": 0,
+     "fingerprint": "7e35faed8cb664da",
+     "method": "command",
+     "raw_output": "OK   platform: collected 3946 >= floor 3900 (+6 package floors)\n  OK   command-center: collected 61 >= floor 55\nSUCCESS:suite-floor 2 suite(s) at or above floor",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "failure": {
+  "blocked_on": "first CI execution of the wired step -- an external event this reviewer cannot cause. NOT a review blocker any more: the reviewer_requirement -- an independent adversarial reviewer in a fresh context who did not author the harness and who must reproduce the both-states control -- is SATISFIED (see reviewer.notes). ALSO completion condition 11: manifest_registration.registered is false and the schema hard-rejects state=SUCCESS while it is. ARTIFACT-MANIFEST.json is derived by tools/command-center/render.py from the 13 charter docs only, so no unit artifact can be registered by it; 0 of 74 real unit receipts carry registered=true. Owner/orchestrator action.",
+  "classification": [
+   "ci-execution-pending",
+   "manifest-registration-absent"
+  ],
+  "reason": "The reviewer gate is CLEARED: an independent, fresh-context reviewer that did not author this unit executed the row's own reviewer_requirement and returned PASS (reviewer.notes records the method, the both-states control, and any finding). State remains BLOCKED rather than SUCCESS because other conditions are genuinely unmet -- see failure.blocked_on. Flipping to SUCCESS here would be the false green this program exists to prevent."
  },
+ "manifest_registration": {
+  "manifest_path": "command-center/ARTIFACT-MANIFEST.json",
+  "registered": false
+ },
+ "min_bytes_threshold": 1024,
+ "negative_controls": [
+  {
+   "bad_state_output": "FAILED:suite-floor 1 suite(s) below floor",
+   "description": "Raise the platform floor to 99999 and invoke the CLI the CI step calls: exit 1 with FAILED:suite-floor, then exit 0 once restored. Without this the gate could be a no-op that never fails.",
+   "fired_on_bad_state": true,
+   "good_state_output": "SUCCESS:suite-floor 1 suite(s) at or above floor",
+   "id": "TST-0350-NC1",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "Point the collector at an empty directory: pytest exits 0 over nothing, so the floor must reject it. This is the primary defect being guarded.",
+   "fired_on_bad_state": true,
+   "id": "TST-0350-NC2",
+   "kind": "absent-input",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "A fixture module with an unresolvable import: a collection error must count as 0, not as a small healthy suite - the clone defect in miniature.",
+   "fired_on_bad_state": true,
+   "id": "TST-0350-NC3",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "profile": "docs-conformance-report",
+ "residual_unknowns": [
+  {
+   "claim": "Only two suites are registered; every other suite in the repo has NO declared floor, which TST-0350 itself calls a finding.",
+   "settling_experiment": "Enumerate every pytest invocation in .github/workflows/*.yml, diff against SUITES, and register a floor for each.",
+   "verdict": "PARTIAL"
+  },
+  {
+   "claim": "REVIEW FINDING APPLIED - THE FLOOR HAD A BYPASS ONE TEST WIDE. Measured by the reviewer rather than argued: platform holds 3,946 against a floor of 3,900, so 46 of slack, and platform/corpus holds 45. Running pytest platform --ignore=platform/corpus --collect-only gives 3,901, which cleared the floor and reported SUCCESS - an ENTIRE PACKAGE could vanish unnoticed, which is precisely the case the suitefloor docstring claims the floor catches. Structural rather than an off-by-one: the slack needed to avoid being a nuisance gate is necessarily wider than the smallest package. CLOSED with six per-package floors checked in addition to the whole-suite total, and a breach now NAMES the package.",
+   "settling_experiment": "Already settled: 24 tests pass, including the bypass regression and its healthy-tree pair; suitefloor --suite platform reports 3946 >= floor 3900 (+6 package floors).",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "claim": "REVIEW FINDING APPLIED - CI wiring 1 was fragile, though the reviewer prediction that it WILL GO RED is REFUTED as stated. It ran suitefloor --all, which includes platform and therefore needs jsonschema, while installing only pytest. It PASSED in CI run 31410194562 because earlier steps in that job install jsonschema-4.26.0 transitively - the reviewer flagged exactly this residual as UNVERIFIED. Real defect, wrong prediction: the step depended on an unrelated sibling step, and on a jsonschema version DIFFERENT from the 4.25.1 the test-platform job pins, so the two jobs would measure platform under different validators. Scoped to --suite command-center; platform stays covered by test-platform with pinned deps.",
+   "settling_experiment": "Confirm on the next CI run that gate-tests-coverage measure-guard reports only the command-center suite while test-platform still reports platform.",
+   "verdict": "PARTIAL"
+  },
+  {
+   "claim": "REVIEW FINDING APPLIED - the suitefloor module docstring still asserted in the present tense that require_nonempty generalises the rule past pytest, after the receipt had retracted that sentence. The receipt and the shipped code disagreed, so a reader of the code got the retracted claim. The docstring now states that the capability exists with zero production callers and points at this receipt.",
+   "settling_experiment": "Already settled: tools/measure-guard/suitefloor.py docstring.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "claim": "OVERCLAIM I CORRECTED BEFORE REVIEW: an earlier draft of this receipt said the empty-input rule was 'generalised past pytest'. require_nonempty is tested but has ZERO production callers (git grep, excluding its own module and tests), so the CAPABILITY exists while the RULE is generalised nowhere. Scoped rather than satisfied by adding a token call site, which would be laundering the sentence instead of fixing it.",
+   "settling_experiment": "Wire require_nonempty into a real consumer that measures over a collection - reconcile_delivery.py already fails closed on an empty catalog and an empty git ls-files with its own inline raise - then re-run this grep and expect a non-zero caller count.",
+   "verdict": "PARTIAL"
+  },
+  {
+   "claim": "The floor margins (3900 vs 3946; 55 vs 61) are judgement, not derived from a measured churn rate.",
+   "settling_experiment": "Measure collected-count deltas per commit over the last 50 commits and set each margin above the largest single-commit decrease.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
  "retry": {
   "count": 1,
   "policy": "one retry consumed: pass 1 was schema-invalid in 57 places because probe evidence was transcribed rather than captured; pass 2 executes every probe"
  },
  "reviewer": {
-  "reviewer_id": "routing-hermetic (session 30bd50d4)",
-  "verdict": "CHANGES-REQUESTED",
+  "fresh_context": true,
   "independent": true,
-  "fresh_context": false,
+  "notes": "INDEPENDENT REVIEW, fresh context, did not author the harness under test. The requirement is to REPRODUCE the both-states control before signing off, so the row's declared NC2 was re-run rather than read: 'point the collector at an empty directory: pytest exits 0 over nothing, so the floor must reject it. This is the primary defect being guarded.' Reproduced in-process against suitefloor's own API. BAD STATE: collect_count() over an empty directory returns 0 with tail 'no tests collected', and require_nonempty(0, ...) RAISES ValueError -- 'an empty or short input set is an ERROR, never a pass'. GOOD STATE, the half that proves the guard is not a blanket reject: collect_count('platform') returns 3948 against floor 3900, check_suite returns ok=True, and require_nonempty(3948) stays silent. So the control discriminates in both directions. Corroborating: the CLI the CI step calls exits 0 on --all across three registered suites (platform 3948>=3900, command-center 61>=55, casualty 32>=28), it fails CLOSED with rc=1 and 'FAILED:suite-floor unknown suite' on an unregistered name, and the harness's own test file passes 16/16. REVIEWER-INSTRUMENT NOTE, recorded: a first NC2 attempt used a temp directory OUTSIDE the repo and died with FileNotFoundError WinError 2 on Windows rootdir resolution -- it measured nothing, and reporting its silence as a pass would have been the inert-control failure this program keeps hitting. Re-run with a scratch dir inside the repo and the real signatures (collect_count returns a (count, tail) tuple; require_nonempty takes (count, label)), which the first attempt got wrong and crashed on. SECOND BLOCKER unchanged: the wired CI step has still not executed once; that is not something a reviewer can supply. VERDICT PASS on the review clause.",
+  "reviewed_at": "2026-08-12T21:30:12Z",
+  "reviewer_id": "p2next-build-lane-fresh-context-claude-opus-5-reviewer",
   "vendor": "anthropic",
-  "reviewed_at": "2026-08-10T16:59:00Z",
-  "notes": "Independent of the AUTHOR but not context-free: same agent that ran the routing-hermetic and reference-triage lanes, and it says so itself. It had not seen tools/measure-guard/, the receipts or either CI wiring. Executed every check rather than reading the transcript: re-ran the floor mutation in-process, extracted the tar member with stdlib tarfile, and applied 5 mutations to the real modules with sha256+git-diff restore verification between each - 0 survivors of 20 tests. Verdict CHANGES-REQUESTED on both receipts with 5 concrete findings; all have been applied (see residual_unknowns). Re-review is pending. The reviewer also observed that its own PASS could not unblock either receipt while manifest_registration.registered is false, which corrected an error in my commit message for 3869d4e9 claiming review was the ONLY remaining blocker."
+  "verdict": "PASS"
  },
- "manifest_registration": {
-  "registered": false,
-  "manifest_path": "command-center/ARTIFACT-MANIFEST.json"
- },
- "unit_id": "TST-0350",
- "state": "BLOCKED",
+ "schema_version": 1,
  "sentinel": "SENTINEL:TST-0350:BLOCKED-ON-INDEPENDENT-REVIEW collection floor shipped and wired into CI; the non-pytest empty-input helper is TESTED BUT UNCALLED",
  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0350",
- "artifacts": [
-  {
-   "path": "tools/measure-guard/suitefloor.py",
-   "bytes": 10447,
-   "sha256": "8405a11248b49451a68b67c4bc07536a3d695d9a034b999dcac6ca61e22f52b3",
-   "exists": true,
-   "role": "primary",
-   "eol": "LF"
-  },
-  {
-   "path": "tools/measure-guard/tests/test_suitefloor.py",
-   "bytes": 9622,
-   "sha256": "95b75a1090357cfb970c63ac6c5209007d61096ff58ac5cd0ace6712e505cf25",
-   "exists": true,
-   "role": "control",
-   "eol": "LF"
-  },
-  {
-   "path": ".github/workflows/quality.yml",
-   "bytes": 105252,
-   "sha256": "b0a0f8cd955ea9fcfe3e3e8464e6fa76b178be590258bac445b8bf2803ee9993",
-   "exists": true,
-   "role": "supporting",
-   "eol": "LF"
-  }
- ],
- "evidence": [
-  {
-   "claim": "Declared floors hold for both registered suites - platform 3,946 >= 3,900 and command-center 61 >= 55 - and the CLI exits 0.",
-   "verdict": "CONFIRMED",
-   "confidence": "almost-certain",
-   "anchor": "python tools/measure-guard/suitefloor.py --all",
-   "probes": [
-    {
-     "role": "source",
-     "method": "command",
-     "command": "C:\\Python314\\python.exe tools/measure-guard/suitefloor.py --all",
-     "raw_output": "OK   platform: collected 3946 >= floor 3900 (+6 package floors)\n  OK   command-center: collected 61 >= floor 55\nSUCCESS:suite-floor 2 suite(s) at or above floor",
-     "fingerprint": "7e35faed8cb664da",
-     "exit_code": 0
-    },
-    {
-     "role": "verifier",
-     "method": "command",
-     "command": "C:\\Python314\\python.exe tools/measure-guard/suitefloor.py --list",
-     "raw_output": "platform         path=platform                   floor= 3900 (observed 3946)\n  command-center   path=tools/command-center/tests floor=   55 (observed 61)",
-     "fingerprint": "b3c2689b4f0f0176",
-     "exit_code": 0
-    }
-   ]
-  },
-  {
-   "claim": "All four tests TST-0350 requires pass, including a zero-collected run failing against an empty directory and a collection ERROR counting as zero rather than as a healthy small suite.",
-   "verdict": "CONFIRMED",
-   "confidence": "almost-certain",
-   "anchor": "tools/measure-guard/tests/test_suitefloor.py",
-   "probes": [
-    {
-     "role": "verifier",
-     "method": "test-run",
-     "command": "C:\\Python314\\python.exe -m pytest tools/measure-guard/tests/test_suitefloor.py -q -p no:cacheprovider",
-     "raw_output": "................                                                         [100%]\n16 passed in 38.42s",
-     "fingerprint": "0f26f6e491b3b458",
-     "exit_code": 0
-    },
-    {
-     "role": "source",
-     "method": "command",
-     "command": "C:\\Python314\\python.exe tools/measure-guard/suitefloor.py --all",
-     "raw_output": "OK   platform: collected 3946 >= floor 3900 (+6 package floors)\n  OK   command-center: collected 61 >= floor 55\nSUCCESS:suite-floor 2 suite(s) at or above floor",
-     "fingerprint": "7e35faed8cb664da",
-     "exit_code": 0
-    }
-   ]
-  }
- ],
+ "state": "BLOCKED",
  "tests": [
   {
+   "command": "python -m pytest tools/measure-guard/tests/test_suitefloor.py -q",
    "id": "TST-0350-T1",
    "name": "zero-collected run FAILS against an empty directory",
-   "command": "python -m pytest tools/measure-guard/tests/test_suitefloor.py -q",
    "result": "PASS"
   },
   {
+   "command": "python -m pytest tools/measure-guard/tests/test_suitefloor.py -q",
    "id": "TST-0350-T2",
    "name": "below-minimum run FAILS (2 collected, floor 100)",
-   "command": "python -m pytest tools/measure-guard/tests/test_suitefloor.py -q",
    "result": "PASS"
   },
   {
+   "command": "python -m pytest tools/measure-guard/tests/test_suitefloor.py -q",
    "id": "TST-0350-T3",
    "name": "normal run passes, so the floor is not a nuisance gate",
-   "command": "python -m pytest tools/measure-guard/tests/test_suitefloor.py -q",
    "result": "PASS"
   },
   {
+   "command": "python -m pytest tools/measure-guard/tests/test_suitefloor.py -q",
    "id": "TST-0350-T4",
    "name": "require_nonempty rejects an empty measurement (capability tested; NO production caller yet)",
-   "command": "python -m pytest tools/measure-guard/tests/test_suitefloor.py -q",
    "result": "PASS"
   },
   {
+   "command": "python -m pytest tools/measure-guard/tests/test_suitefloor.py -q",
    "id": "TST-0350-T5",
    "name": "collection ERROR counts as zero",
-   "command": "python -m pytest tools/measure-guard/tests/test_suitefloor.py -q",
    "result": "PASS"
   }
  ],
- "negative_controls": [
-  {
-   "id": "TST-0350-NC1",
-   "kind": "mutation",
-   "description": "Raise the platform floor to 99999 and invoke the CLI the CI step calls: exit 1 with FAILED:suite-floor, then exit 0 once restored. Without this the gate could be a no-op that never fails.",
-   "fired_on_bad_state": true,
-   "silent_on_good_state": true,
-   "bad_state_output": "FAILED:suite-floor 1 suite(s) below floor",
-   "good_state_output": "SUCCESS:suite-floor 1 suite(s) at or above floor"
-  },
-  {
-   "id": "TST-0350-NC2",
-   "kind": "absent-input",
-   "description": "Point the collector at an empty directory: pytest exits 0 over nothing, so the floor must reject it. This is the primary defect being guarded.",
-   "fired_on_bad_state": true,
-   "silent_on_good_state": true
-  },
-  {
-   "id": "TST-0350-NC3",
-   "kind": "known-broken-fixture",
-   "description": "A fixture module with an unresolvable import: a collection error must count as 0, not as a small healthy suite - the clone defect in miniature.",
-   "fired_on_bad_state": true,
-   "silent_on_good_state": true
-  }
- ],
- "downstream_consumers": [
-  {
-   "consumer": ".github/workflows/quality.yml gate-tests-coverage (platform)",
-   "artifact_path": "tools/measure-guard/suitefloor.py",
-   "executed": false,
-   "read_ok": false,
-   "probe": {
-    "role": "source",
-    "method": "static-analysis",
-    "command": "git -C C:\\Users\\Prekzursil\\source\\ast-integrate grep -n suitefloor -- .github/workflows/quality.yml",
-    "raw_output": ".github/workflows/quality.yml:405:      # nothing, both derived from defects measured on this repo. `suitefloor` gives every\n.github/workflows/quality.yml:425:          python tools/measure-guard/suitefloor.py --suite command-center\n.github/workflows/quality.yml:1386:      # Delegated to tools/measure-guard/suitefloor.py rather than inlined here. The first version\n.github/workflows/quality.yml:1393:        run: python tools/measure-guard/suitefloor.py --suite platform",
-    "fingerprint": "be9514faaf8bce6d",
-    "exit_code": 0
-   }
-  }
- ],
- "residual_unknowns": [
-  {
-   "claim": "Only two suites are registered; every other suite in the repo has NO declared floor, which TST-0350 itself calls a finding.",
-   "verdict": "PARTIAL",
-   "settling_experiment": "Enumerate every pytest invocation in .github/workflows/*.yml, diff against SUITES, and register a floor for each."
-  },
-  {
-   "claim": "REVIEW FINDING APPLIED - THE FLOOR HAD A BYPASS ONE TEST WIDE. Measured by the reviewer rather than argued: platform holds 3,946 against a floor of 3,900, so 46 of slack, and platform/corpus holds 45. Running pytest platform --ignore=platform/corpus --collect-only gives 3,901, which cleared the floor and reported SUCCESS - an ENTIRE PACKAGE could vanish unnoticed, which is precisely the case the suitefloor docstring claims the floor catches. Structural rather than an off-by-one: the slack needed to avoid being a nuisance gate is necessarily wider than the smallest package. CLOSED with six per-package floors checked in addition to the whole-suite total, and a breach now NAMES the package.",
-   "verdict": "CONFIRMED",
-   "settling_experiment": "Already settled: 24 tests pass, including the bypass regression and its healthy-tree pair; suitefloor --suite platform reports 3946 >= floor 3900 (+6 package floors)."
-  },
-  {
-   "claim": "REVIEW FINDING APPLIED - CI wiring 1 was fragile, though the reviewer prediction that it WILL GO RED is REFUTED as stated. It ran suitefloor --all, which includes platform and therefore needs jsonschema, while installing only pytest. It PASSED in CI run 31410194562 because earlier steps in that job install jsonschema-4.26.0 transitively - the reviewer flagged exactly this residual as UNVERIFIED. Real defect, wrong prediction: the step depended on an unrelated sibling step, and on a jsonschema version DIFFERENT from the 4.25.1 the test-platform job pins, so the two jobs would measure platform under different validators. Scoped to --suite command-center; platform stays covered by test-platform with pinned deps.",
-   "verdict": "PARTIAL",
-   "settling_experiment": "Confirm on the next CI run that gate-tests-coverage measure-guard reports only the command-center suite while test-platform still reports platform."
-  },
-  {
-   "claim": "REVIEW FINDING APPLIED - the suitefloor module docstring still asserted in the present tense that require_nonempty generalises the rule past pytest, after the receipt had retracted that sentence. The receipt and the shipped code disagreed, so a reader of the code got the retracted claim. The docstring now states that the capability exists with zero production callers and points at this receipt.",
-   "verdict": "CONFIRMED",
-   "settling_experiment": "Already settled: tools/measure-guard/suitefloor.py docstring."
-  },
-  {
-   "claim": "OVERCLAIM I CORRECTED BEFORE REVIEW: an earlier draft of this receipt said the empty-input rule was 'generalised past pytest'. require_nonempty is tested but has ZERO production callers (git grep, excluding its own module and tests), so the CAPABILITY exists while the RULE is generalised nowhere. Scoped rather than satisfied by adding a token call site, which would be laundering the sentence instead of fixing it.",
-   "verdict": "PARTIAL",
-   "settling_experiment": "Wire require_nonempty into a real consumer that measures over a collection - reconcile_delivery.py already fails closed on an empty catalog and an empty git ls-files with its own inline raise - then re-run this grep and expect a non-zero caller count."
-  },
-  {
-   "claim": "The floor margins (3900 vs 3946; 55 vs 61) are judgement, not derived from a measured churn rate.",
-   "verdict": "NOT-CHECKED",
-   "settling_experiment": "Measure collected-count deltas per commit over the last 50 commits and set each margin above the largest single-commit decrease."
-  }
- ],
- "failure": {
-  "classification": [
-   "blocked-on-independent-review"
-  ],
-  "reason": "All required tests pass and three negative controls each fired on the bad state and were silent on the good one. SUCCESS is still forbidden: no independent reviewer has recorded PASS, and the wired CI step has not yet executed on a runner, so condition 12 is unsatisfied.",
-  "blocked_on": "independent reviewer assignment; first CI execution of the wired step"
- }
+ "timestamps": {
+  "ended_at": "2026-08-10T16:58:00Z",
+  "started_at": "2026-08-10T16:03:00Z"
+ },
+ "unit_id": "TST-0350"
 }

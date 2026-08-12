@@ -11,8 +11,11 @@ is recalled. Two residuals carry inline UNVERIFIED tags with their settling expe
 
 1. **The grounding's split is CONFIRMED by re-execution** — 51 blocked, **41 rail-blocked**, 10
    satisfiable, 7 review-only. Not inherited; both scripts were re-run.
-2. **All 7 review-only units are now REVIEWED and RECEIPTED** by an independent fresh-context
-   reviewer that did not author them. 7 of 7 return **PASS**, each on an executed falsification.
+2. **All 10 satisfiable units are now REVIEWED and RECEIPTED** by an independent fresh-context
+   reviewer that did not author them. 10 of 10 return **PASS**, each on an executed falsification —
+   the 7 review-only rows plus `IMP-0440`, `TST-0334` and `TST-0350`, each reviewed on its own
+   distinct requirement (a fourth blob-route file, a second Windows shell, and a reproduction of
+   the declared NC2 both-states control).
 3. **But none of them can reach DELIVERED, and the reason is not the reviewer.** The schema
    hard-rejects `state=SUCCESS` while `manifest_registration.registered` is false, and nothing in
    the repo can set it. **R2 of the grounding plan is REFUTED** (§5).
@@ -74,6 +77,9 @@ both-states detector control, from the RAW evidence rather than the unit's own c
 | AUD-0041 | **PASS** | 7 files / 14 jobs / 4 conditional steps / 2 conditional jobs exact; the 143→148 delta decomposes exactly to `test-python` 63→66 and `skill-dual-write` 9→11 with workflow commits after `ended_at`; dirty `quality.yml` ruled out (105 steps in worktree **and** HEAD blob) | LOW — no snapshot caveat |
 | AUD-0051 | **PASS** | 1-of-43 gated confirmed by disk rglob **and** the git index; **42 of 42** ungated rows literally carry `NOT-CHECKED` | none |
 | CC-0002 | **PASS** | the fifth mutant is the **copy-paste receipt** — schema-valid sentinel bound to a *different* real unit — targeting **C4, the one `admit()` condition no author mutant reaches**. REJECTED on C4 in **both** sentinel grammars; golden still ACCEPTED; shipped `--self-test` still exits 0 | none (2 observations) |
+| IMP-0440 | **PASS** | the three-route comparison re-measured on **four** files the unit never used. Control stronger than the row's own: the byte delta equals the archive CRLF count **exactly** (621/621, 220/220, 205/205, 100/100), plus a newline-free negative case | LOW — T5 debt count is a mention-count |
+| TST-0334 | **PASS** | probe re-run under **both** Windows shells: 20 fields compared, **0 differing**, all 12 route fields identical, markers identical, both rc=0. Absent-path control exits rc=1 rather than returning empty bytes | LOW — its "committed consumer" blocker is **stale** |
+| TST-0350 | **PASS** | declared **NC2 reproduced in-process, both directions**: `collect_count` over an empty dir returns 0 and `require_nonempty(0)` **raises**; on the real suite 3948 ≥ 3900 it stays **silent** and `check_suite` returns ok | none |
 
 ### 3a. Why CC-0002's mutant is the right one
 
@@ -106,6 +112,18 @@ reducer. Filed for another owner.
    `edge_count=265` is resolver-policy dependent. The **cycle** is invariant.
 4. **AUD-0041 · unscoped snapshot.** 143 was right at `ended_at`; today 148. AUD-0006 labels its own
    count a snapshot under INDEX CONTENTION; this row does not.
+5. **TST-0334 · LOW · stale blocker.** Its `blocked_on` still names "a committed consumer of
+   `blobread`" as outstanding. **No longer true:** an AST import check finds **6** real importers,
+   **5 non-test**, including the CI-wired `tools/measure-guard/unitgate.py` and `vendordrift.py`.
+   `git grep` matched 15 candidates, so **9 were mention-only** — the use-vs-mention correction
+   applied to the reviewer's own first probe.
+6. **IMP-0440 · LOW · mention-count debt.** T5's "files that implement their own `cat-file` read"
+   is now 62 by `git grep -l`, but that is a *mention* count by the same method the row used for
+   its 37. **UNVERIFIED [likely, 55-80%]** that the true debt is near 62. *Settling experiment:*
+   run the AST import check over those 62. Either way T5 is not closed.
+
+None of the six refutes a headline. All six are the "sentence wider than its evidence" class — fix
+the sentence, disclose the residual.
 
 ### 3c. Reviewer-instrument honesty
 
@@ -116,6 +134,22 @@ two hypotheses" failure), a vendored-path filter stricter than the claim's own w
 `tomllib` parse reading only `project.dependencies`. Comparing **sets instead of counts** resolved
 every one. A sixth: the CC-0002 mutant was initially not schema-valid, so it died at C2 and never
 reached the condition it was designed to test. All are recorded in the receipts, not hidden.
+
+Reviewing the last three added **four more**, each caught before it became a false finding:
+
+1. The cross-shell comparison ran `json.loads` over the whole stdout. `blobread` prints JSON **then**
+   a `SUCCESS:` marker, so it raised `Extra data`, both parses returned `None`, the equality guard
+   evaluated `False` — and a **MEDIUM cross-shell-divergence finding that does not exist** was one
+   step from being filed against TST-0334.
+2. The IMP-0440 control predicted `git archive` diverges only where the **worktree** has CRLF.
+   **Measured wrong:** an all-LF file still returned 220 CRLF, because archive applies export-time
+   conversion regardless. Replaced with the exact byte-delta test, which does discriminate.
+3. The first NC2 attempt used a temp dir **outside** the repo, died on `FileNotFoundError WinError 2`
+   and measured nothing. Reporting its silence as a pass would have been the inert-control failure.
+   The re-run also had to fix two wrong signatures (`collect_count` returns a tuple).
+4. The corrected AUD-0006 decomposition checker searched the **whole** summary, where
+   `repos_scanned=1` supplied a standalone "1" — so it passed on the broken text too. **Its own
+   both-states control caught that**, which is the only reason it is not still wrong.
 
 ## 4. Rail-blocked remainder — the price of `codex login`
 
