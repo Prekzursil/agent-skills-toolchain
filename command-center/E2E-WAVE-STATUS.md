@@ -504,6 +504,21 @@ edited. Both ids are recorded here because a chat message is not a durable surfa
   (55-80%)**: four sibling agents were writing transcripts continuously throughout this pass, and
   a file growing under the scanner produces exactly this verdict. Settling experiment: re-run the
   sweep when the estate is quiet, when a transcript is not being appended to.
+  - **[REVIEW, second observation — recorded, not actioned.]** The identical notice fired again at
+    the end of the SYNTHESIS-REVIEW pass, hours later and from a different agent:
+    `classification=UNKNOWN kind=transcript id=sha256:839ca3224e60`, same wording — *unreadable,
+    linked, oversized, or changed during inspection*. **Still UNKNOWN, still not reported clean,
+    and no credential was read, printed or modified** (AGENTS.md §9 — lifecycle is the owner's).
+    Two things this adds and two it does not. It adds: the id is **stable across two independent
+    scans**, so both passes hit the same target, and it is not a one-off artifact of a single
+    sweep; and the estate was still not quiet — four sibling agents (`main`, `bleed-audit`,
+    `retire-crux`, `routing-hermetic`) were live for this pass too, which is consistent with the
+    growing-transcript hypothesis without confirming it. It does **not** add: any resolution of
+    the id to a path (I still cannot), nor any read of a transcript, nor any narrowing of the
+    band — **likely (55-80%) benign, unchanged**. A stable id across a *changing* file suggests
+    the id keys on identity rather than content, which is a testable side-claim and is
+    **UNVERIFIED**. The settling experiment is unchanged and still unrun: re-run the sweep with
+    no sibling agent writing.
 - **`sha256:35a06ea53b67` — kind=artifact, classification=POTENTIAL-CREDENTIAL.** Diagnosed as a
   **use-vs-mention false positive**, the same class that produced four false findings earlier in
   this wave. I had written a throwaway secret-scanner to `%TEMP%` whose CONTROL fixtures included
