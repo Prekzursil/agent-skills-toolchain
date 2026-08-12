@@ -1,0 +1,30 @@
+test(casualty): verify the integration from a real clone, not just this worktree
+
+R-I1 said the ubuntu runner was unverified and left it there. This narrows it with a
+measurement instead of an argument.
+
+_int_freshclone.py clones HEAD into a throwaway directory, asserts the clone is at the commit
+under test, and runs the three CI commands there:
+
+  clone HEAD : 5e3c22710af7344262fe015ab4c06aa9f7ddb9d2
+  repo  HEAD : 5e3c22710af7344262fe015ab4c06aa9f7ddb9d2   SAME=True
+  PASS pytest        rc=0  32 passed in 2.42s
+  PASS guard-strict  rc=0  SUCCESS:casualty-guard 6 probe(s) green
+  PASS suitefloor    rc=0  SUCCESS:suite-floor 1 suite(s) at or above floor
+
+Working-tree green is not clone green, and this program has the receipts: 3,910 passed in a
+tree against 31 collection errors from a clone of the same commit, and this lane's own round 2
+found a Windows checkout converting two LF blobs to CRLF and breaking both published digests
+while the worktree looked fine. The guard passing STRICT in the clone also re-confirms that
+round 2's `-text` pinning is holding -- P6 runs verify_blob_parity, so a re-converted checkout
+would have failed there.
+
+What is left of R-I1 is now precisely one thing and the dossier says so: ubuntu-latest with
+Python 3.11 against Windows with 3.14. Path, packaging, tracking and EOL causes are ruled out.
+
+`_`-prefixed on purpose so the guard's inventory walk correctly ignores it -- it is a one-off
+verification probe, not a shipped instrument, and dispositioning it would have been the wrong
+answer to a question P2 was never asking.
+
+Also: verify_ci_parity re-run at 10 blobs (was 9 before it was itself committed) -- check rc 0,
+format rc 0, 0 CRLF, control fires.

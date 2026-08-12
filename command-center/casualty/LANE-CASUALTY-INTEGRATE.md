@@ -138,12 +138,28 @@ written.
 Honestly scoped. Nothing below is hidden in a trailing section it is not also flagged at.
 
 - **R-I1 — CI has not actually run yet. `almost-certain (90-99%)` it passes; NOT `measured`.**
-  Everything above was executed locally on Windows plus a CI-parity pass over the *committed
-  blobs* with the repo's `ruff.toml` and a firing control (`SUCCESS:ci-parity 9 committed
-  blob(s) clean`). What is unverified is the ubuntu runner itself. Settling experiment: open a
-  PR and read the `gate-tests-coverage command-center` step. Two residual risks I can name:
-  the runner's Python is 3.11 against 3.14 here, and `probe_receipts` needs the two receipts
-  tracked at HEAD (they are — `verify_blob_parity` confirms).
+  Narrowed after this section was first written, by a real fresh clone rather than an argument.
+  `_int_freshclone.py` clones HEAD (`5e3c2271`) into a throwaway dir, confirms the clone is at
+  the same commit, and runs the three CI commands *there*:
+
+  ```
+  clone HEAD : 5e3c22710af7344262fe015ab4c06aa9f7ddb9d2
+  repo  HEAD : 5e3c22710af7344262fe015ab4c06aa9f7ddb9d2   SAME=True
+  PASS pytest        rc=0  32 passed in 2.42s
+  PASS guard-strict  rc=0  SUCCESS:casualty-guard 6 probe(s) green
+  PASS suitefloor    rc=0  SUCCESS:suite-floor 1 suite(s) at or above floor
+  SUCCESS:int-freshclone
+  ```
+
+  That kills the working-tree-green-vs-clone-green class outright (this program measured 3,910
+  passed against 31 collection errors from a clone of the same commit; this lane's round 2
+  measured a checkout converting two LF blobs to CRLF and breaking both published digests).
+  Plus a CI-parity pass over the *committed blobs* with the repo's `ruff.toml` and a firing
+  control: `SUCCESS:ci-parity 10 committed blob(s) clean`, 0 CRLF.
+  **What remains genuinely unverified is the runner itself: ubuntu-latest and Python 3.11,
+  against Windows and 3.14 here.** Settling experiment: open a PR and read the
+  `gate-tests-coverage command-center` step. The concrete risk I can name is a 3.11/3.14
+  difference; the clone run rules out path, packaging, tracking and EOL causes.
 - **R-I2 — nothing prevents a human deleting the CI line.** The red-proof proves the guard
   *detects* a missing wire; it cannot *enforce* one, because if the line goes, the guard stops
   running in CI. That is a branch-protection / CODEOWNERS question, not a script question. The
@@ -191,6 +207,7 @@ python command-center/casualty/casualty_guard.py --selftest  # per-probe both-st
 python command-center/casualty/integration_redproof.py     # SUCCESS:integration-redproof 4 controls
 python tools/measure-guard/suitefloor.py --suite casualty  # SUCCESS:suite-floor
 python command-center/casualty/verify_ci_parity.py         # SUCCESS:ci-parity (blobs, not worktree)
+python command-center/casualty/_int_freshclone.py          # SUCCESS:int-freshclone (real clone)
 bash .quality/charter_check.sh                             # OK -- 6 gates consistent
 ```
 
